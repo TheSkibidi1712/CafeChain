@@ -1,12 +1,13 @@
 using System.Security.Claims;
 using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Interfaces.Cloudinaries;
 using CafeChain.Application.Services.Admin.Staffs;
 using CafeChain.Infrastrusture.Interfaces.Admin.Staffs;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Staffs;
 using CafeChain.ViewModels.Admin.Staffs;
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace CafeChain.Tests
@@ -50,7 +51,6 @@ namespace CafeChain.Tests
                 StoreId = StoreId,
                 FullName = "Nguyễn Ca Trưởng",
                 Active = true,
-                BaseSalary = 10_000_000m,
                 Account = new Account
                 {
                     AccountId = AccountId,
@@ -68,8 +68,18 @@ namespace CafeChain.Tests
                     new StaffScope { StaffId = StaffId, ScopeTypeId = 5, ScopeRefId = StoreId }
                 },
                 StaffPhones = new List<StaffPhone>(),
-                StaffAddresses = new List<StaffAddress>(),
-                StaffBanks = new List<StaffBank>(),
+                StaffAddresses = new List<StaffAddress>
+                {
+                    new StaffAddress
+                    {
+                        StaffId = StaffId,
+                        Address = "123 Duong So 4",
+                        ProvinceId = 1,
+                        DistrictId = 2,
+                        WardId = 3,
+                        IsDefault = true
+                    }
+                },
             };
         }
 
@@ -82,15 +92,15 @@ namespace CafeChain.Tests
                 FullName = "Nguyễn Ca Trưởng",
                 Email = email,
                 NewPassword = newPassword,
-                BaseSalary = 10_000_000m,
                 StoreId = StoreId,
                 SelectedRoleId = 8, // Ca trưởng (ShiftSupervisor)
                 ScopeTypeId = 5,
                 ScopeRefId = StoreId,
                 Phones = new List<string>(),
-                Addresses = new List<string>(),
-                Banks = new List<StaffBankVM>(),
-                Dependents = new List<StaffDependentVM>(),
+                ProvinceId = 1,
+                DistrictId = 2,
+                WardId = 3,
+                Address = "123 Duong So 4",
                 CurrentAvatarUrl = "/Images/avatars/avtdf.jpg",
                 Active = true
             };
@@ -107,27 +117,24 @@ namespace CafeChain.Tests
             repo.Setup(r => r.GetStaffByIdAsync(StaffId)).ReturnsAsync(staff);
             repo.Setup(r => r.EmailExistsAsync(It.IsAny<string>(), AccountId)).ReturnsAsync(emailExists);
             repo.Setup(r => r.DefaultPhoneExistsAsync(It.IsAny<string>(), StaffId)).ReturnsAsync(false);
-            repo.Setup(r => r.TaxCodeExistsAsync(It.IsAny<string>(), StaffId)).ReturnsAsync(false);
             repo.Setup(r => r.CCCDExistsAsync(It.IsAny<string>(), StaffId)).ReturnsAsync(false);
-            repo.Setup(r => r.UpdateStaffTransactionAsync(
+            repo.Setup(r => r.IsAddressHierarchyValidAsync(1, 2, 3)).ReturnsAsync(true);
+            repo.Setup(r => r.UpdateStaffProfileTransactionAsync(
                     It.IsAny<Staff>(),
                     It.IsAny<Account>(),
-                    It.IsAny<List<AccountRole>>(),
-                    It.IsAny<List<StaffScope>>(),
                     It.IsAny<List<StaffPhone>>(),
-                    It.IsAny<List<StaffAddress>>(),
-                    It.IsAny<List<StaffBank>>(),
-                    It.IsAny<List<StaffDependent>>()))
-                .Callback<Staff, Account, List<AccountRole>, List<StaffScope>, List<StaffPhone>, List<StaffAddress>, List<StaffBank>, List<StaffDependent>>(
-                    (s, account, roles, scopes, phones, addresses, banks, dependents) =>
+                    It.IsAny<List<StaffAddress>>()))
+                .Callback<Staff, Account, List<StaffPhone>, List<StaffAddress>>(
+                    (s, account, phones, addresses) =>
                     {
-                        capture.Value = new CapturedUpdate(s, account, roles);
+                        capture.Value = new CapturedUpdate(s, account, new List<AccountRole>());
                     })
                 .Returns(Task.CompletedTask);
 
-            var env = new Mock<IWebHostEnvironment>();
+            var cloudinary = new Mock<ICloudinaryService>();
             var scope = new Mock<IScopeAuthorizationService>();
-            var service = new AdminStaffService(repo.Object, env.Object, scope.Object);
+            var logger = new Mock<ILogger<AdminStaffService>>();
+            var service = new AdminStaffService(repo.Object, cloudinary.Object, scope.Object, logger.Object);
             return (service, repo, capture);
         }
 
@@ -145,15 +152,11 @@ namespace CafeChain.Tests
             Assert.Equal("real.supervisor@gmail.com", capture.Value!.Account.Email);
             Assert.Equal(OriginalPasswordHash, capture.Value.Account.PasswordHash);
             repo.Verify(r => r.EmailExistsAsync("real.supervisor@gmail.com", AccountId), Times.Once);
-            repo.Verify(r => r.UpdateStaffTransactionAsync(
+            repo.Verify(r => r.UpdateStaffProfileTransactionAsync(
                 It.IsAny<Staff>(),
                 It.IsAny<Account>(),
-                It.IsAny<List<AccountRole>>(),
-                It.IsAny<List<StaffScope>>(),
                 It.IsAny<List<StaffPhone>>(),
-                It.IsAny<List<StaffAddress>>(),
-                It.IsAny<List<StaffBank>>(),
-                It.IsAny<List<StaffDependent>>()), Times.Once);
+                It.IsAny<List<StaffAddress>>()), Times.Once);
         }
 
         [Fact]
@@ -168,15 +171,11 @@ namespace CafeChain.Tests
             Assert.False(result.IsSuccess);
             Assert.Equal("Email đã tồn tại trong hệ thống.", result.Message);
             Assert.Null(capture.Value);
-            repo.Verify(r => r.UpdateStaffTransactionAsync(
+            repo.Verify(r => r.UpdateStaffProfileTransactionAsync(
                 It.IsAny<Staff>(),
                 It.IsAny<Account>(),
-                It.IsAny<List<AccountRole>>(),
-                It.IsAny<List<StaffScope>>(),
                 It.IsAny<List<StaffPhone>>(),
-                It.IsAny<List<StaffAddress>>(),
-                It.IsAny<List<StaffBank>>(),
-                It.IsAny<List<StaffDependent>>()), Times.Never);
+                It.IsAny<List<StaffAddress>>()), Times.Never);
         }
 
         [Fact]

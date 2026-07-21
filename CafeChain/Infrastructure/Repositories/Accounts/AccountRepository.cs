@@ -54,6 +54,9 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
                     x.Email.ToLower() == email);
         }
 
+        public Task<Account?> GetAccountByIdAsync(int accountId) =>
+            _context.Accounts.SingleOrDefaultAsync(x => x.AccountId == accountId);
+
         public async Task<Account> CreateAccountForExistingCustomerAsync(Customer customer, string email, string passwordHash)
         {
             using var tran = await _context.Database.BeginTransactionAsync();

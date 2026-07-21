@@ -194,8 +194,8 @@ public sealed class StoreMenuPricingIssue162Tests : IntegrationTestBase
             new Account { AccountId = OwnerId, Email = "owner162@test.local", PasswordHash = "x", Active = true, CreatedAt = DateTime.UtcNow },
             new Account { AccountId = ManagerId, Email = "manager162@test.local", PasswordHash = "x", Active = true, CreatedAt = DateTime.UtcNow });
         context.Staffs.AddRange(
-            new Staff { StaffId = OwnerId, AccountId = OwnerId, StoreId = StoreA, FullName = "Owner", Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2, SalaryType = 1 },
-            new Staff { StaffId = ManagerId, AccountId = ManagerId, StoreId = StoreA, FullName = "Manager", Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2, SalaryType = 1 });
+            new Staff { StaffId = OwnerId, AccountId = OwnerId, StoreId = StoreA, FullName = "Owner", Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2},
+            new Staff { StaffId = ManagerId, AccountId = ManagerId, StoreId = StoreA, FullName = "Manager", Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2});
         context.AccountRoles.AddRange(
             new AccountRole { AccountId = OwnerId, RoleId = ownerRole.RoleId },
             new AccountRole { AccountId = ManagerId, RoleId = managerRole.RoleId });

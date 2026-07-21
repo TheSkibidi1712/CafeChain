@@ -180,7 +180,7 @@ public sealed class DrinkSizeProfitabilitySqlServerTests : IAsyncLifetime
         var ingredient = new Ingredient { Code = "PF-SQL-ING", Name = "PF SQL Ingredient", BaseUnitId = _unitId, Active = true };
         var drinkSize = new DrinkSize { DrinkId = _drinkId, SizeId = _sizeId, Price = 30_000, Active = true, UpdatedAtUtc = DateTime.UtcNow };
         var role = await context.Roles.FirstAsync(x => x.Name == RoleConstants.BusinessOwner);
-        var staff = new Staff { AccountId = account.AccountId, FullName = "PF SQL Owner", StoreId = _storeId, Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2, SalaryType = 1 };
+        var staff = new Staff { AccountId = account.AccountId, FullName = "PF SQL Owner", StoreId = _storeId, Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2};
         context.AddRange(ingredient, drinkSize, staff);
         context.AccountRoles.Add(new AccountRole { AccountId = account.AccountId, RoleId = role.RoleId });
         await context.SaveChangesAsync();

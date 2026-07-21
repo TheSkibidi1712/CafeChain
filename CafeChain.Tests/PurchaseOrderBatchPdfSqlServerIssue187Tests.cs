@@ -79,7 +79,7 @@ public sealed class PurchaseOrderBatchPdfSqlServerIssue187Tests : IAsyncLifetime
         var account = new Account { Email = Guid.NewGuid() + "@test.local", PasswordHash = "x", Active = true, CreatedAt = now };
         db.AddRange(store, ingredient, supplier, account);
         await db.SaveChangesAsync();
-        var staff = new Staff { AccountId = account.AccountId, StoreId = store.StoreId, FullName = "Owner 187 SQL", Active = true, CreatedAt = now, BaseSalary = 0 };
+        var staff = new Staff { AccountId = account.AccountId, StoreId = store.StoreId, FullName = "Owner 187 SQL", Active = true, CreatedAt = now};
         var offer = new IngredientSupplier
         {
             IngredientId = ingredient.IngredientId, SupplierId = supplier.SupplierId, UnitId = unit.UnitId,

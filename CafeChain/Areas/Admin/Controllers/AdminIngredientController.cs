@@ -1,11 +1,14 @@
 using CafeChain.Application.DTOs.Admin.Ingredients;
 using CafeChain.Application.Interfaces.Admin.Ingredients;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
 using CafeChain.ViewModels.Admin.Ingredients;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
+    [RequirePermission(PermissionConstants.IngredientView)]
     public class AdminIngredientController : AdminBaseController
     {
         private readonly IAdminIngredientService _service;
@@ -37,6 +40,8 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ================= CREATE =================
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.IngredientCreate)]
         public async Task<IActionResult> Create([FromBody] AdminIngredientCreateDTO dto)
         {
             if (!ModelState.IsValid)
@@ -67,6 +72,8 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ================= UPDATE =================
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.IngredientUpdate)]
         public async Task<IActionResult> Update([FromBody] AdminIngredientUpdateDTO dto)
         {
             if (!ModelState.IsValid)
@@ -85,6 +92,8 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ================= TOGGLE =================
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.IngredientToggleStatus)]
         public async Task<IActionResult> ToggleStatus(int id)
         {
             try

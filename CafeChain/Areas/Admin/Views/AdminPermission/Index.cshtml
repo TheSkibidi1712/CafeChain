@@ -7,7 +7,9 @@
     <link rel="stylesheet" href="~/css/Admin/Permissions/admin-permissions.css" asp-append-version="true" />
 }
 
+<form id="permissionAntiForgeryForm" class="d-none">@Html.AntiForgeryToken()</form>
 <div class="perm-page"
+     data-initial-staff-id="@Context.Request.Query["staffId"]"
      data-roles-url="@Url.Action(nameof(AdminPermissionController.Roles), "AdminPermission", new { area = "Admin" })"
      data-staff-url="@Url.Action(nameof(AdminPermissionController.Staff), "AdminPermission", new { area = "Admin" })"
      data-permissions-url="@Url.Action(nameof(AdminPermissionController.Permissions), "AdminPermission", new { area = "Admin" })"

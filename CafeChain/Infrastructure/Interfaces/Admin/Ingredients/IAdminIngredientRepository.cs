@@ -12,13 +12,13 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Ingredients
 
         Task<bool> IsCodeExists(string code, int? excludeId = null);
         Task<bool> IsNameExists(string name, int? excludeId = null);
+        Task<bool> IsActiveUnitAsync(int unitId);
+        Task<bool> HasBaseUnitDependenciesAsync(int ingredientId);
 
         Task ToggleStatus(int id);
         Task SaveChangesAsync();
 
         // UNIT CONVERSION
         Task<List<Unit>> GetActiveUnitsAsync();
-        Task AddConversionsAsync(List<UnitConversion> conversions);
-        Task ReplaceConversionsAsync(int ingredientId, List<UnitConversion> conversions);
     }
 }

@@ -1,19 +1,17 @@
-using CafeChain.Application.DTOs.Admin.Units;
 using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Application.DTOs.Admin.Ingredients
 {
     public class AdminIngredientCreateDTO
     {
-        [Required]
+        [Required, StringLength(50)]
         public string Code { get; set; }
 
-        [Required]
+        [Required, StringLength(200)]
         public string Name { get; set; }
 
         [Required]
         public int BaseUnitId { get; set; }
 
-        public List<UnitConversionDTO> Conversions { get; set; } = new();
     }
 }

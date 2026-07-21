@@ -1,29 +1,30 @@
 using CafeChain.Application.Interfaces.Admin.Staffs;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
+using CafeChain.Application.Results;
 using CafeChain.ViewModels.Admin.Staffs;
-using CafeChain.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
     public class AdminStaffController : AdminBaseController
     {
         private readonly IAdminStaffService _staffService;
-        private readonly AppDbContext _dbContext;
 
-        public AdminStaffController(IAdminStaffService staffService, AppDbContext dbContext)
+        public AdminStaffController(IAdminStaffService staffService)
         {
             _staffService = staffService;
-            _dbContext = dbContext;
         }
 
         // ==================== HELPER: Gom logic đọc Claims ====================
         private int? GetCurrentManagerStoreId()
         {
-            if (User.IsInRole("Store Manager") && !User.IsInRole("Admin System"))
+            if (User.IsInRole(RoleConstants.StoreManager)
+                && !User.IsInRole(RoleConstants.BusinessOwner)
+                && !User.IsInRole(RoleConstants.SystemAdmin))
             {
                 var storeIdClaim = User.FindFirst("StoreId")?.Value;
                 if (int.TryParse(storeIdClaim, out int sid))
@@ -38,12 +39,14 @@ namespace CafeChain.Areas.Admin.Controllers
             ViewBag.Roles = masterData.Roles;
             ViewBag.Stores = masterData.Stores;
             ViewBag.ScopeTypes = masterData.ScopeTypes;
+            ViewBag.Provinces = masterData.Provinces;
             ViewBag.IsStoreManager = masterData.IsStoreManager;
             ViewBag.CurrentStoreId = masterData.CurrentStoreId;
             ViewBag.CurrentStoreName = masterData.CurrentStoreName;
         }
 
         // ==================== INDEX ====================
+        [RequirePermission(PermissionConstants.StaffView)]
         public async Task<IActionResult> Index(int page = 1, string search = "", int? roleFilter = null)
         {
             var storeId = GetCurrentManagerStoreId();
@@ -55,6 +58,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // ==================== CREATE (POST) ====================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.StaffCreate)]
         public async Task<IActionResult> Create(StaffCreateVM model)
         {
             if (!ModelState.IsValid)
@@ -66,7 +70,15 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var result = await _staffService.CreateStaffAsync(model, User, model.AvatarFile);
+            ServiceResult result;
+            try
+            {
+                result = await _staffService.CreateStaffAsync(model, User, model.AvatarFile);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
 
             if (!result.IsSuccess)
             {
@@ -75,22 +87,31 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             TempData["Success"] = result.Message;
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Index", "AdminPermission", new { area = "Admin", staffId = result.EntityId });
         }
 
         // ==================== EDIT (GET) ====================
+        [RequirePermission(PermissionConstants.StaffUpdate)]
         public async Task<IActionResult> Edit(int id)
         {
-            var model = await _staffService.GetStaffForEditAsync(id);
-            if (model == null) return NotFound();
+            try
+            {
+                var model = await _staffService.GetStaffForEditAsync(id, User);
+                if (model == null) return NotFound();
 
-            await SetViewBagFromMasterData(User);
-            return View(model);
+                await SetViewBagFromMasterData(User);
+                return View(model);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
         }
 
         // ==================== EDIT (POST) ====================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.StaffUpdate)]
         public async Task<IActionResult> Edit(int id, StaffEditVM model)
         {
             if (id != model.StaffId) return BadRequest();
@@ -158,35 +179,6 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             // Cleared number inputs → 0
-            if (IsEmptyInvalidBinding(modelState, nameof(StaffEditVM.BaseSalary)))
-            {
-                model.BaseSalary = 0;
-                modelState.Remove(nameof(StaffEditVM.BaseSalary));
-            }
-
-            if (IsEmptyInvalidBinding(modelState, nameof(StaffEditVM.Allowance)))
-            {
-                model.Allowance = 0;
-                modelState.Remove(nameof(StaffEditVM.Allowance));
-            }
-
-            if (IsEmptyInvalidBinding(modelState, nameof(StaffEditVM.ProbationRate)))
-            {
-                model.ProbationRate = 0;
-                modelState.Remove(nameof(StaffEditVM.ProbationRate));
-            }
-
-            if (IsEmptyInvalidBinding(modelState, nameof(StaffEditVM.OvertimeRate)))
-            {
-                model.OvertimeRate = 0;
-                modelState.Remove(nameof(StaffEditVM.OvertimeRate));
-            }
-
-            if (IsEmptyInvalidBinding(modelState, nameof(StaffEditVM.PrimaryBankIndex)))
-            {
-                model.PrimaryBankIndex = 0;
-                modelState.Remove(nameof(StaffEditVM.PrimaryBankIndex));
-            }
 
             // Nested Dependents[i].DateOfBirth empty
             foreach (var key in modelState.Keys
@@ -198,11 +190,6 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             // Empty optional BHYT fails MinimumLength(10); treat blank as null.
-            if (string.IsNullOrWhiteSpace(model.HealthInsuranceNumber))
-            {
-                model.HealthInsuranceNumber = null;
-                modelState.Remove(nameof(StaffEditVM.HealthInsuranceNumber));
-            }
 
             // Empty string optional text already bound; trim blanks on CCCD/TaxCode left to service.
         }
@@ -239,9 +226,6 @@ namespace CafeChain.Areas.Admin.Controllers
                     nameof(StaffEditVM.ScopeRefId) => "Vui lòng chọn phạm vi / cửa hàng tham chiếu.",
                     nameof(StaffEditVM.StoreId) => "Vui lòng chọn cửa hàng.",
                     nameof(StaffEditVM.DateOfBirth) => "Ngày sinh không hợp lệ.",
-                    nameof(StaffEditVM.BaseSalary) or nameof(StaffEditVM.Allowance)
-                        or nameof(StaffEditVM.ProbationRate) or nameof(StaffEditVM.OvertimeRate)
-                        => "Giá trị số không hợp lệ.",
                     _ => "Giá trị không hợp lệ."
                 };
             }
@@ -264,6 +248,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // ==================== TOGGLE STATUS (AJAX) ====================
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.StaffToggleStatus)]
         public async Task<IActionResult> ToggleStatus(int id)
         {
             try
@@ -279,35 +264,42 @@ namespace CafeChain.Areas.Admin.Controllers
         
         // ==================== MANUAL PASSWORD RESET (AJAX) ====================
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.StaffResetPassword)]
         public async Task<IActionResult> ManualResetPassword([FromBody] ManualResetRequest req)
         {
-            var account = await _dbContext.Accounts.FindAsync(req.AccountId);
-            if (account == null)
-                return Json(new { success = false, message = "Không tìm thấy hồ sơ cá nhân của nhân sự này!" });
-
-            // Using BCrypt to match standard hashing
-            account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
-            
-            _dbContext.Update(account);
-            await _dbContext.SaveChangesAsync();
-
-            return Json(new { success = true, message = "Đã cập nhật mật khẩu mới và mã hóa thành công!" });
+            var result = await _staffService.ResetPasswordAsync(req.AccountId, req.NewPassword, User);
+            return Json(new { success = result.IsSuccess, message = result.Message });
         }
 
         // ==================== DYNAMIC DROPDOWN API ====================
         [HttpGet]
-        [AllowAnonymous]
+        [RequirePermission(PermissionConstants.StaffCreate)]
         public async Task<IActionResult> GetScopeReferences(int scopeTypeId, int? parentId = null)
         {
             try
             {
-                var data = await _staffService.GetScopeReferencesAsync(scopeTypeId, parentId);
+                var data = await _staffService.GetScopeReferencesAsync(scopeTypeId, User, parentId);
                 return Json(data);
             }
             catch
             {
                 return Json(new object[] { });
             }
+        }
+
+        [HttpGet]
+        [RequirePermission(PermissionConstants.StaffCreate)]
+        public async Task<IActionResult> GetDistricts(int provinceId)
+        {
+            return Json(await _staffService.GetDistrictsAsync(provinceId));
+        }
+
+        [HttpGet]
+        [RequirePermission(PermissionConstants.StaffCreate)]
+        public async Task<IActionResult> GetWards(int districtId)
+        {
+            return Json(await _staffService.GetWardsAsync(districtId));
         }
     }
 

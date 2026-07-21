@@ -682,7 +682,7 @@ BEGIN
            planned.PlannedStartAt,
            DATEADD(day,CASE WHEN sh.IsOvernight=1 OR planned.EndTime<=planned.StartTime THEN 1 ELSE 0 END,
                DATEADD(day,DATEDIFF(day,0,ss.WorkDate),CONVERT(datetime2,planned.EndTime))) AS PlannedEndAt,
-           CASE WHEN status.Code='PLANNED' THEN 'SCHEDULED' ELSE status.Code END AS StatusCode,
+           status.Code AS StatusCode,
            CONVERT(bit,CASE WHEN sh.IsOvernight=1 OR planned.EndTime<=planned.StartTime THEN 1 ELSE 0 END) AS IsOvernight,
            'PLANNED_SCHEDULE' AS DataStatus
     FROM dbo.StaffShifts AS ss
@@ -698,7 +698,7 @@ BEGIN
                    CONVERT(datetime2,COALESCE(ss.CustomStartTime,sh.StartTime))) AS PlannedStartAt
     ) AS planned
     WHERE ss.WorkDate>=@FromDate AND ss.WorkDate<DATEADD(day,1,CONVERT(datetime2,@ToDate))
-      AND status.Code IN ('PLANNED','SCHEDULED','CANCELLED')
+      AND status.Code IN ('SCHEDULED','CANCELLED')
     ORDER BY ss.WorkDate DESC,ss.StaffShiftId;
 END;
 GO
@@ -726,7 +726,7 @@ BEGIN
         INNER JOIN dbo.StaffShiftStatuses AS status ON status.StaffShiftStatusId=ss.StatusId
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=sh.StoreId
         WHERE ss.WorkDate>=DATEADD(day,-1,@FromDate) AND ss.WorkDate<DATEADD(day,1,CONVERT(datetime2,@ToDate))
-          AND status.Code IN ('PLANNED','SCHEDULED')
+          AND status.Code='SCHEDULED'
     ),Staffing AS
     (
         SELECT h.HourOfDay,COUNT_BIG(s.StaffShiftId) AS ScheduledStaffCount

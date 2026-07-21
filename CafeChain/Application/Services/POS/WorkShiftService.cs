@@ -1,6 +1,5 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
-using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
@@ -17,7 +16,6 @@ namespace CafeChain.Application.Services.POS
     public class WorkShiftService : IWorkShiftService
     {
         private readonly IWorkShiftRepository _shiftRepo;
-        private readonly IHrAttendanceService _hrAttendanceService;
         private readonly IPOSOrderRepository _posRepo;
         private readonly IOtpChallengeRepository _otpChallengeRepo;
         private readonly IOtpPayloadFingerprintService _otpFingerprint;
@@ -25,14 +23,12 @@ namespace CafeChain.Application.Services.POS
 
         public WorkShiftService(
             IWorkShiftRepository shiftRepo,
-            IHrAttendanceService hrAttendanceService,
             IPOSOrderRepository posRepo,
             IOtpChallengeRepository otpChallengeRepo,
             IOtpPayloadFingerprintService otpFingerprint,
             ILogger<WorkShiftService> logger)
         {
             _shiftRepo = shiftRepo;
-            _hrAttendanceService = hrAttendanceService;
             _posRepo = posRepo;
             _otpChallengeRepo = otpChallengeRepo;
             _otpFingerprint = otpFingerprint;
@@ -47,36 +43,31 @@ namespace CafeChain.Application.Services.POS
                 var startingCash = request.StartingCash;
                 var posTerminalId = request.PosTerminalId;
 
-                if (!await _hrAttendanceService.VerifyRecentCheckInAsync(userId, storeId))
-                {
-                    return ServiceResult.Failure(
-                        "Từ chối truy cập: Vui lòng sử dụng điện thoại cá nhân kết nối Wifi quán và quét khuôn mặt để Chấm công trước khi Nhận ca POS!");
-                }
-
                 var activeShift = await _shiftRepo.GetActiveShiftAsync(userId, storeId);
                 if (activeShift != null)
                 {
                     return ServiceResult.Failure("Bạn đang có một ca làm việc chưa được đóng. Vui lòng đóng ca trước khi nhận ca mới.");
                 }
 
-                var staffShiftToday = await _shiftRepo.GetTodayStaffShiftAsync(userId);
+                var now = DateTime.Now;
+                var staffShiftToday = await _shiftRepo.GetEffectiveStaffShiftAsync(userId, storeId, now);
                 var isLate = false;
                 string scheduledCanonical = "none";
                 string? lateScheduleMessage = null;
 
                 if (staffShiftToday?.Shift != null)
                 {
-                    var today = DateTime.Today;
-                    var shiftStartTime = today.Add(staffShiftToday.Shift.StartTime);
+                    var scheduledStart = staffShiftToday.CustomStartTime ?? staffShiftToday.Shift.StartTime;
+                    var shiftStartTime = staffShiftToday.WorkDate.Date.Add(scheduledStart);
                     scheduledCanonical = shiftStartTime.ToString(
                         "yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture);
-                    var minutesLate = (DateTime.Now - shiftStartTime).TotalMinutes;
+                    var minutesLate = (now - shiftStartTime).TotalMinutes;
 
                     if (minutesLate > OtpConstants.LateOpenThresholdMinutes)
                     {
                         isLate = true;
                         lateScheduleMessage =
-                            $"Ca của bạn bắt đầu lúc {staffShiftToday.Shift.StartTime:hh\\:mm}. Bạn đã trễ hơn {OtpConstants.LateOpenThresholdMinutes} phút.";
+                            $"Ca của bạn bắt đầu lúc {scheduledStart:hh\\:mm}. Bạn đã trễ hơn {OtpConstants.LateOpenThresholdMinutes} phút.";
                     }
                 }
 

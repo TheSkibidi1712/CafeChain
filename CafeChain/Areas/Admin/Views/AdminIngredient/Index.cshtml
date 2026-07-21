@@ -1,4 +1,17 @@
 @model List<CafeChain.Application.DTOs.Admin.Ingredients.AdminIngredientDTO>
+@using System.Security.Claims
+@using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
+@inject IAdminPermissionService IngredientPermissionService
+@{
+    var accountId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsedAccountId)
+        ? parsedAccountId : 0;
+    var permissions = (await IngredientPermissionService.GetEffectivePermissionCodesAsync(accountId)).Data
+        ?? new HashSet<string>(StringComparer.Ordinal);
+    var canCreate = permissions.Contains(PermissionConstants.IngredientCreate);
+    var canUpdate = permissions.Contains(PermissionConstants.IngredientUpdate);
+    var canToggle = permissions.Contains(PermissionConstants.IngredientToggleStatus);
+}
 
 @section Styles {
     <link rel="stylesheet" href="~/css/admin-white-orange-forms.css" asp-append-version="true" />
@@ -28,6 +41,7 @@
 }
 
 <div class="admin-wo-page">
+    <form id="ingredientAntiForgeryForm" class="d-none">@Html.AntiForgeryToken()</form>
 
     
     <div class="page-header">
@@ -40,9 +54,12 @@
                 <p class="mb-0">Danh mục nguyên liệu, đơn vị và quy đổi của hệ thống CafeChain.</p>
             </div>
         </div>
-        <button type="button" class="btn btn-primary d-flex align-items-center gap-2" id="btnCreate">
-            <i class="fas fa-plus"></i> Thêm nguyên liệu
-        </button>
+        @if (canCreate)
+        {
+            <button type="button" class="btn btn-primary d-flex align-items-center gap-2" id="btnCreate">
+                <i class="fas fa-plus"></i> Thêm nguyên liệu
+            </button>
+        }
     </div>
 
     
@@ -140,16 +157,22 @@
                                     }
                                 </td>
                                 <td class="text-center">
+                                    @if (canUpdate)
+                                    {
                                     <button class="action-btn edit-btn me-1"
                                             data-id="@item.IngredientId"
                                             title="Chỉnh sửa">
                                         <i class="fas fa-pen"></i>
                                     </button>
+                                    }
+                                    @if (canToggle)
+                                    {
                                     <button class="action-btn @(item.Active ? "danger" : "success") toggle-btn"
                                             data-id="@item.IngredientId"
                                             title="@(item.Active ? "Tắt hoạt động" : "Bật hoạt động")">
                                         <i class="fas fa-power-off"></i>
                                     </button>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -231,33 +254,11 @@
                 <div class="form-text"><i class="fas fa-info-circle me-1 text-warning"></i>Đây là đơn vị cơ sở để tính toán quy đổi.</div>
             </div>
 
-            
-            <div class="ingredient-conv-section card admin-wo-card mt-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6><i class="fas fa-exchange-alt me-2"></i>Bảng quy đổi đơn vị</h6>
-                    <button class="btn btn-sm btn-primary d-flex align-items-center gap-1" id="btnAddRow">
-                        <i class="fas fa-plus"></i> Thêm dòng
-                    </button>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table m-0">
-                            <thead>
-                                <tr>
-                                    <th>Từ đơn vị</th>
-                                    <th style="width:90px;">Số lượng</th>
-                                    <th>Sang đơn vị</th>
-                                    <th style="width:90px;">Số lượng</th>
-                                    <th style="width:50px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="conversionTable"></tbody>
-                        </table>
-                    </div>
-                    <div id="convEmptyMsg" class="text-center py-3" style="color:#94a3b8;font-size:13px;">
-                        <i class="fas fa-plus-circle me-1"></i> Nhấn "Thêm dòng" để cấu hình quy đổi
-                    </div>
-                </div>
+            <div class="alert alert-light border mt-3 mb-0">
+                Quy đổi đơn vị được quản lý riêng để tránh thay đổi ngoài ý muốn khi sửa nguyên liệu.
+                <a asp-controller="AdminUnitConversion" asp-action="Index" class="alert-link ms-1">
+                    Mở Đơn vị và quy đổi
+                </a>
             </div>
         </div>
 

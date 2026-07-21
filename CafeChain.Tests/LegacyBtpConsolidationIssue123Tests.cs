@@ -1269,7 +1269,6 @@ namespace CafeChain.Tests
                 StoreId = StoreId,
                 Active = true,
                 CreatedAt = DateTime.UtcNow,
-                BaseSalary = 0
             });
             await ctx.SaveChangesAsync();
         }

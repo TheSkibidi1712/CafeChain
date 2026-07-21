@@ -4,7 +4,6 @@ using System.Reflection;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
-using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Services.POS;
 using CafeChain.Areas.Admin.Controllers;
@@ -71,10 +70,9 @@ namespace CafeChain.Tests.POS
         [Fact]
         public void SupervisorApproval_NoUpdatePinEndpoint()
         {
-            Assert.Null(typeof(AttendanceController).GetMethod("UpdatePin"));
-            Assert.Null(typeof(AttendanceController).GetMethod("AuthorizeBypass"));
+            Assert.Null(Type.GetType("CafeChain.Controllers.AttendanceController, CafeChain"));
             Assert.Null(typeof(AdminPOSController).GetMethod("AuthorizeSupervisor"));
-            Assert.Null(typeof(IAttendanceSecurityService).GetMethod("UpdatePinAsync"));
+            Assert.Null(Type.GetType("CafeChain.Application.Interfaces.Attendance.IAttendanceSecurityService, CafeChain"));
         }
 
         [Fact]
@@ -202,7 +200,6 @@ namespace CafeChain.Tests.POS
                 FullName = $"Staff {staffId}",
                 Active = true,
                 CreatedAt = DateTime.UtcNow,
-                BaseSalary = 0,
                 StaffShifts = new System.Collections.Generic.List<StaffShift>()
             });
         }

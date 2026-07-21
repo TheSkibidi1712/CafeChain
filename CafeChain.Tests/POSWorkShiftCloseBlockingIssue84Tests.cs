@@ -1,6 +1,5 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
-using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Services.POS;
 using CafeChain.Data;
@@ -130,7 +129,6 @@ namespace CafeChain.Tests.POS
         {
             return new WorkShiftService(
                 repository,
-                Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
                 Mock.Of<IOtpChallengeRepository>(),
                 Mock.Of<IOtpPayloadFingerprintService>(),

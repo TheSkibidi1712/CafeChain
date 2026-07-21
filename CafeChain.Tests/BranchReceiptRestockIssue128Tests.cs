@@ -853,7 +853,6 @@ namespace CafeChain.Tests
                 FullName = $"Staff {staffId}",
                 Active = true,
                 CreatedAt = DateTime.UtcNow,
-                BaseSalary = 0
             });
         }
     }

@@ -33,7 +33,8 @@
         overrideMatrix: null,
         scopeData: null,
         selectedScopes: [],
-        scopeReferenceCache: new Map()
+        scopeReferenceCache: new Map(),
+        collapsedGroups: { role: new Set(), override: new Set() }
     };
 
     const el = {
@@ -91,6 +92,13 @@
         if (!obj) return fallback;
         const pascal = key.charAt(0).toUpperCase() + key.slice(1);
         return obj[key] !== undefined ? obj[key] : (obj[pascal] !== undefined ? obj[pascal] : fallback);
+    }
+
+    function normalizeSearch(value) {
+        return String(value || "").normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/đ/g, "d").replace(/Đ/g, "D")
+            .toLowerCase().replace(/\s+/g, " ").trim();
     }
 
     function getScopeTypeLabel(scopeType) {
@@ -169,10 +177,14 @@
     }
 
     async function fetchJson(url, options) {
+        const antiForgeryToken = document.querySelector(
+            '#permissionAntiForgeryForm input[name="__RequestVerificationToken"]')?.value;
         const headers = {
             "Accept": "application/json",
             "X-Requested-With": "XMLHttpRequest",
             ...(options && options.body ? { "Content-Type": "application/json" } : {}),
+            ...(options && options.method === "POST" && antiForgeryToken
+                ? { "RequestVerificationToken": antiForgeryToken } : {}),
             ...(options && options.headers ? options.headers : {})
         };
 
@@ -408,15 +420,15 @@
     function renderRolePermissionGroups() {
         const groups = get(state.roleMatrix, "groups", []);
         el.rolePermissionGroups.innerHTML = groups.map(group => `
-            <div class="perm-permission-group" data-group-text="${escapeHtml(`${get(group, "name", "")} ${get(group, "code", "")}`)}">
+            <div class="perm-permission-group" data-group-id="${get(group, "permissionGroupId", 0)}" data-group-text="${escapeHtml(normalizeSearch(`${get(group, "name", "")} ${get(group, "code", "")}`))}">
                 <button type="button" class="perm-group-head" data-action="toggle-group">
                     <span><i class="fas fa-folder"></i> ${escapeHtml(get(group, "name", ""))}</span>
                     <i class="fas fa-chevron-up"></i>
                 </button>
                 <div class="perm-group-body">
                     ${get(group, "permissions", []).map(permission => `
-                        <label class="perm-check-row perm-permission-row" data-permission-text="${escapeHtml(`${get(permission, "code", "")} ${get(permission, "name", "")}`)}">
-                            <input type="checkbox" class="role-permission-check" value="${get(permission, "permissionId", "")}" ${get(permission, "isGranted", false) ? "checked" : ""} />
+                        <label class="perm-check-row perm-permission-row" data-permission-text="${escapeHtml(normalizeSearch(`${get(permission, "code", "")} ${get(permission, "name", "")} ${get(permission, "description", "")}`))}" title="${escapeHtml(get(permission, "readOnlyReason", ""))}">
+                            <input type="checkbox" class="role-permission-check" value="${get(permission, "permissionId", "")}" ${get(permission, "isGranted", false) ? "checked" : ""} ${get(permission, "canChange", true) ? "" : "disabled"} />
                             <span class="perm-permission-copy">
                                 <span class="perm-permission-code">${escapeHtml(get(permission, "code", ""))}</span>
                                 <span class="perm-permission-name">${escapeHtml(get(permission, "name", ""))}</span>
@@ -426,7 +438,13 @@
                 </div>
             </div>
         `).join("");
+        const hasMutablePermission = document.querySelector(".role-permission-check:not(:disabled)") !== null;
+        el.saveRolePermissions.disabled = !hasMutablePermission;
+        el.saveRolePermissions.title = hasMutablePermission
+            ? ""
+            : "Bạn không có permission nào có thể thay đổi trong vai trò này.";
         updateSelectedPermissionCount();
+        filterRolePermissions();
     }
 
     function updateSelectedPermissionCount() {
@@ -443,11 +461,12 @@
 
         setButtonBusy(button, true, "Đang lưu...");
         try {
-            await fetchJson(endpoint(`SaveRolePermissions?roleId=${state.selectedRoleId}`),
-            {
-                method: "POST",
-                body: JSON.stringify({ permissionIds })
-            });
+            await AdminMutationGuard.run(`role-permissions-${state.selectedRoleId}`, button, () =>
+                fetchJson(endpoint(`SaveRolePermissions?roleId=${state.selectedRoleId}`),
+                {
+                    method: "POST",
+                    body: JSON.stringify({ permissionIds })
+                }));
             notifySuccess("Đã lưu phân quyền vai trò");
             roleModal.hide();
             loadRoles();
@@ -468,11 +487,14 @@
             state.staffRoles = data;
             el.staffRoleMeta.textContent = `${get(data, "fullName", "")} | ${get(data, "email", "")}`;
             el.staffRoleOptions.innerHTML = get(data, "roles", []).map(role => `
-                <label class="perm-role-option">
-                    <input type="checkbox" class="staff-role-check" value="${get(role, "roleId", "")}" ${get(role, "isAssigned", false) ? "checked" : ""} />
+                <label class="perm-role-option" title="${escapeHtml(get(role, "readOnlyReason", ""))}">
+                    <input type="checkbox" class="staff-role-check" value="${get(role, "roleId", "")}" ${get(role, "isAssigned", false) ? "checked" : ""} ${get(role, "canChange", false) ? "" : "disabled"} />
                     <span>${escapeHtml(get(role, "name", ""))}</span>
                 </label>
             `).join("");
+            el.saveStaffRoles.disabled = !get(data, "canChange", false)
+                || document.querySelector(".staff-role-check:not(:disabled)") === null;
+            el.saveStaffRoles.title = get(data, "readOnlyReason", "");
         } catch (error) {
             el.staffRoleOptions.innerHTML = `<div class="perm-empty">${escapeHtml(error.message)}</div>`;
         }
@@ -487,10 +509,11 @@
 
         setButtonBusy(button, true, "Đang lưu...");
         try {
-            await fetchJson(endpoint(`SaveStaffRoles?staffId=${state.selectedStaffRoleId}`), {
-                method: "POST",
-                body: JSON.stringify({ roleIds })
-            });
+            await AdminMutationGuard.run(`staff-roles-${state.selectedStaffRoleId}`, button, () =>
+                fetchJson(endpoint(`SaveStaffRoles?staffId=${state.selectedStaffRoleId}`), {
+                    method: "POST",
+                    body: JSON.stringify({ roleIds })
+                }));
             notifySuccess("Đã lưu vai trò nhân viên");
             staffRoleModal.hide();
             loadStaff("assign");
@@ -514,7 +537,6 @@
             el.overrideSelected.innerHTML = selectedHeadHtml(data, "permSaveOverrideBtn", "Lưu");
             el.saveOverrideBtn = document.getElementById("permSaveOverrideBtn");
             el.saveOverrideBtn.addEventListener("click", saveOverrides);
-            el.saveOverrideBtn.disabled = false;
             el.overrideEmpty.hidden = true;
             renderOverrideGrid();
         } catch (error) {
@@ -525,7 +547,7 @@
     function renderOverrideGrid() {
         const groups = get(state.overrideMatrix, "groups", []);
         el.overrideGrid.innerHTML = groups.map(group => `
-            <div class="perm-override-group" data-group-text="${escapeHtml(`${get(group, "name", "")} ${get(group, "code", "")}`)}">
+            <div class="perm-override-group" data-group-id="${get(group, "permissionGroupId", 0)}" data-group-text="${escapeHtml(normalizeSearch(`${get(group, "name", "")} ${get(group, "code", "")}`))}">
                 <button type="button" class="perm-group-head" data-action="toggle-group">
                     <span><i class="fas fa-folder"></i> ${escapeHtml(get(group, "name", ""))}</span>
                     <i class="fas fa-chevron-up"></i>
@@ -535,6 +557,11 @@
                 </div>
             </div>
         `).join("");
+        const hasMutablePermission = el.overrideGrid.querySelector("input[type='radio']:not(:disabled)") !== null;
+        el.saveOverrideBtn.disabled = !hasMutablePermission;
+        el.saveOverrideBtn.title = hasMutablePermission
+            ? ""
+            : "Bạn không có permission nào có thể thay đổi cho nhân viên này.";
         filterOverrides();
     }
 
@@ -545,7 +572,7 @@
         const roleAllowed = get(permission, "roleAllowed", false);
 
         return `
-            <div class="perm-override-row ${rowClass}" data-permission-text="${escapeHtml(`${get(permission, "code", "")} ${get(permission, "name", "")}`)}" data-permission-id="${permissionId}">
+            <div class="perm-override-row ${rowClass}" data-permission-text="${escapeHtml(normalizeSearch(`${get(permission, "code", "")} ${get(permission, "name", "")} ${get(permission, "description", "")}`))}" data-permission-id="${permissionId}" title="${escapeHtml(get(permission, "readOnlyReason", ""))}">
                 <div>
                     <div class="perm-name">${escapeHtml(get(permission, "code", ""))}</div>
                     <div class="perm-subtext">${escapeHtml(get(permission, "name", ""))}</div>
@@ -555,9 +582,9 @@
                     <span>${roleAllowed ? "Theo vai trò" : "Chưa có vai trò"}</span>
                 </div>
                 <div class="perm-radio-set">
-                    <label><input type="radio" name="override-${permissionId}" value="Inherit" ${!effect ? "checked" : ""} /><span>Kế thừa</span></label>
-                    <label class="is-allow"><input type="radio" name="override-${permissionId}" value="Allow" ${effect === "Allow" ? "checked" : ""} /><span>Cho phép</span></label>
-                    <label class="is-deny"><input type="radio" name="override-${permissionId}" value="Deny" ${effect === "Deny" ? "checked" : ""} /><span>Từ chối</span></label>
+                    <label><input type="radio" name="override-${permissionId}" value="Inherit" ${!effect ? "checked" : ""} ${get(permission, "canChange", true) ? "" : "disabled"} /><span>Kế thừa</span></label>
+                    <label class="is-allow"><input type="radio" name="override-${permissionId}" value="Allow" ${effect === "Allow" ? "checked" : ""} ${get(permission, "canChange", true) ? "" : "disabled"} /><span>Cho phép</span></label>
+                    <label class="is-deny"><input type="radio" name="override-${permissionId}" value="Deny" ${effect === "Deny" ? "checked" : ""} ${get(permission, "canChange", true) ? "" : "disabled"} /><span>Từ chối</span></label>
                 </div>
             </div>
         `;
@@ -578,10 +605,11 @@
 
         setButtonBusy(button, true, "Đang lưu...");
         try {
-            await fetchJson(endpoint(`SaveStaffOverrides?staffId=${state.selectedOverrideStaffId}`), {
-                method: "POST",
-                body: JSON.stringify({ overrides })
-            });
+            await AdminMutationGuard.run(`staff-overrides-${state.selectedOverrideStaffId}`, button, () =>
+                fetchJson(endpoint(`SaveStaffOverrides?staffId=${state.selectedOverrideStaffId}`), {
+                    method: "POST",
+                    body: JSON.stringify({ overrides })
+                }));
             notifySuccess("Đã lưu quyền ghi đè");
             await selectOverrideStaff(state.selectedOverrideStaffId);
         } catch (error) {
@@ -610,7 +638,8 @@
             el.scopeSelected.innerHTML = selectedHeadHtml(data, "permSaveScopeBtn", "Lưu");
             el.saveScopeBtn = document.getElementById("permSaveScopeBtn");
             el.saveScopeBtn.addEventListener("click", saveScopes);
-            el.saveScopeBtn.disabled = false;
+            el.saveScopeBtn.disabled = !get(data, "canChange", false);
+            el.saveScopeBtn.title = get(data, "readOnlyReason", "");
             renderScopeTypes();
             renderScopes();
         } catch (error) {
@@ -637,7 +666,7 @@
         el.scopeTypeSelect.innerHTML = '<option value="">-- Chọn phạm vi --</option>' + types.map(type => `
             <option value="${get(type, "scopeTypeId", "")}">${escapeHtml(getScopeTypeLabel(type))}</option>
         `).join("");
-        el.scopeTypeSelect.disabled = false;
+        el.scopeTypeSelect.disabled = !get(state.scopeData, "canChange", false);
         el.scopeRefSelect.innerHTML = '<option value="">-- Chọn đối tượng --</option>';
         el.scopeRefSelect.disabled = true;
         el.addScopeBtn.disabled = true;
@@ -748,6 +777,7 @@
     }
 
     function renderScopes() {
+        el.scopeList.classList.toggle("is-readonly", !get(state.scopeData, "canChange", false));
         if (!state.selectedScopes.length) {
             el.scopeList.innerHTML = '<div class="perm-empty">Chưa có phạm vi.</div>';
             return;
@@ -756,7 +786,7 @@
         el.scopeList.innerHTML = state.selectedScopes.map((scope, index) => `
             <div class="perm-scope-chip">
                 <span>${escapeHtml(scope.scopeTypeName)}: ${escapeHtml(scope.scopeRefName || scope.scopeRefId)}</span>
-                <button type="button" data-action="remove-scope" data-index="${index}" title="Xóa">
+                <button type="button" data-action="remove-scope" data-index="${index}" title="Xóa" ${get(state.scopeData, "canChange", false) ? "" : "disabled"}>
                     <i class="fas fa-xmark"></i>
                 </button>
             </div>
@@ -773,10 +803,11 @@
 
         setButtonBusy(button, true, "Đang lưu...");
         try {
-            await fetchJson(endpoint(`SaveStaffScopes?staffId=${state.selectedScopeStaffId}`), {
-                method: "POST",
-                body: JSON.stringify({ scopes })
-            });
+            await AdminMutationGuard.run(`staff-scopes-${state.selectedScopeStaffId}`, button, () =>
+                fetchJson(endpoint(`SaveStaffScopes?staffId=${state.selectedScopeStaffId}`), {
+                    method: "POST",
+                    body: JSON.stringify({ scopes })
+                }));
             notifySuccess("Đã lưu phạm vi cửa hàng");
             await selectScopeStaff(state.selectedScopeStaffId);
         } catch (error) {
@@ -793,28 +824,42 @@
     }
 
     function filterRolePermissions() {
-        const keyword = el.rolePermissionSearch.value.trim().toLowerCase();
+        const keyword = normalizeSearch(el.rolePermissionSearch.value);
         document.querySelectorAll(".perm-permission-group").forEach(group => {
             let visibleRows = 0;
+            const groupMatches = !!keyword && group.dataset.groupText.includes(keyword);
             group.querySelectorAll(".perm-permission-row").forEach(row => {
-                const visible = !keyword || row.dataset.permissionText.toLowerCase().includes(keyword);
+                const visible = !keyword || groupMatches || row.dataset.permissionText.includes(keyword);
                 row.classList.toggle("is-hidden", !visible);
                 if (visible) visibleRows += 1;
             });
             group.classList.toggle("is-hidden", visibleRows === 0);
+            const body = group.querySelector(".perm-group-body");
+            const icon = group.querySelector(".fa-chevron-up, .fa-chevron-down");
+            const collapsed = state.collapsedGroups.role.has(Number(group.dataset.groupId));
+            body.hidden = keyword ? false : collapsed;
+            icon.classList.toggle("fa-chevron-up", !body.hidden);
+            icon.classList.toggle("fa-chevron-down", body.hidden);
         });
     }
 
     function filterOverrides() {
-        const keyword = el.overrideSearch.value.trim().toLowerCase();
+        const keyword = normalizeSearch(el.overrideSearch.value);
         document.querySelectorAll(".perm-override-group").forEach(group => {
             let visibleRows = 0;
+            const groupMatches = !!keyword && group.dataset.groupText.includes(keyword);
             group.querySelectorAll(".perm-override-row").forEach(row => {
-                const visible = !keyword || row.dataset.permissionText.toLowerCase().includes(keyword);
+                const visible = !keyword || groupMatches || row.dataset.permissionText.includes(keyword);
                 row.classList.toggle("is-hidden", !visible);
                 if (visible) visibleRows += 1;
             });
             group.classList.toggle("is-hidden", visibleRows === 0);
+            const body = group.querySelector(".perm-group-body");
+            const icon = group.querySelector(".fa-chevron-up, .fa-chevron-down");
+            const collapsed = state.collapsedGroups.override.has(Number(group.dataset.groupId));
+            body.hidden = keyword ? false : collapsed;
+            icon.classList.toggle("fa-chevron-up", !body.hidden);
+            icon.classList.toggle("fa-chevron-down", body.hidden);
         });
     }
 
@@ -889,11 +934,16 @@
                 refreshCurrentScopeReferences();
             }
             if (action === "toggle-group") {
-                const body = target.closest(".perm-permission-group, .perm-override-group").querySelector(".perm-group-body");
+                const group = target.closest(".perm-permission-group, .perm-override-group");
+                const body = group.querySelector(".perm-group-body");
                 const icon = target.querySelector(".fa-chevron-up, .fa-chevron-down");
                 body.hidden = !body.hidden;
                 icon.classList.toggle("fa-chevron-up", !body.hidden);
                 icon.classList.toggle("fa-chevron-down", body.hidden);
+                const set = group.classList.contains("perm-permission-group")
+                    ? state.collapsedGroups.role : state.collapsedGroups.override;
+                const groupId = Number(group.dataset.groupId);
+                if (body.hidden) set.add(groupId); else set.delete(groupId);
             }
         });
 
@@ -905,15 +955,19 @@
         el.rolePermissionSearch.addEventListener("input", filterRolePermissions);
         el.overrideSearch.addEventListener("input", filterOverrides);
         el.selectAllPermissions.addEventListener("click", () => {
-            document.querySelectorAll(".role-permission-check").forEach(input => input.checked = true);
+            document.querySelectorAll(".role-permission-check:not(:disabled)").forEach(input => input.checked = true);
             updateSelectedPermissionCount();
         });
         el.clearPermissions.addEventListener("click", () => {
-            document.querySelectorAll(".role-permission-check").forEach(input => input.checked = false);
+            document.querySelectorAll(".role-permission-check:not(:disabled)").forEach(input => input.checked = false);
             updateSelectedPermissionCount();
         });
         el.expandPermissions.addEventListener("click", () => {
             document.querySelectorAll(".perm-permission-group .perm-group-body").forEach(body => body.hidden = false);
+            state.collapsedGroups.role.clear();
+            document.querySelectorAll(".perm-permission-group .fa-chevron-down").forEach(icon => {
+                icon.classList.remove("fa-chevron-down"); icon.classList.add("fa-chevron-up");
+            });
         });
         el.saveRolePermissions.addEventListener("click", saveRolePermissions);
         el.saveStaffRoles.addEventListener("click", saveStaffRoles);
@@ -926,7 +980,8 @@
             if (scopeTypeId && parentId) loadScopeReferences(scopeTypeId, parentId).catch(notifyError);
         });
         el.scopeRefSelect.addEventListener("change", () => {
-            el.addScopeBtn.disabled = !Number(el.scopeRefSelect.value);
+            el.addScopeBtn.disabled = !get(state.scopeData, "canChange", false)
+                || !Number(el.scopeRefSelect.value);
         });
         el.addScopeBtn.addEventListener("click", addScope);
     }
@@ -940,7 +995,13 @@
 
     initTabs();
     bindEvents();
-    loadRoles();
+    const initialStaffId = Number(root.dataset.initialStaffId || 0);
+    if (initialStaffId > 0) {
+        document.querySelector('.perm-tab[data-tab="assign"]')?.click();
+        openStaffRole(initialStaffId);
+    } else {
+        loadRoles();
+    }
 
     window.AdminPermissionPage = {
         refresh: refreshActiveTab

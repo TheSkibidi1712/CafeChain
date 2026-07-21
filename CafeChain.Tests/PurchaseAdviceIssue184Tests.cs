@@ -347,9 +347,9 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         var account3 = new Account { Email = Guid.NewGuid() + "@test.local", PasswordHash = "x", Active = true, CreatedAt = now };
         var unit = new Unit { UnitCode = "u" + Guid.NewGuid().ToString("N")[..7], Name = "kg", Active = true };
         context.AddRange(store, account1, account2, account3, unit); await context.SaveChangesAsync();
-        var manager = new Staff { AccountId = account1.AccountId, StoreId = store.StoreId, FullName = "Manager #184", Active = true, CreatedAt = now, BaseSalary = 0 };
-        var warehouse = new Staff { AccountId = account2.AccountId, FullName = "Warehouse #184", Active = true, CreatedAt = now, BaseSalary = 0 };
-        var area = new Staff { AccountId = account3.AccountId, FullName = "Area #184", Active = true, CreatedAt = now, BaseSalary = 0 };
+        var manager = new Staff { AccountId = account1.AccountId, StoreId = store.StoreId, FullName = "Manager #184", Active = true, CreatedAt = now};
+        var warehouse = new Staff { AccountId = account2.AccountId, FullName = "Warehouse #184", Active = true, CreatedAt = now};
+        var area = new Staff { AccountId = account3.AccountId, FullName = "Area #184", Active = true, CreatedAt = now};
         var ingredient = new Ingredient { Code = "ING-" + Guid.NewGuid().ToString("N")[..8], Name = "Coffee bean #184", BaseUnitId = unit.UnitId, Active = true };
         context.AddRange(manager, warehouse, area, ingredient); await context.SaveChangesAsync();
         var request = new RestockRequest { StoreId = store.StoreId, IngredientId = ingredient.IngredientId, RequestedQuantity = requested, Status = RestockRequestStatuses.Processing, Priority = RestockRequestPriorities.Normal, CreatedByStaffId = manager.StaffId, CreatedAt = now, UpdatedAt = now };

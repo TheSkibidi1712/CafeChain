@@ -58,7 +58,7 @@ public sealed class AdminNegativeInventorySettingsSourceTests
         Assert.Contains("id=\"adminTopbarAvatar\"", layout, StringComparison.Ordinal);
         Assert.Contains("asp-controller=\"AdminProfile\"", layout, StringComparison.Ordinal);
         Assert.Contains("asp-action=\"MyProfile\"", layout, StringComparison.Ordinal);
-        Assert.Contains("/Images/Upload/avtdf.jpg", layout, StringComparison.Ordinal);
+        Assert.Contains("DefaultImages.StaffAvatarUrl", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("> Hồ sơ của tôi", layout, StringComparison.Ordinal);
     }
 
@@ -73,7 +73,10 @@ public sealed class AdminNegativeInventorySettingsSourceTests
         Assert.Contains("AuthenticateAsync", controller, StringComparison.Ordinal);
         Assert.Contains("new Claim(\"AvatarUrl\", avatarUrl)", controller, StringComparison.Ordinal);
         Assert.Contains("authentication.Properties", controller, StringComparison.Ordinal);
-        Assert.Contains("avatarUrl = updatedAvatarUrl", controller, StringComparison.Ordinal);
+        Assert.Contains("avatarUrl = result.Data.AvatarUrl", controller, StringComparison.Ordinal);
+        Assert.DoesNotContain("AppDbContext", controller, StringComparison.Ordinal);
+        Assert.DoesNotContain("IWebHostEnvironment", controller, StringComparison.Ordinal);
+        Assert.DoesNotContain("FileStream", controller, StringComparison.Ordinal);
         Assert.Contains("Url.Action(\"UpdateMyProfile\", \"AdminProfile\"", view, StringComparison.Ordinal);
         Assert.Contains("Url.Action(\"ChangePassword\", \"AdminProfile\"", view, StringComparison.Ordinal);
         Assert.Contains("#profileAvatar, #adminTopbarAvatar", view, StringComparison.Ordinal);

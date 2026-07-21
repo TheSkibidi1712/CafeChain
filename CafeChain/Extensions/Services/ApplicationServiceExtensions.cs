@@ -20,7 +20,6 @@ using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Admin.Toppings;
 using CafeChain.Application.Interfaces.Admin.Vouchers;
-using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Interfaces.Cloudinaries;
 using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Application.Interfaces.Inventories;
@@ -31,6 +30,7 @@ using CafeChain.Application.Interfaces.Systems;
 using CafeChain.Application.Interfaces.AI;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.AppLauncher;
+using CafeChain.Application.Interfaces.StaffHub;
 
 // ==========================================
 // Application - Services
@@ -54,9 +54,9 @@ using CafeChain.Application.Services.Admin.StoreInventories;
 using CafeChain.Application.Services.Admin.Suppliers;
 using CafeChain.Application.Services.Admin.Toppings;
 using CafeChain.Application.Services.Admin.Vouchers;
-using CafeChain.Application.Services.Attendance;
 using CafeChain.Application.Services.Cart;
 using CafeChain.Application.Services.Cloudinaries;
+using CafeChain.Application.Services.StaffHub;
 using CafeChain.Application.Services.Customers;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Application.Services.Inventory;
@@ -183,6 +183,10 @@ namespace CafeChain.Extensions.Services
             // Admin - Staff
             services.AddScoped<IAdminStaffService, AdminStaffService>();
             services.AddScoped<IAdminStaffShiftService, AdminStaffShiftService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Profiles.IAdminProfileService,
+                CafeChain.Application.Services.Admin.Profiles.AdminProfileService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Stores.IAdminStoreService,
+                CafeChain.Application.Services.Admin.Stores.AdminStoreService>();
 
             // Admin - Ingredients
             services.AddScoped<IAdminIngredientService, AdminIngredientService>();
@@ -267,8 +271,6 @@ namespace CafeChain.Extensions.Services
 
             // Security
             services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService>();
-            services.AddScoped<IAttendanceSecurityService, AttendanceSecurityService>();
-            services.AddScoped<IAttendanceActionService, AttendanceActionService>();
 
             // Admin - Dashboard
             services.AddScoped<IDashboardService, DashboardService>();
@@ -276,9 +278,8 @@ namespace CafeChain.Extensions.Services
             // Admin - Settings
             services.AddScoped<IAdminSettingService, AdminSettingService>();
 
-            // HR & Attendance
-            services.AddScoped<IHrAttendanceService, HrAttendanceService>();
             services.AddScoped<IWorkShiftService, WorkShiftService>();
+            services.AddScoped<IStaffScheduleService, StaffScheduleService>();
 
             // POS
             services.AddScoped<IPOSOrderService, POSOrderService>();

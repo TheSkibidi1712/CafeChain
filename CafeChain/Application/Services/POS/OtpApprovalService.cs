@@ -537,7 +537,7 @@ namespace CafeChain.Application.Services.POS
             if (actionType == OtpConstants.ActionTypes.OpenShiftLate)
             {
                 // No WorkShift yet — target is the actor staff id.
-                var scheduled = await ResolveScheduledStartCanonicalAsync(requestedByStaffId);
+                var scheduled = await ResolveScheduledStartCanonicalAsync(requestedByStaffId, storeId);
                 var reason = request.Reason;
                 var fingerprint = _fingerprint.BuildOpenShiftLateFingerprint(
                     storeId,
@@ -552,13 +552,13 @@ namespace CafeChain.Application.Services.POS
             return ("ActionType không hỗ trợ.", null, null, null, null);
         }
 
-        private async Task<string> ResolveScheduledStartCanonicalAsync(int staffId)
+        private async Task<string> ResolveScheduledStartCanonicalAsync(int staffId, int storeId)
         {
-            var staffShift = await _workShiftRepository.GetTodayStaffShiftAsync(staffId);
+            var staffShift = await _workShiftRepository.GetEffectiveStaffShiftAsync(staffId, storeId, DateTime.Now);
             if (staffShift?.Shift == null)
                 return "none";
 
-            var start = DateTime.Today.Add(staffShift.Shift.StartTime);
+            var start = staffShift.WorkDate.Date.Add(staffShift.CustomStartTime ?? staffShift.Shift.StartTime);
             return start.ToString("yyyy-MM-dd'T'HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
         }
 

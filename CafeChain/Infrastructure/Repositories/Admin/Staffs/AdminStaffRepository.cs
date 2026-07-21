@@ -21,7 +21,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
         // ==================== READ ====================
 
         public async Task<(IEnumerable<Models.Staffs.Staff> Items, int TotalCount)> GetPaginatedStaffsAsync(
-            int pageIndex, int pageSize, int? storeId, string search, int? roleFilter)
+            int pageIndex, int pageSize, IReadOnlyCollection<int>? storeIds, string search, int? roleFilter)
         {
             var query = _context.Staffs
                 .Include(s => s.Account)
@@ -32,9 +32,9 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                 .AsQueryable();
 
             // 🔥 RULE 1: Store Manager chỉ thấy nhân viên cùng chi nhánh
-            if (storeId.HasValue)
+            if (storeIds != null)
             {
-                query = query.Where(s => s.StoreId == storeId.Value);
+                query = query.Where(s => storeIds.Contains(s.StoreId));
             }
 
             // Search by name or email
@@ -72,18 +72,27 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                 .Include(s => s.Store)
                 .Include(s => s.StaffPhones)
                 .Include(s => s.StaffAddresses)
-                .Include(s => s.StaffBanks)
+                    .ThenInclude(a => a.Province)
+                .Include(s => s.StaffAddresses)
+                    .ThenInclude(a => a.District)
+                .Include(s => s.StaffAddresses)
+                    .ThenInclude(a => a.Ward)
                 .Include(s => s.StaffScopes)
                     .ThenInclude(ss => ss.ScopeType)
                 .FirstOrDefaultAsync(s => s.StaffId == staffId);
         }
 
-        public async Task<(int Total, int Active, int Inactive)> GetStaffCountsAsync(int? storeId)
+        public Task<Models.Staffs.Staff?> GetStaffByAccountIdAsync(int accountId) =>
+            _context.Staffs
+                .Include(x => x.Account).ThenInclude(x => x.AccountRoles).ThenInclude(x => x.Role)
+                .FirstOrDefaultAsync(x => x.AccountId == accountId);
+
+        public async Task<(int Total, int Active, int Inactive)> GetStaffCountsAsync(IReadOnlyCollection<int>? storeIds)
         {
             var query = _context.Staffs.AsQueryable();
-            if (storeId.HasValue)
+            if (storeIds != null)
             {
-                query = query.Where(s => s.StoreId == storeId.Value);
+                query = query.Where(s => storeIds.Contains(s.StoreId));
             }
 
             var total = await query.CountAsync();
@@ -102,6 +111,45 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
             return _context.Districts.Where(d => d.ProvinceId == provinceId).OrderBy(d => d.Name).ToListAsync();
         }
 
+        public Task<List<CafeChain.Models.Locations.Ward>> GetWardsAsync(int districtId)
+        {
+            return _context.Wards.Where(w => w.DistrictId == districtId).OrderBy(w => w.Name).ToListAsync();
+        }
+
+        public async Task<bool> ScopeCoversStoreAsync(int scopeTypeId, int scopeRefId, int storeId)
+        {
+            var store = await _context.Stores.AsNoTracking()
+                .Include(x => x.Province)
+                .Include(x => x.District).ThenInclude(x => x!.Province)
+                .Include(x => x.Ward).ThenInclude(x => x!.District).ThenInclude(x => x!.Province)
+                .FirstOrDefaultAsync(x => x.StoreId == storeId && x.Active);
+            if (store == null) return false;
+
+            var districtId = store.DistrictId ?? store.Ward?.DistrictId;
+            var provinceId = store.ProvinceId ?? store.District?.ProvinceId ?? store.Ward?.District?.ProvinceId;
+            var countryId = store.Province?.CountryId
+                ?? store.District?.Province?.CountryId
+                ?? store.Ward?.District?.Province?.CountryId;
+
+            return scopeTypeId switch
+            {
+                1 => countryId == scopeRefId,
+                2 => provinceId == scopeRefId,
+                3 => districtId == scopeRefId,
+                4 => store.WardId == scopeRefId,
+                5 => store.StoreId == scopeRefId,
+                _ => false
+            };
+        }
+
+        public async Task<bool> IsAddressHierarchyValidAsync(int provinceId, int districtId, int wardId)
+        {
+            var districtValid = await _context.Districts
+                .AnyAsync(d => d.DistrictId == districtId && d.ProvinceId == provinceId);
+            return districtValid && await _context.Wards
+                .AnyAsync(w => w.WardId == wardId && w.DistrictId == districtId);
+        }
+
         // ==================== WRITE (TRANSACTION) ====================
 
         // 🔥 RULE 3: Transaction bắt buộc cho Create
@@ -111,9 +159,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
             List<AccountRole> accountRoles,
             List<StaffScope> staffScopes,
             List<StaffPhone> staffPhones,
-            List<StaffAddress> staffAddresses,
-            List<StaffBank> staffBanks,
-            List<StaffDependent> staffDependents)
+            List<StaffAddress> staffAddresses)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -157,22 +203,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                 if (staffAddresses.Any())
                     await _context.StaffAddresses.AddRangeAsync(staffAddresses);
 
-                // 7. Insert StaffBanks
-                foreach (var bank in staffBanks)
-                {
-                    bank.StaffId = staff.StaffId;
-                }
-                if (staffBanks.Any())
-                    await _context.StaffBanks.AddRangeAsync(staffBanks);
-
-                // 8. Insert StaffDependents
-                foreach (var dep in staffDependents)
-                {
-                    dep.StaffId = staff.StaffId;
-                }
-                if (staffDependents.Any())
-                    await _context.StaffDependents.AddRangeAsync(staffDependents);
-
+                // Staff payroll/bank/dependent data is intentionally outside the current Staff contract.
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -196,9 +227,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
             List<AccountRole> accountRoles,
             List<StaffScope> staffScopes,
             List<StaffPhone> staffPhones,
-            List<StaffAddress> staffAddresses,
-            List<StaffBank> staffBanks,
-            List<StaffDependent> staffDependents)
+            List<StaffAddress> staffAddresses)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -259,32 +288,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                 if (staffAddresses.Any())
                     await _context.StaffAddresses.AddRangeAsync(staffAddresses);
 
-                // 7. Clear & Replace StaffBanks
-                var oldBanks = await _context.StaffBanks
-                    .Where(b => b.StaffId == staff.StaffId)
-                    .ToListAsync();
-                _context.StaffBanks.RemoveRange(oldBanks);
-
-                foreach (var bank in staffBanks)
-                {
-                    bank.StaffId = staff.StaffId;
-                }
-                if (staffBanks.Any())
-                    await _context.StaffBanks.AddRangeAsync(staffBanks);
-
-                // 8. Clear & Replace StaffDependents
-                var oldDependents = await _context.StaffDependents
-                    .Where(d => d.StaffId == staff.StaffId)
-                    .ToListAsync();
-                _context.StaffDependents.RemoveRange(oldDependents);
-
-                foreach (var dep in staffDependents)
-                {
-                    dep.StaffId = staff.StaffId;
-                }
-                if (staffDependents.Any())
-                    await _context.StaffDependents.AddRangeAsync(staffDependents);
-
+                // Role, permission, scope and primary store are not replaced by a profile update.
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -302,6 +306,47 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
         }
 
         // 🔥 RULE 3: Toggle Status → đồng bộ Staff.Active + Account.Active
+        public async Task UpdateStaffProfileTransactionAsync(
+            Models.Staffs.Staff staff,
+            Account account,
+            List<StaffPhone> staffPhones,
+            List<StaffAddress> staffAddresses)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Profile edits must not replace AccountRole or StaffScope rows.
+                var oldPhones = await _context.StaffPhones.Where(x => x.StaffId == staff.StaffId).ToListAsync();
+                var oldAddresses = await _context.StaffAddresses.Where(x => x.StaffId == staff.StaffId).ToListAsync();
+
+                _context.StaffPhones.RemoveRange(oldPhones);
+                _context.StaffAddresses.RemoveRange(oldAddresses);
+
+                foreach (var item in staffPhones) item.StaffId = staff.StaffId;
+                foreach (var item in staffAddresses) item.StaffId = staff.StaffId;
+
+                await _context.StaffPhones.AddRangeAsync(staffPhones);
+                await _context.StaffAddresses.AddRangeAsync(staffAddresses);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<bool> ResetPasswordAsync(int accountId, string passwordHash)
+        {
+            var account = await _context.Accounts.FindAsync(accountId);
+            if (account == null) return false;
+            account.PasswordHash = passwordHash;
+            account.RequiresPasswordChange = true;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<bool> ToggleStatusAsync(int staffId)
         {
             var staff = await _context.Staffs
@@ -351,17 +396,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
             return await _context.StaffPhones.AnyAsync(p => p.Phone == phone && p.IsDefault);
         }
 
-        public async Task<bool> TaxCodeExistsAsync(string taxCode, int? excludeStaffId = null)
-        {
-            if (string.IsNullOrWhiteSpace(taxCode)) return false;
-
-            if (excludeStaffId.HasValue)
-                return await _context.Staffs.AnyAsync(s =>
-                    s.TaxCode == taxCode && s.StaffId != excludeStaffId.Value);
-
-            return await _context.Staffs.AnyAsync(s => s.TaxCode == taxCode);
-        }
-
         // 🔥 RULE 2 (Advanced): Kiểm tra ca thu ngân đang mở
         public async Task<bool> HasOpenCashSessionAsync(int staffId)
         {
@@ -372,10 +406,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
         // 🔥 RULE 2 (Advanced): Kiểm tra ca làm việc chưa checkout
         public async Task<bool> HasActiveShiftAsync(int staffId)
         {
-            return await _context.StaffShifts.AnyAsync(ss =>
-                ss.StaffId == staffId &&
-                ss.Status.Code == "CHECKED_IN" &&
-                ss.ActualCheckOut == null);
+            return await _context.WorkShifts.AnyAsync(shift =>
+                shift.UserId == staffId && shift.Status == "Open" && shift.EndTime == null);
         }
 
         // ==================== MASTER DATA (Thin Controller) ====================
@@ -407,17 +439,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
             return await _context.Stores.FindAsync(storeId);
         }
 
-        public async Task UpdateStaffAvatarAsync(int staffId, string avatarUrl)
-        {
-            var staff = await _context.Staffs.FindAsync(staffId);
-            if (staff != null)
-            {
-                staff.AvatarUrl = avatarUrl;
-                _context.Staffs.Update(staff);
-                await _context.SaveChangesAsync();
-            }
-        }
-
         // 🔥 CCCD Uniqueness Check (Filtered — bỏ qua NULL/empty)
         public async Task<bool> CCCDExistsAsync(string cccd, int? excludeStaffId = null)
         {
@@ -444,8 +465,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                     return "Lỗi: Email đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.";
                 if (msg.Contains("CCCD", StringComparison.OrdinalIgnoreCase))
                     return "Lỗi: Số CCCD đã tồn tại trong hệ thống.";
-                if (msg.Contains("TaxCode", StringComparison.OrdinalIgnoreCase))
-                    return "Lỗi: Mã số thuế đã tồn tại trong hệ thống.";
                 if (msg.Contains("Phone", StringComparison.OrdinalIgnoreCase))
                     return "Lỗi: Số điện thoại đã tồn tại trong hệ thống.";
                 return $"Lỗi: Dữ liệu bị trùng lặp trong hệ thống. Chi tiết: {msg}";

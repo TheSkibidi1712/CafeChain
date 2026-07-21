@@ -29,12 +29,13 @@ IF EXISTS
 (
     SELECT 1
     FROM dbo.StaffShifts AS ss
+    INNER JOIN dbo.StaffShiftStatuses AS status ON status.StaffShiftStatusId=ss.StatusId
     INNER JOIN dbo.Staffs AS st ON st.StaffId=ss.StaffId
     WHERE st.StoreId=1
       AND ss.WorkDate>='2026-01-15' AND ss.WorkDate<'2026-01-18'
-      AND (ss.ActualCheckIn IS NOT NULL OR ss.ActualCheckOut IS NOT NULL OR ss.PayrollHours IS NOT NULL OR ss.IsAdHoc=1)
+      AND status.Code NOT IN (N'SCHEDULED',N'CANCELLED')
 )
-    THROW 53203, N'Dashboard v1.3 schedules must not seed attendance or payroll data.', 1;
+    THROW 53203, N'Dashboard v1.3 schedules only support SCHEDULED/CANCELLED.', 1;
 
 SELECT N'DEMO_DASHBOARD_V13' AS SeedMarker,
        (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_DASHBOARD_V13') AS DemoOrders,

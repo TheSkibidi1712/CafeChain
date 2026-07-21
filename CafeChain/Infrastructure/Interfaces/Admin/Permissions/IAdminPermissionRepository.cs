@@ -25,6 +25,7 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.Permissions
         Task<List<ScopeTypeOptionDto>> GetScopeTypesAsync();
         Task<List<StaffScopeItemDto>> GetStaffScopesAsync(int staffId);
         Task<List<StaffScopeInputDto>> GetInvalidScopeRefsAsync(IEnumerable<StaffScopeInputDto> scopes);
+        Task<bool> ScopesCoverStoreAsync(IEnumerable<StaffScopeInputDto> scopes, int storeId);
         Task ReplaceStaffScopesAsync(int staffId, IEnumerable<StaffScopeInputDto> scopes);
 
         Task<Dictionary<int, PermissionEffect>> GetAccountOverrideEffectsAsync(int accountId);
@@ -34,5 +35,6 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.Permissions
 
         Task<Permission?> GetActivePermissionByCodeAsync(string permissionCode);
         Task<AccountPermissionFactsDto> GetAccountPermissionFactsAsync(int accountId, int permissionId);
+        Task<HashSet<string>> GetEffectivePermissionCodesAsync(int accountId);
     }
 }

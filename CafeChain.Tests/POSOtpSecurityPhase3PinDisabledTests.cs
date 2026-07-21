@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
-using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Services.POS;
 using CafeChain.Areas.Admin.Controllers;
@@ -64,15 +63,12 @@ namespace CafeChain.Tests.POS
         [Fact]
         public void SupervisorApproval_NoUpdatePinEndpoint()
         {
-            var attendance = typeof(AttendanceController);
-            Assert.Null(attendance.GetMethod("UpdatePin"));
-            Assert.Null(attendance.GetMethod("AuthorizeBypass"));
+            Assert.Null(Type.GetType("CafeChain.Controllers.AttendanceController, CafeChain"));
 
             var adminPos = typeof(AdminPOSController);
             Assert.Null(adminPos.GetMethod("AuthorizeSupervisor"));
 
-            var security = typeof(IAttendanceSecurityService);
-            Assert.Null(security.GetMethod("UpdatePinAsync"));
+            Assert.Null(Type.GetType("CafeChain.Application.Interfaces.Attendance.IAttendanceSecurityService, CafeChain"));
         }
 
         [Fact]
@@ -147,14 +143,11 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public void SupervisorApproval_AttendanceControllerHasNoPinDependencies()
+        public void SupervisorApproval_AttendanceModuleWasRemoved()
         {
-            var ctor = typeof(AttendanceController).GetConstructors().Single();
-            var paramTypes = ctor.GetParameters().Select(p => p.ParameterType).ToList();
-            Assert.Equal(2, paramTypes.Count);
-            Assert.Contains(typeof(IAttendanceSecurityService), paramTypes);
-            Assert.Contains(typeof(IAttendanceActionService), paramTypes);
-            Assert.DoesNotContain(paramTypes, t => t.Name.Contains("Supervisor", StringComparison.Ordinal));
+            Assert.Null(Type.GetType("CafeChain.Controllers.AttendanceController, CafeChain"));
+            Assert.Null(Type.GetType("CafeChain.Application.Interfaces.Attendance.IAttendanceActionService, CafeChain"));
+            Assert.Null(Type.GetType("CafeChain.Application.Interfaces.Attendance.IAttendanceSecurityService, CafeChain"));
         }
 
         [Fact]

@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
-using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Services.POS;
 using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
@@ -127,7 +126,6 @@ WHERE TABLE_NAME = N'Staffs' AND COLUMN_NAME = N'PinHash';";
 
             var service = new WorkShiftService(
                 new WorkShiftRepository(ctx),
-                Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
                 otpRepo,
                 Fingerprint,
@@ -156,8 +154,7 @@ WHERE TABLE_NAME = N'Staffs' AND COLUMN_NAME = N'PinHash';";
             var before = await ctx.InvoiceAuditLogs.CountAsync();
 
             Assert.Null(Type.GetType("CafeChain.Application.Services.POS.SupervisorAuthService, CafeChain"));
-            Assert.Null(typeof(CafeChain.Controllers.AttendanceController).GetMethod("UpdatePin"));
-            Assert.Null(typeof(CafeChain.Controllers.AttendanceController).GetMethod("AuthorizeBypass"));
+            Assert.Null(Type.GetType("CafeChain.Controllers.AttendanceController, CafeChain"));
             Assert.Null(typeof(CafeChain.Areas.Admin.Controllers.AdminPOSController).GetMethod("AuthorizeSupervisor"));
 
             var after = await ctx.InvoiceAuditLogs.CountAsync();
@@ -209,7 +206,6 @@ WHERE TABLE_NAME = N'Staffs' AND COLUMN_NAME = N'PinHash';";
                 FullName = $"SQL Staff {email}",
                 Active = true,
                 CreatedAt = DateTime.UtcNow,
-                BaseSalary = 0,
                 StaffShifts = new List<StaffShift>()
             };
             ctx.Staffs.Add(staff);

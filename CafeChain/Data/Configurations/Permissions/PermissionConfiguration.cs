@@ -115,7 +115,7 @@ namespace CafeChain.Data.Configurations.Permissions
 
                 new Permission
                 {
-                    PermissionId = 100,
+                    PermissionId = 27,
                     PermissionGroupId = 5,
                     Code = "System.Permission.Manage",
                     Name = "Quản lý phân quyền",

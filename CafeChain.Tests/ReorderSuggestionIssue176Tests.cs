@@ -256,7 +256,6 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
             FullName = "Manager #176",
             Active = true,
             CreatedAt = DateTime.UtcNow,
-            BaseSalary = 0
         });
     }
 

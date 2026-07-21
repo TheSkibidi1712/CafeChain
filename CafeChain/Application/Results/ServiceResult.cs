@@ -7,6 +7,7 @@ namespace CafeChain.Application.Results
         public bool IsSuccess { get; set; }
         public string Message { get; set; }
         public string ErrorCode { get; set; }
+        public int? EntityId { get; set; }
         public List<string> Errors { get; set; } = new List<string>();
 
         public static ServiceResult Success(string message = null)

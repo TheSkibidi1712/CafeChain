@@ -1,344 +1,336 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Staffs;
 using CafeChain.Application.Results;
-using CafeChain.Data;
+using CafeChain.Infrastructure.Interfaces.Admin.Staffs;
+using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Staffs;
+using CafeChain.ViewModels.Admin.Staffs;
+using Microsoft.EntityFrameworkCore;
 
-namespace CafeChain.Application.Services.Admin.Staffs
+namespace CafeChain.Application.Services.Admin.Staffs;
+
+public sealed class AdminStaffShiftService : IAdminStaffShiftService
 {
-    public class AdminStaffShiftService : IAdminStaffShiftService
+    private const string Scheduled = "SCHEDULED";
+    private const string Cancelled = "CANCELLED";
+    private readonly IAdminStaffShiftRepository _repository;
+
+    public AdminStaffShiftService(IAdminStaffShiftRepository repository) => _repository = repository;
+
+    public async Task<StaffShiftManagementVM> GetPageAsync(
+        int storeId,
+        DateTime startDate,
+        DateTime endDate,
+        IReadOnlyList<StaffShiftStoreOptionVM> stores,
+        IReadOnlySet<string> permissions,
+        CancellationToken ct = default)
     {
-        private readonly AppDbContext _context;
+        var store = await _repository.GetStoreAsync(storeId, ct)
+            ?? throw new KeyNotFoundException("Không tìm thấy cửa hàng.");
+        var staffs = await _repository.GetStaffsAsync(storeId, startDate, endDate, ct);
+        var schedules = await _repository.GetSchedulesAsync(storeId, startDate, endDate, ct);
+        var templates = await _repository.GetTemplatesAsync(storeId, true, ct);
 
-        public AdminStaffShiftService(AppDbContext context)
+        return new StaffShiftManagementVM
         {
-            _context = context;
-        }
+            StoreId = storeId,
+            StoreName = store.Name,
+            StartDate = startDate.Date,
+            Stores = stores,
+            CanCreate = permissions.Contains(PermissionConstants.ShiftCreate),
+            CanUpdate = permissions.Contains(PermissionConstants.ShiftUpdate),
+            CanCancel = permissions.Contains(PermissionConstants.ShiftCancel),
+            Templates = templates.Select(MapTemplate).ToList(),
+            StaffRows = staffs.Select(staff => new StaffScheduleRowVM
+            {
+                StaffId = staff.StaffId,
+                StaffName = staff.FullName,
+                AvatarUrl = staff.AvatarUrl,
+                RoleNames = string.Join(", ", staff.Account.AccountRoles.Select(x => x.Role.Name)),
+                Schedules = schedules.Where(x => x.StaffId == staff.StaffId).Select(MapSchedule).ToList()
+            }).ToList()
+        };
+    }
 
-        public async Task<Dictionary<Staff, List<StaffShift>>> GetShiftMatrixAsync(int storeId, DateTime startDate, DateTime endDate)
+    public async Task<ServiceResult> AssignAsync(int storeId, int actorStaffId, AssignStaffShiftRequest request, CancellationToken ct = default)
+    {
+        var validation = ValidateCustomTime(request.UseCustomTime, request.CustomStartTime, request.CustomEndTime);
+        if (validation != null) return validation;
+
+        var staff = await _repository.GetStaffAsync(request.StaffId, ct);
+        var template = await _repository.GetTemplateAsync(request.ShiftId, ct);
+        if (staff == null || !staff.Active || staff.EmployeeStatus == 3)
+            return Fail("Nhân viên không tồn tại hoặc đã ngưng làm việc.", "INVALID_STAFF");
+        if (staff.StoreId != storeId) return Forbidden();
+        if (template == null || template.StoreId != storeId) return Forbidden();
+        if (!template.Active) return Fail("Mẫu ca đã ngưng hoạt động.", "INACTIVE_SHIFT");
+
+        var customStart = request.UseCustomTime ? request.CustomStartTime : null;
+        var customEnd = request.UseCustomTime ? request.CustomEndTime : null;
+        var overlap = await HasOverlapAsync(staff.StaffId, request.WorkDate, template, customStart, customEnd, null, ct);
+        if (overlap) return Fail("Thời gian làm việc bị trùng với một lịch đã xếp.", "SHIFT_OVERLAP");
+
+        var scheduledStatus = await RequireStatusAsync(Scheduled, ct);
+        var existing = await _repository.GetScheduleAsync(staff.StaffId, template.ShiftId, request.WorkDate, ct);
+        if (existing != null && existing.Status.Code == Scheduled)
+            return Fail("Lịch này đã được xếp trước đó.", "DUPLICATE_SHIFT");
+
+        await _repository.BeginTransactionAsync(ct);
+        try
         {
-            // 🔥 BƯỚC 3: DATABASE LINQ DATE-FILTER (Chống Data Over-fetching)
-            // Ép hệ thống dùng SQL where thẳng trong DB thay vì Load tất cả về RAM
-            var shiftsInRange = await _context.StaffShifts
-                .Include(s => s.Staff)
-                .Include(s => s.Shift)
-                .Where(s => s.Staff.StoreId == storeId && 
-                            s.WorkDate.Date >= startDate.Date && 
-                            s.WorkDate.Date <= endDate.Date &&
-                            s.Staff.Active)
-                .ToListAsync();
-
-            // Load nhân viên thuộc Store, có chức vụ cấp cửa hàng (IsStoreLevel = true)
-            // Phải lấy những nv Đang làm HOẶC (Đã nghỉ nhưng CÓ CA trong tuần này)
-            var staffs = await _context.Staffs
-                .Include(s => s.Account)
-                    .ThenInclude(a => a.AccountRoles)
-                        .ThenInclude(ar => ar.Role)
-                .Where(s => s.StoreId == storeId)
-                .Where(s => s.Account.AccountRoles.Any(ar => ar.Role.IsStoreLevel))
-                .Where(s => s.Active || s.StaffShifts.Any(ss => ss.WorkDate >= startDate.Date && ss.WorkDate <= endDate.Date))
-                .ToListAsync();
-
-            var matrix = new Dictionary<Staff, List<StaffShift>>();
-            
-            foreach (var staff in staffs)
+            if (existing != null)
             {
-                var staffShifts = shiftsInRange.Where(s => s.StaffId == staff.StaffId).OrderBy(s => s.WorkDate).ToList();
-                matrix.Add(staff, staffShifts);
-            }
-
-            return matrix;
-        }
-
-        // ====================================================================
-        // HÀM TIỆN ÍCH: Chuyển TimeSpan thành DateTime tuyệt đối để so sánh
-        // Giải quyết triệt để Ca Qua Đêm (ví dụ: 22:00 → 06:00)
-        // ====================================================================
-        private (DateTime start, DateTime end) ResolveAbsoluteTime(DateTime workDate, TimeSpan start, TimeSpan end, bool isOvernight)
-        {
-            var dtStart = workDate.Date + start;
-            var dtEnd = workDate.Date + end;
-
-            // Nếu là ca qua đêm HOẶC giờ kết thúc <= giờ bắt đầu → cộng thêm 1 ngày cho End
-            if (isOvernight || end <= start)
-            {
-                dtEnd = dtEnd.AddDays(1);
-            }
-
-            return (dtStart, dtEnd);
-        }
-
-        // ====================================================================
-        // HÀM TIỆN ÍCH: Kiểm tra trùng lặp thời gian giữa 2 khoảng DateTime
-        // Toán tử giao điểm: (StartA < EndB) && (EndA > StartB)
-        // ====================================================================
-        private bool IsOverlapping(DateTime startA, DateTime endA, DateTime startB, DateTime endB)
-        {
-            return startA < endB && endA > startB;
-        }
-
-        public async Task<ServiceResult> AssignShiftAsync(int staffId, int shiftId, DateTime date, TimeSpan? customStart = null, TimeSpan? customEnd = null)
-        {
-            // Không còn chặn xếp ca trong quá khứ theo yêu cầu mới.
-
-            var staff = await _context.Staffs.FindAsync(staffId);
-            if (staff == null || !staff.Active || staff.EmployeeStatus == 3) // Trạng thái 3 = Nghỉ việc
-            {
-                return ServiceResult.Failure("Lỗi: Không thể xếp ca vì nhân viên không tồn tại hoặc đã nghỉ việc.");
-            }
-
-            var shift = await _context.Shifts.FindAsync(shiftId);
-            if (shift == null || !shift.Active)
-            {
-                return ServiceResult.Failure("Lỗi: Ca làm việc không hợp lệ.");
-            }
-
-            // Thời gian ca thực tế cần lưu
-            TimeSpan actualStart = customStart ?? shift.StartTime;
-            TimeSpan actualEnd = customEnd ?? shift.EndTime;
-
-            // Validate logic thời gian (chỉ kiểm tra nếu KHÔNG phải ca qua đêm)
-            bool isOvernightShift = shift.IsOvernight || actualEnd <= actualStart;
-            if (actualStart >= actualEnd && !isOvernightShift)
-            {
-                return ServiceResult.Failure("Lỗi: Thời gian bắt đầu phải trước thời gian kết thúc.");
-            }
-
-            // Chuyển đổi sang DateTime tuyệt đối để so sánh chính xác (xử lý ca qua đêm)
-            var (newStart, newEnd) = ResolveAbsoluteTime(date, actualStart, actualEnd, isOvernightShift);
-
-            // 2. Chống Trùng lặp (Overlapping Validation) — Tạo mới nên không cần loại trừ bản ghi nào
-            var existingShifts = await _context.StaffShifts
-                .Include(ss => ss.Shift)
-                .Where(ss => ss.StaffId == staffId && ss.WorkDate.Date == date.Date)
-                .ToListAsync();
-
-            foreach (var existing in existingShifts)
-            {
-                TimeSpan eStart = existing.CustomStartTime ?? existing.Shift.StartTime;
-                TimeSpan eEnd = existing.CustomEndTime ?? existing.Shift.EndTime;
-                bool eIsOvernight = existing.Shift.IsOvernight || eEnd <= eStart;
-
-                var (exStart, exEnd) = ResolveAbsoluteTime(existing.WorkDate, eStart, eEnd, eIsOvernight);
-
-                if (IsOverlapping(newStart, newEnd, exStart, exEnd))
-                {
-                    return ServiceResult.Failure("Lỗi: Thời gian ca làm việc bị trùng lặp!");
-                }
+                var before = Snapshot(existing);
+                existing.StatusId = scheduledStatus.StaffShiftStatusId;
+                existing.CustomStartTime = customStart;
+                existing.CustomEndTime = customEnd;
+                AddAudit("StaffShifts", existing.StaffShiftId, "RESTORE", before, Snapshot(existing), actorStaffId);
+                await _repository.SaveChangesAsync(ct);
+                await _repository.CommitTransactionAsync(ct);
+                return Success("Đã khôi phục và cập nhật lịch làm việc.", existing.StaffShiftId);
             }
 
             var staffShift = new StaffShift
             {
-                StaffId = staffId,
-                ShiftId = shiftId,
-                WorkDate = date.Date,
+                StaffId = staff.StaffId,
+                ShiftId = template.ShiftId,
+                WorkDate = request.WorkDate.Date,
                 CustomStartTime = customStart,
                 CustomEndTime = customEnd,
-                StatusId = 1 // 1: Được Xếp (Planned)
+                StatusId = scheduledStatus.StaffShiftStatusId
             };
-
-            await _context.StaffShifts.AddAsync(staffShift);
-            await _context.SaveChangesAsync();
-
-            // ====================================================================
-            // RECONCILIATION: Tự động liên kết các bản ghi Ca Tự Do (Orphan)
-            // Khi Manager tạo ca mới cho ngày đã có chấm công Ad-hoc,
-            // hệ thống sẽ "nhận nuôi" bản ghi mồ côi đó vào ca chính thức.
-            // ====================================================================
-            var orphanRecords = await _context.StaffShifts
-                .Where(ss => ss.StaffId == staffId
-                           && ss.WorkDate.Date == date.Date
-                           && ss.IsAdHoc == true
-                           && ss.ShiftId == null
-                           && ss.StaffShiftId != staffShift.StaffShiftId)
-                .ToListAsync();
-
-            foreach (var orphan in orphanRecords)
-            {
-                orphan.ShiftId = shiftId;
-                orphan.IsAdHoc = false;
-
-                // Tính lại PayrollHours nếu đã có dữ liệu CheckIn/CheckOut
-                if (orphan.ActualCheckIn.HasValue && orphan.ActualCheckOut.HasValue)
-                {
-                    var checkIn = orphan.ActualCheckIn.Value;
-                    var checkOut = orphan.ActualCheckOut.Value;
-
-                    // Xử lý ca qua đêm
-                    if (checkOut < checkIn)
-                        checkOut = checkOut.AddDays(1);
-
-                    var totalMinutes = (checkOut - checkIn).TotalMinutes;
-                    var roundedMinutes = Math.Round(totalMinutes / 15.0, MidpointRounding.AwayFromZero) * 15;
-                    orphan.PayrollHours = Math.Round((decimal)(roundedMinutes / 60.0), 2);
-                }
-
-                _context.Update(orphan);
-            }
-
-            if (orphanRecords.Any())
-            {
-                await _context.SaveChangesAsync();
-            }
-
-            var reconcileMsg = orphanRecords.Any()
-                ? $" Đã tự động liên kết {orphanRecords.Count} bản ghi chấm công phát sinh."
-                : "";
-
-            return ServiceResult.Success($"Đã gán ca thành công!{reconcileMsg}");
+            _repository.Add(staffShift);
+            await _repository.SaveChangesAsync(ct);
+            AddAudit("StaffShifts", staffShift.StaffShiftId, "CREATE", null, Snapshot(staffShift), actorStaffId);
+            await _repository.SaveChangesAsync(ct);
+            await _repository.CommitTransactionAsync(ct);
+            return Success("Đã phân lịch làm việc.", staffShift.StaffShiftId);
         }
-
-        // ====================================================================
-        // CẬP NHẬT CA CỦA NHÂN VIÊN (Edit StaffShift)
-        // Bản vá: Self-Overlap + Wage Theft Guard + Night Shift Math
-        // ====================================================================
-        public async Task<ServiceResult> UpdateStaffShiftAsync(int staffShiftId, int shiftId, TimeSpan? customStart = null, TimeSpan? customEnd = null)
+        catch (DbUpdateConcurrencyException)
         {
-            var staffShift = await _context.StaffShifts
-                .Include(ss => ss.Shift)
-                .FirstOrDefaultAsync(ss => ss.StaffShiftId == staffShiftId);
-
-            if (staffShift == null)
-            {
-                return ServiceResult.Failure("Lỗi: Bản ghi ca làm việc không tồn tại.");
-            }
-
-            // Đã loại bỏ khoá chống gian lận tiền lương theo yêu cầu.
-            // Cho phép HR chỉnh sửa lại (CustomStart / CustomEnd) để tính toán PayrollHours phù hợp.
-
-            var shift = await _context.Shifts.FindAsync(shiftId);
-            if (shift == null || !shift.Active)
-            {
-                return ServiceResult.Failure("Lỗi: Ca làm việc không hợp lệ.");
-            }
-
-            TimeSpan actualStart = customStart ?? shift.StartTime;
-            TimeSpan actualEnd = customEnd ?? shift.EndTime;
-
-            bool isOvernightShift = shift.IsOvernight || actualEnd <= actualStart;
-            if (actualStart >= actualEnd && !isOvernightShift)
-            {
-                return ServiceResult.Failure("Lỗi: Thời gian bắt đầu phải trước thời gian kết thúc.");
-            }
-
-            var (newStart, newEnd) = ResolveAbsoluteTime(staffShift.WorkDate, actualStart, actualEnd, isOvernightShift);
-
-            // ===== Chống trùng lặp — LOẠI TRỪ bản ghi đang sửa (Self-Overlap Fix) =====
-            // ===== Chống trùng lặp — LOẠI TRỪ bản ghi đang sửa (Self-Overlap Fix) =====
-            var existingShifts = await _context.StaffShifts
-                .Include(ss => ss.Shift)
-                .Where(ss => ss.StaffId == staffShift.StaffId
-                          && ss.WorkDate.Date == staffShift.WorkDate.Date
-                          && ss.StaffShiftId != staffShiftId) // <-- Loại trừ chính nó
-                .ToListAsync();
-
-            foreach (var existing in existingShifts)
-            {
-                TimeSpan eStart = existing.CustomStartTime ?? existing.Shift.StartTime;
-                TimeSpan eEnd = existing.CustomEndTime ?? existing.Shift.EndTime;
-                bool eIsOvernight = existing.Shift.IsOvernight || eEnd <= eStart;
-
-                var (exStart, exEnd) = ResolveAbsoluteTime(existing.WorkDate, eStart, eEnd, eIsOvernight);
-
-                if (IsOverlapping(newStart, newEnd, exStart, exEnd))
-                {
-                    return ServiceResult.Failure("Lỗi: Thời gian ca làm việc bị trùng lặp!");
-                }
-            }
-
-            staffShift.ShiftId = shiftId;
-            staffShift.CustomStartTime = customStart;
-            staffShift.CustomEndTime = customEnd;
-
-            if (staffShift.ActualCheckIn.HasValue && staffShift.ActualCheckOut.HasValue)
-            {
-                staffShift.PayrollHours = (decimal)Math.Round((staffShift.ActualCheckOut.Value - staffShift.ActualCheckIn.Value).TotalHours, 2);
-            }
-
-            _context.Update(staffShift);
-            await _context.SaveChangesAsync();
-
-            return ServiceResult.Success("Cập nhật ca làm việc của nhân viên thành công!");
+            await _repository.RollbackTransactionAsync(ct);
+            return Conflict();
         }
-
-        public async Task<List<object>> GetShiftsForStoreAsync(int storeId)
+        catch
         {
-            var shifts = await _context.Shifts
-                .Where(s => s.StoreId == storeId && s.Active)
-                .OrderBy(s => s.StartTime)
-                .ToListAsync();
-
-            // BẮT BUỘC (ENFORCE): Nếu chưa cóủ 4 ca chuẩn, tự động tạo và lưu trữ.
-            string[] requiredShifts = { "Ca 1", "Ca 2", "Ca 3", "Ca 4" };
-            bool hasChanges = false;
-
-            if (!shifts.Any(s => s.Name == "Ca 1"))
-            {
-                var ca1 = new Shift { Name = "Ca 1", StartTime = new TimeSpan(6, 0, 0), EndTime = new TimeSpan(12, 0, 0), IsOvernight = false, Active = true, StoreId = storeId, Duration = TimeSpan.FromHours(6), Notes = "06:00 - 12:00" };
-                _context.Shifts.Add(ca1); shifts.Add(ca1); hasChanges = true;
-            }
-            if (!shifts.Any(s => s.Name == "Ca 2"))
-            {
-                var ca2 = new Shift { Name = "Ca 2", StartTime = new TimeSpan(12, 0, 0), EndTime = new TimeSpan(18, 0, 0), IsOvernight = false, Active = true, StoreId = storeId, Duration = TimeSpan.FromHours(6), Notes = "12:00 - 18:00" };
-                _context.Shifts.Add(ca2); shifts.Add(ca2); hasChanges = true;
-            }
-            if (!shifts.Any(s => s.Name == "Ca 3"))
-            {
-                var ca3 = new Shift { Name = "Ca 3", StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(23, 0, 0), IsOvernight = false, Active = true, StoreId = storeId, Duration = TimeSpan.FromHours(5), Notes = "18:00 - 23:00" };
-                _context.Shifts.Add(ca3); shifts.Add(ca3); hasChanges = true;
-            }
-            if (!shifts.Any(s => s.Name == "Ca 4"))
-            {
-                var ca4 = new Shift { Name = "Ca 4", StartTime = new TimeSpan(22, 0, 0), EndTime = new TimeSpan(6, 0, 0), IsOvernight = true, Active = true, StoreId = storeId, Duration = TimeSpan.FromHours(8), Notes = "22:00 - 06:00 (Hôm sau)" };
-                _context.Shifts.Add(ca4); shifts.Add(ca4); hasChanges = true;
-            }
-
-            if (hasChanges)
-            {
-                await _context.SaveChangesAsync();
-                // Sắp xếp lại
-                shifts = shifts.OrderBy(s => s.StartTime).ToList();
-            }
-
-            return shifts.Select(s => new
-                {
-                    s.ShiftId,
-                    s.Name,
-                    startTime = s.StartTime.ToString(@"hh\:mm"),
-                    endTime = s.EndTime.ToString(@"hh\:mm"),
-                    s.IsOvernight,
-                    s.Notes
-                })
-                .Cast<object>().ToList();
-        }
-
-        public async Task<ServiceResult> UpdateShiftAsync(int shiftId, TimeSpan startTime, TimeSpan endTime, string? notes)
-        {
-            var shift = await _context.Shifts.FindAsync(shiftId);
-            if (shift == null) return ServiceResult.Failure("Ca làm việc không tồn tại.");
-
-            bool isOvernight = endTime <= startTime;
-            if (startTime >= endTime && !isOvernight)
-                return ServiceResult.Failure("Giờ bắt đầu phải trước giờ kết thúc (trừ ca qua đêm).");
-
-            shift.StartTime = startTime;
-            shift.EndTime = endTime;
-            shift.IsOvernight = isOvernight;
-            shift.Notes = notes;
-
-            if (isOvernight)
-                shift.Duration = (TimeSpan.FromHours(24) - startTime) + endTime;
-            else
-                shift.Duration = endTime - startTime;
-
-            _context.Update(shift);
-            await _context.SaveChangesAsync();
-
-            return ServiceResult.Success("Cập nhật ca làm việc thành công!");
+            await _repository.RollbackTransactionAsync(ct);
+            throw;
         }
     }
+
+    public async Task<ServiceResult> UpdateAssignmentAsync(int storeId, int actorStaffId, UpdateStaffShiftRequest request, CancellationToken ct = default)
+    {
+        var validation = ValidateCustomTime(request.UseCustomTime, request.CustomStartTime, request.CustomEndTime);
+        if (validation != null) return validation;
+        var schedule = await _repository.GetScheduleAsync(request.StaffShiftId, ct);
+        var template = await _repository.GetTemplateAsync(request.ShiftId, ct);
+        if (schedule == null) return Fail("Không tìm thấy lịch làm việc.", "NOT_FOUND");
+        if (request.StaffId != schedule.StaffId) return Forbidden();
+        if (schedule.Staff.StoreId != storeId || schedule.Shift.StoreId != storeId || template?.StoreId != storeId) return Forbidden();
+        if (schedule.Status.Code != Scheduled) return Fail("Chỉ lịch đang hiệu lực mới được sửa.", "INVALID_STATUS");
+        if (template == null || !template.Active) return Fail("Mẫu ca không còn hoạt động.", "INACTIVE_SHIFT");
+        if (!VersionMatches(schedule.RowVersion, request.RowVersion)) return Conflict();
+
+        var customStart = request.UseCustomTime ? request.CustomStartTime : null;
+        var customEnd = request.UseCustomTime ? request.CustomEndTime : null;
+        if (await HasOverlapAsync(schedule.StaffId, request.WorkDate, template, customStart, customEnd, schedule.StaffShiftId, ct))
+            return Fail("Thời gian làm việc bị trùng với một lịch đã xếp.", "SHIFT_OVERLAP");
+
+        var before = Snapshot(schedule);
+        schedule.ShiftId = template.ShiftId;
+        schedule.WorkDate = request.WorkDate.Date;
+        schedule.CustomStartTime = customStart;
+        schedule.CustomEndTime = customEnd;
+        AddAudit("StaffShifts", schedule.StaffShiftId, "UPDATE", before, Snapshot(schedule), actorStaffId);
+        return await SaveMutationAsync("Đã cập nhật lịch làm việc.", schedule.StaffShiftId, ct);
+    }
+
+    public async Task<ServiceResult> CancelAsync(int storeId, int actorStaffId, CancelStaffShiftRequest request, CancellationToken ct = default)
+    {
+        var reason = request.Reason?.Trim();
+        if (string.IsNullOrWhiteSpace(reason)) return Fail("Vui lòng nhập lý do hủy lịch.", "REASON_REQUIRED");
+        var schedule = await _repository.GetScheduleAsync(request.StaffShiftId, ct);
+        if (schedule == null) return Fail("Không tìm thấy lịch làm việc.", "NOT_FOUND");
+        if (schedule.Staff.StoreId != storeId || schedule.Shift.StoreId != storeId) return Forbidden();
+        if (schedule.Status.Code == Cancelled) return Success("Lịch đã được hủy trước đó.", schedule.StaffShiftId);
+        if (!VersionMatches(schedule.RowVersion, request.RowVersion)) return Conflict();
+
+        var before = Snapshot(schedule);
+        schedule.StatusId = (await RequireStatusAsync(Cancelled, ct)).StaffShiftStatusId;
+        AddAudit("StaffShifts", schedule.StaffShiftId, "CANCEL", before,
+            new { Schedule = Snapshot(schedule), Reason = reason }, actorStaffId);
+        return await SaveMutationAsync("Đã hủy lịch và giữ lại lịch sử.", schedule.StaffShiftId, ct);
+    }
+
+    public async Task<ServiceResult> CreateTemplateAsync(int storeId, int actorStaffId, CreateShiftTemplateRequest request, CancellationToken ct = default)
+    {
+        var name = request.Name?.Trim();
+        if (string.IsNullOrWhiteSpace(name)) return Fail("Tên mẫu ca là bắt buộc.", "NAME_REQUIRED");
+        var template = new Shift
+        {
+            Name = name,
+            StartTime = request.StartTime,
+            EndTime = request.EndTime,
+            IsOvernight = request.EndTime <= request.StartTime,
+            Duration = Duration(request.StartTime, request.EndTime),
+            Notes = request.Notes?.Trim(),
+            Active = true,
+            StoreId = storeId
+        };
+        await _repository.BeginTransactionAsync(ct);
+        try
+        {
+            _repository.Add(template);
+            await _repository.SaveChangesAsync(ct);
+            AddAudit("Shifts", template.ShiftId, "CREATE", null, Snapshot(template), actorStaffId);
+            await _repository.SaveChangesAsync(ct);
+            await _repository.CommitTransactionAsync(ct);
+            return Success("Đã tạo mẫu ca.", template.ShiftId);
+        }
+        catch
+        {
+            await _repository.RollbackTransactionAsync(ct);
+            throw;
+        }
+    }
+
+    public async Task<ServiceResult> UpdateTemplateAsync(int storeId, int actorStaffId, UpdateShiftTemplateRequest request, CancellationToken ct = default)
+    {
+        var template = await _repository.GetTemplateAsync(request.ShiftId, ct);
+        if (template == null) return Fail("Không tìm thấy mẫu ca.", "NOT_FOUND");
+        if (template.StoreId != storeId) return Forbidden();
+        if (!VersionMatches(template.RowVersion, request.RowVersion)) return Conflict();
+        if (string.IsNullOrWhiteSpace(request.Name)) return Fail("Tên mẫu ca là bắt buộc.", "NAME_REQUIRED");
+
+        if (template.StartTime != request.StartTime || template.EndTime != request.EndTime)
+        {
+            var assigned = await _repository.GetTemplateSchedulesAsync(template.ShiftId, ct);
+            foreach (var schedule in assigned.Where(x => x.Status.Code == Scheduled && !x.CustomStartTime.HasValue))
+            {
+                var proposed = new Shift { StartTime = request.StartTime, EndTime = request.EndTime, IsOvernight = request.EndTime <= request.StartTime };
+                if (await HasOverlapAsync(schedule.StaffId, schedule.WorkDate, proposed, null, null, schedule.StaffShiftId, ct))
+                    return Fail("Giờ mới làm trùng lịch của nhân viên đã được phân. Hãy điều chỉnh lịch trước.", "TEMPLATE_IMPACT_CONFLICT");
+            }
+        }
+
+        var before = Snapshot(template);
+        template.Name = request.Name.Trim();
+        template.StartTime = request.StartTime;
+        template.EndTime = request.EndTime;
+        template.IsOvernight = request.EndTime <= request.StartTime;
+        template.Duration = Duration(request.StartTime, request.EndTime);
+        template.Notes = request.Notes?.Trim();
+        AddAudit("Shifts", template.ShiftId, "UPDATE", before, Snapshot(template), actorStaffId);
+        return await SaveMutationAsync("Đã cập nhật mẫu ca.", template.ShiftId, ct);
+    }
+
+    public async Task<ServiceResult> ToggleTemplateAsync(int storeId, int actorStaffId, ToggleShiftTemplateRequest request, CancellationToken ct = default)
+    {
+        var template = await _repository.GetTemplateAsync(request.ShiftId, ct);
+        if (template == null) return Fail("Không tìm thấy mẫu ca.", "NOT_FOUND");
+        if (template.StoreId != storeId) return Forbidden();
+        if (!VersionMatches(template.RowVersion, request.RowVersion)) return Conflict();
+        var before = Snapshot(template);
+        template.Active = !template.Active;
+        AddAudit("Shifts", template.ShiftId, "TOGGLE_STATUS", before, Snapshot(template), actorStaffId);
+        return await SaveMutationAsync(template.Active ? "Đã kích hoạt mẫu ca." : "Đã ngưng mẫu ca.", template.ShiftId, ct);
+    }
+
+    private async Task<bool> HasOverlapAsync(int staffId, DateTime date, Shift template, TimeSpan? customStart, TimeSpan? customEnd, int? excludeId, CancellationToken ct)
+    {
+        var candidate = Interval(date, customStart ?? template.StartTime, customEnd ?? template.EndTime, template.IsOvernight);
+        var existing = await _repository.GetPotentialOverlapsAsync(staffId, date.AddDays(-1), date.AddDays(1), excludeId, ct);
+        return existing.Where(x => x.Status.Code == Scheduled).Any(x =>
+        {
+            var interval = Interval(x.WorkDate, x.CustomStartTime ?? x.Shift.StartTime,
+                x.CustomEndTime ?? x.Shift.EndTime, x.Shift.IsOvernight);
+            return candidate.Start < interval.End && candidate.End > interval.Start;
+        });
+    }
+
+    private async Task<StaffShiftStatus> RequireStatusAsync(string code, CancellationToken ct) =>
+        await _repository.GetStatusAsync(code, ct) ?? throw new InvalidOperationException($"Thiếu trạng thái {code}.");
+
+    private async Task<ServiceResult> SaveMutationAsync(string message, int id, CancellationToken ct)
+    {
+        try
+        {
+            await _repository.SaveChangesAsync(ct);
+            return Success(message, id);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict();
+        }
+    }
+
+    private void AddAudit(string table, int id, string action, object? before, object? after, int actorStaffId) =>
+        _repository.Add(new AuditLog
+        {
+            TableName = table,
+            RecordId = id,
+            Action = action,
+            OldData = before == null ? null : JsonSerializer.Serialize(before),
+            NewData = after == null ? null : JsonSerializer.Serialize(after),
+            UserId = actorStaffId,
+            CreatedAt = DateTime.UtcNow
+        });
+
+    private static ServiceResult? ValidateCustomTime(bool useCustom, TimeSpan? start, TimeSpan? end)
+    {
+        if (!useCustom && (start.HasValue || end.HasValue)) return Fail("Tắt giờ riêng thì không được gửi giờ tùy chỉnh.", "INVALID_CUSTOM_TIME");
+        if (useCustom && (!start.HasValue || !end.HasValue)) return Fail("Giờ bắt đầu và kết thúc tùy chỉnh đều bắt buộc.", "INVALID_CUSTOM_TIME");
+        return null;
+    }
+
+    private static (DateTime Start, DateTime End) Interval(DateTime date, TimeSpan start, TimeSpan end, bool overnight)
+    {
+        var from = date.Date.Add(start);
+        var to = date.Date.Add(end);
+        if (overnight || end <= start) to = to.AddDays(1);
+        return (from, to);
+    }
+
+    private static TimeSpan Duration(TimeSpan start, TimeSpan end) => end <= start
+        ? TimeSpan.FromHours(24) - start + end
+        : end - start;
+
+    private static bool VersionMatches(byte[] current, string supplied)
+    {
+        try { return current.SequenceEqual(Convert.FromBase64String(supplied)); }
+        catch { return false; }
+    }
+
+    private static object Snapshot(Shift x) => new { x.ShiftId, x.Name, x.StartTime, x.EndTime, x.IsOvernight, x.Active, x.StoreId, x.Notes };
+    private static object Snapshot(StaffShift x) => new { x.StaffShiftId, x.StaffId, x.ShiftId, x.WorkDate, x.CustomStartTime, x.CustomEndTime, x.StatusId };
+
+    private static ShiftTemplateVM MapTemplate(Shift x) => new()
+    {
+        ShiftId = x.ShiftId, Name = x.Name, StartTime = x.StartTime, EndTime = x.EndTime,
+        IsOvernight = x.IsOvernight, Active = x.Active, Notes = x.Notes,
+        RowVersion = Convert.ToBase64String(x.RowVersion ?? Array.Empty<byte>())
+    };
+
+    private static StaffScheduleItemVM MapSchedule(StaffShift x)
+    {
+        var start = x.CustomStartTime ?? x.Shift.StartTime;
+        var end = x.CustomEndTime ?? x.Shift.EndTime;
+        return new StaffScheduleItemVM
+        {
+            StaffShiftId = x.StaffShiftId, ShiftId = x.ShiftId, ShiftName = x.Shift.Name,
+            WorkDate = x.WorkDate, EffectiveStart = start, EffectiveEnd = end,
+            CustomStartTime = x.CustomStartTime, CustomEndTime = x.CustomEndTime,
+            IsOvernight = x.Shift.IsOvernight || end <= start, StatusCode = x.Status.Code,
+            RowVersion = Convert.ToBase64String(x.RowVersion ?? Array.Empty<byte>())
+        };
+    }
+
+    private static ServiceResult Success(string message, int id)
+    {
+        var result = ServiceResult.Success(message); result.EntityId = id; return result;
+    }
+    private static ServiceResult Fail(string message, string code) => ServiceResult.Failure(message, errorCode: code);
+    private static ServiceResult Forbidden() => Fail("Bạn không có quyền thao tác dữ liệu của cửa hàng này.", "FORBIDDEN");
+    private static ServiceResult Conflict() => Fail("Dữ liệu đã thay đổi. Vui lòng tải lại trang.", "CONCURRENCY_CONFLICT");
 }

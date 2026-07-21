@@ -184,7 +184,7 @@ public sealed class PurchaseOrderBatchPdfIssue187Tests : IDisposable
         var account = new Account { Email = Guid.NewGuid() + "@test.local", PasswordHash = "x", Active = true, CreatedAt = now };
         _db.AddRange(store1, store2, ingredient, supplier, account);
         await _db.SaveChangesAsync();
-        var staff = new Staff { AccountId = account.AccountId, StoreId = store1.StoreId, FullName = "Chủ doanh nghiệp", Active = true, CreatedAt = now, BaseSalary = 0 };
+        var staff = new Staff { AccountId = account.AccountId, StoreId = store1.StoreId, FullName = "Chủ doanh nghiệp", Active = true, CreatedAt = now};
         var offer = new IngredientSupplier
         {
             IngredientId = ingredient.IngredientId, SupplierId = supplier.SupplierId, UnitId = unit.UnitId,

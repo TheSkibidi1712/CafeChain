@@ -27,8 +27,8 @@ public sealed class PermissionAuthorizationHandler : AuthorizationHandler<Permis
         if (!int.TryParse(accountValue, out var accountId) || accountId <= 0)
             return;
 
-        var result = await _permissionService.HasPermissionAsync(accountId, requirement.PermissionCode);
-        if (result.IsSuccess && result.Data?.Allowed == true)
+        var result = await _permissionService.GetEffectivePermissionCodesAsync(accountId);
+        if (result.IsSuccess && result.Data?.Contains(requirement.PermissionCode) == true)
             context.Succeed(requirement);
     }
 }

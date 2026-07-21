@@ -1,4 +1,4 @@
-@model CafeChain.Models.Stores.Store
+@model CafeChain.ViewModels.Admin.Stores.AdminStoreFormVM
 @{
     ViewData["Title"] = "Thêm cửa hàng mới";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml"; // Giả định layout
@@ -142,11 +142,6 @@
                 <span asp-validation-for="Phone" class="text-danger"></span>
             </div>
 
-            <div class="form-check form-switch mb-4 mt-2">
-                <input asp-for="Active" class="form-check-input" type="checkbox" checked style="transform: scale(1.3); margin-right: 10px;" />
-                <label class="form-check-label fw-bold" asp-for="Active" style="padding-top: 3px;">Cho phép cửa hàng hoạt động</label>
-            </div>
-
             <button type="submit" class="store-admin-btn store-admin-btn-primary w-100">
                 <i class="fas fa-save"></i>
                 Thêm cửa hàng
@@ -172,12 +167,10 @@
             // ===============================================
             function cleanVNName(str) {
                 if (!str) return "";
-                var prefixes = ["Tỉnh ", "Thành phố ", "TP ", "Quận ", "Huyện ", "Thị xã ", "Phường ", "Xã ", "Thị trấn "];
-                var cleaned = str;
-                prefixes.forEach(p => {
-                    if (cleaned.startsWith(p)) cleaned = cleaned.replace(p, "");
-                });
-                return cleaned.trim().toLowerCase();
+                return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase()
+                    .replace(/^(tinh|thanh pho|tp|quan|huyen|thi xa|phuong|xa|thi tran)\s+/, '')
+                    .replace(/\s+/g, ' ').trim();
             }
 
             function fuzzySelect($select, targetName) {
@@ -316,19 +309,24 @@
                     L.DomEvent.on(button, 'click', function(e) {
                         L.DomEvent.stopPropagation(e);
                         L.DomEvent.preventDefault(e);
+                        if (button.dataset.locating === 'true') return;
                         
                         if (!navigator.geolocation) {
                             alert("Trình duyệt không hỗ trợ định vị.");
                             return;
                         }
 
-                        $(button).html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+                        button.dataset.locating = 'true';
+                        $(button).attr('aria-busy', 'true').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
                         
                         navigator.geolocation.getCurrentPosition(function(pos) {
                             var lt = pos.coords.latitude;
                             var lg = pos.coords.longitude;
 
                             map.flyTo([lt, lg], 18);
+                            marker.setLatLng([lt, lg]);
+                            $('#Latitude').val(lt); $('#Longitude').val(lg);
+                            $('#DisplayLatitude').val(lt.toFixed(6)); $('#DisplayLongitude').val(lg.toFixed(6));
                             
                             // Cắm 'Red Dot' chuẩn Google
                             var redDotIcon = L.divIcon({
@@ -344,10 +342,15 @@
                                 userLocationMarker = L.marker([lt, lg], { icon: redDotIcon }).addTo(map);
                             }
 
-                            $(button).html('<i class="bi bi-crosshair"></i>');
+                            performReverseGeocoding(lt, lg, function() {
+                                button.dataset.locating = 'false';
+                                $(button).removeAttr('aria-busy').html('<i class="bi bi-crosshair"></i>');
+                            });
                         }, function() {
                             alert("⚠️ Bạn chưa cấp quyền vị trí cho trình duyệt. Vui lòng bật trong cài đặt!");
                             $(button).html('<i class="bi bi-crosshair"></i>');
+                            button.dataset.locating = 'false';
+                            $(button).removeAttr('aria-busy');
                         }, { enableHighAccuracy: true });
                     });
 
@@ -358,7 +361,7 @@
             new L.Control.Locate({ position: 'bottomright' }).addTo(map);
 
             // --- HÀM HELPER: REVERSE GEOCODING (Lấy địa chỉ & Tự động dropdown) ---
-            function performReverseGeocoding(lat, lng) {
+            function performReverseGeocoding(lat, lng, onComplete) {
                 var MAPBOX_TOKEN = 'pk.eyJ1Ijoibmd1eWVucGh1YzA1MDQiLCJhIjoiY21ubzF3bjJxMjBtOTJwcTJtZW9hOHhlcCJ9.0v8s3Xy-6HKnOrvz9pa48w';
                 var url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&language=vi&limit=1`;
 
@@ -394,14 +397,17 @@
                                     var dIdSelected = fuzzySelect($('#DistrictId'), district);
                                     if (dIdSelected) {
                                         apiLoadWards(dIdSelected).then(function() {
-                                            fuzzySelect($('#WardId'), ward);
+                                            if (!fuzzySelect($('#WardId'), ward))
+                                                alert('Đã lấy tọa độ nhưng chưa đối chiếu được Phường/Xã. Vui lòng chọn thủ công.');
                                             window._isMapAutoLoading = false;
                                         });
                                     } else {
+                                        alert('Đã lấy tọa độ nhưng chưa đối chiếu được Quận/Huyện. Vui lòng chọn thủ công.');
                                         window._isMapAutoLoading = false;
                                     }
                                 });
                             } else {
+                                alert('Đã lấy tọa độ nhưng chưa đối chiếu được Tỉnh/Thành phố. Vui lòng chọn thủ công.');
                                 window._isMapAutoLoading = false;
                             }
                         } else {
@@ -412,6 +418,18 @@
                     error: function() {
                         $('#Address').val('').removeClass('text-info');
                         window._isMapAutoLoading = false;
+                    },
+                    complete: function() {
+                        if (typeof onComplete !== 'function') return;
+                        var attempts = 0;
+                        (function waitForAddressCascade() {
+                            if (!window._isMapAutoLoading || attempts++ >= 200) {
+                                window._isMapAutoLoading = false;
+                                onComplete();
+                                return;
+                            }
+                            window.setTimeout(waitForAddressCascade, 50);
+                        })();
                     }
                 });
             }

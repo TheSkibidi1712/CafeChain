@@ -1,5 +1,6 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Permissions;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Admin.Permissions;
 using CafeChain.Models.Customers;
@@ -12,11 +13,11 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
 {
     public class AdminPermissionRepository : IAdminPermissionRepository
     {
-        private const int ScopeCountry = 1;
-        private const int ScopeProvince = 2;
-        private const int ScopeDistrict = 3;
-        private const int ScopeWard = 4;
-        private const int ScopeStore = 5;
+        private const int ScopeCountry = (int)ScopeLevel.Country;
+        private const int ScopeProvince = (int)ScopeLevel.Province;
+        private const int ScopeDistrict = (int)ScopeLevel.District;
+        private const int ScopeWard = (int)ScopeLevel.Ward;
+        private const int ScopeStore = (int)ScopeLevel.Store;
 
         private readonly AppDbContext _context;
 
@@ -278,6 +279,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
                 {
                     StaffId = x.StaffId,
                     AccountId = x.AccountId,
+                    PrimaryStoreId = x.StoreId,
                     FullName = x.FullName,
                     Email = x.Account.Email,
                     StaffActive = x.Active,
@@ -356,9 +358,9 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
             }
         }
 
-        public Task<List<ScopeTypeOptionDto>> GetScopeTypesAsync()
+        public async Task<List<ScopeTypeOptionDto>> GetScopeTypesAsync()
         {
-            return _context.ScopeTypes
+            var scopeTypes = await _context.ScopeTypes
                 .AsNoTracking()
                 .OrderBy(x => x.ScopeTypeId)
                 .Select(x => new ScopeTypeOptionDto
@@ -368,6 +370,11 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
                     Name = x.Name
                 })
                 .ToListAsync();
+
+            foreach (var scopeType in scopeTypes)
+                scopeType.Name = ScopeTypeDisplayNames.FromCode(scopeType.Code);
+
+            return scopeTypes;
         }
 
         public async Task<List<StaffScopeItemDto>> GetStaffScopesAsync(int staffId)
@@ -388,6 +395,9 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
                 .ToListAsync();
 
             await FillScopeRefNamesAsync(scopes);
+
+            foreach (var scope in scopes)
+                scope.ScopeTypeName = ScopeTypeDisplayNames.FromCode(scope.ScopeTypeCode);
 
             return scopes;
         }
@@ -439,6 +449,36 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
             }
 
             return invalid;
+        }
+
+        public async Task<bool> ScopesCoverStoreAsync(
+            IEnumerable<StaffScopeInputDto> scopes,
+            int storeId)
+        {
+            var normalized = NormalizeScopes(scopes);
+            var store = await _context.Stores
+                .AsNoTracking()
+                .Include(x => x.Province)
+                .Include(x => x.District).ThenInclude(x => x!.Province)
+                .Include(x => x.Ward).ThenInclude(x => x!.District).ThenInclude(x => x!.Province)
+                .FirstOrDefaultAsync(x => x.StoreId == storeId);
+            if (store == null) return false;
+
+            var wardId = store.WardId;
+            var districtId = store.DistrictId ?? store.Ward?.DistrictId;
+            var provinceId = store.ProvinceId
+                ?? store.District?.ProvinceId
+                ?? store.Ward?.District?.ProvinceId;
+            var countryId = store.Province?.CountryId
+                ?? store.District?.Province?.CountryId
+                ?? store.Ward?.District?.Province?.CountryId;
+
+            return normalized.Any(x =>
+                (x.ScopeTypeId == ScopeCountry && x.ScopeRefId == countryId)
+                || (x.ScopeTypeId == ScopeProvince && x.ScopeRefId == provinceId)
+                || (x.ScopeTypeId == ScopeDistrict && x.ScopeRefId == districtId)
+                || (x.ScopeTypeId == ScopeWard && x.ScopeRefId == wardId)
+                || (x.ScopeTypeId == ScopeStore && x.ScopeRefId == storeId));
         }
 
         public async Task ReplaceStaffScopesAsync(int staffId, IEnumerable<StaffScopeInputDto> scopes)
@@ -609,6 +649,32 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
                 RoleAllowed = roleAllowed,
                 OverrideEffect = overrideEffect
             };
+        }
+
+        public async Task<HashSet<string>> GetEffectivePermissionCodesAsync(int accountId)
+        {
+            var accountActive = await _context.Accounts.AsNoTracking()
+                .AnyAsync(x => x.AccountId == accountId && x.Active);
+            if (!accountActive) return new HashSet<string>(StringComparer.Ordinal);
+
+            var roleCodes = await _context.RolePermissions.AsNoTracking()
+                .Where(x => x.Permission.Active && x.Role.Active
+                    && x.Role.AccountRoles.Any(ar => ar.AccountId == accountId))
+                .Select(x => x.Permission.Code)
+                .Distinct()
+                .ToListAsync();
+            var overrides = await _context.AccountPermissionOverrides.AsNoTracking()
+                .Where(x => x.AccountId == accountId && x.Permission.Active)
+                .Select(x => new { x.Permission.Code, x.Effect })
+                .ToListAsync();
+
+            var result = new HashSet<string>(roleCodes, StringComparer.Ordinal);
+            foreach (var item in overrides)
+            {
+                if (item.Effect == PermissionEffect.Allow) result.Add(item.Code);
+                else if (item.Effect == PermissionEffect.Deny) result.Remove(item.Code);
+            }
+            return result;
         }
 
         private async Task FillScopeRefNamesAsync(List<StaffScopeItemDto> scopes)

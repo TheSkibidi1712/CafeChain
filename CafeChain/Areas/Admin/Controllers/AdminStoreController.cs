@@ -1,164 +1,91 @@
-using CafeChain.Data;
-using CafeChain.Models.Stores;
-using CafeChain.Models.Enums.Inventory;
-using CafeChain.Models.Inventories.Configuration;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
+using CafeChain.Application.Interfaces.Admin.Stores;
+using CafeChain.ViewModels.Admin.Stores;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using System.Linq;
 
-namespace CafeChain.Areas.Admin.Controllers
+namespace CafeChain.Areas.Admin.Controllers;
+
+[RequirePermission(PermissionConstants.StoreView)]
+public sealed class AdminStoreController : AdminBaseController
 {
-    public class AdminStoreController : AdminBaseController
+    private readonly IAdminStoreService _service;
+    public AdminStoreController(IAdminStoreService service) => _service = service;
+
+    public async Task<IActionResult> Index() => View(await _service.GetAllAsync(User));
+
+    [RequirePermission(PermissionConstants.StoreCreate)]
+    public async Task<IActionResult> Create()
     {
-        private readonly AppDbContext _context;
+        var form = await _service.GetCreateFormAsync();
+        ViewBag.Provinces = form.Provinces;
+        return View(form.Store);
+    }
 
-        public AdminStoreController(AppDbContext context)
+    [HttpPost, ValidateAntiForgeryToken, RequirePermission(PermissionConstants.StoreCreate)]
+    public async Task<IActionResult> Create(AdminStoreFormVM model)
+    {
+        if (ModelState.IsValid)
         {
-            _context = context;
+        var result = await _service.CreateAsync(model, User);
+            if (result.IsSuccess) return RedirectToAction(nameof(Index));
+            ModelState.AddModelError(string.Empty, result.Message);
         }
+        var form = await _service.GetCreateFormAsync();
+        ViewBag.Provinces = form.Provinces;
+        return View(model);
+    }
 
-        // 1. INDEX: Đổ toàn bộ Store ra bảng
-        public IActionResult Index()
+    [RequirePermission(PermissionConstants.StoreUpdate)]
+    public async Task<IActionResult> Edit(int id)
+    {
+        try
         {
-            var stores = _context.Stores
-                .Include(s => s.Province)
-                .Include(s => s.District)
-                .Include(s => s.Ward)
-                .OrderByDescending(s => s.CreatedAt)
-                .ToList();
-                
-            return View(stores);
+            var form = await _service.GetEditFormAsync(id, User);
+            if (form == null) return NotFound();
+            ViewBag.Provinces = form.Provinces;
+            return View(form.Store);
         }
-
-        // 2. CREATE (GET): Đẩy tập dữ liệu Tỉnh/TP xuống View
-        public IActionResult Create()
+        catch (UnauthorizedAccessException)
         {
-            ViewBag.Provinces = _context.Provinces
-                .Select(p => new SelectListItem { Value = p.ProvinceId.ToString(), Text = p.Name })
-                .ToList();
-                
-            return View();
+            return Forbid();
         }
+    }
 
-        // 2. CREATE (POST): Validate và insert dữ liệu xuống DB
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Store store)
+    [HttpPost, ValidateAntiForgeryToken, RequirePermission(PermissionConstants.StoreUpdate)]
+    public async Task<IActionResult> Edit(int id, AdminStoreFormVM model)
+    {
+        if (id != model.StoreId) return BadRequest();
+        try
         {
-            // Loại bỏ các trường tự động tạo/không cần thiết khỏi ModelState check
-            ModelState.Remove("Province");
-            ModelState.Remove("District");
-            ModelState.Remove("Ward");
-            ModelState.Remove("Staffs");
-            ModelState.Remove("Orders");
-            ModelState.Remove("InventoryWriterConfiguration");
-
             if (ModelState.IsValid)
             {
-                await using var transaction = await _context.Database.BeginTransactionAsync();
-                try
-                {
-                    var now = DateTime.UtcNow;
-                    store.CreatedAt = now;
-                    store.InventoryWriterConfiguration = new StoreInventoryWriterConfiguration
-                    {
-                        WriterMode = InventoryWriterMode.LegacyRecipe,
-                        HasEverActivatedPreparedItem = false,
-                        CreatedAt = now,
-                        UpdatedAt = now
-                    };
-                    _context.Stores.Add(store);
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return RedirectToAction(nameof(Index));
-                }
-                catch
-                {
-                    await transaction.RollbackAsync();
-                    ModelState.AddModelError(string.Empty, "Không thể tạo cửa hàng cùng cấu hình writer kho.");
-                }
+                var result = await _service.UpdateAsync(model, User);
+                if (result.IsSuccess) return RedirectToAction(nameof(Index));
+                ModelState.AddModelError(string.Empty, result.Message);
             }
-            
-            // XỬ LÝ LỖI: Trả về View cùng bộ Dropdown data để người dùng không phải chọn lại
-            ViewBag.Provinces = _context.Provinces
-                .Select(p => new SelectListItem { 
-                    Value = p.ProvinceId.ToString(), 
-                    Text = p.Name, 
-                    Selected = (p.ProvinceId == store.ProvinceId) 
-                }).ToList();
-                
-            return View(store);
+            var form = await _service.GetEditFormAsync(id, User);
+            if (form == null) return NotFound();
+            ViewBag.Provinces = form.Provinces;
+            return View(model);
         }
-
-        // 3. EDIT (GET)
-        public IActionResult Edit(int id)
+        catch (UnauthorizedAccessException)
         {
-            var store = _context.Stores.Find(id);
-            if (store == null) return NotFound();
-
-            ViewBag.Provinces = new SelectList(_context.Provinces, "ProvinceId", "Name", store.ProvinceId);
-            
-            if (store.ProvinceId.HasValue)
-                ViewBag.Districts = new SelectList(_context.Districts.Where(d => d.ProvinceId == store.ProvinceId), "DistrictId", "Name", store.DistrictId);
-            else
-                ViewBag.Districts = new SelectList(Enumerable.Empty<SelectListItem>());
-
-            if (store.DistrictId.HasValue)
-                ViewBag.Wards = new SelectList(_context.Wards.Where(w => w.DistrictId == store.DistrictId), "WardId", "Name", store.WardId);
-            else
-                ViewBag.Wards = new SelectList(Enumerable.Empty<SelectListItem>());
-                
-            return View(store);
+            return Forbid();
         }
+    }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, Store store)
+    [HttpPost, ValidateAntiForgeryToken, RequirePermission(PermissionConstants.StoreToggleStatus)]
+    public async Task<IActionResult> ToggleStatus(int id)
+    {
+        try
         {
-            if (id != store.StoreId) return NotFound();
-
-            ModelState.Remove("Province");
-            ModelState.Remove("District");
-            ModelState.Remove("Ward");
-            ModelState.Remove("Staffs");
-            ModelState.Remove("Orders");
-
-            if (ModelState.IsValid)
-            {
-                _context.Stores.Update(store);
-                _context.SaveChanges();
-                return RedirectToAction(nameof(Index));
-            }
-            
-            // Nếu lỗi, nạp lại toàn bộ SelectLists để Dropdown 3 cấp phục hồi
-            ViewBag.Provinces = new SelectList(_context.Provinces, "ProvinceId", "Name", store.ProvinceId);
-            if (store.ProvinceId.HasValue)
-                ViewBag.Districts = new SelectList(_context.Districts.Where(d => d.ProvinceId == store.ProvinceId), "DistrictId", "Name", store.DistrictId);
-            else
-                ViewBag.Districts = new SelectList(Enumerable.Empty<SelectListItem>());
-
-            if (store.DistrictId.HasValue)
-                ViewBag.Wards = new SelectList(_context.Wards.Where(w => w.DistrictId == store.DistrictId), "WardId", "Name", store.WardId);
-            else
-                ViewBag.Wards = new SelectList(Enumerable.Empty<SelectListItem>());
-                
-            return View(store);
-        }
-
-        // 4. TOGGLE STATUS (SOFT DELETE)
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult ToggleStatus(int id)
-        {
-            var store = _context.Stores.Find(id);
-            if (store == null) return NotFound();
-
-            store.Active = !store.Active; // Đảo trạng thái Active
-            _context.SaveChanges();
-
+            await _service.ToggleStatusAsync(id, User);
             return RedirectToAction(nameof(Index));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
         }
     }
 }
-

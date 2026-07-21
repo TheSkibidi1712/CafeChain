@@ -491,7 +491,6 @@ namespace CafeChain.Tests
                     StoreId = storeId,
                     FullName = "Mgr Scope",
                     Active = true,
-                    BaseSalary = 0,
                     CreatedAt = DateTime.UtcNow
                 });
             }

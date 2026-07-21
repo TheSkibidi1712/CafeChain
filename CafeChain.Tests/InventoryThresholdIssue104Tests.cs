@@ -479,7 +479,6 @@ namespace CafeChain.Tests.POS
                 FullName = $"Staff {staffId}",
                 Active = true,
                 CreatedAt = System.DateTime.UtcNow,
-                BaseSalary = 0
             });
             ctx.SaveChanges();
         }

@@ -140,7 +140,6 @@ public sealed class PurchaseOrderBatchSqlServerIssue186Tests : IAsyncLifetime
             FullName = "Warehouse 186 SQL",
             Active = true,
             CreatedAt = now,
-            BaseSalary = 0
         };
         var offer = new IngredientSupplier { IngredientId = ingredient.IngredientId, SupplierId = supplier.SupplierId, UnitId = unit.UnitId, PackageQuantity = 1m, CurrentPrice = 15000m, MinimumOrderPackageCount = 1, LeadTimeDays = 1, Active = true, CreatedAt = now, UpdatedAt = now };
         db.AddRange(staff, offer, new SupplierStore { SupplierId = supplier.SupplierId, StoreId = store.StoreId, Active = true, CreatedAt = now, UpdatedAt = now });

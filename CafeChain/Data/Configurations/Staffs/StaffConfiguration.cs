@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Constants.Cloudinaries;
 using CafeChain.Models;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Staffs;
@@ -22,15 +23,9 @@ namespace CafeChain.Data.Configurations.Staffs
                 .IsRequired()
                 .HasMaxLength(200);
 
-            entity.Property(x => x.TaxCode)
-                .HasMaxLength(14);
-
             entity.Property(x => x.CCCD)
                 .HasMaxLength(12)
                 .IsFixedLength(true);
-
-            entity.Property(x => x.BaseSalary)
-                .HasColumnType("decimal(18,2)");
 
             entity.Property(x => x.DateOfBirth);
 
@@ -68,10 +63,6 @@ namespace CafeChain.Data.Configurations.Staffs
 
             entity.HasIndex(x => x.StoreId);
 
-            entity.HasIndex(x => x.TaxCode)
-                .IsUnique()
-                .HasFilter("[TaxCode] IS NOT NULL AND [TaxCode] <> ''");
-
             entity.HasIndex(x => x.CCCD)
                 .IsUnique()
                 .HasFilter("[CCCD] IS NOT NULL AND [CCCD] <> ''");
@@ -82,12 +73,10 @@ namespace CafeChain.Data.Configurations.Staffs
                     StaffId = 1,
                     AccountId = 1,
                     FullName = "Chủ doanh nghiệp",
-                    TaxCode = "TAX101",
-                    BaseSalary = 100000000,
                     StoreId = 1,
                     Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    AvatarPublicId = "staffs/default-avatar",
+                    AvatarUrl = DefaultImages.StaffAvatarUrl,
+                    AvatarPublicId = DefaultImages.StaffAvatarPublicId,
                     CreatedAt = new DateTime(2026, 1, 1)
                 },
                 new Staff
@@ -95,12 +84,10 @@ namespace CafeChain.Data.Configurations.Staffs
                     StaffId = 2,
                     AccountId = 2,
                     FullName = "Quản lý vùng TP.HCM",
-                    TaxCode = "TAX102",
-                    BaseSalary = 45000000,
                     StoreId = 1,
                     Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    AvatarPublicId = "staffs/default-avatar",
+                    AvatarUrl = DefaultImages.StaffAvatarUrl,
+                    AvatarPublicId = DefaultImages.StaffAvatarPublicId,
                     CreatedAt = new DateTime(2026, 1, 1)
                 },
                 new Staff
@@ -108,12 +95,10 @@ namespace CafeChain.Data.Configurations.Staffs
                     StaffId = 3,
                     AccountId = 3,
                     FullName = "Quản lý chi nhánh Quận 1",
-                    TaxCode = "TAX103",
-                    BaseSalary = 25000000,
                     StoreId = 1,
                     Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    AvatarPublicId = "staffs/default-avatar",
+                    AvatarUrl = DefaultImages.StaffAvatarUrl,
+                    AvatarPublicId = DefaultImages.StaffAvatarPublicId,
                     CreatedAt = new DateTime(2026, 1, 1)
                 },
                 new Staff
@@ -121,12 +106,10 @@ namespace CafeChain.Data.Configurations.Staffs
                     StaffId = 4,
                     AccountId = 4,
                     FullName = "Nhân viên bán hàng",
-                    TaxCode = "TAX104",
-                    BaseSalary = 9000000,
                     StoreId = 1,
                     Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    AvatarPublicId = "staffs/default-avatar",
+                    AvatarUrl = DefaultImages.StaffAvatarUrl,
+                    AvatarPublicId = DefaultImages.StaffAvatarPublicId,
                     CreatedAt = new DateTime(2026, 1, 1)
                 },
                 new Staff
@@ -134,12 +117,10 @@ namespace CafeChain.Data.Configurations.Staffs
                     StaffId = 5,
                     AccountId = 5,
                     FullName = "Nhân viên kế toán kho",
-                    TaxCode = "TAX105",
-                    BaseSalary = 15000000,
                     StoreId = 1,
                     Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    AvatarPublicId = "staffs/default-avatar",
+                    AvatarUrl = DefaultImages.StaffAvatarUrl,
+                    AvatarPublicId = DefaultImages.StaffAvatarPublicId,
                     CreatedAt = new DateTime(2026, 1, 1)
                 },
                 new Staff
@@ -147,12 +128,10 @@ namespace CafeChain.Data.Configurations.Staffs
                     StaffId = 6,
                     AccountId = 6,
                     FullName = "Quản trị hệ thống",
-                    TaxCode = "TAX106",
-                    BaseSalary = 35000000,
                     StoreId = 1,
                     Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    AvatarPublicId = "staffs/default-avatar",
+                    AvatarUrl = DefaultImages.StaffAvatarUrl,
+                    AvatarPublicId = DefaultImages.StaffAvatarPublicId,
                     CreatedAt = new DateTime(2026, 1, 1)
                 },
                 // StaffId 15 ↔ AccountId 15 (Ca trưởng) — SeedDemoIdentities (#94 / #130 follow-up).
@@ -161,50 +140,15 @@ namespace CafeChain.Data.Configurations.Staffs
                     StaffId = SeedDemoIdentities.ShiftSupervisorStaffId,
                     AccountId = SeedDemoIdentities.ShiftSupervisorAccountId,
                     FullName = "Ca trưởng chi nhánh",
-                    TaxCode = "TAX112",
-                    BaseSalary = 12000000,
                     StoreId = SeedDemoIdentities.ShiftSupervisorStoreId,
                     Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    AvatarPublicId = "staffs/default-avatar",
+                    AvatarUrl = DefaultImages.StaffAvatarUrl,
+                    AvatarPublicId = DefaultImages.StaffAvatarPublicId,
                     CreatedAt = new DateTime(2026, 1, 1)
                 }
             );
         }
     }
-
-    // ========================== STAFF BANK ==========================
-    public class StaffBankConfiguration : IEntityTypeConfiguration<StaffBank>
-    {
-        public void Configure(EntityTypeBuilder<StaffBank> entity)
-        {
-            entity.ToTable("StaffBanks");
-
-            entity.HasKey(x => x.StaffBankId);
-
-            entity.Property(x => x.BankName)
-                .HasMaxLength(100);
-
-            entity.Property(x => x.AccountNumber)
-                .HasMaxLength(50);
-
-            entity.HasOne(x => x.Staff)
-                .WithMany(x => x.StaffBanks)
-                .HasForeignKey(x => x.StaffId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            entity.HasIndex(x => new { x.BankName, x.AccountNumber })
-                .IsUnique()
-                .HasFilter("[AccountNumber] IS NOT NULL AND [BankName] IS NOT NULL");
-
-            entity.HasData(
-                new StaffBank { StaffBankId = 1, StaffId = 1, BankName = "Vietcombank", AccountNumber = "123456789" },
-                new StaffBank { StaffBankId = 2, StaffId = 2, BankName = "ACB", AccountNumber = "987654321" },
-                new StaffBank { StaffBankId = 3, StaffId = 3, BankName = "Techcombank", AccountNumber = "456123789" }
-            );
-        }
-    }
-
 
     // ========================== STAFF SCOPE ==========================
     public class StaffScopeConfiguration : IEntityTypeConfiguration<StaffScope>
@@ -362,6 +306,9 @@ namespace CafeChain.Data.Configurations.Staffs
             entity.Property(x => x.IsOvernight)
                 .HasDefaultValue(false);
 
+            entity.Property(x => x.RowVersion)
+                .IsRowVersion();
+
             entity.HasOne(x => x.Store)
                 .WithMany(s => s.Shifts)
                 .HasForeignKey(x => x.StoreId)
@@ -394,11 +341,11 @@ namespace CafeChain.Data.Configurations.Staffs
 
             entity.Property(x => x.WorkDate).IsRequired();
 
-            entity.Property(x => x.ActualCheckIn).IsRequired(false);
-            entity.Property(x => x.ActualCheckOut).IsRequired(false);
-
             entity.Property(x => x.StatusId)
-                .HasDefaultValue(1); // PLANNED
+                .HasDefaultValue(1);
+
+            entity.Property(x => x.RowVersion)
+                .IsRowVersion();
 
             entity.HasOne(x => x.Status)
                 .WithMany(x => x.StaffShifts)
@@ -452,11 +399,8 @@ namespace CafeChain.Data.Configurations.Staffs
             entity.HasIndex(x => x.Code).IsUnique();
 
             entity.HasData(
-                new StaffShiftStatus { StaffShiftStatusId = 1, Code = "PLANNED", Name = "Planned", IsSystem = true },
-                new StaffShiftStatus { StaffShiftStatusId = 2, Code = "CHECKED_IN", Name = "Checked In", IsSystem = true },
-                new StaffShiftStatus { StaffShiftStatusId = 3, Code = "COMPLETED", Name = "Completed", IsSystem = true },
-                new StaffShiftStatus { StaffShiftStatusId = 4, Code = "ABSENT", Name = "Absent", IsSystem = true },
-                new StaffShiftStatus { StaffShiftStatusId = 5, Code = "CANCELLED", Name = "Cancelled", IsSystem = true }
+                new StaffShiftStatus { StaffShiftStatusId = 1, Code = "SCHEDULED", Name = "Đã lên lịch", IsSystem = true },
+                new StaffShiftStatus { StaffShiftStatusId = 2, Code = "CANCELLED", Name = "Đã hủy", IsSystem = true }
             );
         }
     }
@@ -513,7 +457,7 @@ namespace CafeChain.Data.Configurations.Staffs
 
             entity.Property(x => x.Address)
                 .IsRequired()
-                .HasMaxLength(300);
+                .HasMaxLength(500);
 
             entity.Property(x => x.IsDefault)
                 .HasDefaultValue(false);
@@ -523,7 +467,25 @@ namespace CafeChain.Data.Configurations.Staffs
                 .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(x => x.Province)
+                .WithMany()
+                .HasForeignKey(x => x.ProvinceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.District)
+                .WithMany()
+                .HasForeignKey(x => x.DistrictId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Ward)
+                .WithMany()
+                .HasForeignKey(x => x.WardId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => x.StaffId);
+            entity.HasIndex(x => x.ProvinceId);
+            entity.HasIndex(x => x.DistrictId);
+            entity.HasIndex(x => x.WardId);
 
             entity.HasData(
                 new StaffAddress { StaffAddressId = 1, StaffId = 1, Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM", IsDefault = true },

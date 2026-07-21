@@ -332,7 +332,6 @@ public sealed class RestockProcurementRoutingIssue177Tests : IntegrationTestBase
                     FullName = "Manager #177",
                     Active = true,
                     CreatedAt = DateTime.UtcNow,
-                    BaseSalary = 0
                 },
                 new Staff
                 {
@@ -342,7 +341,6 @@ public sealed class RestockProcurementRoutingIssue177Tests : IntegrationTestBase
                     FullName = "Warehouse #177",
                     Active = true,
                     CreatedAt = DateTime.UtcNow,
-                    BaseSalary = 0
                 });
         }
 

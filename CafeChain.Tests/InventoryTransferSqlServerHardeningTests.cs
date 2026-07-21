@@ -407,7 +407,6 @@ public sealed class InventoryTransferSqlServerHardeningTests : IAsyncLifetime
             FullName = "Inventory SQL actor",
             Active = true,
             CreatedAt = DateTime.UtcNow,
-            BaseSalary = 0m
         };
         context.Staffs.Add(staff);
         await context.SaveChangesAsync();

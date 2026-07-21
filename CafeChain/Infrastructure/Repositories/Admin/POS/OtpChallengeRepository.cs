@@ -63,9 +63,6 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
 
         public async Task<Staff?> GetOtpApproverAsync(int storeId, int excludeStaffId, DateTime utcNow)
         {
-            var dayStart = utcNow.Date;
-            var dayEnd = dayStart.AddDays(1);
-
             // Phase 1: ShiftSupervisor then StoreManager only; never actor; never AW default.
             var approverRoles = new[]
             {
@@ -77,7 +74,6 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .Include(staff => staff.Account)
                     .ThenInclude(account => account!.AccountRoles)
                         .ThenInclude(accountRole => accountRole.Role)
-                .Include(staff => staff.StaffShifts)
                 .Where(staff =>
                     staff.StoreId == storeId &&
                     staff.StaffId != excludeStaffId &&
@@ -94,11 +90,6 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
 
             return candidates
                 .OrderBy(staff => GetOtpApproverRolePriority(staff))
-                .ThenByDescending(staff => staff.StaffShifts.Any(shift =>
-                    shift.WorkDate >= dayStart &&
-                    shift.WorkDate < dayEnd &&
-                    shift.ActualCheckIn != null &&
-                    shift.ActualCheckOut == null))
                 .ThenBy(staff => staff.StaffId)
                 .FirstOrDefault();
         }

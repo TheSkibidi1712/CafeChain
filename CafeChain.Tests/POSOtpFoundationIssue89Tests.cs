@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.Constants;
+using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Interfaces.POS;
@@ -79,7 +79,6 @@ namespace CafeChain.Tests
                FullName = "Nguyễn Văn A",
                Active = true,
                CreatedAt = DateTime.UtcNow,
-               BaseSalary = 0,
                StaffShifts = new System.Collections.Generic.List<StaffShift>()
            };
            ctx.Staffs.Add(requester);
@@ -105,7 +104,6 @@ namespace CafeChain.Tests
                FullName = "Trần Thị B",
                Active = true,
                CreatedAt = DateTime.UtcNow,
-               BaseSalary = 0,
                StaffShifts = new System.Collections.Generic.List<StaffShift>()
            };
            ctx.Staffs.Add(approver);
@@ -142,7 +140,6 @@ namespace CafeChain.Tests
                FullName = "Cashier Only",
                Active = true,
                CreatedAt = DateTime.UtcNow,
-               BaseSalary = 0,
                StaffShifts = new System.Collections.Generic.List<StaffShift>()
            });
 

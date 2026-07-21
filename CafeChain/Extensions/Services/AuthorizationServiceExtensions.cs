@@ -34,6 +34,7 @@ public static class AuthorizationServiceExtensions
         });
 
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
         return services;
     }
 

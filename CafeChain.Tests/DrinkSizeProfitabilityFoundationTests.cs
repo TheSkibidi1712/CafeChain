@@ -395,8 +395,7 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
         context.Staffs.Add(new Staff
         {
             StaffId = OwnerStaffId, AccountId = OwnerStaffId, FullName = "Profit Owner", StoreId = StoreId,
-            Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2, SalaryType = 1
-        });
+            Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2});
         context.AccountRoles.Add(new AccountRole { AccountId = OwnerStaffId, RoleId = role.RoleId });
         await context.SaveChangesAsync();
     }

@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
-using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Services.POS;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
@@ -152,7 +151,6 @@ namespace CafeChain.Tests.POS
             var otpRepo = SetupOtp(challenge);
             var service = new WorkShiftService(
                 shiftRepo.Object,
-                Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
                 otpRepo.Object,
                 Fp,
@@ -176,6 +174,19 @@ namespace CafeChain.Tests.POS
         }
 
         // ---------- Open late ----------
+
+        [Fact]
+        public async Task OpenShift_WithoutScheduledStaffShift_IsAllowed()
+        {
+            var service = CreateOpenService(isLate: false, out var shiftRepo, out _);
+            var result = await service.OpenShiftAsync(UserId, StoreId, new OpenShiftRequestDto
+            {
+                StartingCash = 500_000m
+            });
+
+            Assert.True(result.IsSuccess, result.Message);
+            shiftRepo.Verify(r => r.CreateShiftAsync(It.IsAny<WorkShift>()), Times.Once);
+        }
 
         [Fact]
         public async Task OpenShiftLate_RequiresOtpChallenge_NotRecentPinAudit()
@@ -432,7 +443,6 @@ namespace CafeChain.Tests.POS
 
             return new WorkShiftService(
                 shiftRepo.Object,
-                Mock.Of<IHrAttendanceService>(),
                 posRepo.Object,
                 otpRepo.Object,
                 Fp,
@@ -450,7 +460,7 @@ namespace CafeChain.Tests.POS
 
             if (isLate)
             {
-                shiftRepo.Setup(r => r.GetTodayStaffShiftAsync(UserId)).ReturnsAsync(new StaffShift
+                shiftRepo.Setup(r => r.GetEffectiveStaffShiftAsync(UserId, StoreId, It.IsAny<DateTime>())).ReturnsAsync(new StaffShift
                 {
                     StaffId = UserId,
                     WorkDate = DateTime.Today,
@@ -463,7 +473,7 @@ namespace CafeChain.Tests.POS
             }
             else
             {
-                shiftRepo.Setup(r => r.GetTodayStaffShiftAsync(UserId)).ReturnsAsync((StaffShift?)null);
+                shiftRepo.Setup(r => r.GetEffectiveStaffShiftAsync(UserId, StoreId, It.IsAny<DateTime>())).ReturnsAsync((StaffShift?)null);
             }
 
             shiftRepo.Setup(r => r.EnsurePosTerminalAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()))
@@ -471,15 +481,11 @@ namespace CafeChain.Tests.POS
             shiftRepo.Setup(r => r.CreateShiftAsync(It.IsAny<WorkShift>()))
                 .ReturnsAsync((WorkShift s) => s);
 
-            var hr = new Mock<IHrAttendanceService>(MockBehavior.Strict);
-            hr.Setup(h => h.VerifyRecentCheckInAsync(UserId, StoreId)).ReturnsAsync(true);
-
             posRepo = new Mock<IPOSOrderRepository>(MockBehavior.Loose);
             var otpRepo = challenge != null ? SetupOtp(challenge) : new Mock<IOtpChallengeRepository>(MockBehavior.Loose);
 
             return new WorkShiftService(
                 shiftRepo.Object,
-                hr.Object,
                 posRepo.Object,
                 otpRepo.Object,
                 Fp,

@@ -301,8 +301,7 @@ public sealed class StoreMenuHardeningIssue166SqlServerTests : IAsyncLifetime
         var owner = new Staff
         {
             AccountId = account.AccountId, StoreId = store.StoreId, FullName = "Store Menu SQL Owner",
-            Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2, SalaryType = 1
-        };
+            Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2};
         var drinkSize = new DrinkSize
         {
             DrinkId = drink.DrinkId, SizeId = size.SizeId, Price = 30_000m,

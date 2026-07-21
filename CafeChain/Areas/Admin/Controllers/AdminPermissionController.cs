@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [RequirePermission(PermissionConstants.SystemPermissionManage)]
     public class AdminPermissionController : AdminBaseController
     {
         private readonly IAdminPermissionService _permissionService;
@@ -51,7 +53,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var guard = await EnsureCanManagePermissionsAsync();
             if (guard != null) return guard;
 
-            var result = await _permissionService.GetScopeReferencesAsync(scopeTypeId, parentId);
+            var result = await _permissionService.GetScopeReferencesAsync(scopeTypeId, User, parentId);
             return ToJsonResult(result);
         }
 
@@ -71,11 +73,12 @@ namespace CafeChain.Areas.Admin.Controllers
             var guard = await EnsureCanManagePermissionsAsync();
             if (guard != null) return guard;
 
-            var result = await _permissionService.GetRolePermissionsAsync(roleId);
+            var result = await _permissionService.GetRolePermissionsAsync(roleId, User);
             return ToJsonResult(result);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveRolePermissions(int roleId, [FromBody] SaveRolePermissionsRequest request)
         {
             var guard = await EnsureCanManagePermissionsAsync();
@@ -83,7 +86,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var result = await _permissionService.UpdateRolePermissionsAsync(
                 roleId,
-                request ?? new SaveRolePermissionsRequest());
+                request ?? new SaveRolePermissionsRequest(), User);
 
             return ToJsonResult(result);
         }
@@ -94,11 +97,12 @@ namespace CafeChain.Areas.Admin.Controllers
             var guard = await EnsureCanManagePermissionsAsync();
             if (guard != null) return guard;
 
-            var result = await _permissionService.GetStaffRolesAsync(staffId);
+            var result = await _permissionService.GetStaffRolesAsync(staffId, User);
             return ToJsonResult(result);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveStaffRoles(int staffId, [FromBody] SaveStaffRolesRequest request)
         {
             var guard = await EnsureCanManagePermissionsAsync();
@@ -106,7 +110,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var result = await _permissionService.UpdateStaffRolesAsync(
                 staffId,
-                request ?? new SaveStaffRolesRequest());
+                request ?? new SaveStaffRolesRequest(), User);
 
             return ToJsonResult(result);
         }
@@ -117,11 +121,12 @@ namespace CafeChain.Areas.Admin.Controllers
             var guard = await EnsureCanManagePermissionsAsync();
             if (guard != null) return guard;
 
-            var result = await _permissionService.GetStaffScopesAsync(staffId);
+            var result = await _permissionService.GetStaffScopesAsync(staffId, User);
             return ToJsonResult(result);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveStaffScopes(int staffId, [FromBody] SaveStaffScopesRequest request)
         {
             var guard = await EnsureCanManagePermissionsAsync();
@@ -129,7 +134,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var result = await _permissionService.UpdateStaffScopesAsync(
                 staffId,
-                request ?? new SaveStaffScopesRequest());
+                request ?? new SaveStaffScopesRequest(), User);
 
             return ToJsonResult(result);
         }
@@ -140,11 +145,12 @@ namespace CafeChain.Areas.Admin.Controllers
             var guard = await EnsureCanManagePermissionsAsync();
             if (guard != null) return guard;
 
-            var result = await _permissionService.GetAccountOverridesAsync(staffId);
+            var result = await _permissionService.GetAccountOverridesAsync(staffId, User);
             return ToJsonResult(result);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveStaffOverrides(int staffId, [FromBody] SaveAccountPermissionOverridesRequest request)
         {
             var guard = await EnsureCanManagePermissionsAsync();
@@ -152,7 +158,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var result = await _permissionService.UpdateAccountOverridesAsync(
                 staffId,
-                request ?? new SaveAccountPermissionOverridesRequest());
+                request ?? new SaveAccountPermissionOverridesRequest(), User);
 
             return ToJsonResult(result);
         }

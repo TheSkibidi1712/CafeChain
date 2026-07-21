@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -835,7 +835,6 @@ IF DB_ID(N'{Database}') IS NULL
                 FullName = "Mgr 128 SQL",
                 Active = true,
                 CreatedAt = DateTime.UtcNow,
-                BaseSalary = 0
             };
             ctx.Staffs.Add(staff);
             await ctx.SaveChangesAsync();
@@ -1074,7 +1073,6 @@ IF DB_ID(N'{Database}') IS NULL
                 FullName = "AW 128 SQL",
                 Active = true,
                 CreatedAt = DateTime.UtcNow,
-                BaseSalary = 0
             };
             ctx.Staffs.Add(staff);
             await ctx.SaveChangesAsync();

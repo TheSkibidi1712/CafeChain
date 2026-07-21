@@ -1,11 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
-using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Services.POS;
 using CafeChain.Data;
@@ -128,7 +127,6 @@ IF DB_ID(N'{Database}') IS NULL
 
             var service = new WorkShiftService(
                 shiftRepo.Object,
-                Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
                 otpRepo,
                 _fp,
@@ -229,19 +227,15 @@ IF DB_ID(N'{Database}') IS NULL
             var realShift = new WorkShiftRepository(ctx);
             var shiftRepo = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
             shiftRepo.Setup(r => r.GetActiveShiftAsync(_requesterId, _storeId)).ReturnsAsync((WorkShift?)null);
-            shiftRepo.Setup(r => r.GetTodayStaffShiftAsync(_requesterId))
-                .Returns(() => realShift.GetTodayStaffShiftAsync(_requesterId));
+            shiftRepo.Setup(r => r.GetEffectiveStaffShiftAsync(_requesterId, _storeId, It.IsAny<DateTime>()))
+                .Returns((int _, int _, DateTime now) => realShift.GetEffectiveStaffShiftAsync(_requesterId, _storeId, now));
             shiftRepo.Setup(r => r.EnsurePosTerminalAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask);
             shiftRepo.Setup(r => r.CreateShiftAsync(It.IsAny<WorkShift>()))
                 .ThrowsAsync(new InvalidOperationException("Simulated open fail"));
 
-            var hr = new Mock<IHrAttendanceService>();
-            hr.Setup(h => h.VerifyRecentCheckInAsync(_requesterId, _storeId)).ReturnsAsync(true);
-
             var service = new WorkShiftService(
                 shiftRepo.Object,
-                hr.Object,
                 Mock.Of<IPOSOrderRepository>(),
                 otpRepo,
                 _fp,
@@ -399,7 +393,6 @@ IF DB_ID(N'{Database}') IS NULL
                 FullName = email,
                 Active = true,
                 CreatedAt = DateTime.UtcNow,
-                BaseSalary = 0,
                 StaffShifts = new List<StaffShift>()
             };
             ctx.Staffs.Add(staff);
@@ -546,11 +539,8 @@ IF DB_ID(N'{Database}') IS NULL
 
         private WorkShiftService CreateWorkShiftService(AppDbContext ctx, bool hrOk = true)
         {
-            var hr = new Mock<IHrAttendanceService>();
-            hr.Setup(h => h.VerifyRecentCheckInAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(hrOk);
             return new WorkShiftService(
                 new WorkShiftRepository(ctx),
-                hr.Object,
                 new POSOrderRepository(ctx),
                 new OtpChallengeRepository(ctx),
                 _fp,

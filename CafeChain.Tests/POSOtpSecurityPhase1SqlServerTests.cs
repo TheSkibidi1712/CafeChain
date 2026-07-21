@@ -1,11 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Accounts;
-using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Services.POS;
 using CafeChain.Data;
@@ -238,7 +237,6 @@ IF DB_ID(N'{Database}') IS NULL
 
             var service = new WorkShiftService(
                 shiftRepo.Object,
-                Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
                 otpRepo,
                 _fingerprint,
@@ -388,7 +386,6 @@ IF DB_ID(N'{Database}') IS NULL
                 FullName = $"SQL Staff {email}",
                 Active = true,
                 CreatedAt = DateTime.UtcNow,
-                BaseSalary = 0,
                 StaffShifts = new List<StaffShift>()
             };
             ctx.Staffs.Add(staff);
@@ -526,7 +523,6 @@ IF DB_ID(N'{Database}') IS NULL
         {
             return new WorkShiftService(
                 new WorkShiftRepository(ctx),
-                Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
                 new OtpChallengeRepository(ctx),
                 _fingerprint,
