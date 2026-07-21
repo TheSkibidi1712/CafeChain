@@ -147,7 +147,10 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
 
             entity.HasIndex(x => new { x.InventoryTransferDetailId, x.Type })
                 .IsUnique()
-                .HasFilter("[InventoryTransferDetailId] IS NOT NULL")
+                // A transfer detail is dispatched once, but SC-02 can receive or return it
+                // in multiple physical postings. Receipt movements are protected by the
+                // BranchReceiptLine index below; only the outbound transfer needs this key.
+                .HasFilter("[InventoryTransferDetailId] IS NOT NULL AND [Type] = 10")
                 .HasDatabaseName("UX_InventoryTransactions_TransferDetail_Type");
 
             entity.HasIndex(x => x.ReferenceOrderId);

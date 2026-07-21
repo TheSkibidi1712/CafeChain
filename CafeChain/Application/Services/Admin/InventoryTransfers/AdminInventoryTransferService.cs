@@ -825,26 +825,6 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                         _repository.UpdateStoreInventory(inventory);
                     }
 
-                    if (detail.RestockRequestId.HasValue && receiveLine.ReceivedBaseQuantity > 0)
-                    {
-                        var posting = await _fulfillmentPostingService.RegisterAsync(
-                            new RegisterRestockFulfillmentPostingCommand
-                            {
-                                RestockRequestId = detail.RestockRequestId.Value,
-                                DestinationStoreId = transfer.ToStoreId,
-                                SourceDocumentType = RestockFulfillmentDocumentTypes.InventoryTransfer,
-                                SourceDocumentId = transfer.InventoryTransferId,
-                                SourceDocumentLineId = detail.InventoryTransferDetailId,
-                                IngredientId = detail.IngredientId,
-                                PreparedItemId = detail.PreparedItemId,
-                                Quantity = receiveLine.ReceivedBaseQuantity,
-                                BaseUnitId = ingredient?.BaseUnitId ?? preparedItem!.BaseUnitId,
-                                ActorStaffId = staffId,
-                                Reason = $"InventoryTransfer #{transfer.InventoryTransferId} RECEIVED"
-                            });
-                        if (!posting.IsSuccess)
-                            throw new InvalidOperationException(posting.Message);
-                    }
                 }
 
                 await _repository.AddTransferDiscrepancyPostingsAsync(newPostings);
@@ -854,6 +834,34 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                     InventoryTransferQuantityAuthority.Calculate(x, finalPostings).InTransitOpen <= 0))
                     transfer.Status = InventoryTransferStatus.COMPLETED;
                 _repository.UpdateTransfer(transfer);
+                await _repository.SaveChangesAsync();
+
+                // A transfer can be received in multiple physical receipts. Persist the
+                // receipt first so each fulfillment posting is keyed by its immutable
+                // BranchReceiptLine instead of collapsing all receipts onto the transfer detail.
+                foreach (var line in receipt.Lines
+                    .Where(x => x.ReceivedBaseQuantity > 0 && x.RestockRequestId.HasValue)
+                    .OrderBy(x => x.BranchReceiptLineId))
+                {
+                    var posting = await _fulfillmentPostingService.RegisterAsync(
+                        new RegisterRestockFulfillmentPostingCommand
+                        {
+                            RestockRequestId = line.RestockRequestId!.Value,
+                            DestinationStoreId = transfer.ToStoreId,
+                            SourceDocumentType = RestockFulfillmentDocumentTypes.InventoryTransfer,
+                            SourceDocumentId = transfer.InventoryTransferId,
+                            SourceDocumentLineId = line.BranchReceiptLineId,
+                            IngredientId = line.IngredientId,
+                            PreparedItemId = line.PreparedItemId,
+                            Quantity = line.ReceivedBaseQuantity,
+                            BaseUnitId = line.BaseUnitId,
+                            ActorStaffId = staffId,
+                            Reason = $"InventoryTransfer #{transfer.InventoryTransferId} RECEIVED"
+                        });
+                    if (!posting.IsSuccess)
+                        throw new InvalidOperationException(posting.Message);
+                }
+
                 await _repository.SaveChangesAsync();
 
                 var response = BuildResult(transfer);
@@ -1813,6 +1821,11 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
         private async Task<InventoryTransferMutationResultDTO> ResolveDuplicateResultAsync(
             RequestDeduplicationBeginResult dedup)
         {
+            if (!string.IsNullOrWhiteSpace(dedup.ErrorCode))
+            {
+                throw BuildDeduplicationException(dedup);
+            }
+
             if (dedup.Status == "SUCCESS" && dedup.ReferenceId.HasValue)
             {
                 var transfer = await _repository.GetTransferByIdAsync(dedup.ReferenceId.Value);
