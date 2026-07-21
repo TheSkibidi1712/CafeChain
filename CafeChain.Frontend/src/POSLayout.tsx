@@ -161,16 +161,18 @@ function ProductImage({ src, name, fallbackIcon }: ProductImageProps) {
       <img
         src={src}
         alt={name}
-        className="w-12 h-12 rounded-xl object-cover mb-2 mt-2 bg-brand-orange-light"
+        className="aspect-[4/3] w-full rounded-lg object-cover bg-brand-orange-light"
         loading="lazy"
+        width="320"
+        height="240"
         onError={() => setHasImageError(true)}
       />
     )
   }
 
   return (
-    <div className="w-12 h-12 rounded-xl bg-brand-orange-light flex items-center justify-center text-lg mb-2 mt-2">
-      {fallbackIcon}
+    <div className="aspect-[4/3] w-full rounded-lg bg-brand-orange-light flex items-center justify-center text-3xl text-brand-orange" role="img" aria-label={`Chưa có ảnh ${name}`}>
+      <span aria-hidden="true">{fallbackIcon}</span>
     </div>
   )
 }
@@ -186,6 +188,8 @@ export default function POSLayout() {
     refreshCatalog,
   } = usePOSData()
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isCartOpen, setIsCartOpen] = useState(false)
   const [cart, setCart] = useState<CartItem[]>([])
   const [orderType, setOrderType] = useState<'dine-in' | 'take-away'>('dine-in')
   const [isCheckingOut, setIsCheckingOut] = useState(false)
@@ -222,15 +226,18 @@ export default function POSLayout() {
     }
   }, [])
 
-  const selectedCategoryId = categories.some((cat) => cat.id === selectedCategory)
+  const selectedCategoryId = selectedCategory !== null
+    && categories.some((cat) => cat.id === selectedCategory)
     ? selectedCategory
-    : categories[0]?.id ?? null
+    : null
 
-  const filteredItems = useMemo(() => (
-    menuItems.filter((item) =>
+  const filteredItems = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLocaleLowerCase('vi-VN')
+    return menuItems.filter((item) =>
       (selectedCategoryId === null || item.categoryId === selectedCategoryId)
+      && (!normalizedSearch || item.name.toLocaleLowerCase('vi-VN').includes(normalizedSearch))
     )
-  ), [menuItems, selectedCategoryId])
+  }, [menuItems, searchQuery, selectedCategoryId])
 
   const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
@@ -287,6 +294,21 @@ export default function POSLayout() {
     ].filter((amount) => amount >= baseAmount && amount > 0)))
   }, [cashConfirmation])
 
+  const updateCashReceivedInput = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+    setCashConfirmation((current) => current
+      ? { ...current, receivedAmountInput: digitsOnly }
+      : current)
+  }
+
+  const appendCashDigit = (digit: string) => {
+    setCashConfirmation((current) => {
+      if (!current) return current
+      const nextValue = `${current.receivedAmountInput}${digit}`.replace(/^0+(?=\d)/, '')
+      return { ...current, receivedAmountInput: nextValue }
+    })
+  }
+
   useEffect(() => {
     if (!pendingPayment || !hasOpenShift || !shift?.shiftId || !session.staffId || !session.storeId) {
       clearActivePaymentCloseGuard()
@@ -309,6 +331,18 @@ export default function POSLayout() {
   const showMessage = useCallback((message: string) => {
     setCheckoutMessage(message)
     window.setTimeout(() => setCheckoutMessage(null), 3500)
+  }, [])
+
+  const closeModifierModal = useCallback(() => {
+    setActiveItemForModifiers(null)
+  }, [])
+
+  useEffect(() => {
+    const closeCartOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsCartOpen(false)
+    }
+    window.addEventListener('keydown', closeCartOnEscape)
+    return () => window.removeEventListener('keydown', closeCartOnEscape)
   }, [])
 
   const addToCartWithModifiers = (item: MenuItem, selection: ModifierSelection) => {
@@ -438,6 +472,12 @@ export default function POSLayout() {
 
     clearCart()
   }, [clearCart, isCartLocked, showMessage])
+
+  const confirmClearCart = useCallback(() => {
+    if (cart.length === 0 || isCartLocked) return
+    if (!window.confirm('Xóa toàn bộ món khỏi giỏ hàng?')) return
+    resetCart()
+  }, [cart.length, isCartLocked, resetCart])
 
   const refreshStaleCart = () => {
     if (isCartLocked || !hasStaleCart) return
@@ -1112,8 +1152,8 @@ export default function POSLayout() {
   }
 
   return (
-    <div className="h-full w-full overflow-hidden flex bg-surface font-sans select-none">
-      <aside className="w-2/12 bg-surface-white flex flex-col border-r border-border">
+    <div className="pos-shell font-sans select-none" id="pos-main-content">
+      <aside className="pos-category-panel bg-surface-white flex flex-col border-r border-border" aria-label="Danh mục và loại đơn">
         <div className="px-3 py-3 border-b border-border">
           <div className="flex gap-1.5">
             <button
@@ -1125,7 +1165,7 @@ export default function POSLayout() {
                 setOrderType('dine-in')
               }}
               disabled={isCartLocked}
-              className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              className={`pos-touch-target flex-1 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
                 orderType === 'dine-in'
                   ? 'bg-brand-orange text-white'
                   : 'bg-surface text-text-secondary hover:bg-surface-hover'
@@ -1142,7 +1182,7 @@ export default function POSLayout() {
                 setOrderType('take-away')
               }}
               disabled={isCartLocked}
-              className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              className={`pos-touch-target flex-1 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
                 orderType === 'take-away'
                   ? 'bg-brand-orange text-white'
                   : 'bg-surface text-text-secondary hover:bg-surface-hover'
@@ -1156,9 +1196,9 @@ export default function POSLayout() {
         <div className="px-3 pt-3 pb-1">
           <Link
             to="/shift"
-            className={`w-full py-2.5 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-[var(--shadow-button)] flex items-center justify-center ${
+            className={`pos-touch-target w-full py-2.5 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-[var(--shadow-button)] flex items-center justify-center ${
               hasOpenShift
-                ? 'bg-green-600 text-white hover:bg-green-700'
+                ? 'bg-success text-white'
                 : 'bg-brand-orange text-white hover:bg-brand-orange-hover'
             }`}
           >
@@ -1166,14 +1206,28 @@ export default function POSLayout() {
           </Link>
         </div>
 
-        <nav className="flex-1 flex flex-col gap-1 px-3 py-2 overflow-y-auto">
+        <nav className="pos-category-list flex-1 flex flex-col gap-1 px-3 py-2 overflow-y-auto" aria-label="Danh mục sản phẩm">
+          <button
+            type="button"
+            onClick={() => setSelectedCategory(null)}
+            aria-pressed={selectedCategoryId === null}
+            className={`pos-touch-target flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              selectedCategoryId === null
+                ? 'bg-brand-orange text-white'
+                : 'text-text-secondary hover:bg-surface-hover border border-transparent'
+            }`}
+          >
+            <span className="flex items-center gap-2"><span aria-hidden="true">☕</span><span>Tất cả</span></span>
+            <span className="tabular-nums">{menuItems.length}</span>
+          </button>
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer ${
+              aria-pressed={selectedCategoryId === cat.id}
+              className={`pos-touch-target flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 selectedCategoryId === cat.id
-                  ? 'bg-brand-orange-light text-brand-orange border border-brand-orange-border'
+                  ? 'bg-brand-orange text-white border border-brand-orange'
                   : 'text-text-secondary hover:bg-surface-hover border border-transparent'
               }`}
             >
@@ -1183,7 +1237,7 @@ export default function POSLayout() {
               </span>
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                 selectedCategoryId === cat.id
-                  ? 'bg-brand-orange text-white'
+                  ? 'bg-white/20 text-white'
                   : 'bg-surface text-text-muted'
               }`}>
                 {cat.count}
@@ -1193,27 +1247,47 @@ export default function POSLayout() {
         </nav>
       </aside>
 
-      <main className="w-6/12 flex flex-col bg-surface">
-        <header className="flex items-center justify-between px-5 py-3 bg-surface-white border-b border-border">
-          <h2 className="text-base font-bold text-text-primary flex items-center gap-2 min-w-0">
-            <span className="text-lg">{currentCategory?.icon || '•'}</span>
-            <span className="truncate">{currentCategory?.name ?? 'Menu'}</span>
-            <span className="text-xs font-semibold text-brand-orange bg-brand-orange-light px-2 py-0.5 rounded-full">
-              {filteredItems.length}
-            </span>
-          </h2>
-          <div className="flex items-center gap-2 text-[11px]">
+      <main className="pos-catalog-panel flex flex-col bg-surface">
+        <header className="px-4 py-3 bg-surface-white border-b border-border space-y-3">
+          <div className="pos-catalog-toolbar">
+            <label className="relative block min-w-0" htmlFor="pos-product-search">
+              <span className="sr-only">Tìm món</span>
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" aria-hidden="true">⌕</span>
+              <input
+                id="pos-product-search"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="pos-search-field w-full rounded-xl border border-border bg-surface-white pl-11 pr-12 text-base text-text-primary outline-none placeholder:text-text-muted focus:border-brand-orange"
+                placeholder="Tìm món theo tên..."
+                autoComplete="off"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="pos-touch-target absolute right-0 top-1/2 inline-flex -translate-y-1/2 items-center justify-center text-text-secondary"
+                  aria-label="Xóa nội dung tìm kiếm"
+                >
+                  ×
+                </button>
+              )}
+            </label>
+            <div className="pos-catalog-meta flex items-center gap-2 text-xs">
+              <h2 className="font-extrabold text-text-primary whitespace-nowrap">
+                {currentCategory?.name ?? 'Tất cả món'} <span className="text-brand-orange tabular-nums">{filteredItems.length}</span>
+              </h2>
             {!isOnline && (
-              <span className="text-danger font-bold bg-red-50 px-2.5 py-1.5 rounded-full border border-red-100">
-                Offline
+              <span className="text-warning font-bold bg-[var(--pos-warning-soft)] px-2.5 py-1.5 rounded-lg border border-warning/30">
+                Mất kết nối
               </span>
             )}
             {pendingOrders > 0 && (
-              <span className="text-brand-orange font-bold bg-brand-orange-light px-2.5 py-1.5 rounded-full border border-brand-orange-border">
-                {pendingOrders} đơn chờ sync
+              <span className="text-warning font-bold bg-[var(--pos-warning-soft)] px-2.5 py-1.5 rounded-lg border border-warning/30">
+                {pendingOrders} đơn chờ đồng bộ
               </span>
             )}
-            <span className="text-text-muted bg-surface px-3 py-1.5 rounded-full border border-border">
+            <span className="text-text-muted bg-surface px-3 py-1.5 rounded-lg border border-border">
               {new Date().toLocaleDateString('vi-VN', {
                 weekday: 'short',
                 day: '2-digit',
@@ -1222,9 +1296,10 @@ export default function POSLayout() {
               })}
             </span>
           </div>
+          </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4">
           {isLoading ? (
             <div className="h-full flex items-center justify-center text-xs font-semibold text-text-muted">
               Đang tải menu...
@@ -1243,23 +1318,35 @@ export default function POSLayout() {
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="h-full flex items-center justify-center text-xs font-semibold text-text-muted">
-              Không có sản phẩm trong danh mục này
+              {searchQuery ? 'Không tìm thấy món phù hợp' : 'Không có sản phẩm trong danh mục này'}
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="pos-product-grid">
               {filteredItems.map((item) => {
                 const qtyInCart = getQuantityInCart(item.id)
                 const isUnavailable = item.isAvailable === false
                 const isProductLocked = isCartLocked || isUnavailable
                 const unavailableReason = isUnavailable ? getUnavailableReason(item) : ''
                 return (
-                  <div
+                  <article
                     key={item.id}
                     onClick={() => handleQuickAdd(item)}
-                    className={`relative bg-surface-card rounded-xl border border-border p-4 flex flex-col items-center select-none shadow-[var(--shadow-card)] transition-all duration-200 min-h-[150px] ${
+                    onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget) return
+
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        handleQuickAdd(item)
+                      }
+                    }}
+                    role="button"
+                    tabIndex={isProductLocked ? -1 : 0}
+                    aria-disabled={isProductLocked}
+                    aria-label={`${item.name}, ${formatVND(item.price)}${isUnavailable ? `, ${unavailableReason}` : ', chạm để thêm nhanh'}`}
+                    className={`pos-product-card relative bg-surface-card rounded-xl border border-border p-3 flex flex-col select-none shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-150 ${
                       isProductLocked
-                        ? 'opacity-60 cursor-not-allowed'
-                        : 'cursor-pointer hover:shadow-[var(--shadow-card-hover)] hover:border-brand-orange-border'
+                        ? 'opacity-65 cursor-not-allowed'
+                        : 'cursor-pointer active:scale-[0.985]'
                     }`}
                   >
                     {qtyInCart > 0 && (
@@ -1270,7 +1357,7 @@ export default function POSLayout() {
 
                     {isUnavailable && (
                       <span
-                        className="absolute top-2.5 left-2.5 max-w-[120px] truncate px-2 py-1 bg-surface border border-border text-text-secondary text-[9px] font-extrabold rounded-lg z-10"
+                        className="absolute top-2 left-2 max-w-[calc(100%-4rem)] truncate px-2 py-1 bg-white/95 border border-warning/30 text-warning text-xs font-bold rounded-md z-10"
                         title={unavailableReason}
                       >
                         {unavailableReason}
@@ -1291,7 +1378,8 @@ export default function POSLayout() {
                         setActiveItemForModifiers(item)
                       }}
                       disabled={isProductLocked}
-                      className="absolute top-2.5 right-2.5 px-2 py-1 bg-brand-orange-light border border-brand-orange-border text-brand-orange text-[9px] font-extrabold rounded-lg hover:bg-brand-orange hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed disabled:bg-surface disabled:border-border disabled:text-text-muted z-10"
+                      className="pos-touch-target absolute top-1 right-1 px-2 bg-white/95 border border-brand-orange-border text-brand-orange text-xs font-bold rounded-lg hover:bg-brand-orange-light transition-colors cursor-pointer disabled:cursor-not-allowed disabled:bg-surface disabled:border-border disabled:text-text-muted z-10"
+                      aria-label={`Tùy chỉnh ${item.name}`}
                     >
                       Tùy chỉnh
                     </button>
@@ -1302,21 +1390,21 @@ export default function POSLayout() {
                       fallbackIcon={currentCategory?.icon || '•'}
                     />
 
-                    <span className="text-xs font-semibold text-text-primary text-center leading-tight mb-0.5 line-clamp-2">
+                    <span className="mt-3 min-h-10 text-base font-bold text-text-primary leading-5 line-clamp-2">
                       {item.name}
                     </span>
-                    <span className="text-[10px] font-bold text-brand-orange mb-3">
+                    <span className="mt-1 text-base font-extrabold text-brand-orange tabular-nums">
                       {formatVND(item.price)}
                     </span>
                     {isUnavailable && (
-                      <span className="mb-2 line-clamp-2 min-h-[24px] text-center text-[9px] font-semibold leading-3 text-red-600">
+                      <span className="mt-1 line-clamp-2 min-h-9 text-sm font-semibold leading-4 text-danger">
                         {unavailableReason}
                       </span>
                     )}
-                    <div className="mt-auto text-[9px] text-text-secondary font-bold bg-surface px-2.5 py-1 rounded-md border border-border-light">
-                      {isUnavailable ? 'Không thể bán' : 'Thêm nhanh'}
+                    <div className="mt-auto pt-2 text-sm text-text-secondary font-semibold">
+                      {isUnavailable ? 'Không thể bán tại lúc này' : 'Chạm để thêm nhanh'}
                     </div>
-                  </div>
+                  </article>
                 )
               })}
             </div>
@@ -1324,27 +1412,47 @@ export default function POSLayout() {
         </div>
       </main>
 
-      <aside className="w-4/12 bg-surface-white flex flex-col border-l border-border">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+      {isCartOpen && (
+        <button
+          type="button"
+          className="pos-cart-backdrop"
+          onClick={() => setIsCartOpen(false)}
+          aria-label="Đóng giỏ hàng"
+        />
+      )}
+
+      <aside id="pos-cart-panel" className="pos-cart-panel bg-surface-white flex flex-col border-l border-border" data-open={isCartOpen} aria-label="Giỏ hàng">
+        <div className="min-h-16 flex items-center justify-between px-4 py-2 border-b border-border">
           <div className="flex items-center gap-2">
-            <span className="text-lg">🛒</span>
-            <h2 className="text-base font-bold text-text-primary">Giỏ hàng</h2>
+            <span className="text-lg" aria-hidden="true">▣</span>
+            <div>
+              <h2 className="text-base font-extrabold text-text-primary">Giỏ hàng</h2>
+              <p className="text-xs text-text-secondary">{orderType === 'dine-in' ? 'Tại quán' : 'Mang đi'}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {totalItems > 0 && (
-              <span className="bg-brand-orange text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+              <span className="bg-brand-orange-light text-brand-orange text-xs font-bold px-2 py-1 rounded-md tabular-nums">
                 {totalItems} món
               </span>
             )}
             {cart.length > 0 && (
               <button
-                onClick={resetCart}
+                onClick={confirmClearCart}
                 disabled={isCartLocked}
-                className="text-[10px] font-semibold text-danger hover:text-danger-hover border border-danger/30 px-2 py-0.5 rounded-full hover:bg-danger/5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="pos-touch-target text-xs font-bold text-danger px-2 rounded-lg hover:bg-[var(--pos-danger-soft)] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Xóa giỏ
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(false)}
+              className="pos-cart-close pos-touch-target items-center justify-center rounded-lg border border-border text-xl text-text-secondary"
+              aria-label="Đóng giỏ hàng"
+            >
+              ×
+            </button>
           </div>
         </div>
 
@@ -1364,41 +1472,38 @@ export default function POSLayout() {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-4 py-2">
+        <div className="pos-cart-scroll flex-1 min-h-0 overflow-y-auto px-3 py-3">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-text-muted">
               <span className="text-4xl mb-3 opacity-20">🛒</span>
               <p className="text-sm font-medium">Chưa có sản phẩm</p>
-              <p className="text-[11px] mt-1 opacity-60">Chọn món từ menu bên trái</p>
+              <p className="text-sm mt-1 opacity-70">Chọn món từ danh sách để bắt đầu đơn hàng.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
               {cart.map((item, index) => (
                 <div
                   key={item.cartId}
-                  className="flex items-center gap-3 p-3 bg-surface rounded-xl border border-border-light"
+                  className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 p-3 bg-surface rounded-xl border border-border-light"
                 >
-                  <span className="w-6 h-6 rounded-full bg-brand-orange-light text-brand-orange text-[10px] font-bold flex items-center justify-center shrink-0">
-                    {index + 1}
-                  </span>
-
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-text-primary truncate">{item.name}</p>
-                    <p className="text-[9px] text-brand-orange font-bold truncate leading-tight mt-0.5">
+                    <p className="text-sm font-bold text-text-primary line-clamp-2"><span className="mr-1 text-text-muted">{index + 1}.</span>{item.name}</p>
+                    <p className="mt-1 text-xs text-text-secondary line-clamp-2 leading-4">
                       {item.detailText}
                     </p>
-                    <p className="text-[10px] text-text-secondary mt-0.5">{formatVND(item.price)}</p>
+                    <p className="mt-1 text-sm font-extrabold text-brand-orange tabular-nums">{formatVND(item.price * item.quantity)}</p>
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 self-center">
                     <button
                       onClick={() => decreaseFromCart(item.cartId)}
                       disabled={isCartLocked}
-                      className="w-6 h-6 rounded-md bg-surface border border-border text-text-secondary hover:bg-brand-orange-light hover:text-brand-orange hover:border-brand-orange-border text-xs font-bold flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="pos-touch-target rounded-lg bg-white border border-border text-text-secondary hover:bg-brand-orange-light hover:text-brand-orange text-lg font-bold flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label={`Giảm số lượng ${item.name}`}
                     >
-                      -
+                      −
                     </button>
-                    <span className="w-5 text-center text-xs font-bold text-text-primary">
+                    <span className="w-8 text-center text-sm font-extrabold text-text-primary tabular-nums" aria-label={`Số lượng ${item.quantity}`}>
                       {item.quantity}
                     </span>
                     <button
@@ -1412,7 +1517,8 @@ export default function POSLayout() {
                         ))
                       }}
                       disabled={isCartLocked}
-                      className="w-6 h-6 rounded-md bg-brand-orange text-white hover:bg-brand-orange-hover text-xs font-bold flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="pos-touch-target rounded-lg bg-brand-orange text-white hover:bg-brand-orange-hover text-lg font-bold flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label={`Tăng số lượng ${item.name}`}
                     >
                       +
                     </button>
@@ -1421,10 +1527,11 @@ export default function POSLayout() {
                   <button
                     onClick={() => removeFromCart(item.cartId)}
                     disabled={isCartLocked}
-                    className="w-6 h-6 rounded-md border border-danger/30 text-danger hover:bg-danger hover:text-white hover:border-danger text-xs flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="pos-touch-target col-span-2 justify-self-end px-3 rounded-lg text-xs font-bold text-danger hover:bg-[var(--pos-danger-soft)] flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Xóa món"
+                    aria-label={`Xóa ${item.name} khỏi giỏ`}
                   >
-                    x
+                    Xóa món
                   </button>
                 </div>
               ))}
@@ -1432,7 +1539,7 @@ export default function POSLayout() {
           )}
         </div>
 
-        <div className="border-t border-border p-4 space-y-3">
+        <div className="pos-cart-footer shrink-0 border-t border-border bg-white p-4 space-y-3">
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs text-text-secondary">
               <span>Tạm tính ({totalItems} món)</span>
@@ -1443,7 +1550,7 @@ export default function POSLayout() {
               <span>{formatVND(Math.round(totalAmount * 0.08 / 1.08))}</span>
             </div>
             <div className="h-px bg-border" />
-            <div className="flex justify-between text-lg font-bold text-text-primary">
+            <div className="flex justify-between text-xl font-extrabold text-text-primary">
               <span>Tổng cộng</span>
               <span className="text-brand-orange">{formatVND(totalAmount)}</span>
             </div>
@@ -1590,7 +1697,7 @@ export default function POSLayout() {
             <button
               onClick={() => handleCheckout('cash')}
               disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || hasStaleCart || cashConfirmation !== null}
-              className="flex-1 py-3 rounded-xl bg-brand-orange text-white font-bold text-sm shadow-[var(--shadow-button)] hover:bg-brand-orange-hover active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="min-h-14 flex-1 py-3 rounded-xl bg-brand-orange text-white font-bold text-base shadow-[var(--shadow-button)] hover:bg-brand-orange-hover active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isCheckingOut ? (
                 <span className="inline-flex items-center justify-center gap-2">
@@ -1604,7 +1711,7 @@ export default function POSLayout() {
             <button
               onClick={() => handleCheckout('banking')}
               disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || hasStaleCart || !isOnline || cashConfirmation !== null}
-              className="flex-1 py-3 rounded-xl bg-text-primary text-white font-bold text-sm hover:bg-gray-700 active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="min-h-14 flex-1 py-3 rounded-xl bg-text-primary text-white font-bold text-base hover:opacity-90 active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isCheckingOut ? (
                 <span className="inline-flex items-center justify-center gap-2">
@@ -1619,26 +1726,42 @@ export default function POSLayout() {
         </div>
       </aside>
 
+      <div className="pos-mobile-cart-bar" role="region" aria-label="Tóm tắt giỏ hàng">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-text-secondary">{totalItems} món trong giỏ</p>
+          <p className="truncate text-lg font-extrabold text-brand-orange tabular-nums">{formatVND(totalAmount)}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsCartOpen(true)}
+          className="pos-touch-target min-w-28 rounded-lg bg-brand-orange px-4 text-sm font-bold text-white shadow-[var(--shadow-button)]"
+          aria-expanded={isCartOpen}
+          aria-controls="pos-cart-panel"
+        >
+          Xem giỏ
+        </button>
+      </div>
+
       {checkoutMessage && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-brand-orange text-white font-bold text-xs py-3.5 px-6 rounded-xl shadow-lg border border-brand-orange-border z-50">
+        <div role="status" aria-live="polite" className="absolute bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 bg-text-primary text-white font-bold text-sm py-3.5 px-6 rounded-xl shadow-lg z-[70]">
           {checkoutMessage}
         </div>
       )}
 
       {cashConfirmation && (
-        <div className="fixed inset-0 z-[60] bg-black/55 flex items-center justify-center px-4">
+        <div className="pos-dialog-backdrop fixed inset-0 z-[60] flex items-center justify-center">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="cash-payment-title"
-            className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-border overflow-hidden"
+            className="pos-adaptive-dialog w-full max-w-md rounded-2xl bg-white shadow-2xl border border-border overflow-hidden flex flex-col"
           >
             <div className="px-5 py-4 border-b border-border">
               <h3 id="cash-payment-title" className="text-base font-extrabold text-text-primary">
                 Xác nhận thanh toán tiền mặt
               </h3>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="min-h-0 overflow-y-auto p-5 space-y-4">
               <div className="rounded-xl border border-border bg-surface px-4 py-3 space-y-2">
                 <div className="flex items-center justify-between gap-3 text-sm">
                   <span className="font-bold text-text-secondary">Tổng tiền cần thanh toán</span>
@@ -1664,11 +1787,10 @@ export default function POSLayout() {
                     type="number"
                     min="0"
                     step="1000"
+                    inputMode="numeric"
                     value={cashConfirmation.receivedAmountInput}
-                    onChange={(event) => setCashConfirmation((current) => current
-                      ? { ...current, receivedAmountInput: event.target.value }
-                      : current)}
-                    className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-3 text-base font-extrabold text-text-primary outline-none focus:border-brand-orange"
+                    onChange={(event) => updateCashReceivedInput(event.target.value)}
+                    className="min-h-14 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-3 text-xl font-extrabold text-text-primary outline-none focus:border-brand-orange tabular-nums"
                     autoFocus
                   />
                   <span className="text-xs font-extrabold text-text-secondary">VNĐ</span>
@@ -1688,11 +1810,46 @@ export default function POSLayout() {
                     onClick={() => setCashConfirmation((current) => current
                       ? { ...current, receivedAmountInput: String(amount) }
                       : current)}
-                    className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-extrabold text-text-secondary hover:border-brand-orange-border hover:text-brand-orange transition-colors cursor-pointer"
+                    className="pos-touch-target rounded-lg border border-border bg-surface px-3 py-2 text-sm font-extrabold text-text-secondary hover:border-brand-orange-border hover:text-brand-orange transition-colors cursor-pointer"
                   >
                     {formatVND(amount)}
                   </button>
                 ))}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2" aria-label="Bàn phím nhập tiền">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+                  <button
+                    key={digit}
+                    type="button"
+                    onClick={() => appendCashDigit(digit)}
+                    className="pos-touch-target min-h-12 rounded-lg border border-border bg-white text-lg font-extrabold text-text-primary active:bg-brand-orange-light"
+                  >
+                    {digit}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => updateCashReceivedInput('')}
+                  className="pos-touch-target min-h-12 rounded-lg border border-danger/30 bg-[var(--pos-danger-soft)] text-sm font-bold text-danger"
+                >
+                  Xóa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => appendCashDigit('0')}
+                  className="pos-touch-target min-h-12 rounded-lg border border-border bg-white text-lg font-extrabold text-text-primary active:bg-brand-orange-light"
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateCashReceivedInput(cashConfirmation.receivedAmountInput.slice(0, -1))}
+                  className="pos-touch-target min-h-12 rounded-lg border border-border bg-surface text-lg font-bold text-text-secondary"
+                  aria-label="Xóa chữ số cuối"
+                >
+                  ⌫
+                </button>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 px-5 py-4 bg-surface border-t border-border">
@@ -1700,7 +1857,7 @@ export default function POSLayout() {
                 type="button"
                 onClick={cancelCashPaymentConfirmation}
                 disabled={isCheckingOut}
-                className="rounded-xl border border-border bg-white px-4 py-3 text-sm font-extrabold text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="min-h-14 rounded-xl border border-border bg-white px-4 py-3 text-base font-extrabold text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 Hủy
               </button>
@@ -1708,7 +1865,7 @@ export default function POSLayout() {
                 type="button"
                 onClick={() => void confirmCashPayment()}
                 disabled={!canConfirmCashPayment}
-                className="rounded-xl bg-brand-orange px-4 py-3 text-sm font-extrabold text-white hover:bg-brand-orange-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="min-h-14 rounded-xl bg-brand-orange px-4 py-3 text-base font-extrabold text-white hover:bg-brand-orange-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 {isCheckingOut ? 'Đang xử lý' : 'Xác nhận'}
               </button>
@@ -1718,15 +1875,16 @@ export default function POSLayout() {
       )}
 
       {pendingPayment?.status === 'awaiting-vietqr' && pendingPayment.checkoutUrl && pendingPayment.orderId && (
-        <div className="fixed inset-0 z-[60] bg-black/55 flex items-center justify-center px-4">
+        <div className="pos-dialog-backdrop fixed inset-0 z-[60] flex items-center justify-center">
           <div
             role="dialog"
             aria-modal="true"
-            className="w-full max-w-[420px] rounded-xl bg-surface-white border border-border shadow-2xl overflow-hidden"
+            aria-labelledby="vietqr-payment-title"
+            className="pos-adaptive-dialog w-full max-w-[520px] rounded-xl bg-surface-white border border-border shadow-2xl overflow-hidden flex flex-col"
           >
             <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-extrabold text-text-primary">Thanh toán VietQR</p>
+                <p id="vietqr-payment-title" className="text-base font-extrabold text-text-primary">Thanh toán VietQR</p>
                 <p className="text-[11px] font-semibold text-text-muted">
                   Đơn #{pendingPayment.orderId} · {formatVND(pendingPayment.vietQrAmount)}
                 </p>
@@ -1738,7 +1896,7 @@ export default function POSLayout() {
                 <button
                   type="button"
                   onClick={closePaymentModalManually}
-                  className="h-8 w-8 rounded-lg border border-border text-text-secondary hover:border-danger/40 hover:bg-danger/5 hover:text-danger transition-colors cursor-pointer"
+                  className="pos-touch-target rounded-lg border border-border text-text-secondary hover:border-danger/40 hover:bg-[var(--pos-danger-soft)] hover:text-danger transition-colors cursor-pointer"
                   aria-label="Đóng modal thanh toán"
                   title="Đóng modal"
                 >
@@ -1747,7 +1905,7 @@ export default function POSLayout() {
               </div>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="min-h-0 overflow-y-auto p-5 space-y-4">
               <div className="flex items-center justify-between rounded-lg border border-brand-orange-border bg-brand-orange-light px-3 py-2">
                 <span className="text-xs font-bold text-brand-orange">Thời gian giữ giao dịch</span>
                 <span className="text-sm font-extrabold text-brand-orange tabular-nums">
@@ -1755,7 +1913,7 @@ export default function POSLayout() {
                 </span>
               </div>
 
-              <div className="h-[360px] rounded-lg border border-border bg-surface overflow-hidden">
+              <div className="min-h-[300px] h-[min(48dvh,460px)] rounded-lg border border-border bg-surface overflow-hidden">
                 <iframe
                   title={`PayOS checkout ${pendingPayment.orderId}`}
                   src={pendingPayment.checkoutUrl}
@@ -1794,7 +1952,7 @@ export default function POSLayout() {
       <ProductModifierModal
         key={activeItemForModifiers?.id ?? 'closed'}
         isOpen={activeItemForModifiers !== null}
-        onClose={() => setActiveItemForModifiers(null)}
+        onClose={closeModifierModal}
         menuItem={activeItemForModifiers}
         onConfirm={(selection) => {
           if (isCartLocked) {

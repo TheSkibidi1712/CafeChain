@@ -1,44 +1,403 @@
 @import "tailwindcss";
 
-/* ============================================================
-   CafeChain POS — iPad Landscape Design System
-   Tailwind CSS v4: CSS-first configuration
-   Brand Identity: Trắng sạch + Cam đặc (Solid Orange)
-   ============================================================ */
+/* CafeChain POS design tokens. Keep business components on these aliases. */
+:root {
+  --pos-app-bg: #f7f3ee;
+  --pos-surface: #ffffff;
+  --pos-primary: #6f4e37;
+  --pos-primary-hover: #5c3f2b;
+  --pos-accent: #c67a45;
+  --pos-text-primary: #1f2937;
+  --pos-text-secondary: #475569;
+  --pos-success: #2f6f5e;
+  --pos-warning: #99623b;
+  --pos-danger: #991b1b;
+
+  --pos-primary-soft: rgb(111 78 55 / 10%);
+  --pos-accent-soft: rgb(198 122 69 / 14%);
+  --pos-success-soft: rgb(47 111 94 / 12%);
+  --pos-warning-soft: rgb(153 98 59 / 12%);
+  --pos-danger-soft: rgb(153 27 27 / 9%);
+  --pos-border: #ded7cf;
+  --pos-divider: #ebe5de;
+  --pos-primary-border: #b9a696;
+  --pos-overlay: rgb(31 41 55 / 58%);
+  --pos-shadow: 0 14px 36px rgb(74 53 38 / 14%);
+  --pos-focus-ring: 0 0 0 3px rgb(198 122 69 / 34%);
+  --pos-radius-sm: 8px;
+  --pos-radius-md: 12px;
+  --pos-radius-lg: 16px;
+  --pos-topbar-height: 64px;
+}
 
 @theme {
-  /* ─── Brand Colors: Trắng + Cam đặc ─── */
-  --color-brand-orange: #FF8C00;
-  --color-brand-orange-hover: #E67E00;
-  --color-brand-orange-light: #FFF3E0;
-  --color-brand-orange-border: #FFB74D;
+  --color-brand-orange: var(--pos-primary);
+  --color-brand-orange-hover: var(--pos-primary-hover);
+  --color-brand-orange-light: var(--pos-primary-soft);
+  --color-brand-orange-border: var(--pos-primary-border);
 
-  /* Surfaces */
-  --color-surface: #F9FAFB;
-  --color-surface-white: #FFFFFF;
-  --color-surface-card: #FFFFFF;
-  --color-surface-hover: #FFF8F0;
+  --color-surface: var(--pos-app-bg);
+  --color-surface-white: var(--pos-surface);
+  --color-surface-card: var(--pos-surface);
+  --color-surface-hover: var(--pos-accent-soft);
+  --color-surface-muted: #eee9e3;
 
-  /* Text */
-  --color-text-primary: #1F2937;
-  --color-text-secondary: #6B7280;
-  --color-text-muted: #9CA3AF;
-  --color-text-inverse: #FFFFFF;
+  --color-text-primary: var(--pos-text-primary);
+  --color-text-secondary: var(--pos-text-secondary);
+  --color-text-muted: #7c746d;
+  --color-text-inverse: var(--pos-surface);
 
-  /* Semantic */
-  --color-danger: #EF4444;
-  --color-danger-hover: #DC2626;
-  --color-success: #22C55E;
-  --color-border: #E5E7EB;
-  --color-border-light: #F3F4F6;
+  --color-danger: var(--pos-danger);
+  --color-danger-hover: #7f1d1d;
+  --color-success: var(--pos-success);
+  --color-warning: var(--pos-warning);
+  --color-border: var(--pos-border);
+  --color-border-light: var(--pos-divider);
 
-  /* Typography */
-  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* Existing semantic utility aliases now resolve to the locked POS palette. */
+  --color-red-50: var(--pos-danger-soft);
+  --color-red-100: var(--pos-danger-soft);
+  --color-red-200: rgb(153 27 27 / 24%);
+  --color-red-300: rgb(153 27 27 / 34%);
+  --color-red-500: var(--pos-danger);
+  --color-red-600: var(--pos-danger);
+  --color-red-700: var(--pos-danger);
+  --color-amber-50: var(--pos-warning-soft);
+  --color-amber-100: var(--pos-warning-soft);
+  --color-amber-200: rgb(153 98 59 / 24%);
+  --color-amber-300: rgb(153 98 59 / 34%);
+  --color-amber-400: var(--pos-warning);
+  --color-amber-600: var(--pos-warning);
+  --color-amber-700: var(--pos-warning);
+  --color-amber-800: var(--pos-warning);
+  --color-amber-900: #70452b;
+  --color-green-50: var(--pos-success-soft);
+  --color-green-200: rgb(47 111 94 / 24%);
+  --color-green-600: var(--pos-success);
+  --color-green-700: var(--pos-success);
+  --color-emerald-50: var(--pos-success-soft);
+  --color-emerald-200: rgb(47 111 94 / 24%);
+  --color-emerald-500: var(--pos-success);
+  --color-emerald-600: var(--pos-success);
+  --color-emerald-700: var(--pos-success);
+  --color-emerald-800: var(--pos-success);
+  --color-violet-50: var(--pos-primary-soft);
+  --color-violet-100: var(--pos-primary-soft);
+  --color-violet-200: rgb(111 78 55 / 22%);
+  --color-violet-300: rgb(111 78 55 / 32%);
+  --color-violet-400: var(--pos-accent);
+  --color-violet-500: var(--pos-primary);
+  --color-violet-700: var(--pos-primary);
+  --color-violet-800: var(--pos-primary-hover);
+  --color-violet-900: var(--pos-primary-hover);
+  --color-gray-50: #f2eee9;
+  --color-gray-100: #e9e3dc;
+  --color-gray-200: var(--pos-border);
+  --color-gray-400: #8a8179;
+  --color-gray-500: #756d66;
+  --color-gray-700: var(--pos-text-secondary);
 
-  /* Shadows — NO gradients, clean flat shadows */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-card-hover: 0 4px 12px rgba(255, 140, 0, 0.15);
-  --shadow-button: 0 2px 4px rgba(255, 140, 0, 0.2);
+  --font-sans: 'Segoe UI Variable', 'Aptos', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  --shadow-card: 0 1px 2px rgb(74 53 38 / 8%);
+  --shadow-card-hover: 0 9px 24px rgb(74 53 38 / 14%);
+  --shadow-button: 0 4px 10px rgb(74 53 38 / 18%);
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  margin: 0;
+  background: var(--pos-app-bg);
+  color: var(--pos-text-primary);
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+textarea,
+select,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role='button'],
+a {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--pos-accent);
+  outline-offset: 2px;
+  box-shadow: var(--pos-focus-ring);
+}
+
+.pos-app-frame {
+  height: 100vh;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.pos-shell {
+  position: relative;
+  display: grid;
+  grid-template-areas: 'category catalog cart';
+  grid-template-columns: clamp(96px, 8vw, 112px) minmax(0, 1fr) clamp(360px, 31vw, 440px);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--pos-app-bg);
+}
+
+.pos-category-panel {
+  grid-area: category;
+  min-width: 0;
+}
+
+.pos-category-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pos-primary-border) transparent;
+}
+
+.pos-catalog-panel {
+  grid-area: catalog;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pos-catalog-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.pos-search-field {
+  height: 48px;
+}
+
+.pos-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.pos-product-card {
+  min-width: 0;
+  min-height: 218px;
+}
+
+.pos-cart-panel {
+  grid-area: cart;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pos-cart-scroll {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.pos-cart-footer {
+  box-shadow: 0 -8px 24px rgb(74 53 38 / 6%);
+}
+
+.pos-touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.pos-mobile-cart-bar,
+.pos-cart-backdrop,
+.pos-cart-close {
+  display: none;
+}
+
+.pos-dialog-backdrop {
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: var(--pos-overlay);
+}
+
+.pos-adaptive-dialog {
+  max-height: min(90dvh, 820px);
+}
+
+@media (max-width: 1199px) {
+  .pos-shell {
+    grid-template-areas:
+      'category category'
+      'catalog cart';
+    grid-template-columns: minmax(0, 1fr) clamp(340px, 38vw, 400px);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .pos-category-panel {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    border-right: 0;
+    border-bottom: 1px solid var(--pos-border);
+  }
+
+  .pos-category-panel > :first-child,
+  .pos-category-panel > :nth-child(2) {
+    border-bottom: 0;
+    padding: 8px;
+  }
+
+  .pos-category-list {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px;
+    scroll-snap-type: x proximity;
+  }
+
+  .pos-category-list > * {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .pos-product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 819px) {
+  .pos-shell {
+    grid-template-areas:
+      'category'
+      'catalog';
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  .pos-category-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-category-panel > :first-child,
+  .pos-category-panel > :nth-child(2) {
+    display: none;
+  }
+
+  .pos-catalog-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pos-catalog-meta {
+    display: none;
+  }
+
+  .pos-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .pos-product-card {
+    min-height: 204px;
+  }
+
+  .pos-cart-panel {
+    position: fixed;
+    z-index: 50;
+    inset: var(--pos-topbar-height) 0 0 auto;
+    display: flex;
+    width: min(92vw, 440px);
+    max-width: 100%;
+    padding-bottom: env(safe-area-inset-bottom);
+    transform: translateX(104%);
+    transition: transform 220ms ease;
+    box-shadow: var(--pos-shadow);
+  }
+
+  .pos-cart-panel[data-open='true'] {
+    transform: translateX(0);
+  }
+
+  .pos-cart-backdrop {
+    position: fixed;
+    z-index: 49;
+    inset: var(--pos-topbar-height) 0 0;
+    display: block;
+    border: 0;
+    background: var(--pos-overlay);
+  }
+
+  .pos-cart-close {
+    display: inline-flex;
+  }
+
+  .pos-mobile-cart-bar {
+    position: fixed;
+    z-index: 45;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: max(10px, env(safe-area-inset-left));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 62px;
+    padding: 8px 8px 8px 16px;
+    border: 1px solid var(--pos-primary-border);
+    border-radius: var(--pos-radius-md);
+    background: var(--pos-surface);
+    box-shadow: var(--pos-shadow);
+  }
+
+  .pos-adaptive-dialog {
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    height: min(100%, 760px);
+    margin-top: auto;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .pos-dialog-backdrop {
+    align-items: flex-end;
+    padding: env(safe-area-inset-top) 0 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .pos-product-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pos-product-card:not([aria-disabled='true']):hover {
+    border-color: var(--pos-primary-border);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 .receipt-print-host {
