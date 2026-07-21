@@ -1,11 +1,43 @@
-﻿let currentStoreId = 0;
+let currentStoreId = 0;
+let currentTransactionPage = 1;
+let transactionRequestController = null;
+
+function renderTransactionState(message, options = {}) {
+    const content = document.getElementById("transactionContent");
+    if (!content) return;
+
+    const state = document.createElement("div");
+    state.className = `transaction-state ${options.kind || ""}`.trim();
+    state.setAttribute(
+        "role",
+        options.kind === "error" || options.kind === "forbidden" ? "alert" : "status"
+    );
+    state.textContent = message;
+
+    if (options.retry) {
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.className = "transaction-retry";
+        retry.textContent = "Thử lại";
+        retry.addEventListener("click", function () {
+            loadTransactionPage(currentTransactionPage, currentStoreId);
+        });
+        state.appendChild(retry);
+    }
+
+    content.replaceChildren(state);
+}
 
 // =====================================================
 // OPEN MODAL
 // =====================================================
 
 function openTransactionModal(storeId) {
-    currentStoreId = Number(storeId || 0);
+    const selectedStoreId = Number(storeId);
+    currentStoreId = Number.isInteger(selectedStoreId) && selectedStoreId > 0
+        ? selectedStoreId
+        : 0;
+    currentTransactionPage = 1;
 
     const modal = document.getElementById("transactionModal");
     const content = document.getElementById("transactionContent");
@@ -13,7 +45,7 @@ function openTransactionModal(storeId) {
     if (!modal || !content) return;
 
     modal.style.display = "block";
-    content.innerHTML = "Đang tải dữ liệu...";
+    renderTransactionState("Đang tải lịch sử tồn kho…");
 
     loadTransactionPage(1, currentStoreId);
 }
@@ -23,16 +55,23 @@ function openTransactionModal(storeId) {
 // =====================================================
 
 function loadTransactionPage(page, storeId) {
-    currentStoreId = Number(storeId ?? currentStoreId ?? 0);
+    const requestedStoreId = Number(storeId ?? currentStoreId);
+    if (Number.isInteger(requestedStoreId) && requestedStoreId > 0) {
+        currentStoreId = requestedStoreId;
+    }
+    currentTransactionPage = Math.max(1, Number(page) || 1);
 
     const content = document.getElementById("transactionContent");
-
     if (!content) return;
 
-    content.innerHTML = "Đang tải dữ liệu...";
+    transactionRequestController?.abort();
+    transactionRequestController = new AbortController();
+    const requestController = transactionRequestController;
+
+    renderTransactionState("Đang tải lịch sử tồn kho…");
 
     const query = new URLSearchParams({
-        page: Number(page || 1),
+        page: currentTransactionPage,
         storeId: currentStoreId
     });
 
@@ -40,21 +79,44 @@ function loadTransactionPage(page, storeId) {
         method: "GET",
         headers: {
             "X-Requested-With": "XMLHttpRequest"
-        }
+        },
+        signal: requestController.signal
     })
         .then(response => {
+            if (response.status === 403) {
+                throw new Error("FORBIDDEN");
+            }
+
             if (!response.ok) {
-                throw new Error("Load failed");
+                throw new Error(`HTTP_${response.status}`);
             }
 
             return response.text();
         })
         .then(html => {
+            if (requestController.signal.aborted) return;
             content.innerHTML = html;
         })
-        .catch(() => {
-            content.innerHTML =
-                "<div class='empty-data'>Lỗi tải dữ liệu hoặc bạn không có quyền xem kho này.</div>";
+        .catch(error => {
+            if (error.name === "AbortError") return;
+
+            if (error.message === "FORBIDDEN") {
+                renderTransactionState(
+                    "Bạn không có quyền xem lịch sử tồn kho của chi nhánh này.",
+                    { kind: "forbidden" }
+                );
+                return;
+            }
+
+            renderTransactionState(
+                "Không thể tải lịch sử tồn kho. Vui lòng thử lại.",
+                { kind: "error", retry: true }
+            );
+        })
+        .finally(() => {
+            if (transactionRequestController === requestController) {
+                transactionRequestController = null;
+            }
         });
 }
 
@@ -64,9 +126,10 @@ function loadTransactionPage(page, storeId) {
 
 function closeModal() {
     const modal = document.getElementById("transactionModal");
-
     if (!modal) return;
 
+    transactionRequestController?.abort();
+    transactionRequestController = null;
     modal.style.display = "none";
 }
 
@@ -76,10 +139,7 @@ function closeModal() {
 
 window.addEventListener("click", function (event) {
     const modal = document.getElementById("transactionModal");
-
-    if (!modal) return;
-
-    if (event.target === modal) {
+    if (modal && event.target === modal) {
         closeModal();
     }
 });

@@ -92,7 +92,11 @@ namespace CafeChain.Areas.Admin.Controllers
                 return Unauthorized();
 
             var actor = _actor.Get(User);
-            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            // storeId=0 is the MVC default, not an explicit request for a non-existent store.
+            // Resolve it from the selected/staff scope so older clients also open a valid store.
+            var storeScope = await _storeScopeResolver.ResolveAsync(
+                actor,
+                storeId > 0 ? storeId : null);
             if (!storeScope.IsResolved)
                 return StoreScopeFailure(storeScope);
             storeId = storeScope.StoreId!.Value;

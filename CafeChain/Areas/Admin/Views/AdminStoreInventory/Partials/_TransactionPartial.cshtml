@@ -13,12 +13,6 @@
 
 <div class="store-tabs modal-store-tabs">
 
-    <button type="button"
-            class="store-tab @(currentStoreId == 0 ? "active" : "")"
-            onclick="loadTransactionPage(1, 0)">
-        Tất cả kho
-    </button>
-
     @foreach (var store in storeTabs)
     {
         <button type="button"
@@ -133,7 +127,7 @@
         {
             <tr>
                 <td colspan="10" class="empty-data">
-                    Không có lịch sử giao dịch
+                    Chưa có giao dịch tồn kho trong khoảng thời gian đã chọn.
                 </td>
             </tr>
         }
