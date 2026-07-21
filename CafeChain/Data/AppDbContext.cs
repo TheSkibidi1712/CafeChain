@@ -228,17 +228,6 @@ namespace CafeChain.Data
         // ========================= CONFIGURATION =========================
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<RevenueDto>().HasNoKey();
-            modelBuilder.Entity<RevenueByStoreDto>().HasNoKey();
-            modelBuilder.Entity<TopDrinkDto>().HasNoKey();
-            modelBuilder.Entity<TopToppingDto>().HasNoKey();
-            modelBuilder.Entity<PaymentMethodDto>().HasNoKey();
-            modelBuilder.Entity<StaffPerformanceDto>().HasNoKey();
-            modelBuilder.Entity<InventoryDto>().HasNoKey();
-            modelBuilder.Entity<WasteDto>().HasNoKey();
-            modelBuilder.Entity<CashFlowDto>().HasNoKey();
-            modelBuilder.Entity<DashboardSummaryDto>().HasNoKey();
-
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

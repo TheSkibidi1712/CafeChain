@@ -97,7 +97,6 @@ public sealed class DashboardService : IDashboardService
             {
                 TotalOrders = ToInt(trend.Sum(x => x.TotalOrders)),
                 Revenue = trend.Sum(x => x.NetSales),
-                TotalCustomers = 0,
                 TodayOrders = ToInt(trend.Where(x => x.BucketDate.Date == today).Sum(x => x.TotalOrders))
             },
             Stores = scope.StoreOptions.Select(x => new StoreDropdownDto { StoreId=x.StoreId, StoreName=x.StoreName, ProvinceId=x.ProvinceId, ProvinceName=x.ProvinceName, DistrictId=x.DistrictId, DistrictName=x.DistrictName }).ToList(),

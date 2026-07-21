@@ -455,7 +455,8 @@ namespace CafeChain.Data.Configurations.Staffs
                 new StaffShiftStatus { StaffShiftStatusId = 1, Code = "PLANNED", Name = "Planned", IsSystem = true },
                 new StaffShiftStatus { StaffShiftStatusId = 2, Code = "CHECKED_IN", Name = "Checked In", IsSystem = true },
                 new StaffShiftStatus { StaffShiftStatusId = 3, Code = "COMPLETED", Name = "Completed", IsSystem = true },
-                new StaffShiftStatus { StaffShiftStatusId = 4, Code = "ABSENT", Name = "Absent", IsSystem = true }
+                new StaffShiftStatus { StaffShiftStatusId = 4, Code = "ABSENT", Name = "Absent", IsSystem = true },
+                new StaffShiftStatus { StaffShiftStatusId = 5, Code = "CANCELLED", Name = "Cancelled", IsSystem = true }
             );
         }
     }

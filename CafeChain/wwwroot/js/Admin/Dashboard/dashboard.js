@@ -54,12 +54,14 @@
         confirmedGrossProfit: ["Lợi nhuận gộp", "currency"], confirmedMarginRate: ["Biên lợi nhuận", "percent"],
         volume: ["Sản lượng", "count"], totalSold: ["Số lượng bán", "count"], sizeName: ["Kích cỡ", "text"],
         toppingName: ["Topping", "text"], recipeCount: ["Số công thức", "count"], recipeLineCount: ["Số dòng BOM", "count"], invalidLineCount: ["Dòng BOM lỗi", "count"],
-        payrollHours: ["Giờ công", "number"], salesPerPayrollHour: ["Doanh số/giờ công", "currency"], ordersPerStaff: ["Đơn/nhân sự", "number"]
+        shiftId: ["Mã ca dự kiến", "id"], shiftName: ["Ca dự kiến", "text"], workDate: ["Ngày làm", "date"],
+        plannedStartAt: ["Bắt đầu dự kiến", "dateTime"], plannedEndAt: ["Kết thúc dự kiến", "dateTime"], isOvernight: ["Ca qua đêm", "boolean"],
+        scheduledStaffCount: ["Số lịch nhân sự", "count"], workShiftCount: ["Số ca POS", "count"], ordersPerWorkShift: ["Đơn/ca POS", "number"]
     };
 
     const codeLabels = {
         DRAFT: "Nháp", APPROVED: "Đã duyệt", MARKED_AS_SENT: "Đã gửi nhà cung cấp", PARTIALLY_RECEIVED: "Nhận một phần",
-        COMPLETED: "Hoàn tất", CANCELLED: "Đã hủy", PLANNED: "Đã lên lịch", CHECKED_IN: "Đã vào ca", ABSENT: "Vắng mặt",
+        COMPLETED: "Hoàn tất", CANCELLED: "Đã hủy", SCHEDULED: "Đã lên lịch",
         OPEN: "Đang mở", CLOSED: "Đã đóng", UNDER_REVIEW: "Đang xem xét", RESOLVED: "Đã xử lý", DISMISSED: "Đã bỏ qua",
         CRITICAL: "Nghiêm trọng", WARNING: "Cảnh báo", HIGH: "Cao", NORMAL: "Bình thường", URGENT: "Khẩn cấp", LOW: "Thấp",
         SUBMITTED: "Đã gửi", PROCESSING: "Đang xử lý", REJECTED: "Đã từ chối",
@@ -117,8 +119,9 @@
         ],
         Workforce: [
             chart("shiftStatus", "Trạng thái phân ca", "bar", "statusCode", "staffShiftId", { aggregate: "count", valueFormat: "count", valueLabel: "Số ca" }),
-            chart("hourlyDemand", "Nhu cầu nhân sự theo giờ", "line", row => hourLabel(row.hourOfDay), "ordersPerStaff", { valueFormat: "number" }),
-            table("staffPerformance", "Hiệu suất nhân viên", ["fullName", "storeId", "totalOrders", "netSales", "payrollHours", "salesPerPayrollHour"], true)
+            chart("hourlyDemand", "Đơn hàng theo giờ", "line", row => hourLabel(row.hourOfDay), "totalOrders", { valueFormat: "count" }),
+            chart("scheduledStaff", "Lịch nhân sự theo giờ", "line", row => hourLabel(row.hourOfDay), "scheduledStaffCount", { dataKey: "hourlyDemand", valueFormat: "count" }),
+            table("staffPerformance", "Hoạt động POS theo nhân viên", ["fullName", "storeId", "workShiftCount", "totalOrders", "netSales", "averageOrderValue", "ordersPerWorkShift"], true)
         ]
     };
 
@@ -266,12 +269,14 @@
         const data = response?.data || {};
         const warnings = [];
         panel.innerHTML = sections[section].map(widget => {
-            const result = data[widget.key] || { status: "ERROR", message: "Payload không có widget này." };
+            const result = data[widget.dataKey || widget.key] || { status: "ERROR", message: "Payload không có widget này." };
             (result.warnings || []).forEach(item => warnings.push(`${widget.title}: ${item}`));
             return widgetShell(widget, result);
         }).join("");
-        sections[section].forEach(widget => renderWidget(widget, data[widget.key], response?.granularity));
-        showNotice(warnings.length ? `Dữ liệu một phần: ${warnings.join(" · ")}` : "");
+        sections[section].forEach(widget => renderWidget(widget, data[widget.dataKey || widget.key], response?.granularity));
+        const scheduleNotice = section === "Workforce" ? "Lịch nhân sự là kế hoạch dự kiến, không phải dữ liệu chấm công hoặc tính lương." : "";
+        const warningNotice = warnings.length ? `Dữ liệu một phần: ${warnings.join(" · ")}` : "";
+        showNotice([scheduleNotice, warningNotice].filter(Boolean).join(" · "));
     }
 
     function widgetShell(widget, result) {

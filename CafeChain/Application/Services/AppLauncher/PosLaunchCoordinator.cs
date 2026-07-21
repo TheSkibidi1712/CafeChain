@@ -12,23 +12,19 @@ public sealed class PosLaunchCoordinator : IPosLaunchCoordinator, IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IPrintBridgePresenceTracker _bridgeTracker;
     private readonly IWebHostEnvironment _environment;
     private readonly PosLauncherOptions _options;
     private readonly ILogger<PosLaunchCoordinator> _logger;
     private PosLaunchResultDTO _status = Status(PosLaunchState.Idle, "POS chưa được khởi chạy.");
-    private Process? _bridgeProcess;
     private Process? _frontendProcess;
 
     public PosLaunchCoordinator(
         IHttpClientFactory httpClientFactory,
-        IPrintBridgePresenceTracker bridgeTracker,
         IWebHostEnvironment environment,
         IOptions<PosLauncherOptions> options,
         ILogger<PosLaunchCoordinator> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _bridgeTracker = bridgeTracker;
         _environment = environment;
         _options = options.Value;
         _logger = logger;
@@ -36,10 +32,7 @@ public sealed class PosLaunchCoordinator : IPosLaunchCoordinator, IDisposable
 
     public async Task<PosLaunchResultDTO> GetStatusAsync(int storeId, CancellationToken cancellationToken = default)
     {
-        if (!IsConfiguredStore(storeId))
-            return Failure(PosLaunchErrorCodes.StoreMismatch, "PrintBridge trên máy này không được cấu hình cho cửa hàng hiện tại.");
-
-        if (_bridgeTracker.IsOnline(storeId, HeartbeatAge()) && await IsFrontendReadyAsync(cancellationToken))
+        if (await IsFrontendReadyAsync(cancellationToken))
             return SetStatus(PosLaunchState.Ready, "POS đã sẵn sàng.");
 
         return _status;
@@ -50,43 +43,7 @@ public sealed class PosLaunchCoordinator : IPosLaunchCoordinator, IDisposable
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            if (!IsConfiguredStore(storeId))
-                return SetFailure(PosLaunchErrorCodes.StoreMismatch, "PrintBridge trên máy này không được cấu hình cho cửa hàng hiện tại.");
-
             var timeout = TimeSpan.FromSeconds(Math.Clamp(_options.StartupTimeoutSeconds, 5, 180));
-
-            SetStatus(PosLaunchState.CheckingBridge, "Đang kiểm tra CafeChain.PrintBridge...");
-            if (!_bridgeTracker.IsOnline(storeId, HeartbeatAge()))
-            {
-                var bridgeProject = ResolvePath(_options.PrintBridgeProject);
-                if (!File.Exists(bridgeProject))
-                    return SetFailure(PosLaunchErrorCodes.BridgeProjectMissing, "Không tìm thấy project CafeChain.PrintBridge trong cấu hình.");
-
-                SetStatus(PosLaunchState.StartingBridge, "Đang khởi chạy CafeChain.PrintBridge...");
-                try
-                {
-                    if (_bridgeProcess is null || _bridgeProcess.HasExited)
-                        _bridgeProcess = StartBridge(bridgeProject);
-                }
-                catch (Win32Exception ex)
-                {
-                    _logger.LogError(ex, "Không tìm thấy dotnet khi khởi chạy PrintBridge");
-                    return SetFailure(PosLaunchErrorCodes.DotnetMissing, "Không tìm thấy .NET SDK/runtime để khởi chạy CafeChain.PrintBridge.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Không thể khởi chạy PrintBridge từ {Project}", bridgeProject);
-                    return SetFailure(PosLaunchErrorCodes.BridgeStartFailed, "Không thể khởi chạy CafeChain.PrintBridge. Kiểm tra .NET SDK và log máy chủ.");
-                }
-
-                if (!await WaitUntilAsync(
-                        _ => Task.FromResult(_bridgeTracker.IsOnline(storeId, HeartbeatAge())),
-                        timeout,
-                        cancellationToken))
-                {
-                    return SetFailure(PosLaunchErrorCodes.BridgeTimeout, "CafeChain.PrintBridge không kết nối được tới SignalR trong thời gian cho phép.");
-                }
-            }
 
             SetStatus(PosLaunchState.CheckingFrontend, "Đang kiểm tra CafeChain.Frontend...");
             if (!await IsFrontendReadyAsync(cancellationToken))
@@ -134,20 +91,6 @@ public sealed class PosLaunchCoordinator : IPosLaunchCoordinator, IDisposable
         {
             _gate.Release();
         }
-    }
-
-    private Process StartBridge(string projectPath)
-    {
-        var start = new ProcessStartInfo("dotnet")
-        {
-            WorkingDirectory = Path.GetDirectoryName(projectPath)!,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-        start.ArgumentList.Add("run");
-        start.ArgumentList.Add("--project");
-        start.ArgumentList.Add(projectPath);
-        return Process.Start(start) ?? throw new InvalidOperationException("dotnet không tạo process PrintBridge.");
     }
 
     private Process StartFrontend(string workingDirectory)
@@ -224,8 +167,6 @@ public sealed class PosLaunchCoordinator : IPosLaunchCoordinator, IDisposable
     }
 
     private string ResolvePath(string configuredPath) => Path.GetFullPath(configuredPath, _environment.ContentRootPath);
-    private bool IsConfiguredStore(int storeId) => storeId > 0 && storeId == _options.PrintBridgeStoreId;
-    private TimeSpan HeartbeatAge() => TimeSpan.FromSeconds(Math.Clamp(_options.BridgeHeartbeatMaxAgeSeconds, 10, 300));
     private PosLaunchResultDTO SetStatus(PosLaunchState state, string message) => _status = Status(state, message);
     private PosLaunchResultDTO SetFailure(string code, string message) => _status = Failure(code, message);
     private static PosLaunchResultDTO Status(PosLaunchState state, string message) => new() { State = state, Message = message };
@@ -234,7 +175,6 @@ public sealed class PosLaunchCoordinator : IPosLaunchCoordinator, IDisposable
     public void Dispose()
     {
         _gate.Dispose();
-        _bridgeProcess?.Dispose();
         _frontendProcess?.Dispose();
     }
 }

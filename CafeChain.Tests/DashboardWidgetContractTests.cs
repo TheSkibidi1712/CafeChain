@@ -42,9 +42,9 @@ public sealed class DashboardWidgetContractTests
             ["bomHealth"] = (typeof(BomHealthRow), ["DrinkCode", "DrinkName", "RecipeCount", "RecipeLineCount", "InvalidLineCount"]),
             ["lowEfficiency"] = (typeof(LowEfficiencyProductRow), ["DrinkName", "TotalSold", "ConfirmedCogs", "ConfirmedGrossProfit"]),
 
-            ["shiftStatus"] = (typeof(WorkforceShiftStatusRow), ["StaffShiftId", "StatusCode"]),
-            ["hourlyDemand"] = (typeof(WorkforceHourlyDemandRow), ["HourOfDay", "OrdersPerStaff"]),
-            ["staffPerformance"] = (typeof(WorkforceStaffPerformanceRow), ["FullName", "StoreId", "TotalOrders", "NetSales", "PayrollHours", "SalesPerPayrollHour"])
+            ["shiftStatus"] = (typeof(WorkforceShiftStatusRow), ["StaffShiftId", "StaffId", "StoreId", "ShiftId", "ShiftName", "PlannedStartAt", "PlannedEndAt", "StatusCode", "IsOvernight"]),
+            ["hourlyDemand"] = (typeof(WorkforceHourlyDemandRow), ["HourOfDay", "TotalOrders", "ScheduledStaffCount"]),
+            ["staffPerformance"] = (typeof(WorkforceStaffPerformanceRow), ["FullName", "StoreId", "WorkShiftCount", "TotalOrders", "NetSales", "AverageOrderValue", "OrdersPerWorkShift"])
         };
 
     [Fact]
@@ -61,6 +61,24 @@ public sealed class DashboardWidgetContractTests
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
             Assert.All(contract.Fields, field => Assert.Contains(field, properties));
         }
+    }
+
+    [Fact]
+    public void Workforce_contract_contains_schedule_and_pos_activity_only()
+    {
+        var dto = File.ReadAllText(Path.Combine(
+            FindRepoRoot(), "CafeChain", "Application", "DTOs", "Admin", "Dashboard", "DashboardAnalyticsDtos.cs"));
+        var repository = File.ReadAllText(Path.Combine(
+            FindRepoRoot(), "CafeChain", "Infrastructure", "Repositories", "Admin", "Dashboard", "DashboardRepository.cs"));
+        var script = ReadDashboardScript();
+        var combined = dto + repository + script;
+
+        Assert.DoesNotContain("ActualCheckIn", combined, StringComparison.Ordinal);
+        Assert.DoesNotContain("ActualCheckOut", combined, StringComparison.Ordinal);
+        Assert.DoesNotContain("PayrollHours", combined, StringComparison.Ordinal);
+        Assert.DoesNotContain("SalesPerPayrollHour", combined, StringComparison.Ordinal);
+        Assert.DoesNotContain("OrdersPerStaff", combined, StringComparison.Ordinal);
+        Assert.Contains("Lịch nhân sự là kế hoạch dự kiến", script, StringComparison.Ordinal);
     }
 
     [Fact]

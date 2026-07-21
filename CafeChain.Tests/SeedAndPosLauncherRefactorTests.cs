@@ -23,20 +23,23 @@ public sealed class SeedAndPosLauncherRefactorTests
     [Fact]
     public void Dashboard_seed_covers_every_table_read_by_dashboard_procedures()
     {
-        var sql = ReadRepoFile("CafeChain/Scripts/20260718_Dashboard_Demo_Data_Seed.idempotent.sql");
+        var sql = ReadRepoFile("CafeChain/Scripts/SeedAll.sql");
         var required = new[]
         {
             "Orders", "OrderDetails", "OrderToppings", "Payments", "OrderRefunds",
-            "StaffShifts", "WorkShifts", "CashSessions", "PurchaseOrders",
+            "StaffShifts", "WorkShifts", "PurchaseOrders",
             "PurchaseOrderLines", "BranchReceipts", "BranchReceiptLines",
-            "SupplierReceiptIssues", "RestockRequests", "InventoryTransactions"
+            "SupplierReceiptIssues", "RestockRequests"
         };
 
         foreach (var table in required)
             Assert.Contains($"dbo.{table}", sql, StringComparison.Ordinal);
 
-        Assert.Contains("Ngoại lệ có chủ đích", sql, StringComparison.Ordinal);
-        Assert.Contains("DEMO_DASHBOARD", sql, StringComparison.Ordinal);
+        Assert.Contains("DEMO_DASHBOARD_V13", sql, StringComparison.Ordinal);
+        Assert.Contains("CashSessionId,TransactionCode", sql, StringComparison.Ordinal);
+        Assert.Contains("NULL,", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("N'APPROVED'", ExtractDashboardBatch(sql), StringComparison.Ordinal);
+        Assert.DoesNotContain("N'SENT'", ExtractDashboardBatch(sql), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -51,6 +54,22 @@ public sealed class SeedAndPosLauncherRefactorTests
         Assert.Contains("SemaphoreSlim", coordinator, StringComparison.Ordinal);
         Assert.Contains("IsFrontendReadyAsync", coordinator, StringComparison.Ordinal);
         Assert.Contains("data-launch-pos-url", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Launcher_no_longer_starts_or_waits_for_print_bridge()
+    {
+        var coordinator = ReadRepoFile("CafeChain/Application/Services/AppLauncher/PosLaunchCoordinator.cs");
+        var options = ReadRepoFile("CafeChain/Application/Options/PosLauncherOptions.cs");
+        var configuration = ReadRepoFile("CafeChain/appsettings.json");
+        var script = ReadRepoFile("CafeChain/wwwroot/js/AppLauncher/app-launcher.js");
+
+        Assert.DoesNotContain("StartBridge", coordinator, StringComparison.Ordinal);
+        Assert.DoesNotContain("IPrintBridgePresenceTracker", coordinator, StringComparison.Ordinal);
+        Assert.DoesNotContain("PrintBridgeProject", options, StringComparison.Ordinal);
+        Assert.DoesNotContain("PrintBridgeStoreId", configuration, StringComparison.Ordinal);
+        Assert.DoesNotContain("CafeChain.PrintBridge", script, StringComparison.Ordinal);
+        Assert.Contains("CafeChain.Frontend", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -78,5 +97,11 @@ public sealed class SeedAndPosLauncherRefactorTests
     {
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
         return File.ReadAllText(Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+    }
+
+    private static string ExtractDashboardBatch(string sql)
+    {
+        var marker = sql.IndexOf("BATCH 13/13 - DASHBOARD", StringComparison.Ordinal);
+        return marker < 0 ? string.Empty : sql[marker..];
     }
 }

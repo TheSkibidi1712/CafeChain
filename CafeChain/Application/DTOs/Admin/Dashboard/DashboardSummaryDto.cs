@@ -4,7 +4,6 @@
     {
         public int TotalOrders { get; set; }
         public decimal Revenue { get; set; }
-        public int TotalCustomers { get; set; }
         public int TodayOrders { get; set; }
     }
 }

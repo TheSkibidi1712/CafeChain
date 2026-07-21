@@ -53,6 +53,36 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER FUNCTION dbo.ufn_AnalyticsOrderFacts(
+    @FromDate datetime2,
+    @ToExclusive datetime2)
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT o.OrderId, o.StoreId, o.StaffId, o.WorkShiftId, o.CreatedAt,
+           CONVERT(decimal(19,2), CASE WHEN o.Total-o.ShippingFee < 0 THEN 0 ELSE o.Total-o.ShippingFee END) AS GrossSales,
+           CONVERT(decimal(19,2), CASE
+               WHEN COALESCE(refund.CompletedRefundAmount,0) > o.Total-o.ShippingFee THEN
+                   CASE WHEN o.Total-o.ShippingFee < 0 THEN 0 ELSE o.Total-o.ShippingFee END
+               ELSE COALESCE(refund.CompletedRefundAmount,0)
+           END) AS CompletedRefundAmount,
+           CONVERT(decimal(19,2), CASE
+               WHEN o.Total-o.ShippingFee-COALESCE(refund.CompletedRefundAmount,0) < 0 THEN 0
+               ELSE o.Total-o.ShippingFee-COALESCE(refund.CompletedRefundAmount,0)
+           END) AS NetSales,
+           CONVERT(bigint, CASE WHEN COALESCE(refund.CompletedRefundAmount,0) >= o.Total-o.ShippingFee THEN 0 ELSE 1 END) AS CountedOrder
+    FROM dbo.Orders AS o
+    OUTER APPLY
+    (
+        SELECT SUM(r.RefundAmount) AS CompletedRefundAmount
+        FROM dbo.OrderRefunds AS r
+        WHERE r.OrderId=o.OrderId AND r.Status=3
+    ) AS refund
+    WHERE o.OrderStatusId=5 AND o.CreatedAt>=@FromDate AND o.CreatedAt<@ToExclusive
+);
+GO
+
 CREATE OR ALTER PROCEDURE dbo.usp_Dashboard_NetSalesTrend
     @FromDate date, @ToDate date, @StoreIds nvarchar(max),
     @Granularity varchar(10) = 'Day', @Top int = 10
@@ -75,18 +105,10 @@ BEGIN
         WHERE BucketDate < @LastBucket
     ), Events AS
     (
-        SELECT dbo.ufn_AnalyticsBucketStart(o.CreatedAt,@Granularity) AS EventDate, 1 AS OrderCount,
-               CONVERT(decimal(19,2), o.Total - o.ShippingFee) AS NetSales
-        FROM dbo.Orders AS o
-        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = o.StoreId
-        WHERE o.OrderStatusId = 5 AND o.CreatedAt >= @FromDate AND o.CreatedAt < @ToExclusive
-        UNION ALL
-        SELECT dbo.ufn_AnalyticsBucketStart(r.CompletedAtUtc,@Granularity), 0,
-               -CONVERT(decimal(19,2), o.Total - o.ShippingFee)
-        FROM dbo.OrderRefunds AS r
-        INNER JOIN dbo.Orders AS o ON o.OrderId = r.OrderId AND o.OrderStatusId = 5
-        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = r.StoreId
-        WHERE r.Status = 3 AND r.CompletedAtUtc >= @FromDate AND r.CompletedAtUtc < @ToExclusive
+        SELECT dbo.ufn_AnalyticsBucketStart(f.CreatedAt,@Granularity) AS EventDate,
+               f.CountedOrder AS OrderCount,f.NetSales
+        FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToExclusive) AS f
+        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
     )
     SELECT d.BucketDate, COALESCE(SUM(e.OrderCount), 0) AS TotalOrders,
            COALESCE(SUM(e.NetSales), 0) AS NetSales,
@@ -298,15 +320,13 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @ToExclusive datetime2 = DATEADD(day, 1, CONVERT(datetime2, @ToDate));
     SELECT TOP (ISNULL(NULLIF(@Top, 0), 10)) s.StoreId, s.Name AS StoreName,
-           COUNT_BIG(o.OrderId) AS TotalOrders,
-           COALESCE(SUM(o.Total - o.ShippingFee - CASE WHEN r.OrderRefundId IS NULL THEN 0 ELSE o.Total - o.ShippingFee END), 0) AS NetSales,
-           COALESCE(AVG(CONVERT(decimal(19,2), o.Total - o.ShippingFee)), 0) AS AverageOrderValue,
-           CASE WHEN COUNT_BIG(o.OrderId) = 0 THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
+           COALESCE(SUM(f.CountedOrder),0) AS TotalOrders,
+           COALESCE(SUM(f.NetSales),0) AS NetSales,
+           CONVERT(decimal(19,2),COALESCE(SUM(f.NetSales)/NULLIF(SUM(f.CountedOrder),0),0)) AS AverageOrderValue,
+           CASE WHEN COALESCE(SUM(f.CountedOrder),0) = 0 THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope
     INNER JOIN dbo.Stores AS s ON s.StoreId = scope.StoreId
-    LEFT JOIN dbo.Orders AS o ON o.StoreId = s.StoreId AND o.OrderStatusId = 5
-        AND o.CreatedAt >= @FromDate AND o.CreatedAt < @ToExclusive
-    LEFT JOIN dbo.OrderRefunds AS r ON r.OrderId = o.OrderId AND r.Status = 3
+    LEFT JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToExclusive) AS f ON f.StoreId=s.StoreId
     GROUP BY s.StoreId, s.Name
     ORDER BY NetSales DESC, s.StoreId;
 END;
@@ -319,18 +339,31 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @ToExclusive datetime2 = DATEADD(day, 1, CONVERT(datetime2, @ToDate));
+    ;WITH PaymentEvents AS
+    (
+        SELECT p.PaymentMethodId,CONVERT(bigint,CASE WHEN f.CountedOrder=1 THEN 1 ELSE 0 END) AS TransactionCount,
+               CONVERT(decimal(19,2),p.Amount) AS Amount
+        FROM dbo.Payments AS p
+        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToExclusive) AS f ON f.OrderId=p.OrderId
+        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+        WHERE p.PaymentStatusId=2
+        UNION ALL
+        SELECT r.PaymentMethodId,CONVERT(bigint,0),-f.CompletedRefundAmount
+        FROM dbo.OrderRefunds AS r
+        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToExclusive) AS f ON f.OrderId=r.OrderId
+        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+        WHERE r.Status=3
+    ), Totals AS
+    (
+        SELECT PaymentMethodId,SUM(TransactionCount) AS TotalTransactions,SUM(Amount) AS Amount
+        FROM PaymentEvents GROUP BY PaymentMethodId
+    )
     SELECT pm.PaymentMethodId, pm.Code AS PaymentMethodCode, pm.Name AS PaymentMethodName,
-           COUNT_BIG(p.PaymentId) AS TotalTransactions,
-           COALESCE(SUM(p.Amount), 0) AS Amount,
-           CONVERT(decimal(9,4), COALESCE(SUM(p.Amount) / NULLIF(SUM(SUM(p.Amount)) OVER (), 0), 0)) AS Share,
+           t.TotalTransactions,t.Amount,
+           CONVERT(decimal(9,4), COALESCE(t.Amount / NULLIF(SUM(t.Amount) OVER (), 0), 0)) AS Share,
            'AVAILABLE' AS DataStatus
-    FROM dbo.Payments AS p
-    INNER JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId = p.PaymentMethodId
-    INNER JOIN dbo.Orders AS o ON o.OrderId = p.OrderId AND o.OrderStatusId = 5
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = o.StoreId
-    WHERE p.PaymentStatusId = 2 AND COALESCE(p.PaidAt, o.CreatedAt) >= @FromDate
-      AND COALESCE(p.PaidAt, o.CreatedAt) < @ToExclusive
-    GROUP BY pm.PaymentMethodId, pm.Code, pm.Name
+    FROM Totals AS t INNER JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId=t.PaymentMethodId
+    WHERE t.Amount<>0 OR t.TotalTransactions<>0
     ORDER BY Amount DESC, pm.PaymentMethodId;
 END;
 GO
@@ -346,13 +379,12 @@ BEGIN
     Hours AS (SELECT 0 AS HourOfDay UNION ALL SELECT HourOfDay + 1 FROM Hours WHERE HourOfDay < 23),
     Actual AS
     (
-        SELECT 1 + (DATEDIFF(day, '19000101', CONVERT(date, o.CreatedAt)) % 7) AS IsoWeekday,
-               DATEPART(hour, o.CreatedAt) AS HourOfDay, COUNT_BIG(o.OrderId) AS TotalOrders,
-               SUM(o.Total - o.ShippingFee) AS NetSales
-        FROM dbo.Orders AS o
-        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = o.StoreId
-        WHERE o.OrderStatusId = 5 AND o.CreatedAt >= @FromDate AND o.CreatedAt < @ToExclusive
-        GROUP BY 1 + (DATEDIFF(day, '19000101', CONVERT(date, o.CreatedAt)) % 7), DATEPART(hour, o.CreatedAt)
+        SELECT 1 + (DATEDIFF(day, '19000101', CONVERT(date, f.CreatedAt)) % 7) AS IsoWeekday,
+               DATEPART(hour, f.CreatedAt) AS HourOfDay, SUM(f.CountedOrder) AS TotalOrders,
+               SUM(f.NetSales) AS NetSales
+        FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToExclusive) AS f
+        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+        GROUP BY 1 + (DATEDIFF(day, '19000101', CONVERT(date, f.CreatedAt)) % 7), DATEPART(hour, f.CreatedAt)
     )
     SELECT w.IsoWeekday, h.HourOfDay, COALESCE(a.TotalOrders, 0) AS TotalOrders,
            COALESCE(a.NetSales, 0) AS NetSales,
@@ -423,13 +455,13 @@ CREATE OR ALTER PROCEDURE dbo.usp_Operations_WorkShiftSales
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT w.ShiftId AS WorkShiftId, w.StoreId, COUNT_BIG(o.OrderId) AS TotalOrders,
-           COALESCE(SUM(o.Total - o.ShippingFee), 0) AS NetSales,
-           COALESCE(AVG(CONVERT(decimal(19,2), o.Total - o.ShippingFee)), 0) AS AverageOrderValue,
-           CASE WHEN COUNT_BIG(o.OrderId) = 0 THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
+    SELECT w.ShiftId AS WorkShiftId, w.StoreId, COALESCE(SUM(f.CountedOrder),0) AS TotalOrders,
+           COALESCE(SUM(f.NetSales),0) AS NetSales,
+           CONVERT(decimal(19,2),COALESCE(SUM(f.NetSales)/NULLIF(SUM(f.CountedOrder),0),0)) AS AverageOrderValue,
+           CASE WHEN COALESCE(SUM(f.CountedOrder),0) = 0 THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.WorkShifts AS w
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
-    LEFT JOIN dbo.Orders AS o ON o.WorkShiftId = w.ShiftId AND o.OrderStatusId = 5
+    LEFT JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.WorkShiftId=w.ShiftId
     WHERE w.StartTime >= @FromDate AND w.StartTime < DATEADD(day, 1, CONVERT(datetime2, @ToDate))
     GROUP BY w.ShiftId, w.StoreId ORDER BY w.ShiftId DESC;
 END;
@@ -440,15 +472,27 @@ CREATE OR ALTER PROCEDURE dbo.usp_Operations_WorkShiftPaymentMix
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT o.WorkShiftId, o.StoreId, pm.PaymentMethodId, pm.Code AS PaymentMethodCode, pm.Name AS PaymentMethodName,
-           COUNT_BIG(p.PaymentId) AS TotalTransactions, SUM(p.Amount) AS Amount, 'AVAILABLE' AS DataStatus
-    FROM dbo.Payments AS p INNER JOIN dbo.Orders AS o ON o.OrderId = p.OrderId AND o.OrderStatusId = 5
-    INNER JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId = p.PaymentMethodId
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = o.StoreId
-    WHERE o.WorkShiftId IS NOT NULL AND p.PaymentStatusId = 2 AND o.CreatedAt >= @FromDate
-      AND o.CreatedAt < DATEADD(day, 1, CONVERT(datetime2, @ToDate))
-    GROUP BY o.WorkShiftId, o.StoreId, pm.PaymentMethodId, pm.Code, pm.Name
-    ORDER BY o.WorkShiftId DESC, Amount DESC;
+    ;WITH PaymentEvents AS
+    (
+        SELECT f.WorkShiftId,f.StoreId,p.PaymentMethodId,
+               CONVERT(bigint,CASE WHEN f.CountedOrder=1 THEN 1 ELSE 0 END) AS TransactionCount,
+               CONVERT(decimal(19,2),p.Amount) AS Amount
+        FROM dbo.Payments AS p INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=p.OrderId
+        WHERE p.PaymentStatusId=2
+        UNION ALL
+        SELECT f.WorkShiftId,f.StoreId,r.PaymentMethodId,CONVERT(bigint,0),-f.CompletedRefundAmount
+        FROM dbo.OrderRefunds AS r INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=r.OrderId
+        WHERE r.Status=3
+    )
+    SELECT e.WorkShiftId,e.StoreId,pm.PaymentMethodId,pm.Code AS PaymentMethodCode,pm.Name AS PaymentMethodName,
+           SUM(e.TransactionCount) AS TotalTransactions,SUM(e.Amount) AS Amount,'AVAILABLE' AS DataStatus
+    FROM PaymentEvents AS e
+    INNER JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId=e.PaymentMethodId
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=e.StoreId
+    WHERE e.WorkShiftId IS NOT NULL
+    GROUP BY e.WorkShiftId,e.StoreId,pm.PaymentMethodId,pm.Code,pm.Name
+    HAVING SUM(e.Amount)<>0 OR SUM(e.TransactionCount)<>0
+    ORDER BY e.WorkShiftId DESC,Amount DESC;
 END;
 GO
 
@@ -476,12 +520,10 @@ BEGIN
     ;WITH Hours AS (SELECT 0 AS HourOfDay UNION ALL SELECT HourOfDay + 1 FROM Hours WHERE HourOfDay < 23),
     Actual AS
     (
-        SELECT DATEPART(hour, o.CreatedAt) AS HourOfDay, COUNT_BIG(o.OrderId) AS TotalOrders,
-               SUM(o.Total - o.ShippingFee) AS NetSales
-        FROM dbo.Orders AS o INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = o.StoreId
-        WHERE o.OrderStatusId = 5 AND o.CreatedAt >= @FromDate
-          AND o.CreatedAt < DATEADD(day, 1, CONVERT(datetime2, @ToDate))
-        GROUP BY DATEPART(hour, o.CreatedAt)
+        SELECT DATEPART(hour,f.CreatedAt) AS HourOfDay,SUM(f.CountedOrder) AS TotalOrders,SUM(f.NetSales) AS NetSales
+        FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+        GROUP BY DATEPART(hour,f.CreatedAt)
     )
     SELECT h.HourOfDay, COALESCE(a.TotalOrders, 0) AS TotalOrders, COALESCE(a.NetSales, 0) AS NetSales,
            CASE WHEN a.TotalOrders IS NULL THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
@@ -531,10 +573,11 @@ BEGIN
            SUM(CASE WHEN od.CostStatus=1 THEN od.TotalCogs ELSE 0 END) AS ConfirmedCogs,
            SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity-COALESCE(od.TotalCogs,0) ELSE 0 END) AS ConfirmedGrossProfit,
            CASE WHEN SUM(CASE WHEN od.CostStatus<>1 THEN 1 ELSE 0 END)>0 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
-    FROM dbo.OrderDetails AS od INNER JOIN dbo.Orders AS o ON o.OrderId=od.OrderId AND o.OrderStatusId=5
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=o.StoreId
+    FROM dbo.OrderDetails AS od
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
     OUTER APPLY(SELECT SUM(ot.Price) AS ToppingUnitPrice FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId=od.OrderDetailId) t
-    WHERE o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
     GROUP BY od.DrinkId,od.DrinkName ORDER BY ProductRevenue DESC,TotalSold DESC;
 END;
 GO
@@ -550,10 +593,11 @@ BEGIN
            CONVERT(decimal(9,4),COALESCE(SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity-COALESCE(od.TotalCogs,0) ELSE 0 END)
              /NULLIF(SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity ELSE 0 END),0),0)) AS ConfirmedMarginRate,
            CASE WHEN SUM(CASE WHEN od.CostStatus<>1 THEN 1 ELSE 0 END)>0 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
-    FROM dbo.OrderDetails AS od INNER JOIN dbo.Orders AS o ON o.OrderId=od.OrderId AND o.OrderStatusId=5
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=o.StoreId
+    FROM dbo.OrderDetails AS od
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
     OUTER APPLY(SELECT SUM(ot.Price) AS ToppingUnitPrice FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId=od.OrderDetailId) t
-    WHERE o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
     GROUP BY od.DrinkId,od.DrinkName ORDER BY Volume DESC;
 END;
 GO
@@ -568,10 +612,11 @@ BEGIN
            SUM(CASE WHEN od.CostStatus=1 THEN od.TotalCogs ELSE 0 END) AS ConfirmedCogs,
            SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity-COALESCE(od.TotalCogs,0) ELSE 0 END) AS ConfirmedGrossProfit,
            CASE WHEN SUM(CASE WHEN od.CostStatus<>1 THEN 1 ELSE 0 END)>0 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
-    FROM dbo.OrderDetails AS od INNER JOIN dbo.Orders AS o ON o.OrderId=od.OrderId AND o.OrderStatusId=5
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=o.StoreId
+    FROM dbo.OrderDetails AS od
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
     OUTER APPLY(SELECT SUM(ot.Price) AS ToppingUnitPrice FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId=od.OrderDetailId) t
-    WHERE o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
     GROUP BY od.SizeId,od.SizeName ORDER BY Revenue DESC;
 END;
 GO
@@ -586,9 +631,9 @@ BEGIN
            SUM(CASE WHEN ot.CostStatus=1 THEN ot.TotalCogs ELSE 0 END) AS ConfirmedCogs,
            CASE WHEN SUM(CASE WHEN ot.CostStatus<>1 THEN 1 ELSE 0 END)>0 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.OrderToppings AS ot INNER JOIN dbo.OrderDetails AS od ON od.OrderDetailId=ot.OrderDetailId
-    INNER JOIN dbo.Orders AS o ON o.OrderId=od.OrderId AND o.OrderStatusId=5
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=o.StoreId
-    WHERE o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
     GROUP BY ot.ToppingId,ot.ToppingName ORDER BY Revenue DESC,TotalUsed DESC;
 END;
 GO
@@ -619,9 +664,10 @@ BEGIN
            SUM(CASE WHEN od.CostStatus=1 THEN od.TotalCogs ELSE 0 END) AS ConfirmedCogs,
            SUM(CASE WHEN od.CostStatus=1 THEN od.Price*od.Quantity-COALESCE(od.TotalCogs,0) ELSE 0 END) AS ConfirmedGrossProfit,
            CASE WHEN SUM(CASE WHEN od.CostStatus<>1 THEN 1 ELSE 0 END)>0 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
-    FROM dbo.OrderDetails AS od INNER JOIN dbo.Orders AS o ON o.OrderId=od.OrderId AND o.OrderStatusId=5
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=o.StoreId
-    WHERE o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    FROM dbo.OrderDetails AS od
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
     GROUP BY od.DrinkId,od.DrinkName
     ORDER BY ConfirmedCogs DESC,ConfirmedGrossProfit ASC;
 END;
@@ -632,13 +678,27 @@ CREATE OR ALTER PROCEDURE dbo.usp_Workforce_ShiftStatus
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT ss.StaffShiftId,ss.StaffId,st.FullName,st.StoreId,ss.WorkDate,ss.ActualCheckIn,ss.ActualCheckOut,
-           ss.PayrollHours,ss.StatusId,status.Code AS StatusCode,ss.IsAdHoc,
-           'CURRENT_STAFF_STORE_SCOPE' AS DataStatus
-    FROM dbo.StaffShifts AS ss INNER JOIN dbo.Staffs AS st ON st.StaffId=ss.StaffId
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=st.StoreId
+    SELECT ss.StaffShiftId,ss.StaffId,st.FullName,sh.StoreId,ss.WorkDate,sh.ShiftId,sh.Name AS ShiftName,
+           planned.PlannedStartAt,
+           DATEADD(day,CASE WHEN sh.IsOvernight=1 OR planned.EndTime<=planned.StartTime THEN 1 ELSE 0 END,
+               DATEADD(day,DATEDIFF(day,0,ss.WorkDate),CONVERT(datetime2,planned.EndTime))) AS PlannedEndAt,
+           CASE WHEN status.Code='PLANNED' THEN 'SCHEDULED' ELSE status.Code END AS StatusCode,
+           CONVERT(bit,CASE WHEN sh.IsOvernight=1 OR planned.EndTime<=planned.StartTime THEN 1 ELSE 0 END) AS IsOvernight,
+           'PLANNED_SCHEDULE' AS DataStatus
+    FROM dbo.StaffShifts AS ss
+    INNER JOIN dbo.Staffs AS st ON st.StaffId=ss.StaffId
+    INNER JOIN dbo.Shifts AS sh ON sh.ShiftId=ss.ShiftId
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=sh.StoreId
     INNER JOIN dbo.StaffShiftStatuses AS status ON status.StaffShiftStatusId=ss.StatusId
+    CROSS APPLY
+    (
+        SELECT COALESCE(ss.CustomStartTime,sh.StartTime) AS StartTime,
+               COALESCE(ss.CustomEndTime,sh.EndTime) AS EndTime,
+               DATEADD(day,DATEDIFF(day,0,ss.WorkDate),
+                   CONVERT(datetime2,COALESCE(ss.CustomStartTime,sh.StartTime))) AS PlannedStartAt
+    ) AS planned
     WHERE ss.WorkDate>=@FromDate AND ss.WorkDate<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+      AND status.Code IN ('PLANNED','SCHEDULED','CANCELLED')
     ORDER BY ss.WorkDate DESC,ss.StaffShiftId;
 END;
 GO
@@ -651,22 +711,35 @@ BEGIN
     ;WITH Hours AS(SELECT 0 AS HourOfDay UNION ALL SELECT HourOfDay+1 FROM Hours WHERE HourOfDay<23),
     Demand AS
     (
-        SELECT DATEPART(hour,o.CreatedAt) AS HourOfDay,COUNT_BIG(o.OrderId) AS TotalOrders,SUM(o.Total-o.ShippingFee) AS NetSales
-        FROM dbo.Orders AS o INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=o.StoreId
-        WHERE o.OrderStatusId=5 AND o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
-        GROUP BY DATEPART(hour,o.CreatedAt)
+        SELECT DATEPART(hour,f.CreatedAt) AS HourOfDay,SUM(f.CountedOrder) AS TotalOrders
+        FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+        GROUP BY DATEPART(hour,f.CreatedAt)
+    ),Schedules AS
+    (
+        SELECT ss.StaffShiftId,
+               DATEADD(day,DATEDIFF(day,0,ss.WorkDate),CONVERT(datetime2,COALESCE(ss.CustomStartTime,sh.StartTime))) AS StartAt,
+               DATEADD(day,CASE WHEN sh.IsOvernight=1 OR COALESCE(ss.CustomEndTime,sh.EndTime)<=COALESCE(ss.CustomStartTime,sh.StartTime) THEN 1 ELSE 0 END,
+                   DATEADD(day,DATEDIFF(day,0,ss.WorkDate),CONVERT(datetime2,COALESCE(ss.CustomEndTime,sh.EndTime)))) AS EndAt
+        FROM dbo.StaffShifts AS ss
+        INNER JOIN dbo.Shifts AS sh ON sh.ShiftId=ss.ShiftId
+        INNER JOIN dbo.StaffShiftStatuses AS status ON status.StaffShiftStatusId=ss.StatusId
+        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=sh.StoreId
+        WHERE ss.WorkDate>=DATEADD(day,-1,@FromDate) AND ss.WorkDate<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+          AND status.Code IN ('PLANNED','SCHEDULED')
     ),Staffing AS
     (
-        SELECT h.HourOfDay,COUNT_BIG(ss.StaffShiftId) AS StaffShiftCount
-        FROM Hours AS h INNER JOIN dbo.StaffShifts AS ss ON ss.ActualCheckIn IS NOT NULL
-          AND h.HourOfDay BETWEEN DATEPART(hour,ss.ActualCheckIn) AND DATEPART(hour,COALESCE(ss.ActualCheckOut,ss.ActualCheckIn))
-        INNER JOIN dbo.Staffs AS st ON st.StaffId=ss.StaffId INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=st.StoreId
-        WHERE ss.WorkDate>=@FromDate AND ss.WorkDate<DATEADD(day,1,CONVERT(datetime2,@ToDate)) GROUP BY h.HourOfDay
+        SELECT h.HourOfDay,COUNT_BIG(s.StaffShiftId) AS ScheduledStaffCount
+        FROM Hours AS h
+        INNER JOIN Schedules AS s
+          ON DATEPART(hour,s.StartAt)<=h.HourOfDay
+             AND (CONVERT(date,s.EndAt)>CONVERT(date,s.StartAt) OR h.HourOfDay<DATEPART(hour,s.EndAt))
+          OR CONVERT(date,s.EndAt)>CONVERT(date,s.StartAt) AND h.HourOfDay<DATEPART(hour,s.EndAt)
+        GROUP BY h.HourOfDay
     )
-    SELECT h.HourOfDay,COALESCE(d.TotalOrders,0) AS TotalOrders,COALESCE(d.NetSales,0) AS NetSales,
-           COALESCE(s.StaffShiftCount,0) AS StaffShiftCount,
-           CONVERT(decimal(19,2),COALESCE(d.TotalOrders/NULLIF(CONVERT(decimal(19,2),s.StaffShiftCount),0),0)) AS OrdersPerStaff,
-           CASE WHEN d.TotalOrders IS NULL AND s.StaffShiftCount IS NULL THEN 'NO_DATA' ELSE 'CURRENT_STAFF_STORE_SCOPE' END AS DataStatus
+    SELECT h.HourOfDay,COALESCE(d.TotalOrders,0) AS TotalOrders,
+           COALESCE(s.ScheduledStaffCount,0) AS ScheduledStaffCount,
+           CASE WHEN d.TotalOrders IS NULL AND s.ScheduledStaffCount IS NULL THEN 'NO_DATA' ELSE 'PLANNED_SCHEDULE' END AS DataStatus
     FROM Hours AS h LEFT JOIN Demand AS d ON d.HourOfDay=h.HourOfDay LEFT JOIN Staffing AS s ON s.HourOfDay=h.HourOfDay
     ORDER BY h.HourOfDay OPTION(MAXRECURSION 24);
 END;
@@ -678,15 +751,25 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT TOP (ISNULL(NULLIF(@Top,0),10)) st.StaffId,st.FullName,st.StoreId,
-           COUNT_BIG(DISTINCT o.OrderId) AS TotalOrders,COALESCE(SUM(o.Total-o.ShippingFee),0) AS NetSales,
-           COALESCE(hours.PayrollHours,0) AS PayrollHours,
-           CONVERT(decimal(19,2),COALESCE(SUM(o.Total-o.ShippingFee)/NULLIF(hours.PayrollHours,0),0)) AS SalesPerPayrollHour,
-           'CURRENT_STAFF_STORE_SCOPE' AS DataStatus
+           COALESCE(shifts.WorkShiftCount,0) AS WorkShiftCount,
+           COALESCE(sales.TotalOrders,0) AS TotalOrders,COALESCE(sales.NetSales,0) AS NetSales,
+           CONVERT(decimal(19,2),COALESCE(sales.NetSales/NULLIF(CONVERT(decimal(19,2),sales.TotalOrders),0),0)) AS AverageOrderValue,
+           CONVERT(decimal(19,2),COALESCE(CONVERT(decimal(19,2),sales.TotalOrders)/NULLIF(shifts.WorkShiftCount,0),0)) AS OrdersPerWorkShift,
+           CASE WHEN COALESCE(shifts.WorkShiftCount,0)=0 AND COALESCE(sales.TotalOrders,0)=0 THEN 'NO_DATA' ELSE 'POS_ACTIVITY' END AS DataStatus
     FROM dbo.Staffs AS st INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=st.StoreId
-    LEFT JOIN dbo.Orders AS o ON o.StaffId=st.StaffId AND o.OrderStatusId=5 AND o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
-    OUTER APPLY(SELECT SUM(ss.PayrollHours) AS PayrollHours FROM dbo.StaffShifts AS ss WHERE ss.StaffId=st.StaffId
-      AND ss.WorkDate>=@FromDate AND ss.WorkDate<DATEADD(day,1,CONVERT(datetime2,@ToDate))) hours
-    GROUP BY st.StaffId,st.FullName,st.StoreId,hours.PayrollHours
+    OUTER APPLY
+    (
+        SELECT COUNT_BIG(w.ShiftId) AS WorkShiftCount
+        FROM dbo.WorkShifts AS w
+        WHERE w.UserId=st.StaffId AND w.StoreId=st.StoreId
+          AND w.StartTime>=@FromDate AND w.StartTime<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    ) AS shifts
+    OUTER APPLY
+    (
+        SELECT SUM(f.CountedOrder) AS TotalOrders,SUM(f.NetSales) AS NetSales
+        FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+        WHERE f.StaffId=st.StaffId AND f.StoreId=st.StoreId
+    ) AS sales
     ORDER BY NetSales DESC,st.StaffId;
 END;
 GO
@@ -697,11 +780,10 @@ CREATE OR ALTER PROCEDURE dbo.sp_Revenue_By_Store
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT s.StoreId,s.Name,COUNT_BIG(o.OrderId) AS TotalOrders,
-           COALESCE(SUM(o.Total-o.ShippingFee-CASE WHEN r.OrderRefundId IS NULL THEN 0 ELSE o.Total-o.ShippingFee END),0) AS Revenue
+    SELECT s.StoreId,s.Name,COALESCE(SUM(f.CountedOrder),0) AS TotalOrders,
+           COALESCE(SUM(f.NetSales),0) AS Revenue
     FROM dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope INNER JOIN dbo.Stores AS s ON s.StoreId=scope.StoreId
-    LEFT JOIN dbo.Orders AS o ON o.StoreId=s.StoreId AND o.OrderStatusId=5 AND o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(date,@ToDate))
-    LEFT JOIN dbo.OrderRefunds AS r ON r.OrderId=o.OrderId AND r.Status=3
+    LEFT JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.StoreId=s.StoreId
     GROUP BY s.StoreId,s.Name ORDER BY Revenue DESC,s.StoreId;
 END;
 GO
@@ -711,14 +793,14 @@ CREATE OR ALTER PROCEDURE dbo.sp_Revenue_Filtered
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT CONVERT(date,o.CreatedAt) AS [Date],COUNT_BIG(o.OrderId) AS TotalOrders,
-           COALESCE(SUM(o.Total-o.ShippingFee-CASE WHEN r.OrderRefundId IS NULL THEN 0 ELSE o.Total-o.ShippingFee END),0) AS Revenue
-    FROM dbo.Orders AS o INNER JOIN dbo.Stores AS s ON s.StoreId=o.StoreId
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=o.StoreId
-    LEFT JOIN dbo.OrderRefunds AS r ON r.OrderId=o.OrderId AND r.Status=3
-    WHERE o.OrderStatusId=5 AND o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(date,@ToDate))
+    SELECT CONVERT(date,f.CreatedAt) AS [Date],SUM(f.CountedOrder) AS TotalOrders,
+           COALESCE(SUM(f.NetSales),0) AS Revenue
+    FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+    INNER JOIN dbo.Stores AS s ON s.StoreId=f.StoreId
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
       AND (@ProvinceId IS NULL OR s.ProvinceId=@ProvinceId) AND (@DistrictId IS NULL OR s.DistrictId=@DistrictId)
-    GROUP BY CONVERT(date,o.CreatedAt) ORDER BY [Date];
+    GROUP BY CONVERT(date,f.CreatedAt) ORDER BY [Date];
 END;
 GO
 
@@ -752,19 +834,35 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Cash_Flow_Today @StoreIds nvarchar(max)
+CREATE OR ALTER PROCEDURE dbo.sp_Cash_Flow_Today
+    @StoreIds nvarchar(max),@FromDate date=NULL,@ToDate date=NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT cs.CashSessionId,cs.StaffId,cs.OpenTime,cs.CloseTime,cs.StartCash,
-           COALESCE(SUM(CASE WHEN pm.Code='CASH' THEN p.Amount ELSE 0 END),0) AS CashIn,
-           COALESCE(SUM(CASE WHEN pm.Code<>'CASH' THEN p.Amount ELSE 0 END),0) AS NonCashIn,
-           COALESCE(SUM(p.Amount),0) AS TotalRevenue
-    FROM dbo.CashSessions AS cs INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=cs.StoreId
-    LEFT JOIN dbo.Payments AS p ON p.CashSessionId=cs.CashSessionId AND p.PaymentStatusId=2
-    LEFT JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId=p.PaymentMethodId
-    WHERE cs.OpenTime>=CONVERT(date,GETDATE()) AND cs.OpenTime<DATEADD(day,1,CONVERT(date,GETDATE()))
-    GROUP BY cs.CashSessionId,cs.StaffId,cs.OpenTime,cs.CloseTime,cs.StartCash ORDER BY cs.OpenTime DESC;
+    SET @FromDate=COALESCE(@FromDate,CONVERT(date,SYSUTCDATETIME()));
+    SET @ToDate=COALESCE(@ToDate,@FromDate);
+    ;WITH PaymentEvents AS
+    (
+        SELECT f.WorkShiftId,f.StoreId,p.PaymentMethodId,CONVERT(decimal(19,2),p.Amount) AS Amount
+        FROM dbo.Payments AS p
+        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=p.OrderId
+        WHERE p.PaymentStatusId=2
+        UNION ALL
+        SELECT f.WorkShiftId,f.StoreId,r.PaymentMethodId,-f.CompletedRefundAmount
+        FROM dbo.OrderRefunds AS r
+        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=r.OrderId
+        WHERE r.Status=3
+    )
+    SELECT w.ShiftId AS CashSessionId,w.UserId AS StaffId,w.StartTime AS OpenTime,w.EndTime AS CloseTime,w.StartingCash AS StartCash,
+           COALESCE(SUM(CASE WHEN pm.Code='CASH' THEN e.Amount ELSE 0 END),0) AS CashIn,
+           COALESCE(SUM(CASE WHEN pm.Code<>'CASH' THEN e.Amount ELSE 0 END),0) AS NonCashIn,
+           COALESCE(SUM(e.Amount),0) AS TotalRevenue
+    FROM dbo.WorkShifts AS w
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=w.StoreId
+    LEFT JOIN PaymentEvents AS e ON e.WorkShiftId=w.ShiftId
+    LEFT JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId=e.PaymentMethodId
+    WHERE w.StartTime>=@FromDate AND w.StartTime<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    GROUP BY w.ShiftId,w.UserId,w.StartTime,w.EndTime,w.StartingCash ORDER BY w.StartTime DESC;
 END;
 GO
 
@@ -775,10 +873,11 @@ BEGIN
     SET NOCOUNT ON;
     SELECT TOP (ISNULL(NULLIF(@Top,0),10)) od.DrinkId,od.DrinkName,SUM(od.Quantity) AS TotalSold,
            SUM((od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity) AS Revenue
-    FROM dbo.OrderDetails AS od INNER JOIN dbo.Orders AS o ON o.OrderId=od.OrderId AND o.OrderStatusId=5
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=o.StoreId
+    FROM dbo.OrderDetails AS od
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
     OUTER APPLY(SELECT SUM(ot.Price) AS ToppingUnitPrice FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId=od.OrderDetailId) t
-    WHERE o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(date,@ToDate))
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
     GROUP BY od.DrinkId,od.DrinkName ORDER BY TotalSold DESC,Revenue DESC;
 END;
 GO
@@ -790,22 +889,14 @@ BEGIN
     SET NOCOUNT ON;
     SELECT ot.ToppingId,ot.ToppingName,SUM(od.Quantity) AS TotalUsed,SUM(ot.Price*od.Quantity) AS Revenue
     FROM dbo.OrderToppings AS ot INNER JOIN dbo.OrderDetails AS od ON od.OrderDetailId=ot.OrderDetailId
-    INNER JOIN dbo.Orders AS o ON o.OrderId=od.OrderId AND o.OrderStatusId=5
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=o.StoreId
-    WHERE o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(date,@ToDate))
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
     GROUP BY ot.ToppingId,ot.ToppingName ORDER BY TotalUsed DESC;
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Top_Customers @Top int=10
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT TOP (ISNULL(NULLIF(@Top,0),10)) c.CustomerId,c.FullName,COUNT_BIG(o.OrderId) AS TotalOrders,
-           SUM(o.Total-o.ShippingFee) AS TotalSpent
-    FROM dbo.Orders AS o INNER JOIN dbo.Customers AS c ON c.CustomerId=o.CustomerId
-    WHERE o.OrderStatusId=5 GROUP BY c.CustomerId,c.FullName ORDER BY TotalSpent DESC;
-END;
+DROP PROCEDURE IF EXISTS dbo.sp_Top_Customers;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.sp_Revenue_By_PaymentMethod_Filtered
@@ -813,12 +904,24 @@ CREATE OR ALTER PROCEDURE dbo.sp_Revenue_By_PaymentMethod_Filtered
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT pm.Name,COUNT_BIG(p.PaymentId) AS TotalTransactions,COALESCE(SUM(p.Amount),0) AS Revenue
-    FROM dbo.Payments AS p INNER JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId=p.PaymentMethodId
-    INNER JOIN dbo.Orders AS o ON o.OrderId=p.OrderId AND o.OrderStatusId=5
-    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=o.StoreId
-    WHERE p.PaymentStatusId=2 AND o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(date,@ToDate))
-    GROUP BY pm.Name ORDER BY Revenue DESC;
+    ;WITH Events AS
+    (
+        SELECT p.PaymentMethodId,CONVERT(bigint,CASE WHEN f.CountedOrder=1 THEN 1 ELSE 0 END) AS TransactionCount,
+               CONVERT(decimal(19,2),p.Amount) AS Amount
+        FROM dbo.Payments AS p
+        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=p.OrderId
+        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+        WHERE p.PaymentStatusId=2
+        UNION ALL
+        SELECT r.PaymentMethodId,CONVERT(bigint,0),-f.CompletedRefundAmount
+        FROM dbo.OrderRefunds AS r
+        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=r.OrderId
+        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+        WHERE r.Status=3
+    )
+    SELECT pm.Name,SUM(e.TransactionCount) AS TotalTransactions,SUM(e.Amount) AS Revenue
+    FROM Events AS e INNER JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId=e.PaymentMethodId
+    GROUP BY pm.Name HAVING SUM(e.Amount)<>0 OR SUM(e.TransactionCount)<>0 ORDER BY Revenue DESC;
 END;
 GO
 
@@ -832,12 +935,16 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.sp_Revenue_By_Hour
+    @FromDate datetime=NULL,@ToDate datetime=NULL,@StoreIds nvarchar(max)=NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT DATEPART(hour,o.CreatedAt) AS HourOfDay,COUNT_BIG(o.OrderId) AS TotalOrders,
-           SUM(o.Total-o.ShippingFee) AS Revenue FROM dbo.Orders AS o WHERE o.OrderStatusId=5
-    GROUP BY DATEPART(hour,o.CreatedAt) ORDER BY HourOfDay;
+    SET @FromDate=COALESCE(@FromDate,CONVERT(datetime,'19000101'));
+    SET @ToDate=COALESCE(@ToDate,CONVERT(datetime,'99991230'));
+    SELECT DATEPART(hour,f.CreatedAt) AS HourOfDay,SUM(f.CountedOrder) AS TotalOrders,SUM(f.NetSales) AS Revenue
+    FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+    GROUP BY DATEPART(hour,f.CreatedAt) ORDER BY HourOfDay;
 END;
 GO
 
@@ -846,11 +953,11 @@ CREATE OR ALTER PROCEDURE dbo.sp_Staff_Performance_Filtered
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT st.StaffId,st.FullName,COUNT_BIG(o.OrderId) AS TotalOrders,
-           COALESCE(SUM(o.Total-o.ShippingFee),0) AS Revenue
+    SELECT st.StaffId,st.FullName,COALESCE(SUM(f.CountedOrder),0) AS TotalOrders,
+           COALESCE(SUM(f.NetSales),0) AS Revenue
     FROM dbo.Staffs AS st INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=st.StoreId
-    LEFT JOIN dbo.Orders AS o ON o.StaffId=st.StaffId AND o.OrderStatusId=5
-      AND o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(date,@ToDate))
+    LEFT JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+      ON f.StaffId=st.StaffId AND f.StoreId=st.StoreId
     GROUP BY st.StaffId,st.FullName ORDER BY Revenue DESC,TotalOrders DESC;
 END;
 GO
@@ -860,12 +967,10 @@ CREATE OR ALTER PROCEDURE dbo.sp_Dashboard_Summary_Filtered
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT COUNT_BIG(o.OrderId) AS TotalOrders,
-           COALESCE(SUM(o.Total-o.ShippingFee-CASE WHEN r.OrderRefundId IS NULL THEN 0 ELSE o.Total-o.ShippingFee END),0) AS Revenue,
-           COUNT(DISTINCT o.CustomerId) AS TotalCustomers,
-           SUM(CASE WHEN o.CreatedAt>=CONVERT(date,GETDATE()) AND o.CreatedAt<DATEADD(day,1,CONVERT(date,GETDATE())) THEN 1 ELSE 0 END) AS TodayOrders
-    FROM dbo.Orders AS o INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=o.StoreId
-    LEFT JOIN dbo.OrderRefunds AS r ON r.OrderId=o.OrderId AND r.Status=3
-    WHERE o.OrderStatusId=5 AND o.CreatedAt>=@FromDate AND o.CreatedAt<DATEADD(day,1,CONVERT(date,@ToDate));
+    SELECT COALESCE(SUM(f.CountedOrder),0) AS TotalOrders,
+           COALESCE(SUM(f.NetSales),0) AS Revenue,
+           COALESCE(SUM(CASE WHEN CONVERT(date,f.CreatedAt)=CONVERT(date,@ToDate) THEN f.CountedOrder ELSE 0 END),0) AS TodayOrders
+    FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId;
 END;
 GO

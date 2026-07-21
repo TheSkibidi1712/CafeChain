@@ -24,7 +24,7 @@ public sealed class DashboardAnalyticsScriptTests
     [
         "sp_Revenue_By_Store", "sp_Revenue_Filtered", "sp_Inventory_Summary", "sp_Waste_Report",
         "sp_Cash_Flow_Today", "sp_Top_Selling_Drinks_Filtered", "sp_Top_Toppings_Filtered",
-        "sp_Top_Customers", "sp_Revenue_By_PaymentMethod_Filtered", "sp_Order_Status_Stats",
+        "sp_Revenue_By_PaymentMethod_Filtered", "sp_Order_Status_Stats",
         "sp_Revenue_By_Hour", "sp_Staff_Performance_Filtered", "sp_Dashboard_Summary_Filtered"
     ];
 
@@ -34,7 +34,8 @@ public sealed class DashboardAnalyticsScriptTests
         var sql = ReadScript();
         Assert.All(CanonicalProcedures.Concat(LegacyProcedures), name =>
             Assert.Contains($"PROCEDURE dbo.{name}", sql, StringComparison.OrdinalIgnoreCase));
-        Assert.Equal(46, Regex.Matches(sql, @"CREATE\s+OR\s+ALTER\s+PROCEDURE", RegexOptions.IgnoreCase).Count);
+        Assert.Equal(45, Regex.Matches(sql, @"CREATE\s+OR\s+ALTER\s+PROCEDURE", RegexOptions.IgnoreCase).Count);
+        Assert.Contains("DROP PROCEDURE IF EXISTS dbo.sp_Top_Customers", sql, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -45,10 +46,15 @@ public sealed class DashboardAnalyticsScriptTests
         Assert.DoesNotContain("NOLOCK", sql, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("sp_executesql", sql, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("AttendanceQuality", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("CashSessions", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("ActualCheckIn", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("PayrollHours", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("TotalCustomers", sql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("OrderStatusId=5", sql.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("ShippingFee", sql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("ufn_AnalyticsBucketStart", sql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("ufn_AnalyticsNextBucket", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ufn_AnalyticsOrderFacts", sql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("WHEN 'HOUR'", sql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("WHEN 'WEEK'", sql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("WHEN 'MONTH'", sql, StringComparison.OrdinalIgnoreCase);

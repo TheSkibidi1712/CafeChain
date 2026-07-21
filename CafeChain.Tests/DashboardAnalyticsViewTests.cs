@@ -30,6 +30,8 @@ public sealed class DashboardAnalyticsViewTests
         Assert.Contains("seriesBy: \"ingredientName\"", script);
         Assert.Contains("aggregate: \"count\"", script);
         Assert.Contains("stack: true", script);
+        Assert.Contains("Nhân sự & lịch dự kiến", view);
+        Assert.Contains("kế hoạch dự kiến, không phải dữ liệu chấm công", script);
         Assert.Contains("overflow-wrap: anywhere", stylesheet);
         Assert.Contains("word-break: break-word", stylesheet);
         Assert.Contains("white-space: normal", stylesheet);

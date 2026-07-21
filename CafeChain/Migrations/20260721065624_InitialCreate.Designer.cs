@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260721040634_InitialCreate")]
+    [Migration("20260721065624_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -27,202 +27,6 @@ namespace CafeChain.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.CashFlowDto", b =>
-                {
-                    b.Property<decimal>("CashIn")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("CashSessionId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("CloseTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("NonCashIn")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("OpenTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("StaffId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("StartCash")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalRevenue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.ToTable("CashFlowDto");
-                });
-
-            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.DashboardSummaryDto", b =>
-                {
-                    b.Property<decimal>("Revenue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TodayOrders")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TotalCustomers")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TotalOrders")
-                        .HasColumnType("int");
-
-                    b.ToTable("DashboardSummaryDto");
-                });
-
-            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.InventoryDto", b =>
-                {
-                    b.Property<decimal>("CurrentStock")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("IngredientId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TotalExport")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalImport")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalWaste")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.ToTable("InventoryDto");
-                });
-
-            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.PaymentMethodDto", b =>
-                {
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Revenue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TotalTransactions")
-                        .HasColumnType("int");
-
-                    b.ToTable("PaymentMethodDto");
-                });
-
-            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.RevenueByStoreDto", b =>
-                {
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Revenue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("StoreId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TotalOrders")
-                        .HasColumnType("int");
-
-                    b.ToTable("RevenueByStoreDto");
-                });
-
-            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.RevenueDto", b =>
-                {
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("Revenue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TotalOrders")
-                        .HasColumnType("int");
-
-                    b.ToTable("RevenueDto");
-                });
-
-            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.StaffPerformanceDto", b =>
-                {
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Revenue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("StaffId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TotalOrders")
-                        .HasColumnType("int");
-
-                    b.ToTable("StaffPerformanceDto");
-                });
-
-            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.TopDrinkDto", b =>
-                {
-                    b.Property<int>("DrinkId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("DrinkName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Revenue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TotalSold")
-                        .HasColumnType("int");
-
-                    b.ToTable("TopDrinkDto");
-                });
-
-            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.TopToppingDto", b =>
-                {
-                    b.Property<decimal>("Revenue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ToppingId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ToppingName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TotalUsed")
-                        .HasColumnType("int");
-
-                    b.ToTable("TopToppingDto");
-                });
-
-            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.WasteDto", b =>
-                {
-                    b.Property<int>("IngredientId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("IngredientName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("StoreId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("StoreName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TotalWasteQty")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalWasteValue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.ToTable("WasteDto");
-                });
 
             modelBuilder.Entity("CafeChain.Models.Customers.Account", b =>
                 {
@@ -10048,6 +9852,13 @@ namespace CafeChain.Migrations
                             Code = "ABSENT",
                             IsSystem = true,
                             Name = "Absent"
+                        },
+                        new
+                        {
+                            StaffShiftStatusId = 5,
+                            Code = "CANCELLED",
+                            IsSystem = true,
+                            Name = "Cancelled"
                         });
                 });
 

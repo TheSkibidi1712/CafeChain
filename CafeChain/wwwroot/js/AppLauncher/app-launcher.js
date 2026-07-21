@@ -54,7 +54,7 @@
         const newTab = window.open("about:blank", "_blank");
         if (newTab) newTab.document.title = "Đang khởi chạy CafeChain POS...";
 
-        showStatus("Đang kiểm tra CafeChain.PrintBridge...");
+        showStatus("Đang kiểm tra CafeChain.Frontend...");
         const pollTimer = window.setInterval(pollStatus, 700);
 
         try {

@@ -32,6 +32,7 @@ public sealed class AppLauncherServiceTests
         var pos = Assert.Single(result.Apps, x => x.Code == AppCode.Pos);
         Assert.True(pos.RequiresLaunch);
         Assert.Equal("#", pos.Route);
+        Assert.DoesNotContain("PrintBridge", pos.Description, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

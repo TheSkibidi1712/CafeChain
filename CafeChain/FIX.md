@@ -1,1170 +1,878 @@
-# YÊU CẦU REFACTOR SEED DATA, SUPPLIER CONFIGURATION VÀ APP LAUNCHER
+# YÊU CẦU REFACTOR APPLAUNCHER VÀ PHÂN TÍCH NGHIỆP VỤ QUẢN LÝ KHO
 
-Hãy đóng vai trò là **Senior .NET Developer, Database Engineer và Software Architect có 20 năm kinh nghiệm**, chuyên về:
+Hãy đóng vai một **Senior Software Architect và Business Analyst có kinh nghiệm thực tế với hệ thống POS, quản lý kho, mua hàng và chuỗi cửa hàng**.
 
-* ASP.NET Core MVC.
-* Entity Framework Core.
-* SQL Server.
-* Stored Procedure.
-* Layered Architecture.
-* Seed data và dữ liệu kiểm thử.
-* Hệ thống quản lý kho.
-* Tích hợp nhiều ứng dụng Frontend và Backend.
-* Thiết kế App Launcher cho hệ thống đa ứng dụng.
-
-Hãy đọc kỹ toàn bộ file được cung cấp trước khi chỉnh sửa.
-
-Không được tự suy đoán cấu trúc bảng, tên cột, khóa ngoại, enum, Stored Procedure, Model, Configuration hoặc đường dẫn dự án nếu chưa tìm thấy trong mã nguồn.
+Bạn hãy đọc và phân tích toàn bộ codebase hiện tại trước khi đề xuất hoặc chỉnh sửa. Mục tiêu là đảm bảo thiết kế mới phù hợp với những gì dự án đã triển khai, tránh xây dựng một luồng nghiệp vụ mới không tương thích với hệ thống hiện tại.
 
 ---
 
-# I. NGUYÊN TẮC THỰC HIỆN
+## I. NGUYÊN TẮC THỰC HIỆN
 
-## 1. Phân tích trước khi sửa
+1. Phải đọc và phân tích codebase trước khi chỉnh sửa.
+2. Ưu tiên nghiệp vụ và cấu trúc đang tồn tại trong dự án.
+3. Không tự ý xóa, đổi tên hoặc tạo mới model, enum, bảng, service, repository, controller hay DTO nếu chưa chứng minh được sự cần thiết.
+4. Không được tự suy diễn nghiệp vụ chỉ dựa trên mô tả bên dưới.
+5. Khi mô tả của tôi khác với code hiện tại:
 
-Trước khi viết seed hoặc sửa code, phải phân tích:
+   * Xác định rõ điểm khác nhau.
+   * Giải thích code hiện tại đang vận hành theo luồng nào.
+   * Đề xuất phương án thống nhất.
+   * Ưu tiên phương án ít ảnh hưởng đến dữ liệu và chức năng đã hoàn thành.
+6. Không được sửa code hàng loạt trước khi hoàn thành tài liệu phân tích.
+7. Những phần chưa đủ code hoặc thiếu dữ liệu phải được ghi rõ là chưa thể kết luận, không được tự bịa.
+8. Tiếp tục tuân thủ kiến trúc của dự án:
 
-1. Các bảng trong database.
-2. Các Stored Procedure liên quan.
-3. Quan hệ khóa ngoại giữa các bảng.
-4. Các file seed hiện tại.
-5. Dữ liệu nào đã tồn tại.
-6. Dữ liệu nào còn thiếu để test nghiệp vụ.
-7. Các Configuration của Entity Framework Core.
-8. Workflow tạo và xác nhận Phiếu Kho.
-9. Cơ chế App Launcher hiện tại.
-10. Cách `CafeChain.Bridge` và `CafeChain.Frontend` đang được khởi chạy.
-
-Không được viết seed ngay khi chưa hoàn tất bước phân tích.
-
-## 2. Không bịa dữ liệu kỹ thuật
-
-Không được tự ý bịa:
-
-* Tên bảng.
-* Tên cột.
-* Tên Stored Procedure.
-* Tên Model.
-* Tên DbSet.
-* Tên Configuration.
-* Tên Repository hoặc Service.
-* Enum value.
-* Permission code.
-* Role.
-* Supplier type.
-* Unit.
-* Store.
-* Ingredient.
-* Giá trị khóa ngoại.
-* Đường dẫn project.
-* Lệnh chạy project.
-
-Nếu thiếu file cần thiết, phải liệt kê rõ file còn thiếu và chỉ bắt đầu thiết kế seed sau khi đã có đủ dữ liệu.
-
-## 3. Giữ nguyên kiến trúc dự án
-
-Không được:
-
-* Đưa `AppDbContext` trực tiếp vào Controller hoặc Service.
-* Thay đổi kiến trúc Layered Architecture hiện tại.
-* Tạo thêm Service hoặc Repository không cần thiết.
-* Tự ý tạo migration.
-* Xóa dữ liệu seed cũ khi chưa xác định rõ ảnh hưởng.
-* Thay đổi Stored Procedure nếu yêu cầu chỉ là tạo dữ liệu test.
-* Hard-code đường dẫn máy cá nhân không có trong cấu hình.
+   * Controller chỉ gọi Service.
+   * Service sử dụng Repository, DTO và ViewModel.
+   * Không sử dụng trực tiếp `AppDbContext` trong Controller hoặc Service.
+   * Repository chịu trách nhiệm truy vấn dữ liệu.
+   * Service quyết định thời điểm transaction và `SaveChangesAsync`.
+9. Không làm lại toàn bộ hệ thống kho nếu chức năng hiện tại đã có thể tái sử dụng hoặc mở rộng.
 
 ---
 
-# II. THIẾT KẾ SEED DATA DỰA TRÊN STORED PROCEDURE
-
-## 1. Mục tiêu
-
-Dựa vào các Stored Procedure trong file SQL được cung cấp, hãy xác định đầy đủ những bảng và dữ liệu cần có để có thể test được toàn bộ nghiệp vụ mà các Stored Procedure đang xử lý.
-
-Seed data phải được thiết kế dựa trên:
-
-* Cấu trúc bảng thật.
-* Tham số đầu vào của Stored Procedure.
-* Các câu `JOIN`.
-* Các điều kiện `WHERE`.
-* Các câu `INSERT`, `UPDATE`, `DELETE`.
-* Các bảng tạm.
-* Các điều kiện kiểm tra trạng thái.
-* Các ràng buộc khóa ngoại.
-* Các enum hoặc code được Stored Procedure sử dụng.
-* Dữ liệu seed hiện có trong dự án.
-
-## 2. File seed làm cơ sở
-
-Tôi sẽ cung cấp các file seed hiện tại sau.
-
-Hãy sử dụng các file đó để:
-
-* Tiếp tục đúng ID hiện tại.
-* Không tạo dữ liệu trùng.
-* Không phá vỡ quan hệ khóa ngoại.
-* Không thay đổi các dữ liệu demo đang hoạt động.
-* Đồng bộ tên, mã, trạng thái và ngày tạo.
-* Giữ cùng phong cách trình bày SQL của các file seed hiện tại.
-
-Không bắt đầu tạo seed hoàn chỉnh cho đến khi đã đọc đủ:
-
-* File SQL chứa Stored Procedure.
-* File seed hiện tại.
-* Model hoặc script tạo bảng liên quan.
-* Các enum hoặc constants có liên quan.
-
-## 3. Phân tích từng Stored Procedure
-
-Với mỗi Stored Procedure, phải lập bảng phân tích theo cấu trúc:
-
-| Stored Procedure | Mục đích | Bảng đọc | Bảng ghi | Điều kiện dữ liệu | Seed cần thiết |
-| ---------------- | -------- | -------- | -------- | ----------------- | -------------- |
-
-Phải chỉ rõ:
-
-* Stored Procedure cần Store nào.
-* Cần Staff nào.
-* Cần Supplier nào.
-* Cần Ingredient nào.
-* Cần Unit nào.
-* Cần tồn kho ban đầu hay không.
-* Cần giá nhà cung cấp hay không.
-* Cần phiếu nháp hay phiếu đã xác nhận.
-* Cần công nợ hay không.
-* Cần lịch sử giá hay không.
-* Cần Cost Layer hay không.
-* Cần Transaction hay không.
-* Cần Snapshot hay không.
-* Cần Permission hoặc Role hay không.
-
-## 4. Phạm vi seed dữ liệu test
-
-Hãy xác định và tạo seed đầy đủ cho các nhóm bảng thực tế cần thiết, có thể bao gồm nhưng không giới hạn:
-
-### Nhóm cửa hàng và nhân sự
-
-* Stores.
-* Staffs.
-* Accounts.
-* Roles.
-* AccountRoles.
-* StaffScopes.
-* Permissions.
-* RolePermissions.
-
-Chỉ tạo khi Stored Procedure hoặc nghiệp vụ kiểm thử thực sự cần.
-
-### Nhóm nguyên liệu và đơn vị
-
-* Ingredients.
-* Units.
-* UnitConversions.
-* IngredientCategories.
-* IngredientUnits.
-* StoreIngredients hoặc bảng tồn kho tương đương.
-
-### Nhóm nhà cung cấp
-
-* Suppliers.
-* SupplierStores.
-* SupplierIngredients.
-* IngredientSuppliers.
-* IngredientSupplierPriceHistories.
-* SupplierConfigurations.
-* SupplierPaymentTerms.
-* Các bảng liên kết thực tế có trong hệ thống.
-
-### Nhóm kho
-
-* InventoryDocuments.
-* InventoryDocumentDetails.
-* InventoryDocumentSnapshots.
-* InventoryDocumentSnapshotDetails.
-* InventoryTransactions.
-* InventoryCostLayers.
-* InventoryCostAllocations.
-* InventoryBalances.
-* InventoryTransfers.
-* InventoryTransferDetails.
-* Debts hoặc SupplierDebts.
-* RequestDeduplications.
-
-Chỉ sử dụng đúng tên bảng thật trong dự án.
-
-## 5. Kịch bản dữ liệu kiểm thử bắt buộc
-
-Seed phải hỗ trợ tối thiểu các kịch bản sau, nếu hệ thống có nghiệp vụ tương ứng:
-
-### Kịch bản 1: Nhập kho từ nhà cung cấp
-
-* Có nhà cung cấp đang hoạt động.
-* Có nguyên liệu được nhà cung cấp cung cấp.
-* Có giá mua hiện tại.
-* Có đơn vị đóng gói.
-* Có quy đổi sang đơn vị cơ sở.
-* Có cửa hàng nhận hàng.
-* Có nhân viên lập phiếu.
-* Có đủ Configuration để tạo phiếu.
-* Có thể tạo nháp.
-* Có thể xác nhận phiếu.
-* Sau xác nhận, tồn kho được tăng đúng.
-
-### Kịch bản 2: Xuất kho bán hàng hoặc sử dụng nội bộ hợp lệ
-
-Chỉ tạo nếu nghiệp vụ này còn tồn tại trong hệ thống.
-
-* Có tồn kho ban đầu.
-* Có nguyên liệu đủ số lượng.
-* Có nhân viên được phép xác nhận.
-* Sau xác nhận, tồn kho giảm đúng.
-
-### Kịch bản 3: Xuất kho dẫn đến âm kho
-
-* Có nguyên liệu không đủ tồn.
-* Configuration cho phép âm kho nếu hệ thống hỗ trợ.
-* Có người dùng có quyền phê duyệt.
-* Có cảnh báo tồn kho âm.
-* Có thể kiểm tra workflow từ chối hoặc phê duyệt.
-
-### Kịch bản 4: Chuyển kho
-
-* Có Store nguồn.
-* Có Store đích.
-* Có tồn kho tại Store nguồn.
-* Có nguyên liệu chuyển.
-* Có phiếu chuyển kho.
-* Sau xác nhận, kho nguồn giảm và kho đích tăng.
-
-### Kịch bản 5: Giá nhà cung cấp
-
-* Có ít nhất một lịch sử giá cũ.
-* Có một giá hiện tại.
-* Chỉ có một bản ghi `IsCurrent = 1` cho mỗi quan hệ nhà cung cấp – nguyên liệu.
-* Ngày hiệu lực phải hợp lý.
-* Giá và đơn vị đóng gói phải phù hợp.
-
-### Kịch bản 6: Công nợ nhà cung cấp
-
-Nếu Stored Procedure có xử lý công nợ:
-
-* Có hình thức thanh toán ngay.
-* Có hình thức thanh toán sau.
-* Có hạn thanh toán.
-* Có phiếu nhập phát sinh công nợ.
-* Có dữ liệu để kiểm tra thanh toán một phần hoặc toàn bộ.
-
-## 6. Quy tắc ID
-
-* Tiếp tục từ ID lớn nhất trong seed hiện tại.
-* Không reset ID về 1 nếu bảng đã có seed.
-* Không trùng khóa chính.
-* Không trùng business code.
-* Không hard-code ID sai quan hệ.
-* Phải tạo bảng mapping ID nếu dữ liệu phức tạp.
-* Kiểm tra toàn bộ khóa ngoại trước khi xuất kết quả.
-
-## 7. Quy tắc ngày tháng
-
-Dữ liệu seed phải dùng ngày cố định để có thể test lặp lại.
-
-Không sử dụng:
-
-```sql
-GETDATE()
-```
-
-trừ khi Stored Procedure bắt buộc phải kiểm tra thời gian hiện tại và có giải thích rõ.
-
-Ưu tiên các ngày cố định, ví dụ:
-
-```sql
-'2026-01-01'
-'2026-01-15'
-'2026-02-01'
-```
-
-Ngày phải bảo đảm:
-
-* Giá cũ có ngày hiệu lực trước giá hiện tại.
-* Phiếu đã xác nhận có `ConfirmedAt`.
-* Phiếu nháp không có `ConfirmedAt`.
-* Ngày hết hạn phải sau ngày tạo.
-* Công nợ phải có hạn thanh toán hợp lý.
-
-## 8. Quy tắc Unicode
-
-Mọi chuỗi tiếng Việt trong SQL Server phải sử dụng tiền tố `N`.
-
-Ví dụ:
-
-```sql
-N'Nhà cung cấp nguyên liệu'
-N'Giá hiện tại'
-N'Phiếu nhập kho kiểm thử'
-```
-
-Không được tạo chuỗi bị lỗi encoding như:
-
-```text
-Giá hi?n t?i
-Nhà cung c?p
-```
-
-## 9. Quy tắc `IDENTITY_INSERT`
-
-Với bảng có cột Identity và cần chỉ định ID:
-
-```sql
-SET IDENTITY_INSERT TableName ON;
-GO
-
-INSERT INTO TableName (...)
-VALUES (...);
-GO
-
-SET IDENTITY_INSERT TableName OFF;
-GO
-```
-
-Phải bảo đảm:
-
-* Mỗi thời điểm chỉ có một bảng bật `IDENTITY_INSERT`.
-* Luôn tắt sau khi insert.
-* Không thiếu cột bắt buộc.
-* Số lượng cột phải khớp số lượng value.
-
-## 10. Thứ tự chạy seed
-
-Seed phải được sắp xếp theo thứ tự phụ thuộc khóa ngoại.
-
-Ví dụ:
-
-```text
-Configuration
-→ Stores
-→ Roles
-→ Accounts
-→ Staffs
-→ Suppliers
-→ Units
-→ Ingredients
-→ SupplierIngredients
-→ SupplierPriceHistories
-→ InventoryDocuments
-→ InventoryDocumentDetails
-→ InventoryTransactions
-→ InventoryCostLayers
-```
-
-Thứ tự thực tế phải dựa trên database hiện tại.
-
-## 11. Khả năng chạy lại seed
-
-Ưu tiên seed có thể chạy lại mà không lỗi.
-
-Có thể sử dụng:
-
-```sql
-IF NOT EXISTS (...)
-BEGIN
-    INSERT ...
-END
-```
-
-Nếu file seed hiện tại đang dùng seed một lần với `IDENTITY_INSERT`, phải giữ đồng nhất phong cách nhưng cần cảnh báo rõ rằng script không idempotent.
-
-Không được vừa xóa toàn bộ bảng vừa insert lại, trừ khi đó là file reset database riêng.
-
----
-
-# III. SỬA CAFECHAIN_STORE1_COMPLETE_DEMO_MENU_SEED
-
-## 1. File cơ sở
-
-Hãy sử dụng file:
-
-```text
-CafeChain_Store1_Complete_Demo_Menu_Seed
-```
-
-làm nguồn dữ liệu chính cho Store 1.
-
-Phải giữ nguyên các dữ liệu menu đang hoạt động, trừ khi dữ liệu đó gây lỗi khóa ngoại hoặc sai nghiệp vụ.
-
-## 2. Mục tiêu
-
-Sửa và bổ sung Configuration của nhà cung cấp để có thể test đầy đủ nghiệp vụ Phiếu Kho, đặc biệt là:
-
-* Tạo phiếu nhập từ nhà cung cấp.
-* Chọn nhà cung cấp.
-* Lấy danh sách nguyên liệu theo nhà cung cấp.
-* Lấy giá hiện tại.
-* Lấy đơn vị đóng gói.
-* Quy đổi về đơn vị cơ sở.
-* Tính thành tiền.
-* Tính VAT nếu hệ thống hỗ trợ.
-* Tạo phiếu nháp.
-* Xác nhận phiếu.
-* Tăng tồn kho.
-* Phát sinh công nợ nếu thanh toán sau.
-* Kiểm tra lịch sử giá.
-
-## 3. Phân tích Configuration của nhà cung cấp
-
-Hãy kiểm tra các EntityTypeConfiguration, Model hoặc seed liên quan đến:
-
-* Supplier.
-* SupplierStore.
-* SupplierIngredient.
-* IngredientSupplier.
-* IngredientSupplierPriceHistory.
-* SupplierConfiguration.
-* PaymentTerm.
-* PackageUnit.
-* BaseUnit.
-* MinimumOrderQuantity.
-* LeadTime.
-* TaxCode.
-* VAT.
-* Active.
-* IsPreferred.
-* IsCurrent.
-
-Chỉ sử dụng các field thực sự tồn tại.
-
-## 4. Dữ liệu nhà cung cấp cần có
-
-Tạo đủ dữ liệu để Store 1 có thể test.
-
-Tối thiểu nên có:
-
-### Nhà cung cấp 1: Nhà cung cấp tổng hợp
-
-* Cung cấp nhiều nguyên liệu.
-* Có giá mua hợp lệ.
-* Có đơn vị đóng gói.
-* Có thanh toán sau.
-* Có hạn thanh toán.
-* Đang hoạt động.
-
-### Nhà cung cấp 2: Nhà cung cấp nguyên liệu tươi
-
-* Cung cấp trái cây, sữa hoặc nguyên liệu tươi.
-* Giá và đơn vị đóng gói khác nhà cung cấp 1.
-* Có thể thanh toán ngay.
-* Đang hoạt động.
-
-### Nhà cung cấp 3: Nhà cung cấp không hoạt động
-
-* Có dữ liệu liên kết để test.
-* `Active = 0`.
-* Không được hiển thị trong combobox tạo phiếu mới nếu nghiệp vụ quy định như vậy.
-
-Không bắt buộc đúng ba nhà cung cấp nếu seed hiện tại đã có cấu trúc khác. Hãy điều chỉnh theo dữ liệu thực tế.
-
-## 5. Cấu hình quan hệ nhà cung cấp – nguyên liệu
-
-Mỗi nguyên liệu dùng để test nhập kho phải có:
-
-* Nhà cung cấp tương ứng.
-* Giá mua hiện tại.
-* PackageQuantity.
-* PackageUnitId.
-* EffectiveDate.
-* IsCurrent.
-* Active nếu có.
-* MinimumOrderQuantity nếu có.
-* SupplierCode hoặc IngredientCode đúng dữ liệu hiện tại.
-
-Ví dụ nghiệp vụ:
-
-```text
-Nhà cung cấp bán 1 thùng sữa gồm 12 hộp.
-Mỗi hộp 1 lít.
-Đơn vị cơ sở của tồn kho là ml.
-Khi nhập 2 thùng, hệ thống phải quy đổi đúng tổng số ml.
-```
-
-Không hard-code ví dụ này nếu Model không hỗ trợ nhiều cấp đóng gói.
-
-## 6. Lịch sử giá
-
-Với một số nguyên liệu, tạo:
-
-* Một giá cũ có `IsCurrent = 0`.
-* Một giá hiện tại có `IsCurrent = 1`.
-* Ngày giá hiện tại sau ngày giá cũ.
-* Không có hai bản ghi hiện tại cho cùng một nhà cung cấp – nguyên liệu.
-
-## 7. Cấu hình cho Phiếu Kho
-
-Hãy kiểm tra các Configuration hoặc Settings liên quan đến:
-
-* Cho phép kho âm.
-* Phê duyệt kho âm.
-* Tạo công nợ.
-* VAT mặc định.
-* Số ngày thanh toán.
-* Quy tắc xác nhận phiếu.
-* Quy tắc FIFO.
-* Quy tắc giá vốn.
-* Request deduplication.
-* Store mặc định.
-* Nhà cung cấp mặc định.
-* Trạng thái phiếu.
-* Quyền người xác nhận.
-
-Bổ sung seed đúng nơi nếu các cấu hình này được lưu trong database.
-
-Nếu Configuration là `appsettings.json`, `Options` hoặc code configuration thì không đưa vào SQL seed. Khi đó phải chỉnh đúng file cấu hình tương ứng và giải thích rõ.
-
-## 8. Đảm bảo dữ liệu menu và dữ liệu kho đồng bộ
-
-Các Ingredient đang được dùng trong Recipe của menu Store 1 cần có dữ liệu kho và dữ liệu nhà cung cấp phù hợp để test.
-
-Phải kiểm tra:
-
-```text
-Drink
-→ Recipe
-→ RecipeIngredient
-→ Ingredient
-→ Unit
-→ SupplierIngredient
-→ SupplierPrice
-→ Inventory
-```
-
-Không tạo menu dùng Ingredient không thể nhập kho.
-
-Không tạo SupplierIngredient tham chiếu Ingredient không tồn tại.
-
----
-
-# IV. KIỂM TRA WORKFLOW PHIẾU KHO
-
-Sau khi bổ sung seed, phải kiểm tra theo workflow:
-
-```text
-Mở trang tạo Phiếu Kho
-→ Chọn loại phiếu
-→ Chọn Store
-→ Chọn nhà cung cấp
-→ Load nguyên liệu của nhà cung cấp
-→ Chọn nguyên liệu
-→ Load giá và đơn vị đóng gói
-→ Nhập số lượng
-→ Tính tổng tiền
-→ Lưu nháp
-→ Xem chi tiết
-→ Xác nhận
-→ Ghi InventoryTransaction
-→ Cập nhật tồn kho
-→ Tạo Cost Layer
-→ Tạo công nợ nếu cần
-```
-
-Phải đối chiếu từng bước với:
-
-* Controller.
-* Service.
-* Repository.
-* DTO.
-* ViewModel.
-* JavaScript.
-* Stored Procedure.
-* Database Configuration.
-
-Nếu một bước không dùng Stored Procedure mà dùng EF Core, phải ghi rõ.
-
-## Các test case tối thiểu
-
-1. Tạo phiếu nhập với nhà cung cấp hợp lệ.
-2. Nhà cung cấp không hoạt động không xuất hiện.
-3. Chọn nhà cung cấp có danh sách nguyên liệu.
-4. Chọn nhà cung cấp không có nguyên liệu.
-5. Lấy đúng giá hiện tại.
-6. Không lấy giá cũ làm giá hiện tại.
-7. Chọn đúng PackageUnit.
-8. Quy đổi đúng BaseUnit.
-9. Số lượng bằng 0 bị từ chối.
-10. Số lượng âm bị từ chối khi nhập từ nhà cung cấp.
-11. Lưu nháp thành công.
-12. Xác nhận phiếu thành công.
-13. Tồn kho tăng đúng.
-14. Cost Layer được tạo đúng.
-15. Transaction được tạo đúng.
-16. Công nợ được tạo đúng với nhà cung cấp thanh toán sau.
-17. Không tạo công nợ với thanh toán ngay.
-18. Không tạo hai phiếu khi double-click.
-19. Xác nhận lại phiếu đã xác nhận phải bị từ chối.
-20. Không cho xác nhận khi thiếu giá hoặc đơn vị quy đổi.
-
----
-
-# V. SỬA APP LAUNCHER CHO POS MỚI
+# II. REFACTOR APPLAUNCHER
 
 ## 1. Vấn đề hiện tại
 
-Trong App Launcher, khi người dùng bấm vào ứng dụng `POS`, hệ thống vẫn đang sử dụng đường dẫn hoặc cơ chế khởi chạy POS cũ.
+Khi người dùng mở ứng dụng POS thông qua `AppLauncher`, hệ thống đang tự động khởi động `PrintBridge`.
 
-Điều này không còn phù hợp với kiến trúc hiện tại.
+Việc này được thiết kế do nhầm lẫn. `PrintBridge` hiện chỉ dùng để giả lập hoặc hỗ trợ thử nghiệm việc in tem, không phải thành phần bắt buộc để POS có thể khởi động và hoạt động.
 
-POS mới đang sử dụng:
+## 2. Yêu cầu chỉnh sửa
 
-* `CafeChain.Bridge`.
-* `CafeChain.Frontend`.
+Hãy tìm toàn bộ luồng khởi động POS trong `AppLauncher`, bao gồm:
 
-URL của POS hiện tại:
+* Nơi gọi hoặc chạy `PrintBridge`.
+* Process được khởi tạo.
+* Script hoặc file thực thi liên quan.
+* Cơ chế kiểm tra trạng thái `PrintBridge`.
+* Logic chờ `PrintBridge` sẵn sàng.
+* Logic tự động khởi động lại.
+* Logic đóng `PrintBridge` khi tắt POS.
+* Các cấu hình hoặc biến môi trường liên quan.
 
-```text
-http://127.0.0.1:5173/order
-```
+Sau đó thực hiện:
 
-## 2. Mục tiêu
+1. Loại bỏ việc tự động khởi động `PrintBridge` khi mở POS.
+2. POS phải có thể khởi động độc lập mà không phụ thuộc vào `PrintBridge`.
+3. Không được làm ảnh hưởng đến các chức năng khác của `AppLauncher`.
+4. Không xóa toàn bộ source code của `PrintBridge` nếu nó vẫn được sử dụng để kiểm thử in tem.
+5. Nếu cần giữ lại chức năng chạy `PrintBridge`, hãy chuyển nó thành một chức năng thủ công hoặc cấu hình tùy chọn, ví dụ:
 
-Khi người dùng bấm `POS` trong App Launcher:
+   * Nút “Khởi động PrintBridge”.
+   * Cấu hình `EnablePrintBridge`.
+   * Chỉ chạy trong môi trường development hoặc testing.
+6. Kiểm tra các trường hợp:
 
-1. Kiểm tra hoặc khởi chạy `CafeChain.Bridge`.
-2. Kiểm tra hoặc khởi chạy `CafeChain.Frontend`.
-3. Chờ Frontend sẵn sàng theo cơ chế hiện tại của hệ thống.
-4. Mở trình duyệt tại:
+   * Mở POS khi `PrintBridge` chưa chạy.
+   * Mở POS khi `PrintBridge` đang chạy.
+   * Tắt POS.
+   * Khởi động lại POS.
+   * `PrintBridge` bị lỗi hoặc không tồn tại.
+7. Không để lỗi `PrintBridge` làm POS không thể khởi động.
 
-```text
-http://127.0.0.1:5173/order
-```
+## 3. Kết quả cần báo cáo
 
-Không được tiếp tục sử dụng URL POS cũ.
+Liệt kê rõ:
 
-## 3. Phân tích App Launcher hiện tại
-
-Hãy tìm và phân tích:
-
-* View chứa nút POS.
-* JavaScript xử lý click POS.
-* Controller hoặc endpoint launcher.
-* Service khởi chạy ứng dụng.
-* Configuration chứa URL.
-* Process start logic.
-* Health-check logic.
-* Port configuration.
-* Các app path cũ.
-* Cách mở trình duyệt.
-* Cách kiểm tra process đã chạy.
-* Cơ chế log lỗi.
-* Cơ chế chống mở nhiều process.
-
-Phải chỉ rõ đường dẫn cũ đang được lấy từ đâu:
-
-* Hard-code trong View.
-* Hard-code trong JavaScript.
-* Controller.
-* Service.
-* `appsettings.json`.
-* Environment variable.
-* Database setting.
-* File JSON riêng của Launcher.
-
-## 4. Không hard-code URL rải rác
-
-Không được ghi:
-
-```csharp
-"http://127.0.0.1:5173/order"
-```
-
-ở nhiều file.
-
-Phải sử dụng một nguồn cấu hình tập trung theo cấu trúc dự án hiện tại.
-
-Ví dụ nếu hệ thống đang dùng `appsettings.json`:
-
-```json
-{
-  "AppLauncher": {
-    "Pos": {
-      "BridgeProject": "CafeChain.Bridge",
-      "FrontendProject": "CafeChain.Frontend",
-      "Url": "http://127.0.0.1:5173/order",
-      "HealthCheckUrl": "http://127.0.0.1:5173"
-    }
-  }
-}
-```
-
-Đây chỉ là ví dụ. Không tự thêm đúng cấu trúc này nếu dự án đã có Configuration khác.
-
-## 5. Quy tắc khởi chạy Bridge
-
-Trước khi khởi chạy, phải kiểm tra:
-
-* Bridge đã chạy chưa.
-* Port của Bridge có đang lắng nghe không.
-* Có process cùng tên đang chạy không.
-* Đường dẫn project hoặc executable có tồn tại không.
-* Có cần `dotnet run`, chạy file `.exe` hoặc command riêng không.
-
-Không mở nhiều instance của Bridge.
-
-Nếu Bridge đã chạy, bỏ qua bước khởi động lại.
-
-Nếu Bridge khởi động lỗi:
-
-* Không mở POS như thể thành công.
-* Hiển thị lỗi rõ ràng.
-* Ghi log nguyên nhân.
-* Không để loading vô hạn.
-
-## 6. Quy tắc khởi chạy Frontend
-
-Trước khi khởi chạy, phải kiểm tra:
-
-* Frontend đã chạy tại port `5173` chưa.
-* Có cần chạy `npm run dev`, `pnpm dev`, `yarn dev` hoặc executable khác không.
-* Phải dựa vào `package.json` và cấu trúc thực tế.
-* Không tự đoán package manager.
-* Không chạy thêm Frontend nếu port đã sẵn sàng.
-* Không mở nhiều terminal hoặc process trùng.
-
-Nếu Frontend đã chạy, mở trực tiếp URL POS.
-
-## 7. Health check
-
-Không dùng `Thread.Sleep` cố định làm giải pháp chính.
-
-Nên dùng cơ chế kiểm tra:
-
-* HTTP request đến Frontend.
-* TCP port check.
-* Timeout có giới hạn.
-* Retry với khoảng nghỉ ngắn.
-
-Ví dụ workflow:
-
-```text
-Kiểm tra Bridge
-→ Nếu chưa chạy thì khởi chạy Bridge
-→ Kiểm tra Frontend
-→ Nếu chưa chạy thì khởi chạy Frontend
-→ Health check Frontend
-→ Khi Frontend sẵn sàng thì mở /order
-```
-
-Phải có timeout.
-
-Không chờ vô hạn.
-
-## 8. Mở trình duyệt
-
-Khi Frontend đã sẵn sàng, mở:
-
-```text
-http://127.0.0.1:5173/order
-```
-
-Nếu hệ thống dùng C#:
-
-* Dùng cơ chế mở URL tương thích Windows hiện tại.
-* Không khóa request trong thời gian dài.
-* Không để process của Launcher bị treo.
-
-Nếu App Launcher chạy trong trình duyệt và chỉ cần điều hướng:
-
-* Có thể dùng `window.open`.
-* Nhưng vẫn phải bảo đảm Bridge và Frontend đã sẵn sàng trước.
-
-## 9. Chống bấm nhiều lần
-
-Khi người dùng bấm POS:
-
-* Disable nút tạm thời.
-* Hiển thị trạng thái đang khởi chạy.
-* Không gửi nhiều request launcher cùng lúc.
-* Không tạo nhiều process.
-* Enable lại khi thành công hoặc thất bại.
-* Nếu POS đã chạy, mở trực tiếp.
-
-## 10. Thông báo trạng thái
-
-Giao diện nên hiển thị các trạng thái rõ ràng:
-
-```text
-Đang kiểm tra CafeChain.Bridge...
-Đang khởi chạy CafeChain.Bridge...
-Đang kiểm tra CafeChain.Frontend...
-Đang khởi chạy CafeChain.Frontend...
-POS đã sẵn sàng.
-Không thể khởi chạy POS.
-```
-
-Không hiển thị lỗi chung chung như:
-
-```text
-Có lỗi xảy ra.
-```
-
-## 11. Bảo mật
-
-Không cho phép client truyền tùy ý:
-
-* Đường dẫn executable.
-* Tên process.
-* Command.
-* Working directory.
-* URL cần mở.
-
-Các giá trị phải lấy từ Configuration đáng tin cậy.
-
-Không ghép trực tiếp dữ liệu request vào command line.
+* File nào đã phân tích.
+* File nào cần chỉnh sửa.
+* Method hoặc đoạn logic nào đang tự khởi động `PrintBridge`.
+* Cách xử lý mới.
+* Ảnh hưởng của thay đổi.
+* Các trường hợp kiểm thử cần thực hiện.
 
 ---
 
-# VI. CÁC TRƯỜNG HỢP APP LAUNCHER CẦN KIỂM THỬ
+# III. PHÂN TÍCH NGHIỆP VỤ MUA HÀNG VÀ NHẬP KHO
 
-1. Bridge và Frontend đều chưa chạy.
-2. Bridge đã chạy, Frontend chưa chạy.
-3. Frontend đã chạy, Bridge chưa chạy.
-4. Cả hai đều đã chạy.
-5. Frontend chạy đúng port 5173.
-6. Port 5173 bị ứng dụng khác chiếm.
-7. Không tìm thấy project Bridge.
-8. Không tìm thấy project Frontend.
-9. Thiếu Node.js hoặc package manager.
-10. Bridge khởi động thất bại.
-11. Frontend khởi động thất bại.
-12. Frontend khởi động chậm.
-13. Health check timeout.
-14. Người dùng bấm POS nhiều lần.
-15. URL mở đúng `/order`.
-16. Không còn sử dụng URL POS cũ.
-17. Launcher không mở nhiều process trùng.
-18. Lỗi được ghi log đầy đủ.
-19. Nút POS được mở khóa lại khi lỗi.
-20. Sau khi POS đã chạy, lần bấm tiếp theo mở nhanh mà không khởi động lại.
+## 1. Bối cảnh nghiệp vụ mong muốn
+
+Hệ thống đang được định hướng theo luồng:
+
+```text
+Chi nhánh tạo PA
+        ↓
+Kho tổng tiếp nhận PA
+        ↓
+Tách hoặc chuyển thành các PO con
+        ↓
+Phát hiện các PO có thể gộp
+        ↓
+Gộp thành PO tổng hoặc PO mua hàng phù hợp
+        ↓
+Gửi đơn cho nhà cung cấp
+        ↓
+Nhận hàng
+        ↓
+Tạo phiếu nhập kho
+        ↓
+Cập nhật tồn kho, công nợ và giá vốn
+```
+
+Trong đó:
+
+* `PA` là yêu cầu mua hàng hoặc yêu cầu cung ứng từ chi nhánh.
+* `PO` là đơn đặt hàng gửi cho nhà cung cấp.
+* Kho tổng tiếp nhận các PA từ nhiều chi nhánh.
+* Kho tổng có thể tách một PA thành nhiều PO nếu phải mua từ nhiều nhà cung cấp.
+* Nhiều PO con có thể được gộp nếu đáp ứng điều kiện phù hợp.
+* Phiếu nhập kho phải được tạo dựa trên hàng thực tế nhận từ PO, không chỉ dựa trên số lượng đặt mua.
+
+Tuy nhiên, phần nghiệp vụ nhập hàng có thể đã được hai developer triển khai theo hai hướng khác nhau.
+
+Vì vậy, bạn phải ưu tiên phân tích nghiệp vụ thực tế đang tồn tại trong codebase trước khi áp dụng luồng trên.
 
 ---
 
-# VII. FILE TÔI SẼ CUNG CẤP
+## 2. Phạm vi code cần phân tích
 
-Tôi sẽ gửi các file cần thiết, có thể bao gồm:
+Hãy tìm và phân tích toàn bộ thành phần liên quan đến:
 
-## Database và seed
-
-* File SQL chứa Stored Procedure.
-* Script tạo bảng hoặc database schema.
-* `CafeChain_Store1_Complete_Demo_Menu_Seed`.
-* Các file seed Supplier.
-* Các file seed Ingredient.
-* Các file seed Unit.
-* Các file seed Inventory.
-* Các file Configuration liên quan.
-* Enum và Constants.
-
-## Phiếu Kho
-
-* Inventory Model.
-* DTO.
-* ViewModel.
+* Purchase Request.
+* Purchase Approval.
+* Purchase Order.
+* Purchase Order Detail.
+* Supplier.
+* Ingredient Supplier.
+* Supplier Price.
+* Inventory Document.
+* Inventory Document Detail.
+* Inventory Transaction.
+* Inventory Transfer.
+* Inventory Cost Layer.
+* Inventory Cost Allocation.
+* Stock.
+* Warehouse.
+* Store.
+* Goods Receipt.
+* Goods Issue.
+* Stock Adjustment.
+* Stocktake hoặc Inventory Count.
+* Cancellation hoặc Void.
+* Debt hoặc Supplier Debt.
+* Snapshot.
+* Request Deduplication.
+* Enum trạng thái và loại chứng từ.
 * Controller.
 * Service.
 * Repository.
-* JavaScript.
+* DTO.
+* ViewModel.
 * View.
-* Stored Procedure liên quan.
-
-## App Launcher
-
-* View App Launcher.
-* JavaScript App Launcher.
-* Controller.
-* Service.
+* JavaScript.
+* Seed data.
 * Configuration.
-* `appsettings.json`.
-* Project structure của `CafeChain.Bridge`.
-* Project structure của `CafeChain.Frontend`.
-* `package.json`.
-* Các script chạy ứng dụng hiện tại.
+* Migration.
+* Stored procedure nếu có.
 
-Hãy chỉ sử dụng các file tôi thực sự cung cấp.
+Không chỉ tìm theo đúng tên tiếng Anh nêu trên. Hãy kiểm tra cả những class hoặc chức năng có tên khác nhưng cùng mục đích nghiệp vụ.
 
 ---
 
-# VIII. TRÌNH TỰ THỰC HIỆN BẮT BUỘC
+# IV. PHÂN TÍCH LUỒNG PA → PO → NHẬP KHO
 
-## Giai đoạn 1: Phân tích
+## 1. PA tại chi nhánh
 
-Trình bày:
+Hãy xác định:
 
-1. Danh sách Stored Procedure.
-2. Mục đích từng Stored Procedure.
-3. Danh sách bảng liên quan.
-4. Quan hệ khóa ngoại.
-5. Dữ liệu seed hiện có.
-6. Dữ liệu còn thiếu.
-7. Các lỗi hoặc dữ liệu không nhất quán.
-8. Configuration Supplier hiện tại.
-9. Workflow Phiếu Kho hiện tại.
-10. App Launcher đang dùng đường dẫn POS cũ ở đâu.
-11. Cách Bridge và Frontend đang được chạy.
+* Ai được tạo PA.
+* PA được tạo tại chi nhánh hay kho tổng.
+* PA có những trường dữ liệu nào.
+* PA yêu cầu nguyên liệu theo đơn vị nào.
+* PA có liên kết với cửa hàng, kho, nhân viên và thời gian cần hàng hay không.
+* PA có trạng thái nháp, gửi duyệt, đã duyệt, từ chối, xử lý một phần và hoàn tất hay không.
+* Có cơ chế duyệt PA hay không.
+* Một PA có thể được xử lý nhiều lần hay không.
+* Có lưu số lượng đã đặt mua và số lượng còn thiếu hay không.
+* Có chống tạo PO trùng từ cùng một PA hay không.
+* PA sau khi bị hủy hoặc từ chối có còn được chuyển thành PO hay không.
 
-## Giai đoạn 2: Đề xuất
+Hãy chỉ ra luồng thực tế hiện có trong code.
 
-Trình bày:
+## 2. Chuyển PA thành PO
 
-1. Danh sách bảng cần bổ sung seed.
-2. Số lượng dữ liệu dự kiến cho từng bảng.
-3. Mapping ID.
-4. Thứ tự chạy seed.
-5. Kịch bản kiểm thử.
-6. Configuration cần sửa.
-7. File App Launcher cần sửa.
-8. Cơ chế health check.
-9. Cơ chế chống process trùng.
+Hãy xác định:
 
-## Giai đoạn 3: Thực hiện
+* PO được tạo trực tiếp hay được tạo từ PA.
+* Một PA có thể tạo nhiều PO không.
+* Một PO có thể chứa dữ liệu từ nhiều PA không.
+* Hệ thống chọn nhà cung cấp bằng tay hay tự động.
+* Có so sánh giá nhà cung cấp theo từng nguyên liệu không.
+* Có kiểm tra:
 
-Sau khi đã có đủ file:
+  * Giá hiện tại.
+  * Đơn vị đóng gói.
+  * Số lượng trong một gói.
+  * Đơn vị cơ sở.
+  * Số lượng tối thiểu.
+  * Nhà cung cấp ưu tiên.
+  * Thời gian giao hàng.
+  * Nhà cung cấp đang hoạt động.
+* Có lưu nguồn gốc từng dòng PO đến từ PA nào không.
+* Có xử lý trường hợp một nguyên liệu được chia cho nhiều nhà cung cấp không.
 
-1. Tạo seed SQL hoàn chỉnh.
-2. Sửa `CafeChain_Store1_Complete_Demo_Menu_Seed`.
-3. Bổ sung Configuration nhà cung cấp.
-4. Sửa App Launcher.
-5. Thay URL POS cũ bằng cấu hình URL mới.
-6. Sử dụng `CafeChain.Bridge` và `CafeChain.Frontend`.
-7. Bổ sung xử lý lỗi và log.
-8. Bổ sung test case.
+## 3. Tách PO con
+
+Hãy phân tích cách hệ thống nên tách PO dựa trên:
+
+* Nhà cung cấp.
+* Địa điểm giao hàng.
+* Kho nhận hàng.
+* Ngày giao dự kiến.
+* Loại tiền tệ nếu có.
+* Điều khoản thanh toán.
+* Chính sách giá.
+* Đơn vị đóng gói.
+* Chi nhánh yêu cầu.
+* Nhóm nguyên liệu.
+
+Không được mặc định rằng cứ mỗi PA là một PO.
+
+Hãy xác định tiêu chí tách PO phù hợp với code hiện tại.
+
+## 4. Phát hiện PO trùng hoặc có thể gộp
+
+Hãy định nghĩa rõ hai khái niệm:
+
+### PO bị trùng
+
+PO được xem là bị trùng khi có nguy cơ tạo lặp từ cùng một nguồn nghiệp vụ, ví dụ:
+
+* Cùng PA.
+* Cùng dòng PA.
+* Cùng nhà cung cấp.
+* Cùng nguyên liệu.
+* Cùng số lượng.
+* Cùng khoảng thời gian tạo.
+* Cùng request key hoặc khóa chống trùng.
+
+### PO có thể gộp
+
+PO có thể gộp khi:
+
+* Cùng nhà cung cấp.
+* Cùng địa điểm giao hàng hoặc kho nhận.
+* Cùng ngày giao hoặc khoảng giao hàng.
+* Cùng điều khoản thanh toán.
+* Cùng trạng thái chưa gửi hoặc chưa xác nhận.
+* Cùng loại tiền tệ.
+* Không bị khóa hoặc đã phát sinh nhận hàng.
+* Không làm mất khả năng truy vết về PA gốc.
+
+Hãy kiểm tra trong codebase hiện tại đã có:
+
+* Cơ chế phát hiện trùng.
+* Request key.
+* Unique constraint.
+* Idempotency.
+* Mapping PA–PO.
+* Mapping dòng PA–dòng PO.
+* Chức năng gộp PO.
+* Chức năng tách PO.
+
+Nếu chưa có, hãy đề xuất thiết kế cụ thể, nhưng chưa tự ý tạo bảng mới trước khi phân tích ảnh hưởng.
+
+## 5. Gộp PO
+
+Khi gộp PO, phải bảo đảm:
+
+1. Không làm mất liên kết với PA gốc.
+2. Không cộng trùng số lượng.
+3. Không gộp PO đã gửi cho nhà cung cấp hoặc đã nhận hàng, trừ khi nghiệp vụ hiện tại cho phép.
+4. Giữ được lịch sử:
+
+   * PO nào đã được gộp.
+   * Ai thực hiện.
+   * Thời gian thực hiện.
+   * Lý do gộp.
+5. Các PO nguồn phải chuyển sang trạng thái phù hợp, không được tiếp tục sử dụng để nhập kho lần nữa.
+6. PO sau khi gộp phải lưu được tổng số lượng và nguồn yêu cầu từ từng chi nhánh.
+7. Việc gộp không được làm sai công nợ hoặc giá nhập.
+
+Hãy mô tả thuật toán hoặc quy trình gộp cụ thể phù hợp với hệ thống hiện tại.
+
+## 6. Tạo phiếu nhập từ PO
+
+Hãy kiểm tra:
+
+* Phiếu nhập được tạo tự động hay thủ công.
+* Một PO có thể tạo nhiều phiếu nhập không.
+* Có hỗ trợ giao hàng nhiều lần không.
+* Có hỗ trợ nhận thiếu, nhận thừa hoặc từ chối hàng không.
+* Có đối chiếu số lượng đặt, số lượng đã nhận và số lượng còn lại không.
+* Có kiểm tra giá thực nhận với giá PO không.
+* Có lưu lô hàng, hạn sử dụng hoặc mã lô không.
+* Có cập nhật:
+
+  * Tồn kho.
+  * Giao dịch kho.
+  * Lớp giá vốn.
+  * Phân bổ FIFO.
+  * Công nợ nhà cung cấp.
+  * Trạng thái PO.
+* Có chống xác nhận phiếu nhập hai lần không.
+* Có transaction và rollback nếu cập nhật một phần bị lỗi không.
+
+Phiếu nhập phải dựa trên hàng thực nhận. Không được tự động lấy toàn bộ số lượng của PO rồi tăng kho nếu người dùng chưa xác nhận số lượng nhận thực tế.
 
 ---
 
-# IX. YÊU CẦU KẾT QUẢ ĐẦU RA
+# V. THIẾT KẾ CÁC PHIẾU KHO LIÊN QUAN
 
-Khi hoàn thành, hãy cung cấp theo đúng thứ tự:
+Sau khi phân tích codebase, hãy thiết kế hoặc chuẩn hóa nghiệp vụ cho các loại phiếu sau.
 
-## 1. Báo cáo phân tích
+## 1. Phiếu nhập kho
 
-* Stored Procedure nào cần dữ liệu gì.
-* Bảng nào cần seed.
-* Quan hệ dữ liệu.
-* Configuration Supplier còn thiếu.
-* Nguyên nhân Phiếu Kho chưa test được.
-* Nguyên nhân App Launcher vẫn mở POS cũ.
+Phân tích các trường hợp:
 
-## 2. Danh sách file đã sửa
+* Nhập từ nhà cung cấp.
+* Nhập điều chỉnh tăng.
+* Nhập trả hàng từ POS nếu hệ thống hỗ trợ.
+* Nhập hàng từ phiếu chuyển kho.
+* Nhập do kiểm kê thừa.
 
-Ghi rõ:
+Đối với mỗi trường hợp, hãy chỉ rõ:
+
+* Chứng từ nguồn.
+* Kho nhận.
+* Đối tác.
+* Cách cập nhật tồn kho.
+* Cách cập nhật giá vốn.
+* Cách cập nhật công nợ.
+* Trạng thái chứng từ.
+* Quyền tạo, sửa, xác nhận và hủy.
+
+## 2. Phiếu xuất kho
+
+Phân tích các trường hợp:
+
+* Xuất bán hàng qua POS.
+* Xuất hủy nguyên liệu.
+* Xuất điều chỉnh giảm.
+* Xuất cho phiếu chuyển kho.
+* Xuất do kiểm kê thiếu.
+* Xuất trả nhà cung cấp nếu có.
+
+Phải làm rõ:
+
+* Phiếu xuất nào được tạo tự động.
+* Phiếu xuất nào do người dùng tạo.
+* Thời điểm trừ tồn kho.
+* Cách tính giá vốn.
+* Cách xử lý kho âm.
+* Cách xử lý đơn POS bị hủy hoặc hoàn tiền.
+* Cơ chế chống trừ kho hai lần.
+
+## 3. Phiếu hủy
+
+Hãy phân tích xem “Phiếu hủy” trong dự án là:
+
+* Hủy nguyên liệu hỏng.
+* Hủy hàng hết hạn.
+* Hủy thành phẩm.
+* Hủy món đã pha.
+* Hủy chứng từ kho.
+* Hay chỉ là trạng thái hủy của một phiếu khác.
+
+Không được đánh đồng:
+
+* Hủy chứng từ.
+* Xuất hủy hàng hóa.
+* Xóa dữ liệu.
+
+Nếu hệ thống cần phiếu hủy riêng, phải xác định:
+
+* Lý do hủy.
+* Người đề nghị.
+* Người duyệt.
+* Kho bị trừ.
+* Số lượng.
+* Giá trị tổn thất.
+* Hình ảnh hoặc bằng chứng nếu có.
+* Tác động đến tồn kho và báo cáo.
+* Có cho phép khôi phục hay tạo phiếu đảo không.
+
+## 4. Phiếu kiểm kê
+
+Hãy thiết kế luồng:
 
 ```text
-Đường dẫn file
-Mục đích sửa
-Các method hoặc section đã thay đổi
+Tạo đợt kiểm kê
+    ↓
+Khóa hoặc chốt phạm vi kiểm kê
+    ↓
+Ghi nhận số lượng hệ thống
+    ↓
+Nhập số lượng thực tế
+    ↓
+Tính chênh lệch
+    ↓
+Duyệt kết quả
+    ↓
+Tạo phiếu điều chỉnh tăng hoặc giảm
+    ↓
+Cập nhật tồn kho
 ```
 
-Không được bịa đường dẫn file.
+Phải làm rõ:
 
-## 3. Seed SQL hoàn chỉnh
+* Kiểm kê theo cửa hàng, kho, nhóm nguyên liệu hay toàn bộ kho.
+* Có khóa giao dịch trong lúc kiểm kê không.
+* Nếu POS vẫn bán hàng thì lấy thời điểm chốt tồn như thế nào.
+* Có lưu số lượng hệ thống tại thời điểm bắt đầu không.
+* Có bắt buộc người khác duyệt kết quả không.
+* Chênh lệch tăng tạo phiếu nào.
+* Chênh lệch giảm tạo phiếu nào.
+* Có lưu lịch sử điều chỉnh không.
+* Có cho phép sửa sau khi đã duyệt không.
 
-* Trình bày thành một script có thể copy và chạy.
-* Đúng thứ tự khóa ngoại.
-* Có `GO` hợp lý.
-* Có `IDENTITY_INSERT` đúng.
-* Có Unicode `N''`.
-* Không thiếu cột.
-* Không trùng ID.
-* Không lỗi số lượng cột và value.
-* Có chú thích từng section.
+## 5. Phiếu chuyển kho
 
-## 4. Code App Launcher hoàn chỉnh
+Dự án phải tiếp tục giữ “Phiếu Chuyển Kho” như một nghiệp vụ độc lập, không gộp chung vào nhập nội bộ hoặc xuất nội bộ.
 
-Không chỉ đưa đoạn code rời rạc.
-
-Phải cung cấp đầy đủ:
-
-* Method đã sửa.
-* Configuration đã sửa.
-* JavaScript đã sửa.
-* View liên quan nếu có.
-* Error handling.
-* Health check.
-* Process detection.
-* URL POS mới.
-
-## 5. Test checklist
-
-Ghi rõ:
+Hãy kiểm tra luồng hiện tại và chuẩn hóa theo hướng:
 
 ```text
-Test case
-Dữ liệu đầu vào
-Kết quả mong đợi
-Kết quả thực tế
+Tạo yêu cầu chuyển kho
+        ↓
+Kho nguồn duyệt và xuất hàng
+        ↓
+Hàng đang vận chuyển
+        ↓
+Kho đích nhận hàng
+        ↓
+Xác nhận số lượng thực nhận
+        ↓
+Hoàn tất chuyển kho
 ```
 
-## 6. Phần chưa thể thực hiện
+Phải phân tích:
 
-Nếu thiếu file, phải ghi rõ:
-
-* File nào còn thiếu.
-* Vì sao file đó cần thiết.
-* Phần nào chưa thể hoàn thiện.
-* Không tự suy đoán để lấp chỗ trống.
+* Thời điểm trừ kho nguồn.
+* Thời điểm cộng kho đích.
+* Trường hợp kho đích nhận thiếu hoặc thừa.
+* Trường hợp hàng bị hỏng khi vận chuyển.
+* Trường hợp hủy khi chưa xuất.
+* Trường hợp hủy sau khi đã xuất.
+* Giá vốn chuyển sang kho đích.
+* Mapping giữa phiếu chuyển, phiếu xuất và phiếu nhập.
+* Có cần tạo hai chứng từ kho con hay chỉ dùng transaction hay không.
 
 ---
 
-# X. TIÊU CHÍ HOÀN THÀNH
+# VI. PHÂN TÍCH “FORM PHIẾU KHO” CÓ CẦN THIẾT KHÔNG
 
-Chỉ xem là hoàn thành khi đáp ứng đầy đủ:
+Hãy tìm form hoặc module đang được gọi là “Phiếu Kho” trong dự án và phân tích mục đích thực tế của nó.
 
-* Seed bám đúng Stored Procedure.
-* Seed không lỗi khóa ngoại.
-* Có đủ dữ liệu test Phiếu Kho.
-* Store 1 có nhà cung cấp và nguyên liệu hợp lệ.
-* Có giá hiện tại và lịch sử giá.
-* Có PackageUnit và quy đổi đúng.
-* Có thể tạo và xác nhận phiếu nhập.
-* Tồn kho được cập nhật đúng.
-* Cost Layer và Transaction được tạo nếu nghiệp vụ yêu cầu.
-* Công nợ được tạo đúng theo Configuration.
-* Nhà cung cấp không hoạt động không xuất hiện khi tạo phiếu.
-* App Launcher không còn sử dụng POS cũ.
-* App Launcher sử dụng `CafeChain.Bridge`.
-* App Launcher sử dụng `CafeChain.Frontend`.
-* POS mở đúng URL:
+Cần trả lời cụ thể:
 
-```text
-http://127.0.0.1:5173/order
-```
+1. “Phiếu Kho” là một chứng từ nghiệp vụ độc lập hay chỉ là form dùng chung cho nhiều loại chứng từ?
+2. Nó có trùng với:
 
-* Không mở nhiều Bridge hoặc Frontend process.
-* Có health check và timeout.
-* Có xử lý lỗi rõ ràng.
-* Không phá vỡ các chức năng hiện tại.
+   * Phiếu nhập.
+   * Phiếu xuất.
+   * Phiếu điều chỉnh.
+   * Phiếu kiểm kê.
+   * Phiếu chuyển kho.
+3. Nó đang lưu vào một bảng chung như `InventoryDocument` hay một bảng riêng?
+4. Các loại phiếu được phân biệt bằng enum hay bằng bảng riêng?
+5. Form này có đang chứa quá nhiều nhánh điều kiện làm khó bảo trì không?
+6. Có nên:
+
+   * Giữ nguyên form chung.
+   * Tách thành các màn hình riêng.
+   * Giữ backend chung nhưng tách giao diện.
+   * Chỉ dùng làm màn hình tra cứu tổng hợp.
+7. Trường hợp nào người dùng thực sự cần mở form “Phiếu Kho”?
+8. POS có cần truy cập trực tiếp form này hay không?
+9. Nếu bỏ form, chức năng nào sẽ bị mất?
+10. Nếu giữ form, cần giới hạn vai trò và quyền truy cập ra sao?
+
+Sau khi phân tích, hãy đưa ra một trong các kết luận rõ ràng:
+
+* Giữ nguyên.
+* Giữ backend chung nhưng tách giao diện.
+* Chuyển thành màn hình danh sách tổng hợp.
+* Loại bỏ vì trùng nghiệp vụ.
+
+Không được kết luận chung chung. Phải dẫn chứng bằng model, controller, service, repository, view và luồng dữ liệu hiện tại.
 
 ---
 
-# XI. BÁO CÁO THỰC HIỆN REFACTOR NGÀY 2026-07-18
+# VII. TÍCH HỢP NGHIỆP VỤ KHO VỚI POS
 
-## 1. Kết quả phân tích Stored Procedure Dashboard
+Hãy phân tích POS đang tác động đến tồn kho như thế nào.
 
-File `Scripts/20260717_DashboardAnalyticsStoredProcedures.idempotent.sql` hiện có đúng 46 Stored Procedure. Các procedure chỉ đọc dữ liệu báo cáo; seed mới không sửa nội dung procedure.
+## 1. Khi bán hàng thành công
 
-| Nhóm | Stored Procedure | Bảng dữ liệu chính cần có |
-| --- | --- | --- |
-| Dashboard tổng hợp | `usp_Dashboard_NetSalesTrend`, `usp_Dashboard_StoreRanking`, `usp_Dashboard_PaymentMethodMix`, `usp_Dashboard_OrderHeatmap`, `usp_Dashboard_OperationalAlerts`, `sp_Revenue_By_Store`, `sp_Revenue_Filtered`, `sp_Revenue_By_PaymentMethod_Filtered`, `sp_Revenue_By_Hour`, `sp_Dashboard_Summary_Filtered` | `Orders`, `OrderDetails`, `Payments`, `OrderRefunds`, `Stores` |
-| Kho | `usp_Inventory_ShortageRisk`, `usp_Inventory_MovementByType`, `usp_Inventory_ThresholdRisk`, `usp_Inventory_ReorderSuggestions`, `usp_Inventory_WasteByStoreIngredient`, `usp_Inventory_FifoLayerAge`, `sp_Inventory_Summary`, `sp_Waste_Report` | `StoreIngredients`, `Ingredients`, `InventoryTransactions`, `InventoryCostLayers`, `RestockRequests` |
-| Mua hàng/Supplier | `usp_Procurement_PurchaseOrderPipeline`, `usp_Procurement_OverduePurchaseOrders`, `usp_Procurement_SupplierQuality`, `usp_Procurement_PurchasePriceTrend`, `usp_Procurement_SpendBreakdown`, `usp_Procurement_SupplierIssueMix` | `Suppliers`, `SupplierStores`, `IngredientSuppliers`, `IngredientSupplierPriceHistories`, `PurchaseOrders`, `PurchaseOrderLines`, `BranchReceipts`, `BranchReceiptLines`, `SupplierReceiptIssues` |
-| Ca làm việc/vận hành | `usp_Operations_WorkShiftCashDiscrepancy`, `usp_Operations_WorkShiftSales`, `usp_Operations_WorkShiftPaymentMix`, `usp_Operations_OfflineReconciliationExceptions`, `usp_Operations_HourlyOrders`, `usp_Operations_WorkShiftTopDiscrepancies`, `usp_Operations_WorkShiftKpis`, `sp_Cash_Flow_Today`, `sp_Staff_Performance_Filtered` | `WorkShifts`, `StaffShifts`, `CashSessions`, `Orders`, `Payments`, `Staffs` |
-| Sản phẩm/BOM | `usp_Product_TopProducts`, `usp_Product_VolumeMarginMatrix`, `usp_Product_SizeMargin`, `usp_Product_TopToppings`, `usp_Product_BomHealth`, `usp_Product_HighConsumptionLowEfficiency`, `sp_Top_Selling_Drinks_Filtered`, `sp_Top_Toppings_Filtered` | `Drinks`, `Sizes`, `Toppings`, `OrderDetails`, `OrderToppings`, `Recipes`, `RecipeDetails`, `Ingredients` |
-| Nhân sự | `usp_Workforce_ShiftStatus`, `usp_Workforce_HourlyDemand`, `usp_Workforce_StaffPerformance` | `Staffs`, `StaffShifts`, `WorkShifts`, `Orders` |
-| Khách hàng/trạng thái | `sp_Top_Customers`, `sp_Order_Status_Stats` | `Customers`, `Orders`, `OrderStatuses` |
+Kiểm tra:
 
-Các bước tạo và xác nhận Phiếu Kho hiện tại đi theo `Controller -> Service -> Repository -> EF Core`; không gọi 46 Stored Procedure Dashboard. Stored Procedure chỉ phục vụ truy vấn thống kê sau khi nghiệp vụ đã ghi dữ liệu.
+* POS trừ trực tiếp nguyên liệu hay trừ thành phẩm.
+* Có sử dụng công thức đồ uống không.
+* Có quy đổi đơn vị không.
+* Có trừ topping, size, đá, đường hoặc nguyên liệu tùy chọn không.
+* Thời điểm trừ kho:
 
-## 2. Nguồn ID và thứ tự chạy seed
+  * Khi tạo đơn.
+  * Khi thanh toán.
+  * Khi hoàn tất pha chế.
+* Có tạo `InventoryTransaction` hay phiếu xuất kho không.
+* Có lưu liên kết với Order hoặc OrderDetail không.
+* Có chống trừ kho hai lần không.
 
-EF Core Configuration/`HasData` là nguồn ID nền. Ba file sau được giữ nguyên nội dung và không được thay thế:
+## 2. Khi hủy đơn
 
-1. `Part1_SeedDataDrink.sql`: Category 4–8, Drink 7–30, DrinkImage 25–120; phải chạy trước seed Store 1.
-2. `Part7_SeedDataPermission.sql`: PermissionGroup 6–8, Permission 5–26.
-3. `SeedDataDiaChi.sql`: giữ nguyên toàn bộ Province/District/Ward và các ID rời rạc.
+Phân tích riêng:
 
-Thứ tự chạy chính thức:
+* Hủy trước khi pha chế.
+* Hủy sau khi đã pha.
+* Hủy sau khi thanh toán.
+* Hoàn tiền.
+* Hủy một món trong đơn.
+* Hủy toàn bộ đơn.
 
-1. Migration hiện có để tạo schema và dữ liệu `HasData`.
-2. Chạy nguyên trạng `Part1_SeedDataDrink.sql`.
-3. Chạy nguyên trạng `Part7_SeedDataPermission.sql`.
-4. Chạy nguyên trạng `SeedDataDiaChi.sql`.
-5. Chạy `Scripts/20260718_CafeChain_Store1_Complete_Demo_Seed.idempotent.sql`.
-6. Chạy `Scripts/20260717_DashboardAnalyticsStoredProcedures.idempotent.sql`.
-7. Chạy `Scripts/20260718_Dashboard_Demo_Data_Seed.idempotent.sql`.
+Không được mặc định tất cả trường hợp đều cộng lại kho.
 
-Không chạy Part2–Part6 cùng bộ seed mới. Hai script mới không reset identity và không dùng ID tùy ý cho quan hệ nghiệp vụ; khóa ngoại được tra qua `DrinkCode`, `Supplier.Code`, `Ingredient.Code`, `UnitCode`, `OrderCode` và marker `DEMO_*`/`DASH_DEMO_*`.
+Ví dụ:
 
-## 3. Seed Store 1 đã bổ sung
+* Chưa pha chế: có thể hoàn lại phần giữ kho.
+* Đã pha chế: nguyên liệu đã tiêu hao, có thể cần ghi nhận xuất hủy thay vì cộng lại kho.
+* Thanh toán rồi nhưng hoàn tiền: xử lý doanh thu và xử lý kho là hai nghiệp vụ khác nhau.
 
-`20260718_CafeChain_Store1_Complete_Demo_Seed.idempotent.sql` thực hiện:
+## 3. Khi hoàn hoặc đổi món
 
-- Không hard-code `USE [CafeChain]`; script chạy đúng database mà connection hiện tại đã chọn và fail-fast theo schema.
-- Kích hoạt menu Store 1 cho các Drink từ Part1 mà không tạo lại Drink, Category, Size hoặc Topping.
-- Bổ sung Recipe/RecipeDetails/BOM còn thiếu từ Ingredient và Unit đã được EF Configuration seed.
-- Tạo hai Supplier hoạt động và một Supplier không hoạt động bằng business code.
-- Tạo SupplierStore theo Store, IngredientSupplier, PackageQuantity, PackageUnit, MOQ, giá cũ và giá hiện tại.
-- Bảo đảm mỗi offer chỉ có đúng một lịch sử giá `IsCurrent = 1`.
-- Tạo tồn đầu kỳ, InventoryDocument, InventoryDocumentDetails, InventoryTransactions và FIFO InventoryCostLayers cân bằng.
-- Tạo dữ liệu nháp chuyển kho để kiểm thử workflow Store 1 sang Store 2.
-- Dùng ngày cố định, Unicode `N''`, `XACT_ABORT`, transaction, fail-fast schema check và kiểm tra invariant cuối script.
+Hãy xác định:
 
-## 4. Seed Dashboard Store 1 đã bổ sung
+* Có nhập lại kho hay không.
+* Có tạo phiếu hủy không.
+* Có tạo giao dịch đảo không.
+* Có làm thay đổi giá vốn không.
+* Có lưu lý do và nhân viên xử lý không.
 
-`20260718_Dashboard_Demo_Data_Seed.idempotent.sql` tạo dữ liệu có marker riêng cho:
+## 4. Khi kiểm kê và POS cùng hoạt động
 
-- Không hard-code database; có đầy đủ SET options cần thiết cho filtered index/computed index của schema hiện tại.
-- `Orders`, `OrderDetails`, `OrderToppings`, `Payments`, `OrderRefunds` với nhiều trạng thái, giờ bán, sản phẩm, topping và phương thức thanh toán.
-- `WorkShifts`, `StaffShifts`, `CashSessions` để kiểm thử doanh số và chênh lệch tiền theo ca.
-- `PurchaseOrders`, `PurchaseOrderLines`, `BranchReceipts`, `BranchReceiptLines`, `SupplierReceiptIssues`, `RestockRequests`.
-- Phiếu hao hụt và InventoryTransaction để báo cáo waste/movement có dữ liệu.
+Hãy đề xuất cơ chế đảm bảo:
 
-Ngoại lệ duy nhất về ngày động là dữ liệu CashSession phục vụ `sp_Cash_Flow_Today`, vì procedure này hard-code ngày hiện tại. Các dữ liệu lịch sử còn lại dùng ngày cố định tháng 01/2026. Script tra khóa ngoại theo business code và chạy lại không nhân đôi dữ liệu sở hữu bởi marker.
+* Không mất giao dịch POS.
+* Không tính sai số lượng hệ thống tại thời điểm kiểm kê.
+* Có timestamp hoặc mốc chốt tồn.
+* Giao dịch phát sinh sau thời điểm chốt được xử lý riêng.
+* Không ghi đè tồn kho trực tiếp nếu chưa tạo chứng từ điều chỉnh.
 
-## 5. Refactor Supplier và Phiếu Kho
+## 5. Khi kho âm
 
-- Supplier dropdown được lọc theo `storeId`, `Supplier.IsActive` và `SupplierStore.IsActive`.
-- Endpoint nguyên liệu nhận cả `supplierId` và `storeId`; kiểm tra phạm vi Store của tài khoản.
-- Repository chỉ trả offer hoạt động có đúng một current price history.
-- Service kiểm tra Supplier–Store, offer, giá hiện tại, `PackageQuantity > 0`, conversion factor, MOQ và số lượng dương.
-- Package price được quy đổi thành đơn giá nhập và base-unit cost; không còn loại bỏ package có `PackageQuantity > 1`.
-- Khi đổi Store hoặc loại phiếu, UI tải lại Supplier và xóa dữ liệu Supplier/chi tiết không còn hợp lệ.
+Phân tích cơ chế hiện tại:
 
-## 6. App Launcher POS mới
+* POS có được bán khi thiếu tồn không.
+* Ai có quyền duyệt âm kho.
+* Mức âm được phép.
+* Có cảnh báo không.
+* Có ghi nhận lý do không.
+* Sau khi nhập hàng, lượng âm được bù như thế nào.
+* Giá vốn tạm tính và giá vốn chính thức được xử lý ra sao.
+* Có ảnh hưởng đến FIFO hoặc Cost Layer không.
 
-- POS không còn điều hướng tới `/Admin/AdminPOS`.
-- Project thực tế được giữ là `CafeChain.PrintBridge`; không tạo tên project giả `CafeChain.Bridge`.
-- Cấu hình tập trung tại `appsettings.json`, gồm project/directory tương đối, StoreId, URL `/order`, Health URL, port, retry và timeout.
-- `POST /AppLauncher/LaunchPos` và `GET /AppLauncher/PosStatus` chỉ lấy Store từ claim, không nhận path/command/URL từ client.
-- `PosLaunchCoordinator` singleton khóa request đồng thời, kiểm tra heartbeat Bridge, port/HTTP Frontend, khởi chạy `dotnet run` và `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort` khi cần.
-- `PrintBridgeHub` cập nhật registry heartbeat; PrintBridge dùng named mutex theo Store để ngăn hai instance.
-- Client mở tab trống ngay trong sự kiện click, khóa card, hiển thị trạng thái, gọi `IssuePosToken`, chuyển tới `/order#pos_token=...`, đóng tab khi lỗi và luôn mở khóa trong `finally`.
+---
 
-## 7. Danh sách file chính đã sửa/tạo
+# VIII. TRẠNG THÁI VÀ QUY TẮC CHỨNG TỪ
 
-| File | Mục đích |
-| --- | --- |
-| `Scripts/20260718_CafeChain_Store1_Complete_Demo_Seed.idempotent.sql` | Seed menu/kho/Supplier Store 1 theo EF Configuration và Part1 |
-| `Scripts/20260718_Dashboard_Demo_Data_Seed.idempotent.sql` | Seed dữ liệu cho 46 Stored Procedure Dashboard |
-| `Infrastructure/Repositories/Admin/InventoryDocuments/AdminInventoryDocumentRepository.cs` | Lọc Supplier/offer/current price theo Store |
-| `Application/Services/Admin/InventoryDocuments/AdminInventoryDocumentCreateService.cs` | Validation Supplier/package/conversion/MOQ và chuẩn hóa giá |
-| `Areas/Admin/Controllers/AdminInventoryDocumentController.cs` | Endpoint Supplier/SupplierIngredients có Store |
-| `wwwroot/js/Admin/InventoryDocument/inventorydocumentcreate.js` | Đồng bộ Store–Supplier và package pricing trên UI |
-| `Application/Options/PosLauncherOptions.cs` | Contract cấu hình POS tập trung |
-| `Application/Services/AppLauncher/PosLaunchCoordinator.cs` | Điều phối Bridge/Frontend, health check, timeout, chống trùng |
-| `Application/Services/AppLauncher/PrintBridgePresenceTracker.cs` | Theo dõi heartbeat Bridge theo Store |
-| `Controllers/AppLauncherController.cs` | API LaunchPos/PosStatus bảo vệ bằng permission và anti-forgery |
-| `Hubs/PrintBridgeHub.cs` | Cập nhật online/heartbeat/disconnect vào tracker |
-| `Views/AppLauncher/Index.cshtml`, `wwwroot/js/AppLauncher/app-launcher.js` | UX khởi chạy POS, token handoff và chống double-click |
-| `CafeChain.PrintBridge/Program.cs` | Named mutex ngăn Bridge trùng Store |
-| `CafeChain.Tests/SeedAndPosLauncherRefactorTests.cs` | Test marker seed, legacy route và heartbeat expiry |
+Hãy lập bảng trạng thái thực tế cho từng loại chứng từ.
 
-## 8. Test checklist và kết quả thực tế
+Ví dụ tham khảo:
 
-| Test case | Đầu vào | Mong đợi | Thực tế |
-| --- | --- | --- | --- |
-| Parse seed Store 1 | SQL Server `SET PARSEONLY ON` | Không lỗi cú pháp, không ghi dữ liệu | Đạt |
-| Parse seed Dashboard | SQL Server `SET PARSEONLY ON` | Không lỗi cú pháp, không ghi dữ liệu | Đạt |
-| Build solution | `dotnet build CafeChain.slnx --no-restore` | 0 lỗi | Đạt, 0 lỗi; warning cũ còn tồn tại |
-| Test Supplier package | PackageQuantity khác 1 | Quy đổi đúng package/base-unit cost | Đạt |
-| Test launcher/seed marker | 29 test mục tiêu | Tất cả pass | Đạt 29/29 |
-| Regression Phiếu Kho/Supplier | 82 test liên quan | Tất cả pass | Đạt 82/82 |
-| Build Frontend | `npm.cmd run build` | TypeScript và Vite build thành công | Đạt; chỉ có warning bundle/SignalR dependency |
-| Part1 và Part7 trên database sạch tạm | Migration + file gốc trong Downloads | Chạy đúng sau `HasData` | Đạt |
-| Seed Store 1 lần 1/lần 2 | Database sạch tạm, chạy sau Part1/Part7 | Không trùng và không lỗi FK | Đạt; cả hai lần giữ 54 SKU và 7 offer |
-| Seed Dashboard lần 1/lần 2 | Store 1 seed + 46 procedure | Không nhân đôi marker | Đạt; cả hai lần giữ 9 order, 1 PO và 1 supplier issue |
-| Chạy đủ 46 Stored Procedure | Store 1, `2026-01-01` đến `2026-01-31` | Không procedure nào lỗi | Đạt 46/46 |
-| Đối soát doanh thu | Payment hoàn tất trừ Refund hoàn tất | Khớp NetSales Dashboard | Đạt: 313.000 - 38.000 = 275.000, khớp 275.000 |
-| Seed địa chỉ nguyên trạng | `SeedDataDiaChi.sql` qua `sqlcmd` | Chạy sau migration | Chưa đạt: session mặc định thiếu `QUOTED_IDENTIFIER`; thử qua stdin làm sai encoding Unicode. File được giữ nguyên theo yêu cầu và không dùng kết quả lỗi này |
-| End-to-end App Launcher | Bridge/Frontend thực tế trên máy triển khai | Mở `/order` sau heartbeat và health check | Chưa chạy end-to-end vì cần process và phiên đăng nhập thực tế |
+```text
+Draft
+Submitted
+Approved
+PartiallyProcessed
+Processing
+PartiallyReceived
+Received
+Completed
+Rejected
+Cancelled
+Voided
+```
 
-## 9. Giới hạn schema đã xác nhận
+Tuy nhiên, chỉ sử dụng trạng thái phù hợp với codebase hiện tại.
 
-Schema hiện tại không có bảng/configuration riêng cho SupplierDebt, PaymentTerm hoặc cấu hình VAT nhà cung cấp. Vì vậy refactor không tạo bảng giả, không tạo migration và không seed công nợ/thanh toán kỳ hạn. `InventoryDocument` có trường VAT nhưng workflow hiện tại chưa có cấu hình Supplier VAT/PaymentTerm để tự phát sinh công nợ; phần này chỉ có thể triển khai sau khi nghiệp vụ và schema tương ứng được bổ sung chính thức.
+Với mỗi trạng thái, phải mô tả:
 
-Database kiểm thử tạm `CafeChain_RefactorVerify_20260718` đã được xóa sau kiểm tra. Một lần chạy ban đầu phát hiện `USE [CafeChain]` còn sót trong seed mới; SQL Server dừng ở filtered index và toàn bộ transaction được rollback bởi `XACT_ABORT`. Hai script đã được sửa để không còn `USE` cứng; database làm việc không giữ dữ liệu từ lần chạy lỗi. Với `SeedDataDiaChi.sql`, cần chạy bằng SSMS/sqlcmd file mode giữ UTF-8 và bật trước các SET options: `ANSI_NULLS`, `ANSI_PADDING`, `ANSI_WARNINGS`, `ARITHABORT`, `CONCAT_NULL_YIELDS_NULL`, `QUOTED_IDENTIFIER` = ON và `NUMERIC_ROUNDABORT` = OFF. Không chuyển file qua pipeline text vì sẽ làm hỏng tiếng Việt.
+* Ai được chuyển trạng thái.
+* Điều kiện chuyển.
+* Có được sửa dữ liệu hay không.
+* Có được xóa hoặc hủy hay không.
+* Đã cập nhật tồn kho chưa.
+* Đã cập nhật công nợ chưa.
+* Có thể tạo chứng từ tiếp theo hay không.
+
+Phân biệt rõ:
+
+* `Cancel`: hủy trước khi nghiệp vụ phát sinh.
+* `Void`: vô hiệu hóa sau khi đã phát sinh và cần chứng từ đảo.
+* `Delete`: xóa dữ liệu, hiện tại không ưu tiên sử dụng.
+* `Reverse`: tạo giao dịch ngược để hoàn tác.
+
+---
+
+# IX. PHÂN QUYỀN
+
+Hãy xác định quyền phù hợp cho từng chức năng dựa trên hệ thống quyền hiện tại.
+
+Tối thiểu cần xem xét:
+
+* Xem PA.
+* Tạo PA.
+* Gửi PA.
+* Duyệt hoặc từ chối PA.
+* Tạo PO từ PA.
+* Tách PO.
+* Gộp PO.
+* Gửi PO cho nhà cung cấp.
+* Xác nhận nhận hàng.
+* Tạo phiếu nhập.
+* Xác nhận phiếu nhập.
+* Tạo phiếu xuất.
+* Xác nhận phiếu xuất.
+* Tạo phiếu hủy.
+* Duyệt phiếu hủy.
+* Tạo kiểm kê.
+* Nhập kết quả kiểm kê.
+* Duyệt chênh lệch.
+* Tạo chuyển kho.
+* Duyệt xuất kho nguồn.
+* Xác nhận nhận tại kho đích.
+* Duyệt âm kho.
+* Xem giá nhập và công nợ.
+
+Dự án hiện chưa ưu tiên chức năng delete, vì vậy không cần triển khai hoặc hiển thị quyền delete nếu chưa có nghiệp vụ rõ ràng.
+
+---
+
+# X. YÊU CẦU VỀ TÍNH TOÀN VẸN DỮ LIỆU
+
+Hãy kiểm tra và đề xuất cơ chế cho các vấn đề sau:
+
+1. Chống tạo trùng PA, PO và phiếu kho.
+2. Chống xác nhận một chứng từ hai lần.
+3. Không cập nhật tồn kho nếu transaction thất bại.
+4. Rollback toàn bộ khi một bước trong quá trình xác nhận lỗi.
+5. Không cho số lượng âm hoặc bằng 0 tại những nghiệp vụ không cho phép.
+6. Quy đổi đơn vị phải nhất quán.
+7. Giá nhập phải gắn với thời điểm hiệu lực.
+8. Công nợ không được ghi nhận hai lần.
+9. Giao dịch kho phải truy vết được chứng từ nguồn.
+10. Mọi chứng từ phải có:
+
+    * Người tạo.
+    * Người xác nhận.
+    * Thời gian tạo.
+    * Thời gian xác nhận.
+    * Lý do hủy hoặc điều chỉnh.
+11. Không cho sửa trực tiếp chứng từ đã xác nhận.
+12. Nếu cần sửa, phải hủy đúng quy trình hoặc tạo chứng từ đảo.
+13. Không dùng phép gán trực tiếp tồn kho để thay thế lịch sử transaction.
+
+---
+
+# XI. TÀI LIỆU ĐẦU RA
+
+Hãy ghi kết quả phân tích vào:
+
+```text
+Doc/FIX.md
+```
+
+Nếu `FIX.md` đã có nhiều nội dung hoặc việc ghi thêm khiến tài liệu khó quản lý, hãy tạo một file mới trong thư mục `Doc`, ví dụ:
+
+```text
+Doc/INVENTORY_PURCHASING_WORKFLOW.md
+```
+
+Không được ghi đè hoặc xóa nội dung cũ trong `FIX.md`.
+
+## Cấu trúc tài liệu bắt buộc
+
+### 1. Hiện trạng codebase
+
+* Các module liên quan.
+* Các model chính.
+* Các enum.
+* Các bảng dữ liệu.
+* Luồng hiện tại.
+* Những chức năng đã hoàn thành.
+* Những chức năng đang làm dở.
+* Những phần bị trùng hoặc xung đột giữa hai developer.
+
+### 2. Luồng nghiệp vụ hiện tại
+
+Mô tả bằng từng bước cụ thể, từ lúc chi nhánh tạo yêu cầu đến lúc cập nhật tồn kho.
+
+### 3. Luồng nghiệp vụ đề xuất
+
+Mô tả đầy đủ:
+
+```text
+PA → PO con → Kiểm tra trùng → Gộp PO → Nhận hàng → Phiếu nhập → Tồn kho
+```
+
+### 4. So sánh hiện trạng và đề xuất
+
+Lập bảng:
+
+| Hạng mục | Code hiện tại | Nghiệp vụ mong muốn | Khoảng thiếu | Phương án xử lý |
+| -------- | ------------- | ------------------- | ------------ | --------------- |
+
+### 5. Phân tích từng loại phiếu
+
+* Phiếu nhập.
+* Phiếu xuất.
+* Phiếu hủy.
+* Phiếu kiểm kê.
+* Phiếu chuyển kho.
+* Phiếu điều chỉnh nếu có.
+
+### 6. Phân tích form Phiếu Kho
+
+Đưa ra kết luận rõ ràng về việc giữ, tách, đổi mục đích hoặc loại bỏ.
+
+### 7. Tích hợp với POS
+
+* Bán hàng.
+* Hủy đơn.
+* Hoàn tiền.
+* Hủy món.
+* Xuất hủy.
+* Kho âm.
+* Kiểm kê khi POS đang hoạt động.
+
+### 8. Trạng thái chứng từ
+
+Lập bảng chuyển trạng thái cho từng loại chứng từ.
+
+### 9. Phân quyền
+
+Lập ma trận vai trò và quyền thao tác.
+
+### 10. Rủi ro dữ liệu
+
+Liệt kê:
+
+* Trừ kho hai lần.
+* Nhập kho hai lần.
+* PO trùng.
+* Gộp sai PO.
+* Mất liên kết PA–PO.
+* Sai công nợ.
+* Sai giá vốn.
+* Sai quy đổi đơn vị.
+* Race condition.
+* Không rollback khi lỗi.
+
+### 11. Danh sách file cần chỉnh sửa
+
+Phân loại theo:
+
+* Model.
+* Enum.
+* DTO.
+* ViewModel.
+* Repository.
+* Service.
+* Controller.
+* View.
+* JavaScript.
+* Configuration.
+* Migration.
+* Seed data.
+* Test.
+
+### 12. Kế hoạch triển khai
+
+Chia thành các giai đoạn nhỏ:
+
+* Giai đoạn 1: Phân tích và thống nhất nghiệp vụ.
+* Giai đoạn 2: Chuẩn hóa model, enum và trạng thái.
+* Giai đoạn 3: Chuẩn hóa PA và PO.
+* Giai đoạn 4: Tạo phiếu nhập từ PO.
+* Giai đoạn 5: Chuẩn hóa xuất, hủy và kiểm kê.
+* Giai đoạn 6: Tích hợp POS.
+* Giai đoạn 7: Kiểm thử và migration dữ liệu.
+
+Mỗi giai đoạn phải nêu:
+
+* File cần sửa.
+* Mục tiêu.
+* Rủi ro.
+* Điều kiện hoàn thành.
+* Các test case cần chạy.
+
+---
+
+# XII. CÁCH THỰC HIỆN
+
+Thực hiện theo đúng thứ tự sau:
+
+## Bước 1: Phân tích AppLauncher
+
+Tìm và mô tả chính xác luồng tự động chạy `PrintBridge`.
+
+## Bước 2: Refactor AppLauncher
+
+Bỏ phụ thuộc bắt buộc giữa POS và `PrintBridge`, nhưng giữ khả năng chạy thủ công nếu còn cần kiểm thử.
+
+## Bước 3: Khảo sát code nghiệp vụ kho
+
+Lập danh sách toàn bộ file liên quan đến PA, PO, phiếu kho, tồn kho, công nợ, giá vốn và POS.
+
+## Bước 4: Dựng lại luồng hiện tại từ code
+
+Không dựa vào suy đoán. Phải dẫn chứng bằng class, method và trường dữ liệu.
+
+## Bước 5: So sánh với luồng PA → PO → Kho
+
+Chỉ ra phần nào đã có, phần nào đang thiếu, phần nào bị làm theo hai hướng khác nhau.
+
+## Bước 6: Viết tài liệu thiết kế
+
+Ghi đầy đủ vào `Doc/FIX.md` hoặc file tài liệu mới trong thư mục `Doc`.
+
+## Bước 7: Đề xuất kế hoạch refactor
+
+Chưa sửa hàng loạt nghiệp vụ kho nếu tài liệu chưa chỉ rõ phạm vi và ảnh hưởng.
+
+## Bước 8: Chỉ bắt đầu sửa code nghiệp vụ kho theo từng nhóm nhỏ
+
+Mỗi lần chỉ nên xử lý một nhóm chức năng có liên quan chặt chẽ, ví dụ:
+
+1. PA và trạng thái PA.
+2. Mapping PA–PO.
+3. Tách và gộp PO.
+4. Nhận hàng và tạo phiếu nhập.
+5. Phiếu xuất.
+6. Phiếu hủy.
+7. Kiểm kê.
+8. Tích hợp POS.
+
+Không được refactor toàn bộ module kho trong một lần nếu chưa kiểm chứng được dữ liệu và luồng hiện tại.
+
+---
+
+# XIII. ĐỊNH DẠNG PHẢN HỒI
+
+Sau khi hoàn thành, hãy trả về:
+
+1. Tóm tắt hiện trạng.
+2. Các lỗi hoặc xung đột nghiệp vụ đã phát hiện.
+3. Kết luận về `PrintBridge`.
+4. Kết luận về form “Phiếu Kho”.
+5. Luồng PA → PO → Nhập kho được đề xuất.
+6. Danh sách file đã chỉnh sửa.
+7. Danh sách file chỉ phân tích nhưng chưa chỉnh sửa.
+8. Đường dẫn tài liệu đã tạo hoặc cập nhật.
+9. Những phần chưa thể thực hiện do thiếu code.
+10. Danh sách test case cần chạy.
+
+Không chỉ trả lời rằng “đã hoàn thành”. Phải trình bày rõ thay đổi, lý do và ảnh hưởng của từng thay đổi.
