@@ -5,10 +5,22 @@
         const form = document.getElementById("negativeInventorySettingsForm");
         const negativeTabButton = document.getElementById("negative-inventory-tab");
         const generalActions = document.getElementById("generalSettingsActions");
-        const storeFilter = document.getElementById("negativeInventoryStoreFilter");
+        const negativeInventory = document.getElementById("negative-inventory");
+        const storeTabs = Array.from(document.querySelectorAll(".negative-store-tab"));
         const itemSearch = document.getElementById("negativeInventoryItemSearch");
-        const visibleCount = document.getElementById("negativeInventoryVisibleCount");
+        const pageSizeSelect = document.getElementById("negativeInventoryPageSize");
+        const rangeStart = document.getElementById("negativeInventoryRangeStart");
+        const rangeEnd = document.getElementById("negativeInventoryRangeEnd");
+        const filteredCount = document.getElementById("negativeInventoryFilteredCount");
+        const pageStatus = document.getElementById("negativeInventoryPageStatus");
+        const pagination = document.getElementById("negativeInventoryPagination");
+        const emptyRow = document.getElementById("negativeInventoryEmptyRow");
         const itemRows = Array.from(document.querySelectorAll(".negative-inventory-item-row"));
+        let activeStoreId = storeTabs.find((tab) => tab.classList.contains("active"))?.dataset.storeId
+            ?? itemRows[0]?.dataset.storeId
+            ?? "";
+        let currentPage = 1;
+        let pageSize = Number(pageSizeSelect?.value) || 10;
 
         const updateGeneralActions = (targetSelector) => {
             if (!generalActions) return;
@@ -83,24 +95,149 @@
             select.addEventListener("change", () => applyDisplayUnit(select));
         });
 
-        const filterItems = () => {
-            const selectedStore = storeFilter?.value ?? "";
+        const getFilteredRows = () => {
             const query = (itemSearch?.value ?? "").trim().toLocaleLowerCase("vi");
-            let count = 0;
-
-            itemRows.forEach((row) => {
-                const storeMatches = !selectedStore || row.dataset.storeId === selectedStore;
+            return itemRows.filter((row) => {
+                const storeMatches = row.dataset.storeId === activeStoreId;
                 const itemMatches = !query || (row.dataset.search ?? "").includes(query);
-                const visible = storeMatches && itemMatches;
-                row.classList.toggle("d-none", !visible);
-                if (visible) count += 1;
+                return storeMatches && itemMatches;
             });
-
-            if (visibleCount) visibleCount.textContent = String(count);
         };
 
-        storeFilter?.addEventListener("change", filterItems);
-        itemSearch?.addEventListener("input", filterItems);
+        const updateStoreTabs = () => {
+            storeTabs.forEach((tab) => {
+                const active = tab.dataset.storeId === activeStoreId;
+                tab.classList.toggle("active", active);
+                tab.setAttribute("aria-selected", active ? "true" : "false");
+                tab.setAttribute("tabindex", active ? "0" : "-1");
+            });
+        };
+
+        const createPageItem = (label, targetPage, options = {}) => {
+            const item = document.createElement("li");
+            item.className = "page-item";
+            item.classList.toggle("active", options.active === true);
+            item.classList.toggle("disabled", options.disabled === true);
+
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "page-link";
+            button.textContent = label;
+            if (options.label) button.setAttribute("aria-label", options.label);
+            if (options.active) button.setAttribute("aria-current", "page");
+            button.disabled = options.disabled === true;
+            if (!button.disabled && !options.active) {
+                button.addEventListener("click", () => {
+                    currentPage = targetPage;
+                    renderItems();
+                });
+            }
+
+            item.appendChild(button);
+            return item;
+        };
+
+        const getPageNumbers = (totalPages) => {
+            if (totalPages <= 7) {
+                return Array.from({ length: totalPages }, (_, index) => index + 1);
+            }
+
+            const pages = [1];
+            const start = Math.max(2, currentPage - 1);
+            const end = Math.min(totalPages - 1, currentPage + 1);
+            if (start > 2) pages.push("ellipsis-start");
+            for (let page = start; page <= end; page += 1) pages.push(page);
+            if (end < totalPages - 1) pages.push("ellipsis-end");
+            pages.push(totalPages);
+            return pages;
+        };
+
+        const renderPagination = (totalPages) => {
+            if (!pagination) return;
+            pagination.replaceChildren();
+            pagination.appendChild(createPageItem("‹", currentPage - 1, {
+                disabled: currentPage <= 1,
+                label: "Trang trước"
+            }));
+
+            getPageNumbers(totalPages).forEach((page) => {
+                if (typeof page !== "number") {
+                    pagination.appendChild(createPageItem("…", currentPage, { disabled: true }));
+                    return;
+                }
+                pagination.appendChild(createPageItem(String(page), page, { active: page === currentPage }));
+            });
+
+            pagination.appendChild(createPageItem("›", currentPage + 1, {
+                disabled: currentPage >= totalPages,
+                label: "Trang sau"
+            }));
+        };
+
+        const renderItems = () => {
+            const matchingRows = getFilteredRows();
+            const totalItems = matchingRows.length;
+            const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+            currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const rowsOnPage = new Set(matchingRows.slice(startIndex, startIndex + pageSize));
+            itemRows.forEach((row) => row.classList.toggle("d-none", !rowsOnPage.has(row)));
+
+            const firstItem = totalItems === 0 ? 0 : startIndex + 1;
+            const lastItem = totalItems === 0 ? 0 : Math.min(startIndex + pageSize, totalItems);
+            if (rangeStart) rangeStart.textContent = String(firstItem);
+            if (rangeEnd) rangeEnd.textContent = String(lastItem);
+            if (filteredCount) filteredCount.textContent = String(totalItems);
+            if (pageStatus) pageStatus.textContent = `Trang ${currentPage} / ${totalPages}`;
+            emptyRow?.classList.toggle("d-none", totalItems !== 0);
+            renderPagination(totalPages);
+        };
+
+        const selectStore = (storeId) => {
+            activeStoreId = storeId;
+            currentPage = 1;
+            updateStoreTabs();
+            renderItems();
+        };
+
+        const revealRow = (row) => {
+            activeStoreId = row.dataset.storeId ?? activeStoreId;
+            if (itemSearch) itemSearch.value = "";
+            updateStoreTabs();
+            const storeRows = getFilteredRows();
+            const rowIndex = storeRows.indexOf(row);
+            currentPage = rowIndex >= 0 ? Math.floor(rowIndex / pageSize) + 1 : 1;
+            renderItems();
+        };
+
+        storeTabs.forEach((tab, index) => {
+            tab.addEventListener("click", () => selectStore(tab.dataset.storeId ?? ""));
+            tab.addEventListener("keydown", (event) => {
+                let targetIndex = index;
+                if (event.key === "ArrowRight") targetIndex = (index + 1) % storeTabs.length;
+                else if (event.key === "ArrowLeft") targetIndex = (index - 1 + storeTabs.length) % storeTabs.length;
+                else if (event.key === "Home") targetIndex = 0;
+                else if (event.key === "End") targetIndex = storeTabs.length - 1;
+                else return;
+
+                event.preventDefault();
+                const targetTab = storeTabs[targetIndex];
+                targetTab.focus();
+                selectStore(targetTab.dataset.storeId ?? "");
+            });
+        });
+        itemSearch?.addEventListener("input", () => {
+            currentPage = 1;
+            renderItems();
+        });
+        pageSizeSelect?.addEventListener("change", () => {
+            pageSize = Number(pageSizeSelect.value) || 10;
+            currentPage = 1;
+            renderItems();
+        });
+        updateStoreTabs();
+        renderItems();
 
         if (!form) return;
 
@@ -116,13 +253,16 @@
                 });
 
             if (invalidCustomLimit) {
-                invalidCustomLimit.closest("tr")?.querySelector(".negative-custom-limit")?.focus();
+                const invalidRow = invalidCustomLimit.closest("tr");
+                if (invalidRow) revealRow(invalidRow);
                 await showMessage("Dữ liệu chưa hợp lệ", "Hạn mức riêng phải lớn hơn 0.", "error");
+                invalidRow?.querySelector(".negative-custom-limit")?.focus();
                 return;
             }
 
             const enabled = document.getElementById("negativeInventoryEnabled")?.checked === true;
-            const confirmed = await confirmSave(enabled);
+            const pendingApprovalCount = Number(negativeInventory?.dataset.pendingApprovalCount) || 0;
+            const confirmed = await confirmSave(enabled, pendingApprovalCount);
             if (!confirmed) return;
 
             const submitButton = document.querySelector(`button[form="${form.id}"]`);
@@ -156,11 +296,14 @@
         });
     });
 
-    async function confirmSave(enabled) {
+    async function confirmSave(enabled, pendingApprovalCount) {
         const title = enabled ? "Bật xuất âm có kiểm soát?" : "Tắt xuất âm thủ công?";
+        const pendingText = pendingApprovalCount > 0
+            ? ` Hiện có ${pendingApprovalCount} yêu cầu đang chờ và có thể cần được tạo lại nếu policy thay đổi.`
+            : "";
         const text = enabled
-            ? "Chỉ tiếp tục nếu SQL Server gate đã đạt. Các approval đang chờ có thể trở thành stale."
-            : "Đây là kill switch và sẽ chặn yêu cầu xuất âm mới từ request kế tiếp.";
+            ? `Tính năng vẫn bắt buộc phê duyệt và không tự xác nhận phiếu.${pendingText}`
+            : `Đây là kill switch và sẽ chặn yêu cầu xuất âm mới từ request kế tiếp.${pendingText}`;
 
         if (window.Swal) {
             const result = await window.Swal.fire({

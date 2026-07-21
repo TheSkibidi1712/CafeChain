@@ -179,9 +179,9 @@
     <div class="profile-header">
         <div class="avatar-wrap">
             <img id="profileAvatar"
-                 src="@(Model.AvatarUrl ?? "/Images/avatars/avtdf.jpg")"
-                 onerror="this.src='https://ui-avatars.com/api/?name=@Model.FullName&background=F97316&color=fff&rounded=true'"
-                 alt="Avatar" />
+                 src="@(Model.AvatarUrl ?? "/Images/Upload/avtdf.jpg")"
+                 onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                 alt="Ảnh đại diện của @Model.FullName" />
             <button type="button" class="btn-change-avatar" onclick="document.getElementById('avatarInput').click();">
                 <i class="fas fa-camera"></i>
             </button>
@@ -308,6 +308,9 @@
 
 @section Scripts {
     <script>
+        const updateProfileUrl = '@Url.Action("UpdateMyProfile", "AdminProfile", new { area = "Admin" })';
+        const changePasswordUrl = '@Url.Action("ChangePassword", "AdminProfile", new { area = "Admin" })';
+
         function getToken() {
             return $("input[name='__RequestVerificationToken']").val();
         }
@@ -320,7 +323,7 @@
             formData.append('AvatarFile', input.files[0]);
 
             $.ajax({
-                url: '/Profile/UpdateMyProfile',
+                url: updateProfileUrl,
                 type: 'POST',
                 data: formData,
                 processData: false,
@@ -328,12 +331,8 @@
                 headers: { "RequestVerificationToken": getToken() },
                 success: function (res) {
                     if (res.success) {
-                        // Cập nhật avatar trên UI ngay lập tức (không cần reload)
-                        var reader = new FileReader();
-                        reader.onload = function (e) {
-                            $('#profileAvatar').attr('src', e.target.result);
-                        };
-                        reader.readAsDataURL(input.files[0]);
+                        var avatarUrl = res.avatarUrl || '/Images/Upload/avtdf.jpg';
+                        $('#profileAvatar, #adminTopbarAvatar').attr('src', avatarUrl);
                         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 2000 });
                     } else {
                         Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
@@ -359,7 +358,7 @@
             }
 
             $.ajax({
-                url: '/Profile/UpdateMyProfile',
+                url: updateProfileUrl,
                 type: 'POST',
                 data: { PhoneNumber: phone },
                 headers: { "RequestVerificationToken": getToken() },
@@ -396,7 +395,7 @@
             }
 
             $.ajax({
-                url: '/Profile/ChangePassword',
+                url: changePasswordUrl,
                 type: 'POST',
                 data: { OldPassword: oldPw, NewPassword: newPw, ConfirmNewPassword: confirmPw },
                 headers: { "RequestVerificationToken": getToken() },

@@ -1,5 +1,8 @@
 ﻿using CafeChain.Data;
 using CafeChain.ViewModels.Profile;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize]
     public class AdminProfileController : Controller
     {
         private readonly AppDbContext _context;
@@ -30,7 +34,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // ====================================================================
-        // GET /Profile/MyProfile
+        // GET /Admin/AdminProfile/MyProfile
         // ====================================================================
         [HttpGet]
         public async Task<IActionResult> MyProfile()
@@ -76,7 +80,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // ====================================================================
-        // POST /Profile/UpdateMyProfile
+        // POST /Admin/AdminProfile/UpdateMyProfile
         // Anti-Overposting: CHỈ bind PhoneNumber + AvatarFile
         // ====================================================================
         [HttpPost]
@@ -92,11 +96,13 @@ namespace CafeChain.Areas.Admin.Controllers
             if (staff == null)
                 return Json(new { success = false, message = "Không tìm thấy hồ sơ nhân viên." });
 
+            string? updatedAvatarUrl = null;
+
             // === Cập nhật Avatar ===
             if (model.AvatarFile != null && model.AvatarFile.Length > 0)
             {
-                var avatarUrl = await SaveAvatarAsync(model.AvatarFile);
-                staff.AvatarUrl = avatarUrl;
+                updatedAvatarUrl = await SaveAvatarAsync(model.AvatarFile);
+                staff.AvatarUrl = updatedAvatarUrl;
             }
 
             // === Cập nhật Số điện thoại ===
@@ -131,11 +137,21 @@ namespace CafeChain.Areas.Admin.Controllers
             _context.Update(staff);
             await _context.SaveChangesAsync();
 
-            return Json(new { success = true, message = "Cập nhật hồ sơ thành công!" });
+            if (!string.IsNullOrWhiteSpace(updatedAvatarUrl))
+            {
+                await RefreshAvatarClaimAsync(updatedAvatarUrl);
+            }
+
+            return Json(new
+            {
+                success = true,
+                message = "Cập nhật hồ sơ thành công!",
+                avatarUrl = updatedAvatarUrl
+            });
         }
 
         // ====================================================================
-        // POST /Profile/ChangePassword
+        // POST /Admin/AdminProfile/ChangePassword
         // ====================================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -176,7 +192,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private async Task<string> SaveAvatarAsync(IFormFile file)
         {
             if (file == null || file.Length == 0)
-                return "/Images/avatars/avtdf.jpg";
+                return "/Images/Upload/avtdf.jpg";
 
             var uploadsDir = Path.Combine(_env.WebRootPath, "Images", "avatars");
             if (!Directory.Exists(uploadsDir))
@@ -191,6 +207,28 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             return $"/Images/avatars/{fileName}";
+        }
+
+        private async Task RefreshAvatarClaimAsync(string avatarUrl)
+        {
+            var authentication = await HttpContext.AuthenticateAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme);
+            if (!authentication.Succeeded
+                || authentication.Principal?.Identity is not ClaimsIdentity identity)
+            {
+                return;
+            }
+
+            foreach (var claim in identity.FindAll("AvatarUrl").ToList())
+            {
+                identity.RemoveClaim(claim);
+            }
+            identity.AddClaim(new Claim("AvatarUrl", avatarUrl));
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                authentication.Principal,
+                authentication.Properties);
         }
     }
 }

@@ -29,6 +29,36 @@
 
 <style>
     #negativeInventoryItemsTable .badge { white-space: normal; text-align: left; }
+    #negativeInventoryItemsTable { min-width: 1080px; }
+    .negative-store-tabs-wrap {
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: thin;
+    }
+    #negativeInventoryStoreTabs {
+        width: max-content;
+        min-width: 100%;
+    }
+    #negativeInventoryStoreTabs .nav-link {
+        color: #64748b;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    #negativeInventoryStoreTabs .nav-link.active {
+        color: #d93d20;
+    }
+    #negativeInventoryPagination .page-link {
+        color: #d93d20;
+        cursor: pointer;
+    }
+    #negativeInventoryPagination .page-item.active .page-link {
+        color: #fff;
+        background-color: #d93d20;
+        border-color: #d93d20;
+    }
+    #negativeInventoryPagination .page-item.disabled .page-link {
+        cursor: default;
+    }
 </style>
 
 @section Scripts {

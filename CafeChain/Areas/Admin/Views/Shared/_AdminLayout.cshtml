@@ -13,6 +13,16 @@
 
     var currentAccountIdValue =
         User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var currentStaffName = User.FindFirstValue(ClaimTypes.Name);
+    if (string.IsNullOrWhiteSpace(currentStaffName))
+    {
+        currentStaffName = "Nhân viên";
+    }
+    var currentAvatarUrl = User.FindFirstValue("AvatarUrl");
+    if (string.IsNullOrWhiteSpace(currentAvatarUrl))
+    {
+        currentAvatarUrl = "/Images/Upload/avtdf.jpg";
+    }
 
     if (User.Identity?.IsAuthenticated == true &&
         int.TryParse(currentAccountIdValue, out var currentAccountId))
@@ -236,6 +246,53 @@
             padding-bottom: 20px;
             margin-bottom: 30px;
             border-bottom: 1px solid #e9ecef;
+        }
+
+        .topbar-user {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            color: #64748b;
+            padding: 5px 10px 5px 6px;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            background: #fff;
+            text-decoration: none;
+            transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .topbar-user:hover,
+        .topbar-user.active {
+            color: #d93d20;
+            border-color: #f2b6a9;
+            box-shadow: 0 2px 8px rgba(217, 61, 32, 0.12);
+        }
+
+        .topbar-user:focus-visible {
+            color: #d93d20;
+            outline: 3px solid rgba(217, 61, 32, 0.2);
+            outline-offset: 2px;
+        }
+
+        .topbar-user-avatar {
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            border: 1px solid #f2b6a9;
+            object-fit: cover;
+            background: #f8fafc;
+        }
+
+        .topbar-user-name {
+            display: inline-block;
+            max-width: min(220px, 35vw);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 13.5px;
+            font-weight: 600;
         }
 
         /* ========== TOAST ========== */
@@ -503,10 +560,6 @@
                 </a>
             }
 
-            <a asp-area="Admin" asp-controller="AdminProfile" asp-action="MyProfile" class="@Html.IsActive("Profile")">
-                <i class="fas fa-user-circle"></i> Hồ sơ của tôi
-            </a>
-
             @if (User.Identity?.IsAuthenticated == true && User.HasClaim(claim => claim.Type == "StaffId"))
             {
                 <a asp-area="" asp-controller="AppLauncher" asp-action="Index">
@@ -529,7 +582,18 @@
             <button id="globalSoundToggle" class="btn btn-link text-muted shadow-none p-0 me-3" title="Âm thanh thông báo">
                 <i class="fas fa-bell-slash" id="globalSoundIcon"></i>
             </button>
-            <i class="fas fa-user-circle text-muted fs-4"></i>
+            <a asp-area="Admin"
+               asp-controller="AdminProfile"
+               asp-action="MyProfile"
+               class="topbar-user @Html.IsActive("AdminProfile")"
+               title="Mở hồ sơ của @currentStaffName">
+                <img id="adminTopbarAvatar"
+                     class="topbar-user-avatar"
+                     src="@currentAvatarUrl"
+                     alt="Ảnh đại diện của @currentStaffName"
+                     onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';" />
+                <span class="topbar-user-name">@currentStaffName</span>
+            </a>
         </div>
         @RenderBody()
     </div>

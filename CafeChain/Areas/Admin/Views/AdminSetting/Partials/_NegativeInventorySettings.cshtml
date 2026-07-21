@@ -20,7 +20,7 @@
         System.Globalization.CultureInfo.InvariantCulture);
 }
 
-<div id="negative-inventory">
+<div id="negative-inventory" data-pending-approval-count="@Model.PendingApprovalCount">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2 mb-2">
@@ -50,11 +50,14 @@
         </div>
     }
 
-    <div class="alert alert-warning border-0 shadow-sm">
-        <i class="fas fa-shield-halved me-2"></i>
-        Chỉ bật sau khi SQL Server gate trong <strong>NegativeInventoryAcceptance.md</strong> đã đạt.
-        Hiện có <strong>@Model.PendingApprovalCount</strong> yêu cầu đang chờ; thay đổi policy hoặc hạn mức sẽ làm các yêu cầu đó stale.
-    </div>
+    @if (Model.PendingApprovalCount > 0)
+    {
+        <div class="alert alert-warning border-0 shadow-sm">
+            <i class="fas fa-shield-halved me-2"></i>
+            Hiện có <strong>@Model.PendingApprovalCount</strong> yêu cầu đang chờ.
+            Thay đổi policy hoặc hạn mức có thể khiến các yêu cầu này cần được tạo lại.
+        </div>
+    }
 
     <div class="row g-3 mb-4">
         <div class="col-lg-4">
@@ -80,23 +83,45 @@
         </div>
     </div>
 
-    <div class="row g-3 align-items-end mb-3">
-        <div class="col-md-4">
-            <label class="form-label fw-bold text-muted small text-uppercase" for="negativeInventoryStoreFilter">Cửa hàng</label>
-            <select id="negativeInventoryStoreFilter" class="form-select">
-                <option value="">Tất cả cửa hàng</option>
-                @foreach (var store in stores)
+    @if (stores.Count > 0)
+    {
+        <div class="negative-store-tabs-wrap mb-3">
+            <ul class="nav nav-tabs flex-nowrap" id="negativeInventoryStoreTabs" role="tablist" aria-label="Cửa hàng">
+                @for (var storeIndex = 0; storeIndex < stores.Count; storeIndex++)
                 {
-                    <option value="@store.StoreId">#@store.StoreId — @store.StoreName</option>
+                    var store = stores[storeIndex];
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button type="button"
+                                class="nav-link negative-store-tab @(storeIndex == 0 ? "active" : null)"
+                                role="tab"
+                                aria-selected="@(storeIndex == 0 ? "true" : "false")"
+                                data-store-id="@store.StoreId">
+                            <i class="fas fa-store me-2"></i>#@store.StoreId — @store.StoreName
+                        </button>
+                    </li>
                 }
-            </select>
+            </ul>
         </div>
-        <div class="col-md-5">
+    }
+
+    <div class="row g-3 align-items-end mb-3">
+        <div class="col-lg-6 col-md-7">
             <label class="form-label fw-bold text-muted small text-uppercase" for="negativeInventoryItemSearch">Tìm item</label>
             <input id="negativeInventoryItemSearch" type="search" class="form-control" placeholder="Mã, tên hoặc Item ID..." />
         </div>
-        <div class="col-md-3 text-md-end">
-            <span class="text-muted small"><span id="negativeInventoryVisibleCount">@Model.Items.Count</span> / @Model.Items.Count item</span>
+        <div class="col-lg-3 col-md-5">
+            <label class="form-label fw-bold text-muted small text-uppercase" for="negativeInventoryPageSize">Số dòng mỗi trang</label>
+            <select id="negativeInventoryPageSize" class="form-select">
+                <option value="10" selected>10 dòng</option>
+                <option value="20">20 dòng</option>
+                <option value="50">50 dòng</option>
+            </select>
+        </div>
+        <div class="col-lg-3 text-lg-end">
+            <span class="text-muted small" id="negativeInventoryRangeSummary" aria-live="polite">
+                <span id="negativeInventoryRangeStart">0</span>–<span id="negativeInventoryRangeEnd">0</span>
+                / <span id="negativeInventoryFilteredCount">0</span> item
+            </span>
         </div>
     </div>
 
@@ -180,8 +205,21 @@
                         </td>
                     </tr>
                 }
+                <tr id="negativeInventoryEmptyRow" class="d-none">
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="fas fa-box-open fs-3 d-block mb-2"></i>
+                        Không có item phù hợp trong cửa hàng này.
+                    </td>
+                </tr>
             </tbody>
         </table>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3">
+        <span class="text-muted small" id="negativeInventoryPageStatus" aria-live="polite">Trang 1 / 1</span>
+        <nav aria-label="Phân trang cấu hình âm kho">
+            <ul class="pagination pagination-sm mb-0" id="negativeInventoryPagination"></ul>
+        </nav>
     </div>
 
     <div class="d-flex justify-content-end border-top pt-4 mt-4">

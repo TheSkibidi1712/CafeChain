@@ -30,8 +30,55 @@ public sealed class AdminNegativeInventorySettingsSourceTests
         Assert.Contains("Cho phép gửi yêu cầu xuất âm kho", view, StringComparison.Ordinal);
         Assert.Contains("NegativeInventoryLimitModes.Custom", view, StringComparison.Ordinal);
         Assert.Contains("negative-display-unit", view, StringComparison.Ordinal);
+        Assert.Contains("negativeInventoryStoreTabs", view, StringComparison.Ordinal);
+        Assert.Contains("negativeInventoryPagination", view, StringComparison.Ordinal);
+        Assert.Contains("negativeInventoryPageSize", view, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"10\" selected>", view, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"20\">", view, StringComparison.Ordinal);
+        Assert.Contains("<option value=\"50\">", view, StringComparison.Ordinal);
+        Assert.Contains("renderPagination", client, StringComparison.Ordinal);
+        Assert.Contains("revealRow", client, StringComparison.Ordinal);
+        Assert.DoesNotContain("negativeInventoryStoreFilter", view + client, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tất cả cửa hàng", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("SQL Server gate", view + client, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("NegativeInventoryAcceptance.md", view + client, StringComparison.Ordinal);
         Assert.DoesNotContain("/Admin/AdminSetting/", view + client, StringComparison.Ordinal);
         Assert.DoesNotContain("/Admin/Setting/", view + client, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Admin_layout_uses_avatar_and_staff_name_as_profile_link()
+    {
+        var layout = Read("CafeChain", "Areas", "Admin", "Views", "Shared", "_AdminLayout.cshtml");
+
+        Assert.Contains("User.FindFirstValue(ClaimTypes.Name)", layout, StringComparison.Ordinal);
+        Assert.Contains("User.FindFirstValue(\"AvatarUrl\")", layout, StringComparison.Ordinal);
+        Assert.Contains("topbar-user-name", layout, StringComparison.Ordinal);
+        Assert.Contains("@currentStaffName", layout, StringComparison.Ordinal);
+        Assert.Contains("id=\"adminTopbarAvatar\"", layout, StringComparison.Ordinal);
+        Assert.Contains("asp-controller=\"AdminProfile\"", layout, StringComparison.Ordinal);
+        Assert.Contains("asp-action=\"MyProfile\"", layout, StringComparison.Ordinal);
+        Assert.Contains("/Images/Upload/avtdf.jpg", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("> Hồ sơ của tôi", layout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Profile_avatar_update_refreshes_cookie_claim_and_uses_area_routes()
+    {
+        var controller = Read("CafeChain", "Areas", "Admin", "Controllers", "AdminProfileController.cs");
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AdminProfile", "MyProfile.cshtml");
+
+        Assert.Contains("[Authorize]", controller, StringComparison.Ordinal);
+        Assert.Contains("RefreshAvatarClaimAsync", controller, StringComparison.Ordinal);
+        Assert.Contains("AuthenticateAsync", controller, StringComparison.Ordinal);
+        Assert.Contains("new Claim(\"AvatarUrl\", avatarUrl)", controller, StringComparison.Ordinal);
+        Assert.Contains("authentication.Properties", controller, StringComparison.Ordinal);
+        Assert.Contains("avatarUrl = updatedAvatarUrl", controller, StringComparison.Ordinal);
+        Assert.Contains("Url.Action(\"UpdateMyProfile\", \"AdminProfile\"", view, StringComparison.Ordinal);
+        Assert.Contains("Url.Action(\"ChangePassword\", \"AdminProfile\"", view, StringComparison.Ordinal);
+        Assert.Contains("#profileAvatar, #adminTopbarAvatar", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Profile/UpdateMyProfile", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Profile/ChangePassword", view, StringComparison.Ordinal);
     }
 
     [Fact]
