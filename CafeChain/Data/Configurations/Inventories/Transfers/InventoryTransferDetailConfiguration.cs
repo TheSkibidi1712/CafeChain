@@ -88,6 +88,11 @@ namespace CafeChain.Data.Configurations.Inventories.Transfers
                 .HasForeignKey(x => x.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.ParentInventoryTransferDetail)
+                .WithMany(x => x.FollowUpDetails)
+                .HasForeignKey(x => x.ParentInventoryTransferDetailId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => new { x.InventoryTransferId, x.IngredientId })
                 .IsUnique()
                 .HasFilter("[IngredientId] IS NOT NULL");
@@ -102,6 +107,7 @@ namespace CafeChain.Data.Configurations.Inventories.Transfers
             entity.HasIndex(x => x.RestockRequestFulfillmentId);
             entity.HasIndex(x => x.UnitId);
             entity.HasIndex(x => new { x.IngredientId, x.InventoryTransferId });
+            entity.HasIndex(x => x.ParentInventoryTransferDetailId);
         }
     }
 }

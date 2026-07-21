@@ -39,10 +39,12 @@ namespace CafeChain.Models.Inventories.Costing
         public int? SourceInventoryDocumentDetailId { get; set; }
         public int? SourceBranchReceiptLineId { get; set; }
         public long? SourceTransferCostAllocationId { get; set; }
+        public long? SourceTransferDiscrepancyPostingId { get; set; }
 
         public virtual ProductionRun? SourceProductionRun { get; set; }
         public virtual OrderRefund? SourceOrderRefund { get; set; }
         public virtual CafeChain.Models.Inventories.Stock.BranchReceiptLine? SourceBranchReceiptLine { get; set; }
         public virtual CafeChain.Models.Inventories.Transfers.InventoryTransferCostAllocation? SourceTransferCostAllocation { get; set; }
+        public virtual CafeChain.Models.Inventories.Transfers.InventoryTransferDiscrepancyPosting? SourceTransferDiscrepancyPosting { get; set; }
     }
 }

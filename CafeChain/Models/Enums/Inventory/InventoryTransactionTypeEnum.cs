@@ -21,6 +21,9 @@ namespace CafeChain.Models.Enums.Inventory
         BRANCH_RECEIPT_IN = 14,
 
         /// <summary>Issue #134 — full-order cash refund stock return (quantity absolute positive).</summary>
-        SALES_RETURN = 15
+        SALES_RETURN = 15,
+
+        /// <summary>SC-02 — source warehouse confirms physical transfer return.</summary>
+        TRANSFER_RETURN_IN = 16
     }
 }

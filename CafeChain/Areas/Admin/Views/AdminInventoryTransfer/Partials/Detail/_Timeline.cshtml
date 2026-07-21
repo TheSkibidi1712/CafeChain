@@ -1,0 +1,31 @@
+@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+
+<section class="transfer-card">
+    <div class="transfer-card-header compact">
+        <div>
+            <span class="section-kicker"><i class="fas fa-clock-rotate-left"></i> Nhật ký xử lý</span>
+            <h2>Receipt và chênh lệch</h2>
+        </div>
+    </div>
+    @if (!Model.Timeline.Any())
+    {
+        <p class="transfer-empty-timeline">Chưa có lần nhận hoặc xử lý chênh lệch.</p>
+    }
+    else
+    {
+        <div class="transfer-timeline">
+            @foreach (var item in Model.Timeline)
+            {
+                <div class="transfer-timeline-item">
+                    <span class="transfer-timeline-dot"></span>
+                    <div>
+                        <strong>@item.EventType</strong>
+                        <span>@item.ItemName · @item.Quantity.ToString("0.###") @item.UnitCode</span>
+                        <small>@item.OccurredAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @(string.IsNullOrWhiteSpace(item.ActorName) ? "Hệ thống" : item.ActorName)</small>
+                        @if (!string.IsNullOrWhiteSpace(item.Reason)) { <p>@item.Reason</p> }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>

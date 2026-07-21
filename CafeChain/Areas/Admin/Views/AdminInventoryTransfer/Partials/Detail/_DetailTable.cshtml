@@ -8,7 +8,7 @@
                 Chi tiết hàng chuyển
             </span>
             <h2>Danh sách nguyên liệu và bán thành phẩm</h2>
-            <p>Snapshot tồn kho trước và sau khi xác nhận phiếu.</p>
+            <p>Số lượng theo nguồn chứng từ dispatch, receipt và ledger chênh lệch.</p>
         </div>
     </div>
 
@@ -19,13 +19,15 @@
                     <th class="col-index">#</th>
                     <th>Hàng hóa</th>
                     <th>ĐVT</th>
-                    <th class="text-end">Số chuyển</th>
-                    <th class="text-end">Quy đổi</th>
-                    <th class="text-end">Nguồn trước</th>
-                    <th class="text-end">Nguồn sau</th>
-                    <th class="text-end">Đích trước</th>
-                    <th class="text-end">Đích sau</th>
-                    <th class="text-end">Đơn giá</th>
+                    <th class="text-end">Yêu cầu</th>
+                    <th class="text-end">Đã xuất</th>
+                    <th class="text-end">Đích nhận</th>
+                    <th class="text-end">Từ chối</th>
+                    <th class="text-end">Hoàn nguồn</th>
+                    <th class="text-end">Mất/hỏng</th>
+                    <th class="text-end">Đóng thiếu</th>
+                    <th class="text-end">Còn xử lý</th>
+                    <th>Trạng thái</th>
                 </tr>
             </thead>
 
@@ -33,7 +35,7 @@
                 @if (!Model.Details.Any())
                 {
                     <tr class="transfer-empty-row">
-                        <td colspan="10">Phiếu chưa có hàng hóa.</td>
+                        <td colspan="12">Phiếu chưa có hàng hóa.</td>
                     </tr>
                 }
                 else
@@ -65,31 +67,39 @@
                             </td>
 
                             <td class="text-end">
-                                @item.Quantity.ToString("0.###")
-                            </td>
-
-                            <td class="text-end">
                                 @item.BaseQuantity.ToString("0.###") @item.BaseUnitCode
                             </td>
 
                             <td class="text-end">
-                                @(item.SourceBeforeQty?.ToString("0.###") ?? "-") @item.BaseUnitCode
+                                @item.DispatchedBaseQuantity.ToString("0.###")
+                            </td>
+
+                            <td class="text-end">
+                                @item.DestinationAccepted.ToString("0.###")
                             </td>
 
                             <td class="text-end transfer-diff-negative">
-                                @(item.SourceAfterQty?.ToString("0.###") ?? "-") @item.BaseUnitCode
+                                @item.DestinationRejected.ToString("0.###")
                             </td>
 
                             <td class="text-end">
-                                @(item.DestinationBeforeQty?.ToString("0.###") ?? "-") @item.BaseUnitCode
+                                @item.ReturnedToSource.ToString("0.###")
                             </td>
 
-                            <td class="text-end transfer-diff-positive">
-                                @(item.DestinationAfterQty?.ToString("0.###") ?? "-") @item.BaseUnitCode
+                            <td class="text-end transfer-diff-negative">
+                                @item.WrittenOff.ToString("0.###")
                             </td>
 
-                            <td class="text-end">
-                                @(item.UnitPrice?.ToString("N0") ?? "0")
+                            <td class="text-end transfer-diff-negative">
+                                @item.ClosedShortage.ToString("0.###")
+                            </td>
+
+                            <td class="text-end @(item.InTransitOpen > 0 ? "transfer-diff-warning" : "transfer-diff-positive")">
+                                <strong>@item.InTransitOpen.ToString("0.###")</strong>
+                            </td>
+
+                            <td>
+                                <span class="transfer-discrepancy-status">@item.DiscrepancyStatus</span>
                             </td>
                         </tr>
 

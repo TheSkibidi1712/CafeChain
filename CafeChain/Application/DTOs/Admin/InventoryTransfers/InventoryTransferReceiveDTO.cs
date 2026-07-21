@@ -13,4 +13,7 @@ public sealed class InventoryTransferReceiveLineDTO
 {
     public int InventoryTransferDetailId { get; set; }
     public decimal ReceivedBaseQuantity { get; set; }
+    public decimal RejectedBaseQuantity { get; set; }
+    public string? RejectionIssueType { get; set; }
+    public string? RejectionReason { get; set; }
 }

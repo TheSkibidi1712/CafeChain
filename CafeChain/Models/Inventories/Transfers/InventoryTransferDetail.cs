@@ -15,6 +15,7 @@ namespace CafeChain.Models.Inventories.Transfers
         public int? RestockRequestId { get; set; }
         public int? RestockRequestFulfillmentId { get; set; }
         public int UnitId { get; set; }
+        public int? ParentInventoryTransferDetailId { get; set; }
 
         public decimal Quantity { get; set; }
         public decimal BaseQuantity { get; set; }
@@ -35,5 +36,8 @@ namespace CafeChain.Models.Inventories.Transfers
         public virtual RestockRequest? RestockRequest { get; set; }
         public virtual RestockRequestFulfillment? RestockRequestFulfillment { get; set; }
         public virtual Unit Unit { get; set; } = null!;
+        public virtual InventoryTransferDetail? ParentInventoryTransferDetail { get; set; }
+        public virtual ICollection<InventoryTransferDetail> FollowUpDetails { get; set; } = [];
+        public virtual ICollection<InventoryTransferDiscrepancyPosting> DiscrepancyPostings { get; set; } = [];
     }
 }

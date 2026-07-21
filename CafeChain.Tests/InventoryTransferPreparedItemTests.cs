@@ -191,7 +191,7 @@ public sealed class InventoryTransferPreparedItemTests
         user.SetupGet(x => x.StaffId).Returns(7);
         var actor = new Mock<IAdminActorContextAccessor>();
         actor.Setup(x => x.Get(It.IsAny<System.Security.Claims.ClaimsPrincipal>()))
-            .Returns(new AdminActorContext { StaffId = 7 });
+            .Returns(new AdminActorContext { StaffId = 7, RoleNames = [RoleConstants.BusinessOwner] });
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(7, It.IsAny<int>())).ReturnsAsync(true);
         var allocations = new Mock<IRestockAllocationService>();

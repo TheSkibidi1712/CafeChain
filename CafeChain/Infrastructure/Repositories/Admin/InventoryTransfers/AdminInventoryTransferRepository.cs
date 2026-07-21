@@ -80,6 +80,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                 .Include(x => x.CreatedByStaff)
                 .Include(x => x.ConfirmedByStaff)
                 .Include(x => x.CancelledByStaff)
+                .Include(x => x.ParentInventoryTransfer)
                 .FirstOrDefaultAsync(x => x.InventoryTransferId == id);
         }
 
@@ -444,6 +445,36 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                 .ToListAsync();
         }
 
+        public async Task<List<InventoryTransferDiscrepancyPosting>> GetTransferDiscrepancyPostingsAsync(
+            IEnumerable<int> detailIds)
+        {
+            var ids = detailIds.Distinct().ToList();
+            return await _context.InventoryTransferDiscrepancyPostings
+                .Where(x => ids.Contains(x.InventoryTransferDetailId))
+                .Include(x => x.ActorStaff)
+                .OrderBy(x => x.CreatedAt)
+                .ThenBy(x => x.InventoryTransferDiscrepancyPostingId)
+                .ToListAsync();
+        }
+
+        public async Task AddTransferDiscrepancyPostingsAsync(
+            IEnumerable<InventoryTransferDiscrepancyPosting> postings)
+        {
+            await _context.InventoryTransferDiscrepancyPostings.AddRangeAsync(postings);
+        }
+
+        public async Task<List<BranchReceiptLine>> GetTransferReceiptLinesAsync(int transferId)
+        {
+            return await _context.BranchReceiptLines
+                .AsNoTracking()
+                .Include(x => x.BranchReceipt)
+                    .ThenInclude(x => x.ConfirmedByStaff)
+                .Where(x => x.BranchReceipt.SourceInventoryTransferId == transferId)
+                .OrderBy(x => x.BranchReceipt.ConfirmedAt)
+                .ThenBy(x => x.BranchReceiptLineId)
+                .ToListAsync();
+        }
+
         public async Task AddBranchReceiptAsync(BranchReceipt receipt)
         {
             await _context.BranchReceipts.AddAsync(receipt);
@@ -523,6 +554,18 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                     x.ToStoreId == storeId
                     && x.Status == InventoryTransferStatus.DRAFT)
                 .OrderByDescending(x => x.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<List<InventoryTransfer>> GetLegacyDispatchedTransfersAsync()
+        {
+            return await _context.InventoryTransfers
+                .AsNoTracking()
+                .Include(x => x.Details).ThenInclude(x => x.Ingredient)
+                .Include(x => x.Details).ThenInclude(x => x.PreparedItem)
+                .Where(x => x.Status == InventoryTransferStatus.DISPATCHED
+                    && x.Details.Any(d => d.DispatchedBaseQuantity > d.ReceivedBaseQuantity))
+                .OrderBy(x => x.InventoryTransferId)
                 .ToListAsync();
         }
     }

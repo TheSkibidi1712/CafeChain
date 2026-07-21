@@ -13,6 +13,10 @@
         @await Html.PartialAsync("Partials/Detail/_GeneralInfo", Model)
         @await Html.PartialAsync("Partials/Detail/_StoreFlow", Model)
         @await Html.PartialAsync("Partials/Detail/_DetailTable", Model)
+        @await Html.PartialAsync("Partials/Detail/_ResolutionPanel", Model)
+        @await Html.PartialAsync("Partials/Detail/_Timeline", Model)
         @await Html.PartialAsync("Partials/Detail/_Note", Model)
     </main>
 </div>
+
+<script src="~/js/Admin/InventoryTransfer/inventorytransfer-detail.js" asp-append-version="true"></script>

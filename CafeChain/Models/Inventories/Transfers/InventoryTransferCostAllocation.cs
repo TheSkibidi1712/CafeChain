@@ -16,4 +16,5 @@ public class InventoryTransferCostAllocation
 
     public virtual InventoryTransferDetail InventoryTransferDetail { get; set; } = null!;
     public virtual InventoryCostLayer SourceInventoryCostLayer { get; set; } = null!;
+    public virtual ICollection<InventoryTransferDiscrepancyPosting> DiscrepancyPostings { get; set; } = [];
 }

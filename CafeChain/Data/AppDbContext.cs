@@ -124,6 +124,7 @@ namespace CafeChain.Data
         public DbSet<InventoryNegativeApproval> InventoryNegativeApprovals { get; set; }
         public DbSet<InventoryNegativeApprovalLine> InventoryNegativeApprovalLines { get; set; }
         public DbSet<InventoryTransferCostAllocation> InventoryTransferCostAllocations { get; set; }
+        public DbSet<InventoryTransferDiscrepancyPosting> InventoryTransferDiscrepancyPostings { get; set; }
 
         // Issue #134 — full-order cash refund
         public DbSet<CafeChain.Models.Inventories.Refunds.OrderRefund> OrderRefunds { get; set; }

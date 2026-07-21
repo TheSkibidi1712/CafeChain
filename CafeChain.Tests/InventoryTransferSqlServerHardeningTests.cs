@@ -339,7 +339,7 @@ public sealed class InventoryTransferSqlServerHardeningTests : IAsyncLifetime
             .ReturnsAsync(ServiceResult<StockAlertEvaluationResultDto>.Success(new()));
         var actor = new Mock<IAdminActorContextAccessor>();
         actor.Setup(x => x.Get(It.IsAny<System.Security.Claims.ClaimsPrincipal>()))
-            .Returns(new AdminActorContext { StaffId = _staffId });
+            .Returns(new AdminActorContext { StaffId = _staffId, RoleNames = [RoleConstants.BusinessOwner] });
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(_staffId, It.IsAny<int>())).ReturnsAsync(true);
         var allocations = new Mock<IRestockAllocationService>();

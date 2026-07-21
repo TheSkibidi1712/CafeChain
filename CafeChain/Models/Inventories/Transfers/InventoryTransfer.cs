@@ -30,6 +30,7 @@ namespace CafeChain.Models.Inventories.Transfers
         public DateTime CreatedAt { get; set; }
 
         public string? Note { get; set; }
+        public int? ParentInventoryTransferId { get; set; }
         public byte[] RowVersion { get; set; } = [];
 
         public virtual Store FromStore { get; set; }
@@ -37,6 +38,8 @@ namespace CafeChain.Models.Inventories.Transfers
         public virtual Staff CreatedByStaff { get; set; }
         public virtual Staff? ConfirmedByStaff { get; set; }
         public virtual Staff? CancelledByStaff { get; set; }
+        public virtual InventoryTransfer? ParentInventoryTransfer { get; set; }
+        public virtual ICollection<InventoryTransfer> FollowUpTransfers { get; set; } = new List<InventoryTransfer>();
         public virtual ICollection<InventoryTransferDetail> Details { get; set; } = new List<InventoryTransferDetail>();
     }
 }

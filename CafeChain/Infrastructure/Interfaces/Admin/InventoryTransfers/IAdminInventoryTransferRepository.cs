@@ -78,6 +78,9 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
         Task AddCostLayerAsync(InventoryCostLayer layer);
         Task AddTransferCostAllocationsAsync(IEnumerable<InventoryTransferCostAllocation> allocations);
         Task<List<InventoryTransferCostAllocation>> GetTransferCostAllocationsAsync(IEnumerable<int> detailIds);
+        Task<List<InventoryTransferDiscrepancyPosting>> GetTransferDiscrepancyPostingsAsync(IEnumerable<int> detailIds);
+        Task AddTransferDiscrepancyPostingsAsync(IEnumerable<InventoryTransferDiscrepancyPosting> postings);
+        Task<List<BranchReceiptLine>> GetTransferReceiptLinesAsync(int transferId);
         Task AddBranchReceiptAsync(BranchReceipt receipt);
         Task<List<InventoryNegativeCostGap>> GetOpenCostGapsForUpdateAsync(int storeInventoryId);
         Task AddCostGapSettlementsAsync(IEnumerable<InventoryCostGapSettlement> settlements);
@@ -93,5 +96,6 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
         Task<string> GenerateTransferCodeAsync();
 
         Task<List<InventoryTransfer>> GetPendingTransfersToStoreAsync(int storeId);
+        Task<List<InventoryTransfer>> GetLegacyDispatchedTransfersAsync();
     }
 }

@@ -77,6 +77,11 @@ namespace CafeChain.Data.Configurations.Inventories.Costing
                 .HasForeignKey(x => x.SourceTransferCostAllocationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.SourceTransferDiscrepancyPosting)
+                .WithMany(x => x.ReturnCostLayers)
+                .HasForeignKey(x => x.SourceTransferDiscrepancyPostingId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= INDEX =================
 
             entity.HasIndex(x => x.IngredientId);
@@ -134,6 +139,11 @@ namespace CafeChain.Data.Configurations.Inventories.Costing
 
             entity.HasIndex(x => x.SourceTransferCostAllocationId)
                 .HasFilter("[SourceTransferCostAllocationId] IS NOT NULL");
+
+            entity.HasIndex(x => x.SourceTransferDiscrepancyPostingId)
+                .IsUnique()
+                .HasFilter("[SourceTransferDiscrepancyPostingId] IS NOT NULL")
+                .HasDatabaseName("UX_InventoryCostLayers_TransferReturnPosting");
         }
     }
 }

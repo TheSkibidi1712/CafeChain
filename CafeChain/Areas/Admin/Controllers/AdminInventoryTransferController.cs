@@ -260,7 +260,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var current = await _service.GetDetailAsync(id);
             if (current == null)
                 return NotFound();
-            if (!await CanMutateStoreAsync(current.ToStoreId))
+            if (!await CanOperateStoreAsync(current.ToStoreId))
                 return Forbid();
 
             try
@@ -279,6 +279,65 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 return ResourceChangedFailure();
             }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RequestReturn(int id, [FromBody] InventoryTransferResolutionDTO dto)
+        {
+            var current = await _service.GetDetailAsync(id);
+            if (current == null)
+                return NotFound();
+            if (!await CanOperateStoreAsync(current.ToStoreId))
+                return Forbid();
+            return await ExecuteMutationAsync(
+                () => _service.RequestReturnAsync(id, dto),
+                "Không thể tạo yêu cầu hoàn trả.");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ConfirmReturn(int id, [FromBody] InventoryTransferResolutionDTO dto)
+        {
+            var current = await _service.GetDetailAsync(id);
+            if (current == null)
+                return NotFound();
+            if (!await CanOperateStoreAsync(current.FromStoreId))
+                return Forbid();
+            return await ExecuteMutationAsync(
+                () => _service.ConfirmReturnAsync(id, dto),
+                "Không thể xác nhận hàng hoàn trả.");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ResolveShortage(int id, [FromBody] InventoryTransferResolutionDTO dto)
+        {
+            if (!User.IsInRole(RoleConstants.BusinessOwner))
+                return Forbid();
+            return await ExecuteMutationAsync(
+                () => _service.ResolveShortageAsync(id, dto),
+                "Không thể đóng phần thiếu.");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateFollowUp(int id, [FromBody] InventoryTransferFollowUpDTO dto)
+        {
+            if (!CanMutateTransfers())
+                return Forbid();
+            return await ExecuteMutationAsync(
+                () => _service.CreateFollowUpAsync(id, dto),
+                "Không thể tạo phiếu gửi bù.");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DiscrepancyDryRun()
+        {
+            if (!CanMutateTransfers())
+                return Forbid();
+            return Json(new
+            {
+                success = true,
+                dryRun = true,
+                rows = await _service.GetDiscrepancyDryRunAsync()
+            });
         }
 
         [HttpPost]
@@ -413,6 +472,20 @@ namespace CafeChain.Areas.Admin.Controllers
             return await _scopeAuthorization.CanAccessStoreAsync(context.StaffId, storeId);
         }
 
+        private async Task<bool> CanOperateStoreAsync(int storeId)
+        {
+            if (storeId <= 0)
+                return false;
+            if (User.IsInRole(RoleConstants.BusinessOwner)
+                || User.IsInRole(RoleConstants.AccountantWarehouse))
+                return true;
+            if (!User.IsInRole(RoleConstants.StoreManager)
+                && !User.IsInRole(RoleConstants.ShiftSupervisor))
+                return false;
+            var context = _actor.Get(User);
+            return await _scopeAuthorization.CanAccessStoreAsync(context.StaffId, storeId);
+        }
+
         private async Task<bool> CanMutateTransferAsync(int fromStoreId, int toStoreId) =>
             fromStoreId > 0
             && toStoreId > 0
@@ -472,5 +545,32 @@ namespace CafeChain.Areas.Admin.Controllers
                 message = "Dữ liệu đã được người khác cập nhật. Vui lòng tải lại.",
                 traceId = HttpContext.TraceIdentifier
             });
+
+        private async Task<IActionResult> ExecuteMutationAsync(
+            Func<Task<InventoryTransferMutationResultDTO>> mutation,
+            string fallbackMessage)
+        {
+            try
+            {
+                return Json(new { success = true, transfer = await mutation() });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return MutationFailure(ex);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return ResourceChangedFailure();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Inventory transfer discrepancy mutation failed.");
+                return BadRequest(new { success = false, message = fallbackMessage });
+            }
+        }
     }
 }

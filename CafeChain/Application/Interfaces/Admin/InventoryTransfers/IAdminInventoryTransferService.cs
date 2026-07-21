@@ -27,6 +27,16 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryTransfers
 
         Task<InventoryTransferMutationResultDTO> ReceiveAsync(int id, InventoryTransferReceiveDTO dto);
 
+        Task<InventoryTransferMutationResultDTO> RequestReturnAsync(int id, InventoryTransferResolutionDTO dto);
+
+        Task<InventoryTransferMutationResultDTO> ConfirmReturnAsync(int id, InventoryTransferResolutionDTO dto);
+
+        Task<InventoryTransferMutationResultDTO> ResolveShortageAsync(int id, InventoryTransferResolutionDTO dto);
+
+        Task<InventoryTransferMutationResultDTO> CreateFollowUpAsync(int id, InventoryTransferFollowUpDTO dto);
+
+        Task<List<InventoryTransferDiscrepancyDryRunRowDTO>> GetDiscrepancyDryRunAsync();
+
         Task<bool> CancelAsync(int id, string? requestKey);
 
         Task<List<InventoryStockWarningDTO>> ValidateStockAsync(InventoryTransferMutationDTO dto);

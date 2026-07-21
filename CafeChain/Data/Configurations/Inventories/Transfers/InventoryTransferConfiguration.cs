@@ -74,6 +74,11 @@ namespace CafeChain.Data.Configurations.Inventories.Transfers
                 .HasForeignKey(x => x.CancelledByStaffId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.ParentInventoryTransfer)
+                .WithMany(x => x.FollowUpTransfers)
+                .HasForeignKey(x => x.ParentInventoryTransferId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasMany(x => x.Details)
                 .WithOne(x => x.InventoryTransfer)
                 .HasForeignKey(x => x.InventoryTransferId)
@@ -93,6 +98,7 @@ namespace CafeChain.Data.Configurations.Inventories.Transfers
             entity.HasIndex(x => new { x.FromStoreId, x.Status });
             entity.HasIndex(x => new { x.ToStoreId, x.Status });
             entity.HasIndex(x => new { x.CreatedByStaffId, x.CreatedAt });
+            entity.HasIndex(x => x.ParentInventoryTransferId);
         }
     }
 }
