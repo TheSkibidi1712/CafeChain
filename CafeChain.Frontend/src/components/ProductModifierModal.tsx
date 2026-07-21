@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { MenuItem, MenuItemSize, ToppingOption } from '../db/CafeChainPOSDB'
 
 export type { MenuItem, ToppingOption }
@@ -28,6 +28,7 @@ export default function ProductModifierModal({
   menuItem,
   onConfirm,
 }: ProductModifierModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
   const buildDefaultToppings = (selectedSize: MenuItemSize | null) => {
     const policies = selectedSize?.toppingPolicies ?? []
     return (menuItem?.availableToppings ?? [])
@@ -55,6 +56,42 @@ export default function ProductModifierModal({
   const [selectedToppings, setSelectedToppings] = useState<ToppingOption[]>(
     () => buildDefaultToppings(initialSize)
   )
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const previousFocus = document.activeElement as HTMLElement | null
+    const focusableSelector = 'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    const dialog = dialogRef.current
+    dialog?.querySelector<HTMLElement>(focusableSelector)?.focus()
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab' || !dialog) return
+
+      const items = Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector))
+      if (items.length === 0) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      previousFocus?.focus()
+    }
+  }, [isOpen, onClose])
 
   if (!isOpen || !menuItem) return null
 
@@ -108,31 +145,38 @@ export default function ProductModifierModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center select-none">
+    <div className="pos-dialog-backdrop fixed inset-0 z-50 flex items-center justify-center select-none">
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0"
         onClick={onClose}
+        aria-hidden="true"
       />
 
-      <div className="relative bg-surface-white w-full max-w-md rounded-2xl shadow-xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-        <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-surface-white">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modifier-dialog-title"
+        className="pos-adaptive-dialog relative bg-surface-white w-full max-w-xl rounded-2xl shadow-xl border border-border overflow-hidden flex flex-col"
+      >
+        <div className="px-5 py-4 border-b border-border flex justify-between items-center bg-surface-white">
           <div>
-            <h2 className="text-sm font-bold text-text-primary">Tùy biến món nước</h2>
-            <p className="text-[11px] font-semibold text-brand-orange mt-0.5">{menuItem.name}</p>
+            <h2 id="modifier-dialog-title" className="text-lg font-extrabold text-text-primary">Tùy chỉnh món</h2>
+            <p className="text-sm font-semibold text-brand-orange mt-0.5">{menuItem.name}</p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full border border-border text-text-secondary hover:bg-surface-hover flex items-center justify-center cursor-pointer transition-colors"
+            className="pos-touch-target rounded-lg border border-border text-xl text-text-secondary hover:bg-surface-hover flex items-center justify-center cursor-pointer transition-colors"
             aria-label="Đóng"
           >
-            x
+            ×
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto space-y-5 flex-1 bg-surface-white">
+        <div className="p-5 overflow-y-auto space-y-5 flex-1 min-h-0 bg-surface-white">
           {sizes.length > 0 && (
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+              <label className="block text-sm font-bold text-text-secondary">
                 Kích cỡ
               </label>
               <div className="grid grid-cols-3 gap-2.5">
@@ -143,7 +187,7 @@ export default function ProductModifierModal({
                     onClick={() => handleSizeChange(option)}
                     disabled={!option.isAvailable}
                     title={option.isAvailable ? option.sizeName : (option.availabilityReason ?? 'Tạm hết hàng')}
-                    className={`py-2.5 rounded-xl text-xs font-bold border cursor-pointer transition-all ${
+                    className={`min-h-14 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
                       !option.isAvailable
                         ? 'bg-surface-muted border-border text-text-muted opacity-60 cursor-not-allowed'
                         :
@@ -153,11 +197,11 @@ export default function ProductModifierModal({
                     }`}
                   >
                     {option.sizeName}
-                    <span className="block text-[10px] font-semibold mt-0.5">
+                    <span className="block text-xs font-semibold mt-0.5 tabular-nums">
                       {formatVND(option.price)}
                     </span>
                     {!option.isAvailable && (
-                      <span className="block text-[9px] font-semibold mt-1">
+                      <span className="block text-xs font-semibold mt-1">
                         {option.availabilityReason ?? 'Tạm hết hàng'}
                       </span>
                     )}
@@ -168,7 +212,7 @@ export default function ProductModifierModal({
           )}
 
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+            <label className="block text-sm font-bold text-text-secondary">
               Mức đá
             </label>
             <div className="grid grid-cols-3 gap-2.5">
@@ -177,7 +221,7 @@ export default function ProductModifierModal({
                   key={option}
                   type="button"
                   onClick={() => setIce(option)}
-                  className={`py-2.5 rounded-xl text-xs font-bold border cursor-pointer transition-all ${
+                  className={`min-h-12 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
                     ice === option
                       ? 'bg-brand-orange text-white border-brand-orange shadow-[var(--shadow-button)]'
                       : 'bg-surface border-border text-text-primary hover:bg-brand-orange-light hover:text-brand-orange hover:border-brand-orange-border'
@@ -190,7 +234,7 @@ export default function ProductModifierModal({
           </div>
 
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+            <label className="block text-sm font-bold text-text-secondary">
               Mức đường
             </label>
             <div className="grid grid-cols-3 gap-2.5">
@@ -199,7 +243,7 @@ export default function ProductModifierModal({
                   key={option}
                   type="button"
                   onClick={() => setSugar(option)}
-                  className={`py-2.5 rounded-xl text-xs font-bold border cursor-pointer transition-all ${
+                  className={`min-h-12 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
                     sugar === option
                       ? 'bg-brand-orange text-white border-brand-orange shadow-[var(--shadow-button)]'
                       : 'bg-surface border-border text-text-primary hover:bg-brand-orange-light hover:text-brand-orange hover:border-brand-orange-border'
@@ -213,7 +257,7 @@ export default function ProductModifierModal({
 
           {toppings.length > 0 && (
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+              <label className="block text-sm font-bold text-text-secondary">
                 Topping
               </label>
               <div className="divide-y divide-border border border-border rounded-xl overflow-hidden bg-surface">
@@ -228,7 +272,7 @@ export default function ProductModifierModal({
                   return (
                     <label
                       key={topping.id}
-                      className={`flex items-center justify-between p-3 cursor-pointer transition-colors ${
+                      className={`min-h-14 flex items-center justify-between p-3 cursor-pointer transition-colors ${
                         isSelected ? 'bg-brand-orange-light' : 'hover:bg-surface-hover'
                       }`}
                     >
@@ -238,16 +282,16 @@ export default function ProductModifierModal({
                           checked={isSelected}
                           onChange={() => handleToppingToggle(topping)}
                           disabled={isRequired}
-                          className="w-4 h-4 rounded text-brand-orange accent-brand-orange focus:ring-brand-orange cursor-pointer"
+                          className="w-5 h-5 rounded text-brand-orange accent-brand-orange focus:ring-brand-orange cursor-pointer"
                         />
-                        <span className="text-xs font-semibold text-text-primary">
+                        <span className="text-sm font-semibold text-text-primary">
                           {topping.name}
                         </span>
                         {isRequired && (
-                          <span className="text-[9px] font-bold text-brand-orange">Bắt buộc</span>
+                          <span className="text-xs font-bold text-brand-orange">Bắt buộc</span>
                         )}
                       </div>
-                      <span className="text-xs font-bold text-brand-orange">
+                      <span className="text-sm font-bold text-brand-orange tabular-nums">
                         {acceptedPrice === 0 ? 'Đã gồm' : `+${formatVND(acceptedPrice)}`}
                       </span>
                     </label>
@@ -258,12 +302,12 @@ export default function ProductModifierModal({
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-border bg-surface flex items-center justify-between">
+        <div className="shrink-0 px-5 py-4 border-t border-border bg-surface flex items-center justify-between gap-4">
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">
+            <span className="text-xs font-bold text-text-secondary">
               Tổng tạm tính
             </span>
-            <span className="text-sm font-extrabold text-brand-orange">
+            <span className="text-xl font-extrabold text-brand-orange tabular-nums">
               {formatVND(totalPrice)}
             </span>
           </div>
@@ -271,13 +315,13 @@ export default function ProductModifierModal({
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-brand-orange text-brand-orange bg-surface-white text-xs font-bold cursor-pointer hover:bg-brand-orange-light active:scale-95 transition-all"
+              className="pos-touch-target px-4 py-2 rounded-lg border border-brand-orange text-brand-orange bg-surface-white text-sm font-bold cursor-pointer hover:bg-brand-orange-light active:scale-95 transition-all"
             >
               Hủy
             </button>
             <button
               onClick={handleConfirm}
-              className="px-4 py-2 rounded-lg bg-brand-orange text-white text-xs font-bold cursor-pointer hover:bg-brand-orange-hover shadow-[var(--shadow-button)] active:scale-95 transition-all"
+              className="min-h-12 px-5 py-2 rounded-lg bg-brand-orange text-white text-sm font-bold cursor-pointer hover:bg-brand-orange-hover shadow-[var(--shadow-button)] active:scale-95 transition-all"
             >
               Xác nhận
             </button>
