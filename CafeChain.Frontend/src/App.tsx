@@ -10,7 +10,13 @@ import PrinterStatusSimulator from './components/dev/PrinterStatusSimulator'
 
 function RootLayout() {
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-surface font-sans">
+    <div className="pos-app-frame w-full flex flex-col overflow-hidden bg-surface font-sans">
+      <a
+        href="#pos-main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[80] focus:rounded-lg focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-bold focus:text-brand-orange"
+      >
+        Bỏ qua điều hướng
+      </a>
       <TopNavbar />
       <div className="flex-1 overflow-hidden">
         <Outlet />

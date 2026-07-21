@@ -158,7 +158,7 @@ export function usePrinterStatus(storeId: number = 1) {
         title: 'Mất kết nối máy in!',
         text: 'Ứng dụng không thể kết nối tới máy in hóa đơn. Vui lòng kiểm tra lại thiết bị hoặc kết nối LAN.',
         icon: 'error',
-        confirmButtonColor: '#EA580C', // Brand Orange Color
+        confirmButtonColor: 'var(--pos-primary)',
         confirmButtonText: 'Đóng'
       })
     }
