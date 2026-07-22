@@ -92,6 +92,32 @@ public sealed class POSResponsiveRedesignTests
     }
 
     [Fact]
+    public void ProductOptionsAndCart_UseSingleTouchSheetWithEditableLineState()
+    {
+        var layout = ReadFrontend("src", "POSLayout.tsx");
+        var modifier = ReadFrontend("src", "components", "ProductModifierModal.tsx");
+        var cartLine = ReadFrontend("src", "components", "pos", "CartLine.tsx");
+        var css = ReadFrontend("src", "index.css");
+
+        Assert.Contains("pos-option-sheet-backdrop", modifier);
+        Assert.Contains("pos-option-sheet", modifier);
+        Assert.Contains("Ghi chú cho quầy pha chế", modifier);
+        Assert.Contains("Cập nhật món", modifier);
+        Assert.Contains("quantity", modifier);
+        Assert.Contains("aria-pressed={isSelected}", modifier);
+        Assert.DoesNotContain("type=\"checkbox\"", modifier);
+        Assert.Contains("<CartLine", layout);
+        Assert.Contains("requiresProductOptions", layout);
+        Assert.Contains("handleProductSelection", layout);
+        Assert.Contains("editCartLine", layout);
+        Assert.Contains("editingCartId", layout);
+        Assert.Contains("Tác vụ", cartLine);
+        Assert.Contains("Sửa món", cartLine);
+        Assert.Contains("Xóa món", cartLine);
+        Assert.Contains(".pos-option-sheet", css);
+    }
+
+    [Fact]
     public void PosScope_DoesNotReintroduceLegacyOrangePalette()
     {
         var files = new[]

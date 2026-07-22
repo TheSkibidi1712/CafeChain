@@ -446,6 +446,16 @@ a {
   box-shadow: 0 -8px 24px rgb(74 53 38 / 6%);
 }
 
+.pos-cart-line-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pos-cart-line-more[open] > summary {
+  border-color: var(--pos-primary-border);
+  background: var(--pos-primary-soft);
+  color: var(--pos-primary);
+}
+
 .pos-touch-target {
   min-width: 44px;
   min-height: 44px;
@@ -464,6 +474,27 @@ a {
 
 .pos-adaptive-dialog {
   max-height: min(90dvh, 820px);
+}
+
+.pos-option-sheet-backdrop {
+  padding-left: max(16px, env(safe-area-inset-left));
+  background: var(--pos-overlay);
+}
+
+.pos-option-sheet-backdrop > button {
+  border: 0;
+  background: transparent;
+}
+
+.pos-option-sheet {
+  width: min(520px, 100%);
+  max-width: 100%;
+  padding-right: env(safe-area-inset-right);
+}
+
+.pos-option-sheet-body {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 @media (max-width: 1199px) {
@@ -643,6 +674,21 @@ a {
   .pos-dialog-backdrop {
     align-items: flex-end;
     padding: env(safe-area-inset-top) 0 0;
+  }
+
+  .pos-option-sheet-backdrop {
+    align-items: flex-end;
+    padding: env(safe-area-inset-top) 0 0;
+  }
+
+  .pos-option-sheet {
+    width: 100%;
+    height: min(88dvh, 760px);
+    margin-top: auto;
+    padding-right: 0;
+    border-top: 1px solid var(--pos-border);
+    border-left: 0;
+    border-radius: 16px 16px 0 0;
   }
 }
 

@@ -19,6 +19,7 @@ import ProductModifierModal, {
   type ToppingOption,
   type MenuItem,
 } from './components/ProductModifierModal'
+import CartLine from './components/pos/CartLine'
 import SellingHeader from './components/pos/SellingHeader'
 import type { CartSyncQueueItem } from './db/CafeChainPOSDB'
 
@@ -36,9 +37,19 @@ interface CartItem {
   quantity: number
   sizeId?: number | null
   sizeName?: string
+  ice: '0%' | '50%' | '100%'
+  sugar: '0%' | '50%' | '100%'
+  customerNote: string
   note: string
   selectedToppings: ToppingOption[]
+  optionSummary: string
   detailText: string
+}
+
+interface ActiveModifier {
+  item: MenuItem
+  editingCartId?: string
+  initialSelection?: ModifierSelection
 }
 
 interface ShiftSummary {
@@ -117,6 +128,10 @@ const formatVND = (amount: number): string =>
 
 const getUnavailableReason = (item: MenuItem): string =>
   item.availabilityReason?.trim() || 'Tạm hết hàng'
+
+const requiresProductOptions = (item: MenuItem): boolean =>
+  (item.sizes?.filter((size) => size.isAvailable).length ?? 0) > 1
+  || (item.availableToppings?.length ?? 0) > 0
 
 const applyToppingPolicy = (
   topping: ToppingOption,
@@ -213,7 +228,7 @@ export default function POSLayout() {
   const [orderType, setOrderType] = useState<'dine-in' | 'take-away'>('dine-in')
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
-  const [activeItemForModifiers, setActiveItemForModifiers] = useState<MenuItem | null>(null)
+  const [activeModifier, setActiveModifier] = useState<ActiveModifier | null>(null)
   const [shift, setShift] = useState<ShiftSummary | null>(null)
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null)
   const [pendingCashInput, setPendingCashInput] = useState('')
@@ -358,7 +373,7 @@ export default function POSLayout() {
   }, [])
 
   const closeModifierModal = useCallback(() => {
-    setActiveItemForModifiers(null)
+    setActiveModifier(null)
   }, [])
 
   const changeOrderType = useCallback((nextOrderType: 'dine-in' | 'take-away') => {
@@ -377,7 +392,11 @@ export default function POSLayout() {
     return () => window.removeEventListener('keydown', closeCartOnEscape)
   }, [])
 
-  const addToCartWithModifiers = (item: MenuItem, selection: ModifierSelection) => {
+  const applyModifierSelection = (
+    item: MenuItem,
+    selection: ModifierSelection,
+    editingCartId?: string
+  ) => {
     if (isCartLocked) {
       showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
       return
@@ -394,43 +413,62 @@ export default function POSLayout() {
       .sort((a, b) => a - b)
       .join(',')
     const sizeKey = selection.size?.sizeId ?? 'default'
-    const cartId = `${item.id}-${sizeKey}-${selection.ice}-${selection.sugar}-${toppingKey}`
+    const noteKey = encodeURIComponent(selection.customerNote.trim().toLocaleLowerCase('vi-VN'))
+    const cartId = `${item.id}-${sizeKey}-${selection.ice}-${selection.sugar}-${toppingKey}-${noteKey}`
     const toppingNames = selection.selectedToppings.map((topping) => topping.name).join(', ')
-    const detailText = [
+    const optionSummary = [
       selection.size ? `Size ${selection.size.sizeName}` : '',
-      selection.note,
+      `Đá ${selection.ice}`,
+      `Đường ${selection.sugar}`,
       toppingNames ? `+${toppingNames}` : '',
     ].filter(Boolean).join(', ')
+    const detailText = [optionSummary, selection.customerNote].filter(Boolean).join('. ')
+
+    const nextLine: CartItem = {
+      id: item.id,
+      cartId,
+      name: item.name,
+      price: selection.totalPrice,
+      acceptedBasePrice: selectedSize.price,
+      storeMenuItemId: selectedSize.storeMenuItemId,
+      drinkSizeId: selectedSize.drinkSizeId,
+      priceSource: selectedSize.priceSource,
+      catalogVersion: item.catalogVersion,
+      categoryId: item.categoryId,
+      quantity: selection.quantity,
+      sizeId: selection.size?.sizeId ?? null,
+      sizeName: selection.size?.sizeName,
+      ice: selection.ice,
+      sugar: selection.sugar,
+      customerNote: selection.customerNote,
+      note: selection.note,
+      selectedToppings: selection.selectedToppings,
+      optionSummary,
+      detailText,
+    }
 
     setCart((prev) => {
+      if (editingCartId) {
+        const collision = prev.find((line) => line.cartId === cartId && line.cartId !== editingCartId)
+        if (collision) {
+          return prev
+            .filter((line) => line.cartId !== editingCartId)
+            .map((line) => line.cartId === cartId
+              ? { ...line, quantity: line.quantity + selection.quantity }
+              : line)
+        }
+
+        return prev.map((line) => line.cartId === editingCartId ? nextLine : line)
+      }
+
       const existing = prev.find((ci) => ci.cartId === cartId)
       if (existing) {
         return prev.map((ci) =>
-          ci.cartId === cartId ? { ...ci, quantity: ci.quantity + 1 } : ci
+          ci.cartId === cartId ? { ...ci, quantity: ci.quantity + selection.quantity } : ci
         )
       }
 
-      return [
-        ...prev,
-        {
-          id: item.id,
-          cartId,
-          name: item.name,
-          price: selection.totalPrice,
-          acceptedBasePrice: selectedSize.price,
-          storeMenuItemId: selectedSize.storeMenuItemId,
-          drinkSizeId: selectedSize.drinkSizeId,
-          priceSource: selectedSize.priceSource,
-          catalogVersion: item.catalogVersion,
-          categoryId: item.categoryId,
-          quantity: 1,
-          sizeId: selection.size?.sizeId ?? null,
-          sizeName: selection.size?.sizeName,
-          note: selection.note,
-          selectedToppings: selection.selectedToppings,
-          detailText,
-        },
-      ]
+      return [...prev, nextLine]
     })
   }
 
@@ -455,13 +493,72 @@ export default function POSLayout() {
       (sum, topping) => sum + (topping.acceptedPrice ?? topping.price),
       0
     )
-    addToCartWithModifiers(item, {
+    applyModifierSelection(item, {
       size: defaultSize,
       ice: '100%',
       sugar: '100%',
       selectedToppings: defaultToppings,
+      quantity: 1,
+      customerNote: '',
       totalPrice: defaultSize.price + toppingTotal,
       note: 'Đá 100%, Đường 100%',
+    })
+  }
+
+  const handleProductSelection = (item: MenuItem) => {
+    if (isCartLocked) {
+      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+      return
+    }
+
+    if (item.isAvailable === false) {
+      showMessage(`Không thể thêm món: ${getUnavailableReason(item)}.`)
+      return
+    }
+
+    if (requiresProductOptions(item)) {
+      setActiveModifier({ item })
+      return
+    }
+
+    handleQuickAdd(item)
+  }
+
+  const editCartLine = (line: CartItem) => {
+    if (isCartLocked) {
+      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+      return
+    }
+
+    const item = menuItems.find((menuItem) => menuItem.id === line.id)
+    const size = item?.sizes?.find((option) => option.drinkSizeId === line.drinkSizeId) ?? null
+    if (!item || !size?.isAvailable) {
+      showMessage('Món hoặc size này không còn khả dụng. Hãy cập nhật lại giỏ trước khi sửa.')
+      return
+    }
+
+    const selectedToppings = line.selectedToppings
+      .map((selected) => item.availableToppings?.find((topping) => topping.id === selected.id))
+      .filter((topping): topping is ToppingOption => Boolean(topping))
+      .map((topping) => applyToppingPolicy(topping, size))
+    const toppingTotal = selectedToppings.reduce(
+      (sum, topping) => sum + (topping.acceptedPrice ?? topping.price),
+      0
+    )
+
+    setActiveModifier({
+      item,
+      editingCartId: line.cartId,
+      initialSelection: {
+        size,
+        ice: line.ice,
+        sugar: line.sugar,
+        selectedToppings,
+        quantity: line.quantity,
+        customerNote: line.customerNote,
+        totalPrice: size.price + toppingTotal,
+        note: line.note,
+      },
     })
   }
 
@@ -550,11 +647,17 @@ export default function POSLayout() {
         sizeId: currentSize.sizeId,
         sizeName: currentSize.sizeName,
         selectedToppings: merged,
-        detailText: [
+        optionSummary: [
           `Size ${currentSize.sizeName}`,
-          line.note,
+          `Đá ${line.ice}`,
+          `Đường ${line.sugar}`,
           toppingNames ? `+${toppingNames}` : '',
         ].filter(Boolean).join(', '),
+        detailText: [
+          `Size ${currentSize.sizeName}, Đá ${line.ice}, Đường ${line.sugar}`,
+          toppingNames ? `+${toppingNames}` : '',
+          line.customerNote,
+        ].filter(Boolean).join('. '),
       }
     })
 
@@ -1342,22 +1445,27 @@ export default function POSLayout() {
                 const isUnavailable = item.isAvailable === false
                 const isProductLocked = isCartLocked || isUnavailable
                 const unavailableReason = isUnavailable ? getUnavailableReason(item) : ''
+                const requiresOptions = requiresProductOptions(item)
                 return (
                   <article
                     key={item.id}
-                    onClick={() => handleQuickAdd(item)}
+                    onClick={() => handleProductSelection(item)}
                     onKeyDown={(event) => {
                       if (event.target !== event.currentTarget) return
 
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault()
-                        handleQuickAdd(item)
+                        handleProductSelection(item)
                       }
                     }}
                     role="button"
                     tabIndex={isProductLocked ? -1 : 0}
                     aria-disabled={isProductLocked}
-                    aria-label={`${item.name}, ${formatVND(item.price)}${isUnavailable ? `, ${unavailableReason}` : ', chạm để thêm nhanh'}`}
+                    aria-label={`${item.name}, ${formatVND(item.price)}${
+                      isUnavailable
+                        ? `, ${unavailableReason}`
+                        : requiresOptions ? ', chạm để chọn tùy chọn' : ', chạm để thêm nhanh'
+                    }`}
                     className={`pos-product-card relative bg-surface-card rounded-xl border border-border p-3 flex flex-col select-none shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-150 ${
                       isProductLocked
                         ? 'opacity-65 cursor-not-allowed'
@@ -1390,7 +1498,7 @@ export default function POSLayout() {
                           showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
                           return
                         }
-                        setActiveItemForModifiers(item)
+                        setActiveModifier({ item })
                       }}
                       disabled={isProductLocked}
                       className="pos-touch-target absolute top-1 right-1 px-2 bg-white/95 border border-brand-orange-border text-brand-orange text-xs font-bold rounded-lg hover:bg-brand-orange-light transition-colors cursor-pointer disabled:cursor-not-allowed disabled:bg-surface disabled:border-border disabled:text-text-muted z-10"
@@ -1417,7 +1525,9 @@ export default function POSLayout() {
                       </span>
                     )}
                     <div className="mt-auto pt-2 text-sm text-text-secondary font-semibold">
-                      {isUnavailable ? 'Không thể bán tại lúc này' : 'Chạm để thêm nhanh'}
+                      {isUnavailable
+                        ? 'Không thể bán tại lúc này'
+                        : requiresOptions ? 'Chạm để chọn tùy chọn' : 'Chạm để thêm nhanh'}
                     </div>
                   </article>
                 )
@@ -1497,58 +1607,28 @@ export default function POSLayout() {
           ) : (
             <div className="flex flex-col gap-2">
               {cart.map((item, index) => (
-                <div
+                <CartLine
                   key={item.cartId}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 p-3 bg-surface rounded-xl border border-border-light"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-text-primary line-clamp-2"><span className="mr-1 text-text-muted">{index + 1}.</span>{item.name}</p>
-                    <p className="mt-1 text-xs text-text-secondary line-clamp-2 leading-4">
-                      {item.detailText}
-                    </p>
-                    <p className="mt-1 text-sm font-extrabold text-brand-orange tabular-nums">{formatVND(item.price * item.quantity)}</p>
-                  </div>
-
-                  <div className="flex items-center gap-1 self-center">
-                    <button
-                      onClick={() => decreaseFromCart(item.cartId)}
-                      disabled={isCartLocked}
-                      className="pos-touch-target rounded-lg bg-white border border-border text-text-secondary hover:bg-brand-orange-light hover:text-brand-orange text-lg font-bold flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      aria-label={`Giảm số lượng ${item.name}`}
-                    >
-                      −
-                    </button>
-                    <span className="w-8 text-center text-sm font-extrabold text-text-primary tabular-nums" aria-label={`Số lượng ${item.quantity}`}>
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => {
-                        if (isCartLocked) {
-                          showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
-                          return
-                        }
-                        setCart((prev) => prev.map((ci) =>
-                          ci.cartId === item.cartId ? { ...ci, quantity: ci.quantity + 1 } : ci
-                        ))
-                      }}
-                      disabled={isCartLocked}
-                      className="pos-touch-target rounded-lg bg-brand-orange text-white hover:bg-brand-orange-hover text-lg font-bold flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      aria-label={`Tăng số lượng ${item.name}`}
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => removeFromCart(item.cartId)}
-                    disabled={isCartLocked}
-                    className="pos-touch-target col-span-2 justify-self-end px-3 rounded-lg text-xs font-bold text-danger hover:bg-[var(--pos-danger-soft)] flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    title="Xóa món"
-                    aria-label={`Xóa ${item.name} khỏi giỏ`}
-                  >
-                    Xóa món
-                  </button>
-                </div>
+                  index={index + 1}
+                  name={item.name}
+                  optionSummary={item.optionSummary}
+                  customerNote={item.customerNote}
+                  quantity={item.quantity}
+                  lineTotal={formatVND(item.price * item.quantity)}
+                  locked={isCartLocked}
+                  onDecrease={() => decreaseFromCart(item.cartId)}
+                  onIncrease={() => {
+                    if (isCartLocked) {
+                      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+                      return
+                    }
+                    setCart((previous) => previous.map((line) =>
+                      line.cartId === item.cartId ? { ...line, quantity: line.quantity + 1 } : line
+                    ))
+                  }}
+                  onEdit={() => editCartLine(item)}
+                  onRemove={() => removeFromCart(item.cartId)}
+                />
               ))}
             </div>
           )}
@@ -2014,19 +2094,23 @@ export default function POSLayout() {
       )}
 
       <ProductModifierModal
-        key={activeItemForModifiers?.id ?? 'closed'}
-        isOpen={activeItemForModifiers !== null}
+        key={activeModifier?.editingCartId ?? activeModifier?.item.id ?? 'closed'}
+        isOpen={activeModifier !== null}
         onClose={closeModifierModal}
-        menuItem={activeItemForModifiers}
+        menuItem={activeModifier?.item ?? null}
+        initialSelection={activeModifier?.initialSelection}
+        mode={activeModifier?.editingCartId ? 'edit' : 'add'}
         onConfirm={(selection) => {
           if (isCartLocked) {
             showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
-            setActiveItemForModifiers(null)
+            setActiveModifier(null)
             return
           }
 
-          if (activeItemForModifiers) addToCartWithModifiers(activeItemForModifiers, selection)
-          setActiveItemForModifiers(null)
+          if (activeModifier) {
+            applyModifierSelection(activeModifier.item, selection, activeModifier.editingCartId)
+          }
+          setActiveModifier(null)
         }}
       />
     </div>

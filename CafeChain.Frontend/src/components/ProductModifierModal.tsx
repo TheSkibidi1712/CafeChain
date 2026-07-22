@@ -8,6 +8,8 @@ export interface ModifierSelection {
   ice: '0%' | '50%' | '100%'
   sugar: '0%' | '50%' | '100%'
   selectedToppings: ToppingOption[]
+  quantity: number
+  customerNote: string
   totalPrice: number
   note: string
 }
@@ -17,6 +19,8 @@ interface ProductModifierModalProps {
   onClose: () => void
   menuItem: MenuItem | null
   onConfirm: (selection: ModifierSelection) => void
+  initialSelection?: ModifierSelection | null
+  mode?: 'add' | 'edit'
 }
 
 const formatVND = (amount: number): string =>
@@ -27,6 +31,8 @@ export default function ProductModifierModal({
   onClose,
   menuItem,
   onConfirm,
+  initialSelection = null,
+  mode = 'add',
 }: ProductModifierModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const buildDefaultToppings = (selectedSize: MenuItemSize | null) => {
@@ -49,19 +55,25 @@ export default function ProductModifierModal({
         }
       })
   }
-  const initialSize = menuItem?.sizes?.find((item) => item.isAvailable) ?? menuItem?.sizes?.[0] ?? null
+
+  const initialSize = initialSelection?.size
+    ?? menuItem?.sizes?.find((item) => item.isAvailable)
+    ?? menuItem?.sizes?.[0]
+    ?? null
   const [size, setSize] = useState<MenuItemSize | null>(initialSize)
-  const [ice, setIce] = useState<'0%' | '50%' | '100%'>('100%')
-  const [sugar, setSugar] = useState<'0%' | '50%' | '100%'>('100%')
+  const [ice, setIce] = useState<'0%' | '50%' | '100%'>(initialSelection?.ice ?? '100%')
+  const [sugar, setSugar] = useState<'0%' | '50%' | '100%'>(initialSelection?.sugar ?? '100%')
   const [selectedToppings, setSelectedToppings] = useState<ToppingOption[]>(
-    () => buildDefaultToppings(initialSize)
+    () => initialSelection?.selectedToppings ?? buildDefaultToppings(initialSize)
   )
+  const [quantity, setQuantity] = useState(initialSelection?.quantity ?? 1)
+  const [customerNote, setCustomerNote] = useState(initialSelection?.customerNote ?? '')
 
   useEffect(() => {
     if (!isOpen) return
 
     const previousFocus = document.activeElement as HTMLElement | null
-    const focusableSelector = 'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    const focusableSelector = 'button:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
     const dialog = dialogRef.current
     dialog?.querySelector<HTMLElement>(focusableSelector)?.focus()
 
@@ -99,13 +111,13 @@ export default function ProductModifierModal({
   const toppings = menuItem.availableToppings ?? []
 
   const handleToppingToggle = (topping: ToppingOption) => {
-    setSelectedToppings((prev) => {
-      const exists = prev.find((t) => t.id === topping.id)
-      if (exists?.isRequired) return prev
-      if (exists) return prev.filter((t) => t.id !== topping.id)
+    setSelectedToppings((previous) => {
+      const existing = previous.find((item) => item.id === topping.id)
+      if (existing?.isRequired) return previous
+      if (existing) return previous.filter((item) => item.id !== topping.id)
 
       const policy = size?.toppingPolicies?.find((item) => item.toppingId === topping.id)
-      return [...prev, {
+      return [...previous, {
         ...topping,
         acceptedPrice: policy?.priceTreatment === 'INCLUDED_IN_BASE_PRICE'
           ? 0
@@ -130,14 +142,21 @@ export default function ProductModifierModal({
     0
   )
   const totalPrice = basePrice + toppingsPrice
-  const note = `Đá ${ice}, Đường ${sugar}`
+  const normalizedCustomerNote = customerNote.trim()
+  const note = [
+    `Đá ${ice}, Đường ${sugar}`,
+    normalizedCustomerNote,
+  ].filter(Boolean).join('. ')
 
   const handleConfirm = () => {
+    if (!size?.isAvailable) return
     onConfirm({
       size,
       ice,
       sugar,
       selectedToppings,
+      quantity,
+      customerNote: normalizedCustomerNote,
       totalPrice,
       note,
     })
@@ -145,11 +164,12 @@ export default function ProductModifierModal({
   }
 
   return (
-    <div className="pos-dialog-backdrop fixed inset-0 z-50 flex items-center justify-center select-none">
-      <div
-        className="absolute inset-0"
+    <div className="pos-option-sheet-backdrop fixed inset-0 z-50 flex select-none">
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
         onClick={onClose}
-        aria-hidden="true"
+        aria-label="Đóng tùy chọn món"
       />
 
       <div
@@ -157,177 +177,204 @@ export default function ProductModifierModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modifier-dialog-title"
-        className="pos-adaptive-dialog relative bg-surface-white w-full max-w-xl rounded-2xl shadow-xl border border-border overflow-hidden flex flex-col"
+        className="pos-option-sheet relative ml-auto flex h-full w-full flex-col overflow-hidden border-l border-border bg-surface-white shadow-xl"
       >
-        <div className="px-5 py-4 border-b border-border flex justify-between items-center bg-surface-white">
-          <div>
-            <h2 id="modifier-dialog-title" className="text-lg font-extrabold text-text-primary">Tùy chỉnh món</h2>
-            <p className="text-sm font-semibold text-brand-orange mt-0.5">{menuItem.name}</p>
+        <div className="flex items-center justify-between border-b border-border bg-surface-white px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase text-text-secondary">
+              {mode === 'edit' ? 'Chỉnh sửa món' : 'Tùy chọn món'}
+            </p>
+            <h2 id="modifier-dialog-title" className="truncate text-lg font-extrabold text-text-primary">
+              {menuItem.name}
+            </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="pos-touch-target rounded-lg border border-border text-xl text-text-secondary hover:bg-surface-hover flex items-center justify-center cursor-pointer transition-colors"
+            className="pos-touch-target flex items-center justify-center rounded-lg border border-border text-xl text-text-secondary hover:bg-surface-hover"
             aria-label="Đóng"
           >
             ×
           </button>
         </div>
 
-        <div className="p-5 overflow-y-auto space-y-5 flex-1 min-h-0 bg-surface-white">
-          {sizes.length > 0 && (
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-text-secondary">
-                Kích cỡ
-              </label>
-              <div className="grid grid-cols-3 gap-2.5">
-                {sizes.map((option) => (
-                  <button
-                    key={option.sizeId}
-                    type="button"
-                    onClick={() => handleSizeChange(option)}
-                    disabled={!option.isAvailable}
-                    title={option.isAvailable ? option.sizeName : (option.availabilityReason ?? 'Tạm hết hàng')}
-                    className={`min-h-14 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
-                      !option.isAvailable
-                        ? 'bg-surface-muted border-border text-text-muted opacity-60 cursor-not-allowed'
-                        :
-                      size?.sizeId === option.sizeId
-                        ? 'bg-brand-orange text-white border-brand-orange shadow-[var(--shadow-button)]'
-                        : 'bg-surface border-border text-text-primary hover:bg-brand-orange-light hover:text-brand-orange hover:border-brand-orange-border'
-                    }`}
-                  >
-                    {option.sizeName}
-                    <span className="block text-xs font-semibold mt-0.5 tabular-nums">
-                      {formatVND(option.price)}
-                    </span>
-                    {!option.isAvailable && (
-                      <span className="block text-xs font-semibold mt-1">
-                        {option.availabilityReason ?? 'Tạm hết hàng'}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <label className="block text-sm font-bold text-text-secondary">
-              Mức đá
-            </label>
-            <div className="grid grid-cols-3 gap-2.5">
-              {(['0%', '50%', '100%'] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setIce(option)}
-                  className={`min-h-12 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
-                    ice === option
-                      ? 'bg-brand-orange text-white border-brand-orange shadow-[var(--shadow-button)]'
-                      : 'bg-surface border-border text-text-primary hover:bg-brand-orange-light hover:text-brand-orange hover:border-brand-orange-border'
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-bold text-text-secondary">
-              Mức đường
-            </label>
-            <div className="grid grid-cols-3 gap-2.5">
-              {(['0%', '50%', '100%'] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setSugar(option)}
-                  className={`min-h-12 py-2.5 rounded-xl text-sm font-bold border cursor-pointer transition-all ${
-                    sugar === option
-                      ? 'bg-brand-orange text-white border-brand-orange shadow-[var(--shadow-button)]'
-                      : 'bg-surface border-border text-text-primary hover:bg-brand-orange-light hover:text-brand-orange hover:border-brand-orange-border'
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {toppings.length > 0 && (
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-text-secondary">
-                Topping
-              </label>
-              <div className="divide-y divide-border border border-border rounded-xl overflow-hidden bg-surface">
-                {toppings.map((topping) => {
-                  const isSelected = !!selectedToppings.find((t) => t.id === topping.id)
-                  const selected = selectedToppings.find((t) => t.id === topping.id)
-                  const policy = size?.toppingPolicies?.find((item) => item.toppingId === topping.id)
-                  const acceptedPrice = policy?.priceTreatment === 'INCLUDED_IN_BASE_PRICE'
-                    ? 0
-                    : topping.price * (policy?.quantityPerDrink ?? 1)
-                  const isRequired = selected?.isRequired ?? policy?.isRequired ?? false
-                  return (
-                    <label
-                      key={topping.id}
-                      className={`min-h-14 flex items-center justify-between p-3 cursor-pointer transition-colors ${
-                        isSelected ? 'bg-brand-orange-light' : 'hover:bg-surface-hover'
+        <div className="pos-option-sheet-body flex-1 min-h-0 overflow-y-auto bg-surface-white p-5">
+          <div className="space-y-5">
+            {sizes.length > 0 && (
+              <section className="space-y-2" aria-labelledby="modifier-size-label">
+                <h3 id="modifier-size-label" className="text-sm font-bold text-text-secondary">Kích cỡ</h3>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {sizes.map((option) => (
+                    <button
+                      key={option.sizeId}
+                      type="button"
+                      onClick={() => handleSizeChange(option)}
+                      disabled={!option.isAvailable}
+                      aria-pressed={size?.sizeId === option.sizeId}
+                      title={option.isAvailable ? option.sizeName : (option.availabilityReason ?? 'Tạm hết hàng')}
+                      className={`min-h-14 rounded-lg border px-2 py-2.5 text-sm font-bold transition-colors ${
+                        !option.isAvailable
+                          ? 'cursor-not-allowed border-border bg-surface-muted text-text-muted opacity-60'
+                          : size?.sizeId === option.sizeId
+                            ? 'border-brand-orange bg-brand-orange text-white'
+                            : 'cursor-pointer border-border bg-surface text-text-primary hover:border-brand-orange-border hover:bg-brand-orange-light'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleToppingToggle(topping)}
-                          disabled={isRequired}
-                          className="w-5 h-5 rounded text-brand-orange accent-brand-orange focus:ring-brand-orange cursor-pointer"
-                        />
-                        <span className="text-sm font-semibold text-text-primary">
-                          {topping.name}
-                        </span>
-                        {isRequired && (
-                          <span className="text-xs font-bold text-brand-orange">Bắt buộc</span>
-                        )}
-                      </div>
-                      <span className="text-sm font-bold text-brand-orange tabular-nums">
-                        {acceptedPrice === 0 ? 'Đã gồm' : `+${formatVND(acceptedPrice)}`}
-                      </span>
-                    </label>
-                  )
-                })}
-              </div>
+                      {option.sizeName}
+                      <span className="mt-0.5 block text-xs font-semibold tabular-nums">{formatVND(option.price)}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <OptionGroup label="Mức đá" value={ice} onChange={setIce} />
+              <OptionGroup label="Mức đường" value={sugar} onChange={setSugar} />
             </div>
-          )}
+
+            {toppings.length > 0 && (
+              <section className="space-y-2" aria-labelledby="modifier-topping-label">
+                <h3 id="modifier-topping-label" className="text-sm font-bold text-text-secondary">Topping</h3>
+                <div className="grid gap-2">
+                  {toppings.map((topping) => {
+                    const selected = selectedToppings.find((item) => item.id === topping.id)
+                    const policy = size?.toppingPolicies?.find((item) => item.toppingId === topping.id)
+                    const acceptedPrice = policy?.priceTreatment === 'INCLUDED_IN_BASE_PRICE'
+                      ? 0
+                      : topping.price * (policy?.quantityPerDrink ?? 1)
+                    const isRequired = selected?.isRequired ?? policy?.isRequired ?? false
+                    const isSelected = Boolean(selected)
+                    return (
+                      <button
+                        key={topping.id}
+                        type="button"
+                        onClick={() => handleToppingToggle(topping)}
+                        disabled={isRequired}
+                        aria-pressed={isSelected}
+                        className={`flex min-h-14 items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${
+                          isSelected
+                            ? 'border-brand-orange-border bg-brand-orange-light'
+                            : 'cursor-pointer border-border bg-white hover:bg-surface-hover'
+                        } ${isRequired ? 'cursor-default' : ''}`}
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-sm font-bold text-text-primary">{topping.name}</span>
+                          <span className="block text-xs font-semibold text-text-secondary">
+                            {isRequired ? 'Bắt buộc' : isSelected ? 'Đã chọn' : 'Chạm để chọn'}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-sm font-extrabold text-brand-orange tabular-nums">
+                          {acceptedPrice === 0 ? 'Đã gồm' : `+${formatVND(acceptedPrice)}`}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
+
+            <section className="space-y-2" aria-labelledby="modifier-note-label">
+              <div className="flex items-center justify-between gap-3">
+                <h3 id="modifier-note-label" className="text-sm font-bold text-text-secondary">Ghi chú cho quầy pha chế</h3>
+                <span className="text-xs font-semibold text-text-muted">{customerNote.length}/160</span>
+              </div>
+              <textarea
+                value={customerNote}
+                onChange={(event) => setCustomerNote(event.target.value)}
+                maxLength={160}
+                rows={3}
+                placeholder="Ví dụ: ít ngọt, mang riêng topping"
+                className="w-full resize-none rounded-lg border border-border bg-white px-3 py-3 text-base text-text-primary outline-none focus:border-brand-orange focus:ring-2 focus:ring-brand-orange/20"
+              />
+            </section>
+          </div>
         </div>
 
-        <div className="shrink-0 px-5 py-4 border-t border-border bg-surface flex items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <span className="text-xs font-bold text-text-secondary">
-              Tổng tạm tính
-            </span>
-            <span className="text-xl font-extrabold text-brand-orange tabular-nums">
-              {formatVND(totalPrice)}
-            </span>
+        <div className="shrink-0 space-y-3 border-t border-border bg-surface p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <span className="block text-xs font-bold text-text-secondary">Số lượng</span>
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                  disabled={quantity <= 1}
+                  className="pos-touch-target flex items-center justify-center rounded-lg border border-border bg-white text-lg font-bold text-text-secondary disabled:opacity-40"
+                  aria-label="Giảm số lượng"
+                >
+                  −
+                </button>
+                <span className="w-10 text-center text-base font-extrabold text-text-primary tabular-nums" aria-label={`Số lượng ${quantity}`}>
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((current) => Math.min(99, current + 1))}
+                  disabled={quantity >= 99}
+                  className="pos-touch-target flex items-center justify-center rounded-lg bg-brand-orange text-lg font-bold text-white hover:bg-brand-orange-hover disabled:opacity-40"
+                  aria-label="Tăng số lượng"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="block text-xs font-bold text-text-secondary">Tạm tính</span>
+              <span className="text-xl font-extrabold text-brand-orange tabular-nums">{formatVND(totalPrice * quantity)}</span>
+            </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
             <button
+              type="button"
               onClick={onClose}
-              className="pos-touch-target px-4 py-2 rounded-lg border border-brand-orange text-brand-orange bg-surface-white text-sm font-bold cursor-pointer hover:bg-brand-orange-light active:scale-95 transition-all"
+              className="min-h-14 rounded-lg border border-brand-orange px-4 text-sm font-bold text-brand-orange hover:bg-brand-orange-light"
             >
               Hủy
             </button>
             <button
+              type="button"
               onClick={handleConfirm}
-              className="min-h-12 px-5 py-2 rounded-lg bg-brand-orange text-white text-sm font-bold cursor-pointer hover:bg-brand-orange-hover shadow-[var(--shadow-button)] active:scale-95 transition-all"
+              disabled={!size?.isAvailable}
+              className="min-h-14 rounded-lg bg-brand-orange px-5 text-sm font-bold text-white shadow-[var(--shadow-button)] hover:bg-brand-orange-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Xác nhận
+              {mode === 'edit' ? 'Cập nhật món' : `Thêm ${quantity} món`}
             </button>
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+interface OptionGroupProps {
+  label: string
+  value: '0%' | '50%' | '100%'
+  onChange: (value: '0%' | '50%' | '100%') => void
+}
+
+function OptionGroup({ label, value, onChange }: OptionGroupProps) {
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-bold text-text-secondary">{label}</h3>
+      <div className="grid grid-cols-3 gap-2">
+        {(['0%', '50%', '100%'] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            aria-pressed={value === option}
+            className={`min-h-12 rounded-lg border px-2 py-2 text-sm font-bold transition-colors ${
+              value === option
+                ? 'border-brand-orange bg-brand-orange text-white'
+                : 'cursor-pointer border-border bg-white text-text-primary hover:bg-brand-orange-light'
+            }`}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+    </section>
   )
 }
