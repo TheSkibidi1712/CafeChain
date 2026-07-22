@@ -28,7 +28,8 @@ public sealed class POSResponsiveRedesignTests
     {
         var css = ReadFrontend("src", "index.css");
 
-        Assert.Contains("grid-template-areas: 'category catalog cart'", css);
+        Assert.Contains("'header header header'", css);
+        Assert.Contains("'category catalog cart'", css);
         Assert.Contains("@media (max-width: 1199px)", css);
         Assert.Contains("@media (max-width: 819px)", css);
         Assert.Contains("@media (max-width: 420px)", css);
@@ -42,9 +43,16 @@ public sealed class POSResponsiveRedesignTests
     public void PosLayout_ExposesSearchAllCategoryAndAccessibleCartDrawer()
     {
         var source = ReadFrontend("src", "POSLayout.tsx");
+        var header = ReadFrontend("src", "components", "pos", "SellingHeader.tsx");
 
-        Assert.Contains("id=\"pos-product-search\"", source);
-        Assert.Contains("Tìm món theo tên", source);
+        Assert.Contains("id=\"pos-product-search\"", header);
+        Assert.Contains("Tìm món theo tên", header);
+        Assert.Contains("Dùng tại quán", header);
+        Assert.Contains("Mang đi", header);
+        Assert.Contains("NetworkStatusIndicator", header);
+        Assert.Contains("PrinterStatusBadge", header);
+        Assert.Contains("Tác vụ", header);
+        Assert.Contains("<SellingHeader", source);
         Assert.Contains("setSelectedCategory(null)", source);
         Assert.Contains(">Tất cả<", source);
         Assert.Contains("className=\"pos-mobile-cart-bar\"", source);
@@ -52,6 +60,20 @@ public sealed class POSResponsiveRedesignTests
         Assert.Contains("data-open={isCartOpen}", source);
         Assert.Contains("aria-live=\"polite\"", source);
         Assert.Contains("pos-touch-target", source);
+    }
+
+    [Fact]
+    public void SellingRoute_UsesDedicatedHeaderWithoutUnmountingPosStateForResponsiveLayout()
+    {
+        var app = ReadFrontend("src", "App.tsx");
+        var header = ReadFrontend("src", "components", "pos", "SellingHeader.tsx");
+
+        Assert.Contains("const isSellingRoute", app);
+        Assert.Contains("{!isSellingRoute && <TopNavbar />}", app);
+        Assert.Contains("onOrderTypeChange", header);
+        Assert.Contains("onSearchChange", header);
+        Assert.Contains("to=\"/history\"", header);
+        Assert.Contains("to=\"/shift\"", header);
     }
 
     [Fact]
@@ -77,6 +99,7 @@ public sealed class POSResponsiveRedesignTests
             ReadFrontend("src", "index.css"),
             ReadFrontend("src", "POSLayout.tsx"),
             ReadFrontend("src", "components", "TopNavbar.tsx"),
+            ReadFrontend("src", "components", "pos", "SellingHeader.tsx"),
             ReadFrontend("src", "components", "ProductModifierModal.tsx"),
             ReadFrontend("src", "hooks", "usePrinterStatus.ts")
         };

@@ -19,6 +19,7 @@ import ProductModifierModal, {
   type ToppingOption,
   type MenuItem,
 } from './components/ProductModifierModal'
+import SellingHeader from './components/pos/SellingHeader'
 import type { CartSyncQueueItem } from './db/CafeChainPOSDB'
 
 interface CartItem {
@@ -202,7 +203,6 @@ export default function POSLayout() {
     menuItems,
     isLoading,
     isOnline,
-    pendingOrders,
     catalogError,
     refreshCatalog,
   } = usePOSData()
@@ -360,6 +360,14 @@ export default function POSLayout() {
   const closeModifierModal = useCallback(() => {
     setActiveItemForModifiers(null)
   }, [])
+
+  const changeOrderType = useCallback((nextOrderType: 'dine-in' | 'take-away') => {
+    if (isCartLocked) {
+      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi đổi loại đơn.')
+      return
+    }
+    setOrderType(nextOrderType)
+  }, [isCartLocked, showMessage])
 
   useEffect(() => {
     const closeCartOnEscape = (event: KeyboardEvent) => {
@@ -1250,58 +1258,19 @@ export default function POSLayout() {
 
   return (
     <div className="pos-shell font-sans select-none" id="pos-main-content">
-      <aside className="pos-category-panel bg-surface-white flex flex-col border-r border-border" aria-label="Danh mục và loại đơn">
-        <div className="px-3 py-3 border-b border-border">
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => {
-                if (isCartLocked) {
-                  showMessage('Đang thanh toán, hãy hủy giao dịch trước khi đổi loại đơn.')
-                  return
-                }
-                setOrderType('dine-in')
-              }}
-              disabled={isCartLocked}
-              className={`pos-touch-target flex-1 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
-                orderType === 'dine-in'
-                  ? 'bg-brand-orange text-white'
-                  : 'bg-surface text-text-secondary hover:bg-surface-hover'
-              } disabled:opacity-40 disabled:cursor-not-allowed`}
-            >
-              Tại quán
-            </button>
-            <button
-              onClick={() => {
-                if (isCartLocked) {
-                  showMessage('Đang thanh toán, hãy hủy giao dịch trước khi đổi loại đơn.')
-                  return
-                }
-                setOrderType('take-away')
-              }}
-              disabled={isCartLocked}
-              className={`pos-touch-target flex-1 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
-                orderType === 'take-away'
-                  ? 'bg-brand-orange text-white'
-                  : 'bg-surface text-text-secondary hover:bg-surface-hover'
-              } disabled:opacity-40 disabled:cursor-not-allowed`}
-            >
-              Mang đi
-            </button>
-          </div>
-        </div>
+      <SellingHeader
+        orderType={orderType}
+        searchQuery={searchQuery}
+        resultCount={filteredItems.length}
+        isCartLocked={isCartLocked}
+        hasOpenShift={hasOpenShift}
+        shiftId={shift?.shiftId}
+        session={session}
+        onOrderTypeChange={changeOrderType}
+        onSearchChange={setSearchQuery}
+      />
 
-        <div className="px-3 pt-3 pb-1">
-          <Link
-            to="/shift"
-            className={`pos-touch-target w-full py-2.5 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-[var(--shadow-button)] flex items-center justify-center ${
-              hasOpenShift
-                ? 'bg-success text-white'
-                : 'bg-brand-orange text-white hover:bg-brand-orange-hover'
-            }`}
-          >
-            {hasOpenShift ? `Ca #${shift?.shiftId}` : 'Mở ca'}
-          </Link>
-        </div>
+      <aside className="pos-category-panel bg-surface-white flex flex-col border-r border-border" aria-label="Danh mục sản phẩm">
 
         <nav className="pos-category-list flex-1 flex flex-col gap-1 px-3 py-2 overflow-y-auto" aria-label="Danh mục sản phẩm">
           <button
@@ -1345,57 +1314,6 @@ export default function POSLayout() {
       </aside>
 
       <main className="pos-catalog-panel flex flex-col bg-surface">
-        <header className="px-4 py-3 bg-surface-white border-b border-border space-y-3">
-          <div className="pos-catalog-toolbar">
-            <label className="relative block min-w-0" htmlFor="pos-product-search">
-              <span className="sr-only">Tìm món</span>
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" aria-hidden="true">⌕</span>
-              <input
-                id="pos-product-search"
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                className="pos-search-field w-full rounded-xl border border-border bg-surface-white pl-11 pr-12 text-base text-text-primary outline-none placeholder:text-text-muted focus:border-brand-orange"
-                placeholder="Tìm món theo tên..."
-                autoComplete="off"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="pos-touch-target absolute right-0 top-1/2 inline-flex -translate-y-1/2 items-center justify-center text-text-secondary"
-                  aria-label="Xóa nội dung tìm kiếm"
-                >
-                  ×
-                </button>
-              )}
-            </label>
-            <div className="pos-catalog-meta flex items-center gap-2 text-xs">
-              <h2 className="font-extrabold text-text-primary whitespace-nowrap">
-                {currentCategory?.name ?? 'Tất cả món'} <span className="text-brand-orange tabular-nums">{filteredItems.length}</span>
-              </h2>
-            {!isOnline && (
-              <span className="text-warning font-bold bg-[var(--pos-warning-soft)] px-2.5 py-1.5 rounded-lg border border-warning/30">
-                Mất kết nối
-              </span>
-            )}
-            {pendingOrders > 0 && (
-              <span className="text-warning font-bold bg-[var(--pos-warning-soft)] px-2.5 py-1.5 rounded-lg border border-warning/30">
-                {pendingOrders} đơn chờ đồng bộ
-              </span>
-            )}
-            <span className="text-text-muted bg-surface px-3 py-1.5 rounded-lg border border-border">
-              {new Date().toLocaleDateString('vi-VN', {
-                weekday: 'short',
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              })}
-            </span>
-          </div>
-          </div>
-        </header>
-
         <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4">
           {isLoading ? (
             <div className="h-full flex items-center justify-center text-xs font-semibold text-text-muted">

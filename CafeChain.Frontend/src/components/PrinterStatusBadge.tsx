@@ -6,9 +6,14 @@ interface PrinterStatusBadgeProps {
 
 export default function PrinterStatusBadge({ storeId }: PrinterStatusBadgeProps) {
   const status = usePrinterStatus(storeId)
+  const statusLabel = status === 'ready'
+    ? 'Máy in sẵn sàng'
+    : status === 'error'
+      ? 'Máy in đang lỗi'
+      : 'Máy in mất kết nối'
 
   return (
-    <div className="flex items-center gap-1.5 select-none" title="Trạng thái máy in" role="status">
+    <div className="flex items-center gap-1.5 select-none" title={statusLabel} role="status" aria-label={statusLabel}>
       {status === 'ready' && (
         <div className="pos-touch-target flex items-center justify-center gap-1.5 px-2 rounded-lg bg-[var(--pos-success-soft)] border border-success/30 text-success">
           {/* Printer Icon - Solid Green */}

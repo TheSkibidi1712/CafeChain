@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom'
 import TopNavbar from './components/TopNavbar'
 import POSLayout from './POSLayout'
 import OrderHistory from './pages/OrderHistory'
@@ -9,6 +9,9 @@ import PaymentResult from './pages/PaymentResult'
 import PrinterStatusSimulator from './components/dev/PrinterStatusSimulator'
 
 function RootLayout() {
+  const location = useLocation()
+  const isSellingRoute = location.pathname === '/' || location.pathname === '/order'
+
   return (
     <div className="pos-app-frame w-full flex flex-col overflow-hidden bg-surface font-sans">
       <a
@@ -17,7 +20,7 @@ function RootLayout() {
       >
         Bỏ qua điều hướng
       </a>
-      <TopNavbar />
+      {!isSellingRoute && <TopNavbar />}
       <div className="flex-1 overflow-hidden">
         <Outlet />
       </div>
