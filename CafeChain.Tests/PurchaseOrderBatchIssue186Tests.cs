@@ -225,9 +225,9 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
         var managerAccount = new Account { Email = Guid.NewGuid() + "@test.local", PasswordHash = "x", Active = true, CreatedAt = now };
         db.AddRange(store1, store2, ingredient, supplier, warehouseAccount, ownerAccount, managerAccount);
         await db.SaveChangesAsync();
-        var warehouse = new Staff { AccountId = warehouseAccount.AccountId, FullName = "Warehouse 186", Active = true, CreatedAt = now, BaseSalary = 0 };
-        var owner = new Staff { AccountId = ownerAccount.AccountId, FullName = "Owner 186", Active = true, CreatedAt = now, BaseSalary = 0 };
-        var manager = new Staff { AccountId = managerAccount.AccountId, StoreId = store1.StoreId, FullName = "Manager 186", Active = true, CreatedAt = now, BaseSalary = 0 };
+        var warehouse = new Staff { AccountId = warehouseAccount.AccountId, FullName = "Warehouse 186", Active = true, CreatedAt = now};
+        var owner = new Staff { AccountId = ownerAccount.AccountId, FullName = "Owner 186", Active = true, CreatedAt = now};
+        var manager = new Staff { AccountId = managerAccount.AccountId, StoreId = store1.StoreId, FullName = "Manager 186", Active = true, CreatedAt = now};
         var offer = new IngredientSupplier { IngredientId = ingredient.IngredientId, SupplierId = supplier.SupplierId, UnitId = unit.UnitId, PackageQuantity = 1m, CurrentPrice = 12000m, MinimumOrderPackageCount = 1, LeadTimeDays = 2, Active = true, CreatedAt = now, UpdatedAt = now };
         db.AddRange(warehouse, owner, manager, offer,
             new SupplierStore { SupplierId = supplier.SupplierId, StoreId = store1.StoreId, Active = true, CreatedAt = now, UpdatedAt = now },

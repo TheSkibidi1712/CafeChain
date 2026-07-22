@@ -1,673 +1,322 @@
 @model CafeChain.ViewModels.Admin.Staffs.StaffCreateVM
+@using CafeChain.Application.Constants
 @{
-    var roles = ViewBag.Roles as List<CafeChain.Models.Permissions.Role>;
-    var stores = ViewBag.Stores as List<CafeChain.Models.Stores.Store>;
-    var scopeTypes = ViewBag.ScopeTypes as List<CafeChain.Models.Staffs.ScopeType>;
-
-    // Server-side scope resolution: mirrors GetRequiredScopeTypeForRole() exactly
-    string GetScopeForRole(int roleId) => roleId switch
+    var roles = ViewBag.Roles as List<CafeChain.Models.Permissions.Role> ?? new();
+    var stores = ViewBag.Stores as List<CafeChain.Models.Stores.Store> ?? new();
+    var scopeTypes = ViewBag.ScopeTypes as List<CafeChain.ViewModels.Admin.Staffs.StaffScopeTypeOptionVM> ?? new();
+    var provinces = ViewBag.Provinces as List<CafeChain.Models.Locations.Province> ?? new();
+    var isStoreManager = ViewBag.IsStoreManager is true;
+    var currentStoreId = ViewBag.CurrentStoreId is int id ? id : 0;
+    string ScopeMode(string roleName) => roleName switch
     {
-        >= 1 and <= 6 => "HQ",
-        7 => "PROVINCE",
-        _ => "STORE"
+        RoleConstants.BusinessOwner or RoleConstants.SystemAdmin => "country",
+        RoleConstants.AreaManager => "flexible",
+        _ => "store"
     };
 }
 
 <style>
-    .staff-modal .form-label { font-weight: 800; font-size: 13px; color: #334155; margin-bottom: 5px; }
+    .staff-modal .modal-content { border: 0; border-radius: 16px; overflow: hidden; }
+    .staff-modal .modal-header { border-bottom: 1px solid #eee7df; padding: 18px 22px; }
+    .staff-modal .form-label { font-weight: 800; font-size: 13px; color: #334155; margin-bottom: 6px; }
     .staff-modal .form-control, .staff-modal .form-select { border-radius: 8px; border: 1px solid #dbe3ef; font-size: 14px; padding: 10px 12px; }
-    .staff-modal .form-control:focus, .staff-modal .form-select:focus { border-color: var(--admin-wo-primary); box-shadow: 0 0 0 3px rgba(249, 115, 22, .14); }
-    .avatar-upload-box {
-        border: 2px dashed #DBC4A9; border-radius: 12px; width: 200px; height: 200px;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        background: #F5EDE3; cursor: pointer; transition: all 0.3s; text-align: center; overflow: hidden;
-    }
-    .avatar-upload-box:hover { border-color: var(--admin-wo-primary); background: #EDE0D0; }
-    .avatar-upload-box i { font-size: 36px; color: #DBC4A9; margin-bottom: 8px; }
-    .avatar-upload-box span { font-size: 12px; color: var(--admin-wo-muted); }
-    .avatar-upload-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: none; }
-    .nav-tabs .nav-link { color: var(--admin-wo-muted); font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; border: none; border-bottom: 3px solid transparent; padding: 10px 18px; }
-    .nav-tabs .nav-link.active { color: var(--admin-wo-primary-dark); border-color: var(--admin-wo-primary); background-color: transparent; }
-    .scope-section-title { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: .6px; padding: 10px 0 6px; border-top: 1px dashed #e5e7eb; margin-top: 8px; }
+    .staff-modal .form-control:focus, .staff-modal .form-select:focus { border-color: #c67a45; box-shadow: 0 0 0 3px rgba(198,122,69,.14); }
+    .staff-modal .nav-tabs { border-bottom: 1px solid #eee7df; }
+    .staff-modal .nav-link { color: #64748b; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .35px; border: 0; border-bottom: 3px solid transparent; padding: 11px 18px; }
+    .staff-modal .nav-link.active { color: #8b512d; border-color: #c67a45; background: transparent; }
+    .staff-modal .tab-pane { min-height: 330px; }
+    .staff-modal .section-title { color: #8b512d; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .45px; margin-bottom: 16px; }
+    .avatar-upload-box { position: relative; width: 190px; height: 190px; border: 2px dashed #dbc4a9; border-radius: 14px; background: #f8f2eb; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; text-align: center; }
+    .avatar-upload-box:hover { border-color: #c67a45; background: #f5ede3; }
+    .avatar-upload-box img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .avatar-upload-placeholder i { display: block; color: #c67a45; font-size: 34px; margin-bottom: 8px; }
+    .avatar-upload-placeholder span { color: #64748b; font-size: 12px; }
+    .avatar-actions { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+    .staff-scope-help { background: #fff7ed; border: 1px solid #fed7aa; color: #7c2d12; border-radius: 10px; padding: 12px 14px; font-size: 13px; }
+    @@media (max-width: 767.98px) { .avatar-upload-box { width: 140px; height: 140px; } .staff-modal .nav-link { padding: 10px 8px; font-size: 10px; } }
 </style>
 
-<div class="modal fade staff-modal" id="createStaffModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content admin-wo-card border-0 shadow">
-            <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
-                <div class="d-flex align-items-center gap-2">
-                    <div style="width:38px;height:38px;border-radius:10px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-user-plus" style="color:#C67A45;"></i>
+<div class="modal fade staff-modal" id="createStaffModal" tabindex="-1" aria-labelledby="createStaffTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content admin-wo-card shadow">
+            <form asp-action="Create" asp-controller="AdminStaff" asp-area="Admin" method="post"
+                  enctype="multipart/form-data" id="createStaffForm" novalidate>
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="d-flex align-items-center justify-content-center" style="width:40px;height:40px;border-radius:11px;background:#f5ede3;color:#c67a45">
+                            <i class="fas fa-user-plus"></i>
+                        </span>
+                        <div><h4 class="modal-title fw-bold mb-0" id="createStaffTitle">Thêm nhân viên mới</h4><small class="text-muted">Tạo hồ sơ, tài khoản và phạm vi làm việc trong một giao dịch.</small></div>
                     </div>
-                    <h4 class="modal-title fw-bold mb-0" style="color:var(--admin-wo-text);">Thêm nhân viên mới</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body admin-wo-page pt-3">
-                <form asp-action="Create" method="post" enctype="multipart/form-data" id="createStaffForm">
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                    <!-- HIDDEN: Backend auto-resolves ScopeTypeId from RoleId -->
-                    <input type="hidden" asp-for="ScopeTypeId" id="HiddenScopeTypeId" />
-                    <input type="hidden" asp-for="ScopeRefId" id="HiddenScopeRefId" />
-
-                    <ul class="nav nav-tabs mb-4 px-3" id="staffTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="tab-general" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">Thông tin chung</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="tab-job" data-bs-toggle="tab" data-bs-target="#job" type="button" role="tab">Công việc & Lương</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="tab-ot" data-bs-toggle="tab" data-bs-target="#ot" type="button" role="tab">OT & Ca</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="tab-dependent" data-bs-toggle="tab" data-bs-target="#dependent" type="button" role="tab">Người phụ thuộc</button>
-                        </li>
+                <div class="modal-body px-4 pt-3">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 d-none" id="createStaffValidationSummary"></div>
+                    <ul class="nav nav-tabs mb-4" id="createStaffTabs" role="tablist">
+                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#create-general" type="button">Thông tin chung</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#create-scope" type="button">Vai trò & phạm vi</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#create-account" type="button">Công việc & tài khoản</button></li>
                     </ul>
 
-                    <div class="tab-content" id="staffTabsContent">
-                        <!-- ═══════ TAB 1: THÔNG TIN CHUNG ═══════ -->
-                        <div class="tab-pane fade show active" id="general" role="tabpanel">
-                            <div class="row">
-                                <div class="col-md-3 mb-4 d-flex justify-content-center">
-                                    <div>
-                                        <label class="form-label">Ảnh đại diện</label>
-                                        <div class="avatar-upload-box" onclick="document.getElementById('avatarInput').click()">
-                                            <i class="fas fa-cloud-upload-alt placeholder-icon"></i>
-                                            <span class="placeholder-text">Kéo thả hoặc click<br>để tải ảnh lên</span>
-                                            <img id="avatarPreview" src="" />
-                                        </div>
-                                        <input type="file" name="AvatarFile" id="avatarInput" class="d-none" accept="image/*" onchange="previewAvatar(this)" />
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="create-general">
+                            <div class="row g-4">
+                                <div class="col-lg-3 d-flex flex-column align-items-center">
+                                    <label class="form-label align-self-start">Ảnh đại diện</label>
+                                    <div class="avatar-upload-box" id="createAvatarBox" role="button" tabindex="0">
+                                        <div class="avatar-upload-placeholder" id="createAvatarPlaceholder"><i class="fas fa-cloud-upload-alt"></i><span>Click để chọn ảnh<br />JPG, PNG, WebP · tối đa 2 MB</span></div>
+                                        <img id="createAvatarPreview" alt="Ảnh đại diện xem trước" />
                                     </div>
+                                    <input asp-for="AvatarFile" id="createAvatarInput" type="file" class="d-none" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                                    <div class="avatar-actions"><button type="button" class="btn btn-sm btn-outline-secondary" id="chooseCreateAvatar">Chọn ảnh</button><button type="button" class="btn btn-sm btn-outline-danger d-none" id="removeCreateAvatar">Bỏ ảnh</button></div>
+                                    <span asp-validation-for="AvatarFile" class="text-danger small"></span>
                                 </div>
-                                <div class="col-md-9">
-                                    <div class="row">
-                                        <div class="col-lg-6 mb-3">
-                                            <label class="form-label text-danger">Vai trò hệ thống *</label>
-                                            <select asp-for="SelectedRoleId" class="form-select" id="dynamicRoleSelect">
-                                                <option value="">-- Chọn vai trò --</option>
-                                                @if (roles != null)
-                                                {
-                                                    foreach (var r in roles)
-                                                    {
-                                                        // Fallback for Demo logic matching user rules
-                                                        string constraint = r.RoleId <= 6 ? "HQ" : (r.RoleId == 7 ? "FLEXIBLE" : "STORE_ONLY");
-                                                        <option value="@r.RoleId" data-constraint="@constraint">@r.Name</option>
-                                                    }
-                                                }
-                                            </select>
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
-                                            <input asp-for="FullName" class="form-control" placeholder="Nguyễn Văn A" />
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label class="form-label">Email đăng nhập <span class="text-danger">*</span></label>
-                                            <input asp-for="Email" class="form-control" placeholder="email@domain.com" />
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
-                                            <input type="password" asp-for="Password" class="form-control" placeholder="Mật khẩu..." required />
-                                        </div>
-                                        <div class="col-lg-4 mb-3">
-                                            <label class="form-label">Căn cước công dân</label>
-                                            <input asp-for="CCCD" class="form-control" placeholder="12 chữ số" />
-                                        </div>
-                                        <div class="col-lg-4 mb-3">
-                                            <label class="form-label">Ngày sinh</label>
-                                            <input asp-for="DateOfBirth" type="text" class="form-control flatpickr-date" placeholder="dd/mm/yyyy" />
-                                        </div>
-                                        <div class="col-lg-4 mb-3">
-                                            <label class="form-label">Giới tính</label>
-                                            <select asp-for="Gender" class="form-select">
-                                                <option value="0">Nữ</option>
-                                                <option value="1">Nam</option>
-                                                <option value="2">Khác</option>
-                                            </select>
-                                        </div>
+                                <div class="col-lg-9">
+                                    <div class="section-title"><i class="fas fa-id-card me-1"></i> Thông tin cá nhân</div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6"><label asp-for="FullName" class="form-label">Họ và tên <span class="text-danger">*</span></label><input asp-for="FullName" class="form-control" placeholder="Nguyễn Văn A" /><span asp-validation-for="FullName" class="text-danger small"></span></div>
+                                        <div class="col-md-6"><label asp-for="CCCD" class="form-label">Căn cước công dân</label><input asp-for="CCCD" class="form-control" inputmode="numeric" maxlength="12" placeholder="12 chữ số" /><span asp-validation-for="CCCD" class="text-danger small"></span></div>
+                                        <div class="col-md-4"><label asp-for="Gender" class="form-label">Giới tính</label><select asp-for="Gender" class="form-select"><option value="0">Nữ</option><option value="1">Nam</option><option value="2">Khác</option></select></div>
+                                        <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label">Ngày sinh</label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
+                                        <div class="col-md-4"><label class="form-label" for="createPhone">Số điện thoại</label><input name="Phones[0]" id="createPhone" class="form-control" autocomplete="tel" placeholder="09xx xxx xxx" /></div>
                                     </div>
-                                    <div class="row mt-2">
-                                        <div class="col-lg-6 mb-3">
-                                            <label class="form-label">Số điện thoại</label>
-                                            <div id="phonesContainerModal">
-                                                <div class="dynamic-input-group d-flex mb-2">
-                                                    <input name="Phones[0]" class="form-control phone-input" placeholder="+84 9..." />
-                                                </div>
-                                            </div>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary text-primary border-primary fw-bold" onclick="addDynamicInput('phonesContainerModal', 'Phones', 3, 'Nhập số điện thoại')"><i class="fas fa-plus"></i></button>
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label class="form-label">Địa chỉ liên hệ</label>
-                                            <div id="addressesContainerModal">
-                                                <div class="dynamic-input-group d-flex mb-2">
-                                                    <input name="Addresses[0]" class="form-control addr-input" placeholder="Nhập địa chỉ..." />
-                                                </div>
-                                            </div>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary text-primary border-primary fw-bold" onclick="addDynamicInput('addressesContainerModal', 'Addresses', 3, 'Nhập địa chỉ')"><i class="fas fa-plus"></i></button>
-                                        </div>
-                                        
-                                        <!-- NHÓM PHÂN QUYỀN -->
-                                        <div class="col-12 mt-2">
-                                            <h6 class="scope-section-title"><i class="fas fa-shield-alt me-1"></i> Nhóm phân quyền</h6>
-                                        </div>
-                                        
-                                        <div class="col-lg-4 mb-3">
-                                            <label class="form-label text-danger">Loại phạm vi *</label>
-                                            <select class="form-select" id="uiScopeTypeSelect">
-                                                <option value="">-- Xin vui lòng chọn --</option>
-                                                <option value="2">Tỉnh/TP</option>
-                                                <option value="3">Phường/Xã</option>
-                                                <option value="4">Cửa hàng</option>
-                                                <option value="1">Trụ sở (HQ)</option>
-                                            </select>
-                                        </div>
-                                        
-                                        <div class="col-lg-4 mb-3" id="scopeRefContainer">
-                                            <label class="form-label text-danger" id="lblScopeRef">Mã tham chiếu *</label>
-                                            <select class="form-select mb-2" id="uiCascadingProvince" style="display:none;">
-                                                <option value="">-- Chọn Tỉnh/Thành phố trước --</option>
-                                            </select>
-                                            <select class="form-select" id="uiScopeRefSelect">
-                                                <option value="">-- Bấm để chọn địa bàn --</option>
-                                            </select>
-                                        </div>
-                                        
-                                        <div class="col-lg-4 mb-3">
-                                            <label class="form-label">Cửa hàng đồng bộ</label>
-                                            <select asp-for="StoreId" class="form-select" id="uiSyncStoreSelect">
-                                                <option value="">-- Tự động --</option>
-                                                @if (stores != null)
-                                                {
-                                                    foreach (var s in stores)
-                                                    {
-                                                        <option value="@s.StoreId">@s.Name</option>
-                                                    }
-                                                }
-                                            </select>
-                                        </div>
+                                    <div class="section-title mt-4"><i class="fas fa-map-marker-alt me-1"></i> Địa chỉ thường trú</div>
+                                    <div class="row g-3">
+                                        <div class="col-md-4"><label asp-for="ProvinceId" class="form-label">Tỉnh/Thành phố <span class="text-danger">*</span></label><select asp-for="ProvinceId" id="createProvince" class="form-select"><option value="">-- Chọn Tỉnh/Thành phố --</option>@foreach (var p in provinces) { <option value="@p.ProvinceId">@p.Name</option> }</select><span asp-validation-for="ProvinceId" class="text-danger small"></span></div>
+                                        <div class="col-md-4"><label asp-for="DistrictId" class="form-label">Quận/Huyện <span class="text-danger">*</span></label><select asp-for="DistrictId" id="createDistrict" class="form-select" disabled><option value="">-- Chọn Quận/Huyện --</option></select><span asp-validation-for="DistrictId" class="text-danger small"></span></div>
+                                        <div class="col-md-4"><label asp-for="WardId" class="form-label">Phường/Xã <span class="text-danger">*</span></label><select asp-for="WardId" id="createWard" class="form-select" disabled><option value="">-- Chọn Phường/Xã --</option></select><span asp-validation-for="WardId" class="text-danger small"></span></div>
+                                        <div class="col-12"><label asp-for="Address" class="form-label">Địa chỉ chi tiết <span class="text-danger">*</span></label><input asp-for="Address" class="form-control" maxlength="500" placeholder="Số nhà, tên đường..." /><span asp-validation-for="Address" class="text-danger small"></span></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- ═══════ TAB 2: CÔNG VIỆC & LƯƠNG ═══════ -->
-                        <div class="tab-pane fade" id="job" role="tabpanel">
-                            <div class="row">
-
-
-                                <div class="col-lg-4 mb-3">
-                                    <label class="form-label">Ngày bắt đầu làm việc</label>
-                                    <input asp-for="StartDate" type="text" class="form-control flatpickr-date" />
-                                </div>
-                                <div class="col-lg-4 mb-3">
-                                    <label class="form-label">Trạng thái làm việc</label>
-                                    <select asp-for="EmployeeStatus" class="form-select">
-                                        <option value="1">Thử việc</option>
-                                        <option value="2">Chính thức</option>
-                                    </select>
-                                </div>
-                                <div class="col-12"><hr class="text-muted" /></div>
-                                <div class="col-lg-4 mb-3">
-                                    <label class="form-label">Hình thức trả lương</label>
-                                    <select asp-for="SalaryType" class="form-select" id="SalaryTypeSelect">
-                                        <option value="1">Cố định</option>
-                                        <option value="2">Theo giờ</option>
-                                    </select>
-                                </div>
-                                <div class="col-lg-4 mb-3">
-                                    <label class="form-label">Lương gốc (VNĐ)</label>
-                                    <input asp-for="BaseSalary" type="number" class="form-control" />
-                                </div>
-                                <div class="col-lg-4 mb-3">
-                                    <label class="form-label">Phụ cấp (VNĐ)</label>
-                                    <input asp-for="Allowance" type="number" class="form-control" />
-                                </div>
-                                <div class="col-lg-4 mb-3">
-                                    <label class="form-label">Sổ BHXH</label>
-                                    <input asp-for="SocialInsuranceNumber" class="form-control" />
-                                </div>
-                                <div class="col-lg-4 mb-3">
-                                    <label class="form-label">Sổ BHYT</label>
-                                    <input asp-for="HealthInsuranceNumber" class="form-control" />
-                                    <span asp-validation-for="HealthInsuranceNumber" class="text-danger small"></span>
-                                </div>
-                                <div class="col-lg-4 mb-3">
-                                    <label class="form-label">Mã số thuế cá nhân</label>
-                                    <input asp-for="TaxCode" class="form-control" />
-                                </div>
-                                <div class="col-12 mt-3">
-                                    <h6 class="fw-bold mb-3" style="color:#99623B;"><i class="fas fa-university me-2"></i>Tài khoản ngân hàng</h6>
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-sm align-middle text-center banks-table" id="banksTableModal">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>Chính</th>
-                                                    <th>Ngân Hàng</th>
-                                                    <th>Số Tài Khoản</th>
-                                                    <th>Chủ Tài Khoản</th>
-                                                    <th style="width: 50px;"></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <!-- Row mặc định -->
-                                                <tr>
-                                                    <td>
-                                                        <input type="radio" name="PrimaryBankIndex" value="0" checked class="form-check-input" />
-                                                    </td>
-                                                    <td><input type="text" name="Banks[0].BankName" class="form-control form-control-sm" placeholder="VD: MBBank" /></td>
-                                                    <td><input type="text" name="Banks[0].AccountNumber" class="form-control form-control-sm" /></td>
-                                                    <td><input type="text" name="Banks[0].AccountHolderName" class="form-control form-control-sm text-uppercase" /></td>
-                                                    <td><button type="button" class="btn btn-sm btn-danger border-0" onclick="removeBankRowModal(this)"><i class="fas fa-trash"></i></button></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                        <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="addBankRowModal()"><i class="fas fa-plus me-1"></i>Thêm tài khoản</button>
-                                    </div>
+                        <div class="tab-pane fade" id="create-scope">
+                            <div class="section-title"><i class="fas fa-user-shield me-1"></i> Vai trò và phạm vi dữ liệu</div>
+                            <div class="staff-scope-help mb-4"><i class="fas fa-info-circle me-1"></i> Chọn vai trò trước, sau đó cấp phạm vi dữ liệu. Cửa hàng chính là nơi làm việc hằng ngày và bắt buộc phải nằm trong phạm vi vừa cấp.</div>
+                            <div class="row g-3">
+                                <div class="col-md-4"><label asp-for="SelectedRoleId" class="form-label">Vai trò <span class="text-danger">*</span></label><select asp-for="SelectedRoleId" id="createRole" class="form-select"><option value="">-- Chọn vai trò --</option>@foreach (var r in roles) { <option value="@r.RoleId" data-scope-mode="@ScopeMode(r.Name)">@r.Name</option> }</select><span asp-validation-for="SelectedRoleId" class="text-danger small"></span></div>
+                                <div class="col-md-4"><label asp-for="ScopeTypeId" class="form-label">Loại phạm vi <span class="text-danger">*</span></label><select asp-for="ScopeTypeId" id="createScopeType" class="form-select" disabled><option value="">-- Chọn vai trò trước --</option>@foreach (var s in scopeTypes) { <option value="@s.ScopeTypeId" data-code="@s.Code">@s.DisplayName</option> }</select><span asp-validation-for="ScopeTypeId" class="text-danger small"></span></div>
+                                <div class="col-md-4"><label asp-for="ScopeRefId" class="form-label">Phạm vi được cấp <span class="text-danger">*</span></label><select asp-for="ScopeRefId" id="createScopeRef" class="form-select" disabled><option value="">-- Chọn loại phạm vi trước --</option></select><span asp-validation-for="ScopeRefId" class="text-danger small"></span></div>
+                            </div>
+                            <div class="row g-3 mt-1 d-none" id="createScopeCascade">
+                                <div class="col-md-6 d-none" id="createScopeProvinceWrap"><label class="form-label" for="createScopeProvince">Tỉnh/Thành phố của phạm vi</label><select id="createScopeProvince" class="form-select" disabled><option value="">-- Chọn Tỉnh/Thành phố --</option></select></div>
+                                <div class="col-md-6 d-none" id="createScopeDistrictWrap"><label class="form-label" for="createScopeDistrict">Quận/Huyện của phạm vi</label><select id="createScopeDistrict" class="form-select" disabled><option value="">-- Chọn Quận/Huyện --</option></select></div>
+                            </div>
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <label asp-for="StoreId" class="form-label">Cửa hàng chính <span class="text-danger">*</span></label>
+                                    @if (isStoreManager)
+                                    {
+                                        <input asp-for="StoreId" type="hidden" value="@currentStoreId" />
+                                        <input class="form-control" value="@ViewBag.CurrentStoreName" disabled />
+                                    }
+                                    else
+                                    {
+                                        <select asp-for="StoreId" id="createStore" class="form-select" disabled>
+                                            <option value="">-- Chọn phạm vi trước --</option>
+                                            @foreach (var s in stores)
+                                            {
+                                                <option value="@s.StoreId" data-province-id="@s.ProvinceId" data-district-id="@s.DistrictId" data-ward-id="@s.WardId">@s.Name</option>
+                                            }
+                                        </select>
+                                    }
+                                    <span asp-validation-for="StoreId" class="text-danger small"></span>
+                                    <small class="text-muted">Nơi công tác chính để xếp lịch và vận hành POS; không thay thế phạm vi dữ liệu.</small>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- ═══════ TAB 3: OT & CA ═══════ -->
-                        <div class="tab-pane fade" id="ot" role="tabpanel">
-                            <div class="row">
-                                <div class="col-lg-6 mb-3">
-                                    <label class="form-label">Hệ số Lương Thử việc</label>
-                                    <input asp-for="ProbationRate" id="ProbationRateInput" type="number" class="form-control" step="0.01" />
-                                    <small class="text-muted">Tỷ lệ nhân lương trong giai đoạn thử việc (mặc định: 0.85)</small>
-                                </div>
-                                <div class="col-lg-6 mb-3">
-                                    <label class="form-label">Hệ số Nhân lương OT</label>
-                                    <input asp-for="OvertimeRate" type="number" class="form-control" step="0.1" />
-                                    <small class="text-muted">Hệ số nhân cho giờ làm thêm (mặc định: 1.5)</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ═══════ TAB 4: NGƯỜI PHỤ THUỘC ═══════ -->
-                        <div class="tab-pane fade" id="dependent" role="tabpanel">
-                            <table class="table table-bordered align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="small text-uppercase">Họ và Tên</th>
-                                        <th class="small text-uppercase">Ngày sinh</th>
-                                        <th class="small text-uppercase">Mã số Thuế</th>
-                                        <th class="small text-uppercase">Quan hệ</th>
-                                        <th class="text-center" style="width: 80px;"><i class="fas fa-cog"></i></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dependentsTableBody">
-                                    <!-- Rows added via JS -->
-                                </tbody>
-                            </table>
-                            <div class="text-end">
-                                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="addDependentRow()">
-                                    <i class="fas fa-plus"></i> Thêm Người phụ thuộc
-                                </button>
+                        <div class="tab-pane fade" id="create-account">
+                            <div class="section-title"><i class="fas fa-briefcase me-1"></i> Công việc và tài khoản đăng nhập</div>
+                            <div class="row g-3">
+                                <div class="col-md-6"><label asp-for="Email" class="form-label">Email đăng nhập <span class="text-danger">*</span></label><input asp-for="Email" class="form-control" autocomplete="off" placeholder="staff@cafechain.vn" /><span asp-validation-for="Email" class="text-danger small"></span></div>
+                                <div class="col-md-6"><label asp-for="Password" class="form-label">Mật khẩu ban đầu <span class="text-danger">*</span></label><div class="input-group"><input asp-for="Password" id="createPassword" type="password" class="form-control" autocomplete="new-password" /><button type="button" class="btn btn-outline-secondary" id="toggleCreatePassword" aria-label="Hiện hoặc ẩn mật khẩu"><i class="fas fa-eye"></i></button></div><span asp-validation-for="Password" class="text-danger small"></span><small class="text-muted">Nhân viên phải đổi mật khẩu ở lần đăng nhập đầu tiên.</small></div>
+                                <div class="col-md-4"><label asp-for="StartDate" class="form-label">Ngày bắt đầu</label><input asp-for="StartDate" type="date" class="form-control" /></div>
+                                <div class="col-md-4"><label asp-for="EmployeeStatus" class="form-label">Trạng thái nhân sự</label><select asp-for="EmployeeStatus" class="form-select"><option value="1">Thử việc</option><option value="2">Chính thức</option><option value="3">Đã nghỉ việc</option></select></div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="d-flex justify-content-end gap-3 mt-4 pt-3" style="border-top:1px solid #e5e7eb;">
-                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i> Hủy
-                        </button>
-                        <button type="button" class="btn btn-primary px-5" onclick="validateAndSubmit(this)">
-                            <i class="fas fa-user-plus me-1"></i> Tạo tài khoản
-                        </button>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer px-4 py-3"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button><button type="submit" class="btn btn-primary" id="createStaffSubmit"><i class="fas fa-user-plus me-1"></i> Tạo nhân viên</button></div>
+            </form>
         </div>
     </div>
 </div>
 
-<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
-    const roleSelect = document.getElementById('dynamicRoleSelect');
-    const typeSelect = document.getElementById('uiScopeTypeSelect');
-    const refSelect = document.getElementById('uiScopeRefSelect');
-    const provSelect = document.getElementById('uiCascadingProvince');
-    const syncStore = document.getElementById('uiSyncStoreSelect');
-    const lblScopeRef = document.getElementById('lblScopeRef');
-    
-    const hiddenScopeTypeId = document.getElementById('HiddenScopeTypeId');
-    const hiddenScopeRefId = document.getElementById('HiddenScopeRefId');
+(() => {
+    const form = document.getElementById('createStaffForm');
+    if (!form) return;
+    const scopeEndpoint = '@Url.Action("GetScopeReferences", "AdminStaff", new { area = "Admin" })';
+    const districtsEndpoint = '@Url.Action("GetDistricts", "AdminStaff", new { area = "Admin" })';
+    const wardsEndpoint = '@Url.Action("GetWards", "AdminStaff", new { area = "Admin" })';
+    const province = document.getElementById('createProvince');
+    const district = document.getElementById('createDistrict');
+    const ward = document.getElementById('createWard');
+    const role = document.getElementById('createRole');
+    const scopeType = document.getElementById('createScopeType');
+    const scopeRef = document.getElementById('createScopeRef');
+    const scopeCascade = document.getElementById('createScopeCascade');
+    const scopeProvinceWrap = document.getElementById('createScopeProvinceWrap');
+    const scopeDistrictWrap = document.getElementById('createScopeDistrictWrap');
+    const scopeProvince = document.getElementById('createScopeProvince');
+    const scopeDistrict = document.getElementById('createScopeDistrict');
+    const primaryStore = document.getElementById('createStore');
+    const avatarInput = document.getElementById('createAvatarInput');
+    const avatarPreview = document.getElementById('createAvatarPreview');
+    const avatarPlaceholder = document.getElementById('createAvatarPlaceholder');
+    const removeAvatar = document.getElementById('removeCreateAvatar');
 
-    // Mảng stores được render từ backend ra JS để lọc
-    const storesCache = [
-        @if(stores != null) { foreach(var s in stores) { <text>{ id: @s.StoreId, name: '@s.Name', parentId: '@s.WardId' },</text> } }
-    ];
+    const scopeTypeCatalog = [...scopeType.options]
+        .filter(x => x.value)
+        .map(x => ({ value: x.value, code: x.dataset.code, text: x.textContent }));
+    const storeCatalog = primaryStore ? [...primaryStore.options]
+        .filter(x => x.value)
+        .map(x => ({
+            value: x.value,
+            text: x.textContent,
+            provinceId: x.dataset.provinceId || '',
+            districtId: x.dataset.districtId || '',
+            wardId: x.dataset.wardId || ''
+        })) : [];
 
-    // ===================================
-    // 1. Role Change -> Resolve Constraint
-    // ===================================
-    roleSelect.addEventListener('change', function () {
-        const selected = this.options[this.selectedIndex];
-        if (!selected || !selected.value) {
-            resetScopeUI();
-            return;
-        }
-        
-        const constraint = selected.getAttribute('data-constraint');
-        
-        if (constraint === 'HQ') {
-            typeSelect.value = "1";
-            typeSelect.disabled = true;
-            provSelect.style.display = 'none';
-            refSelect.innerHTML = '<option value="1">Trụ sở chính</option>';
-            refSelect.disabled = true;
-            syncStore.value = "";
-            syncStore.disabled = true;
-            syncScopeData();
-        } else if (constraint === 'STORE_ONLY') {
-            typeSelect.value = "4";
-            typeSelect.disabled = true;
-            refSelect.disabled = false;
-            fetchRefData(4);
-        } else if (constraint === 'FLEXIBLE') {
-            typeSelect.value = "";
-            typeSelect.disabled = false;
-            provSelect.style.display = 'none';
-            refSelect.innerHTML = '<option value="">-- Bấm để chọn địa bàn --</option>';
-            refSelect.disabled = true;
-            syncStore.value = "";
-            syncStore.disabled = false;
-            lblScopeRef.textContent = "Mã tham chiếu *";
-            syncScopeData();
-        }
-    });
-
-    // ===================================
-    // 2. Scope Type Change -> Fetch Data
-    // ===================================
-    typeSelect.addEventListener('change', function() {
-        var tId = parseInt(this.value);
-        provSelect.style.display = 'none';
-        
-        if (isNaN(tId)) {
-            lblScopeRef.textContent = "Mã tham chiếu *";
-            refSelect.innerHTML = '<option value="">-- Bấm để chọn địa bàn --</option>';
-            refSelect.disabled = true;
-            syncScopeData();
-            return;
-        }
-        
-        // Cập nhật nhãn động dựa trên Type
-        if (tId === 1) lblScopeRef.textContent = "Mã tham chiếu *";
-        else if (tId === 2) lblScopeRef.textContent = "Chọn Tỉnh/Thành phố *";
-        else if (tId === 3) lblScopeRef.textContent = "Chọn Phường/Xã *";
-        else if (tId === 4) lblScopeRef.textContent = "Chọn Cửa hàng *";
-        
-        if (tId === 1) {
-            refSelect.innerHTML = '<option value="1">Trụ sở chính</option>';
-            refSelect.disabled = true;
-            syncStore.value = "";
-            syncScopeData();
-            return;
-        }
-
-        if (tId === 2 || tId === 4) {
-            refSelect.disabled = false;
-            fetchRefData(tId, null);
-        }
-        else if (tId === 3) {
-            // CASCADING WARD LOGIC: Show Province first
-            provSelect.style.display = 'block';
-            refSelect.disabled = true;
-            refSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
-            loadCascadingProvinces();
-        }
-    });
-
-    // ===================================
-    // 3. Cascading Logic (Ward)
-    // ===================================
-    async function loadCascadingProvinces() {
-        provSelect.innerHTML = '<option value="">Đang tải Tỉnh/Thành...</option>';
+    const resetSelect = (select, placeholder) => {
+        if (!select) return;
+        select.innerHTML = `<option value="">${placeholder}</option>`;
+        select.disabled = true;
+    };
+    const loadScopeOptions = async (select, scopeTypeId, parentId, placeholder) => {
+        resetSelect(select, 'Đang tải...');
         try {
-            const res = await fetch(`@Url.Action("GetScopeReferences", "AdminStaff", new { area = "Admin" })?scopeTypeId=2`);
-            const data = await res.json();
-            provSelect.innerHTML = '<option value="">-- Chọn Tỉnh/Thành phố trước --</option>';
-            data.forEach((p) => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = p.name;
-                provSelect.appendChild(opt);
-            });
-        } catch (e) {
-            provSelect.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+            const suffix = parentId ? `&parentId=${encodeURIComponent(parentId)}` : '';
+            const response = await fetch(`${scopeEndpoint}?scopeTypeId=${scopeTypeId}${suffix}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error();
+            const rows = await response.json();
+            resetSelect(select, placeholder);
+            rows.forEach(x => select.add(new Option(x.name, x.id)));
+            select.disabled = rows.length === 0;
+            return rows;
+        } catch { resetSelect(select, 'Không tải được dữ liệu'); return []; }
+    };
+    const loadLocationOptions = async (select, url, parameterName, parentId, placeholder) => {
+        resetSelect(select, 'Đang tải...');
+        try {
+            const response = await fetch(`${url}?${parameterName}=${encodeURIComponent(parentId)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error();
+            const rows = await response.json();
+            resetSelect(select, placeholder);
+            rows.forEach(x => select.add(new Option(x.name, x.id)));
+            select.disabled = rows.length === 0;
+        } catch { resetSelect(select, 'Không tải được dữ liệu'); }
+    };
+    const filterPrimaryStores = () => {
+        if (!primaryStore) return;
+        const previousValue = primaryStore.value;
+        const type = scopeType.value;
+        const reference = scopeRef.value;
+        const matches = !type || !reference ? [] : storeCatalog.filter(store => {
+            if (type === '1') return true;
+            if (type === '2') return store.provinceId === reference;
+            if (type === '3') return store.districtId === reference;
+            if (type === '4') return store.wardId === reference;
+            if (type === '5') return store.value === reference;
+            return false;
+        });
+        resetSelect(primaryStore, matches.length ? '-- Chọn cửa hàng chính --' : '-- Phạm vi không có cửa hàng phù hợp --');
+        matches.forEach(store => primaryStore.add(new Option(store.text, store.value)));
+        primaryStore.disabled = matches.length === 0;
+        if (matches.some(store => store.value === previousValue)) primaryStore.value = previousValue;
+        else if (type === '5' && matches.length === 1) primaryStore.value = matches[0].value;
+    };
+    const renderScopeTypesForRole = async () => {
+        const mode = role.selectedOptions[0]?.dataset.scopeMode;
+        resetSelect(scopeType, mode ? '-- Chọn loại phạm vi --' : '-- Chọn vai trò trước --');
+        resetSelect(scopeRef, '-- Chọn loại phạm vi trước --');
+        resetSelect(primaryStore, '-- Chọn phạm vi trước --');
+        scopeCascade.classList.add('d-none');
+        if (!mode) return;
+        const allowedIds = mode === 'country' ? ['1'] : mode === 'store' ? ['5'] : ['2', '3', '4', '5'];
+        scopeTypeCatalog.filter(x => allowedIds.includes(x.value)).forEach(x => {
+            const option = new Option(x.text, x.value);
+            option.dataset.code = x.code;
+            scopeType.add(option);
+        });
+        scopeType.disabled = false;
+        if (allowedIds.length === 1) {
+            scopeType.value = allowedIds[0];
+            await handleScopeTypeChange();
         }
-    }
+    };
 
-    provSelect.addEventListener('change', function() {
-        if (!this.value) {
-            refSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
-            refSelect.disabled = true;
-            syncScopeData();
+    province?.addEventListener('change', async () => {
+        resetSelect(district, '-- Chọn Quận/Huyện --'); resetSelect(ward, '-- Chọn Phường/Xã --');
+        if (province.value) await loadLocationOptions(district, districtsEndpoint, 'provinceId', province.value, '-- Chọn Quận/Huyện --');
+    });
+    district?.addEventListener('change', async () => {
+        resetSelect(ward, '-- Chọn Phường/Xã --');
+        if (district.value) await loadLocationOptions(ward, wardsEndpoint, 'districtId', district.value, '-- Chọn Phường/Xã --');
+    });
+    const handleScopeTypeChange = async () => {
+        resetSelect(scopeRef, '-- Chọn phạm vi --');
+        resetSelect(primaryStore, '-- Chọn phạm vi trước --');
+        scopeCascade.classList.add('d-none'); scopeProvinceWrap.classList.add('d-none'); scopeDistrictWrap.classList.add('d-none');
+        resetSelect(scopeDistrict, '-- Chọn Quận/Huyện --');
+        resetSelect(scopeProvince, '-- Chọn Tỉnh/Thành phố --');
+        if (!scopeType.value) return;
+        if (scopeType.value === '3' || scopeType.value === '4') {
+            scopeCascade.classList.remove('d-none'); scopeProvinceWrap.classList.remove('d-none');
+            if (scopeType.value === '4') scopeDistrictWrap.classList.remove('d-none');
+            resetSelect(scopeRef, scopeType.value === '3' ? '-- Chọn Tỉnh trước --' : '-- Chọn Quận/Huyện trước --');
+            await loadScopeOptions(scopeProvince, 2, null, '-- Chọn Tỉnh/Thành phố --');
             return;
         }
-        // Fetch ward based on Province
-        refSelect.disabled = false;
-        fetchRefData(3, this.value);
+        const rows = await loadScopeOptions(scopeRef, scopeType.value, null, '-- Chọn phạm vi --');
+        if ((scopeType.value === '1' || rows.length === 1) && scopeRef.options.length > 1) {
+            scopeRef.selectedIndex = 1;
+            filterPrimaryStores();
+        }
+    };
+    role?.addEventListener('change', renderScopeTypesForRole);
+    scopeType?.addEventListener('change', handleScopeTypeChange);
+    scopeRef?.addEventListener('change', filterPrimaryStores);
+    scopeProvince?.addEventListener('change', async () => {
+        resetSelect(scopeDistrict, '-- Chọn Quận/Huyện --'); resetSelect(scopeRef, '-- Chọn phạm vi --'); resetSelect(primaryStore, '-- Chọn phạm vi trước --');
+        if (!scopeProvince.value) return;
+        if (scopeType.value === '3') await loadScopeOptions(scopeRef, 3, scopeProvince.value, '-- Chọn Quận/Huyện --');
+        if (scopeType.value === '4') await loadScopeOptions(scopeDistrict, 3, scopeProvince.value, '-- Chọn Quận/Huyện --');
+    });
+    scopeDistrict?.addEventListener('change', async () => {
+        resetSelect(scopeRef, '-- Chọn Phường/Xã --'); resetSelect(primaryStore, '-- Chọn phạm vi trước --');
+        if (scopeType.value === '4' && scopeDistrict.value) await loadScopeOptions(scopeRef, 4, scopeDistrict.value, '-- Chọn Phường/Xã --');
     });
 
-    // ===================================
-    // 4. API Fetch & Populate Ref Col
-    // ===================================
-    async function fetchRefData(scopeTypeId, parentId) {
-        refSelect.innerHTML = '<option value="">Đang tải...</option>';
-        try {
-            let url = `@Url.Action("GetScopeReferences", "AdminStaff", new { area = "Admin" })?scopeTypeId=${scopeTypeId}`;
-            if (parentId) url += `&parentId=${parentId}`;
-            
-            const res = await fetch(url);
-            const data = await res.json();
-            
-            refSelect.innerHTML = '<option value="">-- Xin vui lòng chọn --</option>';
-            data.forEach((p) => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = p.name;
-                refSelect.appendChild(opt);
-            });
-            
-            if (data.length > 0 && scopeTypeId === 4) {
-                refSelect.selectedIndex = 1;
-                refSelect.dispatchEvent(new Event('change'));
-            } else {
-                syncScopeData();
-            }
-        } catch (e) {
-            console.error('Lỗi tải ScopeReferences:', e);
-            refSelect.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+    const openAvatarPicker = () => avatarInput?.click();
+    document.getElementById('createAvatarBox')?.addEventListener('click', openAvatarPicker);
+    document.getElementById('chooseCreateAvatar')?.addEventListener('click', openAvatarPicker);
+    document.getElementById('createAvatarBox')?.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAvatarPicker(); } });
+    avatarInput?.addEventListener('change', () => {
+        const file = avatarInput.files?.[0];
+        if (!file) return;
+        if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+            avatarInput.value = ''; alert('Ảnh phải là JPG, PNG hoặc WebP và không vượt quá 2 MB.'); return;
         }
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // SCOPE DATA SYNC (Hidden Inputs) — BUG 1 FIX
-    // ═══════════════════════════════════════════════════════
-    function syncScopeData() {
-        // Đồng bộ giá trị từ UI dropdown sang hidden inputs cho server
-        hiddenScopeTypeId.value = typeSelect.value || '';
-        hiddenScopeRefId.value = refSelect.value || '';
-    }
-
-    function resetScopeUI() {
-        typeSelect.value = '';
-        typeSelect.disabled = false;
-        provSelect.style.display = 'none';
-        provSelect.innerHTML = '<option value="">-- Chọn Tỉnh/Thành phố trước --</option>';
-        refSelect.innerHTML = '<option value="">-- Bấm để chọn địa bàn --</option>';
-        refSelect.disabled = true;
-        syncStore.value = '';
-        syncStore.disabled = false;
-        lblScopeRef.textContent = 'Mã tham chiếu *';
-        syncScopeData();
-    }
-
-    // Đồng bộ hidden inputs khi user chọn giá trị mới
-    refSelect.addEventListener('change', function() {
-        syncScopeData();
-        // Nếu chọn Store → auto đồng bộ StoreId
-        if (parseInt(typeSelect.value) === 4 && this.value) {
-            syncStore.value = this.value;
-        }
+        const reader = new FileReader();
+        reader.onload = e => { avatarPreview.src = e.target.result; avatarPreview.style.display = 'block'; avatarPlaceholder.style.display = 'none'; removeAvatar.classList.remove('d-none'); };
+        reader.readAsDataURL(file);
     });
+    removeAvatar?.addEventListener('click', () => { avatarInput.value = ''; avatarPreview.removeAttribute('src'); avatarPreview.style.display = 'none'; avatarPlaceholder.style.display = ''; removeAvatar.classList.add('d-none'); });
+    document.getElementById('toggleCreatePassword')?.addEventListener('click', e => { const input = document.getElementById('createPassword'); input.type = input.type === 'password' ? 'text' : 'password'; e.currentTarget.querySelector('i').classList.toggle('fa-eye'); e.currentTarget.querySelector('i').classList.toggle('fa-eye-slash'); });
 
-    // ═══════════════════════════════════════════════════════
-    // DEPENDENTS (1-to-N Dynamic)
-    // ═══════════════════════════════════════════════════════
-    function addDependentRow() {
-        const tbody = document.getElementById('dependentsTableBody');
-        const index = tbody.children.length;
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><input name="Dependents[${index}].FullName" class="form-control dep-fullName" placeholder="Nhập tên..." /></td>
-            <td><input name="Dependents[${index}].DateOfBirth" class="form-control dep-date flatpickr-date" placeholder="Chọn ngày" /></td>
-            <td><input name="Dependents[${index}].TaxCode" class="form-control dep-taxCode" placeholder="Mã số thuế" /></td>
-            <td>
-                <select name="Dependents[${index}].Relationship" class="form-select dep-rel">
-                    <option value="Con">Con</option>
-                    <option value="Vợ/Chồng">Vợ/Chồng</option>
-                    <option value="Bố/Mẹ">Bố/Mẹ</option>
-                    <option value="Khác">Khác</option>
-                </select>
-            </td>
-            <td class="text-center"><button type="button" class="btn btn-link text-danger p-0" onclick="removeDependentRow(this)"><i class="fas fa-trash-alt"></i></button></td>
-        `;
-        tbody.appendChild(row);
-        flatpickr(row.querySelector('.flatpickr-date'), { dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y", locale: "vn" });
-    }
-
-    function removeDependentRow(btn) {
-        btn.closest('tr').remove();
-        document.getElementById('dependentsTableBody').querySelectorAll('tr').forEach((row, index) => {
-            row.querySelector('.dep-fullName').name = `Dependents[${index}].FullName`;
-            row.querySelector('.dep-date').name = `Dependents[${index}].DateOfBirth`;
-            row.querySelector('.dep-taxCode').name = `Dependents[${index}].TaxCode`;
-            if (row.querySelector('.dep-rel')) {
-                row.querySelector('.dep-rel').name = `Dependents[${index}].Relationship`;
-            }
-        });
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // BANKS (1-to-N Dynamic)
-    // ═══════════════════════════════════════════════════════
-    function addBankRowModal() {
-        const tbody = document.querySelector('#banksTableModal tbody');
-        const index = tbody.children.length;
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>
-                <input type="radio" name="PrimaryBankIndex" value="${index}" class="form-check-input" />
-            </td>
-            <td><input type="text" name="Banks[${index}].BankName" class="form-control form-control-sm bank-name" placeholder="VD: MBBank" /></td>
-            <td><input type="text" name="Banks[${index}].AccountNumber" class="form-control form-control-sm bank-acc" /></td>
-            <td><input type="text" name="Banks[${index}].AccountHolderName" class="form-control form-control-sm bank-holder text-uppercase" /></td>
-            <td><button type="button" class="btn btn-sm btn-danger border-0" onclick="removeBankRowModal(this)"><i class="fas fa-trash"></i></button></td>
-        `;
-        tbody.appendChild(row);
-    }
-
-    function removeBankRowModal(btn) {
-        const tbody = document.querySelector('#banksTableModal tbody');
-        btn.closest('tr').remove();
-        
-        // Re-index all rows
-        tbody.querySelectorAll('tr').forEach((row, index) => {
-            row.querySelector('input[type="radio"]').value = index;
-            row.querySelector('.bank-name').name = `Banks[${index}].BankName`;
-            row.querySelector('.bank-acc').name = `Banks[${index}].AccountNumber`;
-            row.querySelector('.bank-holder').name = `Banks[${index}].AccountHolderName`;
-        });
-        
-        // Ensure at least one radio is checked if rows exist
-        if (tbody.children.length > 0) {
-            const anyChecked = Array.from(tbody.querySelectorAll('input[type="radio"]')).some(r => r.checked);
-            if (!anyChecked) {
-                tbody.querySelector('input[type="radio"]').checked = true;
-            }
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // AVATAR PREVIEW
-    // ═══════════════════════════════════════════════════════
-    function previewAvatar(input) {
-        if (input.files && input.files[0]) {
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                var box = input.closest('.col-md-3').querySelector('.avatar-upload-box');
-                var icon = box.querySelector('.placeholder-icon');
-                var text = box.querySelector('.placeholder-text');
-                if (icon) icon.style.display = 'none';
-                if (text) text.style.display = 'none';
-                box.querySelector('img').src = e.target.result;
-                box.querySelector('img').style.display = 'block';
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // DYNAMIC INPUTS (Phones, Addresses)
-    // ═══════════════════════════════════════════════════════
-    function addDynamicInput(containerId, fieldName, maxCount, placeholder) {
-        const container = document.getElementById(containerId);
-        const currentCount = container.querySelectorAll('.dynamic-input-group').length;
-        if (currentCount >= maxCount) return alert('Tối đa ' + maxCount + ' dòng');
-        const nextIndex = currentCount;
-        const inputClass = fieldName === 'Phones' ? 'phone-input' : 'addr-input';
-        const div = document.createElement('div');
-        div.className = 'dynamic-input-group d-flex mb-2';
-        div.innerHTML = `<input name="${fieldName}[${nextIndex}]" class="form-control me-2 ${inputClass}" placeholder="${placeholder}" />
-                         <button type="button" class="btn btn-sm btn-danger" onclick="removeDynamicInput(this, '${containerId}', '${fieldName}', '${inputClass}')"><i class="fas fa-trash"></i></button>`;
-        container.appendChild(div);
-    }
-
-    function removeDynamicInput(btn, containerId, fieldName, inputClass) {
-        btn.parentElement.remove();
-        document.getElementById(containerId).querySelectorAll(`.${inputClass}`).forEach((input, index) => {
-            input.name = `${fieldName}[${index}]`;
-        });
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // FORM VALIDATION & SUBMIT — BUG 1 FIX
-    // ═══════════════════════════════════════════════════════
-    function validateAndSubmit(btn) {
-        const form = document.getElementById('createStaffForm');
-        const roleEl = form.querySelector('[name="SelectedRoleId"]');
-        if (!roleEl.value) return Swal.fire('Cảnh báo', 'Vui lòng chọn Vai trò!', 'warning');
-        if (!form.querySelector('[name="FullName"]').value) return Swal.fire('Cảnh báo', 'Vui lòng nhập Họ và Tên!', 'warning');
-
-        // Validate scope reference — sử dụng đúng ID thực tế
-        const constraint = roleEl.options[roleEl.selectedIndex].getAttribute('data-constraint');
-        if (constraint === 'FLEXIBLE' && !hiddenScopeRefId.value) {
-            return Swal.fire('Cảnh báo', 'Vui lòng chọn Khu vực quản lý!', 'warning');
-        }
-        if (constraint === 'STORE_ONLY' && !refSelect.value) {
-            return Swal.fire('Cảnh báo', 'Vui lòng chọn Cửa hàng!', 'warning');
-        }
-
-        // Đồng bộ lần cuối trước khi submit
-        syncScopeData();
-
-        btn.disabled = true;
-        btn.innerHTML = 'Đang xử lý...';
-        form.submit();
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // INIT
-    // ═══════════════════════════════════════════════════════
-    document.addEventListener('DOMContentLoaded', function () {
-        flatpickr(".flatpickr-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y", locale: "vn" });
+    form.addEventListener('submit', e => {
+        if (form.checkValidity()) return;
+        e.preventDefault(); e.stopPropagation(); form.classList.add('was-validated');
+        const invalid = form.querySelector(':invalid');
+        const pane = invalid?.closest('.tab-pane');
+        if (pane) bootstrap.Tab.getOrCreateInstance(document.querySelector(`[data-bs-target="#${pane.id}"]`)).show();
+        setTimeout(() => invalid?.focus(), 120);
     });
+})();
 </script>

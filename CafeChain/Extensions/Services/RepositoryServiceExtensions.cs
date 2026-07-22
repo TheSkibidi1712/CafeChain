@@ -3,7 +3,6 @@
 // ==========================================
 using CafeChain.Infrastructure.Interfaces.Customers;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
-using CafeChain.Infrastructure.Interfaces.Attendance;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
 using CafeChain.Infrastrusture.Interfaces.Admin.Dashboard;
@@ -19,6 +18,7 @@ using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
 using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
 using CafeChain.Infrastrusture.Interfaces.Admin.Toppings;
 using CafeChain.Infrastructure.Interfaces.Admin.Permissions;
+using CafeChain.Infrastructure.Interfaces.StaffHub;
 using CafeChain.Infrastrusture.Interfaces.Systems;
 
 
@@ -28,7 +28,6 @@ using CafeChain.Infrastrusture.Interfaces.Systems;
 // ==========================================
 using CafeChain.Infrastructure.Repositories.Customers;
 using CafeChain.Infrastrusture.Repositories.Accounts;
-using CafeChain.Infrastructure.Repositories.Attendance;
 using CafeChain.Infrastrusture.Repositories.Admin.Categories;
 using CafeChain.Infrastrusture.Repositories.Admin.Dashboard;
 using CafeChain.Infrastrusture.Repositories.Admin.Drinks;
@@ -44,6 +43,7 @@ using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
 using CafeChain.Infrastrusture.Repositories.Admin.Toppings;
 using CafeChain.Infrastructure.Repositories.Admin.POS;
 using CafeChain.Infrastructure.Repositories.Admin.Permissions;
+using CafeChain.Infrastructure.Repositories.StaffHub;
 using CafeChain.Infrastrusture.Repositories.Systems;
 
 namespace CafeChain.Extensions.Services
@@ -83,6 +83,12 @@ namespace CafeChain.Extensions.Services
 
             // Admin - Staff
             services.AddScoped<IAdminStaffRepository, AdminStaffRepository>();
+            services.AddScoped<CafeChain.Infrastructure.Interfaces.Admin.Profiles.IAdminProfileRepository,
+                CafeChain.Infrastructure.Repositories.Admin.Profiles.AdminProfileRepository>();
+            services.AddScoped<CafeChain.Infrastructure.Interfaces.Admin.Staffs.IAdminStaffShiftRepository,
+                CafeChain.Infrastructure.Repositories.Admin.Staffs.AdminStaffShiftRepository>();
+            services.AddScoped<CafeChain.Infrastructure.Interfaces.Admin.Stores.IAdminStoreRepository,
+                CafeChain.Infrastructure.Repositories.Admin.Stores.AdminStoreRepository>();
 
             // Admin - Ingredients
             services.AddScoped<IAdminIngredientRepository, AdminIngredientRepository>();
@@ -102,9 +108,8 @@ namespace CafeChain.Extensions.Services
             // Dashboard
             services.AddScoped<IDashboardRepository, DashboardRepository>();
 
-            // HR & Attendance
-            services.AddScoped<IAttendanceRepository, AttendanceRepository>();
             services.AddScoped<IWorkShiftRepository, WorkShiftRepository>();
+            services.AddScoped<IStaffScheduleRepository, StaffScheduleRepository>();
 
             // POS
             services.AddScoped<IPOSOrderRepository, POSOrderRepository>();

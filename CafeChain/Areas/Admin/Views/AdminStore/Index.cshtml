@@ -1,8 +1,19 @@
-@model IEnumerable<CafeChain.Models.Stores.Store>
+@model IReadOnlyList<CafeChain.ViewModels.Admin.Stores.AdminStoreIndexItemVM>
+@using System.Security.Claims
+@using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
+@inject IAdminPermissionService StorePermissionService
 @{
     ViewData["Title"] = "Quản lý cửa hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
-    var stores = Model?.ToList() ?? new List<CafeChain.Models.Stores.Store>();
+    var stores = Model?.ToList() ?? new List<CafeChain.ViewModels.Admin.Stores.AdminStoreIndexItemVM>();
+    var accountId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsedAccountId)
+        ? parsedAccountId : 0;
+    var permissions = (await StorePermissionService.GetEffectivePermissionCodesAsync(accountId)).Data
+        ?? new HashSet<string>(StringComparer.Ordinal);
+    var canCreate = permissions.Contains(PermissionConstants.StoreCreate);
+    var canUpdate = permissions.Contains(PermissionConstants.StoreUpdate);
+    var canToggle = permissions.Contains(PermissionConstants.StoreToggleStatus);
 
     string FormatPhone(string? phone)
     {
@@ -33,10 +44,12 @@
             </p>
         </div>
 
-        <a asp-action="Create" class="store-admin-btn store-admin-btn-primary">
-            <i class="fas fa-plus"></i>
-            Thêm cửa hàng mới
-        </a>
+        @if (canCreate)
+        {
+            <a asp-action="Create" class="store-admin-btn store-admin-btn-primary">
+                <i class="fas fa-plus"></i> Thêm cửa hàng mới
+            </a>
+        }
     </header>
 
     <section class="store-admin-stat-grid">
@@ -100,9 +113,11 @@
                                 <td>
                                     <div style="max-width: 320px;">
                                         @item.Address
-                                        @if (item.Ward != null && item.District != null && item.Province != null)
+                                        @if (!string.IsNullOrWhiteSpace(item.WardName)
+                                            && !string.IsNullOrWhiteSpace(item.DistrictName)
+                                            && !string.IsNullOrWhiteSpace(item.ProvinceName))
                                         {
-                                            <div class="text-muted small">@item.Ward.Name, @item.District.Name, @item.Province.Name</div>
+                                            <div class="text-muted small">@item.WardName, @item.DistrictName, @item.ProvinceName</div>
                                         }
                                     </div>
                                 </td>
@@ -145,6 +160,8 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="store-admin-actions">
+                                       @if (canUpdate)
+                                       {
                                        <a asp-action="Edit"
                                            asp-route-id="@item.StoreId"
                                            class="store-admin-icon-btn"
@@ -152,7 +169,10 @@
                                            aria-label="Chỉnh sửa cửa hàng @item.Name">
                                             <i class="fas fa-pen"></i>
                                         </a>
+                                       }
 
+                                       @if (canToggle)
+                                       {
                                         <form asp-action="ToggleStatus" asp-route-id="@item.StoreId" method="post" class="d-inline">
                                             @if (item.Active)
                                             {
@@ -175,6 +195,7 @@
                                                 </button>
                                             }
                                         </form>
+                                       }
                                     </div>
                                 </td>
                             </tr>

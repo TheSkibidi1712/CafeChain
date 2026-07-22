@@ -8704,7 +8704,7 @@ namespace CafeChain.Migrations
                         },
                         new
                         {
-                            PermissionId = 100,
+                            PermissionId = 27,
                             Action = "Manage",
                             Active = true,
                             Code = "System.Permission.Manage",
@@ -8934,47 +8934,8 @@ namespace CafeChain.Migrations
                         new
                         {
                             RoleId = 1,
-                            PermissionId = 100
+                            PermissionId = 27
                         });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Staffs.AttendanceLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CheckInTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<bool>("IsFaceVerified")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("StoreId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StoreId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("AttendanceLogs");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.ScopeType", b =>
@@ -9057,9 +9018,6 @@ namespace CafeChain.Migrations
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
 
-                    b.Property<bool>("IsFreeShift")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsOvernight")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -9072,6 +9030,12 @@ namespace CafeChain.Migrations
 
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<TimeSpan>("StartTime")
                         .HasColumnType("time");
@@ -9091,9 +9055,9 @@ namespace CafeChain.Migrations
                             ShiftId = 1,
                             Active = false,
                             EndTime = new TimeSpan(0, 12, 0, 0, 0),
-                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca sáng",
+                            RowVersion = new byte[0],
                             StartTime = new TimeSpan(0, 6, 0, 0, 0),
                             StoreId = 1
                         },
@@ -9102,9 +9066,9 @@ namespace CafeChain.Migrations
                             ShiftId = 2,
                             Active = false,
                             EndTime = new TimeSpan(0, 18, 0, 0, 0),
-                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca chiều",
+                            RowVersion = new byte[0],
                             StartTime = new TimeSpan(0, 12, 0, 0, 0),
                             StoreId = 1
                         },
@@ -9113,9 +9077,9 @@ namespace CafeChain.Migrations
                             ShiftId = 3,
                             Active = false,
                             EndTime = new TimeSpan(0, 23, 0, 0, 0),
-                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca tối",
+                            RowVersion = new byte[0],
                             StartTime = new TimeSpan(0, 18, 0, 0, 0),
                             StoreId = 1
                         },
@@ -9124,9 +9088,9 @@ namespace CafeChain.Migrations
                             ShiftId = 4,
                             Active = false,
                             EndTime = new TimeSpan(0, 12, 0, 0, 0),
-                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca sáng",
+                            RowVersion = new byte[0],
                             StartTime = new TimeSpan(0, 6, 0, 0, 0),
                             StoreId = 2
                         },
@@ -9135,9 +9099,9 @@ namespace CafeChain.Migrations
                             ShiftId = 5,
                             Active = false,
                             EndTime = new TimeSpan(0, 18, 0, 0, 0),
-                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca chiều",
+                            RowVersion = new byte[0],
                             StartTime = new TimeSpan(0, 12, 0, 0, 0),
                             StoreId = 2
                         },
@@ -9146,9 +9110,9 @@ namespace CafeChain.Migrations
                             ShiftId = 6,
                             Active = false,
                             EndTime = new TimeSpan(0, 12, 0, 0, 0),
-                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca sáng",
+                            RowVersion = new byte[0],
                             StartTime = new TimeSpan(0, 6, 0, 0, 0),
                             StoreId = 3
                         },
@@ -9157,9 +9121,9 @@ namespace CafeChain.Migrations
                             ShiftId = 7,
                             Active = false,
                             EndTime = new TimeSpan(0, 23, 0, 0, 0),
-                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca tối",
+                            RowVersion = new byte[0],
                             StartTime = new TimeSpan(0, 18, 0, 0, 0),
                             StoreId = 3
                         });
@@ -9181,9 +9145,6 @@ namespace CafeChain.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<decimal>("Allowance")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("AvatarPublicId")
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
@@ -9191,9 +9152,6 @@ namespace CafeChain.Migrations
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
-
-                    b.Property<decimal>("BaseSalary")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("CCCD")
                         .HasMaxLength(12)
@@ -9211,9 +9169,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("EmployeeStatus")
                         .HasColumnType("int");
 
-                    b.Property<string>("FaceDescriptor")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -9222,31 +9177,11 @@ namespace CafeChain.Migrations
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
-                    b.Property<string>("HealthInsuranceNumber")
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)");
-
-                    b.Property<decimal>("OvertimeRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("ProbationRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("SalaryType")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SocialInsuranceNumber")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
-
-                    b.Property<string>("TaxCode")
-                        .HasMaxLength(14)
-                        .HasColumnType("nvarchar(14)");
 
                     b.HasKey("StaffId");
 
@@ -9259,10 +9194,6 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("StoreId");
 
-                    b.HasIndex("TaxCode")
-                        .IsUnique()
-                        .HasFilter("[TaxCode] IS NOT NULL AND [TaxCode] <> ''");
-
                     b.ToTable("Staffs", (string)null);
 
                     b.HasData(
@@ -9271,133 +9202,91 @@ namespace CafeChain.Migrations
                             StaffId = 1,
                             AccountId = 1,
                             Active = true,
-                            Allowance = 0m,
-                            AvatarPublicId = "staffs/default-avatar",
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            BaseSalary = 100000000m,
+                            AvatarPublicId = "avtdf_rfdc7o",
+                            AvatarUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EmployeeStatus = 0,
                             FullName = "Chủ doanh nghiệp",
                             Gender = 0,
-                            OvertimeRate = 0m,
-                            ProbationRate = 0m,
-                            SalaryType = 0,
-                            StoreId = 1,
-                            TaxCode = "TAX101"
+                            StoreId = 1
                         },
                         new
                         {
                             StaffId = 2,
                             AccountId = 2,
                             Active = true,
-                            Allowance = 0m,
-                            AvatarPublicId = "staffs/default-avatar",
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            BaseSalary = 45000000m,
+                            AvatarPublicId = "avtdf_rfdc7o",
+                            AvatarUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EmployeeStatus = 0,
                             FullName = "Quản lý vùng TP.HCM",
                             Gender = 0,
-                            OvertimeRate = 0m,
-                            ProbationRate = 0m,
-                            SalaryType = 0,
-                            StoreId = 1,
-                            TaxCode = "TAX102"
+                            StoreId = 1
                         },
                         new
                         {
                             StaffId = 3,
                             AccountId = 3,
                             Active = true,
-                            Allowance = 0m,
-                            AvatarPublicId = "staffs/default-avatar",
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            BaseSalary = 25000000m,
+                            AvatarPublicId = "avtdf_rfdc7o",
+                            AvatarUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EmployeeStatus = 0,
                             FullName = "Quản lý chi nhánh Quận 1",
                             Gender = 0,
-                            OvertimeRate = 0m,
-                            ProbationRate = 0m,
-                            SalaryType = 0,
-                            StoreId = 1,
-                            TaxCode = "TAX103"
+                            StoreId = 1
                         },
                         new
                         {
                             StaffId = 4,
                             AccountId = 4,
                             Active = true,
-                            Allowance = 0m,
-                            AvatarPublicId = "staffs/default-avatar",
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            BaseSalary = 9000000m,
+                            AvatarPublicId = "avtdf_rfdc7o",
+                            AvatarUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EmployeeStatus = 0,
                             FullName = "Nhân viên bán hàng",
                             Gender = 0,
-                            OvertimeRate = 0m,
-                            ProbationRate = 0m,
-                            SalaryType = 0,
-                            StoreId = 1,
-                            TaxCode = "TAX104"
+                            StoreId = 1
                         },
                         new
                         {
                             StaffId = 5,
                             AccountId = 5,
                             Active = true,
-                            Allowance = 0m,
-                            AvatarPublicId = "staffs/default-avatar",
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            BaseSalary = 15000000m,
+                            AvatarPublicId = "avtdf_rfdc7o",
+                            AvatarUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EmployeeStatus = 0,
                             FullName = "Nhân viên kế toán kho",
                             Gender = 0,
-                            OvertimeRate = 0m,
-                            ProbationRate = 0m,
-                            SalaryType = 0,
-                            StoreId = 1,
-                            TaxCode = "TAX105"
+                            StoreId = 1
                         },
                         new
                         {
                             StaffId = 6,
                             AccountId = 6,
                             Active = true,
-                            Allowance = 0m,
-                            AvatarPublicId = "staffs/default-avatar",
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            BaseSalary = 35000000m,
+                            AvatarPublicId = "avtdf_rfdc7o",
+                            AvatarUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EmployeeStatus = 0,
                             FullName = "Quản trị hệ thống",
                             Gender = 0,
-                            OvertimeRate = 0m,
-                            ProbationRate = 0m,
-                            SalaryType = 0,
-                            StoreId = 1,
-                            TaxCode = "TAX106"
+                            StoreId = 1
                         },
                         new
                         {
                             StaffId = 15,
                             AccountId = 15,
                             Active = true,
-                            Allowance = 0m,
-                            AvatarPublicId = "staffs/default-avatar",
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            BaseSalary = 12000000m,
+                            AvatarPublicId = "avtdf_rfdc7o",
+                            AvatarUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EmployeeStatus = 0,
                             FullName = "Ca trưởng chi nhánh",
                             Gender = 0,
-                            OvertimeRate = 0m,
-                            ProbationRate = 0m,
-                            SalaryType = 0,
-                            StoreId = 1,
-                            TaxCode = "TAX112"
+                            StoreId = 1
                         });
                 });
 
@@ -9411,20 +9300,35 @@ namespace CafeChain.Migrations
 
                     b.Property<string>("Address")
                         .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("DistrictId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsDefault")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<int?>("ProvinceId")
+                        .HasColumnType("int");
+
                     b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("WardId")
                         .HasColumnType("int");
 
                     b.HasKey("StaffAddressId");
 
+                    b.HasIndex("DistrictId");
+
+                    b.HasIndex("ProvinceId");
+
                     b.HasIndex("StaffId");
+
+                    b.HasIndex("WardId");
 
                     b.ToTable("StaffAddresses", (string)null);
 
@@ -9450,102 +9354,6 @@ namespace CafeChain.Migrations
                             IsDefault = true,
                             StaffId = 3
                         });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Staffs.StaffBank", b =>
-                {
-                    b.Property<int>("StaffBankId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffBankId"));
-
-                    b.Property<string>("AccountHolderName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("AccountNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("BankName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("StaffId")
-                        .HasColumnType("int");
-
-                    b.HasKey("StaffBankId");
-
-                    b.HasIndex("StaffId");
-
-                    b.HasIndex("BankName", "AccountNumber")
-                        .IsUnique()
-                        .HasFilter("[AccountNumber] IS NOT NULL AND [BankName] IS NOT NULL");
-
-                    b.ToTable("StaffBanks", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            StaffBankId = 1,
-                            AccountNumber = "123456789",
-                            BankName = "Vietcombank",
-                            IsPrimary = false,
-                            StaffId = 1
-                        },
-                        new
-                        {
-                            StaffBankId = 2,
-                            AccountNumber = "987654321",
-                            BankName = "ACB",
-                            IsPrimary = false,
-                            StaffId = 2
-                        },
-                        new
-                        {
-                            StaffBankId = 3,
-                            AccountNumber = "456123789",
-                            BankName = "Techcombank",
-                            IsPrimary = false,
-                            StaffId = 3
-                        });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Staffs.StaffDependent", b =>
-                {
-                    b.Property<int>("StaffDependentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffDependentId"));
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateOfBirth")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Relationship")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("StaffId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TaxCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("StaffDependentId");
-
-                    b.HasIndex("StaffId");
-
-                    b.ToTable("StaffDependents");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffPhone", b =>
@@ -9715,25 +9523,19 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffShiftId"));
 
-                    b.Property<DateTime?>("ActualCheckIn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ActualCheckOut")
-                        .HasColumnType("datetime2");
-
                     b.Property<TimeSpan?>("CustomEndTime")
                         .HasColumnType("time");
 
                     b.Property<TimeSpan?>("CustomStartTime")
                         .HasColumnType("time");
 
-                    b.Property<bool>("IsAdHoc")
-                        .HasColumnType("bit");
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
-                    b.Property<decimal?>("PayrollHours")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int?>("ShiftId")
+                    b.Property<int>("ShiftId")
                         .HasColumnType("int");
 
                     b.Property<int>("StaffId")
@@ -9756,8 +9558,7 @@ namespace CafeChain.Migrations
                     b.HasIndex("WorkDate");
 
                     b.HasIndex("StaffId", "ShiftId", "WorkDate")
-                        .IsUnique()
-                        .HasFilter("[ShiftId] IS NOT NULL");
+                        .IsUnique();
 
                     b.ToTable("StaffShifts", (string)null);
 
@@ -9765,7 +9566,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffShiftId = 1,
-                            IsAdHoc = false,
+                            RowVersion = new byte[0],
                             ShiftId = 1,
                             StaffId = 4,
                             StatusId = 1,
@@ -9774,7 +9575,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffShiftId = 2,
-                            IsAdHoc = false,
+                            RowVersion = new byte[0],
                             ShiftId = 2,
                             StaffId = 5,
                             StatusId = 1,
@@ -9783,7 +9584,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffShiftId = 3,
-                            IsAdHoc = false,
+                            RowVersion = new byte[0],
                             ShiftId = 4,
                             StaffId = 6,
                             StatusId = 1,
@@ -9825,37 +9626,16 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffShiftStatusId = 1,
-                            Code = "PLANNED",
+                            Code = "SCHEDULED",
                             IsSystem = true,
-                            Name = "Planned"
+                            Name = "Đã lên lịch"
                         },
                         new
                         {
                             StaffShiftStatusId = 2,
-                            Code = "CHECKED_IN",
-                            IsSystem = true,
-                            Name = "Checked In"
-                        },
-                        new
-                        {
-                            StaffShiftStatusId = 3,
-                            Code = "COMPLETED",
-                            IsSystem = true,
-                            Name = "Completed"
-                        },
-                        new
-                        {
-                            StaffShiftStatusId = 4,
-                            Code = "ABSENT",
-                            IsSystem = true,
-                            Name = "Absent"
-                        },
-                        new
-                        {
-                            StaffShiftStatusId = 5,
                             Code = "CANCELLED",
                             IsSystem = true,
-                            Name = "Cancelled"
+                            Name = "Đã hủy"
                         });
                 });
 
@@ -10048,69 +9828,6 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 4,
                             StoreId = 3
-                        });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Stores.StoreIP", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<string>("IPAddress")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsPublicNetwork")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("StoreId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StoreId");
-
-                    b.ToTable("StoreIPs", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IPAddress = "192.168.1.*",
-                            IsActive = true,
-                            IsPublicNetwork = false,
-                            Notes = "Mạng LAN cửa hàng 1",
-                            StoreId = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IPAddress = "171.244.10.15",
-                            IsActive = true,
-                            IsPublicNetwork = true,
-                            Notes = "WAN Cửa hàng 1",
-                            StoreId = 1
                         });
                 });
 
@@ -13586,25 +13303,6 @@ namespace CafeChain.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Staffs.AttendanceLog", b =>
-                {
-                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
-                        .WithMany()
-                        .HasForeignKey("StoreId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Staffs.Staff", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Store");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("CafeChain.Models.Staffs.Shift", b =>
                 {
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
@@ -13637,34 +13335,34 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffAddress", b =>
                 {
+                    b.HasOne("CafeChain.Models.Locations.District", "District")
+                        .WithMany()
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Locations.Province", "Province")
+                        .WithMany()
+                        .HasForeignKey("ProvinceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("StaffAddresses")
                         .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Staff");
-                });
+                    b.HasOne("CafeChain.Models.Locations.Ward", "Ward")
+                        .WithMany()
+                        .HasForeignKey("WardId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity("CafeChain.Models.Staffs.StaffBank", b =>
-                {
-                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
-                        .WithMany("StaffBanks")
-                        .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                    b.Navigation("District");
 
-                    b.Navigation("Staff");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Staffs.StaffDependent", b =>
-                {
-                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
-                        .WithMany("StaffDependents")
-                        .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("Province");
 
                     b.Navigation("Staff");
+
+                    b.Navigation("Ward");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffPhone", b =>
@@ -13702,7 +13400,8 @@ namespace CafeChain.Migrations
                     b.HasOne("CafeChain.Models.Staffs.Shift", "Shift")
                         .WithMany("StaffShifts")
                         .HasForeignKey("ShiftId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("StaffShifts")
@@ -13773,17 +13472,6 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.Navigation("Drink");
-
-                    b.Navigation("Store");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Stores.StoreIP", b =>
-                {
-                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
-                        .WithMany()
-                        .HasForeignKey("StoreId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("Store");
                 });
@@ -14367,10 +14055,6 @@ namespace CafeChain.Migrations
                     b.Navigation("Orders");
 
                     b.Navigation("StaffAddresses");
-
-                    b.Navigation("StaffBanks");
-
-                    b.Navigation("StaffDependents");
 
                     b.Navigation("StaffPhones");
 

@@ -53,10 +53,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Ingredients
         {
             return await _context.Ingredients
                 .Include(x => x.BaseUnit)
-                .Include(x => x.UnitConversions)
-                    .ThenInclude(c => c.FromUnit)
-                .Include(x => x.UnitConversions)
-                    .ThenInclude(c => c.ToUnit)
                 .FirstOrDefaultAsync(x => x.IngredientId == id);
         }
 
@@ -105,6 +101,25 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Ingredients
             return await query.AnyAsync();
         }
 
+        public Task<bool> IsActiveUnitAsync(int unitId) =>
+            _context.Units.AnyAsync(x => x.UnitId == unitId && x.Active);
+
+        public async Task<bool> HasBaseUnitDependenciesAsync(int ingredientId)
+        {
+            return await _context.StoreInventories.AnyAsync(x => x.IngredientId == ingredientId)
+                || await _context.InventoryTransactions.AnyAsync(x => x.StoreInventory.IngredientId == ingredientId)
+                || await _context.RecipeDetails.AnyAsync(x => x.IngredientId == ingredientId)
+                || await _context.IngredientSuppliers.AnyAsync(x => x.IngredientId == ingredientId)
+                || await _context.InventoryDocumentDetails.AnyAsync(x => x.IngredientId == ingredientId)
+                || await _context.InventoryTransferDetails.AnyAsync(x => x.IngredientId == ingredientId)
+                || await _context.RestockRequests.AnyAsync(x => x.IngredientId == ingredientId)
+                || await _context.PurchaseAdviceLines.AnyAsync(x => x.IngredientId == ingredientId)
+                || await _context.PurchaseOrderLines.AnyAsync(x => x.IngredientId == ingredientId)
+                || await _context.BranchReceiptLines.AnyAsync(x => x.IngredientId == ingredientId)
+                || await _context.StockTakeDetails.AnyAsync(x => x.IngredientId == ingredientId)
+                || await _context.UnitConversions.AnyAsync(x => x.IngredientId == ingredientId);
+        }
+
         // ================= TOGGLE STATUS =================
         public async Task ToggleStatus(int id)
         {
@@ -132,36 +147,5 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Ingredients
                 .ToListAsync();
         }
 
-
-        // ================= ADD CONVERSIONS =================
-        public async Task AddConversionsAsync(List<UnitConversion> conversions)
-        {
-            if (conversions == null || !conversions.Any())
-                return;
-
-            await _context.UnitConversions.AddRangeAsync(conversions);
-        }
-
-        // ================= REPLACE CONVERSIONS =================
-        public async Task ReplaceConversionsAsync(int ingredientId, List<UnitConversion> conversions)
-        {
-            // 🔥 Xoá toàn bộ conversion cũ
-            var old = _context.UnitConversions
-                .Where(x => x.IngredientId == ingredientId);
-
-            _context.UnitConversions.RemoveRange(old);
-
-            // 🔥 Add mới
-            if (conversions != null && conversions.Any())
-            {
-                foreach (var c in conversions)
-                {
-                    c.IngredientId = ingredientId;
-                }
-
-                await _context.UnitConversions.AddRangeAsync(conversions);
-            }
-
-        }
     }
 }

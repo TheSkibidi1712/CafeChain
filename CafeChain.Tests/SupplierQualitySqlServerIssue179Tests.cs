@@ -153,7 +153,6 @@ public sealed class SupplierQualitySqlServerIssue179Tests : IAsyncLifetime
             FullName = "Quality Manager #179 SQL",
             Active = true,
             CreatedAt = now,
-            BaseSalary = 0m
         };
         var ingredient = new Ingredient
         {

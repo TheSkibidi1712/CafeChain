@@ -18,7 +18,7 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
         Task EnsurePosTerminalAsync(string terminalId, int storeId, string name);
 
         // === STAFF SHIFT LOOKUP ===
-        Task<StaffShift?> GetTodayStaffShiftAsync(int staffId);
+        Task<StaffShift?> GetEffectiveStaffShiftAsync(int staffId, int storeId, DateTime now);
 
         // === CLOSE SHIFT DATA ===
         Task<decimal> GetTotalCashSalesAsync(int shiftId);

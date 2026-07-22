@@ -315,7 +315,7 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
 
     private static Staff Staff(Account account, Store store, string name, DateTime now) => new()
     {
-        AccountId = account.AccountId, StoreId = store.StoreId, FullName = name, Active = true, BaseSalary = 0, CreatedAt = now
+        AccountId = account.AccountId, StoreId = store.StoreId, FullName = name, Active = true, CreatedAt = now
     };
     private static RestockRequest Restock(Store store, Ingredient ingredient, Staff staff, DateTime now) => new()
     {

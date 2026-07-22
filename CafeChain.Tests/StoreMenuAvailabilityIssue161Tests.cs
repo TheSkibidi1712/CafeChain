@@ -190,8 +190,7 @@ public sealed class StoreMenuAvailabilityIssue161Tests : IntegrationTestBase
         context.Staffs.Add(new Staff
         {
             StaffId = OwnerStaffId, AccountId = OwnerStaffId, StoreId = StoreId, FullName = "Store Menu Owner",
-            Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2, SalaryType = 1
-        });
+            Active = true, CreatedAt = DateTime.UtcNow, EmployeeStatus = 2});
         context.AccountRoles.Add(new AccountRole { AccountId = OwnerStaffId, RoleId = ownerRole.RoleId });
         await context.SaveChangesAsync();
     }

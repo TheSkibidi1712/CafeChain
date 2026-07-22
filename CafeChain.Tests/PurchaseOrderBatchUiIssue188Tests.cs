@@ -134,7 +134,7 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
         var account = new Account { Email = Guid.NewGuid() + "@test.local", PasswordHash = "x", Active = true, CreatedAt = now };
         _db.AddRange(store, supplier, account);
         await _db.SaveChangesAsync();
-        var staff = new Staff { AccountId = account.AccountId, StoreId = store.StoreId, FullName = "Kế toán kho", Active = true, BaseSalary = 0, CreatedAt = now };
+        var staff = new Staff { AccountId = account.AccountId, StoreId = store.StoreId, FullName = "Kế toán kho", Active = true, CreatedAt = now };
         _db.Add(staff);
         await _db.SaveChangesAsync();
         var batch = new PurchaseOrderBatch

@@ -31,7 +31,7 @@ namespace CafeChain.Data.Configurations.Permissions
                 new RolePermission { RoleId = 1, PermissionId = 2 },
                 new RolePermission { RoleId = 1, PermissionId = 3 },
                 new RolePermission { RoleId = 1, PermissionId = 4 },
-                new RolePermission { RoleId = 1, PermissionId = 100 }
+                new RolePermission { RoleId = 1, PermissionId = 27 }
             );
         }
     }

@@ -1,4 +1,3 @@
-using CafeChain.Application.DTOs.Admin.Units;
 using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Application.DTOs.Admin.Ingredients
@@ -7,10 +6,10 @@ namespace CafeChain.Application.DTOs.Admin.Ingredients
     {
         public int IngredientId { get; set; }
 
-        [Required]
+        [Required, StringLength(50)]
         public string Code { get; set; }
 
-        [Required]
+        [Required, StringLength(200)]
         public string Name { get; set; }
 
         [Required]
@@ -18,8 +17,5 @@ namespace CafeChain.Application.DTOs.Admin.Ingredients
 
         public string? BaseUnitName { get; set; } // 🔥 để render select2
 
-        public bool Active { get; set; }
-
-        public List<UnitConversionDTO> Conversions { get; set; } = new();
     }
 }

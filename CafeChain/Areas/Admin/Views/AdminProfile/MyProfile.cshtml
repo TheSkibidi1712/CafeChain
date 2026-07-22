@@ -1,4 +1,5 @@
 @model CafeChain.ViewModels.Profile.MyProfileVM
+@using CafeChain.Application.Constants.Cloudinaries
 @{
     ViewData["Title"] = "Hồ sơ của tôi";
 
@@ -179,13 +180,13 @@
     <div class="profile-header">
         <div class="avatar-wrap">
             <img id="profileAvatar"
-                 src="@(Model.AvatarUrl ?? "/Images/Upload/avtdf.jpg")"
-                 onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                 src="@(string.IsNullOrWhiteSpace(Model.AvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.AvatarUrl)"
+                 onerror="this.onerror=null; this.src='@DefaultImages.StaffAvatarUrl';"
                  alt="Ảnh đại diện của @Model.FullName" />
             <button type="button" class="btn-change-avatar" onclick="document.getElementById('avatarInput').click();">
                 <i class="fas fa-camera"></i>
             </button>
-            <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="uploadAvatar(this)" />
+            <input type="file" id="avatarInput" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" style="display: none;" onchange="uploadAvatar(this)" />
         </div>
         <div class="info">
             <h3>@Model.FullName</h3>
@@ -319,8 +320,21 @@
         function uploadAvatar(input) {
             if (!input.files || !input.files[0]) return;
 
+            const file = input.files[0];
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                input.value = '';
+                Swal.fire({ icon: 'warning', title: 'Không hợp lệ', text: 'Chỉ hỗ trợ ảnh JPG, JPEG, PNG hoặc WebP.' });
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                input.value = '';
+                Swal.fire({ icon: 'warning', title: 'Ảnh quá lớn', text: 'Ảnh đại diện không được vượt quá 2 MB.' });
+                return;
+            }
+
             var formData = new FormData();
-            formData.append('AvatarFile', input.files[0]);
+            formData.append('AvatarFile', file);
 
             $.ajax({
                 url: updateProfileUrl,
@@ -331,7 +345,7 @@
                 headers: { "RequestVerificationToken": getToken() },
                 success: function (res) {
                     if (res.success) {
-                        var avatarUrl = res.avatarUrl || '/Images/Upload/avtdf.jpg';
+                        var avatarUrl = res.avatarUrl || '@DefaultImages.StaffAvatarUrl';
                         $('#profileAvatar, #adminTopbarAvatar').attr('src', avatarUrl);
                         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 2000 });
                     } else {
@@ -340,6 +354,9 @@
                 },
                 error: function () {
                     Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật ảnh đại diện.' });
+                },
+                complete: function () {
+                    input.value = '';
                 }
             });
         }

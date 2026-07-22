@@ -1,6 +1,7 @@
 @using CafeChain.Helpers
 @using System.Security.Claims
 @using CafeChain.Application.Constants
+@using CafeChain.Application.Constants.Cloudinaries
 @using CafeChain.Application.Interfaces.Admin.Permissions
 @inject IAdminPermissionService PermissionService
 
@@ -10,6 +11,7 @@
 
     var canManagePermissions = false;
     var canAccessDashboard = false;
+    var effectivePermissions = new HashSet<string>(StringComparer.Ordinal);
 
     var currentAccountIdValue =
         User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -21,26 +23,16 @@
     var currentAvatarUrl = User.FindFirstValue("AvatarUrl");
     if (string.IsNullOrWhiteSpace(currentAvatarUrl))
     {
-        currentAvatarUrl = "/Images/Upload/avtdf.jpg";
+        currentAvatarUrl = DefaultImages.StaffAvatarUrl;
     }
 
     if (User.Identity?.IsAuthenticated == true &&
         int.TryParse(currentAccountIdValue, out var currentAccountId))
     {
-        var permissionDecision =
-            await PermissionService.HasPermissionAsync(
-                currentAccountId,
-                PermissionConstants.SystemPermissionManage);
-
-        canManagePermissions =
-            permissionDecision.IsSuccess &&
-            permissionDecision.Data?.Allowed == true;
-
-        var dashboardDecision = await PermissionService.HasPermissionAsync(
-            currentAccountId,
-            PermissionConstants.AppAdminDashboard);
-        canAccessDashboard = dashboardDecision.IsSuccess
-            && dashboardDecision.Data?.Allowed == true;
+        var snapshot = await PermissionService.GetEffectivePermissionCodesAsync(currentAccountId);
+        effectivePermissions = snapshot.Data ?? new HashSet<string>(StringComparer.Ordinal);
+        canManagePermissions = effectivePermissions.Contains(PermissionConstants.SystemPermissionManage);
+        canAccessDashboard = effectivePermissions.Contains(PermissionConstants.AppAdminDashboard);
     }
 }
 
@@ -403,7 +395,10 @@
                         <a asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Index" class="@Html.IsActive("AdminPurchaseOrders")"><i class="fas fa-circle"></i> Đơn đặt hàng</a>
                         <a asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Index" class="@Html.IsActive("AdminSupplierQuality")"><i class="fas fa-circle"></i> Chất lượng nhà cung cấp</a>
                         <a asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index" class="@Html.IsActive("AdminNotifications")"><i class="fas fa-circle"></i> Thông báo kho</a>
-                        <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-circle"></i> Nguyên liệu</a>
+                        @if (effectivePermissions.Contains(PermissionConstants.IngredientView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-circle"></i> Nguyên liệu</a>
+                        }
                         <a asp-area="Admin" asp-controller="AdminUnitConversion" asp-action="Index" class="@Html.IsActive("AdminUnitConversion")"><i class="fas fa-circle"></i> Đơn vị và quy đổi</a>
                         <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-circle"></i> Nhà cung cấp</a>
                     </div>
@@ -444,42 +439,18 @@
 
             <!-- ━━━ 👥 NHÂN SỰ & VẬN HÀNH ━━━ -->
            @{
-                var hrControllers = "AdminPermission,AdminStaff,AdminStaffShift,AdminStoreIP,AdminStore";
+                var hrControllers = "AdminPermission,AdminStaff,AdminStaffShift,AdminStore";
                 var isHrGroupActive = Html.IsActive(hrControllers) != "";
 
-                var isBusinessOwner = User.IsInRole(RoleConstants.BusinessOwner);
-                var isAreaManager = User.IsInRole(RoleConstants.AreaManager);
-                var isStoreManager = User.IsInRole(RoleConstants.StoreManager);
-                var isSystemAdmin = User.IsInRole(RoleConstants.SystemAdmin);
+                var canManageStaff = effectivePermissions.Contains(PermissionConstants.StaffView);
+                var canManageStaffShift = effectivePermissions.Contains(PermissionConstants.ShiftView);
 
-                var canManageStaff =
-                    isBusinessOwner ||
-                    isAreaManager ||
-                    isStoreManager ||
-                    isSystemAdmin;
-
-                var canManageStaffShift =
-                    isBusinessOwner ||
-                    isAreaManager ||
-                    isStoreManager ||
-                    isSystemAdmin;
-
-                var canManageStoreIP =
-                    isBusinessOwner ||
-                    isStoreManager ||
-                    isSystemAdmin;
-
-                var canManageStore =
-                    isBusinessOwner ||
-                    isAreaManager ||
-                    isSystemAdmin;
+                var canManageStore = effectivePermissions.Contains(PermissionConstants.StoreView);
 
                 var canViewHrGroup =
                     canManagePermissions ||
                     canManageStaff ||
-                    canManageStaffShift ||
-                    canManageStoreIP ||
-                    canManageStore;
+                    canManageStaffShift || canManageStore;
             }
 
             @if (canViewHrGroup)
@@ -525,16 +496,6 @@
                             </a>
                         }
 
-                        @if (canManageStoreIP)
-                        {
-                            <a asp-area="Admin"
-                            asp-controller="AdminStoreIP"
-                            asp-action="Index"
-                            class="@Html.IsActive("AdminStoreIP")">
-                                <i class="fas fa-circle"></i> IP chấm công
-                            </a>
-                        }
-
                         @if (canManageStore)
                         {
                             <a asp-area="Admin"
@@ -553,7 +514,7 @@
 
         <!-- ===== SYSTEM SECTION (pinned to bottom) ===== -->
             <div class="sidebar-system">
-            @if (User.IsInRole(RoleConstants.BusinessOwner) || User.IsInRole(RoleConstants.SystemAdmin))
+            @if (effectivePermissions.Contains(PermissionConstants.SettingsView))
             {
                 <a asp-area="Admin" asp-controller="AdminSetting" asp-action="Index" class="@Html.IsActive("AdminSetting")">
                     <i class="fas fa-sliders"></i> Cài đặt hệ thống
@@ -591,7 +552,7 @@
                      class="topbar-user-avatar"
                      src="@currentAvatarUrl"
                      alt="Ảnh đại diện của @currentStaffName"
-                     onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';" />
+                     onerror="this.onerror=null; this.src='@DefaultImages.StaffAvatarUrl';" />
                 <span class="topbar-user-name">@currentStaffName</span>
             </a>
         </div>
@@ -606,6 +567,7 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/shared/mutation-guard.js" asp-append-version="true"></script>
     
     <!-- Select2 (Global for BOM ecosystem) -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

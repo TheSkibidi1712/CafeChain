@@ -284,7 +284,7 @@ public sealed class SupplierQualityIssue179Tests : IntegrationTestBase
             new Store { StoreId = StoreId, Name = "Store #179", Address = "Test", Phone = "0900179000", Active = true, CreatedAt = now },
             new Store { StoreId = OtherStoreId, Name = "Other Store #179", Address = "Test", Phone = "0900179100", Active = true, CreatedAt = now });
         context.Accounts.Add(new Account { AccountId = StaffId, Email = "quality179@test.local", PasswordHash = "x", Active = true, CreatedAt = now });
-        context.Staffs.Add(new Staff { StaffId = StaffId, AccountId = StaffId, StoreId = StoreId, FullName = "Quality Manager #179", Active = true, CreatedAt = now, BaseSalary = 0m });
+        context.Staffs.Add(new Staff { StaffId = StaffId, AccountId = StaffId, StoreId = StoreId, FullName = "Quality Manager #179", Active = true, CreatedAt = now});
         context.Units.Add(new Unit { UnitId = UnitId, UnitCode = "kg179", Name = "Kilogram #179", Active = true });
         context.Ingredients.Add(new Ingredient { IngredientId = IngredientId, Code = "ING-179", Name = "Ingredient #179", BaseUnitId = UnitId, Active = true });
         context.Suppliers.Add(new Supplier { SupplierId = SupplierId, Code = "SUP-179", Name = "Supplier #179", Active = true, CreatedAt = now, UpdatedAt = now });

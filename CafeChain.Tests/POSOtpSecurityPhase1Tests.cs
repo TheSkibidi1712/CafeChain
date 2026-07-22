@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Accounts;
-using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Services.POS;
 using CafeChain.Data;
@@ -550,7 +549,6 @@ namespace CafeChain.Tests.POS
 
             var service = new WorkShiftService(
                 shiftRepo.Object,
-                Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
                 otpRepo,
                 _fingerprint,
@@ -671,7 +669,6 @@ namespace CafeChain.Tests.POS
 
             return new WorkShiftService(
                 shiftRepo.Object,
-                Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
                 new OtpChallengeRepository(ctx),
                 _fingerprint,
@@ -741,7 +738,6 @@ namespace CafeChain.Tests.POS
                 FullName = $"Staff {staffId}",
                 Active = true,
                 CreatedAt = DateTime.UtcNow,
-                BaseSalary = 0,
                 StaffShifts = new List<StaffShift>()
             });
         }

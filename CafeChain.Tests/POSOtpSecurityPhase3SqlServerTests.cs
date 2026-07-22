@@ -80,7 +80,7 @@ WHERE TABLE_NAME = N'Staffs' AND COLUMN_NAME = N'PinHash';";
             var before = await ctx.InvoiceAuditLogs.CountAsync();
 
             Assert.Null(Type.GetType("CafeChain.Application.Services.POS.SupervisorAuthService, CafeChain"));
-            Assert.Null(typeof(CafeChain.Controllers.AttendanceController).GetMethod("AuthorizeBypass"));
+            Assert.Null(Type.GetType("CafeChain.Controllers.AttendanceController, CafeChain"));
             Assert.Null(typeof(CafeChain.Areas.Admin.Controllers.AdminPOSController).GetMethod("AuthorizeSupervisor"));
 
             await using var verify = CreateContext();

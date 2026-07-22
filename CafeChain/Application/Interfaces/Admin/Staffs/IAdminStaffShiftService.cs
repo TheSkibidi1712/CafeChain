@@ -1,17 +1,22 @@
-using CafeChain.Models.Staffs;
 using CafeChain.Application.Results;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using CafeChain.ViewModels.Admin.Staffs;
 
-namespace CafeChain.Application.Interfaces.Admin.Staffs
+namespace CafeChain.Application.Interfaces.Admin.Staffs;
+
+public interface IAdminStaffShiftService
 {
-    public interface IAdminStaffShiftService
-    {
-        Task<Dictionary<Staff, List<StaffShift>>> GetShiftMatrixAsync(int storeId, DateTime startDate, DateTime endDate);
-        Task<ServiceResult> AssignShiftAsync(int staffId, int shiftId, DateTime date, TimeSpan? customStart = null, TimeSpan? customEnd = null);
-        Task<ServiceResult> UpdateStaffShiftAsync(int staffShiftId, int shiftId, TimeSpan? customStart = null, TimeSpan? customEnd = null);
-        Task<List<object>> GetShiftsForStoreAsync(int storeId);
-        Task<ServiceResult> UpdateShiftAsync(int shiftId, TimeSpan startTime, TimeSpan endTime, string? notes);
-    }
+    Task<StaffShiftManagementVM> GetPageAsync(
+        int storeId,
+        DateTime startDate,
+        DateTime endDate,
+        IReadOnlyList<StaffShiftStoreOptionVM> stores,
+        IReadOnlySet<string> effectivePermissions,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceResult> AssignAsync(int storeId, int actorStaffId, AssignStaffShiftRequest request, CancellationToken cancellationToken = default);
+    Task<ServiceResult> UpdateAssignmentAsync(int storeId, int actorStaffId, UpdateStaffShiftRequest request, CancellationToken cancellationToken = default);
+    Task<ServiceResult> CancelAsync(int storeId, int actorStaffId, CancelStaffShiftRequest request, CancellationToken cancellationToken = default);
+    Task<ServiceResult> CreateTemplateAsync(int storeId, int actorStaffId, CreateShiftTemplateRequest request, CancellationToken cancellationToken = default);
+    Task<ServiceResult> UpdateTemplateAsync(int storeId, int actorStaffId, UpdateShiftTemplateRequest request, CancellationToken cancellationToken = default);
+    Task<ServiceResult> ToggleTemplateAsync(int storeId, int actorStaffId, ToggleShiftTemplateRequest request, CancellationToken cancellationToken = default);
 }

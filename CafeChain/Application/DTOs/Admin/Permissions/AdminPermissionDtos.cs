@@ -92,6 +92,8 @@ namespace CafeChain.Application.DTOs.Admin.Permissions
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public bool IsGranted { get; set; }
+        public bool CanChange { get; set; }
+        public string? ReadOnlyReason { get; set; }
     }
 
     public class SaveRolePermissionsRequest
@@ -105,6 +107,8 @@ namespace CafeChain.Application.DTOs.Admin.Permissions
         public int AccountId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public bool CanChange { get; set; }
+        public string? ReadOnlyReason { get; set; }
         public List<StaffRoleOptionDto> Roles { get; set; } = new();
     }
 
@@ -115,6 +119,8 @@ namespace CafeChain.Application.DTOs.Admin.Permissions
         public bool Active { get; set; }
         public bool IsStoreLevel { get; set; }
         public bool IsAssigned { get; set; }
+        public bool CanChange { get; set; }
+        public string? ReadOnlyReason { get; set; }
     }
 
     public class SaveStaffRolesRequest
@@ -127,6 +133,8 @@ namespace CafeChain.Application.DTOs.Admin.Permissions
         public int StaffId { get; set; }
         public int AccountId { get; set; }
         public string FullName { get; set; } = string.Empty;
+        public bool CanChange { get; set; }
+        public string? ReadOnlyReason { get; set; }
         public List<ScopeTypeOptionDto> ScopeTypes { get; set; } = new();
         public List<StaffScopeItemDto> Scopes { get; set; } = new();
     }
@@ -183,10 +191,13 @@ namespace CafeChain.Application.DTOs.Admin.Permissions
         public int PermissionId { get; set; }
         public string Code { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
         public bool RoleAllowed { get; set; }
         public PermissionEffect? OverrideEffect { get; set; }
         public bool FinalAllowed { get; set; }
         public string? Reason { get; set; }
+        public bool CanChange { get; set; }
+        public string? ReadOnlyReason { get; set; }
     }
 
     public class SaveAccountPermissionOverridesRequest
@@ -218,6 +229,7 @@ namespace CafeChain.Application.DTOs.Admin.Permissions
     {
         public int StaffId { get; set; }
         public int AccountId { get; set; }
+        public int PrimaryStoreId { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public bool StaffActive { get; set; }

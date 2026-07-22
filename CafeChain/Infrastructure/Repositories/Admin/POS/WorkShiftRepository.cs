@@ -69,13 +69,39 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             await _context.SaveChangesAsync();
         }
 
-        public async Task<StaffShift?> GetTodayStaffShiftAsync(int staffId)
+        public async Task<StaffShift?> GetEffectiveStaffShiftAsync(int staffId, int storeId, DateTime now)
         {
-            var today = DateTime.Today;
-            return await _context.StaffShifts
+            var today = now.Date;
+            var candidates = await _context.StaffShifts
                 .Include(ss => ss.Shift)
-                .Where(ss => ss.StaffId == staffId && ss.WorkDate.Date == today && ss.ShiftId != null && !ss.IsAdHoc)
-                .FirstOrDefaultAsync();
+                .Include(ss => ss.Status)
+                .Where(ss => ss.StaffId == staffId
+                    && ss.Staff.StoreId == storeId
+                    && ss.Shift.StoreId == storeId
+                    && ss.Status.Code == "SCHEDULED"
+                    && ss.WorkDate >= today.AddDays(-1)
+                    && ss.WorkDate <= today)
+                .ToListAsync();
+
+            return candidates
+                .Select(schedule => new
+                {
+                    Schedule = schedule,
+                    Start = schedule.WorkDate.Date.Add(schedule.CustomStartTime ?? schedule.Shift.StartTime),
+                    End = ResolveEnd(schedule)
+                })
+                .Where(x => x.Start <= now && now < x.End)
+                .OrderByDescending(x => x.Start)
+                .Select(x => x.Schedule)
+                .FirstOrDefault();
+        }
+
+        private static DateTime ResolveEnd(StaffShift schedule)
+        {
+            var start = schedule.CustomStartTime ?? schedule.Shift.StartTime;
+            var end = schedule.CustomEndTime ?? schedule.Shift.EndTime;
+            var result = schedule.WorkDate.Date.Add(end);
+            return schedule.Shift.IsOvernight || end <= start ? result.AddDays(1) : result;
         }
 
         public async Task<decimal> GetTotalCashSalesAsync(int shiftId)

@@ -240,8 +240,7 @@ public sealed class StoreMenuAdminWorkspaceIssue164Tests : IntegrationTestBase
     private static Staff Staff(int id, int storeId, string name) => new()
     {
         StaffId = id, AccountId = id, StoreId = storeId, FullName = name, Active = true,
-        CreatedAt = DateTime.UtcNow, EmployeeStatus = 2, SalaryType = 1
-    };
+        CreatedAt = DateTime.UtcNow, EmployeeStatus = 2};
 
     private static string VersionOf(StoreMenuItem item) => Convert.ToBase64String(item.RowVersion);
 

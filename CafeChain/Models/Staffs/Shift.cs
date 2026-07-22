@@ -13,7 +13,6 @@ namespace CafeChain.Models.Staffs
 
         public bool IsOvernight { get; set; } // 🔥 ca qua đêm
 
-        public bool IsFreeShift { get; set; } // Ca tự do (24h)
         public TimeSpan? Duration { get; set; } // Lưu thời lượng chi tiết cho template
 
         public bool Active { get; set; }
@@ -22,8 +21,10 @@ namespace CafeChain.Models.Staffs
 
         public string? Notes { get; set; } // Ghi chú của quản lý cho ca này
 
-        public virtual Store Store { get; set; }
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
-        public virtual ICollection<StaffShift> StaffShifts { get; set; }
+        public virtual Store Store { get; set; } = null!;
+
+        public virtual ICollection<StaffShift> StaffShifts { get; set; } = new List<StaffShift>();
     }
 }

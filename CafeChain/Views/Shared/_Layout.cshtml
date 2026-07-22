@@ -1,6 +1,7 @@
 @using CafeChain.Application.Interfaces
 @using CafeChain.Helpers;
 @using CafeChain.Application.Constants
+@using CafeChain.Application.Constants.Cloudinaries
 @inject ICartService CartService
 @{
     int cartCount = CartService.GetTotalCount();
@@ -9,6 +10,9 @@
     var tempError   = TempData["ErrorMessage"]?.ToString();
     var tempWarning = TempData["WarningMessage"]?.ToString();
     var isAdminArea = ViewContext.RouteData.Values["area"]?.ToString() == "Admin";
+    var defaultAvatarUrl = User.FindFirst("StaffId") != null
+        ? DefaultImages.StaffAvatarUrl
+        : DefaultImages.CustomerAvatarUrl;
 
 }
 
@@ -318,8 +322,8 @@
                                 {
                                     <a asp-controller="Customer" asp-action="Profile" class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
                                         <img id="headerAvatar"
-                                             src="@(User.FindFirst("AvatarUrl")?.Value ?? "/Images/Upload/avtdf.jpg")"
-                                             onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                                             src="@(User.FindFirst("AvatarUrl")?.Value ?? defaultAvatarUrl)"
+                                             onerror="this.onerror=null; this.src='@defaultAvatarUrl';"
                                              class="rounded-circle object-fit-cover me-2"
                                              style="width: 28px; height: 28px; border: 1px solid #d35400;"
                                              alt="Avatar">
@@ -330,8 +334,8 @@
                                 {
                                     <a asp-area="Admin" asp-controller="AdminProfile" asp-action="MyProfile" class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
                                         <img id="headerAvatar"
-                                             src="@(User.FindFirst("AvatarUrl")?.Value ?? "/Images/Upload/avtdf.jpg")"
-                                             onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                                             src="@(User.FindFirst("AvatarUrl")?.Value ?? defaultAvatarUrl)"
+                                             onerror="this.onerror=null; this.src='@defaultAvatarUrl';"
                                              class="rounded-circle object-fit-cover me-2"
                                              style="width: 28px; height: 28px; border: 1px solid #d35400;"
                                              alt="Avatar">
@@ -589,5 +593,6 @@
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)
+    <script src="~/js/shared/mutation-guard.js" asp-append-version="true"></script>
 </body>
 </html>

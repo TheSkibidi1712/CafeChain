@@ -1,9 +1,22 @@
 @model CafeChain.ViewModels.Admin.Staffs.StaffIndexPageVM
+@using System.Security.Claims
+@using CafeChain.Application.Constants
+@using CafeChain.Application.Constants.Cloudinaries
+@using CafeChain.Application.Interfaces.Admin.Permissions
+@inject IAdminPermissionService StaffPermissionService
 
 @{
     ViewData["Title"] = "Quản lý nhân sự";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var roles = ViewBag.Roles as List<CafeChain.Models.Permissions.Role>;
+    var accountId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsedAccountId)
+        ? parsedAccountId : 0;
+    var permissionSnapshot = (await StaffPermissionService.GetEffectivePermissionCodesAsync(accountId)).Data
+        ?? new HashSet<string>(StringComparer.Ordinal);
+    var canCreateStaff = permissionSnapshot.Contains(PermissionConstants.StaffCreate);
+    var canUpdateStaff = permissionSnapshot.Contains(PermissionConstants.StaffUpdate);
+    var canToggleStaff = permissionSnapshot.Contains(PermissionConstants.StaffToggleStatus);
+    var canResetPassword = permissionSnapshot.Contains(PermissionConstants.StaffResetPassword);
 }
 
 @section Styles {
@@ -24,10 +37,13 @@
                 <p class="mb-0">Quản lý thông tin, vai trò và quyền hạn của đội ngũ nhân viên CafeChain.</p>
             </div>
         </div>
-        <button type="button" class="btn btn-primary d-flex align-items-center gap-2"
-                data-bs-toggle="modal" data-bs-target="#createStaffModal">
-            <i class="fas fa-user-plus"></i> Thêm nhân viên
-        </button>
+        @if (canCreateStaff)
+        {
+            <button type="button" class="btn btn-primary d-flex align-items-center gap-2"
+                    data-bs-toggle="modal" data-bs-target="#createStaffModal">
+                <i class="fas fa-user-plus"></i> Thêm nhân viên
+            </button>
+        }
     </div>
 
     
@@ -144,7 +160,7 @@
                                         <img src="@item.AvatarUrl"
                                              class="staff-avatar"
                                              alt="@item.FullName"
-                                             onerror="this.src='/Images/avatars/avtdf.jpg'" />
+                                             onerror="this.onerror=null;this.src='@DefaultImages.StaffAvatarUrl'" />
                                         <span class="name">@item.FullName</span>
                                     </div>
                                 </td>
@@ -173,16 +189,27 @@
                                 <td class="text-center">
                                     @if (item.CanEdit)
                                     {
-                                        <a href="@Url.Action("Edit", "AdminStaff", new { area = "Admin", id = item.StaffId })"
-                                           class="action-btn me-1" title="Chỉnh sửa">
-                                            <i class="fas fa-pen"></i>
-                                        </a>
-                                        <button type="button"
-                                                class="action-btn @(item.Active ? "danger" : "success")"
-                                                onclick="toggleStaffStatus(@item.StaffId, '@item.FullName', @item.Active.ToString().ToLower())"
-                                                title="@(item.Active ? "Khóa tài khoản" : "Mở khóa")">
-                                            <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
-                                        </button>
+                                        @if (canUpdateStaff)
+                                        {
+                                            <a href="@Url.Action("Edit", "AdminStaff", new { area = "Admin", id = item.StaffId })"
+                                               class="action-btn me-1" title="Chỉnh sửa"><i class="fas fa-pen"></i></a>
+                                        }
+                                        @if (canToggleStaff)
+                                        {
+                                            <button type="button" class="action-btn @(item.Active ? "danger" : "success")"
+                                                    onclick="toggleStaffStatus(@item.StaffId, '@item.FullName', @item.Active.ToString().ToLower(), this)"
+                                                    title="@(item.Active ? "Khóa tài khoản" : "Mở khóa")">
+                                                <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
+                                            </button>
+                                        }
+                                        @if (canResetPassword)
+                                        {
+                                            <button type="button" class="action-btn"
+                                                    onclick="resetStaffPassword(@item.AccountId, '@item.FullName', this)"
+                                                    title="Đặt lại mật khẩu">
+                                                <i class="fas fa-key"></i>
+                                            </button>
+                                        }
                                     }
                                     else
                                     {
@@ -233,14 +260,17 @@
 </div>
 
 
-<partial name="_CreateStaffModal" model="new CafeChain.ViewModels.Admin.Staffs.StaffCreateVM()" />
+@if (canCreateStaff)
+{
+    <partial name="_CreateStaffModal" model="new CafeChain.ViewModels.Admin.Staffs.StaffCreateVM()" />
+}
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         // ==================== Toggle Status ====================
-        function toggleStaffStatus(staffId, staffName, isActive) {
+        function toggleStaffStatus(staffId, staffName, isActive, button) {
             const action = isActive ? 'khóa' : 'mở khóa';
             const icon = isActive ? 'warning' : 'question';
 
@@ -255,7 +285,7 @@
                 cancelButtonText: 'Hủy bỏ'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`/Admin/AdminStaff/ToggleStatus/${staffId}`, {
+                    AdminMutationGuard.run(`staff-toggle-${staffId}`, button, () => fetch(`/Admin/AdminStaff/ToggleStatus/${staffId}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -271,7 +301,38 @@
                             Swal.fire('Lỗi!', data.message, 'error');
                         }
                     })
-                    .catch(() => Swal.fire('Lỗi!', 'Không thể kết nối server.', 'error'));
+                    .catch(() => Swal.fire('Lỗi!', 'Không thể kết nối server.', 'error')));
+                }
+            });
+        }
+
+        async function resetStaffPassword(accountId, staffName, button) {
+            const result = await Swal.fire({
+                title: `Đặt lại mật khẩu cho ${staffName}`,
+                input: 'password',
+                inputLabel: 'Mật khẩu mới (tối thiểu 6 ký tự)',
+                inputAttributes: { minlength: 6, autocomplete: 'new-password' },
+                showCancelButton: true,
+                confirmButtonText: 'Đặt lại mật khẩu',
+                cancelButtonText: 'Hủy',
+                inputValidator: value => !value || value.length < 6 ? 'Mật khẩu phải có ít nhất 6 ký tự.' : undefined
+            });
+            if (!result.isConfirmed) return;
+
+            await AdminMutationGuard.run(`staff-reset-${accountId}`, button, async () => {
+                try {
+                    const response = await fetch('@Url.Action("ManualResetPassword", "AdminStaff", new { area = "Admin" })', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                        },
+                        body: JSON.stringify({ accountId, newPassword: result.value })
+                    });
+                    const data = await response.json();
+                    await Swal.fire(data.success ? 'Thành công' : 'Không thành công', data.message, data.success ? 'success' : 'error');
+                } catch {
+                    await Swal.fire('Lỗi', 'Không thể kết nối server.', 'error');
                 }
             });
         }

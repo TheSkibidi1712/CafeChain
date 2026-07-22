@@ -363,39 +363,6 @@ namespace CafeChain.Data.Configurations.Stores
         }
     }
 
-    public class StoreIPConfiguration : IEntityTypeConfiguration<StoreIP>
-    {
-        public void Configure(EntityTypeBuilder<StoreIP> entity)
-        {
-            entity.ToTable("StoreIPs");
-
-            entity.HasKey(x => x.Id);
-
-            entity.Property(x => x.IPAddress)
-                .IsRequired()
-                .HasMaxLength(50); // Hỗ trợ IPv4 và IPv6
-
-            entity.Property(x => x.IsActive)
-                .HasDefaultValue(true);
-
-            entity.Property(x => x.IsPublicNetwork)
-                .HasDefaultValue(false);
-
-            entity.Property(x => x.CreatedAt)
-                .HasDefaultValueSql("GETDATE()");
-
-            entity.HasOne(x => x.Store)
-                .WithMany()
-                .HasForeignKey(x => x.StoreId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasData(
-                new StoreIP { Id = 1, StoreId = 1, IPAddress = "192.168.1.*", IsPublicNetwork = false, IsActive = true, CreatedAt = new DateTime(2025, 1, 1), Notes = "Mạng LAN cửa hàng 1" },
-                new StoreIP { Id = 2, StoreId = 1, IPAddress = "171.244.10.15", IsPublicNetwork = true, IsActive = true, CreatedAt = new DateTime(2025, 1, 1), Notes = "WAN Cửa hàng 1" }
-            );
-        }
-    }
-
     // ================================ MODULE POS TERMINAL ================================
     public class PosTerminalConfiguration : IEntityTypeConfiguration<PosTerminal>
     {

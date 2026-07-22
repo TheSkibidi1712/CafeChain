@@ -186,7 +186,7 @@ public sealed class PurchaseAdviceSqlServerIssue184Tests : IAsyncLifetime
         var account = new Account { Email = $"issue184-{Guid.NewGuid():N}@test.local", PasswordHash = "x", Active = true, CreatedAt = now };
         var unit = new Unit { UnitCode = "u" + Guid.NewGuid().ToString("N")[..7], Name = "kg", Active = true };
         context.AddRange(store, sourceStore, account, unit); await context.SaveChangesAsync();
-        var manager = new Staff { AccountId = account.AccountId, StoreId = store.StoreId, FullName = "Manager #184 SQL", Active = true, CreatedAt = now, BaseSalary = 0 };
+        var manager = new Staff { AccountId = account.AccountId, StoreId = store.StoreId, FullName = "Manager #184 SQL", Active = true, CreatedAt = now};
         var ingredient = new Ingredient { Code = "ING-" + Guid.NewGuid().ToString("N")[..8], Name = "Coffee #184 SQL", BaseUnitId = unit.UnitId, Active = true };
         context.AddRange(manager, ingredient); await context.SaveChangesAsync();
         var request = new RestockRequest { StoreId = store.StoreId, IngredientId = ingredient.IngredientId, RequestedQuantity = requested, Status = RestockRequestStatuses.Processing, Priority = RestockRequestPriorities.Normal, CreatedByStaffId = manager.StaffId, CreatedAt = now, UpdatedAt = now };

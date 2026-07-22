@@ -344,7 +344,6 @@ public sealed class PurchaseOrderSqlServerIssue178Tests : IAsyncLifetime
             FullName = "Warehouse #178 SQL",
             Active = true,
             CreatedAt = now,
-            BaseSalary = 0
         };
         var ingredient = new Ingredient
         {

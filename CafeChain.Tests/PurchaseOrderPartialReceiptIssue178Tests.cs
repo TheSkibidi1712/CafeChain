@@ -554,7 +554,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
             new Store { StoreId = StoreId, Name = "Store #178", Address = "Test", Phone = "0900178000", Active = true, CreatedAt = DateTime.UtcNow },
             new Store { StoreId = OtherStoreId, Name = "Other #178", Address = "Test", Phone = "0900178100", Active = true, CreatedAt = DateTime.UtcNow });
         context.Accounts.Add(new Account { AccountId = StaffId, Email = "staff178@test.local", PasswordHash = "x", Active = true, CreatedAt = DateTime.UtcNow });
-        context.Staffs.Add(new Staff { StaffId = StaffId, AccountId = StaffId, StoreId = StoreId, FullName = "Warehouse #178", Active = true, CreatedAt = DateTime.UtcNow, BaseSalary = 0 });
+        context.Staffs.Add(new Staff { StaffId = StaffId, AccountId = StaffId, StoreId = StoreId, FullName = "Warehouse #178", Active = true, CreatedAt = DateTime.UtcNow});
         context.Units.Add(new Unit { UnitId = UnitId, UnitCode = "kg178", Name = "Kilogram #178", Active = true });
         context.Ingredients.Add(new Ingredient { IngredientId = IngredientId, Code = "ING-178", Name = "Ingredient #178", BaseUnitId = UnitId, Active = true });
         context.Suppliers.Add(new Supplier { SupplierId = SupplierId, Code = "SUP-178", Name = "Supplier #178", Active = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
