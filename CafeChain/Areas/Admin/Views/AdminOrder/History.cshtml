@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Lịch sử Đơn hàng";
+    ViewData["Title"] = "Lịch sử bán hàng POS";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
@@ -58,7 +58,7 @@
 
 <!-- Header -->
 <div class="history-header">
-    <h4><i class="fas fa-history"></i> Lịch sử Đơn hàng</h4>
+    <h4><i class="fas fa-history"></i> Lịch sử bán hàng POS</h4>
     <div class="d-flex gap-2">
         <button class="btn-export" id="btnExportCsv"><i class="fas fa-file-csv me-1"></i> Xuất CSV</button>
         <a asp-action="Index" class="btn btn-outline-secondary" style="border-radius:8px;font-size:13px;font-weight:600;">
@@ -69,9 +69,9 @@
 
 <!-- Summary Cards -->
 <div class="summary-row" id="summaryRow">
-    <div class="summary-card total"><div class="label">Tổng đơn</div><div class="value" id="totalOrders">-</div></div>
-    <div class="summary-card completed"><div class="label">Hoàn thành</div><div class="value" id="completedOrders">-</div></div>
-    <div class="summary-card cancelled"><div class="label">Đã hủy</div><div class="value" id="cancelledOrders">-</div></div>
+    <div class="summary-card total"><div class="label">Giao dịch đã ghi nhận</div><div class="value" id="totalOrders">-</div></div>
+    <div class="summary-card completed"><div class="label">Đã thanh toán</div><div class="value" id="completedOrders">-</div></div>
+    <div class="summary-card cancelled"><div class="label">Đã hoàn tiền</div><div class="value" id="cancelledOrders">-</div></div>
     <div class="summary-card revenue"><div class="label">Doanh thu (lọc)</div><div class="value" id="totalRevenue">-</div></div>
 </div>
 
@@ -94,13 +94,8 @@
             <label>Trạng thái</label>
             <select class="form-select" id="filterStatus">
                 <option value="">Tất cả</option>
-                <option value="7">Chờ thanh toán</option>
-                <option value="1">Chờ xác nhận</option>
-                <option value="2">Đang pha chế</option>
-                <option value="3">Chờ lấy hàng</option>
-                <option value="4">Đang giao</option>
-                <option value="5">Hoàn thành</option>
-                <option value="6">Đã hủy</option>
+                <option value="2">Đã thanh toán</option>
+                <option value="3">Đã hoàn tiền</option>
             </select>
         </div>
         <div class="col-md-2">
@@ -108,8 +103,8 @@
             <select class="form-select" id="filterPayment">
                 <option value="">Tất cả</option>
                 <option value="1">Tiền mặt</option>
-                <option value="2">Chuyển khoản</option>
-                <option value="3">MoMo</option>
+                <option value="2">Chuyển khoản VietQR</option>
+                <option value="3">Ví điện tử — dữ liệu cũ</option>
             </select>
         </div>
         <div class="col-md-1 d-flex gap-1">
@@ -124,7 +119,7 @@
         <thead>
             <tr>
                 <th>Mã đơn</th>
-                <th>Thời gian đặt</th>
+                <th>Thời gian thanh toán</th>
                 <th>Khách hàng</th>
                 <th>Tổng tiền</th>
                 <th>Thanh toán</th>
@@ -161,7 +156,7 @@
 
             const fmt = n => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
             const fmtDate = s => {
-                if (!s) return 'N/A';
+                if (!s) return 'Chưa xác định';
                 const d = new Date(s);
                 return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
             };
@@ -199,11 +194,11 @@
                                     <td>
                                         <div class="customer-cell">
                                             <div class="name">${o.customerName}</div>
-                                            <div class="phone"><i class="fas fa-phone-alt me-1"></i>${o.customerPhone || 'N/A'}</div>
+                                            <div class="phone"><i class="fas fa-phone-alt me-1"></i>${o.customerPhone || 'Chưa xác định'}</div>
                                         </div>
                                     </td>
                                     <td><span class="money-cell">${fmt(o.total)}</span></td>
-                                    <td>${paymentIcons[o.paymentId] || '💳'} ${o.paymentMethodName}</td>
+                                    <td>${paymentIcons[o.paymentMethodId] || '💳'} ${o.paymentMethodName}</td>
                                     <td><span class="badge ${o.orderStatusBadge} badge-status">${o.orderStatusName}</span></td>
                                     <td class="text-center">
                                         <button class="btn-detail" onclick="showDetail(${o.orderId})">
@@ -263,17 +258,30 @@
                                 <div class="item-price">${fmt(item.price * item.quantity)}</div>
                             </div>`;
                     }).join('');
+                    let paymentsHtml = (d.payments || []).map(payment => `
+                        <div class="item-row">
+                            <div>
+                                <div class="item-name">${payment.paymentMethodName}</div>
+                                <div class="item-topping">${payment.paidAt ? fmtDate(payment.paidAt) : 'Chưa xác định thời gian'}</div>
+                                ${payment.transactionCode ? '<div class="item-topping">Mã giao dịch: ' + payment.transactionCode + '</div>' : ''}
+                                ${payment.receivedAmount != null ? '<div class="item-topping">Khách đưa: ' + fmt(payment.receivedAmount) + ' · Tiền thừa: ' + fmt(payment.changeAmount || 0) + '</div>' : ''}
+                            </div>
+                            <div class="item-price">${fmt(payment.amount)}</div>
+                        </div>`).join('');
 
                     let html = `
                         <div class="detail-section">
                             <div class="row g-3">
                                 <div class="col-6"><div class="detail-label">Khách hàng</div><div class="detail-value">${d.customerName}</div></div>
-                                <div class="col-6"><div class="detail-label">SĐT</div><div class="detail-value">${d.customerPhone || 'N/A'}</div></div>
-                                <div class="col-6"><div class="detail-label">Loại đơn</div><div class="detail-value">${d.orderTypeName || 'N/A'}</div></div>
-                                <div class="col-6"><div class="detail-label">Nguồn</div><div class="detail-value">${d.source || 'N/A'}</div></div>
-                                <div class="col-12"><div class="detail-label">Địa chỉ</div><div class="detail-value">${d.deliveryAddress || 'N/A'}</div></div>
+                                <div class="col-6"><div class="detail-label">SĐT</div><div class="detail-value">${d.customerPhone || 'Chưa xác định'}</div></div>
+                                <div class="col-6"><div class="detail-label">Loại đơn</div><div class="detail-value">${d.orderTypeName || 'Chưa xác định'}</div></div>
+                                <div class="col-6"><div class="detail-label">Nguồn</div><div class="detail-value">Bán tại quầy POS</div></div>
                                 ${d.note ? '<div class="col-12"><div class="detail-label">Ghi chú</div><div class="detail-value text-muted">' + d.note + '</div></div>' : ''}
                             </div>
+                        </div>
+                        <div class="detail-section">
+                            <div class="detail-label mb-2">Chi tiết thanh toán</div>
+                            ${paymentsHtml || '<div class="text-muted">Chưa có dữ liệu thanh toán.</div>'}
                         </div>
                         <div class="detail-section">
                             <div class="row">

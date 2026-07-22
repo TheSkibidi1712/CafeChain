@@ -102,7 +102,18 @@ namespace CafeChain.Application.DTOs.Admin
         public decimal PointDiscount { get; set; }
         public decimal Total { get; set; }
 
+        public List<AdminOrderHistoryPaymentDto> Payments { get; set; } = new();
         public List<AdminOrderHistoryItemDto> Items { get; set; } = new();
+    }
+
+    public class AdminOrderHistoryPaymentDto
+    {
+        public string PaymentMethodName { get; set; }
+        public decimal Amount { get; set; }
+        public decimal? ReceivedAmount { get; set; }
+        public decimal? ChangeAmount { get; set; }
+        public DateTime? PaidAt { get; set; }
+        public string TransactionCode { get; set; }
     }
 
     public class AdminOrderHistoryItemDto

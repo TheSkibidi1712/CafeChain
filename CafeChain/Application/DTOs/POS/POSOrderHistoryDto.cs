@@ -15,6 +15,7 @@ namespace CafeChain.Application.DTOs.POS
         public string? Source { get; set; }
         public string OrderType { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
+        public DateTime? PaidAt { get; set; }
         public decimal Total { get; set; }
         public string PaymentMethod { get; set; } = null!;
         public int OrderStatusId { get; set; }

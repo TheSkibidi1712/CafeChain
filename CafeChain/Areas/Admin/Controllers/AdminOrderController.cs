@@ -1,6 +1,8 @@
 using CafeChain.Application.Interfaces.Admin;
 using CafeChain.Application.Constants;
 using CafeChain.Data;
+using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,28 +17,37 @@ namespace CafeChain.Areas.Admin.Controllers
     /// [Skill.md §1] Controller chỉ điều hướng + gọi Service. Tối đa 3-5 dòng/action.
     /// [REFACTOR] Đã xóa: AppDbContext, IHubContext, IInventoryService — toàn bộ nằm trong AdminOrderService.
     /// </summary>
-    [Area("Admin")]
-    [Authorize]
-    public class AdminOrderController : Controller
+    public class AdminOrderController : AdminBaseController
     {
         private readonly IAdminOrderService _adminOrderService;
-        private readonly AppDbContext _context;
+        private readonly IAdminActorContextAccessor _actor;
+        private readonly IAdminStoreScopeResolver _storeScopeResolver;
 
-        public AdminOrderController(IAdminOrderService adminOrderService, AppDbContext context)
+        public AdminOrderController(
+            IAdminOrderService adminOrderService,
+            IAdminActorContextAccessor actor,
+            IAdminStoreScopeResolver storeScopeResolver)
         {
             _adminOrderService = adminOrderService;
-            _context = context;
+            _actor = actor;
+            _storeScopeResolver = storeScopeResolver;
         }
 
         // Màn hình Dashboard Kanban (Bảng điều phối)
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            var scope = await ResolveScopeAsync();
+            if (!scope.IsResolved) return StoreScopeFailure(scope);
+            SetStoreScopeViewData(scope);
             return View();
         }
 
         // Màn hình Lịch sử Đơn hàng (Quản lý - DataTables)
-        public IActionResult History()
+        public async Task<IActionResult> History()
         {
+            var scope = await ResolveScopeAsync();
+            if (!scope.IsResolved) return StoreScopeFailure(scope);
+            SetStoreScopeViewData(scope);
             return View();
         }
 
@@ -44,7 +55,9 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet("/api/AdminOrder/GetOrders")]
         public async Task<IActionResult> GetOrders()
         {
-            var data = await _adminOrderService.GetKanbanOrdersAsync();
+            var storeId = await ResolveStoreIdAsync();
+            if (!storeId.HasValue) return Forbid();
+            var data = await _adminOrderService.GetKanbanOrdersAsync(storeId.Value);
             return Ok(data);
         }
 
@@ -52,7 +65,9 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet("/api/AdminOrder/GetOrderDetails/{orderId}")]
         public async Task<IActionResult> GetOrderDetails(int orderId)
         {
-            var data = await _adminOrderService.GetOrderDetailsAsync(orderId);
+            var storeId = await ResolveStoreIdAsync();
+            if (!storeId.HasValue) return Forbid();
+            var data = await _adminOrderService.GetOrderDetailsAsync(orderId, storeId.Value);
             if (data == null) return NotFound();
             return Ok(data);
         }
@@ -68,7 +83,9 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                await _adminOrderService.AcceptOrderAsync(orderId);
+                var storeId = await ResolveStoreIdAsync();
+                if (!storeId.HasValue) return Forbid();
+                await _adminOrderService.AcceptOrderAsync(orderId, storeId.Value);
                 return Ok("Đơn hàng đã được duyệt và chuyển sang Pha chế.");
             }
             catch (Exception ex)
@@ -83,7 +100,9 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                await _adminOrderService.ReadyForPickupAsync(orderId);
+                var storeId = await ResolveStoreIdAsync();
+                if (!storeId.HasValue) return Forbid();
+                await _adminOrderService.ReadyForPickupAsync(orderId, storeId.Value);
                 return Ok("Đơn hàng đã xong món, chờ lấy.");
             }
             catch (Exception ex)
@@ -96,7 +115,9 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet("/api/AdminOrder/GetShippers")]
         public async Task<IActionResult> GetShippers()
         {
-            var data = await _adminOrderService.GetShippersAsync();
+            var storeId = await ResolveStoreIdAsync();
+            if (!storeId.HasValue) return Forbid();
+            var data = await _adminOrderService.GetShippersAsync(storeId.Value);
             return Ok(data);
         }
 
@@ -106,7 +127,9 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                await _adminOrderService.DispatchOrderAsync(request);
+                var storeId = await ResolveStoreIdAsync();
+                if (!storeId.HasValue) return Forbid();
+                await _adminOrderService.DispatchOrderAsync(request, storeId.Value);
                 return Ok("Đơn hàng đã giao cho Shipper.");
             }
             catch (Exception ex)
@@ -123,7 +146,9 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                await _adminOrderService.CompleteOrderAsync(orderId);
+                var storeId = await ResolveStoreIdAsync();
+                if (!storeId.HasValue) return Forbid();
+                await _adminOrderService.CompleteOrderAsync(orderId, storeId.Value);
                 return Ok("Đơn hàng đã hoàn thành.");
             }
             catch (Exception ex)
@@ -138,7 +163,9 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                await _adminOrderService.CancelOrderAsync(orderId, reason);
+                var storeId = await ResolveStoreIdAsync();
+                if (!storeId.HasValue) return Forbid();
+                await _adminOrderService.CancelOrderAsync(orderId, storeId.Value, reason);
                 return Ok("Đơn hàng đã bị hủy.");
             }
             catch (Exception ex)
@@ -153,7 +180,9 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                int updatedCount = await _adminOrderService.SimulateWebhookAsync();
+                var storeId = await ResolveStoreIdAsync();
+                if (!storeId.HasValue) return Forbid();
+                int updatedCount = await _adminOrderService.SimulateWebhookAsync(storeId.Value);
                 return Ok($"Đã giả lập cập nhật thành công {updatedCount} đơn hàng thành 'Hoàn Thành'.");
             }
             catch (Exception ex)
@@ -166,7 +195,9 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet("/api/AdminOrder/GetOrderHistoryDetail/{orderId}")]
         public async Task<IActionResult> GetHistoryDetail(int orderId)
         {
-            var data = await _adminOrderService.GetOrderHistoryDetailAsync(orderId);
+            var storeId = await ResolveStoreIdAsync();
+            if (!storeId.HasValue) return Forbid();
+            var data = await _adminOrderService.GetOrderHistoryDetailAsync(orderId, storeId.Value);
             if (data == null) return NotFound();
             return Ok(data);
         }
@@ -180,59 +211,20 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                var query = _context.Orders
-                    .Include(o => o.Customer)
-                    .Include(o => o.OrderStatus)
-                    .Include(o => o.Payments).ThenInclude(p => p.PaymentMethod)
-                    .AsQueryable();
-
-                // Lọc theo từ khóa
-                if (!string.IsNullOrWhiteSpace(keyword))
-                {
-                    var k = keyword.Trim().ToLower();
-                    query = query.Where(o => o.OrderId.ToString().Contains(k) || 
-                                           (o.ReceiverPhone != null && o.ReceiverPhone.Contains(k)) || 
-                                           (o.ReceiverName != null && o.ReceiverName.ToLower().Contains(k)));
-                }
-
-                // Lọc theo ngày
-                if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var from))
-                    query = query.Where(o => o.CreatedAt >= from);
-                if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var to))
-                    query = query.Where(o => o.CreatedAt <= to.AddDays(1).AddTicks(-1));
-
-                // Lọc theo trạng thái
-                if (statusId.HasValue)
-                    query = query.Where(o => o.OrderStatusId == statusId.Value);
-
-                // Lọc theo phương thức thanh toán
-                if (paymentId.HasValue)
-                    query = query.Where(o => o.Payments.Any(p => p.PaymentMethodId == paymentId.Value));
-
-                var allData = await query.OrderByDescending(o => o.CreatedAt).ToListAsync();
+                var storeId = await ResolveStoreIdAsync();
+                if (!storeId.HasValue) return Forbid();
+                var allData = await _adminOrderService.GetFilteredOrdersForExportAsync(
+                    keyword, fromDate, toDate, statusId, paymentId, storeId.Value);
 
                 // Tính toán thống kê
                 var stats = new
                 {
                     TotalOrders = allData.Count,
-                    CompletedOrders = allData.Count(o => o.OrderStatusId == SystemConstants.OrderStatuses.Completed),
-                    CancelledOrders = allData.Count(o => o.OrderStatusId == SystemConstants.OrderStatuses.Cancelled),
-                    TotalRevenue = allData.Where(o => o.OrderStatusId == SystemConstants.OrderStatuses.Completed).Sum(o => o.Total)
+                    CompletedOrders = allData.Count(o => o.OrderStatusId == SystemConstants.PaymentStatuses.Paid),
+                    CancelledOrders = allData.Count(o => o.OrderStatusId == SystemConstants.PaymentStatuses.Refunded),
+                    TotalRevenue = allData.Where(o => o.OrderStatusId == SystemConstants.PaymentStatuses.Paid).Sum(o => o.Total)
                 };
-
-                var result = allData.Select(o => new {
-                    o.OrderId,
-                    o.CreatedAt,
-                    CustomerName = o.Customer?.FullName ?? o.ReceiverName ?? "Khách vãng lai",
-                    CustomerPhone = o.ReceiverPhone,
-                    o.Total,
-                    PaymentMethodName = o.Payments.FirstOrDefault()?.PaymentMethod?.Name ?? "N/A",
-                    o.OrderStatusId,
-                    OrderStatusName = o.OrderStatus?.Name,
-                    OrderStatusBadge = o.OrderStatus?.BadgeColor ?? "bg-secondary"
-                });
-
-                return Ok(new { stats, data = result });
+                return Ok(new { stats, data = allData });
             }
             catch (Exception ex)
             {
@@ -245,41 +237,19 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                var query = _context.Orders
-                    .Include(o => o.Customer)
-                    .Include(o => o.OrderStatus)
-                    .Include(o => o.Payments).ThenInclude(p => p.PaymentMethod)
-                    .AsQueryable();
-
-                if (!string.IsNullOrWhiteSpace(keyword))
-                {
-                    var k = keyword.Trim().ToLower();
-                    query = query.Where(o => o.OrderId.ToString().Contains(k) || 
-                                           (o.ReceiverPhone != null && o.ReceiverPhone.Contains(k)) || 
-                                           (o.ReceiverName != null && o.ReceiverName.ToLower().Contains(k)));
-                }
-
-                if (!string.IsNullOrWhiteSpace(fromDate) && DateTime.TryParse(fromDate, out var from))
-                    query = query.Where(o => o.CreatedAt >= from);
-                if (!string.IsNullOrWhiteSpace(toDate) && DateTime.TryParse(toDate, out var to))
-                    query = query.Where(o => o.CreatedAt <= to.AddDays(1).AddTicks(-1));
-
-                if (statusId.HasValue)
-                    query = query.Where(o => o.OrderStatusId == statusId.Value);
-
-                if (paymentId.HasValue)
-                    query = query.Where(o => o.Payments.Any(p => p.PaymentMethodId == paymentId.Value));
-
-                var data = await query.OrderByDescending(o => o.CreatedAt).ToListAsync();
+                var storeId = await ResolveStoreIdAsync();
+                if (!storeId.HasValue) return Forbid();
+                var data = await _adminOrderService.GetFilteredOrdersForExportAsync(
+                    keyword, fromDate, toDate, statusId, paymentId, storeId.Value);
 
                 var csv = new System.Text.StringBuilder();
                 // Thêm BOM để Excel nhận đúng UTF-8
                 csv.Append('\uFEFF');
-                csv.AppendLine("Mã đơn,Ngày đặt,Khách hàng,Số điện thoại,Tổng tiền,Thanh toán,Trạng thái");
+                csv.AppendLine("Mã đơn,Thời gian thanh toán,Khách hàng,Số điện thoại,Tổng tiền,Thanh toán,Trạng thái tài chính");
 
                 foreach (var o in data)
                 {
-                    csv.AppendLine($"#CC{o.OrderId:D5},{o.CreatedAt:dd/MM/yyyy HH:mm},{o.Customer?.FullName ?? o.ReceiverName ?? "Khách vãng lai"},{o.ReceiverPhone},{o.Total},{o.Payments.FirstOrDefault()?.PaymentMethod?.Name ?? "N/A"},{o.OrderStatus?.Name}");
+                    csv.AppendLine($"#CC{o.OrderId:D5},{o.CreatedAt:dd/MM/yyyy HH:mm},{Csv(o.CustomerName)},{Csv(o.CustomerPhone)},{o.Total},{Csv(o.PaymentMethodName)},{Csv(o.OrderStatusName)}");
                 }
 
                 var fileName = $"LichSuDonHang_{DateTime.Now:yyyyMMdd}.csv";
@@ -290,5 +260,17 @@ namespace CafeChain.Areas.Admin.Controllers
                 return StatusCode(500, "Lỗi xuất file: " + ex.Message);
             }
         }
+
+        private Task<Application.DTOs.Admin.StoreScope.AdminStoreScopeResolution> ResolveScopeAsync()
+            => _storeScopeResolver.ResolveAsync(_actor.Get(User));
+
+        private async Task<int?> ResolveStoreIdAsync()
+        {
+            var scope = await ResolveScopeAsync();
+            return scope.IsResolved ? scope.StoreId : null;
+        }
+
+        private static string Csv(string? value)
+            => $"\"{(value ?? string.Empty).Replace("\"", "\"\"")}\"";
     }
 }
