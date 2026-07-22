@@ -74,6 +74,11 @@ public sealed class POSResponsiveRedesignTests
         Assert.Contains("onSearchChange", header);
         Assert.Contains("to=\"/history\"", header);
         Assert.Contains("to=\"/shift\"", header);
+        Assert.Contains("path=\"/pos/customer-display\"", app);
+        Assert.True(
+            app.IndexOf("path=\"/pos/customer-display\"", StringComparison.Ordinal)
+            < app.IndexOf("path=\"/\" element={<RootLayout", StringComparison.Ordinal),
+            "Customer display phải nằm ngoài RootLayout để không render navigation hoặc công cụ nội bộ.");
     }
 
     [Fact]
@@ -116,8 +121,12 @@ public sealed class POSResponsiveRedesignTests
         Assert.Contains("In mã QR", payment);
         Assert.Contains("Không thể đóng khi giao dịch đang chờ xử lý", payment);
         Assert.Contains("pos-vietqr-print-host", payment);
+        Assert.Contains("<VietQrCode", payment);
+        Assert.Contains("value={pendingPayment.qrCode}", payment);
+        Assert.DoesNotContain("<iframe", payment, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("printVietQrSlip", payment);
         Assert.Contains(".pos-vietqr-print-host", qrPrint);
+        Assert.Contains("[data-vietqr-ready=\"true\"]", qrPrint);
         Assert.Contains("window.print()", qrPrint);
         Assert.Contains("Không có nút xác nhận thủ công", payment);
         Assert.DoesNotContain("Tôi đã thanh toán", payment);

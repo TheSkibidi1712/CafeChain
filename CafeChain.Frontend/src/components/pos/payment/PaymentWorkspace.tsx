@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { printVietQrSlip } from '../../../services/vietQrPrint'
+import VietQrCode from '../VietQrCode'
 
 export type PaymentWorkspaceMode = 'cash' | 'vietqr' | 'split'
 
@@ -7,6 +8,7 @@ export interface PaymentWorkspacePendingPayment {
   status: 'collecting' | 'awaiting-vietqr'
   orderId?: number
   checkoutUrl?: string
+  qrCode?: string | null
   totalAmount: number
   pendingCashAmount: number
   vietQrAmount: number
@@ -513,11 +515,19 @@ function VietQrPanel({
         </p>
       )}
       <div className="pos-vietqr-print-host min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-white">
-        {pendingPayment.checkoutUrl ? (
-          <iframe title={`PayOS checkout ${pendingPayment.orderId}`} src={pendingPayment.checkoutUrl} className="h-full w-full bg-white" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm font-bold text-text-muted">Đang tải mã VietQR...</div>
-        )}
+        <div className="flex h-full items-center justify-center p-3">
+          <VietQrCode
+            value={pendingPayment.qrCode}
+            size={720}
+            alt={`Mã VietQR đơn ${pendingPayment.orderId ?? ''}`}
+          />
+        </div>
+        <div className="pos-vietqr-print-details">
+          <strong>CAFECHAIN</strong>
+          <span>Thanh toán VietQR</span>
+          <b>{formatVND(pendingPayment.vietQrAmount)}</b>
+          <span>Mã đơn #{pendingPayment.orderId ?? '-'}</span>
+        </div>
       </div>
       <div className="shrink-0 space-y-2">
         <p className="text-center text-sm font-bold text-text-secondary">Đang chờ PayOS xác nhận thanh toán...</p>
@@ -531,14 +541,14 @@ function VietQrPanel({
             {isCancelling ? 'Đang hủy...' : 'Hủy giao dịch'}
           </button>
           {pendingPayment.checkoutUrl && (
-            <>
-              <a href={pendingPayment.checkoutUrl} target="_blank" rel="noreferrer" className="flex min-h-12 items-center justify-center rounded-lg border border-border bg-white px-3 text-center text-sm font-bold text-text-primary hover:bg-surface-hover">
-                Mở trang PayOS
-              </a>
-              <button type="button" onClick={printVietQrSlip} className="min-h-12 rounded-lg border border-brand-orange-border bg-white px-3 text-sm font-bold text-brand-orange hover:bg-brand-orange-light">
-                In mã QR
-              </button>
-            </>
+            <a href={pendingPayment.checkoutUrl} target="_blank" rel="noreferrer" className="flex min-h-12 items-center justify-center rounded-lg border border-border bg-white px-3 text-center text-sm font-bold text-text-primary hover:bg-surface-hover">
+              Mở trang PayOS
+            </a>
+          )}
+          {pendingPayment.qrCode && (
+            <button type="button" onClick={printVietQrSlip} className="min-h-12 rounded-lg border border-brand-orange-border bg-white px-3 text-sm font-bold text-brand-orange hover:bg-brand-orange-light">
+              In mã QR
+            </button>
           )}
         </div>
       </div>

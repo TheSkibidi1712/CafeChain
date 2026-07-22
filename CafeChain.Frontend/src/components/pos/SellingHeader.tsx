@@ -15,6 +15,7 @@ interface SellingHeaderProps {
   session: PosSession
   onOrderTypeChange: (orderType: OrderType) => void
   onSearchChange: (value: string) => void
+  onOpenCustomerDisplay: () => void
 }
 
 export default function SellingHeader({
@@ -27,6 +28,7 @@ export default function SellingHeader({
   session,
   onOrderTypeChange,
   onSearchChange,
+  onOpenCustomerDisplay,
 }: SellingHeaderProps) {
   const cashierInitials = session.staffName
     .split(' ')
@@ -116,6 +118,14 @@ export default function SellingHeader({
           <Link to="/history">Lịch sử đơn</Link>
           <Link to="/inventory">Kho chi nhánh</Link>
           <Link to="/notifications">Thông báo</Link>
+          <button
+            type="button"
+            onClick={onOpenCustomerDisplay}
+            disabled={!hasOpenShift}
+            title={hasOpenShift ? 'Mở hoặc chuyển tới màn hình khách' : 'Hãy mở ca trước'}
+          >
+            Màn hình khách
+          </button>
           <Link to="/shift">
             {hasOpenShift && shiftId ? `Két tiền · Ca #${shiftId}` : 'Mở ca và két tiền'}
           </Link>

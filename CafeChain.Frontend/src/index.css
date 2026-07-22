@@ -388,20 +388,32 @@ a {
   box-shadow: var(--pos-shadow);
 }
 
-.pos-selling-more-menu a {
+.pos-selling-more-menu a,
+.pos-selling-more-menu button {
   display: flex;
+  width: 100%;
   min-height: 46px;
   align-items: center;
   padding: 0 12px;
+  border: 0;
   border-radius: var(--pos-radius-sm);
+  background: transparent;
   color: var(--pos-text-primary);
   font-size: 13px;
   font-weight: 700;
+  text-align: left;
+  cursor: pointer;
 }
 
-.pos-selling-more-menu a:hover {
+.pos-selling-more-menu a:hover,
+.pos-selling-more-menu button:hover {
   background: var(--pos-primary-soft);
   color: var(--pos-primary);
+}
+
+.pos-selling-more-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .pos-category-panel {
@@ -766,6 +778,209 @@ a {
   }
 }
 
+.customer-display {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--pos-app-bg);
+}
+
+.customer-display-header {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px clamp(18px, 4vw, 52px);
+  border-bottom: 1px solid var(--pos-border);
+  background: var(--pos-surface);
+}
+
+.customer-display-mark {
+  display: inline-flex;
+  width: 50px;
+  height: 50px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pos-radius-md);
+  background: var(--pos-primary);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 850;
+}
+
+.customer-display-content {
+  min-height: 0;
+  padding: clamp(18px, 4vw, 52px);
+  overflow: hidden;
+}
+
+.customer-display-message {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.customer-display-message-icon {
+  display: inline-flex;
+  width: 96px;
+  height: 96px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--pos-primary-soft);
+  color: var(--pos-primary);
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.customer-display-message-success .customer-display-message-icon {
+  background: var(--pos-success-soft);
+  color: var(--pos-success);
+}
+
+.customer-display-message-warning .customer-display-message-icon {
+  background: var(--pos-warning-soft);
+  color: var(--pos-warning);
+}
+
+.customer-display-message h2 {
+  margin: 24px 0 0;
+  color: var(--pos-text-primary);
+  font-size: clamp(34px, 6vw, 64px);
+  line-height: 1.08;
+}
+
+.customer-display-message p {
+  max-width: 720px;
+  margin: 14px 0 0;
+  color: var(--pos-text-secondary);
+  font-size: clamp(18px, 2.5vw, 26px);
+  line-height: 1.45;
+}
+
+.customer-display-cart-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(260px, 0.7fr);
+  gap: clamp(20px, 4vw, 48px);
+  height: 100%;
+  min-height: 0;
+}
+
+.customer-display-item-list {
+  display: grid;
+  gap: 10px;
+  max-height: calc(100dvh - 230px);
+  padding-right: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.customer-display-item-row {
+  display: flex;
+  min-height: 74px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 16px;
+  border: 1px solid var(--pos-border);
+  border-radius: var(--pos-radius-md);
+  background: var(--pos-surface);
+}
+
+.customer-display-total {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: clamp(22px, 4vw, 48px);
+  border: 1px solid var(--pos-primary-border);
+  border-radius: var(--pos-radius-lg);
+  background: var(--pos-surface);
+  text-align: center;
+}
+
+.customer-display-total span {
+  color: var(--pos-text-secondary);
+  font-size: clamp(18px, 2.4vw, 26px);
+  font-weight: 750;
+}
+
+.customer-display-total strong {
+  max-width: 100%;
+  margin-top: 14px;
+  overflow-wrap: anywhere;
+  color: var(--pos-primary);
+  font-size: clamp(40px, 7vw, 82px);
+  line-height: 1;
+}
+
+.customer-display-qr-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(420px, 1.28fr);
+  gap: clamp(22px, 4vw, 52px);
+  width: min(1180px, 100%);
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+}
+
+.customer-display-qr-copy {
+  display: flex;
+  min-width: 0;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.customer-display-qr-frame {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--pos-border);
+  border-radius: var(--pos-radius-lg);
+  background: #ffffff;
+  box-shadow: var(--pos-shadow);
+}
+
+.pos-vietqr-print-details {
+  display: none;
+}
+
+@media (max-width: 760px), (orientation: portrait) and (max-width: 1024px) {
+  .customer-display-content {
+    overflow-y: auto;
+  }
+
+  .customer-display-cart-layout,
+  .customer-display-qr-layout {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 100%;
+  }
+
+  .customer-display-total {
+    min-height: 190px;
+  }
+
+  .customer-display-qr-copy {
+    text-align: center;
+  }
+
+  .customer-display-qr-frame {
+    min-height: 520px;
+  }
+}
+
 .receipt-print-host {
   position: fixed;
   top: 0;
@@ -884,19 +1099,41 @@ a {
     position: absolute !important;
     inset: 0 auto auto 0 !important;
     width: 80mm !important;
-    height: 180mm !important;
-    min-height: 180mm !important;
+    height: auto !important;
+    min-height: 0 !important;
     margin: 0 !important;
     padding: 3mm !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     border: 0 !important;
     background: #ffffff !important;
     box-sizing: border-box !important;
   }
 
-  .pos-vietqr-print-host iframe {
+  .pos-vietqr-print-host > div:first-child {
+    display: flex !important;
     width: 74mm !important;
-    height: 174mm !important;
-    border: 0 !important;
+    height: 74mm !important;
+    padding: 0 !important;
+  }
+
+  .pos-vietqr-print-host img {
+    width: 74mm !important;
+    height: 74mm !important;
+    object-fit: contain !important;
+  }
+
+  .pos-vietqr-print-details {
+    display: flex !important;
+    align-items: center !important;
+    flex-direction: column !important;
+    gap: 1.5mm !important;
+    margin-top: 2mm !important;
+    color: #000000 !important;
+    font-family: Consolas, "Courier New", monospace !important;
+    text-align: center !important;
+  }
+
+  .pos-vietqr-print-details b {
+    font-size: 18pt !important;
   }
 }

@@ -6,6 +6,7 @@ import ShiftSummary from './pages/ShiftSummary'
 import BranchInventory from './pages/BranchInventory'
 import Notifications from './pages/Notifications'
 import PaymentResult from './pages/PaymentResult'
+import CustomerDisplay from './pages/CustomerDisplay'
 import PrinterStatusSimulator from './components/dev/PrinterStatusSimulator'
 
 function RootLayout() {
@@ -35,6 +36,7 @@ function App() {
       <Routes>
         <Route path="/payment-success" element={<PaymentResult status="success" />} />
         <Route path="/payment-cancel" element={<PaymentResult status="cancel" />} />
+        <Route path="/pos/customer-display" element={<CustomerDisplay />} />
         <Route path="/" element={<RootLayout />}>
           <Route index element={<Navigate to="/order" replace />} />
           <Route path="order" element={<POSLayout />} />

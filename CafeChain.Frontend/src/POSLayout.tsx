@@ -12,6 +12,10 @@ import {
   clearActivePaymentCloseGuard,
   writeActivePaymentCloseGuard,
 } from './services/posShiftCloseGuard'
+import {
+  publishCustomerDisplay,
+} from './services/customerDisplay'
+import { openCustomerDisplayWindow } from './services/customerDisplayWindow'
 import { getPosSession } from './services/posSession'
 import { usePOSData } from './hooks/usePOSData'
 import ProductModifierModal, {
@@ -109,6 +113,13 @@ interface CancelPaymentApiResponse {
 interface CashReturnConfirmation {
   reason: 'manual' | 'timeout'
   requestKey: string
+}
+
+interface CustomerDisplayTransient {
+  guardId?: string
+  state: 'success' | 'cancelled' | 'expired'
+  totalAmount: number
+  message?: string
 }
 
 const PAYMENT_TIMEOUT_SECONDS = 5 * 60
@@ -233,10 +244,15 @@ export default function POSLayout() {
   const [isCancellingPayment, setIsCancellingPayment] = useState(false)
   const [lastOfflineOrder, setLastOfflineOrder] = useState<CartSyncQueueItem | null>(null)
   const [temporaryPrintTarget, setTemporaryPrintTarget] = useState<'receipt' | 'labels' | null>(null)
+  const [customerDisplayTransient, setCustomerDisplayTransient] = useState<CustomerDisplayTransient | null>(null)
   const checkoutInFlightRef = useRef(false)
   const cancelInFlightRef = useRef(false)
+  const customerDisplayTimerRef = useRef(0)
+  const customerDisplayGuardRef = useRef<string | null>(null)
+  const previousCustomerDisplayShiftRef = useRef<number | null>(null)
 
   const session = getPosSession()
+  const customerDisplayShiftId = shift?.shiftId ?? null
 
   useEffect(() => {
     let active = true
@@ -359,6 +375,100 @@ export default function POSLayout() {
     setCheckoutMessage(message)
     window.setTimeout(() => setCheckoutMessage(null), 3500)
   }, [])
+
+  const showCustomerDisplayTransient = useCallback((transient: CustomerDisplayTransient) => {
+    if (customerDisplayTimerRef.current) window.clearTimeout(customerDisplayTimerRef.current)
+    const guardId = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
+    customerDisplayGuardRef.current = guardId
+    setCustomerDisplayTransient({ ...transient, guardId })
+    customerDisplayTimerRef.current = window.setTimeout(() => {
+      if (customerDisplayGuardRef.current !== guardId) return
+      customerDisplayGuardRef.current = null
+      setCustomerDisplayTransient((current) => current?.guardId === guardId ? null : current)
+      customerDisplayTimerRef.current = 0
+    }, 4000)
+  }, [])
+
+  useEffect(() => () => {
+    if (customerDisplayTimerRef.current) window.clearTimeout(customerDisplayTimerRef.current)
+    customerDisplayGuardRef.current = null
+  }, [])
+
+  useEffect(() => {
+    const previousShiftId = previousCustomerDisplayShiftRef.current
+    if (previousShiftId && previousShiftId !== customerDisplayShiftId) {
+      publishCustomerDisplay({
+        storeId: session.storeId ?? null,
+        workShiftId: previousShiftId,
+        orderType,
+        items: [],
+        state: 'idle',
+        totalAmount: 0,
+        message: 'Ca làm việc đã kết thúc.',
+      })
+    }
+    previousCustomerDisplayShiftRef.current = customerDisplayShiftId
+  }, [customerDisplayShiftId, orderType, session.storeId])
+
+  useEffect(() => {
+    const shared = {
+      storeId: session.storeId ?? null,
+      workShiftId: shift?.shiftId ?? null,
+      orderType,
+      items: cart.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        lineTotal: item.price * item.quantity,
+        optionSummary: item.optionSummary,
+      })),
+    }
+
+    if (customerDisplayTransient) {
+      publishCustomerDisplay({
+        ...shared,
+        state: customerDisplayTransient.state,
+        totalAmount: customerDisplayTransient.totalAmount,
+        message: customerDisplayTransient.message,
+      })
+      return
+    }
+
+    if (!isOnline) {
+      publishCustomerDisplay({
+        ...shared,
+        state: 'offline',
+        totalAmount,
+      })
+      return
+    }
+
+    if (pendingPayment?.status === 'awaiting-vietqr') {
+      publishCustomerDisplay({
+        ...shared,
+        state: 'vietqr',
+        totalAmount: pendingPayment.vietQrAmount,
+        orderId: pendingPayment.orderId,
+        qrCode: pendingPayment.qrCode ?? undefined,
+        expiresAt: pendingPayment.expiresAt,
+      })
+      return
+    }
+
+    publishCustomerDisplay({
+      ...shared,
+      state: cart.length > 0 ? 'cart' : 'idle',
+      totalAmount,
+    })
+  }, [cart, customerDisplayTransient, isOnline, orderType, pendingPayment, session.storeId, shift?.shiftId, totalAmount])
+
+  const handleOpenCustomerDisplay = useCallback(async () => {
+    if (!hasOpenShift || !customerDisplayShiftId) {
+      showMessage('Hãy mở ca trước khi mở màn hình khách hàng.')
+      return
+    }
+    const result = await openCustomerDisplayWindow(customerDisplayShiftId)
+    showMessage(result.message)
+  }, [customerDisplayShiftId, hasOpenShift, showMessage])
 
   const closePaymentWorkspace = useCallback(() => {
     if (isCheckingOut || isCancellingPayment) return
@@ -708,6 +818,10 @@ export default function POSLayout() {
       setCashReturnConfirmation(null)
       setPaymentWorkspaceMode(null)
       setIsCancellingPayment(false)
+      showCustomerDisplayTransient({
+        state: 'cancelled',
+        totalAmount: pendingPayment.totalAmount,
+      })
       showMessage(hasPhysicalCash
         ? 'Đã xác nhận hoàn tiền và hủy thanh toán tạm.'
         : 'Đã hủy thanh toán tạm.')
@@ -739,6 +853,10 @@ export default function POSLayout() {
       setPendingPayment(null)
       setPaymentWorkspaceMode(null)
       clearCart()
+      showCustomerDisplayTransient({
+        state: 'success',
+        totalAmount: pendingPayment.totalAmount,
+      })
       showMessage('Thanh toán VietQR thành công. Lệnh in đã gửi tới Print Bridge.')
       return
     }
@@ -756,11 +874,19 @@ export default function POSLayout() {
           expiresAt: undefined,
         })
         setPaymentWorkspaceMode('split')
+        showCustomerDisplayTransient({
+          state: 'expired',
+          totalAmount: pendingPayment.totalAmount,
+        })
         showMessage('VietQR đã hết hạn. Tiền mặt vẫn đang tạm giữ; chọn phương thức khác hoặc hủy và hoàn tiền.')
         return
       }
       setPendingPayment(null)
       setPaymentWorkspaceMode(null)
+      showCustomerDisplayTransient({
+        state: reason === 'timeout' ? 'expired' : 'cancelled',
+        totalAmount: pendingPayment.totalAmount,
+      })
       showMessage(reason === 'timeout'
         ? 'Giao dịch VietQR đã hết hạn.'
         : cancelledCashAmount > 0
@@ -770,7 +896,7 @@ export default function POSLayout() {
     }
 
     showMessage(response.data?.message || response.error || 'Không thể hủy giao dịch VietQR.')
-  }, [cashReturnConfirmation?.requestKey, clearCart, isCancellingPayment, pendingPayment, showMessage])
+  }, [cashReturnConfirmation?.requestKey, clearCart, isCancellingPayment, pendingPayment, showCustomerDisplayTransient, showMessage])
 
   const switchPendingVietQrToCash = useCallback(async () => {
     if (!pendingPayment
@@ -799,6 +925,10 @@ export default function POSLayout() {
       setPendingPayment(null)
       setPaymentWorkspaceMode(null)
       clearCart()
+      showCustomerDisplayTransient({
+        state: 'success',
+        totalAmount: pendingPayment.totalAmount,
+      })
       showMessage('Thanh toán VietQR đã hoàn tất. Không chuyển sang tiền mặt để tránh thu trùng.')
       return
     }
@@ -821,7 +951,7 @@ export default function POSLayout() {
     })
     setPaymentWorkspaceMode('cash')
     showMessage('Đã hủy VietQR. Vui lòng xác nhận số tiền khách đưa.')
-  }, [clearCart, isCancellingPayment, pendingPayment, showMessage])
+  }, [clearCart, isCancellingPayment, pendingPayment, showCustomerDisplayTransient, showMessage])
 
   useEffect(() => {
     if (!pendingPayment || pendingPayment.status !== 'awaiting-vietqr' || !pendingPayment.expiresAt) return
@@ -857,6 +987,10 @@ export default function POSLayout() {
       setPendingCashInput('')
       setPaymentWorkspaceMode(null)
       clearCart()
+      showCustomerDisplayTransient({
+        state: 'success',
+        totalAmount: pendingPayment.totalAmount,
+      })
       showMessage('Thanh toán VietQR thành công. Lệnh in đã gửi tới Print Bridge.')
     }
 
@@ -879,7 +1013,7 @@ export default function POSLayout() {
         console.warn('[POS Payment SignalR] Stop failed:', error)
       })
     }
-  }, [clearCart, pendingPayment, showMessage])
+  }, [clearCart, pendingPayment, showCustomerDisplayTransient, showMessage])
 
   const buildOfflineQueueItems = (items: CartItem[]) =>
     items.map((ci) => ({
@@ -1181,6 +1315,10 @@ export default function POSLayout() {
         setPendingCashInput('')
         setPaymentWorkspaceMode(null)
         clearCart()
+        showCustomerDisplayTransient({
+          state: 'success',
+          totalAmount: pendingPayment.totalAmount,
+        })
         showMessage(`Thanh toán tiền mặt thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
         return
       }
@@ -1260,6 +1398,10 @@ export default function POSLayout() {
           setPendingCashInput('')
           setPaymentWorkspaceMode(null)
           clearCart()
+          showCustomerDisplayTransient({
+            state: 'success',
+            totalAmount: orderTotal,
+          })
           showMessage(`Thanh toán thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
         } else if (!response.ok && response.status === 0) {
           console.warn('[POS] Network commit failed, saving offline:', response.error)
@@ -1412,6 +1554,10 @@ export default function POSLayout() {
         setPendingCashInput('')
         setPaymentWorkspaceMode(null)
         clearCart()
+        showCustomerDisplayTransient({
+          state: 'success',
+          totalAmount: orderTotal,
+        })
         showMessage(`Thanh toán thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
       } else {
         showMessage(response.data?.message || response.error || 'Không thể thanh toán. Vui lòng kiểm tra lại ca két tiền.')
@@ -1461,6 +1607,7 @@ export default function POSLayout() {
         session={session}
         onOrderTypeChange={changeOrderType}
         onSearchChange={setSearchQuery}
+        onOpenCustomerDisplay={() => void handleOpenCustomerDisplay()}
       />
 
       <aside className="pos-category-panel bg-surface-white flex flex-col border-r border-border" aria-label="Danh mục sản phẩm">
@@ -1875,6 +2022,7 @@ export default function POSLayout() {
           status: pendingPayment.status,
           orderId: pendingPayment.orderId,
           checkoutUrl: pendingPayment.checkoutUrl,
+          qrCode: pendingPayment.qrCode,
           totalAmount: pendingPayment.totalAmount,
           pendingCashAmount: pendingPayment.pendingCashAmount,
           vietQrAmount: pendingPayment.vietQrAmount,
