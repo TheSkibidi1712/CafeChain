@@ -497,6 +497,22 @@ a {
   scrollbar-gutter: stable;
 }
 
+.pos-payment-workspace-backdrop {
+  padding-left: max(16px, env(safe-area-inset-left));
+  background: var(--pos-overlay);
+}
+
+.pos-payment-workspace {
+  width: min(760px, 100%);
+  max-width: 100%;
+  padding-right: env(safe-area-inset-right);
+}
+
+.pos-payment-workspace-body {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
 @media (max-width: 1199px) {
   .pos-shell {
     grid-template-areas:
@@ -690,6 +706,22 @@ a {
     border-left: 0;
     border-radius: 16px 16px 0 0;
   }
+
+  .pos-payment-workspace-backdrop {
+    align-items: flex-end;
+    padding: env(safe-area-inset-top) 0 0;
+  }
+
+  .pos-payment-workspace {
+    width: 100%;
+    height: min(94dvh, 900px);
+    margin-top: auto;
+    padding-right: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid var(--pos-border);
+    border-left: 0;
+    border-radius: 16px 16px 0 0;
+  }
 }
 
 @media (max-width: 420px) {
@@ -789,7 +821,9 @@ a {
   .receipt-print-host,
   .receipt-print-host *,
   .temporary-print-host,
-  .temporary-print-host * {
+  .temporary-print-host *,
+  .pos-vietqr-print-host,
+  .pos-vietqr-print-host * {
     visibility: visible !important;
   }
 
@@ -844,5 +878,25 @@ a {
   .temporary-drink-label:not(:last-child) {
     break-after: page !important;
     page-break-after: always !important;
+  }
+
+  .pos-vietqr-print-host {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 80mm !important;
+    height: 180mm !important;
+    min-height: 180mm !important;
+    margin: 0 !important;
+    padding: 3mm !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    background: #ffffff !important;
+    box-sizing: border-box !important;
+  }
+
+  .pos-vietqr-print-host iframe {
+    width: 74mm !important;
+    height: 174mm !important;
+    border: 0 !important;
   }
 }

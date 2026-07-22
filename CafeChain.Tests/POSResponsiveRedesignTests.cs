@@ -79,16 +79,51 @@ public sealed class POSResponsiveRedesignTests
     [Fact]
     public void PaymentAndModifierSheets_PreserveTouchAndKeyboardContracts()
     {
-        var layout = ReadFrontend("src", "POSLayout.tsx");
+        var payment = ReadFrontend("src", "components", "pos", "payment", "PaymentWorkspace.tsx");
         var modifier = ReadFrontend("src", "components", "ProductModifierModal.tsx");
 
-        Assert.Contains("aria-label=\"Bàn phím nhập tiền\"", layout);
-        Assert.Contains("inputMode=\"numeric\"", layout);
-        Assert.Contains("pos-adaptive-dialog", layout);
+        Assert.Contains("aria-label=\"Bàn phím nhập tiền\"", payment);
+        Assert.Contains("inputMode=\"numeric\"", payment);
+        Assert.Contains("pos-payment-workspace", payment);
+        Assert.Contains("event.key === 'Escape'", payment);
+        Assert.Contains("event.key !== 'Tab'", payment);
         Assert.Contains("role=\"dialog\"", modifier);
         Assert.Contains("aria-modal=\"true\"", modifier);
         Assert.Contains("event.key === 'Escape'", modifier);
         Assert.Contains("event.key !== 'Tab'", modifier);
+    }
+
+    [Fact]
+    public void PaymentWorkspace_UnifiesCashVietQrAndSplitWithoutManualQrConfirmation()
+    {
+        var layout = ReadFrontend("src", "POSLayout.tsx");
+        var payment = ReadFrontend("src", "components", "pos", "payment", "PaymentWorkspace.tsx");
+        var qrPrint = ReadFrontend("src", "services", "vietQrPrint.ts");
+        var css = ReadFrontend("src", "index.css");
+
+        Assert.Contains("<PaymentWorkspace", layout);
+        Assert.Contains("cash: 'Tiền mặt'", payment);
+        Assert.Contains("vietqr: 'VietQR'", payment);
+        Assert.Contains("split: 'Thanh toán kết hợp'", payment);
+        Assert.Contains("Tiền khách đưa", payment);
+        Assert.Contains("Tiền thừa", payment);
+        Assert.Contains("Ghi nhận tiền mặt tạm", payment);
+        Assert.Contains("Thu phần còn lại bằng VietQR", payment);
+        Assert.Contains("Thu phần còn lại bằng tiền mặt", payment);
+        Assert.Contains("Đổi sang tiền mặt", payment);
+        Assert.Contains("Hủy giao dịch", payment);
+        Assert.Contains("Mở trang PayOS", payment);
+        Assert.Contains("In mã QR", payment);
+        Assert.Contains("Không thể đóng khi giao dịch đang chờ xử lý", payment);
+        Assert.Contains("pos-vietqr-print-host", payment);
+        Assert.Contains("printVietQrSlip", payment);
+        Assert.Contains(".pos-vietqr-print-host", qrPrint);
+        Assert.Contains("window.print()", qrPrint);
+        Assert.Contains("Không có nút xác nhận thủ công", payment);
+        Assert.DoesNotContain("Tôi đã thanh toán", payment);
+        Assert.Contains("CASH_DENOMINATION_STEP = 1000", layout);
+        Assert.Contains("validateCashVnd", layout);
+        Assert.Contains(".pos-payment-workspace", css);
     }
 
     [Fact]
