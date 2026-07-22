@@ -1,132 +1,167 @@
-# Rà soát trạng thái đơn hàng theo mô hình thanh toán trước
+# Rà soát quản lý đơn hàng theo mô hình thanh toán trước
 
-## Cập nhật triển khai channel-aware (#199)
+## Kết luận
 
-Dependency audit ban đầu vẫn đúng: không thể xóa lifecycle Web/Delivery vì còn writer thật. Giải pháp đã chọn là tách read model và action theo kênh, không xóa status dùng chung.
+Issue `#199` được triển khai theo hướng tách read model và quyền thao tác theo kênh, không xóa vòng đời dùng chung:
 
-Authority hiện tại không cần đổi schema:
+- `POS_COUNTER` dùng Lịch sử bán hàng dựa trên bằng chứng thanh toán.
+- `WEB_ORDER` và `DELIVERY` dùng Bảng xử lý đơn Web/Giao hàng.
+- `LEGACY_UNKNOWN` không vào doanh thu hoặc board khi chưa phân loại chắc chắn.
+- `MIGRATION_REQUIRED = false` vì `Order.Source` và `Order.OrderTypeId` hiện đủ làm authority.
 
-- `Source=POS` => `POS_COUNTER`.
-- `Source=Website` và `OrderTypeId=Delivery` => `DELIVERY`.
-- `Source=Website` và loại đơn khác => `WEB_ORDER`.
-- `Source` null/khác => `LEGACY_UNKNOWN`; không suy đoán bằng trạng thái hay payment.
+`WEB_DELIVERY_LIFECYCLE_PRESERVED` và `PREPAID_POS_ORDER_HISTORY_SIMPLIFIED`.
 
-Các discrepancy legacy phải giữ nguyên để kiểm tra:
+## Channel authority
 
-- Momo hiển thị `Ví điện tử — dữ liệu cũ`, không đổi thành VietQR.
-- Payment thiếu/không nhận diện hiển thị `Chưa xác định`, không tính doanh thu nếu thiếu evidence Paid/Refunded.
-- POS `AwaitingPayment/Unpaid` không vào lịch sử bán hàng đã commit.
-- POS `Completed/Paid` và `Completed/Refunded` vào history; doanh thu chỉ cộng dòng Paid.
-- Board chỉ nhận `WEB_ORDER/DELIVERY` thuộc đúng store; POS và `LEGACY_UNKNOWN` không được thao tác qua board.
+| Dữ liệu persist | Phân loại | Độ tin cậy |
+|---|---|---|
+| `Source=POS` | `POS_COUNTER` | Cao |
+| `Source=Website`, `OrderTypeId=Delivery` | `DELIVERY` | Cao |
+| `Source=Website`, loại đơn khác | `WEB_ORDER` | Cao |
+| `Source` null hoặc giá trị khác | `LEGACY_UNKNOWN` | Chưa đủ, `MANUAL_REVIEW_REQUIRED` |
 
-Schema impact: `MIGRATION_REQUIRED = false`.
+Policy nằm tại `Application/Policies/Orders/OrderChannelPolicy.cs`. Không suy đoán channel từ `OrderStatus`, payment method hoặc mã đơn.
 
-## Phạm vi và kết luận ban đầu
+Các writer chính:
 
-Tài liệu này chỉ phân tích. Không thay đổi controller, service, trạng thái, seed hay giao diện Quản lý đơn hàng.
+- POS cash/QR/split: `POSOrderService.CommitOrderAsync` ghi `Source=POS`.
+- POS offline: `POSOrderService.CommitOfflineSyncedOrderAsync` ghi `Source=POS` và giữ `ClientOrderId`.
+- Web/customer: `OrderService.CreateOrderAsync` ghi `Source=Website`, loại `Delivery` cho đơn giao hàng.
 
-**Kết luận ban đầu:** `ORDER_BOARD_RETIREMENT_BLOCKED_BY_ACTIVE_WEB_ORDER_AND_DELIVERY_WRITERS`.
+## Vòng đời POS hiện tại
 
-React POS hiện không cần bảng điều phối: đơn tiền mặt được tạo thẳng ở `Completed`; đơn VietQR chỉ chuyển sang `Completed` sau webhook. Tuy nhiên bảng điều phối vẫn đang phục vụ luồng web/customer khác với writer thật cho pha chế, giao hàng, COD và mô phỏng giao hàng. Không thể xóa hoặc đổi status toàn hệ thống chỉ dựa trên nghiệp vụ React POS.
+### Cash online và offline sync
 
-## Vòng đời Order hiện tại
+`Completed + Paid` chỉ được tạo khi thanh toán đủ. Sau commit mới cập nhật WorkShift/CashDrawer, trừ kho và gửi lệnh in. Offline queue trước sync không tạo Order backend.
 
-### React POS
+### VietQR và split
 
-- Cash online và offline sync tạo `Order=Completed`, `Payment=Paid`.
-- VietQR/split hiện tạo bản ghi `Order=AwaitingPayment`, `Payment=Unpaid`; webhook thành công chuyển atomically sang `Order=Completed`, `Payment=Paid`.
-- Trước webhook không cộng tiền mặt tạm vào `WorkShift.ExpectedEndingCash`, không trừ kho và không in chính thức.
-- Hủy intent VietQR chuyển `AwaitingPayment/Unpaid` sang `Cancelled/Failed`.
+Backend hiện vẫn dùng `Order=AwaitingPayment`, `Payment=Unpaid` làm payment intent. Trước webhook xác nhận, order không vào lịch sử bán hàng, không vào board, không tính doanh thu, không trừ kho và không in chính thức.
 
-Điểm chưa khớp hoàn toàn với target Owner: intent VietQR vẫn dùng bảng `Orders` vì codebase chưa có `PaymentSession/PaymentAttempt` độc lập và PayOS đang map `orderCode` qua `Order.PaymentReference`.
+Webhook thành công chuyển sang `Completed + Paid` theo idempotency guard. Đây là giới hạn kiến trúc hiện tại; task này không thêm `PaymentSession`.
 
-### Web/customer và Admin board
+### Cancel/refund
 
-- `OrderService` tạo order web ở `Pending` hoặc `AwaitingPayment`.
-- `PaymentController` chuyển `AwaitingPayment -> Pending` sau thanh toán web.
+- `Cancelled + Failed/Unpaid` trước thanh toán không phải giao dịch bán hàng và bị loại khỏi POS history.
+- Chỉ `Completed + Refunded` có payment line `Refunded` mới hiển thị `Đã hoàn tiền`.
+- Hệ thống chưa có evidence riêng đủ mạnh để gọi mọi order paid-cancelled là `Đã vô hiệu hóa`; không tự gán nhãn này.
+
+## Vòng đời Web/Delivery
+
+Writer thật vẫn tồn tại:
+
+`Pending -> Preparing -> Ready -> Delivering -> Completed`
+
 - `AdminOrderService.AcceptOrderAsync`: `Pending -> Preparing`.
-- `AdminOrderService.ReadyForPickupAsync`: `Preparing -> Ready`.
-- `AdminOrderService.DispatchOrderAsync`: `Ready -> Delivering`, có shipper nội bộ/đối tác ngoài.
-- `AdminOrderService.CompleteOrderAsync`: `Ready/Delivering -> Completed`; còn chứa nhánh COD đánh dấu payment `Paid`, gọi inventory và loyalty.
-- `AdminOrderService.CancelOrderAsync`: trạng thái đang vận hành -> `Cancelled`; payment `Paid -> Refunded`, còn lại -> `Failed`.
-- `OrderService.SimulateDeliveryAsync` và `AdminOrderService.SimulateWebhookAsync` là writer mô phỏng `Ready -> Delivering -> Completed`.
-- `OrderCleanupWorker` và `PaymentCleanupWorker` hủy order pending/awaiting quá hạn.
+- `ReadyForPickupAsync`: `Preparing -> Ready`.
+- `DispatchOrderAsync`: `Ready -> Delivering`.
+- `CompleteOrderAsync`: `Ready/Delivering -> Completed`.
+- `CancelOrderAsync`: trạng thái vận hành -> `Cancelled`.
+- `SimulateWebhookAsync` và `OrderService.SimulateDeliveryAsync` vẫn phục vụ mô phỏng giao hàng.
 
-## Vòng đời Payment hiện tại
+Board vì vậy không thể bị xóa. Query và mọi action/detail hiện giới hạn `Source=Website` và `StoreId` hiện hành; POS và cross-store order bị từ chối.
 
-- Trạng thái seed: `Unpaid`, `Paid`, `Refunded`, `Failed`.
-- Phương thức seed gồm Cash, Bank, Momo, ZaloPay, VNPay.
-- React POS chỉ hỗ trợ Cash (`1`) và VietQR/Bank (`2`) trong split.
-- `Momo` vẫn xuất hiện trong web checkout và master data, nhưng không phải phương thức hợp lệ của React POS hiện tại.
-- `N/A` trong history là fallback khi order không có payment hoặc navigation/payment mapping thiếu; không phải một phương thức thanh toán.
+## Dependency map
 
-## Bảng điều phối và dependency
+| Thành phần | OrderStatus | PaymentStatus | Channel authority | Rủi ro/biện pháp |
+|---|---|---|---|---|
+| POS cash | `Completed` | `Paid` | `Source=POS` | Chỉ vào history sau commit |
+| POS VietQR pending | `AwaitingPayment` | `Unpaid` | `Source=POS` | Loại khỏi history/board/revenue |
+| POS webhook | `Completed` sau confirm | `Paid` | `Source=POS` | Idempotency giữ side effect một lần |
+| POS offline sync | `Completed` | `Paid` | `Source=POS`, `ClientOrderId` | Duplicate không tạo order/trừ kho/in lại |
+| Inventory/FIFO | Paid commit | Paid | Không dùng board làm authority | Không thay trigger trong #199 |
+| Receipt/label/PrintBridge | Paid commit | Paid | POS | UI chỉ nói tài liệu “đã sẵn sàng”, không khẳng định đã ra giấy |
+| POS history | `Completed` | `Paid/Refunded` + payment evidence | POS | PaidAt, Store scope, split tender |
+| Web/Delivery board | Active/Completed today | Tùy COD/online | Website + order type | Giữ transition hiện có |
+| CSV | Như POS history | Như POS history | POS | Dùng cùng filtered query |
+| Refund | `Completed` | `Refunded` + line evidence | POS | Không tính vào doanh thu Paid |
+| Notification/SignalR | Web transition | Không làm authority | Website | Vẫn gửi update sau transition |
 
-- Board lấy `Pending`, `Preparing`, `Ready`, `Delivering`, cộng 20 order `Completed` trong ngày.
-- UI có action nhận đơn, xong món, gán shipper, hoàn thành và mô phỏng webhook.
-- SignalR group `AdminDashboard` nhận status updates.
-- Inventory legacy của web order được gọi khi `CompleteOrderAsync`; React POS có guardrail inventory riêng khi paid commit/webhook.
-- Delivery type (`OrderTypeId=3`) kích hoạt mô phỏng giao hàng sau khi món Ready.
-- Vì các writer/dependency này tồn tại, hide board toàn hệ thống có thể làm web order kẹt ở Pending/Ready và có thể ngăn nhánh inventory/COD legacy hoàn tất.
+## Lịch sử bán hàng POS
 
-Không thấy KDS độc lập hoặc printer kitchen xác nhận trạng thái pha chế; board hiện chính là UI vận hành duy nhất cho lifecycle web/delivery này.
+Hai bề mặt được giữ:
 
-## Lịch sử đơn hàng
+- React POS `/history`: summary row, drawer chi tiết, backend sales và local offline queue.
+- Admin `AdminOrder/History`: read model POS đã commit, export CSV và chi tiết payment lines.
 
-- Admin history query trả mọi `Order`, kể cả `AwaitingPayment`, `Cancelled` và dữ liệu legacy.
-- Row lấy payment đầu tiên nên split payment không được mô tả đầy đủ; thiếu payment trả `N/A`.
-- Bộ lọc vẫn hiển thị `Chờ lấy hàng`, `Đang giao` vì status master và writer đang hoạt động.
-- POS React history có DTO/drawer riêng, phù hợp hơn cho cashier nhưng vẫn đọc backend Orders và local offline queue.
+Authority của history/admin CSV:
 
-## Target đề xuất cho React POS prepaid
+- `StoreId` đúng phạm vi hiện hành.
+- `Source=POS`.
+- `OrderStatus=Completed`.
+- `PaymentStatus=Paid/Refunded`.
+- Tồn tại payment line `Paid/Refunded` tương ứng.
 
-Trước thanh toán nên thuộc payment intent/session:
+Ngày lọc, sắp xếp và hiển thị dùng `PaidAt`; dữ liệu legacy có `PaidAt` null mới fallback `CreatedAt`.
 
-- `OPEN`
-- `AWAITING_QR`
-- `CANCELLED`
-- `EXPIRED`
-- `COMPLETED`
+Doanh thu chỉ cộng dòng `PaymentStatus=Paid`. `Refunded`, `AwaitingPayment`, cancel-before-payment, Web/Delivery và legacy thiếu evidence không được cộng.
 
-Sau thanh toán, POS order history ưu tiên:
+Thông tin hiển thị/export gồm mã đơn, thời gian thanh toán, khách hàng, cửa hàng, thu ngân, loại đơn, tổng tiền, tender, trạng thái tài chính và trạng thái sẵn sàng của hóa đơn/tem.
 
-- `Đã thanh toán`
-- `Đã hủy/Voided`
-- `Đã hoàn tiền`
+## Payment/status display
 
-Các trạng thái pha chế/giao hàng chỉ giữ cho channel thực sự dùng fulfillment. Không gán chúng mặc định cho React POS.
+| Evidence | Nhãn |
+|---|---|
+| `CASH` | `Tiền mặt` |
+| `BANK`, `BANK_TRANSFER`, `VIETQR` | `Chuyển khoản VietQR` |
+| Nhiều tender paid/refunded | `Thanh toán kết hợp` |
+| `MOMO` | `Ví điện tử — dữ liệu cũ` |
+| null/không nhận diện | `Chưa xác định` |
 
-## Kế hoạch deprecate an toàn
+Không đổi Momo legacy thành VietQR và không hiển thị raw `N/A` trong POS sales history.
 
-1. Xác nhận Owner có tiếp tục web checkout, Delivery/COD và shipper hay không.
-2. Gắn `Source/channel` rõ ràng và thống kê số order theo source/status trong DB thật.
-3. Tách payment intent khỏi `Orders` trước khi loại `AwaitingPayment` khỏi history chính thức.
-4. Nếu bỏ web delivery, ngừng writer và background simulation trước; chuyển các order active còn lại bằng migration có audit.
-5. Chuyển inventory/COD side effect khỏi `CompleteOrderAsync` sang paid-commit authority phù hợp trước khi ẩn board.
-6. Sau thời gian quan sát không còn writer/active row, mới hide navigation; xóa code/status là bước cuối và cần issue riêng.
+## Legacy discrepancy report
 
-## Rủi ro dữ liệu
+Khi chạy đối soát trên DB thật, export các cột sau, không update dữ liệu:
 
-- Dữ liệu `Delivering`, Momo và payment thiếu có thể là dữ liệu web/seed/legacy thật; không được bulk đổi mà chưa phân loại theo `Source`, `OrderTypeId`, payment và thời gian.
-- Split payment bị history admin rút gọn thành payment đầu tiên.
-- `Cancelled + Refunded` hiện có thể chỉ là đổi status, chưa chứng minh money movement hoàn tiền thật.
-- POS intent ở `AwaitingPayment` đang nằm trong Orders nên history admin có thể coi nhầm là đơn chính thức.
+| Cột | Ý nghĩa |
+|---|---|
+| `OrderId` | Khóa Order |
+| `Channel` | Kết quả `OrderChannelPolicy` |
+| `OrderStatus` | Trạng thái order persist |
+| `PaymentStatus` | Trạng thái tài chính persist |
+| `PaymentMethod` | Tender code/name |
+| `HasPayment` | Có payment line hay không |
+| `HasInventoryDeduction` | Có `SALES_DEDUCTION` theo order hay không |
+| `CreatedAt` | Thời gian tạo |
+| `PaidAt` | Thời gian payment xác nhận |
+| `SuggestedClassification` | Phân loại đề xuất |
+| `Confidence` | `HIGH` hoặc `MANUAL_REVIEW_REQUIRED` |
 
-## Đề xuất UI
+Các nhóm bắt buộc kiểm tra thủ công:
 
-- POS history: mã đơn, thời gian, tổng tiền, breakdown phương thức, trạng thái payment/sync/in, thu ngân, cửa hàng, loại đơn.
-- Admin history: hiển thị tất cả payment lines thay vì payment đầu tiên; đổi `N/A` thành lý do cụ thể như `Chưa có dòng thanh toán`.
-- Board: chỉ hiển thị source/channel có fulfillment; không đưa React POS `Completed` vào board thao tác.
+- Momo hoặc phương thức đã ngừng dùng.
+- Payment method null/không nhận diện.
+- `Source=POS` nhưng status `Delivering`.
+- `Completed` không có payment evidence.
+- `Cancelled` có payment paid/refunded nhưng thiếu refund/void audit.
+- `AwaitingPayment` quá hạn.
+- `LEGACY_UNKNOWN`.
 
-## Issues
+Không backfill bằng payment method/status và không mutate các dòng `MANUAL_REVIEW_REQUIRED`.
 
-- Implement payment hardening: GitHub issue #198.
-- Review/deprecation backlog: GitHub issue #199.
+## Navigation và authorization
 
-## Quyết định Owner còn thiếu
+- Menu admin phân biệt `Bảng xử lý đơn Web/Giao hàng` và `Lịch sử bán hàng`.
+- `AdminOrderController` kế thừa `AdminBaseController`, giữ policy `RequireAdminPanelAccess`.
+- Store được resolve bằng `IAdminStoreScopeResolver`; service vẫn kiểm tra `StoreId` trên query/action.
+- Route cũ được giữ để bookmark không hỏng; chỉ đổi heading và read model.
 
-1. Web/customer checkout còn là sản phẩm chính thức hay chỉ demo legacy?
-2. Có vận hành Delivery/COD và shipper thật không?
-3. Có cần KDS/pha chế riêng sau khi POS đã thanh toán không?
-4. Với order paid bị hủy, nghiệp vụ là void hay refund có money movement?
-5. Có duyệt thêm `PaymentSession/PaymentAttempt` để VietQR pending không còn nằm trong bảng Orders không?
+## Phần cố ý để lại
+
+- Không thêm schema `OrderChannel`.
+- Không tạo `PaymentSession`.
+- Không xóa OrderStatus/Web/Delivery board.
+- Không đổi inventory, PayOS webhook hoặc print authority.
+- Không khẳng định PrintBridge đã in vật lý vì chưa có persisted acknowledgement.
+- Không tự backfill hoặc sửa Momo/legacy rows.
+
+## Quyết định Owner còn lại
+
+1. Có tiếp tục Web checkout, Delivery/COD và shipper trong production không?
+2. Có cần một lịch sử Web/Delivery riêng ngoài board không?
+3. Có cần persisted PrintJob acknowledgement để hiển thị “đã in thành công” không?
+4. Có duyệt `PaymentSession/PaymentAttempt` để VietQR pending không còn nằm trong `Orders` không?
+5. Void/refund cần thêm money-movement audit nào trước khi hiển thị trạng thái chi tiết hơn?
+
+Issue `#199` phải giữ `OPEN` cho tới khi Owner nghiệm thu runtime và legacy reconciliation.

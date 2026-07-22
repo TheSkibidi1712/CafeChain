@@ -156,7 +156,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         {
             var query = _context.Orders
                 .Where(o => o.StoreId == storeId
-                    && o.Source == "POS"
+                    && o.Source == OrderSources.Pos
                     && o.OrderStatusId == SystemConstants.OrderStatuses.Completed
                     && (o.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
                         || o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)

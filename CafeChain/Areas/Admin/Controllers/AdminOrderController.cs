@@ -245,11 +245,11 @@ namespace CafeChain.Areas.Admin.Controllers
                 var csv = new System.Text.StringBuilder();
                 // Thêm BOM để Excel nhận đúng UTF-8
                 csv.Append('\uFEFF');
-                csv.AppendLine("Mã đơn,Thời gian thanh toán,Khách hàng,Số điện thoại,Tổng tiền,Thanh toán,Trạng thái tài chính");
+                csv.AppendLine("Mã đơn,Thời gian thanh toán,Khách hàng,Số điện thoại,Cửa hàng,Thu ngân,Loại đơn,Tổng tiền,Thanh toán,Trạng thái tài chính,Trạng thái hóa đơn,Trạng thái tem");
 
                 foreach (var o in data)
                 {
-                    csv.AppendLine($"#CC{o.OrderId:D5},{o.CreatedAt:dd/MM/yyyy HH:mm},{Csv(o.CustomerName)},{Csv(o.CustomerPhone)},{o.Total},{Csv(o.PaymentMethodName)},{Csv(o.OrderStatusName)}");
+                    csv.AppendLine($"#CC{o.OrderId:D5},{o.CreatedAt:dd/MM/yyyy HH:mm},{Csv(o.CustomerName)},{Csv(o.CustomerPhone)},{Csv(o.StoreName)},{Csv(o.StaffName)},{Csv(o.OrderTypeName)},{o.Total},{Csv(o.PaymentMethodName)},{Csv(o.OrderStatusName)},{Csv(o.ReceiptState)},{Csv(o.DrinkLabelState)}");
                 }
 
                 var fileName = $"LichSuDonHang_{DateTime.Now:yyyyMMdd}.csv";

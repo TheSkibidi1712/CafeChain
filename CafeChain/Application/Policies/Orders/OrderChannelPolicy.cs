@@ -3,6 +3,12 @@ using CafeChain.Models.Payments;
 
 namespace CafeChain.Application.Policies.Orders
 {
+    public static class OrderSources
+    {
+        public const string Pos = "POS";
+        public const string Website = "Website";
+    }
+
     public static class OrderChannels
     {
         public const string PosCounter = "POS_COUNTER";
@@ -15,10 +21,10 @@ namespace CafeChain.Application.Policies.Orders
     {
         public static string Classify(string? source, int orderTypeId)
         {
-            if (string.Equals(source, "POS", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(source, OrderSources.Pos, StringComparison.OrdinalIgnoreCase))
                 return OrderChannels.PosCounter;
 
-            if (string.Equals(source, "Website", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(source, OrderSources.Website, StringComparison.OrdinalIgnoreCase))
             {
                 return orderTypeId == Constants.SystemConstants.OrderTypes.Delivery
                     ? OrderChannels.Delivery
@@ -53,7 +59,7 @@ namespace CafeChain.Application.Policies.Orders
             return methods[0].ToUpperInvariant() switch
             {
                 "CASH" or "TIỀN MẶT" => "Tiền mặt",
-                "BANK" or "VIETQR" or "CHUYỂN KHOẢN" => "Chuyển khoản VietQR",
+                "BANK" or "BANK_TRANSFER" or "VIETQR" or "CHUYỂN KHOẢN" => "Chuyển khoản VietQR",
                 "MOMO" => "Ví điện tử — dữ liệu cũ",
                 _ => "Chưa xác định"
             };
