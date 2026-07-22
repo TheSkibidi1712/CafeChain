@@ -25,9 +25,8 @@
                 <h1>Xin chào, @Model.DisplayName</h1>
                 <p>Chọn ứng dụng bạn muốn sử dụng. Danh sách được giới hạn theo quyền của tài khoản.</p>
             </div>
-            <form asp-controller="Account" asp-action="Logout" method="post">
-                <button class="launcher-logout" type="submit"><i class="bi bi-box-arrow-right"></i> Đăng xuất</button>
-            </form>
+            <partial name="~/Views/Shared/_LogoutForm.cshtml"
+                     model="CafeChain.ViewModels.Shared.LogoutFormViewModel.AppLauncher()" />
         </header>
 
         @if (Model.HasAvailableApps)

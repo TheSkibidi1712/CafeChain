@@ -528,12 +528,8 @@
                 </a>
             }
 
-            <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" style="padding: 4px 0;">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-link shadow-none" style="text-decoration:none; color:#dc3545; font-weight: 500; font-size:13.5px; padding: 10px 20px; width: 100%; text-align: left;">
-                    <i class="fas fa-sign-out-alt" style="width: 22px; text-align: center; margin-right: 10px;"></i> Đăng xuất
-                </button>
-            </form>
+            <partial name="~/Views/Shared/_LogoutForm.cshtml"
+                     model="CafeChain.ViewModels.Shared.LogoutFormViewModel.AdminSidebar()" />
         </div>
     </div>
 

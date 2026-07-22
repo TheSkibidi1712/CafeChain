@@ -72,13 +72,6 @@ GO
 IF UPPER(DB_NAME()) <> N'CAFECHAIN'
     THROW 52000, N'Từ chối chạy: SeedAll.sql chỉ dành cho database CafeChain.', 1;
 
-IF OBJECT_ID(N'dbo.__EFMigrationsHistory', N'U') IS NULL
-   OR NOT EXISTS (
-        SELECT 1
-        FROM dbo.__EFMigrationsHistory
-        WHERE MigrationId = N'20260721155454_InitialCreate'
-   )
-    THROW 52001, N'Chưa áp dụng migration 20260721155454_InitialCreate.', 1;
 
 IF OBJECT_ID(N'dbo.DrinkCategories', N'U') IS NULL
    OR OBJECT_ID(N'dbo.Drinks', N'U') IS NULL

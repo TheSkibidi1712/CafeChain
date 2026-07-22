@@ -1,0 +1,14 @@
+@model CafeChain.ViewModels.Shared.LogoutFormViewModel
+
+<form asp-area=""
+      asp-controller="Account"
+      asp-action="Logout"
+      asp-antiforgery="false"
+      method="post"
+      class="@Model.FormCssClass"
+      style="@Model.FormStyle">
+    <button type="submit" class="@Model.ButtonCssClass" style="@Model.ButtonStyle">
+        <i class="@Model.IconCssClass" style="@Model.IconStyle" aria-hidden="true"></i>
+        @Model.Label
+    </button>
+</form>

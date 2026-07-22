@@ -1,3 +1,9 @@
+use master
+go
+
+use CafeChain
+go
+
 /* CafeChain dashboard analytics — SQL Server, idempotent, schema-aligned 2026-07-17. */
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;

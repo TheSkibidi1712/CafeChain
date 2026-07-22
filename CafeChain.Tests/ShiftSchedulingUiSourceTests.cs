@@ -29,6 +29,35 @@ public sealed class ShiftSchedulingUiSourceTests
     }
 
     [Fact]
+    public void Admin_schedule_view_has_week_summary_filters_and_responsive_states()
+    {
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AdminStaffShift", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "StaffShift", "admin-staff-shift.js");
+        var css = Read("CafeChain", "wwwroot", "css", "Admin", "StaffShift", "admin-staff-shift.css");
+
+        Assert.Contains("shift-summary", view, StringComparison.Ordinal);
+        Assert.Contains("summary-card-scheduled", view, StringComparison.Ordinal);
+        Assert.Contains("btn-today", view, StringComparison.Ordinal);
+        Assert.Contains("staffSearch", view, StringComparison.Ordinal);
+        Assert.Contains("scheduleStatusFilter", view, StringComparison.Ordinal);
+        Assert.Contains("visibleStaffCount", view, StringComparison.Ordinal);
+        Assert.Contains("data-staff-row", view, StringComparison.Ordinal);
+        Assert.Contains("rosterFilterEmpty", view, StringComparison.Ordinal);
+        Assert.Contains("modal-fullscreen-sm-down", view, StringComparison.Ordinal);
+
+        Assert.Contains("applyRosterFilters", script, StringComparison.Ordinal);
+        Assert.Contains("normalizeSearch", script, StringComparison.Ordinal);
+        Assert.Contains("status === \"unscheduled\"", script, StringComparison.Ordinal);
+        Assert.Contains("is-filter-empty", script, StringComparison.Ordinal);
+
+        Assert.DoesNotContain(":root", css, StringComparison.Ordinal);
+        Assert.Contains(".shift-summary", css, StringComparison.Ordinal);
+        Assert.Contains(".roster-filters", css, StringComparison.Ordinal);
+        Assert.Contains("@media (max-width: 576px)", css, StringComparison.Ordinal);
+        Assert.Contains("prefers-reduced-motion", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Drag_drop_only_prefills_confirmation_modal_and_does_not_move_existing_schedule()
     {
         var view = Read("CafeChain", "Areas", "Admin", "Views", "AdminStaffShift", "Index.cshtml");

@@ -14,10 +14,72 @@
         const templateModal = templateElement ? bootstrap.Modal.getOrCreateInstance(templateElement) : null;
         const scheduleForm = document.getElementById("scheduleForm");
         const templateForm = document.getElementById("templateForm");
+        const staffSearch = document.getElementById("staffSearch");
+        const statusFilter = document.getElementById("scheduleStatusFilter");
+        const resetFilters = document.getElementById("resetRosterFilters");
+        const visibleStaffCount = document.getElementById("visibleStaffCount");
+        const filterEmpty = document.getElementById("rosterFilterEmpty");
+        const rosterContainer = root.querySelector(".roster-container");
+        const staffRows = Array.from(root.querySelectorAll("[data-staff-row]"));
         let draggedTemplate = null;
 
         const field = id => document.getElementById(id);
         const mutationGuard = window.AdminMutationGuard;
+
+        function normalizeSearch(value) {
+            return (value || "")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/đ/g, "d")
+                .replace(/Đ/g, "D")
+                .toLocaleLowerCase("vi")
+                .trim();
+        }
+
+        function applyRosterFilters() {
+            const query = normalizeSearch(staffSearch?.value);
+            const status = statusFilter?.value || "all";
+            let visible = 0;
+
+            staffRows.forEach(row => {
+                const matchesSearch = !query || normalizeSearch(row.dataset.staffSearch).includes(query);
+                const scheduledCount = Number(row.dataset.scheduledCount || 0);
+                const cancelledCount = Number(row.dataset.cancelledCount || 0);
+                const matchesStatus = status === "all"
+                    || (status === "scheduled" && scheduledCount > 0)
+                    || (status === "unscheduled" && scheduledCount === 0)
+                    || (status === "cancelled" && cancelledCount > 0);
+                const matches = matchesSearch && matchesStatus;
+                row.hidden = !matches;
+                if (matches) visible += 1;
+            });
+
+            if (visibleStaffCount) {
+                visibleStaffCount.textContent = `Hiển thị ${visible}/${staffRows.length} nhân viên`;
+            }
+
+            const hasActiveFilters = Boolean(query) || status !== "all";
+            if (resetFilters) resetFilters.hidden = !hasActiveFilters;
+
+            const hasNoMatches = staffRows.length > 0 && visible === 0;
+            if (filterEmpty) filterEmpty.hidden = !hasNoMatches;
+            rosterContainer?.classList.toggle("is-filter-empty", hasNoMatches);
+        }
+
+        staffSearch?.addEventListener("input", applyRosterFilters);
+        staffSearch?.addEventListener("keydown", event => {
+            if (event.key !== "Escape" || !staffSearch.value) return;
+            staffSearch.value = "";
+            applyRosterFilters();
+        });
+        statusFilter?.addEventListener("change", applyRosterFilters);
+        resetFilters?.addEventListener("click", () => {
+            if (staffSearch) staffSearch.value = "";
+            if (statusFilter) statusFilter.value = "all";
+            applyRosterFilters();
+            staffSearch?.focus();
+        });
+        applyRosterFilters();
 
         function notify(message, type) {
             if (window.Swal) {

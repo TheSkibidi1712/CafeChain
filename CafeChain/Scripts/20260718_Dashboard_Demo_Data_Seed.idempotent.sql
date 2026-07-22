@@ -1,3 +1,9 @@
+use master
+go
+
+use CafeChain
+go
+
 /*
     Deprecated standalone dashboard seed.
 
