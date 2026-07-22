@@ -7,6 +7,7 @@ using CafeChain.Models.Payments;
 using CafeChain.Models.Systems;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System.Globalization;
 using System.Text.Json;
@@ -30,6 +31,7 @@ namespace CafeChain.Controllers.Api.v1
         {
         }
 
+        [ActivatorUtilitiesConstructor]
         public POSPaymentController(
             AppDbContext context,
             ILogger<POSPaymentController> logger,

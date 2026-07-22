@@ -1,12 +1,14 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.POS;
+using CafeChain.Application.Options;
 using CafeChain.Application.Results;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Operations;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -20,19 +22,23 @@ namespace CafeChain.Application.Services.POS
         private readonly IOtpChallengeRepository _otpChallengeRepo;
         private readonly IOtpPayloadFingerprintService _otpFingerprint;
         private readonly ILogger<WorkShiftService> _logger;
+        private readonly decimal _cashDenominationStep;
 
         public WorkShiftService(
             IWorkShiftRepository shiftRepo,
             IPOSOrderRepository posRepo,
             IOtpChallengeRepository otpChallengeRepo,
             IOtpPayloadFingerprintService otpFingerprint,
-            ILogger<WorkShiftService> logger)
+            ILogger<WorkShiftService> logger,
+            IOptions<POSPaymentOptions>? paymentOptions = null)
         {
             _shiftRepo = shiftRepo;
             _posRepo = posRepo;
             _otpChallengeRepo = otpChallengeRepo;
             _otpFingerprint = otpFingerprint;
             _logger = logger;
+            _cashDenominationStep = paymentOptions?.Value.GetEffectiveCashDenominationStep()
+                ?? POSPaymentOptions.DefaultCashDenominationStep;
         }
 
         public async Task<ServiceResult> OpenShiftAsync(int userId, int storeId, OpenShiftRequestDto request)
@@ -205,6 +211,13 @@ namespace CafeChain.Application.Services.POS
         {
             try
             {
+                if (request == null)
+                    return ServiceResult.Failure("Thiếu dữ liệu đóng ca.");
+
+                var endingCashError = ValidateActualEndingCash(request.ActualEndingCash);
+                if (endingCashError != null)
+                    return ServiceResult.Failure(endingCashError);
+
                 var activeShift = await _shiftRepo.GetActiveShiftAsync(userId, storeId);
                 if (activeShift == null)
                     return ServiceResult.Failure("Không tìm thấy ca két tiền đang mở.");
@@ -327,6 +340,10 @@ namespace CafeChain.Application.Services.POS
             {
                 if (request == null)
                     return ServiceResult.Failure("Thiếu dữ liệu đóng ca ngoại lệ.");
+
+                var endingCashError = ValidateActualEndingCash(request.ActualEndingCash);
+                if (endingCashError != null)
+                    return ServiceResult.Failure(endingCashError);
 
                 var exceptionReason = request.ExceptionReason?.Trim();
                 if (string.IsNullOrWhiteSpace(exceptionReason))
@@ -458,6 +475,18 @@ namespace CafeChain.Application.Services.POS
         /// <summary>
         /// Validates an approved OTP challenge for consume. Returns null if valid.
         /// </summary>
+        private string? ValidateActualEndingCash(decimal actualEndingCash)
+        {
+            var error = POSCashAmountValidator.Validate(
+                actualEndingCash,
+                _cashDenominationStep,
+                allowZero: true);
+
+            return error == null
+                ? null
+                : $"Tiền mặt thực tế trong két không hợp lệ. {error}";
+        }
+
         private async Task<(string message, string? code)?> ValidateAndPrepareOtpConsumeAsync(
             OtpChallenge? challenge,
             string expectedActionType,
