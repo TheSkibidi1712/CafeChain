@@ -130,6 +130,8 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         {
             return await _context.Orders
                 .Include(o => o.Payments)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(detail => detail.OrderToppings)
                 .FirstOrDefaultAsync(o => o.ClientOrderId == clientOrderId);
         }
 

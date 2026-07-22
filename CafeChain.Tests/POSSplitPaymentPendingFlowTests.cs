@@ -262,7 +262,10 @@ namespace CafeChain.Tests.POS
             var response = await controller.CancelPayment(new CancelPaymentRequestDto
             {
                 OrderId = orderId,
-                Reason = "Khách đổi phương thức thanh toán"
+                Reason = "Khách đổi phương thức thanh toán",
+                CashReturnedConfirmed = true,
+                ReturnedAmount = 20000m,
+                RequestKey = Guid.NewGuid().ToString("N")
             });
 
             Assert.IsType<OkObjectResult>(response);
@@ -273,6 +276,62 @@ namespace CafeChain.Tests.POS
             Assert.Equal(SystemConstants.PaymentStatuses.Failed, order.PaymentStatusId);
             Assert.All(order.Payments, payment => Assert.Equal(SystemConstants.PaymentStatuses.Failed, payment.PaymentStatusId));
             Assert.Equal(500000m, shift.ExpectedEndingCash);
+            Assert.Contains(await context.TransactionLogs.ToListAsync(), log =>
+                log.OrderId == orderId &&
+                log.Status == "CASH_RETURNED" &&
+                log.Amount == 20000m);
+        }
+
+        [Fact]
+        public async Task CancelAfterCashReceived_RequiresReturnConfirmation()
+        {
+            using var context = CreateDbContext();
+            var orderId = await SeedSplitOrderAsync(context);
+            var controller = CreatePaymentController(context, new Mock<ILogger<POSPaymentController>>());
+
+            var response = await controller.CancelPayment(new CancelPaymentRequestDto
+            {
+                OrderId = orderId,
+                Reason = "Khách đổi phương thức thanh toán"
+            });
+
+            Assert.IsType<ConflictObjectResult>(response);
+            var order = await context.Orders.AsNoTracking().SingleAsync(candidate => candidate.OrderId == orderId);
+            var shift = await context.WorkShifts.AsNoTracking().SingleAsync(candidate => candidate.ShiftId == 42);
+            Assert.Equal(SystemConstants.OrderStatuses.AwaitingPayment, order.OrderStatusId);
+            Assert.Equal(SystemConstants.PaymentStatuses.Unpaid, order.PaymentStatusId);
+            Assert.Equal(500000m, shift.ExpectedEndingCash);
+            Assert.Empty(await context.TransactionLogs.ToListAsync());
+        }
+
+        [Fact]
+        public async Task CancelTemporaryCash_AfterReturn_AuditsWithoutOrderOrDrawerPosting()
+        {
+            using var context = CreateDbContext();
+            context.WorkShifts.Add(CreateOpenShift());
+            await context.SaveChangesAsync();
+            var controller = CreatePaymentController(context, new Mock<ILogger<POSPaymentController>>());
+            var requestKey = Guid.NewGuid().ToString("N");
+
+            var response = await controller.CancelTemporaryCash(new CancelTemporaryCashRequestDto
+            {
+                ClientOrderId = Guid.NewGuid(),
+                PendingCashAmount = 20000m,
+                ReturnedAmount = 20000m,
+                CashReturnedConfirmed = true,
+                Reason = "Khách hủy thanh toán",
+                RequestKey = requestKey
+            });
+
+            Assert.IsType<OkObjectResult>(response);
+            Assert.Empty(await context.Orders.ToListAsync());
+            Assert.Empty(await context.Payments.ToListAsync());
+            Assert.Equal(500000m, (await context.WorkShifts.AsNoTracking().SingleAsync()).ExpectedEndingCash);
+            var audit = await context.RequestDeduplications.AsNoTracking().SingleAsync();
+            Assert.Equal("POS_TEMPORARY_CASH_CANCEL", audit.ActionName);
+            Assert.Equal("SUCCESS", audit.Status);
+            Assert.Equal(requestKey, audit.RequestKey);
+            Assert.Contains("20000", audit.RequestBody);
         }
 
         private static POSOrderService CreateOrderService(

@@ -4,12 +4,14 @@ using CafeChain.Application.Interfaces.Admin.Vouchers;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.PayOSIntegration;
+using CafeChain.Application.Options;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Loyalties;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,6 +32,7 @@ namespace CafeChain.Application.Services.POS
         private readonly IPayOSService _payOSService;
         private readonly ILogger<POSOrderService> _logger;
         private readonly IPOSStoreMenuSaleValidator? _storeMenuSaleValidator;
+        private readonly decimal _cashDenominationStep;
 
         public POSOrderService(
             IPOSOrderRepository repository,
@@ -38,7 +41,7 @@ namespace CafeChain.Application.Services.POS
             IPrintDispatcher printDispatcher,
             IPayOSService payOSService,
             ILogger<POSOrderService> logger)
-            : this(repository, workShiftService, voucherService, printDispatcher, payOSService, logger, null)
+            : this(repository, workShiftService, voucherService, printDispatcher, payOSService, logger, null, null)
         {
         }
 
@@ -50,6 +53,19 @@ namespace CafeChain.Application.Services.POS
             IPayOSService payOSService,
             ILogger<POSOrderService> logger,
             IPOSStoreMenuSaleValidator? storeMenuSaleValidator)
+            : this(repository, workShiftService, voucherService, printDispatcher, payOSService, logger, storeMenuSaleValidator, null)
+        {
+        }
+
+        public POSOrderService(
+            IPOSOrderRepository repository,
+            IWorkShiftService workShiftService,
+            IAdminVoucherService voucherService,
+            IPrintDispatcher printDispatcher,
+            IPayOSService payOSService,
+            ILogger<POSOrderService> logger,
+            IPOSStoreMenuSaleValidator? storeMenuSaleValidator,
+            IOptions<POSPaymentOptions>? paymentOptions)
         {
             _repository = repository;
             _workShiftService = workShiftService;
@@ -58,6 +74,8 @@ namespace CafeChain.Application.Services.POS
             _payOSService = payOSService;
             _logger = logger;
             _storeMenuSaleValidator = storeMenuSaleValidator;
+            _cashDenominationStep = paymentOptions?.Value.GetEffectiveCashDenominationStep()
+                ?? POSPaymentOptions.DefaultCashDenominationStep;
         }
 
         // ============================================================
@@ -151,6 +169,13 @@ namespace CafeChain.Application.Services.POS
                 var existingOrder = await _repository.FindOrderByClientOrderIdAsync(dto.ClientOrderId.Value);
                 if (existingOrder != null)
                 {
+                    if (!IsCompatibleIdempotentReplay(existingOrder, dto))
+                    {
+                        return ServiceResult<object>.Failure(
+                            "ClientOrderId đã được dùng với nội dung thanh toán khác.",
+                            errorCode: "IDEMPOTENCY_KEY_REUSED");
+                    }
+
                     _logger.LogInformation(
                         "[CommitOrder] Idempotent — Order #{OrderId} đã tồn tại cho ClientOrderId={ClientOrderId}",
                         existingOrder.OrderId, dto.ClientOrderId);
@@ -355,6 +380,28 @@ namespace CafeChain.Application.Services.POS
                     .Sum(p => p.Amount);
                 var effectiveReceivedAmount = ResolveCashReceivedAmount(dto.ReceivedAmount, total);
                 var cashChangeAmount = CalculateCashChangeAmount(effectiveReceivedAmount, total);
+
+                foreach (var cashLine in paymentLines.Where(p => p.PaymentMethodId == 1))
+                {
+                    var cashLineError = POSCashAmountValidator.Validate(cashLine.Amount, _cashDenominationStep);
+                    if (cashLineError != null)
+                    {
+                        await _repository.RollbackTransactionAsync();
+                        return ServiceResult<object>.Failure(cashLineError, errorCode: "INVALID_CASH_DENOMINATION");
+                    }
+                }
+
+                if (pendingCashAmount > 0)
+                {
+                    var receivedCashError = POSCashAmountValidator.Validate(
+                        hasPayOsPayment ? pendingCashAmount : effectiveReceivedAmount,
+                        _cashDenominationStep);
+                    if (receivedCashError != null)
+                    {
+                        await _repository.RollbackTransactionAsync();
+                        return ServiceResult<object>.Failure(receivedCashError, errorCode: "INVALID_CASH_DENOMINATION");
+                    }
+                }
 
                 if (hasPayOsPayment && pendingVietQrAmount <= 0)
                 {
@@ -697,6 +744,17 @@ namespace CafeChain.Application.Services.POS
 
                 var effectiveReceivedAmount = ResolveCashReceivedAmount(dto.ReceivedAmount, total);
                 var cashChangeAmount = CalculateCashChangeAmount(effectiveReceivedAmount, total);
+                var cashLineError = paymentLines
+                    .Select(p => POSCashAmountValidator.Validate(p.Amount, _cashDenominationStep))
+                    .FirstOrDefault(error => error != null);
+                var receivedCashError = POSCashAmountValidator.Validate(effectiveReceivedAmount, _cashDenominationStep);
+                if (cashLineError != null || receivedCashError != null)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure(
+                        cashLineError ?? receivedCashError!,
+                        errorCode: "INVALID_CASH_DENOMINATION");
+                }
                 if (effectiveReceivedAmount < total)
                 {
                     await _repository.RollbackTransactionAsync();
@@ -877,6 +935,79 @@ namespace CafeChain.Application.Services.POS
         {
             var change = receivedAmount - total;
             return change > 0m ? change : 0m;
+        }
+
+        private static bool IsCompatibleIdempotentReplay(Order existingOrder, POSOrderCommitDto dto)
+        {
+            var requestedOrderTypeId = dto.OrderTypeId > 0 ? dto.OrderTypeId : 1;
+            if ((existingOrder.OrderTypeId > 0 && existingOrder.OrderTypeId != requestedOrderTypeId) ||
+                existingOrder.CustomerId != dto.CustomerId)
+            {
+                return false;
+            }
+
+            var requestedPayments = dto.Payments != null && dto.Payments.Any()
+                ? dto.Payments
+                    .GroupBy(payment => payment.PaymentMethodId)
+                    .ToDictionary(group => group.Key, group => group.Sum(payment => payment.Amount))
+                : new Dictionary<int, decimal>
+                {
+                    [dto.PaymentMethodId > 0 ? dto.PaymentMethodId : 1] = existingOrder.Total
+                };
+            var existingPayments = existingOrder.Payments
+                .GroupBy(payment => payment.PaymentMethodId)
+                .ToDictionary(group => group.Key, group => group.Sum(payment => payment.Amount));
+
+            if (existingPayments.Values.Any(amount => amount > 0m) &&
+                (requestedPayments.Count != existingPayments.Count ||
+                requestedPayments.Any(pair => !existingPayments.TryGetValue(pair.Key, out var amount) || amount != pair.Value))
+               )
+            {
+                return false;
+            }
+
+            var existingCashPayment = existingOrder.Payments
+                .FirstOrDefault(payment => payment.PaymentMethodId == 1 && payment.ReceivedAmount.HasValue);
+            if (existingCashPayment?.ReceivedAmount is decimal existingReceivedAmount &&
+                ResolveCashReceivedAmount(dto.ReceivedAmount, existingOrder.Total) != existingReceivedAmount)
+            {
+                return false;
+            }
+
+            if (existingOrder.OrderDetails == null || existingOrder.OrderDetails.Count == 0)
+                return true;
+
+            if (existingOrder.OrderDetails.Count != dto.Items.Count)
+                return false;
+
+            var requestedItems = dto.Items
+                .Select(item => new
+                {
+                    item.DrinkId,
+                    item.SizeId,
+                    item.Quantity,
+                    Toppings = string.Join(",", item.Toppings.Select(topping => topping.ToppingId).OrderBy(id => id))
+                })
+                .OrderBy(item => item.DrinkId)
+                .ThenBy(item => item.SizeId)
+                .ThenBy(item => item.Quantity)
+                .ThenBy(item => item.Toppings)
+                .ToList();
+            var existingItems = existingOrder.OrderDetails
+                .Select(item => new
+                {
+                    item.DrinkId,
+                    item.SizeId,
+                    item.Quantity,
+                    Toppings = string.Join(",", item.OrderToppings.Select(topping => topping.ToppingId).OrderBy(id => id))
+                })
+                .OrderBy(item => item.DrinkId)
+                .ThenBy(item => item.SizeId)
+                .ThenBy(item => item.Quantity)
+                .ThenBy(item => item.Toppings)
+                .ToList();
+
+            return requestedItems.SequenceEqual(existingItems);
         }
 
         // ============================================================

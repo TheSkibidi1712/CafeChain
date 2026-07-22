@@ -1,4 +1,5 @@
 using CafeChain.Application.Tools;
+using CafeChain.Application.Options;
 using CafeChain.Extensions;
 using CafeChain.Extensions.Hosting;
 using CafeChain.Extensions.Pipeline;
@@ -35,6 +36,8 @@ if (builder.Environment.IsDevelopment())
 
 // Environment variables always win over JSON/Local for Email__Password etc.
 builder.Configuration.AddEnvironmentVariables();
+
+builder.Services.Configure<POSPaymentOptions>(builder.Configuration.GetSection("POSPayment"));
 
 builder.AddCafeChainSerilog();
 

@@ -57,7 +57,8 @@ namespace CafeChain.Controllers.Api.v1
             if (!result.IsSuccess)
             {
                 var payload = new { success = false, message = result.Message, errorCode = result.ErrorCode };
-                return POSCatalogSaleErrorCodes.IsConflict(result.ErrorCode)
+                return POSCatalogSaleErrorCodes.IsConflict(result.ErrorCode) ||
+                    string.Equals(result.ErrorCode, "IDEMPOTENCY_KEY_REUSED", StringComparison.Ordinal)
                     ? Conflict(payload)
                     : Ok(payload);
             }
