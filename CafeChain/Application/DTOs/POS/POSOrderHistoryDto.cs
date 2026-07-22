@@ -38,6 +38,8 @@ namespace CafeChain.Application.DTOs.POS
         public int PaymentStatusId { get; set; }
         public string PaymentStatus { get; set; } = null!;
         public decimal Amount { get; set; }
+        public decimal? ReceivedAmount { get; set; }
+        public decimal? ChangeAmount { get; set; }
         public DateTime? PaidAt { get; set; }
         public string? TransactionCode { get; set; }
     }

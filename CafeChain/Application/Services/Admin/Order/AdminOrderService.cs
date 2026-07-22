@@ -286,6 +286,8 @@ namespace CafeChain.Application.Services.Admin
             if (payment != null && payment.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid)
             {
                 payment.PaymentStatusId = SystemConstants.PaymentStatuses.Paid;
+                payment.PaidAt = DateTime.Now;
+                order.PaymentStatusId = SystemConstants.PaymentStatuses.Paid;
             }
 
             await _context.SaveChangesAsync();

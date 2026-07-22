@@ -50,6 +50,8 @@ interface BackendPayment {
   paymentStatusId: number
   paymentStatus: string
   amount: number
+  receivedAmount?: number | null
+  changeAmount?: number | null
   paidAt?: string | null
   transactionCode?: string | null
 }
@@ -213,7 +215,11 @@ const getStatusTone = (label: string): string => {
 
 const summarizePayments = (payments: HistoryPaymentLine[], fallback: string): string => {
   if (payments.length === 0) return normalizePaymentMethod(fallback)
-  const methods = Array.from(new Set(payments.map((payment) => payment.method)))
+  const settledPayments = payments.filter((payment) => (
+    payment.status === LABELS.paid || payment.status === LABELS.refunded
+  ))
+  const methods = Array.from(new Set(settledPayments.map((payment) => payment.method)))
+  if (methods.length === 0) return normalizePaymentMethod(fallback)
   return methods.length > 1 ? 'Thanh toán kết hợp' : methods[0]
 }
 
@@ -242,6 +248,8 @@ const mapBackendOrder = (order: OrderHistoryItem): HistoryRow => {
     status: normalizePaymentStatus(payment?.paymentStatusId, payment?.paymentStatus),
     paidAt: payment?.paidAt,
     transactionCode: payment?.transactionCode,
+    receivedAmount: safeMoney(payment?.receivedAmount),
+    changeAmount: safeMoney(payment?.changeAmount),
   }))
 
   const items = (order.orderDetails ?? []).map((detail) => {

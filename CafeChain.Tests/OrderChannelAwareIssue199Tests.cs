@@ -120,6 +120,60 @@ public sealed class OrderChannelAwareIssue199Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task PosApiHistory_UsesPaidAtForStablePagination_AndPreservesCashAudit()
+    {
+        await using var context = CreateDbContext();
+        var paidLater = AddOrder(context, 1, OrderSources.Pos,
+            SystemConstants.OrderStatuses.Completed, SystemConstants.PaymentStatuses.Paid,
+            createdAt: new DateTime(2026, 7, 1, 8, 0, 0));
+        var createdLater = AddOrder(context, 1, OrderSources.Pos,
+            SystemConstants.OrderStatuses.Completed, SystemConstants.PaymentStatuses.Paid,
+            createdAt: new DateTime(2026, 7, 22, 8, 0, 0));
+        await context.SaveChangesAsync();
+
+        context.Payments.AddRange(
+            new Payment
+            {
+                OrderId = paidLater.OrderId,
+                PaymentMethodId = 1,
+                PaymentStatusId = SystemConstants.PaymentStatuses.Paid,
+                Amount = 33_000m,
+                ReceivedAmount = 50_000m,
+                ChangeAmount = 17_000m,
+                PaidAt = new DateTime(2026, 7, 23, 9, 0, 0)
+            },
+            new Payment
+            {
+                OrderId = paidLater.OrderId,
+                PaymentMethodId = 3,
+                PaymentStatusId = SystemConstants.PaymentStatuses.Failed,
+                Amount = 33_000m,
+                PaidAt = null
+            },
+            new Payment
+            {
+                OrderId = createdLater.OrderId,
+                PaymentMethodId = 1,
+                PaymentStatusId = SystemConstants.PaymentStatuses.Paid,
+                Amount = 20_000m,
+                PaidAt = new DateTime(2026, 7, 22, 9, 0, 0)
+            });
+        await context.SaveChangesAsync();
+
+        var repository = new POSOrderRepository(context);
+        var (firstPage, total) = await repository.GetOrderHistoryAsync(1, 1, 1);
+
+        Assert.Equal(2, total);
+        var row = Assert.Single(firstPage);
+        Assert.Equal(paidLater.OrderId, row.OrderId);
+        Assert.Equal(new DateTime(2026, 7, 23, 9, 0, 0), row.PaidAt);
+        Assert.Equal("Tiền mặt", row.PaymentMethod);
+        var cash = Assert.Single(row.Payments, payment => payment.PaymentStatusId == SystemConstants.PaymentStatuses.Paid);
+        Assert.Equal(50_000m, cash.ReceivedAmount);
+        Assert.Equal(17_000m, cash.ChangeAmount);
+    }
+
+    [Fact]
     public async Task Board_contains_only_website_orders_for_requested_store()
     {
         await using var context = CreateDbContext();
@@ -195,13 +249,25 @@ public sealed class OrderChannelAwareIssue199Tests : IntegrationTestBase
     {
         await using var context = CreateDbContext();
         var order = AddOrder(context, 1, OrderSources.Website,
-            SystemConstants.OrderStatuses.Delivering, SystemConstants.PaymentStatuses.Paid,
+            SystemConstants.OrderStatuses.Delivering, SystemConstants.PaymentStatuses.Unpaid,
             SystemConstants.OrderTypes.Delivery);
+        await context.SaveChangesAsync();
+        var payment = new Payment
+        {
+            OrderId = order.OrderId,
+            Amount = order.Total,
+            PaymentMethodId = 1,
+            PaymentStatusId = SystemConstants.PaymentStatuses.Unpaid
+        };
+        context.Payments.Add(payment);
         await context.SaveChangesAsync();
 
         await CreateAdminOrderService(context).CompleteOrderAsync(order.OrderId, 1);
 
         Assert.Equal(SystemConstants.OrderStatuses.Completed, order.OrderStatusId);
+        Assert.Equal(SystemConstants.PaymentStatuses.Paid, order.PaymentStatusId);
+        Assert.Equal(SystemConstants.PaymentStatuses.Paid, payment.PaymentStatusId);
+        Assert.NotNull(payment.PaidAt);
     }
 
     [Fact]
@@ -425,6 +491,35 @@ public sealed class OrderChannelAwareIssue199Tests : IntegrationTestBase
 
 public sealed class OrderChannelAwareIssue199SourceTests
 {
+    [Fact]
+    public void Website_checkout_preserves_takeaway_or_delivery_channel_authority()
+    {
+        var service = Read("CafeChain", "Application", "Services", "Order", "OrderService.cs");
+        var checkout = Read("CafeChain", "Views", "Checkout", "Index.cshtml");
+
+        Assert.Contains("model.OrderTypeId != SystemConstants.OrderTypes.TakeAway", service, StringComparison.Ordinal);
+        Assert.Contains("OrderTypeId = model.OrderTypeId", service, StringComparison.Ordinal);
+        Assert.Contains("DeliveryAddress = isDeliveryOrder ? address.DisplayAddress : null", service, StringComparison.Ordinal);
+        Assert.Contains("ShippingFee = isDeliveryOrder ? 15000 : 0", service, StringComparison.Ordinal);
+        Assert.Contains("asp-for=\"OrderTypeId\"", checkout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PosDrawer_MapsCashAuditAndIgnoresFailedTenderInSummary()
+    {
+        var frontend = Read("CafeChain.Frontend", "src", "pages", "OrderHistory.tsx");
+        var dto = Read("CafeChain", "Application", "DTOs", "POS", "POSOrderHistoryDto.cs");
+        var repository = Read("CafeChain", "Infrastructure", "Repositories", "Admin", "POS", "POSOrderRepository.cs");
+
+        Assert.Contains("receivedAmount: safeMoney(payment?.receivedAmount)", frontend, StringComparison.Ordinal);
+        Assert.Contains("changeAmount: safeMoney(payment?.changeAmount)", frontend, StringComparison.Ordinal);
+        Assert.Contains("const settledPayments = payments.filter", frontend, StringComparison.Ordinal);
+        Assert.Contains("public decimal? ReceivedAmount", dto, StringComparison.Ordinal);
+        Assert.Contains("public decimal? ChangeAmount", dto, StringComparison.Ordinal);
+        Assert.Contains("ReceivedAmount = p.ReceivedAmount", repository, StringComparison.Ordinal);
+        Assert.Contains("ChangeAmount = p.ChangeAmount", repository, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Board_AuthorizationPreserved()
     {

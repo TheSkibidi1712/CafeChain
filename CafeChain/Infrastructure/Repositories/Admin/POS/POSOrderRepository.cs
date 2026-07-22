@@ -162,7 +162,11 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                         || o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
                     && o.Payments.Any(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
                         || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded))
-                .OrderByDescending(o => o.CreatedAt);
+                .OrderByDescending(o => o.Payments
+                    .Where(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                    .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt)
+                .ThenByDescending(o => o.OrderId);
 
             var totalCount = await query.CountAsync();
 
@@ -212,6 +216,8 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                         PaymentStatusId = p.PaymentStatusId,
                         PaymentStatus = p.PaymentStatus != null ? p.PaymentStatus.Name : "Chưa xác định",
                         Amount = p.Amount,
+                        ReceivedAmount = p.ReceivedAmount,
+                        ChangeAmount = p.ChangeAmount,
                         PaidAt = p.PaidAt,
                         TransactionCode = p.TransactionCode
                     }
@@ -247,7 +253,10 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .GroupBy(row => row.OrderId)
                 .ToDictionary(
                     group => group.Key,
-                    group => OrderChannelPolicy.GetPaymentDisplay(group.Select(row => row.DisplayKey)));
+                    group => OrderChannelPolicy.GetPaymentDisplay(group
+                        .Where(row => row.Payment.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                            || row.Payment.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                        .Select(row => row.DisplayKey)));
 
             var detailsByOrder = detailRows
                 .GroupBy(row => row.OrderId)
@@ -258,7 +267,11 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 if (paymentsByOrder.TryGetValue(order.OrderId, out var payments))
                 {
                     order.Payments = payments;
-                    order.PaidAt = payments.Where(x => x.PaidAt.HasValue).Max(x => x.PaidAt);
+                    order.PaidAt = payments
+                        .Where(x => x.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                            || x.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                        .Where(x => x.PaidAt.HasValue)
+                        .Max(x => x.PaidAt);
                     order.PaymentMethod = paymentDisplayByOrder[order.OrderId];
                 }
 
