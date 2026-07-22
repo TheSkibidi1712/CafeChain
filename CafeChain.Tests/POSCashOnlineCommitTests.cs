@@ -255,7 +255,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task CommitOrderAsync_IdempotentRetry_ReturnsExistingOrderWithoutAutomaticPrint()
+        public async Task DoubleFinalConfirm_OneOrderOneDrawerPosting()
         {
             var repository = new Mock<IPOSOrderRepository>(MockBehavior.Strict);
             var workShiftService = new Mock<IWorkShiftService>(MockBehavior.Strict);
@@ -298,6 +298,10 @@ namespace CafeChain.Tests.POS
 
             repository.Verify(repo => repo.BeginTransactionAsync(), Times.Never);
             repository.Verify(repo => repo.CreateOrderAsync(It.IsAny<Order>()), Times.Never);
+            repository.Verify(repo => repo.CreatePaymentAsync(It.IsAny<Payment>()), Times.Never);
+            repository.Verify(repo => repo.SaveChangesAsync(), Times.Never);
+            repository.Verify(repo => repo.CommitTransactionAsync(), Times.Never);
+            workShiftService.Verify(service => service.GetActiveShiftAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
             printDispatcher.Verify(
                 dispatcher => dispatcher.DispatchPrintJobAsync(
                     It.IsAny<Order>(),
@@ -353,7 +357,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task CommitOrderAsync_SameClientOrderIdDifferentPayload_ReturnsConflict()
+        public async Task SameRequestKeyDifferentPayload_Conflict()
         {
             var repository = new Mock<IPOSOrderRepository>(MockBehavior.Strict);
             var clientOrderId = Guid.NewGuid();

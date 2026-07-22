@@ -70,7 +70,7 @@ namespace CafeChain.Tests.POS
                 .Returns(Task.CompletedTask);
             repository.Setup(repo => repo.CommitTransactionAsync()).Returns(Task.CompletedTask);
             payOsService
-                .Setup(service => service.CreatePaymentLinkAsync(301, 25000m))
+                .Setup(service => service.CreatePaymentLinkAsync(301, 13000m))
                 .ReturnsAsync(new PayOSCreateLinkResult
                 {
                     CheckoutUrl = "https://pay.example/301",
@@ -100,9 +100,9 @@ namespace CafeChain.Tests.POS
                 Assert.Null(payment.PaidAt);
             });
             Assert.Contains(capturedPayments, payment => payment.PaymentMethodId == 1 && payment.Amount == 20000m);
-            Assert.Contains(capturedPayments, payment => payment.PaymentMethodId == 2 && payment.Amount == 25000m);
+            Assert.Contains(capturedPayments, payment => payment.PaymentMethodId == 2 && payment.Amount == 13000m);
             Assert.Equal(20000m, result.Data!.GetType().GetProperty("pendingCashAmount")?.GetValue(result.Data));
-            Assert.Equal(25000m, result.Data.GetType().GetProperty("pendingVietQrAmount")?.GetValue(result.Data));
+            Assert.Equal(13000m, result.Data.GetType().GetProperty("pendingVietQrAmount")?.GetValue(result.Data));
 
             printDispatcher.Verify(
                 dispatcher => dispatcher.DispatchPrintJobAsync(
@@ -112,6 +112,88 @@ namespace CafeChain.Tests.POS
                     It.IsAny<decimal>(),
                     It.IsAny<bool>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task Cash20000_Cash13000_CommitsDrawer33000Once()
+        {
+            var repository = new Mock<IPOSOrderRepository>(MockBehavior.Strict);
+            var workShiftService = new Mock<IWorkShiftService>(MockBehavior.Strict);
+            var voucherService = new Mock<IAdminVoucherService>(MockBehavior.Strict);
+            var printDispatcher = new Mock<IPrintDispatcher>(MockBehavior.Strict);
+            var payOsService = new Mock<IPayOSService>(MockBehavior.Strict);
+            var logger = new Mock<ILogger<POSOrderService>>();
+            var activeWorkShift = CreateOpenShift();
+            var dto = CreateCashSettlementDto(Guid.NewGuid());
+            Order? capturedOrder = null;
+            var capturedPayments = new List<Payment>();
+
+            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value)).ReturnsAsync((Order?)null);
+            workShiftService.Setup(service => service.GetActiveShiftAsync(17, 3)).ReturnsAsync(activeWorkShift);
+            repository.Setup(repo => repo.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            repository.Setup(repo => repo.GetDrinkWithSizesAsync(10, 3)).ReturnsAsync(CreateDrink(33000m));
+            repository
+                .Setup(repo => repo.CreateOrderAsync(It.IsAny<Order>()))
+                .Callback<Order>(order =>
+                {
+                    capturedOrder = order;
+                    order.OrderId = 302;
+                })
+                .ReturnsAsync((Order order) => order);
+            repository
+                .Setup(repo => repo.CreatePaymentAsync(It.IsAny<Payment>()))
+                .Callback<Payment>(capturedPayments.Add)
+                .Returns(Task.CompletedTask);
+            repository.Setup(repo => repo.SaveChangesAsync()).Returns(Task.CompletedTask);
+            repository.Setup(repo => repo.CommitTransactionAsync()).Returns(Task.CompletedTask);
+            printDispatcher
+                .Setup(dispatcher => dispatcher.DispatchPrintJobAsync(
+                    It.Is<Order>(order => order.OrderId == 302),
+                    3,
+                    It.IsAny<string>(),
+                    33000m,
+                    true))
+                .ReturnsAsync(true);
+
+            var service = CreateOrderService(
+                repository,
+                workShiftService,
+                voucherService,
+                printDispatcher,
+                payOsService,
+                logger);
+
+            var result = await service.CommitOrderAsync(dto, userId: 17, storeId: 3);
+
+            Assert.True(result.IsSuccess);
+            Assert.NotNull(capturedOrder);
+            Assert.Equal(SystemConstants.OrderStatuses.Completed, capturedOrder!.OrderStatusId);
+            Assert.Equal(SystemConstants.PaymentStatuses.Paid, capturedOrder.PaymentStatusId);
+            Assert.Collection(
+                capturedPayments,
+                payment =>
+                {
+                    Assert.Equal(1, payment.PaymentMethodId);
+                    Assert.Equal(20000m, payment.Amount);
+                    Assert.Equal(33000m, payment.ReceivedAmount);
+                    Assert.Equal(0m, payment.ChangeAmount);
+                },
+                payment =>
+                {
+                    Assert.Equal(1, payment.PaymentMethodId);
+                    Assert.Equal(13000m, payment.Amount);
+                    Assert.Equal(33000m, payment.ReceivedAmount);
+                    Assert.Equal(0m, payment.ChangeAmount);
+                });
+            Assert.Equal(533000m, activeWorkShift.ExpectedEndingCash);
+            repository.Verify(repo => repo.CreateOrderAsync(It.IsAny<Order>()), Times.Once);
+            repository.Verify(repo => repo.CreatePaymentAsync(It.IsAny<Payment>()), Times.Exactly(2));
+            repository.Verify(repo => repo.SaveChangesAsync(), Times.Once);
+            repository.Verify(repo => repo.CommitTransactionAsync(), Times.Once);
+            printDispatcher.Verify(
+                dispatcher => dispatcher.DispatchPrintJobAsync(
+                    It.IsAny<Order>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<bool>()),
+                Times.Once);
         }
 
         [Fact]
@@ -146,7 +228,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task ProcessAsync_ConfirmedSplitWebhookMarksBothPaymentsPaidAndRunsSideEffectsOnce()
+        public async Task Cash20000_Qr13000_CommitsDrawer20000()
         {
             using var context = CreateDbContext();
             var orderId = await SeedSplitOrderAsync(context);
@@ -174,7 +256,7 @@ namespace CafeChain.Tests.POS
                     true))
                 .ReturnsAsync(true);
 
-            var result = await processor.ProcessAsync(CreatePayload(amount: 25000m));
+            var result = await processor.ProcessAsync(CreatePayload(amount: 13000m));
 
             Assert.Equal("SUCCESS", result.Code);
             Assert.True(result.ConfirmedPayment);
@@ -229,7 +311,7 @@ namespace CafeChain.Tests.POS
                     It.IsAny<int>()))
                 .ReturnsAsync(ServiceResult.Success("Đơn hàng đã được trừ kho trước đó."));
 
-            var result = await processor.ProcessAsync(CreatePayload(amount: 25000m));
+            var result = await processor.ProcessAsync(CreatePayload(amount: 13000m));
 
             var shift = await context.WorkShifts.SingleAsync(s => s.ShiftId == 42);
             Assert.Equal("ALREADY_PAID", result.Code);
@@ -252,7 +334,40 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task CancelPayment_SplitIntentMarksUnpaidLinesFailedWithoutPostingCash()
+        public async Task QrFailure_KeepsOrderUncommitted()
+        {
+            using var context = CreateDbContext();
+            var orderId = await SeedSplitOrderAsync(context);
+            var inventoryService = new Mock<IInventoryDeductionService>(MockBehavior.Strict);
+            var printDispatcher = new Mock<IPrintDispatcher>(MockBehavior.Strict);
+            var processor = CreateProcessor(context, inventoryService, printDispatcher);
+
+            var result = await processor.ProcessAsync(CreatePayload(amount: 13000m, status: "01"));
+
+            Assert.Equal("PAYMENT_NOT_SUCCESS", result.Code);
+            Assert.False(result.ConfirmedPayment);
+            var order = await context.Orders
+                .Include(candidate => candidate.Payments)
+                .SingleAsync(candidate => candidate.OrderId == orderId);
+            var shift = await context.WorkShifts.AsNoTracking().SingleAsync(candidate => candidate.ShiftId == 42);
+            Assert.Equal(SystemConstants.OrderStatuses.AwaitingPayment, order.OrderStatusId);
+            Assert.Equal(SystemConstants.PaymentStatuses.Unpaid, order.PaymentStatusId);
+            Assert.All(order.Payments, payment => Assert.Equal(SystemConstants.PaymentStatuses.Unpaid, payment.PaymentStatusId));
+            Assert.Equal(500000m, shift.ExpectedEndingCash);
+            Assert.Contains(await context.TransactionLogs.AsNoTracking().ToListAsync(), log =>
+                log.OrderId == orderId && log.Status == "FAILED_01");
+            inventoryService.Verify(
+                service => service.DeductStockForCommittedOrderAsync(
+                    It.IsAny<List<POSSoldItemDto>>(), It.IsAny<int>(), It.IsAny<int>()),
+                Times.Never);
+            printDispatcher.Verify(
+                dispatcher => dispatcher.DispatchPrintJobAsync(
+                    It.IsAny<Order>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<bool>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task CancelAfterReturn_DrawerNetZero()
         {
             using var context = CreateDbContext();
             var orderId = await SeedSplitOrderAsync(context);
@@ -283,6 +398,77 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
+        public async Task CancelVsQrConfirm_OneWinner()
+        {
+            using var context = CreateDbContext();
+            var orderId = await SeedSplitOrderAsync(context);
+            var paymentController = CreatePaymentController(context, new Mock<ILogger<POSPaymentController>>());
+
+            var cancelResponse = await paymentController.CancelPayment(new CancelPaymentRequestDto
+            {
+                OrderId = orderId,
+                Reason = "Khách hủy trong lúc chờ VietQR",
+                CashReturnedConfirmed = true,
+                ReturnedAmount = 20000m,
+                RequestKey = Guid.NewGuid().ToString("N")
+            });
+
+            Assert.IsType<OkObjectResult>(cancelResponse);
+
+            var inventoryService = new Mock<IInventoryDeductionService>(MockBehavior.Strict);
+            var printDispatcher = new Mock<IPrintDispatcher>(MockBehavior.Strict);
+            var processor = CreateProcessor(context, inventoryService, printDispatcher);
+            var webhookResult = await processor.ProcessAsync(CreatePayload(amount: 13000m));
+
+            Assert.Equal("PAYMENT_NOT_PAYABLE", webhookResult.Code);
+            Assert.False(webhookResult.ConfirmedPayment);
+            var order = await context.Orders
+                .Include(candidate => candidate.Payments)
+                .SingleAsync(candidate => candidate.OrderId == orderId);
+            var shift = await context.WorkShifts.AsNoTracking().SingleAsync(candidate => candidate.ShiftId == 42);
+            Assert.Equal(SystemConstants.OrderStatuses.Cancelled, order.OrderStatusId);
+            Assert.Equal(SystemConstants.PaymentStatuses.Failed, order.PaymentStatusId);
+            Assert.All(order.Payments, payment => Assert.Equal(SystemConstants.PaymentStatuses.Failed, payment.PaymentStatusId));
+            Assert.Equal(500000m, shift.ExpectedEndingCash);
+            inventoryService.Verify(
+                service => service.DeductStockForCommittedOrderAsync(
+                    It.IsAny<List<POSSoldItemDto>>(), It.IsAny<int>(), It.IsAny<int>()),
+                Times.Never);
+            printDispatcher.Verify(
+                dispatcher => dispatcher.DispatchPrintJobAsync(
+                    It.IsAny<Order>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<bool>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task CancelBeforePhysicalCash_NoDrawer()
+        {
+            using var context = CreateDbContext();
+            var orderId = await SeedSplitOrderAsync(
+                context,
+                pendingCashAmount: 0m,
+                pendingVietQrAmount: 33000m);
+            var controller = CreatePaymentController(context, new Mock<ILogger<POSPaymentController>>());
+
+            var response = await controller.CancelPayment(new CancelPaymentRequestDto
+            {
+                OrderId = orderId,
+                Reason = "Khách hủy trước khi đưa tiền mặt"
+            });
+
+            Assert.IsType<OkObjectResult>(response);
+            var order = await context.Orders
+                .Include(candidate => candidate.Payments)
+                .SingleAsync(candidate => candidate.OrderId == orderId);
+            var shift = await context.WorkShifts.AsNoTracking().SingleAsync(candidate => candidate.ShiftId == 42);
+            Assert.Equal(SystemConstants.OrderStatuses.Cancelled, order.OrderStatusId);
+            Assert.Equal(SystemConstants.PaymentStatuses.Failed, order.PaymentStatusId);
+            Assert.All(order.Payments, payment => Assert.Equal(SystemConstants.PaymentStatuses.Failed, payment.PaymentStatusId));
+            Assert.Equal(500000m, shift.ExpectedEndingCash);
+            Assert.Empty(await context.TransactionLogs.AsNoTracking().ToListAsync());
+        }
+
+        [Fact]
         public async Task CancelAfterCashReceived_RequiresReturnConfirmation()
         {
             using var context = CreateDbContext();
@@ -305,7 +491,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task CancelTemporaryCash_AfterReturn_AuditsWithoutOrderOrDrawerPosting()
+        public async Task Cancel_DoesNotCreateOrderOrDeductInventory()
         {
             using var context = CreateDbContext();
             context.WorkShifts.Add(CreateOpenShift());
@@ -326,6 +512,7 @@ namespace CafeChain.Tests.POS
             Assert.IsType<OkObjectResult>(response);
             Assert.Empty(await context.Orders.ToListAsync());
             Assert.Empty(await context.Payments.ToListAsync());
+            Assert.Empty(await context.InventoryTransactions.ToListAsync());
             Assert.Equal(500000m, (await context.WorkShifts.AsNoTracking().SingleAsync()).ExpectedEndingCash);
             var audit = await context.RequestDeduplications.AsNoTracking().SingleAsync();
             Assert.Equal("POS_TEMPORARY_CASH_CANCEL", audit.ActionName);
@@ -433,9 +620,32 @@ namespace CafeChain.Tests.POS
             int orderStatusId = SystemConstants.OrderStatuses.AwaitingPayment,
             int paymentStatusId = SystemConstants.PaymentStatuses.Unpaid,
             int paymentLineStatusId = SystemConstants.PaymentStatuses.Unpaid,
-            decimal expectedEndingCash = 500000m)
+            decimal expectedEndingCash = 500000m,
+            decimal pendingCashAmount = 20000m,
+            decimal pendingVietQrAmount = 13000m)
         {
             context.WorkShifts.Add(CreateOpenShift(expectedEndingCash));
+
+            var total = pendingCashAmount + pendingVietQrAmount;
+            var payments = new List<Payment>();
+            if (pendingCashAmount > 0m)
+            {
+                payments.Add(new Payment
+                {
+                    PaymentMethodId = 1,
+                    PaymentStatusId = paymentLineStatusId,
+                    Amount = pendingCashAmount,
+                    PaidAt = paymentLineStatusId == SystemConstants.PaymentStatuses.Paid ? DateTime.Now : null
+                });
+            }
+
+            payments.Add(new Payment
+            {
+                PaymentMethodId = 2,
+                PaymentStatusId = paymentLineStatusId,
+                Amount = pendingVietQrAmount,
+                PaidAt = paymentLineStatusId == SystemConstants.PaymentStatuses.Paid ? DateTime.Now : null
+            });
 
             var order = new Order
             {
@@ -447,8 +657,8 @@ namespace CafeChain.Tests.POS
                 OrderTypeId = 1,
                 Source = "POS",
                 PaymentReference = "301000000001",
-                SubTotal = 45000m,
-                Total = 45000m,
+                SubTotal = total,
+                Total = total,
                 CreatedAt = DateTime.Now,
                 OrderDetails = new List<OrderDetail>
                 {
@@ -459,28 +669,12 @@ namespace CafeChain.Tests.POS
                         DrinkName = "Americano",
                         SizeName = "M",
                         Quantity = 1,
-                        Price = 45000m,
+                        Price = total,
                         Note = "",
                         OrderToppings = new List<OrderTopping>()
                     }
                 },
-                Payments = new List<Payment>
-                {
-                    new()
-                    {
-                        PaymentMethodId = 1,
-                        PaymentStatusId = paymentLineStatusId,
-                        Amount = 20000m,
-                        PaidAt = paymentLineStatusId == SystemConstants.PaymentStatuses.Paid ? DateTime.Now : null
-                    },
-                    new()
-                    {
-                        PaymentMethodId = 2,
-                        PaymentStatusId = paymentLineStatusId,
-                        Amount = 25000m,
-                        PaidAt = paymentLineStatusId == SystemConstants.PaymentStatuses.Paid ? DateTime.Now : null
-                    }
-                }
+                Payments = payments
             };
 
             context.Orders.Add(order);
@@ -488,7 +682,7 @@ namespace CafeChain.Tests.POS
             return order.OrderId;
         }
 
-        private static PayOSWebhookPayload CreatePayload(decimal amount)
+        private static PayOSWebhookPayload CreatePayload(decimal amount, string status = "00")
         {
             return new PayOSWebhookPayload
             {
@@ -496,7 +690,7 @@ namespace CafeChain.Tests.POS
                 Amount = amount,
                 TransactionId = "PAYOS-TXN-1",
                 Description = "CafeChain #301",
-                Status = "00",
+                Status = status,
                 RawBody = "{}"
             };
         }
@@ -519,7 +713,7 @@ namespace CafeChain.Tests.POS
                 Payments = new List<PaymentLineDto>
                 {
                     new() { PaymentMethodId = 1, Amount = 20000m },
-                    new() { PaymentMethodId = 2, Amount = 25000m }
+                    new() { PaymentMethodId = 2, Amount = 13000m }
                 },
                 PaymentMethodId = 2,
                 ReceivedAmount = 20000m,
@@ -527,7 +721,33 @@ namespace CafeChain.Tests.POS
             };
         }
 
-        private static Drink CreateDrink()
+        private static POSOrderCommitDto CreateCashSettlementDto(Guid clientOrderId)
+        {
+            return new POSOrderCommitDto
+            {
+                ClientOrderId = clientOrderId,
+                Items = new List<POSOrderItemDto>
+                {
+                    new()
+                    {
+                        DrinkId = 10,
+                        SizeId = 2,
+                        Quantity = 1,
+                        Toppings = new List<POSOrderToppingDto>()
+                    }
+                },
+                Payments = new List<PaymentLineDto>
+                {
+                    new() { PaymentMethodId = 1, Amount = 20000m },
+                    new() { PaymentMethodId = 1, Amount = 13000m }
+                },
+                PaymentMethodId = 1,
+                ReceivedAmount = 33000m,
+                OrderTypeId = 1
+            };
+        }
+
+        private static Drink CreateDrink(decimal price = 33000m)
         {
             return new Drink
             {
@@ -539,7 +759,7 @@ namespace CafeChain.Tests.POS
                     {
                         DrinkId = 10,
                         SizeId = 2,
-                        Price = 45000m,
+                        Price = price,
                         Active = true,
                         Size = new Size
                         {
