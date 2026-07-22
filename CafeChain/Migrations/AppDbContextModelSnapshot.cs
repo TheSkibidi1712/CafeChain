@@ -2950,6 +2950,9 @@ namespace CafeChain.Migrations
                     b.Property<long?>("SourceTransferCostAllocationId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("SourceTransferDiscrepancyPostingId")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
 
@@ -2983,6 +2986,11 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("SourceTransferCostAllocationId")
                         .HasFilter("[SourceTransferCostAllocationId] IS NOT NULL");
+
+                    b.HasIndex("SourceTransferDiscrepancyPostingId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_InventoryCostLayers_TransferReturnPosting")
+                        .HasFilter("[SourceTransferDiscrepancyPostingId] IS NOT NULL");
 
                     b.HasIndex("StoreId");
 
@@ -4267,6 +4275,97 @@ namespace CafeChain.Migrations
                     b.HasIndex("StoreId", "Status", "CreatedAtUtc");
 
                     b.ToTable("PurchaseAdvices", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Procurement.PurchaseAdviceFulfillmentPosting", b =>
+                {
+                    b.Property<long>("PurchaseAdviceFulfillmentPostingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PurchaseAdviceFulfillmentPostingId"));
+
+                    b.Property<int>("ActorStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BaseUnitId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BranchReceiptLineId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CloseOperationKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("PostingType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("PurchaseAdviceLineId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PurchaseOrderLineAllocationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PurchaseOrderLineId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("SourceDocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SourceDocumentLineId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceDocumentType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("PurchaseAdviceFulfillmentPostingId");
+
+                    b.HasIndex("ActorStaffId");
+
+                    b.HasIndex("BaseUnitId");
+
+                    b.HasIndex("PurchaseOrderLineId");
+
+                    b.HasIndex("PurchaseAdviceLineId", "CreatedAtUtc");
+
+                    b.HasIndex("PurchaseOrderLineAllocationId", "PostingType");
+
+                    b.HasIndex("BranchReceiptLineId", "PurchaseOrderLineAllocationId", "PostingType")
+                        .IsUnique()
+                        .HasFilter("[BranchReceiptLineId] IS NOT NULL AND [PostingType] = 'ACCEPTED'");
+
+                    b.HasIndex("CloseOperationKey", "PurchaseOrderLineAllocationId", "PostingType")
+                        .IsUnique()
+                        .HasFilter("[CloseOperationKey] IS NOT NULL AND [PostingType] = 'CLOSED'");
+
+                    b.HasIndex("SourceDocumentType", "SourceDocumentId", "SourceDocumentLineId", "PostingType", "PurchaseAdviceLineId")
+                        .IsUnique();
+
+                    b.ToTable("PurchaseAdviceFulfillmentPostings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PurchaseAdviceFulfillmentPostings_QuantityPositive", "[Quantity] > 0");
+
+                            t.HasCheckConstraint("CK_PurchaseAdviceFulfillmentPostings_SourceByType", "([PostingType] = 'ACCEPTED' AND [BranchReceiptLineId] IS NOT NULL AND [CloseOperationKey] IS NULL) OR ([PostingType] = 'CLOSED' AND [BranchReceiptLineId] IS NULL AND [CloseOperationKey] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_PurchaseAdviceFulfillmentPostings_Type", "[PostingType] IN ('ACCEPTED','CLOSED')");
+                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Procurement.PurchaseAdviceLine", b =>
@@ -7173,7 +7272,7 @@ namespace CafeChain.Migrations
                     b.HasIndex("InventoryTransferDetailId", "Type")
                         .IsUnique()
                         .HasDatabaseName("UX_InventoryTransactions_TransferDetail_Type")
-                        .HasFilter("[InventoryTransferDetailId] IS NOT NULL");
+                        .HasFilter("[InventoryTransferDetailId] IS NOT NULL AND [Type] = 10");
 
                     b.HasIndex("StoreInventoryId", "CreatedAt");
 
@@ -7252,6 +7351,9 @@ namespace CafeChain.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int?>("ParentInventoryTransferId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Purpose")
                         .HasColumnType("int");
 
@@ -7286,6 +7388,8 @@ namespace CafeChain.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("DocumentDate");
+
+                    b.HasIndex("ParentInventoryTransferId");
 
                     b.HasIndex("RequestKey")
                         .IsUnique()
@@ -7385,6 +7489,9 @@ namespace CafeChain.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int?>("ParentInventoryTransferDetailId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("PreparedItemId")
                         .HasColumnType("int");
 
@@ -7416,6 +7523,8 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("IngredientId");
 
+                    b.HasIndex("ParentInventoryTransferDetailId");
+
                     b.HasIndex("PreparedItemId");
 
                     b.HasIndex("RestockRequestFulfillmentId");
@@ -7443,6 +7552,71 @@ namespace CafeChain.Migrations
                             t.HasCheckConstraint("CK_InventoryTransferDetail_Quantity", "[Quantity] > 0");
 
                             t.HasCheckConstraint("CK_InventoryTransferDetail_UnitPrice", "[UnitPrice] IS NULL OR [UnitPrice] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Transfers.InventoryTransferDiscrepancyPosting", b =>
+                {
+                    b.Property<long>("InventoryTransferDiscrepancyPostingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InventoryTransferDiscrepancyPostingId"));
+
+                    b.Property<int>("ActorStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("InventoryTransferCostAllocationId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("InventoryTransferDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PostingType")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long?>("RelatedPostingId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("RequestKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.HasKey("InventoryTransferDiscrepancyPostingId");
+
+                    b.HasIndex("ActorStaffId");
+
+                    b.HasIndex("InventoryTransferCostAllocationId");
+
+                    b.HasIndex("RelatedPostingId");
+
+                    b.HasIndex("InventoryTransferDetailId", "PostingType");
+
+                    b.HasIndex("RequestKey", "InventoryTransferDetailId", "PostingType", "InventoryTransferCostAllocationId", "RelatedPostingId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TransferDiscrepancyPosting_Request_Line_Type_Cost");
+
+                    b.ToTable("InventoryTransferDiscrepancyPostings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InventoryTransferDiscrepancyPosting_QuantityCost", "[Quantity] > 0 AND [UnitCost] > 0 AND [TotalCost] >= 0");
                         });
                 });
 
@@ -11395,6 +11569,11 @@ namespace CafeChain.Migrations
                         .HasForeignKey("SourceTransferCostAllocationId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CafeChain.Models.Inventories.Transfers.InventoryTransferDiscrepancyPosting", "SourceTransferDiscrepancyPosting")
+                        .WithMany("ReturnCostLayers")
+                        .HasForeignKey("SourceTransferDiscrepancyPostingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Stores.Store", null)
                         .WithMany()
                         .HasForeignKey("StoreId")
@@ -11408,6 +11587,8 @@ namespace CafeChain.Migrations
                     b.Navigation("SourceProductionRun");
 
                     b.Navigation("SourceTransferCostAllocation");
+
+                    b.Navigation("SourceTransferDiscrepancyPosting");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Costing.InventoryNegativeCostGap", b =>
@@ -11698,6 +11879,56 @@ namespace CafeChain.Migrations
                     b.Navigation("ReviewedByStaff");
 
                     b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Procurement.PurchaseAdviceFulfillmentPosting", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ActorStaff")
+                        .WithMany()
+                        .HasForeignKey("ActorStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "BaseUnit")
+                        .WithMany()
+                        .HasForeignKey("BaseUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Stock.BranchReceiptLine", "BranchReceiptLine")
+                        .WithMany()
+                        .HasForeignKey("BranchReceiptLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Procurement.PurchaseAdviceLine", "PurchaseAdviceLine")
+                        .WithMany()
+                        .HasForeignKey("PurchaseAdviceLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Procurement.PurchaseOrderLineAllocation", "PurchaseOrderLineAllocation")
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderLineAllocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Procurement.PurchaseOrderLine", "PurchaseOrderLine")
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActorStaff");
+
+                    b.Navigation("BaseUnit");
+
+                    b.Navigation("BranchReceiptLine");
+
+                    b.Navigation("PurchaseAdviceLine");
+
+                    b.Navigation("PurchaseOrderLine");
+
+                    b.Navigation("PurchaseOrderLineAllocation");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Procurement.PurchaseAdviceLine", b =>
@@ -12871,6 +13102,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Inventories.Transfers.InventoryTransfer", "ParentInventoryTransfer")
+                        .WithMany("FollowUpTransfers")
+                        .HasForeignKey("ParentInventoryTransferId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Stores.Store", "ToStore")
                         .WithMany("ToTransfers")
                         .HasForeignKey("ToStoreId")
@@ -12884,6 +13120,8 @@ namespace CafeChain.Migrations
                     b.Navigation("CreatedByStaff");
 
                     b.Navigation("FromStore");
+
+                    b.Navigation("ParentInventoryTransfer");
 
                     b.Navigation("ToStore");
                 });
@@ -12920,6 +13158,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Inventories.Transfers.InventoryTransferDetail", "ParentInventoryTransferDetail")
+                        .WithMany("FollowUpDetails")
+                        .HasForeignKey("ParentInventoryTransferDetailId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Inventories.PreparedItems.PreparedItem", "PreparedItem")
                         .WithMany()
                         .HasForeignKey("PreparedItemId")
@@ -12945,6 +13188,8 @@ namespace CafeChain.Migrations
 
                     b.Navigation("InventoryTransfer");
 
+                    b.Navigation("ParentInventoryTransferDetail");
+
                     b.Navigation("PreparedItem");
 
                     b.Navigation("RestockRequest");
@@ -12952,6 +13197,40 @@ namespace CafeChain.Migrations
                     b.Navigation("RestockRequestFulfillment");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Transfers.InventoryTransferDiscrepancyPosting", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ActorStaff")
+                        .WithMany()
+                        .HasForeignKey("ActorStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Transfers.InventoryTransferCostAllocation", "InventoryTransferCostAllocation")
+                        .WithMany("DiscrepancyPostings")
+                        .HasForeignKey("InventoryTransferCostAllocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Transfers.InventoryTransferDetail", "InventoryTransferDetail")
+                        .WithMany("DiscrepancyPostings")
+                        .HasForeignKey("InventoryTransferDetailId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Transfers.InventoryTransferDiscrepancyPosting", "RelatedPosting")
+                        .WithMany("RelatedPostings")
+                        .HasForeignKey("RelatedPostingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ActorStaff");
+
+                    b.Navigation("InventoryTransferCostAllocation");
+
+                    b.Navigation("InventoryTransferDetail");
+
+                    b.Navigation("RelatedPosting");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Locations.District", b =>
@@ -13952,6 +14231,27 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Inventories.Transfers.InventoryTransfer", b =>
                 {
                     b.Navigation("Details");
+
+                    b.Navigation("FollowUpTransfers");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Transfers.InventoryTransferCostAllocation", b =>
+                {
+                    b.Navigation("DiscrepancyPostings");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Transfers.InventoryTransferDetail", b =>
+                {
+                    b.Navigation("DiscrepancyPostings");
+
+                    b.Navigation("FollowUpDetails");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Transfers.InventoryTransferDiscrepancyPosting", b =>
+                {
+                    b.Navigation("RelatedPostings");
+
+                    b.Navigation("ReturnCostLayers");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Locations.Country", b =>
