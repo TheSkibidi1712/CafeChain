@@ -133,6 +133,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    width: max-content;
+    white-space: nowrap;
     padding: 5px 12px;
     border-radius: 20px;
     font-size: 12px;
@@ -145,6 +147,7 @@
 .status-badge .dot {
     width: 7px;
     height: 7px;
+    flex: 0 0 7px;
     border-radius: 50%;
     display: inline-block;
 }
