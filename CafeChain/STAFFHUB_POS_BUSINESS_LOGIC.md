@@ -153,9 +153,9 @@ Staff Hub (`Views/StaffHub/Index.cshtml`) là cổng thông tin cá nhân của 
    - **Nhóm Cửa hàng (StaffHub Roles)** (`ShiftSupervisor`, `Cashier`, `WarehouseKeeper`, `GeneralStaff`): Chuyển hướng tới `/StaffHub/Index`.
    - **Nhóm Khách hàng**: Chuyển hướng tới storefront (`/Home/Index`).
 2. **Tiêm StoreId Claim (Claims Injection):** Khi nhân viên cửa hàng đăng nhập thành công, hệ thống bắt buộc phải truy vấn thực tế `Staff.StoreId` và inject vào cookie claims để phục vụ cho các logic POS và chấm công về sau.
-3. **Bắt buộc Đổi mật khẩu lần đầu (First-Login Force):**
-   - Tài khoản nhân viên mới tạo có cờ `RequiresPasswordChange == true`.
-   - Khi vào Staff Hub, hệ thống hiển thị popup khóa màn hình (không thể đóng) yêu cầu đổi mật khẩu thông qua API `FirstLoginChangePassword`.
+3. **Mật khẩu nhân viên:**
+   - StaffHub không còn kiểm tra hoặc khóa giao diện theo cờ `RequiresPasswordChange`.
+   - Nhân viên vào StaffHub ngay sau khi xác thực và có thể chủ động đổi mật khẩu qua chức năng hồ sơ thông thường.
 
 ---
 

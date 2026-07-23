@@ -17,6 +17,7 @@ namespace CafeChain.Application.DTOs.POS
         /// Null cho đơn online hoặc legacy client chưa gửi UUID.
         /// </summary>
         public Guid? ClientOrderId { get; set; }
+        public Guid? RecommendationSessionId { get; set; }
 
         /// <summary>
         /// Compatibility only — voucher out of product scope.

@@ -305,31 +305,6 @@ namespace CafeChain.Application.Services.Accounts
             }
         }
 
-        public async Task<ServiceResult> ChangeRequiredPasswordAsync(int accountId, string oldPassword, string newPassword)
-        {
-            if (accountId <= 0)
-                return ServiceResult.Failure("Không xác định được tài khoản.");
-            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
-                return ServiceResult.Failure("Mật khẩu mới phải có ít nhất 6 ký tự.");
-
-            var account = await _accountRepository.GetAccountByIdAsync(accountId);
-            if (account == null || !account.Active)
-                return ServiceResult.Failure("Tài khoản không tồn tại hoặc đã bị khóa.");
-            if (!account.RequiresPasswordChange)
-                return ServiceResult.Failure("Tài khoản không yêu cầu đổi mật khẩu lần đầu.");
-            if (string.IsNullOrWhiteSpace(account.PasswordHash)
-                || !BCrypt.Net.BCrypt.Verify(oldPassword, account.PasswordHash))
-                return ServiceResult.Failure("Mật khẩu hiện tại không chính xác.");
-
-            await _accountRepository.ExecuteInTransactionAsync(() =>
-            {
-                account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-                account.RequiresPasswordChange = false;
-                return _accountRepository.UpdateAsync(account);
-            });
-            return ServiceResult.Success("Đổi mật khẩu thành công.");
-        }
-
         public async Task<ServiceResult> ChangePasswordAsync(int accountId, string oldPassword, string newPassword)
         {
             if (accountId <= 0)

@@ -12,7 +12,7 @@ public sealed class Phase3Phase4RefactorSourceTests
         Assert.Contains("_unitConversionService.ConvertAsync", service, StringComparison.Ordinal);
         Assert.Contains("InventoryPriceSemantics.BaseUnitCost", service, StringComparison.Ordinal);
         Assert.Contains("BASE_UNIT_COST", dto, StringComparison.Ordinal);
-        Assert.Contains("beforeDisplayQty", client, StringComparison.Ordinal);
+        Assert.Contains("userMessage", client, StringComparison.Ordinal);
         Assert.Contains("displayAvailable", client, StringComparison.Ordinal);
     }
 

@@ -1,0 +1,1 @@
+{"type":"object","additionalProperties":false,"required":["supplierId","totalScore","componentScores","explanation"],"properties":{"supplierId":{"type":"integer"},"totalScore":{"type":"number"},"componentScores":{"type":"object","additionalProperties":{"type":"number"}},"explanation":{"type":"string","minLength":1,"maxLength":1000}}}

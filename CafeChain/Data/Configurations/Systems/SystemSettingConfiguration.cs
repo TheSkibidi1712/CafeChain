@@ -38,7 +38,7 @@ namespace CafeChain.Data.Configurations.Systems
                     SettingId = 2001,
                     SettingKey = "inventory_manual_external_export_negative_enabled",
                     SettingValue = "false",
-                    Description = "Cho phép phiếu xuất ngoài SALE/GIFT/DEBT/SAMPLE gửi yêu cầu xuất âm."
+                    Description = "Cho phép phiếu xuất ngoài với mục đích SALE gửi yêu cầu xuất âm."
                 },
                 new SystemSetting
                 {

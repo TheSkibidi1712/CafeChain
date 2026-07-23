@@ -63,10 +63,24 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             if (!ModelState.IsValid)
             {
-                var errors = string.Join("<br/>", ModelState.Values
-                                        .SelectMany(v => v.Errors)
-                                        .Select(e => e.ErrorMessage));
-                TempData["Error"] = "Dữ liệu không hợp lệ:<br/>" + errors;
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage)
+                        ? "Dữ liệu không hợp lệ."
+                        : e.ErrorMessage)
+                    .Distinct()
+                    .ToArray();
+                if (IsAjaxRequest())
+                {
+                    return UnprocessableEntity(new
+                    {
+                        success = false,
+                        message = "Dữ liệu tạo nhân viên chưa hợp lệ.",
+                        errors
+                    });
+                }
+
+                TempData["Error"] = "Dữ liệu không hợp lệ: " + string.Join("; ", errors);
                 return RedirectToAction(nameof(Index));
             }
 
@@ -82,13 +96,39 @@ namespace CafeChain.Areas.Admin.Controllers
 
             if (!result.IsSuccess)
             {
+                if (IsAjaxRequest())
+                {
+                    return UnprocessableEntity(new
+                    {
+                        success = false,
+                        message = result.Message
+                    });
+                }
+
                 TempData["Error"] = result.Message;
                 return RedirectToAction(nameof(Index));
+            }
+
+            if (IsAjaxRequest())
+            {
+                return Json(new
+                {
+                    success = true,
+                    message = result.Message,
+                    redirectUrl = Url.Action("Index", "AdminPermission", new
+                    {
+                        area = "Admin",
+                        staffId = result.EntityId
+                    })
+                });
             }
 
             TempData["Success"] = result.Message;
             return RedirectToAction("Index", "AdminPermission", new { area = "Admin", staffId = result.EntityId });
         }
+
+        private bool IsAjaxRequest() =>
+            string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
 
         // ==================== EDIT (GET) ====================
         [RequirePermission(PermissionConstants.StaffUpdate)]
@@ -289,14 +329,12 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        [RequirePermission(PermissionConstants.StaffCreate)]
         public async Task<IActionResult> GetDistricts(int provinceId)
         {
             return Json(await _staffService.GetDistrictsAsync(provinceId));
         }
 
         [HttpGet]
-        [RequirePermission(PermissionConstants.StaffCreate)]
         public async Task<IActionResult> GetWards(int districtId)
         {
             return Json(await _staffService.GetWardsAsync(districtId));

@@ -5,7 +5,7 @@ USE [CafeChain];
 GO
 
 /*
-    CafeChain consolidated seed - Batch 13/13
+    CafeChain consolidated seed - Batch 14/14
     Tables completed:
       1. DrinkCategories
       2. Drinks
@@ -55,7 +55,7 @@ GO
       - Part1 values are preserved. Store1 duplicates are mapped to Part1 rows.
       - Re-running this batch does not create duplicate rows.
       - A conflicting primary key or business key stops the batch without mutation.
-      - No Account or Location data is inserted by this artifact.
+      - Batch 14 adds one Store 3 demo POS staff account; no Location data is inserted.
 */
 
 SET NOCOUNT ON;
@@ -5418,7 +5418,7 @@ UNION ALL SELECT N'Orphan Permission Grant',COUNT(*) FROM dbo.RolePermissions rp
  WHERE r.RoleId IS NULL OR p.PermissionId IS NULL;
 
 /* ============================================================
-   BATCH 13/13 - DASHBOARD ANALYTICS V1.3 TEST DATA
+   BATCH 13/14 - DASHBOARD ANALYTICS V1.3 TEST DATA
    Canonical marker: DEMO_DASHBOARD_V13
    Fixed range for testing: 2026-01-15 through 2026-01-18.
    This batch deliberately does not create CashSessions or attendance/payroll data.
@@ -5685,4 +5685,541 @@ SELECT N'DEMO_DASHBOARD_V13' AS SeedMarker,
        (SELECT COUNT(*) FROM dbo.SupplierReceiptIssues WHERE Description=N'DEMO_DASHBOARD_V13 supplier issue') AS DemoSupplierIssues;
 GO
 
-/* END SeedAll.sql - all 13 batches complete. */
+/* ================================================================
+   BATCH 14/14 - POS BOM CONSUMPTION AND REORDER HISTORY
+   Canonical marker: DEMO_REORDER_V14
+
+   - 50 paid POS orders and 30 closed POS shifts per Store 1 / Store 3.
+   - 30 historical production runs per Store to provide PRODUCTION_OUT usage.
+   - SALES_DEDUCTION / PRODUCTION_OUT are generated from the active BOM only.
+   - The fixture is mutation-idempotent. Re-runs only roll fixture timestamps
+     into the latest 30-day analysis window.
+   ================================================================ */
+SET XACT_ABORT ON;
+BEGIN TRY
+ BEGIN TRANSACTION;
+
+ DECLARE @SeedMarker nvarchar(50)=N'DEMO_REORDER_V14';
+ DECLARE @SeedAnchorUtc datetime2=DATEADD(day,DATEDIFF(day,0,SYSUTCDATETIME()),0);
+ DECLARE @OwnerStaffId int,@OwnerAccountId int,@Store3StaffId int,@Store3AccountId int;
+ DECLARE @StoreRoleId int,@StoreScopeTypeId int;
+
+ IF OBJECT_ID(N'dbo.Orders',N'U') IS NULL
+ OR OBJECT_ID(N'dbo.OrderDetails',N'U') IS NULL
+ OR OBJECT_ID(N'dbo.Payments',N'U') IS NULL
+ OR OBJECT_ID(N'dbo.InventoryTransactions',N'U') IS NULL
+ OR OBJECT_ID(N'dbo.InventoryCostLayers',N'U') IS NULL
+ OR OBJECT_ID(N'dbo.SalesCostAllocations',N'U') IS NULL
+ OR OBJECT_ID(N'dbo.ProductionRuns',N'U') IS NULL
+ OR OBJECT_ID(N'dbo.ProductionCostAllocations',N'U') IS NULL
+  THROW 53400,N'Schema thiếu bảng bắt buộc của SeedAll Batch 14.',1;
+
+ IF NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE StoreId=1 AND Active=1)
+ OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE StoreId=3 AND Active=1)
+  THROW 53401,N'Batch 14 yêu cầu Store 1 và Store 3 đang hoạt động.',1;
+
+ SELECT TOP(1) @OwnerStaffId=s.StaffId,@OwnerAccountId=s.AccountId
+ FROM dbo.Staffs s
+ JOIN dbo.Accounts a ON a.AccountId=s.AccountId AND a.Active=1
+ JOIN dbo.AccountRoles ar ON ar.AccountId=a.AccountId
+ JOIN dbo.Roles r ON r.RoleId=ar.RoleId AND r.Active=1
+ WHERE s.Active=1 AND r.Name=N'Chủ doanh nghiệp'
+ ORDER BY s.StaffId;
+ SELECT @StoreRoleId=RoleId FROM dbo.Roles WHERE Name=N'Nhân viên bán hàng' AND Active=1;
+ SELECT @StoreScopeTypeId=ScopeTypeId FROM dbo.ScopeTypes WHERE Code=N'STORE';
+ IF @OwnerStaffId IS NULL OR @OwnerAccountId IS NULL OR @StoreRoleId IS NULL OR @StoreScopeTypeId IS NULL
+  THROW 53402,N'Thiếu Owner, role bán hàng hoặc scope STORE cho Batch 14.',1;
+
+ /* Store 3 demo POS identity - business-key idempotent, no hard-coded identity. */
+ IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=N'salesstaff.dian@cafechain.vn')
+ BEGIN
+  INSERT dbo.Accounts(Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
+  SELECT N'salesstaff.dian@cafechain.vn',PasswordHash,1,0,'2026-01-01',0,NULL
+  FROM dbo.Accounts WHERE AccountId=@OwnerAccountId;
+ END;
+
+ SELECT @Store3AccountId=AccountId FROM dbo.Accounts WHERE Email=N'salesstaff.dian@cafechain.vn';
+ IF @Store3AccountId IS NULL
+  THROW 53403,N'Không resolve được account POS Dĩ An.',1;
+ UPDATE dbo.Accounts SET Active=1,RequiresPasswordChange=0 WHERE AccountId=@Store3AccountId;
+
+ IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=@Store3AccountId AND RoleId=@StoreRoleId)
+  INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(@Store3AccountId,@StoreRoleId);
+
+ IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=@Store3AccountId)
+  INSERT dbo.Staffs(AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,
+   StoreId,AvatarUrl,AvatarPublicId,Active,CreatedAt)
+  VALUES(@Store3AccountId,N'Nhân viên POS Dĩ An',NULL,1,'2026-01-01',2,NULL,3,NULL,NULL,1,'2026-01-01');
+ SELECT @Store3StaffId=StaffId FROM dbo.Staffs WHERE AccountId=@Store3AccountId;
+ IF @Store3StaffId IS NULL
+  THROW 53404,N'Không resolve được Staff POS Dĩ An.',1;
+ UPDATE dbo.Staffs SET StoreId=3,Active=1 WHERE StaffId=@Store3StaffId;
+ IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes
+  WHERE StaffId=@Store3StaffId AND ScopeTypeId=@StoreScopeTypeId AND ScopeRefId=3)
+  INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId)
+  VALUES(@Store3StaffId,@StoreScopeTypeId,3);
+
+ DECLARE @Store1SalesStaffId int;
+ SELECT TOP(1) @Store1SalesStaffId=s.StaffId
+ FROM dbo.Staffs s JOIN dbo.AccountRoles ar ON ar.AccountId=s.AccountId
+ WHERE s.StoreId=1 AND s.Active=1 AND ar.RoleId=@StoreRoleId ORDER BY s.StaffId;
+ IF @Store1SalesStaffId IS NULL
+  THROW 53405,N'Store 1 thiếu nhân viên bán hàng active.',1;
+
+ /* Store 3 catalog and supplier scope mirror Store 1 business configuration. */
+ INSERT dbo.StoreDrinks(StoreId,DrinkId,Active)
+ SELECT 3,s.DrinkId,s.Active FROM dbo.StoreDrinks s
+ WHERE s.StoreId=1 AND NOT EXISTS(SELECT 1 FROM dbo.StoreDrinks d WHERE d.StoreId=3 AND d.DrinkId=s.DrinkId);
+
+ INSERT dbo.StoreToppings(StoreId,ToppingId,Active)
+ SELECT 3,s.ToppingId,s.Active FROM dbo.StoreToppings s
+ WHERE s.StoreId=1 AND NOT EXISTS(SELECT 1 FROM dbo.StoreToppings t WHERE t.StoreId=3 AND t.ToppingId=s.ToppingId);
+
+ INSERT dbo.StoreMenuItems(StoreId,DrinkSizeId,IsEnabled,PriceOverride,EffectiveFromUtc,
+  EffectiveToUtc,DisplayOrder,PauseReason,Note,PublishedAtUtc,PublishedByStaffId,CreatedAtUtc,UpdatedAtUtc)
+ SELECT 3,s.DrinkSizeId,s.IsEnabled,s.PriceOverride,s.EffectiveFromUtc,s.EffectiveToUtc,
+  s.DisplayOrder,s.PauseReason,N'DEMO_REORDER_V14 copied from Store 1',
+  COALESCE(s.PublishedAtUtc,'2026-01-01'),@OwnerStaffId,'2026-01-01','2026-01-01'
+ FROM dbo.StoreMenuItems s
+ WHERE s.StoreId=1 AND NOT EXISTS(SELECT 1 FROM dbo.StoreMenuItems m WHERE m.StoreId=3 AND m.DrinkSizeId=s.DrinkSizeId);
+
+ INSERT dbo.SupplierStores(SupplierId,StoreId,Active,LeadTimeOverrideDays,DeliverySchedule,Note,CreatedAt,UpdatedAt)
+ SELECT s.SupplierId,3,s.Active,s.LeadTimeOverrideDays,s.DeliverySchedule,
+  N'DEMO_REORDER_V14 scope for Dĩ An','2026-01-01','2026-01-01'
+ FROM dbo.SupplierStores s
+ WHERE s.StoreId=1 AND NOT EXISTS(SELECT 1 FROM dbo.SupplierStores x WHERE x.SupplierId=s.SupplierId AND x.StoreId=3);
+
+ IF (SELECT COUNT(*) FROM dbo.StoreDrinks WHERE StoreId=3 AND Active=1)<30
+ OR (SELECT COUNT(*) FROM dbo.StoreMenuItems WHERE StoreId=3 AND IsEnabled=1)<30
+ OR (SELECT COUNT(*) FROM dbo.StoreToppings WHERE StoreId=3 AND Active=1)<30
+ OR (SELECT COUNT(*) FROM dbo.SupplierStores WHERE StoreId=3 AND Active=1)<50
+  THROW 53406,N'Catalog hoặc supplier scope Store 3 chưa đủ contract Batch 14.',1;
+
+ /* Complete two intentional demo BOM gaps instead of fabricating usage rows. */
+ DECLARE @SugarSyrupId int=(SELECT IngredientId FROM dbo.Ingredients WHERE Code=N'DEMO_ING_SUGAR_SYRUP');
+ DECLARE @WhitePearlId int=(SELECT IngredientId FROM dbo.Ingredients WHERE Code=N'DEMO_ING_WHITE_PEARL');
+ DECLARE @FruitTeaRecipeId int=(SELECT RecipeId FROM dbo.Recipes WHERE RecipeCode=N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M');
+ DECLARE @WhitePearlRecipeId int=(SELECT RecipeId FROM dbo.Recipes WHERE RecipeCode=N'RCP_TC_TRANG');
+ IF @SugarSyrupId IS NULL OR @WhitePearlId IS NULL OR @FruitTeaRecipeId IS NULL OR @WhitePearlRecipeId IS NULL
+  THROW 53407,N'Không resolve được BOM bổ sung của Batch 14.',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.RecipeDetails WHERE RecipeId=@FruitTeaRecipeId AND IngredientId=@SugarSyrupId)
+  INSERT dbo.RecipeDetails(RecipeId,IngredientId,ChildRecipeId,Quantity,UnitId)
+  SELECT @FruitTeaRecipeId,@SugarSyrupId,NULL,10,BaseUnitId FROM dbo.Ingredients WHERE IngredientId=@SugarSyrupId;
+ IF NOT EXISTS(SELECT 1 FROM dbo.RecipeDetails WHERE RecipeId=@WhitePearlRecipeId AND IngredientId=@WhitePearlId)
+  INSERT dbo.RecipeDetails(RecipeId,IngredientId,ChildRecipeId,Quantity,UnitId)
+  SELECT @WhitePearlRecipeId,@WhitePearlId,NULL,1,BaseUnitId FROM dbo.Ingredients WHERE IngredientId=@WhitePearlId;
+
+ /* Ingredient inventories exist before the opening/top-up ledger is planned. */
+ INSERT dbo.StoreInventories(StoreId,IngredientId,RecipeId,PreparedItemId,BtpIdentityState,
+  QuantitySemanticsStatus,SupersededByStoreInventoryId,QuantitySemanticsEvidenceType,
+  QuantitySemanticsEvidenceReference,QuantitySemanticsReviewedAt,QuantitySemanticsReviewedByAccountId,
+  AvailableQty,ReservedQty,MaxNegativeQty,MinStockLevel,LastUpdated)
+ SELECT 3,i.IngredientId,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+  0,0,NULL,s.MinStockLevel,'2026-01-01'
+ FROM dbo.Ingredients i
+ JOIN dbo.StoreInventories s ON s.StoreId=1 AND s.IngredientId=i.IngredientId
+ WHERE i.Active=1 AND NOT EXISTS(SELECT 1 FROM dbo.StoreInventories x WHERE x.StoreId=3 AND x.IngredientId=i.IngredientId);
+ UPDATE d SET d.MinStockLevel=s.MinStockLevel
+ FROM dbo.StoreInventories d JOIN dbo.StoreInventories s ON s.StoreId=1 AND s.IngredientId=d.IngredientId
+ WHERE d.StoreId=3 AND d.IngredientId IS NOT NULL;
+
+ INSERT dbo.StoreInventories(StoreId,IngredientId,RecipeId,PreparedItemId,BtpIdentityState,
+  QuantitySemanticsStatus,SupersededByStoreInventoryId,QuantitySemanticsEvidenceType,
+  QuantitySemanticsEvidenceReference,QuantitySemanticsReviewedAt,QuantitySemanticsReviewedByAccountId,
+  AvailableQty,ReservedQty,MaxNegativeQty,MinStockLevel,LastUpdated)
+ SELECT 3,NULL,r.RecipeId,p.PreparedItemId,1,1,NULL,1,N'DEMO_REORDER_V14 canonical prepared inventory',
+  '2026-01-01',@OwnerAccountId,0,0,NULL,NULL,'2026-01-01'
+ FROM dbo.PreparedItems p JOIN dbo.Recipes r ON r.PreparedItemId=p.PreparedItemId AND r.Active=1 AND r.Status=N'Active'
+ WHERE p.Active=1 AND NOT EXISTS(SELECT 1 FROM dbo.StoreInventories x
+  WHERE x.StoreId=3 AND (x.PreparedItemId=p.PreparedItemId OR x.RecipeId=r.RecipeId));
+
+ IF (SELECT COUNT(*) FROM dbo.StoreInventories WHERE StoreId=3 AND IngredientId IS NOT NULL)<>50
+ OR EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE StoreId=3 AND IngredientId IS NOT NULL AND MinStockLevel IS NULL)
+  THROW 53408,N'Store 3 chưa có đủ 50 inventory ingredient và threshold.',1;
+
+ DECLARE @ExistingOrders int=(SELECT COUNT(*) FROM dbo.Orders WHERE Source=@SeedMarker);
+ DECLARE @ExistingRuns int=(SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE @SeedMarker+N'%');
+ IF @ExistingOrders NOT IN(0,100) OR @ExistingRuns NOT IN(0,60)
+  THROW 53409,N'Fixture DEMO_REORDER_V14 đang ở trạng thái không đầy đủ.',1;
+ IF (@ExistingOrders=0 AND @ExistingRuns<>0) OR (@ExistingOrders<>0 AND @ExistingRuns=0)
+  THROW 53410,N'Order và Production fixture DEMO_REORDER_V14 không đồng bộ.',1;
+ DECLARE @FirstFixtureRun bit=IIF(@ExistingOrders=0,1,0);
+
+ DECLARE @MenuCandidates TABLE(RowNo int PRIMARY KEY,DrinkSizeId int,DrinkId int,SizeId int,RecipeId int,BasePrice decimal(18,2));
+ INSERT @MenuCandidates
+ SELECT ROW_NUMBER() OVER(ORDER BY r.RecipeId,m.StoreMenuItemId),m.DrinkSizeId,ds.DrinkId,ds.SizeId,r.RecipeId,
+  COALESCE(m.PriceOverride,ds.Price)
+ FROM dbo.StoreMenuItems m JOIN dbo.DrinkSizes ds ON ds.DrinkSizeId=m.DrinkSizeId
+ JOIN dbo.Recipes r ON r.DrinkId=ds.DrinkId AND r.SizeId=ds.SizeId AND r.ToppingId IS NULL
+  AND r.Active=1 AND r.Status=N'Active'
+ WHERE m.StoreId=1 AND m.IsEnabled=1;
+ IF (SELECT COUNT(*) FROM @MenuCandidates)<50
+  THROW 53411,N'Store 1 cần ít nhất 50 menu item có active BOM.',1;
+
+ DECLARE @ToppingCandidates TABLE(RowNo int PRIMARY KEY,ToppingId int,RecipeId int,Price decimal(18,2));
+ INSERT @ToppingCandidates
+ SELECT ROW_NUMBER() OVER(ORDER BY r.RecipeId,t.ToppingId),t.ToppingId,r.RecipeId,t.Price
+ FROM dbo.StoreToppings st JOIN dbo.Toppings t ON t.ToppingId=st.ToppingId AND t.Active=1
+ JOIN dbo.Recipes r ON r.ToppingId=t.ToppingId AND r.Active=1 AND r.Status=N'Active'
+ WHERE st.StoreId=1 AND st.Active=1;
+ IF (SELECT COUNT(*) FROM @ToppingCandidates)<30
+  THROW 53412,N'Store 1 cần ít nhất 30 topping có active BOM.',1;
+
+ DECLARE @OrderSeed TABLE(StoreId int,Ordinal int,ClientOrderId uniqueidentifier PRIMARY KEY,
+  OccurredAt datetime2,DayNo int,DrinkSizeId int,DrinkId int,SizeId int,RecipeId int,
+  Quantity int,BasePrice decimal(18,2),ToppingId int NULL,ToppingRecipeId int NULL,ToppingPrice decimal(18,2) NULL,
+  WorkShiftId int NULL,UNIQUE(StoreId,Ordinal));
+ ;WITH N AS(SELECT 1 n UNION ALL SELECT n+1 FROM N WHERE n<50),S AS(SELECT 1 StoreId UNION ALL SELECT 3)
+ INSERT @OrderSeed
+ SELECT s.StoreId,n.n,
+  CONVERT(uniqueidentifier,CONCAT(N'33000000-0000-0000-000',s.StoreId,N'-',RIGHT(N'000000000000'+CONVERT(nvarchar(12),n.n),12))),
+  DATEADD(minute,(n.n%10)*7,DATEADD(hour,7+(n.n%10),DATEADD(day,-((n.n-1)%30),@SeedAnchorUtc))),
+  ((n.n-1)%30)+1,c.DrinkSizeId,c.DrinkId,c.SizeId,c.RecipeId,1+(n.n%2),c.BasePrice,
+  CASE WHEN n.n<=30 THEN tc.ToppingId END,CASE WHEN n.n<=30 THEN tc.RecipeId END,
+  CASE WHEN n.n<=30 THEN tc.Price END,NULL
+ FROM S s CROSS JOIN N n JOIN @MenuCandidates c ON c.RowNo=n.n
+ LEFT JOIN @ToppingCandidates tc ON tc.RowNo=n.n AND n.n<=30
+ OPTION(MAXRECURSION 100);
+
+ DECLARE @ProductionSeed TABLE(StoreId int,Ordinal int,RequestKey uniqueidentifier PRIMARY KEY,
+  OccurredAt datetime2,RecipeId int,PreparedItemId int,RequestedRunCount decimal(18,5),UNIQUE(StoreId,Ordinal));
+ ;WITH N AS(SELECT 1 n UNION ALL SELECT n+1 FROM N WHERE n<30),S AS(SELECT 1 StoreId UNION ALL SELECT 3),
+ R AS(SELECT RecipeId,PreparedItemId,ROW_NUMBER() OVER(ORDER BY RecipeId) rn,COUNT(*) OVER() rc
+  FROM dbo.Recipes WHERE PreparedItemId IS NOT NULL AND Active=1 AND Status=N'Active')
+ INSERT @ProductionSeed
+ SELECT s.StoreId,n.n,
+  CONVERT(uniqueidentifier,CONCAT(N'34000000-0000-0000-000',s.StoreId,N'-',RIGHT(N'000000000000'+CONVERT(nvarchar(12),n.n),12))),
+  DATEADD(hour,4,DATEADD(day,-((n.n-1)%30),@SeedAnchorUtc)),r.RecipeId,r.PreparedItemId,1
+ FROM S s CROSS JOIN N n JOIN R r ON r.rn=((n.n-1)%r.rc)+1
+ OPTION(MAXRECURSION 100);
+
+ DECLARE @IngredientDemand TABLE(StoreId int,IngredientId int,Quantity decimal(18,3),PRIMARY KEY(StoreId,IngredientId));
+ ;WITH D AS(
+  SELECT o.StoreId,rd.IngredientId,
+   rd.Quantity*o.Quantity*CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END Qty
+  FROM @OrderSeed o JOIN dbo.RecipeDetails rd ON rd.RecipeId=o.RecipeId AND rd.IngredientId IS NOT NULL
+  JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+  LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
+  UNION ALL
+  SELECT o.StoreId,rd.IngredientId,
+   rd.Quantity*o.Quantity*CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END
+  FROM @OrderSeed o JOIN dbo.RecipeDetails rd ON rd.RecipeId=o.ToppingRecipeId AND rd.IngredientId IS NOT NULL
+  JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+  LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
+  UNION ALL
+  SELECT p.StoreId,rd.IngredientId,
+   rd.Quantity*p.RequestedRunCount*CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END
+  FROM @ProductionSeed p JOIN dbo.RecipeDetails rd ON rd.RecipeId=p.RecipeId AND rd.IngredientId IS NOT NULL
+  JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+  LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1)
+ INSERT @IngredientDemand SELECT StoreId,IngredientId,ROUND(SUM(Qty),3) FROM D GROUP BY StoreId,IngredientId;
+
+ IF EXISTS(SELECT 1 FROM @IngredientDemand WHERE Quantity IS NULL OR Quantity<=0)
+ OR EXISTS(SELECT 1 FROM (VALUES(1),(3))s(StoreId) CROSS JOIN dbo.Ingredients i
+  WHERE i.Active=1 AND NOT EXISTS(SELECT 1 FROM @IngredientDemand d WHERE d.StoreId=s.StoreId AND d.IngredientId=i.IngredientId))
+  THROW 53413,N'Kế hoạch POS/production chưa bao phủ đủ active ingredient hoặc thiếu unit conversion.',1;
+
+ DECLARE @InventoryTarget TABLE(StoreId int,IngredientId int,CurrentQty decimal(18,3),TargetQty decimal(18,3),
+  DeltaQty decimal(18,3),MinStock decimal(18,3),UnitCost decimal(18,2),BaseUnitId int,PRIMARY KEY(StoreId,IngredientId));
+ INSERT @InventoryTarget
+ SELECT s.StoreId,i.IngredientId,si.AvailableQty,
+  ROUND(d.Quantity+COALESCE(si.MinStockLevel,0)*2,3),
+  ROUND(CASE WHEN s.StoreId=3 THEN d.Quantity+COALESCE(si.MinStockLevel,0)*2
+   ELSE CASE WHEN d.Quantity+COALESCE(si.MinStockLevel,0)*2>si.AvailableQty
+    THEN d.Quantity+COALESCE(si.MinStockLevel,0)*2-si.AvailableQty ELSE 0 END END,3),
+  COALESCE(si.MinStockLevel,0),l.UnitCost,i.BaseUnitId
+ FROM (VALUES(1),(3))s(StoreId) JOIN dbo.Ingredients i ON i.Active=1
+ JOIN dbo.StoreInventories si ON si.StoreId=s.StoreId AND si.IngredientId=i.IngredientId
+ JOIN @IngredientDemand d ON d.StoreId=s.StoreId AND d.IngredientId=i.IngredientId
+ CROSS APPLY(SELECT TOP(1) cl.UnitCost FROM dbo.InventoryCostLayers cl
+  WHERE cl.StoreId=1 AND cl.IngredientId=i.IngredientId ORDER BY cl.CreatedAt,cl.InventoryCostLayerId)l;
+ IF (SELECT COUNT(*) FROM @InventoryTarget)<>100 OR EXISTS(SELECT 1 FROM @InventoryTarget WHERE UnitCost<=0 OR TargetQty<=0)
+ THROW 53414,N'Không lập được target inventory/cost cho 100 dòng Store-Ingredient.',1;
+
+ /* First execution establishes Store 3 opening evidence and only tops up Store 1 shortages. */
+ IF @FirstFixtureRun=1
+ BEGIN
+  DECLARE @OpeningStoreId int=3,@OpeningCode nvarchar(50)=N'DEMO-REORDER-V14-DA-OPENING';
+  DECLARE @OpeningDocumentId int;
+  INSERT dbo.InventoryDocuments(Code,StoreId,StaffId,DocumentDate,[Type],[Status],RequestKey,
+   IsProcessing,ConfirmedAt,ConfirmedBy,Purpose,PartnerType,PartnerId,PartnerName,SupplierId,
+   Note,AllowNegativeStock,NegativeReason,TotalAmount,VatAmount,FinalAmount)
+  SELECT @OpeningCode,@OpeningStoreId,@OwnerStaffId,'2026-01-01',1,3,@OpeningCode,0,'2026-01-01',
+   @OwnerStaffId,1,0,NULL,N'DEMO_REORDER_V14 opening balance',NULL,
+   N'DEMO_REORDER_V14 Store 3 opening inventory',0,NULL,SUM(TargetQty*UnitCost),0,SUM(TargetQty*UnitCost)
+  FROM @InventoryTarget WHERE StoreId=3;
+  SET @OpeningDocumentId=SCOPE_IDENTITY();
+
+  INSERT dbo.InventoryDocumentDetails(InventoryDocumentId,IngredientId,Quantity,BaseQuantity,
+   UnitId,UnitPrice,CostPrice,CostAmount,Note,TotalAmount)
+  SELECT @OpeningDocumentId,IngredientId,TargetQty,TargetQty,BaseUnitId,UnitCost,UnitCost,
+   ROUND(TargetQty*UnitCost,2),N'DEMO_REORDER_V14 Store 3 opening',ROUND(TargetQty*UnitCost,2)
+  FROM @InventoryTarget WHERE StoreId=3;
+
+  INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,
+   UnitCost,TotalCost,InventoryDocumentId,InventoryDocumentDetailId,CreatedAt)
+  SELECT si.StoreInventoryId,1,1,t.TargetQty,0,t.TargetQty,t.UnitCost,ROUND(t.TargetQty*t.UnitCost,2),
+   @OpeningDocumentId,d.InventoryDocumentDetailId,'2026-01-01'
+  FROM @InventoryTarget t JOIN dbo.StoreInventories si ON si.StoreId=3 AND si.IngredientId=t.IngredientId
+  JOIN dbo.InventoryDocumentDetails d ON d.InventoryDocumentId=@OpeningDocumentId AND d.IngredientId=t.IngredientId
+  WHERE t.StoreId=3;
+
+  INSERT dbo.InventoryCostLayers(IngredientId,PreparedItemId,StoreId,Quantity,RemainingQuantity,
+   UnitCost,CreatedAt,SourceProductionRunId,SourceOrderRefundId,SourceInventoryDocumentDetailId,
+   SourceBranchReceiptLineId,SourceTransferCostAllocationId,SourceTransferDiscrepancyPostingId)
+  SELECT t.IngredientId,NULL,3,t.TargetQty,t.TargetQty,t.UnitCost,'2026-01-01',NULL,NULL,
+   d.InventoryDocumentDetailId,NULL,NULL,NULL
+  FROM @InventoryTarget t JOIN dbo.InventoryDocumentDetails d
+   ON d.InventoryDocumentId=@OpeningDocumentId AND d.IngredientId=t.IngredientId
+  WHERE t.StoreId=3;
+  UPDATE si SET AvailableQty=t.TargetQty,ReservedQty=0,LastUpdated='2026-01-01'
+  FROM dbo.StoreInventories si JOIN @InventoryTarget t ON t.StoreId=3 AND t.IngredientId=si.IngredientId;
+
+  IF EXISTS(SELECT 1 FROM @InventoryTarget WHERE StoreId=1 AND DeltaQty>0)
+  BEGIN
+   DECLARE @TopupDocumentId int,@TopupCode nvarchar(50)=N'DEMO-REORDER-V14-TDM-TOPUP';
+   INSERT dbo.InventoryDocuments(Code,StoreId,StaffId,DocumentDate,[Type],[Status],RequestKey,
+    IsProcessing,ConfirmedAt,ConfirmedBy,Purpose,PartnerType,PartnerId,PartnerName,SupplierId,
+    Note,AllowNegativeStock,NegativeReason,TotalAmount,VatAmount,FinalAmount)
+   SELECT @TopupCode,1,@OwnerStaffId,'2026-01-01',1,3,@TopupCode,0,'2026-01-01',@OwnerStaffId,
+    1,0,NULL,N'DEMO_REORDER_V14 top-up',NULL,N'DEMO_REORDER_V14 Store 1 demand top-up',0,NULL,
+    SUM(DeltaQty*UnitCost),0,SUM(DeltaQty*UnitCost)
+   FROM @InventoryTarget WHERE StoreId=1 AND DeltaQty>0;
+   SET @TopupDocumentId=SCOPE_IDENTITY();
+
+   INSERT dbo.InventoryDocumentDetails(InventoryDocumentId,IngredientId,Quantity,BaseQuantity,
+    UnitId,UnitPrice,CostPrice,CostAmount,Note,TotalAmount)
+   SELECT @TopupDocumentId,IngredientId,DeltaQty,DeltaQty,BaseUnitId,UnitCost,UnitCost,
+    ROUND(DeltaQty*UnitCost,2),N'DEMO_REORDER_V14 Store 1 top-up',ROUND(DeltaQty*UnitCost,2)
+   FROM @InventoryTarget WHERE StoreId=1 AND DeltaQty>0;
+
+   INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,
+    UnitCost,TotalCost,InventoryDocumentId,InventoryDocumentDetailId,CreatedAt)
+   SELECT si.StoreInventoryId,1,1,t.DeltaQty,t.CurrentQty,t.CurrentQty+t.DeltaQty,t.UnitCost,
+    ROUND(t.DeltaQty*t.UnitCost,2),@TopupDocumentId,d.InventoryDocumentDetailId,'2026-01-01'
+   FROM @InventoryTarget t JOIN dbo.StoreInventories si ON si.StoreId=1 AND si.IngredientId=t.IngredientId
+   JOIN dbo.InventoryDocumentDetails d ON d.InventoryDocumentId=@TopupDocumentId AND d.IngredientId=t.IngredientId
+   WHERE t.StoreId=1 AND t.DeltaQty>0;
+
+   INSERT dbo.InventoryCostLayers(IngredientId,PreparedItemId,StoreId,Quantity,RemainingQuantity,
+    UnitCost,CreatedAt,SourceProductionRunId,SourceOrderRefundId,SourceInventoryDocumentDetailId,
+    SourceBranchReceiptLineId,SourceTransferCostAllocationId,SourceTransferDiscrepancyPostingId)
+   SELECT t.IngredientId,NULL,1,t.DeltaQty,t.DeltaQty,t.UnitCost,'2026-01-01',NULL,NULL,
+    d.InventoryDocumentDetailId,NULL,NULL,NULL
+   FROM @InventoryTarget t JOIN dbo.InventoryDocumentDetails d
+    ON d.InventoryDocumentId=@TopupDocumentId AND d.IngredientId=t.IngredientId
+   WHERE t.StoreId=1 AND t.DeltaQty>0;
+   UPDATE si SET AvailableQty=si.AvailableQty+t.DeltaQty,LastUpdated='2026-01-01'
+   FROM dbo.StoreInventories si JOIN @InventoryTarget t ON t.StoreId=1 AND t.IngredientId=si.IngredientId
+   WHERE t.DeltaQty>0;
+  END;
+ END;
+
+ /* Thirty stable WorkShift rows per store. Existing fixture orders recover their shift on replay. */
+ DECLARE @ShiftMap TABLE(StoreId int,DayNo int,ShiftId int,PRIMARY KEY(StoreId,DayNo));
+ IF @FirstFixtureRun=0
+ BEGIN
+  INSERT @ShiftMap
+  SELECT os.StoreId,os.DayNo,o.WorkShiftId
+  FROM @OrderSeed os JOIN dbo.Orders o ON o.ClientOrderId=os.ClientOrderId
+  WHERE os.Ordinal=os.DayNo AND o.WorkShiftId IS NOT NULL;
+  IF (SELECT COUNT(*) FROM @ShiftMap)<>60
+   THROW 53415,N'Không recover được 60 WorkShift fixture.',1;
+ END
+ ELSE
+ BEGIN
+  DECLARE @ShiftStore int,@ShiftDay int,@ShiftStaff int,@ShiftId int,@ShiftStart datetime2;
+  DECLARE ShiftCursor CURSOR LOCAL FAST_FORWARD FOR
+   SELECT s.StoreId,n.n,CASE WHEN s.StoreId=1 THEN @Store1SalesStaffId ELSE @Store3StaffId END
+   FROM (VALUES(1),(3))s(StoreId)
+   CROSS JOIN (SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+    UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+    UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
+    UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
+    UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23 UNION ALL SELECT 24 UNION ALL SELECT 25
+    UNION ALL SELECT 26 UNION ALL SELECT 27 UNION ALL SELECT 28 UNION ALL SELECT 29 UNION ALL SELECT 30)n;
+  OPEN ShiftCursor;
+  FETCH NEXT FROM ShiftCursor INTO @ShiftStore,@ShiftDay,@ShiftStaff;
+  WHILE @@FETCH_STATUS=0
+  BEGIN
+   SET @ShiftStart=DATEADD(hour,6,DATEADD(day,-(@ShiftDay-1),@SeedAnchorUtc));
+   INSERT dbo.WorkShifts(StoreId,UserId,StartTime,EndTime,StartingCash,ExpectedEndingCash,
+    ActualEndingCash,CashDiscrepancy,[Status],DiscrepancyReason,IsExceptionClosed,
+    ExceptionCloseReason,ExceptionClosedByStaffId,ExceptionClosedAt,OfflineOrderCountAtClose,
+    OfflineEstimatedTotalAtClose,OfflineCashTotalAtClose,RequiresReconciliation,
+    HasLateOfflineSync,LateOfflineSyncCount,LastLateOfflineSyncedAt,PosTerminalId)
+   VALUES(@ShiftStore,@ShiftStaff,@ShiftStart,DATEADD(hour,12,@ShiftStart),500000,500000,
+    500000,0,N'Closed',NULL,0,NULL,NULL,NULL,0,0,0,0,0,0,NULL,NULL);
+   SET @ShiftId=SCOPE_IDENTITY();
+   INSERT @ShiftMap VALUES(@ShiftStore,@ShiftDay,@ShiftId);
+   FETCH NEXT FROM ShiftCursor INTO @ShiftStore,@ShiftDay,@ShiftStaff;
+  END;
+  CLOSE ShiftCursor; DEALLOCATE ShiftCursor;
+ END;
+ UPDATE o SET WorkShiftId=s.ShiftId FROM @OrderSeed o JOIN @ShiftMap s ON s.StoreId=o.StoreId AND s.DayNo=o.DayNo;
+
+ IF @FirstFixtureRun=1
+ BEGIN
+  INSERT dbo.Orders(CustomerId,StoreId,OrderStatusId,PaymentStatusId,OrderTypeId,TableId,StaffId,
+   WorkShiftId,ClientOrderId,RecommendationSessionId,Source,Note,PaymentReference,ReceiverName,
+   ReceiverPhone,DeliveryAddress,ShippingFee,SubTotal,VoucherDiscount,PointDiscount,PointsUsed,
+   Total,CostStatus,TotalCogs,GrossProfit,CostedAtUtc,CreatedAt)
+  SELECT NULL,o.StoreId,5,2,2,NULL,CASE WHEN o.StoreId=1 THEN @Store1SalesStaffId ELSE @Store3StaffId END,
+   o.WorkShiftId,o.ClientOrderId,NULL,@SeedMarker,CONCAT(@SeedMarker,N'_S',o.StoreId,N'_O',o.Ordinal),
+   CONCAT(@SeedMarker,N'-',o.StoreId,N'-',o.Ordinal),NULL,NULL,NULL,0,
+   o.Quantity*(o.BasePrice+COALESCE(o.ToppingPrice,0)),0,0,0,
+   o.Quantity*(o.BasePrice+COALESCE(o.ToppingPrice,0)),0,NULL,NULL,NULL,o.OccurredAt
+  FROM @OrderSeed o;
+
+  INSERT dbo.OrderDetails(OrderId,DrinkId,SizeId,StoreMenuItemId,DrinkSizeId,DrinkName,SizeName,
+   Price,AcceptedBasePrice,PriceSource,AcceptedCatalogVersion,Quantity,Note,CostStatus,UnitCogs,TotalCogs)
+  SELECT ord.OrderId,o.DrinkId,o.SizeId,m.StoreMenuItemId,o.DrinkSizeId,d.Name,z.Name,
+   o.BasePrice,o.BasePrice,@SeedMarker,1,o.Quantity,@SeedMarker,0,NULL,NULL
+  FROM @OrderSeed o JOIN dbo.Orders ord ON ord.ClientOrderId=o.ClientOrderId
+  JOIN dbo.StoreMenuItems m ON m.StoreId=o.StoreId AND m.DrinkSizeId=o.DrinkSizeId
+  JOIN dbo.Drinks d ON d.DrinkId=o.DrinkId LEFT JOIN dbo.Sizes z ON z.SizeId=o.SizeId;
+
+  INSERT dbo.OrderToppings(OrderDetailId,ToppingId,ToppingName,Price,CostStatus,TotalCogs)
+  SELECT od.OrderDetailId,o.ToppingId,t.Name,o.ToppingPrice,0,NULL
+  FROM @OrderSeed o JOIN dbo.Orders ord ON ord.ClientOrderId=o.ClientOrderId
+  JOIN dbo.OrderDetails od ON od.OrderId=ord.OrderId JOIN dbo.Toppings t ON t.ToppingId=o.ToppingId
+  WHERE o.ToppingId IS NOT NULL;
+
+  INSERT dbo.Payments(OrderId,Amount,ReceivedAmount,ChangeAmount,PaymentMethodId,PaymentStatusId,
+   CashSessionId,TransactionCode,PaidAt)
+  SELECT ord.OrderId,ord.Total,ord.Total,0,1+(o.Ordinal%5),2,NULL,
+   CONCAT(@SeedMarker,N'-PAY-S',o.StoreId,N'-',RIGHT(N'000'+CONVERT(nvarchar(3),o.Ordinal),3)),o.OccurredAt
+  FROM @OrderSeed o JOIN dbo.Orders ord ON ord.ClientOrderId=o.ClientOrderId;
+ END
+ ELSE
+ BEGIN
+  UPDATE ord SET CreatedAt=o.OccurredAt,CostedAtUtc=CASE WHEN ord.CostedAtUtc IS NULL THEN NULL ELSE o.OccurredAt END,
+   WorkShiftId=o.WorkShiftId
+  FROM dbo.Orders ord JOIN @OrderSeed o ON o.ClientOrderId=ord.ClientOrderId;
+  UPDATE p SET PaidAt=o.OccurredAt FROM dbo.Payments p JOIN dbo.Orders ord ON ord.OrderId=p.OrderId
+  JOIN @OrderSeed o ON o.ClientOrderId=ord.ClientOrderId;
+ END;
+
+ /* Historical production: consume raw BOM by FIFO, then create valued prepared output. */
+ IF @FirstFixtureRun=1
+ BEGIN
+  DECLARE @ProdStore int,@ProdOrdinal int,@ProdKey uniqueidentifier,@ProdAt datetime2,
+   @ProdRecipeId int,@ProdPreparedId int,@ProdRunCount decimal(18,5),@ProductionRunId int;
+  DECLARE @ProdIngredientId int,@ProdQty decimal(18,3),@ProdInventoryId int,
+   @ProdBefore decimal(18,3),@ProdAfter decimal(18,3),@ProdTransactionId int;
+  DECLARE @Need decimal(18,3),@LayerId int,@LayerRemain decimal(18,3),@LayerCost decimal(18,2),
+   @Take decimal(18,3),@InputLineCost decimal(18,2),@RunInputCost decimal(18,2);
+  DECLARE @OutputInventoryId int,@OutputQty decimal(18,3),@OutputBefore decimal(18,3),
+   @OutputCost decimal(18,8),@Fingerprint char(64);
+
+  DECLARE ProductionCursor CURSOR LOCAL FAST_FORWARD FOR
+   SELECT StoreId,Ordinal,RequestKey,OccurredAt,RecipeId,PreparedItemId,RequestedRunCount
+   FROM @ProductionSeed ORDER BY OccurredAt,StoreId,Ordinal;
+  OPEN ProductionCursor;
+  FETCH NEXT FROM ProductionCursor INTO @ProdStore,@ProdOrdinal,@ProdKey,@ProdAt,
+   @ProdRecipeId,@ProdPreparedId,@ProdRunCount;
+  WHILE @@FETCH_STATUS=0
+  BEGIN
+   SET @Fingerprint=CONVERT(char(64),HASHBYTES('SHA2_256',
+    CONCAT(@SeedMarker,N'|',@ProdStore,N'|',@ProdOrdinal,N'|',@ProdRecipeId,N'|',@ProdRunCount)),2);
+   INSERT dbo.ProductionRuns(StoreId,RecipeId,RequestedRunCount,RequestKey,RequestFingerprint,
+    [Status],Notes,CreatedByStaffId,CreatedAt,ConfirmedAt,CompletedAt,CompletedByStaffId,
+    ValuationStatus,TotalInputCost,OutputUnitCost,ValuedAtUtc)
+   VALUES(@ProdStore,@ProdRecipeId,@ProdRunCount,@ProdKey,@Fingerprint,1,
+    CONCAT(@SeedMarker,N'_S',@ProdStore,N'_P',@ProdOrdinal),@OwnerStaffId,@ProdAt,@ProdAt,NULL,NULL,0,NULL,NULL,NULL);
+   SET @ProductionRunId=SCOPE_IDENTITY();
+   SET @RunInputCost=0;
+
+   DECLARE ProdRequirementCursor CURSOR LOCAL FAST_FORWARD FOR
+    SELECT rd.IngredientId,ROUND(rd.Quantity*@ProdRunCount*
+     CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END,3)
+    FROM dbo.RecipeDetails rd JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+    LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId
+     AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
+    WHERE rd.RecipeId=@ProdRecipeId AND rd.IngredientId IS NOT NULL
+    ORDER BY rd.IngredientId;
+   OPEN ProdRequirementCursor;
+   FETCH NEXT FROM ProdRequirementCursor INTO @ProdIngredientId,@ProdQty;
+   WHILE @@FETCH_STATUS=0
+   BEGIN
+    SELECT @ProdInventoryId=StoreInventoryId,@ProdBefore=AvailableQty
+    FROM dbo.StoreInventories WHERE StoreId=@ProdStore AND IngredientId=@ProdIngredientId;
+    IF @ProdInventoryId IS NULL OR @ProdQty IS NULL OR @ProdQty<=0 OR @ProdBefore<@ProdQty
+     THROW 53416,N'Không đủ raw inventory cho production fixture.',1;
+    SET @ProdAfter=@ProdBefore-@ProdQty;
+    INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,
+     UnitCost,TotalCost,ProductionRunId,SourceRecipeId,CreatedAt)
+    VALUES(@ProdInventoryId,6,1,@ProdQty,@ProdBefore,@ProdAfter,NULL,NULL,
+     @ProductionRunId,@ProdRecipeId,@ProdAt);
+    SET @ProdTransactionId=SCOPE_IDENTITY();
+    UPDATE dbo.StoreInventories SET AvailableQty=@ProdAfter,LastUpdated=@ProdAt
+    WHERE StoreInventoryId=@ProdInventoryId;
+
+    SET @Need=@ProdQty; SET @InputLineCost=0;
+    WHILE @Need>0
+    BEGIN
+     SET @LayerId=NULL;
+     SELECT TOP(1) @LayerId=InventoryCostLayerId,@LayerRemain=RemainingQuantity,@LayerCost=UnitCost
+     FROM dbo.InventoryCostLayers WITH(UPDLOCK,ROWLOCK)
+     WHERE StoreId=@ProdStore AND IngredientId=@ProdIngredientId AND PreparedItemId IS NULL
+      AND RemainingQuantity>0 ORDER BY CreatedAt,InventoryCostLayerId;
+     IF @LayerId IS NULL THROW 53417,N'FIFO layer không đủ cho production fixture.',1;
+     SET @Take=CASE WHEN @LayerRemain<@Need THEN @LayerRemain ELSE @Need END;
+     UPDATE dbo.InventoryCostLayers SET RemainingQuantity=RemainingQuantity-@Take
+     WHERE InventoryCostLayerId=@LayerId;
+     INSERT dbo.ProductionCostAllocations(ProductionRunId,InventoryTransactionId,
+      InventoryCostLayerId,Quantity,UnitCost,TotalCost,CreatedAtUtc)
+     VALUES(@ProductionRunId,@ProdTransactionId,@LayerId,@Take,@LayerCost,ROUND(@Take*@LayerCost,2),@ProdAt);
+     SET @InputLineCost=@InputLineCost+ROUND(@Take*@LayerCost,2);
+     SET @Need=@Need-@Take;
+    END;
+    UPDATE dbo.InventoryTransactions SET UnitCost=ROUND(@InputLineCost/NULLIF(@ProdQty,0),2),
+     TotalCost=@InputLineCost WHERE InventoryTransactionId=@ProdTransactionId;
+    SET @RunInputCost=@RunInputCost+@InputLineCost;
+    FETCH NEXT FROM ProdRequirementCursor INTO @ProdIngredientId,@ProdQty;
+   END;
+   CLOSE ProdRequirementCursor; DEALLOCATE ProdRequirementCursor;
+
+   SELECT @OutputQty=ROUND(r.OutputQuantity*@ProdRunCount,3)
+   FROM dbo.Recipes r JOIN dbo.PreparedItems p ON p.PreparedItemId=r.PreparedItemId
+   WHERE r.RecipeId=@ProdRecipeId AND r.OutputUnitId=p.BaseUnitId;
+   SELECT @OutputInventoryId=StoreInventoryId,@OutputBefore=AvailableQty
+   FROM dbo.StoreInventories WHERE StoreId=@ProdStore AND PreparedItemId=@ProdPreparedId
+    AND BtpIdentityState=1;
+   IF @OutputQty IS NULL OR @OutputQty<=0 OR @OutputInventoryId IS NULL
+    THROW 53418,N'Output contract hoặc prepared inventory của production fixture không hợp lệ.',1;
+   SET @OutputCost=@RunInputCost/NULLIF(@OutputQty,0);
+   INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,
+    UnitCost,TotalCost,ProductionRunId,SourceRecipeId,CreatedAt)
+   VALUES(@OutputInventoryId,5,1,@OutputQty,@OutputBefore,@OutputBefore+@OutputQty,
+    ROUND(@OutputCost,2),@RunInputCost,@ProductionRunId,@ProdRecipeId,@ProdAt);
+   UPDATE dbo.StoreInventories SET AvailableQty=@OutputBefore+@OutputQty,LastUpdated=@ProdAt
+   WHERE StoreInventoryId=@OutputInventoryId;
+   INSERT dbo.InventoryCostLayers(IngredientId,PreparedItemId,StoreId,Quantity,RemainingQuantity,
+    UnitCost,CreatedAt,SourceProductionRunId,SourceOrderRefundId,SourceInventoryDocumentDetailId,
+    SourceBranchReceiptLineId,SourceTransferCostAllocationId,SourceTransferDiscrepancyPostingId)
+   VALUES(NULL,@ProdPreparedId,@ProdStore,@OutputQty,@OutputQty,ROUND(@OutputCost,2),@ProdAt,
+    @ProductionRunId,NULL,NULL,NULL,NULL,NULL);
+   UPDATE dbo.ProductionRuns SET [Status]=2,CompletedAt=@ProdAt,CompletedByStaffId=@OwnerStaffId,
+    ValuationStatus=1,TotalInputCost=@RunInputCost,OutputUnitCost=@OutputCost,ValuedAtUtc=@ProdAt
+   WHERE ProductionRunId=@ProductionRunId;
+
+   FETCH NEXT FROM ProductionCursor INTO @ProdStore,@ProdOrdinal,@ProdKey,@ProdAt,
+    @ProdRecipeId,@ProdPreparedId,@ProdRunCount;
+  END;
+  CLOSE ProductionCursor; DEALLOCATE ProductionCursor;
+ END
+ ELSE
+ BEGIN
+  UPDATE pr SET CreatedAt=s.OccurredAt,ConfirmedAt=s.OccurredAt,CompletedAt=s.OccurredAt,ValuedAtUtc=s.OccurredAt
+  FROM dbo.ProductionRuns pr JOIN @ProductionSeed s ON s.StoreId=pr.StoreId AND s.RequestKey=pr.RequestKey;
+  UPDATE t SET CreatedAt=s.OccurredAt FROM dbo.InventoryTransactions t
+  JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId
+  JOIN @ProductionSeed s ON s.StoreId=pr.StoreId AND s.RequestKey=pr.RequestKey;
+  UPDATE a SET CreatedAtUtc=s.OccurredAt FROM dbo.ProductionCostAllocations a
+  JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=a.ProductionRunId
+  JOIN @ProductionSeed s ON s.StoreId=pr.StoreId AND s.RequestKey=pr.RequestKey;
+  UPDATE l SET CreatedAt=s.OccurredAt FROM dbo.InventoryCostLayers l
+  JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=l.SourceProductionRunId
+  JOIN @ProductionSeed s ON s.StoreId=pr.StoreId AND s.RequestKey=pr.RequestKey;
+ END;

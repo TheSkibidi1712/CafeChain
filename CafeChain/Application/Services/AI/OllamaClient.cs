@@ -21,9 +21,17 @@ public sealed class OllamaClient : IOllamaClient
         _logger = logger;
     }
 
-    public async Task<OllamaResultDTO> ChatAsync(string systemPrompt, string userPayload, CancellationToken cancellationToken = default)
+    public Task<OllamaResultDTO> ChatAsync(string systemPrompt, string userPayload, CancellationToken cancellationToken = default)
+        => ChatAsync(systemPrompt, userPayload, "StructuredSuggestion", cancellationToken);
+
+    public async Task<OllamaResultDTO> ChatAsync(
+        string systemPrompt,
+        string userPayload,
+        string featureName,
+        CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
+        var safeFeature = string.IsNullOrWhiteSpace(featureName) ? "Unspecified" : featureName.Trim();
         try
         {
             var request = new OllamaChatRequestDTO
@@ -48,28 +56,37 @@ public sealed class OllamaClient : IOllamaClient
 
             using var response = await _httpClient.PostAsJsonAsync("api/chat", request, cancellationToken);
             if (!response.IsSuccessStatusCode)
+            {
+                LogFailure(safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds, $"HTTP_{(int)response.StatusCode}");
                 return Failure($"Ollama trả về HTTP {(int)response.StatusCode}.");
+            }
 
             var result = await response.Content.ReadFromJsonAsync<OllamaChatResponseDTO>(cancellationToken: cancellationToken);
             var content = result?.Message?.Content?.Trim();
             if (string.IsNullOrWhiteSpace(content))
+            {
+                LogFailure(safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds, "EmptyResponse");
                 return Failure("Ollama trả về nội dung rỗng.");
+            }
 
             _logger.LogInformation("Ollama request completed. Model={Model} Feature={Feature} PayloadSize={PayloadSize} ElapsedMs={ElapsedMs}",
-                _options.Model, "StructuredSuggestion", userPayload.Length, stopwatch.ElapsedMilliseconds);
+                _options.Model, safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds);
             return new OllamaResultDTO { Success = true, Content = content };
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
+            LogFailure(safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds, "Timeout");
             return Failure("Ollama phản hồi quá thời gian cho phép.");
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning("Ollama connection failed. Model={Model} ErrorType={ErrorType}", _options.Model, ex.GetType().Name);
+            _logger.LogWarning("Ollama request failed. Model={Model} Feature={Feature} PayloadSize={PayloadSize} ElapsedMs={ElapsedMs} ErrorType={ErrorType}",
+                _options.Model, safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
             return Failure("Không thể kết nối Ollama.");
         }
         catch (JsonException)
         {
+            LogFailure(safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds, "InvalidHttpJson");
             return Failure("Phản hồi HTTP của Ollama không đúng JSON.");
         }
         catch (OperationCanceledException)
@@ -78,10 +95,16 @@ public sealed class OllamaClient : IOllamaClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected Ollama error. Model={Model}", _options.Model);
+            _logger.LogError(ex, "Unexpected Ollama error. Model={Model} Feature={Feature} PayloadSize={PayloadSize} ElapsedMs={ElapsedMs}",
+                _options.Model, safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds);
             return Failure("Ollama hiện không khả dụng.");
         }
     }
+
+    private void LogFailure(string feature, int payloadSize, long elapsedMs, string reason) =>
+        _logger.LogWarning(
+            "Ollama request failed. Model={Model} Feature={Feature} PayloadSize={PayloadSize} ElapsedMs={ElapsedMs} Reason={Reason}",
+            _options.Model, feature, payloadSize, elapsedMs, reason);
 
     public async Task<OllamaHealthDTO> CheckHealthAsync(CancellationToken cancellationToken = default)
     {

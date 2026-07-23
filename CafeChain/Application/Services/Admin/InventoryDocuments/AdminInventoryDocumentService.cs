@@ -131,6 +131,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         private IQueryable<InventoryDocument> BuildFilteredDocumentsQuery(
             AdminInventoryDocumentFilterDTO filter)
         {
+            ValidateFilter(filter);
+
             var query =
                 _repository.GetDocumentsQuery();
 
@@ -176,23 +178,83 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             if (filter.FromDate.HasValue)
             {
+                var fromDate = filter.FromDate.Value.Date;
                 query =
                     query.Where(x =>
-                        x.DocumentDate >= filter.FromDate);
+                        x.DocumentDate >= fromDate);
             }
 
             if (filter.ToDate.HasValue)
             {
-                query =
-                    query.Where(x =>
-                        x.DocumentDate <= filter.ToDate);
+                var toDate = filter.ToDate.Value.Date;
+                if (toDate < DateTime.MaxValue.Date)
+                {
+                    var exclusiveToDate = toDate.AddDays(1);
+                    query = query.Where(x => x.DocumentDate < exclusiveToDate);
+                }
+                else
+                {
+                    query = query.Where(x => x.DocumentDate <= toDate);
+                }
             }
 
             return query;
         }
 
+        private static void ValidateFilter(AdminInventoryDocumentFilterDTO filter)
+        {
+            if (filter.FromDate.HasValue
+                && filter.ToDate.HasValue
+                && filter.FromDate.Value.Date > filter.ToDate.Value.Date)
+            {
+                throw new InvalidOperationException(
+                    "\"Từ ngày\" không được lớn hơn \"Đến ngày\".");
+            }
+
+            if (filter.Type.HasValue
+                && filter.Type.Value is not InventoryDocumentType.IMPORT
+                    and not InventoryDocumentType.EXPORT
+                    and not InventoryDocumentType.WASTE
+                    and not InventoryDocumentType.STOCK_TAKE)
+            {
+                throw new InvalidOperationException("Loại phiếu không hợp lệ với bộ lọc Phiếu Kho.");
+            }
+
+            if (!filter.Purpose.HasValue)
+            {
+                return;
+            }
+
+            if (!filter.Type.HasValue)
+            {
+                throw new InvalidOperationException("Vui lòng chọn Loại phiếu trước khi chọn Mục đích.");
+            }
+
+            var validPurpose = filter.Type.Value switch
+            {
+                InventoryDocumentType.IMPORT => filter.Purpose.Value is
+                    InventoryDocumentPurpose.IMPORT_PURCHASE or InventoryDocumentPurpose.IMPORT_ADJUSTMENT,
+                InventoryDocumentType.EXPORT => filter.Purpose.Value == InventoryDocumentPurpose.SALE,
+                InventoryDocumentType.STOCK_TAKE => filter.Purpose.Value == InventoryDocumentPurpose.STOCK_TAKE,
+                InventoryDocumentType.WASTE => filter.Purpose.Value is
+                    InventoryDocumentPurpose.DAMAGED
+                    or InventoryDocumentPurpose.EXPIRED
+                    or InventoryDocumentPurpose.BROKEN
+                    or InventoryDocumentPurpose.CONTAMINATED
+                    or InventoryDocumentPurpose.LOST,
+                _ => false
+            };
+
+            if (!validPurpose)
+            {
+                throw new InvalidOperationException("Mục đích không phù hợp với Loại phiếu đã chọn.");
+            }
+        }
+
         public async Task<AdminInventoryDocumentIndexVM> GetIndexDataAsync(AdminInventoryDocumentFilterDTO filter)
         {
+            ValidateFilter(filter);
+
             var allowedStoreIds = await GetAllowedStoreIdsAsync();
             var query = _repository.GetDocumentsQuery()
                 .Where(x => allowedStoreIds.Contains(x.StoreId));
@@ -306,6 +368,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 SupplierName = document.Supplier?.Name,
 
                 Note = document.Note,
+
+                AllowNegativeStock = document.AllowNegativeStock,
 
                 NegativeReason = document.NegativeReason,
 

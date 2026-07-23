@@ -220,6 +220,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         public async Task<InventoryCreateSummaryDTO> CalculateSummaryAsync(CreateInventoryDocumentDTO dto)
         {
             NormalizeImportDocumentType(dto);
+            NormalizeNegativeStockRequest(dto);
             await EnsureStoreScopeAsync(dto.StoreId);
 
             await NormalizeCreateDetailsAsync(dto);
@@ -230,6 +231,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         public async Task<InventoryDocumentPreflightResultDTO> PreflightAsync(CreateInventoryDocumentDTO dto)
         {
             NormalizeImportDocumentType(dto);
+            NormalizeNegativeStockRequest(dto);
             await EnsureStoreScopeAsync(dto.StoreId);
             await NormalizeCreateDetailsAsync(dto);
             await _validationService.ValidateCreateAsync(dto);
@@ -243,6 +245,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         public async Task<int> SaveDraftAsync(CreateInventoryDocumentDTO dto)
         {
             NormalizeImportDocumentType(dto);
+            NormalizeNegativeStockRequest(dto);
             await EnsureStoreScopeAsync(dto.StoreId);
 
             EnsureRequestKey(dto.RequestKey);
@@ -252,6 +255,16 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             await NormalizeCreateDetailsAsync(dto);
 
             await _validationService.ValidateCreateAsync(dto);
+
+            var preflight = await EvaluateDtoIssuesAsync(dto);
+            var blockedLine = preflight.Lines.FirstOrDefault(x => x.Outcome == InventoryIssueOutcome.Blocked);
+            if (blockedLine != null)
+            {
+                throw new InvalidOperationException(
+                    string.IsNullOrWhiteSpace(blockedLine.UserMessage)
+                        ? "Không thể lưu phiếu vì dữ liệu tồn kho không hợp lệ."
+                        : blockedLine.UserMessage);
+            }
 
             if (dto.Details == null || !dto.Details.Any())
             {
@@ -307,6 +320,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     existingDraft.PartnerName = dto.PartnerName;
                     existingDraft.SupplierId = dto.SupplierId;
                     existingDraft.Note = dto.Note;
+                    existingDraft.AllowNegativeStock = dto.AllowNegativeStock;
                     existingDraft.NegativeReason = dto.NegativeReason;
                     existingDraft.TotalAmount = summary.TotalAmount;
                     existingDraft.VatAmount = summary.VatAmount;
@@ -363,6 +377,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             }
 
             NormalizeImportDocumentType(dto);
+            NormalizeNegativeStockRequest(dto);
             await EnsureStoreScopeAsync(dto.StoreId);
 
             EnsureRequestKey(dto.RequestKey);
@@ -407,7 +422,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 var preflight = await EvaluateDocumentIssuesAsync(document, null, scopeAuthorized: false);
                 var blocked = preflight.FirstOrDefault(x => x.Decision.Outcome == InventoryIssueOutcome.Blocked);
                 if (blocked != null)
-                    throw new InvalidOperationException(blocked.Decision.ReasonCode);
+                    throw new InvalidOperationException(BuildIssueUserMessage(blocked));
 
                 var requiresApproval = preflight.Where(x => x.Decision.Outcome == InventoryIssueOutcome.ApprovalRequired).ToList();
                 if (requiresApproval.Count > 0)
@@ -548,7 +563,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 var preflight = await EvaluateDocumentIssuesAsync(document, null, scopeAuthorized: false);
                 var blocked = preflight.FirstOrDefault(x => x.Decision.Outcome == InventoryIssueOutcome.Blocked);
                 if (blocked != null)
-                    throw new InvalidOperationException(blocked.Decision.ReasonCode);
+                    throw new InvalidOperationException(BuildIssueUserMessage(blocked));
                 var approvalLines = preflight.Where(x => x.Decision.Outcome == InventoryIssueOutcome.ApprovalRequired).ToList();
                 if (approvalLines.Count > 0)
                 {
@@ -612,9 +627,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 var approval = await _repository.GetNegativeApprovalForUpdateAsync(documentId)
                     ?? throw new InvalidOperationException("Không tìm thấy yêu cầu phê duyệt.");
                 if (approval.Status != InventoryNegativeApprovalStatuses.Requested)
-                    throw new InvalidOperationException("APPROVAL_STALE");
+                    throw new InvalidOperationException("Yêu cầu phê duyệt xuất âm không còn ở trạng thái chờ duyệt.");
                 if (approval.RequesterStaffId == actor.StaffId)
-                    throw new InvalidOperationException(InventoryIssueReasonCodes.SelfApprovalForbidden);
+                    throw new InvalidOperationException("Người tạo yêu cầu không được tự phê duyệt phiếu xuất âm của mình.");
 
                 approval.ApproverStaffId = actor.StaffId;
                 approval.Status = InventoryNegativeApprovalStatuses.Approved;
@@ -626,7 +641,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 var reevaluated = await EvaluateDocumentIssuesAsync(document, approval, scopeAuthorized: true);
                 var stale = reevaluated.FirstOrDefault(x => x.Decision.Outcome != InventoryIssueOutcome.Allowed);
                 if (stale != null)
-                    throw new InvalidOperationException($"{InventoryIssueReasonCodes.ApprovalStale}:{stale.Decision.ReasonCode}");
+                    throw new InvalidOperationException(
+                        $"Không thể phê duyệt vì dữ liệu tồn kho hoặc chính sách đã thay đổi. {BuildIssueUserMessage(stale)}");
 
                 var processResult = await _confirmService.ConfirmDocumentAsync(document, actor.StaffId);
                 _repository.UpdateNegativeApproval(approval);
@@ -663,9 +679,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 var approval = await _repository.GetNegativeApprovalForUpdateAsync(documentId)
                     ?? throw new InvalidOperationException("Không tìm thấy yêu cầu phê duyệt.");
                 if (approval.Status != InventoryNegativeApprovalStatuses.Requested)
-                    throw new InvalidOperationException("APPROVAL_STALE");
+                    throw new InvalidOperationException("Yêu cầu phê duyệt xuất âm không còn ở trạng thái chờ duyệt.");
                 if (approval.RequesterStaffId == actor.StaffId)
-                    throw new InvalidOperationException(InventoryIssueReasonCodes.SelfApprovalForbidden);
+                    throw new InvalidOperationException("Người tạo yêu cầu không được tự từ chối yêu cầu xuất âm của mình.");
 
                 approval.Status = InventoryNegativeApprovalStatuses.Rejected;
                 approval.ApproverStaffId = actor.StaffId;
@@ -805,6 +821,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 PartnerName = dto.PartnerName,
                 SupplierId = dto.SupplierId,
                 Note = dto.Note,
+                AllowNegativeStock = dto.AllowNegativeStock,
                 NegativeReason = dto.NegativeReason,
                 TotalAmount = summary.TotalAmount,
                 VatAmount = summary.VatAmount,
@@ -857,6 +874,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     VatAmount = summary.VatAmount,
                     FinalAmount = summary.FinalAmount,
                     Note = dto.Note,
+                    AllowNegativeStock = dto.AllowNegativeStock,
                     NegativeReason = dto.NegativeReason
                 };
 
@@ -945,6 +963,19 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     ClearPartner(dto);
                 }
             }
+        }
+
+        private static void NormalizeNegativeStockRequest(CreateInventoryDocumentDTO dto)
+        {
+            if (!dto.AllowNegativeStock)
+            {
+                dto.NegativeReason = null;
+                return;
+            }
+
+            dto.NegativeReason = string.IsNullOrWhiteSpace(dto.NegativeReason)
+                ? null
+                : dto.NegativeReason.Trim();
         }
 
         private async Task ApplySupplierPartnerSnapshotAsync(CreateInventoryDocumentDTO dto)
@@ -1584,6 +1615,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             foreach (var detail in dto.Details.OrderBy(x => x.IngredientId))
             {
                 var inventory = await _repository.GetStoreInventoryAsync(dto.StoreId, detail.IngredientId);
+                var ingredient = await _repository.GetIngredientAsync(detail.IngredientId);
                 var selectedUnit = await _repository.GetUnitAsync(detail.UnitId);
                 var conversionFactor = detail.Quantity == 0m
                     ? 1m
@@ -1601,24 +1633,40 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     dto.Purpose.ToString(),
                     dto.NegativeReason,
                     null,
-                    null));
+                    null,
+                    null,
+                    dto.AllowNegativeStock));
+                var ingredientName = ingredient?.Name ?? $"Nguyên liệu #{detail.IngredientId}";
+                var unitCode = selectedUnit?.UnitCode ?? ingredient?.BaseUnit?.UnitCode ?? "đơn vị";
+                var beforeDisplayQty = decision.BeforeQty / conversionFactor;
+                var issueDisplayQty = decision.IssueQty / conversionFactor;
+                var projectedAfterDisplayQty = decision.ProjectedAfterQty / conversionFactor;
+                var effectiveLimitDisplayQty = decision.EffectiveMaxNegativeQty / conversionFactor;
                 result.Lines.Add(new InventoryDocumentPreflightLineDTO
                 {
                     IngredientId = detail.IngredientId,
-                    IngredientName = $"#{detail.IngredientId}",
+                    IngredientName = ingredientName,
                     BeforeQty = decision.BeforeQty,
                     IssueQty = decision.IssueQty,
                     ProjectedAfterQty = decision.ProjectedAfterQty,
                     EffectiveMaxNegativeQty = decision.EffectiveMaxNegativeQty,
                     UnitId = detail.UnitId,
-                    UnitCode = selectedUnit?.UnitCode ?? string.Empty,
+                    UnitCode = unitCode,
                     ConversionFactorToBase = conversionFactor,
-                    BeforeDisplayQty = decision.BeforeQty / conversionFactor,
-                    IssueDisplayQty = decision.IssueQty / conversionFactor,
-                    ProjectedAfterDisplayQty = decision.ProjectedAfterQty / conversionFactor,
-                    EffectiveMaxNegativeDisplayQty = decision.EffectiveMaxNegativeQty / conversionFactor,
+                    BeforeDisplayQty = beforeDisplayQty,
+                    IssueDisplayQty = issueDisplayQty,
+                    ProjectedAfterDisplayQty = projectedAfterDisplayQty,
+                    EffectiveMaxNegativeDisplayQty = effectiveLimitDisplayQty,
                     Outcome = decision.Outcome,
-                    ReasonCode = decision.ReasonCode
+                    ReasonCode = decision.ReasonCode,
+                    UserMessage = BuildIssueUserMessage(
+                        ingredientName,
+                        unitCode,
+                        decision,
+                        beforeDisplayQty,
+                        issueDisplayQty,
+                        projectedAfterDisplayQty,
+                        effectiveLimitDisplayQty)
                 });
                 result.PolicyVersion = decision.PolicyVersion;
             }
@@ -1685,7 +1733,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     document.NegativeReason,
                     approval?.PolicyVersion,
                     evidence,
-                    inventory.RowVersion));
+                    inventory.RowVersion,
+                    document.AllowNegativeStock));
                 result.Add(new DocumentIssueEvaluation(detail, inventory, decision));
             }
 
@@ -1737,6 +1786,67 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             InventoryDocumentType.SALES_DEDUCTION => InventoryIssueOperation.PosBlindSale,
             _ => null
         };
+
+        private static string BuildIssueUserMessage(DocumentIssueEvaluation evaluation)
+        {
+            var ingredientName = evaluation.Detail.Ingredient?.Name
+                ?? $"Nguyên liệu #{evaluation.Detail.IngredientId}";
+            var unitCode = evaluation.Detail.Ingredient?.BaseUnit?.UnitCode ?? "đơn vị";
+            return BuildIssueUserMessage(
+                ingredientName,
+                unitCode,
+                evaluation.Decision,
+                evaluation.Decision.BeforeQty,
+                evaluation.Decision.IssueQty,
+                evaluation.Decision.ProjectedAfterQty,
+                evaluation.Decision.EffectiveMaxNegativeQty);
+        }
+
+        private static string BuildIssueUserMessage(
+            string ingredientName,
+            string unitCode,
+            InventoryIssueDecision decision,
+            decimal beforeQuantity,
+            decimal issueQuantity,
+            decimal projectedAfterQuantity,
+            decimal effectiveLimit)
+        {
+            if (!decision.IsNegative)
+            {
+                return string.Empty;
+            }
+
+            var shortage = Math.Max(issueQuantity - beforeQuantity, 0);
+            var summary =
+                $"Nguyên liệu \"{ingredientName}\": tồn hiện tại {FormatQuantity(beforeQuantity)} {unitCode}, " +
+                $"yêu cầu xuất {FormatQuantity(issueQuantity)} {unitCode}, thiếu {FormatQuantity(shortage)} {unitCode}.";
+
+            return decision.ReasonCode switch
+            {
+                InventoryIssueReasonCodes.ManualNegativeOptInRequired =>
+                    $"Không thể xuất vượt tồn kho. {summary} Hãy giảm số lượng hoặc bật \"Cho phép xuất âm kho\" nếu nghiệp vụ được phép.",
+                InventoryIssueReasonCodes.ManualNegativeFeatureDisabled =>
+                    $"Hệ thống đang tắt chức năng xuất âm kho. {summary} Hãy giảm số lượng hoặc liên hệ người quản trị cấu hình kho.",
+                InventoryIssueReasonCodes.ManualNegativeReasonRequired =>
+                    $"Phiếu xuất âm chưa có lý do. {summary} Hãy nhập lý do xuất âm trước khi tiếp tục.",
+                InventoryIssueReasonCodes.ManualNegativeLimitExceeded =>
+                    $"Mức xuất âm vượt giới hạn cho phép {FormatQuantity(effectiveLimit)} {unitCode}. {summary} Hãy giảm số lượng xuất.",
+                InventoryIssueReasonCodes.ManualNegativeApprovalRequired =>
+                    $"{summary} Phiếu sẽ làm tồn kho âm {FormatQuantity(Math.Abs(projectedAfterQuantity))} {unitCode} và cần người có quyền phê duyệt trước khi xác nhận.",
+                InventoryIssueReasonCodes.NegativeSettingInvalid =>
+                    $"Cấu hình giới hạn xuất âm chưa hợp lệ. {summary} Hãy liên hệ người quản trị cấu hình kho.",
+                InventoryIssueReasonCodes.WasteNegativeForbidden =>
+                    $"Phiếu Hủy không được làm tồn kho âm. {summary} Hãy giảm số lượng hủy.",
+                InventoryIssueReasonCodes.AdjustmentOutNegativeForbidden =>
+                    $"Điều chỉnh giảm không được làm tồn kho âm. {summary} Hãy sử dụng Phiếu Kiểm Kê và kiểm tra lại số lượng thực tế.",
+                InventoryIssueReasonCodes.ProductionOutNegativeForbidden =>
+                    $"Xuất cho sản xuất không được làm tồn kho âm. {summary} Hãy bổ sung tồn kho hoặc giảm số lượng.",
+                InventoryIssueReasonCodes.TransferSourceNegativeForbidden =>
+                    $"Kho nguồn không đủ tồn để chuyển. {summary} Hãy giảm số lượng chuyển.",
+                _ =>
+                    $"Không thể thực hiện vì số lượng yêu cầu vượt tồn kho hiện tại. {summary} Hãy kiểm tra lại số lượng và chính sách kho."
+            };
+        }
 
         private static InventoryIssueOutcome AggregateOutcome(IEnumerable<InventoryIssueOutcome> outcomes)
         {

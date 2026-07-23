@@ -27,6 +27,7 @@ using CafeChain.Models.Systems;
 using Microsoft.EntityFrameworkCore;
 using CafeChain.Models.Permissions;
 using CafeChain.Models.Inventories.Approvals;
+using CafeChain.Models.Analytics;
 namespace CafeChain.Data
 {
     public class AppDbContext : DbContext
@@ -57,6 +58,13 @@ namespace CafeChain.Data
         public DbSet<StaffShiftStatus> StaffShiftStatuses { get; set; }
         public DbSet<StaffPhone> StaffPhones { get; set; }
         public DbSet<StaffAddress> StaffAddresses { get; set; }
+        public DbSet<StaffAvailabilityRule> StaffAvailabilityRules { get; set; }
+        public DbSet<StaffAvailabilityException> StaffAvailabilityExceptions { get; set; }
+        public DbSet<StaffTimeOff> StaffTimeOffs { get; set; }
+        public DbSet<StaffWorkConstraint> StaffWorkConstraints { get; set; }
+        public DbSet<StoreStaffingRequirement> StoreStaffingRequirements { get; set; }
+        public DbSet<ScheduleOptimizationProposal> ScheduleOptimizationProposals { get; set; }
+        public DbSet<ScheduleOptimizationAssignment> ScheduleOptimizationAssignments { get; set; }
 
         // ========================= PERMISSION =========================
         public DbSet<Permission> Permissions { get; set; }
@@ -73,6 +81,12 @@ namespace CafeChain.Data
         public DbSet<InvoiceAuditLog> InvoiceAuditLogs { get; set; }
         public DbSet<OtpChallenge> OtpChallenges { get; set; }
         public DbSet<StaffNotification> StaffNotifications { get; set; }
+        public DbSet<ForecastRun> ForecastRuns { get; set; }
+        public DbSet<ForecastPoint> ForecastPoints { get; set; }
+        public DbSet<PosRecommendationCatalog> PosRecommendationCatalog { get; set; }
+        public DbSet<PosRecommendationExposure> PosRecommendationExposures { get; set; }
+        public DbSet<PosRecommendationExposureItem> PosRecommendationExposureItems { get; set; }
+        public DbSet<OperationalAnomaly> OperationalAnomalies { get; set; }
 
         // ========================= DRINK =========================
         public DbSet<Drink> Drinks { get; set; }

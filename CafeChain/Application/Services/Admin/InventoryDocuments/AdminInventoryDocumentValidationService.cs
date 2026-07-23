@@ -23,6 +23,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             ValidateExportPurpose(dto);
             ValidateWastePurpose(dto);
             ValidateStockTakePurpose(dto);
+            ValidateNegativeStockOptIn(dto);
             ValidateAdjustmentNote(dto);
             ValidateWasteNote(dto);
             ValidateAdjustmentPrice(dto);
@@ -49,6 +50,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 throw new InvalidOperationException("Phiếu không có chi tiết.");
             }
+
+            ValidateConfirmPurpose(document);
 
             await ValidateStoreInventoryMembershipAsync(
                 document.StoreId,
@@ -202,8 +205,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 return;
             }
 
-            if (dto.Purpose != InventoryDocumentPurpose.IMPORT_PURCHASE
-                && dto.Purpose != InventoryDocumentPurpose.IMPORT_ADJUSTMENT)
+            if (dto.Purpose == InventoryDocumentPurpose.IMPORT_ADJUSTMENT)
+            {
+                throw new InvalidOperationException(
+                    "Không còn cho phép tạo phiếu điều chỉnh tăng thủ công. Vui lòng sử dụng Phiếu Kiểm Kê.");
+            }
+
+            if (dto.Purpose != InventoryDocumentPurpose.IMPORT_PURCHASE)
             {
                 throw new InvalidOperationException("Mục đích phiếu nhập không hợp lệ.");
             }
@@ -216,13 +224,32 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 return;
             }
 
-            if (dto.Purpose != InventoryDocumentPurpose.SALE
-                && dto.Purpose != InventoryDocumentPurpose.GIFT
-                && dto.Purpose != InventoryDocumentPurpose.DEBT
-                && dto.Purpose != InventoryDocumentPurpose.SAMPLE
-                && dto.Purpose != InventoryDocumentPurpose.ADJUSTMENT_OUT)
+            if (dto.Purpose == InventoryDocumentPurpose.ADJUSTMENT_OUT)
+            {
+                throw new InvalidOperationException(
+                    "Không còn cho phép tạo phiếu điều chỉnh giảm thủ công. Vui lòng sử dụng Phiếu Kiểm Kê.");
+            }
+
+            if (dto.Purpose != InventoryDocumentPurpose.SALE)
             {
                 throw new InvalidOperationException("Mục đích phiếu xuất không hợp lệ.");
+            }
+        }
+
+        private static void ValidateConfirmPurpose(InventoryDocument document)
+        {
+            if (document.Type == InventoryDocumentType.IMPORT
+                && document.Purpose == InventoryDocumentPurpose.IMPORT_ADJUSTMENT)
+            {
+                throw new InvalidOperationException(
+                    "Phiếu điều chỉnh tăng thủ công đã ngừng áp dụng và không thể xác nhận. Vui lòng sử dụng Phiếu Kiểm Kê.");
+            }
+
+            if (document.Type == InventoryDocumentType.EXPORT
+                && document.Purpose != InventoryDocumentPurpose.SALE)
+            {
+                throw new InvalidOperationException(
+                    "Mục đích phiếu xuất này đã ngừng áp dụng và không thể xác nhận.");
             }
         }
 
@@ -253,6 +280,21 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             if (dto.Purpose != InventoryDocumentPurpose.STOCK_TAKE)
             {
                 throw new InvalidOperationException("Mục đích phiếu kiểm kê không hợp lệ.");
+            }
+        }
+
+        private static void ValidateNegativeStockOptIn(CreateInventoryDocumentDTO dto)
+        {
+            if (!dto.AllowNegativeStock)
+            {
+                return;
+            }
+
+            if (dto.Type != InventoryDocumentType.EXPORT
+                || dto.Purpose != InventoryDocumentPurpose.SALE)
+            {
+                throw new InvalidOperationException(
+                    "Chỉ Phiếu Xuất bán hàng mới được bật tùy chọn cho phép xuất âm kho.");
             }
         }
 

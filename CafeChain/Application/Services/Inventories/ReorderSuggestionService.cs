@@ -1,32 +1,35 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
+using CafeChain.Application.DTOs.AI;
+using CafeChain.Application.Interfaces.AI;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
-using CafeChain.Data;
-using CafeChain.Models.Enums.Inventory;
+using CafeChain.Infrastructure.Interfaces.Admin.Procurement;
 using CafeChain.Models.Inventories.Suppliers;
-using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Application.Services.Inventories
 {
     public sealed class ReorderSuggestionService : IReorderSuggestionService
     {
-        private readonly AppDbContext _context;
+        private readonly IReorderSuggestionRepository _repository;
         private readonly IPhysicalUnitConversionService _conversion;
         private readonly IReorderIncomingQuantityProvider _incomingProvider;
         private readonly IScopeAuthorizationService _scopeAuthorization;
+        private readonly IAIService _aiService;
 
         public ReorderSuggestionService(
-            AppDbContext context,
+            IReorderSuggestionRepository repository,
             IPhysicalUnitConversionService conversion,
             IReorderIncomingQuantityProvider incomingProvider,
-            IScopeAuthorizationService scopeAuthorization)
+            IScopeAuthorizationService scopeAuthorization,
+            IAIService aiService)
         {
-            _context = context;
+            _repository = repository;
             _conversion = conversion;
             _incomingProvider = incomingProvider;
             _scopeAuthorization = scopeAuthorization;
+            _aiService = aiService;
         }
 
         public async Task<ServiceResult<ReorderSuggestionListDto>> GetForStoreAsync(
@@ -42,66 +45,29 @@ namespace CafeChain.Application.Services.Inventories
             if (!await CanViewStoreAsync(storeId, actorStaffId, actorRoles))
                 return ServiceResult<ReorderSuggestionListDto>.Failure("Bạn không có quyền xem gợi ý nhập hàng của cửa hàng này.");
 
-            var store = await _context.Stores.AsNoTracking()
-                .Where(x => x.StoreId == storeId)
-                .Select(x => new { x.StoreId, x.Name })
-                .FirstOrDefaultAsync();
+            var store = await _repository.GetStoreAsync(storeId);
             if (store == null)
                 return ServiceResult<ReorderSuggestionListDto>.Failure("Không tìm thấy cửa hàng.");
 
-            var inventories = await _context.StoreInventories
-                .AsNoTracking()
-                .Include(x => x.Ingredient)
-                    .ThenInclude(x => x.BaseUnit)
-                .Where(x => x.StoreId == storeId && x.IngredientId.HasValue && x.Ingredient.Active)
-                .OrderBy(x => x.Ingredient.Name)
-                .ThenBy(x => x.IngredientId)
-                .ToListAsync();
+            var inventories = await _repository.GetInventoriesAsync(storeId);
 
             var ingredientIds = inventories
                 .Select(x => x.IngredientId!.Value)
                 .Distinct()
                 .ToArray();
             var fromUtc = DateTime.UtcNow.AddDays(-analysisWindowDays);
-            var usageRows = await _context.InventoryTransactions
-                .AsNoTracking()
-                .Where(x => x.CreatedAt >= fromUtc
-                    && x.StoreInventory.StoreId == storeId
-                    && x.StoreInventory.IngredientId.HasValue
-                    && (x.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION
-                        || x.Type == InventoryTransactionTypeEnum.PRODUCTION_OUT))
-                .Select(x => new { IngredientId = x.StoreInventory.IngredientId!.Value, x.Quantity })
-                .ToListAsync();
-            var usage = usageRows
-                .GroupBy(x => x.IngredientId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => new { Quantity = g.Sum(x => x.Quantity), Count = g.Count() });
+            var usage = await _repository.GetUsageAsync(storeId, fromUtc);
 
-            var offers = await _context.IngredientSuppliers
-                .AsNoTracking()
-                .Include(x => x.Supplier)
-                    .ThenInclude(x => x.SupplierStores)
-                .Where(x => ingredientIds.Contains(x.IngredientId)
-                    && x.Active
-                    && x.Supplier.Active
-                    && x.Supplier.SupplierStores.Any(ss => ss.StoreId == storeId && ss.Active))
-                .ToListAsync();
+            var offers = await _repository.GetOffersAsync(storeId, ingredientIds);
 
             var incoming = await _incomingProvider.GetIncomingBaseQuantitiesAsync(storeId, ingredientIds);
-            var activeRequests = await _context.RestockRequests
-                .AsNoTracking()
-                .Where(x => x.StoreId == storeId
-                    && x.IngredientId.HasValue
-                    && RestockRequestStatuses.ActiveValues.Contains(x.Status))
-                .GroupBy(x => x.IngredientId!.Value)
-                .Select(g => new { IngredientId = g.Key, RequestId = g.Min(x => x.RestockRequestId) })
-                .ToDictionaryAsync(x => x.IngredientId, x => x.RequestId);
+            var activeRequests = await _repository.GetActiveRestockRequestsAsync(storeId);
+            var activePurchaseAdvice = await _repository.GetActivePurchaseAdviceQuantitiesAsync(storeId);
 
             var result = new ReorderSuggestionListDto
             {
                 StoreId = store.StoreId,
-                StoreName = store.Name ?? $"Cửa hàng #{store.StoreId}",
+                StoreName = store.StoreName,
                 AnalysisWindowDays = analysisWindowDays,
                 CalculatedAtUtc = DateTime.UtcNow
             };
@@ -118,15 +84,20 @@ namespace CafeChain.Application.Services.Inventories
                     IngredientName = inventory.Ingredient.Name ?? $"Nguyên liệu #{ingredientId}",
                     BaseUnitCode = inventory.Ingredient.BaseUnit?.UnitCode ?? string.Empty,
                     AvailableQuantity = inventory.AvailableQty,
+                    ReservedQuantity = inventory.ReservedQty,
+                    UsableQuantity = inventory.AvailableQty - inventory.ReservedQty,
                     MinLevel = inventory.MinStockLevel,
                     IncomingApprovedPoQuantity = incoming.GetValueOrDefault(ingredientId),
+                    PendingPurchaseAdviceQuantity = activePurchaseAdvice.GetValueOrDefault(ingredientId),
                     ActiveRestockRequestId = activeRequests.GetValueOrDefault(ingredientId) is var requestId && requestId > 0
                         ? requestId
                         : null
                 };
+                item.ProjectedQuantity = item.UsableQuantity + item.IncomingApprovedPoQuantity;
 
                 if (!inventory.MinStockLevel.HasValue)
                 {
+                    item.RecommendationLevel = ReorderRecommendationLevels.DataIncomplete;
                     SetStatus(item, ReorderSuggestionStatuses.MissingThreshold, "Chưa cấu hình ngưỡng tồn kho tối thiểu.");
                     result.Items.Add(item);
                     continue;
@@ -134,6 +105,7 @@ namespace CafeChain.Application.Services.Inventories
 
                 if (!usage.TryGetValue(ingredientId, out var usageRow) || usageRow.Count == 0)
                 {
+                    item.RecommendationLevel = ReorderRecommendationLevels.DataIncomplete;
                     SetStatus(item, ReorderSuggestionStatuses.InsufficientHistory, "Chưa có dữ liệu xuất kho tiêu thụ hợp lệ trong kỳ phân tích.");
                     result.Items.Add(item);
                     continue;
@@ -146,6 +118,7 @@ namespace CafeChain.Application.Services.Inventories
                     inventory.Ingredient.BaseUnitId);
                 if (!selected.IsSuccess)
                 {
+                    item.RecommendationLevel = ReorderRecommendationLevels.DataIncomplete;
                     SetStatus(item, selected.Status, selected.Reason);
                     result.Items.Add(item);
                     continue;
@@ -163,17 +136,36 @@ namespace CafeChain.Application.Services.Inventories
 
                 var reorderPoint = item.AverageDailyUsage.Value * selected.LeadTimeDays!.Value
                     + inventory.MinStockLevel.Value;
-                var shortageBeforeIncoming = reorderPoint - inventory.AvailableQty;
-                var suggested = Math.Max(0m, shortageBeforeIncoming - item.IncomingApprovedPoQuantity);
+                item.ProjectedQuantity = item.UsableQuantity + item.IncomingApprovedPoQuantity;
+                var shortageBeforeIncoming = reorderPoint - item.UsableQuantity;
+                var suggested = Math.Max(0m, reorderPoint - item.ProjectedQuantity);
                 item.ReorderPoint = reorderPoint;
                 item.SuggestedBaseQuantity = suggested;
+
+                if (item.ActiveRestockRequestId.HasValue || item.PendingPurchaseAdviceQuantity > 0)
+                {
+                    item.SuggestedBaseQuantity = 0;
+                    item.SuggestedPackageCount = 0;
+                    item.EstimatedAmount = 0;
+                    item.RecommendationLevel = ReorderRecommendationLevels.ProcurementInProgress;
+                    SetStatus(item, ReorderSuggestionStatuses.ProcurementInProgress,
+                        "Đã có yêu cầu nhập hàng hoặc PA đang xử lý; hệ thống không tạo gợi ý trùng.");
+                    result.Items.Add(item);
+                    continue;
+                }
 
                 if (suggested <= 0)
                 {
                     if (shortageBeforeIncoming > 0 && item.IncomingApprovedPoQuantity > 0)
+                    {
+                        item.RecommendationLevel = ReorderRecommendationLevels.IncomingCoversDemand;
                         SetStatus(item, ReorderSuggestionStatuses.IncomingCoversDemand, "Lượng hàng đang về đã bao phủ nhu cầu dự kiến.");
+                    }
                     else
+                    {
+                        item.RecommendationLevel = ReorderRecommendationLevels.Normal;
                         SetStatus(item, ReorderSuggestionStatuses.NoReorderNeeded, "Tồn khả dụng đang đáp ứng điểm đặt hàng.");
+                    }
                     item.SuggestedPackageCount = 0;
                     item.EstimatedAmount = 0;
                     result.Items.Add(item);
@@ -185,11 +177,47 @@ namespace CafeChain.Application.Services.Inventories
                     packageCount = Math.Max(packageCount, offer.MinimumOrderPackageCount.Value);
                 item.SuggestedPackageCount = packageCount;
                 item.EstimatedAmount = packageCount * offer.CurrentPrice;
+                item.RecommendationLevel = item.UsableQuantity <= inventory.MinStockLevel.Value
+                    ? ReorderRecommendationLevels.Urgent
+                    : ReorderRecommendationLevels.NearReorder;
                 SetStatus(item, ReorderSuggestionStatuses.Ready, "Đủ dữ liệu để tạo yêu cầu nhập nháp.");
                 result.Items.Add(item);
             }
 
             return ServiceResult<ReorderSuggestionListDto>.Success(result);
+        }
+
+        public async Task<ServiceResult<InventoryReorderExplanationResultDto>> ExplainAsync(
+            int storeId,
+            int ingredientId,
+            int actorStaffId,
+            IReadOnlyCollection<string> actorRoles,
+            int analysisWindowDays = 30,
+            CancellationToken cancellationToken = default)
+        {
+            var suggestions = await GetForStoreAsync(storeId, actorStaffId, actorRoles, analysisWindowDays);
+            if (!suggestions.IsSuccess || suggestions.Data == null)
+                return ServiceResult<InventoryReorderExplanationResultDto>.Failure(suggestions.Message ?? "Không tải được dữ liệu rule.");
+            var item = suggestions.Data.Items.FirstOrDefault(x => x.IngredientId == ingredientId);
+            if (item == null)
+                return ServiceResult<InventoryReorderExplanationResultDto>.Failure("Không tìm thấy nguyên liệu trong cửa hàng.");
+
+            var context = new InventoryReorderExplanationContextDto
+            {
+                IngredientId = item.IngredientId,
+                IngredientName = item.IngredientName,
+                RecommendationLevel = string.IsNullOrWhiteSpace(item.RecommendationLevel)
+                    ? ReorderRecommendationLevels.DataIncomplete
+                    : item.RecommendationLevel,
+                UsableStock = item.UsableQuantity,
+                MinimumStock = item.MinLevel ?? 0,
+                PendingIncoming = item.IncomingApprovedPoQuantity,
+                SuggestedQuantity = item.SuggestedBaseQuantity ?? 0,
+                Unit = item.BaseUnitCode,
+                DeterministicReason = item.Reason
+            };
+            var explanation = await _aiService.ExplainInventoryReorderAsync(context, cancellationToken);
+            return ServiceResult<InventoryReorderExplanationResultDto>.Success(explanation);
         }
 
         private async Task<OfferSelection> SelectOfferAsync(
@@ -263,8 +291,7 @@ namespace CafeChain.Application.Services.Inventories
                 return await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, storeId);
             if (!roles.Contains(RoleConstants.StoreManager))
                 return false;
-            return await _context.Staffs.AsNoTracking()
-                .AnyAsync(x => x.StaffId == actorStaffId && x.Active && x.StoreId == storeId);
+            return await _repository.IsActiveStaffAtStoreAsync(actorStaffId, storeId);
         }
 
         private static void SetStatus(ReorderSuggestionItemDto item, string status, string reason)

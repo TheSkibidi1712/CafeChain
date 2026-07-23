@@ -66,3 +66,22 @@
 @media (max-width: 1200px) { .analytics-filter { grid-template-columns: repeat(4, 1fr); } }
 @media (max-width: 900px) { .analytics-widget { grid-column: span 12; } .analytics-filter { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .analytics-page { padding: 14px; } .analytics-header { align-items: stretch; flex-direction: column; } .analytics-filter { grid-template-columns: 1fr; } .analytics-tab { justify-content: flex-start; } .analytics-widget { min-height: 400px; padding: 12px; } .analytics-widget.is-compact { min-height: 210px; } .analytics-chart, .analytics-widget.is-wide .analytics-chart { height: 350px; } }
+
+.dashboard-intelligence {
+    margin: 1rem 0;
+    padding: 1.25rem;
+    border: 1px solid rgba(111, 78, 55, .18);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(111, 78, 55, .06), rgba(255, 255, 255, .96));
+}
+.dashboard-intelligence__heading h2 { margin: .2rem 0; font-size: 1.25rem; }
+.dashboard-intelligence__heading p { margin: 0; color: #6b7280; }
+.dashboard-intelligence__input { display: flex; gap: .75rem; margin-top: 1rem; }
+.dashboard-intelligence__input input { flex: 1; min-width: 0; border: 1px solid #d1d5db; border-radius: 12px; padding: .75rem 1rem; }
+.dashboard-intelligence__preview, .dashboard-intelligence__result { margin-top: 1rem; padding: 1rem; border-radius: 12px; background: #fff; border: 1px solid #e5e7eb; }
+.dashboard-intelligence__actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+.dashboard-intelligence__meta { display: flex; gap: 1rem; flex-wrap: wrap; color: #4b5563; font-size: .9rem; }
+.dashboard-intelligence__insight { margin-top: .75rem; padding: .75rem; border-left: 4px solid #d97706; background: #fffbeb; }
+.dashboard-intelligence__table { width: 100%; border-collapse: collapse; margin-top: .75rem; font-size: .88rem; }
+.dashboard-intelligence__table th, .dashboard-intelligence__table td { padding: .5rem; border-bottom: 1px solid #e5e7eb; text-align: left; }
+@media (max-width: 720px) { .dashboard-intelligence__input { flex-direction: column; } }

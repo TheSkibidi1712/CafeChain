@@ -59,18 +59,54 @@
 (() => {
     const province = document.getElementById('editProvince'), district = document.getElementById('editDistrict'), ward = document.getElementById('editWard');
     const initialDistrict = '@Model.DistrictId', initialWard = '@Model.WardId';
-    const base = '@Url.Action("GetScopeReferences", "AdminStaff", new { area = "Admin" })';
-    const load = async (select, type, parent, placeholder, selected) => {
+    const districtsEndpoint = '@Url.Action("GetDistricts", "AdminStaff", new { area = "Admin" })';
+    const wardsEndpoint = '@Url.Action("GetWards", "AdminStaff", new { area = "Admin" })';
+    let districtRequestVersion = 0, wardRequestVersion = 0;
+    const reset = (select, placeholder) => {
         select.disabled = true; select.innerHTML = `<option value="">${placeholder}</option>`;
-        if (!parent) return;
-        const response = await fetch(`${base}?scopeTypeId=${type}&parentId=${encodeURIComponent(parent)}`);
-        const rows = response.ok ? await response.json() : [];
-        rows.forEach(x => select.add(new Option(x.name, x.id, false, String(x.id) === String(selected))));
-        select.disabled = false;
     };
-    province.addEventListener('change', async () => { ward.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>'; ward.disabled = true; await load(district, 3, province.value, '-- Chọn Quận/Huyện --', ''); });
-    district.addEventListener('change', () => load(ward, 4, district.value, '-- Chọn Phường/Xã --', ''));
-    (async () => { await load(district, 3, province.value, '-- Chọn Quận/Huyện --', initialDistrict); await load(ward, 4, initialDistrict, '-- Chọn Phường/Xã --', initialWard); })();
+    const load = async (select, url, parameter, parent, placeholder, selected, isCurrent) => {
+        reset(select, 'Đang tải...');
+        if (!parent) { reset(select, placeholder); return []; }
+        try {
+            const response = await fetch(`${url}?${parameter}=${encodeURIComponent(parent)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) throw new Error();
+            const rows = await response.json();
+            if (!isCurrent()) return [];
+            reset(select, placeholder);
+            rows.forEach(x => select.add(new Option(x.name, x.id, false, String(x.id) === String(selected))));
+            select.disabled = rows.length === 0;
+            return rows;
+        } catch {
+            if (isCurrent()) reset(select, 'Không tải được dữ liệu');
+            return [];
+        }
+    };
+    province.addEventListener('change', async () => {
+        const parentProvinceId = province.value;
+        const version = ++districtRequestVersion;
+        ++wardRequestVersion;
+        reset(district, '-- Chọn Quận/Huyện --');
+        reset(ward, '-- Chọn Phường/Xã --');
+        if (parentProvinceId) await load(district, districtsEndpoint, 'provinceId', parentProvinceId, '-- Chọn Quận/Huyện --', '', () => version === districtRequestVersion && province.value === parentProvinceId);
+    });
+    district.addEventListener('change', async () => {
+        const parentDistrictId = district.value;
+        const version = ++wardRequestVersion;
+        reset(ward, '-- Chọn Phường/Xã --');
+        if (parentDistrictId) await load(ward, wardsEndpoint, 'districtId', parentDistrictId, '-- Chọn Phường/Xã --', '', () => version === wardRequestVersion && district.value === parentDistrictId);
+    });
+    (async () => {
+        const provinceId = province.value;
+        const districtVersion = ++districtRequestVersion;
+        const districts = await load(district, districtsEndpoint, 'provinceId', provinceId, '-- Chọn Quận/Huyện --', initialDistrict, () => districtVersion === districtRequestVersion && province.value === provinceId);
+        if (!districts.some(x => String(x.id) === String(initialDistrict))) {
+            reset(ward, '-- Chọn Phường/Xã --');
+            return;
+        }
+        const wardVersion = ++wardRequestVersion;
+        await load(ward, wardsEndpoint, 'districtId', initialDistrict, '-- Chọn Phường/Xã --', initialWard, () => wardVersion === wardRequestVersion && district.value === initialDistrict);
+    })();
     const avatar = document.getElementById('AvatarFile');
     avatar?.addEventListener('change', () => { const file = avatar.files?.[0]; if (!file) return; document.getElementById('staffAvatarPreview').src = URL.createObjectURL(file); });
 })();

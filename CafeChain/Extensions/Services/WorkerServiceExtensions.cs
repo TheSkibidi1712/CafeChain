@@ -9,6 +9,10 @@ namespace CafeChain.Extensions.Services
         {
             services.AddHostedService<OrderCleanupWorker>();
             services.AddHostedService<PaymentCleanupWorker>();
+            services.AddHostedService<InventoryReorderNotificationWorker>();
+            services.AddHostedService<ForecastGenerationWorker>();
+            services.AddHostedService<PosRecommendationWorker>();
+            services.AddHostedService<AnomalyDetectionWorker>();
 
             return services;
         }

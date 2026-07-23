@@ -3,6 +3,21 @@
    Coffee-Brown Theme | Frontend Only
    ============================================================ */
 
+:root {
+    --staff-alert-layer: 1080;
+}
+
+/* SweetAlert is the validation/confirmation layer above Bootstrap's modal (1055). */
+.swal2-container {
+    z-index: var(--staff-alert-layer) !important;
+}
+
+/* The shared page-header rule colors every icon brown; button icons must inherit button text. */
+.admin-wo-page .page-header .btn i {
+    color: currentColor !important;
+    flex-shrink: 0;
+}
+
 /* ---- KPI Cards ---- */
 .staff-kpi-row {
     display: flex;

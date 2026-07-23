@@ -21,7 +21,11 @@
 
 <main class="analytics-page" id="dashboardRoot"
       data-endpoint="@Url.Action("GetSection", "Dashboard", new { area = "Admin" })"
+      data-ai-parse="@Url.Action("Parse", "AdminDashboardIntelligence", new { area = "Admin" })"
+      data-ai-execute="@Url.Action("Execute", "AdminDashboardIntelligence", new { area = "Admin" })"
+      data-ai-explain="@Url.Action("Explain", "AdminDashboardIntelligence", new { area = "Admin" })"
       data-province="@Model.Filter.ProvinceId" data-district="@Model.Filter.DistrictId" data-store="@Model.Filter.StoreId">
+    <form id="dashboardAntiForgery" hidden>@Html.AntiForgeryToken()</form>
     <header class="analytics-header">
         <div>
             <span class="analytics-eyebrow">@Model.RoleName</span>
@@ -55,6 +59,26 @@
         <label>Top<input id="dashboardTop" type="number" min="1" max="100" value="@Model.Filter.Top" /></label>
     </section>
 
+    <section class="dashboard-intelligence" aria-labelledby="dashboardIntelligenceTitle">
+        <div class="dashboard-intelligence__heading">
+            <div>
+                <span class="analytics-eyebrow">AI + Analytics whitelist</span>
+                <h2 id="dashboardIntelligenceTitle">Hỏi Dashboard bằng tiếng Việt</h2>
+                <p>AI chỉ chọn trong 8 thống kê được kiểm soát; hệ thống áp dụng quyền cửa hàng trước khi truy vấn.</p>
+            </div>
+        </div>
+        <div class="dashboard-intelligence__input">
+            <input id="dashboardAiPrompt" maxlength="500" autocomplete="off"
+                   placeholder="Ví dụ: So sánh doanh thu 7 ngày gần đây với kỳ trước" />
+            <button type="button" class="analytics-button" id="dashboardAiParse">
+                <i class="bi bi-stars"></i> Phân tích
+            </button>
+        </div>
+        <div id="dashboardAiStatus" class="analytics-notice" role="status" hidden></div>
+        <div id="dashboardAiPreview" class="dashboard-intelligence__preview" hidden></div>
+        <div id="dashboardAiResult" class="dashboard-intelligence__result" hidden></div>
+    </section>
+
     <nav class="analytics-tabs" role="tablist" aria-label="Nhóm analytics">
         @foreach (var tab in tabs)
         {
@@ -74,4 +98,5 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <script src="~/js/Admin/Dashboard/dashboard.js" asp-append-version="true"></script>
+    <script src="~/js/Admin/Dashboard/dashboard-intelligence.js" asp-append-version="true"></script>
 }

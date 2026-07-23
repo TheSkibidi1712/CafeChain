@@ -17,6 +17,7 @@
         [ReorderSuggestionStatuses.MissingLeadTime] = "Thiếu thời gian giao",
         [ReorderSuggestionStatuses.MissingCost] = "Thiếu giá mua",
         [ReorderSuggestionStatuses.IncomingCoversDemand] = "Hàng về đã đủ",
+        [ReorderSuggestionStatuses.ProcurementInProgress] = "Đang mua hàng",
         [ReorderSuggestionStatuses.Unknown] = "Chưa xác định"
     };
 }
@@ -26,6 +27,7 @@
 }
 
 <main class="reorder-page">
+    <div class="d-none" aria-hidden="true">@Html.AntiForgeryToken()</div>
     <header class="reorder-header">
         <div>
             <p class="reorder-eyebrow">Nhà cung cấp / Lập kế hoạch</p>
@@ -92,11 +94,12 @@
                     <thead>
                         <tr>
                             <th>Nguyên liệu</th>
-                            <th>Tồn khả dụng</th>
+                            <th>Tồn / giữ chỗ / khả dụng</th>
                             <th>Ngưỡng tối thiểu</th>
                             <th>Dùng/ngày</th>
                             <th>Lead time</th>
                             <th>Đang về</th>
+                            <th>Tồn dự kiến</th>
                             <th>Đề xuất</th>
                             <th>Nhà cung cấp</th>
                             <th>Trạng thái</th>
@@ -107,16 +110,20 @@
                     @foreach (var item in Model.Items)
                     {
                         var ready = item.Status == ReorderSuggestionStatuses.Ready;
-                        <tr>
+                        <tr id="ingredient-@item.IngredientId">
                             <td>
                                 <strong>@item.IngredientName</strong>
                                 <span>@item.IngredientCode</span>
                             </td>
-                            <td>@item.AvailableQuantity.ToString("N3") @item.BaseUnitCode</td>
+                            <td>
+                                <strong>@item.UsableQuantity.ToString("N3") @item.BaseUnitCode</strong>
+                                <span>Tồn @item.AvailableQuantity.ToString("N3") · giữ @item.ReservedQuantity.ToString("N3")</span>
+                            </td>
                             <td>@(item.MinLevel?.ToString("N3") ?? "-")</td>
                             <td>@(item.AverageDailyUsage?.ToString("N3") ?? "-")</td>
                             <td>@(item.LeadTimeDays.HasValue ? $"{item.LeadTimeDays} ngày" : "-")</td>
                             <td>@item.IncomingApprovedPoQuantity.ToString("N3")</td>
+                            <td>@item.ProjectedQuantity.ToString("N3") @item.BaseUnitCode</td>
                             <td>
                                 <strong>@(item.SuggestedBaseQuantity?.ToString("N3") ?? "-") @item.BaseUnitCode</strong>
                                 @if (item.SuggestedPackageCount.HasValue)
@@ -136,6 +143,12 @@
                                 <small>@item.Reason</small>
                             </td>
                             <td class="text-end">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-info js-reorder-explain"
+                                        data-store-id="@item.StoreId"
+                                        data-ingredient-id="@item.IngredientId">
+                                    Xem giải thích AI
+                                </button>
                                 @if (item.ActiveRestockRequestId.HasValue)
                                 {
                                     <a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@item.ActiveRestockRequestId" class="btn btn-sm btn-outline-secondary">Xem yêu cầu</a>
@@ -158,3 +171,43 @@
         }
     </section>
 </main>
+
+@section Scripts {
+    <script>
+        (() => {
+            const endpoint = '@Url.Action("Explain", "AdminReorderSuggestions")';
+            const windowDays = @Model.AnalysisWindowDays;
+            document.querySelectorAll('.js-reorder-explain').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                    const body = new URLSearchParams({
+                        storeId: button.dataset.storeId,
+                        ingredientId: button.dataset.ingredientId,
+                        analysisWindowDays: String(windowDays),
+                        __RequestVerificationToken: token || ''
+                    });
+                    button.disabled = true;
+                    try {
+                        const response = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                            body
+                        });
+                        const data = await response.json();
+                        if (!response.ok || !data.success) throw new Error(data.message || 'Không tạo được giải thích.');
+                        await Swal.fire({
+                            icon: data.usedOllama ? 'info' : 'warning',
+                            title: data.usedOllama ? 'Giải thích AI' : 'Giải thích theo rule',
+                            text: data.explanation,
+                            confirmButtonText: 'Đóng'
+                        });
+                    } catch (error) {
+                        await Swal.fire({ icon: 'error', title: 'Không thể giải thích', text: error.message });
+                    } finally {
+                        button.disabled = false;
+                    }
+                });
+            });
+        })();
+    </script>
+}

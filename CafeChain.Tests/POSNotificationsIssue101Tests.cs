@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
 using CafeChain.Application.Services.Operations;
+using CafeChain.Infrastructure.Repositories.Operations;
 using CafeChain.Controllers.Api.v1;
 using CafeChain.Models.Operations;
 using CafeChain.Models.Staffs;
@@ -21,6 +22,57 @@ namespace CafeChain.Tests.POS
         private const int StaffA = 901;
         private const int StaffB = 902;
 
+        private static StaffNotificationQueryService CreateService(CafeChain.Data.AppDbContext context) =>
+            new(new StaffNotificationRepository(context));
+
+        [Fact]
+        public async Task Admin_scope_filter_excludes_other_store_and_resolved_notifications()
+        {
+            using var ctx = CreateDbContext();
+            SeedTwoStaffNotifications(ctx);
+            ctx.Stores.Add(new Store
+            {
+                StoreId = StoreId + 1,
+                Name = "Other store",
+                Address = "Test",
+                Phone = "0900000091",
+                Active = true,
+                CreatedAt = DateTime.UtcNow
+            });
+            ctx.StaffNotifications.Add(new StaffNotification
+            {
+                StoreId = StoreId + 1,
+                RecipientStaffId = StaffA,
+                Type = StaffNotificationTypes.InventoryReorderAlert,
+                Title = "Other store",
+                Body = "Hidden",
+                EntityType = StaffNotificationEntityTypes.InventoryReorder,
+                EntityId = 10,
+                CreatedAt = DateTime.UtcNow
+            });
+            ctx.StaffNotifications.Add(new StaffNotification
+            {
+                StoreId = StoreId,
+                RecipientStaffId = StaffA,
+                Type = StaffNotificationTypes.InventoryReorderAlert,
+                Title = "Resolved",
+                Body = "Hidden",
+                EntityType = StaffNotificationEntityTypes.InventoryReorder,
+                EntityId = 11,
+                CreatedAt = DateTime.UtcNow,
+                ResolvedAt = DateTime.UtcNow
+            });
+            await ctx.SaveChangesAsync();
+
+            var service = CreateService(ctx);
+            var result = await service.GetListAsync(
+                StaffA, 1, 20, StaffNotificationQueryService.ChannelAdmin, new[] { StoreId });
+
+            Assert.True(result.IsSuccess);
+            Assert.DoesNotContain(result.Data!.Items, x => x.Title is "Other store" or "Resolved");
+            Assert.All(result.Data.Items, x => Assert.Equal(StoreId, x.StoreId));
+        }
+
         [Fact]
         public async Task UnreadCount_OnlyCurrentStaff()
         {
@@ -28,7 +80,7 @@ namespace CafeChain.Tests.POS
             SeedTwoStaffNotifications(ctx);
             await ctx.SaveChangesAsync();
 
-            var service = new StaffNotificationQueryService(ctx);
+            var service = CreateService(ctx);
             var a = await service.GetUnreadCountAsync(StaffA);
             var b = await service.GetUnreadCountAsync(StaffB);
 
@@ -48,7 +100,7 @@ namespace CafeChain.Tests.POS
                 AddNotification(ctx, StaffA, $"Extra {i}", isRead: false);
             await ctx.SaveChangesAsync();
 
-            var service = new StaffNotificationQueryService(ctx);
+            var service = CreateService(ctx);
             var page1 = await service.GetListAsync(StaffA, 1, 3, StaffNotificationQueryService.ChannelPos);
 
             Assert.True(page1.IsSuccess);
@@ -71,7 +123,7 @@ namespace CafeChain.Tests.POS
                 .Select(n => n.StaffNotificationId)
                 .FirstAsync();
 
-            var service = new StaffNotificationQueryService(ctx);
+            var service = CreateService(ctx);
             var result = await service.MarkReadAsync(StaffA, id);
 
             Assert.True(result.IsSuccess);
@@ -93,7 +145,7 @@ namespace CafeChain.Tests.POS
                 .Select(n => n.StaffNotificationId)
                 .FirstAsync();
 
-            var service = new StaffNotificationQueryService(ctx);
+            var service = CreateService(ctx);
             var result = await service.MarkReadAsync(StaffA, bId);
 
             Assert.False(result.IsSuccess);
@@ -108,7 +160,7 @@ namespace CafeChain.Tests.POS
             SeedTwoStaffNotifications(ctx);
             await ctx.SaveChangesAsync();
 
-            var service = new StaffNotificationQueryService(ctx);
+            var service = CreateService(ctx);
             var result = await service.MarkAllReadAsync(StaffA);
 
             Assert.True(result.IsSuccess);
@@ -142,7 +194,7 @@ namespace CafeChain.Tests.POS
             });
             await ctx.SaveChangesAsync();
 
-            var service = new StaffNotificationQueryService(ctx);
+            var service = CreateService(ctx);
             var list = await service.GetListAsync(StaffA, 1, 20, StaffNotificationQueryService.ChannelPos);
 
             Assert.True(list.IsSuccess);
@@ -198,7 +250,7 @@ namespace CafeChain.Tests.POS
             CafeChain.Data.AppDbContext ctx,
             int staffId)
         {
-            var service = new StaffNotificationQueryService(ctx);
+            var service = CreateService(ctx);
             var controller = new POSNotificationsController(service);
             controller.ControllerContext = new ControllerContext
             {

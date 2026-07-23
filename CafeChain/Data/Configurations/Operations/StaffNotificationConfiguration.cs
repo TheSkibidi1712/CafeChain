@@ -24,6 +24,14 @@ namespace CafeChain.Data.Configurations.Operations
                 .IsRequired()
                 .HasMaxLength(2000);
 
+            entity.Property(x => x.Severity)
+                .IsRequired()
+                .HasMaxLength(16)
+                .HasDefaultValue("INFO");
+
+            entity.Property(x => x.DeduplicationKey)
+                .HasMaxLength(240);
+
             entity.Property(x => x.EntityType)
                 .IsRequired()
                 .HasMaxLength(64);
@@ -61,6 +69,11 @@ namespace CafeChain.Data.Configurations.Operations
 
             entity.HasIndex(x => new { x.EntityType, x.EntityId })
                 .HasDatabaseName("IX_StaffNotification_Entity");
+
+            entity.HasIndex(x => x.DeduplicationKey)
+                .IsUnique()
+                .HasFilter("[DeduplicationKey] IS NOT NULL")
+                .HasDatabaseName("UX_StaffNotification_DeduplicationKey");
         }
     }
 }

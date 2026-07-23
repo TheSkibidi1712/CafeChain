@@ -7,12 +7,16 @@ using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Interfaces.Systems;
 using CafeChain.Application.Services.Admin.InventoryDocuments;
+using CafeChain.Areas.Admin.Controllers;
 using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Stores;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace CafeChain.Tests;
@@ -20,9 +24,70 @@ namespace CafeChain.Tests;
 public sealed class InventoryDocumentStoreInventorySourceTests
 {
     [Theory]
+    [InlineData(InventoryDocumentType.IMPORT)]
+    [InlineData(InventoryDocumentType.ADJUSTMENT_IN)]
+    public async Task CreateModal_rejects_manual_import_and_adjustment(
+        InventoryDocumentType type)
+    {
+        var createService = new Mock<IAdminInventoryDocumentCreateService>(MockBehavior.Strict);
+        var controller = new AdminInventoryDocumentController(
+            Mock.Of<IAdminInventoryDocumentService>(),
+            createService.Object,
+            Mock.Of<ILogger<AdminInventoryDocumentController>>());
+
+        var result = await controller.CreateModal(type);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        createService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Backend_validation_keeps_import_purchase_contract()
+    {
+        var repository = new Mock<IAdminInventoryDocumentRepository>();
+        var validation = new AdminInventoryDocumentValidationService(repository.Object);
+        var dto = new CreateInventoryDocumentDTO
+        {
+            StoreId = 3,
+            SupplierId = 7,
+            Type = InventoryDocumentType.IMPORT,
+            Purpose = InventoryDocumentPurpose.IMPORT_PURCHASE,
+            DocumentDate = DateTime.Today,
+            Details =
+            [
+                new CreateInventoryDocumentItemDTO
+                {
+                    IngredientId = 1,
+                    UnitId = 1,
+                    Quantity = 1,
+                    BaseQuantity = 1,
+                    UnitPrice = 10
+                }
+            ]
+        };
+
+        repository.Setup(x => x.GetStoreAsync(3)).ReturnsAsync(new Store { StoreId = 3, Active = true });
+        repository.Setup(x => x.GetSupplierAsync(7)).ReturnsAsync(new Supplier { SupplierId = 7, Active = true });
+        repository.Setup(x => x.IsActiveSupplierStoreAsync(7, 3)).ReturnsAsync(true);
+        repository.Setup(x => x.GetIngredientAsync(1)).ReturnsAsync(Ingredient(1, true));
+        repository.Setup(x => x.GetUnitAsync(1)).ReturnsAsync(BaseUnit());
+
+        await validation.ValidateCreateAsync(dto);
+    }
+
+    [Fact]
+    public void Legacy_purpose_numeric_values_remain_stable()
+    {
+        Assert.Equal(3, (int)InventoryDocumentPurpose.IMPORT_ADJUSTMENT);
+        Assert.Equal(7, (int)InventoryDocumentPurpose.GIFT);
+        Assert.Equal(8, (int)InventoryDocumentPurpose.DEBT);
+        Assert.Equal(9, (int)InventoryDocumentPurpose.SAMPLE);
+        Assert.Equal(10, (int)InventoryDocumentPurpose.ADJUSTMENT_OUT);
+        Assert.Equal(11, (int)InventoryDocumentPurpose.STOCK_TAKE);
+    }
+
+    [Theory]
     [InlineData(InventoryDocumentType.EXPORT, InventoryDocumentPurpose.SALE, 1, 2, 3)]
-    [InlineData(InventoryDocumentType.EXPORT, InventoryDocumentPurpose.GIFT, 1, 2, 3)]
-    [InlineData(InventoryDocumentType.EXPORT, InventoryDocumentPurpose.ADJUSTMENT_OUT, 1)]
     [InlineData(InventoryDocumentType.WASTE, InventoryDocumentPurpose.DAMAGED, 1)]
     [InlineData(InventoryDocumentType.STOCK_TAKE, InventoryDocumentPurpose.STOCK_TAKE, 1, 2, 3)]
     public async Task StoreInventorySource_ReturnsOnlyEligibleActiveIngredientsForSelectedStore(
@@ -100,6 +165,42 @@ public sealed class InventoryDocumentStoreInventorySourceTests
         Assert.Equal("INGREDIENT_NOT_IN_STORE_INVENTORY", exception.Message);
     }
 
+    [Theory]
+    [InlineData(InventoryDocumentType.WASTE, InventoryDocumentPurpose.DAMAGED)]
+    [InlineData(InventoryDocumentType.STOCK_TAKE, InventoryDocumentPurpose.STOCK_TAKE)]
+    [InlineData(InventoryDocumentType.IMPORT, InventoryDocumentPurpose.IMPORT_PURCHASE)]
+    public async Task Validation_rejects_negative_opt_in_outside_sale_export(
+        InventoryDocumentType type,
+        InventoryDocumentPurpose purpose)
+    {
+        var validation = new AdminInventoryDocumentValidationService(
+            Mock.Of<IAdminInventoryDocumentRepository>());
+        var dto = new CreateInventoryDocumentDTO
+        {
+            StoreId = 3,
+            Type = type,
+            Purpose = purpose,
+            AllowNegativeStock = true,
+            DocumentDate = DateTime.Today,
+            Note = type == InventoryDocumentType.WASTE ? "Hàng hỏng" : null,
+            Details =
+            [
+                new CreateInventoryDocumentItemDTO
+                {
+                    IngredientId = 1,
+                    UnitId = 1,
+                    Quantity = 1,
+                    BaseQuantity = 1
+                }
+            ]
+        };
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => validation.ValidateCreateAsync(dto));
+
+        Assert.Contains("chỉ Phiếu Xuất", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public async Task ConfirmDraft_RejectsLegacyOutboundWithoutStoreInventory()
     {
@@ -121,6 +222,70 @@ public sealed class InventoryDocumentStoreInventorySourceTests
         repository.Verify(
             x => x.GetOrCreateStoreInventoryForIngredientAsync(It.IsAny<int>(), It.IsAny<int>()),
             Times.Never);
+    }
+
+    [Theory]
+    [InlineData(InventoryDocumentType.EXPORT, InventoryDocumentPurpose.GIFT, "Mục đích phiếu xuất không hợp lệ.")]
+    [InlineData(InventoryDocumentType.EXPORT, InventoryDocumentPurpose.DEBT, "Mục đích phiếu xuất không hợp lệ.")]
+    [InlineData(InventoryDocumentType.EXPORT, InventoryDocumentPurpose.SAMPLE, "Mục đích phiếu xuất không hợp lệ.")]
+    [InlineData(InventoryDocumentType.EXPORT, InventoryDocumentPurpose.ADJUSTMENT_OUT, "Phiếu Kiểm Kê")]
+    [InlineData(InventoryDocumentType.IMPORT, InventoryDocumentPurpose.IMPORT_ADJUSTMENT, "Phiếu Kiểm Kê")]
+    public async Task Validation_rejects_retired_create_purposes(
+        InventoryDocumentType type,
+        InventoryDocumentPurpose purpose,
+        string expectedMessage)
+    {
+        var validation = new AdminInventoryDocumentValidationService(
+            Mock.Of<IAdminInventoryDocumentRepository>());
+        var dto = new CreateInventoryDocumentDTO
+        {
+            StoreId = 3,
+            Type = type,
+            Purpose = purpose,
+            DocumentDate = DateTime.Today,
+            Details =
+            [
+                new CreateInventoryDocumentItemDTO
+                {
+                    IngredientId = 1,
+                    UnitId = 1,
+                    Quantity = 1,
+                    BaseQuantity = 1
+                }
+            ]
+        };
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => validation.ValidateCreateAsync(dto));
+
+        Assert.Contains(expectedMessage, exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(InventoryDocumentType.EXPORT, InventoryDocumentPurpose.GIFT)]
+    [InlineData(InventoryDocumentType.EXPORT, InventoryDocumentPurpose.DEBT)]
+    [InlineData(InventoryDocumentType.EXPORT, InventoryDocumentPurpose.SAMPLE)]
+    [InlineData(InventoryDocumentType.EXPORT, InventoryDocumentPurpose.ADJUSTMENT_OUT)]
+    [InlineData(InventoryDocumentType.IMPORT, InventoryDocumentPurpose.IMPORT_ADJUSTMENT)]
+    public async Task ConfirmDraft_rejects_retired_user_purposes(
+        InventoryDocumentType type,
+        InventoryDocumentPurpose purpose)
+    {
+        var validation = new AdminInventoryDocumentValidationService(
+            Mock.Of<IAdminInventoryDocumentRepository>());
+        var document = new InventoryDocument
+        {
+            StoreId = 3,
+            Type = type,
+            Purpose = purpose,
+            Status = InventoryDocumentStatus.DRAFT,
+            Details = [new InventoryDocumentDetail { IngredientId = 1 }]
+        };
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => validation.ValidateConfirmAsync(document));
+
+        Assert.Contains("ngừng áp dụng", exception.Message, StringComparison.Ordinal);
     }
 
     private static AdminInventoryDocumentCreateService CreateService(

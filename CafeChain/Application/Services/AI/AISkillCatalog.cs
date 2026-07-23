@@ -8,6 +8,17 @@ namespace CafeChain.Application.Services.AI;
 
 public sealed class AISkillCatalog : IAISkillCatalog
 {
+    private static readonly IReadOnlyDictionary<string, string> NamedSkillSchemas =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["inventory-reorder-explanation"] = "inventory-reorder-explanation.schema.json",
+            ["dashboard-intent-parser"] = "dashboard-intent.schema.json",
+            ["dashboard-insight-explanation"] = "dashboard-insight-explanation.schema.json",
+            ["forecast-result-explanation"] = "forecast-result-explanation.schema.json",
+            ["supplier-score-explanation"] = "supplier-score-explanation.schema.json",
+            ["shift-proposal-explanation"] = "shift-proposal-explanation.schema.json",
+            ["anomaly-explanation"] = "anomaly-explanation.schema.json"
+        };
     private sealed record CacheEntry(DateTime LastWriteUtc, string Content);
     private sealed record SkillResource(string RelativePath, bool IsSkill, string? ExpectedName = null);
 
@@ -78,6 +89,34 @@ public sealed class AISkillCatalog : IAISkillCatalog
             loaded,
             string.Join("\n\n", sections),
             suggestionSchema,
+            warnings);
+    }
+
+    public async Task<AINamedSkillContext> GetNamedSkillAsync(
+        string skillName,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = skillName?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (!NamedSkillSchemas.TryGetValue(normalized, out var schemaFile))
+            throw new ArgumentOutOfRangeException(nameof(skillName), "AI skill is not whitelisted.");
+
+        var warnings = new List<string>();
+        var skillPath = Path.Combine(_options.SkillRootPath, normalized, "SKILL.md");
+        var rawSkill = await ReadSafeAsync(skillPath, warnings, cancellationToken);
+        var content = string.IsNullOrWhiteSpace(rawSkill)
+            ? string.Empty
+            : StripAndValidateFrontmatter(rawSkill, normalized, skillPath, warnings);
+        var schemaPath = Path.Combine(_options.SchemaRootPath, schemaFile);
+        var schema = await ReadJsonSchemaAsync(schemaPath, warnings, cancellationToken) ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(content) || string.IsNullOrWhiteSpace(schema))
+            throw new InvalidOperationException($"AI skill '{normalized}' does not have a valid skill and schema.");
+
+        return new AINamedSkillContext(
+            normalized,
+            content,
+            schema,
+            [skillPath.Replace('\\', '/'), schemaPath.Replace('\\', '/')],
             warnings);
     }
 

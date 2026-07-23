@@ -5,6 +5,19 @@ namespace CafeChain.Tests;
 public sealed class SeedAndPosLauncherRefactorTests
 {
     [Fact]
+    public void Admin_layout_keeps_notification_bell_and_removes_unused_sound_toggle()
+    {
+        var layout = ReadRepoFile("CafeChain/Areas/Admin/Views/Shared/_AdminLayout.cshtml");
+
+        Assert.DoesNotContain("globalSoundToggle", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("globalSoundIcon", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("fa-bell-slash", layout, StringComparison.Ordinal);
+        Assert.Contains("admin-notification-bell", layout, StringComparison.Ordinal);
+        Assert.Contains("adminNotificationBadge", layout, StringComparison.Ordinal);
+        Assert.Contains("AdminNotifications", layout, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Store1_seed_uses_business_keys_fixed_dates_and_idempotent_markers()
     {
         var sql = ReadRepoFile("CafeChain/Scripts/20260718_CafeChain_Store1_Complete_Demo_Seed.idempotent.sql");
@@ -40,6 +53,22 @@ public sealed class SeedAndPosLauncherRefactorTests
         Assert.Contains("NULL,", sql, StringComparison.Ordinal);
         Assert.DoesNotContain("N'APPROVED'", ExtractDashboardBatch(sql), StringComparison.Ordinal);
         Assert.DoesNotContain("N'SENT'", ExtractDashboardBatch(sql), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reorder_seed_has_two_store_rolling_pos_bom_contract()
+    {
+        var sql = ReadRepoFile("CafeChain/Scripts/SeedAll.sql");
+
+        Assert.Contains("BATCH 14/14 - POS BOM CONSUMPTION AND REORDER HISTORY", sql, StringComparison.Ordinal);
+        Assert.Contains("DEMO_REORDER_V14", sql, StringComparison.Ordinal);
+        Assert.Contains("salesstaff.dian@cafechain.vn", sql, StringComparison.Ordinal);
+        Assert.Contains("@SeedAnchorUtc", sql, StringComparison.Ordinal);
+        Assert.Contains("SALES_DEDUCTION", sql, StringComparison.Ordinal);
+        Assert.Contains("PRODUCTION_OUT", sql, StringComparison.Ordinal);
+        Assert.Contains("SalesCostAllocations", sql, StringComparison.Ordinal);
+        Assert.Contains("ProductionCostAllocations", sql, StringComparison.Ordinal);
+        Assert.Contains("StoreId IN(1,3)", sql, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -101,7 +130,7 @@ public sealed class SeedAndPosLauncherRefactorTests
 
     private static string ExtractDashboardBatch(string sql)
     {
-        var marker = sql.IndexOf("BATCH 13/13 - DASHBOARD", StringComparison.Ordinal);
+        var marker = sql.IndexOf("BATCH 13/14 - DASHBOARD", StringComparison.Ordinal);
         return marker < 0 ? string.Empty : sql[marker..];
     }
 }

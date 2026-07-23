@@ -25,12 +25,8 @@ public sealed class InventoryIssuePolicyTests
         Assert.Equal(expectedReason, result.ReasonCode);
     }
 
-    [Theory]
-    [InlineData("SALE")]
-    [InlineData("GIFT")]
-    [InlineData("DEBT")]
-    [InlineData("SAMPLE")]
-    public async Task Allowed_manual_purposes_require_approval_at_exact_limit(string purpose)
+    [Fact]
+    public async Task Sale_manual_purpose_requires_approval_at_exact_limit()
     {
         var policy = CreatePolicy(ValidSettings(enabled: true, limit: 3));
 
@@ -38,12 +34,64 @@ public sealed class InventoryIssuePolicyTests
             InventoryIssueOperation.ManualExternalExport,
             before: 2,
             issue: 5,
-            purpose: purpose,
+            purpose: "SALE",
             reason: "Hàng đã giao thực tế"));
 
         Assert.Equal(InventoryIssueOutcome.ApprovalRequired, result.Outcome);
         Assert.Equal(-3, result.ProjectedAfterQty);
         Assert.Equal(3, result.EffectiveMaxNegativeQty);
+    }
+
+    [Fact]
+    public async Task Sale_manual_export_is_blocked_when_user_did_not_opt_in()
+    {
+        var policy = CreatePolicy(ValidSettings(enabled: true, limit: 3));
+
+        var result = await policy.EvaluateAsync(Request(
+            InventoryIssueOperation.ManualExternalExport,
+            before: 2,
+            issue: 3,
+            purpose: "SALE",
+            reason: null,
+            allowNegativeStock: false));
+
+        Assert.Equal(InventoryIssueOutcome.Blocked, result.Outcome);
+        Assert.Equal(InventoryIssueReasonCodes.ManualNegativeOptInRequired, result.ReasonCode);
+    }
+
+    [Fact]
+    public async Task Non_negative_sale_is_allowed_without_opt_in()
+    {
+        var policy = CreatePolicy(ValidSettings(enabled: false, limit: 0));
+
+        var result = await policy.EvaluateAsync(Request(
+            InventoryIssueOperation.ManualExternalExport,
+            before: 3,
+            issue: 3,
+            purpose: "SALE",
+            allowNegativeStock: false));
+
+        Assert.Equal(InventoryIssueOutcome.Allowed, result.Outcome);
+        Assert.Equal(0, result.ProjectedAfterQty);
+    }
+
+    [Theory]
+    [InlineData("GIFT")]
+    [InlineData("DEBT")]
+    [InlineData("SAMPLE")]
+    public async Task Legacy_manual_purposes_are_blocked(string purpose)
+    {
+        var policy = CreatePolicy(ValidSettings(enabled: true, limit: 3));
+
+        var result = await policy.EvaluateAsync(Request(
+            InventoryIssueOperation.ManualExternalExport,
+            before: 0,
+            issue: 1,
+            purpose: purpose,
+            reason: "Legacy"));
+
+        Assert.Equal(InventoryIssueOutcome.Blocked, result.Outcome);
+        Assert.Equal(InventoryIssueReasonCodes.ManualNegativePurposeNotAllowed, result.ReasonCode);
     }
 
     [Fact]
@@ -183,8 +231,9 @@ public sealed class InventoryIssuePolicyTests
         decimal before,
         decimal issue,
         string? purpose = null,
-        string? reason = null) =>
-        new(operation, 1, 10, null, before, issue, null, purpose, reason, null, null);
+        string? reason = null,
+        bool allowNegativeStock = true) =>
+        new(operation, 1, 10, null, before, issue, null, purpose, reason, null, null, null, allowNegativeStock);
 
     private static Dictionary<string, string> Values(bool enabled, bool approvalRequired, string limit) =>
         new()

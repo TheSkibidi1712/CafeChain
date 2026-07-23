@@ -6,7 +6,6 @@ public sealed class StaffHubScheduleVM
     public string StaffName { get; init; } = string.Empty;
     public string StoreName { get; init; } = string.Empty;
     public string? AvatarUrl { get; init; }
-    public bool RequiresPasswordChange { get; init; }
     public DateTime WeekStart { get; init; }
     public IReadOnlyList<StaffHubScheduleItemVM> Schedules { get; init; } = Array.Empty<StaffHubScheduleItemVM>();
 }

@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using CafeChain.Application.Constants;
-using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Interfaces.StaffHub;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,18 +13,15 @@ namespace CafeChain.Controllers;
 public sealed class StaffHubController : Controller
 {
     private readonly IStaffScheduleService _scheduleService;
-    private readonly IAccountService _accountService;
     private readonly IConfiguration _configuration;
     private readonly IAuthorizationService _authorizationService;
 
     public StaffHubController(
         IStaffScheduleService scheduleService,
-        IAccountService accountService,
         IConfiguration configuration,
         IAuthorizationService authorizationService)
     {
         _scheduleService = scheduleService;
-        _accountService = accountService;
         _configuration = configuration;
         _authorizationService = authorizationService;
     }
@@ -44,17 +40,6 @@ public sealed class StaffHubController : Controller
 
         ViewBag.CanAccessPos = (await _authorizationService.AuthorizeAsync(User, AuthorizationPolicyConstants.PosApp)).Succeeded;
         return View(result.Data);
-    }
-
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> ChangeRequiredPassword(string oldPassword, string newPassword)
-    {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId) || accountId <= 0)
-            return Unauthorized(new { success = false, message = "Không xác định được tài khoản." });
-        var result = await _accountService.ChangeRequiredPasswordAsync(accountId, oldPassword, newPassword);
-        return result.IsSuccess
-            ? Ok(new { success = true, message = result.Message })
-            : BadRequest(new { success = false, message = result.Message });
     }
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]

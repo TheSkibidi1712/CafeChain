@@ -80,7 +80,7 @@ graph TD
 | **Phase 1** | Đổi tên Kiosk → StaffHub (Controller, View, Route) | ☐ |
 |  | Cập nhật `RedirectByRole` dùng `RoleConstants` và redirect `/StaffHub` | ☐ |
 |  | Thêm `StoreId` claim trong `SignInAsync` | ☐ |
-| **Phase 2** | Sửa IDOR trong các API Attendance (`SubmitTimeAction`, `RegisterFace`, `GetKioskData`, `FirstLoginChangePassword`) | ☐ |
+| **Phase 2** | Sửa IDOR trong các API Attendance (`SubmitTimeAction`, `RegisterFace`, `GetKioskData`) | ☐ |
 |  | Refactor `MyBYOD` để gọi `IAttendanceActionService` thay vì DbContext trực tiếp | ☐ |
 |  | Thêm guard `Duplicate Check‑in` và **Overnight Shift** logic | ☐ |
 | **Phase 3** | Xây dựng UI StaffHub Dashboard (4 mô‑đun) và tích hợp `face‑api.js` | ☐ |

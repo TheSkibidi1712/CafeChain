@@ -133,7 +133,7 @@
                             <div class="section-title"><i class="fas fa-briefcase me-1"></i> Công việc và tài khoản đăng nhập</div>
                             <div class="row g-3">
                                 <div class="col-md-6"><label asp-for="Email" class="form-label">Email đăng nhập <span class="text-danger">*</span></label><input asp-for="Email" class="form-control" autocomplete="off" placeholder="staff@cafechain.vn" /><span asp-validation-for="Email" class="text-danger small"></span></div>
-                                <div class="col-md-6"><label asp-for="Password" class="form-label">Mật khẩu ban đầu <span class="text-danger">*</span></label><div class="input-group"><input asp-for="Password" id="createPassword" type="password" class="form-control" autocomplete="new-password" /><button type="button" class="btn btn-outline-secondary" id="toggleCreatePassword" aria-label="Hiện hoặc ẩn mật khẩu"><i class="fas fa-eye"></i></button></div><span asp-validation-for="Password" class="text-danger small"></span><small class="text-muted">Nhân viên phải đổi mật khẩu ở lần đăng nhập đầu tiên.</small></div>
+                                <div class="col-md-6"><label asp-for="Password" class="form-label">Mật khẩu ban đầu <span class="text-danger">*</span></label><div class="input-group"><input asp-for="Password" id="createPassword" type="password" class="form-control" autocomplete="new-password" /><button type="button" class="btn btn-outline-secondary" id="toggleCreatePassword" aria-label="Hiện hoặc ẩn mật khẩu"><i class="fas fa-eye"></i></button></div><span asp-validation-for="Password" class="text-danger small"></span><small class="text-muted">Nhân viên có thể chủ động đổi mật khẩu sau khi đăng nhập.</small></div>
                                 <div class="col-md-4"><label asp-for="StartDate" class="form-label">Ngày bắt đầu</label><input asp-for="StartDate" type="date" class="form-control" /></div>
                                 <div class="col-md-4"><label asp-for="EmployeeStatus" class="form-label">Trạng thái nhân sự</label><select asp-for="EmployeeStatus" class="form-select"><option value="1">Thử việc</option><option value="2">Chính thức</option><option value="3">Đã nghỉ việc</option></select></div>
                             </div>
@@ -169,6 +169,8 @@
     const avatarPreview = document.getElementById('createAvatarPreview');
     const avatarPlaceholder = document.getElementById('createAvatarPlaceholder');
     const removeAvatar = document.getElementById('removeCreateAvatar');
+    let districtRequestVersion = 0;
+    let wardRequestVersion = 0;
 
     const scopeTypeCatalog = [...scopeType.options]
         .filter(x => x.value)
@@ -201,16 +203,21 @@
             return rows;
         } catch { resetSelect(select, 'Không tải được dữ liệu'); return []; }
     };
-    const loadLocationOptions = async (select, url, parameterName, parentId, placeholder) => {
+    const loadLocationOptions = async (select, url, parameterName, parentId, placeholder, requestVersion) => {
         resetSelect(select, 'Đang tải...');
         try {
             const response = await fetch(`${url}?${parameterName}=${encodeURIComponent(parentId)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             if (!response.ok) throw new Error();
             const rows = await response.json();
+            if (!requestVersion()) return [];
             resetSelect(select, placeholder);
             rows.forEach(x => select.add(new Option(x.name, x.id)));
             select.disabled = rows.length === 0;
-        } catch { resetSelect(select, 'Không tải được dữ liệu'); }
+            return rows;
+        } catch {
+            if (requestVersion()) resetSelect(select, 'Không tải được dữ liệu');
+            return [];
+        }
     };
     const filterPrimaryStores = () => {
         if (!primaryStore) return;
@@ -252,12 +259,28 @@
     };
 
     province?.addEventListener('change', async () => {
+        const requestVersion = ++districtRequestVersion;
+        ++wardRequestVersion;
         resetSelect(district, '-- Chọn Quận/Huyện --'); resetSelect(ward, '-- Chọn Phường/Xã --');
-        if (province.value) await loadLocationOptions(district, districtsEndpoint, 'provinceId', province.value, '-- Chọn Quận/Huyện --');
+        if (province.value) await loadLocationOptions(
+            district,
+            districtsEndpoint,
+            'provinceId',
+            province.value,
+            '-- Chọn Quận/Huyện --',
+            () => requestVersion === districtRequestVersion && province.value !== '');
     });
     district?.addEventListener('change', async () => {
+        const parentDistrictId = district.value;
+        const requestVersion = ++wardRequestVersion;
         resetSelect(ward, '-- Chọn Phường/Xã --');
-        if (district.value) await loadLocationOptions(ward, wardsEndpoint, 'districtId', district.value, '-- Chọn Phường/Xã --');
+        if (parentDistrictId) await loadLocationOptions(
+            ward,
+            wardsEndpoint,
+            'districtId',
+            parentDistrictId,
+            '-- Chọn Phường/Xã --',
+            () => requestVersion === wardRequestVersion && district.value === parentDistrictId);
     });
     const handleScopeTypeChange = async () => {
         resetSelect(scopeRef, '-- Chọn phạm vi --');
@@ -310,13 +333,45 @@
     removeAvatar?.addEventListener('click', () => { avatarInput.value = ''; avatarPreview.removeAttribute('src'); avatarPreview.style.display = 'none'; avatarPlaceholder.style.display = ''; removeAvatar.classList.add('d-none'); });
     document.getElementById('toggleCreatePassword')?.addEventListener('click', e => { const input = document.getElementById('createPassword'); input.type = input.type === 'password' ? 'text' : 'password'; e.currentTarget.querySelector('i').classList.toggle('fa-eye'); e.currentTarget.querySelector('i').classList.toggle('fa-eye-slash'); });
 
-    form.addEventListener('submit', e => {
-        if (form.checkValidity()) return;
-        e.preventDefault(); e.stopPropagation(); form.classList.add('was-validated');
-        const invalid = form.querySelector(':invalid');
-        const pane = invalid?.closest('.tab-pane');
-        if (pane) bootstrap.Tab.getOrCreateInstance(document.querySelector(`[data-bs-target="#${pane.id}"]`)).show();
-        setTimeout(() => invalid?.focus(), 120);
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            const invalid = form.querySelector(':invalid');
+            const pane = invalid?.closest('.tab-pane');
+            if (pane) bootstrap.Tab.getOrCreateInstance(document.querySelector(`[data-bs-target="#${pane.id}"]`)).show();
+            requestAnimationFrame(() => invalid?.focus());
+            return;
+        }
+
+        const submitButton = document.getElementById('createStaffSubmit');
+        submitButton.disabled = true;
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(form)
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                const details = Array.isArray(payload?.errors) && payload.errors.length
+                    ? `\n${payload.errors.join('\n')}`
+                    : '';
+                await Swal.fire({
+                    title: response.status === 403 ? 'Không có quyền' : 'Không thể tạo nhân viên',
+                    text: `${payload?.message || 'Yêu cầu không thể xử lý.'}${details}`,
+                    icon: 'error'
+                });
+                return;
+            }
+
+            window.location.assign(payload.redirectUrl || '@Url.Action("Index", "AdminStaff", new { area = "Admin" })');
+        } catch {
+            await Swal.fire('Lỗi kết nối', 'Không thể kết nối máy chủ. Dữ liệu bạn đã nhập vẫn được giữ lại.', 'error');
+        } finally {
+            submitButton.disabled = false;
+        }
     });
 })();
 </script>

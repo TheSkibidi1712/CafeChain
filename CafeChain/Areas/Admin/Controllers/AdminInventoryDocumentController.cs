@@ -16,19 +16,14 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminInventoryDocumentService _service;
         private readonly IAdminInventoryDocumentCreateService _serviceCreate;
         private readonly ILogger<AdminInventoryDocumentController> _logger;
-        private readonly IWebHostEnvironment _environment;
-
-
         public AdminInventoryDocumentController(
             IAdminInventoryDocumentService service,
             IAdminInventoryDocumentCreateService serviceCreate,
-            ILogger<AdminInventoryDocumentController> logger,
-            IWebHostEnvironment environment)
+            ILogger<AdminInventoryDocumentController> logger)
         {
             _service = service;
             _serviceCreate = serviceCreate;
             _logger = logger;
-            _environment = environment;
         }
 
         // =====================================================
@@ -42,9 +37,16 @@ namespace CafeChain.Areas.Admin.Controllers
 
             filter.PageSize = filter.PageSize <= 0 ? 20 : filter.PageSize;
 
-            var vm = await _service.GetIndexDataAsync(filter);
+            try
+            {
+                var vm = await _service.GetIndexDataAsync(filter);
 
-            return View(vm);
+                return View(vm);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
 
@@ -72,6 +74,13 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> CreateModal(InventoryDocumentType type)
         {
+            if (type is not InventoryDocumentType.EXPORT
+                and not InventoryDocumentType.STOCK_TAKE
+                and not InventoryDocumentType.WASTE)
+            {
+                return BadRequest("Loại phiếu này không được phép tạo trực tiếp từ màn hình Phiếu Kho.");
+            }
+
             var vm =
                 await _serviceCreate.GetCreateDataAsync(type);
 
@@ -248,8 +257,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
                 return BadRequest(
                     ErrorResponse(
-                        "Không thể lưu nháp phiếu kho do dữ liệu chưa phù hợp.",
-                        ex));
+                        "Không thể lưu nháp phiếu kho do dữ liệu chưa phù hợp."));
             }
             catch (Exception ex)
             {
@@ -310,8 +318,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
                 return BadRequest(
                     ErrorResponse(
-                        "Không thể tạo và xác nhận phiếu do dữ liệu chưa phù hợp.",
-                        ex));
+                        "Không thể tạo và xác nhận phiếu do dữ liệu chưa phù hợp."));
             }
             catch (Exception ex)
             {
@@ -399,8 +406,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
                 return BadRequest(
                     ErrorResponse(
-                        "Không thể xác nhận phiếu do dữ liệu tồn kho chưa phù hợp.",
-                        ex));
+                        "Không thể xác nhận phiếu do dữ liệu tồn kho chưa phù hợp."));
             }
             catch (Exception ex)
             {
@@ -542,6 +548,10 @@ namespace CafeChain.Areas.Admin.Controllers
 
                 return File(file, contentType, fileName);
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to export inventory documents to Excel.");
@@ -588,22 +598,11 @@ namespace CafeChain.Areas.Admin.Controllers
                 $"InventoryDocument_{id}.{(isPdf ? "pdf" : "docx")}");
         }
 
-        private object ErrorResponse(string message, Exception exception)
+        private object ErrorResponse(string message)
         {
             var traceId =
                 Activity.Current?.Id ??
                 HttpContext.TraceIdentifier;
-
-            if (_environment.IsDevelopment())
-            {
-                return new
-                {
-                    success = false,
-                    message,
-                    traceId,
-                    debugMessage = exception.GetBaseException().Message
-                };
-            }
 
             return new
             {

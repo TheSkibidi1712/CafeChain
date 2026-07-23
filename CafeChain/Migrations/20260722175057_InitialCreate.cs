@@ -1534,6 +1534,40 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ForecastRuns",
+                columns: table => new
+                {
+                    ForecastRunId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SeriesType = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    EntityId = table.Column<int>(type: "int", nullable: true),
+                    TrainingFrom = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    TrainingToExclusive = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    HorizonDays = table.Column<int>(type: "int", nullable: false),
+                    ModelType = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    ModelVersion = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    SampleCount = table.Column<int>(type: "int", nullable: false),
+                    Mae = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: true),
+                    Wape = table.Column<decimal>(type: "decimal(9,4)", precision: 9, scale: 4, nullable: true),
+                    QualityStatus = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    WarningJson = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiresAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    InputDataVersion = table.Column<string>(type: "nvarchar(80)", maxLength: 80, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ForecastRuns", x => x.ForecastRunId);
+                    table.ForeignKey(
+                        name: "FK_ForecastRuns_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "InventoryWriterModeTransitions",
                 columns: table => new
                 {
@@ -1591,6 +1625,47 @@ namespace CafeChain.Migrations
                         principalTable: "Stores",
                         principalColumn: "StoreId",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PosRecommendationCatalog",
+                columns: table => new
+                {
+                    PosRecommendationCatalogId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    TriggerDrinkId = table.Column<int>(type: "int", nullable: false),
+                    RecommendedDrinkId = table.Column<int>(type: "int", nullable: false),
+                    Support = table.Column<decimal>(type: "decimal(9,6)", nullable: false),
+                    Confidence = table.Column<decimal>(type: "decimal(9,6)", nullable: false),
+                    Lift = table.Column<decimal>(type: "decimal(9,6)", nullable: false),
+                    Margin = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Rank = table.Column<int>(type: "int", nullable: false),
+                    ModelVersion = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    GeneratedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiresAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PosRecommendationCatalog", x => x.PosRecommendationCatalogId);
+                    table.ForeignKey(
+                        name: "FK_PosRecommendationCatalog_Drinks_RecommendedDrinkId",
+                        column: x => x.RecommendedDrinkId,
+                        principalTable: "Drinks",
+                        principalColumn: "DrinkId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PosRecommendationCatalog_Drinks_TriggerDrinkId",
+                        column: x => x.TriggerDrinkId,
+                        principalTable: "Drinks",
+                        principalColumn: "DrinkId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PosRecommendationCatalog_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1859,6 +1934,29 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ForecastPoints",
+                columns: table => new
+                {
+                    ForecastPointId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ForecastRunId = table.Column<long>(type: "bigint", nullable: false),
+                    ForecastDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PointForecast = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
+                    LowerBound = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false),
+                    UpperBound = table.Column<decimal>(type: "decimal(19,4)", precision: 19, scale: 4, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ForecastPoints", x => x.ForecastPointId);
+                    table.ForeignKey(
+                        name: "FK_ForecastPoints_ForecastRuns_ForecastRunId",
+                        column: x => x.ForecastRunId,
+                        principalTable: "ForecastRuns",
+                        principalColumn: "ForecastRunId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "CashSessions",
                 columns: table => new
                 {
@@ -1974,6 +2072,7 @@ namespace CafeChain.Migrations
                     PartnerName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     SupplierId = table.Column<int>(type: "int", nullable: true),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    AllowNegativeStock = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     NegativeReason = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
                     TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     VatAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
@@ -2096,6 +2195,59 @@ namespace CafeChain.Migrations
                         column: x => x.SupervisorId,
                         principalTable: "Staffs",
                         principalColumn: "StaffId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OperationalAnomalies",
+                columns: table => new
+                {
+                    OperationalAnomalyId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    MetricCode = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    PeriodKey = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    CurrentValue = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
+                    BaselineValue = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
+                    AbsoluteDeviation = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
+                    PercentageDeviation = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
+                    RobustScore = table.Column<decimal>(type: "decimal(18,4)", nullable: false),
+                    WindowFromUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    WindowToExclusiveUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    SampleCount = table.Column<int>(type: "int", nullable: false),
+                    Severity = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
+                    Confidence = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
+                    ReasonCodesJson = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    AcknowledgedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    AcknowledgedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    ResolvedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Feedback = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    FeedbackByStaffId = table.Column<int>(type: "int", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OperationalAnomalies", x => x.OperationalAnomalyId);
+                    table.ForeignKey(
+                        name: "FK_OperationalAnomalies_Staffs_AcknowledgedByStaffId",
+                        column: x => x.AcknowledgedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OperationalAnomalies_Staffs_FeedbackByStaffId",
+                        column: x => x.FeedbackByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OperationalAnomalies_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -2270,6 +2422,48 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ScheduleOptimizationProposals",
+                columns: table => new
+                {
+                    ScheduleOptimizationProposalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    FromDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ToDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ConstraintVersion = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    ForecastRunId = table.Column<long>(type: "bigint", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    ScoreBreakdownJson = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
+                    ViolationsJson = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
+                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiresAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    AppliedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ScheduleOptimizationProposals", x => x.ScheduleOptimizationProposalId);
+                    table.ForeignKey(
+                        name: "FK_ScheduleOptimizationProposals_ForecastRuns_ForecastRunId",
+                        column: x => x.ForecastRunId,
+                        principalTable: "ForecastRuns",
+                        principalColumn: "ForecastRunId",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_ScheduleOptimizationProposals_Staffs_CreatedByStaffId",
+                        column: x => x.CreatedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ScheduleOptimizationProposals_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "StaffAddresses",
                 columns: table => new
                 {
@@ -2312,6 +2506,73 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StaffAvailabilityExceptions",
+                columns: table => new
+                {
+                    StaffAvailabilityExceptionId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    StartTime = table.Column<TimeSpan>(type: "time", nullable: true),
+                    EndTime = table.Column<TimeSpan>(type: "time", nullable: true),
+                    IsAvailable = table.Column<bool>(type: "bit", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffAvailabilityExceptions", x => x.StaffAvailabilityExceptionId);
+                    table.ForeignKey(
+                        name: "FK_StaffAvailabilityExceptions_Staffs_CreatedByStaffId",
+                        column: x => x.CreatedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StaffAvailabilityExceptions_Staffs_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StaffAvailabilityRules",
+                columns: table => new
+                {
+                    StaffAvailabilityRuleId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    DayOfWeek = table.Column<int>(type: "int", nullable: false),
+                    StartTime = table.Column<TimeSpan>(type: "time", nullable: false),
+                    EndTime = table.Column<TimeSpan>(type: "time", nullable: false),
+                    EffectiveFrom = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EffectiveTo = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Active = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffAvailabilityRules", x => x.StaffAvailabilityRuleId);
+                    table.ForeignKey(
+                        name: "FK_StaffAvailabilityRules_Staffs_CreatedByStaffId",
+                        column: x => x.CreatedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StaffAvailabilityRules_Staffs_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "StaffNotifications",
                 columns: table => new
                 {
@@ -2322,6 +2583,10 @@ namespace CafeChain.Migrations
                     Type = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Body = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
+                    Severity = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false, defaultValue: "INFO"),
+                    DeduplicationKey = table.Column<string>(type: "nvarchar(240)", maxLength: 240, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ResolvedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     EntityType = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     EntityId = table.Column<int>(type: "int", nullable: false),
                     IsRead = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
@@ -2431,6 +2696,80 @@ namespace CafeChain.Migrations
                         principalTable: "Staffs",
                         principalColumn: "StaffId",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StaffTimeOffs",
+                columns: table => new
+                {
+                    StaffTimeOffId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    FromUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ToUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    RequestedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    ReviewedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ReviewedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffTimeOffs", x => x.StaffTimeOffId);
+                    table.ForeignKey(
+                        name: "FK_StaffTimeOffs_Staffs_RequestedByStaffId",
+                        column: x => x.RequestedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StaffTimeOffs_Staffs_ReviewedByStaffId",
+                        column: x => x.ReviewedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StaffTimeOffs_Staffs_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StaffWorkConstraints",
+                columns: table => new
+                {
+                    StaffWorkConstraintId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    EffectiveFrom = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EffectiveTo = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    TargetWeeklyHours = table.Column<decimal>(type: "decimal(6,2)", precision: 6, scale: 2, nullable: false),
+                    MaxWeeklyHours = table.Column<decimal>(type: "decimal(6,2)", precision: 6, scale: 2, nullable: false),
+                    MaxDailyHours = table.Column<decimal>(type: "decimal(6,2)", precision: 6, scale: 2, nullable: false),
+                    MinimumRestMinutes = table.Column<int>(type: "int", nullable: false),
+                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffWorkConstraints", x => x.StaffWorkConstraintId);
+                    table.ForeignKey(
+                        name: "FK_StaffWorkConstraints_Staffs_CreatedByStaffId",
+                        column: x => x.CreatedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StaffWorkConstraints_Staffs_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -2585,6 +2924,55 @@ namespace CafeChain.Migrations
                         principalTable: "Stores",
                         principalColumn: "StoreId",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StoreStaffingRequirements",
+                columns: table => new
+                {
+                    StoreStaffingRequirementId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    ShiftId = table.Column<int>(type: "int", nullable: false),
+                    DayOfWeek = table.Column<int>(type: "int", nullable: false),
+                    MinimumStaff = table.Column<int>(type: "int", nullable: false),
+                    TargetStaff = table.Column<int>(type: "int", nullable: false),
+                    MaximumStaff = table.Column<int>(type: "int", nullable: false),
+                    RequiredRoleId = table.Column<int>(type: "int", nullable: true),
+                    EffectiveFrom = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EffectiveTo = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Active = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StoreStaffingRequirements", x => x.StoreStaffingRequirementId);
+                    table.ForeignKey(
+                        name: "FK_StoreStaffingRequirements_Roles_RequiredRoleId",
+                        column: x => x.RequiredRoleId,
+                        principalTable: "Roles",
+                        principalColumn: "RoleId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StoreStaffingRequirements_Shifts_ShiftId",
+                        column: x => x.ShiftId,
+                        principalTable: "Shifts",
+                        principalColumn: "ShiftId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StoreStaffingRequirements_Staffs_CreatedByStaffId",
+                        column: x => x.CreatedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StoreStaffingRequirements_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -3069,6 +3457,43 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ScheduleOptimizationAssignments",
+                columns: table => new
+                {
+                    ScheduleOptimizationAssignmentId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ScheduleOptimizationProposalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    ShiftId = table.Column<int>(type: "int", nullable: false),
+                    WorkDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    StartTime = table.Column<TimeSpan>(type: "time", nullable: false),
+                    EndTime = table.Column<TimeSpan>(type: "time", nullable: false),
+                    ReasonCodesJson = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ScheduleOptimizationAssignments", x => x.ScheduleOptimizationAssignmentId);
+                    table.ForeignKey(
+                        name: "FK_ScheduleOptimizationAssignments_ScheduleOptimizationProposals_ScheduleOptimizationProposalId",
+                        column: x => x.ScheduleOptimizationProposalId,
+                        principalTable: "ScheduleOptimizationProposals",
+                        principalColumn: "ScheduleOptimizationProposalId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ScheduleOptimizationAssignments_Shifts_ShiftId",
+                        column: x => x.ShiftId,
+                        principalTable: "Shifts",
+                        principalColumn: "ShiftId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ScheduleOptimizationAssignments_Staffs_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RestockRequests",
                 columns: table => new
                 {
@@ -3297,6 +3722,7 @@ namespace CafeChain.Migrations
                     StaffId = table.Column<int>(type: "int", nullable: true),
                     WorkShiftId = table.Column<int>(type: "int", nullable: true),
                     ClientOrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    RecommendationSessionId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     Source = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     PaymentReference = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -3973,6 +4399,37 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PosRecommendationExposures",
+                columns: table => new
+                {
+                    PosRecommendationExposureId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    RecommendationSessionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    OrderId = table.Column<int>(type: "int", nullable: true),
+                    Variant = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
+                    ModelVersion = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ConvertedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PosRecommendationExposures", x => x.PosRecommendationExposureId);
+                    table.ForeignKey(
+                        name: "FK_PosRecommendationExposures_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "OrderId",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_PosRecommendationExposures_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PurchaseOrderLineAllocations",
                 columns: table => new
                 {
@@ -4121,6 +4578,32 @@ namespace CafeChain.Migrations
                         principalTable: "Toppings",
                         principalColumn: "ToppingId",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PosRecommendationExposureItems",
+                columns: table => new
+                {
+                    PosRecommendationExposureItemId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PosRecommendationExposureId = table.Column<long>(type: "bigint", nullable: false),
+                    TriggerDrinkId = table.Column<int>(type: "int", nullable: false),
+                    RecommendedDrinkId = table.Column<int>(type: "int", nullable: false),
+                    Rank = table.Column<int>(type: "int", nullable: false),
+                    WasDisplayed = table.Column<bool>(type: "bit", nullable: false),
+                    WasClicked = table.Column<bool>(type: "bit", nullable: false),
+                    WasAdded = table.Column<bool>(type: "bit", nullable: false),
+                    WasPurchased = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PosRecommendationExposureItems", x => x.PosRecommendationExposureItemId);
+                    table.ForeignKey(
+                        name: "FK_PosRecommendationExposureItems_PosRecommendationExposures_PosRecommendationExposureId",
+                        column: x => x.PosRecommendationExposureId,
+                        principalTable: "PosRecommendationExposures",
+                        principalColumn: "PosRecommendationExposureId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -5288,7 +5771,7 @@ namespace CafeChain.Migrations
                 values: new object[,]
                 {
                     { 1, "Toạ độ trung tâm mặc định (VD: TPHCM - 10.8231, 106.6297)", "Map_Default_Center", "10.8231, 106.6297" },
-                    { 2001, "Cho phép phiếu xuất ngoài SALE/GIFT/DEBT/SAMPLE gửi yêu cầu xuất âm.", "inventory_manual_external_export_negative_enabled", "false" },
+                    { 2001, "Cho phép phiếu xuất ngoài với mục đích SALE gửi yêu cầu xuất âm.", "inventory_manual_external_export_negative_enabled", "false" },
                     { 2002, "Bắt buộc maker-checker cho phiếu xuất ngoài làm âm kho.", "inventory_manual_external_export_approval_required", "true" },
                     { 2003, "Hạn mức âm mặc định cho phiếu xuất ngoài.", "inventory_manual_external_export_default_max_negative_quantity", "0" },
                     { 2004, "Phiên bản policy phiếu xuất ngoài làm âm kho.", "inventory_manual_external_export_policy_version", "manual-export-v1" }
@@ -6235,6 +6718,19 @@ namespace CafeChain.Migrations
                 column: "ToppingId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ForecastPoints_ForecastRunId_ForecastDate",
+                table: "ForecastPoints",
+                columns: new[] { "ForecastRunId", "ForecastDate" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ForecastRuns_StoreId_SeriesType_EntityId_TrainingToExclusive_HorizonDays_ModelVersion",
+                table: "ForecastRuns",
+                columns: new[] { "StoreId", "SeriesType", "EntityId", "TrainingToExclusive", "HorizonDays", "ModelVersion" },
+                unique: true,
+                filter: "[EntityId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Ingredients_BaseUnitId",
                 table: "Ingredients",
                 column: "BaseUnitId");
@@ -6940,6 +7436,27 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_OperationalAnomalies_AcknowledgedByStaffId",
+                table: "OperationalAnomalies",
+                column: "AcknowledgedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OperationalAnomalies_FeedbackByStaffId",
+                table: "OperationalAnomalies",
+                column: "FeedbackByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OperationalAnomalies_StoreId_MetricCode_PeriodKey",
+                table: "OperationalAnomalies",
+                columns: new[] { "StoreId", "MetricCode", "PeriodKey" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OperationalAnomalies_StoreId_Status_Severity",
+                table: "OperationalAnomalies",
+                columns: new[] { "StoreId", "Status", "Severity" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OrderDetails_DrinkId",
                 table: "OrderDetails",
                 column: "DrinkId");
@@ -7018,6 +7535,12 @@ namespace CafeChain.Migrations
                 name: "IX_Orders_PaymentStatusId",
                 table: "Orders",
                 column: "PaymentStatusId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_RecommendationSessionId",
+                table: "Orders",
+                column: "RecommendationSessionId",
+                filter: "[RecommendationSessionId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_StaffId",
@@ -7224,6 +7747,49 @@ namespace CafeChain.Migrations
                 table: "PosCatalogStates",
                 column: "StoreId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PosRecommendationCatalog_RecommendedDrinkId",
+                table: "PosRecommendationCatalog",
+                column: "RecommendedDrinkId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PosRecommendationCatalog_StoreId_TriggerDrinkId_Rank_ExpiresAtUtc",
+                table: "PosRecommendationCatalog",
+                columns: new[] { "StoreId", "TriggerDrinkId", "Rank", "ExpiresAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PosRecommendationCatalog_StoreId_TriggerDrinkId_RecommendedDrinkId_ModelVersion",
+                table: "PosRecommendationCatalog",
+                columns: new[] { "StoreId", "TriggerDrinkId", "RecommendedDrinkId", "ModelVersion" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PosRecommendationCatalog_TriggerDrinkId",
+                table: "PosRecommendationCatalog",
+                column: "TriggerDrinkId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PosRecommendationExposureItems_PosRecommendationExposureId_TriggerDrinkId_RecommendedDrinkId",
+                table: "PosRecommendationExposureItems",
+                columns: new[] { "PosRecommendationExposureId", "TriggerDrinkId", "RecommendedDrinkId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PosRecommendationExposures_OrderId",
+                table: "PosRecommendationExposures",
+                column: "OrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PosRecommendationExposures_RecommendationSessionId",
+                table: "PosRecommendationExposures",
+                column: "RecommendationSessionId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PosRecommendationExposures_StoreId_CreatedAtUtc",
+                table: "PosRecommendationExposures",
+                columns: new[] { "StoreId", "CreatedAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_PosTerminals_StoreId",
@@ -8018,6 +8584,37 @@ namespace CafeChain.Migrations
                 filter: "[OrderToppingId] IS NOT NULL AND [IngredientId] IS NOT NULL AND [PreparedItemId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ScheduleOptimizationAssignments_ScheduleOptimizationProposalId_StaffId_ShiftId_WorkDate",
+                table: "ScheduleOptimizationAssignments",
+                columns: new[] { "ScheduleOptimizationProposalId", "StaffId", "ShiftId", "WorkDate" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ScheduleOptimizationAssignments_ShiftId",
+                table: "ScheduleOptimizationAssignments",
+                column: "ShiftId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ScheduleOptimizationAssignments_StaffId",
+                table: "ScheduleOptimizationAssignments",
+                column: "StaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ScheduleOptimizationProposals_CreatedByStaffId",
+                table: "ScheduleOptimizationProposals",
+                column: "CreatedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ScheduleOptimizationProposals_ForecastRunId",
+                table: "ScheduleOptimizationProposals",
+                column: "ForecastRunId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ScheduleOptimizationProposals_StoreId_FromDate_ToDate_CreatedAtUtc",
+                table: "ScheduleOptimizationProposals",
+                columns: new[] { "StoreId", "FromDate", "ToDate", "CreatedAtUtc" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ScopeTypes_Code",
                 table: "ScopeTypes",
                 column: "Code",
@@ -8067,6 +8664,26 @@ namespace CafeChain.Migrations
                 column: "WardId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_StaffAvailabilityExceptions_CreatedByStaffId",
+                table: "StaffAvailabilityExceptions",
+                column: "CreatedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffAvailabilityExceptions_StaffId_Date",
+                table: "StaffAvailabilityExceptions",
+                columns: new[] { "StaffId", "Date" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffAvailabilityRules_CreatedByStaffId",
+                table: "StaffAvailabilityRules",
+                column: "CreatedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffAvailabilityRules_StaffId_DayOfWeek_EffectiveFrom",
+                table: "StaffAvailabilityRules",
+                columns: new[] { "StaffId", "DayOfWeek", "EffectiveFrom" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_StaffNotification_Entity",
                 table: "StaffNotifications",
                 columns: new[] { "EntityType", "EntityId" });
@@ -8080,6 +8697,13 @@ namespace CafeChain.Migrations
                 name: "IX_StaffNotification_StoreId",
                 table: "StaffNotifications",
                 column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_StaffNotification_DeduplicationKey",
+                table: "StaffNotifications",
+                column: "DeduplicationKey",
+                unique: true,
+                filter: "[DeduplicationKey] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StaffPhones_StaffId",
@@ -8146,6 +8770,31 @@ namespace CafeChain.Migrations
                 table: "StaffShiftStatuses",
                 column: "Code",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffTimeOffs_RequestedByStaffId",
+                table: "StaffTimeOffs",
+                column: "RequestedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffTimeOffs_ReviewedByStaffId",
+                table: "StaffTimeOffs",
+                column: "ReviewedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffTimeOffs_StaffId_FromUtc_ToUtc",
+                table: "StaffTimeOffs",
+                columns: new[] { "StaffId", "FromUtc", "ToUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffWorkConstraints_CreatedByStaffId",
+                table: "StaffWorkConstraints",
+                column: "CreatedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffWorkConstraints_StaffId_EffectiveFrom",
+                table: "StaffWorkConstraints",
+                columns: new[] { "StaffId", "EffectiveFrom" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_StockAlerts_ConfirmedByStaffId",
@@ -8381,6 +9030,26 @@ namespace CafeChain.Migrations
                 name: "IX_Stores_WardId",
                 table: "Stores",
                 column: "WardId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreStaffingRequirements_CreatedByStaffId",
+                table: "StoreStaffingRequirements",
+                column: "CreatedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreStaffingRequirements_RequiredRoleId",
+                table: "StoreStaffingRequirements",
+                column: "RequiredRoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreStaffingRequirements_ShiftId",
+                table: "StoreStaffingRequirements",
+                column: "ShiftId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreStaffingRequirements_StoreId_ShiftId_DayOfWeek_EffectiveFrom",
+                table: "StoreStaffingRequirements",
+                columns: new[] { "StoreId", "ShiftId", "DayOfWeek", "EffectiveFrom" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_StoreToppings_StoreId",
@@ -8836,6 +9505,9 @@ namespace CafeChain.Migrations
                 name: "DrinkToppings");
 
             migrationBuilder.DropTable(
+                name: "ForecastPoints");
+
+            migrationBuilder.DropTable(
                 name: "IngredientSupplierPriceHistories");
 
             migrationBuilder.DropTable(
@@ -8860,6 +9532,9 @@ namespace CafeChain.Migrations
                 name: "InvoiceAuditLogs");
 
             migrationBuilder.DropTable(
+                name: "OperationalAnomalies");
+
+            migrationBuilder.DropTable(
                 name: "OrderVouchers");
 
             migrationBuilder.DropTable(
@@ -8876,6 +9551,12 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "PosCatalogStates");
+
+            migrationBuilder.DropTable(
+                name: "PosRecommendationCatalog");
+
+            migrationBuilder.DropTable(
+                name: "PosRecommendationExposureItems");
 
             migrationBuilder.DropTable(
                 name: "ProductionCostAllocations");
@@ -8920,7 +9601,16 @@ namespace CafeChain.Migrations
                 name: "RolePermissions");
 
             migrationBuilder.DropTable(
+                name: "ScheduleOptimizationAssignments");
+
+            migrationBuilder.DropTable(
                 name: "StaffAddresses");
+
+            migrationBuilder.DropTable(
+                name: "StaffAvailabilityExceptions");
+
+            migrationBuilder.DropTable(
+                name: "StaffAvailabilityRules");
 
             migrationBuilder.DropTable(
                 name: "StaffNotifications");
@@ -8933,6 +9623,12 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "StaffShifts");
+
+            migrationBuilder.DropTable(
+                name: "StaffTimeOffs");
+
+            migrationBuilder.DropTable(
+                name: "StaffWorkConstraints");
 
             migrationBuilder.DropTable(
                 name: "StockAlertTransitions");
@@ -8948,6 +9644,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "StoreMenuItemAudits");
+
+            migrationBuilder.DropTable(
+                name: "StoreStaffingRequirements");
 
             migrationBuilder.DropTable(
                 name: "StoreToppings");
@@ -9001,6 +9700,9 @@ namespace CafeChain.Migrations
                 name: "PointTransactionTypes");
 
             migrationBuilder.DropTable(
+                name: "PosRecommendationExposures");
+
+            migrationBuilder.DropTable(
                 name: "PurchaseOrderLineAllocations");
 
             migrationBuilder.DropTable(
@@ -9013,19 +9715,22 @@ namespace CafeChain.Migrations
                 name: "Permissions");
 
             migrationBuilder.DropTable(
-                name: "Roles");
+                name: "ScheduleOptimizationProposals");
 
             migrationBuilder.DropTable(
                 name: "ScopeTypes");
-
-            migrationBuilder.DropTable(
-                name: "Shifts");
 
             migrationBuilder.DropTable(
                 name: "StaffShiftStatuses");
 
             migrationBuilder.DropTable(
                 name: "StockTakeSessions");
+
+            migrationBuilder.DropTable(
+                name: "Roles");
+
+            migrationBuilder.DropTable(
+                name: "Shifts");
 
             migrationBuilder.DropTable(
                 name: "SupplierReceiptIssues");
@@ -9047,6 +9752,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "PermissionGroups");
+
+            migrationBuilder.DropTable(
+                name: "ForecastRuns");
 
             migrationBuilder.DropTable(
                 name: "Vouchers");

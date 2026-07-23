@@ -4,6 +4,7 @@ using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
+using CafeChain.Application.Interfaces.AI;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Enums.Inventory;
@@ -14,6 +15,7 @@ using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Permissions;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
+using CafeChain.Infrastructure.Repositories.Admin.Procurement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -34,7 +36,7 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
     public async Task Formula_UsesAvailable_MinLevel_LeadOverride_Incoming_PackageAndMoq()
     {
         using var context = CreateDbContext();
-        await SeedAsync(context, available: 5m, minLevel: 10m, consumption: 300m);
+        await SeedAsync(context, available: 5m, minLevel: 10m, consumption: 300m, reserved: 2m);
         var before = await context.StoreInventories.SingleAsync(x => x.StoreId == StoreId);
         var service = CreateSuggestionService(context, incoming: 5m);
 
@@ -45,12 +47,16 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
         var item = Assert.Single(result.Data!.Items);
         Assert.Equal(ReorderSuggestionStatuses.Ready, item.Status);
         Assert.Equal(5m, item.AvailableQuantity);
+        Assert.Equal(2m, item.ReservedQuantity);
+        Assert.Equal(3m, item.UsableQuantity);
         Assert.Equal(10m, item.MinLevel);
         Assert.Equal(10m, item.AverageDailyUsage);
         Assert.Equal(2, item.LeadTimeDays);
         Assert.Equal(30m, item.ReorderPoint);
         Assert.Equal(5m, item.IncomingApprovedPoQuantity);
-        Assert.Equal(20m, item.SuggestedBaseQuantity);
+        Assert.Equal(8m, item.ProjectedQuantity);
+        Assert.Equal(22m, item.SuggestedBaseQuantity);
+        Assert.Equal(ReorderRecommendationLevels.Urgent, item.RecommendationLevel);
         Assert.Equal(6m, item.PackageBaseQuantity);
         Assert.Equal(5, item.SuggestedPackageCount);
         Assert.Equal(500m, item.EstimatedAmount);
@@ -122,10 +128,11 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(true);
         return new ReorderSuggestionService(
-            context,
+            new ReorderSuggestionRepository(context),
             conversion.Object,
             new FixedIncomingProvider(IngredientId, incoming),
-            scope.Object);
+            scope.Object,
+            Mock.Of<IAIService>());
     }
 
     private static async Task SeedAsync(
@@ -133,7 +140,8 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
         decimal available,
         decimal? minLevel,
         decimal? consumption,
-        bool seedManager = false)
+        bool seedManager = false,
+        decimal reserved = 0)
     {
         context.Units.Add(new Unit
         {
@@ -165,7 +173,7 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
             StoreId = StoreId,
             IngredientId = IngredientId,
             AvailableQty = available,
-            ReservedQty = 0,
+            ReservedQty = reserved,
             MinStockLevel = minLevel,
             LastUpdated = DateTime.UtcNow
         };

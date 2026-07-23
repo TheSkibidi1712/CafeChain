@@ -115,8 +115,8 @@ public sealed class NegativeInventoryContractSourceTests
         Assert.Contains("button.closest(selectors.modal)", client, StringComparison.Ordinal);
         Assert.Contains("popup.querySelector(\".swal2-textarea\")", client, StringComparison.Ordinal);
         Assert.Contains("input.focus({ preventScroll: true })", client, StringComparison.Ordinal);
-        Assert.Contains("SelfApprovalForbidden", mutationService, StringComparison.Ordinal);
-        Assert.Contains("APPROVAL_STALE", mutationService, StringComparison.Ordinal);
+        Assert.Contains("không được tự phê duyệt", mutationService, StringComparison.Ordinal);
+        Assert.Contains("dữ liệu tồn kho hoặc chính sách đã thay đổi", mutationService, StringComparison.Ordinal);
     }
 
     [Fact]

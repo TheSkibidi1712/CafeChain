@@ -11,6 +11,17 @@ namespace CafeChain.Application.Constants
         public const string MissingLeadTime = "MISSING_LEAD_TIME";
         public const string MissingCost = "MISSING_COST";
         public const string IncomingCoversDemand = "INCOMING_COVERS_DEMAND";
+        public const string ProcurementInProgress = "PROCUREMENT_IN_PROGRESS";
         public const string Unknown = "UNKNOWN";
+    }
+
+    public static class ReorderRecommendationLevels
+    {
+        public const string Urgent = "URGENT";
+        public const string NearReorder = "NEAR_REORDER";
+        public const string Normal = "NORMAL";
+        public const string ProcurementInProgress = "PROCUREMENT_IN_PROGRESS";
+        public const string IncomingCoversDemand = "INCOMING_COVERS_DEMAND";
+        public const string DataIncomplete = "DATA_INCOMPLETE";
     }
 }

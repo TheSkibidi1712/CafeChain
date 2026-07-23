@@ -100,6 +100,9 @@ namespace CafeChain.Data.Configurations.Orders
                 .HasFilter("[ClientOrderId] IS NOT NULL")
                 .HasDatabaseName("IX_Orders_ClientOrderId_Unique");
 
+            entity.HasIndex(x => x.RecommendationSessionId)
+                .HasFilter("[RecommendationSessionId] IS NOT NULL");
+
            
         }
     }

@@ -2,9 +2,8 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Operations;
 using CafeChain.Application.Results;
-using CafeChain.Data;
+using CafeChain.Infrastructure.Interfaces.Operations;
 using CafeChain.Models.Operations;
-using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Application.Services.Operations
 {
@@ -17,21 +16,21 @@ namespace CafeChain.Application.Services.Operations
         public const string ChannelPos = "pos";
         public const string ChannelAdmin = "admin";
 
-        private readonly AppDbContext _context;
+        private readonly IStaffNotificationRepository _repository;
 
-        public StaffNotificationQueryService(AppDbContext context)
+        public StaffNotificationQueryService(IStaffNotificationRepository repository)
         {
-            _context = context;
+            _repository = repository;
         }
 
-        public async Task<ServiceResult<StaffNotificationUnreadCountDto>> GetUnreadCountAsync(int recipientStaffId)
+        public async Task<ServiceResult<StaffNotificationUnreadCountDto>> GetUnreadCountAsync(
+            int recipientStaffId,
+            IReadOnlyCollection<int>? allowedStoreIds = null)
         {
             if (recipientStaffId <= 0)
                 return ServiceResult<StaffNotificationUnreadCountDto>.Failure("StaffId không hợp lệ.");
 
-            var count = await _context.StaffNotifications
-                .AsNoTracking()
-                .CountAsync(n => n.RecipientStaffId == recipientStaffId && !n.IsRead);
+            var count = await _repository.CountAsync(recipientStaffId, true, allowedStoreIds);
 
             return ServiceResult<StaffNotificationUnreadCountDto>.Success(new StaffNotificationUnreadCountDto
             {
@@ -43,7 +42,8 @@ namespace CafeChain.Application.Services.Operations
             int recipientStaffId,
             int page,
             int pageSize,
-            string? targetUrlChannel)
+            string? targetUrlChannel,
+            IReadOnlyCollection<int>? allowedStoreIds = null)
         {
             if (recipientStaffId <= 0)
                 return ServiceResult<StaffNotificationListDto>.Failure("StaffId không hợp lệ.");
@@ -52,19 +52,10 @@ namespace CafeChain.Application.Services.Operations
             if (pageSize < 1) pageSize = 20;
             if (pageSize > 50) pageSize = 50;
 
-            var query = _context.StaffNotifications
-                .AsNoTracking()
-                .Where(n => n.RecipientStaffId == recipientStaffId);
-
-            var total = await query.CountAsync();
-            var unread = await query.CountAsync(n => !n.IsRead);
-
-            var rows = await query
-                .OrderByDescending(n => n.CreatedAt)
-                .ThenByDescending(n => n.StaffNotificationId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            var total = await _repository.CountAsync(recipientStaffId, false, allowedStoreIds);
+            var unread = await _repository.CountAsync(recipientStaffId, true, allowedStoreIds);
+            var rows = await _repository.GetPageAsync(
+                recipientStaffId, (page - 1) * pageSize, pageSize, allowedStoreIds);
 
             var channel = string.IsNullOrWhiteSpace(targetUrlChannel)
                 ? ChannelPos
@@ -84,17 +75,15 @@ namespace CafeChain.Application.Services.Operations
 
         public async Task<ServiceResult<StaffNotificationMarkReadResultDto>> MarkReadAsync(
             int recipientStaffId,
-            int notificationId)
+            int notificationId,
+            IReadOnlyCollection<int>? allowedStoreIds = null)
         {
             if (recipientStaffId <= 0)
                 return ServiceResult<StaffNotificationMarkReadResultDto>.Failure("StaffId không hợp lệ.");
             if (notificationId <= 0)
                 return ServiceResult<StaffNotificationMarkReadResultDto>.Failure("NotificationId không hợp lệ.");
 
-            var n = await _context.StaffNotifications
-                .FirstOrDefaultAsync(x =>
-                    x.StaffNotificationId == notificationId &&
-                    x.RecipientStaffId == recipientStaffId);
+            var n = await _repository.GetAsync(recipientStaffId, notificationId, allowedStoreIds);
 
             if (n == null)
             {
@@ -106,7 +95,7 @@ namespace CafeChain.Application.Services.Operations
             {
                 n.IsRead = true;
                 n.ReadAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                await _repository.SaveChangesAsync();
                 return ServiceResult<StaffNotificationMarkReadResultDto>.Success(
                     new StaffNotificationMarkReadResultDto { MarkedCount = 1 });
             }
@@ -115,14 +104,14 @@ namespace CafeChain.Application.Services.Operations
                 new StaffNotificationMarkReadResultDto { MarkedCount = 0 });
         }
 
-        public async Task<ServiceResult<StaffNotificationMarkReadResultDto>> MarkAllReadAsync(int recipientStaffId)
+        public async Task<ServiceResult<StaffNotificationMarkReadResultDto>> MarkAllReadAsync(
+            int recipientStaffId,
+            IReadOnlyCollection<int>? allowedStoreIds = null)
         {
             if (recipientStaffId <= 0)
                 return ServiceResult<StaffNotificationMarkReadResultDto>.Failure("StaffId không hợp lệ.");
 
-            var unread = await _context.StaffNotifications
-                .Where(n => n.RecipientStaffId == recipientStaffId && !n.IsRead)
-                .ToListAsync();
+            var unread = await _repository.GetUnreadAsync(recipientStaffId, allowedStoreIds);
 
             if (unread.Count == 0)
             {
@@ -137,7 +126,7 @@ namespace CafeChain.Application.Services.Operations
                 n.ReadAt = now;
             }
 
-            await _context.SaveChangesAsync();
+            await _repository.SaveChangesAsync();
             return ServiceResult<StaffNotificationMarkReadResultDto>.Success(
                 new StaffNotificationMarkReadResultDto { MarkedCount = unread.Count });
         }
@@ -166,7 +155,7 @@ namespace CafeChain.Application.Services.Operations
         }
 
         /// <summary>Admin deep-link with entity id (Issue #99 / #100).</summary>
-        public static string? MapAdminTargetUrl(string entityType, string type, int entityId)
+        public static string? MapAdminTargetUrl(string entityType, string type, int entityId, int storeId = 0)
         {
             if (entityId <= 0)
                 return null;
@@ -177,6 +166,15 @@ namespace CafeChain.Application.Services.Operations
 
             if (isRestock)
                 return $"/Admin/AdminRestockRequests/Details/{entityId}";
+
+            var isReorder =
+                string.Equals(entityType, StaffNotificationEntityTypes.InventoryReorder, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(type, StaffNotificationTypes.InventoryReorderAlert, StringComparison.OrdinalIgnoreCase);
+            if (isReorder && storeId > 0)
+                return $"/Admin/AdminReorderSuggestions?storeId={storeId}#ingredient-{entityId}";
+
+            if (string.Equals(type, StaffNotificationTypes.OperationalAnomaly, StringComparison.OrdinalIgnoreCase) && storeId > 0)
+                return $"/Admin/AdminOperationalAnomalies?targetStoreId={storeId}#anomaly-{entityId}";
 
             var isStockAlert =
                 string.Equals(entityType, StaffNotificationEntityTypes.StockAlert, StringComparison.OrdinalIgnoreCase) ||
@@ -194,16 +192,19 @@ namespace CafeChain.Application.Services.Operations
         {
             string? targetUrl;
             if (string.Equals(channel, ChannelAdmin, StringComparison.OrdinalIgnoreCase))
-                targetUrl = MapAdminTargetUrl(n.EntityType, n.Type, n.EntityId);
+                targetUrl = MapAdminTargetUrl(n.EntityType, n.Type, n.EntityId, n.StoreId);
             else
                 targetUrl = MapTargetUrl(n.EntityType, n.Type, channel);
 
             return new StaffNotificationItemDto
             {
                 NotificationId = n.StaffNotificationId,
+                StoreId = n.StoreId,
                 Type = n.Type,
                 Title = n.Title,
                 Body = n.Body,
+                Severity = n.Severity,
+                IsResolved = n.ResolvedAt.HasValue,
                 EntityType = n.EntityType,
                 EntityId = n.EntityId,
                 IsRead = n.IsRead,

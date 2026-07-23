@@ -2,6 +2,8 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
+using CafeChain.Application.Interfaces.AI;
+using CafeChain.Application.DTOs.AI;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Stores;
 using Microsoft.AspNetCore.Authorization;
@@ -28,17 +30,20 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IPOSOrderService _orderService;
         private readonly IPOSOrderRepository _repository;
         private readonly IInventoryDeductionService _inventoryDeductionService;
+        private readonly IPosRecommendationService _recommendations;
 
         public AdminPOSController(
             IWorkShiftService workShiftService,
             IPOSOrderService orderService,
             IPOSOrderRepository repository,
-            IInventoryDeductionService inventoryDeductionService)
+            IInventoryDeductionService inventoryDeductionService,
+            IPosRecommendationService recommendations)
         {
             _workShiftService = workShiftService;
             _orderService = orderService;
             _repository = repository;
             _inventoryDeductionService = inventoryDeductionService;
+            _recommendations = recommendations;
         }
 
         // ============================================================
@@ -158,6 +163,23 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var result = await _orderService.CommitOrderAsync(dto, userId, storeId);
             return Json(new { success = result.IsSuccess, message = result.Message, data = result.Data });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Recommendations(Guid sessionId, [FromQuery] int[] triggerDrinkIds)
+        {
+            var (_, storeId) = await ResolveUserStoreAsync();
+            if (storeId <= 0) return Json(new { success = false, message = "Không xác định được cửa hàng." });
+            var result = await _recommendations.GetAsync(storeId, sessionId, triggerDrinkIds, HttpContext.RequestAborted);
+            return Json(new { success = true, data = result });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> RecommendationInteraction([FromBody] PosRecommendationInteractionDto input)
+        {
+            var (_, storeId) = await ResolveUserStoreAsync();
+            if (storeId > 0) await _recommendations.TrackAsync(storeId, input, HttpContext.RequestAborted);
+            return Json(new { success = true });
         }
 
         // ============================================================
