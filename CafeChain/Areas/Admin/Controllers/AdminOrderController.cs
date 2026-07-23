@@ -212,15 +212,16 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // Lấy chi tiết đơn hàng cho modal lịch sử
         [HttpGet("/api/AdminOrder/GetOrderHistoryDetail/{orderId}")]
-        public async Task<IActionResult> GetHistoryDetail(int orderId)
+        public async Task<IActionResult> GetHistoryDetail(int orderId, int? storeId)
         {
-            var storeId = await ResolveStoreIdAsync();
-            if (!storeId.HasValue) return Forbid();
-            var accessFailure = await GetOrderAccessFailureAsync(
+            var filter = await ResolveHistoryStoreFilterAsync(
                 OrderAccessActions.AdminDetail,
-                storeId.Value);
-            if (accessFailure != null) return accessFailure;
-            var data = await _adminOrderService.GetOrderHistoryDetailAsync(orderId, storeId.Value);
+                storeId,
+                allWithinScope: false);
+            if (filter.Failure != null) return filter.Failure;
+
+            var targetStoreId = filter.StoreIds.Single();
+            var data = await _adminOrderService.GetOrderHistoryDetailAsync(orderId, targetStoreId);
             if (data == null) return NotFound();
             return Ok(data);
         }
@@ -230,18 +231,30 @@ namespace CafeChain.Areas.Admin.Controllers
         // ===================================================
 
         [HttpGet("/api/AdminOrder/GetOrderHistoryData")]
-        public async Task<IActionResult> GetOrderHistoryData(string keyword, string fromDate, string toDate, int? statusId, int? paymentId)
+        public async Task<IActionResult> GetOrderHistoryData(
+            string keyword,
+            string fromDate,
+            string toDate,
+            int? statusId,
+            int? paymentId,
+            int? storeId,
+            bool allWithinScope = false)
         {
             try
             {
-                var storeId = await ResolveStoreIdAsync();
-                if (!storeId.HasValue) return Forbid();
-                var accessFailure = await GetOrderAccessFailureAsync(
+                var filter = await ResolveHistoryStoreFilterAsync(
                     OrderAccessActions.AdminList,
-                    storeId.Value);
-                if (accessFailure != null) return accessFailure;
+                    storeId,
+                    allWithinScope || !storeId.HasValue);
+                if (filter.Failure != null) return filter.Failure;
+
                 var allData = await _adminOrderService.GetFilteredOrdersForExportAsync(
-                    keyword, fromDate, toDate, statusId, paymentId, storeId.Value);
+                    keyword,
+                    fromDate,
+                    toDate,
+                    statusId,
+                    paymentId,
+                    filter.StoreIds);
 
                 // Tính toán thống kê
                 var stats = new
@@ -251,7 +264,17 @@ namespace CafeChain.Areas.Admin.Controllers
                     CancelledOrders = allData.Count(o => o.OrderStatusId == SystemConstants.PaymentStatuses.Refunded),
                     TotalRevenue = allData.Where(o => o.OrderStatusId == SystemConstants.PaymentStatuses.Paid).Sum(o => o.Total)
                 };
-                return Ok(new { stats, data = allData });
+                return Ok(new
+                {
+                    stats,
+                    data = allData,
+                    storeScope = new
+                    {
+                        allWithinScope = !storeId.HasValue || allWithinScope,
+                        selectedStoreId = storeId,
+                        stores = filter.Scope!.AccessibleStores
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -260,18 +283,30 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet("/api/AdminOrder/ExportCSV")]
-        public async Task<IActionResult> ExportCSV(string keyword, string fromDate, string toDate, int? statusId, int? paymentId)
+        public async Task<IActionResult> ExportCSV(
+            string keyword,
+            string fromDate,
+            string toDate,
+            int? statusId,
+            int? paymentId,
+            int? storeId,
+            bool allWithinScope = false)
         {
             try
             {
-                var storeId = await ResolveStoreIdAsync();
-                if (!storeId.HasValue) return Forbid();
-                var accessFailure = await GetOrderAccessFailureAsync(
+                var filter = await ResolveHistoryStoreFilterAsync(
                     OrderAccessActions.AdminExport,
-                    storeId.Value);
-                if (accessFailure != null) return accessFailure;
+                    storeId,
+                    allWithinScope || !storeId.HasValue);
+                if (filter.Failure != null) return filter.Failure;
+
                 var data = await _adminOrderService.GetFilteredOrdersForExportAsync(
-                    keyword, fromDate, toDate, statusId, paymentId, storeId.Value);
+                    keyword,
+                    fromDate,
+                    toDate,
+                    statusId,
+                    paymentId,
+                    filter.StoreIds);
 
                 var csv = new System.Text.StringBuilder();
                 // Thêm BOM để Excel nhận đúng UTF-8
@@ -290,6 +325,22 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 return StatusCode(500, "Lỗi xuất file: " + ex.Message);
             }
+        }
+
+        [HttpGet("/api/AdminOrder/GetAuthorizedStores")]
+        public async Task<IActionResult> GetAuthorizedStores()
+        {
+            var actor = _actor.Get(User);
+            if (_orderAccessAuthorization.AuthorizeAction(
+                    actor,
+                    OrderAccessActions.AdminList) != OrderAccessDecision.Allowed)
+            {
+                return Forbid();
+            }
+
+            var scope = await _storeScopeResolver.ResolveAsync(actor);
+            if (!scope.IsResolved) return StoreScopeApiFailure(scope);
+            return Ok(scope.AccessibleStores);
         }
 
         private Task<Application.DTOs.Admin.StoreScope.AdminStoreScopeResolution> ResolveScopeAsync()
@@ -314,6 +365,76 @@ namespace CafeChain.Areas.Admin.Controllers
                 OrderAccessDecision.NotFound => NotFound(),
                 _ => null
             };
+        }
+
+        private async Task<HistoryStoreFilterResult> ResolveHistoryStoreFilterAsync(
+            string action,
+            int? requestedStoreId,
+            bool allWithinScope)
+        {
+            var actor = _actor.Get(User);
+            if (_orderAccessAuthorization.AuthorizeAction(actor, action)
+                != OrderAccessDecision.Allowed)
+            {
+                return HistoryStoreFilterResult.Failed(Forbid());
+            }
+
+            if (requestedStoreId.HasValue && allWithinScope)
+            {
+                return HistoryStoreFilterResult.Failed(BadRequest(new
+                {
+                    message = "Chỉ được chọn một cửa hàng hoặc tất cả cửa hàng trong phạm vi."
+                }));
+            }
+
+            var scope = await _storeScopeResolver.ResolveAsync(actor, requestedStoreId);
+            if (!scope.IsResolved)
+            {
+                return HistoryStoreFilterResult.Failed(StoreScopeApiFailure(scope));
+            }
+
+            var storeIds = requestedStoreId.HasValue
+                ? new[] { scope.StoreId!.Value }
+                : allWithinScope
+                    ? scope.AccessibleStores
+                    .Select(store => store.StoreId)
+                    .Distinct()
+                    .ToArray()
+                    : new[] { scope.StoreId!.Value };
+
+            return storeIds.Length == 0
+                ? HistoryStoreFilterResult.Failed(Forbid())
+                : HistoryStoreFilterResult.Resolved(scope, storeIds);
+        }
+
+        private IActionResult StoreScopeApiFailure(
+            Application.DTOs.Admin.StoreScope.AdminStoreScopeResolution scope)
+        {
+            if (scope.Status == Application.DTOs.Admin.StoreScope.AdminStoreScopeResolutionStatus.StoreNotFound
+                || scope.Status == Application.DTOs.Admin.StoreScope.AdminStoreScopeResolutionStatus.RequestedStoreForbidden)
+            {
+                return NotFound(new
+                {
+                    code = scope.ErrorCode,
+                    message = "Không tìm thấy cửa hàng trong phạm vi được cấp."
+                });
+            }
+
+            return Forbid();
+        }
+
+        private sealed record HistoryStoreFilterResult(
+            Application.DTOs.Admin.StoreScope.AdminStoreScopeResolution? Scope,
+            IReadOnlyList<int> StoreIds,
+            IActionResult? Failure)
+        {
+            public static HistoryStoreFilterResult Resolved(
+                Application.DTOs.Admin.StoreScope.AdminStoreScopeResolution scope,
+                IReadOnlyList<int> storeIds) =>
+                new(scope, storeIds, null);
+
+            public static HistoryStoreFilterResult Failed(IActionResult failure) =>
+                new(null, Array.Empty<int>(), failure);
         }
 
         private static string Csv(string? value)

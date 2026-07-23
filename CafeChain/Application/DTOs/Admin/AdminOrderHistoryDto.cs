@@ -60,6 +60,7 @@ namespace CafeChain.Application.DTOs.Admin
     public class AdminOrderHistoryRowDto
     {
         public int OrderId { get; set; }
+        public int StoreId { get; set; }
         public string FormattedOrderId => $"#CC{OrderId:D5}";
         public DateTime CreatedAt { get; set; }
         public string CustomerName { get; set; }

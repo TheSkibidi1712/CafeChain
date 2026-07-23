@@ -213,7 +213,7 @@
                                     <td>${o.receiptState}</td>
                                     <td>${o.drinkLabelState}</td>
                                     <td class="text-center">
-                                        <button class="btn-detail" onclick="showDetail(${o.orderId})">
+                                        <button class="btn-detail" onclick="showDetail(${o.orderId}, ${o.storeId})">
                                             <i class="fas fa-eye me-1"></i>Chi tiết
                                         </button>
                                     </td>
@@ -251,13 +251,13 @@
             });
 
             // Chi tiết đơn hàng (Modal)
-            window.showDetail = function (orderId) {
+            window.showDetail = function (orderId, storeId) {
                 $('#modalOrderId').text('#CC' + String(orderId).padStart(5, '0'));
                 $('#modalBody').html('<div class="text-center py-5"><div class="spinner-border text-danger"></div></div>');
                 const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
                 modal.show();
 
-                $.get(`/api/AdminOrder/GetOrderHistoryDetail/${orderId}`, function (d) {
+                $.get(`/api/AdminOrder/GetOrderHistoryDetail/${orderId}?storeId=${storeId}`, function (d) {
                     let itemsHtml = d.items.map(item => {
                         let toppingHtml = item.toppings.map(t => `<div class="item-topping">+ ${t.name} <span class="text-muted">(${fmt(t.price)})</span></div>`).join('');
                         return `

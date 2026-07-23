@@ -444,10 +444,27 @@ namespace CafeChain.Application.Services.Admin
         // ===================================================
 
         public async Task<DataTablesResponse<AdminOrderHistoryRowDto>> GetOrderHistoryAsync(DataTablesRequest request, int storeId)
-        {
-            var query = BuildHistoryQuery(request.SearchKeyword, request.DateFrom, request.DateTo, request.StatusFilter, request.PaymentMethodFilter, storeId);
+            => await GetOrderHistoryAsync(request, new[] { storeId });
 
-            int totalRecords = await BuildHistoryQuery(null, null, null, null, null, storeId).CountAsync();
+        public async Task<DataTablesResponse<AdminOrderHistoryRowDto>> GetOrderHistoryAsync(
+            DataTablesRequest request,
+            IReadOnlyCollection<int> storeIds)
+        {
+            var query = BuildHistoryQuery(
+                request.SearchKeyword,
+                request.DateFrom,
+                request.DateTo,
+                request.StatusFilter,
+                request.PaymentMethodFilter,
+                storeIds);
+
+            int totalRecords = await BuildHistoryQuery(
+                null,
+                null,
+                null,
+                null,
+                null,
+                storeIds).CountAsync();
             int filteredRecords = await query.CountAsync();
 
             // Sorting
@@ -477,6 +494,7 @@ namespace CafeChain.Application.Services.Admin
                 .Select(o => new AdminOrderHistoryRowDto
                 {
                     OrderId = o.OrderId,
+                    StoreId = o.StoreId,
                     CreatedAt = o.Payments.Where(p => p.PaidAt.HasValue)
                         .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt,
                     CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Khách vãng lai"),
@@ -596,8 +614,29 @@ namespace CafeChain.Application.Services.Admin
 
         public async Task<List<AdminOrderHistoryRowDto>> GetFilteredOrdersForExportAsync(
             string searchKeyword, string dateFrom, string dateTo, int? statusFilter, int? paymentMethodFilter, int storeId)
+            => await GetFilteredOrdersForExportAsync(
+                searchKeyword,
+                dateFrom,
+                dateTo,
+                statusFilter,
+                paymentMethodFilter,
+                new[] { storeId });
+
+        public async Task<List<AdminOrderHistoryRowDto>> GetFilteredOrdersForExportAsync(
+            string searchKeyword,
+            string dateFrom,
+            string dateTo,
+            int? statusFilter,
+            int? paymentMethodFilter,
+            IReadOnlyCollection<int> storeIds)
         {
-            var query = BuildHistoryQuery(searchKeyword, dateFrom, dateTo, statusFilter, paymentMethodFilter, storeId);
+            var query = BuildHistoryQuery(
+                searchKeyword,
+                dateFrom,
+                dateTo,
+                statusFilter,
+                paymentMethodFilter,
+                storeIds);
 
             var data = await query
                 .OrderByDescending(o => o.Payments
@@ -607,6 +646,7 @@ namespace CafeChain.Application.Services.Admin
                 .Select(o => new AdminOrderHistoryRowDto
                 {
                     OrderId = o.OrderId,
+                    StoreId = o.StoreId,
                     CreatedAt = o.Payments.Where(p => p.PaidAt.HasValue)
                         .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt,
                     CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Khách vãng lai"),
@@ -636,13 +676,23 @@ namespace CafeChain.Application.Services.Admin
         /// Xây dựng IQueryable chung cho cả DataTables lẫn Export — DRY Principle.
         /// </summary>
         private IQueryable<Order> BuildHistoryQuery(
-            string searchKeyword, string dateFrom, string dateTo, int? statusFilter, int? paymentMethodFilter, int storeId)
+            string searchKeyword,
+            string dateFrom,
+            string dateTo,
+            int? statusFilter,
+            int? paymentMethodFilter,
+            IReadOnlyCollection<int> storeIds)
         {
+            var scopedStoreIds = storeIds
+                .Where(storeId => storeId > 0)
+                .Distinct()
+                .ToArray();
+
             var query = _context.Orders
                 .Include(o => o.Customer)
                 .Include(o => o.OrderStatus)
                 .Include(o => o.Payments).ThenInclude(p => p.PaymentMethod)
-                .Where(o => o.StoreId == storeId
+                .Where(o => scopedStoreIds.Contains(o.StoreId)
                     && o.Source == OrderSources.Pos
                     && o.OrderStatusId == SystemConstants.OrderStatuses.Completed
                     && (o.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
