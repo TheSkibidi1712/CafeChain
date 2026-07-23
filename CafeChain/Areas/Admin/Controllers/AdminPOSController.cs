@@ -6,6 +6,7 @@ using CafeChain.Application.Interfaces.AI;
 using CafeChain.Application.DTOs.AI;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Stores;
+using CafeChain.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// </summary>
     [Area("Admin")]
     [Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [DevelopmentOnlyLegacyEntryPoint]
     public class AdminPOSController : Controller
     {
         private readonly IWorkShiftService _workShiftService;

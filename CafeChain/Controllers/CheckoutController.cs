@@ -9,10 +9,12 @@ using CafeChain.ViewModels.Cart;
 using CafeChain.ViewModels.Customers;
 using Microsoft.AspNetCore.Mvc;
 using CafeChain.Data;
+using CafeChain.Filters;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Controllers
 {
+    [DevelopmentOnlyLegacyEntryPoint]
     public class CheckoutController : Controller
     {
         private readonly IOrderService _orderService;
