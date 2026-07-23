@@ -63,8 +63,6 @@ namespace CafeChain.Application.DTOs.Admin
         public int StoreId { get; set; }
         public string FormattedOrderId => $"#CC{OrderId:D5}";
         public DateTime CreatedAt { get; set; }
-        public string CustomerName { get; set; }
-        public string CustomerPhone { get; set; }
         public string StoreName { get; set; }
         public string StaffName { get; set; }
         public string OrderTypeName { get; set; }
@@ -74,8 +72,28 @@ namespace CafeChain.Application.DTOs.Admin
         public int OrderStatusId { get; set; }
         public string OrderStatusName { get; set; }
         public string OrderStatusBadge { get; set; }
+        public string SyncState { get; set; }
         public string ReceiptState { get; set; }
         public string DrinkLabelState { get; set; }
+        public string InventoryPostingState { get; set; }
+    }
+
+    public sealed class AdminOrderHistoryPageDto
+    {
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalItems { get; set; }
+        public int TotalPages { get; set; }
+        public AdminOrderHistoryStatsDto Stats { get; set; } = new();
+        public List<AdminOrderHistoryRowDto> Items { get; set; } = new();
+    }
+
+    public sealed class AdminOrderHistoryStatsDto
+    {
+        public int PaidOrders { get; set; }
+        public decimal PaidRevenue { get; set; }
+        public int RefundedOrders { get; set; }
+        public decimal RefundedAmount { get; set; }
     }
 
     /// <summary>
@@ -87,9 +105,6 @@ namespace CafeChain.Application.DTOs.Admin
         public string FormattedOrderId => $"#CC{OrderId:D5}";
         public DateTime CreatedAt { get; set; }
 
-        public string CustomerName { get; set; }
-        public string CustomerPhone { get; set; }
-        public string DeliveryAddress { get; set; }
         public string Note { get; set; }
         public string Source { get; set; }
         public string StoreName { get; set; }
@@ -104,16 +119,30 @@ namespace CafeChain.Application.DTOs.Admin
         public string PaymentStatusName { get; set; }
         public string ReceiptState { get; set; }
         public string DrinkLabelState { get; set; }
+        public string SyncState { get; set; }
+        public string InventoryPostingState { get; set; }
+        public int StoreId { get; set; }
+        public int? WorkShiftId { get; set; }
+        public string ClientOrderId { get; set; }
 
         // Money
         public decimal SubTotal { get; set; }
-        public decimal ShippingFee { get; set; }
-        public decimal VoucherDiscount { get; set; }
-        public decimal PointDiscount { get; set; }
+        public decimal DiscountTotal { get; set; }
         public decimal Total { get; set; }
 
         public List<AdminOrderHistoryPaymentDto> Payments { get; set; } = new();
         public List<AdminOrderHistoryItemDto> Items { get; set; } = new();
+        public AdminOrderHistoryRefundDto Refund { get; set; }
+    }
+
+    public sealed class AdminOrderHistoryRefundDto
+    {
+        public int OrderRefundId { get; set; }
+        public string Status { get; set; }
+        public string Reason { get; set; }
+        public decimal Amount { get; set; }
+        public DateTime RequestedAtUtc { get; set; }
+        public DateTime? CompletedAtUtc { get; set; }
     }
 
     public class AdminOrderHistoryPaymentDto

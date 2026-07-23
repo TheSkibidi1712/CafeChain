@@ -6,6 +6,7 @@ using CafeChain.Data;
 using CafeChain.Hubs;
 using CafeChain.Models.Loyalties;
 using CafeChain.Models.Orders;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Application.Policies.Orders;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -495,10 +496,11 @@ namespace CafeChain.Application.Services.Admin
                 {
                     OrderId = o.OrderId,
                     StoreId = o.StoreId,
-                    CreatedAt = o.Payments.Where(p => p.PaidAt.HasValue)
+                    CreatedAt = o.Payments
+                        .Where(p => (p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                                || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                            && p.PaidAt.HasValue)
                         .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt,
-                    CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Khách vãng lai"),
-                    CustomerPhone = o.ReceiverPhone ?? "",
                     StoreName = o.Store != null ? o.Store.Name : $"Cửa hàng #{o.StoreId}",
                     StaffName = o.Staff != null ? o.Staff.FullName : "Chưa xác định",
                     OrderTypeName = o.OrderType != null ? o.OrderType.Name : "Chưa xác định",
@@ -512,8 +514,14 @@ namespace CafeChain.Application.Services.Admin
                     OrderStatusBadge = o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
                         ? "bg-warning text-dark"
                         : "bg-success",
-                    ReceiptState = "Hóa đơn chính thức đã sẵn sàng",
-                    DrinkLabelState = "Tem chính thức đã sẵn sàng"
+                    SyncState = "Đã đồng bộ",
+                    ReceiptState = "Chưa có dữ liệu in",
+                    DrinkLabelState = "Chưa có dữ liệu in",
+                    InventoryPostingState = _context.InventoryTransactions.Any(t =>
+                        t.ReferenceOrderId == o.OrderId
+                        && t.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION)
+                            ? "Đã ghi nhận"
+                            : "Chưa có dữ liệu kho"
                 })
                 .ToListAsync();
             await ApplyPaymentDisplayAsync(data);
@@ -527,11 +535,106 @@ namespace CafeChain.Application.Services.Admin
             };
         }
 
+        public async Task<AdminOrderHistoryPageDto> GetPosSalesHistoryAsync(
+            int page,
+            int pageSize,
+            string searchKeyword,
+            string dateFrom,
+            string dateTo,
+            int? statusFilter,
+            int? paymentMethodFilter,
+            IReadOnlyCollection<int> storeIds)
+        {
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 10, 100);
+
+            var query = BuildHistoryQuery(
+                searchKeyword,
+                dateFrom,
+                dateTo,
+                statusFilter,
+                paymentMethodFilter,
+                storeIds);
+            var financialRows = await query
+                .Select(o => new { o.PaymentStatusId, o.Total })
+                .ToListAsync();
+            var totalItems = financialRows.Count;
+            var paidOrders = financialRows.Count(
+                o => o.PaymentStatusId == SystemConstants.PaymentStatuses.Paid);
+            var paidRevenue = financialRows
+                .Where(o => o.PaymentStatusId == SystemConstants.PaymentStatuses.Paid)
+                .Sum(o => o.Total);
+            var refundedOrders = financialRows.Count(
+                o => o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded);
+            var refundedAmount = financialRows
+                .Where(o => o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                .Sum(o => o.Total);
+
+            var items = await query
+                .OrderByDescending(o => o.Payments
+                    .Where(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                    .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt)
+                .ThenByDescending(o => o.OrderId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(o => new AdminOrderHistoryRowDto
+                {
+                    OrderId = o.OrderId,
+                    StoreId = o.StoreId,
+                    CreatedAt = o.Payments
+                        .Where(p => (p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                                || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                            && p.PaidAt.HasValue)
+                        .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt,
+                    StoreName = o.Store != null ? o.Store.Name : $"Cửa hàng #{o.StoreId}",
+                    StaffName = o.Staff != null ? o.Staff.FullName : "Chưa xác định",
+                    OrderTypeName = o.OrderType != null ? o.OrderType.Name : "Chưa xác định",
+                    Total = o.Total,
+                    PaymentMethodId = 0,
+                    PaymentMethodName = "Chưa xác định",
+                    OrderStatusId = o.PaymentStatusId,
+                    OrderStatusName = o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
+                        ? "Đã hoàn tiền"
+                        : "Đã thanh toán",
+                    OrderStatusBadge = o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
+                        ? "bg-warning text-dark"
+                        : "bg-success",
+                    SyncState = "Đã đồng bộ",
+                    ReceiptState = "Chưa có dữ liệu in",
+                    DrinkLabelState = "Chưa có dữ liệu in",
+                    InventoryPostingState = _context.InventoryTransactions.Any(t =>
+                        t.ReferenceOrderId == o.OrderId
+                        && t.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION)
+                            ? "Đã ghi nhận"
+                            : "Chưa có dữ liệu kho"
+                })
+                .ToListAsync();
+            await ApplyPaymentDisplayAsync(items);
+
+            return new AdminOrderHistoryPageDto
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = totalItems == 0
+                    ? 0
+                    : (int)Math.Ceiling(totalItems / (double)pageSize),
+                Stats = new AdminOrderHistoryStatsDto
+                {
+                    PaidOrders = paidOrders,
+                    PaidRevenue = paidRevenue,
+                    RefundedOrders = refundedOrders,
+                    RefundedAmount = refundedAmount
+                },
+                Items = items
+            };
+        }
+
         public async Task<AdminOrderHistoryDetailDto> GetOrderHistoryDetailAsync(int orderId, int storeId)
         {
             var order = await _context.Orders
                 .AsSplitQuery()
-                .Include(o => o.Customer)
                 .Include(o => o.OrderStatus)
                 .Include(o => o.OrderType)
                 .Include(o => o.Store)
@@ -550,6 +653,16 @@ namespace CafeChain.Application.Services.Admin
 
             if (order == null) return null;
 
+            var hasInventoryPosting = await _context.InventoryTransactions
+                .AsNoTracking()
+                .AnyAsync(t => t.ReferenceOrderId == order.OrderId
+                    && t.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION);
+            var refund = await _context.OrderRefunds
+                .AsNoTracking()
+                .Where(x => x.OrderId == order.OrderId)
+                .OrderByDescending(x => x.OrderRefundId)
+                .FirstOrDefaultAsync();
+
             return new AdminOrderHistoryDetailDto
             {
                 OrderId = order.OrderId,
@@ -558,11 +671,11 @@ namespace CafeChain.Application.Services.Admin
                         || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
                     .Where(p => p.PaidAt.HasValue)
                     .Max(p => (DateTime?)p.PaidAt) ?? order.CreatedAt,
-                CustomerName = order.Customer?.FullName ?? order.ReceiverName ?? "Khách vãng lai",
-                CustomerPhone = order.ReceiverPhone,
-                DeliveryAddress = order.DeliveryAddress,
                 Note = order.Note,
                 Source = order.Source,
+                StoreId = order.StoreId,
+                WorkShiftId = order.WorkShiftId,
+                ClientOrderId = order.ClientOrderId?.ToString(),
                 StoreName = order.Store?.Name ?? $"Cửa hàng #{order.StoreId}",
                 StaffName = order.Staff?.FullName ?? "Chưa xác định",
                 OrderStatusId = order.PaymentStatusId,
@@ -577,12 +690,14 @@ namespace CafeChain.Application.Services.Admin
                 PaymentStatusName = order.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
                     ? "Đã hoàn tiền"
                     : "Đã thanh toán",
-                ReceiptState = "Hóa đơn chính thức đã sẵn sàng",
-                DrinkLabelState = "Tem chính thức đã sẵn sàng",
+                SyncState = "Đã đồng bộ",
+                ReceiptState = "Chưa có dữ liệu in",
+                DrinkLabelState = "Chưa có dữ liệu in",
+                InventoryPostingState = hasInventoryPosting
+                    ? "Đã ghi nhận"
+                    : "Chưa có dữ liệu kho",
                 SubTotal = order.SubTotal,
-                ShippingFee = order.ShippingFee,
-                VoucherDiscount = order.VoucherDiscount,
-                PointDiscount = order.PointDiscount,
+                DiscountTotal = order.VoucherDiscount + order.PointDiscount,
                 Total = order.Total,
                 Payments = order.Payments
                     .OrderBy(x => x.PaymentId)
@@ -608,7 +723,18 @@ namespace CafeChain.Application.Services.Admin
                         Name = ot.ToppingName,
                         Price = ot.Price
                     }).ToList()
-                }).ToList()
+                }).ToList(),
+                Refund = refund == null
+                    ? null
+                    : new AdminOrderHistoryRefundDto
+                    {
+                        OrderRefundId = refund.OrderRefundId,
+                        Status = refund.Status.ToString(),
+                        Reason = refund.Reason,
+                        Amount = refund.RefundAmount,
+                        RequestedAtUtc = refund.RequestedAtUtc,
+                        CompletedAtUtc = refund.CompletedAtUtc
+                    }
             };
         }
 
@@ -647,10 +773,11 @@ namespace CafeChain.Application.Services.Admin
                 {
                     OrderId = o.OrderId,
                     StoreId = o.StoreId,
-                    CreatedAt = o.Payments.Where(p => p.PaidAt.HasValue)
+                    CreatedAt = o.Payments
+                        .Where(p => (p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                                || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                            && p.PaidAt.HasValue)
                         .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt,
-                    CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Khách vãng lai"),
-                    CustomerPhone = o.ReceiverPhone ?? "",
                     StoreName = o.Store != null ? o.Store.Name : $"Cửa hàng #{o.StoreId}",
                     StaffName = o.Staff != null ? o.Staff.FullName : "Chưa xác định",
                     OrderTypeName = o.OrderType != null ? o.OrderType.Name : "Chưa xác định",
@@ -664,8 +791,14 @@ namespace CafeChain.Application.Services.Admin
                     OrderStatusBadge = o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
                         ? "bg-warning text-dark"
                         : "bg-success",
-                    ReceiptState = "Hóa đơn chính thức đã sẵn sàng",
-                    DrinkLabelState = "Tem chính thức đã sẵn sàng"
+                    SyncState = "Đã đồng bộ",
+                    ReceiptState = "Chưa có dữ liệu in",
+                    DrinkLabelState = "Chưa có dữ liệu in",
+                    InventoryPostingState = _context.InventoryTransactions.Any(t =>
+                        t.ReferenceOrderId == o.OrderId
+                        && t.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION)
+                            ? "Đã ghi nhận"
+                            : "Chưa có dữ liệu kho"
                 })
                 .ToListAsync();
             await ApplyPaymentDisplayAsync(data);
@@ -689,7 +822,6 @@ namespace CafeChain.Application.Services.Admin
                 .ToArray();
 
             var query = _context.Orders
-                .Include(o => o.Customer)
                 .Include(o => o.OrderStatus)
                 .Include(o => o.Payments).ThenInclude(p => p.PaymentMethod)
                 .Where(o => scopedStoreIds.Contains(o.StoreId)
@@ -701,20 +833,12 @@ namespace CafeChain.Application.Services.Admin
                         || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded))
                 .AsQueryable();
 
-            // Text search: OrderId, Customer name, Phone
+            // POS sales history searches operational order identity only.
             if (!string.IsNullOrWhiteSpace(searchKeyword))
             {
                 var keyword = searchKeyword.Trim().ToLower();
-
-                // Check if searching by OrderId number
                 bool isNumeric = int.TryParse(keyword.Replace("#cc", "").Replace("#", ""), out int searchId);
-
-                query = query.Where(o =>
-                    (isNumeric && o.OrderId == searchId) ||
-                    (o.ReceiverPhone != null && o.ReceiverPhone.Contains(keyword)) ||
-                    (o.ReceiverName != null && o.ReceiverName.ToLower().Contains(keyword)) ||
-                    (o.Customer != null && o.Customer.FullName.ToLower().Contains(keyword))
-                );
+                query = query.Where(o => isNumeric && o.OrderId == searchId);
             }
 
             // Date range
@@ -743,7 +867,10 @@ namespace CafeChain.Application.Services.Admin
             // Payment method
             if (paymentMethodFilter.HasValue && paymentMethodFilter.Value > 0)
             {
-                query = query.Where(o => o.Payments.Any(p => p.PaymentMethodId == paymentMethodFilter.Value));
+                query = query.Where(o => o.Payments.Any(p =>
+                    p.PaymentMethodId == paymentMethodFilter.Value
+                    && (p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)));
             }
 
             return query;
@@ -773,9 +900,16 @@ namespace CafeChain.Application.Services.Admin
             {
                 if (byOrder.TryGetValue(row.OrderId, out var orderPayments))
                 {
-                    row.PaymentMethodName = OrderChannelPolicy.GetPaymentDisplay(orderPayments);
-                    row.PaymentMethodId = orderPayments.Select(x => x.PaymentMethodId).Distinct().Count() == 1
-                        ? orderPayments[0].PaymentMethodId
+                    var settledPayments = orderPayments
+                        .Where(x => x.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                            || x.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                        .ToList();
+                    row.PaymentMethodName = OrderChannelPolicy.GetPaymentDisplay(settledPayments);
+                    row.PaymentMethodId = settledPayments
+                        .Select(x => x.PaymentMethodId)
+                        .Distinct()
+                        .Count() == 1
+                        ? settledPayments[0].PaymentMethodId
                         : 0;
                 }
             }

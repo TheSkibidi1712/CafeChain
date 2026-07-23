@@ -1,340 +1,464 @@
+@using CafeChain.Application.DTOs.Admin.StoreScope
 @{
-    ViewData["Title"] = "Lịch sử bán hàng POS";
+    ViewData["Title"] = "Lịch sử bán hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
+        ?? Array.Empty<AdminStoreOptionDto>();
+    var selectedStoreId = ViewBag.SelectedStoreId as int?;
 }
 
 @section Styles {
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
-<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css" />
 <style>
-    .history-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; }
-    .history-header h4 { font-weight:700; color:#212529; margin:0; }
-    .history-header h4 i { color:#d93d20; margin-right:8px; }
-    .filter-card { background:#fff; border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1.25rem; box-shadow:0 1px 4px rgba(0,0,0,.06); border:1px solid #e9ecef; }
-    .filter-card label { font-size:12px; font-weight:600; color:#6c757d; text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
-    .filter-card .form-control, .filter-card .form-select { font-size:13px; border-radius:8px; border:1px solid #dee2e6; }
-    .filter-card .form-control:focus, .filter-card .form-select:focus { border-color:#d93d20; box-shadow:0 0 0 .2rem rgba(217,61,32,.15); }
-    .table-card { background:#fff; border-radius:12px; padding:1.5rem; box-shadow:0 2px 8px rgba(0,0,0,.06); border:1px solid #e9ecef; }
-    #orderHistoryTable { font-size:13px; }
-    #orderHistoryTable thead th { background:#f8f9fa; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:#6c757d; border-bottom:2px solid #dee2e6; padding:12px 10px; white-space:nowrap; }
-    #orderHistoryTable tbody td { vertical-align:middle; padding:10px; }
-    #orderHistoryTable tbody tr:hover { background:#fdf2f0; }
-    .order-id-cell { font-weight:700; color:#d93d20; font-family:'Courier New',monospace; }
-    .customer-cell .name { font-weight:600; color:#212529; }
-    .customer-cell .phone { font-size:11px; color:#6c757d; }
-    .money-cell { font-weight:700; color:#212529; font-family:'Courier New',monospace; }
-    .btn-detail { background:#f8f9fa; border:1px solid #dee2e6; color:#495057; font-size:12px; padding:4px 12px; border-radius:6px; font-weight:600; transition:all .2s; }
-    .btn-detail:hover { background:#d93d20; color:#fff; border-color:#d93d20; }
-    .btn-export { background:linear-gradient(135deg,#198754,#157347); color:#fff; border:none; border-radius:8px; padding:8px 18px; font-size:13px; font-weight:600; }
-    .btn-export:hover { background:linear-gradient(135deg,#157347,#0f5132); color:#fff; transform:translateY(-1px); box-shadow:0 4px 12px rgba(25,135,84,.3); }
-    .btn-reset { background:#6c757d; color:#fff; border:none; border-radius:8px; padding:8px 18px; font-size:13px; font-weight:600; }
-    .badge-status { padding:5px 10px; border-radius:6px; font-size:11px; font-weight:600; }
-    .summary-row { display:flex; gap:1rem; margin-bottom:1.25rem; }
-    .summary-card { flex:1; background:#fff; border-radius:10px; padding:1rem 1.25rem; border:1px solid #e9ecef; box-shadow:0 1px 3px rgba(0,0,0,.04); }
-    .summary-card .label { font-size:11px; color:#6c757d; text-transform:uppercase; font-weight:600; letter-spacing:.5px; }
-    .summary-card .value { font-size:1.5rem; font-weight:800; color:#212529; margin-top:2px; }
-    .summary-card.total .value { color:#d93d20; }
-    .summary-card.completed .value { color:#198754; }
-    .summary-card.cancelled .value { color:#dc3545; }
-    .summary-card.revenue .value { color:#0d6efd; }
-    /* Modal */
-    .modal-detail-header { background:linear-gradient(135deg,#d93d20,#b52d1a); color:#fff; border-radius:12px 12px 0 0; padding:1.25rem 1.5rem; }
-    .modal-detail-header h5 { margin:0; font-weight:700; }
-    .detail-section { padding:1rem 1.5rem; border-bottom:1px solid #f0f0f0; }
-    .detail-section:last-child { border-bottom:none; }
-    .detail-label { font-size:11px; color:#6c757d; text-transform:uppercase; font-weight:600; letter-spacing:.3px; }
-    .detail-value { font-weight:600; color:#212529; }
-    .item-row { display:flex; justify-content:space-between; align-items:flex-start; padding:8px 0; border-bottom:1px dashed #eee; }
-    .item-row:last-child { border-bottom:none; }
-    .item-name { font-weight:600; }
-    .item-topping { font-size:11px; color:#6c757d; padding-left:12px; }
-    .item-price { font-weight:700; color:#d93d20; white-space:nowrap; }
-    .money-summary { display:flex; justify-content:space-between; padding:4px 0; font-size:13px; }
-    .money-summary.grand { font-size:15px; font-weight:800; color:#d93d20; border-top:2px solid #212529; padding-top:8px; margin-top:4px; }
-    .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_info { font-size:13px; }
-    .dataTables_wrapper .dataTables_paginate .paginate_button { font-size:13px; }
+    .sales-history { color:#172033; }
+    .sales-history__header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.25rem; }
+    .sales-history__title { margin:0; font-size:1.55rem; font-weight:800; }
+    .sales-history__subtitle { margin:.25rem 0 0; color:#667085; font-size:.875rem; }
+    .history-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border:1px solid #e4e7ec; background:#fff; margin-bottom:1rem; }
+    .history-kpi { min-width:0; padding:1rem 1.1rem; border-right:1px solid #e4e7ec; }
+    .history-kpi:last-child { border-right:0; }
+    .history-kpi__label { color:#667085; font-size:.72rem; font-weight:700; text-transform:uppercase; }
+    .history-kpi__value { display:block; margin-top:.3rem; font-size:1.35rem; font-weight:800; }
+    .history-kpi--revenue .history-kpi__value { color:#157347; }
+    .history-kpi--refund .history-kpi__value { color:#b42318; }
+    .history-filters { display:grid; grid-template-columns:minmax(180px,1.2fr) minmax(190px,1.4fr) repeat(4,minmax(130px,1fr)) auto; gap:.75rem; align-items:end; padding:1rem; border:1px solid #e4e7ec; background:#fff; margin-bottom:1rem; }
+    .history-field label { display:block; margin-bottom:.35rem; color:#475467; font-size:.72rem; font-weight:700; }
+    .history-field .form-control,.history-field .form-select { min-height:40px; border-radius:6px; font-size:.82rem; }
+    .history-table-wrap { border:1px solid #e4e7ec; background:#fff; overflow:auto; }
+    .history-table { min-width:1450px; margin:0; font-size:.78rem; }
+    .history-table thead th { position:sticky; top:0; z-index:1; padding:.75rem .65rem; background:#f8f9fb; color:#475467; border-bottom:1px solid #d0d5dd; font-size:.68rem; text-transform:uppercase; white-space:nowrap; }
+    .history-table tbody td { padding:.75rem .65rem; vertical-align:middle; border-color:#eef0f3; }
+    .history-table tbody tr:hover { background:#fff9f5; }
+    .history-code { color:#8a4f32; font-weight:800; }
+    .history-money { font-weight:800; white-space:nowrap; }
+    .history-pill { display:inline-flex; align-items:center; min-height:24px; padding:.2rem .5rem; border-radius:999px; background:#f2f4f7; color:#344054; font-size:.7rem; font-weight:700; white-space:nowrap; }
+    .history-pill--paid { background:#e8f7ef; color:#067647; }
+    .history-pill--refund { background:#fff1f0; color:#b42318; }
+    .history-pill--neutral { background:#f2f4f7; color:#475467; }
+    .history-empty { padding:3.5rem 1rem!important; color:#667085; text-align:center; }
+    .history-error { padding:2.5rem 1rem!important; color:#b42318; text-align:center; }
+    .history-pagination { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.8rem 1rem; border:1px solid #e4e7ec; border-top:0; background:#fff; }
+    .history-pagination__buttons { display:flex; align-items:center; gap:.35rem; }
+    .history-page-btn { min-width:36px; height:34px; border:1px solid #d0d5dd; background:#fff; border-radius:5px; color:#344054; font-weight:700; }
+    .history-page-btn.is-active { border-color:#8a4f32; background:#8a4f32; color:#fff; }
+    .history-page-btn:disabled { opacity:.45; }
+    .history-drawer { width:min(580px,100vw)!important; }
+    .history-drawer .offcanvas-header { border-bottom:1px solid #e4e7ec; }
+    .drawer-section { padding:1rem 1.25rem; border-bottom:1px solid #eaecf0; }
+    .drawer-section__title { margin:0 0 .75rem; color:#475467; font-size:.72rem; font-weight:800; text-transform:uppercase; }
+    .drawer-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem 1rem; }
+    .drawer-field__label { color:#667085; font-size:.7rem; }
+    .drawer-field__value { margin-top:.1rem; overflow-wrap:anywhere; font-size:.82rem; font-weight:700; }
+    .drawer-line { display:flex; justify-content:space-between; gap:1rem; padding:.65rem 0; border-bottom:1px dashed #d0d5dd; }
+    .drawer-line:last-child { border-bottom:0; }
+    .drawer-line__title { font-size:.82rem; font-weight:700; }
+    .drawer-line__meta { margin-top:.15rem; color:#667085; font-size:.72rem; }
+    .drawer-line__amount { white-space:nowrap; font-size:.82rem; font-weight:800; }
+    .drawer-total { display:flex; justify-content:space-between; margin-top:.6rem; padding-top:.7rem; border-top:2px solid #344054; font-size:1rem; font-weight:800; }
+    @@media (max-width:1200px) {
+        .history-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .history-kpi:nth-child(2) { border-right:0; }
+        .history-kpi:nth-child(-n+2) { border-bottom:1px solid #e4e7ec; }
+        .history-filters { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    }
+    @@media (max-width:768px) {
+        .sales-history__header { align-items:stretch; flex-direction:column; }
+        .history-kpis,.history-filters { grid-template-columns:1fr; }
+        .history-kpi { border-right:0; border-bottom:1px solid #e4e7ec; }
+        .history-kpi:last-child { border-bottom:0; }
+        .drawer-grid { grid-template-columns:1fr; }
+        .history-pagination { align-items:flex-start; flex-direction:column; }
+    }
 </style>
 }
 
-<!-- Header -->
-<div class="history-header">
-    <h4><i class="fas fa-history"></i> Lịch sử bán hàng POS</h4>
-    <div class="d-flex gap-2">
-        <button class="btn-export" id="btnExportCsv"><i class="fas fa-file-csv me-1"></i> Xuất CSV</button>
-        <a asp-action="Index" class="btn btn-outline-secondary" style="border-radius:8px;font-size:13px;font-weight:600;">
-            <i class="fas fa-columns me-1"></i> Đơn Web/Giao hàng
-        </a>
+<div class="sales-history">
+    <div class="sales-history__header">
+        <div>
+            <h1 class="sales-history__title">Lịch sử bán hàng</h1>
+            <p class="sales-history__subtitle">Chỉ hiển thị giao dịch POS tại quầy đã thanh toán hoặc đã hoàn tiền.</p>
+        </div>
+        <button class="btn btn-outline-success" id="btnExportCsv">
+            <i class="fas fa-file-csv me-1"></i> Xuất CSV
+        </button>
     </div>
-</div>
 
-<!-- Summary Cards -->
-<div class="summary-row" id="summaryRow">
-    <div class="summary-card total"><div class="label">Giao dịch đã ghi nhận</div><div class="value" id="totalOrders">-</div></div>
-    <div class="summary-card completed"><div class="label">Đã thanh toán</div><div class="value" id="completedOrders">-</div></div>
-    <div class="summary-card cancelled"><div class="label">Đã hoàn tiền</div><div class="value" id="cancelledOrders">-</div></div>
-    <div class="summary-card revenue"><div class="label">Doanh thu (lọc)</div><div class="value" id="totalRevenue">-</div></div>
-</div>
+    <section class="history-kpis" aria-label="Tổng quan giao dịch">
+        <div class="history-kpi">
+            <span class="history-kpi__label">Đơn đã thanh toán</span>
+            <strong class="history-kpi__value" id="paidOrders">-</strong>
+        </div>
+        <div class="history-kpi history-kpi--revenue">
+            <span class="history-kpi__label">Doanh thu</span>
+            <strong class="history-kpi__value" id="paidRevenue">-</strong>
+        </div>
+        <div class="history-kpi">
+            <span class="history-kpi__label">Đã hoàn tiền</span>
+            <strong class="history-kpi__value" id="refundedOrders">-</strong>
+        </div>
+        <div class="history-kpi history-kpi--refund">
+            <span class="history-kpi__label">Giá trị hoàn tiền</span>
+            <strong class="history-kpi__value" id="refundedAmount">-</strong>
+        </div>
+    </section>
 
-<!-- Filters -->
-<div class="filter-card">
-    <div class="row g-3 align-items-end">
-        <div class="col-md-3">
-            <label>Tìm kiếm</label>
-            <input type="text" class="form-control" id="filterSearch" placeholder="Mã đơn, SĐT, tên KH...">
+    <section class="history-filters" aria-label="Bộ lọc lịch sử">
+        <div class="history-field">
+            <label for="filterStore">Cửa hàng</label>
+            <select class="form-select" id="filterStore" @(stores.Count <= 1 ? "disabled" : null)>
+                @if (stores.Count > 1)
+                {
+                    <option value="">Tất cả cửa hàng trong phạm vi</option>
+                }
+                @foreach (var store in stores)
+                {
+                    <option value="@store.StoreId"
+                            selected="@(stores.Count == 1 || (stores.Count > 1 && selectedStoreId == store.StoreId))">
+                        @store.StoreName
+                    </option>
+                }
+            </select>
         </div>
-        <div class="col-md-2">
-            <label>Từ ngày</label>
-            <input type="date" class="form-control" id="filterDateFrom">
+        <div class="history-field">
+            <label for="filterSearch">Tìm kiếm</label>
+            <input class="form-control" id="filterSearch" placeholder="Mã đơn..." autocomplete="off" />
         </div>
-        <div class="col-md-2">
-            <label>Đến ngày</label>
-            <input type="date" class="form-control" id="filterDateTo">
+        <div class="history-field">
+            <label for="filterDateFrom">Từ ngày</label>
+            <input type="date" class="form-control" id="filterDateFrom" />
         </div>
-        <div class="col-md-2">
-            <label>Trạng thái</label>
+        <div class="history-field">
+            <label for="filterDateTo">Đến ngày</label>
+            <input type="date" class="form-control" id="filterDateTo" />
+        </div>
+        <div class="history-field">
+            <label for="filterStatus">Tài chính</label>
             <select class="form-select" id="filterStatus">
                 <option value="">Tất cả</option>
                 <option value="2">Đã thanh toán</option>
                 <option value="3">Đã hoàn tiền</option>
             </select>
         </div>
-        <div class="col-md-2">
-            <label>Thanh toán</label>
+        <div class="history-field">
+            <label for="filterPayment">Thanh toán</label>
             <select class="form-select" id="filterPayment">
                 <option value="">Tất cả</option>
                 <option value="1">Tiền mặt</option>
-                <option value="2">Chuyển khoản VietQR</option>
+                <option value="2">VietQR</option>
                 <option value="3">Ví điện tử — dữ liệu cũ</option>
             </select>
         </div>
-        <div class="col-md-1 d-flex gap-1">
-            <button class="btn btn-sm btn-reset w-100" id="btnReset" title="Xóa bộ lọc"><i class="fas fa-undo"></i></button>
-        </div>
+        <button class="btn btn-outline-secondary" id="btnReset" title="Xóa bộ lọc">
+            <i class="fas fa-undo"></i>
+        </button>
+    </section>
+
+    <div class="history-table-wrap">
+        <table class="table history-table">
+            <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Thời gian thanh toán</th>
+                    <th>Cửa hàng</th>
+                    <th>Thu ngân</th>
+                    <th>Loại đơn</th>
+                    <th>Tổng tiền</th>
+                    <th>Thanh toán</th>
+                    <th>Tài chính</th>
+                    <th>Đồng bộ</th>
+                    <th>Hóa đơn</th>
+                    <th>Tem</th>
+                    <th>Kho</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+        </table>
+    </div>
+    <div class="history-pagination">
+        <span id="paginationInfo">Đang tải...</span>
+        <div class="history-pagination__buttons" id="paginationButtons"></div>
     </div>
 </div>
 
-<!-- DataTable -->
-<div class="table-card">
-    <div class="table-responsive">
-    <table id="orderHistoryTable" class="table table-hover mb-0" style="width:100%">
-        <thead>
-            <tr>
-                <th>Mã đơn</th>
-                <th>Thời gian thanh toán</th>
-                <th>Khách hàng</th>
-                <th>Cửa hàng</th>
-                <th>Thu ngân</th>
-                <th>Loại đơn</th>
-                <th>Tổng tiền</th>
-                <th>Thanh toán</th>
-                <th>Trạng thái</th>
-                <th>Hóa đơn</th>
-                <th>Tem</th>
-                <th style="text-align:center">Hành động</th>
-            </tr>
-        </thead>
-        <tbody id="orderTableBody"></tbody>
-    </table>
-    </div>
-</div>
-
-<!-- Detail Modal -->
-<div class="modal fade" id="orderDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content" style="border:none;border-radius:12px;overflow:hidden;">
-            <div class="modal-detail-header">
-                <h5><i class="fas fa-receipt me-2"></i>Chi tiết đơn hàng <span id="modalOrderId"></span></h5>
-                <button type="button" class="btn-close btn-close-white position-absolute" style="top:16px;right:16px;" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-0" id="modalBody">
-                <div class="text-center py-5"><div class="spinner-border text-danger"></div></div>
-            </div>
+<aside class="offcanvas offcanvas-end history-drawer" tabindex="-1" id="orderDetailDrawer">
+    <div class="offcanvas-header">
+        <div>
+            <div class="text-muted small">CHI TIẾT GIAO DỊCH</div>
+            <h5 class="offcanvas-title fw-bold" id="drawerTitle">Đơn hàng</h5>
         </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Đóng"></button>
     </div>
-</div>
+    <div class="offcanvas-body p-0" id="drawerBody"></div>
+</aside>
 
 @section Scripts {
-    <script>
-        $(document).ready(function () {
-            // Khởi tạo ngày mặc định (hôm nay)
-            const today = new Date().toISOString().split('T')[0];
-            // $('#filterDateFrom').val(today);
-            // $('#filterDateTo').val(today);
+<script>
+(() => {
+    const state = { page: 1, pageSize: 20, totalPages: 0, loading: false };
+    const body = document.getElementById('historyBody');
+    const drawerElement = document.getElementById('orderDetailDrawer');
+    const drawer = bootstrap.Offcanvas.getOrCreateInstance(drawerElement);
+    const money = value => `${new Intl.NumberFormat('vi-VN').format(Number(value || 0))}đ`;
+    const dateTime = value => value
+        ? new Date(value).toLocaleString('vi-VN', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit', year:'numeric' })
+        : 'Chưa xác định';
+    const escapeHtml = value => String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    const pill = (value, tone = 'neutral') =>
+        `<span class="history-pill history-pill--${tone}">${escapeHtml(value || 'Chưa xác định')}</span>`;
 
-            const fmt = n => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
-            const fmtDate = s => {
-                if (!s) return 'Chưa xác định';
-                const d = new Date(s);
-                return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-            };
+    function currentFilter() {
+        const storeValue = document.getElementById('filterStore').value;
+        return {
+            keyword: document.getElementById('filterSearch').value.trim(),
+            fromDate: document.getElementById('filterDateFrom').value,
+            toDate: document.getElementById('filterDateTo').value,
+            statusId: document.getElementById('filterStatus').value,
+            paymentId: document.getElementById('filterPayment').value,
+            storeId: storeValue,
+            allWithinScope: storeValue === '',
+            page: state.page,
+            pageSize: state.pageSize
+        };
+    }
 
-            const paymentIcons = { 1: '💵', 2: '🏦', 3: '📱' };
-
-            function loadOrders() {
-                const params = {
-                    keyword: $('#filterSearch').val(),
-                    fromDate: $('#filterDateFrom').val(),
-                    toDate: $('#filterDateTo').val(),
-                    statusId: $('#filterStatus').val(),
-                    paymentId: $('#filterPayment').val()
-                };
-
-                $('#orderTableBody').html('<tr><td colspan="12" class="text-center py-4"><div class="spinner-border text-danger"></div> Đang tải...</td></tr>');
-
-                $.get('/api/AdminOrder/GetOrderHistoryData', params, function (res) {
-                    // 1. Cập nhật thống kê
-                    $('#totalOrders').text(res.stats.totalOrders);
-                    $('#completedOrders').text(res.stats.completedOrders);
-                    $('#cancelledOrders').text(res.stats.cancelledOrders);
-                    $('#totalRevenue').text(fmt(res.stats.totalRevenue));
-
-                    // 2. Render bảng
-                    let html = '';
-                    if (res.data.length === 0) {
-                        html = '<tr><td colspan="12" class="text-center py-4 text-muted">Không tìm thấy giao dịch POS đã thanh toán.</td></tr>';
-                    } else {
-                        res.data.forEach(o => {
-                            html += `
-                                <tr>
-                                    <td><span class="order-id-cell">#CC${String(o.orderId).padStart(5, '0')}</span></td>
-                                    <td>${fmtDate(o.createdAt)}</td>
-                                    <td>
-                                        <div class="customer-cell">
-                                            <div class="name">${o.customerName}</div>
-                                            <div class="phone"><i class="fas fa-phone-alt me-1"></i>${o.customerPhone || 'Chưa xác định'}</div>
-                                        </div>
-                                    </td>
-                                    <td>${o.storeName}</td>
-                                    <td>${o.staffName}</td>
-                                    <td>${o.orderTypeName}</td>
-                                    <td><span class="money-cell">${fmt(o.total)}</span></td>
-                                    <td>${paymentIcons[o.paymentMethodId] || '💳'} ${o.paymentMethodName}</td>
-                                    <td><span class="badge ${o.orderStatusBadge} badge-status">${o.orderStatusName}</span></td>
-                                    <td>${o.receiptState}</td>
-                                    <td>${o.drinkLabelState}</td>
-                                    <td class="text-center">
-                                        <button class="btn-detail" onclick="showDetail(${o.orderId}, ${o.storeId})">
-                                            <i class="fas fa-eye me-1"></i>Chi tiết
-                                        </button>
-                                    </td>
-                                </tr>`;
-                        });
-                    }
-                    $('#orderTableBody').html(html);
-                }).fail(function (xhr) {
-                    $('#orderTableBody').html('<tr><td colspan="12" class="text-center py-4 text-danger">Không thể tải lịch sử bán hàng. Vui lòng thử lại.</td></tr>');
-                });
+    function queryString(includePage = true) {
+        const filter = currentFilter();
+        if (!includePage) {
+            delete filter.page;
+            delete filter.pageSize;
+        }
+        const params = new URLSearchParams();
+        Object.entries(filter).forEach(([key, value]) => {
+            if (value !== '' && value !== null && value !== undefined) {
+                params.set(key, value);
             }
-
-            // Events
-            $('#filterSearch').on('input', function () {
-                clearTimeout(this.delay);
-                this.delay = setTimeout(loadOrders, 500);
-            });
-
-            $('#filterDateFrom, #filterDateTo, #filterStatus, #filterPayment').on('change', loadOrders);
-
-            $('#btnReset').click(function () {
-                $('#filterSearch, #filterDateFrom, #filterDateTo, #filterStatus, #filterPayment').val('');
-                loadOrders();
-            });
-
-            $('#btnExportCsv').click(function () {
-                const query = $.param({
-                    keyword: $('#filterSearch').val(),
-                    fromDate: $('#filterDateFrom').val(),
-                    toDate: $('#filterDateTo').val(),
-                    statusId: $('#filterStatus').val(),
-                    paymentId: $('#filterPayment').val()
-                });
-                window.location.href = '/api/AdminOrder/ExportCSV?' + query;
-            });
-
-            // Chi tiết đơn hàng (Modal)
-            window.showDetail = function (orderId, storeId) {
-                $('#modalOrderId').text('#CC' + String(orderId).padStart(5, '0'));
-                $('#modalBody').html('<div class="text-center py-5"><div class="spinner-border text-danger"></div></div>');
-                const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
-                modal.show();
-
-                $.get(`/api/AdminOrder/GetOrderHistoryDetail/${orderId}?storeId=${storeId}`, function (d) {
-                    let itemsHtml = d.items.map(item => {
-                        let toppingHtml = item.toppings.map(t => `<div class="item-topping">+ ${t.name} <span class="text-muted">(${fmt(t.price)})</span></div>`).join('');
-                        return `
-                            <div class="item-row">
-                                <div>
-                                    <div class="item-name">${item.quantity}x ${item.drinkName} ${item.sizeName ? '(' + item.sizeName + ')' : ''}</div>
-                                    ${toppingHtml}
-                                    ${item.note ? '<div class="item-topping text-warning"><i class="fas fa-sticky-note me-1"></i>' + item.note + '</div>' : ''}
-                                </div>
-                                <div class="item-price">${fmt(item.price * item.quantity)}</div>
-                            </div>`;
-                    }).join('');
-                    let paymentsHtml = (d.payments || []).map(payment => `
-                        <div class="item-row">
-                            <div>
-                                <div class="item-name">${payment.paymentMethodName}</div>
-                                <div class="item-topping">${payment.paidAt ? fmtDate(payment.paidAt) : 'Chưa xác định thời gian'}</div>
-                                ${payment.transactionCode ? '<div class="item-topping">Mã giao dịch: ' + payment.transactionCode + '</div>' : ''}
-                                ${payment.receivedAmount != null ? '<div class="item-topping">Khách đưa: ' + fmt(payment.receivedAmount) + ' · Tiền thừa: ' + fmt(payment.changeAmount || 0) + '</div>' : ''}
-                            </div>
-                            <div class="item-price">${fmt(payment.amount)}</div>
-                        </div>`).join('');
-
-                    let html = `
-                        <div class="detail-section">
-                            <div class="row g-3">
-                                <div class="col-6"><div class="detail-label">Khách hàng</div><div class="detail-value">${d.customerName}</div></div>
-                                <div class="col-6"><div class="detail-label">SĐT</div><div class="detail-value">${d.customerPhone || 'Chưa xác định'}</div></div>
-                                <div class="col-6"><div class="detail-label">Loại đơn</div><div class="detail-value">${d.orderTypeName || 'Chưa xác định'}</div></div>
-                                <div class="col-6"><div class="detail-label">Nguồn</div><div class="detail-value">Bán tại quầy POS</div></div>
-                                <div class="col-6"><div class="detail-label">Cửa hàng</div><div class="detail-value">${d.storeName}</div></div>
-                                <div class="col-6"><div class="detail-label">Thu ngân</div><div class="detail-value">${d.staffName}</div></div>
-                                ${d.note ? '<div class="col-12"><div class="detail-label">Ghi chú</div><div class="detail-value text-muted">' + d.note + '</div></div>' : ''}
-                            </div>
-                        </div>
-                        <div class="detail-section">
-                            <div class="detail-label mb-2">Chi tiết thanh toán</div>
-                            ${paymentsHtml || '<div class="text-muted">Chưa có dữ liệu thanh toán.</div>'}
-                        </div>
-                        <div class="detail-section">
-                            <div class="row g-3">
-                                <div class="col-6"><div class="detail-label">Hóa đơn</div><div class="detail-value">${d.receiptState}</div></div>
-                                <div class="col-6"><div class="detail-label">Tem</div><div class="detail-value">${d.drinkLabelState}</div></div>
-                            </div>
-                        </div>
-                        <div class="detail-section">
-                            <div class="row">
-                                <div class="col-md-6 border-end">
-                                    <div class="detail-label mb-2">Trạng thái</div>
-                                    <span class="${d.orderStatusBadge} badge-status">${d.orderStatusName}</span>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="detail-label mb-2">Thanh toán</div>
-                                    <div class="fw-bold">${d.paymentMethodName}</div>
-                                    <div class="small text-muted">${d.paymentStatusName}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="detail-section">
-                            <div class="detail-label mb-2">Danh sách món</div>
-                            ${itemsHtml}
-                        </div>
-                        <div class="detail-section" style="background:#fafafa;">
-                            <div class="money-summary"><span>Tạm tính</span><span>${fmt(d.subTotal)}</span></div>
-                            <div class="money-summary"><span>Phí ship</span><span>${fmt(d.shippingFee)}</span></div>
-                            ${d.voucherDiscount > 0 ? '<div class="money-summary"><span>Giảm voucher</span><span class="text-success">-' + fmt(d.voucherDiscount) + '</span></div>' : ''}
-                            ${d.pointDiscount > 0 ? '<div class="money-summary"><span>Giảm điểm</span><span class="text-success">-' + fmt(d.pointDiscount) + '</span></div>' : ''}
-                            <div class="money-summary grand"><span>Tổng cộng</span><span>${fmt(d.total)}</span></div>
-                        </div>`;
-                    $('#modalBody').html(html);
-                }).fail(function () {
-                    $('#modalBody').html('<div class="text-center py-5 text-danger">Không thể tải chi tiết đơn hàng.</div>');
-                });
-            };
-
-            // Khởi chạy
-            loadOrders();
         });
-    </script>
+        return params.toString();
+    }
+
+    async function loadHistory() {
+        if (state.loading) return;
+        state.loading = true;
+        body.innerHTML = '<tr><td colspan="13" class="history-empty"><span class="spinner-border spinner-border-sm me-2"></span>Đang tải lịch sử...</td></tr>';
+        try {
+            const response = await fetch(`/api/AdminOrder/GetOrderHistoryData?${queryString()}`, {
+                headers: { Accept: 'application/json' }
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            state.page = data.page || 1;
+            state.totalPages = data.totalPages || 0;
+            renderStats(data.stats || {});
+            renderRows(data.data || []);
+            renderPagination(data);
+        } catch (error) {
+            console.error('[SalesHistory] Load failed', error);
+            body.innerHTML = `<tr><td colspan="13" class="history-error">
+                <div class="fw-bold">Không thể tải lịch sử bán hàng.</div>
+                <button class="btn btn-sm btn-outline-danger mt-2" id="retryHistory">Thử lại</button>
+            </td></tr>`;
+            document.getElementById('retryHistory')?.addEventListener('click', loadHistory);
+            document.getElementById('paginationInfo').textContent = 'Không tải được dữ liệu';
+            document.getElementById('paginationButtons').innerHTML = '';
+        } finally {
+            state.loading = false;
+        }
+    }
+
+    function renderStats(stats) {
+        document.getElementById('paidOrders').textContent = Number(stats.paidOrders || 0).toLocaleString('vi-VN');
+        document.getElementById('paidRevenue').textContent = money(stats.paidRevenue);
+        document.getElementById('refundedOrders').textContent = Number(stats.refundedOrders || 0).toLocaleString('vi-VN');
+        document.getElementById('refundedAmount').textContent = money(stats.refundedAmount);
+    }
+
+    function renderRows(rows) {
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="13" class="history-empty">Không có giao dịch POS phù hợp với bộ lọc.</td></tr>';
+            return;
+        }
+        body.innerHTML = rows.map(row => `
+            <tr>
+                <td><span class="history-code">#CC${String(row.orderId).padStart(5, '0')}</span></td>
+                <td>${escapeHtml(dateTime(row.createdAt))}</td>
+                <td>${escapeHtml(row.storeName)}</td>
+                <td>${escapeHtml(row.staffName)}</td>
+                <td>${escapeHtml(row.orderTypeName)}</td>
+                <td><span class="history-money">${money(row.total)}</span></td>
+                <td>${escapeHtml(row.paymentMethodName)}</td>
+                <td>${pill(row.orderStatusName, row.orderStatusId === 3 ? 'refund' : 'paid')}</td>
+                <td>${pill(row.syncState)}</td>
+                <td>${pill(row.receiptState)}</td>
+                <td>${pill(row.drinkLabelState)}</td>
+                <td>${pill(row.inventoryPostingState)}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-secondary js-detail"
+                            data-order-id="${row.orderId}"
+                            data-store-id="${row.storeId}"
+                            title="Xem chi tiết">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>`).join('');
+    }
+
+    function renderPagination(data) {
+        const total = Number(data.totalItems || 0);
+        const start = total === 0 ? 0 : ((data.page - 1) * data.pageSize) + 1;
+        const end = Math.min(total, data.page * data.pageSize);
+        document.getElementById('paginationInfo').textContent =
+            total === 0 ? '0 giao dịch' : `${start}-${end} trong ${total} giao dịch`;
+
+        const pages = [];
+        const from = Math.max(1, data.page - 2);
+        const to = Math.min(data.totalPages, data.page + 2);
+        pages.push(`<button class="history-page-btn" data-page="${data.page - 1}" ${data.page <= 1 ? 'disabled' : ''} aria-label="Trang trước">‹</button>`);
+        for (let page = from; page <= to; page++) {
+            pages.push(`<button class="history-page-btn ${page === data.page ? 'is-active' : ''}" data-page="${page}">${page}</button>`);
+        }
+        pages.push(`<button class="history-page-btn" data-page="${data.page + 1}" ${data.page >= data.totalPages ? 'disabled' : ''} aria-label="Trang sau">›</button>`);
+        document.getElementById('paginationButtons').innerHTML = pages.join('');
+    }
+
+    async function openDetail(orderId, storeId) {
+        document.getElementById('drawerTitle').textContent = `Đơn #CC${String(orderId).padStart(5, '0')}`;
+        document.getElementById('drawerBody').innerHTML =
+            '<div class="p-5 text-center"><span class="spinner-border"></span></div>';
+        drawer.show();
+        try {
+            const response = await fetch(`/api/AdminOrder/GetOrderHistoryDetail/${orderId}?storeId=${storeId}`, {
+                headers: { Accept: 'application/json' }
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            renderDetail(await response.json());
+        } catch (error) {
+            console.error('[SalesHistory] Detail failed', error);
+            document.getElementById('drawerBody').innerHTML =
+                '<div class="p-4 text-danger">Không thể tải chi tiết giao dịch. Vui lòng thử lại.</div>';
+        }
+    }
+
+    function renderDetail(detail) {
+        const payments = (detail.payments || []).map(payment => `
+            <div class="drawer-line">
+                <div>
+                    <div class="drawer-line__title">${escapeHtml(payment.paymentMethodName)}</div>
+                    <div class="drawer-line__meta">${escapeHtml(dateTime(payment.paidAt))}</div>
+                    ${payment.transactionCode ? `<div class="drawer-line__meta">Mã giao dịch: ${escapeHtml(payment.transactionCode)}</div>` : ''}
+                    ${payment.receivedAmount != null ? `<div class="drawer-line__meta">Khách đưa: ${money(payment.receivedAmount)} · Tiền thừa: ${money(payment.changeAmount)}</div>` : ''}
+                </div>
+                <div class="drawer-line__amount">${money(payment.amount)}</div>
+            </div>`).join('');
+        const items = (detail.items || []).map(item => `
+            <div class="drawer-line">
+                <div>
+                    <div class="drawer-line__title">${item.quantity}× ${escapeHtml(item.drinkName)} ${item.sizeName ? `(${escapeHtml(item.sizeName)})` : ''}</div>
+                    ${(item.toppings || []).map(t => `<div class="drawer-line__meta">+ ${escapeHtml(t.name)} (${money(t.price)})</div>`).join('')}
+                    ${item.note ? `<div class="drawer-line__meta">Ghi chú: ${escapeHtml(item.note)}</div>` : ''}
+                </div>
+                <div class="drawer-line__amount">${money(item.price * item.quantity)}</div>
+            </div>`).join('');
+        const refund = detail.refund ? `
+            <section class="drawer-section">
+                <h3 class="drawer-section__title">Hoàn tiền</h3>
+                <div class="drawer-grid">
+                    ${field('Mã hoàn tiền', `#${detail.refund.orderRefundId}`)}
+                    ${field('Trạng thái', refundStatus(detail.refund.status))}
+                    ${field('Số tiền', money(detail.refund.amount))}
+                    ${field('Hoàn tất lúc', dateTime(detail.refund.completedAtUtc))}
+                </div>
+                <div class="mt-3">${field('Lý do', detail.refund.reason)}</div>
+            </section>` : '';
+
+        document.getElementById('drawerBody').innerHTML = `
+            <section class="drawer-section">
+                <h3 class="drawer-section__title">Thông tin giao dịch</h3>
+                <div class="drawer-grid">
+                    ${field('Cửa hàng', detail.storeName)}
+                    ${field('Thu ngân', detail.staffName)}
+                    ${field('WorkShift', detail.workShiftId ? `#${detail.workShiftId}` : 'Chưa xác định')}
+                    ${field('Loại đơn', detail.orderTypeName || 'Chưa xác định')}
+                    ${field('Thanh toán lúc', dateTime(detail.createdAt))}
+                    ${field('ClientOrderId', detail.clientOrderId || 'Không có')}
+                </div>
+            </section>
+            <section class="drawer-section">
+                <h3 class="drawer-section__title">Trạng thái</h3>
+                <div class="drawer-grid">
+                    ${field('Tài chính', detail.orderStatusName)}
+                    ${field('Đồng bộ', detail.syncState)}
+                    ${field('Hóa đơn', detail.receiptState)}
+                    ${field('Tem', detail.drinkLabelState)}
+                    ${field('Ghi nhận kho', detail.inventoryPostingState)}
+                </div>
+            </section>
+            <section class="drawer-section">
+                <h3 class="drawer-section__title">Thanh toán</h3>
+                ${payments || '<div class="text-muted">Chưa có dữ liệu thanh toán.</div>'}
+            </section>
+            <section class="drawer-section">
+                <h3 class="drawer-section__title">Món đã bán</h3>
+                ${items || '<div class="text-muted">Không có dữ liệu món.</div>'}
+            </section>
+            ${refund}
+            <section class="drawer-section">
+                <div class="drawer-line"><span>Tạm tính</span><strong>${money(detail.subTotal)}</strong></div>
+                ${detail.discountTotal > 0 ? `<div class="drawer-line"><span>Giảm giá</span><strong>-${money(detail.discountTotal)}</strong></div>` : ''}
+                <div class="drawer-line"><span>Thuế</span><strong>VAT đã gồm trong giá</strong></div>
+                <div class="drawer-total"><span>Tổng cộng</span><span>${money(detail.total)}</span></div>
+            </section>`;
+    }
+
+    const field = (label, value) => `
+        <div class="drawer-field">
+            <div class="drawer-field__label">${escapeHtml(label)}</div>
+            <div class="drawer-field__value">${escapeHtml(value ?? 'Chưa xác định')}</div>
+        </div>`;
+    const refundStatus = status => ({
+        Requested: 'Đã yêu cầu',
+        Processing: 'Đang xử lý',
+        Completed: 'Đã hoàn tất',
+        Failed: 'Thất bại'
+    })[status] || 'Chưa xác định';
+
+    let searchTimer;
+    document.getElementById('filterSearch').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { state.page = 1; loadHistory(); }, 350);
+    });
+    ['filterStore','filterDateFrom','filterDateTo','filterStatus','filterPayment'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => {
+            state.page = 1;
+            loadHistory();
+        });
+    });
+    document.getElementById('btnReset').addEventListener('click', () => {
+        ['filterSearch','filterDateFrom','filterDateTo','filterStatus','filterPayment']
+            .forEach(id => document.getElementById(id).value = '');
+        state.page = 1;
+        loadHistory();
+    });
+    document.getElementById('btnExportCsv').addEventListener('click', () => {
+        window.location.href = `/api/AdminOrder/ExportCSV?${queryString(false)}`;
+    });
+    document.getElementById('paginationButtons').addEventListener('click', event => {
+        const button = event.target.closest('[data-page]');
+        if (!button || button.disabled) return;
+        state.page = Number(button.dataset.page);
+        loadHistory();
+    });
+    body.addEventListener('click', event => {
+        const button = event.target.closest('.js-detail');
+        if (!button) return;
+        openDetail(Number(button.dataset.orderId), Number(button.dataset.storeId));
+    });
+
+    loadHistory();
+})();
+</script>
 }

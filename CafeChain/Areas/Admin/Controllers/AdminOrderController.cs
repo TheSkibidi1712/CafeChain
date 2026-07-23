@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Globalization;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -238,7 +239,9 @@ namespace CafeChain.Areas.Admin.Controllers
             int? statusId,
             int? paymentId,
             int? storeId,
-            bool allWithinScope = false)
+            bool allWithinScope = false,
+            int page = 1,
+            int pageSize = 20)
         {
             try
             {
@@ -248,7 +251,9 @@ namespace CafeChain.Areas.Admin.Controllers
                     allWithinScope || !storeId.HasValue);
                 if (filter.Failure != null) return filter.Failure;
 
-                var allData = await _adminOrderService.GetFilteredOrdersForExportAsync(
+                var result = await _adminOrderService.GetPosSalesHistoryAsync(
+                    page,
+                    pageSize,
                     keyword,
                     fromDate,
                     toDate,
@@ -256,18 +261,14 @@ namespace CafeChain.Areas.Admin.Controllers
                     paymentId,
                     filter.StoreIds);
 
-                // Tính toán thống kê
-                var stats = new
-                {
-                    TotalOrders = allData.Count,
-                    CompletedOrders = allData.Count(o => o.OrderStatusId == SystemConstants.PaymentStatuses.Paid),
-                    CancelledOrders = allData.Count(o => o.OrderStatusId == SystemConstants.PaymentStatuses.Refunded),
-                    TotalRevenue = allData.Where(o => o.OrderStatusId == SystemConstants.PaymentStatuses.Paid).Sum(o => o.Total)
-                };
                 return Ok(new
                 {
-                    stats,
-                    data = allData,
+                    result.Page,
+                    result.PageSize,
+                    result.TotalItems,
+                    result.TotalPages,
+                    result.Stats,
+                    data = result.Items,
                     storeScope = new
                     {
                         allWithinScope = !storeId.HasValue || allWithinScope,
@@ -311,11 +312,16 @@ namespace CafeChain.Areas.Admin.Controllers
                 var csv = new System.Text.StringBuilder();
                 // Thêm BOM để Excel nhận đúng UTF-8
                 csv.Append('\uFEFF');
-                csv.AppendLine("Mã đơn,Thời gian thanh toán,Khách hàng,Số điện thoại,Cửa hàng,Thu ngân,Loại đơn,Tổng tiền,Thanh toán,Trạng thái tài chính,Trạng thái hóa đơn,Trạng thái tem");
+                csv.AppendLine("Mã đơn,Thời gian thanh toán,Cửa hàng,Thu ngân,Loại đơn,Tổng tiền,Thanh toán,Trạng thái tài chính,Đồng bộ,Hóa đơn,Tem,Kho");
 
                 foreach (var o in data)
                 {
-                    csv.AppendLine($"#CC{o.OrderId:D5},{o.CreatedAt:dd/MM/yyyy HH:mm},{Csv(o.CustomerName)},{Csv(o.CustomerPhone)},{Csv(o.StoreName)},{Csv(o.StaffName)},{Csv(o.OrderTypeName)},{o.Total},{Csv(o.PaymentMethodName)},{Csv(o.OrderStatusName)},{Csv(o.ReceiptState)},{Csv(o.DrinkLabelState)}");
+                    csv.AppendLine(
+                        $"#CC{o.OrderId:D5},{o.CreatedAt:dd/MM/yyyy HH:mm}," +
+                        $"{Csv(o.StoreName)},{Csv(o.StaffName)},{Csv(o.OrderTypeName)}," +
+                        $"{o.Total.ToString(CultureInfo.InvariantCulture)},{Csv(o.PaymentMethodName)},{Csv(o.OrderStatusName)}," +
+                        $"{Csv(o.SyncState)},{Csv(o.ReceiptState)},{Csv(o.DrinkLabelState)}," +
+                        $"{Csv(o.InventoryPostingState)}");
                 }
 
                 var fileName = $"LichSuDonHang_{DateTime.Now:yyyyMMdd}.csv";

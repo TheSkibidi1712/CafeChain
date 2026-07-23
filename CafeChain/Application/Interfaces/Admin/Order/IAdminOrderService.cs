@@ -77,6 +77,16 @@ namespace CafeChain.Application.Interfaces.Admin
             DataTablesRequest request,
             IReadOnlyCollection<int> storeIds);
 
+        Task<AdminOrderHistoryPageDto> GetPosSalesHistoryAsync(
+            int page,
+            int pageSize,
+            string searchKeyword,
+            string dateFrom,
+            string dateTo,
+            int? statusFilter,
+            int? paymentMethodFilter,
+            IReadOnlyCollection<int> storeIds);
+
         /// <summary>
         /// Lấy chi tiết đơn hàng cho Modal trong trang Lịch sử đơn hàng.
         /// </summary>

@@ -60,15 +60,7 @@ public sealed class OrderStoreFilterContractIssue212Tests
             Actor(RoleConstants.AreaManager),
             ResolvedScopeFor(2, StoreA, StoreB),
             requestedStoreId: 2);
-        harness.Service
-            .Setup(x => x.GetFilteredOrdersForExportAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<int?>(),
-                It.IsAny<int?>(),
-                It.Is<IReadOnlyCollection<int>>(ids => ids.SequenceEqual(new[] { 2 }))))
-            .ReturnsAsync(new List<AdminOrderHistoryRowDto>());
+        SetupHistoryPage(harness.Service, new[] { 2 });
 
         var result = await harness.Controller.GetOrderHistoryData(
             string.Empty,
@@ -93,15 +85,7 @@ public sealed class OrderStoreFilterContractIssue212Tests
         var harness = CreateHarness(
             Actor(RoleConstants.AreaManager),
             ResolvedScope(StoreA, StoreB));
-        harness.Service
-            .Setup(x => x.GetFilteredOrdersForExportAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<int?>(),
-                It.IsAny<int?>(),
-                It.Is<IReadOnlyCollection<int>>(ids => ids.Order().SequenceEqual(new[] { 1, 2 }))))
-            .ReturnsAsync(new List<AdminOrderHistoryRowDto>());
+        SetupHistoryPage(harness.Service, new[] { 1, 2 });
 
         var result = await harness.Controller.GetOrderHistoryData(
             string.Empty,
@@ -140,28 +124,12 @@ public sealed class OrderStoreFilterContractIssue212Tests
     {
         var actor = Actor(RoleConstants.BusinessOwner);
         var oneStore = CreateHarness(actor, ResolvedScope(StoreA, StoreB), requestedStoreId: 1);
-        oneStore.Service
-            .Setup(x => x.GetFilteredOrdersForExportAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<int?>(),
-                It.IsAny<int?>(),
-                It.Is<IReadOnlyCollection<int>>(ids => ids.SequenceEqual(new[] { 1 }))))
-            .ReturnsAsync(new List<AdminOrderHistoryRowDto>());
+        SetupHistoryPage(oneStore.Service, new[] { 1 });
         Assert.IsType<OkObjectResult>(await oneStore.Controller.GetOrderHistoryData(
             "", "", "", null, null, 1));
 
         var allStores = CreateHarness(actor, ResolvedScope(StoreA, StoreB));
-        allStores.Service
-            .Setup(x => x.GetFilteredOrdersForExportAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<int?>(),
-                It.IsAny<int?>(),
-                It.Is<IReadOnlyCollection<int>>(ids => ids.Order().SequenceEqual(new[] { 1, 2 }))))
-            .ReturnsAsync(new List<AdminOrderHistoryRowDto>());
+        SetupHistoryPage(allStores.Service, new[] { 1, 2 });
         Assert.IsType<OkObjectResult>(await allStores.Controller.GetOrderHistoryData(
             "", "", "", null, null, null, true));
     }
@@ -212,6 +180,7 @@ public sealed class OrderStoreFilterContractIssue212Tests
         var harness = CreateHarness(
             Actor(RoleConstants.AreaManager),
             ResolvedScope(StoreA, StoreB));
+        SetupHistoryPage(harness.Service, new[] { 1, 2 }, rows);
         harness.Service
             .Setup(x => x.GetFilteredOrdersForExportAsync(
                 It.IsAny<string>(),
@@ -235,7 +204,19 @@ public sealed class OrderStoreFilterContractIssue212Tests
                 It.IsAny<int?>(),
                 It.IsAny<int?>(),
                 It.Is<IReadOnlyCollection<int>>(ids => ids.Order().SequenceEqual(new[] { 1, 2 }))),
-            Times.Exactly(2));
+            Times.Once);
+        harness.Service.Verify(
+            x => x.GetPosSalesHistoryAsync(
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<int?>(),
+                It.IsAny<int?>(),
+                It.Is<IReadOnlyCollection<int>>(ids =>
+                    ids.Order().SequenceEqual(new[] { 1, 2 }))),
+            Times.Once);
     }
 
     [Fact]
@@ -304,6 +285,32 @@ public sealed class OrderStoreFilterContractIssue212Tests
         };
 
         return new Harness(controller, service, resolver);
+    }
+
+    private static void SetupHistoryPage(
+        Mock<IAdminOrderService> service,
+        IReadOnlyCollection<int> expectedStoreIds,
+        List<AdminOrderHistoryRowDto>? rows = null)
+    {
+        service
+            .Setup(x => x.GetPosSalesHistoryAsync(
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<int?>(),
+                It.IsAny<int?>(),
+                It.Is<IReadOnlyCollection<int>>(ids =>
+                    ids.Order().SequenceEqual(expectedStoreIds.Order()))))
+            .ReturnsAsync(new AdminOrderHistoryPageDto
+            {
+                Page = 1,
+                PageSize = 20,
+                TotalItems = rows?.Count ?? 0,
+                TotalPages = rows?.Count > 0 ? 1 : 0,
+                Items = rows ?? new List<AdminOrderHistoryRowDto>()
+            });
     }
 
     private static AdminActorContext Actor(string role) =>
