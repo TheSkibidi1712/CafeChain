@@ -35,7 +35,7 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
         /// ADR-0002: Tìm Order theo ClientOrderId để kiểm tra idempotency khi sync offline.
         /// Trả về null nếu chưa tồn tại — an toàn để commit đơn mới.
         /// </summary>
-        Task<Order?> FindOrderByClientOrderIdAsync(Guid clientOrderId);
+        Task<Order?> FindOrderByClientOrderIdAsync(Guid clientOrderId, int storeId);
 
         /// <summary>
         /// Load order đã commit để in lại, giới hạn theo store hiện tại của POS.

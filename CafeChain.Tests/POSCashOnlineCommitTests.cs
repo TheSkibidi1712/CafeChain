@@ -55,7 +55,7 @@ namespace CafeChain.Tests.POS
             };
 
             repository
-                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value))
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value, It.IsAny<int>()))
                 .ReturnsAsync((Order?)null);
 
             workShiftService
@@ -154,7 +154,7 @@ namespace CafeChain.Tests.POS
             };
 
             repository
-                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value))
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value, It.IsAny<int>()))
                 .ReturnsAsync((Order?)null);
 
             workShiftService
@@ -218,7 +218,7 @@ namespace CafeChain.Tests.POS
             };
 
             repository
-                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value))
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value, It.IsAny<int>()))
                 .ReturnsAsync((Order?)null);
             workShiftService
                 .Setup(service => service.GetActiveShiftAsync(17, 3))
@@ -280,7 +280,7 @@ namespace CafeChain.Tests.POS
             };
 
             repository
-                .Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId))
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId, It.IsAny<int>()))
                 .ReturnsAsync(existingOrder);
 
             var service = CreateOrderService(
@@ -329,7 +329,7 @@ namespace CafeChain.Tests.POS
             };
             dto.ReceivedAmount = 66m;
 
-            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value)).ReturnsAsync((Order?)null);
+            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value, It.IsAny<int>())).ReturnsAsync((Order?)null);
             workShiftService.Setup(service => service.GetActiveShiftAsync(17, 3)).ReturnsAsync(new WorkShift
             {
                 ShiftId = 42,
@@ -383,7 +383,7 @@ namespace CafeChain.Tests.POS
                     }
                 }
             };
-            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId)).ReturnsAsync(existingOrder);
+            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId, It.IsAny<int>())).ReturnsAsync(existingOrder);
             var service = CreateOrderService(
                 repository,
                 new Mock<IWorkShiftService>(MockBehavior.Strict),

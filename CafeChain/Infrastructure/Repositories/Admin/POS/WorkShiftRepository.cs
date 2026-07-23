@@ -37,6 +37,12 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     ws.StoreId == storeId);
         }
 
+        public async Task<WorkShift?> GetShiftByIdAsync(int shiftId)
+        {
+            return await _context.WorkShifts
+                .FirstOrDefaultAsync(ws => ws.ShiftId == shiftId);
+        }
+
         public async Task<WorkShift> CreateShiftAsync(WorkShift shift)
         {
             _context.WorkShifts.Add(shift);

@@ -56,7 +56,7 @@ namespace CafeChain.Tests.POS
             };
 
             repository
-                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value))
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value, It.IsAny<int>()))
                 .ReturnsAsync((Order?)null);
 
             workShiftService

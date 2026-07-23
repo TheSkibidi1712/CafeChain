@@ -107,7 +107,9 @@ namespace CafeChain.Tests.ADR0002_Idempotency
                 // ── ADR-0002: Idempotency Check ──
                 if (orderDto.ClientOrderId.HasValue)
                 {
-                    var existingOrder = await _repository.FindOrderByClientOrderIdAsync(orderDto.ClientOrderId.Value);
+                    var existingOrder = await _repository.FindOrderByClientOrderIdAsync(
+                        orderDto.ClientOrderId.Value,
+                        storeId);
                     if (existingOrder != null)
                     {
                         skippedCount++;

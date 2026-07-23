@@ -272,6 +272,7 @@ namespace CafeChain.Extensions.Services
 
             // Security
             services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService>();
+            services.AddScoped<IOrderAccessAuthorizationService, OrderAccessAuthorizationService>();
 
             // Admin - Dashboard
             services.AddScoped<IDashboardService, DashboardService>();

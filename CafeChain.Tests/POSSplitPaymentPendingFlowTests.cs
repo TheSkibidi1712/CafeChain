@@ -48,7 +48,7 @@ namespace CafeChain.Tests.POS
             var activeWorkShift = CreateOpenShift();
 
             repository
-                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value))
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value, It.IsAny<int>()))
                 .ReturnsAsync((Order?)null);
             workShiftService
                 .Setup(service => service.GetActiveShiftAsync(17, 3))
@@ -129,7 +129,7 @@ namespace CafeChain.Tests.POS
             Order? capturedOrder = null;
             var capturedPayments = new List<Payment>();
 
-            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value)).ReturnsAsync((Order?)null);
+            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value, It.IsAny<int>())).ReturnsAsync((Order?)null);
             workShiftService.Setup(service => service.GetActiveShiftAsync(17, 3)).ReturnsAsync(activeWorkShift);
             repository.Setup(repo => repo.BeginTransactionAsync()).Returns(Task.CompletedTask);
             repository.Setup(repo => repo.GetDrinkWithSizesAsync(10, 3)).ReturnsAsync(CreateDrink(33000m));

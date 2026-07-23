@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using CafeChain.Tests.Testing;
 
 namespace CafeChain.Tests
 {
@@ -303,7 +304,10 @@ namespace CafeChain.Tests
         {
             using var ctx = CreateDbContext();
             await SeedRefundOrderAsync(ctx, voucherDiscount: 0, pointsUsed: 0, pointDiscount: 0);
-            var svc = new OrderRefundService(ctx, NullLogger<OrderRefundService>.Instance);
+            var svc = new OrderRefundService(
+                ctx,
+                NullLogger<OrderRefundService>.Instance,
+                HomeStoreOrderAccessAuthorizationService.Instance);
             var r = await svc.RequestFullRefundAsync(new RequestFullOrderRefundDto
             {
                 OrderId = 9001,
@@ -319,7 +323,10 @@ namespace CafeChain.Tests
         {
             using var ctx = CreateDbContext();
             await SeedRefundOrderAsync(ctx, voucherDiscount: 1000m, pointsUsed: 0, pointDiscount: 0);
-            var svc = new OrderRefundService(ctx, NullLogger<OrderRefundService>.Instance);
+            var svc = new OrderRefundService(
+                ctx,
+                NullLogger<OrderRefundService>.Instance,
+                HomeStoreOrderAccessAuthorizationService.Instance);
             var r = await svc.RequestFullRefundAsync(new RequestFullOrderRefundDto
             {
                 OrderId = 9001,
@@ -335,7 +342,10 @@ namespace CafeChain.Tests
         {
             using var ctx = CreateDbContext();
             await SeedRefundOrderAsync(ctx, voucherDiscount: 0, pointsUsed: 5, pointDiscount: 5000m);
-            var svc = new OrderRefundService(ctx, NullLogger<OrderRefundService>.Instance);
+            var svc = new OrderRefundService(
+                ctx,
+                NullLogger<OrderRefundService>.Instance,
+                HomeStoreOrderAccessAuthorizationService.Instance);
             var r = await svc.RequestFullRefundAsync(new RequestFullOrderRefundDto
             {
                 OrderId = 9001,
@@ -375,7 +385,7 @@ namespace CafeChain.Tests
                 ExpectedEndingCash = 500_000m
             };
 
-            repository.Setup(r => r.FindOrderByClientOrderIdAsync(It.IsAny<Guid>())).ReturnsAsync((Order?)null);
+            repository.Setup(r => r.FindOrderByClientOrderIdAsync(It.IsAny<Guid>(), It.IsAny<int>())).ReturnsAsync((Order?)null);
             repository.Setup(r => r.BeginTransactionAsync()).Returns(Task.CompletedTask);
             repository.Setup(r => r.RollbackTransactionAsync()).Returns(Task.CompletedTask);
             repository.Setup(r => r.CommitTransactionAsync()).Returns(Task.CompletedTask);
@@ -394,7 +404,7 @@ namespace CafeChain.Tests
 
             if (offline)
             {
-                workShift.Setup(s => s.GetShiftByIdAsync(42, 17, 3)).ReturnsAsync(shift);
+                workShift.Setup(s => s.GetShiftByIdAsync(42)).ReturnsAsync(shift);
             }
             else
             {
@@ -410,7 +420,10 @@ namespace CafeChain.Tests
                 voucher.Object,
                 print.Object,
                 payOs.Object,
-                logger.Object);
+                logger.Object,
+                null,
+                null,
+                AllowAllOrderAccessAuthorizationService.Instance);
 
             return new Harness
             {

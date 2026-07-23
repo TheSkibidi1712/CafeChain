@@ -287,7 +287,9 @@ namespace CafeChain.Areas.Admin.Controllers
                     // Nếu ClientOrderId đã tồn tại trong DB → đơn đã sync trước đó → skip
                     if (orderDto.ClientOrderId.HasValue)
                     {
-                        var existingOrder = await _repository.FindOrderByClientOrderIdAsync(orderDto.ClientOrderId.Value);
+                        var existingOrder = await _repository.FindOrderByClientOrderIdAsync(
+                            orderDto.ClientOrderId.Value,
+                            storeId);
                         if (existingOrder != null)
                         {
                             skippedCount++;

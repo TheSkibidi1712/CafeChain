@@ -127,13 +127,15 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         /// ADR-0002: Tìm Order đã tồn tại theo ClientOrderId (Idempotency check).
         /// Sử dụng Unique Filtered Index IX_Orders_ClientOrderId_Unique — O(1) lookup.
         /// </summary>
-        public async Task<Order?> FindOrderByClientOrderIdAsync(Guid clientOrderId)
+        public async Task<Order?> FindOrderByClientOrderIdAsync(Guid clientOrderId, int storeId)
         {
             return await _context.Orders
                 .Include(o => o.Payments)
                 .Include(o => o.OrderDetails)
                     .ThenInclude(detail => detail.OrderToppings)
-                .FirstOrDefaultAsync(o => o.ClientOrderId == clientOrderId);
+                .FirstOrDefaultAsync(o =>
+                    o.ClientOrderId == clientOrderId &&
+                    o.StoreId == storeId);
         }
 
         public async Task<Order?> GetOrderForReprintAsync(int orderId, int storeId)

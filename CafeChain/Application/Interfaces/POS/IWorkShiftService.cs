@@ -26,6 +26,12 @@ namespace CafeChain.Application.Interfaces.POS
         Task<WorkShift?> GetShiftByIdAsync(int shiftId, int userId, int storeId);
 
         /// <summary>
+        /// Loads a WorkShift by its server identity before Store/Area authorization.
+        /// Callers must authorize the returned StoreId before exposing any data.
+        /// </summary>
+        Task<WorkShift?> GetShiftByIdAsync(int shiftId);
+
+        /// <summary>
         /// Closes an open WorkShift with cash reconciliation.
         /// Calculates expected ending cash and records discrepancy.
         /// </summary>

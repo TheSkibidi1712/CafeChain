@@ -22,6 +22,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Xunit;
+using CafeChain.Tests.Testing;
 
 namespace CafeChain.Tests.POS
 {
@@ -44,10 +45,10 @@ namespace CafeChain.Tests.POS
             Payment? capturedPayment = null;
 
             repository
-                .Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId))
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId, It.IsAny<int>()))
                 .ReturnsAsync((Order?)null);
             workShiftService
-                .Setup(service => service.GetShiftByIdAsync(42, 17, 3))
+                .Setup(service => service.GetShiftByIdAsync(42))
                 .ReturnsAsync(closedShift);
             repository.Setup(repo => repo.BeginTransactionAsync()).Returns(Task.CompletedTask);
             repository
@@ -127,12 +128,16 @@ namespace CafeChain.Tests.POS
                 OrderId = 502,
                 ClientOrderId = clientOrderId,
                 WorkShiftId = 42,
+                StoreId = 3,
                 SubTotal = 45000m,
                 Total = 45000m
             };
 
+            workShiftService
+                .Setup(service => service.GetShiftByIdAsync(42))
+                .ReturnsAsync(new WorkShift { ShiftId = 42, UserId = 17, StoreId = 3, Status = "Closed" });
             repository
-                .Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId))
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId, It.IsAny<int>()))
                 .ReturnsAsync(existingOrder);
 
             var service = CreateOrderService(
@@ -151,7 +156,7 @@ namespace CafeChain.Tests.POS
 
             repository.Verify(repo => repo.BeginTransactionAsync(), Times.Never);
             repository.Verify(repo => repo.CreateOrderAsync(It.IsAny<Order>()), Times.Never);
-            workShiftService.Verify(service => service.GetShiftByIdAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+            workShiftService.Verify(service => service.GetShiftByIdAsync(42), Times.Once);
             printDispatcher.Verify(
                 dispatcher => dispatcher.DispatchPrintJobAsync(
                     It.IsAny<Order>(),
@@ -175,10 +180,10 @@ namespace CafeChain.Tests.POS
             var dto = CreateOfflineCashCommitDto(clientOrderId);
 
             repository
-                .Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId))
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId, It.IsAny<int>()))
                 .ReturnsAsync((Order?)null);
             workShiftService
-                .Setup(service => service.GetShiftByIdAsync(42, 17, 3))
+                .Setup(service => service.GetShiftByIdAsync(42))
                 .ReturnsAsync((WorkShift?)null);
 
             var service = CreateOrderService(
@@ -252,10 +257,10 @@ namespace CafeChain.Tests.POS
             var openShift = CreateShift(status: "Open");
 
             repository
-                .Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId))
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId, It.IsAny<int>()))
                 .ReturnsAsync((Order?)null);
             workShiftService
-                .Setup(service => service.GetShiftByIdAsync(42, 17, 3))
+                .Setup(service => service.GetShiftByIdAsync(42))
                 .ReturnsAsync(openShift);
             repository.Setup(repo => repo.BeginTransactionAsync()).Returns(Task.CompletedTask);
             repository
@@ -303,13 +308,16 @@ namespace CafeChain.Tests.POS
                         dto.SkipPrint &&
                         dto.Items.Count == 1 &&
                         dto.Items[0].DrinkId == 10),
-                    17,
-                    3,
-                    42,
-                    offlineOrder.SoldAt!.Value))
+                    It.Is<OfflineOrderSyncContext>(context =>
+                        context.ActorStaffId == 99 &&
+                        context.ClaimedStaffId == 17 &&
+                        context.ClaimedStoreId == 3 &&
+                        context.WorkShiftId == 42 &&
+                        context.SoldAt == offlineOrder.SoldAt!.Value)))
                 .ReturnsAsync(ServiceResult<object>.Success(new
                 {
                     orderId = 601,
+                    storeId = 3,
                     isIdempotent = false
                 } as object));
 
@@ -335,10 +343,11 @@ namespace CafeChain.Tests.POS
             orderService.Verify(
                 service => service.CommitOfflineSyncedOrderAsync(
                     It.IsAny<POSOrderCommitDto>(),
-                    17,
-                    3,
-                    42,
-                    offlineOrder.SoldAt!.Value),
+                    It.Is<OfflineOrderSyncContext>(context =>
+                        context.ActorStaffId == 99 &&
+                        context.ClaimedStaffId == 17 &&
+                        context.ClaimedStoreId == 3 &&
+                        context.WorkShiftId == 42)),
                 Times.Once);
             inventoryService.Verify(
                 service => service.DeductStockForCommittedOrderAsync(
@@ -359,13 +368,15 @@ namespace CafeChain.Tests.POS
             orderService
                 .Setup(service => service.CommitOfflineSyncedOrderAsync(
                     It.IsAny<POSOrderCommitDto>(),
-                    17,
-                    3,
-                    42,
-                    offlineOrder.SoldAt!.Value))
+                    It.Is<OfflineOrderSyncContext>(context =>
+                        context.ActorStaffId == 99 &&
+                        context.ClaimedStaffId == 17 &&
+                        context.ClaimedStoreId == 3 &&
+                        context.WorkShiftId == 42)))
                 .ReturnsAsync(ServiceResult<object>.Success(new
                 {
                     orderId = 601,
+                    storeId = 3,
                     isIdempotent = true
                 } as object));
 
@@ -411,10 +422,7 @@ namespace CafeChain.Tests.POS
             orderService.Verify(
                 service => service.CommitOfflineSyncedOrderAsync(
                     It.IsAny<POSOrderCommitDto>(),
-                    It.IsAny<int>(),
-                    It.IsAny<int>(),
-                    It.IsAny<int>(),
-                    It.IsAny<DateTime>()),
+                    It.IsAny<OfflineOrderSyncContext>()),
                 Times.Never);
             inventoryService.Verify(
                 service => service.DeductStockForCommittedOrderAsync(
@@ -438,7 +446,10 @@ namespace CafeChain.Tests.POS
                 voucherService.Object,
                 printDispatcher.Object,
                 payOsService.Object,
-                logger.Object);
+                logger.Object,
+                null,
+                null,
+                AllowAllOrderAccessAuthorizationService.Instance);
         }
 
         private static POSOrderController CreateController(
@@ -449,12 +460,14 @@ namespace CafeChain.Tests.POS
             var controller = new POSOrderController(
                 orderService.Object,
                 inventoryService.Object,
-                logger.Object);
+                logger.Object,
+                AllowAllOrderAccessAuthorizationService.Instance);
 
             var identity = new ClaimsIdentity(new[]
             {
                 new Claim("StaffId", "99"),
-                new Claim("StoreId", "99")
+                new Claim("StoreId", "99"),
+                new Claim(ClaimTypes.Role, RoleConstants.SalesStaff)
             }, "TestAuth");
 
             controller.ControllerContext = new ControllerContext

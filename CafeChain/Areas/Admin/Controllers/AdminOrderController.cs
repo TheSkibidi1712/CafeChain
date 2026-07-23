@@ -3,6 +3,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Data;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,15 +24,18 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminOrderService _adminOrderService;
         private readonly IAdminActorContextAccessor _actor;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
+        private readonly IOrderAccessAuthorizationService _orderAccessAuthorization;
 
         public AdminOrderController(
             IAdminOrderService adminOrderService,
             IAdminActorContextAccessor actor,
-            IAdminStoreScopeResolver storeScopeResolver)
+            IAdminStoreScopeResolver storeScopeResolver,
+            IOrderAccessAuthorizationService orderAccessAuthorization)
         {
             _adminOrderService = adminOrderService;
             _actor = actor;
             _storeScopeResolver = storeScopeResolver;
+            _orderAccessAuthorization = orderAccessAuthorization;
         }
 
         // Màn hình Dashboard Kanban (Bảng điều phối)
@@ -49,6 +53,10 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             var scope = await ResolveScopeAsync();
             if (!scope.IsResolved) return StoreScopeFailure(scope);
+            var accessFailure = await GetOrderAccessFailureAsync(
+                OrderAccessActions.AdminList,
+                scope.StoreId!.Value);
+            if (accessFailure != null) return accessFailure;
             SetStoreScopeViewData(scope);
             return View();
         }
@@ -208,6 +216,10 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             var storeId = await ResolveStoreIdAsync();
             if (!storeId.HasValue) return Forbid();
+            var accessFailure = await GetOrderAccessFailureAsync(
+                OrderAccessActions.AdminDetail,
+                storeId.Value);
+            if (accessFailure != null) return accessFailure;
             var data = await _adminOrderService.GetOrderHistoryDetailAsync(orderId, storeId.Value);
             if (data == null) return NotFound();
             return Ok(data);
@@ -224,6 +236,10 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 var storeId = await ResolveStoreIdAsync();
                 if (!storeId.HasValue) return Forbid();
+                var accessFailure = await GetOrderAccessFailureAsync(
+                    OrderAccessActions.AdminList,
+                    storeId.Value);
+                if (accessFailure != null) return accessFailure;
                 var allData = await _adminOrderService.GetFilteredOrdersForExportAsync(
                     keyword, fromDate, toDate, statusId, paymentId, storeId.Value);
 
@@ -250,6 +266,10 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 var storeId = await ResolveStoreIdAsync();
                 if (!storeId.HasValue) return Forbid();
+                var accessFailure = await GetOrderAccessFailureAsync(
+                    OrderAccessActions.AdminExport,
+                    storeId.Value);
+                if (accessFailure != null) return accessFailure;
                 var data = await _adminOrderService.GetFilteredOrdersForExportAsync(
                     keyword, fromDate, toDate, statusId, paymentId, storeId.Value);
 
@@ -279,6 +299,21 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             var scope = await ResolveScopeAsync();
             return scope.IsResolved ? scope.StoreId : null;
+        }
+
+        private async Task<IActionResult?> GetOrderAccessFailureAsync(string action, int storeId)
+        {
+            var decision = await _orderAccessAuthorization.AuthorizeAsync(
+                _actor.Get(User),
+                action,
+                storeId);
+
+            return decision switch
+            {
+                OrderAccessDecision.Forbidden => Forbid(),
+                OrderAccessDecision.NotFound => NotFound(),
+                _ => null
+            };
         }
 
         private static string Csv(string? value)

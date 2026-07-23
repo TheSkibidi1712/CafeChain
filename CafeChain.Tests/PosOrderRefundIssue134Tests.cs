@@ -20,6 +20,7 @@ using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using CafeChain.Tests.Testing;
 
 namespace CafeChain.Tests
 {
@@ -404,7 +405,10 @@ namespace CafeChain.Tests
                 .Select(x => x.AvailableQty).SingleAsync();
 
         private static OrderRefundService CreateRefundSvc(AppDbContext ctx)
-            => new(ctx, NullLogger<OrderRefundService>.Instance);
+            => new(
+                ctx,
+                NullLogger<OrderRefundService>.Instance,
+                HomeStoreOrderAccessAuthorizationService.Instance);
 
         private static InventoryDeductionService CreateDeductSvc(AppDbContext ctx)
         {
