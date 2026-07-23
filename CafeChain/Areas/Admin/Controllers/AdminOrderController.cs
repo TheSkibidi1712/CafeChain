@@ -40,7 +40,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // Màn hình Dashboard Kanban (Bảng điều phối)
-        [DevelopmentOnlyLegacyEntryPoint]
+        [LegacyEntryPointGone]
         public async Task<IActionResult> Index()
         {
             var scope = await ResolveScopeAsync();
@@ -64,7 +64,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // Lấy danh sách đơn hàng cho Kanban board
         [HttpGet("/api/AdminOrder/GetOrders")]
-        [DevelopmentOnlyLegacyEntryPoint]
+        [LegacyEntryPointGone]
         public async Task<IActionResult> GetOrders()
         {
             var storeId = await ResolveStoreIdAsync();
@@ -75,7 +75,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // Chi tiết đơn hàng cho Offcanvas
         [HttpGet("/api/AdminOrder/GetOrderDetails/{orderId}")]
-        [DevelopmentOnlyLegacyEntryPoint]
+        [LegacyEntryPointGone]
         public async Task<IActionResult> GetOrderDetails(int orderId)
         {
             var storeId = await ResolveStoreIdAsync();
@@ -92,7 +92,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost("/api/AdminOrder/AcceptOrder/{orderId}")]
         [ValidateAntiForgeryToken]
-        [DevelopmentOnlyLegacyEntryPoint]
+        [LegacyEntryPointGone]
         public async Task<IActionResult> AcceptOrder(int orderId)
         {
             try
@@ -110,7 +110,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost("/api/AdminOrder/ReadyForPickup/{orderId}")]
         [ValidateAntiForgeryToken]
-        [DevelopmentOnlyLegacyEntryPoint]
+        [LegacyEntryPointGone]
         public async Task<IActionResult> ReadyForPickup(int orderId)
         {
             try
@@ -128,7 +128,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // API lấy danh sách Shipper cho Dropdown
         [HttpGet("/api/AdminOrder/GetShippers")]
-        [DevelopmentOnlyLegacyEntryPoint]
+        [LegacyEntryPointGone]
         public async Task<IActionResult> GetShippers()
         {
             var storeId = await ResolveStoreIdAsync();
@@ -139,7 +139,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost("/api/AdminOrder/Dispatched")]
         [ValidateAntiForgeryToken]
-        [DevelopmentOnlyLegacyEntryPoint]
+        [LegacyEntryPointGone]
         public async Task<IActionResult> Dispatched([FromBody] CafeChain.Application.DTOs.Admin.DispatchOrderRequest request)
         {
             try
@@ -159,7 +159,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost("/api/AdminOrder/CompleteOrder/{orderId}")]
         [ValidateAntiForgeryToken]
-        [DevelopmentOnlyLegacyEntryPoint]
+        [LegacyEntryPointGone]
         public async Task<IActionResult> CompleteOrder(int orderId)
         {
             try
@@ -177,7 +177,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost("/api/AdminOrder/FailDelivery/{orderId}")]
         [ValidateAntiForgeryToken]
-        [DevelopmentOnlyLegacyEntryPoint]
+        [LegacyEntryPointGone]
         public async Task<IActionResult> FailDelivery(int orderId, [FromQuery] string reason)
         {
             try
@@ -195,7 +195,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost("/api/AdminOrder/SimulateWebhook")]
         [IgnoreAntiforgeryToken] // Tạm thời bỏ qua AntiForgery để dễ test API từ bên thứ 3 (như Postman hoặc webhook thật)
-        [DevelopmentOnlyLegacyEntryPoint]
+        [LegacyEntryPointGone]
         public async Task<IActionResult> SimulateWebhook()
         {
             try

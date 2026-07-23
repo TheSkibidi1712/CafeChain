@@ -45,10 +45,10 @@ public sealed class LegacyOrderEntryPointIssue210Tests
     }
 
     [Fact]
-    public void RazorPosAndCustomerCheckout_AreServerBlockedOutsideDevelopment()
+    public void RazorPosIsRetiredAndCustomerCheckoutRemainsDevelopmentOnly()
     {
         Assert.NotNull(typeof(AdminPOSController)
-            .GetCustomAttribute<DevelopmentOnlyLegacyEntryPointAttribute>());
+            .GetCustomAttribute<LegacyEntryPointGoneAttribute>());
         Assert.NotNull(typeof(CheckoutController)
             .GetCustomAttribute<DevelopmentOnlyLegacyEntryPointAttribute>());
 
@@ -79,7 +79,7 @@ public sealed class LegacyOrderEntryPointIssue210Tests
         {
             var action = typeof(AdminOrderController).GetMethod(actionName);
             Assert.NotNull(action);
-            Assert.NotNull(action!.GetCustomAttribute<DevelopmentOnlyLegacyEntryPointAttribute>());
+            Assert.NotNull(action!.GetCustomAttribute<LegacyEntryPointGoneAttribute>());
         }
 
         var historyActions = new[]
@@ -93,6 +93,7 @@ public sealed class LegacyOrderEntryPointIssue210Tests
         {
             var action = typeof(AdminOrderController).GetMethod(actionName);
             Assert.NotNull(action);
+            Assert.Null(action!.GetCustomAttribute<LegacyEntryPointGoneAttribute>());
             Assert.Null(action!.GetCustomAttribute<DevelopmentOnlyLegacyEntryPointAttribute>());
         }
 

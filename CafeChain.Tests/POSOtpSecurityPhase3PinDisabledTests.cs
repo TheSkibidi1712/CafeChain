@@ -105,20 +105,31 @@ namespace CafeChain.Tests.POS
         public void SupervisorApproval_NoActivePinJavaScriptHandler()
         {
             var root = FindRepoRoot();
-            var posApp = File.ReadAllText(Path.Combine(root, "CafeChain", "wwwroot", "js", "pos-app.js"));
+            var posApp = File.ReadAllText(Path.Combine(
+                root,
+                "CafeChain.Frontend",
+                "src",
+                "POSLayout.tsx"));
             Assert.DoesNotContain("function openPinModal", posApp);
             Assert.DoesNotContain("function submitPin", posApp);
             Assert.DoesNotContain("function pinInput", posApp);
             Assert.DoesNotContain("AuthorizeSupervisor", posApp);
             Assert.DoesNotContain("pinValue", posApp);
             Assert.DoesNotContain("pinResolve", posApp);
-
-            var adminPosView = File.ReadAllText(Path.Combine(root, "CafeChain", "Areas", "Admin", "Views", "AdminPOS", "Index.cshtml"));
-            Assert.DoesNotContain("pin-numpad", adminPosView);
-            Assert.DoesNotContain("btnPinConfirm", adminPosView);
-            Assert.DoesNotContain("submitPin()", adminPosView);
-            Assert.DoesNotContain("Xác thực Trưởng ca", adminPosView);
-            Assert.DoesNotContain("mã PIN 4 số", adminPosView, StringComparison.OrdinalIgnoreCase);
+            Assert.False(File.Exists(Path.Combine(
+                root,
+                "CafeChain",
+                "wwwroot",
+                "js",
+                "pos-app.js")));
+            Assert.False(File.Exists(Path.Combine(
+                root,
+                "CafeChain",
+                "Areas",
+                "Admin",
+                "Views",
+                "AdminPOS",
+                "Index.cshtml")));
         }
 
         [Fact]

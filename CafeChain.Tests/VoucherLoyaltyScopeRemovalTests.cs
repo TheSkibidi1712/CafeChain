@@ -75,21 +75,19 @@ namespace CafeChain.Tests
         [Fact]
         public void POS_Checkout_DoesNotRenderVoucherInput()
         {
-            var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPOS/Index.cshtml");
-            Assert.DoesNotContain("id=\"voucherCode\"", view);
-            Assert.DoesNotContain("Nhập mã voucher", view);
-            Assert.DoesNotContain("applyVoucher()", view);
+            var pos = ReadRepoFile("CafeChain.Frontend/src/POSLayout.tsx");
+            Assert.DoesNotContain("id=\"voucherCode\"", pos);
+            Assert.DoesNotContain("Nhập mã voucher", pos);
+            Assert.DoesNotContain("applyVoucher()", pos);
         }
 
         [Fact]
         public void POS_Checkout_DoesNotRenderLoyaltyControls()
         {
-            var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPOS/Index.cshtml");
-            var js = ReadRepoFile("CafeChain/wwwroot/js/pos-app.js");
-            Assert.DoesNotContain("Dùng điểm tích lũy", view);
-            Assert.DoesNotContain("successLoyalty", view);
-            Assert.DoesNotContain("Dùng điểm tích lũy?", js);
-            Assert.DoesNotContain("pointsToUse * 1000", js);
+            var pos = ReadRepoFile("CafeChain.Frontend/src/POSLayout.tsx");
+            Assert.DoesNotContain("Dùng điểm tích lũy", pos);
+            Assert.DoesNotContain("successLoyalty", pos);
+            Assert.DoesNotContain("pointsToUse * 1000", pos);
         }
 
         [Fact]
