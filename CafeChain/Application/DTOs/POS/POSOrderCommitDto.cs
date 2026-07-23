@@ -158,6 +158,20 @@ namespace CafeChain.Application.DTOs.POS
     {
         public int OrderId { get; set; }
         public string? Reason { get; set; }
+        public bool CashReturnedConfirmed { get; set; }
+        public bool KeepTemporaryCash { get; set; }
+        public decimal ReturnedAmount { get; set; }
+        public string? RequestKey { get; set; }
+    }
+
+    public class CancelTemporaryCashRequestDto
+    {
+        public Guid ClientOrderId { get; set; }
+        public decimal PendingCashAmount { get; set; }
+        public decimal ReturnedAmount { get; set; }
+        public bool CashReturnedConfirmed { get; set; }
+        public string? Reason { get; set; }
+        public string? RequestKey { get; set; }
     }
 }
 

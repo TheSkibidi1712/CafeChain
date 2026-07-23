@@ -64,12 +64,17 @@ namespace CafeChain.Application.DTOs.Admin
         public DateTime CreatedAt { get; set; }
         public string CustomerName { get; set; }
         public string CustomerPhone { get; set; }
+        public string StoreName { get; set; }
+        public string StaffName { get; set; }
+        public string OrderTypeName { get; set; }
         public decimal Total { get; set; }
         public string PaymentMethodName { get; set; }
         public int PaymentMethodId { get; set; }
         public int OrderStatusId { get; set; }
         public string OrderStatusName { get; set; }
         public string OrderStatusBadge { get; set; }
+        public string ReceiptState { get; set; }
+        public string DrinkLabelState { get; set; }
     }
 
     /// <summary>
@@ -86,6 +91,8 @@ namespace CafeChain.Application.DTOs.Admin
         public string DeliveryAddress { get; set; }
         public string Note { get; set; }
         public string Source { get; set; }
+        public string StoreName { get; set; }
+        public string StaffName { get; set; }
 
         public int OrderStatusId { get; set; }
         public string OrderStatusName { get; set; }
@@ -94,6 +101,8 @@ namespace CafeChain.Application.DTOs.Admin
 
         public string PaymentMethodName { get; set; }
         public string PaymentStatusName { get; set; }
+        public string ReceiptState { get; set; }
+        public string DrinkLabelState { get; set; }
 
         // Money
         public decimal SubTotal { get; set; }
@@ -102,7 +111,18 @@ namespace CafeChain.Application.DTOs.Admin
         public decimal PointDiscount { get; set; }
         public decimal Total { get; set; }
 
+        public List<AdminOrderHistoryPaymentDto> Payments { get; set; } = new();
         public List<AdminOrderHistoryItemDto> Items { get; set; } = new();
+    }
+
+    public class AdminOrderHistoryPaymentDto
+    {
+        public string PaymentMethodName { get; set; }
+        public decimal Amount { get; set; }
+        public decimal? ReceivedAmount { get; set; }
+        public decimal? ChangeAmount { get; set; }
+        public DateTime? PaidAt { get; set; }
+        public string TransactionCode { get; set; }
     }
 
     public class AdminOrderHistoryItemDto

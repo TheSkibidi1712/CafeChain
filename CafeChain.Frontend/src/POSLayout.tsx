@@ -12,6 +12,10 @@ import {
   clearActivePaymentCloseGuard,
   writeActivePaymentCloseGuard,
 } from './services/posShiftCloseGuard'
+import {
+  publishCustomerDisplay,
+} from './services/customerDisplay'
+import { openCustomerDisplayWindow } from './services/customerDisplayWindow'
 import { getPosSession } from './services/posSession'
 import { usePOSData } from './hooks/usePOSData'
 import ProductModifierModal, {
@@ -19,6 +23,11 @@ import ProductModifierModal, {
   type ToppingOption,
   type MenuItem,
 } from './components/ProductModifierModal'
+import CartLine from './components/pos/CartLine'
+import SellingHeader from './components/pos/SellingHeader'
+import PaymentWorkspace, {
+  type PaymentWorkspaceMode,
+} from './components/pos/payment/PaymentWorkspace'
 import type { CartSyncQueueItem } from './db/CafeChainPOSDB'
 
 interface CartItem {
@@ -35,9 +44,19 @@ interface CartItem {
   quantity: number
   sizeId?: number | null
   sizeName?: string
+  ice: '0%' | '50%' | '100%'
+  sugar: '0%' | '50%' | '100%'
+  customerNote: string
   note: string
   selectedToppings: ToppingOption[]
+  optionSummary: string
   detailText: string
+}
+
+interface ActiveModifier {
+  item: MenuItem
+  editingCartId?: string
+  initialSelection?: ModifierSelection
 }
 
 interface ShiftSummary {
@@ -63,6 +82,7 @@ interface POSCommitApiResponse {
 }
 
 interface PendingPayment {
+  clientOrderId: string
   status: 'collecting' | 'awaiting-vietqr'
   cartSnapshot: CartItem[]
   orderTypeSnapshot: 'dine-in' | 'take-away'
@@ -90,13 +110,39 @@ interface CancelPaymentApiResponse {
   message?: string
 }
 
+interface CashReturnConfirmation {
+  reason: 'manual' | 'timeout'
+  requestKey: string
+}
+
+interface CustomerDisplayTransient {
+  guardId?: string
+  state: 'success' | 'cancelled' | 'expired'
+  totalAmount: number
+  message?: string
+}
+
 const PAYMENT_TIMEOUT_SECONDS = 5 * 60
+const CASH_DENOMINATION_STEP = 1000
+
+const validateCashVnd = (amount: number, allowZero = false): string | null => {
+  if (!Number.isSafeInteger(amount) || amount < 0 || (!allowZero && amount === 0)) {
+    return allowZero ? 'Số tiền mặt không hợp lệ.' : 'Số tiền mặt phải lớn hơn 0.'
+  }
+  return amount % CASH_DENOMINATION_STEP === 0
+    ? null
+    : 'Số tiền mặt phải là bội số của 1.000đ.'
+}
 
 const formatVND = (amount: number): string =>
   new Intl.NumberFormat('vi-VN').format(amount) + 'đ'
 
 const getUnavailableReason = (item: MenuItem): string =>
   item.availabilityReason?.trim() || 'Tạm hết hàng'
+
+const requiresProductOptions = (item: MenuItem): boolean =>
+  (item.sizes?.filter((size) => size.isAvailable).length ?? 0) > 1
+  || (item.availableToppings?.length ?? 0) > 0
 
 const applyToppingPolicy = (
   topping: ToppingOption,
@@ -127,12 +173,6 @@ const getDefaultToppings = (
   return (item.availableToppings ?? [])
     .filter((topping) => defaultIds.has(topping.id))
     .map((topping) => applyToppingPolicy(topping, size))
-}
-
-const formatCountdown = (seconds: number): string => {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
 }
 
 const createPaymentExpiryTimestamp = () =>
@@ -183,7 +223,6 @@ export default function POSLayout() {
     menuItems,
     isLoading,
     isOnline,
-    pendingOrders,
     catalogError,
     refreshCatalog,
   } = usePOSData()
@@ -194,18 +233,26 @@ export default function POSLayout() {
   const [orderType, setOrderType] = useState<'dine-in' | 'take-away'>('dine-in')
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
-  const [activeItemForModifiers, setActiveItemForModifiers] = useState<MenuItem | null>(null)
+  const [activeModifier, setActiveModifier] = useState<ActiveModifier | null>(null)
   const [shift, setShift] = useState<ShiftSummary | null>(null)
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null)
   const [pendingCashInput, setPendingCashInput] = useState('')
   const [cashConfirmation, setCashConfirmation] = useState<CashPaymentConfirmation | null>(null)
+  const [cashReturnConfirmation, setCashReturnConfirmation] = useState<CashReturnConfirmation | null>(null)
+  const [paymentWorkspaceMode, setPaymentWorkspaceMode] = useState<PaymentWorkspaceMode | null>(null)
   const [paymentRemainingSeconds, setPaymentRemainingSeconds] = useState(PAYMENT_TIMEOUT_SECONDS)
   const [isCancellingPayment, setIsCancellingPayment] = useState(false)
   const [lastOfflineOrder, setLastOfflineOrder] = useState<CartSyncQueueItem | null>(null)
   const [temporaryPrintTarget, setTemporaryPrintTarget] = useState<'receipt' | 'labels' | null>(null)
+  const [customerDisplayTransient, setCustomerDisplayTransient] = useState<CustomerDisplayTransient | null>(null)
   const checkoutInFlightRef = useRef(false)
+  const cancelInFlightRef = useRef(false)
+  const customerDisplayTimerRef = useRef(0)
+  const customerDisplayGuardRef = useRef<string | null>(null)
+  const previousCustomerDisplayShiftRef = useRef<number | null>(null)
 
   const session = getPosSession()
+  const customerDisplayShiftId = shift?.shiftId ?? null
 
   useEffect(() => {
     let active = true
@@ -273,24 +320,28 @@ export default function POSLayout() {
   }, [cart, isCartLocked, menuItems])
   const hasStaleCart = staleCartItems.length > 0
   const parsedPendingCash = Math.max(0, Number(pendingCashInput) || 0)
-  const pendingCashForCart = Math.min(parsedPendingCash, totalAmount)
-  const remainingAfterPendingCash = Math.max(0, totalAmount - pendingCashForCart)
+  const pendingCashForCart = parsedPendingCash
+  const remainingAfterPendingCash = Math.max(0, totalAmount - parsedPendingCash)
+  const pendingCashValidation = pendingCashInput
+    ? validateCashVnd(parsedPendingCash)
+    : null
   const cashConfirmationReceivedAmount = Math.max(0, Number(cashConfirmation?.receivedAmountInput) || 0)
   const cashConfirmationChangeAmount = cashConfirmation
     ? Math.max(0, cashConfirmationReceivedAmount - cashConfirmation.totalAmount)
     : 0
   const canConfirmCashPayment = !!cashConfirmation
     && cashConfirmationReceivedAmount >= cashConfirmation.totalAmount
+    && validateCashVnd(cashConfirmationReceivedAmount) === null
     && !isCheckingOut
   const cashQuickAmounts = useMemo(() => {
     if (!cashConfirmation) return []
     const baseAmount = cashConfirmation.totalAmount
-    const roundedAmount = Math.ceil(baseAmount / 10000) * 10000
     return Array.from(new Set([
       baseAmount,
-      roundedAmount,
-      roundedAmount + 50000,
-      roundedAmount + 100000,
+      50000,
+      100000,
+      200000,
+      500000,
     ].filter((amount) => amount >= baseAmount && amount > 0)))
   }, [cashConfirmation])
 
@@ -299,14 +350,6 @@ export default function POSLayout() {
     setCashConfirmation((current) => current
       ? { ...current, receivedAmountInput: digitsOnly }
       : current)
-  }
-
-  const appendCashDigit = (digit: string) => {
-    setCashConfirmation((current) => {
-      if (!current) return current
-      const nextValue = `${current.receivedAmountInput}${digit}`.replace(/^0+(?=\d)/, '')
-      return { ...current, receivedAmountInput: nextValue }
-    })
   }
 
   useEffect(() => {
@@ -333,9 +376,126 @@ export default function POSLayout() {
     window.setTimeout(() => setCheckoutMessage(null), 3500)
   }, [])
 
-  const closeModifierModal = useCallback(() => {
-    setActiveItemForModifiers(null)
+  const showCustomerDisplayTransient = useCallback((transient: CustomerDisplayTransient) => {
+    if (customerDisplayTimerRef.current) window.clearTimeout(customerDisplayTimerRef.current)
+    const guardId = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
+    customerDisplayGuardRef.current = guardId
+    setCustomerDisplayTransient({ ...transient, guardId })
+    customerDisplayTimerRef.current = window.setTimeout(() => {
+      if (customerDisplayGuardRef.current !== guardId) return
+      customerDisplayGuardRef.current = null
+      setCustomerDisplayTransient((current) => current?.guardId === guardId ? null : current)
+      customerDisplayTimerRef.current = 0
+    }, 4000)
   }, [])
+
+  useEffect(() => () => {
+    if (customerDisplayTimerRef.current) window.clearTimeout(customerDisplayTimerRef.current)
+    customerDisplayGuardRef.current = null
+  }, [])
+
+  useEffect(() => {
+    const previousShiftId = previousCustomerDisplayShiftRef.current
+    if (previousShiftId && previousShiftId !== customerDisplayShiftId) {
+      publishCustomerDisplay({
+        storeId: session.storeId ?? null,
+        workShiftId: previousShiftId,
+        orderType,
+        items: [],
+        state: 'idle',
+        totalAmount: 0,
+        message: 'Ca làm việc đã kết thúc.',
+      })
+    }
+    previousCustomerDisplayShiftRef.current = customerDisplayShiftId
+  }, [customerDisplayShiftId, orderType, session.storeId])
+
+  useEffect(() => {
+    const shared = {
+      storeId: session.storeId ?? null,
+      workShiftId: shift?.shiftId ?? null,
+      orderType,
+      items: cart.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        lineTotal: item.price * item.quantity,
+        optionSummary: item.optionSummary,
+      })),
+    }
+
+    if (customerDisplayTransient) {
+      publishCustomerDisplay({
+        ...shared,
+        state: customerDisplayTransient.state,
+        totalAmount: customerDisplayTransient.totalAmount,
+        message: customerDisplayTransient.message,
+      })
+      return
+    }
+
+    if (!isOnline) {
+      publishCustomerDisplay({
+        ...shared,
+        state: 'offline',
+        totalAmount,
+      })
+      return
+    }
+
+    if (pendingPayment?.status === 'awaiting-vietqr') {
+      publishCustomerDisplay({
+        ...shared,
+        state: 'vietqr',
+        totalAmount: pendingPayment.vietQrAmount,
+        orderId: pendingPayment.orderId,
+        qrCode: pendingPayment.qrCode ?? undefined,
+        expiresAt: pendingPayment.expiresAt,
+      })
+      return
+    }
+
+    publishCustomerDisplay({
+      ...shared,
+      state: cart.length > 0 ? 'cart' : 'idle',
+      totalAmount,
+    })
+  }, [cart, customerDisplayTransient, isOnline, orderType, pendingPayment, session.storeId, shift?.shiftId, totalAmount])
+
+  const handleOpenCustomerDisplay = useCallback(async () => {
+    if (!hasOpenShift || !customerDisplayShiftId) {
+      showMessage('Hãy mở ca trước khi mở màn hình khách hàng.')
+      return
+    }
+    const result = await openCustomerDisplayWindow(customerDisplayShiftId)
+    showMessage(result.message)
+  }, [customerDisplayShiftId, hasOpenShift, showMessage])
+
+  const closePaymentWorkspace = useCallback(() => {
+    if (isCheckingOut || isCancellingPayment) return
+    if (cashReturnConfirmation) {
+      setCashReturnConfirmation(null)
+      return
+    }
+    if (pendingPayment) {
+      showMessage('Đang thanh toán. Hãy hủy giao dịch nếu muốn quay lại giỏ.')
+      return
+    }
+    setCashConfirmation(null)
+    setPendingCashInput('')
+    setPaymentWorkspaceMode(null)
+  }, [cashReturnConfirmation, isCancellingPayment, isCheckingOut, pendingPayment, showMessage])
+
+  const closeModifierModal = useCallback(() => {
+    setActiveModifier(null)
+  }, [])
+
+  const changeOrderType = useCallback((nextOrderType: 'dine-in' | 'take-away') => {
+    if (isCartLocked) {
+      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi đổi loại đơn.')
+      return
+    }
+    setOrderType(nextOrderType)
+  }, [isCartLocked, showMessage])
 
   useEffect(() => {
     const closeCartOnEscape = (event: KeyboardEvent) => {
@@ -345,7 +505,11 @@ export default function POSLayout() {
     return () => window.removeEventListener('keydown', closeCartOnEscape)
   }, [])
 
-  const addToCartWithModifiers = (item: MenuItem, selection: ModifierSelection) => {
+  const applyModifierSelection = (
+    item: MenuItem,
+    selection: ModifierSelection,
+    editingCartId?: string
+  ) => {
     if (isCartLocked) {
       showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
       return
@@ -362,43 +526,62 @@ export default function POSLayout() {
       .sort((a, b) => a - b)
       .join(',')
     const sizeKey = selection.size?.sizeId ?? 'default'
-    const cartId = `${item.id}-${sizeKey}-${selection.ice}-${selection.sugar}-${toppingKey}`
+    const noteKey = encodeURIComponent(selection.customerNote.trim().toLocaleLowerCase('vi-VN'))
+    const cartId = `${item.id}-${sizeKey}-${selection.ice}-${selection.sugar}-${toppingKey}-${noteKey}`
     const toppingNames = selection.selectedToppings.map((topping) => topping.name).join(', ')
-    const detailText = [
+    const optionSummary = [
       selection.size ? `Size ${selection.size.sizeName}` : '',
-      selection.note,
+      `Đá ${selection.ice}`,
+      `Đường ${selection.sugar}`,
       toppingNames ? `+${toppingNames}` : '',
     ].filter(Boolean).join(', ')
+    const detailText = [optionSummary, selection.customerNote].filter(Boolean).join('. ')
+
+    const nextLine: CartItem = {
+      id: item.id,
+      cartId,
+      name: item.name,
+      price: selection.totalPrice,
+      acceptedBasePrice: selectedSize.price,
+      storeMenuItemId: selectedSize.storeMenuItemId,
+      drinkSizeId: selectedSize.drinkSizeId,
+      priceSource: selectedSize.priceSource,
+      catalogVersion: item.catalogVersion,
+      categoryId: item.categoryId,
+      quantity: selection.quantity,
+      sizeId: selection.size?.sizeId ?? null,
+      sizeName: selection.size?.sizeName,
+      ice: selection.ice,
+      sugar: selection.sugar,
+      customerNote: selection.customerNote,
+      note: selection.note,
+      selectedToppings: selection.selectedToppings,
+      optionSummary,
+      detailText,
+    }
 
     setCart((prev) => {
+      if (editingCartId) {
+        const collision = prev.find((line) => line.cartId === cartId && line.cartId !== editingCartId)
+        if (collision) {
+          return prev
+            .filter((line) => line.cartId !== editingCartId)
+            .map((line) => line.cartId === cartId
+              ? { ...line, quantity: line.quantity + selection.quantity }
+              : line)
+        }
+
+        return prev.map((line) => line.cartId === editingCartId ? nextLine : line)
+      }
+
       const existing = prev.find((ci) => ci.cartId === cartId)
       if (existing) {
         return prev.map((ci) =>
-          ci.cartId === cartId ? { ...ci, quantity: ci.quantity + 1 } : ci
+          ci.cartId === cartId ? { ...ci, quantity: ci.quantity + selection.quantity } : ci
         )
       }
 
-      return [
-        ...prev,
-        {
-          id: item.id,
-          cartId,
-          name: item.name,
-          price: selection.totalPrice,
-          acceptedBasePrice: selectedSize.price,
-          storeMenuItemId: selectedSize.storeMenuItemId,
-          drinkSizeId: selectedSize.drinkSizeId,
-          priceSource: selectedSize.priceSource,
-          catalogVersion: item.catalogVersion,
-          categoryId: item.categoryId,
-          quantity: 1,
-          sizeId: selection.size?.sizeId ?? null,
-          sizeName: selection.size?.sizeName,
-          note: selection.note,
-          selectedToppings: selection.selectedToppings,
-          detailText,
-        },
-      ]
+      return [...prev, nextLine]
     })
   }
 
@@ -423,13 +606,72 @@ export default function POSLayout() {
       (sum, topping) => sum + (topping.acceptedPrice ?? topping.price),
       0
     )
-    addToCartWithModifiers(item, {
+    applyModifierSelection(item, {
       size: defaultSize,
       ice: '100%',
       sugar: '100%',
       selectedToppings: defaultToppings,
+      quantity: 1,
+      customerNote: '',
       totalPrice: defaultSize.price + toppingTotal,
       note: 'Đá 100%, Đường 100%',
+    })
+  }
+
+  const handleProductSelection = (item: MenuItem) => {
+    if (isCartLocked) {
+      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+      return
+    }
+
+    if (item.isAvailable === false) {
+      showMessage(`Không thể thêm món: ${getUnavailableReason(item)}.`)
+      return
+    }
+
+    if (requiresProductOptions(item)) {
+      setActiveModifier({ item })
+      return
+    }
+
+    handleQuickAdd(item)
+  }
+
+  const editCartLine = (line: CartItem) => {
+    if (isCartLocked) {
+      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+      return
+    }
+
+    const item = menuItems.find((menuItem) => menuItem.id === line.id)
+    const size = item?.sizes?.find((option) => option.drinkSizeId === line.drinkSizeId) ?? null
+    if (!item || !size?.isAvailable) {
+      showMessage('Món hoặc size này không còn khả dụng. Hãy cập nhật lại giỏ trước khi sửa.')
+      return
+    }
+
+    const selectedToppings = line.selectedToppings
+      .map((selected) => item.availableToppings?.find((topping) => topping.id === selected.id))
+      .filter((topping): topping is ToppingOption => Boolean(topping))
+      .map((topping) => applyToppingPolicy(topping, size))
+    const toppingTotal = selectedToppings.reduce(
+      (sum, topping) => sum + (topping.acceptedPrice ?? topping.price),
+      0
+    )
+
+    setActiveModifier({
+      item,
+      editingCartId: line.cartId,
+      initialSelection: {
+        size,
+        ice: line.ice,
+        sugar: line.sugar,
+        selectedToppings,
+        quantity: line.quantity,
+        customerNote: line.customerNote,
+        totalPrice: size.price + toppingTotal,
+        note: line.note,
+      },
     })
   }
 
@@ -518,11 +760,17 @@ export default function POSLayout() {
         sizeId: currentSize.sizeId,
         sizeName: currentSize.sizeName,
         selectedToppings: merged,
-        detailText: [
+        optionSummary: [
           `Size ${currentSize.sizeName}`,
-          line.note,
+          `Đá ${line.ice}`,
+          `Đường ${line.sugar}`,
           toppingNames ? `+${toppingNames}` : '',
         ].filter(Boolean).join(', '),
+        detailText: [
+          `Size ${currentSize.sizeName}, Đá ${line.ice}, Đường ${line.sugar}`,
+          toppingNames ? `+${toppingNames}` : '',
+          line.customerNote,
+        ].filter(Boolean).join('. '),
       }
     })
 
@@ -532,20 +780,55 @@ export default function POSLayout() {
       : 'Đã cập nhật giỏ theo catalog mới. Vui lòng kiểm tra lại tổng tiền.')
   }
 
-  const closePaymentModalManually = useCallback(() => {
-    showMessage('Đang thanh toán. Hãy hủy giao dịch nếu muốn sửa giỏ.')
-  }, [showMessage])
+  const cancelPendingPayment = useCallback(async (
+    reason: 'manual' | 'timeout',
+    cashReturnedConfirmed = false
+  ) => {
+    if (!pendingPayment || isCancellingPayment || cancelInFlightRef.current) return
 
-  const cancelPendingPayment = useCallback(async (reason: 'manual' | 'timeout') => {
-    if (!pendingPayment || isCancellingPayment) return
-
-    if (pendingPayment.status === 'collecting' || !pendingPayment.orderId) {
-      setPendingPayment(null)
-      setIsCancellingPayment(false)
-      showMessage('Đã hủy thanh toán tạm. Kiểm tra lại tiền mặt đã nhận.')
+    const hasPhysicalCash = pendingPayment.pendingCashAmount > 0
+    if (reason === 'manual' && hasPhysicalCash && !cashReturnedConfirmed) {
+      setCashReturnConfirmation({ reason, requestKey: crypto.randomUUID() })
       return
     }
 
+    if (pendingPayment.status === 'collecting' || !pendingPayment.orderId) {
+      if (hasPhysicalCash) {
+        cancelInFlightRef.current = true
+        setIsCancellingPayment(true)
+        const auditResponse = await apiClient.post<CancelPaymentApiResponse>(
+          '/api/v1/pos/payments/temporary-cash/cancel',
+          {
+            clientOrderId: pendingPayment.clientOrderId,
+            pendingCashAmount: pendingPayment.pendingCashAmount,
+            returnedAmount: pendingPayment.pendingCashAmount,
+            cashReturnedConfirmed,
+            reason: 'Thu ngân hủy thanh toán tạm',
+            requestKey: cashReturnConfirmation?.requestKey,
+          }
+        )
+        cancelInFlightRef.current = false
+        setIsCancellingPayment(false)
+        if (!auditResponse.ok || !auditResponse.data?.success) {
+          showMessage(auditResponse.data?.message || auditResponse.error || 'Không thể ghi nhận hoàn tiền tạm.')
+          return
+        }
+      }
+      setPendingPayment(null)
+      setCashReturnConfirmation(null)
+      setPaymentWorkspaceMode(null)
+      setIsCancellingPayment(false)
+      showCustomerDisplayTransient({
+        state: 'cancelled',
+        totalAmount: pendingPayment.totalAmount,
+      })
+      showMessage(hasPhysicalCash
+        ? 'Đã xác nhận hoàn tiền và hủy thanh toán tạm.'
+        : 'Đã hủy thanh toán tạm.')
+      return
+    }
+
+    cancelInFlightRef.current = true
     setIsCancellingPayment(true)
     const response = await apiClient.post<CancelPaymentApiResponse>(
       '/api/v1/pos/payments/cancel-payment',
@@ -554,29 +837,121 @@ export default function POSLayout() {
         reason: reason === 'timeout'
           ? 'Hết thời gian chờ thanh toán VietQR'
           : 'Thu ngân hủy giao dịch VietQR',
+        cashReturnedConfirmed,
+        keepTemporaryCash: reason === 'timeout' && hasPhysicalCash,
+        returnedAmount: cashReturnedConfirmed ? pendingPayment.pendingCashAmount : 0,
+        requestKey: cashReturnedConfirmed ? cashReturnConfirmation?.requestKey : undefined,
       }
     )
 
     const cancelledCashAmount = pendingPayment.pendingCashAmount
-    setPendingPayment(null)
+    cancelInFlightRef.current = false
     setIsCancellingPayment(false)
-    if (cancelledCashAmount > 0) setPendingCashInput(String(cancelledCashAmount))
 
     if (response.ok && response.data?.code === 'ALREADY_PAID') {
+      setCashReturnConfirmation(null)
+      setPendingPayment(null)
+      setPaymentWorkspaceMode(null)
       clearCart()
+      showCustomerDisplayTransient({
+        state: 'success',
+        totalAmount: pendingPayment.totalAmount,
+      })
       showMessage('Thanh toán VietQR thành công. Lệnh in đã gửi tới Print Bridge.')
       return
     }
 
     if (response.ok && response.data?.success) {
+      setCashReturnConfirmation(null)
+      if (reason === 'timeout' && cancelledCashAmount > 0) {
+        setPendingPayment({
+          ...pendingPayment,
+          clientOrderId: crypto.randomUUID(),
+          status: 'collecting',
+          orderId: undefined,
+          checkoutUrl: undefined,
+          qrCode: null,
+          expiresAt: undefined,
+        })
+        setPaymentWorkspaceMode('split')
+        showCustomerDisplayTransient({
+          state: 'expired',
+          totalAmount: pendingPayment.totalAmount,
+        })
+        showMessage('VietQR đã hết hạn. Tiền mặt vẫn đang tạm giữ; chọn phương thức khác hoặc hủy và hoàn tiền.')
+        return
+      }
+      setPendingPayment(null)
+      setPaymentWorkspaceMode(null)
+      showCustomerDisplayTransient({
+        state: reason === 'timeout' ? 'expired' : 'cancelled',
+        totalAmount: pendingPayment.totalAmount,
+      })
       showMessage(reason === 'timeout'
-        ? 'Giao dịch VietQR đã hết hạn. Kiểm tra lại tiền mặt đã nhận.'
-        : 'Đã hủy giao dịch VietQR. Kiểm tra lại tiền mặt đã nhận.')
+        ? 'Giao dịch VietQR đã hết hạn.'
+        : cancelledCashAmount > 0
+          ? 'Đã xác nhận hoàn tiền và hủy giao dịch VietQR.'
+          : 'Đã hủy giao dịch VietQR.')
       return
     }
 
     showMessage(response.data?.message || response.error || 'Không thể hủy giao dịch VietQR.')
-  }, [clearCart, isCancellingPayment, pendingPayment, showMessage])
+  }, [cashReturnConfirmation?.requestKey, clearCart, isCancellingPayment, pendingPayment, showCustomerDisplayTransient, showMessage])
+
+  const switchPendingVietQrToCash = useCallback(async () => {
+    if (!pendingPayment
+      || pendingPayment.status !== 'awaiting-vietqr'
+      || !pendingPayment.orderId
+      || pendingPayment.pendingCashAmount > 0
+      || isCancellingPayment
+      || cancelInFlightRef.current) return
+
+    cancelInFlightRef.current = true
+    setIsCancellingPayment(true)
+    const response = await apiClient.post<CancelPaymentApiResponse>(
+      '/api/v1/pos/payments/cancel-payment',
+      {
+        orderId: pendingPayment.orderId,
+        reason: 'Thu ngân đổi từ VietQR sang tiền mặt',
+        cashReturnedConfirmed: false,
+        keepTemporaryCash: false,
+        returnedAmount: 0,
+      }
+    )
+    cancelInFlightRef.current = false
+    setIsCancellingPayment(false)
+
+    if (response.ok && response.data?.code === 'ALREADY_PAID') {
+      setPendingPayment(null)
+      setPaymentWorkspaceMode(null)
+      clearCart()
+      showCustomerDisplayTransient({
+        state: 'success',
+        totalAmount: pendingPayment.totalAmount,
+      })
+      showMessage('Thanh toán VietQR đã hoàn tất. Không chuyển sang tiền mặt để tránh thu trùng.')
+      return
+    }
+
+    if (!response.ok || !response.data?.success) {
+      showMessage(response.data?.message || response.error || 'Không thể đổi sang thanh toán tiền mặt.')
+      return
+    }
+
+    const orderTotal = pendingPayment.totalAmount
+    setPendingPayment(null)
+    setCashReturnConfirmation(null)
+    setCashConfirmation({
+      clientOrderId: getClientOrderId(),
+      soldAt: new Date().toISOString(),
+      cartSnapshot: pendingPayment.cartSnapshot,
+      orderTypeSnapshot: pendingPayment.orderTypeSnapshot,
+      totalAmount: orderTotal,
+      receivedAmountInput: String(orderTotal),
+    })
+    setPaymentWorkspaceMode('cash')
+    showMessage('Đã hủy VietQR. Vui lòng xác nhận số tiền khách đưa.')
+  }, [clearCart, isCancellingPayment, pendingPayment, showCustomerDisplayTransient, showMessage])
 
   useEffect(() => {
     if (!pendingPayment || pendingPayment.status !== 'awaiting-vietqr' || !pendingPayment.expiresAt) return
@@ -610,7 +985,12 @@ export default function POSLayout() {
       if (isDisposed) return
       setPendingPayment(null)
       setPendingCashInput('')
+      setPaymentWorkspaceMode(null)
       clearCart()
+      showCustomerDisplayTransient({
+        state: 'success',
+        totalAmount: pendingPayment.totalAmount,
+      })
       showMessage('Thanh toán VietQR thành công. Lệnh in đã gửi tới Print Bridge.')
     }
 
@@ -633,7 +1013,7 @@ export default function POSLayout() {
         console.warn('[POS Payment SignalR] Stop failed:', error)
       })
     }
-  }, [clearCart, pendingPayment, showMessage])
+  }, [clearCart, pendingPayment, showCustomerDisplayTransient, showMessage])
 
   const buildOfflineQueueItems = (items: CartItem[]) =>
     items.map((ci) => ({
@@ -828,12 +1208,21 @@ export default function POSLayout() {
       showMessage('Không hỗ trợ tách thanh toán khi offline.')
       return
     }
-    if (pendingCashForCart <= 0 || pendingCashForCart >= totalAmount) {
-      showMessage('Tiền mặt tạm phải nhỏ hơn tổng đơn.')
+    if (pendingCashForCart <= 0) {
+      showMessage('Tiền mặt tạm phải lớn hơn 0.')
+      return
+    }
+    if (pendingCashValidation) {
+      showMessage(pendingCashValidation)
+      return
+    }
+    if (pendingCashForCart >= totalAmount) {
+      openCashPaymentConfirmation()
       return
     }
 
     setPendingPayment({
+      clientOrderId: getClientOrderId(),
       status: 'collecting',
       cartSnapshot: snapshotCart(cart),
       orderTypeSnapshot: orderType,
@@ -841,6 +1230,7 @@ export default function POSLayout() {
       pendingCashAmount: pendingCashForCart,
       vietQrAmount: remainingAfterPendingCash,
     })
+    setPaymentWorkspaceMode('split')
     showMessage('Đang thanh toán: đã ghi nhận tiền mặt tạm.')
   }
 
@@ -862,7 +1252,8 @@ export default function POSLayout() {
           { paymentMethodId: 1, amount: pendingPayment.pendingCashAmount },
           { paymentMethodId: 2, amount: pendingPayment.vietQrAmount },
         ],
-        pendingPayment.pendingCashAmount
+        pendingPayment.pendingCashAmount,
+        pendingPayment.clientOrderId
       )
 
       if (
@@ -913,7 +1304,8 @@ export default function POSLayout() {
         pendingPayment.cartSnapshot,
         pendingPayment.orderTypeSnapshot,
         [{ paymentMethodId: 1, amount: pendingPayment.totalAmount }],
-        pendingPayment.totalAmount
+        pendingPayment.totalAmount,
+        pendingPayment.clientOrderId
       )
 
       if (response.ok && response.data?.success) {
@@ -921,7 +1313,12 @@ export default function POSLayout() {
         const warningText = warnings?.length ? ` (${warnings.length} cảnh báo kho)` : ''
         setPendingPayment(null)
         setPendingCashInput('')
+        setPaymentWorkspaceMode(null)
         clearCart()
+        showCustomerDisplayTransient({
+          state: 'success',
+          totalAmount: pendingPayment.totalAmount,
+        })
         showMessage(`Thanh toán tiền mặt thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
         return
       }
@@ -956,11 +1353,7 @@ export default function POSLayout() {
       totalAmount,
       receivedAmountInput: String(initialReceivedAmount),
     })
-  }
-
-  const cancelCashPaymentConfirmation = () => {
-    if (isCheckingOut) return
-    setCashConfirmation(null)
+    setPaymentWorkspaceMode('cash')
   }
 
   const confirmCashPayment = async () => {
@@ -969,6 +1362,11 @@ export default function POSLayout() {
     const receivedCashAmount = cashConfirmationReceivedAmount
     if (receivedCashAmount < cashConfirmation.totalAmount) {
       showMessage('Tiền khách đưa chưa đủ để thanh toán.')
+      return
+    }
+    const receivedCashError = validateCashVnd(receivedCashAmount)
+    if (receivedCashError) {
+      showMessage(receivedCashError)
       return
     }
 
@@ -998,7 +1396,12 @@ export default function POSLayout() {
           const warningText = warnings?.length ? ` (${warnings.length} cảnh báo kho)` : ''
           setCashConfirmation(null)
           setPendingCashInput('')
+          setPaymentWorkspaceMode(null)
           clearCart()
+          showCustomerDisplayTransient({
+            state: 'success',
+            totalAmount: orderTotal,
+          })
           showMessage(`Thanh toán thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
         } else if (!response.ok && response.status === 0) {
           console.warn('[POS] Network commit failed, saving offline:', response.error)
@@ -1013,6 +1416,7 @@ export default function POSLayout() {
           if (savedOffline) {
             setCashConfirmation(null)
             setPendingCashInput('')
+            setPaymentWorkspaceMode(null)
             clearCart()
             showMessage('Đơn đã lưu offline, sẽ tự đồng bộ khi có mạng.')
           }
@@ -1031,6 +1435,7 @@ export default function POSLayout() {
         if (savedOffline) {
           setCashConfirmation(null)
           setPendingCashInput('')
+          setPaymentWorkspaceMode(null)
           clearCart()
           showMessage('Offline: đơn đã lưu và sẽ tự đồng bộ khi có mạng.')
         }
@@ -1050,6 +1455,7 @@ export default function POSLayout() {
           if (savedOffline) {
             setCashConfirmation(null)
             setPendingCashInput('')
+            setPaymentWorkspaceMode(null)
             clearCart()
             showMessage('Đơn đã lưu offline do lỗi mạng.')
           }
@@ -1065,7 +1471,10 @@ export default function POSLayout() {
     }
   }
 
-  const handleCheckout = async (paymentMethod: 'cash' | 'banking') => {
+  const handleCheckout = async (
+    paymentMethod: 'cash' | 'banking',
+    ignorePendingCash = false
+  ) => {
     if (paymentMethod === 'cash') {
       openCashPaymentConfirmation()
       return
@@ -1085,12 +1494,17 @@ export default function POSLayout() {
       showMessage('Cần kết nối mạng để tạo mã thanh toán VietQR.')
       return
     }
-    if (parsedPendingCash > 0 && parsedPendingCash < totalAmount) {
+    setPaymentWorkspaceMode('vietqr')
+    if (!ignorePendingCash && parsedPendingCash > 0 && parsedPendingCash < totalAmount) {
+      if (pendingCashValidation) {
+        showMessage(pendingCashValidation)
+        return
+      }
       beginSplitCashFlow()
       return
     }
-    if (parsedPendingCash >= totalAmount) {
-      showMessage('Tiền mặt đã đủ cho đơn này.')
+    if (!ignorePendingCash && parsedPendingCash >= totalAmount) {
+      openCashPaymentConfirmation()
       return
     }
 
@@ -1119,6 +1533,7 @@ export default function POSLayout() {
         ) {
           setPaymentRemainingSeconds(PAYMENT_TIMEOUT_SECONDS)
           setPendingPayment({
+            clientOrderId,
             status: 'awaiting-vietqr',
             cartSnapshot,
             orderTypeSnapshot,
@@ -1137,7 +1552,12 @@ export default function POSLayout() {
         const warnings = response.data.inventoryWarnings
         const warningText = warnings?.length ? ` (${warnings.length} cảnh báo kho)` : ''
         setPendingCashInput('')
+        setPaymentWorkspaceMode(null)
         clearCart()
+        showCustomerDisplayTransient({
+          state: 'success',
+          totalAmount: orderTotal,
+        })
         showMessage(`Thanh toán thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
       } else {
         showMessage(response.data?.message || response.error || 'Không thể thanh toán. Vui lòng kiểm tra lại ca két tiền.')
@@ -1151,60 +1571,46 @@ export default function POSLayout() {
     }
   }
 
+  const selectPaymentMode = (mode: PaymentWorkspaceMode) => {
+    if (isCheckingOut || isCancellingPayment) return
+    if (pendingPayment) {
+      showMessage('Đang thanh toán. Hãy hoàn tất hoặc hủy giao dịch hiện tại trước.')
+      return
+    }
+
+    if (mode === 'cash') {
+      openCashPaymentConfirmation()
+      return
+    }
+
+    if (mode === 'vietqr') {
+      setCashConfirmation(null)
+      setPendingCashInput('')
+      setPaymentWorkspaceMode('vietqr')
+      void handleCheckout('banking', true)
+      return
+    }
+
+    setCashConfirmation(null)
+    setPaymentWorkspaceMode('split')
+  }
+
   return (
     <div className="pos-shell font-sans select-none" id="pos-main-content">
-      <aside className="pos-category-panel bg-surface-white flex flex-col border-r border-border" aria-label="Danh mục và loại đơn">
-        <div className="px-3 py-3 border-b border-border">
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => {
-                if (isCartLocked) {
-                  showMessage('Đang thanh toán, hãy hủy giao dịch trước khi đổi loại đơn.')
-                  return
-                }
-                setOrderType('dine-in')
-              }}
-              disabled={isCartLocked}
-              className={`pos-touch-target flex-1 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
-                orderType === 'dine-in'
-                  ? 'bg-brand-orange text-white'
-                  : 'bg-surface text-text-secondary hover:bg-surface-hover'
-              } disabled:opacity-40 disabled:cursor-not-allowed`}
-            >
-              Tại quán
-            </button>
-            <button
-              onClick={() => {
-                if (isCartLocked) {
-                  showMessage('Đang thanh toán, hãy hủy giao dịch trước khi đổi loại đơn.')
-                  return
-                }
-                setOrderType('take-away')
-              }}
-              disabled={isCartLocked}
-              className={`pos-touch-target flex-1 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
-                orderType === 'take-away'
-                  ? 'bg-brand-orange text-white'
-                  : 'bg-surface text-text-secondary hover:bg-surface-hover'
-              } disabled:opacity-40 disabled:cursor-not-allowed`}
-            >
-              Mang đi
-            </button>
-          </div>
-        </div>
+      <SellingHeader
+        orderType={orderType}
+        searchQuery={searchQuery}
+        resultCount={filteredItems.length}
+        isCartLocked={isCartLocked}
+        hasOpenShift={hasOpenShift}
+        shiftId={shift?.shiftId}
+        session={session}
+        onOrderTypeChange={changeOrderType}
+        onSearchChange={setSearchQuery}
+        onOpenCustomerDisplay={() => void handleOpenCustomerDisplay()}
+      />
 
-        <div className="px-3 pt-3 pb-1">
-          <Link
-            to="/shift"
-            className={`pos-touch-target w-full py-2.5 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-[var(--shadow-button)] flex items-center justify-center ${
-              hasOpenShift
-                ? 'bg-success text-white'
-                : 'bg-brand-orange text-white hover:bg-brand-orange-hover'
-            }`}
-          >
-            {hasOpenShift ? `Ca #${shift?.shiftId}` : 'Mở ca'}
-          </Link>
-        </div>
+      <aside className="pos-category-panel bg-surface-white flex flex-col border-r border-border" aria-label="Danh mục sản phẩm">
 
         <nav className="pos-category-list flex-1 flex flex-col gap-1 px-3 py-2 overflow-y-auto" aria-label="Danh mục sản phẩm">
           <button
@@ -1248,57 +1654,6 @@ export default function POSLayout() {
       </aside>
 
       <main className="pos-catalog-panel flex flex-col bg-surface">
-        <header className="px-4 py-3 bg-surface-white border-b border-border space-y-3">
-          <div className="pos-catalog-toolbar">
-            <label className="relative block min-w-0" htmlFor="pos-product-search">
-              <span className="sr-only">Tìm món</span>
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" aria-hidden="true">⌕</span>
-              <input
-                id="pos-product-search"
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                className="pos-search-field w-full rounded-xl border border-border bg-surface-white pl-11 pr-12 text-base text-text-primary outline-none placeholder:text-text-muted focus:border-brand-orange"
-                placeholder="Tìm món theo tên..."
-                autoComplete="off"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="pos-touch-target absolute right-0 top-1/2 inline-flex -translate-y-1/2 items-center justify-center text-text-secondary"
-                  aria-label="Xóa nội dung tìm kiếm"
-                >
-                  ×
-                </button>
-              )}
-            </label>
-            <div className="pos-catalog-meta flex items-center gap-2 text-xs">
-              <h2 className="font-extrabold text-text-primary whitespace-nowrap">
-                {currentCategory?.name ?? 'Tất cả món'} <span className="text-brand-orange tabular-nums">{filteredItems.length}</span>
-              </h2>
-            {!isOnline && (
-              <span className="text-warning font-bold bg-[var(--pos-warning-soft)] px-2.5 py-1.5 rounded-lg border border-warning/30">
-                Mất kết nối
-              </span>
-            )}
-            {pendingOrders > 0 && (
-              <span className="text-warning font-bold bg-[var(--pos-warning-soft)] px-2.5 py-1.5 rounded-lg border border-warning/30">
-                {pendingOrders} đơn chờ đồng bộ
-              </span>
-            )}
-            <span className="text-text-muted bg-surface px-3 py-1.5 rounded-lg border border-border">
-              {new Date().toLocaleDateString('vi-VN', {
-                weekday: 'short',
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              })}
-            </span>
-          </div>
-          </div>
-        </header>
-
         <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4">
           {isLoading ? (
             <div className="h-full flex items-center justify-center text-xs font-semibold text-text-muted">
@@ -1327,22 +1682,27 @@ export default function POSLayout() {
                 const isUnavailable = item.isAvailable === false
                 const isProductLocked = isCartLocked || isUnavailable
                 const unavailableReason = isUnavailable ? getUnavailableReason(item) : ''
+                const requiresOptions = requiresProductOptions(item)
                 return (
                   <article
                     key={item.id}
-                    onClick={() => handleQuickAdd(item)}
+                    onClick={() => handleProductSelection(item)}
                     onKeyDown={(event) => {
                       if (event.target !== event.currentTarget) return
 
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault()
-                        handleQuickAdd(item)
+                        handleProductSelection(item)
                       }
                     }}
                     role="button"
                     tabIndex={isProductLocked ? -1 : 0}
                     aria-disabled={isProductLocked}
-                    aria-label={`${item.name}, ${formatVND(item.price)}${isUnavailable ? `, ${unavailableReason}` : ', chạm để thêm nhanh'}`}
+                    aria-label={`${item.name}, ${formatVND(item.price)}${
+                      isUnavailable
+                        ? `, ${unavailableReason}`
+                        : requiresOptions ? ', chạm để chọn tùy chọn' : ', chạm để thêm nhanh'
+                    }`}
                     className={`pos-product-card relative bg-surface-card rounded-xl border border-border p-3 flex flex-col select-none shadow-[var(--shadow-card)] transition-[border-color,box-shadow,transform] duration-150 ${
                       isProductLocked
                         ? 'opacity-65 cursor-not-allowed'
@@ -1375,7 +1735,7 @@ export default function POSLayout() {
                           showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
                           return
                         }
-                        setActiveItemForModifiers(item)
+                        setActiveModifier({ item })
                       }}
                       disabled={isProductLocked}
                       className="pos-touch-target absolute top-1 right-1 px-2 bg-white/95 border border-brand-orange-border text-brand-orange text-xs font-bold rounded-lg hover:bg-brand-orange-light transition-colors cursor-pointer disabled:cursor-not-allowed disabled:bg-surface disabled:border-border disabled:text-text-muted z-10"
@@ -1402,7 +1762,9 @@ export default function POSLayout() {
                       </span>
                     )}
                     <div className="mt-auto pt-2 text-sm text-text-secondary font-semibold">
-                      {isUnavailable ? 'Không thể bán tại lúc này' : 'Chạm để thêm nhanh'}
+                      {isUnavailable
+                        ? 'Không thể bán tại lúc này'
+                        : requiresOptions ? 'Chạm để chọn tùy chọn' : 'Chạm để thêm nhanh'}
                     </div>
                   </article>
                 )
@@ -1482,58 +1844,28 @@ export default function POSLayout() {
           ) : (
             <div className="flex flex-col gap-2">
               {cart.map((item, index) => (
-                <div
+                <CartLine
                   key={item.cartId}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 p-3 bg-surface rounded-xl border border-border-light"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-text-primary line-clamp-2"><span className="mr-1 text-text-muted">{index + 1}.</span>{item.name}</p>
-                    <p className="mt-1 text-xs text-text-secondary line-clamp-2 leading-4">
-                      {item.detailText}
-                    </p>
-                    <p className="mt-1 text-sm font-extrabold text-brand-orange tabular-nums">{formatVND(item.price * item.quantity)}</p>
-                  </div>
-
-                  <div className="flex items-center gap-1 self-center">
-                    <button
-                      onClick={() => decreaseFromCart(item.cartId)}
-                      disabled={isCartLocked}
-                      className="pos-touch-target rounded-lg bg-white border border-border text-text-secondary hover:bg-brand-orange-light hover:text-brand-orange text-lg font-bold flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      aria-label={`Giảm số lượng ${item.name}`}
-                    >
-                      −
-                    </button>
-                    <span className="w-8 text-center text-sm font-extrabold text-text-primary tabular-nums" aria-label={`Số lượng ${item.quantity}`}>
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => {
-                        if (isCartLocked) {
-                          showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
-                          return
-                        }
-                        setCart((prev) => prev.map((ci) =>
-                          ci.cartId === item.cartId ? { ...ci, quantity: ci.quantity + 1 } : ci
-                        ))
-                      }}
-                      disabled={isCartLocked}
-                      className="pos-touch-target rounded-lg bg-brand-orange text-white hover:bg-brand-orange-hover text-lg font-bold flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      aria-label={`Tăng số lượng ${item.name}`}
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => removeFromCart(item.cartId)}
-                    disabled={isCartLocked}
-                    className="pos-touch-target col-span-2 justify-self-end px-3 rounded-lg text-xs font-bold text-danger hover:bg-[var(--pos-danger-soft)] flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    title="Xóa món"
-                    aria-label={`Xóa ${item.name} khỏi giỏ`}
-                  >
-                    Xóa món
-                  </button>
-                </div>
+                  index={index + 1}
+                  name={item.name}
+                  optionSummary={item.optionSummary}
+                  customerNote={item.customerNote}
+                  quantity={item.quantity}
+                  lineTotal={formatVND(item.price * item.quantity)}
+                  locked={isCartLocked}
+                  onDecrease={() => decreaseFromCart(item.cartId)}
+                  onIncrease={() => {
+                    if (isCartLocked) {
+                      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+                      return
+                    }
+                    setCart((previous) => previous.map((line) =>
+                      line.cartId === item.cartId ? { ...line, quantity: line.quantity + 1 } : line
+                    ))
+                  }}
+                  onEdit={() => editCartLine(item)}
+                  onRemove={() => removeFromCart(item.cartId)}
+                />
               ))}
             </div>
           )}
@@ -1555,92 +1887,6 @@ export default function POSLayout() {
               <span className="text-brand-orange">{formatVND(totalAmount)}</span>
             </div>
           </div>
-
-          {cart.length > 0 && !hasPendingPayment && (
-            <div className="rounded-lg border border-border bg-surface px-3 py-2 space-y-2">
-              <label className="block text-[11px] font-bold text-text-secondary" htmlFor="pending-cash-input">
-                Tiền mặt tạm
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="pending-cash-input"
-                  type="number"
-                  min="0"
-                  step="1000"
-                  value={pendingCashInput}
-                  onChange={(event) => setPendingCashInput(event.target.value)}
-                  className="min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-xs font-bold text-text-primary outline-none focus:border-brand-orange"
-                  placeholder="0"
-                />
-                <span className="text-[11px] font-extrabold text-text-secondary">VNĐ</span>
-              </div>
-              {parsedPendingCash > 0 && (
-                <div className="flex items-center justify-between text-[11px] font-bold text-text-secondary">
-                  <span>Còn lại</span>
-                  <span className="text-brand-orange">{formatVND(remainingAfterPendingCash)}</span>
-                </div>
-              )}
-              {pendingCashForCart > 0 && pendingCashForCart < totalAmount && (
-                <button
-                  type="button"
-                  onClick={beginSplitCashFlow}
-                  disabled={isCheckingOut || !hasOpenShift || !isOnline}
-                  className="w-full rounded-lg border border-brand-orange-border bg-brand-orange-light px-3 py-2 text-xs font-extrabold text-brand-orange hover:bg-brand-orange hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                >
-                  Ghi nhận tạm
-                </button>
-              )}
-            </div>
-          )}
-
-          {pendingPayment && (
-            <div className="rounded-lg border border-brand-orange-border bg-brand-orange-light px-3 py-2 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-extrabold text-brand-orange">Đang thanh toán</span>
-                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-extrabold text-brand-orange">
-                  {pendingPayment.status === 'awaiting-vietqr' ? 'Chờ VietQR' : 'Tiền mặt tạm'}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px] font-bold text-text-secondary">
-                <div>
-                  <p>Tiền mặt</p>
-                  <p className="text-text-primary">{formatVND(pendingPayment.pendingCashAmount)}</p>
-                </div>
-                <div>
-                  <p>Còn lại</p>
-                  <p className="text-brand-orange">{formatVND(pendingPayment.vietQrAmount)}</p>
-                </div>
-              </div>
-              {pendingPayment.status === 'collecting' && (
-                <div className="grid grid-cols-3 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => void createVietQrForPendingPayment()}
-                    disabled={isCheckingOut || !isOnline}
-                    className="rounded-lg bg-text-primary px-2 py-2 text-[10px] font-extrabold text-white hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                  >
-                    VietQR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void settlePendingPaymentWithCash()}
-                    disabled={isCheckingOut || !isOnline}
-                    className="rounded-lg bg-brand-orange px-2 py-2 text-[10px] font-extrabold text-white hover:bg-brand-orange-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                  >
-                    Tiền mặt
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void cancelPendingPayment('manual')}
-                    disabled={isCheckingOut || isCancellingPayment}
-                    className="rounded-lg border border-danger/40 bg-white px-2 py-2 text-[10px] font-extrabold text-danger hover:bg-danger hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                  >
-                    Hủy
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
 
           {!hasOpenShift && (
             <Link
@@ -1693,34 +1939,30 @@ export default function POSLayout() {
             </div>
           )}
 
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
-              onClick={() => handleCheckout('cash')}
-              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || hasStaleCart || cashConfirmation !== null}
-              className="min-h-14 flex-1 py-3 rounded-xl bg-brand-orange text-white font-bold text-base shadow-[var(--shadow-button)] hover:bg-brand-orange-hover active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              type="button"
+              onClick={() => selectPaymentMode('cash')}
+              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || hasStaleCart}
+              className="min-h-14 rounded-xl bg-brand-orange px-2 py-3 text-sm font-bold text-white shadow-[var(--shadow-button)] hover:bg-brand-orange-hover active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {isCheckingOut ? (
-                <span className="inline-flex items-center justify-center gap-2">
-                  <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                  Đang xử lý
-                </span>
-              ) : (
-                'Tiền mặt'
-              )}
+              Tiền mặt
             </button>
             <button
-              onClick={() => handleCheckout('banking')}
-              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || hasStaleCart || !isOnline || cashConfirmation !== null}
-              className="min-h-14 flex-1 py-3 rounded-xl bg-text-primary text-white font-bold text-base hover:opacity-90 active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              type="button"
+              onClick={() => selectPaymentMode('vietqr')}
+              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || hasStaleCart || !isOnline}
+              className="min-h-14 rounded-xl bg-text-primary px-2 py-3 text-sm font-bold text-white hover:opacity-90 active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {isCheckingOut ? (
-                <span className="inline-flex items-center justify-center gap-2">
-                  <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                  Đang xử lý
-                </span>
-              ) : (
-                'Chuyển khoản'
-              )}
+              VietQR
+            </button>
+            <button
+              type="button"
+              onClick={() => selectPaymentMode('split')}
+              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || hasStaleCart || !isOnline}
+              className="min-h-14 rounded-xl border border-brand-orange-border bg-brand-orange-light px-2 py-3 text-sm font-bold text-brand-orange hover:bg-brand-orange hover:text-white active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Kết hợp
             </button>
           </div>
         </div>
@@ -1748,221 +1990,82 @@ export default function POSLayout() {
         </div>
       )}
 
-      {cashConfirmation && (
-        <div className="pos-dialog-backdrop fixed inset-0 z-[60] flex items-center justify-center">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="cash-payment-title"
-            className="pos-adaptive-dialog w-full max-w-md rounded-2xl bg-white shadow-2xl border border-border overflow-hidden flex flex-col"
-          >
-            <div className="px-5 py-4 border-b border-border">
-              <h3 id="cash-payment-title" className="text-base font-extrabold text-text-primary">
-                Xác nhận thanh toán tiền mặt
-              </h3>
-            </div>
-            <div className="min-h-0 overflow-y-auto p-5 space-y-4">
-              <div className="rounded-xl border border-border bg-surface px-4 py-3 space-y-2">
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="font-bold text-text-secondary">Tổng tiền cần thanh toán</span>
-                  <span className="font-extrabold text-brand-orange tabular-nums">
-                    {formatVND(cashConfirmation.totalAmount)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="font-bold text-text-secondary">Tiền thừa</span>
-                  <span className="font-extrabold text-text-primary tabular-nums">
-                    {formatVND(cashConfirmationChangeAmount)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-xs font-extrabold text-text-secondary" htmlFor="cash-received-input">
-                  Tiền khách đưa
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    id="cash-received-input"
-                    type="number"
-                    min="0"
-                    step="1000"
-                    inputMode="numeric"
-                    value={cashConfirmation.receivedAmountInput}
-                    onChange={(event) => updateCashReceivedInput(event.target.value)}
-                    className="min-h-14 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-3 text-xl font-extrabold text-text-primary outline-none focus:border-brand-orange tabular-nums"
-                    autoFocus
-                  />
-                  <span className="text-xs font-extrabold text-text-secondary">VNĐ</span>
-                </div>
-                {cashConfirmationReceivedAmount < cashConfirmation.totalAmount && (
-                  <p className="text-xs font-bold text-danger">
-                    Tiền khách đưa chưa đủ để thanh toán.
-                  </p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {cashQuickAmounts.map((amount) => (
-                  <button
-                    key={amount}
-                    type="button"
-                    onClick={() => setCashConfirmation((current) => current
-                      ? { ...current, receivedAmountInput: String(amount) }
-                      : current)}
-                    className="pos-touch-target rounded-lg border border-border bg-surface px-3 py-2 text-sm font-extrabold text-text-secondary hover:border-brand-orange-border hover:text-brand-orange transition-colors cursor-pointer"
-                  >
-                    {formatVND(amount)}
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-3 gap-2" aria-label="Bàn phím nhập tiền">
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
-                  <button
-                    key={digit}
-                    type="button"
-                    onClick={() => appendCashDigit(digit)}
-                    className="pos-touch-target min-h-12 rounded-lg border border-border bg-white text-lg font-extrabold text-text-primary active:bg-brand-orange-light"
-                  >
-                    {digit}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => updateCashReceivedInput('')}
-                  className="pos-touch-target min-h-12 rounded-lg border border-danger/30 bg-[var(--pos-danger-soft)] text-sm font-bold text-danger"
-                >
-                  Xóa
-                </button>
-                <button
-                  type="button"
-                  onClick={() => appendCashDigit('0')}
-                  className="pos-touch-target min-h-12 rounded-lg border border-border bg-white text-lg font-extrabold text-text-primary active:bg-brand-orange-light"
-                >
-                  0
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateCashReceivedInput(cashConfirmation.receivedAmountInput.slice(0, -1))}
-                  className="pos-touch-target min-h-12 rounded-lg border border-border bg-surface text-lg font-bold text-text-secondary"
-                  aria-label="Xóa chữ số cuối"
-                >
-                  ⌫
-                </button>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 px-5 py-4 bg-surface border-t border-border">
-              <button
-                type="button"
-                onClick={cancelCashPaymentConfirmation}
-                disabled={isCheckingOut}
-                className="min-h-14 rounded-xl border border-border bg-white px-4 py-3 text-base font-extrabold text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={() => void confirmCashPayment()}
-                disabled={!canConfirmCashPayment}
-                className="min-h-14 rounded-xl bg-brand-orange px-4 py-3 text-base font-extrabold text-white hover:bg-brand-orange-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                {isCheckingOut ? 'Đang xử lý' : 'Xác nhận'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {pendingPayment?.status === 'awaiting-vietqr' && pendingPayment.checkoutUrl && pendingPayment.orderId && (
-        <div className="pos-dialog-backdrop fixed inset-0 z-[60] flex items-center justify-center">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="vietqr-payment-title"
-            className="pos-adaptive-dialog w-full max-w-[520px] rounded-xl bg-surface-white border border-border shadow-2xl overflow-hidden flex flex-col"
-          >
-            <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p id="vietqr-payment-title" className="text-base font-extrabold text-text-primary">Thanh toán VietQR</p>
-                <p className="text-[11px] font-semibold text-text-muted">
-                  Đơn #{pendingPayment.orderId} · {formatVND(pendingPayment.vietQrAmount)}
-                </p>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="rounded-full border border-brand-orange-border bg-brand-orange-light px-3 py-1 text-xs font-extrabold text-brand-orange tabular-nums">
-                  {formatCountdown(paymentRemainingSeconds)}
-                </span>
-                <button
-                  type="button"
-                  onClick={closePaymentModalManually}
-                  className="pos-touch-target rounded-lg border border-border text-text-secondary hover:border-danger/40 hover:bg-[var(--pos-danger-soft)] hover:text-danger transition-colors cursor-pointer"
-                  aria-label="Đóng modal thanh toán"
-                  title="Đóng modal"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-
-            <div className="min-h-0 overflow-y-auto p-5 space-y-4">
-              <div className="flex items-center justify-between rounded-lg border border-brand-orange-border bg-brand-orange-light px-3 py-2">
-                <span className="text-xs font-bold text-brand-orange">Thời gian giữ giao dịch</span>
-                <span className="text-sm font-extrabold text-brand-orange tabular-nums">
-                  {formatCountdown(paymentRemainingSeconds)}
-                </span>
-              </div>
-
-              <div className="min-h-[300px] h-[min(48dvh,460px)] rounded-lg border border-border bg-surface overflow-hidden">
-                <iframe
-                  title={`PayOS checkout ${pendingPayment.orderId}`}
-                  src={pendingPayment.checkoutUrl}
-                  className="h-full w-full bg-white"
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-bold text-text-secondary">
-                  Đang chờ khách quét mã...
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void cancelPendingPayment('manual')}
-                    disabled={isCancellingPayment}
-                    className="rounded-lg border border-danger/40 bg-white px-3 py-2 text-xs font-extrabold text-danger hover:bg-danger hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                  >
-                    {isCancellingPayment ? 'Đang hủy' : 'Hủy giao dịch'}
-                  </button>
-                  <a
-                    href={pendingPayment.checkoutUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-lg border border-brand-orange-border bg-brand-orange-light px-3 py-2 text-xs font-extrabold text-brand-orange hover:bg-brand-orange hover:text-white transition-colors"
-                  >
-                    Mở PayOS
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PaymentWorkspace
+        isOpen={paymentWorkspaceMode !== null}
+        mode={paymentWorkspaceMode ?? 'cash'}
+        totalAmount={cashConfirmation?.totalAmount ?? pendingPayment?.totalAmount ?? totalAmount}
+        isOnline={isOnline}
+        isCheckingOut={isCheckingOut}
+        isCancellingPayment={isCancellingPayment}
+        cashReceivedInput={cashConfirmation?.receivedAmountInput ?? ''}
+        cashReceivedAmount={cashConfirmationReceivedAmount}
+        cashChangeAmount={cashConfirmationChangeAmount}
+        cashQuickAmounts={cashQuickAmounts}
+        cashValidationMessage={cashConfirmationReceivedAmount >= (cashConfirmation?.totalAmount ?? totalAmount)
+          ? validateCashVnd(cashConfirmationReceivedAmount)
+          : null}
+        canConfirmCash={canConfirmCashPayment}
+        splitCashInput={pendingCashInput}
+        splitCashAmount={parsedPendingCash}
+        splitRemainingAmount={pendingPayment?.status === 'collecting'
+          ? pendingPayment.vietQrAmount
+          : remainingAfterPendingCash}
+        splitValidationMessage={pendingCashValidation}
+        canBeginSplit={!!hasOpenShift
+          && isOnline
+          && parsedPendingCash > 0
+          && parsedPendingCash < totalAmount
+          && pendingCashValidation === null
+          && !isCheckingOut
+          && !hasPendingPayment}
+        pendingPayment={pendingPayment ? {
+          status: pendingPayment.status,
+          orderId: pendingPayment.orderId,
+          checkoutUrl: pendingPayment.checkoutUrl,
+          qrCode: pendingPayment.qrCode,
+          totalAmount: pendingPayment.totalAmount,
+          pendingCashAmount: pendingPayment.pendingCashAmount,
+          vietQrAmount: pendingPayment.vietQrAmount,
+        } : null}
+        remainingSeconds={paymentRemainingSeconds}
+        cashReturnAmount={cashReturnConfirmation && pendingPayment
+          ? pendingPayment.pendingCashAmount
+          : null}
+        onSelectMode={selectPaymentMode}
+        onClose={closePaymentWorkspace}
+        onCashInputChange={updateCashReceivedInput}
+        onConfirmCash={() => void confirmCashPayment()}
+        onSplitCashInputChange={(value) => setPendingCashInput(value.replace(/\D/g, ''))}
+        onBeginSplit={beginSplitCashFlow}
+        onCreateSplitVietQr={() => void createVietQrForPendingPayment()}
+        onSettleSplitCash={() => void settlePendingPaymentWithCash()}
+        onSwitchVietQrToCash={() => void switchPendingVietQrToCash()}
+        onCancelPending={() => void cancelPendingPayment('manual')}
+        onDismissCashReturn={() => setCashReturnConfirmation(null)}
+        onConfirmCashReturned={() => void cancelPendingPayment(
+          cashReturnConfirmation?.reason ?? 'manual',
+          true
+        )}
+      />
 
       <ProductModifierModal
-        key={activeItemForModifiers?.id ?? 'closed'}
-        isOpen={activeItemForModifiers !== null}
+        key={activeModifier?.editingCartId ?? activeModifier?.item.id ?? 'closed'}
+        isOpen={activeModifier !== null}
         onClose={closeModifierModal}
-        menuItem={activeItemForModifiers}
+        menuItem={activeModifier?.item ?? null}
+        initialSelection={activeModifier?.initialSelection}
+        mode={activeModifier?.editingCartId ? 'edit' : 'add'}
         onConfirm={(selection) => {
           if (isCartLocked) {
             showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
-            setActiveItemForModifiers(null)
+            setActiveModifier(null)
             return
           }
 
-          if (activeItemForModifiers) addToCartWithModifiers(activeItemForModifiers, selection)
-          setActiveItemForModifiers(null)
+          if (activeModifier) {
+            applyModifierSelection(activeModifier.item, selection, activeModifier.editingCartId)
+          }
+          setActiveModifier(null)
         }}
       />
     </div>

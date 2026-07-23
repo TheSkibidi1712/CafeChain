@@ -28,7 +28,8 @@ public sealed class POSResponsiveRedesignTests
     {
         var css = ReadFrontend("src", "index.css");
 
-        Assert.Contains("grid-template-areas: 'category catalog cart'", css);
+        Assert.Contains("'header header header'", css);
+        Assert.Contains("'category catalog cart'", css);
         Assert.Contains("@media (max-width: 1199px)", css);
         Assert.Contains("@media (max-width: 819px)", css);
         Assert.Contains("@media (max-width: 420px)", css);
@@ -42,9 +43,16 @@ public sealed class POSResponsiveRedesignTests
     public void PosLayout_ExposesSearchAllCategoryAndAccessibleCartDrawer()
     {
         var source = ReadFrontend("src", "POSLayout.tsx");
+        var header = ReadFrontend("src", "components", "pos", "SellingHeader.tsx");
 
-        Assert.Contains("id=\"pos-product-search\"", source);
-        Assert.Contains("Tìm món theo tên", source);
+        Assert.Contains("id=\"pos-product-search\"", header);
+        Assert.Contains("Tìm món theo tên", header);
+        Assert.Contains("Dùng tại quán", header);
+        Assert.Contains("Mang đi", header);
+        Assert.Contains("NetworkStatusIndicator", header);
+        Assert.Contains("PrinterStatusBadge", header);
+        Assert.Contains("Tác vụ", header);
+        Assert.Contains("<SellingHeader", source);
         Assert.Contains("setSelectedCategory(null)", source);
         Assert.Contains(">Tất cả<", source);
         Assert.Contains("className=\"pos-mobile-cart-bar\"", source);
@@ -55,18 +63,102 @@ public sealed class POSResponsiveRedesignTests
     }
 
     [Fact]
+    public void SellingRoute_UsesDedicatedHeaderWithoutUnmountingPosStateForResponsiveLayout()
+    {
+        var app = ReadFrontend("src", "App.tsx");
+        var header = ReadFrontend("src", "components", "pos", "SellingHeader.tsx");
+
+        Assert.Contains("const isSellingRoute", app);
+        Assert.Contains("{!isSellingRoute && <TopNavbar />}", app);
+        Assert.Contains("onOrderTypeChange", header);
+        Assert.Contains("onSearchChange", header);
+        Assert.Contains("to=\"/history\"", header);
+        Assert.Contains("to=\"/shift\"", header);
+        Assert.Contains("path=\"/pos/customer-display\"", app);
+        Assert.True(
+            app.IndexOf("path=\"/pos/customer-display\"", StringComparison.Ordinal)
+            < app.IndexOf("path=\"/\" element={<RootLayout", StringComparison.Ordinal),
+            "Customer display phải nằm ngoài RootLayout để không render navigation hoặc công cụ nội bộ.");
+    }
+
+    [Fact]
     public void PaymentAndModifierSheets_PreserveTouchAndKeyboardContracts()
     {
-        var layout = ReadFrontend("src", "POSLayout.tsx");
+        var payment = ReadFrontend("src", "components", "pos", "payment", "PaymentWorkspace.tsx");
         var modifier = ReadFrontend("src", "components", "ProductModifierModal.tsx");
 
-        Assert.Contains("aria-label=\"Bàn phím nhập tiền\"", layout);
-        Assert.Contains("inputMode=\"numeric\"", layout);
-        Assert.Contains("pos-adaptive-dialog", layout);
+        Assert.Contains("aria-label=\"Bàn phím nhập tiền\"", payment);
+        Assert.Contains("inputMode=\"numeric\"", payment);
+        Assert.Contains("pos-payment-workspace", payment);
+        Assert.Contains("event.key === 'Escape'", payment);
+        Assert.Contains("event.key !== 'Tab'", payment);
         Assert.Contains("role=\"dialog\"", modifier);
         Assert.Contains("aria-modal=\"true\"", modifier);
         Assert.Contains("event.key === 'Escape'", modifier);
         Assert.Contains("event.key !== 'Tab'", modifier);
+    }
+
+    [Fact]
+    public void PaymentWorkspace_UnifiesCashVietQrAndSplitWithoutManualQrConfirmation()
+    {
+        var layout = ReadFrontend("src", "POSLayout.tsx");
+        var payment = ReadFrontend("src", "components", "pos", "payment", "PaymentWorkspace.tsx");
+        var qrPrint = ReadFrontend("src", "services", "vietQrPrint.ts");
+        var css = ReadFrontend("src", "index.css");
+
+        Assert.Contains("<PaymentWorkspace", layout);
+        Assert.Contains("cash: 'Tiền mặt'", payment);
+        Assert.Contains("vietqr: 'VietQR'", payment);
+        Assert.Contains("split: 'Thanh toán kết hợp'", payment);
+        Assert.Contains("Tiền khách đưa", payment);
+        Assert.Contains("Tiền thừa", payment);
+        Assert.Contains("Ghi nhận tiền mặt tạm", payment);
+        Assert.Contains("Thu phần còn lại bằng VietQR", payment);
+        Assert.Contains("Thu phần còn lại bằng tiền mặt", payment);
+        Assert.Contains("Đổi sang tiền mặt", payment);
+        Assert.Contains("Hủy giao dịch", payment);
+        Assert.Contains("Mở trang PayOS", payment);
+        Assert.Contains("In mã QR", payment);
+        Assert.Contains("Không thể đóng khi giao dịch đang chờ xử lý", payment);
+        Assert.Contains("pos-vietqr-print-host", payment);
+        Assert.Contains("<VietQrCode", payment);
+        Assert.Contains("value={pendingPayment.qrCode}", payment);
+        Assert.DoesNotContain("<iframe", payment, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("printVietQrSlip", payment);
+        Assert.Contains(".pos-vietqr-print-host", qrPrint);
+        Assert.Contains("[data-vietqr-ready=\"true\"]", qrPrint);
+        Assert.Contains("window.print()", qrPrint);
+        Assert.Contains("Không có nút xác nhận thủ công", payment);
+        Assert.DoesNotContain("Tôi đã thanh toán", payment);
+        Assert.Contains("CASH_DENOMINATION_STEP = 1000", layout);
+        Assert.Contains("validateCashVnd", layout);
+        Assert.Contains(".pos-payment-workspace", css);
+    }
+
+    [Fact]
+    public void ProductOptionsAndCart_UseSingleTouchSheetWithEditableLineState()
+    {
+        var layout = ReadFrontend("src", "POSLayout.tsx");
+        var modifier = ReadFrontend("src", "components", "ProductModifierModal.tsx");
+        var cartLine = ReadFrontend("src", "components", "pos", "CartLine.tsx");
+        var css = ReadFrontend("src", "index.css");
+
+        Assert.Contains("pos-option-sheet-backdrop", modifier);
+        Assert.Contains("pos-option-sheet", modifier);
+        Assert.Contains("Ghi chú cho quầy pha chế", modifier);
+        Assert.Contains("Cập nhật món", modifier);
+        Assert.Contains("quantity", modifier);
+        Assert.Contains("aria-pressed={isSelected}", modifier);
+        Assert.DoesNotContain("type=\"checkbox\"", modifier);
+        Assert.Contains("<CartLine", layout);
+        Assert.Contains("requiresProductOptions", layout);
+        Assert.Contains("handleProductSelection", layout);
+        Assert.Contains("editCartLine", layout);
+        Assert.Contains("editingCartId", layout);
+        Assert.Contains("Tác vụ", cartLine);
+        Assert.Contains("Sửa món", cartLine);
+        Assert.Contains("Xóa món", cartLine);
+        Assert.Contains(".pos-option-sheet", css);
     }
 
     [Fact]
@@ -77,6 +169,7 @@ public sealed class POSResponsiveRedesignTests
             ReadFrontend("src", "index.css"),
             ReadFrontend("src", "POSLayout.tsx"),
             ReadFrontend("src", "components", "TopNavbar.tsx"),
+            ReadFrontend("src", "components", "pos", "SellingHeader.tsx"),
             ReadFrontend("src", "components", "ProductModifierModal.tsx"),
             ReadFrontend("src", "hooks", "usePrinterStatus.ts")
         };

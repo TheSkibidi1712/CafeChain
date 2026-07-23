@@ -255,7 +255,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task CommitOrderAsync_IdempotentRetry_ReturnsExistingOrderWithoutAutomaticPrint()
+        public async Task DoubleFinalConfirm_OneOrderOneDrawerPosting()
         {
             var repository = new Mock<IPOSOrderRepository>(MockBehavior.Strict);
             var workShiftService = new Mock<IWorkShiftService>(MockBehavior.Strict);
@@ -298,6 +298,10 @@ namespace CafeChain.Tests.POS
 
             repository.Verify(repo => repo.BeginTransactionAsync(), Times.Never);
             repository.Verify(repo => repo.CreateOrderAsync(It.IsAny<Order>()), Times.Never);
+            repository.Verify(repo => repo.CreatePaymentAsync(It.IsAny<Payment>()), Times.Never);
+            repository.Verify(repo => repo.SaveChangesAsync(), Times.Never);
+            repository.Verify(repo => repo.CommitTransactionAsync(), Times.Never);
+            workShiftService.Verify(service => service.GetActiveShiftAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
             printDispatcher.Verify(
                 dispatcher => dispatcher.DispatchPrintJobAsync(
                     It.IsAny<Order>(),
@@ -306,6 +310,93 @@ namespace CafeChain.Tests.POS
                     It.IsAny<decimal>(),
                     It.IsAny<bool>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task CommitOrderAsync_InvalidTemporaryCashDenomination_IsRejectedBeforeOrderCreation()
+        {
+            var repository = new Mock<IPOSOrderRepository>(MockBehavior.Strict);
+            var workShiftService = new Mock<IWorkShiftService>(MockBehavior.Strict);
+            var voucherService = new Mock<IAdminVoucherService>(MockBehavior.Strict);
+            var printDispatcher = new Mock<IPrintDispatcher>(MockBehavior.Strict);
+            var payOsService = new Mock<IPayOSService>(MockBehavior.Strict);
+            var logger = new Mock<ILogger<POSOrderService>>();
+            var dto = CreateCashCommitDto(Guid.NewGuid());
+            dto.Payments = new List<PaymentLineDto>
+            {
+                new() { PaymentMethodId = 1, Amount = 66m },
+                new() { PaymentMethodId = 2, Amount = 44934m }
+            };
+            dto.ReceivedAmount = 66m;
+
+            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value)).ReturnsAsync((Order?)null);
+            workShiftService.Setup(service => service.GetActiveShiftAsync(17, 3)).ReturnsAsync(new WorkShift
+            {
+                ShiftId = 42,
+                UserId = 17,
+                StoreId = 3,
+                Status = "Open",
+                StartingCash = 500000m,
+                ExpectedEndingCash = 500000m
+            });
+            repository.Setup(repo => repo.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            repository.Setup(repo => repo.GetDrinkWithSizesAsync(10, 3)).ReturnsAsync(CreateDrink());
+            repository.Setup(repo => repo.RollbackTransactionAsync()).Returns(Task.CompletedTask);
+
+            var service = CreateOrderService(repository, workShiftService, voucherService, printDispatcher, payOsService, logger);
+            var result = await service.CommitOrderAsync(dto, 17, 3);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal("INVALID_CASH_DENOMINATION", result.ErrorCode);
+            Assert.Contains("bội số của 1.000đ", result.Message);
+            repository.Verify(repo => repo.CreateOrderAsync(It.IsAny<Order>()), Times.Never);
+            printDispatcher.Verify(
+                dispatcher => dispatcher.DispatchPrintJobAsync(
+                    It.IsAny<Order>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<bool>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task SameRequestKeyDifferentPayload_Conflict()
+        {
+            var repository = new Mock<IPOSOrderRepository>(MockBehavior.Strict);
+            var clientOrderId = Guid.NewGuid();
+            var dto = CreateCashCommitDto(clientOrderId);
+            dto.Payments[0].Amount = 44000m;
+            var existingOrder = new Order
+            {
+                OrderId = 88,
+                ClientOrderId = clientOrderId,
+                Total = 45000m,
+                Payments = new List<Payment>
+                {
+                    new() { PaymentMethodId = 1, Amount = 45000m, PaymentStatusId = SystemConstants.PaymentStatuses.Paid }
+                },
+                OrderDetails = new List<OrderDetail>
+                {
+                    new()
+                    {
+                        DrinkId = 10,
+                        SizeId = 2,
+                        Quantity = 1,
+                        OrderToppings = new List<OrderTopping>()
+                    }
+                }
+            };
+            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId)).ReturnsAsync(existingOrder);
+            var service = CreateOrderService(
+                repository,
+                new Mock<IWorkShiftService>(MockBehavior.Strict),
+                new Mock<IAdminVoucherService>(MockBehavior.Strict),
+                new Mock<IPrintDispatcher>(MockBehavior.Strict),
+                new Mock<IPayOSService>(MockBehavior.Strict),
+                new Mock<ILogger<POSOrderService>>());
+
+            var result = await service.CommitOrderAsync(dto, 17, 3);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal("IDEMPOTENCY_KEY_REUSED", result.ErrorCode);
+            repository.Verify(repo => repo.BeginTransactionAsync(), Times.Never);
         }
 
         [Fact]

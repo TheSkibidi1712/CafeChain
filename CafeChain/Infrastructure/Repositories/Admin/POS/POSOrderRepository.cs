@@ -9,6 +9,7 @@ using CafeChain.Models.Stores;
 using CafeChain.Models.Vouchers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using CafeChain.Application.Policies.Orders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -130,6 +131,8 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         {
             return await _context.Orders
                 .Include(o => o.Payments)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(detail => detail.OrderToppings)
                 .FirstOrDefaultAsync(o => o.ClientOrderId == clientOrderId);
         }
 
@@ -152,8 +155,18 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             int storeId, int page, int pageSize)
         {
             var query = _context.Orders
-                .Where(o => o.StoreId == storeId && o.Source == "POS")
-                .OrderByDescending(o => o.CreatedAt);
+                .Where(o => o.StoreId == storeId
+                    && o.Source == OrderSources.Pos
+                    && o.OrderStatusId == SystemConstants.OrderStatuses.Completed
+                    && (o.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                    && o.Payments.Any(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded))
+                .OrderByDescending(o => o.Payments
+                    .Where(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                    .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt)
+                .ThenByDescending(o => o.OrderId);
 
             var totalCount = await query.CountAsync();
 
@@ -169,14 +182,14 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     StoreName = o.Store != null ? o.Store.Name : $"Cửa hàng #{o.StoreId}",
                     WorkShiftId = o.WorkShiftId,
                     Source = o.Source,
-                    OrderType = o.OrderType != null ? o.OrderType.Name : "N/A",
+                    OrderType = o.OrderType != null ? o.OrderType.Name : "Chưa xác định",
                     CreatedAt = o.CreatedAt,
                     Total = o.Total,
-                    PaymentMethod = "N/A",
+                    PaymentMethod = "Chưa xác định",
                     OrderStatusId = o.OrderStatusId,
-                    OrderStatusName = o.OrderStatus != null ? o.OrderStatus.Name : "N/A",
+                    OrderStatusName = o.OrderStatus != null ? o.OrderStatus.Name : "Chưa xác định",
                     PaymentStatusId = o.PaymentStatusId,
-                    PaymentStatusName = o.PaymentStatus != null ? o.PaymentStatus.Name : "N/A",
+                    PaymentStatusName = o.PaymentStatus != null ? o.PaymentStatus.Name : "Chưa xác định",
                     StaffName = o.Staff != null ? o.Staff.FullName : "POS",
                     Note = o.Note
                 })
@@ -193,13 +206,18 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .Select(p => new
                 {
                     p.OrderId,
+                    DisplayKey = p.PaymentMethod != null
+                        ? (p.PaymentMethod.Code ?? p.PaymentMethod.Name)
+                        : null,
                     Payment = new Application.DTOs.POS.POSPaymentHistoryDto
                     {
                         PaymentMethodId = p.PaymentMethodId,
-                        PaymentMethod = p.PaymentMethod != null ? p.PaymentMethod.Name : "N/A",
+                        PaymentMethod = p.PaymentMethod != null ? p.PaymentMethod.Name : "Chưa xác định",
                         PaymentStatusId = p.PaymentStatusId,
-                        PaymentStatus = p.PaymentStatus != null ? p.PaymentStatus.Name : "N/A",
+                        PaymentStatus = p.PaymentStatus != null ? p.PaymentStatus.Name : "Chưa xác định",
                         Amount = p.Amount,
+                        ReceivedAmount = p.ReceivedAmount,
+                        ChangeAmount = p.ChangeAmount,
                         PaidAt = p.PaidAt,
                         TransactionCode = p.TransactionCode
                     }
@@ -231,6 +249,14 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             var paymentsByOrder = paymentRows
                 .GroupBy(row => row.OrderId)
                 .ToDictionary(group => group.Key, group => group.Select(row => row.Payment).ToList());
+            var paymentDisplayByOrder = paymentRows
+                .GroupBy(row => row.OrderId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => OrderChannelPolicy.GetPaymentDisplay(group
+                        .Where(row => row.Payment.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                            || row.Payment.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                        .Select(row => row.DisplayKey)));
 
             var detailsByOrder = detailRows
                 .GroupBy(row => row.OrderId)
@@ -241,7 +267,12 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 if (paymentsByOrder.TryGetValue(order.OrderId, out var payments))
                 {
                     order.Payments = payments;
-                    order.PaymentMethod = payments.FirstOrDefault()?.PaymentMethod ?? "N/A";
+                    order.PaidAt = payments
+                        .Where(x => x.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                            || x.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                        .Where(x => x.PaidAt.HasValue)
+                        .Max(x => x.PaidAt);
+                    order.PaymentMethod = paymentDisplayByOrder[order.OrderId];
                 }
 
                 if (detailsByOrder.TryGetValue(order.OrderId, out var details))

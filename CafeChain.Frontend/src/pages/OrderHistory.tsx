@@ -14,6 +14,7 @@ const LABELS = {
   syncing: 'Đang đồng bộ',
   syncFailed: 'Đồng bộ lỗi',
   cancelled: 'Đã hủy',
+  refunded: 'Đã hoàn tiền',
   officialReceiptReady: 'Hóa đơn chính thức đã sẵn sàng',
   officialLabelReady: 'Tem chính thức đã sẵn sàng',
   noPrintData: 'Chưa có dữ liệu in',
@@ -49,6 +50,8 @@ interface BackendPayment {
   paymentStatusId: number
   paymentStatus: string
   amount: number
+  receivedAmount?: number | null
+  changeAmount?: number | null
   paidAt?: string | null
   transactionCode?: string | null
 }
@@ -72,6 +75,7 @@ interface OrderHistoryItem {
   source?: string | null
   orderType: string
   createdAt: string
+  paidAt?: string | null
   total: number
   paymentMethod: string
   orderStatusId?: number
@@ -170,14 +174,18 @@ interface HistoryRow {
 const normalizePaymentMethod = (method?: string | null): string => {
   const raw = (method ?? '').trim()
   const lower = raw.toLowerCase()
-  if (!raw) return 'N/A'
+  if (!raw || lower === 'n/a') return 'Chưa xác định'
   if (lower.includes('cash') || lower.includes('tiền')) return 'Tiền mặt'
-  if (lower.includes('qr') || lower.includes('payos') || lower.includes('bank')) return 'VietQR'
-  return raw
+  if (lower.includes('qr') || lower.includes('payos') || lower.includes('bank') || lower.includes('chuyển khoản')) {
+    return 'Chuyển khoản VietQR'
+  }
+  if (lower.includes('momo')) return 'Ví điện tử — dữ liệu cũ'
+  return 'Chưa xác định'
 }
 
 const normalizePaymentStatus = (statusId?: number, statusName?: string | null): string => {
   if (statusId === 2) return LABELS.paid
+  if (statusId === 3) return LABELS.refunded
   if (statusId === 4) return LABELS.cancelled
   const lower = (statusName ?? '').toLowerCase()
   if (lower.includes('paid') || lower.includes('success') || lower.includes('thành công')) return LABELS.paid
@@ -187,6 +195,7 @@ const normalizePaymentStatus = (statusId?: number, statusName?: string | null): 
 
 const getBackendOrderState = (order: OrderHistoryItem): string => {
   if (order.orderStatusId === 6) return LABELS.cancelled
+  if (order.paymentStatusId === 3) return LABELS.refunded
   if (order.paymentStatusId === 2 && order.orderStatusId === 5) return LABELS.paid
   return LABELS.paying
 }
@@ -195,7 +204,7 @@ const getStatusTone = (label: string): string => {
   if (label === LABELS.paid || label === LABELS.officialReceiptReady || label === LABELS.officialLabelReady) {
     return 'bg-green-50 text-green-700 border-green-200'
   }
-  if (label === LABELS.syncFailed || label === LABELS.cancelled) {
+  if (label === LABELS.syncFailed || label === LABELS.cancelled || label === LABELS.refunded) {
     return 'bg-red-50 text-red-700 border-red-200'
   }
   if (label === LABELS.pendingSync || label === LABELS.syncing || label === LABELS.paying) {
@@ -206,8 +215,12 @@ const getStatusTone = (label: string): string => {
 
 const summarizePayments = (payments: HistoryPaymentLine[], fallback: string): string => {
   if (payments.length === 0) return normalizePaymentMethod(fallback)
-  const methods = Array.from(new Set(payments.map((payment) => payment.method)))
-  return methods.join(' + ')
+  const settledPayments = payments.filter((payment) => (
+    payment.status === LABELS.paid || payment.status === LABELS.refunded
+  ))
+  const methods = Array.from(new Set(settledPayments.map((payment) => payment.method)))
+  if (methods.length === 0) return normalizePaymentMethod(fallback)
+  return methods.length > 1 ? 'Thanh toán kết hợp' : methods[0]
 }
 
 const buildItemSummary = (items: HistoryDetailLine[]): string => {
@@ -235,6 +248,8 @@ const mapBackendOrder = (order: OrderHistoryItem): HistoryRow => {
     status: normalizePaymentStatus(payment?.paymentStatusId, payment?.paymentStatus),
     paidAt: payment?.paidAt,
     transactionCode: payment?.transactionCode,
+    receivedAmount: safeMoney(payment?.receivedAmount),
+    changeAmount: safeMoney(payment?.changeAmount),
   }))
 
   const items = (order.orderDetails ?? []).map((detail) => {
@@ -260,7 +275,7 @@ const mapBackendOrder = (order: OrderHistoryItem): HistoryRow => {
     orderId: order.orderId,
     clientOrderId: order.clientOrderId,
     code: `#${order.orderId}`,
-    soldAt: order.createdAt,
+    soldAt: order.paidAt || order.createdAt,
     total: safeMoney(order.total),
     paymentSummary: summarizePayments(payments, order.paymentMethod),
     orderState: getBackendOrderState(order),
@@ -357,8 +372,8 @@ function DetailDrawer({
             <div className="grid grid-cols-2 gap-3 text-xs">
               <Info label="Thời gian bán" value={formatDateTime(order.soldAt)} />
               <Info label="Tổng tiền" value={formatVND(order.total)} strong />
-              <Info label="WorkShiftId" value={order.workShiftId ? `#${order.workShiftId}` : 'N/A'} />
-              <Info label="Loại đơn" value={order.orderType || 'N/A'} />
+              <Info label="WorkShiftId" value={order.workShiftId ? `#${order.workShiftId}` : 'Chưa xác định'} />
+              <Info label="Loại đơn" value={order.orderType || 'Chưa xác định'} />
               <Info label="Nhân viên" value={order.staffName} />
               <Info label="Cửa hàng" value={order.storeName} />
             </div>

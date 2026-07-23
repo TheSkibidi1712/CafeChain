@@ -6,6 +6,7 @@ using CafeChain.Data;
 using CafeChain.Hubs;
 using CafeChain.Models.Loyalties;
 using CafeChain.Models.Orders;
+using CafeChain.Application.Policies.Orders;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -34,7 +35,7 @@ namespace CafeChain.Application.Services.Admin
             _orderService = orderService;
         }
 
-        public async Task<List<AdminOrderKanbanDto>> GetKanbanOrdersAsync()
+        public async Task<List<AdminOrderKanbanDto>> GetKanbanOrdersAsync(int storeId)
         {
             var activeStatuses = new[] {
                 SystemConstants.OrderStatuses.Pending,
@@ -47,7 +48,9 @@ namespace CafeChain.Application.Services.Admin
                 .Include(o => o.OrderType)
                 .Include(o => o.Customer)
                 .Include(o => o.OrderDetails).ThenInclude(od => od.OrderToppings)
-                .Where(o => activeStatuses.Contains(o.OrderStatusId))
+                .Where(o => o.StoreId == storeId
+                    && o.Source == OrderSources.Website
+                    && activeStatuses.Contains(o.OrderStatusId))
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
 
@@ -61,7 +64,10 @@ namespace CafeChain.Application.Services.Admin
                 .Include(o => o.OrderType)
                 .Include(o => o.Customer)
                 .Include(o => o.OrderDetails).ThenInclude(od => od.OrderToppings)
-                .Where(o => historyStatuses.Contains(o.OrderStatusId) && o.CreatedAt >= today)
+                .Where(o => o.StoreId == storeId
+                    && o.Source == OrderSources.Website
+                    && historyStatuses.Contains(o.OrderStatusId)
+                    && o.CreatedAt >= today)
                 .OrderByDescending(o => o.CreatedAt)
                 .Take(20)
                 .ToListAsync();
@@ -107,14 +113,16 @@ namespace CafeChain.Application.Services.Admin
             }).ToList();
         }
 
-        public async Task<AdminOrderDetailDto> GetOrderDetailsAsync(int orderId)
+        public async Task<AdminOrderDetailDto> GetOrderDetailsAsync(int orderId, int storeId)
         {
             var order = await _context.Orders
                 .Include(o => o.OrderType)
                 .Include(o => o.OrderDetails).ThenInclude(od => od.Drink)
                 .Include(o => o.OrderDetails).ThenInclude(od => od.Size)
                 .Include(o => o.OrderDetails).ThenInclude(od => od.OrderToppings).ThenInclude(ot => ot.Topping)
-                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+                .FirstOrDefaultAsync(o => o.OrderId == orderId
+                    && o.StoreId == storeId
+                    && o.Source == OrderSources.Website);
 
             if (order == null) return null;
 
@@ -141,9 +149,9 @@ namespace CafeChain.Application.Services.Admin
             };
         }
 
-        public async Task AcceptOrderAsync(int orderId)
+        public async Task AcceptOrderAsync(int orderId, int storeId)
         {
-            var order = await _context.Orders.FindAsync(orderId);
+            var order = await GetBoardOrderAsync(orderId, storeId);
             if (order == null) throw new Exception("Đơn hàng không tồn tại.");
 
             if (order.OrderStatusId != SystemConstants.OrderStatuses.Pending)
@@ -158,9 +166,9 @@ namespace CafeChain.Application.Services.Admin
                 .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
         }
 
-        public async Task ReadyForPickupAsync(int orderId)
+        public async Task ReadyForPickupAsync(int orderId, int storeId)
         {
-            var order = await _context.Orders.FindAsync(orderId);
+            var order = await GetBoardOrderAsync(orderId, storeId);
             if (order == null) throw new Exception("Đơn hàng không tồn tại.");
 
             if (order.OrderStatusId != SystemConstants.OrderStatuses.Preparing)
@@ -181,10 +189,10 @@ namespace CafeChain.Application.Services.Admin
             }
         }
 
-        public async Task<List<DTOs.Admin.ShipperDto>> GetShippersAsync()
+        public async Task<List<DTOs.Admin.ShipperDto>> GetShippersAsync(int storeId)
         {
             var shippers = await _context.Set<CafeChain.Models.Staffs.Staff>()
-                .Where(s => s.Active)
+                .Where(s => s.Active && s.StoreId == storeId)
                 .Select(s => new DTOs.Admin.ShipperDto
                 {
                     Id = s.StaffId,
@@ -195,9 +203,9 @@ namespace CafeChain.Application.Services.Admin
             return shippers;
         }
 
-        public async Task DispatchOrderAsync(CafeChain.Application.DTOs.Admin.DispatchOrderRequest request)
+        public async Task DispatchOrderAsync(CafeChain.Application.DTOs.Admin.DispatchOrderRequest request, int storeId)
         {
-            var order = await _context.Orders.FindAsync(request.OrderId);
+            var order = await GetBoardOrderAsync(request.OrderId, storeId);
             if (order == null) throw new Exception("Đơn hàng không tồn tại.");
 
             if (order.OrderStatusId != SystemConstants.OrderStatuses.Ready)
@@ -215,7 +223,9 @@ namespace CafeChain.Application.Services.Admin
 
                 // Shipper nội bộ: Kiểm tra ID thực sự tồn tại và đang Active
                 var staffExists = await _context.Set<CafeChain.Models.Staffs.Staff>()
-                    .AnyAsync(s => s.StaffId == request.InternalShipperId.Value && s.Active);
+                    .AnyAsync(s => s.StaffId == request.InternalShipperId.Value
+                        && s.StoreId == storeId
+                        && s.Active);
 
                 if (!staffExists)
                     throw new Exception($"Nhân viên giao hàng ID #{request.InternalShipperId.Value} không tồn tại hoặc đã ngưng hoạt động.");
@@ -254,11 +264,13 @@ namespace CafeChain.Application.Services.Admin
 
 
 
-        public async Task CompleteOrderAsync(int orderId)
+        public async Task CompleteOrderAsync(int orderId, int storeId)
         {
             var order = await _context.Orders
                 .Include(o => o.Payments)
-                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+                .FirstOrDefaultAsync(o => o.OrderId == orderId
+                    && o.StoreId == storeId
+                    && o.Source == OrderSources.Website);
             if (order == null) throw new Exception("Đơn hàng không tồn tại.");
 
             if (order.OrderStatusId != SystemConstants.OrderStatuses.Ready &&
@@ -274,6 +286,8 @@ namespace CafeChain.Application.Services.Admin
             if (payment != null && payment.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid)
             {
                 payment.PaymentStatusId = SystemConstants.PaymentStatuses.Paid;
+                payment.PaidAt = DateTime.Now;
+                order.PaymentStatusId = SystemConstants.PaymentStatuses.Paid;
             }
 
             await _context.SaveChangesAsync();
@@ -360,11 +374,13 @@ namespace CafeChain.Application.Services.Admin
                 .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
         }
 
-        public async Task CancelOrderAsync(int orderId, string reason)
+        public async Task CancelOrderAsync(int orderId, int storeId, string reason)
         {
             var order = await _context.Orders
                 .Include(o => o.Payments)
-                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+                .FirstOrDefaultAsync(o => o.OrderId == orderId
+                    && o.StoreId == storeId
+                    && o.Source == OrderSources.Website);
             if (order == null) throw new Exception("Đơn hàng không tồn tại.");
 
             var cancellableStatuses = new[]
@@ -404,10 +420,12 @@ namespace CafeChain.Application.Services.Admin
                 .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
         }
 
-        public async Task<int> SimulateWebhookAsync()
+        public async Task<int> SimulateWebhookAsync(int storeId)
         {
             var deliveringOrders = await _context.Orders
-                .Where(o => o.OrderStatusId == SystemConstants.OrderStatuses.Delivering)
+                .Where(o => o.StoreId == storeId
+                    && o.Source == OrderSources.Website
+                    && o.OrderStatusId == SystemConstants.OrderStatuses.Delivering)
                 .Select(o => o.OrderId)
                 .ToListAsync();
 
@@ -415,7 +433,7 @@ namespace CafeChain.Application.Services.Admin
 
             foreach (var orderId in deliveringOrders)
             {
-                await CompleteOrderAsync(orderId);
+                await CompleteOrderAsync(orderId, storeId);
             }
 
             return deliveringOrders.Count;
@@ -425,11 +443,11 @@ namespace CafeChain.Application.Services.Admin
         // ORDER HISTORY — DataTables Server-Side Processing
         // ===================================================
 
-        public async Task<DataTablesResponse<AdminOrderHistoryRowDto>> GetOrderHistoryAsync(DataTablesRequest request)
+        public async Task<DataTablesResponse<AdminOrderHistoryRowDto>> GetOrderHistoryAsync(DataTablesRequest request, int storeId)
         {
-            var query = BuildHistoryQuery(request.SearchKeyword, request.DateFrom, request.DateTo, request.StatusFilter, request.PaymentMethodFilter);
+            var query = BuildHistoryQuery(request.SearchKeyword, request.DateFrom, request.DateTo, request.StatusFilter, request.PaymentMethodFilter, storeId);
 
-            int totalRecords = await _context.Orders.CountAsync();
+            int totalRecords = await BuildHistoryQuery(null, null, null, null, null, storeId).CountAsync();
             int filteredRecords = await query.CountAsync();
 
             // Sorting
@@ -442,7 +460,15 @@ namespace CafeChain.Application.Services.Admin
                 "orderId" or "orderid" => sortDir == "asc" ? query.OrderBy(o => o.OrderId) : query.OrderByDescending(o => o.OrderId),
                 "total" => sortDir == "asc" ? query.OrderBy(o => o.Total) : query.OrderByDescending(o => o.Total),
                 "orderStatusName" or "orderstatusname" => sortDir == "asc" ? query.OrderBy(o => o.OrderStatus.Name) : query.OrderByDescending(o => o.OrderStatus.Name),
-                _ => sortDir == "asc" ? query.OrderBy(o => o.CreatedAt) : query.OrderByDescending(o => o.CreatedAt),
+                _ => sortDir == "asc"
+                    ? query.OrderBy(o => o.Payments
+                        .Where(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                            || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                        .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt)
+                    : query.OrderByDescending(o => o.Payments
+                        .Where(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                            || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                        .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt),
             };
 
             var data = await query
@@ -451,17 +477,28 @@ namespace CafeChain.Application.Services.Admin
                 .Select(o => new AdminOrderHistoryRowDto
                 {
                     OrderId = o.OrderId,
-                    CreatedAt = o.CreatedAt,
+                    CreatedAt = o.Payments.Where(p => p.PaidAt.HasValue)
+                        .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt,
                     CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Khách vãng lai"),
                     CustomerPhone = o.ReceiverPhone ?? "",
+                    StoreName = o.Store != null ? o.Store.Name : $"Cửa hàng #{o.StoreId}",
+                    StaffName = o.Staff != null ? o.Staff.FullName : "Chưa xác định",
+                    OrderTypeName = o.OrderType != null ? o.OrderType.Name : "Chưa xác định",
                     Total = o.Total,
                     PaymentMethodId = o.Payments.Any() ? o.Payments.First().PaymentMethodId : 0,
-                    PaymentMethodName = o.Payments.Any() ? o.Payments.First().PaymentMethod.Name : "N/A",
-                    OrderStatusId = o.OrderStatusId,
-                    OrderStatusName = o.OrderStatus.Name,
-                    OrderStatusBadge = o.OrderStatus.BadgeColor
+                    PaymentMethodName = "Chưa xác định",
+                    OrderStatusId = o.PaymentStatusId,
+                    OrderStatusName = o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
+                        ? "Đã hoàn tiền"
+                        : "Đã thanh toán",
+                    OrderStatusBadge = o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
+                        ? "bg-warning text-dark"
+                        : "bg-success",
+                    ReceiptState = "Hóa đơn chính thức đã sẵn sàng",
+                    DrinkLabelState = "Tem chính thức đã sẵn sàng"
                 })
                 .ToListAsync();
+            await ApplyPaymentDisplayAsync(data);
 
             return new DataTablesResponse<AdminOrderHistoryRowDto>
             {
@@ -472,45 +509,78 @@ namespace CafeChain.Application.Services.Admin
             };
         }
 
-        public async Task<AdminOrderHistoryDetailDto> GetOrderHistoryDetailAsync(int orderId)
+        public async Task<AdminOrderHistoryDetailDto> GetOrderHistoryDetailAsync(int orderId, int storeId)
         {
             var order = await _context.Orders
                 .AsSplitQuery()
                 .Include(o => o.Customer)
                 .Include(o => o.OrderStatus)
                 .Include(o => o.OrderType)
+                .Include(o => o.Store)
+                .Include(o => o.Staff)
                 .Include(o => o.Payments).ThenInclude(p => p.PaymentMethod)
                 .Include(o => o.Payments).ThenInclude(p => p.PaymentStatus)
                 .Include(o => o.OrderDetails).ThenInclude(od => od.OrderToppings)
-                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+                .FirstOrDefaultAsync(o => o.OrderId == orderId
+                    && o.StoreId == storeId
+                    && o.Source == OrderSources.Pos
+                    && o.OrderStatusId == SystemConstants.OrderStatuses.Completed
+                    && (o.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                    && o.Payments.Any(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded));
 
             if (order == null) return null;
-
-            var payment = order.Payments.FirstOrDefault();
 
             return new AdminOrderHistoryDetailDto
             {
                 OrderId = order.OrderId,
-                CreatedAt = order.CreatedAt,
+                CreatedAt = order.Payments
+                    .Where(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                    .Where(p => p.PaidAt.HasValue)
+                    .Max(p => (DateTime?)p.PaidAt) ?? order.CreatedAt,
                 CustomerName = order.Customer?.FullName ?? order.ReceiverName ?? "Khách vãng lai",
                 CustomerPhone = order.ReceiverPhone,
                 DeliveryAddress = order.DeliveryAddress,
                 Note = order.Note,
                 Source = order.Source,
-                OrderStatusId = order.OrderStatusId,
-                OrderStatusName = order.OrderStatus?.Name,
-                OrderStatusBadge = order.OrderStatus?.BadgeColor,
+                StoreName = order.Store?.Name ?? $"Cửa hàng #{order.StoreId}",
+                StaffName = order.Staff?.FullName ?? "Chưa xác định",
+                OrderStatusId = order.PaymentStatusId,
+                OrderStatusName = order.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
+                    ? "Đã hoàn tiền"
+                    : "Đã thanh toán",
+                OrderStatusBadge = order.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
+                    ? "badge bg-warning text-dark"
+                    : "badge bg-success",
                 OrderTypeName = order.OrderType?.Name,
-                PaymentMethodName = payment?.PaymentMethod?.Name ?? "N/A",
-                PaymentStatusName = payment?.PaymentStatus?.Name ?? "N/A",
+                PaymentMethodName = OrderChannelPolicy.GetPaymentDisplay(order.Payments),
+                PaymentStatusName = order.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
+                    ? "Đã hoàn tiền"
+                    : "Đã thanh toán",
+                ReceiptState = "Hóa đơn chính thức đã sẵn sàng",
+                DrinkLabelState = "Tem chính thức đã sẵn sàng",
                 SubTotal = order.SubTotal,
                 ShippingFee = order.ShippingFee,
                 VoucherDiscount = order.VoucherDiscount,
                 PointDiscount = order.PointDiscount,
                 Total = order.Total,
+                Payments = order.Payments
+                    .OrderBy(x => x.PaymentId)
+                    .Select(x => new AdminOrderHistoryPaymentDto
+                    {
+                        PaymentMethodName = OrderChannelPolicy.GetPaymentDisplay(new[] { x }),
+                        Amount = x.Amount,
+                        ReceivedAmount = x.ReceivedAmount,
+                        ChangeAmount = x.ChangeAmount,
+                        PaidAt = x.PaidAt,
+                        TransactionCode = x.TransactionCode
+                    })
+                    .ToList(),
                 Items = order.OrderDetails.Select(od => new AdminOrderHistoryItemDto
                 {
-                    DrinkName = od.DrinkName ?? "N/A",
+                    DrinkName = od.DrinkName ?? "Chưa xác định",
                     SizeName = od.SizeName,
                     Quantity = od.Quantity,
                     Price = od.Price,
@@ -525,38 +595,60 @@ namespace CafeChain.Application.Services.Admin
         }
 
         public async Task<List<AdminOrderHistoryRowDto>> GetFilteredOrdersForExportAsync(
-            string searchKeyword, string dateFrom, string dateTo, int? statusFilter, int? paymentMethodFilter)
+            string searchKeyword, string dateFrom, string dateTo, int? statusFilter, int? paymentMethodFilter, int storeId)
         {
-            var query = BuildHistoryQuery(searchKeyword, dateFrom, dateTo, statusFilter, paymentMethodFilter);
+            var query = BuildHistoryQuery(searchKeyword, dateFrom, dateTo, statusFilter, paymentMethodFilter, storeId);
 
-            return await query
-                .OrderByDescending(o => o.CreatedAt)
+            var data = await query
+                .OrderByDescending(o => o.Payments
+                    .Where(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                    .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt)
                 .Select(o => new AdminOrderHistoryRowDto
                 {
                     OrderId = o.OrderId,
-                    CreatedAt = o.CreatedAt,
+                    CreatedAt = o.Payments.Where(p => p.PaidAt.HasValue)
+                        .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt,
                     CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Khách vãng lai"),
                     CustomerPhone = o.ReceiverPhone ?? "",
+                    StoreName = o.Store != null ? o.Store.Name : $"Cửa hàng #{o.StoreId}",
+                    StaffName = o.Staff != null ? o.Staff.FullName : "Chưa xác định",
+                    OrderTypeName = o.OrderType != null ? o.OrderType.Name : "Chưa xác định",
                     Total = o.Total,
                     PaymentMethodId = o.Payments.Any() ? o.Payments.First().PaymentMethodId : 0,
-                    PaymentMethodName = o.Payments.Any() ? o.Payments.First().PaymentMethod.Name : "N/A",
-                    OrderStatusId = o.OrderStatusId,
-                    OrderStatusName = o.OrderStatus.Name,
-                    OrderStatusBadge = o.OrderStatus.BadgeColor
+                    PaymentMethodName = "Chưa xác định",
+                    OrderStatusId = o.PaymentStatusId,
+                    OrderStatusName = o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
+                        ? "Đã hoàn tiền"
+                        : "Đã thanh toán",
+                    OrderStatusBadge = o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded
+                        ? "bg-warning text-dark"
+                        : "bg-success",
+                    ReceiptState = "Hóa đơn chính thức đã sẵn sàng",
+                    DrinkLabelState = "Tem chính thức đã sẵn sàng"
                 })
                 .ToListAsync();
+            await ApplyPaymentDisplayAsync(data);
+            return data;
         }
 
         /// <summary>
         /// Xây dựng IQueryable chung cho cả DataTables lẫn Export — DRY Principle.
         /// </summary>
         private IQueryable<Order> BuildHistoryQuery(
-            string searchKeyword, string dateFrom, string dateTo, int? statusFilter, int? paymentMethodFilter)
+            string searchKeyword, string dateFrom, string dateTo, int? statusFilter, int? paymentMethodFilter, int storeId)
         {
             var query = _context.Orders
                 .Include(o => o.Customer)
                 .Include(o => o.OrderStatus)
                 .Include(o => o.Payments).ThenInclude(p => p.PaymentMethod)
+                .Where(o => o.StoreId == storeId
+                    && o.Source == OrderSources.Pos
+                    && o.OrderStatusId == SystemConstants.OrderStatuses.Completed
+                    && (o.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || o.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                    && o.Payments.Any(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded))
                 .AsQueryable();
 
             // Text search: OrderId, Customer name, Phone
@@ -578,17 +670,24 @@ namespace CafeChain.Application.Services.Admin
             // Date range
             if (!string.IsNullOrWhiteSpace(dateFrom) && DateTime.TryParse(dateFrom, out var from))
             {
-                query = query.Where(o => o.CreatedAt >= from);
+                query = query.Where(o => (o.Payments
+                    .Where(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                    .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt) >= from);
             }
             if (!string.IsNullOrWhiteSpace(dateTo) && DateTime.TryParse(dateTo, out var to))
             {
-                query = query.Where(o => o.CreatedAt < to.AddDays(1));
+                var exclusiveTo = to.AddDays(1);
+                query = query.Where(o => (o.Payments
+                    .Where(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid
+                        || p.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                    .Max(p => (DateTime?)p.PaidAt) ?? o.CreatedAt) < exclusiveTo);
             }
 
             // Status
             if (statusFilter.HasValue && statusFilter.Value > 0)
             {
-                query = query.Where(o => o.OrderStatusId == statusFilter.Value);
+                query = query.Where(o => o.PaymentStatusId == statusFilter.Value);
             }
 
             // Payment method
@@ -598,6 +697,38 @@ namespace CafeChain.Application.Services.Admin
             }
 
             return query;
+        }
+
+        private async Task<Order?> GetBoardOrderAsync(int orderId, int storeId)
+        {
+            return await _context.Orders.FirstOrDefaultAsync(o => o.OrderId == orderId
+                && o.StoreId == storeId
+                && o.Source == OrderSources.Website);
+        }
+
+        private async Task ApplyPaymentDisplayAsync(List<AdminOrderHistoryRowDto> rows)
+        {
+            var orderIds = rows.Select(x => x.OrderId).ToList();
+            if (orderIds.Count == 0)
+                return;
+
+            var payments = await _context.Payments
+                .AsNoTracking()
+                .Include(x => x.PaymentMethod)
+                .Where(x => orderIds.Contains(x.OrderId))
+                .ToListAsync();
+            var byOrder = payments.GroupBy(x => x.OrderId).ToDictionary(x => x.Key, x => x.ToList());
+
+            foreach (var row in rows)
+            {
+                if (byOrder.TryGetValue(row.OrderId, out var orderPayments))
+                {
+                    row.PaymentMethodName = OrderChannelPolicy.GetPaymentDisplay(orderPayments);
+                    row.PaymentMethodId = orderPayments.Select(x => x.PaymentMethodId).Distinct().Count() == 1
+                        ? orderPayments[0].PaymentMethodId
+                        : 0;
+                }
+            }
         }
     }
 }

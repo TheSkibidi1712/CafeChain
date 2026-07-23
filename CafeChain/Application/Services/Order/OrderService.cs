@@ -61,6 +61,12 @@ namespace CafeChain.Application.Services.Cart
             {
                 if (!customerId.HasValue) throw new Exception("Không thể định danh khách hàng.");
 
+                var isDeliveryOrder = model.OrderTypeId == SystemConstants.OrderTypes.Delivery;
+                if (!isDeliveryOrder && model.OrderTypeId != SystemConstants.OrderTypes.TakeAway)
+                {
+                    throw new Exception("Loại đơn Website không hợp lệ. Chỉ hỗ trợ nhận tại cửa hàng hoặc giao hàng.");
+                }
+
                 // ============================================================
                 // Anti-Spam Rate Limit — Chỉ chặn đơn ONLINE đang CÒN HIỆU LỰC
                 // COD (Pending=2) không bị tính vì sẽ thu tiền khi giao hàng
@@ -133,15 +139,15 @@ namespace CafeChain.Application.Services.Cart
                     StoreId = defaultStoreId,
                     OrderStatusId = orderStatusId,
                     PaymentStatusId = paymentStatusId,
-                    OrderTypeId = SystemConstants.OrderTypes.Delivery,
+                    OrderTypeId = model.OrderTypeId,
                     Source = "Website",
                     Note = model.Note ?? "",
                     CreatedAt = DateTime.Now,
                     
                     ReceiverName = customer.FullName,
                     ReceiverPhone = phone.Phone,
-                    DeliveryAddress = address.DisplayAddress,
-                    ShippingFee = 15000, 
+                    DeliveryAddress = isDeliveryOrder ? address.DisplayAddress : null,
+                    ShippingFee = isDeliveryOrder ? 15000 : 0,
 
                     TableId = null,
                     StaffId = null,
@@ -534,6 +540,7 @@ namespace CafeChain.Application.Services.Cart
                             {
                                 payment.PaymentStatusId = SystemConstants.PaymentStatuses.Paid;
                                 payment.PaidAt = DateTime.Now;
+                                order.PaymentStatusId = SystemConstants.PaymentStatuses.Paid;
                             }
 
                             // Soft-removal: no loyalty earn. Customer purchase stats only.

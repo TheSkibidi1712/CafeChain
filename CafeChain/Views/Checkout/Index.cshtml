@@ -16,6 +16,7 @@
 
     <form asp-action="Index" method="post" id="checkoutForm">
         <input type="hidden" asp-for="CheckoutToken" />
+        <input type="hidden" asp-for="OrderTypeId" />
         <input type="hidden" asp-for="AssignedStoreId" id="AssignedStoreId" />
         <input type="hidden" name="Latitude" id="Latitude" />
         <input type="hidden" name="Longitude" id="Longitude" />

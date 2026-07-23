@@ -110,6 +110,22 @@ const parseCloseErrorEnvelope = (response: { data: unknown; error?: string }) =>
 const formatVND = (amount: number): string =>
   new Intl.NumberFormat('vi-VN').format(amount) + 'đ'
 
+const CASH_DENOMINATION_STEP = 1000
+
+const formatCashInput = (amount: number | ''): string =>
+  amount === '' ? '' : new Intl.NumberFormat('vi-VN').format(amount)
+
+const validateActualEndingCash = (amount: number | ''): string | null => {
+  if (amount === '') return 'Vui lòng nhập tiền mặt thực tế trong két.'
+  if (!Number.isSafeInteger(amount) || amount < 0) {
+    return 'Tiền mặt thực tế trong két phải là số nguyên không âm.'
+  }
+  if (amount % CASH_DENOMINATION_STEP !== 0) {
+    return 'Tiền mặt thực tế trong két phải là bội số của 1.000đ.'
+  }
+  return null
+}
+
 const formatDateTime = (value?: string | null) => {
   if (!value) return '--'
   const date = new Date(value)
@@ -180,6 +196,8 @@ export default function ShiftSummary() {
     if (!shift) return 0
     return shift.startingCash + shift.totalCashSales
   }, [shift])
+  const actualEndingCashError = validateActualEndingCash(actualEndingCash)
+  const hasValidActualEndingCash = actualEndingCashError === null
   const cashDiscrepancy = actualEndingCash === '' ? 0 : actualEndingCash - expectedEndingCash
   const needsReason = actualEndingCash !== '' && cashDiscrepancy !== 0
   const discrepancyTone =
@@ -395,7 +413,14 @@ export default function ShiftSummary() {
   }
 
   const submitCloseShift = useCallback(async (otpPublicId?: string | null) => {
-    if (!shift?.shiftId || actualEndingCash === '') return false
+    if (!shift?.shiftId) return false
+    if (!hasValidActualEndingCash || actualEndingCash === '') {
+      setMessage({
+        type: 'error',
+        text: actualEndingCashError ?? 'Tiền mặt thực tế trong két không hợp lệ.',
+      })
+      return false
+    }
     if (hasCloseBlockers) {
       setMessage({
         type: 'error',
@@ -468,8 +493,10 @@ export default function ShiftSummary() {
     }
   }, [
     actualEndingCash,
+    actualEndingCashError,
     discrepancyReason,
     hasCloseBlockers,
+    hasValidActualEndingCash,
     needsReason,
     resetOtpState,
     shift,
@@ -481,7 +508,11 @@ export default function ShiftSummary() {
   }
 
   const handleRequestOtp = async () => {
-    if (!shift?.shiftId || actualEndingCash === '') return
+    if (!shift?.shiftId) return
+    if (!hasValidActualEndingCash || actualEndingCash === '') {
+      setOtpMessage(actualEndingCashError ?? 'Tiền mặt thực tế trong két không hợp lệ.')
+      return
+    }
     if (needsReason && discrepancyReason.trim().length === 0) {
       setOtpMessage('Vui lòng nhập lý do chênh lệch trước khi gửi OTP.')
       return
@@ -645,7 +676,11 @@ export default function ShiftSummary() {
   }
 
   const requestExceptionOtp = async () => {
-    if (!shift?.shiftId || actualEndingCash === '') return
+    if (!shift?.shiftId) return
+    if (!hasValidActualEndingCash || actualEndingCash === '') {
+      setExceptionOtpMessage(actualEndingCashError ?? 'Tiền mặt thực tế trong két không hợp lệ.')
+      return
+    }
     if (exceptionReason.trim().length === 0) {
       setExceptionOtpMessage('Vui lòng nhập lý do đóng ngoại lệ trước khi gửi OTP.')
       return
@@ -716,7 +751,14 @@ export default function ShiftSummary() {
   }
 
   const handleExceptionCloseShift = async () => {
-    if (!shift?.shiftId || actualEndingCash === '') return
+    if (!shift?.shiftId) return
+    if (!hasValidActualEndingCash || actualEndingCash === '') {
+      setMessage({
+        type: 'error',
+        text: actualEndingCashError ?? 'Tiền mặt thực tế trong két không hợp lệ.',
+      })
+      return
+    }
     if (!hasOfflineQueueBlockers) {
       setMessage({
         type: 'error',
@@ -1060,7 +1102,7 @@ export default function ShiftSummary() {
                         <button
                           type="button"
                           onClick={requestExceptionOtp}
-                          disabled={exceptionOtpBusy || !canUseExceptionClose || actualEndingCash === '' || exceptionReason.trim().length === 0}
+                          disabled={exceptionOtpBusy || !canUseExceptionClose || !hasValidActualEndingCash || exceptionReason.trim().length === 0}
                           className="px-3 py-2 bg-white border border-amber-300 text-amber-900 text-xs font-bold rounded-lg disabled:opacity-40"
                         >
                           {exceptionOtpBusy ? 'Đang gửi OTP...' : 'Gửi OTP phê duyệt'}
@@ -1098,7 +1140,7 @@ export default function ShiftSummary() {
                       onClick={handleExceptionCloseShift}
                       disabled={
                         isSubmitting ||
-                        actualEndingCash === '' ||
+                        !hasValidActualEndingCash ||
                         !canUseExceptionClose ||
                         exceptionReason.trim().length === 0 ||
                         !verifiedExceptionOtpId ||
@@ -1117,17 +1159,39 @@ export default function ShiftSummary() {
                     </label>
                     <div className="relative">
                       <input
-                        type="number"
-                        min={0}
-                        step={1000}
-                        value={actualEndingCash}
-                        onChange={(event) => setActualEndingCash(event.target.value === '' ? '' : Number(event.target.value))}
+                        type="text"
+                        inputMode="numeric"
+                        value={formatCashInput(actualEndingCash)}
+                        onChange={(event) => {
+                          const digits = event.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                          const nextValue = digits === '' ? '' : Number(digits)
+                          if (nextValue !== actualEndingCash) {
+                            resetOtpState()
+                            setExceptionOtpChallengePublicId(null)
+                            setVerifiedExceptionOtpId(null)
+                            setExceptionOtpCode('')
+                            setExceptionOtpMessage(null)
+                          }
+                          setActualEndingCash(nextValue)
+                        }}
                         placeholder="Nhập số tiền đếm được"
-                        required
-                        className="w-full px-3 py-2 border border-border rounded-lg text-xs outline-none focus:border-brand-orange text-text-primary bg-surface font-semibold"
+                        aria-invalid={actualEndingCash !== '' && !!actualEndingCashError}
+                        aria-describedby={actualEndingCash !== '' && actualEndingCashError ? 'actual-ending-cash-error' : undefined}
+                        className={`w-full py-2 pl-3 pr-16 border rounded-lg text-xs outline-none text-text-primary bg-surface font-semibold ${
+                          actualEndingCash !== '' && actualEndingCashError
+                            ? 'border-red-400 focus:border-red-500'
+                            : 'border-border focus:border-brand-orange'
+                        }`}
                       />
-                      <span className="absolute right-3 top-2 text-xs text-text-secondary font-bold">VNĐ</span>
+                      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-text-secondary font-bold">
+                        VNĐ
+                      </span>
                     </div>
+                    {actualEndingCash !== '' && actualEndingCashError && (
+                      <p id="actual-ending-cash-error" className="mt-1.5 text-xs font-semibold text-danger" role="alert">
+                        {actualEndingCashError}
+                      </p>
+                    )}
                   </div>
                   <div
                     className={`p-3 rounded-lg border ${
@@ -1253,7 +1317,7 @@ export default function ShiftSummary() {
                         disabled={
                           otpBusy ||
                           isSubmitting ||
-                          actualEndingCash === '' ||
+                          !hasValidActualEndingCash ||
                           (needsReason && discrepancyReason.trim().length === 0) ||
                           !!otpChallengePublicId
                         }
@@ -1335,7 +1399,7 @@ export default function ShiftSummary() {
                   disabled={
                     isSubmitting ||
                     otpBusy ||
-                    actualEndingCash === '' ||
+                    !hasValidActualEndingCash ||
                     hasCloseBlockers ||
                     (needsReason && discrepancyReason.trim().length === 0) ||
                     (showOtpPanel && !verifiedOtpChallengePublicId)

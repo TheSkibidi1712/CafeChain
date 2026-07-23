@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom'
 import TopNavbar from './components/TopNavbar'
 import POSLayout from './POSLayout'
 import OrderHistory from './pages/OrderHistory'
@@ -6,9 +6,13 @@ import ShiftSummary from './pages/ShiftSummary'
 import BranchInventory from './pages/BranchInventory'
 import Notifications from './pages/Notifications'
 import PaymentResult from './pages/PaymentResult'
+import CustomerDisplay from './pages/CustomerDisplay'
 import PrinterStatusSimulator from './components/dev/PrinterStatusSimulator'
 
 function RootLayout() {
+  const location = useLocation()
+  const isSellingRoute = location.pathname === '/' || location.pathname === '/order'
+
   return (
     <div className="pos-app-frame w-full flex flex-col overflow-hidden bg-surface font-sans">
       <a
@@ -17,7 +21,7 @@ function RootLayout() {
       >
         Bỏ qua điều hướng
       </a>
-      <TopNavbar />
+      {!isSellingRoute && <TopNavbar />}
       <div className="flex-1 overflow-hidden">
         <Outlet />
       </div>
@@ -32,6 +36,7 @@ function App() {
       <Routes>
         <Route path="/payment-success" element={<PaymentResult status="success" />} />
         <Route path="/payment-cancel" element={<PaymentResult status="cancel" />} />
+        <Route path="/pos/customer-display" element={<CustomerDisplay />} />
         <Route path="/" element={<RootLayout />}>
           <Route index element={<Navigate to="/order" replace />} />
           <Route path="order" element={<POSLayout />} />
