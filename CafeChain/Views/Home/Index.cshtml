@@ -1,427 +1,2786 @@
 @model CafeChain.ViewModels.HomeViewModel
 
 @{
-    ViewData["Title"] = "Trang chủ";
+    ViewData["Title"] = "CafeChain - Nền tảng vận hành chuỗi cửa hàng";
+    Layout = null;
 }
 
-<div class="container mt-4 mb-5">
-    <div class="hero-banner d-flex align-items-center justify-content-center text-center text-white" style="height: 400px;">
-        <div class="hero-overlay"></div>
-        <div class="position-relative z-1 px-3">
-            <h1 class="display-4 fw-bold mb-3">Đánh thức đam mê<br />cùng <span class="text-orange">CafeChain</span></h1>
-            <p class="lead mb-4 fs-6 text-light" style="max-width: 600px; margin: 0 auto;"> Hương vị cà phê nguyên bản...</p>
-            <div>
-                <a asp-controller="Drink" asp-action="Menu" class="btn btn-orange rounded-pill px-4 py-2 fw-semibold me-2 shadow-sm">Đặt hàng ngay</a>
-                <a asp-controller="Drink" asp-action="Menu" class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold border-2 text-white shadow-sm">Xem thực đơn</a>
-            </div>
-        </div>
-    </div>
-
-    @* ===================== PHÂN HỆ 1: MÓN BÁN CHẠY NHẤT ===================== *@
-    @if (Model.BestSellers != null && Model.BestSellers.Any())
-    {
-        <div class="d-flex justify-content-between align-items-end mt-5 mb-4 px-1">
-            <div>
-                <h4 class="fw-bold mb-1">Món bán chạy nhất</h4>
-                <p class="text-muted small mb-0">Những hương vị được yêu thích nhất trong tuần qua</p>
-            </div>
-        </div>
-
-        <div class="product-slider-container mb-5">
-            @if (Model.BestSellers.Count > 4)
-            {
-                <button class="slider-btn prev" onclick="scrollSlider(this, -1)">
-                    <i class="bi bi-chevron-left"></i>
-                </button>
-            }
-
-            <div class="product-slider">
-                @foreach (var item in Model.BestSellers)
-                {
-                    <div class="slider-item">
-                        <partial name="~/Views/Home/_DrinkItemCard.cshtml" model="item" />
-                    </div>
-                }
-            </div>
-
-            @if (Model.BestSellers.Count > 4)
-            {
-                <button class="slider-btn next" onclick="scrollSlider(this, 1)">
-                    <i class="bi bi-chevron-right"></i>
-                </button>
-            }
-        </div>
-    }
-
-    @* ===================== CÁC DANH MỤC ĐỘNG ===================== *@
-    @foreach (var cat in Model.Categories)
-    {
-        var categoryDrinks = Model.Drinks.Where(d => d.CategoryId == cat.CategoryId).ToList();
-        if (categoryDrinks.Any())
-        {
-            <div class="d-flex justify-content-between align-items-end mt-5 mb-4 px-1">
-                <div>
-                    <h4 class="fw-bold mb-1">@cat.Name</h4>
-                    <p class="text-muted small mb-0">Những lựa chọn tuyệt vời dành cho bạn</p>
-                </div>
-            </div>
-
-            <div class="product-slider-container mb-5">
-                @if (categoryDrinks.Count > 4)
-                {
-                    <button class="slider-btn prev" onclick="scrollSlider(this, -1)">
-                        <i class="bi bi-chevron-left"></i>
-                    </button>
-                }
-
-                <div class="product-slider">
-                    @foreach (var drink in categoryDrinks)
-                    {
-                        <div class="slider-item">
-                            <partial name="~/Views/Product/ProductCard.cshtml" model="drink" view-data='@new ViewDataDictionary(ViewData) { { "IsSoldOut", !Model.Availability.ContainsKey(drink.DrinkId) || !Model.Availability[drink.DrinkId] } }' />
-                        </div>
-                    }
-                </div>
-
-                @if (categoryDrinks.Count > 4)
-                {
-                    <button class="slider-btn next" onclick="scrollSlider(this, 1)">
-                        <i class="bi bi-chevron-right"></i>
-                    </button>
-                }
-            </div>
-        }
-    }
-</div>
-
-@if (Model.ActiveWheel != null)
-{
-    <!-- Premium Lucky Wheel Button -->
-    <div class="wheel-fab-container position-fixed bottom-0 end-0 m-4 d-flex align-items-center justify-content-center" 
-         style="cursor: pointer; width: 75px; height: 75px; border-radius: 50%; z-index: 1030;" onclick="openWheel()">
-        <div class="position-relative">
-            <div class="wheel-pulse"></div>
-            <div class="wheel-icon shadow-lg d-flex align-items-center justify-content-center spin-animation" 
-                 style="width: 75px; height: 75px; border: 4px solid #fcd34d; background: radial-gradient(circle, #f43f5e 0%, #9f1239 100%); border-radius: 50%; box-shadow: 0 0 35px rgba(225, 29, 72, 0.6);">
-                <i class="fas fa-dharmachakra fa-2x text-white"></i>
-            </div>
-        </div>
-    </div>
-
-    <!-- Lucky Wheel Modal -->
-    <div class="modal fade" id="luckyWheelModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 bg-transparent shadow-none">
-                <div class="modal-body p-0 text-center position-relative">
-                    <button type="button" class="btn btn-light rounded-circle position-absolute z-3 shadow-lg d-flex align-items-center justify-content-center" style="top: 15px; right: 15px; width: 40px; height: 40px; border: 2px solid #dee2e6;" data-bs-dismiss="modal" aria-label="Close">
-                        <i class="fas fa-times text-dark fs-5"></i>
-                    </button>
-                    
-                    <div class="wheel-outer-frame shadow-lg p-3 mx-auto" style="width: 400px; height: 400px; background: radial-gradient(circle, #fcd34d 0%, #d97706 100%); border-radius: 50%; border: 12px solid #343a40; position: relative; box-shadow: 0 0 50px rgba(217, 61, 32, 0.4);">
-                        <div class="wheel-lights"></div>
-                        <div class="wheel-pointer-wrap" style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 100;">
-                            <div style="width: 30px; height: 30px; background: #343a40; border-radius: 50%; border: 4px solid #fcd34d; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin: 0 auto; position: relative; z-index: 2;"></div>
-                            <div style="width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid #d93d20; margin: -8px auto 0; filter: drop-shadow(0 5px 8px rgba(0,0,0,0.4)); position: relative; z-index: 1;"></div>
-                        </div>
-
-                        <div class="inner-wheel shadow-inner" style="width: 100%; height: 100%; background: #fff; border-radius: 50%; position: relative; overflow: hidden; border: 4px solid #fff;">
-                            
-                            <canvas id="wheelCanvas" width="344" height="344" style="width: 100%; height: 100%;"></canvas>
-                            
-                            <button id="spinBtn" class="btn btn-dark rounded-circle shadow-lg fw-bold position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center" 
-                                    style="width: 85px; height: 85px; z-index: 60; border: 6px solid rgba(255,255,255,0.8); background: radial-gradient(circle, #f43f5e 0%, #e11d48 100%); color: #fff; font-size: 1.1rem; box-shadow: 0 0 20px rgba(0,0,0,0.3);" 
-                                    onclick="spinTheWheel()">
-                                QUAY
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 bg-white p-4 rounded-4 shadow-lg mx-auto border" style="max-width: 380px; border-top: 5px solid #d93d20;">
-                        <h4 class="fw-bold mb-1 text-dark">Vòng quay may mắn</h4>
-                        <div id="accountInfo" class="d-none badge bg-light text-dark p-2 rounded-3 mb-3 border w-100 fs-6">
-                            <i class="fas fa-coins text-warning me-2"></i> Điểm: <span id="userPoints" class="fw-bold text-danger">0</span>
-                        </div>
-                        <p class="small fw-semibold text-muted mb-0" id="wheelTypeMsg">Đăng nhập ngay để nhận Voucher miễn phí!</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
-@section Styles {
-    <style>
-        .spin-animation { animation: rotate 15s linear infinite; }
-        @@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        
-        .wheel-fab-container { transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-radius: 50%; overflow: visible; background: transparent; }
-        .wheel-fab-container:hover { transform: scale(1.1); box-shadow: 0 10px 30px rgba(217, 61, 32, 0.5); }
-        
-        .wheel-pulse {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 75px;
-            height: 75px;
-            background: rgba(244, 63, 94, 0.4);
-            border-radius: 50%;
-            animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
-            z-index: -1;
-        }
-
-        @@keyframes pulse-ring {
-            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
-            100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
-        }
-
-        .product-slider { -ms-overflow-style: none; scrollbar-width: none; }
-        .product-slider::-webkit-scrollbar { display: none; }
-        .wheel-outer-frame::before { content: ''; position: absolute; inset: -5px; border-radius: 50%; border: 3px dashed rgba(255,255,255,0.4); pointer-events: none; }
-    </style>
-}
-
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="CafeChain là nền tảng vận hành chuỗi cửa hàng với bán hàng tại quầy, quản lý nhân viên, xếp ca, kho theo lớp giá nhập trước xuất trước, nhà cung cấp, báo cáo và phân quyền theo cửa hàng." />
+    <title>@ViewData["Title"]</title>
     <script>
-        let wheelModal;
-        let canvas = document.getElementById('wheelCanvas');
-        let ctx = canvas ? canvas.getContext('2d') : null;
-        let sectors = [];
-        let isSpinning = false;
-        
-        let currentRotation = 0;
-        let isIdleSpinning = false;
-        let animationFrameId;
-
-        @if (Model.ActiveWheel != null)
-        {
-            @: sectors = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ActiveWheel.Prizes.OrderBy(p => p.SlotIndex).Select(p => new { label = p.IsLose ? "Xịt" : (p.Voucher != null ? p.Voucher.Code : "Quà"), color = (p.SlotIndex % 2 == 0) ? "#f43f5e" : "#fb7185", textColor = "#fff" })));
-        }
-
-        $(document).ready(function() {
-            if (canvas) {
-                drawWheel();
-                wheelModal = new bootstrap.Modal(document.getElementById('luckyWheelModal'));
-                
-                // Khi mở modal thì bắt đầu quay nhẹ
-                document.getElementById('luckyWheelModal').addEventListener('show.bs.modal', function () {
-                    if (!isSpinning) {
-                        startIdleSpin();
-                    }
-                });
-                
-                // Khi đóng modal thì dừng quay nhẹ để tiết kiệm tài nguyên
-                document.getElementById('luckyWheelModal').addEventListener('hidden.bs.modal', function () {
-                    stopIdleSpin();
-                });
-            }
-        });
-        
-        function startIdleSpin() {
-            if (isIdleSpinning) return;
-            isIdleSpinning = true;
-            canvas.style.transition = 'none'; // Đảm bảo không có transition nào cản trở requestAnimationFrame
-            
-            function spin() {
-                if (!isIdleSpinning) return;
-                currentRotation += 0.5; // Tốc độ quay nhàn rỗi (độ/frame)
-                if (currentRotation >= 360) currentRotation -= 360;
-                canvas.style.transform = `rotate(${currentRotation}deg)`;
-                animationFrameId = requestAnimationFrame(spin);
-            }
-            spin();
-        }
-
-        function stopIdleSpin() {
-            isIdleSpinning = false;
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-            }
-        }
-
-        function drawWheel() {
-            if (!ctx) return;
-            let numSectors = sectors.length;
-            let arc = (2 * Math.PI) / numSectors;
-            let centerX = canvas.width / 2;
-            let centerY = canvas.height / 2;
-            let radius = canvas.width / 2;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            for (let i = 0; i < numSectors; i++) {
-                let angle = i * arc;
-                let grad = ctx.createRadialGradient(centerX, centerY, 50, centerX, centerY, radius);
-                grad.addColorStop(0, sectors[i].color);
-                grad.addColorStop(1, i % 2 === 0 ? "#be123c" : "#e11d48");
-                
-                ctx.beginPath();
-                ctx.fillStyle = grad;
-                ctx.moveTo(centerX, centerY);
-                ctx.arc(centerX, centerY, radius, angle, angle + arc);
-                ctx.lineTo(centerX, centerY);
-                ctx.fill();
-
-                ctx.strokeStyle = "rgba(255,255,255,0.2)";
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                ctx.save();
-                ctx.translate(centerX, centerY);
-                ctx.rotate(angle + arc / 2);
-                ctx.textAlign = "right";
-                ctx.fillStyle = sectors[i].textColor;
-                ctx.font = "bold 13px Inter, sans-serif";
-                ctx.shadowColor = "rgba(0,0,0,0.5)";
-                ctx.shadowBlur = 4;
-                ctx.fillText(sectors[i].label, radius - 20, 5);
-                ctx.restore();
-            }
-        }
-
-        let countdownInterval;
-
-        function openWheel() {
-            $.get('/LuckyWheel/GetUserInfo', function(res) {
-                if (res.isAuthenticated) {
-                    $('#accountInfo').removeClass('d-none');
-                    $('#userPoints').text(res.points.toLocaleString());
-                    
-                    if (!res.canSpinToday && res.nextSpinTime) {
-                        $('#spinBtn').prop('disabled', true);
-                        startCountdown(res.nextSpinTime);
-                    } else {
-                        $('#spinBtn').prop('disabled', false);
-                        clearInterval(countdownInterval);
-                        if (res.isNewUser) {
-                            $('#wheelTypeMsg').html('<span class="text-danger fw-bold">🎁 CHÀO MỪNG! BẠN CÓ 1 LẦN QUAY MIỄN PHÍ!</span>');
-                        } else {
-                            $('#wheelTypeMsg').text(`Mỗi lượt quay kế tiếp tốn ${res.spinCost} điểm.`);
-                        }
-                    }
-                } else {
-                    $('#spinBtn').prop('disabled', false);
-                    clearInterval(countdownInterval);
-                    $('#wheelTypeMsg').text('Đăng nhập để nhận phần thưởng ngay!');
-                }
-                wheelModal.show();
-            });
-        }
-
-        function startCountdown(targetTimeStr) {
-            clearInterval(countdownInterval);
-            const targetTime = new Date(targetTimeStr).getTime();
-            
-            countdownInterval = setInterval(function() {
-                const now = new Date().getTime();
-                const distance = targetTime - now;
-                
-                if (distance < 0) {
-                    clearInterval(countdownInterval);
-                    $('#wheelTypeMsg').html('<span class="text-success fw-bold">Lượt quay mới đã sẵn sàng! Bạn có thể quay ngay.</span>');
-                    $('#spinBtn').prop('disabled', false);
-                    return;
-                }
-                
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                
-                const h = hours < 10 ? "0" + hours : hours;
-                const m = minutes < 10 ? "0" + minutes : minutes;
-                const s = seconds < 10 ? "0" + seconds : seconds;
-                
-                $('#wheelTypeMsg').html(`Đã hết lượt hôm nay.<br/>Quay lại sau: <b class="text-danger fs-5">${h}:${m}:${s}</b>`);
-            }, 1000);
-        }
-
-        function spinTheWheel() {
-            if (isSpinning) return;
-            
-            $.post('/LuckyWheel/Spin', function(res) {
-                if (!res.success) {
-                    Swal.fire({
-                        title: 'Thông báo',
-                        text: res.message,
-                        icon: 'info',
-                        confirmButtonColor: '#d93d20'
-                    }).then(() => {
-                        if (res.notLoggedIn) window.location.href = '/Account/Login';
-                    });
-                    return;
-                }
-
-                // Dừng quay nhàn rỗi
-                stopIdleSpin();
-                isSpinning = true;
-                $('#spinBtn').prop('disabled', true);
-                
-                let numSectors = sectors.length;
-                let sectorArc = 360 / numSectors;
-                
-                let stopAngle = 270 - (res.prizeIndex * sectorArc + sectorArc / 2);
-                
-                // Tính toán góc quay mục tiêu sao cho vòng quay đi tiếp mượt mà từ vị trí hiện tại
-                // Bù lại phần góc đã bị lệch do currentRotation
-                let targetRotation = currentRotation + (360 * 12) + (stopAngle - (currentRotation % 360)); 
-                if (targetRotation < currentRotation + 360 * 10) {
-                    targetRotation += 360; // Đảm bảo luôn quay đủ số vòng kịch tính
-                }
-                
-                // Kích hoạt CSS transition để quay nhanh
-                canvas.style.transition = 'transform 6s cubic-bezier(0.2, 0, 0, 1)';
-                
-                // Force reflow để browser nhận diện transition trước khi set transform mới
-                canvas.offsetHeight; 
-                
-                canvas.style.transform = `rotate(${targetRotation}deg)`;
-                
-                setTimeout(() => {
-                    isSpinning = false;
-                    $('#spinBtn').prop('disabled', false);
-
-                    if (!res.isLose) {
-                        confetti({
-                            particleCount: 150,
-                            spread: 100,
-                            origin: { y: 0.6 },
-                            colors: ['#f43f5e', '#fb7185', '#fbbf24']
-                        });
-
-                        Swal.fire({
-                            title: '<h3 class="fw-bold" style="color:#d93d20">CHÚC MỪNG!</h3>',
-                            html: `Bạn đã trúng Voucher: <b class="fs-4 text-dark">${res.voucherCode}</b><br><small class="text-muted">Mã đã được lưu vào giỏ hàng của bạn!</small>`,
-                            imageUrl: '/Images/Icons/gift-box.png',
-                            imageWidth: 80,
-                            confirmButtonText: 'TUYỆT VỜI',
-                            confirmButtonColor: '#d93d20'
-                        }).then(() => {
-                            // Khi tắt thông báo, tiếp tục quay nhàn rỗi
-                            currentRotation = targetRotation % 360;
-                            startIdleSpin();
-                        });
-                    } else {
-                        Swal.fire({
-                            title: 'Tiếc quá!',
-                            text: 'Chúc bạn may mắn lần sau nhé!',
-                            icon: 'info',
-                            confirmButtonColor: '#343a40'
-                        }).then(() => {
-                            // Khi tắt thông báo, tiếp tục quay nhàn rỗi
-                            currentRotation = targetRotation % 360;
-                            startIdleSpin();
-                        });
-                    }
-
-                    if (res.newPoints !== undefined) $('#userPoints').text(res.newPoints.toLocaleString());
-                }, 6000);
-
-            });
-        }
-
-        console.log("Kiểm tra: Hàm scrollSlider đã tồn tại chưa?");
-        console.log(typeof scrollSlider);
+        document.documentElement.classList.add("js");
     </script>
-}
+    <style>
+        :root {
+            --cc-bg: #F7F3EE;
+            --cc-surface: #FFFFFF;
+            --cc-primary: #6F4E37;
+            --cc-primary-hover: #5C3F2B;
+            --cc-accent: #C67A45;
+            --cc-text: #1F2937;
+            --cc-muted: #475569;
+            --cc-success: #2F6F5E;
+            --cc-warning: #99623B;
+            --cc-danger: #991B1B;
+            --cc-dark: #2B1A13;
+            --cc-dark-2: #39251C;
+            --cc-line: rgba(111, 78, 55, .18);
+            --cc-line-strong: rgba(111, 78, 55, .32);
+            --cc-soft: rgba(198, 122, 69, .13);
+            --cc-soft-strong: rgba(198, 122, 69, .22);
+            --cc-green-soft: rgba(47, 111, 94, .12);
+            --cc-shadow-sm: 0 10px 28px rgba(31, 41, 55, .07);
+            --cc-shadow-md: 0 18px 46px rgba(111, 78, 55, .14);
+            --cc-shadow-lg: 0 28px 72px rgba(31, 41, 55, .18);
+            --cc-radius: 8px;
+            --cc-header: 72px;
+            --cc-container: 1180px;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            background:
+                linear-gradient(180deg, #FFFDF9 0, var(--cc-bg) 46%, #FFFDF9 100%);
+            color: var(--cc-text);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            line-height: 1.55;
+            overflow-x: hidden;
+            text-rendering: geometricPrecision;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        svg {
+            display: block;
+        }
+
+        .cc-skip-link {
+            background: var(--cc-primary-hover);
+            border-radius: var(--cc-radius);
+            color: var(--cc-surface);
+            font-weight: 800;
+            left: 16px;
+            padding: 10px 14px;
+            position: fixed;
+            text-decoration: none;
+            top: 12px;
+            transform: translateY(-140%);
+            transition: transform .2s ease;
+            z-index: 3000;
+        }
+
+        .cc-skip-link:focus {
+            transform: translateY(0);
+        }
+
+        .cc-page {
+            min-height: 100vh;
+            overflow-x: clip;
+            position: relative;
+        }
+
+        .cc-page p,
+        .cc-page li,
+        .cc-page small {
+            text-wrap: pretty;
+        }
+
+        .cc-page h1,
+        .cc-page h2,
+        .cc-page h3,
+        .cc-page strong {
+            text-wrap: balance;
+        }
+
+        .cc-container {
+            margin: 0 auto;
+            max-width: var(--cc-container);
+            padding: 0 28px;
+            width: 100%;
+        }
+
+        .cc-header {
+            background: rgba(43, 26, 19, .96);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            color: var(--cc-surface);
+            left: 0;
+            position: sticky;
+            right: 0;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .cc-header-inner {
+            align-items: center;
+            display: flex;
+            gap: 22px;
+            min-height: var(--cc-header);
+            position: relative;
+        }
+
+        .cc-brand {
+            align-items: center;
+            background: transparent;
+            border: 0;
+            color: inherit;
+            display: inline-flex;
+            flex: 0 0 auto;
+            gap: 11px;
+            padding: 0;
+            text-align: left;
+            text-decoration: none;
+        }
+
+        .cc-brand-mark {
+            align-items: center;
+            background: linear-gradient(135deg, var(--cc-accent), #8A4A2E);
+            border-radius: var(--cc-radius);
+            color: #fff;
+            display: inline-flex;
+            height: 38px;
+            justify-content: center;
+            width: 38px;
+        }
+
+        .cc-brand-name {
+            display: block;
+            font-size: 17px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .cc-brand-sub {
+            color: rgba(255, 255, 255, .66);
+            display: block;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .08em;
+            margin-top: 5px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .cc-nav {
+            align-items: center;
+            display: flex;
+            flex: 1;
+            gap: 4px;
+            justify-content: center;
+        }
+
+        .cc-nav button,
+        .cc-footer-link {
+            background: transparent;
+            border: 0;
+            border-radius: var(--cc-radius);
+            color: rgba(255, 255, 255, .74);
+            font-size: 13px;
+            font-weight: 800;
+            min-height: 40px;
+            padding: 9px 12px;
+        }
+
+        .cc-nav button:hover,
+        .cc-nav button[aria-current="location"] {
+            background: rgba(255, 255, 255, .1);
+            color: #fff;
+        }
+
+        .cc-header-actions {
+            align-items: center;
+            display: flex;
+            gap: 10px;
+        }
+
+        .cc-menu-toggle {
+            align-items: center;
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid rgba(255, 255, 255, .18);
+            border-radius: var(--cc-radius);
+            color: #fff;
+            display: none;
+            height: 42px;
+            justify-content: center;
+            width: 42px;
+        }
+
+        .cc-btn {
+            align-items: center;
+            border: 1px solid transparent;
+            border-radius: var(--cc-radius);
+            display: inline-flex;
+            gap: 8px;
+            justify-content: center;
+            min-height: 44px;
+            padding: 10px 17px;
+            text-decoration: none;
+            white-space: nowrap;
+            font-size: 14px;
+            font-weight: 850;
+            transition: background .2s ease, border-color .2s ease, box-shadow .2s ease, color .2s ease, transform .2s ease;
+        }
+
+        .cc-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .cc-btn-primary {
+            background: var(--cc-accent);
+            border-color: var(--cc-accent);
+            box-shadow: 0 14px 28px rgba(198, 122, 69, .25);
+            color: #fff;
+        }
+
+        .cc-btn-primary:hover {
+            background: #B66F3F;
+            border-color: #B66F3F;
+        }
+
+        .cc-btn-secondary {
+            background: rgba(255, 255, 255, .92);
+            border-color: var(--cc-line);
+            color: var(--cc-primary);
+        }
+
+        .cc-btn-secondary:hover {
+            background: #fff;
+            border-color: var(--cc-line-strong);
+        }
+
+        .cc-btn-ghost {
+            background: transparent;
+            border-color: rgba(255, 255, 255, .24);
+            color: #fff;
+        }
+
+        .cc-btn-ghost:hover {
+            background: rgba(255, 255, 255, .08);
+        }
+
+        .cc-icon {
+            display: block;
+            fill: none;
+            height: 20px;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 2;
+            width: 20px;
+        }
+
+        .cc-section {
+            padding: 96px 0;
+            scroll-margin-top: calc(var(--cc-header) + 22px);
+        }
+
+        .cc-hero {
+            align-items: center;
+            background:
+                linear-gradient(rgba(111, 78, 55, .05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(111, 78, 55, .05) 1px, transparent 1px),
+                linear-gradient(180deg, #FFFDF9 0, var(--cc-bg) 100%);
+            background-size: 48px 48px, 48px 48px, auto;
+            display: flex;
+            min-height: calc(100svh - var(--cc-header));
+            overflow: hidden;
+            padding: 78px 0 88px;
+            position: relative;
+        }
+
+        .cc-hero::after {
+            background: linear-gradient(90deg, transparent, var(--cc-line), transparent);
+            bottom: 0;
+            content: "";
+            height: 1px;
+            left: 0;
+            position: absolute;
+            right: 0;
+        }
+
+        .cc-hero-inner {
+            align-items: center;
+            display: grid;
+            gap: 62px;
+            grid-template-columns: minmax(0, .92fr) minmax(520px, 1.08fr);
+        }
+
+        .cc-hero-copy {
+            max-width: 650px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .cc-eyebrow,
+        .cc-kicker {
+            align-items: center;
+            color: var(--cc-primary);
+            display: inline-flex;
+            font-size: 12px;
+            font-weight: 900;
+            gap: 8px;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+
+        .cc-eyebrow {
+            background: rgba(255, 255, 255, .84);
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            margin-bottom: 22px;
+            padding: 8px 11px;
+        }
+
+        .cc-kicker {
+            margin-bottom: 14px;
+        }
+
+        .cc-kicker::before {
+            background: currentColor;
+            content: "";
+            height: 1px;
+            width: 30px;
+        }
+
+        .cc-hero-title {
+            color: var(--cc-text);
+            font-size: 64px;
+            font-weight: 950;
+            letter-spacing: 0;
+            line-height: 1.02;
+            margin: 0;
+            max-width: 680px;
+            text-wrap: balance;
+        }
+
+        .cc-hero-title span {
+            color: var(--cc-primary);
+        }
+
+        .cc-hero-desc {
+            color: var(--cc-muted);
+            font-size: 17px;
+            line-height: 1.78;
+            margin: 24px 0 0;
+            max-width: 620px;
+            text-wrap: pretty;
+        }
+
+        .cc-hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .cc-hero-note {
+            color: #6A5B51;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 18px;
+            margin-top: 24px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .cc-hero-note span {
+            align-items: center;
+            display: inline-flex;
+            gap: 8px;
+        }
+
+        .cc-hero-note span::before {
+            background: var(--cc-accent);
+            border-radius: 999px;
+            content: "";
+            height: 5px;
+            width: 5px;
+        }
+
+        .cc-dashboard-stage {
+            min-height: 520px;
+            padding-bottom: 54px;
+            position: relative;
+        }
+
+        .cc-dashboard-window {
+            background: rgba(255, 255, 255, .95);
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            box-shadow: var(--cc-shadow-lg);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .cc-window-bar {
+            align-items: center;
+            border-bottom: 1px solid var(--cc-line);
+            display: flex;
+            height: 38px;
+            justify-content: space-between;
+            padding: 0 13px;
+        }
+
+        .cc-window-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .cc-window-dots i {
+            background: #D7C3B2;
+            border-radius: 50%;
+            height: 7px;
+            width: 7px;
+        }
+
+        .cc-window-status {
+            align-items: center;
+            color: var(--cc-success);
+            display: inline-flex;
+            gap: 7px;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .cc-window-status::before {
+            background: currentColor;
+            border-radius: 999px;
+            content: "";
+            height: 7px;
+            width: 7px;
+        }
+
+        .cc-dashboard-shell {
+            display: grid;
+            grid-template-columns: 82px 1fr;
+            min-height: 430px;
+            padding: 14px;
+        }
+
+        .cc-dashboard-sidebar {
+            background: var(--cc-dark);
+            border-radius: var(--cc-radius);
+            color: rgba(255, 255, 255, .62);
+            padding: 16px 10px;
+        }
+
+        .cc-side-logo {
+            align-items: center;
+            background: var(--cc-accent);
+            border-radius: var(--cc-radius);
+            color: #fff;
+            display: flex;
+            height: 36px;
+            justify-content: center;
+            margin: 0 auto 20px;
+            width: 36px;
+        }
+
+        .cc-side-item {
+            align-items: center;
+            border-radius: var(--cc-radius);
+            display: flex;
+            height: 32px;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .cc-side-item.is-active {
+            background: rgba(255, 255, 255, .12);
+            color: #fff;
+        }
+
+        .cc-side-item svg {
+            height: 16px;
+            width: 16px;
+        }
+
+        .cc-dashboard-content {
+            display: grid;
+            gap: 14px;
+            padding: 18px 0 0 18px;
+        }
+
+        .cc-dashboard-heading {
+            align-items: center;
+            display: flex;
+            gap: 16px;
+            justify-content: space-between;
+            min-height: 42px;
+        }
+
+        .cc-dashboard-heading strong {
+            display: block;
+            font-size: 17px;
+        }
+
+        .cc-dashboard-heading small {
+            color: #8A7D74;
+            display: block;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .cc-demo-label {
+            background: var(--cc-soft);
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            color: var(--cc-primary);
+            font-size: 11px;
+            font-weight: 900;
+            padding: 8px 10px;
+            white-space: nowrap;
+        }
+
+        .cc-stat-grid {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .cc-stat-card {
+            background: #fff;
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            display: grid;
+            grid-template-rows: 30px 25px 16px;
+            min-height: 105px;
+            padding: 12px 10px;
+            row-gap: 4px;
+        }
+
+        .cc-stat-card small {
+            color: #81736A;
+            display: block;
+            font-size: 10px;
+            font-weight: 800;
+            line-height: 1.35;
+        }
+
+        .cc-stat-card strong {
+            color: var(--cc-text);
+            display: block;
+            font-size: 18px;
+            line-height: 1.25;
+            margin-top: 0;
+            white-space: nowrap;
+        }
+
+        .cc-stat-trend {
+            color: var(--cc-success);
+            display: block;
+            font-size: 10px;
+            font-weight: 900;
+            line-height: 1.4;
+            margin-top: 0;
+        }
+
+        .cc-dashboard-lower {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: minmax(0, 1.55fr) minmax(160px, .7fr);
+        }
+
+        .cc-chart-card,
+        .cc-alert-card {
+            background: #fff;
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            padding: 14px;
+        }
+
+        .cc-card-title {
+            align-items: center;
+            display: flex;
+            font-size: 12px;
+            font-weight: 900;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .cc-card-title span:last-child {
+            color: #8A7D74;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .cc-chart-svg {
+            height: 160px;
+            width: 100%;
+        }
+
+        .cc-alert-row {
+            align-items: center;
+            border-bottom: 1px solid rgba(111, 78, 55, .12);
+            display: grid;
+            gap: 8px;
+            grid-template-columns: 28px 1fr;
+            padding: 9px 0;
+        }
+
+        .cc-alert-row:last-child {
+            border-bottom: 0;
+        }
+
+        .cc-alert-icon {
+            align-items: center;
+            background: var(--cc-soft);
+            border-radius: var(--cc-radius);
+            color: var(--cc-primary);
+            display: flex;
+            height: 28px;
+            justify-content: center;
+            width: 28px;
+        }
+
+        .cc-alert-copy strong {
+            display: block;
+            font-size: 11px;
+        }
+
+        .cc-alert-copy small {
+            color: #81736A;
+            display: block;
+            font-size: 10px;
+            margin-top: 2px;
+        }
+
+        .cc-floating-chip {
+            align-items: center;
+            background: rgba(255, 255, 255, .96);
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            box-shadow: var(--cc-shadow-sm);
+            color: #5D4333;
+            display: flex;
+            font-size: 12px;
+            font-weight: 900;
+            gap: 8px;
+            padding: 10px 12px;
+            position: absolute;
+            z-index: 3;
+        }
+
+        .cc-floating-chip svg {
+            color: var(--cc-success);
+            height: 16px;
+            width: 16px;
+        }
+
+        .cc-floating-chip--sync {
+            bottom: 0;
+            left: 18px;
+        }
+
+        .cc-floating-chip--shift {
+            bottom: 0;
+            right: 18px;
+            top: auto;
+        }
+
+        .cc-floating-chip--shift svg {
+            color: var(--cc-accent);
+        }
+
+        .cc-proof {
+            background: rgba(255, 255, 255, .72);
+            border-bottom: 1px solid var(--cc-line);
+        }
+
+        .cc-proof-grid {
+            align-items: center;
+            display: grid;
+            gap: 18px;
+            grid-template-columns: 1.25fr repeat(4, 1fr);
+            padding: 24px 0;
+        }
+
+        .cc-proof-intro {
+            color: var(--cc-muted);
+            font-size: 13px;
+            font-weight: 850;
+            text-wrap: pretty;
+        }
+
+        .cc-proof-item {
+            align-items: center;
+            color: #51423A;
+            display: flex;
+            font-size: 13px;
+            font-weight: 900;
+            gap: 10px;
+        }
+
+        .cc-proof-item svg {
+            color: var(--cc-accent);
+            height: 20px;
+            width: 20px;
+        }
+
+        .cc-section-soft {
+            background: rgba(255, 255, 255, .62);
+            border-bottom: 1px solid var(--cc-line);
+            border-top: 1px solid var(--cc-line);
+        }
+
+        .cc-section-dark {
+            background: var(--cc-dark);
+            color: #fff;
+        }
+
+        .cc-section-head {
+            margin: 0 auto 52px;
+            max-width: 780px;
+            text-align: center;
+        }
+
+        .cc-section-title {
+            color: var(--cc-text);
+            font-size: 46px;
+            font-weight: 950;
+            letter-spacing: 0;
+            line-height: 1.12;
+            margin: 0;
+            text-wrap: balance;
+        }
+
+        .cc-section-desc {
+            color: var(--cc-muted);
+            font-size: 16px;
+            line-height: 1.78;
+            margin: 18px auto 0;
+            max-width: 720px;
+            text-wrap: pretty;
+        }
+
+        .cc-solution-stack {
+            display: grid;
+            gap: 34px;
+        }
+
+        .cc-solution-row {
+            align-items: center;
+            background: rgba(255, 255, 255, .86);
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            box-shadow: var(--cc-shadow-sm);
+            display: grid;
+            gap: 60px;
+            grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
+            min-height: 500px;
+            overflow: hidden;
+            padding: 44px;
+        }
+
+        .cc-solution-row:nth-child(even) {
+            grid-template-columns: minmax(0, 1.18fr) minmax(0, .82fr);
+        }
+
+        .cc-solution-row:nth-child(even) .cc-solution-copy {
+            order: 2;
+        }
+
+        .cc-solution-index {
+            align-items: center;
+            color: var(--cc-accent);
+            display: flex;
+            font-size: 12px;
+            font-weight: 900;
+            gap: 9px;
+            letter-spacing: .06em;
+            margin-bottom: 18px;
+            text-transform: uppercase;
+        }
+
+        .cc-solution-index::after {
+            background: currentColor;
+            content: "";
+            height: 1px;
+            width: 34px;
+        }
+
+        .cc-solution-copy h3 {
+            color: var(--cc-text);
+            font-size: 40px;
+            font-weight: 950;
+            letter-spacing: 0;
+            line-height: 1.12;
+            margin: 0;
+            text-wrap: balance;
+        }
+
+        .cc-solution-copy > p {
+            color: var(--cc-muted);
+            font-size: 15px;
+            line-height: 1.8;
+            margin: 18px 0 0;
+        }
+
+        .cc-check-list {
+            display: grid;
+            gap: 12px;
+            list-style: none;
+            margin: 24px 0 0;
+            padding: 0;
+        }
+
+        .cc-check-list li {
+            align-items: flex-start;
+            color: #5F554F;
+            display: flex;
+            font-size: 14px;
+            gap: 10px;
+        }
+
+        .cc-check-list li::before {
+            align-items: center;
+            background: var(--cc-soft);
+            border-radius: 50%;
+            color: var(--cc-primary);
+            content: "✓";
+            display: inline-flex;
+            flex: 0 0 auto;
+            font-size: 12px;
+            font-weight: 950;
+            height: 22px;
+            justify-content: center;
+            margin-top: 1px;
+            width: 22px;
+        }
+
+        .cc-text-link {
+            align-items: center;
+            background: transparent;
+            border: 0;
+            color: var(--cc-primary);
+            display: inline-flex;
+            font-size: 13px;
+            font-weight: 900;
+            gap: 8px;
+            margin-top: 25px;
+            padding: 0;
+        }
+
+        .cc-text-link svg {
+            height: 16px;
+            transition: transform .2s ease;
+            width: 16px;
+        }
+
+        .cc-text-link:hover svg {
+            transform: translateX(4px);
+        }
+
+        .cc-visual-panel {
+            display: grid;
+            min-height: 390px;
+            place-items: center;
+            position: relative;
+        }
+
+        .cc-visual-card {
+            background: #fff;
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            box-shadow: var(--cc-shadow-md);
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .cc-visual-toolbar {
+            align-items: center;
+            border-bottom: 1px solid var(--cc-line);
+            display: flex;
+            height: 48px;
+            justify-content: space-between;
+            padding: 0 17px;
+        }
+
+        .cc-visual-toolbar strong {
+            font-size: 13px;
+        }
+
+        .cc-visual-toolbar small {
+            color: #8A7D74;
+            font-size: 10px;
+        }
+
+        .cc-overview-body {
+            padding: 18px;
+        }
+
+        .cc-overview-kpis {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .cc-overview-kpis div,
+        .cc-inventory-summary div {
+            background: rgba(247, 243, 238, .82);
+            border-radius: var(--cc-radius);
+            padding: 13px;
+        }
+
+        .cc-overview-kpis small,
+        .cc-inventory-summary small {
+            color: #81736A;
+            display: block;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .cc-overview-kpis strong,
+        .cc-inventory-summary strong {
+            display: block;
+            font-size: 18px;
+            margin-top: 6px;
+        }
+
+        .cc-overview-content {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: 1.25fr .75fr;
+            margin-top: 12px;
+        }
+
+        .cc-bars {
+            align-items: flex-end;
+            background: linear-gradient(180deg, #fff 0%, #FAF4EE 100%);
+            border-radius: var(--cc-radius);
+            display: flex;
+            gap: 11px;
+            height: 205px;
+            padding: 20px 18px 15px;
+        }
+
+        .cc-bars span {
+            background: linear-gradient(180deg, var(--cc-accent), var(--cc-primary));
+            border-radius: 6px 6px 2px 2px;
+            flex: 1;
+            min-width: 12px;
+        }
+
+        .cc-bars span:nth-child(1) { height: 36%; }
+        .cc-bars span:nth-child(2) { height: 57%; }
+        .cc-bars span:nth-child(3) { height: 46%; }
+        .cc-bars span:nth-child(4) { height: 72%; }
+        .cc-bars span:nth-child(5) { height: 61%; }
+        .cc-bars span:nth-child(6) { height: 86%; }
+        .cc-bars span:nth-child(7) { height: 74%; }
+
+        .cc-store-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .cc-store-row {
+            border: 1px solid rgba(111, 78, 55, .15);
+            border-radius: var(--cc-radius);
+            padding: 11px;
+        }
+
+        .cc-store-row strong {
+            display: flex;
+            font-size: 11px;
+            gap: 8px;
+            justify-content: space-between;
+        }
+
+        .cc-store-row small {
+            color: #81736A;
+            display: block;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+
+        .cc-pos-shell {
+            display: grid;
+            grid-template-columns: 92px 1fr 156px;
+            min-height: 370px;
+        }
+
+        .cc-pos-categories {
+            background: var(--cc-dark);
+            color: rgba(255, 255, 255, .68);
+            padding: 14px 9px;
+        }
+
+        .cc-pos-categories strong {
+            color: #fff;
+            display: block;
+            font-size: 11px;
+            margin-bottom: 15px;
+        }
+
+        .cc-category-pill {
+            border-radius: var(--cc-radius);
+            font-size: 10px;
+            margin-bottom: 7px;
+            padding: 8px 7px;
+        }
+
+        .cc-category-pill.is-active {
+            background: var(--cc-accent);
+            color: #fff;
+        }
+
+        .cc-pos-products {
+            background: #FBF8F4;
+            padding: 15px;
+        }
+
+        .cc-pos-products-head {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .cc-pos-products-head strong {
+            font-size: 12px;
+        }
+
+        .cc-network-badge {
+            align-items: center;
+            color: var(--cc-success);
+            display: inline-flex;
+            font-size: 10px;
+            font-weight: 900;
+            gap: 6px;
+        }
+
+        .cc-network-badge::before {
+            background: currentColor;
+            border-radius: 999px;
+            content: "";
+            height: 6px;
+            width: 6px;
+        }
+
+        .cc-product-grid {
+            display: grid;
+            gap: 9px;
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .cc-product-card {
+            background: #fff;
+            border: 1px solid rgba(111, 78, 55, .15);
+            border-radius: var(--cc-radius);
+            padding: 7px;
+        }
+
+        .cc-product-photo {
+            background:
+                radial-gradient(circle at 50% 48%, #F2DBC2 0 18%, #A9673F 19% 27%, #68402B 28% 34%, #E4C9AA 35% 50%, #F7F0E8 51% 64%, transparent 65%),
+                linear-gradient(135deg, #F5E7D7, #D9B596);
+            border-radius: var(--cc-radius);
+            height: 58px;
+        }
+
+        .cc-product-card:nth-child(2) .cc-product-photo {
+            background:
+                radial-gradient(circle at 50% 47%, #F0DFCA 0 18%, #80513A 19% 27%, #D2A46F 28% 42%, #EFE2D0 43% 58%, transparent 59%),
+                linear-gradient(135deg, #D7A575, #80523A);
+        }
+
+        .cc-product-card:nth-child(3) .cc-product-photo {
+            background:
+                radial-gradient(circle at 50% 45%, #EFD9B9 0 18%, #BC7748 19% 29%, #79422A 30% 38%, #F3EADF 39% 58%, transparent 59%),
+                linear-gradient(135deg, #F2D2A4, #8B4B2D);
+        }
+
+        .cc-product-card strong {
+            display: block;
+            font-size: 10px;
+            margin-top: 7px;
+        }
+
+        .cc-product-card small {
+            color: #81736A;
+            font-size: 10px;
+        }
+
+        .cc-pos-ticket {
+            background: #fff;
+            border-left: 1px solid rgba(111, 78, 55, .15);
+            padding: 15px 11px;
+        }
+
+        .cc-pos-ticket > strong {
+            font-size: 12px;
+        }
+
+        .cc-ticket-row {
+            border-bottom: 1px solid rgba(111, 78, 55, .12);
+            display: flex;
+            font-size: 10px;
+            gap: 7px;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .cc-ticket-total {
+            display: flex;
+            font-size: 12px;
+            font-weight: 900;
+            justify-content: space-between;
+            margin-top: 18px;
+        }
+
+        .cc-pay-button {
+            background: var(--cc-primary);
+            border-radius: var(--cc-radius);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 900;
+            margin-top: 10px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .cc-offline-float {
+            background: #fff;
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            bottom: 18px;
+            box-shadow: var(--cc-shadow-sm);
+            color: #76523C;
+            font-size: 11px;
+            font-weight: 900;
+            left: -16px;
+            padding: 11px 13px;
+            position: absolute;
+        }
+
+        .cc-offline-float span {
+            color: var(--cc-success);
+        }
+
+        .cc-inventory-body {
+            padding: 18px;
+        }
+
+        .cc-inventory-summary {
+            display: grid;
+            gap: 9px;
+            grid-template-columns: repeat(3, 1fr);
+            margin-bottom: 13px;
+        }
+
+        .cc-table {
+            border-collapse: collapse;
+            font-size: 11px;
+            width: 100%;
+        }
+
+        .cc-table th {
+            background: #FAF7F3;
+            color: #746A63;
+            font-weight: 850;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .cc-table td {
+            border-bottom: 1px solid rgba(111, 78, 55, .14);
+            padding: 11px 10px;
+        }
+
+        .cc-stock-status {
+            border-radius: 999px;
+            display: inline-flex;
+            font-size: 10px;
+            font-weight: 900;
+            padding: 4px 7px;
+        }
+
+        .cc-stock-status.is-good {
+            background: rgba(47, 111, 94, .13);
+            color: var(--cc-success);
+        }
+
+        .cc-stock-status.is-low {
+            background: var(--cc-soft);
+            color: var(--cc-warning);
+        }
+
+        .cc-supplier-panel {
+            background: #fff;
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            bottom: 16px;
+            box-shadow: var(--cc-shadow-md);
+            padding: 13px;
+            position: absolute;
+            right: -16px;
+            width: 188px;
+        }
+
+        .cc-supplier-panel strong {
+            display: block;
+            font-size: 12px;
+        }
+
+        .cc-supplier-panel small {
+            color: #81736A;
+            display: block;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+
+        .cc-supplier-meter {
+            background: rgba(111, 78, 55, .14);
+            border-radius: 999px;
+            height: 7px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .cc-supplier-meter span {
+            background: var(--cc-accent);
+            border-radius: inherit;
+            display: block;
+            height: 100%;
+            width: 72%;
+        }
+
+        .cc-bento-grid {
+            display: grid;
+            gap: 18px;
+            grid-template-columns: repeat(12, 1fr);
+        }
+
+        .cc-bento-card {
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            box-shadow: var(--cc-shadow-sm);
+            min-height: 280px;
+            overflow: hidden;
+            padding: 28px;
+            position: relative;
+        }
+
+        .cc-bento-card--wide {
+            grid-column: span 7;
+        }
+
+        .cc-bento-card--narrow {
+            grid-column: span 5;
+        }
+
+        .cc-bento-card h3 {
+            color: var(--cc-text);
+            font-size: 22px;
+            font-weight: 950;
+            letter-spacing: 0;
+            margin: 15px 0 8px;
+        }
+
+        .cc-bento-card p {
+            color: var(--cc-muted);
+            font-size: 14px;
+            line-height: 1.72;
+            margin: 0;
+            max-width: 540px;
+        }
+
+        .cc-feature-icon,
+        .cc-icon-box {
+            align-items: center;
+            background: var(--cc-soft);
+            border-radius: var(--cc-radius);
+            color: var(--cc-primary);
+            display: inline-flex;
+            justify-content: center;
+        }
+
+        .cc-feature-icon {
+            height: 40px;
+            width: 40px;
+        }
+
+        .cc-feature-icon svg,
+        .cc-icon-box svg {
+            height: 20px;
+            width: 20px;
+        }
+
+        .cc-bento-visual {
+            margin-top: 23px;
+        }
+
+        .cc-ai-window {
+            background: #fff;
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            padding: 13px;
+        }
+
+        .cc-ai-head {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 13px;
+        }
+
+        .cc-ai-head strong {
+            font-size: 11px;
+        }
+
+        .cc-ai-safe {
+            color: var(--cc-success);
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        .cc-ai-question {
+            background: var(--cc-primary);
+            border-radius: var(--cc-radius);
+            color: #fff;
+            font-size: 12px;
+            padding: 12px;
+        }
+
+        .cc-ai-answer {
+            background: #FCFAF7;
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            color: #60564F;
+            font-size: 11px;
+            line-height: 1.58;
+            margin-top: 8px;
+            padding: 12px;
+            text-wrap: pretty;
+        }
+
+        .cc-ai-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .cc-ai-tags span {
+            background: var(--cc-soft);
+            border-radius: 999px;
+            color: var(--cc-primary);
+            font-size: 10px;
+            font-weight: 900;
+            padding: 4px 7px;
+        }
+
+        .cc-workshift-grid {
+            display: grid;
+            gap: 9px;
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .cc-workshift-metric {
+            background: #fff;
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            padding: 13px;
+        }
+
+        .cc-workshift-metric small {
+            color: #81736A;
+            display: block;
+            font-size: 10px;
+        }
+
+        .cc-workshift-metric strong {
+            display: block;
+            font-size: 16px;
+            margin-top: 4px;
+        }
+
+        .cc-discrepancy {
+            background: var(--cc-soft);
+            border-radius: var(--cc-radius);
+            color: var(--cc-primary);
+            font-size: 12px;
+            margin-top: 10px;
+            padding: 11px;
+        }
+
+        .cc-scope-diagram {
+            background: linear-gradient(135deg, #EDF5EF, #F7FBF8);
+            border-radius: var(--cc-radius);
+            display: grid;
+            min-height: 145px;
+            place-items: center;
+        }
+
+        .cc-scope-center {
+            color: var(--cc-success);
+            display: grid;
+            font-size: 12px;
+            font-weight: 900;
+            gap: 10px;
+            justify-items: center;
+        }
+
+        .cc-scope-shield {
+            align-items: center;
+            background: var(--cc-success);
+            color: #fff;
+            display: flex;
+            height: 52px;
+            justify-content: center;
+            width: 46px;
+            clip-path: polygon(50% 0, 92% 15%, 85% 72%, 50% 100%, 15% 72%, 8% 15%);
+        }
+
+        .cc-scope-shield svg {
+            height: 22px;
+            width: 22px;
+        }
+
+        .cc-alert-bars {
+            display: grid;
+            gap: 11px;
+        }
+
+        .cc-alert-bar-row {
+            align-items: center;
+            display: grid;
+            font-size: 12px;
+            gap: 9px;
+            grid-template-columns: 96px 1fr 42px;
+        }
+
+        .cc-alert-bar-track {
+            background: rgba(111, 78, 55, .14);
+            border-radius: 999px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .cc-alert-bar-track span {
+            border-radius: inherit;
+            display: block;
+            height: 100%;
+        }
+
+        .cc-alert-bar-row:nth-child(1) span {
+            background: var(--cc-warning);
+            width: 42%;
+        }
+
+        .cc-alert-bar-row:nth-child(2) span {
+            background: var(--cc-success);
+            width: 76%;
+        }
+
+        .cc-alert-bar-row:nth-child(3) span {
+            background: var(--cc-primary);
+            width: 58%;
+        }
+
+        .cc-role-grid {
+            display: grid;
+            gap: 18px;
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .cc-role-card {
+            background: #fff;
+            border: 1px solid var(--cc-line);
+            border-radius: var(--cc-radius);
+            box-shadow: var(--cc-shadow-sm);
+            display: flex;
+            flex-direction: column;
+            min-height: 440px;
+            padding: 28px;
+            position: relative;
+        }
+
+        .cc-role-label {
+            color: var(--cc-accent);
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .cc-role-card h3 {
+            align-items: flex-start;
+            color: var(--cc-text);
+            display: flex;
+            font-size: 24px;
+            font-weight: 950;
+            letter-spacing: 0;
+            line-height: 1.25;
+            margin: 17px 0 8px;
+            min-height: 60px;
+            text-wrap: balance;
+        }
+
+        .cc-role-card > p {
+            color: var(--cc-muted);
+            font-size: 13px;
+            line-height: 1.55;
+            margin: 0;
+            min-height: 42px;
+            text-wrap: pretty;
+        }
+
+        .cc-role-card ul {
+            display: grid;
+            gap: 0;
+            grid-template-rows: repeat(4, 42px);
+            list-style: none;
+            margin: 22px 0 0;
+            padding: 0;
+        }
+
+        .cc-role-card li {
+            align-items: flex-start;
+            color: #60564F;
+            display: flex;
+            font-size: 13px;
+            gap: 9px;
+            line-height: 1.55;
+            text-wrap: pretty;
+        }
+
+        .cc-role-card li::before {
+            background: var(--cc-accent);
+            border-radius: 999px;
+            content: "";
+            flex: 0 0 auto;
+            height: 6px;
+            margin-top: 7px;
+            width: 6px;
+        }
+
+        .cc-role-scope {
+            color: #746A63;
+            font-size: 12px;
+            font-weight: 850;
+            margin-top: auto;
+            padding-top: 18px;
+        }
+
+        .cc-trust-grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .cc-trust-card {
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: var(--cc-radius);
+            color: #fff;
+            min-height: 130px;
+            padding: 18px;
+        }
+
+        .cc-trust-card span {
+            align-items: center;
+            background: rgba(198, 122, 69, .2);
+            border-radius: var(--cc-radius);
+            color: #F4C6A6;
+            display: inline-flex;
+            height: 34px;
+            justify-content: center;
+            margin-bottom: 14px;
+            width: 34px;
+        }
+
+        .cc-trust-card strong {
+            display: block;
+            font-size: 15px;
+            text-wrap: balance;
+        }
+
+        .cc-trust-card small {
+            color: rgba(255, 255, 255, .66);
+            display: block;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-top: 7px;
+            text-wrap: pretty;
+        }
+
+        .cc-cta-section {
+            padding: 96px 0 78px;
+        }
+
+        .cc-cta {
+            background: linear-gradient(135deg, var(--cc-dark), var(--cc-dark-2));
+            border-radius: var(--cc-radius);
+            box-shadow: var(--cc-shadow-lg);
+            color: #fff;
+            display: grid;
+            min-height: 320px;
+            overflow: hidden;
+            padding: 60px 32px;
+            place-items: center;
+            position: relative;
+            text-align: center;
+        }
+
+        .cc-cta::before,
+        .cc-cta::after {
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 50%;
+            content: "";
+            height: 320px;
+            position: absolute;
+            width: 320px;
+        }
+
+        .cc-cta::before {
+            bottom: -210px;
+            left: -210px;
+        }
+
+        .cc-cta::after {
+            right: -210px;
+            top: -210px;
+        }
+
+        .cc-cta-content {
+            max-width: 780px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cc-cta-label {
+            color: #F4C6A6;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .cc-cta h2 {
+            color: #fff;
+            font-size: 46px;
+            font-weight: 950;
+            letter-spacing: 0;
+            line-height: 1.12;
+            margin: 16px 0 0;
+            text-wrap: balance;
+        }
+
+        .cc-cta p {
+            color: rgba(255, 255, 255, .76);
+            font-size: 15px;
+            line-height: 1.7;
+            margin: 18px auto 0;
+            max-width: 650px;
+        }
+
+        .cc-cta-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 28px;
+        }
+
+        .cc-footer {
+            background: #FFFDF9;
+            border-top: 1px solid var(--cc-line);
+            color: var(--cc-text);
+            padding: 42px 0;
+        }
+
+        .cc-footer-grid {
+            display: grid;
+            gap: 35px;
+            grid-template-columns: 1.5fr repeat(3, 1fr);
+        }
+
+        .cc-footer .cc-brand,
+        .cc-footer .cc-brand-name {
+            color: var(--cc-text);
+        }
+
+        .cc-footer .cc-brand-sub,
+        .cc-footer p {
+            color: var(--cc-muted);
+        }
+
+        .cc-footer p {
+            font-size: 13px;
+            line-height: 1.7;
+            margin: 16px 0 0;
+            max-width: 330px;
+        }
+
+        .cc-footer h3 {
+            color: var(--cc-text);
+            font-size: 13px;
+            font-weight: 950;
+            margin: 0 0 14px;
+        }
+
+        .cc-footer-links {
+            display: grid;
+            gap: 8px;
+            justify-items: start;
+        }
+
+        .cc-footer-link {
+            color: var(--cc-muted);
+            min-height: auto;
+            padding: 0;
+            text-align: left;
+        }
+
+        .cc-footer-link:hover {
+            background: transparent;
+            color: var(--cc-primary);
+        }
+
+        .cc-footer-bottom {
+            border-top: 1px solid var(--cc-line);
+            color: #81736A;
+            display: flex;
+            font-size: 11px;
+            gap: 18px;
+            justify-content: space-between;
+            margin-top: 34px;
+            padding-top: 22px;
+        }
+
+        .js .reveal {
+            opacity: 0;
+            transform: translateY(26px);
+            transition: opacity .62s ease, transform .62s ease;
+        }
+
+        .js .reveal[data-reveal="left"] {
+            transform: translateX(-28px);
+        }
+
+        .js .reveal[data-reveal="right"] {
+            transform: translateX(28px);
+        }
+
+        .js .reveal[data-delay="1"] {
+            transition-delay: .08s;
+        }
+
+        .js .reveal[data-delay="2"] {
+            transition-delay: .16s;
+        }
+
+        .js .reveal[data-delay="3"] {
+            transition-delay: .24s;
+        }
+
+        .js .reveal.visible {
+            opacity: 1;
+            transform: translate(0, 0);
+        }
+
+        @@media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: .01ms !important;
+            }
+
+            .js .reveal {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        @@media (min-width: 761px) {
+            .cc-role-card {
+                min-height: 420px;
+            }
+
+            .cc-role-card h3 {
+                font-size: 22px;
+                min-height: 30px;
+                white-space: nowrap;
+            }
+        }
+
+        @@media (max-width: 1080px) {
+            .cc-container {
+                padding: 0 20px;
+            }
+
+            .cc-menu-toggle {
+                display: inline-flex;
+            }
+
+            .cc-nav {
+                background: var(--cc-dark);
+                border: 1px solid rgba(255, 255, 255, .12);
+                border-radius: var(--cc-radius);
+                box-shadow: 0 20px 50px rgba(0, 0, 0, .22);
+                display: none;
+                left: 20px;
+                padding: 8px;
+                position: absolute;
+                right: 20px;
+                top: calc(100% + 8px);
+            }
+
+            .cc-nav.open {
+                display: grid;
+            }
+
+            .cc-nav button {
+                justify-content: flex-start;
+                width: 100%;
+            }
+
+            .cc-header-actions .cc-btn-secondary {
+                display: none;
+            }
+
+            .cc-hero-inner {
+                gap: 40px;
+                grid-template-columns: 1fr;
+            }
+
+            .cc-hero-copy {
+                max-width: 780px;
+            }
+
+            .cc-dashboard-stage {
+                margin: 0 auto;
+                max-width: 760px;
+                width: 100%;
+            }
+
+            .cc-proof-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .cc-proof-intro {
+                grid-column: 1 / -1;
+            }
+
+            .cc-solution-row,
+            .cc-solution-row:nth-child(even) {
+                gap: 36px;
+                grid-template-columns: 1fr;
+            }
+
+            .cc-solution-row:nth-child(even) .cc-solution-copy {
+                order: 0;
+            }
+
+            .cc-bento-card--wide,
+            .cc-bento-card--narrow {
+                grid-column: span 6;
+            }
+
+            .cc-role-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .cc-trust-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .cc-footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .cc-footer-brand {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @@media (max-width: 760px) {
+            :root {
+                --cc-header: 70px;
+            }
+
+            .cc-header-actions .cc-btn-primary,
+            .cc-brand-sub {
+                display: none;
+            }
+
+            .cc-hero {
+                min-height: auto;
+                padding: 58px 0 72px;
+            }
+
+            .cc-hero-title {
+                font-size: 42px;
+            }
+
+            .cc-hero-desc {
+                font-size: 15px;
+            }
+
+            .cc-hero-actions {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+
+            .cc-btn {
+                width: 100%;
+            }
+
+            .cc-dashboard-stage {
+                min-height: 420px;
+                padding-bottom: 0;
+            }
+
+            .cc-dashboard-shell {
+                grid-template-columns: 52px 1fr;
+                min-height: 330px;
+            }
+
+            .cc-dashboard-sidebar {
+                padding: 12px 7px;
+            }
+
+            .cc-side-logo {
+                height: 29px;
+                width: 29px;
+            }
+
+            .cc-dashboard-content {
+                padding: 13px 0 0 10px;
+            }
+
+            .cc-stat-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .cc-stat-card:nth-child(n+3),
+            .cc-alert-card,
+            .cc-floating-chip {
+                display: none;
+            }
+
+            .cc-dashboard-lower {
+                grid-template-columns: 1fr;
+            }
+
+            .cc-chart-svg {
+                height: 125px;
+            }
+
+            .cc-proof-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .cc-section {
+                padding: 76px 0;
+            }
+
+            .cc-section-head {
+                margin-bottom: 36px;
+                text-align: left;
+            }
+
+            .cc-section-title {
+                font-size: 34px;
+            }
+
+            .cc-solution-row {
+                min-height: 0;
+                padding: 24px 20px;
+            }
+
+            .cc-solution-copy h3 {
+                font-size: 32px;
+            }
+
+            .cc-visual-panel {
+                min-height: 310px;
+            }
+
+            .cc-overview-content {
+                grid-template-columns: 1fr;
+            }
+
+            .cc-store-list,
+            .cc-supplier-panel {
+                display: none;
+            }
+
+            .cc-bars {
+                height: 160px;
+            }
+
+            .cc-pos-shell {
+                grid-template-columns: 64px 1fr;
+                min-height: 315px;
+            }
+
+            .cc-pos-ticket {
+                display: none;
+            }
+
+            .cc-product-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .cc-product-card:nth-child(3) {
+                display: none;
+            }
+
+            .cc-inventory-summary,
+            .cc-overview-kpis {
+                grid-template-columns: 1fr;
+            }
+
+            .cc-table {
+                font-size: 10px;
+            }
+
+            .cc-bento-grid,
+            .cc-role-grid,
+            .cc-trust-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cc-bento-card--wide,
+            .cc-bento-card--narrow {
+                grid-column: auto;
+            }
+
+            .cc-role-card {
+                min-height: 345px;
+            }
+
+            .cc-role-card h3,
+            .cc-role-card > p {
+                min-height: 0;
+            }
+
+            .cc-role-card ul {
+                gap: 10px;
+                grid-template-rows: none;
+            }
+
+            .cc-cta {
+                min-height: 360px;
+                padding: 48px 22px;
+            }
+
+            .cc-cta h2 {
+                font-size: 34px;
+            }
+
+            .cc-footer-bottom {
+                display: grid;
+            }
+        }
+
+        @@media (max-width: 460px) {
+            .cc-container {
+                padding: 0 16px;
+            }
+
+            .cc-hero-title {
+                font-size: 36px;
+            }
+
+            .cc-proof-grid,
+            .cc-footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cc-proof-intro {
+                margin-bottom: 2px;
+            }
+        }
+    </style>
+    <noscript>
+        <style>
+            .reveal {
+                opacity: 1 !important;
+                transform: none !important;
+            }
+        </style>
+    </noscript>
+</head>
+<body>
+    <a class="cc-skip-link" href="#main-content">Bỏ qua điều hướng</a>
+
+    <div class="cc-page">
+        <header class="cc-header">
+            <div class="cc-container">
+                <div class="cc-header-inner">
+                    <button class="cc-brand" type="button" data-scroll-target="home" aria-label="CafeChain về đầu trang">
+                        <span class="cc-brand-mark" aria-hidden="true">
+                            <svg class="cc-icon" viewBox="0 0 24 24">
+                                <path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V9Z" />
+                                <path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16" />
+                                <path d="M8 4v2" />
+                                <path d="M12 4v2" />
+                            </svg>
+                        </span>
+                        <span>
+                            <span class="cc-brand-name">CafeChain</span>
+                            <span class="cc-brand-sub">Nền tảng vận hành</span>
+                        </span>
+                    </button>
+
+                    <nav class="cc-nav" id="cc-main-nav" aria-label="Điều hướng chính">
+                        <button type="button" data-scroll-target="home" aria-current="location">Trang chủ</button>
+                        <button type="button" data-scroll-target="solutions">Giải pháp</button>
+                        <button type="button" data-scroll-target="capabilities">Tính năng</button>
+                        <button type="button" data-scroll-target="roles">Vai trò</button>
+                        <button type="button" data-scroll-target="trust">Tin cậy</button>
+                    </nav>
+
+                    <div class="cc-header-actions">
+                        <a asp-controller="Account" asp-action="Login" class="cc-btn cc-btn-ghost">Đăng nhập hệ thống</a>
+                        <a asp-controller="Account" asp-action="Register" class="cc-btn cc-btn-primary">
+                            Đăng ký
+                            <svg class="cc-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m9 18 6-6-6-6" />
+                            </svg>
+                        </a>
+                        <button class="cc-menu-toggle" type="button" aria-controls="cc-main-nav" aria-expanded="false" aria-label="Mở menu">
+                            <svg class="cc-icon" viewBox="0 0 24 24">
+                                <path d="M4 7h16" />
+                                <path d="M4 12h16" />
+                                <path d="M4 17h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main id="main-content">
+            <section class="cc-section cc-hero" id="home">
+                <div class="cc-container cc-hero-inner">
+                    <div class="cc-hero-copy reveal" data-reveal="left">
+                        <span class="cc-eyebrow">
+                            <svg class="cc-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M13 2 4 14h7l-1 8 10-13h-7l1-7Z" />
+                            </svg>
+                            Bán hàng · Xếp ca · Kho · Nhà cung cấp
+                        </span>
+                        <h1 class="cc-hero-title">Vận hành chuỗi cửa hàng trên <span>một hệ thống.</span></h1>
+                        <p class="cc-hero-desc">
+                            CafeChain kết hợp bán hàng tại quầy, quản lý nhân viên, xếp ca, kho, nhà cung cấp, phân quyền và bảng điều hành để chủ chuỗi theo dõi vận hành rõ ràng từ một nơi.
+                        </p>
+                        <div class="cc-hero-actions">
+                            <button type="button" class="cc-btn cc-btn-primary" data-scroll-target="solutions">
+                                Khám phá hệ thống
+                                <svg class="cc-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m9 18 6-6-6-6" />
+                                </svg>
+                            </button>
+                            <a asp-controller="Account" asp-action="Login" class="cc-btn cc-btn-secondary">
+                                <svg class="cc-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                                    <path d="m10 17 5-5-5-5" />
+                                    <path d="M15 12H3" />
+                                </svg>
+                                Đăng nhập hệ thống
+                            </a>
+                        </div>
+                        <div class="cc-hero-note" aria-label="Điểm nổi bật">
+                            <span>Bán hàng liền mạch</span>
+                            <span>Kho rõ tồn và lô</span>
+                            <span>Quyền đúng phạm vi</span>
+                        </div>
+                    </div>
+
+                    <div class="cc-dashboard-stage reveal" data-reveal="right" aria-label="Ảnh minh họa bảng điều hành CafeChain">
+                        <div class="cc-dashboard-window">
+                            <div class="cc-window-bar">
+                                <div class="cc-window-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+                                <span class="cc-window-status">Hệ thống hoạt động</span>
+                            </div>
+                            <div class="cc-dashboard-shell">
+                                <aside class="cc-dashboard-sidebar" aria-hidden="true">
+                                    <div class="cc-side-logo">
+                                        <svg class="cc-icon" viewBox="0 0 24 24">
+                                            <path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V9Z" />
+                                            <path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16" />
+                                        </svg>
+                                    </div>
+                                    <div class="cc-side-item is-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h7v7H4z" /><path d="M13 4h7v7h-7z" /><path d="M4 13h7v7H4z" /><path d="M13 13h7v7h-7z" /></svg></div>
+                                    <div class="cc-side-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 6h14" /><path d="M5 12h14" /><path d="M5 18h9" /></svg></div>
+                                    <div class="cc-side-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 7 9-4 9 4-9 4-9-4Z" /><path d="m3 12 9 4 9-4" /></svg></div>
+                                    <div class="cc-side-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" /><path d="M4 22a8 8 0 0 1 16 0" /></svg></div>
+                                </aside>
+                                <div class="cc-dashboard-content">
+                                    <div class="cc-dashboard-heading">
+                                        <div>
+                                            <strong>Chào buổi sáng, Quản lý</strong>
+                                            <small>Tổng quan vận hành toàn chuỗi</small>
+                                        </div>
+                                        <span class="cc-demo-label">03 ca làm đang mở</span>
+                                    </div>
+                                    <div class="cc-stat-grid">
+                                        <div class="cc-stat-card"><small>Doanh thu hôm nay</small><strong>28,6 triệu</strong><span class="cc-stat-trend">+8,4%</span></div>
+                                        <div class="cc-stat-card"><small>Đơn bán</small><strong>486</strong><span class="cc-stat-trend">Đã hoàn tất</span></div>
+                                        <div class="cc-stat-card"><small>Giá trị tồn</small><strong>58.900đ</strong><span class="cc-stat-trend">Ổn định</span></div>
+                                        <div class="cc-stat-card"><small>Phiếu chờ duyệt</small><strong>03</strong><span class="cc-stat-trend">Đúng hạn</span></div>
+                                    </div>
+                                    <div class="cc-dashboard-lower">
+                                        <div class="cc-chart-card">
+                                            <div class="cc-card-title"><span>Doanh thu 7 ngày</span><span>Theo cửa hàng</span></div>
+                                            <svg class="cc-chart-svg" viewBox="0 0 420 170" aria-hidden="true">
+                                                <path d="M8 145 C64 112, 90 118, 138 92 S218 74, 266 56 341 34, 412 39" fill="none" stroke="#C67A45" stroke-width="5" stroke-linecap="round" />
+                                                <path d="M8 145 C64 112, 90 118, 138 92 S218 74, 266 56 341 34, 412 39 L412 166 L8 166Z" fill="rgba(198,122,69,.14)" />
+                                                <g stroke="rgba(111,78,55,.12)" stroke-width="1">
+                                                    <path d="M8 132h404" /><path d="M8 96h404" /><path d="M8 60h404" />
+                                                </g>
+                                            </svg>
+                                        </div>
+                                        <div class="cc-alert-card">
+                                            <div class="cc-card-title"><span>Cần chú ý</span><span>4 cảnh báo</span></div>
+                                            <div class="cc-alert-row"><span class="cc-alert-icon">!</span><span class="cc-alert-copy"><strong>Tồn kho thấp</strong><small>Ly nhựa M · Cửa hàng 02</small></span></div>
+                                            <div class="cc-alert-row"><span class="cc-alert-icon">₫</span><span class="cc-alert-copy"><strong>Ca mở trễ</strong><small>Cần quản lý xác nhận</small></span></div>
+                                            <div class="cc-alert-row"><span class="cc-alert-icon">✓</span><span class="cc-alert-copy"><strong>Phiếu chờ duyệt</strong><small>2 phiếu nhập kho</small></span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cc-floating-chip cc-floating-chip--sync">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 15-6.7" /><path d="M18 3v5h-5" /><path d="M21 12a9 9 0 0 1-15 6.7" /><path d="M6 21v-5h5" /></svg>
+                            Dữ liệu nhất quán
+                        </div>
+                        <div class="cc-floating-chip cc-floating-chip--shift">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4" /><path d="M16 2v4" /><path d="M3 10h18" /><path d="M5 4h14v18H5z" /></svg>
+                            Xếp ca đang mở
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="cc-proof" aria-label="Năng lực cốt lõi">
+                <div class="cc-container cc-proof-grid reveal">
+                    <div class="cc-proof-intro">Nền tảng hợp nhất cho chuỗi cửa hàng</div>
+                    <div class="cc-proof-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z" /><path d="M8 8h8v8H8z" /></svg> Bán hàng tại quầy</div>
+                    <div class="cc-proof-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v4" /><path d="M16 2v4" /><path d="M3 10h18" /><path d="M5 4h14v18H5z" /></svg> Xếp ca</div>
+                    <div class="cc-proof-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 7 9-4 9 4-9 4-9-4Z" /><path d="m3 12 9 4 9-4" /><path d="M3 17l9 4 9-4" /></svg> Kho · Định mức · Lớp giá</div>
+                    <div class="cc-proof-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V8l8-4 8 4v12" /><path d="M9 20v-6h6v6" /></svg> Nhà cung cấp</div>
+                </div>
+            </section>
+
+            <section class="cc-section" id="solutions" aria-labelledby="ccSolutionsTitle">
+                <div class="cc-container">
+                    <div class="cc-section-head reveal">
+                        <div class="cc-kicker">Giải pháp vận hành</div>
+                        <h2 class="cc-section-title" id="ccSolutionsTitle">Một luồng dữ liệu xuyên suốt từ quầy bán đến quản trị.</h2>
+                        <p class="cc-section-desc">
+                            Các màn hình dưới đây mô phỏng cách CafeChain kết nối bảng điều hành, bán hàng và kho trong một trải nghiệm thống nhất.
+                        </p>
+                    </div>
+
+                    <div class="cc-solution-stack">
+                        <article class="cc-solution-row reveal">
+                            <div class="cc-solution-copy">
+                                <div class="cc-solution-index">01 · Tổng quan</div>
+                                <h3>Bảng điều hành đa cửa hàng theo đúng phạm vi quyền.</h3>
+                                <p>Chủ doanh nghiệp và quản lý theo dõi doanh thu, đơn hàng, thanh toán, tồn kho, phiên kết và hiệu suất vận hành theo cửa hàng được cấp quyền.</p>
+                                <ul class="cc-check-list">
+                                    <li>Doanh thu, đơn bán và phương thức thanh toán</li>
+                                    <li>Ca làm đang mở và chênh lệch phiên kết</li>
+                                    <li>Tồn kho, hao hụt, âm kho và giá trị theo lớp giá</li>
+                                </ul>
+                                <button class="cc-text-link" type="button" data-scroll-target="capabilities">Xem các năng lực hệ thống <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6" /></svg></button>
+                            </div>
+                            <div class="cc-visual-panel" aria-label="Bảng điều hành đa cửa hàng minh họa">
+                                <div class="cc-visual-card">
+                                    <div class="cc-visual-toolbar"><strong>Tổng quan toàn chuỗi</strong><small>30 ngày gần nhất</small></div>
+                                    <div class="cc-overview-body">
+                                        <div class="cc-overview-kpis">
+                                            <div><small>Cửa hàng hoạt động</small><strong>05</strong></div>
+                                            <div><small>Đơn đã hoàn tất</small><strong>4.862</strong></div>
+                                            <div><small>Cảnh báo mở</small><strong>07</strong></div>
+                                        </div>
+                                        <div class="cc-overview-content">
+                                            <div class="cc-bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                                            <div class="cc-store-list">
+                                                <div class="cc-store-row"><strong><span>Nguyễn Văn Linh</span><span>31%</span></strong><small>Đang hoạt động</small></div>
+                                                <div class="cc-store-row"><strong><span>Thủ Dầu Một</span><span>27%</span></strong><small>Đang hoạt động</small></div>
+                                                <div class="cc-store-row"><strong><span>Dĩ An</span><span>22%</span></strong><small>1 cảnh báo tồn</small></div>
+                                                <div class="cc-store-row"><strong><span>Thuận An</span><span>20%</span></strong><small>Đang hoạt động</small></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="cc-solution-row reveal">
+                            <div class="cc-solution-copy">
+                                <div class="cc-solution-index">02 · Bán hàng</div>
+                                <h3>Bán hàng tại quầy nhanh, ổn định và rõ ràng.</h3>
+                                <p>Phân hệ bán hàng tại quầy giúp nhân viên chọn món, tạo phiếu và thanh toán thuận tiện trong mỗi ca làm việc.</p>
+                                <ul class="cc-check-list">
+                                    <li>Danh mục đồ uống, kích cỡ và món thêm theo cửa hàng</li>
+                                    <li>Thanh toán và in phiếu bán ngay tại quầy</li>
+                                    <li>Theo dõi món đã chọn và tổng tiền rõ ràng</li>
+                                </ul>
+                            </div>
+                            <div class="cc-visual-panel" aria-label="Màn hình bán hàng minh họa">
+                                <div class="cc-visual-card">
+                                    <div class="cc-visual-toolbar"><strong>Bán hàng · CN Nguyễn Văn Linh</strong><small>Ca sáng · 07:00</small></div>
+                                    <div class="cc-pos-shell">
+                                        <div class="cc-pos-categories">
+                                            <strong>Danh mục</strong>
+                                            <div class="cc-category-pill is-active">Tất cả</div>
+                                            <div class="cc-category-pill">Cà phê</div>
+                                            <div class="cc-category-pill">Trà</div>
+                                            <div class="cc-category-pill">Đá xay</div>
+                                            <div class="cc-category-pill">Bánh ngọt</div>
+                                        </div>
+                                        <div class="cc-pos-products">
+                                            <div class="cc-pos-products-head"><strong>Tất cả sản phẩm</strong><span class="cc-network-badge">Ngoại tuyến</span></div>
+                                            <div class="cc-product-grid">
+                                                <div class="cc-product-card"><div class="cc-product-photo"></div><strong>Cà phê đen</strong><small>25.000đ</small></div>
+                                                <div class="cc-product-card"><div class="cc-product-photo"></div><strong>Cà phê sữa</strong><small>42.000đ</small></div>
+                                                <div class="cc-product-card"><div class="cc-product-photo"></div><strong>Trà đào</strong><small>35.000đ</small></div>
+                                                <div class="cc-product-card"><div class="cc-product-photo"></div><strong>Bạc xỉu</strong><small>45.000đ</small></div>
+                                                <div class="cc-product-card"><div class="cc-product-photo"></div><strong>Trà xanh</strong><small>45.000đ</small></div>
+                                                <div class="cc-product-card"><div class="cc-product-photo"></div><strong>Bánh sừng bò</strong><small>35.000đ</small></div>
+                                            </div>
+                                        </div>
+                                        <div class="cc-pos-ticket">
+                                            <strong>Phiếu bán (3)</strong>
+                                            <div class="cc-ticket-row"><span>Cà phê đen ×1</span><b>25 nghìn</b></div>
+                                            <div class="cc-ticket-row"><span>Cà phê sữa ×1</span><b>42 nghìn</b></div>
+                                            <div class="cc-ticket-row"><span>Bánh sừng bò ×1</span><b>35 nghìn</b></div>
+                                            <div class="cc-ticket-total"><span>Tổng cộng</span><span>102 nghìn</span></div>
+                                            <div class="cc-pay-button">Thanh toán</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="cc-offline-float"><span>●</span> Sẵn sàng bán hàng ngoại tuyến</div>
+                            </div>
+                        </article>
+
+                        <article class="cc-solution-row reveal">
+                            <div class="cc-solution-copy">
+                                <div class="cc-solution-index">03 · Kho mua hàng</div>
+                                <h3>Kiểm soát nguyên liệu từ định mức đến nhà cung cấp.</h3>
+                                <p>Kho vận hành theo cửa hàng, trừ nguyên liệu từ đơn bán, lưu giao dịch tồn, lớp giá nhập trước xuất trước, kiểm kê, điều chuyển và lịch sử giá nhà cung cấp.</p>
+                                <ul class="cc-check-list">
+                                    <li>Phiếu nhập, xuất, hao hụt, kiểm kê và điều chuyển</li>
+                                    <li>Định mức theo công thức để kiểm soát nguyên liệu</li>
+                                    <li>Số lượng đặt tối thiểu, thời gian cung ứng và lịch sử giá</li>
+                                </ul>
+                            </div>
+                            <div class="cc-visual-panel" aria-label="Màn hình tồn kho và nhà cung cấp minh họa">
+                                <div class="cc-visual-card">
+                                    <div class="cc-visual-toolbar"><strong>Tồn kho cửa hàng</strong><small>Cập nhật theo giao dịch</small></div>
+                                    <div class="cc-inventory-body">
+                                        <div class="cc-inventory-summary">
+                                            <div><small>Nguyên liệu</small><strong>126</strong></div>
+                                            <div><small>Dưới ngưỡng</small><strong>04</strong></div>
+                                            <div><small>Phiếu chờ duyệt</small><strong>02</strong></div>
+                                        </div>
+                                        <table class="cc-table" aria-label="Bảng tồn kho minh họa">
+                                            <thead><tr><th>Nguyên liệu</th><th>Tồn khả dụng</th><th>Giá vốn</th><th>Trạng thái</th></tr></thead>
+                                            <tbody>
+                                                <tr><td>Cà phê hạt rang</td><td>18,5 kg</td><td>168.000đ</td><td><span class="cc-stock-status is-good">Ổn định</span></td></tr>
+                                                <tr><td>Sữa tươi</td><td>11,0 lít</td><td>31.500đ</td><td><span class="cc-stock-status is-good">Ổn định</span></td></tr>
+                                                <tr><td>Ly nhựa M</td><td>200 cái</td><td>1.250đ</td><td><span class="cc-stock-status is-low">Cần nhập</span></td></tr>
+                                                <tr><td>Đào miếng</td><td>2,4 kg</td><td>89.000đ</td><td><span class="cc-stock-status is-low">Dưới ngưỡng</span></td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="cc-supplier-panel">
+                                    <strong>Nhà cung cấp A</strong>
+                                    <small>Thời gian cung ứng: 2 ngày · Nhà cung cấp chính</small>
+                                    <div class="cc-supplier-meter"><span></span></div>
+                                    <small>72% nguyên liệu đã liên kết giá</small>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="cc-section cc-section-soft" id="capabilities" aria-labelledby="ccCapabilitiesTitle">
+                <div class="cc-container">
+                    <div class="cc-section-head reveal">
+                        <div class="cc-kicker">Tính năng cốt lõi</div>
+                        <h2 class="cc-section-title" id="ccCapabilitiesTitle">Những mảnh ghép tạo nên vận hành nhất quán.</h2>
+                        <p class="cc-section-desc">
+                            Mỗi nhóm tính năng tập trung vào quản lý chuỗi cửa hàng: bán hàng, đối soát phiên kết, phân quyền, cảnh báo kho và báo cáo hỗ trợ quyết định.
+                        </p>
+                    </div>
+
+                    <div class="cc-bento-grid">
+                        <article class="cc-bento-card cc-bento-card--wide reveal">
+                            <div class="cc-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v18" /><path d="M3 12h18" /><circle cx="12" cy="12" r="8" /></svg></div>
+                            <h3>Trợ lý báo cáo thông minh theo dữ liệu được cấp quyền</h3>
+                            <p>Giúp quản lý đọc nhanh tình hình vận hành, phát hiện điểm cần kiểm tra và giải thích báo cáo bằng dữ liệu tổng hợp.</p>
+                            <div class="cc-bento-visual cc-ai-window">
+                                <div class="cc-ai-head"><strong>Trợ lý báo cáo CafeChain</strong><span class="cc-ai-safe">Đúng phạm vi</span></div>
+                                <div class="cc-ai-question">Phiên kết nào có chênh lệch tiền cần kiểm tra?</div>
+                                <div class="cc-ai-answer"><b>Kết luận:</b> Phiên WS-021 lệch -120.000đ. Cần kiểm tra đơn tiền mặt bị hủy và lịch sử các thao tác chờ duyệt.</div>
+                                <div class="cc-ai-tags"><span>Phiên làm việc</span><span>Cửa hàng 01</span><span>Ưu tiên cao</span></div>
+                            </div>
+                        </article>
+
+                        <article class="cc-bento-card cc-bento-card--narrow reveal" data-delay="1">
+                            <div class="cc-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></div>
+                            <h3>Đối soát phiên kết</h3>
+                            <p>Theo dõi tiền đầu ca, doanh thu kỳ vọng và tiền thực đếm để phát hiện chênh lệch rõ ràng.</p>
+                            <div class="cc-bento-visual">
+                                <div class="cc-workshift-grid">
+                                    <div class="cc-workshift-metric"><small>Tiền đầu ca</small><strong>1,0tr</strong></div>
+                                    <div class="cc-workshift-metric"><small>Kỳ vọng</small><strong>4,82tr</strong></div>
+                                    <div class="cc-workshift-metric"><small>Thực tế</small><strong>4,70tr</strong></div>
+                                </div>
+                                <div class="cc-discrepancy">Chênh lệch -120.000đ · yêu cầu nhập lý do.</div>
+                            </div>
+                        </article>
+
+                        <article class="cc-bento-card cc-bento-card--narrow reveal">
+                            <div class="cc-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></svg></div>
+                            <h3>Phân quyền theo cửa hàng</h3>
+                            <p>Dữ liệu hiển thị theo vai trò, khu vực và cửa hàng được phân công để mỗi người chỉ thấy phần cần vận hành.</p>
+                            <div class="cc-bento-visual cc-scope-diagram">
+                                <div class="cc-scope-center"><span class="cc-scope-shield"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 12 3 3 7-7" /></svg></span><span>Vai trò · Quyền · Cửa hàng</span></div>
+                            </div>
+                        </article>
+
+                        <article class="cc-bento-card cc-bento-card--wide reveal" data-delay="1">
+                            <div class="cc-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z" /><path d="M8 8h8" /><path d="M8 12h8" /><path d="M8 16h5" /></svg></div>
+                            <h3>Cảnh báo kho và nhật ký thao tác</h3>
+                            <p>Tồn thấp, âm kho, chênh lệch phiên kết, thay đổi giá nhà cung cấp và thao tác nhạy cảm đều có trạng thái theo dõi.</p>
+                            <div class="cc-bento-visual cc-alert-bars">
+                                <div class="cc-alert-bar-row"><b>Ly nhựa M</b><div class="cc-alert-bar-track"><span></span></div><em>200/500</em></div>
+                                <div class="cc-alert-bar-row"><b>Sữa tươi</b><div class="cc-alert-bar-track"><span></span></div><em>76%</em></div>
+                                <div class="cc-alert-bar-row"><b>Cà phê hạt</b><div class="cc-alert-bar-track"><span></span></div><em>58%</em></div>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="cc-section" id="roles" aria-labelledby="ccRolesTitle">
+                <div class="cc-container">
+                    <div class="cc-section-head reveal">
+                        <div class="cc-kicker">Đúng dữ liệu cho đúng người</div>
+                        <h2 class="cc-section-title" id="ccRolesTitle">Một hệ thống, nhiều góc nhìn vận hành.</h2>
+                        <p class="cc-section-desc">
+                            Giao diện và dữ liệu được giới hạn theo vai trò, quyền truy cập, khu vực và cửa hàng được phân công.
+                        </p>
+                    </div>
+
+                    <div class="cc-role-grid">
+                        <article class="cc-role-card reveal">
+                            <span class="cc-role-label">01 · Điều hành</span>
+                            <h3>Chủ doanh nghiệp</h3>
+                            <p>Góc nhìn tổng hợp để theo dõi hiệu quả toàn chuỗi.</p>
+                            <ul>
+                                <li>Doanh thu, đơn hàng và thanh toán</li>
+                                <li>So sánh hiệu suất theo cửa hàng</li>
+                                <li>Chênh lệch phiên kết và cảnh báo kho</li>
+                                <li>Báo cáo quản trị và trợ lý báo cáo thông minh</li>
+                            </ul>
+                            <div class="cc-role-scope">Phạm vi: toàn chuỗi theo quyền được cấp</div>
+                        </article>
+
+                        <article class="cc-role-card reveal" data-delay="1">
+                            <span class="cc-role-label">02 · Quản lý</span>
+                            <h3>Quản lý cửa hàng</h3>
+                            <p>Giám sát nhân viên, ca làm, bán hàng và hoạt động tại cửa hàng.</p>
+                            <ul>
+                                <li>Quản lý nhân viên, xếp ca</li>
+                                <li>Theo dõi phiên làm việc, đơn hủy và các thao tác chờ duyệt</li>
+                                <li>Kho cửa hàng và phiếu chờ duyệt</li>
+                                <li>Xử lý cảnh báo trong phạm vi cửa hàng</li>
+                            </ul>
+                            <div class="cc-role-scope">Phạm vi: khu vực hoặc cửa hàng được gán</div>
+                        </article>
+
+                        <article class="cc-role-card reveal" data-delay="2">
+                            <span class="cc-role-label">03 · Thực thi</span>
+                            <h3>Mở phiên kết và bán hàng</h3>
+                            <p>Thao tác nhanh, rõ trạng thái và đúng nghiệp vụ.</p>
+                            <ul>
+                                <li>Mở phiên kết và bán hàng</li>
+                                <li>Bán hàng ngoại tuyến và in phiếu</li>
+                                <li>Phiếu kho, kiểm kê và điều chuyển</li>
+                                <li>Nhà cung cấp, giá mua và lịch sử giá</li>
+                            </ul>
+                            <div class="cc-role-scope">Phạm vi: phiên bán, thiết bị và cửa hàng hợp lệ</div>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="cc-section cc-section-dark" id="trust" aria-labelledby="ccTrustTitle">
+                <div class="cc-container">
+                    <div class="cc-section-head reveal">
+                        <div class="cc-kicker" style="color:#F4C6A6">Nền tảng tin cậy</div>
+                        <h2 class="cc-section-title" id="ccTrustTitle" style="color:#fff">Thiết kế để dữ liệu vận hành rõ ràng và có kiểm soát.</h2>
+                        <p class="cc-section-desc" style="color:rgba(255,255,255,.72)">
+                            Trang giới thiệu chỉ trình bày năng lực sản phẩm ở góc nhìn khách hàng, không mở nghiệp vụ bán hàng hay dữ liệu thật trước khi đăng nhập.
+                        </p>
+                    </div>
+
+                    <div class="cc-trust-grid">
+                        <article class="cc-trust-card reveal"><span><svg class="cc-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /></svg></span><strong>Phân quyền rõ ràng</strong><small>Vai trò, khu vực và cửa hàng được phân tách trước khi hiển thị dữ liệu.</small></article>
+                        <article class="cc-trust-card reveal" data-delay="1"><span><svg class="cc-icon" viewBox="0 0 24 24"><path d="M4 6c0-2 16-2 16 0v12c0 2-16 2-16 0V6Z" /><path d="M4 10c0 2 16 2 16 0" /></svg></span><strong>Dữ liệu nhất quán</strong><small>Bán hàng, kho, phiên kết và báo cáo sử dụng chung một nguồn dữ liệu.</small></article>
+                        <article class="cc-trust-card reveal" data-delay="2"><span><svg class="cc-icon" viewBox="0 0 24 24"><path d="M5 4h14v16H5z" /><path d="M8 8h8" /><path d="M8 12h8" /><path d="M8 16h5" /></svg></span><strong>Nhật ký kiểm tra</strong><small>Mọi thao tác nhạy cảm đều có dấu vết để quản lý kiểm tra khi cần.</small></article>
+                        <article class="cc-trust-card reveal" data-delay="3"><span><svg class="cc-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7" /><path d="M18 3v5h-5" /><path d="M21 12a9 9 0 0 1-15 6.7" /></svg></span><strong>Vận hành tại quầy</strong><small>Chế độ ngoại tuyến giữ luồng tạo phiếu và thanh toán rõ ràng trong mỗi ca bán.</small></article>
+                        <article class="cc-trust-card reveal"><span><svg class="cc-icon" viewBox="0 0 24 24"><path d="M4 19V5" /><path d="M4 19h16" /><path d="M8 16v-5" /><path d="M12 16V8" /><path d="M16 16v-7" /></svg></span><strong>Báo cáo dễ đọc</strong><small>Bảng điều hành tổng hợp số liệu chính để chủ chuỗi đọc nhanh tình hình từng cửa hàng.</small></article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="cc-cta-section">
+                <div class="cc-container">
+                    <div class="cc-cta reveal">
+                        <div class="cc-cta-content">
+                            <div class="cc-cta-label">Cổng vận hành CafeChain</div>
+                            <h2>Sẵn sàng nhìn toàn bộ vận hành trên một màn hình?</h2>
+                            <p>Đăng nhập bằng tài khoản đã được cấp hoặc đăng ký để bắt đầu thiết lập nền tảng quản lý cho chuỗi cửa hàng.</p>
+                            <div class="cc-cta-actions">
+                                <a asp-controller="Account" asp-action="Login" class="cc-btn cc-btn-secondary">Đăng nhập hệ thống</a>
+                                <a asp-controller="Account" asp-action="Register" class="cc-btn cc-btn-ghost">Đăng ký tài khoản</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="cc-footer">
+            <div class="cc-container">
+                <div class="cc-footer-grid">
+                    <div class="cc-footer-brand">
+                        <button class="cc-brand" type="button" data-scroll-target="home">
+                            <span class="cc-brand-mark" aria-hidden="true">
+                                <svg class="cc-icon" viewBox="0 0 24 24">
+                                    <path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V9Z" />
+                                    <path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16" />
+                                </svg>
+                            </span>
+                            <span>
+                                <span class="cc-brand-name">CafeChain</span>
+                                <span class="cc-brand-sub">Nền tảng vận hành</span>
+                            </span>
+                        </button>
+                        <p>Nền tảng vận hành cho chuỗi cửa hàng đồ uống: bán hàng, xếp ca, kho, nhà cung cấp, báo cáo và kiểm soát quyền.</p>
+                    </div>
+                    <div>
+                        <h3>Giải pháp</h3>
+                        <div class="cc-footer-links">
+                            <button class="cc-footer-link" type="button" data-scroll-target="solutions">Bảng điều hành quản trị</button>
+                            <button class="cc-footer-link" type="button" data-scroll-target="solutions">Bán hàng ngoại tuyến</button>
+                            <button class="cc-footer-link" type="button" data-scroll-target="solutions">Kho và nhà cung cấp</button>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Hệ thống</h3>
+                        <div class="cc-footer-links">
+                            <button class="cc-footer-link" type="button" data-scroll-target="capabilities">Tính năng</button>
+                            <button class="cc-footer-link" type="button" data-scroll-target="roles">Vai trò</button>
+                            <button class="cc-footer-link" type="button" data-scroll-target="trust">Tin cậy</button>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Truy cập</h3>
+                        <div class="cc-footer-links">
+                            <a asp-controller="Account" asp-action="Login" class="cc-footer-link">Đăng nhập</a>
+                            <a asp-controller="Account" asp-action="Register" class="cc-footer-link">Đăng ký</a>
+                            <button class="cc-footer-link" type="button" data-scroll-target="home">Trang chủ</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="cc-footer-bottom">
+                    <span>© 2026 CafeChain. Trang giới thiệu hệ thống vận hành.</span>
+                    <span>Không hiển thị dữ liệu thật trước khi đăng nhập.</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        (function () {
+            const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const header = document.querySelector(".cc-header");
+            const nav = document.getElementById("cc-main-nav");
+            const menuToggle = document.querySelector(".cc-menu-toggle");
+            const navButtons = Array.from(document.querySelectorAll(".cc-nav button[data-scroll-target]"));
+            const scrollButtons = Array.from(document.querySelectorAll("[data-scroll-target]"));
+            const sectionIds = ["home", "solutions", "capabilities", "roles", "trust"];
+            let activeLockTimer = null;
+            let lastActiveTarget = "home";
+
+            function headerOffset() {
+                return (header ? header.getBoundingClientRect().height : 0) + 14;
+            }
+
+            function setActive(target) {
+                if (!target || target === lastActiveTarget) return;
+                lastActiveTarget = target;
+                navButtons.forEach(function (button) {
+                    if (button.dataset.scrollTarget === target) {
+                        button.setAttribute("aria-current", "location");
+                    } else {
+                        button.removeAttribute("aria-current");
+                    }
+                });
+            }
+
+            function closeMenu() {
+                if (!nav || !menuToggle) return;
+                nav.classList.remove("open");
+                menuToggle.setAttribute("aria-expanded", "false");
+                menuToggle.setAttribute("aria-label", "Mở menu");
+            }
+
+            function toggleMenu() {
+                if (!nav || !menuToggle) return;
+                const open = nav.classList.toggle("open");
+                menuToggle.setAttribute("aria-expanded", String(open));
+                menuToggle.setAttribute("aria-label", open ? "Đóng menu" : "Mở menu");
+            }
+
+            function scrollToSection(target) {
+                const section = document.getElementById(target);
+                if (!section) return;
+
+                closeMenu();
+                setActive(target);
+                window.clearTimeout(activeLockTimer);
+
+                const destination = section.getBoundingClientRect().top + window.scrollY - headerOffset();
+                window.scrollTo({
+                    top: Math.max(0, destination),
+                    behavior: prefersReducedMotion ? "auto" : "smooth"
+                });
+
+                activeLockTimer = window.setTimeout(function () {
+                    activeLockTimer = null;
+                }, prefersReducedMotion ? 40 : 750);
+            }
+
+            function updateScrollSpy() {
+                if (activeLockTimer) return;
+
+                const sections = sectionIds
+                    .map(function (id) { return document.getElementById(id); })
+                    .filter(Boolean);
+
+                if (!sections.length) return;
+
+                const probe = window.scrollY + headerOffset() + 80;
+                let current = sections[0].id;
+
+                sections.forEach(function (section) {
+                    if (section.offsetTop <= probe) {
+                        current = section.id;
+                    }
+                });
+
+                if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 8) {
+                    current = sections[sections.length - 1].id;
+                }
+
+                setActive(current);
+            }
+
+            function releaseLock() {
+                if (!activeLockTimer) return;
+                window.clearTimeout(activeLockTimer);
+                activeLockTimer = null;
+                updateScrollSpy();
+            }
+
+            scrollButtons.forEach(function (button) {
+                button.addEventListener("click", function () {
+                    scrollToSection(button.dataset.scrollTarget);
+                });
+            });
+
+            if (menuToggle) {
+                menuToggle.addEventListener("click", toggleMenu);
+            }
+
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Escape") {
+                    closeMenu();
+                }
+            });
+
+            window.addEventListener("scroll", updateScrollSpy, { passive: true });
+            window.addEventListener("resize", updateScrollSpy);
+            window.addEventListener("wheel", releaseLock, { passive: true });
+            window.addEventListener("touchmove", releaseLock, { passive: true });
+
+            const revealItems = Array.from(document.querySelectorAll(".reveal"));
+            if (!("IntersectionObserver" in window) || prefersReducedMotion) {
+                revealItems.forEach(function (item) {
+                    item.classList.add("visible");
+                });
+            } else {
+                const observer = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add("visible");
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: .14, rootMargin: "0px 0px -40px 0px" });
+
+                revealItems.forEach(function (item) {
+                    observer.observe(item);
+                });
+            }
+
+            window.setTimeout(function () {
+                revealItems.slice(0, 2).forEach(function (item) {
+                    item.classList.add("visible");
+                });
+            }, 40);
+
+            setActive("home");
+            updateScrollSpy();
+        })();
+    </script>
+</body>
+</html>
