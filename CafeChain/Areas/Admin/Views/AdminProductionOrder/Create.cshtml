@@ -4,9 +4,9 @@
     ViewData["Title"] = "Lệnh Sơ Chế";
 }
 
-<link rel="stylesheet" href="~/css/production-order.css" />
+<link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
 
-<div class="container-fluid px-4 mt-4">
+<div class="container-fluid px-4 mt-4 po-page">
     <div class="po-title-section">
         <h1 class="po-title">LỆNH SƠ CHẾ</h1>
         <p class="po-subtitle">Quản lý định lượng và quy trình sơ chế thực phẩm hàng ngày.</p>
@@ -151,6 +151,7 @@
             <span class="history-link text-muted small">Chưa áp dụng tồn kho (chờ bước kho)</span>
         </div>
         <div class="history-card">
+            <div class="table-responsive">
             <table class="table po-table">
                 <thead>
                     <tr>
@@ -228,6 +229,7 @@
                     }
                 </tbody>
             </table>
+        </div>
         </div>
     </div>
 </div>

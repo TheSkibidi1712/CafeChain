@@ -14,14 +14,13 @@
 <div class="rb-page rb-edit-theme" data-theme="light">
 <div class="container-fluid px-4 pt-4 pb-5">
     <nav class="rb-breadcrumb">
-        <a asp-action="Index">Công thức BOM</a> &gt; <span>Tạo phiên bản mới</span>
+        <a asp-action="Index" class="btn-rb-back">Công thức BOM</a> &gt; <span>Tạo phiên bản mới</span>
     </nav>
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <div class="d-flex flex-wrap align-items-start gap-2 mb-3">
         <div>
             <h1 class="rb-page-title mb-1">Tạo phiên bản mới <span class="rb-status-badge rb-status-incomplete">từ #@recipeId</span></h1>
             <p class="text-muted mb-0">@recipeName — bản cũ sẽ được <strong>Archived</strong>, bản mới Active (contract hiện tại).</p>
         </div>
-        <a asp-action="Index" class="btn btn-rb-ghost">Quay lại</a>
     </div>
 
     <form asp-action="Edit" asp-route-id="@recipeId" method="post" id="recipeForm">
@@ -118,7 +117,7 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold" for="expectedYieldInput">Sản lượng đầu ra của một mẻ <span class="text-danger">*</span></label>
-                        <input name="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001"
+                        <input name="ExpectedYield" id="expectedYieldInput" class="form-control" type="number" step="0.00001" min="0.00001"
                                value="@(form.ExpectedYield?.ToString(System.Globalization.CultureInfo.InvariantCulture))" />
                         <div class="form-text">Đây là lượng BTP thực nhận sau chế biến. Hệ thống không nhân thêm Yield %.</div>
                     </div>
@@ -157,8 +156,8 @@
                             <th>Thành phần</th>
                             <th class="text-end">Số lượng</th>
                             <th>Đơn vị</th>
-                            <th class="text-end">Giá vốn dòng</th>
-                            <th>Trạng thái dữ liệu</th>
+                            <th class="text-center">Giá vốn dòng</th>
+                            <th class="text-center">Trạng thái dữ liệu</th>
                             <th class="text-center">Thao tác</th>
                         </tr>
                     </thead>

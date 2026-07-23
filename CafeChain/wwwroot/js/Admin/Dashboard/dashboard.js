@@ -435,7 +435,7 @@
         const series = [{
             name: widget.title, type: widget.kind, smooth: widget.kind === "line", showSymbol: rows.length <= 20,
             areaStyle: widget.kind === "line" ? { opacity: .08 } : undefined,
-            data: rows.map(row => Number(row[widget.value] || 0)), itemStyle: { color: "#166534" }, lineStyle: { color: "#166534", width: 3 }
+            data: rows.map(row => Number(row[widget.value] || 0)), itemStyle: { color: "#6F4E37" }, lineStyle: { color: "#6F4E37", width: 3 }
         }];
         return cartesianOption(base, labels, series, widget, granularity, capacity, widget.axis === "time");
     }
@@ -447,8 +447,8 @@
         const categoryAxis = !dateAxis;
         return {
             ...base,
-            color: ["#166534", "#2563eb", "#d97706", "#7c3aed", "#dc2626", "#0891b2", "#4d7c0f"],
-            grid: { ...base.grid, bottom: useZoom ? 114 : 82 },
+            color: ["#6F4E37", "#C67A45", "#2F6F5E", "#99623B", "#991B1B", "#475569", "#C67A45"],
+            grid: { ...base.grid, bottom: useZoom ? 130 : (categoryAxis ? 110 : 82) },
             legend: series.length > 1 ? { type: "scroll", top: 0, left: 10, right: 10 } : undefined,
             tooltip: { ...base.tooltip, formatter: parameters => chartTooltip(parameters, widget, dateAxis, granularity) },
             dataZoom: useZoom ? [
@@ -458,9 +458,13 @@
             xAxis: {
                 type: "category", data: labels, boundaryGap: series.some(item => item.type === "bar"),
                 axisLabel: {
-                    interval: categoryAxis ? 0 : "auto", hideOverlap: dateAxis, rotate: 0,
-                    width: categoryAxis ? 104 : 82, lineHeight: 16, overflow: "truncate", ellipsis: "…",
-                    formatter: value => dateAxis ? formatAxisLabel(value, true, granularity) : wrapAxisLabel(value, 14)
+                    interval: "auto",           /* FIX: bỏ qua label tự động, không ép show all */
+                    hideOverlap: true,          /* FIX: ẩn label bị đè kể cả category axis */
+                    rotate: categoryAxis ? 30 : 0, /* FIX: xoay 30° để label dài khỏi chồng nhau */
+                    width: categoryAxis ? 90 : 82, lineHeight: 16, overflow: "truncate", ellipsis: "…",
+                    formatter: value => dateAxis
+                        ? formatAxisLabel(value, true, granularity)
+                        : (categoryAxis ? truncateLabel(value, 22) : wrapAxisLabel(value, 14))
                 },
                 axisPointer: { label: { formatter: params => fullAxisLabel(params.value, dateAxis, granularity) } }
             },

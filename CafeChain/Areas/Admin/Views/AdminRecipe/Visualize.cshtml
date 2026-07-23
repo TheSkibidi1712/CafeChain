@@ -26,11 +26,15 @@
                 </p>
             </div>
             <div class="rb-detail-actions">
-                <a href="@Model.BackUrl" class="btn btn-rb-ghost">Quay lại danh sách</a>
-                <a href="#bom-components" class="btn btn-outline-secondary">Xem cấu trúc</a>
+                <a href="@Model.BackUrl" class="btn-rb-back">Quay lại danh sách</a>
+                <a href="#bom-components" class="btn btn-rb-ghost btn-sm">
+                    <i class="fas fa-list-ul me-1" aria-hidden="true"></i>Xem cấu trúc
+                </a>
                 @if (Model.CanWrite)
                 {
-                    <a asp-action="Edit" asp-route-id="@Model.RecipeId" class="btn btn-rb-save">Sửa BOM</a>
+                    <a asp-action="Edit" asp-route-id="@Model.RecipeId" class="btn btn-rb-save">
+                        <i class="fas fa-pen me-1" aria-hidden="true"></i>Sửa BOM
+                    </a>
                 }
             </div>
         </header>

@@ -1,21 +1,25 @@
 /* ============================================================
-   RECIPE BUILDER V4 — Premium SaaS Theme
+   RECIPE BUILDER — Coffee-Brown Palette
    ============================================================ */
 :root {
-    --rb-bg: #F7F8FC;
-    --rb-card: #ffffff;
-    --rb-border: #e2e8f0;
-    --rb-primary: #f97316;
-    --rb-primary-hover: #ea580c;
-    --rb-text: #1e293b;
-    --rb-muted: #94a3b8;
-    --rb-success: #10b981;
-    --rb-radius: 8px;
-    --rb-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+    --rb-bg:           #F7F3EE;
+    --rb-card:         #ffffff;
+    --rb-border:       #e5ddd5;
+    --rb-primary:      #6F4E37;
+    --rb-primary-hover:#5C3F2B;
+    --rb-accent:       #C67A45;
+    --rb-text:         #1F2937;
+    --rb-muted:        #475569;
+    --rb-success:      #2F6F5E;
+    --rb-warning:      #99623B;
+    --rb-danger:       #991B1B;
+    --rb-radius:       8px;
+    --rb-shadow:       0 1px 3px rgba(111,78,55,0.06), 0 4px 12px rgba(111,78,55,0.08);
 }
+
 .rb-page { background: var(--rb-bg); min-height: 100vh; padding-bottom: 100px; }
 
-/* Cards */
+/* ── Cards ── */
 .rb-card {
     background: var(--rb-card);
     border: 1px solid var(--rb-border);
@@ -32,61 +36,97 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    background: #FAF6F2;
 }
 
-/* Breadcrumb */
-.rb-breadcrumb { font-size: 0.8rem; color: var(--rb-muted); margin-bottom: 4px; }
-.rb-breadcrumb a { color: var(--rb-muted); text-decoration: none; }
-.rb-breadcrumb a:hover { color: var(--rb-primary); }
+/* ── Breadcrumb ── */
+.rb-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: var(--rb-muted);
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.rb-breadcrumb a:not(.btn-rb-back) { color: var(--rb-muted); text-decoration: none; }
+.rb-breadcrumb a:not(.btn-rb-back):hover { color: var(--rb-primary); }
+/* btn-rb-back trong breadcrumb: thu nhỏ lại cho phù hợp */
+.rb-breadcrumb .btn-rb-back {
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    height: auto;
+    min-height: unset;
+    border-radius: 6px;
+}
 .rb-page-title { font-size: 1.6rem; font-weight: 800; color: var(--rb-text); margin-bottom: 20px; }
 
-/* COGS Highlight Box */
+/* ── COGS ── */
 .rb-cogs-box {
-    background: #fff7ed;
-    border: 1px solid #fed7aa;
+    background: #FAF6F2;
+    border: 1px solid #ddd4c9;
     border-radius: var(--rb-radius);
     padding: 16px 20px;
     text-align: center;
 }
-.rb-cogs-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0; color: #c2410c; }
-.rb-cogs-value { font-size: 1.8rem; font-weight: 800; color: #ea580c; line-height: 1.2; }
-.rb-cogs-sub { font-size: 0.65rem; color: #9a3412; text-transform: uppercase; letter-spacing: 0; }
+.rb-cogs-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--rb-warning); }
+.rb-cogs-value { font-size: 1.8rem; font-weight: 800; color: var(--rb-primary); line-height: 1.2; }
+.rb-cogs-sub { font-size: 0.65rem; color: var(--rb-warning); text-transform: uppercase; }
 
-/* Status dot */
+/* ── Status dot ── */
 .rb-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
 .rb-status-dot.active { background: var(--rb-success); }
 
-/* Type Badges */
+/* ── Type Badges ── */
 .rb-badge-raw {
-    background: #dbeafe; color: #1d4ed8;
+    background: #D8F0EA; color: #2F6F5E;
     padding: 4px 12px; border-radius: 20px;
     font-size: 0.7rem; font-weight: 600; text-transform: uppercase; white-space: nowrap;
 }
 .rb-badge-sub {
-    background: #f3e8ff; color: #7c3aed;
+    background: #F0E8E0; color: #6F4E37;
     padding: 4px 12px; border-radius: 20px;
     font-size: 0.7rem; font-weight: 600; text-transform: uppercase; white-space: nowrap;
 }
 
-/* BOM Table */
+/* ── BOM Table ── */
 .rb-table { margin-bottom: 0; }
 .rb-table thead th {
-    background: #f8fafc; color: var(--rb-muted);
+    background: #FAF6F2; color: var(--rb-warning);
     font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0; border-bottom: 1px solid var(--rb-border);
     padding: 10px 16px;
+    white-space: nowrap; /* FIX: chặn header bị xuống dòng */
+    /* FIX 4: chữ thead giữa bảng */
+    text-align: center;
 }
-.rb-table tbody td { padding: 14px 16px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; font-size: 0.88rem; }
-.rb-table tbody tr:hover { background: #fafbfd; }
+/* Giữ left cho các cột text */
+.rb-table thead th:first-child,
+.rb-table thead th:nth-child(2),
+.rb-table thead th:nth-child(3) {
+    text-align: left;
+}
+/* FIX 2: Đơn vị đầu ra — cột "Đơn vị" không bị lệch */
+.rb-table thead th:nth-child(5) {
+    text-align: left;
+}
+.rb-table tbody td { padding: 14px 16px; vertical-align: middle; border-bottom: 1px solid #f5ede6; font-size: 0.88rem; }
+.rb-table tbody tr:hover { background: #FAF6F2; }
 .rb-item-name { font-weight: 600; color: var(--rb-text); }
 .rb-item-sku { font-size: 0.72rem; color: var(--rb-muted); }
 .rb-unit-sub { font-size: 0.68rem; color: var(--rb-muted); display: block; }
 .rb-cost-main { font-weight: 700; color: var(--rb-text); }
 .rb-cost-sub { font-size: 0.68rem; color: var(--rb-muted); display: block; }
 
-/* Add row button (dashed) */
+/* FIX 3: Bảng 2 — align center cho td */
+.rb-table tbody td { text-align: left; }
+.rb-table tbody td.text-center,
+.rb-table tbody td.text-end { text-align: center; }
+.rb-table tbody td.text-end { text-align: right; }
+
+/* ── Add row button ── */
 .rb-add-row {
-    border: 2px dashed #cbd5e1;
+    border: 2px dashed var(--rb-border);
     background: transparent;
     color: var(--rb-muted);
     font-weight: 600;
@@ -96,9 +136,9 @@
     transition: all 0.2s;
     font-size: 0.88rem;
 }
-.rb-add-row:hover { border-color: var(--rb-primary); color: var(--rb-primary); background: #fff7ed; }
+.rb-add-row:hover { border-color: var(--rb-primary); color: var(--rb-primary); background: #FAF6F2; }
 
-/* Sticky Footer Bar */
+/* ── Sticky Footer Bar ── */
 .rb-footer-bar {
     background: var(--rb-card);
     border-top: 1px solid var(--rb-border);
@@ -107,25 +147,40 @@
     align-items: center;
     justify-content: space-between;
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: 0; left: 0; right: 0;
     z-index: 1040;
-    box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+    box-shadow: 0 -2px 12px rgba(111,78,55,0.08);
 }
 .rb-footer-metric { display: flex; align-items: baseline; gap: 8px; }
 .rb-footer-metric-label { font-size: 0.75rem; font-weight: 600; color: var(--rb-muted); text-transform: uppercase; }
 .rb-footer-metric-value { font-size: 1.2rem; font-weight: 800; color: var(--rb-text); }
 .rb-footer-pct { font-size: 1.1rem; font-weight: 700; color: var(--rb-success); }
 
-/* Buttons — brand orange primary CTA (#126) */
-.btn-rb-ghost { background: transparent; border: 1px solid var(--rb-border); color: #64748b; font-weight: 600; border-radius: 8px; padding: 10px 24px; }
-.btn-rb-ghost:hover { background: #f1f5f9; color: var(--rb-text); }
+/* ── Buttons ── */
+.btn-rb-ghost { background: transparent; border: 1px solid var(--rb-border); color: var(--rb-muted); font-weight: 600; border-radius: 8px; padding: 10px 24px; transition: background .18s, color .18s; }
+.btn-rb-ghost:hover { background: #FAF6F2; color: var(--rb-text); border-color: var(--rb-primary); }
+
+/* FIX 1: Nút quay lại — thêm icon, căn trái, nổi bật hơn */
+.btn-rb-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+    border: 1px solid var(--rb-border);
+    color: var(--rb-muted);
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 8px 18px;
+    text-decoration: none;
+    transition: background .18s, color .18s, border-color .18s;
+}
+.btn-rb-back::before { content: '←'; font-size: 1.1em; }
+.btn-rb-back:hover { background: #FAF6F2; color: var(--rb-primary); border-color: var(--rb-primary); }
 .btn-rb-save {
     background: var(--rb-primary);
     border: 1px solid var(--rb-primary);
     color: #fff; font-weight: 700; border-radius: 8px; padding: 10px 28px;
-    box-shadow: 0 2px 8px rgba(249,115,22,0.25);
+    box-shadow: 0 2px 8px rgba(111,78,55,0.25);
 }
 .btn-rb-save:hover { background: var(--rb-primary-hover); border-color: var(--rb-primary-hover); color: #fff; }
 .btn-rb-save:focus-visible, .btn-rb-ghost:focus-visible, .rb-page .form-control:focus-visible, .rb-page .form-select:focus-visible {
@@ -133,49 +188,55 @@
     outline-offset: 2px;
 }
 
-/* Status / config badges (#126) */
+/* ── Status Badges ── */
 .rb-status-badge {
     display: inline-block; font-size: 0.72rem; font-weight: 600;
     padding: 4px 10px; border-radius: 6px; white-space: nowrap;
 }
-.rb-status-active, .rb-status-complete { background: #d1fae5; color: #047857; }
-.rb-status-inactive { background: #f1f5f9; color: #475569; }
-.rb-status-incomplete { background: #fef3c7; color: #b45309; }
-.rb-status-error { background: #fee2e2; color: #b91c1c; }
-.rb-code { font-size: 0.85rem; color: #0f172a; background: #f8fafc; padding: 2px 6px; border-radius: 4px; }
+.rb-status-active, .rb-status-complete { background: #D8F0EA; color: #2F6F5E; }
+.rb-status-inactive { background: #F0E8E0; color: #6F4E37; }
+.rb-status-incomplete { background: #FDF0E6; color: #99623B; }
+.rb-status-error { background: #FDECEA; color: #991B1B; }
+.rb-code { font-size: 0.85rem; color: var(--rb-text); background: #FAF6F2; padding: 2px 6px; border-radius: 4px; }
 .rb-qty-unit { font-variant-numeric: tabular-nums; font-weight: 600; }
 .rb-empty-state { max-width: 28rem; margin: 0 auto; }
 .rb-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .rb-chip {
     display: inline-block; padding: 6px 14px; border-radius: 8px;
-    border: 1px solid var(--rb-border); background: #fff; color: #475569;
+    border: 1px solid var(--rb-border); background: #fff; color: var(--rb-muted);
     font-size: 0.85rem; font-weight: 600; text-decoration: none;
 }
 .rb-chip:hover { border-color: var(--rb-primary); color: var(--rb-primary); }
-.rb-chip.active { background: #fff7ed; border-color: var(--rb-primary); color: #c2410c; }
-.rb-badge-topping { background: #e0e7ff; color: #3730a3; padding: 4px 12px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
-.rb-summary-card {
-    border: 1px solid #fed7aa; background: #fff7ed; border-radius: 8px; padding: 12px 16px; margin-top: 10px;
-}
-.rb-summary-card.warn { border-color: #fcd34d; background: #fffbeb; }
+.rb-chip.active { background: #FAF6F2; border-color: var(--rb-primary); color: var(--rb-primary); }
+.rb-badge-topping { background: #F0E8E0; color: #6F4E37; padding: 4px 12px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
+.rb-summary-card { border: 1px solid #ddd4c9; background: #FAF6F2; border-radius: 8px; padding: 12px 16px; margin-top: 10px; }
+.rb-summary-card.warn { border-color: #e8c88a; background: #FDF6E3; }
 .rb-preview-box {
-    border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 8px; padding: 10px 14px; margin-top: 8px;
+    border: 1px solid var(--rb-border);
+    background: #fff;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 8px;
     font-variant-numeric: tabular-nums;
+    min-height: 68px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
-.rb-preview-main { font-size: 1.1rem; font-weight: 800; color: var(--rb-text); }
-.rb-preview-sub { font-size: 0.85rem; color: #64748b; }
-.rb-cost-panel { border: 1px solid #fed7aa; background: #fff7ed; border-radius: 8px; padding: 16px; }
-.rb-cost-panel.incomplete { border-color: #fcd34d; background: #fffbeb; }
-.rb-cost-panel.complete { border-color: #a7f3d0; background: #ecfdf5; }
+.rb-preview-main { font-size: 1.15rem; font-weight: 800; color: var(--rb-primary); }
+.rb-preview-sub { font-size: 0.82rem; color: var(--rb-muted); margin-top: 2px; }
+.rb-cost-panel { border: 1px solid #ddd4c9; background: #FAF6F2; border-radius: 8px; padding: 16px; }
+.rb-cost-panel.incomplete { border-color: #e8c88a; background: #FDF6E3; }
+.rb-cost-panel.complete { border-color: #a8d8cc; background: #D8F0EA; }
 .rb-cost-issues { margin: 8px 0 0; padding-left: 1.1rem; font-size: 0.85rem; }
 .rb-cost-issues li { margin-bottom: 6px; }
-.rb-dup-warn { border: 1px solid #fcd34d; background: #fffbeb; border-radius: 8px; padding: 8px 12px; margin-top: 6px; font-size: 0.85rem; }
+.rb-dup-warn { border: 1px solid #e8c88a; background: #FDF6E3; border-radius: 8px; padding: 8px 12px; margin-top: 6px; font-size: 0.85rem; }
 .rb-section-title { font-size: 0.95rem; font-weight: 700; color: var(--rb-text); margin: 0; }
 .rb-modal .modal-content { border-radius: 8px; border: 1px solid var(--rb-border); }
-.rb-modal .modal-header { border-bottom: 1px solid var(--rb-border); background: #fff; }
-.rb-modal .modal-footer { border-top: 1px solid var(--rb-border); background: #fff; }
+.rb-modal .modal-header { border-bottom: 1px solid var(--rb-border); background: #FAF6F2; }
+.rb-modal .modal-footer { border-top: 1px solid var(--rb-border); background: #FAF6F2; }
 
-/* BOM data health */
+/* ── BOM Data Health ── */
 .rb-health-summary {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -184,15 +245,11 @@
     background: #fff;
     overflow: hidden;
 }
-.rb-health-metric {
-    min-width: 0;
-    padding: 12px 16px;
-    border-right: 1px solid var(--rb-border);
-}
+.rb-health-metric { min-width: 0; padding: 12px 16px; border-right: 1px solid var(--rb-border); }
 .rb-health-metric:last-child { border-right: 0; }
-.rb-health-metric span { display: block; color: #64748b; font-size: 0.78rem; font-weight: 600; }
-.rb-health-metric strong { display: block; margin-top: 2px; color: #b45309; font-size: 1.3rem; }
-.rb-health-metric.rb-health-ok strong { color: #047857; }
+.rb-health-metric span { display: block; color: var(--rb-muted); font-size: 0.78rem; font-weight: 600; }
+.rb-health-metric strong { display: block; margin-top: 2px; color: var(--rb-warning); font-size: 1.3rem; }
+.rb-health-metric.rb-health-ok strong { color: var(--rb-success); }
 .rb-health-table th:nth-child(1) { min-width: 240px; }
 .rb-health-table th:nth-child(2), .rb-health-table th:nth-child(3) { min-width: 150px; }
 .rb-health-table th:nth-child(4) { min-width: 430px; }
@@ -203,191 +260,260 @@
     align-items: start;
     gap: 12px;
     padding: 8px 0;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f5ede6;
 }
 .rb-health-reason:first-child { padding-top: 0; }
 .rb-health-reason:last-child { padding-bottom: 0; border-bottom: 0; }
-.rb-health-reason code { display: block; width: fit-content; margin-bottom: 3px; color: #9a3412; }
-.rb-health-reason span { display: block; color: #475569; line-height: 1.35; overflow-wrap: anywhere; }
+.rb-health-reason code { display: block; width: fit-content; margin-bottom: 3px; color: var(--rb-warning); }
+.rb-health-reason span { display: block; color: var(--rb-muted); line-height: 1.35; overflow-wrap: anywhere; }
 
-/* Type-specific BOM list */
-.rb-recipe-tabs {
-    display: flex;
-    gap: 24px;
-    margin-bottom: 14px;
-    border-bottom: 1px solid var(--rb-border);
-}
+/* ── Recipe Tabs ── */
+.rb-recipe-tabs { display: flex; gap: 24px; margin-bottom: 14px; border-bottom: 1px solid var(--rb-border); }
 .rb-recipe-tab {
     padding: 10px 2px;
     border-bottom: 2px solid transparent;
-    color: #64748b;
+    color: var(--rb-muted);
     font-weight: 700;
     text-decoration: none;
 }
-.rb-recipe-tab:hover, .rb-recipe-tab.active { color: #c2410c; border-bottom-color: var(--rb-primary); }
+.rb-recipe-tab:hover, .rb-recipe-tab.active { color: var(--rb-primary); border-bottom-color: var(--rb-primary); }
 .rb-list-filters {
     display: grid;
     grid-template-columns: minmax(260px, 1fr) minmax(180px, 240px) auto;
     gap: 8px;
     max-width: 920px;
 }
-.rb-list-meta { color: #64748b; font-size: 0.85rem; }
-.rb-recipe-table { min-width: 940px; }
-.rb-actions-cell { min-width: 210px; }
-.rb-actions-cell .btn { margin: 2px 2px 2px 0; }
+.rb-list-meta { color: var(--rb-muted); font-size: 0.85rem; }
+.rb-recipe-table { min-width: 1400px; }
+
+/* Fix cột BTP bị wrap từng ký tự */
+.rb-recipe-table td:first-child {
+    min-width: 190px;
+    max-width: 220px;
+}
+.rb-recipe-table td:first-child .fw-semibold,
+.rb-recipe-table td:first-child .font-monospace {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+    max-width: 210px;
+}
+
+.rb-actions-cell {
+    min-width: 250px;
+    white-space: nowrap;
+}
+.rb-actions-cell .btn {
+    margin: 2px 2px 2px 0;
+    white-space: nowrap;
+}
 .rb-source-cell { min-width: 280px; max-width: 420px; }
+
+/* ── PreparedItem Table — fix vỡ layout ở 100% zoom ── */
+.rb-prepareditem-table { min-width: 980px; }
+.rb-prepareditem-actions-cell {
+    min-width: 200px;
+    white-space: nowrap;
+}
+.rb-prepareditem-actions-cell .btn {
+    white-space: nowrap;
+}
 .rb-source-badge {
     display: inline-flex;
     align-items: center;
     padding: 4px 8px;
-    border: 1px solid #d7dde5;
+    border: 1px solid #ddd4c9;
     border-radius: 6px;
-    background: #f7f8fa;
-    color: #344054;
+    background: #FAF6F2;
+    color: var(--rb-text);
     font-size: 12px;
     font-weight: 700;
 }
-.rb-source-badge.is-valid { border-color: #a9d8be; background: #edf8f1; color: #17663a; }
-.rb-source-badge.is-warning { border-color: #f1c48b; background: #fff7e8; color: #8b4a12; }
+.rb-source-badge.is-valid { border-color: #a8d8cc; background: #D8F0EA; color: #2F6F5E; }
+.rb-source-badge.is-warning { border-color: #e0b898; background: #FDF0E6; color: #99623B; }
 .rb-source-line {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    margin-top: 6px;
-    color: #475467;
-    font-size: 12px;
-    line-height: 1.4;
+    display: flex; flex-wrap: wrap; gap: 4px 8px;
+    margin-top: 6px; color: var(--rb-muted); font-size: 12px; line-height: 1.4;
 }
-.rb-source-line-detail { padding: 8px 0; border-top: 1px solid #eaecf0; }
+.rb-source-line-detail { padding: 8px 0; border-top: 1px solid #ede6df; }
 .rb-pagination { display: flex; flex-wrap: wrap; gap: 6px; }
 .rb-page-link {
-    min-width: 34px;
-    padding: 6px 10px;
-    border: 1px solid var(--rb-border);
-    border-radius: 6px;
-    background: #fff;
-    color: #475569;
-    font-weight: 600;
-    text-align: center;
-    text-decoration: none;
+    min-width: 34px; padding: 6px 10px;
+    border: 1px solid var(--rb-border); border-radius: 6px;
+    background: #fff; color: var(--rb-muted); font-weight: 600;
+    text-align: center; text-decoration: none;
 }
-.rb-page-link:hover, .rb-page-link.active { border-color: var(--rb-primary); background: #fff7ed; color: #c2410c; }
+.rb-page-link:hover, .rb-page-link.active { border-color: var(--rb-primary); background: #FAF6F2; color: var(--rb-primary); }
 
-/* Light theme only — no dark page headers */
 .rb-page .bom-header-dark { display: none !important; }
 
-/* BOM detail and operational linkage (#150) */
+/* ── BOM detail ── */
 .min-w-0 { min-width: 0; }
-.rb-detail-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-}
-.rb-detail-actions, .rb-operational-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: flex-end;
-}
+.rb-detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.rb-detail-actions, .rb-operational-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .rb-detail-overview, .rb-output-contract, .rb-cost-metrics {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0;
 }
 .rb-detail-overview > div, .rb-output-contract > div, .rb-cost-metrics > div {
-    min-width: 0;
-    padding: 14px 16px;
+    min-width: 0; padding: 14px 16px;
     border-right: 1px solid var(--rb-border);
     border-bottom: 1px solid var(--rb-border);
 }
-.rb-detail-overview > div:nth-child(3n), .rb-output-contract > div:nth-child(3n), .rb-cost-metrics > div:nth-child(3n) {
-    border-right: 0;
-}
+.rb-detail-overview > div:nth-child(3n), .rb-output-contract > div:nth-child(3n), .rb-cost-metrics > div:nth-child(3n) { border-right: 0; }
 .rb-detail-overview span, .rb-output-contract span, .rb-cost-metrics span,
 .rb-readiness-strip span, .rb-actual-cost-box span {
-    display: block;
-    color: #64748b;
-    font-size: 0.75rem;
-    font-weight: 700;
+    display: block; color: var(--rb-muted); font-size: 0.75rem; font-weight: 700;
 }
 .rb-detail-overview strong, .rb-output-contract strong, .rb-cost-metrics strong {
-    display: block;
-    margin-top: 4px;
-    color: var(--rb-text);
-    overflow-wrap: anywhere;
+    display: block; margin-top: 4px; color: var(--rb-text); overflow-wrap: anywhere;
 }
 .rb-output-contract a { display: inline-block; margin-top: 6px; }
-.rb-detail-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
+.rb-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .rb-detail-reason {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 12px;
-    padding: 9px 0;
-    border-top: 1px solid #edf0f4;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start; gap: 12px; padding: 9px 0; border-top: 1px solid #ede6df;
 }
-.rb-detail-reason code { display: block; width: fit-content; color: #9a3412; }
-.rb-detail-reason span { display: block; margin-top: 3px; color: #475569; overflow-wrap: anywhere; }
-.rb-detail-table { min-width: 960px; }
+.rb-detail-reason code { display: block; width: fit-content; color: var(--rb-warning); }
+.rb-detail-reason span { display: block; margin-top: 3px; color: var(--rb-muted); overflow-wrap: anywhere; }
+.rb-detail-table {
+    min-width: 960px;
+    table-layout: auto;
+}
 .rb-detail-table th:first-child { min-width: 230px; }
 .rb-detail-table th:last-child { min-width: 210px; }
-.rb-detail-empty { padding: 28px 18px; color: #64748b; text-align: center; }
+/* FIX 5: Ngăn nội dung tràn ra khỏi ô */
+.rb-detail-table td {
+    max-width: 240px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+.rb-detail-table td code {
+    white-space: normal;
+    word-break: break-all;
+    display: inline-block;
+    max-width: 100%;
+}
+.rb-detail-empty { padding: 28px 18px; color: var(--rb-muted); text-align: center; }
 .rb-cost-metrics > p {
-    grid-column: 1 / -1;
-    margin: 0;
-    padding: 12px 16px;
-    color: #64748b;
-    background: #f8fafc;
+    grid-column: 1 / -1; margin: 0; padding: 12px 16px;
+    color: var(--rb-muted); background: #FAF6F2;
 }
-.rb-store-selector {
-    display: grid;
-    grid-template-columns: minmax(240px, 420px) auto;
-    align-items: end;
-    gap: 8px;
-}
+.rb-store-selector { display: grid; grid-template-columns: minmax(240px, 420px) auto; align-items: end; gap: 8px; }
 .rb-readiness-strip {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    border: 1px solid #f1c48b;
-    border-radius: var(--rb-radius);
-    background: #fff7e8;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    border: 1px solid #e0b898; border-radius: var(--rb-radius); background: #FDF0E6;
 }
-.rb-readiness-strip.is-ready { border-color: #a9d8be; background: #edf8f1; }
-.rb-readiness-strip > div { padding: 12px 14px; border-right: 1px solid rgba(71, 84, 103, 0.16); }
+.rb-readiness-strip.is-ready { border-color: #a8d8cc; background: #D8F0EA; }
+.rb-readiness-strip > div { padding: 12px 14px; border-right: 1px solid rgba(111,78,55,0.16); }
 .rb-readiness-strip > div:last-child { border-right: 0; }
 .rb-readiness-strip strong { display: block; margin-top: 3px; overflow-wrap: anywhere; }
-.rb-operational-reasons { margin: 10px 0 0; padding-left: 20px; color: #7c2d12; }
+.rb-operational-reasons { margin: 10px 0 0; padding-left: 20px; color: var(--rb-danger); }
 .rb-operational-reasons li { margin-bottom: 5px; overflow-wrap: anywhere; }
 .rb-subpanel {
-    min-width: 0;
-    padding: 16px;
-    border: 1px solid var(--rb-border);
-    border-radius: var(--rb-radius);
-    background: #fff;
+    min-width: 0; padding: 16px;
+    border: 1px solid var(--rb-border); border-radius: var(--rb-radius); background: #fff;
 }
 .rb-subpanel h2 { margin: 0 0 12px; font-size: 1rem; color: var(--rb-text); }
-.rb-stock-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    margin: 0;
-}
-.rb-stock-grid div { padding: 10px; border: 1px solid #edf0f4; border-radius: 6px; }
-.rb-stock-grid dt { color: #64748b; font-size: 0.75rem; }
+.rb-stock-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.rb-stock-grid div { padding: 10px; border: 1px solid #ede6df; border-radius: 6px; }
+.rb-stock-grid dt { color: var(--rb-muted); font-size: 0.75rem; }
 .rb-stock-grid dd { margin: 3px 0 0; font-weight: 800; color: var(--rb-text); }
-.rb-actual-cost-box { margin-top: 10px; padding: 12px; border-left: 3px solid #475569; background: #f8fafc; }
+.rb-actual-cost-box { margin-top: 10px; padding: 12px; border-left: 3px solid var(--rb-primary); background: #FAF6F2; }
 .rb-actual-cost-box strong, .rb-actual-cost-box small { display: block; margin-top: 3px; overflow-wrap: anywhere; }
-.rb-run-list article { padding: 10px 0; border-top: 1px solid #edf0f4; }
+.rb-run-list article { padding: 10px 0; border-top: 1px solid #ede6df; }
 .rb-run-list article:first-child { padding-top: 0; border-top: 0; }
 .rb-run-list article > div { display: flex; justify-content: space-between; gap: 8px; }
-.rb-run-list article p { margin: 4px 0; color: #64748b; font-size: 0.82rem; }
-.rb-run-list article small { color: #334155; overflow-wrap: anywhere; }
+.rb-run-list article p { margin: 4px 0; color: var(--rb-muted); font-size: 0.82rem; }
+.rb-run-list article small { color: var(--rb-text); overflow-wrap: anywhere; }
 
+/* ── FIX: Bảng 2 (SUBRECIPE) — text-align cho các cột ── */
+.rb-recipe-table td { text-align: left; }
+.rb-recipe-table td.font-monospace { text-align: right; }
+
+/* ── FIX: Đơn vị đầu ra — select không bị lệch ── */
+#sectionSub_Unit .form-select,
+#outputUnitSelect {
+    width: 100%;
+    min-width: 0;
+}
+#sectionOutput .row.g-3 > div {
+    min-width: 0;
+}
+
+/* ════════════════════════════════════════════════════
+   FIX 2: Section B — 3 cột cân bằng chiều cao
+   Mỗi cột: label trên cùng + field + hint (nếu có)
+════════════════════════════════════════════════════ */
+#sectionOutput .row.g-3 {
+    align-items: stretch;   /* các cột kéo dài bằng nhau */
+}
+#sectionOutput .row.g-3 > [class*="col"] {
+    display: flex;
+    flex-direction: column;
+}
+/* Label: font đồng nhất */
+#sectionOutput .form-label {
+    font-size: 0.86rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--rb-text);
+    min-height: 1.4rem;     /* giữ chiều cao label nhất quán */
+    display: flex;
+    align-items: center;
+}
+/* Input và select đồng nhất chiều cao */
+#sectionOutput .form-control,
+#sectionOutput .form-select {
+    height: 42px;
+    border-radius: var(--rb-radius);
+    border-color: var(--rb-border);
+}
+#sectionOutput .form-control:focus,
+#sectionOutput .form-select:focus {
+    border-color: var(--rb-primary);
+    box-shadow: 0 0 0 3px rgba(111,78,55,.12);
+}
+/* Preview box: cao bằng input */
+#normalizedOutputPreview.rb-preview-box {
+    margin-top: 0;
+    height: 42px;
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: var(--rb-radius);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    border: 1.5px solid var(--rb-border);
+    background: #FAF6F2;
+}
+#normalizedOutputPreview .rb-preview-main {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--rb-primary);
+    white-space: nowrap;
+}
+#normalizedOutputPreview .rb-preview-sub {
+    font-size: 0.8rem;
+    color: var(--rb-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* form-text hint: xuống dòng nhẹ nhàng */
+#sectionOutput .form-text {
+    font-size: 0.78rem;
+    color: var(--rb-muted);
+    line-height: 1.45;
+    margin-top: 6px;
+}
+
+/* ── Responsive ── */
 @media (max-width: 1199.98px) {
     .rb-footer-bar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
     .rb-builder-grid { display: block !important; }
@@ -414,24 +540,155 @@
     .rb-recipe-tab { white-space: nowrap; }
     .rb-detail-actions .btn, .rb-operational-actions .btn { flex: 1 1 100%; }
     .rb-detail-overview, .rb-output-contract, .rb-cost-metrics, .rb-readiness-strip, .rb-stock-grid { grid-template-columns: 1fr; }
-    .rb-detail-overview > div, .rb-output-contract > div, .rb-cost-metrics > div, .rb-readiness-strip > div {
-        border-right: 0;
-        border-bottom: 1px solid var(--rb-border);
-    }
+    .rb-detail-overview > div, .rb-output-contract > div, .rb-cost-metrics > div, .rb-readiness-strip > div { border-right: 0; border-bottom: 1px solid var(--rb-border); }
     .rb-detail-reason { grid-template-columns: 1fr; }
     .rb-detail-reason .btn { width: 100%; }
     .rb-store-selector { grid-template-columns: 1fr; }
     .rb-store-selector .btn { width: 100%; }
 }
 
-/* Toggle buttons */
-.rb-toggle .btn-check:checked + .btn { background: var(--rb-primary); border-color: var(--rb-primary); color: #fff; box-shadow: 0 4px 12px rgba(249,115,22,0.3); }
-.rb-toggle .btn { border-color: var(--rb-border); color: #64748b; font-weight: 600; border-radius: var(--rb-radius) !important; }
+/* ── Toggle buttons ── */
+.rb-toggle .btn-check:checked + .btn { background: var(--rb-primary); border-color: var(--rb-primary); color: #fff; box-shadow: 0 4px 12px rgba(111,78,55,0.3); }
+.rb-toggle .btn { border-color: var(--rb-border); color: var(--rb-muted); font-weight: 600; border-radius: var(--rb-radius) !important; }
 
-/* Select2 overrides */
+/* ── Select2 ── */
 .rb-page .select2-container--bootstrap-5 .select2-selection { border-color: var(--rb-border); border-radius: var(--rb-radius); min-height: 40px; }
-.rb-page .select2-container--bootstrap-5 .select2-results__group { background: #f1f5f9; font-weight: 700; font-size: 0.8rem; }
+.rb-page .select2-container--bootstrap-5 .select2-results__group { background: #FAF6F2; font-weight: 700; font-size: 0.8rem; }
 
-/* Inputs */
+/* ── Inputs ── */
 .rb-page .form-control, .rb-page .form-select { border-radius: var(--rb-radius); border-color: var(--rb-border); }
-.rb-page .form-control:focus, .rb-page .form-select:focus { border-color: var(--rb-primary); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+.rb-page .form-control:focus, .rb-page .form-select:focus { border-color: var(--rb-primary); box-shadow: 0 0 0 3px rgba(111,78,55,0.12); }
+
+/* ════════════════════════════════════════════════════
+   FIX 4: Nút Xem cấu trúc BOM / Sửa / Xóa — đẹp hơn
+════════════════════════════════════════════════════ */
+.rb-actions-cell .btn-outline-secondary {
+    border-color: var(--rb-border);
+    color: var(--rb-muted);
+    background: #fff;
+}
+.rb-actions-cell .btn-outline-secondary:hover {
+    background: #FAF6F2;
+    color: var(--rb-primary);
+    border-color: var(--rb-primary);
+}
+.rb-actions-cell .btn-outline-primary {
+    border-color: var(--rb-primary);
+    color: var(--rb-primary);
+    background: #fff;
+}
+.rb-actions-cell .btn-outline-primary:hover {
+    background: var(--rb-primary);
+    color: #fff;
+}
+.rb-actions-cell .btn-outline-danger {
+    border-color: #f1cbc9;
+    color: var(--rb-danger);
+    background: #fff;
+}
+.rb-actions-cell .btn-outline-danger:hover {
+    background: var(--rb-danger);
+    color: #fff;
+    border-color: var(--rb-danger);
+}
+/* Detail page: xem cấu trúc / sửa xóa cải thiện */
+.rb-detail-actions .btn-outline-secondary {
+    border-color: var(--rb-border);
+    color: var(--rb-muted);
+}
+.rb-detail-actions .btn-outline-secondary:hover {
+    background: #FAF6F2;
+    color: var(--rb-primary);
+    border-color: var(--rb-primary);
+}
+
+/* ════════════════════════════════════════════════════
+   FIX 6: TRẠNG THÁI Topping — badge đồng kích thước
+════════════════════════════════════════════════════ */
+.rb-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 100px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    text-align: center;
+}
+
+/* ════════════════════════════════════════════════════
+   FIX 7: Form xóa dòng BOM — nút xóa chữ cùng hàng
+════════════════════════════════════════════════════ */
+.rb-table .btn-remove-row,
+.rb-table [class*="btn-danger"],
+.rb-table [class*="btn-outline-danger"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+}
+
+/* ════════════════════════════════════════════════════
+   FIX 3: Cấu hình / Dữ liệu giá vốn / Lý do — canh hàng
+════════════════════════════════════════════════════ */
+.rb-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start; /* FIX: các ô bắt đầu từ trên, không stretch */
+}
+.rb-card .rb-detail-reasons { margin-top: 8px; }
+.rb-detail-reasons .rb-detail-reason:first-child { border-top: 0; padding-top: 0; }
+
+/* Health table: 3 cột đầu căn đều */
+.rb-health-table td:nth-child(1),
+.rb-health-table td:nth-child(2),
+.rb-health-table td:nth-child(3) {
+    vertical-align: middle;
+}
+.rb-health-table td:nth-child(4) { vertical-align: top; }
+
+/* ════════════════════════════════════════════════════
+   FIX 8: BOM table — select2 "Thành phần" căn lề trái,
+   không bị lệch text bên dưới
+════════════════════════════════════════════════════ */
+#bomTable .select2-container--bootstrap-5 .select2-selection--single {
+    display: flex;
+    align-items: center;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 8px;
+}
+#bomTable .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    line-height: normal;
+    padding-left: 0;
+    padding-right: 20px; /* space for arrow */
+    text-align: left;
+}
+#bomTable .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+    line-height: normal;
+    padding-left: 0;
+    color: #9CA3AF;
+}
+#bomTable .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+    height: 100%;
+    top: 0;
+    right: 6px;
+}
+
+/* FIX 9: GIÁ VỐN DÒNG & TRẠNG THÁI DỮ LIỆU — body td center */
+#bomTable .row-total-display,
+#bomTable .row-data-status {
+    text-align: center !important;
+}
+
+/* FIX 10: SỐ LƯỢNG input trong bảng — giữ nguyên right-align cho số */
+#bomTable .item-qty {
+    text-align: right;
+}

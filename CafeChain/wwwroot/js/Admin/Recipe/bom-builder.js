@@ -286,7 +286,7 @@
         }
 
         function dataStatusHtml(itemInfo, itemCode) {
-            if (!itemCode) return '<span class="text-muted small">—</span>';
+            if (!itemCode) return '';
             if (itemInfo && itemInfo.costcomplete && itemInfo.basecost > 0) {
                 return '<span class="rb-status-badge rb-status-complete">Đủ dữ liệu</span>';
             }
@@ -455,8 +455,8 @@
                 '<input type="hidden" name="Details[' + index + '].UnitId" class="item-unitid" value="0" />' +
                 '<input type="hidden" name="Details[' + index + '].YieldPercentage" class="item-yield" value="100" />' +
                 '</td>' +
-                '<td class="text-end row-total-display"><span class="text-muted small">Chưa chọn</span></td>' +
-                '<td class="row-data-status"><span class="text-muted small">—</span></td>' +
+                '<td class="text-center row-total-display"><span class="text-muted small">Chưa chọn</span></td>' +
+                '<td class="text-center row-data-status"></td>' +
                 '<td class="text-center">' +
                 '<button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" aria-label="Xóa dòng">Xóa dòng</button>' +
                 '</td>'

@@ -61,7 +61,7 @@
 
     <div class="rb-card">
         <div class="table-responsive">
-            <table class="table rb-table mb-0" aria-label="Danh sách bán thành phẩm">
+            <table class="table rb-table rb-prepareditem-table mb-0" aria-label="Danh sách bán thành phẩm">
                 <thead>
                     <tr>
                         <th scope="col">Mã BTP</th>
@@ -143,8 +143,8 @@
                             </td>
                             @if (canWrite)
                             {
-                                <td>
-                                    <div class="d-flex flex-wrap gap-1">
+                                <td class="rb-prepareditem-actions-cell">
+                                    <div class="d-flex flex-nowrap gap-1">
                                         @if (item.ActiveRecipeId.HasValue)
                                         {
                                             <a class="btn btn-sm btn-outline-secondary"

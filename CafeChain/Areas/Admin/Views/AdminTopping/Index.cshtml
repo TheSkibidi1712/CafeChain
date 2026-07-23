@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CafeChain.ViewModels.Admin.Toppings.AdminToppingVM>
+@model IEnumerable<CafeChain.ViewModels.Admin.Toppings.AdminToppingVM>
 
 @using System.Security.Claims
 @using CafeChain.Application.Constants
@@ -41,8 +41,9 @@
            asp-action="Index"
            class="me-4 pb-2 text-decoration-none fw-semibold
             @(currentController == "AdminSize"
-                ? "text-danger border-bottom border-danger"
-                : "text-muted")">
+                ? "tab-active border-bottom"
+                : "text-muted")"
+           style="@(currentController == "AdminSize" ? "color:#6F4E37;border-color:#6F4E37!important;" : "")">
 
             Quản lý Size
 
@@ -54,8 +55,9 @@
            asp-action="Index"
            class="pb-2 text-decoration-none fw-semibold
             @(currentController == "AdminTopping"
-                ? "text-danger border-bottom border-danger"
-                : "text-muted")">
+                ? "tab-active border-bottom"
+                : "text-muted")"
+           style="@(currentController == "AdminTopping" ? "color:#6F4E37;border-color:#6F4E37!important;" : "")">
 
             Quản lý Topping
 
@@ -522,9 +524,9 @@
 
         <div class="modal-content">
 
-            <div class="modal-header bg-warning">
+            <div class="modal-header" style="background:#6F4E37;">
 
-                <h5 class="modal-title">
+                <h5 class="modal-title" style="color:#fff;">
 
                     <i class="fas fa-edit me-2"></i>
                     Cập nhật Topping
@@ -696,7 +698,7 @@
 
             <!-- HEADER -->
 
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header text-white" style="background:#6F4E37;">
 
                 <h5 id="drinkModalTitle"
                     class="modal-title">

@@ -1,11 +1,49 @@
-﻿/* =======================================================
+/* =======================================================
+   BẢNG MÀU COFFEE-BROWN PALETTE
+   Primary   : #6F4E37
+   Hover     : #5C3F2B
+   Accent    : #C67A45
+   Bg        : #F7F3EE
+   Surface   : #FFFFFF
+   Text      : #1F2937
+   Muted     : #475569
+   Success   : #2F6F5E
+   Warning   : #99623B
+   Danger    : #991B1B
+======================================================= */
+
+/* =======================================================
    PAGE
+======================================================= */
+
+.container-fluid {
+    background: #F7F3EE;
+    min-height: 100vh;
+}
+
+/* =======================================================
+   TABS  — áp dụng bảng màu
+======================================================= */
+
+.d-flex.border-bottom a.fw-semibold {
+    font-size: 14px;
+    letter-spacing: 0.01em;
+}
+
+/* Tab active override — thay text-danger / border-danger → primary */
+.text-danger.border-bottom.border-danger {
+    color: #6F4E37 !important;
+    border-color: #6F4E37 !important;
+}
+
+/* =======================================================
+   CARD
 ======================================================= */
 
 .main-card {
     background: #fff;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    border: 1px solid #e5ddd5;
     overflow: hidden;
 }
 
@@ -18,16 +56,19 @@
 }
 
     .table thead th {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 700;
-        color: #6c757d;
+        color: #99623B;
         letter-spacing: .5px;
         padding: 14px 12px;
+        background: #FAF6F2;
+        text-transform: uppercase;
     }
 
     .table tbody td {
         vertical-align: middle;
         padding: 16px 12px;
+        color: #1F2937;
     }
 
     .table tbody tr {
@@ -35,7 +76,7 @@
     }
 
         .table tbody tr:hover {
-            background: #fafafa;
+            background: #F7F3EE;
         }
 
 /* =======================================================
@@ -47,8 +88,8 @@
     height: 56px;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid #eee;
-    background: #fff;
+    border: 1px solid #e5ddd5;
+    background: #FAF6F2;
 }
 
 .topping-code-badge {
@@ -58,8 +99,8 @@
     min-height: 30px;
     padding: 5px 10px;
     border-radius: 8px;
-    background: #f1f5f9;
-    color: #475569;
+    background: #F0E8E0;
+    color: #6F4E37;
     font-size: 12px;
     font-weight: 800;
 }
@@ -71,25 +112,38 @@
 .status-active {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
+    min-width: 108px;
     padding: 6px 12px;
     border-radius: 999px;
-    background: #E8F5E9;
-    color: #2E7D32;
+    background: #D8F0EA;
+    color: #2F6F5E;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
 .status-inactive {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
+    min-width: 108px;
     padding: 6px 12px;
     border-radius: 999px;
-    background: #FFEBEE;
-    color: #C62828;
+    background: #FDECEA;
+    color: #991B1B;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* Cột TRẠNG THÁI — nowrap để badge và "Hoạt động" cùng dòng */
+.table td:has(.status-active),
+.table td:has(.status-inactive) {
+    white-space: nowrap;
+    vertical-align: middle;
 }
 
 /* =======================================================
@@ -97,7 +151,7 @@
 ======================================================= */
 
 .btn-orange {
-    background: #E65100;
+    background: #6F4E37;
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -107,7 +161,7 @@
 }
 
     .btn-orange:hover {
-        background: #BF360C;
+        background: #5C3F2B;
         color: #fff;
     }
 
@@ -125,9 +179,28 @@
 
 .modal-content {
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 12px 40px rgba(0,0,0,.08);
+    box-shadow: 0 12px 40px rgba(111,78,55,.12);
+}
+
+/* Edit modal header — thay bg-warning → primary */
+.modal-header.bg-warning {
+    background: #6F4E37 !important;
+}
+
+.modal-header.bg-warning .modal-title,
+.modal-header.bg-warning h5 {
+    color: #fff !important;
+}
+
+.modal-header.bg-warning .btn-close {
+    filter: invert(1);
+}
+
+/* Drink modal header — thay bg-primary → primary */
+.modal-header.bg-primary {
+    background: #6F4E37 !important;
 }
 
 .modal-header {
@@ -149,17 +222,18 @@
 .form-label {
     font-weight: 600;
     margin-bottom: 8px;
+    color: #1F2937;
 }
 
 .form-control {
     border-radius: 8px;
     padding: 11px 14px;
-    border: 1px solid #dee2e6;
+    border: 1px solid #ddd4c9;
 }
 
     .form-control:focus {
-        border-color: #E65100;
-        box-shadow: 0 0 0 0.2rem rgba(230,81,0,.15);
+        border-color: #6F4E37;
+        box-shadow: 0 0 0 0.2rem rgba(111,78,55,.15);
     }
 
 /* =======================================================
@@ -171,7 +245,7 @@
     height: 220px;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #ddd4c9;
     background: #fff;
 }
 
@@ -188,7 +262,7 @@
     height: 220px;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #ddd4c9;
 }
 
 /* =======================================================
@@ -196,7 +270,7 @@
 ======================================================= */
 
 .drink-card {
-    border: 1px solid #ececec;
+    border: 1px solid #e5ddd5;
     border-radius: 8px;
     background: #fff;
     overflow: hidden;
@@ -205,7 +279,7 @@
 
     .drink-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0,0,0,.08);
+        box-shadow: 0 8px 20px rgba(111,78,55,.1);
     }
 
 .drink-img {
@@ -222,11 +296,12 @@
     font-size: 15px;
     font-weight: 700;
     margin-bottom: 4px;
+    color: #1F2937;
 }
 
 .drink-meta {
     font-size: 12px;
-    color: #6c757d;
+    color: #475569;
 }
 
 /* =======================================================
@@ -247,7 +322,7 @@
 
     #assignedList::-webkit-scrollbar-thumb,
     #unassignedList::-webkit-scrollbar-thumb {
-        background: #d0d0d0;
+        background: #c9b8a8;
         border-radius: 999px;
     }
 
@@ -259,6 +334,24 @@
     border-radius: 8px;
 }
 
+.alert-info {
+    background: #EDF4F2;
+    border-color: #A8D5C9;
+    color: #2F6F5E;
+}
+
+/* =======================================================
+   FIX: Cột Hành Động — không wrap xuống dòng ở 100%
+======================================================= */
+
+.table thead th.text-end,
+.table tbody td.text-end {
+    white-space: nowrap;
+}
+
+/* Bảng topping: min-width để scroll ngang thay vì vỡ */
+.main-card .table { min-width: 900px; }
+
 .topping-source-cell {
     min-width: 330px;
     max-width: 500px;
@@ -269,29 +362,29 @@
     padding: 4px 8px;
     border: 1px solid #d7dde5;
     border-radius: 6px;
-    background: #f7f8fa;
-    color: #344054;
+    background: #F7F3EE;
+    color: #1F2937;
     font-size: 12px;
     font-weight: 700;
 }
 
 .topping-source-badge.is-valid {
     border-color: #a9d8be;
-    background: #edf8f1;
-    color: #17663a;
+    background: #D8F0EA;
+    color: #2F6F5E;
 }
 
 .topping-source-badge.is-warning {
-    border-color: #f1c48b;
-    background: #fff7e8;
-    color: #8b4a12;
+    border-color: #e0b898;
+    background: #FDF0E6;
+    color: #99623B;
 }
 
 .topping-source-component {
     margin-top: 8px;
     padding-top: 8px;
-    border-top: 1px solid #edf0f3;
-    color: #475467;
+    border-top: 1px solid #ede6df;
+    color: #475569;
     font-size: 12px;
 }
 
@@ -299,7 +392,7 @@
     display: grid;
     gap: 2px;
     margin-top: 8px;
-    color: #667085;
+    color: #475569;
     font-size: 12px;
 }
 
@@ -328,8 +421,46 @@
         min-width: 650px;
     }
 }
-.ai-suggestion-panel { border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px; background: #eff6ff; }
-.ai-option-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
-.ai-option-card { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; color: #1e293b; transition: border-color .15s, box-shadow .15s, background .15s; }
-.ai-option-card:hover { border-color: #60a5fa; }
-.ai-option-card.is-selected { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 2px rgba(37, 99, 235, .15); }
+
+/* =======================================================
+   AI SUGGESTION PANEL
+======================================================= */
+.ai-suggestion-panel {
+    border: 1px solid #c9b8a8;
+    border-radius: 10px;
+    padding: 10px;
+    background: #FAF6F2;
+}
+
+.ai-option-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.ai-option-card {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd4c9;
+    border-radius: 9px;
+    background: #fff;
+    color: #1F2937;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+}
+
+    .ai-option-card:hover {
+        border-color: #C67A45;
+    }
+
+    .ai-option-card.is-selected {
+        border-color: #6F4E37;
+        background: #FAF6F2;
+        box-shadow: 0 0 0 2px rgba(111, 78, 55, .15);
+    }
+
+/* =======================================================
+   SPINNER
+======================================================= */
+.spinner-border.text-primary {
+    color: #6F4E37 !important;
+}

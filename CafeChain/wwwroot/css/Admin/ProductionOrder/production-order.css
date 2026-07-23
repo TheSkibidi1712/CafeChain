@@ -1,0 +1,460 @@
+/* ============================================================
+   PRODUCTION ORDER — Coffee-Brown Palette
+   Folder: wwwroot/css/Admin/ProductionOrder/production-order.css
+   ============================================================ */
+:root {
+    --po-bg:           #F7F3EE;
+    --po-card:         #ffffff;
+    --po-border:       #e5ddd5;
+    --po-primary:      #6F4E37;
+    --po-primary-hover:#5C3F2B;
+    --po-accent:       #C67A45;
+    --po-text:         #1F2937;
+    --po-label:        #3D2B1F;   /* FIX: label đậm hơn, dễ đọc */
+    --po-muted:        #6B7280;   /* FIX: muted sáng lên chút, không quá nhạt */
+    --po-hint:         #9CA3AF;   /* FIX: helper text nhỏ — riêng 1 tầng */
+    --po-danger:       #991B1B;
+    --po-success:      #2F6F5E;
+    --po-warning:      #99623B;
+    --po-warning-bg:   #FDF6E3;
+    --po-radius: 8px;
+    --po-shadow: 0 1px 3px rgba(111,78,55,0.06), 0 4px 12px rgba(111,78,55,0.08);
+}
+
+/* === Scope toàn bộ vào .po-page để không leak ra global === */
+.po-page { background-color: var(--po-bg); }
+
+/* ─── Page Title ─── */
+.po-title-section {
+    margin-bottom: 24px;
+}
+
+.po-title {
+    font-size: 1.35rem;        /* FIX: tăng nhẹ cho chắc */
+    font-weight: 800;
+    color: var(--po-label);    /* FIX: dùng token đậm nhất */
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+.po-subtitle {
+    color: var(--po-muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* ─── Main Card ─── */
+.po-main-card {
+    background: var(--po-card);
+    border: 1px solid var(--po-border);
+    border-radius: var(--po-radius);
+    box-shadow: var(--po-shadow);
+    padding: 28px;
+    margin-bottom: 24px;
+}
+
+/* ─── Section Title (Left Column header) ─── */
+.po-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--po-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.4;
+}
+
+/* ─── Form Labels — FIX: căn đều, màu đậm nhất quán ─── */
+.po-page .form-label {
+    display: block;            /* FIX: block để không bị inline-lệch */
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--po-label);    /* FIX: đậm, dễ đọc */
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+/* FIX: dấu * required */
+.po-page .form-label .text-danger {
+    color: #B91C1C !important;
+    font-weight: 700;
+    margin-left: 2px;
+}
+
+/* ─── Helper text dưới field ─── */
+.po-page .form-text {
+    display: block;
+    color: var(--po-hint) !important;  /* FIX: nhạt hơn label rõ ràng */
+    font-size: 0.8rem;
+    line-height: 1.5;
+    margin-top: 4px;
+}
+
+/* ─── Form controls ─── */
+.po-page .form-control,
+.po-page .form-select {
+    border-radius: 8px;
+    border: 1.5px solid var(--po-border);
+    padding: 9px 14px;         /* FIX: padding đồng đều */
+    font-size: 0.9rem;
+    color: var(--po-text);
+    background-color: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    line-height: 1.5;
+}
+
+.po-page .form-control:focus,
+.po-page .form-select:focus {
+    border-color: var(--po-primary);
+    box-shadow: 0 0 0 3px rgba(111,78,55,0.12);
+    outline: none;
+}
+
+/* FIX: readonly field — phân biệt rõ với editable */
+.po-page .form-control[readonly] {
+    background-color: #FAF6F2;
+    color: var(--po-muted);
+    font-weight: 500;
+    cursor: default;
+}
+
+/* ─── Select2 overrides — FIX: chiều cao và text align ─── */
+.po-page .select2-container--bootstrap-5 .select2-selection {
+    border-radius: 8px;
+    border-color: var(--po-border);
+    min-height: 42px;
+    padding: 5px 14px;         /* FIX: padding đồng đều với form-control */
+    display: flex;
+    align-items: center;
+}
+
+.po-page .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    color: var(--po-text);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    padding-left: 0;           /* FIX: remove default padding gây lệch */
+}
+
+.po-page .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+    color: var(--po-hint);
+}
+
+.po-page .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+    height: 100%;
+    top: 0;
+    right: 8px;
+}
+
+/* ─── Input group (datetime) ─── */
+.po-page .input-group .form-control {
+    border-right: none;
+}
+.po-page .input-group-text {
+    border: 1.5px solid var(--po-border);
+    border-left: none;
+    background: #FAF6F2;
+    border-radius: 0 8px 8px 0;
+    padding: 0 12px;
+}
+
+/* ─── Right Column — BOM Panel ─── */
+.po-bom-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 8px;
+}
+
+.po-bom-title {
+    font-weight: 700;
+    color: var(--po-label);    /* FIX: đậm như label */
+    font-size: 1rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.po-bom-badge {
+    background-color: #F0E8E0;
+    color: var(--po-warning);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ─── BOM Table ─── */
+.po-table-wrapper {
+    border: 1px solid var(--po-border);
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+.po-table {
+    margin-bottom: 0;
+    width: 100%;
+    min-width: 940px;
+}
+
+.po-table th {
+    background-color: #FAF6F2;
+    color: var(--po-warning);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--po-border);
+    white-space: nowrap;
+}
+
+.po-table td {
+    padding: 13px 16px;
+    vertical-align: middle;
+    font-size: 0.875rem;
+    color: var(--po-text);
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.po-table tr:last-child td { border-bottom: none; }
+
+/* FIX: text trong td — đậm/nhạt phân tầng rõ ràng */
+.item-name   { font-weight: 600; color: var(--po-label); line-height: 1.3; }
+.item-meta   { font-size: 0.78rem; color: var(--po-hint); margin-top: 2px; }
+.stock-val   { color: var(--po-muted); font-weight: 500; }
+.req-val     { font-weight: 700; color: var(--po-text); }
+.req-val.exceeds { color: var(--po-danger); }
+
+/* ─── Readiness Summary ─── */
+.po-readiness-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--po-border);
+    border-radius: 8px;
+    background: #FAF6F2;
+}
+
+.po-readiness-state {
+    display: inline-flex;
+    padding: 4px 10px;
+    border: 1px solid #d7dde5;
+    border-radius: 6px;
+    color: #475467;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.po-readiness-state.is-ready  { border-color: #a8d8cc; background: #D8F0EA; color: #2F6F5E; }
+.po-readiness-state.is-error  { border-color: #f3b0ad; background: #FDECEA; color: #991B1B; }
+.po-readiness-state.is-neutral { background: #FAF6F2; }
+
+.po-readiness-reasons {
+    flex-basis: 100%;
+    margin: 2px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+}
+.po-readiness-reasons code { color: inherit; }
+
+/* ─── Output Summary Grid ─── */
+.po-output-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    border: 1px solid var(--po-border);
+    border-radius: 8px;
+    background: var(--po-border);
+}
+
+.po-output-summary > div {
+    min-width: 0;
+    padding: 10px 12px;
+    background: #fff;
+}
+
+.po-output-summary span,
+.po-output-summary strong {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+/* FIX: phân tầng màu rõ ràng */
+.po-output-summary span   { color: var(--po-hint); font-size: 11px; line-height: 1.4; }
+.po-output-summary strong { margin-top: 2px; color: var(--po-label); font-size: 13px; font-weight: 700; }
+
+/* ─── Footer Actions ─── */
+.po-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 24px;
+    margin-top: 24px;
+    border-top: 1px solid var(--po-border);
+    gap: 12px;
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 1.5px solid var(--po-border);
+    color: var(--po-muted);
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 8px 16px;
+    transition: all 0.2s;
+}
+.btn-ghost:hover {
+    background: #FAF6F2;
+    color: var(--po-text);
+    border-color: var(--po-primary);
+}
+
+.btn-outline-dark {
+    border: 1.5px solid var(--po-border);
+    color: var(--po-text);
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 8px 16px;
+    background: transparent;
+    transition: all 0.2s;
+}
+.btn-outline-dark:hover {
+    background: #FAF6F2;
+    border-color: var(--po-primary);
+    color: var(--po-primary);
+}
+
+.btn-primary-action {
+    background-color: var(--po-primary);
+    border-color: var(--po-primary);
+    color: #fff;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 8px 24px;
+    box-shadow: 0 2px 8px rgba(111,78,55,0.25);
+    transition: all 0.2s;
+}
+.btn-primary-action:hover:not(:disabled) {
+    background-color: var(--po-primary-hover);
+    border-color: var(--po-primary-hover);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(111,78,55,0.3);
+}
+.btn-primary-action:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* ─── History Section ─── */
+.history-section   { margin-top: 40px; }
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.history-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--po-label);    /* FIX: đậm nhất quán với title khác */
+    margin: 0;
+}
+
+.history-link {
+    color: var(--po-muted);    /* FIX: phân biệt với title */
+    font-size: 0.82rem;
+    font-weight: 400;
+}
+
+.history-card {
+    background: var(--po-card);
+    border: 1px solid var(--po-border);
+    border-radius: var(--po-radius);
+    overflow: hidden;
+    box-shadow: var(--po-shadow);
+}
+
+.history-card .table-responsive { overflow-x: auto; }
+.history-card .po-table { min-width: 900px; }
+
+/* FIX: history table td — text alignment nhất quán */
+.history-card .po-table td {
+    font-size: 0.85rem;
+    vertical-align: middle;
+    color: var(--po-text);
+}
+.history-card .po-table td.text-muted {
+    color: var(--po-muted) !important;
+}
+
+/* Badges */
+.badge-status-done {
+    display: inline-block;
+    background: #D8F0EA;
+    color: #2F6F5E;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+.badge-status-prog {
+    display: inline-block;
+    background: var(--po-warning-bg);
+    color: var(--po-warning);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+/* Action icon */
+.action-icon {
+    background: #FAF6F2;
+    color: var(--po-muted);
+    width: 32px; height: 32px;
+    display: inline-flex; justify-content: center; align-items: center;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.action-icon:hover  { background: var(--po-primary); color: #fff; }
+.action-icon.active { background: var(--po-primary); color: #fff; }
+
+/* ─── Responsive ─── */
+@media (max-width: 991.98px) {
+    .po-main-card { padding: 18px; }
+    .po-actions {
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .po-actions > div { flex-wrap: wrap; justify-content: flex-end; }
+}
+
+@media (max-width: 575.98px) {
+    .container-fluid { padding-left: 12px !important; padding-right: 12px !important; }
+    .po-main-card  { padding: 14px; }
+    .po-output-summary { grid-template-columns: 1fr; }
+    .po-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .po-actions .btn { width: 100%; text-align: center; }
+    .po-actions > div { display: grid !important; grid-template-columns: 1fr; }
+    .history-header { align-items: flex-start; flex-direction: column; gap: 4px; }
+}

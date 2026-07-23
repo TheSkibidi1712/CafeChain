@@ -1,18 +1,52 @@
-﻿.main-card {
+/* =======================================================
+   BẢNG MÀU COFFEE-BROWN — SIZE
+======================================================= */
+
+/* Nền trang */
+.container-fluid {
+    background: #F7F3EE;
+    min-height: 100vh;
+}
+
+/* =======================================================
+   TABS — override text-danger/border-danger
+======================================================= */
+.text-danger.border-bottom.border-danger {
+    color: #6F4E37 !important;
+    border-color: #6F4E37 !important;
+}
+
+/* =======================================================
+   MAIN CARD
+======================================================= */
+
+.main-card {
     border-radius: 16px;
     background: #fff;
+    border: 1px solid #e5ddd5;
 }
+
+/* =======================================================
+   BADGES
+======================================================= */
 
 .size-badge {
     width: 60px;
     height: 60px;
-    background: #FBE9E7;
-    color: #E65100;
+    background: #F7F3EE;
+    color: #6F4E37;
     font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 10px;
+    border: 1px solid #ddd4c9;
+    /* Chữ ở giữa */
+    text-align: center;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .size-code-badge {
@@ -23,27 +57,38 @@
     min-height: 30px;
     padding: 5px 10px;
     border-radius: 8px;
-    background: #f1f5f9;
-    color: #475569;
+    background: #F0E8E0;
+    color: #6F4E37;
     font-size: 12px;
     font-weight: 800;
+    text-align: center;
 }
 
+/* =======================================================
+   STATUS
+======================================================= */
+
 .status-active {
-    color: #2E7D32;
-    background: #E8F5E9;
+    color: #2F6F5E;
+    background: #D8F0EA;
     padding: 5px 10px;
     border-radius: 8px;
     font-size: 12px;
+    font-weight: 600;
 }
 
 .status-inactive {
-    color: #C62828;
-    background: #FFEBEE;
+    color: #991B1B;
+    background: #FDECEA;
     padding: 5px 10px;
     border-radius: 8px;
     font-size: 12px;
+    font-weight: 600;
 }
+
+/* =======================================================
+   SIZE TYPE BADGES
+======================================================= */
 
 .size-type-badge {
     display: inline-flex;
@@ -54,69 +99,148 @@
     border-radius: 8px;
     font-size: 12px;
     font-weight: 700;
+    text-align: center;
 }
 
 .size-type-cup {
-    color: #0f766e;
-    background: #ccfbf1;
+    color: #2F6F5E;
+    background: #D8F0EA;
 }
 
 .size-type-volume {
-    color: #1d4ed8;
-    background: #dbeafe;
+    color: #99623B;
+    background: #FDF0E6;
 }
 
+/* =======================================================
+   BUTTONS
+======================================================= */
+
 .btn-orange {
-    background: #E65100;
+    background: #6F4E37;
     color: white;
+    border: none;
     border-radius: 10px;
+    font-weight: 600;
+    transition: .2s;
 }
 
     .btn-orange:hover {
-        background: #BF360C;
+        background: #5C3F2B;
         color: white;
     }
 
-.table td {
-    vertical-align: middle;
-}
-
-.modal-content {
-    border-radius: 16px;
-}
-.modal-content {
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-}
-
-.form-control,
-.form-select {
-    border-radius: 10px;
-    padding: 10px 12px;
-}
-
-    .form-control:focus,
-    .form-select:focus {
-        border-color: #E65100;
-        box-shadow: 0 0 0 2px rgba(230,81,0,0.1);
+    .btn-orange:disabled {
+        opacity: .7;
     }
 
 .btn-light {
     border-radius: 10px;
 }
 
-.btn-orange {
-    border-radius: 10px;
+/* =======================================================
+   TABLE
+======================================================= */
+
+.table thead th {
+    font-size: 12px;
+    font-weight: 700;
+    color: #99623B;
+    letter-spacing: .5px;
+    padding: 14px 12px;
+    background: #FAF6F2;
+    text-transform: uppercase;
 }
+
+.table td {
+    vertical-align: middle;
+    padding: 14px 12px;
+}
+
+.table tbody tr:hover {
+    background: #FAF6F2;
+}
+
+/* =======================================================
+   MODAL
+======================================================= */
+
+.modal-content {
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(111,78,55,0.12);
+    border: none;
+}
+
+/* =======================================================
+   FORM
+======================================================= */
+
+.form-control,
+.form-select {
+    border-radius: 10px;
+    padding: 10px 12px;
+    border: 1px solid #ddd4c9;
+}
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #6F4E37;
+        box-shadow: 0 0 0 2px rgba(111,78,55,0.15);
+    }
+
+/* =======================================================
+   MODAL HEADER ICON — Create / Edit
+======================================================= */
+
+/* Create modal - thay FBE9E7 → warm coffee */
+.p-2.rounded-3[style*="FBE9E7"],
+.p-2.rounded-3[style*="fbe9e7"] {
+    background: #F7F3EE !important;
+}
+
+.p-2.rounded-3[style*="FBE9E7"] i,
+.p-2.rounded-3[style*="fbe9e7"] i {
+    color: #6F4E37 !important;
+}
+
+/* Edit modal - thay E3F2FD → light brown */
+.p-2.rounded-3[style*="E3F2FD"],
+.p-2.rounded-3[style*="e3f2fd"] {
+    background: #F0E8E0 !important;
+}
+
+.p-2.rounded-3[style*="E3F2FD"] i,
+.p-2.rounded-3[style*="e3f2fd"] i {
+    color: #6F4E37 !important;
+}
+
+/* =======================================================
+   SIZE BADGE — chữ giữa, không bị xả
+======================================================= */
+
+/* currentSizeBadge badge bg-danger → warning */
+#currentSizeBadge.badge.bg-danger {
+    background: #6F4E37 !important;
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* =======================================================
+   DRINK CARDS
+======================================================= */
+
 .drink-card {
-    border: 1px solid #eee;
+    border: 1px solid #e5ddd5;
     border-radius: 12px;
     background: #fff;
     transition: 0.2s;
 }
 
     .drink-card:hover {
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        box-shadow: 0 5px 15px rgba(111,78,55,0.1);
     }
 
 .drink-img {
@@ -125,8 +249,70 @@
     object-fit: cover;
     border-radius: 10px;
 }
-.ai-suggestion-panel { border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px; background: #eff6ff; }
-.ai-option-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
-.ai-option-card { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; color: #1e293b; transition: border-color .15s, box-shadow .15s, background .15s; }
-.ai-option-card:hover { border-color: #60a5fa; }
-.ai-option-card.is-selected { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 2px rgba(37, 99, 235, .15); }
+
+/* =======================================================
+   AI SUGGESTION PANEL
+======================================================= */
+
+.ai-suggestion-panel {
+    border: 1px solid #c9b8a8;
+    border-radius: 10px;
+    padding: 10px;
+    background: #FAF6F2;
+}
+
+.ai-option-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.ai-option-card {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd4c9;
+    border-radius: 9px;
+    background: #fff;
+    color: #1F2937;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+}
+
+    .ai-option-card:hover {
+        border-color: #C67A45;
+    }
+
+    .ai-option-card.is-selected {
+        border-color: #6F4E37;
+        background: #FAF6F2;
+        box-shadow: 0 0 0 2px rgba(111, 78, 55, .15);
+    }
+
+/* =======================================================
+   THÊM MỚI — fix % wrap issue trên modal footer
+======================================================= */
+.modal-footer {
+    flex-wrap: nowrap;
+    gap: 8px;
+}
+
+.modal-footer .btn {
+    flex-shrink: 0;
+}
+
+/* Prevent 100% width btn from overflowing */
+.modal-footer .btn-orange {
+    min-width: 120px;
+}
+
+/* =======================================================
+   RESPONSIVE
+======================================================= */
+@media (max-width: 576px) {
+    .modal-footer {
+        flex-wrap: wrap;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+    }
+}

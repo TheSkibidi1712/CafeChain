@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CafeChain.ViewModels.Admin.Sizes.AdminSizeVM>
+@model IEnumerable<CafeChain.ViewModels.Admin.Sizes.AdminSizeVM>
 @using System.Security.Claims
 @using CafeChain.Application.Constants
 @using CafeChain.Application.Interfaces.Admin.Permissions
@@ -27,7 +27,8 @@
                asp-controller="AdminSize"
                asp-action="Index"
                class="me-4 pb-2 text-decoration-none fw-semibold
-            @(currentController == "AdminSize" ? "text-danger border-bottom border-danger" : "text-muted")">
+            @(currentController == "AdminSize" ? "border-bottom" : "text-muted")"
+               style="@(currentController == "AdminSize" ? "color:#6F4E37;border-color:#6F4E37!important;" : "")">
             Quản lý Size
         </a>
 
@@ -37,7 +38,8 @@
                asp-controller="AdminTopping"
                asp-action="Index"
                class="pb-2 text-decoration-none fw-semibold
-            @(currentController == "AdminTopping" ? "text-danger border-bottom border-danger" : "text-muted")">
+            @(currentController == "AdminTopping" ? "border-bottom" : "text-muted")"
+               style="@(currentController == "AdminTopping" ? "color:#6F4E37;border-color:#6F4E37!important;" : "")">
             Quản lý Topping
         </a>
         }
