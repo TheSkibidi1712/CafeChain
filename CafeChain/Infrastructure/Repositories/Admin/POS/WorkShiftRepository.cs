@@ -106,14 +106,21 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
 
         public async Task<decimal> GetTotalCashSalesAsync(int shiftId)
         {
-            return await _context.Orders
+            var settledCashAmounts = await _context.Orders
                 .Where(o => o.WorkShiftId == shiftId)
                 .Join(_context.Payments,
                     o => o.OrderId,
                     p => p.OrderId,
                     (o, p) => new { Order = o, Payment = p })
-                .Where(op => op.Payment.PaymentMethodId == 1) // 1 = Cash payment
-                .SumAsync(op => (decimal?)op.Payment.Amount) ?? 0m;
+                .Where(op =>
+                    op.Payment.PaymentMethodId == 1 &&
+                    op.Payment.PaymentStatusId == SystemConstants.PaymentStatuses.Paid &&
+                    op.Order.PaymentStatusId == SystemConstants.PaymentStatuses.Paid &&
+                    op.Order.OrderStatusId != SystemConstants.OrderStatuses.Cancelled)
+                .Select(op => op.Payment.Amount)
+                .ToListAsync();
+
+            return settledCashAmounts.Sum();
         }
 
         public async Task<bool> HasOpenPosPaymentAsync(int shiftId, int storeId)

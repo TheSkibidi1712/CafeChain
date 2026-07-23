@@ -10,6 +10,7 @@ using CafeChain.Controllers.Api.v1;
 using CafeChain.Data;
 using CafeChain.Hubs;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
+using CafeChain.Infrastructure.Repositories.Admin.POS;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Payments;
@@ -395,6 +396,28 @@ namespace CafeChain.Tests.POS
                 log.OrderId == orderId &&
                 log.Status == "CASH_RETURNED" &&
                 log.Amount == 20000m);
+
+            var totalCashSales = await new WorkShiftRepository(context)
+                .GetTotalCashSalesAsync(shift.ShiftId);
+            Assert.Equal(0m, totalCashSales);
+        }
+
+        [Fact]
+        public async Task CompletedPaidSplitOrder_CountsSettledCashInDrawer()
+        {
+            using var context = CreateDbContext();
+            await SeedSplitOrderAsync(
+                context,
+                orderStatusId: SystemConstants.OrderStatuses.Completed,
+                paymentStatusId: SystemConstants.PaymentStatuses.Paid,
+                paymentLineStatusId: SystemConstants.PaymentStatuses.Paid,
+                pendingCashAmount: 20000m,
+                pendingVietQrAmount: 13000m);
+
+            var totalCashSales = await new WorkShiftRepository(context)
+                .GetTotalCashSalesAsync(42);
+
+            Assert.Equal(20000m, totalCashSales);
         }
 
         [Fact]
