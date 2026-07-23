@@ -87,6 +87,8 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Infrastructure.Repositories.Admin.Profiles.AdminProfileRepository>();
             services.AddScoped<CafeChain.Infrastructure.Interfaces.Admin.Staffs.IAdminStaffShiftRepository,
                 CafeChain.Infrastructure.Repositories.Admin.Staffs.AdminStaffShiftRepository>();
+            services.AddScoped<CafeChain.Infrastructure.Interfaces.Admin.Staffs.IShiftOptimizationRepository,
+                CafeChain.Infrastructure.Repositories.Admin.Staffs.ShiftOptimizationRepository>();
             services.AddScoped<CafeChain.Infrastructure.Interfaces.Admin.Stores.IAdminStoreRepository,
                 CafeChain.Infrastructure.Repositories.Admin.Stores.AdminStoreRepository>();
 
@@ -101,12 +103,29 @@ namespace CafeChain.Extensions.Services
 
             // Admin - Store Inventories
             services.AddScoped<IAdminStoreInventoryRepository, AdminStoreInventoryRepository>();
+            services.AddScoped<
+                CafeChain.Infrastructure.Interfaces.Admin.Procurement.IReorderSuggestionRepository,
+                CafeChain.Infrastructure.Repositories.Admin.Procurement.ReorderSuggestionRepository>();
+            services.AddScoped<
+                CafeChain.Infrastructure.Interfaces.Operations.IStaffNotificationRepository,
+                CafeChain.Infrastructure.Repositories.Operations.StaffNotificationRepository>();
+            services.AddScoped<
+                CafeChain.Infrastructure.Interfaces.Operations.IInventoryReorderNotificationRepository,
+                CafeChain.Infrastructure.Repositories.Operations.InventoryReorderNotificationRepository>();
 
             // Admin - Suppliers
             services.AddScoped<IAdminSupplierRepository, AdminSupplierRepository>();
 
             // Dashboard
             services.AddScoped<IDashboardRepository, DashboardRepository>();
+            services.AddScoped<CafeChain.Infrastructure.Interfaces.Analytics.IForecastRepository,
+                CafeChain.Infrastructure.Repositories.Analytics.ForecastRepository>();
+            services.AddScoped<CafeChain.Infrastructure.Interfaces.Analytics.ISupplierIntelligenceRepository,
+                CafeChain.Infrastructure.Repositories.Analytics.SupplierIntelligenceRepository>();
+            services.AddScoped<CafeChain.Infrastructure.Interfaces.Analytics.IPosRecommendationRepository,
+                CafeChain.Infrastructure.Repositories.Analytics.PosRecommendationRepository>();
+            services.AddScoped<CafeChain.Infrastructure.Interfaces.Analytics.IAnomalyDetectionRepository,
+                CafeChain.Infrastructure.Repositories.Analytics.AnomalyDetectionRepository>();
 
             services.AddScoped<IWorkShiftRepository, WorkShiftRepository>();
             services.AddScoped<IStaffScheduleRepository, StaffScheduleRepository>();

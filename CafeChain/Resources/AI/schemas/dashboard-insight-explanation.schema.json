@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["analysisId", "widget", "explanation"],
+  "properties": {
+    "analysisId": { "type": "string", "format": "uuid" },
+    "widget": { "enum": ["NetSalesTrend", "StoreRanking", "TopProducts", "HourlyOrders", "InventoryWasteByStoreIngredient", "OverduePurchaseOrders", "SupplierQuality", "WorkforceShiftStatus"] },
+    "explanation": { "type": "string", "minLength": 1, "maxLength": 1000 }
+  }
+}

@@ -22,6 +22,14 @@ namespace CafeChain.Models.Operations
 
         public string Body { get; set; } = string.Empty;
 
+        public string Severity { get; set; } = "INFO";
+
+        public string? DeduplicationKey { get; set; }
+
+        public DateTime? UpdatedAt { get; set; }
+
+        public DateTime? ResolvedAt { get; set; }
+
         /// <summary>e.g. StockAlert</summary>
         public string EntityType { get; set; } = string.Empty;
 

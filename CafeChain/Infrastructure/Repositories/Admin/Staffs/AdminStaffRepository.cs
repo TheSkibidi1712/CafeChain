@@ -342,7 +342,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
             var account = await _context.Accounts.FindAsync(accountId);
             if (account == null) return false;
             account.PasswordHash = passwordHash;
-            account.RequiresPasswordChange = true;
+            account.RequiresPasswordChange = false;
             await _context.SaveChangesAsync();
             return true;
         }

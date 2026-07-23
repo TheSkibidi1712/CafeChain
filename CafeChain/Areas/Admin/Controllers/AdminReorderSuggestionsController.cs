@@ -65,6 +65,39 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Explain(
+            int storeId,
+            int ingredientId,
+            int analysisWindowDays = 30,
+            CancellationToken cancellationToken = default)
+        {
+            var actor = _actorAccessor.Get(User);
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved)
+                return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Bạn không có quyền truy cập cửa hàng này." });
+
+            var result = await _suggestions.ExplainAsync(
+                storeScope.StoreId!.Value,
+                ingredientId,
+                actor.StaffId,
+                actor.RoleNames,
+                analysisWindowDays,
+                cancellationToken);
+            if (!result.IsSuccess || result.Data == null)
+                return UnprocessableEntity(new { success = false, message = result.Message ?? "Không tạo được giải thích." });
+
+            return Json(new
+            {
+                success = true,
+                explanation = result.Data.Explanation,
+                usedOllama = result.Data.UsedOllama,
+                usedFallback = result.Data.UsedFallback,
+                warnings = result.Data.Warnings
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateDraft(int storeId, int ingredientId)
         {
             var actor = _actorAccessor.Get(User);

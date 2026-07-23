@@ -25,6 +25,7 @@ public static class InventoryIssueReasonCodes
     public const string InvalidInventoryIdentity = "INVALID_INVENTORY_IDENTITY";
     public const string ManualNegativeFeatureDisabled = "MANUAL_NEGATIVE_FEATURE_DISABLED";
     public const string ManualNegativePurposeNotAllowed = "MANUAL_NEGATIVE_PURPOSE_NOT_ALLOWED";
+    public const string ManualNegativeOptInRequired = "MANUAL_NEGATIVE_OPT_IN_REQUIRED";
     public const string ManualNegativeReasonRequired = "MANUAL_NEGATIVE_REASON_REQUIRED";
     public const string ManualNegativeApprovalRequired = "MANUAL_NEGATIVE_APPROVAL_REQUIRED";
     public const string ManualNegativeLimitExceeded = "MANUAL_NEGATIVE_LIMIT_EXCEEDED";
@@ -67,7 +68,8 @@ public sealed record InventoryIssueRequest(
     string? Reason,
     string? PolicyVersion,
     InventoryApprovalEvidence? Approval,
-    byte[]? InventoryRowVersion = null);
+    byte[]? InventoryRowVersion = null,
+    bool AllowNegativeStock = false);
 
 public sealed record InventoryIssueDecision(
     InventoryIssueOutcome Outcome,

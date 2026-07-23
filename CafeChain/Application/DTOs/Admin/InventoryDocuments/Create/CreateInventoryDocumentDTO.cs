@@ -26,6 +26,7 @@ namespace CafeChain.Application.DTOs.Admin.InventoryDocuments.Create
         public DateTime DocumentDate { get; set; }
 
         public string? Note { get; set; }
+        public bool AllowNegativeStock { get; set; }
         public string? NegativeReason { get; set; }
 
         public string? RequestKey { get; set; }

@@ -7,11 +7,22 @@ public sealed record AISkillContext(
     string? SuggestionSchema,
     IReadOnlyList<string> Warnings);
 
+public sealed record AINamedSkillContext(
+    string SkillName,
+    string Content,
+    string JsonSchema,
+    IReadOnlyList<string> LoadedFiles,
+    IReadOnlyList<string> Warnings);
+
 public interface IAISkillCatalog
 {
     Task<AISkillContext> GetContextAsync(
         string entityType,
         bool includeImageSkills,
+        CancellationToken cancellationToken = default);
+
+    Task<AINamedSkillContext> GetNamedSkillAsync(
+        string skillName,
         CancellationToken cancellationToken = default);
 }
 

@@ -18,10 +18,14 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public string IngredientName { get; set; } = string.Empty;
         public string BaseUnitCode { get; set; } = string.Empty;
         public decimal AvailableQuantity { get; set; }
+        public decimal ReservedQuantity { get; set; }
+        public decimal UsableQuantity { get; set; }
+        public decimal ProjectedQuantity { get; set; }
         public decimal? MinLevel { get; set; }
         public decimal? AverageDailyUsage { get; set; }
         public int? LeadTimeDays { get; set; }
         public decimal IncomingApprovedPoQuantity { get; set; }
+        public decimal PendingPurchaseAdviceQuantity { get; set; }
         public decimal? ReorderPoint { get; set; }
         public decimal? SuggestedBaseQuantity { get; set; }
         public int? SuggestedPackageCount { get; set; }
@@ -34,6 +38,7 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public decimal? PackagePrice { get; set; }
         public decimal? EstimatedAmount { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string RecommendationLevel { get; set; } = string.Empty;
         public string Reason { get; set; } = string.Empty;
         public int? ActiveRestockRequestId { get; set; }
     }

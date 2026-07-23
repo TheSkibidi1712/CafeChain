@@ -27,6 +27,8 @@ const InventoryCreate = (() => {
         partnerName: "#PartnerName",
         store: "#storeSelect",
         note: "#Note",
+        allowNegativeStock: "#AllowNegativeStock",
+        negativeReasonField: "#negativeReasonField",
         negativeReason: "#NegativeReason",
         negativePreflightPanel: "#negativePreflightPanel",
         notePurposeHint: "#notePurposeHint",
@@ -79,12 +81,7 @@ const InventoryCreate = (() => {
 
     const documentPurpose = {
         importPurchase: 1,
-        importAdjustment: 3,
         sale: 5,
-        gift: 7,
-        debt: 8,
-        sample: 9,
-        adjustmentOut: 10,
         stockTake: 11,
         damaged: 12,
         expired: 13,
@@ -97,6 +94,7 @@ const InventoryCreate = (() => {
     let isIngredientSourceLoading = false;
     let isSupplierIngredientFallback = false;
     let loadedSupplierStoreId = "";
+    let storeInventoryRequestVersion = 0;
     let summaryTimer = null;
     let currentRequestKey = null;
 
@@ -279,13 +277,6 @@ const InventoryCreate = (() => {
                         return;
                     }
 
-                    if (isImportAdjustment()) {
-                        await loadActiveIngredients(
-                            storeSelect.value
-                        );
-                        return;
-                    }
-
                     if (usesStoreInventorySource()) {
                         await loadStoreInventoryIngredients(
                             storeSelect.value
@@ -312,6 +303,18 @@ const InventoryCreate = (() => {
                     "change",
                     applyPurposeMode);
             });
+
+        form
+            .querySelector(selector.allowNegativeStock)
+            ?.addEventListener(
+                "change",
+                () => {
+                    updateNegativeStockFields();
+                    document
+                        .querySelectorAll(`${selector.tableBody} .ingredient-row`)
+                        .forEach(updateRowAmount);
+                    requestSummary();
+                });
 
         addButton
             ?.addEventListener(
@@ -441,6 +444,7 @@ const InventoryCreate = (() => {
         updateQuantityReferenceHeader();
         updateUnitPriceHeader();
         updateDraftAction();
+        updateNegativeStockFields();
 
         if (isImportPurchase()) {
             syncPartnerFromSupplier();
@@ -474,7 +478,7 @@ const InventoryCreate = (() => {
             return;
         }
 
-        if (isImportAdjustment() || usesStoreInventorySource()) {
+        if (usesStoreInventorySource()) {
             syncPurposePartner();
             toggleManualRows(true);
             setPriceEditable(canEditUnitPriceForCurrentPurpose());
@@ -483,12 +487,7 @@ const InventoryCreate = (() => {
             const storeId =
                 document.querySelector(selector.store)?.value;
 
-            if (isImportAdjustment()) {
-                loadActiveIngredients(storeId);
-            }
-            else if (usesStoreInventorySource()) {
-                loadStoreInventoryIngredients(storeId);
-            }
+            loadStoreInventoryIngredients(storeId);
 
             return;
         }
@@ -529,26 +528,58 @@ const InventoryCreate = (() => {
         }
 
         if (noteInput) {
-            noteInput.required = isImportAdjustment() || isAdjustmentOut() || isWaste();
+            noteInput.required = isWaste();
             noteInput.placeholder = isWaste()
                 ? "Nhập lý do hủy kho"
-                : isImportAdjustment() || isAdjustmentOut()
-                    ? "Nhập lý do điều chỉnh tồn kho"
-                    : "Nhập ghi chú cho phiếu kho";
+                : "Nhập ghi chú cho phiếu kho";
         }
 
         if (noteHint) {
             noteHint.textContent = isWaste()
                 ? "Bắt buộc khi lập phiếu hủy kho."
-                : "Bắt buộc khi lập phiếu điều chỉnh.";
+                : "";
 
             noteHint.classList.toggle(
                 "d-none",
-                !(isImportAdjustment() || isAdjustmentOut() || isWaste())
+                !isWaste()
             );
         }
 
         syncPurposePartner();
+    }
+
+    function updateNegativeStockFields() {
+
+        const allowNegativeInput =
+            document.querySelector(selector.allowNegativeStock);
+
+        const reasonField =
+            document.querySelector(selector.negativeReasonField);
+
+        const reasonInput =
+            document.querySelector(selector.negativeReason);
+
+        const preflightPanel =
+            document.querySelector(selector.negativePreflightPanel);
+
+        const enabled =
+            isExportSale() && allowNegativeInput?.checked === true;
+
+        reasonField?.classList.toggle("d-none", !enabled);
+
+        if (reasonInput) {
+            reasonInput.disabled = !enabled;
+            reasonInput.required = false;
+
+            if (!enabled) {
+                reasonInput.value = "";
+            }
+        }
+
+        if (!enabled && preflightPanel) {
+            preflightPanel.classList.add("d-none");
+            preflightPanel.textContent = "";
+        }
     }
 
     function updateCreateHeader() {
@@ -591,11 +622,6 @@ const InventoryCreate = (() => {
 
         if (!codeInput.dataset.originalCode) {
             codeInput.dataset.originalCode = codeInput.value || "";
-        }
-
-        if (isImportAdjustment()) {
-            codeInput.value = "Tự động sinh khi lưu";
-            return;
         }
 
         if (isImportPurchase() && codeInput.dataset.originalCode) {
@@ -660,11 +686,6 @@ const InventoryCreate = (() => {
             return;
         }
 
-        if (isAdjustmentOut()) {
-            header.textContent = "Giá vốn điều chỉnh";
-            return;
-        }
-
         if (isExportSale()) {
             header.textContent = "Đơn giá xuất kho";
             return;
@@ -697,30 +718,12 @@ const InventoryCreate = (() => {
             };
         }
 
-        if (isImportAdjustment()) {
-            return {
-                title: "Tạo Phiếu Điều Chỉnh Tăng Kho",
-                subtitle: "Điều chỉnh tăng tồn kho theo biên bản đối soát",
-                icon: "fa-sliders-h",
-                hint: "Chọn nguyên liệu cần điều chỉnh tăng và nhập số lượng theo biên bản đối soát."
-            };
-        }
-
         if (isExportSale()) {
             return {
                 title: "Tạo Phiếu Xuất Bán",
                 subtitle: "Xuất nguyên liệu ra khỏi kho cho nghiệp vụ bán hàng hoặc cấp phát",
                 icon: "fa-arrow-up",
                 hint: "Chọn nguyên liệu cần xuất, nhập số lượng và đơn giá nếu cần ghi nhận giá trị chứng từ."
-            };
-        }
-
-        if (isAdjustmentOut()) {
-            return {
-                title: "Tạo Phiếu Điều Chỉnh Giảm Kho",
-                subtitle: "Điều chỉnh giảm tồn kho theo biên bản kiểm tra",
-                icon: "fa-sliders-h",
-                hint: "Chọn nguyên liệu cần điều chỉnh giảm, nhập số lượng và ghi rõ lý do điều chỉnh."
             };
         }
 
@@ -862,58 +865,10 @@ const InventoryCreate = (() => {
         }
     }
 
-    async function loadActiveIngredients(storeId) {
-
-        supplierIngredients = [];
-        isIngredientSourceLoading = true;
-        isSupplierIngredientFallback = false;
-        resetRows();
-        renderIngredientOptions(true);
-        updateSummary(emptySummary());
-
-        if (!storeId) {
-            isIngredientSourceLoading = false;
-            renderIngredientOptions(false, "Chọn cửa hàng trước");
-            updateEntryGuards();
-            return;
-        }
-
-        try {
-
-            const response =
-                await fetch(appendQuery(getEndpoint("activeIngredientsUrl"), {
-                    storeId,
-                    purpose: documentPurpose.importAdjustment
-                }));
-
-            if (!response.ok) {
-                throw new Error(await response.text());
-            }
-
-            supplierIngredients =
-                await response.json();
-
-            isIngredientSourceLoading = false;
-            renderIngredientOptions();
-            setPriceEditable(canEditUnitPriceForCurrentPurpose());
-            updateEntryGuards();
-
-        }
-        catch (error) {
-
-            isIngredientSourceLoading = false;
-            renderIngredientOptions();
-            updateEntryGuards();
-
-            showError(
-                error.message || "Không tải được danh sách nguyên liệu."
-            );
-
-        }
-    }
-
     async function loadStoreInventoryIngredients(storeId) {
 
+        const requestVersion = ++storeInventoryRequestVersion;
+        const requestedStoreId = String(storeId || "");
         const hadSelectedIngredients = hasSelectedIngredientRows();
         supplierIngredients = [];
         isIngredientSourceLoading = true;
@@ -945,9 +900,17 @@ const InventoryCreate = (() => {
             supplierIngredients =
                 await response.json();
 
+            const currentStoreId =
+                String(document.querySelector(selector.store)?.value || "");
+
+            if (requestVersion !== storeInventoryRequestVersion
+                || currentStoreId !== requestedStoreId) {
+                return;
+            }
+
             isIngredientSourceLoading = false;
             renderIngredientOptions();
-            setPriceEditable(isManualPricePurpose());
+            setPriceEditable(false);
             updateEntryGuards();
 
             if (hadSelectedIngredients) {
@@ -959,6 +922,10 @@ const InventoryCreate = (() => {
 
         }
         catch (error) {
+
+            if (requestVersion !== storeInventoryRequestVersion) {
+                return;
+            }
 
             isIngredientSourceLoading = false;
             renderIngredientOptions();
@@ -1777,7 +1744,7 @@ const InventoryCreate = (() => {
         const available =
             getAvailableBaseQuantity(item);
 
-        if (!usesStoreInventorySource() && !isImportAdjustment() && !isStockTake()) {
+        if (!usesStoreInventorySource() && !isStockTake()) {
             return "Tồn: -";
         }
 
@@ -1847,7 +1814,7 @@ const InventoryCreate = (() => {
         const available =
             getAvailableBaseQuantity(item);
 
-        if (available <= 0 || baseQuantity <= available) {
+        if (baseQuantity <= available) {
             return { quantity, baseQuantity };
         }
 
@@ -1859,7 +1826,7 @@ const InventoryCreate = (() => {
         }
 
         const maxQuantity =
-            available / conversionFactor;
+            Math.max(available, 0) / conversionFactor;
 
         const normalizedMax =
             roundQuantity(maxQuantity);
@@ -1873,7 +1840,9 @@ const InventoryCreate = (() => {
         }
 
         notify(
-            "Số lượng vượt tồn khả dụng, hệ thống đã tự giảm về mức còn tồn.",
+            available > 0
+                ? `Nguyên liệu "${item.ingredientName ?? item.IngredientName ?? "đã chọn"}" chỉ còn ${formatQuantity(available / conversionFactor)} ${getSelectedUnitLabel(row, item)}. Hệ thống đã giảm số lượng về mức còn tồn.${isExportSale() ? " Bật \"Cho phép xuất âm kho\" nếu nghiệp vụ xuất bán này được phép." : ""}`
+                : `Nguyên liệu "${item.ingredientName ?? item.IngredientName ?? "đã chọn"}" hiện không còn tồn khả dụng.${isExportSale() ? " Hãy bật \"Cho phép xuất âm kho\" nếu nghiệp vụ xuất bán này được phép." : " Hãy chọn nguyên liệu khác hoặc kiểm tra lại tồn kho."}`,
             "error"
         );
 
@@ -2058,18 +2027,6 @@ const InventoryCreate = (() => {
 
     async function submitDocument(saveAsDraft) {
 
-        if (isImportAdjustment()
-            && !document.querySelector(selector.note)?.value?.trim()) {
-            showError("Phiếu nhập điều chỉnh phải có ghi chú lý do điều chỉnh.");
-            return;
-        }
-
-        if (isAdjustmentOut()
-            && !document.querySelector(selector.note)?.value?.trim()) {
-            showError("Phiếu xuất điều chỉnh phải có ghi chú lý do điều chỉnh.");
-            return;
-        }
-
         if (isWaste()
             && !document.querySelector(selector.note)?.value?.trim()) {
             showError("Phiếu hủy kho phải có ghi chú lý do hủy.");
@@ -2116,7 +2073,16 @@ const InventoryCreate = (() => {
                 renderNegativePreflight(preflight);
                 const outcome = String(preflight?.outcome ?? preflight?.Outcome ?? "");
                 if (outcome === "3" || outcome.toLowerCase() === "blocked") {
-                    throw new Error("Preflight đã chặn phiếu. Vui lòng kiểm tra projected after và reason code.");
+                    const lines = preflight?.lines || preflight?.Lines || [];
+                    const blockedLine = lines.find(line => {
+                        const lineOutcome = String(line.outcome ?? line.Outcome ?? "");
+                        return lineOutcome === "3" || lineOutcome.toLowerCase() === "blocked";
+                    });
+                    throw new Error(
+                        blockedLine?.userMessage
+                        ?? blockedLine?.UserMessage
+                        ?? "Không thể tiếp tục vì số lượng yêu cầu không phù hợp với tồn kho hiện tại."
+                    );
                 }
                 if ((outcome === "2" || outcome.toLowerCase() === "approvalrequired")
                     && !dto.negativeReason?.trim()) {
@@ -2206,6 +2172,9 @@ const InventoryCreate = (() => {
         const effectivePartnerId =
             effectiveSupplierId || null;
 
+        const allowNegativeStock =
+            allowsManualNegativeExport();
+
         return {
             type:
                 readInt(
@@ -2228,8 +2197,12 @@ const InventoryCreate = (() => {
             note:
                 document.querySelector(selector.note)?.value || null,
 
+            allowNegativeStock,
+
             negativeReason:
-                document.querySelector(selector.negativeReason)?.value?.trim() || null,
+                allowNegativeStock
+                    ? document.querySelector(selector.negativeReason)?.value?.trim() || null
+                    : null,
 
             partnerType:
                 effectivePartnerType,
@@ -2568,22 +2541,10 @@ const InventoryCreate = (() => {
             <div class="inventory-type-copy">
                 <span class="inventory-type-eyebrow">Chọn nghiệp vụ</span>
                 <strong>Bạn muốn thực hiện nghiệp vụ nào?</strong>
-                <p>Hệ thống sẽ tải mã phiếu, cửa hàng, nhà cung cấp và summary mặc định.</p>
+                <p>Hệ thống sẽ tải mã phiếu, cửa hàng và thông tin tồn kho phù hợp với nghiệp vụ.</p>
             </div>
 
             <div class="inventory-type-grid">
-                <button type="button"
-                        class="inventory-type-card inventory-type-import"
-                        data-inventory-type="1">
-                    <span class="inventory-type-card-icon">
-                        <i class="fas fa-arrow-down"></i>
-                    </span>
-                    <span>
-                        <strong>Nhập kho</strong>
-                        <small>Nhận hàng từ nhà cung cấp</small>
-                    </span>
-                </button>
-
                 <button type="button"
                         class="inventory-type-card inventory-type-export"
                         data-inventory-type="2">
@@ -2592,7 +2553,7 @@ const InventoryCreate = (() => {
                     </span>
                     <span>
                         <strong>Xuất kho</strong>
-                        <small>Xuất bán hàng hoặc điều chỉnh</small>
+                        <small>Xuất nguyên liệu phục vụ bán hàng</small>
                     </span>
                 </button>
 
@@ -2948,17 +2909,21 @@ const InventoryCreate = (() => {
     function renderNegativePreflight(preflight) {
         const panel = document.querySelector(selector.negativePreflightPanel);
         if (!panel) return;
-        const lines = preflight?.lines || preflight?.Lines || [];
+        const lines = (preflight?.lines || preflight?.Lines || [])
+            .filter(line => {
+                const after = line.projectedAfterQty ?? line.ProjectedAfterQty ?? 0;
+                return Number(after) < 0;
+            });
+        if (!allowsManualNegativeExport()) {
+            panel.classList.add("d-none");
+            panel.textContent = "";
+            return;
+        }
         panel.classList.toggle("d-none", lines.length === 0);
         panel.textContent = lines.map(line => {
-            const before = line.beforeDisplayQty ?? line.BeforeDisplayQty ?? line.beforeQty ?? line.BeforeQty ?? 0;
-            const issue = line.issueDisplayQty ?? line.IssueDisplayQty ?? line.issueQty ?? line.IssueQty ?? 0;
-            const after = line.projectedAfterDisplayQty ?? line.ProjectedAfterDisplayQty ?? line.projectedAfterQty ?? line.ProjectedAfterQty ?? 0;
-            const limit = line.effectiveMaxNegativeDisplayQty ?? line.EffectiveMaxNegativeDisplayQty ?? line.effectiveMaxNegativeQty ?? line.EffectiveMaxNegativeQty ?? 0;
-            const unit = line.unitCode ?? line.UnitCode ?? "base";
-            const outcome = line.outcome ?? line.Outcome ?? "";
-            const reason = line.reasonCode ?? line.ReasonCode ?? "";
-            return `#${line.ingredientId ?? line.IngredientId}: Before ${formatQuantity(before)} ${unit} | Issue ${formatQuantity(issue)} ${unit} | Projected ${formatQuantity(after)} ${unit} | Limit ${formatQuantity(limit)} ${unit} | ${outcome} | ${reason}`;
+            return line.userMessage
+                ?? line.UserMessage
+                ?? "Phiếu này làm tồn kho âm và cần được kiểm tra trước khi xác nhận.";
         }).join("\n");
     }
 
@@ -3002,12 +2967,6 @@ const InventoryCreate = (() => {
             && getCurrentPurpose() === documentPurpose.importPurchase;
     }
 
-    function isImportAdjustment() {
-
-        return getCurrentDocumentType() === documentType.import
-            && getCurrentPurpose() === documentPurpose.importAdjustment;
-    }
-
     function isExportSale() {
 
         return getCurrentDocumentType() === documentType.export
@@ -3015,19 +2974,8 @@ const InventoryCreate = (() => {
     }
 
     function allowsManualNegativeExport() {
-        if (getCurrentDocumentType() !== documentType.export) return false;
-        return [
-            documentPurpose.sale,
-            documentPurpose.gift,
-            documentPurpose.debt,
-            documentPurpose.sample
-        ].includes(getCurrentPurpose());
-    }
-
-    function isAdjustmentOut() {
-
-        return getCurrentDocumentType() === documentType.export
-            && getCurrentPurpose() === documentPurpose.adjustmentOut;
+        return isExportSale()
+            && document.querySelector(selector.allowNegativeStock)?.checked === true;
     }
 
     function isStockTake() {
@@ -3050,14 +2998,9 @@ const InventoryCreate = (() => {
         return isExportSale();
     }
 
-    function isManualPricePurpose() {
-
-        return isImportAdjustment();
-    }
-
     function canEditUnitPriceForCurrentPurpose() {
 
-        return isManualPricePurpose() || isSupplierIngredientFallback;
+        return isSupplierIngredientFallback;
     }
 
     function usesStoreInventorySource() {

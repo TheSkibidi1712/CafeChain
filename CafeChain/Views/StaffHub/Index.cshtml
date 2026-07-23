@@ -20,8 +20,6 @@
 
 <div id="staffHubApp"
      class="container-fluid py-4"
-     data-requires-password-change="@Model.RequiresPasswordChange.ToString().ToLowerInvariant()"
-     data-change-password-url="@Url.Action("ChangeRequiredPassword", "StaffHub")"
      data-issue-pos-url="@Url.Action("IssuePosToken", "StaffHub")">
     @Html.AntiForgeryToken()
     <div class="staffhub-shell">
@@ -65,17 +63,6 @@
         </div>
         <div class="alert alert-info mt-4"><i class="bi bi-info-circle me-2"></i>Đây là lịch dự kiến, không phải dữ liệu chấm công. Việc chưa được xếp lịch không ngăn bạn mở POS nếu tài khoản có quyền.</div>
     </div>
-</div>
-
-<div class="modal fade" id="passwordModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form id="requiredPasswordForm">
-        <div class="modal-header"><h5 class="modal-title">Đổi mật khẩu lần đầu</h5></div>
-        <div class="modal-body">
-            <p class="text-muted">Bạn cần đổi mật khẩu mặc định trước khi tiếp tục.</p>
-            <div class="mb-3"><label class="form-label">Mật khẩu hiện tại</label><input type="password" class="form-control" name="oldPassword" required></div>
-            <div><label class="form-label">Mật khẩu mới</label><input type="password" class="form-control" name="newPassword" minlength="6" required></div>
-        </div><div class="modal-footer"><button type="submit" class="btn btn-primary">Đổi mật khẩu</button></div>
-    </form></div></div>
 </div>
 
 @section Scripts {

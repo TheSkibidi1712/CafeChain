@@ -5,5 +5,10 @@ namespace CafeChain.Application.Interfaces.AI;
 public interface IOllamaClient
 {
     Task<OllamaResultDTO> ChatAsync(string systemPrompt, string userPayload, CancellationToken cancellationToken = default);
+    Task<OllamaResultDTO> ChatAsync(
+        string systemPrompt,
+        string userPayload,
+        string featureName,
+        CancellationToken cancellationToken = default);
     Task<OllamaHealthDTO> CheckHealthAsync(CancellationToken cancellationToken = default);
 }

@@ -78,6 +78,14 @@
             </div>
         }
 
+        @if (Model.Type == InventoryDocumentType.EXPORT)
+        {
+            <div class="voucher-readonly-field">
+                <label>Cho phép xuất âm</label>
+                <strong>@(Model.AllowNegativeStock ? "Có" : "Không")</strong>
+            </div>
+        }
+
     </div>
 
     @if (Model.NegativeApproval != null)

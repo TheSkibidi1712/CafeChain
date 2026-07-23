@@ -115,9 +115,9 @@ StaffHub lấy đúng `StaffId` từ phiên đăng nhập và hiển thị lịc
 - Nếu có lịch `SCHEDULED` đang phủ thời điểm hiện tại và mở phiên muộn theo quy tắc POS, hệ thống có thể yêu cầu OTP phê duyệt.
 - StaffHub không có Face ID, check-in, check-out hoặc bộ đếm giờ làm.
 
-### Đổi mật khẩu lần đầu
+### Mật khẩu nhân viên
 
-Nếu tài khoản bắt buộc đổi mật khẩu, StaffHub mở modal đổi mật khẩu. Sau khi đổi thành công, nhân viên có thể tiếp tục sử dụng lịch và mở POS theo permission.
+StaffHub không khóa màn hình để bắt buộc đổi mật khẩu lần đầu. Sau khi đăng nhập thành công, nhân viên được sử dụng lịch và mở POS theo permission; chức năng đổi mật khẩu chủ động vẫn được giữ tại trang hồ sơ.
 
 ## 8. Xử lý lỗi thường gặp
 

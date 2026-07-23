@@ -42,6 +42,8 @@ namespace CafeChain.ViewModels.Admin.InventoryDocuments.Detail
 
         public string? Note { get; set; }
 
+        public bool AllowNegativeStock { get; set; }
+
         public string? NegativeReason { get; set; }
 
         public AdminInventoryNegativeApprovalVM? NegativeApproval { get; set; }

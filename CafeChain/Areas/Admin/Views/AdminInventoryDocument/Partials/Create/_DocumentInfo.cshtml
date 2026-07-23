@@ -3,12 +3,11 @@
 
 @{
     var documentDate = Model.DocumentDate == default ? DateTime.Today : Model.DocumentDate;
-    var isImport = Model.Type == InventoryDocumentType.IMPORT
-        || Model.Type == InventoryDocumentType.ADJUSTMENT_IN;
+    var isImport = Model.Type == InventoryDocumentType.IMPORT;
     var isExport = Model.Type == InventoryDocumentType.EXPORT;
     var purposeTitle = Model.Type switch
     {
-        InventoryDocumentType.IMPORT or InventoryDocumentType.ADJUSTMENT_IN => "Mục đích nhập kho",
+        InventoryDocumentType.IMPORT => "Mục đích nhập kho",
         InventoryDocumentType.EXPORT => "Mục đích xuất kho",
         InventoryDocumentType.STOCK_TAKE => "Mục đích kiểm kê",
         InventoryDocumentType.WASTE => "Lý do hủy kho",
@@ -17,18 +16,13 @@
 
     var purposeOptions = Model.Type switch
     {
-        InventoryDocumentType.IMPORT or InventoryDocumentType.ADJUSTMENT_IN => new[]
+        InventoryDocumentType.IMPORT => new[]
         {
-            new { Value = (int)InventoryDocumentPurpose.IMPORT_PURCHASE, Label = "Nhập từ nhà cung cấp", Description = "Tăng tồn kho từ đơn mua hàng" },
-            new { Value = (int)InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Label = "Điều chỉnh tăng", Description = "Bổ sung tồn do kiểm tra, kiểm kê lệch hoặc đối soát dữ liệu" }
+            new { Value = (int)InventoryDocumentPurpose.IMPORT_PURCHASE, Label = "Nhập từ nhà cung cấp", Description = "Tăng tồn kho từ đơn mua hàng" }
         },
         InventoryDocumentType.EXPORT => new[]
         {
-            new { Value = (int)InventoryDocumentPurpose.SALE, Label = "Xuất bán hàng", Description = "Giảm tồn kho phục vụ bán hàng" },
-            new { Value = (int)InventoryDocumentPurpose.GIFT, Label = "Xuất quà tặng", Description = "Hàng quà tặng đã giao thực tế" },
-            new { Value = (int)InventoryDocumentPurpose.DEBT, Label = "Xuất ghi nợ", Description = "Hàng đã giao và ghi nhận công nợ" },
-            new { Value = (int)InventoryDocumentPurpose.SAMPLE, Label = "Xuất hàng mẫu", Description = "Hàng mẫu đã giao thực tế" },
-            new { Value = (int)InventoryDocumentPurpose.ADJUSTMENT_OUT, Label = "Điều chỉnh giảm", Description = "Giảm tồn do đối soát" }
+            new { Value = (int)InventoryDocumentPurpose.SALE, Label = "Xuất bán hàng", Description = "Giảm tồn kho phục vụ bán hàng" }
         },
         InventoryDocumentType.STOCK_TAKE => new[]
         {
@@ -48,13 +42,9 @@
         }
     };
 
-    var selectedPurpose = Model.Type switch
-    {
-        InventoryDocumentType.ADJUSTMENT_IN => (int)InventoryDocumentPurpose.IMPORT_ADJUSTMENT,
-        _ => Model.Purpose == InventoryDocumentPurpose.NONE
-            ? purposeOptions[0].Value
-            : (int)Model.Purpose
-    };
+    var selectedPurpose = Model.Purpose == InventoryDocumentPurpose.NONE
+        ? purposeOptions[0].Value
+        : (int)Model.Purpose;
 }
 
 <section class="create-section create-document-info">
@@ -210,13 +200,29 @@
 
         @if (isExport)
         {
-            <div class="create-field create-field-wide" id="negativeReasonField">
-                <label for="NegativeReason">Lý do xuất âm (bắt buộc khi projected after âm)</label>
+            <div class="create-field create-field-wide" id="allowNegativeStockField">
+                <div class="form-check form-switch">
+                    <input id="AllowNegativeStock"
+                           name="AllowNegativeStock"
+                           class="form-check-input"
+                           type="checkbox"
+                           value="true"
+                           role="switch" />
+                    <label class="form-check-label fw-semibold" for="AllowNegativeStock">
+                        Cho phép xuất âm kho
+                    </label>
+                </div>
+                <small class="text-muted">
+                    Mặc định tắt. Khi bật, phiếu vẫn phải tuân theo giới hạn và quy trình phê duyệt xuất âm.
+                </small>
+            </div>
+            <div class="create-field create-field-wide d-none" id="negativeReasonField">
+                <label for="NegativeReason">Lý do xuất âm</label>
                 <textarea id="NegativeReason"
                           name="NegativeReason"
                           rows="2"
                           class="form-control create-control"
-                          placeholder="Mô tả giao dịch thực tế đã phát sinh và lý do không thể trì hoãn ghi nhận"></textarea>
+                          placeholder="Mô tả giao dịch thực tế và lý do cần xuất vượt tồn kho"></textarea>
             </div>
             <div class="create-field create-field-wide d-none" id="negativePreflightPanel" aria-live="polite"></div>
         }

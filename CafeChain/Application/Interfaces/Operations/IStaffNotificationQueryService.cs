@@ -9,18 +9,24 @@ namespace CafeChain.Application.Interfaces.Operations
     /// </summary>
     public interface IStaffNotificationQueryService
     {
-        Task<ServiceResult<StaffNotificationUnreadCountDto>> GetUnreadCountAsync(int recipientStaffId);
+        Task<ServiceResult<StaffNotificationUnreadCountDto>> GetUnreadCountAsync(
+            int recipientStaffId,
+            IReadOnlyCollection<int>? allowedStoreIds = null);
 
         Task<ServiceResult<StaffNotificationListDto>> GetListAsync(
             int recipientStaffId,
             int page,
             int pageSize,
-            string? targetUrlChannel);
+            string? targetUrlChannel,
+            IReadOnlyCollection<int>? allowedStoreIds = null);
 
         Task<ServiceResult<StaffNotificationMarkReadResultDto>> MarkReadAsync(
             int recipientStaffId,
-            int notificationId);
+            int notificationId,
+            IReadOnlyCollection<int>? allowedStoreIds = null);
 
-        Task<ServiceResult<StaffNotificationMarkReadResultDto>> MarkAllReadAsync(int recipientStaffId);
+        Task<ServiceResult<StaffNotificationMarkReadResultDto>> MarkAllReadAsync(
+            int recipientStaffId,
+            IReadOnlyCollection<int>? allowedStoreIds = null);
     }
 }

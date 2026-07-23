@@ -436,6 +436,7 @@ namespace CafeChain.Application.Services.POS
                     VoucherDiscount = voucherDiscount, PointDiscount = pointDiscount, PointsUsed = actualPointsUsed,
                     Total = total, ShippingFee = 0, Source = "POS", Note = dto.Note,
                     ClientOrderId = dto.ClientOrderId,  // ADR-0002: Idempotency Key — null cho đơn online
+                    RecommendationSessionId = dto.RecommendationSessionId,
                     CreatedAt = DateTime.Now, OrderDetails = orderDetails
                 });
 
@@ -780,6 +781,7 @@ namespace CafeChain.Application.Services.POS
                     Source = "POS",
                     Note = dto.Note,
                     ClientOrderId = dto.ClientOrderId,
+                    RecommendationSessionId = dto.RecommendationSessionId,
                     CreatedAt = createdAt,
                     OrderDetails = orderDetails
                 });

@@ -91,7 +91,7 @@ const InventoryDocument = (() => {
     }
 
     // =====================================================
-    // VIETNAMESE DATE FILTERS
+    // FILTER DATE / TYPE / PURPOSE
     // =====================================================
 
     function initDateFilters() {
@@ -103,21 +103,23 @@ const InventoryDocument = (() => {
             return;
         }
 
-        form
-            .querySelectorAll(".vn-date-input")
-            .forEach(input => {
+        const fromDate = form.querySelector('[name="Filter.FromDate"]');
+        const toDate = form.querySelector('[name="Filter.ToDate"]');
+        const typeSelect = form.querySelector("#inventoryFilterType");
 
-                input.addEventListener(
-                    "input",
-                    () => {
-                        input.value = maskVietnameseDate(input.value);
-                        input.setCustomValidity("");
-                    });
+        const syncDateBounds = () => {
+            if (toDate) toDate.min = fromDate?.value || "";
+            if (fromDate) fromDate.max = toDate?.value || "";
+            fromDate?.setCustomValidity("");
+            toDate?.setCustomValidity("");
+        };
 
-                input.addEventListener(
-                    "blur",
-                    () => syncDateFilterInput(input));
-            });
+        fromDate?.addEventListener("change", syncDateBounds);
+        toDate?.addEventListener("change", syncDateBounds);
+        typeSelect?.addEventListener("change", syncPurposeFilter);
+
+        syncDateBounds();
+        syncPurposeFilter();
 
         form.addEventListener(
             "submit",
@@ -130,109 +132,54 @@ const InventoryDocument = (() => {
 
     function syncDateFilterInputs() {
 
-        const form =
-            document.querySelector(selectors.filterForm);
+        const form = document.querySelector(selectors.filterForm);
+        if (!form) return true;
 
-        if (!form) {
-            return true;
-        }
+        const fromDate = form.querySelector('[name="Filter.FromDate"]');
+        const toDate = form.querySelector('[name="Filter.ToDate"]');
+        fromDate?.setCustomValidity("");
+        toDate?.setCustomValidity("");
 
-        const inputs =
-            Array.from(
-                form.querySelectorAll(".vn-date-input")
-            );
-
-        return inputs.every(syncDateFilterInput);
-    }
-
-    function syncDateFilterInput(input) {
-
-        const hidden =
-            document.getElementById(input.dataset.dateHidden || "");
-
-        if (!hidden) {
-            return true;
-        }
-
-        const value =
-            input.value.trim();
-
-        if (!value) {
-            hidden.value = "";
-            input.setCustomValidity("");
-            return true;
-        }
-
-        const isoDate =
-            parseVietnameseDate(value);
-
-        if (!isoDate) {
-            input.setCustomValidity("Nhập ngày theo dạng dd/mm/yyyy.");
-            input.reportValidity();
+        if (fromDate?.value && toDate?.value && fromDate.value > toDate.value) {
+            const message = '"Từ ngày" không được lớn hơn "Đến ngày".';
+            fromDate.setCustomValidity(message);
+            fromDate.reportValidity();
             return false;
         }
 
-        hidden.value = isoDate;
-        input.value = formatIsoDateForVietnameseDisplay(isoDate);
-        input.setCustomValidity("");
         return true;
     }
 
-    function maskVietnameseDate(value) {
+    function syncPurposeFilter() {
 
-        const digits =
-            String(value || "")
-                .replace(/\D/g, "")
-                .slice(0, 8);
+        const form = document.querySelector(selectors.filterForm);
+        const typeSelect = form?.querySelector("#inventoryFilterType");
+        const purposeSelect = form?.querySelector("#inventoryFilterPurpose");
+        if (!typeSelect || !purposeSelect) return;
 
-        if (digits.length <= 2) {
-            return digits;
+        const selectedType = typeSelect.value;
+        const currentPurpose = purposeSelect.value;
+        let currentPurposeStillValid = !currentPurpose;
+
+        Array.from(purposeSelect.options).forEach(option => {
+            if (!option.value) {
+                option.textContent = selectedType ? "Mục đích" : "Chọn loại phiếu trước";
+                option.hidden = false;
+                return;
+            }
+
+            const isVisible = option.dataset.documentType === selectedType;
+            option.hidden = !isVisible;
+            option.disabled = !isVisible;
+            if (isVisible && option.value === currentPurpose) {
+                currentPurposeStillValid = true;
+            }
+        });
+
+        purposeSelect.disabled = !selectedType;
+        if (!currentPurposeStillValid) {
+            purposeSelect.value = "";
         }
-
-        if (digits.length <= 4) {
-            return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-        }
-
-        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-    }
-
-    function parseVietnameseDate(value) {
-
-        const match =
-            /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value);
-
-        if (!match) {
-            return null;
-        }
-
-        const day = Number(match[1]);
-        const month = Number(match[2]);
-        const year = Number(match[3]);
-        const date = new Date(year, month - 1, day);
-
-        if (
-            date.getFullYear() !== year ||
-            date.getMonth() !== month - 1 ||
-            date.getDate() !== day
-        ) {
-            return null;
-        }
-
-        return [
-            String(year).padStart(4, "0"),
-            String(month).padStart(2, "0"),
-            String(day).padStart(2, "0")
-        ].join("-");
-    }
-
-    function formatIsoDateForVietnameseDisplay(value) {
-
-        const match =
-            /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-
-        return match
-            ? `${match[3]}/${match[2]}/${match[1]}`
-            : value;
     }
 
     // =====================================================
@@ -409,8 +356,7 @@ const InventoryDocument = (() => {
                     requestKey,
                     status: response.status,
                     message,
-                    traceId: response._inventoryTraceId,
-                    debugMessage: response._inventoryDebugMessage
+                    traceId: response._inventoryTraceId
                 });
 
             throw new Error(message || "Không thể xử lý phiếu.");
@@ -447,11 +393,6 @@ const InventoryDocument = (() => {
             response._inventoryTraceId =
                 data?.traceId ||
                 data?.TraceId ||
-                "";
-
-            response._inventoryDebugMessage =
-                data?.debugMessage ||
-                data?.DebugMessage ||
                 "";
 
             return data?.message ||
@@ -1030,6 +971,10 @@ const InventoryDocument = (() => {
     // ====================================================
 
     async function exportExcelList(button) {
+
+        if (!syncDateFilterInputs()) {
+            return;
+        }
 
         const query =
             buildExcelExportQuery();

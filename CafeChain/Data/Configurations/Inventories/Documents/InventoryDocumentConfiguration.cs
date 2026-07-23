@@ -40,6 +40,9 @@ namespace CafeChain.Data.Configurations.Inventories.Documents
             entity.Property(x => x.NegativeReason)
                 .HasMaxLength(1000);
 
+            entity.Property(x => x.AllowNegativeStock)
+                .HasDefaultValue(false);
+
             // ================= IDEMPOTENCY =================
 
             entity.Property(x => x.RequestKey)

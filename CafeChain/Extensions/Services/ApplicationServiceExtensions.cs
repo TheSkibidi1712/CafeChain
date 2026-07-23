@@ -183,6 +183,7 @@ namespace CafeChain.Extensions.Services
             // Admin - Staff
             services.AddScoped<IAdminStaffService, AdminStaffService>();
             services.AddScoped<IAdminStaffShiftService, AdminStaffShiftService>();
+            services.AddScoped<IShiftOptimizationService, ShiftOptimizationService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Profiles.IAdminProfileService,
                 CafeChain.Application.Services.Admin.Profiles.AdminProfileService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Stores.IAdminStoreService,
@@ -274,6 +275,21 @@ namespace CafeChain.Extensions.Services
 
             // Admin - Dashboard
             services.AddScoped<IDashboardService, DashboardService>();
+            services.AddScoped<IDashboardIntelligenceService, DashboardIntelligenceService>();
+            services.AddOptions<DashboardIntelligenceOptions>()
+                .BindConfiguration(DashboardIntelligenceOptions.SectionName);
+            services.AddScoped<CafeChain.Application.Interfaces.AI.IForecastService,
+                CafeChain.Application.Services.AI.ForecastService>();
+            services.AddScoped<CafeChain.Application.Interfaces.AI.ISupplierIntelligenceService,
+                CafeChain.Application.Services.AI.SupplierIntelligenceService>();
+            services.AddOptions<ForecastingOptions>().BindConfiguration(ForecastingOptions.SectionName);
+            services.AddOptions<SupplierIntelligenceOptions>().BindConfiguration(SupplierIntelligenceOptions.SectionName);
+            services.AddScoped<CafeChain.Application.Interfaces.AI.IPosRecommendationService,
+                CafeChain.Application.Services.AI.PosRecommendationService>();
+            services.AddScoped<CafeChain.Application.Interfaces.AI.IAnomalyDetectionService,
+                CafeChain.Application.Services.AI.AnomalyDetectionService>();
+            services.AddOptions<PosRecommendationOptions>().BindConfiguration(PosRecommendationOptions.SectionName);
+            services.AddOptions<AnomalyDetectionOptions>().BindConfiguration(AnomalyDetectionOptions.SectionName);
 
             // Admin - Settings
             services.AddScoped<IAdminSettingService, AdminSettingService>();
@@ -308,6 +324,9 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IStockAlertManagerService, StockAlertManagerService>();
             services.AddScoped<IRestockRequestService, RestockRequestService>();
             services.AddScoped<IReorderSuggestionService, ReorderSuggestionService>();
+            services.AddScoped<IInventoryReorderNotificationService, InventoryReorderNotificationService>();
+            services.AddOptions<InventoryReorderNotificationOptions>()
+                .BindConfiguration(InventoryReorderNotificationOptions.SectionName);
             services.AddScoped<IReorderIncomingQuantityProvider, PurchaseOrderQuantityProvider>();
             // Issue #128 — restock workflow + branch receipt posting
             services.AddScoped<IRestockRequestWorkflowService, RestockRequestWorkflowService>();

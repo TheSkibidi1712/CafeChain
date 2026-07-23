@@ -2,6 +2,7 @@
     ViewData["Title"] = "Máy POS Thu Ngân — CafeChain";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
+@Html.AntiForgeryToken()
 
 @section Styles {
 <link rel="stylesheet" href="~/css/pos-premium.css" />
@@ -132,6 +133,11 @@
             <p>Chọn sản phẩm để bắt đầu</p>
         </div>
     </div>
+
+    <section class="pos-recommendations" id="posRecommendations" hidden aria-live="polite">
+        <div class="pos-recommendations-title"><i class="fas fa-lightbulb"></i> Gợi ý mua kèm</div>
+        <div id="posRecommendationItems"></div>
+    </section>
 
     <!-- Payment Summary & Checkout -->
     <div class="payment-section">

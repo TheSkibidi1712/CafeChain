@@ -1,13 +1,6 @@
 ﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.Index.AdminInventoryDocumentIndexVM
 @using CafeChain.Models.Enums.Inventory
 
-@{
-    var fromDateIso = Model.Filter.FromDate?.ToString("yyyy-MM-dd") ?? "";
-    var fromDateDisplay = Model.Filter.FromDate?.ToString("dd/MM/yyyy") ?? "";
-    var toDateIso = Model.Filter.ToDate?.ToString("yyyy-MM-dd") ?? "";
-    var toDateDisplay = Model.Filter.ToDate?.ToString("dd/MM/yyyy") ?? "";
-}
-
 <form method="get"
       asp-action="Index"
       id="filterForm">
@@ -24,6 +17,7 @@
         <div class="filter-row">
 
             <select asp-for="Filter.Type"
+                    id="inventoryFilterType"
                     class="form-select">
 
                 <option value="">Loại phiếu</option>
@@ -33,10 +27,7 @@
                     InventoryDocumentType.IMPORT,
                     InventoryDocumentType.EXPORT,
                     InventoryDocumentType.STOCK_TAKE,
-                    InventoryDocumentType.WASTE,
-                    InventoryDocumentType.PRODUCTION_IN,
-                    InventoryDocumentType.PRODUCTION_OUT,
-                    InventoryDocumentType.SALES_DEDUCTION
+                    InventoryDocumentType.WASTE
                 })
                 {
                     <option value="@item">@item.ToVietnamese()</option>
@@ -57,26 +48,29 @@
             </select>
 
             <select asp-for="Filter.Purpose"
-                    class="form-select">
+                    id="inventoryFilterPurpose"
+                    class="form-select"
+                    disabled="@(!Model.Filter.Type.HasValue)">
 
-                <option value="">Mục đích</option>
+                <option value="">@(Model.Filter.Type.HasValue ? "Mục đích" : "Chọn loại phiếu trước")</option>
 
                 @foreach (var item in new[]
                 {
-                    InventoryDocumentPurpose.IMPORT_PURCHASE,
-                    InventoryDocumentPurpose.IMPORT_ADJUSTMENT,
-                    InventoryDocumentPurpose.SALE,
-                    InventoryDocumentPurpose.ADJUSTMENT_OUT,
-                    InventoryDocumentPurpose.STOCK_TAKE,
-                    InventoryDocumentPurpose.DAMAGED,
-                    InventoryDocumentPurpose.EXPIRED,
-                    InventoryDocumentPurpose.BROKEN,
-                    InventoryDocumentPurpose.CONTAMINATED,
-                    InventoryDocumentPurpose.LOST,
-                    InventoryDocumentPurpose.DEBT
+                    new { Purpose = InventoryDocumentPurpose.IMPORT_PURCHASE, Type = InventoryDocumentType.IMPORT, Label = InventoryDocumentPurpose.IMPORT_PURCHASE.ToVietnamese() },
+                    new { Purpose = InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Type = InventoryDocumentType.IMPORT, Label = $"{InventoryDocumentPurpose.IMPORT_ADJUSTMENT.ToVietnamese()} (lịch sử)" },
+                    new { Purpose = InventoryDocumentPurpose.SALE, Type = InventoryDocumentType.EXPORT, Label = InventoryDocumentPurpose.SALE.ToVietnamese() },
+                    new { Purpose = InventoryDocumentPurpose.STOCK_TAKE, Type = InventoryDocumentType.STOCK_TAKE, Label = InventoryDocumentPurpose.STOCK_TAKE.ToVietnamese() },
+                    new { Purpose = InventoryDocumentPurpose.DAMAGED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.DAMAGED.ToVietnamese() },
+                    new { Purpose = InventoryDocumentPurpose.EXPIRED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.EXPIRED.ToVietnamese() },
+                    new { Purpose = InventoryDocumentPurpose.BROKEN, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.BROKEN.ToVietnamese() },
+                    new { Purpose = InventoryDocumentPurpose.CONTAMINATED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.CONTAMINATED.ToVietnamese() },
+                    new { Purpose = InventoryDocumentPurpose.LOST, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.LOST.ToVietnamese() }
                 })
                 {
-                    <option value="@item">@item.ToVietnamese()</option>
+                    <option value="@item.Purpose"
+                            data-document-type="@item.Type">
+                        @item.Label
+                    </option>
                 }
 
             </select>
@@ -97,34 +91,18 @@
 
             <div class="filter-date-field">
                 <label asp-for="Filter.FromDate">Từ ngày</label>
-                <input type="hidden"
-                       id="Filter_FromDate"
-                       name="Filter.FromDate"
-                       value="@fromDateIso" />
-                <input type="text"
-                       class="form-control vn-date-input"
-                       value="@fromDateDisplay"
-                      placeholder="dd/mm/yyyy"
-                       inputmode="numeric"
-                       autocomplete="off"
-                       data-date-hidden="Filter_FromDate"
-                      aria-label="Từ ngày dạng dd/mm/yyyy" />
+                <input asp-for="Filter.FromDate"
+                       type="date"
+                       class="form-control"
+                       value="@(Model.Filter.FromDate?.ToString("yyyy-MM-dd"))" />
             </div>
 
             <div class="filter-date-field">
                 <label asp-for="Filter.ToDate">Đến ngày</label>
-                <input type="hidden"
-                       id="Filter_ToDate"
-                       name="Filter.ToDate"
-                       value="@toDateIso" />
-                <input type="text"
-                       class="form-control vn-date-input"
-                       value="@toDateDisplay"
-                      placeholder="dd/mm/yyyy"
-                       inputmode="numeric"
-                       autocomplete="off"
-                       data-date-hidden="Filter_ToDate"
-                      aria-label="Đến ngày dạng dd/mm/yyyy" />
+                <input asp-for="Filter.ToDate"
+                       type="date"
+                       class="form-control"
+                       value="@(Model.Filter.ToDate?.ToString("yyyy-MM-dd"))" />
             </div>
 
             <div class="filter-actions">

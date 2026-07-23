@@ -12,6 +12,29 @@ public sealed class AISkillCatalogTests : IDisposable
     private readonly string _root = Path.Combine(Path.GetTempPath(), "cafechain-ai-skill-tests", Guid.NewGuid().ToString("N"));
 
     [Fact]
+    public async Task Named_skill_is_whitelisted_and_loads_its_schema()
+    {
+        CreateFile("Resources/AI/skills/inventory-reorder-explanation/SKILL.md",
+            "---\nname: inventory-reorder-explanation\ndescription: Explain.\n---\nRULE BODY");
+        CreateFile("Resources/AI/schemas/inventory-reorder-explanation.schema.json", "{\"type\":\"object\"}");
+
+        var result = await CreateCatalog().GetNamedSkillAsync("inventory-reorder-explanation");
+
+        Assert.Equal("inventory-reorder-explanation", result.SkillName);
+        Assert.Contains("RULE BODY", result.Content);
+        Assert.Contains("\"type\":\"object\"", result.JsonSchema);
+    }
+
+    [Fact]
+    public async Task Named_skill_rejects_unknown_name_and_path_traversal()
+    {
+        var catalog = CreateCatalog();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => catalog.GetNamedSkillAsync("../secret"));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => catalog.GetNamedSkillAsync("unknown"));
+    }
+
+    [Fact]
     public async Task Empty_skill_tree_returns_fallback_warning_without_throwing()
     {
         CreateFile("Resources/AI/skills/skill-router/SKILL.md", string.Empty);

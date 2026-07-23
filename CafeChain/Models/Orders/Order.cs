@@ -31,6 +31,7 @@ namespace CafeChain.Models.Orders
         /// ADR-0002: Unique Filtered Index đảm bảo không trùng đơn khi sync.
         /// </summary>
         public Guid? ClientOrderId { get; set; }
+        public Guid? RecommendationSessionId { get; set; }
 
         public string? Source { get; set; }
         public string? Note { get; set; }

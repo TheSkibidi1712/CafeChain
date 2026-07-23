@@ -10,7 +10,8 @@ namespace CafeChain.Models.Customers
         public string PasswordHash { get; set; }
 
         public bool Active { get; set; }
-        public bool RequiresPasswordChange { get; set; } = true; // Bắt buộc đổi pass ở lần đầu
+        // Legacy column retained for database compatibility. StaffHub no longer forces first-login password changes.
+        public bool RequiresPasswordChange { get; set; } = true;
         public DateTime CreatedAt { get; set; }
         public int FailedLoginAttempts { get; set; }
         public DateTime? LockoutEnd { get; set; }

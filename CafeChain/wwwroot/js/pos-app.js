@@ -18,6 +18,8 @@ let ckCashAmount = 0;
 let ckTotal = 0;
 let csExpectedCash = 0;
 let successCountdownTimer = null;
+let recommendationSessionId = crypto.randomUUID();
+let recommendationRequestVersion = 0;
 
 // POS Terminal Lock
 const POS_TERMINAL_KEY = 'CafeChain_POS_TerminalId';
@@ -216,7 +218,8 @@ function addToCart() {
 function renderCart() {
     if (cart.length === 0) {
         $('#cartItems').html('<div class="cart-empty"><i class="fas fa-shopping-basket"></i><p>Chọn sản phẩm để bắt đầu</p></div>');
-        $('#cartCount').text('0'); $('#btnCheckout').prop('disabled', true); updateSummary(); return;
+        $('#cartCount').text('0'); $('#btnCheckout').prop('disabled', true); updateSummary();
+        $('#posRecommendations').prop('hidden', true); return;
     }
     let html = '';
     cart.forEach((item, idx) => {
@@ -234,7 +237,43 @@ function renderCart() {
     });
     $('#cartItems').html(html);
     $('#cartCount').text(cart.reduce((s, i) => s + i.quantity, 0));
-    $('#btnCheckout').prop('disabled', false); updateSummary();
+    $('#btnCheckout').prop('disabled', false); updateSummary(); loadRecommendations();
+}
+
+async function loadRecommendations() {
+    const version = ++recommendationRequestVersion;
+    const triggers = [...new Set(cart.map(x => x.drinkId))];
+    if (!navigator.onLine || triggers.length === 0) { $('#posRecommendations').prop('hidden', true); return; }
+    try {
+        const query = new URLSearchParams({ sessionId: recommendationSessionId });
+        triggers.forEach(id => query.append('triggerDrinkIds', id));
+        const response = await fetch('/Admin/AdminPOS/Recommendations?' + query.toString(), { credentials: 'same-origin' });
+        const body = await response.json();
+        if (version !== recommendationRequestVersion || !body.success) return;
+        renderRecommendations(body.data?.items || []);
+    } catch { if (version === recommendationRequestVersion) $('#posRecommendations').prop('hidden', true); }
+}
+
+function renderRecommendations(items) {
+    const host = document.getElementById('posRecommendationItems'); host.replaceChildren();
+    items.slice(0, 3).forEach(item => {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'pos-recommendation-item';
+        const label = document.createElement('span'); label.textContent = `${item.drinkName} · ${fmt(item.price)}`;
+        const icon = document.createElement('i'); icon.className = 'fas fa-plus'; button.append(label, icon);
+        button.addEventListener('click', () => addRecommendation(item)); host.appendChild(button);
+    });
+    $('#posRecommendations').prop('hidden', items.length === 0);
+}
+
+async function addRecommendation(item) {
+    const drink = menuData.categories.flatMap(x => x.drinks).find(x => x.drinkId === item.recommendedDrinkId);
+    if (!drink) return;
+    await trackRecommendation(item, 'ADDED'); selectDrink(drink);
+}
+
+function trackRecommendation(item, action) {
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    return fetch('/Admin/AdminPOS/RecommendationInteraction', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token }, body: JSON.stringify({ recommendationSessionId, triggerDrinkId: item.triggerDrinkId, recommendedDrinkId: item.recommendedDrinkId, action }) }).catch(() => {});
 }
 
 function changeQty(idx, delta) { cart[idx].quantity += delta; if (cart[idx].quantity <= 0) cart.splice(idx, 1); renderCart(); }
@@ -318,6 +357,7 @@ async function confirmPayment() {
     const dto = {
         items: cart.map(c => ({ drinkId: c.drinkId, sizeId: c.sizeId, quantity: c.quantity, note: c.note, toppings: c.toppings.map(t => ({ toppingId: t.toppingId })) })),
         customerId: selectedCustomer?.customerId || null,
+        recommendationSessionId,
         // Soft-removal: never send voucher/points on new commits.
         voucherCode: null,
         pointsUsed: 0,
@@ -377,6 +417,7 @@ function nextOrder() {
     if (successCountdownTimer) clearInterval(successCountdownTimer);
     $('#successOverlay').removeClass('active');
     cart = []; selectedCustomer = null; appliedVoucher = { code: '', discount: 0 }; pointsToUse = 0;
+    recommendationSessionId = crypto.randomUUID();
     $('#customerPhone').val(''); $('#customerBadge').css('display', 'none');
     renderCart();
 }

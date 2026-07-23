@@ -25,6 +25,368 @@ namespace CafeChain.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("CafeChain.Models.Analytics.ForecastPoint", b =>
+                {
+                    b.Property<long>("ForecastPointId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("ForecastPointId"));
+
+                    b.Property<DateTime>("ForecastDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("ForecastRunId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("LowerBound")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<decimal>("PointForecast")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<decimal>("UpperBound")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)");
+
+                    b.HasKey("ForecastPointId");
+
+                    b.HasIndex("ForecastRunId", "ForecastDate")
+                        .IsUnique();
+
+                    b.ToTable("ForecastPoints", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.ForecastRun", b =>
+                {
+                    b.Property<long>("ForecastRunId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("ForecastRunId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("EntityId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("HorizonDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("InputDataVersion")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<decimal?>("Mae")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<string>("ModelType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("ModelVersion")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("QualityStatus")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("SampleCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SeriesType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("TrainingFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("TrainingToExclusive")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("Wape")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<string>("WarningJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.HasKey("ForecastRunId");
+
+                    b.HasIndex("StoreId", "SeriesType", "EntityId", "TrainingToExclusive", "HorizonDays", "ModelVersion")
+                        .IsUnique()
+                        .HasFilter("[EntityId] IS NOT NULL");
+
+                    b.ToTable("ForecastRuns", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.OperationalAnomaly", b =>
+                {
+                    b.Property<int>("OperationalAnomalyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OperationalAnomalyId"));
+
+                    b.Property<decimal>("AbsoluteDeviation")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("AcknowledgedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("AcknowledgedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("BaselineValue")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Confidence")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("CurrentValue")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Feedback")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("FeedbackByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MetricCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<decimal>("PercentageDeviation")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("PeriodKey")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("ReasonCodesJson")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("RobustScore")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("SampleCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("WindowFromUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("WindowToExclusiveUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("OperationalAnomalyId");
+
+                    b.HasIndex("AcknowledgedByStaffId");
+
+                    b.HasIndex("FeedbackByStaffId");
+
+                    b.HasIndex("StoreId", "MetricCode", "PeriodKey")
+                        .IsUnique();
+
+                    b.HasIndex("StoreId", "Status", "Severity");
+
+                    b.ToTable("OperationalAnomalies", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.PosRecommendationCatalog", b =>
+                {
+                    b.Property<long>("PosRecommendationCatalogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PosRecommendationCatalogId"));
+
+                    b.Property<decimal>("Confidence")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("GeneratedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Lift")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("Margin")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ModelVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("Rank")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RecommendedDrinkId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Support")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<int>("TriggerDrinkId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PosRecommendationCatalogId");
+
+                    b.HasIndex("RecommendedDrinkId");
+
+                    b.HasIndex("TriggerDrinkId");
+
+                    b.HasIndex("StoreId", "TriggerDrinkId", "Rank", "ExpiresAtUtc");
+
+                    b.HasIndex("StoreId", "TriggerDrinkId", "RecommendedDrinkId", "ModelVersion")
+                        .IsUnique();
+
+                    b.ToTable("PosRecommendationCatalog", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.PosRecommendationExposure", b =>
+                {
+                    b.Property<long>("PosRecommendationExposureId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PosRecommendationExposureId"));
+
+                    b.Property<DateTime?>("ConvertedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModelVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RecommendationSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Variant")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.HasKey("PosRecommendationExposureId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("RecommendationSessionId")
+                        .IsUnique();
+
+                    b.HasIndex("StoreId", "CreatedAtUtc");
+
+                    b.ToTable("PosRecommendationExposures", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.PosRecommendationExposureItem", b =>
+                {
+                    b.Property<long>("PosRecommendationExposureItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PosRecommendationExposureItemId"));
+
+                    b.Property<long>("PosRecommendationExposureId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Rank")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RecommendedDrinkId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TriggerDrinkId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("WasAdded")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("WasClicked")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("WasDisplayed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("WasPurchased")
+                        .HasColumnType("bit");
+
+                    b.HasKey("PosRecommendationExposureItemId");
+
+                    b.HasIndex("PosRecommendationExposureId", "TriggerDrinkId", "RecommendedDrinkId")
+                        .IsUnique();
+
+                    b.ToTable("PosRecommendationExposureItems", (string)null);
+                });
+
             modelBuilder.Entity("CafeChain.Models.Customers.Account", b =>
                 {
                     b.Property<int>("AccountId")
@@ -3272,6 +3634,11 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryDocumentId"));
+
+                    b.Property<bool>("AllowNegativeStock")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -8020,6 +8387,10 @@ namespace CafeChain.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DeduplicationKey")
+                        .HasMaxLength(240)
+                        .HasColumnType("nvarchar(240)");
+
                     b.Property<bool>("EmailAttempted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -8053,6 +8424,16 @@ namespace CafeChain.Migrations
                     b.Property<int>("RecipientStaffId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)")
+                        .HasDefaultValue("INFO");
+
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
 
@@ -8066,7 +8447,15 @@ namespace CafeChain.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("StaffNotificationId");
+
+                    b.HasIndex("DeduplicationKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_StaffNotification_DeduplicationKey")
+                        .HasFilter("[DeduplicationKey] IS NOT NULL");
 
                     b.HasIndex("StoreId")
                         .HasDatabaseName("IX_StaffNotification_StoreId");
@@ -8194,6 +8583,9 @@ namespace CafeChain.Migrations
                     b.Property<string>("ReceiverPhone")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("RecommendationSessionId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("ShippingFee")
                         .HasColumnType("decimal(18,2)");
 
@@ -8245,6 +8637,9 @@ namespace CafeChain.Migrations
                     b.HasIndex("OrderTypeId");
 
                     b.HasIndex("PaymentStatusId");
+
+                    b.HasIndex("RecommendationSessionId")
+                        .HasFilter("[RecommendationSessionId] IS NOT NULL");
 
                     b.HasIndex("StaffId");
 
@@ -9112,6 +9507,116 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Staffs.ScheduleOptimizationAssignment", b =>
+                {
+                    b.Property<long>("ScheduleOptimizationAssignmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("ScheduleOptimizationAssignmentId"));
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("ReasonCodesJson")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("ScheduleOptimizationProposalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ShiftId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime>("WorkDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ScheduleOptimizationAssignmentId");
+
+                    b.HasIndex("ShiftId");
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("ScheduleOptimizationProposalId", "StaffId", "ShiftId", "WorkDate")
+                        .IsUnique();
+
+                    b.ToTable("ScheduleOptimizationAssignments");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.ScheduleOptimizationProposal", b =>
+                {
+                    b.Property<Guid>("ScheduleOptimizationProposalId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("AppliedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ConstraintVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ForecastRunId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("FromDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("ScoreBreakdownJson")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ToDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ViolationsJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.HasKey("ScheduleOptimizationProposalId");
+
+                    b.HasIndex("CreatedByStaffId");
+
+                    b.HasIndex("ForecastRunId");
+
+                    b.HasIndex("StoreId", "FromDate", "ToDate", "CreatedAtUtc");
+
+                    b.ToTable("ScheduleOptimizationProposals");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Staffs.ScopeType", b =>
                 {
                     b.Property<int>("ScopeTypeId")
@@ -9530,6 +10035,104 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffAvailabilityException", b =>
+                {
+                    b.Property<long>("StaffAvailabilityExceptionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("StaffAvailabilityExceptionId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan?>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan?>("StartTime")
+                        .HasColumnType("time");
+
+                    b.HasKey("StaffAvailabilityExceptionId");
+
+                    b.HasIndex("CreatedByStaffId");
+
+                    b.HasIndex("StaffId", "Date");
+
+                    b.ToTable("StaffAvailabilityExceptions");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffAvailabilityRule", b =>
+                {
+                    b.Property<long>("StaffAvailabilityRuleId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("StaffAvailabilityRuleId"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time");
+
+                    b.HasKey("StaffAvailabilityRuleId");
+
+                    b.HasIndex("CreatedByStaffId");
+
+                    b.HasIndex("StaffId", "DayOfWeek", "EffectiveFrom");
+
+                    b.ToTable("StaffAvailabilityRules");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffPhone", b =>
                 {
                     b.Property<int>("StaffPhoneId")
@@ -9811,6 +10414,178 @@ namespace CafeChain.Migrations
                             IsSystem = true,
                             Name = "Đã hủy"
                         });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffTimeOff", b =>
+                {
+                    b.Property<long>("StaffTimeOffId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("StaffTimeOffId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FromUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("RequestedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReviewedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("ToUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("StaffTimeOffId");
+
+                    b.HasIndex("RequestedByStaffId");
+
+                    b.HasIndex("ReviewedByStaffId");
+
+                    b.HasIndex("StaffId", "FromUtc", "ToUtc");
+
+                    b.ToTable("StaffTimeOffs");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffWorkConstraint", b =>
+                {
+                    b.Property<long>("StaffWorkConstraintId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("StaffWorkConstraintId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("MaxDailyHours")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<decimal>("MaxWeeklyHours")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<int>("MinimumRestMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TargetWeeklyHours")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.HasKey("StaffWorkConstraintId");
+
+                    b.HasIndex("CreatedByStaffId");
+
+                    b.HasIndex("StaffId", "EffectiveFrom");
+
+                    b.ToTable("StaffWorkConstraints");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StoreStaffingRequirement", b =>
+                {
+                    b.Property<long>("StoreStaffingRequirementId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("StoreStaffingRequirementId"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveTo")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MaximumStaff")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinimumStaff")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RequiredRoleId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("ShiftId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TargetStaff")
+                        .HasColumnType("int");
+
+                    b.HasKey("StoreStaffingRequirementId");
+
+                    b.HasIndex("CreatedByStaffId");
+
+                    b.HasIndex("RequiredRoleId");
+
+                    b.HasIndex("ShiftId");
+
+                    b.HasIndex("StoreId", "ShiftId", "DayOfWeek", "EffectiveFrom");
+
+                    b.ToTable("StoreStaffingRequirements");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Stores.PosTerminal", b =>
@@ -10654,7 +11429,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             SettingId = 2001,
-                            Description = "Cho phép phiếu xuất ngoài SALE/GIFT/DEBT/SAMPLE gửi yêu cầu xuất âm.",
+                            Description = "Cho phép phiếu xuất ngoài với mục đích SALE gửi yêu cầu xuất âm.",
                             SettingKey = "inventory_manual_external_export_negative_enabled",
                             SettingValue = "false"
                         },
@@ -10998,6 +11773,109 @@ namespace CafeChain.Migrations
                     b.HasIndex("WheelPrizeId");
 
                     b.ToTable("WheelSpins", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.ForecastPoint", b =>
+                {
+                    b.HasOne("CafeChain.Models.Analytics.ForecastRun", "ForecastRun")
+                        .WithMany("Points")
+                        .HasForeignKey("ForecastRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ForecastRun");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.ForecastRun", b =>
+                {
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.OperationalAnomaly", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "AcknowledgedByStaff")
+                        .WithMany()
+                        .HasForeignKey("AcknowledgedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "FeedbackByStaff")
+                        .WithMany()
+                        .HasForeignKey("FeedbackByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AcknowledgedByStaff");
+
+                    b.Navigation("FeedbackByStaff");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.PosRecommendationCatalog", b =>
+                {
+                    b.HasOne("CafeChain.Models.Drinks.Drink", "RecommendedDrink")
+                        .WithMany()
+                        .HasForeignKey("RecommendedDrinkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Drinks.Drink", "TriggerDrink")
+                        .WithMany()
+                        .HasForeignKey("TriggerDrinkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RecommendedDrink");
+
+                    b.Navigation("Store");
+
+                    b.Navigation("TriggerDrink");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.PosRecommendationExposure", b =>
+                {
+                    b.HasOne("CafeChain.Models.Orders.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.PosRecommendationExposureItem", b =>
+                {
+                    b.HasOne("CafeChain.Models.Analytics.PosRecommendationExposure", "Exposure")
+                        .WithMany("Items")
+                        .HasForeignKey("PosRecommendationExposureId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Exposure");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.AccountRole", b =>
@@ -13582,6 +14460,59 @@ namespace CafeChain.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Staffs.ScheduleOptimizationAssignment", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.ScheduleOptimizationProposal", "Proposal")
+                        .WithMany("Assignments")
+                        .HasForeignKey("ScheduleOptimizationProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Shift", "Shift")
+                        .WithMany()
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Proposal");
+
+                    b.Navigation("Shift");
+
+                    b.Navigation("Staff");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.ScheduleOptimizationProposal", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "CreatedByStaff")
+                        .WithMany()
+                        .HasForeignKey("CreatedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Analytics.ForecastRun", "ForecastRun")
+                        .WithMany()
+                        .HasForeignKey("ForecastRunId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByStaff");
+
+                    b.Navigation("ForecastRun");
+
+                    b.Navigation("Store");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Staffs.Shift", b =>
                 {
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
@@ -13644,6 +14575,44 @@ namespace CafeChain.Migrations
                     b.Navigation("Ward");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffAvailabilityException", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "CreatedByStaff")
+                        .WithMany()
+                        .HasForeignKey("CreatedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByStaff");
+
+                    b.Navigation("Staff");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffAvailabilityRule", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "CreatedByStaff")
+                        .WithMany()
+                        .HasForeignKey("CreatedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByStaff");
+
+                    b.Navigation("Staff");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffPhone", b =>
                 {
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
@@ -13699,6 +14668,85 @@ namespace CafeChain.Migrations
                     b.Navigation("Staff");
 
                     b.Navigation("Status");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffTimeOff", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "RequestedByStaff")
+                        .WithMany()
+                        .HasForeignKey("RequestedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ReviewedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RequestedByStaff");
+
+                    b.Navigation("ReviewedByStaff");
+
+                    b.Navigation("Staff");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffWorkConstraint", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "CreatedByStaff")
+                        .WithMany()
+                        .HasForeignKey("CreatedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByStaff");
+
+                    b.Navigation("Staff");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StoreStaffingRequirement", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "CreatedByStaff")
+                        .WithMany()
+                        .HasForeignKey("CreatedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Permissions.Role", "RequiredRole")
+                        .WithMany()
+                        .HasForeignKey("RequiredRoleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Shift", "Shift")
+                        .WithMany()
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByStaff");
+
+                    b.Navigation("RequiredRole");
+
+                    b.Navigation("Shift");
+
+                    b.Navigation("Store");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Stores.PosTerminal", b =>
@@ -13987,6 +15035,16 @@ namespace CafeChain.Migrations
                     b.Navigation("WheelConfig");
 
                     b.Navigation("WheelPrize");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.ForecastRun", b =>
+                {
+                    b.Navigation("Points");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Analytics.PosRecommendationExposure", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.Account", b =>
@@ -14339,6 +15397,11 @@ namespace CafeChain.Migrations
                     b.Navigation("AccountRoles");
 
                     b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.ScheduleOptimizationProposal", b =>
+                {
+                    b.Navigation("Assignments");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Shift", b =>

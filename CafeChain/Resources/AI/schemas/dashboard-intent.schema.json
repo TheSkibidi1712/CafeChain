@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["intentVersion", "widget", "period", "comparison", "granularity", "top", "storeSelector", "chart"],
+  "properties": {
+    "intentVersion": { "const": "v1" },
+    "widget": { "enum": ["NetSalesTrend", "StoreRanking", "TopProducts", "HourlyOrders", "InventoryWasteByStoreIngredient", "OverduePurchaseOrders", "SupplierQuality", "WorkforceShiftStatus"] },
+    "period": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "value", "fromDate", "toDate"],
+      "properties": {
+        "type": { "enum": ["Today", "Yesterday", "LastNDays", "ThisWeek", "LastWeek", "ThisMonth", "LastMonth", "Custom"] },
+        "value": { "type": ["integer", "null"], "minimum": 1, "maximum": 366 },
+        "fromDate": { "type": ["string", "null"], "format": "date" },
+        "toDate": { "type": ["string", "null"], "format": "date" }
+      }
+    },
+    "comparison": { "enum": ["None", "PreviousPeriod", "PreviousWeek", "PreviousMonth", "PreviousYear"] },
+    "granularity": { "enum": ["Hour", "Day", "Week", "Month"] },
+    "top": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "storeSelector": {
+      "type": "object", "additionalProperties": false, "required": ["mode", "storeName"],
+      "properties": { "mode": { "enum": ["AllowedScope", "NamedStore"] }, "storeName": { "type": ["string", "null"], "maxLength": 200 } }
+    },
+    "chart": { "enum": ["Kpi", "Line", "Bar", "StackedBar", "Heatmap", "Table"] }
+  }
+}

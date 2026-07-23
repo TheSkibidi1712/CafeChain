@@ -671,3 +671,9 @@ body { overflow: hidden; height: 100vh; font-family: 'Inter', 'Segoe UI', sans-s
     color: #92400e;
 }
 .offline-banner.show { display: block; }
+
+/* Non-blocking cross-sell area in the basket; POS checkout never depends on it. */
+.pos-recommendations { padding: 10px 14px; border-top: 1px solid #e2e8f0; background: #fffaf5; }
+.pos-recommendations-title { font-size: 12px; font-weight: 700; color: #9a5d2e; margin-bottom: 7px; }
+.pos-recommendation-item { width: 100%; display: flex; align-items: center; justify-content: space-between; border: 1px solid #fed7aa; background: #fff; border-radius: 8px; padding: 7px 9px; margin-top: 5px; color: #713f12; font-size: 12px; }
+.pos-recommendation-item:hover { background: #fff7ed; }

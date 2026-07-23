@@ -45,6 +45,7 @@ namespace CafeChain.Models.Inventories.Documents
 
         public int? SupplierId { get; set; }
         public string? Note { get; set; }
+        public bool AllowNegativeStock { get; set; }
         public string? NegativeReason { get; set; }
 
         // ===== MONEY =====

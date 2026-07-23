@@ -24,7 +24,6 @@ public sealed class StaffScheduleService : IStaffScheduleService
             StaffName = staff.FullName,
             StoreName = staff.Store.Name,
             AvatarUrl = staff.AvatarUrl,
-            RequiresPasswordChange = staff.Account.RequiresPasswordChange,
             WeekStart = weekStart,
             Schedules = staff.StaffShifts.OrderBy(x => x.WorkDate).ThenBy(x => x.CustomStartTime ?? x.Shift.StartTime)
                 .Select(x =>

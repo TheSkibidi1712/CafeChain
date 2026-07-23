@@ -11,14 +11,9 @@ export const PURPOSE = {
 
     // IMPORT
     IMPORT_PURCHASE: 1,
-    IMPORT_ADJUSTMENT: 3,
 
     // EXPORT
     SALE: 5,
-    GIFT: 7,
-    DEBT: 8,
-    SAMPLE: 9,
-    ADJUSTMENT_OUT: 10,
 
     // STOCK TAKE
     STOCK_TAKE: 11,

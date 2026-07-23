@@ -885,7 +885,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     document.NegativeReason,
                     approval?.PolicyVersion,
                     evidence,
-                    inventory.RowVersion));
+                    inventory.RowVersion,
+                    document.AllowNegativeStock));
         }
 
         private static InventoryStockStatus ResolveStockStatus(InventoryIssueDecision decision) =>

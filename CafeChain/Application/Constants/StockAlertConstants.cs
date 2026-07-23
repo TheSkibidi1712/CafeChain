@@ -58,6 +58,8 @@ namespace CafeChain.Application.Constants
         public const string StockAlertEscalated = "STOCK_ALERT_ESCALATED";
         /// <summary>Issue #100 — notify AccountantWarehouse of new restock request.</summary>
         public const string RestockRequestSubmitted = "RESTOCK_REQUEST_SUBMITTED";
+        public const string InventoryReorderAlert = "INVENTORY_REORDER_ALERT";
+        public const string OperationalAnomaly = "OPERATIONAL_ANOMALY";
     }
 
     /// <summary>Issue #98 — StaffNotification entity type codes.</summary>
@@ -66,5 +68,7 @@ namespace CafeChain.Application.Constants
         public const string StockAlert = "StockAlert";
         /// <summary>Issue #100 — RestockRequest entity deep-link.</summary>
         public const string RestockRequest = "RestockRequest";
+        public const string InventoryReorder = "InventoryReorder";
+        public const string OperationalAnomaly = "OperationalAnomaly";
     }
 }

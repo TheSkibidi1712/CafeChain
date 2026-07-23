@@ -3,9 +3,12 @@ namespace CafeChain.Application.DTOs.POS
     public class StaffNotificationItemDto
     {
         public int NotificationId { get; set; }
+        public int StoreId { get; set; }
         public string Type { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Body { get; set; } = string.Empty;
+        public string Severity { get; set; } = "INFO";
+        public bool IsResolved { get; set; }
         public string EntityType { get; set; } = string.Empty;
         public int EntityId { get; set; }
         public bool IsRead { get; set; }

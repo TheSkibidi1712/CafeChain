@@ -1,0 +1,13 @@
+(() => {
+    "use strict";
+    const root = document.getElementById("shiftOptimizationRoot"); if (!root) return;
+    const token = document.querySelector("#shiftOptimizationToken input")?.value || "";
+    const notice = document.getElementById("shiftOptimizationNotice"), output = document.getElementById("shiftProposalResult");
+    const endpoints = { availability: root.dataset.availability, constraint: root.dataset.constraint, requirement: root.dataset.requirement, timeoff: root.dataset.timeoff, proposal: root.dataset.generate };
+    let proposal = null;
+    const show = (message, error = false) => { notice.hidden = false; notice.className = `alert mt-3 ${error ? "alert-danger" : "alert-success"}`; notice.textContent = message; };
+    const payload = form => Object.fromEntries([...new FormData(form)].map(([key, value]) => [key, /^\d+(\.\d+)?$/.test(value) ? Number(value) : value]));
+    async function post(url, body) { const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "RequestVerificationToken": token }, credentials: "same-origin", body: JSON.stringify(body) }); const json = await response.json().catch(() => ({})); if (!response.ok) throw new Error(json.message || "Không thể xử lý."); return json.data; }
+    function render(value) { proposal = value; output.replaceChildren(); const title = document.createElement("h3"); title.className = "h5"; title.textContent = `${value.status} · ${value.assignments.length} phân công`; output.append(title); (value.violations || []).forEach(text => { const p = document.createElement("p"); p.className = "text-danger"; p.textContent = text; output.append(p); }); const list = document.createElement("ul"); value.assignments.forEach(x => { const li = document.createElement("li"); li.textContent = `${x.workDate.slice(0,10)} — ${x.staffName} — ${x.shiftName}`; list.append(li); }); output.append(list); if (value.status === "FEASIBLE") { const apply = document.createElement("button"); apply.className = "btn btn-success"; apply.textContent = "Áp dụng đề xuất"; apply.addEventListener("click", async () => { try { await post(root.dataset.apply, { proposalId: proposal.proposalId, rowVersion: proposal.rowVersion }); show("Đã áp dụng lịch."); apply.disabled = true; } catch(e) { show(e.message, true); } }); output.append(apply); } }
+    document.querySelectorAll("form[data-kind]").forEach(form => form.addEventListener("submit", async event => { event.preventDefault(); const kind = form.dataset.kind; try { const data = await post(endpoints[kind], payload(form)); if (kind === "proposal") render(data); else show("Đã lưu cấu hình."); } catch(e) { show(e.message, true); } }));
+})();

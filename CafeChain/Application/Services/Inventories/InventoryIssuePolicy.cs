@@ -6,7 +6,7 @@ namespace CafeChain.Application.Services.Inventories;
 public sealed class InventoryIssuePolicy : IInventoryIssuePolicy
 {
     private static readonly HashSet<string> AllowedManualPurposes =
-        new(StringComparer.OrdinalIgnoreCase) { "SALE", "GIFT", "DEBT", "SAMPLE" };
+        new(StringComparer.OrdinalIgnoreCase) { "SALE" };
 
     private readonly IInventoryIssueSettingsProvider _settingsProvider;
 
@@ -50,6 +50,11 @@ public sealed class InventoryIssuePolicy : IInventoryIssuePolicy
             || !AllowedManualPurposes.Contains(request.DocumentPurpose?.Trim() ?? string.Empty))
         {
             return Blocked(request, projectedAfter, 0, InventoryIssueReasonCodes.ManualNegativePurposeNotAllowed, request.PolicyVersion ?? string.Empty);
+        }
+
+        if (!request.AllowNegativeStock)
+        {
+            return Blocked(request, projectedAfter, 0, InventoryIssueReasonCodes.ManualNegativeOptInRequired, request.PolicyVersion ?? string.Empty);
         }
 
         var settings = await _settingsProvider.GetManualExternalExportSettingsAsync(cancellationToken);

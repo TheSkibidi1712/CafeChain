@@ -1,5 +1,7 @@
 using CafeChain.Application.Interfaces.Operations;
 using CafeChain.Application.Services.Operations;
+using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -13,10 +15,17 @@ namespace CafeChain.Areas.Admin.Controllers
     public class AdminNotificationsController : AdminBaseController
     {
         private readonly IStaffNotificationQueryService _service;
+        private readonly IAdminActorContextAccessor _actorAccessor;
+        private readonly IAdminStoreScopeResolver _storeScopeResolver;
 
-        public AdminNotificationsController(IStaffNotificationQueryService service)
+        public AdminNotificationsController(
+            IStaffNotificationQueryService service,
+            IAdminActorContextAccessor actorAccessor,
+            IAdminStoreScopeResolver storeScopeResolver)
         {
             _service = service;
+            _actorAccessor = actorAccessor;
+            _storeScopeResolver = storeScopeResolver;
         }
 
         // GET: /Admin/AdminNotifications
@@ -31,7 +40,8 @@ namespace CafeChain.Areas.Admin.Controllers
                 staffId,
                 page,
                 pageSize,
-                StaffNotificationQueryService.ChannelAdmin);
+                StaffNotificationQueryService.ChannelAdmin,
+                await ResolveAllowedStoreIdsAsync());
 
             if (!list.IsSuccess || list.Data == null)
             {
@@ -53,7 +63,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (staffId <= 0)
                 return Unauthorized();
 
-            var result = await _service.GetUnreadCountAsync(staffId);
+            var result = await _service.GetUnreadCountAsync(staffId, await ResolveAllowedStoreIdsAsync());
             if (!result.IsSuccess)
                 return BadRequest(new { success = false, message = result.Message });
 
@@ -68,7 +78,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (staffId <= 0)
                 return Unauthorized();
 
-            var result = await _service.MarkReadAsync(staffId, id);
+            var result = await _service.MarkReadAsync(staffId, id, await ResolveAllowedStoreIdsAsync());
             if (!result.IsSuccess)
             {
                 TempData["ErrorMessage"] = result.Message;
@@ -85,7 +95,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (staffId <= 0)
                 return Unauthorized();
 
-            var result = await _service.MarkAllReadAsync(staffId);
+            var result = await _service.MarkAllReadAsync(staffId, await ResolveAllowedStoreIdsAsync());
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else
@@ -103,7 +113,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 return Unauthorized();
 
             var result = await _service.GetListAsync(
-                staffId, page, pageSize, StaffNotificationQueryService.ChannelAdmin);
+                staffId, page, pageSize, StaffNotificationQueryService.ChannelAdmin, await ResolveAllowedStoreIdsAsync());
             if (!result.IsSuccess)
                 return BadRequest(new { success = false, message = result.Message });
 
@@ -117,7 +127,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (staffId <= 0)
                 return Unauthorized();
 
-            var result = await _service.MarkReadAsync(staffId, id);
+            var result = await _service.MarkReadAsync(staffId, id, await ResolveAllowedStoreIdsAsync());
             if (!result.IsSuccess)
                 return NotFound(new { success = false, message = result.Message });
 
@@ -128,6 +138,15 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             var claim = User.FindFirst("StaffId")?.Value;
             return int.TryParse(claim, out var id) && id > 0 ? id : 0;
+        }
+
+        private async Task<IReadOnlyCollection<int>> ResolveAllowedStoreIdsAsync()
+        {
+            var actor = _actorAccessor.Get(User);
+            var scope = await _storeScopeResolver.ResolveAsync(actor, null);
+            return scope.IsResolved
+                ? scope.AccessibleStores.Select(x => x.StoreId).Distinct().ToArray()
+                : Array.Empty<int>();
         }
     }
 }

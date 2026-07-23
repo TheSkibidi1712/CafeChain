@@ -82,7 +82,7 @@ public sealed class ShiftSchedulingUiSourceTests
         Assert.Contains("~/js/StaffHub/staffhub-schedule.js", view, StringComparison.Ordinal);
         Assert.DoesNotContain("bootstrap.Modal.getOrCreateInstance", view, StringComparison.Ordinal);
         Assert.Contains("DOMContentLoaded", script, StringComparison.Ordinal);
-        Assert.Contains("AdminMutationGuard.run(\"staffhub-change-password\"", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("staffhub-change-password", script, StringComparison.Ordinal);
         Assert.Contains("AdminMutationGuard.run(\"staffhub-open-pos\"", script, StringComparison.Ordinal);
     }
 

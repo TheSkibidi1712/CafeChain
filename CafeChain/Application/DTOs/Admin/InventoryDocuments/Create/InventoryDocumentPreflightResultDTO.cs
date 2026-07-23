@@ -26,4 +26,5 @@ public sealed class InventoryDocumentPreflightLineDTO
     public decimal EffectiveMaxNegativeDisplayQty { get; set; }
     public InventoryIssueOutcome Outcome { get; set; }
     public string ReasonCode { get; set; } = string.Empty;
+    public string UserMessage { get; set; } = string.Empty;
 }

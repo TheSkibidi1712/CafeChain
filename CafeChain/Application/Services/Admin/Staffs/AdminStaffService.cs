@@ -587,7 +587,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 Email = model.Email,
                 PasswordHash = passwordHash,
                 Active = true,
-                RequiresPasswordChange = true, // Bắt buộc đổi pass lần đầu theo yêu cầu Kiosk Security
+                RequiresPasswordChange = false,
                 CreatedAt = DateTime.Now
             };
 
