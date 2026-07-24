@@ -242,7 +242,37 @@ BEGIN TRY
         (47, 4, 1, N'DEMO_DRINK_LYCHEE_OOLONG', N'Trà ô long vải', N'Cốt trà ô long kết hợp vải ngâm.', 1, '2026-01-01', NULL),
         (48, 12, 1, N'DEMO_DRINK_OAT_MATCHA', N'Matcha sữa yến mạch', N'Matcha kết hợp sữa yến mạch.', 1, '2026-01-01', NULL),
         (49, 12, 1, N'DEMO_DRINK_COCONUT_CHOCOLATE', N'Chocolate dừa', N'Chocolate kết hợp nước cốt dừa và sữa tươi.', 1, '2026-01-01', NULL),
-        (50, 8, 1, N'DEMO_DRINK_PASSION_YOGURT', N'Sữa chua chanh dây', N'Sữa chua kết hợp mứt chanh dây.', 1, '2026-01-01', NULL);
+        (50, 8, 1, N'DEMO_DRINK_PASSION_YOGURT', N'Sữa chua chanh dây', N'Sữa chua kết hợp mứt chanh dây.', 1, '2026-01-01', NULL),
+        (51, 10, 1, N'ZZ_DRINK_CHEESE_CREAM_COFFEE', N'Cà phê kem cheese', N'Espresso kết hợp lớp kem cheese mặn béo.', 1, '2026-01-01', NULL),
+        (52, 10, 1, N'ZZ_DRINK_HONEY_LEMON_COLD_BREW', N'Cold brew mật ong chanh vàng', N'Cold brew thanh nhẹ kết hợp mật ong và chanh vàng.', 1, '2026-01-01', NULL),
+        (53, 9, 1, N'ZZ_DRINK_BLACK_PEARL_MILK_COFFEE', N'Cà phê sữa trân châu đen',  N'Cà phê sữa Việt kết hợp trân châu đen đã nấu.', 1, '2026-01-01', NULL), 
+        (54, 10, 1, N'ZZ_DRINK_HONEY_OAT_ESPRESSO', N'Espresso mật ong yến mạch', N'Espresso kết hợp sữa yến mạch và mật ong.', 1, '2026-01-01', NULL), 
+        (55, 9, 1, N'ZZ_DRINK_FLAN_MILK_COFFEE', N'Cà phê sữa flan', N'Cà phê sữa Việt dùng cùng bánh flan caramel.', 1, '2026-01-01', NULL),
+        (56, 10, 1, N'ZZ_DRINK_LYCHEE_ALOE_COLD_BREW', N'Cold brew vải nha đam', N'Cold brew kết hợp vải ngâm và nha đam.', 1, '2026-01-01', NULL),
+        (57, 10, 1, N'ZZ_DRINK_SALTED_COCONUT_ESPRESSO', N'Espresso dừa kem muối', N'Espresso, nước cốt dừa và lớp kem muối.', 1, '2026-01-01', NULL),
+        (58, 9, 1, N'ZZ_DRINK_BROWN_SUGAR_COCONUT_JELLY_COFFEE', N'Cà phê đường đen thạch dừa', N'Cà phê Việt kết hợp đường đen và thạch dừa.', 1, '2026-01-01', NULL),
+        (59, 9, 1, N'ZZ_DRINK_KHUC_BACH_MILK_COFFEE', N'Cà phê sữa khúc bạch', N'Cà phê sữa Việt dùng cùng khúc bạch.', 1, '2026-01-01', NULL),
+        (60, 10, 1, N'ZZ_DRINK_MANGO_PASSION_COLD_BREW', N'Cold brew xoài chanh dây', N'Cold brew kết hợp puree xoài và chanh dây.', 1, '2026-01-01', NULL),
+        (61, 4, 1, N'ZZ_DRINK_PEACH_ALOE_OOLONG', N'Ô long đào nha đam', N'Trà ô long kết hợp đào ngâm và nha đam.', 1, '2026-01-01', NULL),
+        (62, 4, 1, N'ZZ_DRINK_LYCHEE_CHIA_BLACK_TEA', N'Hồng trà vải hạt chia', N'Hồng trà kết hợp vải ngâm và hạt chia.', 1, '2026-01-01', NULL),
+        (63, 4, 1, N'ZZ_DRINK_MANGO_COCONUT_JELLY_OOLONG', N'Ô long xoài thạch dừa', N'Trà ô long kết hợp puree xoài và thạch dừa.', 1, '2026-01-01', NULL),
+        (64, 4, 1, N'ZZ_DRINK_ORANGE_ALOE_BLACK_TEA', N'Hồng trà cam nha đam', N'Hồng trà, cam tươi và nha đam.', 1, '2026-01-01', NULL),
+        (65, 4, 1, N'ZZ_DRINK_PASSION_CHIA_TEA', N'Trà chanh dây hạt chia', N'Trà đen kết hợp chanh dây và hạt chia.', 1, '2026-01-01', NULL),
+        (66, 4, 1, N'ZZ_DRINK_STRAWBERRY_COCONUT_JELLY_OOLONG', N'Ô long dâu thạch dừa', N'Trà ô long kết hợp puree dâu và thạch dừa.', 1, '2026-01-01', NULL),
+        (67, 4, 1, N'ZZ_DRINK_PEACH_KHUC_BACH_TEA', N'Trà đào khúc bạch', N'Trà đen, đào ngâm và khúc bạch.', 1, '2026-01-01', NULL),
+        (68, 4, 1, N'ZZ_DRINK_LYCHEE_ALOE_TEA', N'Trà vải nha đam', N'Trà đen kết hợp vải ngâm và nha đam.', 1, '2026-01-01', NULL),
+        (69, 4, 1, N'ZZ_DRINK_MANGO_CHIA_TEA', N'Trà xoài hạt chia', N'Trà đen kết hợp puree xoài và hạt chia.', 1, '2026-01-01', NULL),
+        (70, 4, 1, N'ZZ_DRINK_ORANGE_PASSION_TEA', N'Trà cam chanh dây', N'Trà đen kết hợp cam tươi và chanh dây.', 1, '2026-01-01', NULL),
+        (71, 11, 1, N'ZZ_DRINK_BROWN_SUGAR_PEARL_MILK_TEA', N'Trà sữa đường đen trân châu', N'Trà sữa kết hợp đường đen và trân châu đen.', 1, '2026-01-01', NULL),
+        (72, 11, 1, N'ZZ_DRINK_FLAN_MILK_TEA', N'Trà sữa flan', N'Trà sữa thủ công dùng cùng bánh flan.', 1, '2026-01-01', NULL),
+        (73, 11, 1, N'ZZ_DRINK_KHUC_BACH_MILK_TEA', N'Trà sữa khúc bạch', N'Trà sữa thủ công kết hợp khúc bạch.', 1, '2026-01-01', NULL),
+        (74, 11, 1, N'ZZ_DRINK_ALOE_MILK_TEA', N'Trà sữa nha đam', N'Trà sữa thủ công kết hợp nha đam.', 1, '2026-01-01', NULL),
+        (75, 11, 1, N'ZZ_DRINK_COCONUT_JELLY_MILK_TEA', N'Trà sữa thạch dừa', N'Trà sữa thủ công kết hợp thạch dừa.', 1, '2026-01-01', NULL),
+        (76, 11, 1, N'ZZ_DRINK_CHEESE_CREAM_MILK_TEA', N'Trà sữa kem cheese', N'Trà sữa thủ công phủ lớp kem cheese.', 1, '2026-01-01', NULL),
+        (77, 12, 1, N'ZZ_DRINK_STRAWBERRY_CHEESE_MATCHA', N'Matcha dâu kem cheese', N'Matcha kết hợp puree dâu và lớp kem cheese.', 1, '2026-01-01', NULL),
+        (78, 12, 1, N'ZZ_DRINK_MANGO_COCONUT_JELLY_MATCHA', N'Matcha xoài thạch dừa', N'Matcha kết hợp puree xoài và thạch dừa.', 1, '2026-01-01', NULL),
+        (79, 12, 1, N'ZZ_DRINK_SALTED_CARAMEL_CHOCOLATE', N'Chocolate caramel kem muối', N'Chocolate kết hợp caramel và lớp kem muối.', 1, '2026-01-01', NULL),
+        (80, 8, 1, N'ZZ_DRINK_MANGO_ALOE_YOGURT', N'Sữa chua xoài nha đam', N'Sữa chua kết hợp puree xoài và nha đam.', 1, '2026-01-01', NULL);
 
     IF EXISTS
     (
@@ -404,8 +434,254 @@ BEGIN TRY
         (117,30,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1779803319/suachuavietquat1_gqwvhs.jpg',N'suachuavietquat1_gqwvhs','2025-01-01',1),
         (118,30,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1779803318/suachuavietquat2_t07rjy.jpg',N'suachuavietquat2_t07rjy','2025-01-01',0),
         (119,30,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1779803318/suachuavietquat3_olncpb.jpg',N'suachuavietquat3_olncpb','2025-01-01',0),
-        (120,30,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1779803320/suachuavietquat4_bsjzb3.jpg',N'suachuavietquat4_bsjzb3','2025-01-01',0);
+        (120,30,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1779803320/suachuavietquat4_bsjzb3.jpg',N'suachuavietquat4_bsjzb3','2025-01-01',0),
+        (121,31,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877829/caphedenda1_qzwiut.jpg',N'caphedenda1_qzwiut','2025-01-01',1),
+        (122,31,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877830/caphedenda2_sp3iqs.webp',N'caphedenda2_sp3iqs','2025-01-01',0),
+        (123,31,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877830/caphedenda3_qh4s4e.jpg',N'caphedenda3_qh4s4e','2025-01-01',0),
+        (124,31,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877830/caphedenda4_ccfejc.webp',N'caphedenda4_ccfejc','2025-01-01',0),
 
+        (125,32,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877837/caphesuada1_wcyhpi.jpg',N'caphesuada1_wcyhpi','2025-01-01',1),
+        (126,32,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877837/caphesuada2_vnleni.jpg',N'caphesuada2_vnleni','2025-01-01',0),
+        (127,32,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877838/caphesuada3_hn2jzy.jpg',N'caphesuada3_hn2jzy','2025-01-01',0),
+        (128,32,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877839/caphesuada4_ur5g2k.jpg',N'caphesuada4_ur5g2k','2025-01-01',0),
+
+        (129,33,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877834/caphemuoi1_bsknve.jpg',N'caphemuoi1_bsknve','2025-01-01',1),
+        (130,33,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877835/caphemuoi2_xzrh0q.jpg',N'caphemuoi2_xzrh0q','2025-01-01',0),
+        (131,33,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877835/caphemuoi3_v0ufhk.jpg',N'caphemuoi3_v0ufhk','2025-01-01',0),
+        (132,33,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877836/caphemuoi4_e0ukln.webp',N'caphemuoi4_e0ukln','2025-01-01',0),
+
+        (133,34,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877850/lattecaphe1_tr0rcq.jpg',N'lattecaphe1_tr0rcq','2025-01-01',1),
+        (134,34,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877850/lattecaphe2_mha2yf.webp',N'lattecaphe2_mha2yf','2025-01-01',0),
+        (135,34,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877851/lattecaphe3_sguszk.webp',N'lattecaphe3_sguszk','2025-01-01',0),
+        (136,34,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877851/lattecaphe4_pyevbw.jpg',N'lattecaphe4_pyevbw','2025-01-01',0),
+
+        (137,35,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877902/trachanhday1_dnydos.jpg',N'trachanhday1_dnydos','2025-01-01',1),
+        (138,35,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877902/trachanhday2_decbve.jpg',N'trachanhday2_decbve','2025-01-01',0),
+        (139,35,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877903/trachanhday3_pdoird.jpg',N'trachanhday3_pdoird','2025-01-01',0),
+        (140,35,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877904/trachanhday4_duis9w.jpg',N'trachanhday4_duis9w','2025-01-01',0),
+        (141,36,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877956/trasuatruyenthongdacbiet1_ltzbdu.jpg',N'trasuatruyenthongdacbiet1_ltzbdu','2025-01-01',1),
+        (142,36,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877955/trasuatruyenthongdacbiet2_ckyeys.jpg',N'trasuatruyenthongdacbiet2_ckyeys','2025-01-01',0),
+        (143,36,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877956/trasuatruyenthongdacbiet3_oudysf.png',N'trasuatruyenthongdacbiet3_oudysf','2025-01-01',0),
+        (144,36,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877957/trasuatruyenthongdacbiet4_spwcd9.jpg',N'trasuatruyenthongdacbiet4_spwcd9','2025-01-01',0),
+
+        (145,37,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877878/matchalatte1_tcllnd.jpg',N'matchalatte1_tcllnd','2025-01-01',1),
+        (146,37,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877879/matchalatte2_qlskxc.jpg',N'matchalatte2_qlskxc','2025-01-01',0),
+        (147,37,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877879/matchalatte3_avuolk.jpg',N'matchalatte3_avuolk','2025-01-01',0),
+        (148,37,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877880/matchalatte4_mvtqfh.jpg',N'matchalatte4_mvtqfh','2025-01-01',0),
+
+        (149,38,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877871/chocolatelatte1_xg8av1.webp',N'chocolatelatte1_xg8av1','2025-01-01',1),
+        (150,38,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877872/chocolatelatte2_bbrxol.jpg',N'chocolatelatte2_bbrxol','2025-01-01',0),
+        (151,38,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877872/chocolatelatte3_lrighe.jpg',N'chocolatelatte3_lrighe','2025-01-01',0),
+        (152,38,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877872/chocolatelatte4_elw2yu.jpg',N'chocolatelatte4_elw2yu','2025-01-01',0),
+
+        (153,39,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877875/matchadaxay1_vqwxct.jpg',N'matchadaxay1_vqwxct','2025-01-01',1),
+        (154,39,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877876/matchadaxay2_wq9cgj.jpg',N'matchadaxay2_wq9cgj','2025-01-01',0),
+        (155,39,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877877/matchadaxay3_fe5yxq.webp',N'matchadaxay3_fe5yxq','2025-01-01',0),
+        (156,39,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877877/matchadaxay4_zmuxyj.jpg',N'matchadaxay4_zmuxyj','2025-01-01',0),
+        
+        (157,40,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784896192/coldbrewcam1_k7eucz.webp',N'coldbrewcam1_k7eucz','2025-01-01',1),
+        (158,40,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784896193/coldbrewcam2_uq7fwb.jpg',N'coldbrewcam2_uq7fwb','2025-01-01',0),
+        (159,40,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784896193/coldbrewcam3_lfht6x.jpg',N'coldbrewcam3_lfht6x','2025-01-01',0),
+        (160,40,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784896192/coldbrewcam4_fazzqo.jpg',N'coldbrewcam4_fazzqo','2025-01-01',0),
+
+        (161,41,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877852/mocha1_koeukd.jpg',N'mocha1_koeukd','2025-01-01',1),
+        (162,41,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877852/mocha2_xcmnry.jpg',N'mocha2_xcmnry','2025-01-01',0),
+        (163,41,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877853/mocha3_l0pdhz.webp',N'mocha3_l0pdhz','2025-01-01',0),
+        (164,41,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877852/mocha4_w9pmjh.jpg',N'mocha4_w9pmjh','2025-01-01',0),
+
+        (165,42,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877842/carameomacchiato1_laop8z.jpg',N'carameomacchiato1_laop8z','2025-01-01',1),
+        (166,42,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877842/carameomacchiato2_bu9tzb.jpg',N'carameomacchiato2_bu9tzb','2025-01-01',0),
+        (167,42,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877842/carameomacchiato3_kwtx6v.webp',N'carameomacchiato3_kwtx6v','2025-01-01',0),
+        (168,42,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877843/carameomacchiato4_lj6skt.jpg',N'carameomacchiato4_lj6skt','2025-01-01',0),
+
+        (169,43,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877830/caphedua1_ud21lr.jpg',N'caphedua1_ud21lr','2025-01-01',1),
+        (170,43,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877830/caphedua2_rgximd.jpg',N'caphedua2_rgximd','2025-01-01',0),
+        (171,43,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877830/caphedua3_zzrr6w.jpg',N'caphedua3_zzrr6w','2025-01-01',0),
+        (172,43,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877831/caphedua4_uwkiqr.webp',N'caphedua4_uwkiqr','2025-01-01',0),
+
+        (173,44,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877907/trachanhmatong1_elnqi2.jpg',N'trachanhmatong1_elnqi2','2025-01-01',1),
+        (174,44,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877906/trachanhmatong2_xh8ed0.jpg',N'trachanhmatong2_xh8ed0','2025-01-01',0),
+        (175,44,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877910/trachanhmatong3_gcoge1.jpg',N'trachanhmatong3_gcoge1','2025-01-01',0),
+        (176,44,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877908/trachanhmatong4_vt550r.jpg',N'trachanhmatong4_vt550r','2025-01-01',0),
+
+        (177,45,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877919/traxoai1_zyykyf.jpg',N'traxoai1_zyykyf','2025-01-01',1),
+        (178,45,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877920/traxoai2_da6ejf.jpg',N'traxoai2_da6ejf','2025-01-01',0),
+        (179,45,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877921/traxoai3_ubccno.jpg',N'traxoai3_ubccno','2025-01-01',0),
+        (180,45,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877921/traxoai4_efoeul.jpg',N'traxoai4_efoeul','2025-01-01',0),
+        (181,46,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877934/trasuadau1_hrdvpw.jpg',N'trasuadau1_hrdvpw','2025-01-01',1),
+        (182,46,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877935/trasuadau2_nyxwe7.jpg',N'trasuadau2_nyxwe7','2025-01-01',0),
+        (183,46,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877937/trasuadau3_ldctra.jpg',N'trasuadau3_ldctra','2025-01-01',0),
+        (184,46,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877938/trasuadau4_lmlrsy.jpg',N'trasuadau4_lmlrsy','2025-01-01',0),
+
+        (185,47,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877914/traolongvai1_rmhf4h.jpg',N'traolongvai1_rmhf4h','2025-01-01',1),
+        (186,47,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877915/traolongvai2_hyebia.jpg',N'traolongvai2_hyebia','2025-01-01',0),
+        (187,47,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877915/traolongvai3_p11jhb.jpg',N'traolongvai3_p11jhb','2025-01-01',0),
+        (188,47,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877916/traolongvai4_teiqt3.jpg',N'traolongvai4_teiqt3','2025-01-01',0),
+
+        (189,48,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877880/matchasuayenmach1_otv46d.jpg',N'matchasuayenmach1_otv46d','2025-01-01',1),
+        (190,48,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877881/matchasuayenmach2_kcwkso.jpg',N'matchasuayenmach2_kcwkso','2025-01-01',0),
+        (191,48,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877882/matchasuayenmach3_u6ktxq.jpg',N'matchasuayenmach3_u6ktxq','2025-01-01',0),
+        (192,48,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877882/matchasuayenmach4_re3nvc.jpg',N'matchasuayenmach4_re3nvc','2025-01-01',0),
+
+        (193,49,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877861/chocolatedua1_uficrw.jpg',N'chocolatedua1_uficrw','2025-01-01',1),
+        (194,49,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877862/chocolatedua2_fk6nt1.jpg',N'chocolatedua2_fk6nt1','2025-01-01',0),
+        (195,49,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877862/chocolatedua3_cqy0un.jpg',N'chocolatedua3_cqy0un','2025-01-01',0),
+        (196,49,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877863/chocolatedua4_piotka.jpg',N'chocolatedua4_piotka','2025-01-01',0),
+
+        (197,50,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877864/suachuachanhday1_fxhgml.jpg',N'suachuachanhday1_fxhgml','2025-01-01',1),
+        (198,50,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877864/suachuachanhday2_d72dyx.jpg',N'suachuachanhday2_d72dyx','2025-01-01',0),
+        (199,50,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877865/suachuachanhday3_hjcqf3.jpg',N'suachuachanhday3_hjcqf3','2025-01-01',0),
+        (200,50,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877865/suachuachanhday4_w6fms2.jpg',N'suachuachanhday4_w6fms2','2025-01-01',0),
+        (201,51,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877833/caphekemcheese1_rxuamk.webp',N'caphekemcheese1_rxuamk','2025-01-01',1),
+        (202,51,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877833/caphekemcheese2_j4ovtf.jpg',N'caphekemcheese2_j4ovtf','2025-01-01',0),
+        (203,51,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877834/caphekemcheese3_vqejeb.jpg',N'caphekemcheese3_vqejeb','2025-01-01',0),
+        (204,51,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877834/caphekemcheese4_bafcy5.jpg',N'caphekemcheese4_bafcy5','2025-01-01',0),
+
+        (205,52,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877843/coldbrewmatongchanhvang1_qjcjid.jpg',N'coldbrewmatongchanhvang1_qjcjid','2025-01-01',1),
+        (206,52,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877844/coldbrewmatongchanhvang2_mshbeu.webp',N'coldbrewmatongchanhvang2_mshbeu','2025-01-01',0),
+        (207,52,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877844/coldbrewmatongchanhvang3_fd7bbz.jpg',N'coldbrewmatongchanhvang3_fd7bbz','2025-01-01',0),
+        (208,52,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877844/coldbrewmatongchanhvang4_acb5j5.jpg',N'coldbrewmatongchanhvang4_acb5j5','2025-01-01',0),
+
+        (209,53,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877840/caphesuatranchauden1_cdp5ah.jpg',N'caphesuatranchauden1_cdp5ah','2025-01-01',1),
+        (210,53,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877841/caphesuatranchauden2_iyp8sq.jpg',N'caphesuatranchauden2_iyp8sq','2025-01-01',0),
+        (211,53,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877841/caphesuatranchauden3_bqe9rb.png',N'caphesuatranchauden3_bqe9rb','2025-01-01',0),
+        (212,53,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877842/caphesuatranchauden4_owehqy.jpg',N'caphesuatranchauden4_owehqy','2025-01-01',0),
+
+        (213,54,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877854/espressomatongyenmanh1_chylji.png',N'espressomatongyenmanh1_chylji','2025-01-01',1),
+        (214,54,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877849/espressomatongyenmanh2_rcvqeb.webp',N'espressomatongyenmanh2_rcvqeb','2025-01-01',0),
+        (215,54,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877849/espressomatongyenmanh3_xiudq9.jpg',N'espressomatongyenmanh3_xiudq9','2025-01-01',0),
+        (216,54,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877850/espressomatongyenmanh4_xa8w5k.jpg',N'espressomatongyenmanh4_xa8w5k','2025-01-01',0),
+
+        (217,55,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877836/caphesuabanhflan1_q40pda.jpg',N'caphesuabanhflan1_q40pda','2025-01-01',1),
+        (218,55,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877836/caphesuabanhflan2_cwnugu.jpg',N'caphesuabanhflan2_cwnugu','2025-01-01',0),
+        (219,55,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877837/caphesuabanhflan3_d788gt.jpg',N'caphesuabanhflan3_d788gt','2025-01-01',0),
+        (220,55,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877837/caphesuabanhflan4_hn7cgw.jpg',N'caphesuabanhflan4_hn7cgw','2025-01-01',0),
+
+        (221,56,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877845/coldbrewvainhadam1_mbvf3d.jpg',N'coldbrewvainhadam1_mbvf3d','2025-01-01',1),
+        (222,56,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877845/coldbrewvainhadam2_z3vt5x.webp',N'coldbrewvainhadam2_z3vt5x','2025-01-01',0),
+        (223,56,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877845/coldbrewvainhadam3_otljog.jpg',N'coldbrewvainhadam3_otljog','2025-01-01',0),
+        (224,56,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877846/coldbrewvainhadam4_r6oqzf.jpg',N'coldbrewvainhadam4_r6oqzf','2025-01-01',0),
+
+        (225,57,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877848/espressoduakemmuoi1_mfvbja.webp',N'espressoduakemmuoi1_mfvbja','2025-01-01',1),
+        (226,57,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877848/espressoduakemmuoi2_xf55am.jpg',N'espressoduakemmuoi2_xf55am','2025-01-01',0),
+        (227,57,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877848/espressoduakemmuoi3_fznq16.jpg',N'espressoduakemmuoi3_fznq16','2025-01-01',0),
+        (228,57,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877849/espressoduakemmuoi4_iwicre.jpg',N'espressoduakemmuoi4_iwicre','2025-01-01',0),
+
+        (229,58,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877830/capheduongdenthachdua1_nv1tfa.jpg',N'capheduongdenthachdua1_nv1tfa','2025-01-01',1),
+        (230,58,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877831/capheduongdenthachdua2_u7jmqo.jpg',N'capheduongdenthachdua2_u7jmqo','2025-01-01',0),
+        (231,58,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877832/capheduongdenthachdua3_ubmkyc.jpg',N'capheduongdenthachdua3_ubmkyc','2025-01-01',0),
+        (232,58,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877833/capheduongdenthachdua4_jdgwst.jpg',N'capheduongdenthachdua4_jdgwst','2025-01-01',0),
+
+        (233,59,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877838/caphesuakhucbach1_debtec.png',N'caphesuakhucbach1_debtec','2025-01-01',1),
+        (234,59,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877839/caphesuakhucbach2_jiuzo1.jpg',N'caphesuakhucbach2_jiuzo1','2025-01-01',0),
+        (235,59,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877839/caphesuakhucbach3_p35m86.jpg',N'caphesuakhucbach3_p35m86','2025-01-01',0),
+        (236,59,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877840/caphesuakhucbach4_dnkn45.jpg',N'caphesuakhucbach4_dnkn45','2025-01-01',0),
+
+        (237,60,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877847/coldbrewxoaichanhday1_mipj6f.jpg',N'coldbrewxoaichanhday1_mipj6f','2025-01-01',1),
+        (238,60,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877846/coldbrewxoaichanhday2_nwokpc.jpg',N'coldbrewxoaichanhday2_nwokpc','2025-01-01',0),
+        (239,60,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877847/coldbrewxoaichanhday3_rqykgd.jpg',N'coldbrewxoaichanhday3_rqykgd','2025-01-01',0),
+        (240,60,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877847/coldbrewxoaichanhday4_uyv7xp.jpg',N'coldbrewxoaichanhday4_uyv7xp','2025-01-01',0),
+
+        (241,61,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877891/olongdaonhadam1_diawpz.jpg',N'olongdaonhadam1_diawpz','2025-01-01',1),
+        (242,61,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877892/olongdaonhadam2_nkptbr.jpg',N'olongdaonhadam2_nkptbr','2025-01-01',0),
+        (243,61,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877893/olongdaonhadam3_cubnhq.jpg',N'olongdaonhadam3_cubnhq','2025-01-01',0),
+        (244,61,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877893/olongdaonhadam4_wigsya.jpg',N'olongdaonhadam4_wigsya','2025-01-01',0),
+
+        (245,62,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877927/hongtravaihatchia1_acn0oz.jpg',N'hongtravaihatchia1_acn0oz','2025-01-01',1),
+        (246,62,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877890/hongtravaihatchia2_aiuirm.jpg',N'hongtravaihatchia2_aiuirm','2025-01-01',0),
+        (247,62,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877890/hongtravaihatchia3_qgf30h.jpg',N'hongtravaihatchia3_qgf30h','2025-01-01',0),
+        (248,62,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877891/hongtravaihatchia4_gip86h.jpg',N'hongtravaihatchia4_gip86h','2025-01-01',0),
+
+        (249,63,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877897/olongxoaithachdua1_mzrtqn.jpg',N'olongxoaithachdua1_mzrtqn','2025-01-01',1),
+        (250,63,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877897/olongxoaithachdua2_ncrxxr.jpg',N'olongxoaithachdua2_ncrxxr','2025-01-01',0),
+        (251,63,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877899/olongxoaithachdua3_ey4ehp.jpg',N'olongxoaithachdua3_ey4ehp','2025-01-01',0),
+        (252,63,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877898/olongxoaithachdua4_sarvzp.jpg',N'olongxoaithachdua4_sarvzp','2025-01-01',0),
+
+        (253,64,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877924/hongtracamnhadam1_uelwrt.jpg',N'hongtracamnhadam1_uelwrt','2025-01-01',1),
+        (254,64,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877925/hongtracamnhadam2_b4wbjz.jpg',N'hongtracamnhadam2_b4wbjz','2025-01-01',0),
+        (255,64,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877926/hongtracamnhadam3_kjy1jy.jpg',N'hongtracamnhadam3_kjy1jy','2025-01-01',0),
+        (256,64,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877926/hongtracamnhadam4_hqrzbq.jpg',N'hongtracamnhadam4_hqrzbq','2025-01-01',0),
+
+        (257,65,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877904/trachanhdayhatchia1_fjoon4.jpg',N'trachanhdayhatchia1_fjoon4','2025-01-01',1),
+        (258,65,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877905/trachanhdayhatchia2_ovgc0n.jpg',N'trachanhdayhatchia2_ovgc0n','2025-01-01',0),
+        (259,65,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877906/trachanhdayhatchia3_hxhhcy.jpg',N'trachanhdayhatchia3_hxhhcy','2025-01-01',0),
+        (260,65,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877907/trachanhdayhatchia4_otflxs.webp',N'trachanhdayhatchia4_otflxs','2025-01-01',0),
+
+        (261,66,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784900158/olongdauthachdua1_dxycpz.jpg',N'olongdauthachdua1_dxycpz','2025-01-01',1),
+        (262,66,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784900158/olongdauthachdua2_r4ovat.jpg',N'olongdauthachdua2_r4ovat','2025-01-01',0),
+        (263,66,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784900158/olongdauthachdua3_unepoz.jpg',N'olongdauthachdua3_unepoz','2025-01-01',0),
+        (264,66,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784900163/olongdauthachdua4_mzplvu.jpg',N'olongdauthachdua4_mzplvu','2025-01-01',0),
+
+        (265,67,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877909/tradaokhucbach1_b7yutr.png',N'tradaokhucbach1_b7yutr','2025-01-01',1),
+        (266,67,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877909/tradaokhucbach2_waosnv.png',N'tradaokhucbach2_waosnv','2025-01-01',0),
+        (267,67,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877912/tradaokhucbach3_hom7sm.png',N'tradaokhucbach3_hom7sm','2025-01-01',0),
+        (268,67,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877911/tradaokhucbach4_q3rx7b.png',N'tradaokhucbach4_q3rx7b','2025-01-01',0),
+
+        (269,68,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877917/travainhadam1_pl70nz.jpg',N'travainhadam1_pl70nz','2025-01-01',1),
+        (270,68,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877918/travainhadam2_u3zdji.jpg',N'travainhadam2_u3zdji','2025-01-01',0),
+        (271,68,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877918/travainhadam3_inlzsi.jpg',N'travainhadam3_inlzsi','2025-01-01',0),
+        (272,68,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877919/travainhadam4_emqs1u.jpg',N'travainhadam4_emqs1u','2025-01-01',0),
+
+        (273,69,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877922/traxoaihatchia1_iilb8b.jpg',N'traxoaihatchia1_iilb8b','2025-01-01',1),
+        (274,69,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877923/traxoaihatchia2_gkewyg.jpg',N'traxoaihatchia2_gkewyg','2025-01-01',0),
+        (275,69,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877923/traxoaihatchia3_azcoyd.jpg',N'traxoaihatchia3_azcoyd','2025-01-01',0),
+        (276,69,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877924/traxoaihatchia4_ufpgki.jpg',N'traxoaihatchia4_ufpgki','2025-01-01',0),
+
+        (277,70,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877899/tracamchanhday1_vht9qm.jpg',N'tracamchanhday1_vht9qm','2025-01-01',1),
+        (278,70,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877900/tracamchanhday2_zmrxll.jpg',N'tracamchanhday2_zmrxll','2025-01-01',0),
+        (279,70,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877900/tracamchanhday3_i3ycx1.jpg',N'tracamchanhday3_i3ycx1','2025-01-01',0),
+        (280,70,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877901/tracamchanhday4_oxqdps.jpg',N'tracamchanhday4_oxqdps','2025-01-01',0),
+
+        (281,71,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877952/trasuatranchauduongden1_eoo69p.jpg',N'trasuatranchauduongden1_eoo69p','2025-01-01',1),
+        (282,71,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877953/trasuatranchauduongden2_a8jhd0.jpg',N'trasuatranchauduongden2_a8jhd0','2025-01-01',0),
+        (283,71,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877953/trasuatranchauduongden3_umwdwe.jpg',N'trasuatranchauduongden3_umwdwe','2025-01-01',0),
+        (284,71,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877954/trasuatranchauduongden4_nrraud.jpg',N'trasuatranchauduongden4_nrraud','2025-01-01',0),
+
+        (285,72,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877938/trasuabanhflan1_f6hnzj.jpg',N'trasuabanhflan1_f6hnzj','2025-01-01',1),
+        (286,72,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877934/trasuabanhflan2_zebn15.jpg',N'trasuabanhflan2_zebn15','2025-01-01',0),
+        (287,72,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877933/trasuabanhflan3_pv8uhc.jpg',N'trasuabanhflan3_pv8uhc','2025-01-01',0),
+        (288,72,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784899745/trasuabanhflan4_y4uhzr.jpg',N'trasuabanhflan4_y4uhzr','2025-01-01',0),
+
+        (289,73,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877942/trasuakhucbach1_rd1ses.jpg',N'trasuakhucbach1_rd1ses','2025-01-01',1),
+        (290,73,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877944/trasuakhucbach2_dyzs8i.jpg',N'trasuakhucbach2_dyzs8i','2025-01-01',0),
+        (291,73,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877943/trasuakhucbach3_wk62l6.jpg',N'trasuakhucbach3_wk62l6','2025-01-01',0),
+        (292,73,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877944/trasuakhucbach4_eo3sxq.jpg',N'trasuakhucbach4_eo3sxq','2025-01-01',0),
+
+        (293,74,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877945/trasuanhadam1_srkrfw.jpg',N'trasuanhadam1_srkrfw','2025-01-01',1),
+        (294,74,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877946/trasuanhadam2_n4qm37.jpg',N'trasuanhadam2_n4qm37','2025-01-01',0),
+        (295,74,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877947/trasuanhadam3_pdnlb3.jpg',N'trasuanhadam3_pdnlb3','2025-01-01',0),
+        (296,74,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877948/trasuanhadam4_yf0k0i.jpg',N'trasuanhadam4_yf0k0i','2025-01-01',0),
+
+        (297,75,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877948/trasuathachdua1_z490br.jpg',N'trasuathachdua1_z490br','2025-01-01',1),
+        (298,75,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877949/trasuathachdua2_awlkyt.jpg',N'trasuathachdua2_awlkyt','2025-01-01',0),
+        (299,75,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877950/trasuathachdua3_y7u8gj.jpg',N'trasuathachdua3_y7u8gj','2025-01-01',0),
+        (300,75,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877951/trasuathachdua4_cfehqv.jpg',N'trasuathachdua4_cfehqv','2025-01-01',0),
+
+        (301,76,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877939/trasuakemcheese1_k0hn62.jpg',N'trasuakemcheese1_k0hn62','2025-01-01',1),
+        (302,76,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877940/trasuakemcheese2_xlrv8b.jpg',N'trasuakemcheese2_xlrv8b','2025-01-01',0),
+        (303,76,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877941/trasuakemcheese3_bd2wcb.jpg',N'trasuakemcheese3_bd2wcb','2025-01-01',0),
+        (304,76,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877942/trasuakemcheese4_umrxes.jpg',N'trasuakemcheese4_umrxes','2025-01-01',0),
+
+        (305,77,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877873/matchadaukemcheese1_ucdj2z.jpg',N'matchadaukemcheese1_ucdj2z','2025-01-01',1),
+        (306,77,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877874/matchadaukemcheese2_zt0avz.jpg',N'matchadaukemcheese2_zt0avz','2025-01-01',0),
+        (307,77,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877874/matchadaukemcheese3_rsbqak.jpg',N'matchadaukemcheese3_rsbqak','2025-01-01',0),
+        (308,77,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877875/matchadaukemcheese4_zeunpz.jpg',N'matchadaukemcheese4_zeunpz','2025-01-01',0),
+
+        (309,78,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877884/matchaxoaithachdua1_f5u70u.jpg',N'matchaxoaithachdua1_f5u70u','2025-01-01',1),
+        (310,78,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877883/matchaxoaithachdua2_vdyhyg.jpg',N'matchaxoaithachdua2_vdyhyg','2025-01-01',0),
+        (311,78,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877883/matchaxoaithachdua3_vncenx.jpg',N'matchaxoaithachdua3_vncenx','2025-01-01',0),
+        (312,78,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877884/matchaxoaithachdua4_toxufc.jpg',N'matchaxoaithachdua4_toxufc','2025-01-01',0),
+
+        (313,79,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877861/chocolatecaramelkemmuoi1_oz3wmt.jpg',N'chocolatecaramelkemmuoi1_oz3wmt','2025-01-01',1),
+        (314,79,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877861/chocolatecaramelkemmuoi2_nuklu1.jpg',N'chocolatecaramelkemmuoi2_nuklu1','2025-01-01',0),
+        (315,79,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877860/chocolatecaramelkemmuo3_cs8o7i.jpg',N'chocolatecaramelkemmuo3_cs8o7i','2025-01-01',0),
+        (316,79,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877861/chocolatecaramelkemmuoi4_cdfqif.jpg',N'chocolatecaramelkemmuoi4_cdfqif','2025-01-01',0),
+
+        (317,80,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877866/suachuaxoainhadam1_bvksik.jpg',N'suachuaxoainhadam1_bvksik','2025-01-01',1),
+        (318,80,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877866/suachuaxoainhadam2_vlywtc.jpg',N'suachuaxoainhadam2_vlywtc','2025-01-01',0),
+        (319,80,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877866/suachuaxoainhadam3_xzdjyi.jpg',N'suachuaxoainhadam3_xzdjyi','2025-01-01',0),
+        (320,80,N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877867/suachuaxoainhadam4_fw8vyo.jpg',N'suachuaxoainhadam4_fw8vyo','2025-01-01',0);
+    
     IF EXISTS
     (
         SELECT 1
@@ -485,7 +761,40 @@ BEGIN TRY
         (47,2,41000,1),(47,3,47000,1),
         (48,2,48000,1),(48,3,55000,1),
         (49,2,47000,1),(49,3,54000,1),
-        (50,2,42000,1),(50,3,48000,1);
+        (50,2,42000,1),(50,3,48000,1),
+
+        (51,2,49000,1),(51,3,55000,1), 
+        (52,2,47000,1),(52,3,55000,1),
+        (53,2,45000,1),(53,3,50000,1),
+        (54,2,50000,1),(54,3,55000,1),
+        (55,2,46000,1),(55,3,50000,1),
+        (56,2,49000,1),(56,3,55000,1),
+        (57,2,52000,1),(57,3,60000,1),
+        (58,2,47000,1),(58,3,55000,1),
+        (59,2,47000,1),(59,3,55000,1),
+        (60,2,49000,1),(60,3,55000,1),
+
+        (61,2,43000,1),(61,3,50000,1),
+        (62,2,43000,1),(62,3,50000,1),
+        (63,2,45000,1),(63,3,50000,1),
+        (64,2,43000,1),(64,3,50000,1),
+        (65,2,42000,1),(65,3,50000,1),
+        (66,2,45000,1),(66,3,50000,1),
+        (67,2,45000,1),(67,3,50000,1),
+        (68,2,43000,1),(68,3,50000,1),
+        (69,2,43000,1),(69,3,50000,1),
+        (70,2,44000,1),(70,3,50000,1),
+
+        (71,2,45000,1),(71,3,50000,1),
+        (72,2,45000,1),(72,3,50000,1),
+        (73,2,45000,1),(73,3,50000,1),
+        (74,2,43000,1),(74,3,50000,1),
+        (75,2,43000,1),(75,3,50000,1),
+        (76,2,46000,1),(76,3,50000,1),
+        (77,2,52000,1),(77,3,55000,1),
+        (78,2,52000,1),(78,3,55000,1),
+        (79,2,50000,1),(79,3,55000,1),
+        (80,2,45000,1),(80,3,40000,1);
 
     IF EXISTS
     (
@@ -509,11 +818,11 @@ BEGIN TRY
     IF (SELECT COUNT(*) FROM dbo.DrinkCategories WHERE CategoryId BETWEEN 1 AND 13) <> 13
         THROW 52020, N'Số DrinkCategories canonical sau Batch 01 phải bằng 13.', 1;
 
-    IF (SELECT COUNT(*) FROM dbo.Drinks WHERE DrinkId BETWEEN 1 AND 50) <> 50
-        THROW 52021, N'Số Drinks canonical sau Batch 01 phải bằng 50.', 1;
+    IF (SELECT COUNT(*) FROM dbo.Drinks WHERE DrinkId BETWEEN 1 AND 80) <> 80
+        THROW 52021, N'Số Drinks canonical sau Batch 01 phải bằng 80.', 1;
 
-    IF (SELECT COUNT(*) FROM dbo.DrinkImages WHERE DrinkImageId BETWEEN 1 AND 120) <> 120
-        THROW 52022, N'Số DrinkImages nền + Part1 sau Batch 01 phải bằng 120.', 1;
+    IF (SELECT COUNT(*) FROM dbo.DrinkImages WHERE DrinkImageId BETWEEN 1 AND 320) <> 320
+        THROW 52022, N'Số DrinkImages nền + Part1 sau Batch 01 phải bằng 320.', 1;
 
     IF EXISTS
     (
@@ -585,7 +894,7 @@ SELECT N'Drinks', COUNT(*), MIN(DrinkId), MAX(DrinkId),
 FROM dbo.Drinks
 UNION ALL
 SELECT N'DrinkImages', COUNT(*), MIN(DrinkImageId), MAX(DrinkImageId),
-       SUM(CASE WHEN DrinkImageId BETWEEN 25 AND 120 THEN 1 ELSE 0 END), 0
+       SUM(CASE WHEN DrinkImageId BETWEEN 25 AND 320 THEN 1 ELSE 0 END), 0
 FROM dbo.DrinkImages
 UNION ALL
 SELECT N'DrinkSizes', COUNT(*), MIN(DrinkSizeId), MAX(DrinkSizeId),
@@ -690,44 +999,44 @@ BEGIN TRY
         (10, N'HATCHIA',               N'Hạt chia',                4000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1779804081/hatchia_raldyn.jpg',      N'hatchia_raldyn',      1),
         (11, N'TH_Dua',                N'Thạch dừa',               5000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1779804078/thachdua_lmh1ia.jpg',     N'thachdua_lmh1ia',     1),
         (12, N'PUDDINGTRUNG',          N'Pudding trứng',           7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1779804048/puddingtrung_noep2j.jpg', N'puddingtrung_noep2j', 1),
-        (13, N'DEMO_TOP_ESPRESSO_SHOT',N'Shot espresso',          10000,  NULL, NULL, 1),
-        (14, N'TC_HOANGKIM',           N'Trân châu hoàng kim',     7000,  NULL, NULL, 1),
-        (15, N'TC_DUONGDEN',           N'Trân châu đường đen',     8000,  NULL, NULL, 1),
-        (16, N'TC_MINI',               N'Trân châu mini',          6000,  NULL, NULL, 1),
-        (17, N'TC_KHOAIMON',           N'Trân châu khoai môn',     8000,  NULL, NULL, 1),
-        (18, N'TH_CAFE',               N'Thạch cà phê',            6000,  NULL, NULL, 1),
-        (19, N'TH_MATCHA',             N'Thạch matcha',            7000,  NULL, NULL, 1),
-        (20, N'TH_VAI',                N'Thạch vải',               7000,  NULL, NULL, 1),
-        (21, N'TH_XOAI',               N'Thạch xoài',              7000,  NULL, NULL, 1),
-        (22, N'TH_DAU',                N'Thạch dâu',               7000,  NULL, NULL, 1),
-        (23, N'TH_CHANHDAY',           N'Thạch chanh dây',         7000,  NULL, NULL, 1),
-        (24, N'TH_MATONGCHANH',        N'Thạch mật ong chanh',     7000,  NULL, NULL, 1),
-        (25, N'TH_SUAYENMACH',         N'Thạch sữa yến mạch',      8000,  NULL, NULL, 1),
-        (26, N'TRAIDAO',               N'Đào miếng',               8000,  NULL, NULL, 1),
-        (27, N'TRAIVAI',               N'Vải ngâm',                8000,  NULL, NULL, 1),
-        (28, N'XOAI_HAT',              N'Xoài cắt hạt lựu',        8000,  NULL, NULL, 1),
-        (29, N'DAU_TUOI',              N'Dâu tươi',                9000,  NULL, NULL, 1),
-        (30, N'TEP_CAM',               N'Tép cam',                 7000,  NULL, NULL, 1),
-        (31, N'CHANHDAY_HAT',          N'Chanh dây hạt',           7000,  NULL, NULL, 1),
-        (32, N'PUDDING_VANILLA',       N'Pudding vanilla',         7000,  NULL, NULL, 1),
-        (33, N'PUDDING_SOCOLA',        N'Pudding chocolate',       8000,  NULL, NULL, 1),
-        (34, N'PUDDING_MATCHA',        N'Pudding matcha',          8000,  NULL, NULL, 1),
-        (35, N'PUDDING_KHOAIMON',      N'Pudding khoai môn',       8000,  NULL, NULL, 1),
-        (36, N'KEMMUOI',               N'Kem muối',                9000,  NULL, NULL, 1),
-        (37, N'KEMSUATUOI',            N'Kem sữa tươi',            9000,  NULL, NULL, 1),
-        (38, N'KEMDUA',                N'Kem dừa',                 9000,  NULL, NULL, 1),
-        (39, N'KEMYENMACH',            N'Kem yến mạch',           10000,  NULL, NULL, 1),
-        (40, N'SOT_CARAMEL',           N'Sốt caramel',             6000,  NULL, NULL, 1),
-        (41, N'SOT_SOCOLA',            N'Sốt chocolate',           6000,  NULL, NULL, 1),
-        (42, N'SOT_DAU',               N'Sốt dâu',                 6000,  NULL, NULL, 1),
-        (43, N'SOT_XOAI',              N'Sốt xoài',                6000,  NULL, NULL, 1),
-        (44, N'SOT_MATONG',            N'Sốt mật ong',             5000,  NULL, NULL, 1),
-        (45, N'SOT_DUONGDEN',          N'Sốt đường đen',           6000,  NULL, NULL, 1),
-        (46, N'SHOT_MATCHA',           N'Shot matcha',             8000,  NULL, NULL, 1),
-        (47, N'SUA_YENMACH_THEM',      N'Sữa yến mạch thêm',       8000,  NULL, NULL, 1),
-        (48, N'COT_DUA_THEM',          N'Nước cốt dừa thêm',       8000,  NULL, NULL, 1),
-        (49, N'SUA_CHUA_THEM',         N'Sữa chua thêm',           8000,  NULL, NULL, 1),
-        (50, N'SYRUP_CARAMEL_THEM',    N'Syrup caramel thêm',      6000,  NULL, NULL, 1);
+        (13, N'DEMO_TOP_ESPRESSO_SHOT',N'Shot espresso',          10000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784901746/shotespressoextra4_nnd2bv.jpg', N'shotespressoextra4_nnd2bv', 1),
+        (14, N'TC_HOANGKIM',           N'Trân châu hoàng kim',     7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879023/tranchauhoangkim1_hklfjq.jpg', N'tranchauhoangkim1_hklfjq', 1),
+        (15, N'TC_DUONGDEN',           N'Trân châu đường đen',     8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879021/tranchauduongden2_adakme.jpg', N'tranchauduongden2_adakme', 1),
+        (16, N'TC_MINI',               N'Trân châu mini',          6000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879029/tranchaumini3_vivudb.jpg', N'tranchaumini3_vivudb', 1),
+        (17, N'TC_KHOAIMON',           N'Trân châu khoai môn',     8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784902088/tranchaukhoaimonextra1_duwdo9.webp', N'tranchaukhoaimonextra1_duwdo9', 1),
+        (18, N'TH_CAFE',               N'Thạch cà phê',            6000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879033/thachcaphe1_t874au.jpg', N'thachcaphe1_t874au', 1),
+        (19, N'TH_MATCHA',             N'Thạch matcha',            7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879004/thachmatcha3_gqs8ll.jpg', N'thachmatcha3_gqs8ll', 1),
+        (20, N'TH_VAI',                N'Thạch vải',               7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879011/thachvai1_rbkvmf.jpg', N'thachvai1_rbkvmf', 1),
+        (21, N'TH_XOAI',               N'Thạch xoài',              7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879019/thachxoai4_narlbr.jpg', N'thachxoai4_narlbr', 1),
+        (22, N'TH_DAU',                N'Thạch dâu',               7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878998/thachdau3_kfufgj.jpg', N'thachdau3_kfufgj', 1),
+        (23, N'TH_CHANHDAY',           N'Thạch chanh dây',         7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878994/thachchanhday3_l7kmer.jpg', N'thachchanhday3_l7kmer', 1),
+        (24, N'TH_MATONGCHANH',        N'Thạch mật ong chanh',     7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879008/thachmatongchanh3_aw29xm.jpg', N'thachmatongchanh3_aw29xm', 1),
+        (25, N'TH_SUAYENMACH',         N'Thạch sữa yến mạch',      8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784879009/thachsuayenmach1_p02z3f.jpg', N'thachsuayenmach1_p02z3f', 1),
+        (26, N'TRAIDAO',               N'Đào miếng',               8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878949/daomieng3_qprspm.jpg', N'daomieng3_qprspm', 1),
+        (27, N'TRAIVAI',               N'Vải ngâm',                8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878987/vaingam4_ixqqzi.jpg', N'vaingam4_ixqqzi', 1),
+        (28, N'XOAI_HAT',              N'Xoài cắt hạt lựu',        8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878988/xoaicathatluu1_wqf8jl.jpg', N'xoaicathatluu1_wqf8jl', 1),
+        (29, N'DAU_TUOI',              N'Dâu tươi',                9000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878951/dautuoi1_m4gya4.jpg', N'dautuoi1_m4gya4', 1),
+        (30, N'TEP_CAM',               N'Tép cam',                 7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878981/tepcam1_ehgvly.jpg', N'tepcam1_ehgvly', 1),
+        (31, N'CHANHDAY_HAT',          N'Chanh dây hạt',           7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878945/chanhdayhat1_ix91w1.jpg', N'chanhdayhat1_ix91w1', 1),
+        (32, N'PUDDING_VANILLA',       N'Pudding vanilla',         7000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878978/puddingvanilla2_gse1mw.jpg', N'puddingvanilla2_gse1mw', 1),
+        (33, N'PUDDING_SOCOLA',        N'Pudding chocolate',       8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878969/puddingchocolate3_h3wc4f.jpg', N'puddingchocolate3_h3wc4f', 1),
+        (34, N'PUDDING_MATCHA',        N'Pudding matcha',          8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878975/puddingmatcha2_umsfyv.jpg', N'puddingmatcha2_umsfyv', 1),
+        (35, N'PUDDING_KHOAIMON',      N'Pudding khoai môn',       8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878974/puddingkhoaimon4_zpwkim.jpg', N'puddingkhoaimon4_zpwkim', 1),
+        (36, N'KEMMUOI',               N'Kem muối',                9000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878960/kemmuoi4_c8fzgs.jpg', N'kemmuoi4_c8fzgs', 1),
+        (37, N'KEMSUATUOI',            N'Kem sữa tươi',            9000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878963/kemsuatuoi3_ih5lfp.jpg', N'kemsuatuoi3_ih5lfp', 1),
+        (38, N'KEMDUA',                N'Kem dừa',                 9000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878955/kemdua2_fg2zfd.webp', N'kemdua2_fg2zfd', 1),
+        (39, N'KEMYENMACH',            N'Kem yến mạch',           10000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878967/kemyenmach4_bplait.jpg', N'kemyenmach4_bplait', 1),
+        (40, N'SOT_CARAMEL',           N'Sốt caramel',             6000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877973/sotcaramel1_q9bw0j.webp', N'sotcaramel1_q9bw0j', 1),
+        (41, N'SOT_SOCOLA',            N'Sốt chocolate',           6000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877980/sotchocolate2_kjta7g.jpg', N'sotchocolate2_kjta7g', 1),
+        (42, N'SOT_DAU',               N'Sốt dâu',                 6000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877983/sotdau2_gqhyle.jpg', N'sotdau2_gqhyle', 1),
+        (43, N'SOT_XOAI',              N'Sốt xoài',                6000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878018/sotxoai1_nekvmw.jpg', N'sotxoai1_nekvmw', 1),
+        (44, N'SOT_MATONG',            N'Sốt mật ong',             5000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877990/sotmatong1_epyjsw.jpg', N'sotmatong1_epyjsw', 1),
+        (45, N'SOT_DUONGDEN',          N'Sốt đường đen',           6000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877988/sotduongden3_ecdfyq.jpg', N'sotduongden3_ecdfyq', 1),
+        (46, N'SHOT_MATCHA',           N'Shot matcha',             8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784877975/shotmatchaextra3_wrzes3.jpg', N'shotmatchaextra3_wrzes3', 1),
+        (47, N'SUA_YENMACH_THEM',      N'Sữa yến mạch thêm',       8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878134/suayenmachextra2_zajfg8.jpg', N'suayenmachextra2_zajfg8', 1),
+        (48, N'COT_DUA_THEM',          N'Nước cốt dừa thêm',       8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878908/nuoccotduaextra3_aj4k3w.webp', N'nuoccotduaextra3_aj4k3w', 1),
+        (49, N'SUA_CHUA_THEM',         N'Sữa chua thêm',           8000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878093/suachuaextra1_r3olab.webp', N'suachuaextra1_r3olab', 1),
+        (50, N'SYRUP_CARAMEL_THEM',    N'Syrup caramel thêm',      6000,  N'https://res.cloudinary.com/dzfizobk8/image/upload/v1784878152/syrulcaramel4_cdjs7i.jpg', N'syrulcaramel4_cdjs7i', 1);
 
     IF EXISTS
     (
@@ -803,7 +1112,67 @@ BEGIN TRY
         (80,47,2,1),(81,47,9,1),(82,47,20,1),(83,47,27,1),
         (84,48,19,1),(85,48,39,1),(86,48,46,1),(87,48,47,1),
         (88,49,11,1),(89,49,38,1),(90,49,41,1),(91,49,48,1),
-        (92,50,10,1),(93,50,23,1),(94,50,31,1),(95,50,49,1);
+        (92,50,10,1),(93,50,23,1),(94,50,31,1),(95,50,49,1),
+        (96,51,7,1),
+        (97,51,13,1),
+        (98,52,10,1),
+        (99,52,44,1),
+        (100,53,1,1),
+        (101,53,6,1),
+        (102,54,39,1),
+        (103,54,44,1),
+        (104,55,6,1),
+        (105,55,1,1),
+        (106,56,9,1),
+        (107,56,27,1),
+        (108,57,36,1),
+        (109,57,48,1),
+        (110,58,45,1),
+        (111,58,11,1),
+        (112,59,4,1),
+        (113,59,1,1),
+        (114,60,43,1),
+        (115,60,31,1),
+        (116,61,9,1),
+        (117,61,26,1),
+        (118,62,10,1),
+        (119,62,27,1),
+        (120,63,11,1),
+        (121,63,28,1),
+        (122,64,9,1),
+        (123,64,30,1),
+        (124,65,10,1),
+        (125,65,31,1),
+        (126,66,11,1),
+        (127,66,29,1),
+        (128,67,4,1),
+        (129,67,26,1),
+        (130,68,9,1),
+        (131,68,27,1),
+        (132,69,10,1),
+        (133,69,28,1),
+        (134,70,30,1),
+        (135,70,31,1),
+        (136,71,15,1),
+        (137,71,7,1),
+        (138,72,6,1),
+        (139,72,1,1),
+        (140,73,4,1),
+        (141,73,1,1),
+        (142,74,9,1),
+        (143,74,2,1),
+        (144,75,11,1),
+        (145,75,1,1),
+        (146,76,7,1),
+        (147,76,1,1),
+        (148,77,7,1),
+        (149,77,29,1),
+        (150,78,11,1),
+        (151,78,28,1),
+        (152,79,36,1),
+        (153,79,40,1),
+        (154,80,9,1),
+        (155,80,28,1);
 
     IF EXISTS
     (
@@ -855,7 +1224,18 @@ BEGIN TRY
         (11,15,1),
         (12,21,8),
         (13,22,8),
-        (14,24,8);
+        (14,24,8),
+        (15,53,1),
+        (16,55,6),
+        (17,58,45),
+        (18,59,4),
+        (19,67,4),
+        (20,71,15),
+        (21,72,6),
+        (22,73,4),
+        (23,77,7),
+        (24,78,11),
+        (25,79,36);
 
     IF EXISTS
     (
@@ -955,14 +1335,14 @@ BEGIN TRY
     IF (SELECT COUNT(*) FROM dbo.Toppings) <> 50
         THROW 52120, N'Tổng số Toppings sau Batch 02 phải bằng 50.', 1;
 
-    IF (SELECT COUNT(*) FROM dbo.DrinkToppings) <> 95
-        THROW 52121, N'Tổng số DrinkToppings sau Batch 02 phải bằng 95.', 1;
+    IF (SELECT COUNT(*) FROM dbo.DrinkToppings) <> 155
+        THROW 52121, N'Tổng số DrinkToppings sau Batch 02 phải bằng 155.', 1;
 
-    IF (SELECT COUNT(*) FROM dbo.DrinkDefaultToppings) <> 14
-        THROW 52122, N'Tổng số DrinkDefaultToppings sau Batch 02 phải bằng 14.', 1;
+    IF (SELECT COUNT(*) FROM dbo.DrinkDefaultToppings) <> 25
+        THROW 52122, N'Tổng số DrinkDefaultToppings sau Batch 02 phải bằng 25.', 1;
 
-    IF (SELECT COUNT(*) FROM dbo.StoreToppings) <> 52
-        THROW 52123, N'Tổng số StoreToppings sau Batch 02 phải bằng 52.', 1;
+    IF (SELECT COUNT(*) FROM dbo.StoreToppings) < 52
+        THROW 52123, N'Batch 02 phải có tối thiểu 52 StoreToppings (Store 1 đủ 50 topping).', 1;
 
     IF (SELECT COUNT(*) FROM dbo.StoreToppings WHERE StoreId = 1 AND Active = 1) <> 50
         THROW 52124, N'Store 1 phải có đúng 50 Toppings đang hoạt động.', 1;
@@ -1079,12 +1459,12 @@ SELECT N'DrinkToppings', COUNT(*), MIN(DrinkToppingId), MAX(DrinkToppingId),
        SUM(CASE WHEN DrinkToppingId BETWEEN 1 AND 12 THEN 1 ELSE 0 END),
        SUM(CASE WHEN DrinkToppingId BETWEEN 13 AND 37 THEN 1 ELSE 0 END),
        SUM(CASE WHEN DrinkToppingId BETWEEN 38 AND 54 THEN 1 ELSE 0 END),
-       SUM(CASE WHEN DrinkToppingId BETWEEN 55 AND 95 THEN 1 ELSE 0 END)
+       SUM(CASE WHEN DrinkToppingId BETWEEN 55 AND 155 THEN 1 ELSE 0 END)
 FROM dbo.DrinkToppings
 UNION ALL
 SELECT N'DrinkDefaultToppings', COUNT(*), MIN(DrinkDefaultToppingId), MAX(DrinkDefaultToppingId),
        SUM(CASE WHEN DrinkDefaultToppingId BETWEEN 1 AND 6 THEN 1 ELSE 0 END),
-       SUM(CASE WHEN DrinkDefaultToppingId BETWEEN 7 AND 14 THEN 1 ELSE 0 END), 0, 0
+       SUM(CASE WHEN DrinkDefaultToppingId BETWEEN 7 AND 25 THEN 1 ELSE 0 END), 0, 0
 FROM dbo.DrinkDefaultToppings
 UNION ALL
 SELECT N'StoreToppings', COUNT(*), MIN(StoreToppingId), MAX(StoreToppingId),
@@ -1138,9 +1518,9 @@ IF OBJECT_ID(N'dbo.Units', N'U') IS NULL
     THROW 52200, N'Schema thiếu một trong các bảng của SeedAll Batch 03.', 1;
 
 IF (SELECT COUNT(*) FROM dbo.Toppings) <> 50
-   OR (SELECT COUNT(*) FROM dbo.DrinkToppings) <> 95
-   OR (SELECT COUNT(*) FROM dbo.DrinkDefaultToppings) <> 14
-   OR (SELECT COUNT(*) FROM dbo.StoreToppings) <> 52
+   OR (SELECT COUNT(*) FROM dbo.DrinkToppings) <> 155
+   OR (SELECT COUNT(*) FROM dbo.DrinkDefaultToppings) <> 25
+   OR (SELECT COUNT(*) FROM dbo.StoreToppings) < 52
     THROW 52201, N'Batch 02 chưa hoàn tất đúng contract.', 1;
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Units WHERE UnitId = 1 AND UnitCode = N'g' AND Name = N'Gram' AND [Type] = 1 AND Active = 1)
@@ -1427,7 +1807,11 @@ BEGIN TRY
         (5, N'DEMO_PREP_SUGAR_SYRUP',  N'Syrup đường',            3,  N'Bán thành phẩm demo Store 1', 1),
         (6, N'DEMO_PREP_SALTED_CREAM', N'Kem muối',               3,  N'Bán thành phẩm demo Store 1', 1),
         (7, N'DEMO_PREP_CHEESE_CREAM', N'Kem cheese',             3,  N'Bán thành phẩm demo Store 1', 1),
-        (8, N'DEMO_PREP_BLACK_PEARL',  N'Trân châu đen đã nấu',  13,  N'Bán thành phẩm demo Store 1', 1);
+        (8, N'DEMO_PREP_BLACK_PEARL', N'Tran chau den da nau', 13, N'Ban thanh pham demo Store 1', 1),
+        (9, N'DEMO_PREP_ALOE_BASE', N'Aloe vera base', 1, N'AI dashboard prepared-item fixture', 1),
+        (10, N'DEMO_PREP_COCONUT_JELLY_BASE', N'Coconut jelly base', 1, N'AI dashboard prepared-item fixture', 1),
+        (11, N'DEMO_PREP_KHUC_BACH_BASE', N'Khuc bach base', 1, N'AI dashboard prepared-item fixture', 1),
+        (12, N'DEMO_PREP_LEGACY_CREAM', N'Legacy cream', 3, N'Archived prepared-item fixture', 0);
 
     IF EXISTS
     (
@@ -1469,8 +1853,8 @@ BEGIN TRY
     IF (SELECT COUNT(*) FROM dbo.UnitConversions) <> 53
         THROW 52222, N'Tổng số UnitConversions sau Batch 03 phải bằng 53.', 1;
 
-    IF (SELECT COUNT(*) FROM dbo.PreparedItems) <> 8
-        THROW 52223, N'Tổng số PreparedItems sau Batch 03 phải bằng 8.', 1;
+    IF (SELECT COUNT(*) FROM dbo.PreparedItems) <> 12
+        THROW 52223, N'PreparedItems count must be 12.', 1;
 
     IF EXISTS
     (
@@ -1579,7 +1963,7 @@ SELECT N'UnitConversions', COUNT(*), MIN(UnitConversionId), MAX(UnitConversionId
 FROM dbo.UnitConversions
 UNION ALL
 SELECT N'PreparedItems', COUNT(*), MIN(PreparedItemId), MAX(PreparedItemId),
-       0, SUM(CASE WHEN PreparedItemId BETWEEN 1 AND 8 THEN 1 ELSE 0 END), 0
+       0, SUM(CASE WHEN PreparedItemId BETWEEN 1 AND 12 THEN 1 ELSE 0 END), 0
 FROM dbo.PreparedItems;
 
 SELECT N'Ingredients' AS [Table], a.CanonicalCode AS RetainedCode,
@@ -1748,8 +2132,46 @@ BEGIN TRY
 (111,N'DEMO_RECIPE_TOP_SUA_YENMACH_THEM',N'BOM Sữa yến mạch thêm',100,1,N'Active','2026-01-01',NULL,NULL,47,NULL,NULL,NULL),
 (112,N'DEMO_RECIPE_TOP_COT_DUA_THEM',N'BOM Nước cốt dừa thêm',100,1,N'Active','2026-01-01',NULL,NULL,48,NULL,NULL,NULL),
 (113,N'DEMO_RECIPE_TOP_SUA_CHUA_THEM',N'BOM Sữa chua thêm',100,1,N'Active','2026-01-01',NULL,NULL,49,NULL,NULL,NULL),
-(114,N'DEMO_RECIPE_TOP_SYRUP_CARAMEL_THEM',N'BOM Syrup caramel thêm',100,1,N'Active','2026-01-01',NULL,NULL,50,NULL,NULL,NULL);
- IF (SELECT COUNT(*) FROM @RecipeSeed)<>108 THROW 52304,N'Batch 04 phải có 108 Recipe mới.',1;
+(114,N'DEMO_RECIPE_TOP_SYRUP_CARAMEL_THEM',N'BOM Syrup caramel thêm',100,1,N'Active','2026-01-01',NULL,NULL,50,NULL,NULL,NULL),
+(115,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'BOM Cà phê kem cheese M',100,1,N'Active','2026-01-01',51,2,NULL,NULL,NULL,NULL),
+(116,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'BOM Cold brew mật ong chanh vàng M',100,1,N'Active','2026-01-01',52,2,NULL,NULL,NULL,NULL),
+(117,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'BOM Cà phê sữa trân châu đen M',100,1,N'Active','2026-01-01',53,2,NULL,NULL,NULL,NULL),
+(118,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'BOM Espresso mật ong yến mạch M',100,1,N'Active','2026-01-01',54,2,NULL,NULL,NULL,NULL),
+(119,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'BOM Cà phê sữa flan M',100,1,N'Active','2026-01-01',55,2,NULL,NULL,NULL,NULL),
+(120,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'BOM Cold brew vải nha đam M',100,1,N'Active','2026-01-01',56,2,NULL,NULL,NULL,NULL),
+(121,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'BOM Espresso dừa kem muối M',100,1,N'Active','2026-01-01',57,2,NULL,NULL,NULL,NULL),
+(122,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'BOM Cà phê đường đen thạch dừa M',100,1,N'Active','2026-01-01',58,2,NULL,NULL,NULL,NULL),
+(123,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'BOM Cà phê sữa khúc bạch M',100,1,N'Active','2026-01-01',59,2,NULL,NULL,NULL,NULL),
+(124,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'BOM Cold brew xoài chanh dây M',100,1,N'Active','2026-01-01',60,2,NULL,NULL,NULL,NULL),
+
+(125,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'BOM Ô long đào nha đam M',100,1,N'Active','2026-01-01',61,2,NULL,NULL,NULL,NULL),
+(126,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'BOM Hồng trà vải hạt chia M',100,1,N'Active','2026-01-01',62,2,NULL,NULL,NULL,NULL),
+(127,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'BOM Ô long xoài thạch dừa M',100,1,N'Active','2026-01-01',63,2,NULL,NULL,NULL,NULL),
+(128,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'BOM Hồng trà cam nha đam M',100,1,N'Active','2026-01-01',64,2,NULL,NULL,NULL,NULL),
+(129,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'BOM Trà chanh dây hạt chia M',100,1,N'Active','2026-01-01',65,2,NULL,NULL,NULL,NULL),
+(130,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'BOM Ô long dâu thạch dừa M',100,1,N'Active','2026-01-01',66,2,NULL,NULL,NULL,NULL),
+(131,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'BOM Trà đào khúc bạch M',100,1,N'Active','2026-01-01',67,2,NULL,NULL,NULL,NULL),
+(132,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'BOM Trà vải nha đam M',100,1,N'Active','2026-01-01',68,2,NULL,NULL,NULL,NULL),
+(133,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'BOM Trà xoài hạt chia M',100,1,N'Active','2026-01-01',69,2,NULL,NULL,NULL,NULL),
+(134,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'BOM Trà cam chanh dây M',100,1,N'Active','2026-01-01',70,2,NULL,NULL,NULL,NULL),
+
+(135,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'BOM Trà sữa đường đen trân châu M',100,1,N'Active','2026-01-01',71,2,NULL,NULL,NULL,NULL),
+(136,N'ZZ_RCP_FLAN_MILK_TEA_M',N'BOM Trà sữa flan M',100,1,N'Active','2026-01-01',72,2,NULL,NULL,NULL,NULL),
+(137,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'BOM Trà sữa khúc bạch M',100,1,N'Active','2026-01-01',73,2,NULL,NULL,NULL,NULL),
+(138,N'ZZ_RCP_ALOE_MILK_TEA_M',N'BOM Trà sữa nha đam M',100,1,N'Active','2026-01-01',74,2,NULL,NULL,NULL,NULL),
+(139,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'BOM Trà sữa thạch dừa M',100,1,N'Active','2026-01-01',75,2,NULL,NULL,NULL,NULL),
+(140,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'BOM Trà sữa kem cheese M',100,1,N'Active','2026-01-01',76,2,NULL,NULL,NULL,NULL),
+
+(141,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'BOM Matcha dâu kem cheese M',100,1,N'Active','2026-01-01',77,2,NULL,NULL,NULL,NULL),
+(142,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'BOM Matcha xoài thạch dừa M',100,1,N'Active','2026-01-01',78,2,NULL,NULL,NULL,NULL),
+(143,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'BOM Chocolate caramel kem muối M',100,1,N'Active','2026-01-01',79,2,NULL,NULL,NULL,NULL),
+(144,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'BOM Sua chua xoai nha dam M',100,1,N'Active','2026-01-01',80,2,NULL,NULL,NULL,NULL),
+(145,N'DEMO_RECIPE_PREP_ALOE_BASE',N'BOM Aloe vera base',100,1,N'Active','2026-01-01',NULL,NULL,NULL,9,1000,1),
+(146,N'DEMO_RECIPE_PREP_COCONUT_JELLY_BASE',N'BOM Coconut jelly base',100,1,N'Active','2026-01-01',NULL,NULL,NULL,10,1000,1),
+(147,N'DEMO_RECIPE_PREP_KHUC_BACH_BASE',N'BOM Khuc bach base',100,1,N'Active','2026-01-01',NULL,NULL,NULL,11,1000,1),
+(148,N'DEMO_RECIPE_PREP_LEGACY_CREAM',N'BOM Legacy cream',100,0,N'Archived','2026-01-01',NULL,NULL,NULL,12,1000,3);
+
+ IF (SELECT COUNT(*) FROM @RecipeSeed)<>142 THROW 52304,N'Batch 04 phải có 142 Recipe mới.',1;
 
  IF EXISTS(SELECT 1 FROM @RecipeSeed x
  LEFT JOIN dbo.Drinks d ON d.DrinkId=x.DrinkId LEFT JOIN dbo.Sizes z ON z.SizeId=x.SizeId
@@ -2287,11 +2709,255 @@ BEGIN TRY
 (494,N'DEMO_RECIPE_TOP_SUA_YENMACH_THEM',N'I',N'DEMO_ING_OAT_MILK',40,N'ml'),
 (495,N'DEMO_RECIPE_TOP_COT_DUA_THEM',N'I',N'DEMO_ING_COCONUT_MILK',40,N'ml'),
 (496,N'DEMO_RECIPE_TOP_SUA_CHUA_THEM',N'I',N'DEMO_ING_YOGURT',40,N'g'),
-(497,N'DEMO_RECIPE_TOP_SYRUP_CARAMEL_THEM',N'I',N'DEMO_ING_CARAMEL_SYRUP',20,N'ml');
- IF (SELECT COUNT(*) FROM @Component)<>497
+(497,N'DEMO_RECIPE_TOP_SYRUP_CARAMEL_THEM',N'I',N'DEMO_ING_CARAMEL_SYRUP',20,N'ml'),
+(498,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'P',N'DEMO_PREP_ESPRESSO',45,N'ml'),
+(499,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'DEMO_ING_FRESH_MILK',110,N'ml'),
+(500,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'P',N'DEMO_PREP_CHEESE_CREAM',30,N'ml'),
+(501,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'ING00007',140,N'g'),
+(502,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(503,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(504,N'ZZ_RCP_CHEESE_CREAM_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(505,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'P',N'DEMO_PREP_VIET_COFFEE',90,N'ml'),
+(506,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'DEMO_ING_HONEY',12,N'g'),
+(507,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'DEMO_ING_YELLOW_LEMON',18,N'g'),
+(508,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'ING00007',160,N'g'),
+(509,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(510,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(511,N'ZZ_RCP_HONEY_LEMON_COLD_BREW_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(512,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'P',N'DEMO_PREP_VIET_COFFEE',60,N'ml'),
+(513,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'ING00002',30,N'ml'),
+(514,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'DEMO_ING_FRESH_MILK',60,N'ml'),
+(515,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'ING00007',170,N'g'),
+(516,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(517,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(518,N'ZZ_RCP_BLACK_PEARL_MILK_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(519,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'P',N'DEMO_PREP_ESPRESSO',45,N'ml'),
+(520,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'DEMO_ING_OAT_MILK',140,N'ml'),
+(521,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'DEMO_ING_HONEY',10,N'g'),
+(522,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'ING00007',140,N'g'),
+(523,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(524,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(525,N'ZZ_RCP_HONEY_OAT_ESPRESSO_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(526,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'P',N'DEMO_PREP_VIET_COFFEE',60,N'ml'),
+(527,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'ING00002',30,N'ml'),
+(528,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'DEMO_ING_FRESH_MILK',80,N'ml'),
+(529,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'ING00007',160,N'g'),
+(530,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(531,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(532,N'ZZ_RCP_FLAN_MILK_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(533,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'P',N'DEMO_PREP_VIET_COFFEE',90,N'ml'),
+(534,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'DEMO_ING_CANNED_LYCHEE',30,N'g'),
+(535,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'DEMO_ING_ALOE_VERA',30,N'g'),
+(536,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'ING00007',160,N'g'),
+(537,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(538,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(539,N'ZZ_RCP_LYCHEE_ALOE_COLD_BREW_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(540,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'P',N'DEMO_PREP_ESPRESSO',45,N'ml'),
+(541,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'DEMO_ING_COCONUT_MILK',100,N'ml'),
+(542,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'P',N'DEMO_PREP_SALTED_CREAM',30,N'ml'),
+(543,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'ING00007',140,N'g'),
+(544,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(545,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(546,N'ZZ_RCP_SALTED_COCONUT_ESPRESSO_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(547,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'P',N'DEMO_PREP_VIET_COFFEE',60,N'ml'),
+(548,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'ING00002',25,N'ml'),
+(549,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'DEMO_ING_COCONUT_JELLY',30,N'g'),
+(550,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'ING00007',160,N'g'),
+(551,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(552,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(553,N'ZZ_RCP_BROWN_SUGAR_COCONUT_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(554,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'P',N'DEMO_PREP_VIET_COFFEE',60,N'ml'),
+(555,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'ING00002',30,N'ml'),
+(556,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'DEMO_ING_FRESH_MILK',80,N'ml'),
+(557,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'ING00007',160,N'g'),
+(558,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(559,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(560,N'ZZ_RCP_KHUC_BACH_MILK_COFFEE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(561,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'P',N'DEMO_PREP_VIET_COFFEE',90,N'ml'),
+(562,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'DEMO_ING_MANGO_PUREE',25,N'g'),
+(563,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'DEMO_ING_PASSION_JAM',20,N'g'),
+(564,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'ING00007',160,N'g'),
+(565,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(566,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(567,N'ZZ_RCP_MANGO_PASSION_COLD_BREW_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(568,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'P',N'DEMO_PREP_OOLONG_TEA',150,N'ml'),
+(569,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'DEMO_ING_CANNED_PEACH',35,N'g'),
+(570,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'DEMO_ING_ALOE_VERA',25,N'g'),
+(571,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'ING00007',150,N'g'),
+(572,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(573,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(574,N'ZZ_RCP_PEACH_ALOE_OOLONG_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(575,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
+(576,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'DEMO_ING_CANNED_LYCHEE',35,N'g'),
+(577,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'DEMO_ING_CHIA_SEED',8,N'g'),
+(578,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'ING00007',150,N'g'),
+(579,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(580,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(581,N'ZZ_RCP_LYCHEE_CHIA_BLACK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(582,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'P',N'DEMO_PREP_OOLONG_TEA',150,N'ml'),
+(583,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'DEMO_ING_MANGO_PUREE',30,N'g'),
+(584,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'DEMO_ING_COCONUT_JELLY',30,N'g'),
+(585,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'ING00007',150,N'g'),
+(586,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(587,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(588,N'ZZ_RCP_MANGO_COCONUT_OOLONG_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(589,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
+(590,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'DEMO_ING_ORANGE',40,N'g'),
+(591,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'DEMO_ING_ALOE_VERA',25,N'g'),
+(592,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'ING00007',150,N'g'),
+(593,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(594,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(595,N'ZZ_RCP_ORANGE_ALOE_BLACK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(596,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
+(597,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'DEMO_ING_PASSION_JAM',35,N'g'),
+(598,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'DEMO_ING_CHIA_SEED',8,N'g'),
+(599,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'ING00007',150,N'g'),
+(600,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(601,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(602,N'ZZ_RCP_PASSION_CHIA_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(603,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'P',N'DEMO_PREP_OOLONG_TEA',150,N'ml'),
+(604,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'DEMO_ING_STRAWBERRY_PUREE',30,N'g'),
+(605,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'DEMO_ING_COCONUT_JELLY',30,N'g'),
+(606,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'ING00007',150,N'g'),
+(607,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(608,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(609,N'ZZ_RCP_STRAWBERRY_COCONUT_OOLONG_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(610,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
+(611,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'DEMO_ING_CANNED_PEACH',35,N'g'),
+(612,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',10,N'ml'),
+(613,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'ING00007',150,N'g'),
+(614,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(615,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(616,N'ZZ_RCP_PEACH_KHUC_BACH_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(617,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
+(618,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'DEMO_ING_CANNED_LYCHEE',35,N'g'),
+(619,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'DEMO_ING_ALOE_VERA',25,N'g'),
+(620,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'ING00007',150,N'g'),
+(621,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(622,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(623,N'ZZ_RCP_LYCHEE_ALOE_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(624,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
+(625,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'DEMO_ING_MANGO_PUREE',30,N'g'),
+(626,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'DEMO_ING_CHIA_SEED',8,N'g'),
+(627,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'ING00007',150,N'g'),
+(628,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(629,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(630,N'ZZ_RCP_MANGO_CHIA_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(631,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',150,N'ml'),
+(632,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'DEMO_ING_ORANGE',30,N'g'),
+(633,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'DEMO_ING_PASSION_JAM',25,N'g'),
+(634,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'ING00007',150,N'g'),
+(635,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(636,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(637,N'ZZ_RCP_ORANGE_PASSION_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(638,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
+(639,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',100,N'ml'),
+(640,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',12,N'ml'),
+(641,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
+(642,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(643,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(644,N'ZZ_RCP_BROWN_SUGAR_PEARL_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(645,N'ZZ_RCP_FLAN_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
+(646,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',100,N'ml'),
+(647,N'ZZ_RCP_FLAN_MILK_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',12,N'ml'),
+(648,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
+(649,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(650,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(651,N'ZZ_RCP_FLAN_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(652,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
+(653,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',100,N'ml'),
+(654,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'P',N'DEMO_PREP_SUGAR_SYRUP',12,N'ml'),
+(655,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
+(656,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(657,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(658,N'ZZ_RCP_KHUC_BACH_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(659,N'ZZ_RCP_ALOE_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
+(660,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',90,N'ml'),
+(661,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'DEMO_ING_ALOE_VERA',30,N'g'),
+(662,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
+(663,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(664,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(665,N'ZZ_RCP_ALOE_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(666,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
+(667,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',90,N'ml'),
+(668,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'DEMO_ING_COCONUT_JELLY',30,N'g'),
+(669,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
+(670,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(671,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(672,N'ZZ_RCP_COCONUT_JELLY_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(673,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'P',N'DEMO_PREP_BLACK_TEA',120,N'ml'),
+(674,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'DEMO_ING_FRESH_MILK',90,N'ml'),
+(675,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'P',N'DEMO_PREP_CHEESE_CREAM',30,N'ml'),
+(676,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'ING00007',150,N'g'),
+(677,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(678,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(679,N'ZZ_RCP_CHEESE_CREAM_MILK_TEA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(680,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'ING00009',8,N'g'),
+(681,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'DEMO_ING_FRESH_MILK',120,N'ml'),
+(682,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'DEMO_ING_STRAWBERRY_PUREE',25,N'g'),
+(683,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'ING00007',150,N'g'),
+(684,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(685,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(686,N'ZZ_RCP_STRAWBERRY_CHEESE_MATCHA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(687,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'ING00009',8,N'g'),
+(688,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'DEMO_ING_FRESH_MILK',110,N'ml'),
+(689,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'DEMO_ING_MANGO_PUREE',25,N'g'),
+(690,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'ING00007',150,N'g'),
+(691,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(692,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(693,N'ZZ_RCP_MANGO_COCONUT_MATCHA_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(694,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_CHOCOLATE',20,N'g'),
+(695,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_FRESH_MILK',120,N'ml'),
+(696,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_CARAMEL_SYRUP',15,N'ml'),
+(697,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'ING00007',150,N'g'),
+(698,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(699,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(700,N'ZZ_RCP_SALTED_CARAMEL_CHOCOLATE_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+
+(701,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_YOGURT',140,N'g'),
+(702,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_MANGO_PUREE',30,N'g'),
+(703,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_ALOE_VERA',25,N'g'),
+(704,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'ING00007',120,N'g'),
+(705,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_CUP_M',1,N'pcs'),
+(706,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_LID_M',1,N'pcs'),
+(707,N'ZZ_RCP_MANGO_ALOE_YOGURT_M',N'I',N'DEMO_ING_STRAW',1,N'pcs'),
+(708,N'DEMO_RECIPE_PREP_ALOE_BASE',N'I',N'DEMO_ING_ALOE_VERA',1000,N'g'),
+(709,N'DEMO_RECIPE_PREP_COCONUT_JELLY_BASE',N'I',N'DEMO_ING_COCONUT_JELLY',1000,N'g'),
+(710,N'DEMO_RECIPE_PREP_KHUC_BACH_BASE',N'I',N'DEMO_ING_KHUC_BACH_POWDER',1000,N'g'),
+(711,N'DEMO_RECIPE_PREP_LEGACY_CREAM',N'I',N'DEMO_ING_OAT_MILK',1000,N'ml');
+
+ IF (SELECT COUNT(*) FROM @Component)<>711
  OR EXISTS(SELECT 1 FROM @Component WHERE Quantity<=0 OR SourceType NOT IN(N'I',N'P'))
  OR EXISTS(SELECT RecipeCode,SourceType,SourceCode FROM @Component GROUP BY RecipeCode,SourceType,SourceCode HAVING COUNT(*)>1)
-  THROW 52308,N'Bộ 497 component BOM sai quantity hoặc trùng nguồn.',1;
+  THROW 52308,N'Bộ 711 component BOM sai quantity hoặc trùng nguồn.',1;
 
  IF EXISTS(SELECT 1 FROM @Component c LEFT JOIN dbo.Recipes r ON r.RecipeCode=c.RecipeCode
  LEFT JOIN dbo.Units u ON u.UnitCode=c.UnitCode
@@ -2312,7 +2978,7 @@ BEGIN TRY
  LEFT JOIN dbo.PreparedItems p ON c.SourceType=N'P' AND p.Code=c.SourceCode
  LEFT JOIN dbo.Recipes ch ON ch.PreparedItemId=p.PreparedItemId AND ch.Active=1 AND ch.Status=N'Active';
 
- IF (SELECT COUNT(*) FROM @DetailSeed)<>497
+ IF (SELECT COUNT(*) FROM @DetailSeed)<>711
  OR EXISTS(SELECT RecipeId,IngredientId FROM @DetailSeed WHERE IngredientId IS NOT NULL GROUP BY RecipeId,IngredientId HAVING COUNT(*)>1)
  OR EXISTS(SELECT RecipeId,ChildRecipeId FROM @DetailSeed WHERE ChildRecipeId IS NOT NULL GROUP BY RecipeId,ChildRecipeId HAVING COUNT(*)>1)
  OR EXISTS(SELECT 1 FROM @DetailSeed WHERE Quantity<=0 OR NOT((IngredientId IS NOT NULL AND ChildRecipeId IS NULL)
@@ -2352,17 +3018,25 @@ BEGIN TRY
  IF @CycleCount>0 THROW 52313,N'Phát hiện chu trình trong RecipeDetails.',1;
 
  DECLARE @PolicyDrinks TABLE(DrinkId int PRIMARY KEY);
- INSERT @PolicyDrinks VALUES(10),(14),(34),(36),(37),(38),(39),(40),(41),(42),(43),(44),(45),(46),(47),(48),(49),(50);
+ INSERT @PolicyDrinks 
+ VALUES
+ (10),(14),(34),(36),(37),(38),(39),(40),(41),(42),
+ (43),(44),(45),(46),(47),(48),(49),(50),
+ (51),(52),(53),(54),(55),(56),(57),(58),(59),(60),
+ (61),(62),(63),(64),(65),(66),(67),(68),(69),(70),
+ (71),(72),(73),(74),(75),(76),(77),(78),(79),(80);
+
  DECLARE @PolicySeed TABLE(DrinkSizeToppingPolicyId int PRIMARY KEY,DrinkSizeId int,ToppingId int,
  IsDefaultSelected bit,IsRequired bit,PriceTreatment nvarchar(40),CostTreatment nvarchar(40),
  QuantityPerDrink decimal(18,5),IsActive bit,CreatedByStaffId int,UpdatedByStaffId int NULL,
  CreatedAtUtc datetime2,UpdatedAtUtc datetime2,UNIQUE(DrinkSizeId,ToppingId));
+
  INSERT @PolicySeed
  SELECT ROW_NUMBER()OVER(ORDER BY ds.DrinkId,ds.SizeId,dt.ToppingId),ds.DrinkSizeId,dt.ToppingId,0,0,
  N'ADD_TOPPING_PRICE',N'ADD_TOPPING_RECIPE_COST',1,1,@ActorStaffId,NULL,'2026-01-01','2026-01-01'
  FROM @PolicyDrinks p JOIN dbo.DrinkSizes ds ON ds.DrinkId=p.DrinkId AND ds.SizeId IN(2,3) AND ds.Active=1
  JOIN dbo.DrinkToppings dt ON dt.DrinkId=p.DrinkId AND dt.Active=1;
- IF (SELECT COUNT(*) FROM @PolicySeed)<>122 THROW 52314,N'Policy canonical phải có đúng 122 dòng.',1;
+ IF (SELECT COUNT(*) FROM @PolicySeed)<>242 THROW 52314,N'Policy canonical phải có đúng 242 dòng.',1;
 
  IF EXISTS(SELECT 1 FROM @PolicySeed x JOIN dbo.DrinkSizeToppingPolicies p
  ON p.DrinkSizeToppingPolicyId=x.DrinkSizeToppingPolicyId OR(p.DrinkSizeId=x.DrinkSizeId AND p.ToppingId=x.ToppingId)
@@ -2380,12 +3054,16 @@ BEGIN TRY
  WHERE p.DrinkSizeToppingPolicyId=x.DrinkSizeToppingPolicyId);
  SET IDENTITY_INSERT dbo.DrinkSizeToppingPolicies OFF;
 
- IF (SELECT COUNT(*) FROM dbo.Recipes WHERE RecipeId BETWEEN 1 AND 114)<>114
- OR (SELECT COUNT(*) FROM dbo.RecipeDetails WHERE RecipeDetailId BETWEEN 1 AND 518)<>518
- OR (SELECT COUNT(*) FROM dbo.DrinkSizeToppingPolicies WHERE DrinkSizeToppingPolicyId BETWEEN 1 AND 122)<>122
+ IF (SELECT COUNT(*) FROM dbo.Recipes WHERE RecipeId BETWEEN 1 AND 148)<>148
+ OR (SELECT COUNT(*) FROM dbo.RecipeDetails WHERE RecipeDetailId BETWEEN 1 AND 732)<>732
+ OR (SELECT COUNT(*) FROM dbo.DrinkSizeToppingPolicies 
+    WHERE DrinkSizeToppingPolicyId BETWEEN 1 AND 242)<>242
   THROW 52316,N'Row count cuối Batch 04 không đúng contract.',1;
 
- IF EXISTS(SELECT RecipeCode FROM dbo.Recipes WHERE RecipeId BETWEEN 1 AND 114 GROUP BY RecipeCode HAVING COUNT(*)>1)
+ IF EXISTS(SELECT RecipeCode FROM dbo.Recipes 
+            WHERE RecipeId BETWEEN 1 AND 148 
+            GROUP BY RecipeCode 
+            HAVING COUNT(*)>1)
  OR EXISTS(SELECT DrinkId,SizeId FROM dbo.Recipes WHERE DrinkId IS NOT NULL AND SizeId IS NOT NULL
  AND ToppingId IS NULL AND Active=1 AND Status=N'Active' GROUP BY DrinkId,SizeId HAVING COUNT(*)>1)
  OR EXISTS(SELECT PreparedItemId FROM dbo.Recipes WHERE PreparedItemId IS NOT NULL AND Active=1 GROUP BY PreparedItemId HAVING COUNT(*)>1)
@@ -2406,12 +3084,12 @@ GO
 /* BATCH 04 READ-ONLY VERIFICATION */
 SELECT N'Recipes' Entity,COUNT(*) TotalRows,MIN(RecipeId) MinId,MAX(RecipeId) MaxId,
 SUM(IIF(RecipeId BETWEEN 1 AND 6,1,0)) FoundationRows,SUM(IIF(RecipeId BETWEEN 7 AND 48,1,0)) Store1Rows,
-SUM(IIF(RecipeId BETWEEN 49 AND 114,1,0)) ExtensionRows FROM dbo.Recipes
+SUM(IIF(RecipeId BETWEEN 49 AND 148,1,0)) ExtensionRows FROM dbo.Recipes
 UNION ALL SELECT N'RecipeDetails',COUNT(*),MIN(RecipeDetailId),MAX(RecipeDetailId),
 SUM(IIF(RecipeDetailId BETWEEN 1 AND 21,1,0)),SUM(IIF(RecipeDetailId BETWEEN 22 AND 276,1,0)),
-SUM(IIF(RecipeDetailId BETWEEN 277 AND 518,1,0)) FROM dbo.RecipeDetails
+SUM(IIF(RecipeDetailId BETWEEN 277 AND 732,1,0)) FROM dbo.RecipeDetails
 UNION ALL SELECT N'DrinkSizeToppingPolicies',COUNT(*),MIN(DrinkSizeToppingPolicyId),MAX(DrinkSizeToppingPolicyId),
-0,SUM(IIF(DrinkSizeToppingPolicyId BETWEEN 1 AND 40,1,0)),SUM(IIF(DrinkSizeToppingPolicyId BETWEEN 41 AND 122,1,0))
+0,SUM(IIF(DrinkSizeToppingPolicyId BETWEEN 1 AND 40,1,0)),SUM(IIF(DrinkSizeToppingPolicyId BETWEEN 41 AND 242,1,0))
 FROM dbo.DrinkSizeToppingPolicies;
 
 SELECT N'Ingredients' [Table],a.CanonicalCode RetainedCode,a.SourceCode RemovedStore1Code,
@@ -2771,7 +3449,7 @@ BEGIN TRY
  SET IDENTITY_INSERT dbo.SupplierStores OFF;
 
  IF (SELECT COUNT(*) FROM dbo.Suppliers)<>50 OR(SELECT COUNT(*) FROM dbo.SupplierPhones)<>51
- OR(SELECT COUNT(*) FROM dbo.SupplierContacts)<>50 OR(SELECT COUNT(*) FROM dbo.SupplierStores)<>50
+ OR(SELECT COUNT(*) FROM dbo.SupplierContacts)<>50 OR(SELECT COUNT(*) FROM dbo.SupplierStores)<50
   THROW 52415,N'Row count cuối Batch 05 không đúng contract.',1;
 
  IF EXISTS(SELECT Code FROM dbo.Suppliers GROUP BY Code HAVING COUNT(*)>1)
@@ -2864,19 +3542,82 @@ BEGIN TRY
  OR o.Active<>1 OR o.Note<>x.Note)
   THROW 52601,N'IngredientSuppliers EF IDs 1-9 thiếu hoặc khác contract migration.',1;
 
- IF (SELECT COUNT(*) FROM dbo.IngredientSupplierPriceHistories WHERE IngredientSupplierPriceHistoryId BETWEEN 1 AND 3)<>3
- OR EXISTS(SELECT 1 FROM (VALUES
- (1,1,CAST(22000 AS decimal(18,2)),CAST(1 AS decimal(18,5)),2),
- (2,2,CAST(27000 AS decimal(18,2)),CAST(NULL AS decimal(18,5)),NULL),
- (3,3,CAST(140000 AS decimal(18,2)),CAST(1 AS decimal(18,5)),2)
- )x(Id,OfferId,Price,PackageQuantity,PackageUnitId)
- LEFT JOIN dbo.IngredientSupplierPriceHistories h ON h.IngredientSupplierPriceHistoryId=x.Id
- WHERE h.IngredientSupplierPriceHistoryId IS NULL OR h.IngredientSupplierId<>x.OfferId
- OR h.Price<>x.Price OR ISNULL(h.PackageQuantity,-1)<>ISNULL(x.PackageQuantity,-1)
- OR ISNULL(h.PackageUnitId,-1)<>ISNULL(x.PackageUnitId,-1)
- OR h.EffectiveDate<>'2025-01-01' OR h.IsCurrent<>1 OR h.Note<>N'Giá ban đầu'
- OR h.CreatedByStaffId IS NOT NULL)
-  THROW 52602,N'Price histories EF IDs 1-3 thiếu hoặc khác contract migration.',1;
+/* ============================================================
+   FIX LEGACY PRICE HISTORY #2
+
+   IngredientSupplier #2 đã có package evidence hợp lệ:
+   - PackageQuantity = 380
+   - UnitId = 3
+
+   PriceHistory legacy bị thiếu hai field này.
+   Chỉ backfill khi row vẫn đang ở legacy NULL state.
+   ============================================================ */
+UPDATE ph
+SET
+    ph.PackageQuantity = o.PackageQuantity,
+    ph.PackageUnitId   = o.UnitId
+FROM dbo.IngredientSupplierPriceHistories ph
+JOIN dbo.IngredientSuppliers o
+    ON o.IngredientSupplierId = ph.IngredientSupplierId
+WHERE
+    ph.IngredientSupplierPriceHistoryId = 2
+    AND ph.IngredientSupplierId = 2
+    AND ph.IsCurrent = 1
+
+    -- Chỉ sửa đúng legacy state.
+    AND ph.PackageQuantity IS NULL
+    AND ph.PackageUnitId IS NULL
+
+    -- Không tự bịa dữ liệu.
+    AND o.PackageQuantity IS NOT NULL
+    AND o.PackageQuantity > 0
+    AND o.UnitId IS NOT NULL;
+
+ IF (
+    SELECT COUNT(*)
+    FROM dbo.IngredientSupplierPriceHistories
+    WHERE IngredientSupplierPriceHistoryId BETWEEN 1 AND 3
+) <> 3
+OR EXISTS
+(
+    SELECT 1
+    FROM
+    (
+        VALUES
+            (1, 1, CAST(22000 AS decimal(18,2)), CAST(1 AS decimal(18,5)), 2),
+            (2, 2, CAST(27000 AS decimal(18,2)), CAST(380 AS decimal(18,5)), 3),
+            (3, 3, CAST(140000 AS decimal(18,2)), CAST(1 AS decimal(18,5)), 2)
+    ) 
+    x
+    (
+        Id,
+        OfferId,
+        Price,
+        PackageQuantity,
+        PackageUnitId
+    )
+
+    LEFT JOIN dbo.IngredientSupplierPriceHistories h
+        ON h.IngredientSupplierPriceHistoryId = x.Id
+
+    WHERE
+        h.IngredientSupplierPriceHistoryId IS NULL
+
+        OR h.IngredientSupplierId <> x.OfferId
+        OR h.Price <> x.Price
+
+        OR ISNULL(h.PackageQuantity,-1)
+            <> ISNULL(x.PackageQuantity,-1)
+
+        OR ISNULL(h.PackageUnitId,-1)
+            <> ISNULL(x.PackageUnitId,-1)
+
+        OR h.EffectiveDate <> '2025-01-01'
+        OR h.IsCurrent <> 1
+        OR h.Note <> N'Giá ban đầu'
+        OR h.CreatedByStaffId IS NOT NULL
+)
+THROW 52602, N'Price histories EF IDs 1-3 thiếu hoặc khác contract migration.', 1;
 
  DECLARE @ActorStaffId int;
  SELECT TOP(1) @ActorStaffId=s.StaffId FROM dbo.Staffs s
@@ -3464,9 +4205,43 @@ BEGIN TRY
 (30,1,47,1),
 (31,1,48,1),
 (32,1,49,1),
-(33,1,50,1);
+(33,1,50,1),
 
- IF (SELECT COUNT(*) FROM @StoreDrinkSeed)<>27
+(34,1,51,1),
+(35,1,52,1),
+(36,1,53,1),
+(37,1,54,1),
+(38,1,55,1),
+(39,1,56,1),
+(40,1,57,1),
+(41,1,58,1),
+(42,1,59,1),
+(43,1,60,1),
+
+(44,1,61,1),
+(45,1,62,1),
+(46,1,63,1),
+(47,1,64,1),
+(48,1,65,1),
+(49,1,66,1),
+(50,1,67,1),
+(51,1,68,1),
+(52,1,69,1),
+(53,1,70,1),
+
+(54,1,71,1),
+(55,1,72,1),
+(56,1,73,1),
+(57,1,74,1),
+(58,1,75,1),
+(59,1,76,1),
+(60,1,77,1),
+(61,1,78,1),
+(62,1,79,1),
+(63,1,80,1);
+
+
+ IF (SELECT COUNT(*) FROM @StoreDrinkSeed)<>57
  OR EXISTS(SELECT 1 FROM @StoreDrinkSeed x LEFT JOIN dbo.Drinks d ON d.DrinkId=x.DrinkId
  LEFT JOIN dbo.Stores s ON s.StoreId=x.StoreId
  WHERE d.DrinkId IS NULL OR s.StoreId IS NULL OR d.Active<>1 OR x.StoreId<>1 OR x.Active<>1)
@@ -3496,6 +4271,7 @@ BEGIN TRY
  PriceOverride decimal(18,2) NULL,EffectiveFromUtc datetime2,EffectiveToUtc datetime2 NULL,
  DisplayOrder int,PauseReason nvarchar(500) NULL,Note nvarchar(1000),PublishedAtUtc datetime2,
  PublishedByStaffId int,CreatedAtUtc datetime2,UpdatedAtUtc datetime2,UNIQUE(DrinkId,SizeId));
+
  INSERT @MenuContract VALUES
 (1,10,3,1,NULL,'2026-01-01',NULL,51,NULL,N'DEMO_SKU_AMERICANO_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
 (2,10,2,1,NULL,'2026-01-01',NULL,50,NULL,N'DEMO_SKU_AMERICANO_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
@@ -3550,12 +4326,44 @@ BEGIN TRY
 (51,49,2,1,NULL,'2026-01-01',NULL,240,NULL,N'DEMO_SKU_COCONUT_CHOCOLATE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
 (52,49,3,1,NULL,'2026-01-01',NULL,241,NULL,N'DEMO_SKU_COCONUT_CHOCOLATE_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
 (53,50,2,1,NULL,'2026-01-01',NULL,250,NULL,N'DEMO_SKU_PASSION_YOGURT_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
-(54,50,3,1,NULL,'2026-01-01',NULL,251,NULL,N'DEMO_SKU_PASSION_YOGURT_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01');
+(54,50,3,1,NULL,'2026-01-01',NULL,251,NULL,N'DEMO_SKU_PASSION_YOGURT_L','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(55,51,2,1,NULL,'2026-01-01',NULL,300,NULL,N'ZZ_POS_CHEESE_CREAM_COFFEE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(56,52,2,1,NULL,'2026-01-01',NULL,301,NULL,N'ZZ_POS_HONEY_LEMON_COLD_BREW_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(57,53,2,1,NULL,'2026-01-01',NULL,302,NULL,N'ZZ_POS_BLACK_PEARL_MILK_COFFEE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(58,54,2,1,NULL,'2026-01-01',NULL,303,NULL,N'ZZ_POS_HONEY_OAT_ESPRESSO_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(59,55,2,1,NULL,'2026-01-01',NULL,304,NULL,N'ZZ_POS_FLAN_MILK_COFFEE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(60,56,2,1,NULL,'2026-01-01',NULL,305,NULL,N'ZZ_POS_LYCHEE_ALOE_COLD_BREW_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(61,57,2,1,NULL,'2026-01-01',NULL,306,NULL,N'ZZ_POS_SALTED_COCONUT_ESPRESSO_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(62,58,2,1,NULL,'2026-01-01',NULL,307,NULL,N'ZZ_POS_BROWN_SUGAR_COCONUT_JELLY_COFFEE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(63,59,2,1,NULL,'2026-01-01',NULL,308,NULL,N'ZZ_POS_KHUC_BACH_MILK_COFFEE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(64,60,2,1,NULL,'2026-01-01',NULL,309,NULL,N'ZZ_POS_MANGO_PASSION_COLD_BREW_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
 
- IF (SELECT COUNT(*) FROM @MenuContract)<>54 OR EXISTS(SELECT 1 FROM @MenuContract
+(65,61,2,1,NULL,'2026-01-01',NULL,310,NULL,N'ZZ_POS_PEACH_ALOE_OOLONG_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(66,62,2,1,NULL,'2026-01-01',NULL,311,NULL,N'ZZ_POS_LYCHEE_CHIA_BLACK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(67,63,2,1,NULL,'2026-01-01',NULL,312,NULL,N'ZZ_POS_MANGO_COCONUT_JELLY_OOLONG_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(68,64,2,1,NULL,'2026-01-01',NULL,313,NULL,N'ZZ_POS_ORANGE_ALOE_BLACK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(69,65,2,1,NULL,'2026-01-01',NULL,314,NULL,N'ZZ_POS_PASSION_CHIA_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(70,66,2,1,NULL,'2026-01-01',NULL,315,NULL,N'ZZ_POS_STRAWBERRY_COCONUT_JELLY_OOLONG_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(71,67,2,1,NULL,'2026-01-01',NULL,316,NULL,N'ZZ_POS_PEACH_KHUC_BACH_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(72,68,2,1,NULL,'2026-01-01',NULL,317,NULL,N'ZZ_POS_LYCHEE_ALOE_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(73,69,2,1,NULL,'2026-01-01',NULL,318,NULL,N'ZZ_POS_MANGO_CHIA_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(74,70,2,1,NULL,'2026-01-01',NULL,319,NULL,N'ZZ_POS_ORANGE_PASSION_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+
+(75,71,2,1,NULL,'2026-01-01',NULL,320,NULL,N'ZZ_POS_BROWN_SUGAR_PEARL_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(76,72,2,1,NULL,'2026-01-01',NULL,321,NULL,N'ZZ_POS_FLAN_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(77,73,2,1,NULL,'2026-01-01',NULL,322,NULL,N'ZZ_POS_KHUC_BACH_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(78,74,2,1,NULL,'2026-01-01',NULL,323,NULL,N'ZZ_POS_ALOE_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(79,75,2,1,NULL,'2026-01-01',NULL,324,NULL,N'ZZ_POS_COCONUT_JELLY_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(80,76,2,1,NULL,'2026-01-01',NULL,325,NULL,N'ZZ_POS_CHEESE_CREAM_MILK_TEA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(81,77,2,1,NULL,'2026-01-01',NULL,326,NULL,N'ZZ_POS_STRAWBERRY_CHEESE_MATCHA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(82,78,2,1,NULL,'2026-01-01',NULL,327,NULL,N'ZZ_POS_MANGO_COCONUT_JELLY_MATCHA_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(83,79,2,1,NULL,'2026-01-01',NULL,328,NULL,N'ZZ_POS_SALTED_CARAMEL_CHOCOLATE_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01'),
+(84,80,2,1,NULL,'2026-01-01',NULL,329,NULL,N'ZZ_POS_MANGO_ALOE_YOGURT_M','2026-01-01',@ActorStaffId,'2026-01-01','2026-01-01');
+
+ IF (SELECT COUNT(*) FROM @MenuContract)<>84 OR EXISTS(SELECT 1 FROM @MenuContract
  WHERE IsEnabled<>1 OR PriceOverride IS NOT NULL OR EffectiveToUtc IS NOT NULL
  OR DisplayOrder<0 OR PauseReason IS NOT NULL)
-  THROW 52805,N'Bộ StoreMenuItem contract phải có đúng 54 SKU global-price active.',1;
+  THROW 52805,N'Bộ StoreMenuItem contract phải có đúng 84 SKU global-price active.',1;
 
  DECLARE @MenuSeed TABLE(StoreMenuItemId int PRIMARY KEY,StoreId int,DrinkSizeId int,IsEnabled bit,
  PriceOverride decimal(18,2) NULL,EffectiveFromUtc datetime2,EffectiveToUtc datetime2 NULL,
@@ -3571,8 +4379,8 @@ BEGIN TRY
  JOIN dbo.Recipes r ON r.DrinkId=c.DrinkId AND r.SizeId=c.SizeId AND r.ToppingId IS NULL
   AND r.Active=1 AND r.Status=N'Active';
 
- IF (SELECT COUNT(*) FROM @MenuSeed)<>54
-  THROW 52806,N'Không resolve đủ 54 DrinkSize có StoreDrink và exact active recipe.',1;
+ IF (SELECT COUNT(*) FROM @MenuSeed)<>84
+  THROW 52806,N'Không resolve đủ 84 DrinkSize có StoreDrink và exact active recipe.',1;
 
  IF EXISTS(SELECT 1 FROM @MenuSeed x JOIN dbo.StoreMenuItems sm
  ON sm.StoreMenuItemId=x.StoreMenuItemId OR(sm.StoreId=x.StoreId AND sm.DrinkSizeId=x.DrinkSizeId)
@@ -3609,11 +4417,11 @@ BEGIN TRY
  WHERE NOT EXISTS(SELECT 1 FROM dbo.PosCatalogStates WHERE PosCatalogStateId=1);
  SET IDENTITY_INSERT dbo.PosCatalogStates OFF;
 
- IF (SELECT COUNT(*) FROM dbo.StoreDrinks)<>33 OR(SELECT COUNT(*) FROM dbo.StoreMenuItems)<>54
+ IF (SELECT COUNT(*) FROM dbo.StoreDrinks)<63 OR(SELECT COUNT(*) FROM dbo.StoreMenuItems)<84
  OR(SELECT COUNT(*) FROM dbo.PosCatalogStates)<>1
   THROW 52810,N'Row count cuối Batch 07 không đúng contract.',1;
 
- IF (SELECT COUNT(*) FROM dbo.StoreDrinks WHERE StoreId=1 AND Active=1)<>29
+ IF (SELECT COUNT(*) FROM dbo.StoreDrinks WHERE StoreId=1 AND Active=1)<>59
  OR EXISTS(SELECT StoreId,DrinkId FROM dbo.StoreDrinks GROUP BY StoreId,DrinkId HAVING COUNT(*)>1)
  OR EXISTS(SELECT StoreId,DrinkSizeId FROM dbo.StoreMenuItems GROUP BY StoreId,DrinkSizeId HAVING COUNT(*)>1)
  OR EXISTS(SELECT StoreId FROM dbo.PosCatalogStates GROUP BY StoreId HAVING COUNT(*)>1)
@@ -3638,10 +4446,12 @@ GO
 SELECT N'StoreDrinks' Entity,COUNT(*) TotalRows,MIN(StoreDrinkId) MinId,MAX(StoreDrinkId) MaxId,
 SUM(IIF(StoreDrinkId BETWEEN 1 AND 6,1,0)) FoundationRows,
 SUM(IIF(StoreDrinkId BETWEEN 7 AND 20,1,0)) Store1Rows,
-SUM(IIF(StoreDrinkId BETWEEN 21 AND 33,1,0)) ExtensionRows FROM dbo.StoreDrinks
+SUM(IIF(StoreDrinkId BETWEEN 21 AND 63,1,0)) ExtensionRows FROM dbo.StoreDrinks
+
 UNION ALL SELECT N'StoreMenuItems',COUNT(*),MIN(StoreMenuItemId),MAX(StoreMenuItemId),
 SUM(IIF(StoreMenuItemId BETWEEN 29 AND 32,1,0)),SUM(IIF(StoreMenuItemId BETWEEN 1 AND 28,1,0)),
-SUM(IIF(StoreMenuItemId BETWEEN 33 AND 54,1,0)) FROM dbo.StoreMenuItems
+SUM(IIF(StoreMenuItemId BETWEEN 33 AND 84,1,0)) FROM dbo.StoreMenuItems
+
 UNION ALL SELECT N'PosCatalogStates',COUNT(*),MIN(PosCatalogStateId),MAX(PosCatalogStateId),
 0,SUM(IIF(PosCatalogStateId=1,1,0)),0 FROM dbo.PosCatalogStates;
 
@@ -3794,12 +4604,24 @@ BEGIN TRY
    (si.AvailableQty=x.FinalQty AND si.MinStockLevel=x.MinStockLevel AND si.LastUpdated='2026-01-02')
    OR(x.IngredientId=1 AND si.AvailableQty=100 AND si.MinStockLevel IS NULL AND si.LastUpdated='2025-01-01')
    OR(x.IngredientId=2 AND si.AvailableQty=50 AND si.MinStockLevel IS NULL AND si.LastUpdated='2025-01-01')
+   OR EXISTS(
+       SELECT 1
+       FROM dbo.InventoryTransactions postSeed
+       WHERE postSeed.StoreInventoryId=si.StoreInventoryId
+         AND (postSeed.InventoryTransactionId>64 OR postSeed.CreatedAt>'2026-01-02')
+   )
  ))
   THROW 52905,N'StoreInventory ingredient có ID/business key hoặc số dư xung đột.',1;
 
  UPDATE si SET AvailableQty=x.FinalQty,MinStockLevel=x.MinStockLevel,LastUpdated='2026-01-02'
  FROM dbo.StoreInventories si JOIN @InventoryContract x ON x.StoreInventoryId=si.StoreInventoryId
- WHERE x.IngredientId IN(1,2) AND si.AvailableQty<>x.FinalQty;
+ WHERE x.IngredientId IN(1,2) AND si.AvailableQty<>x.FinalQty
+   AND NOT EXISTS(
+       SELECT 1
+       FROM dbo.InventoryTransactions postSeed
+       WHERE postSeed.StoreInventoryId=si.StoreInventoryId
+         AND (postSeed.InventoryTransactionId>64 OR postSeed.CreatedAt>'2026-01-02')
+   );
 
  SET IDENTITY_INSERT dbo.StoreInventories ON;
  INSERT dbo.StoreInventories(StoreInventoryId,StoreId,IngredientId,RecipeId,PreparedItemId,
@@ -3825,14 +4647,17 @@ BEGIN TRY
   (5,CAST(6000 AS decimal(18,3)),CAST(16 AS decimal(18,2)),CAST(600 AS decimal(18,3))),
   (6,CAST(3000 AS decimal(18,3)),CAST(69 AS decimal(18,2)),CAST(450 AS decimal(18,3))),
   (7,CAST(3000 AS decimal(18,3)),CAST(95 AS decimal(18,2)),CAST(450 AS decimal(18,3))),
-  (8,CAST(100 AS decimal(18,3)),CAST(2300 AS decimal(18,2)),CAST(15 AS decimal(18,3)))
+  (8,CAST(100 AS decimal(18,3)),CAST(2300 AS decimal(18,2)),CAST(15 AS decimal(18,3))),
+  (9,CAST(2000 AS decimal(18,3)),CAST(18 AS decimal(18,2)),CAST(250 AS decimal(18,3))),
+  (10,CAST(2000 AS decimal(18,3)),CAST(22 AS decimal(18,2)),CAST(250 AS decimal(18,3))),
+  (11,CAST(2000 AS decimal(18,3)),CAST(28 AS decimal(18,2)),CAST(180 AS decimal(18,3)))
  )x(PreparedItemId,OpeningQty,UnitCost,MinStockLevel)
  JOIN dbo.PreparedItems p ON p.PreparedItemId=x.PreparedItemId
  JOIN dbo.Recipes r ON r.PreparedItemId=p.PreparedItemId
   AND r.Active=1 AND r.Status=N'Active'
- WHERE p.PreparedItemId BETWEEN 1 AND 8 AND p.Active=1;
- IF (SELECT COUNT(*) FROM @PreparedInventory)<>8
-  THROW 52906,N'Không resolve đúng một active Recipe cho đủ 8 PreparedItem.',1;
+ WHERE p.PreparedItemId BETWEEN 1 AND 11 AND p.Active=1;
+ IF (SELECT COUNT(*) FROM @PreparedInventory)<>11
+  THROW 52906,N'Không resolve đúng một active Recipe cho đủ 11 PreparedItem.',1;
 
  IF EXISTS(SELECT 1 FROM @PreparedInventory x JOIN dbo.StoreInventories si
  ON si.StoreInventoryId=x.StoreInventoryId OR(si.StoreId=1 AND si.RecipeId=x.RecipeId)
@@ -3842,8 +4667,17 @@ BEGIN TRY
  OR si.QuantitySemanticsEvidenceType<>1 OR si.QuantitySemanticsEvidenceReference<>x.EvidenceReference
  OR si.QuantitySemanticsReviewedAt<>'2026-01-01'
  OR si.QuantitySemanticsReviewedByAccountId<>@InventoryActorAccountId
- OR si.AvailableQty<>x.OpeningQty OR si.ReservedQty<>0 OR si.MaxNegativeQty IS NOT NULL
- OR si.MinStockLevel<>x.MinStockLevel OR si.LastUpdated<>'2026-01-01')
+ OR si.ReservedQty<>0 OR si.MaxNegativeQty IS NOT NULL
+ OR si.MinStockLevel<>x.MinStockLevel
+ OR (
+      (si.AvailableQty<>x.OpeningQty OR si.LastUpdated<>'2026-01-01')
+      AND NOT EXISTS(
+          SELECT 1
+          FROM dbo.InventoryTransactions postSeed
+          WHERE postSeed.StoreInventoryId=si.StoreInventoryId
+            AND (postSeed.InventoryTransactionId>64 OR postSeed.CreatedAt>'2026-01-01')
+      )
+    ))
   THROW 52907,N'StoreInventory PreparedItem có identity hoặc lifecycle xung đột.',1;
 
  INSERT dbo.StoreInventories(StoreInventoryId,StoreId,IngredientId,RecipeId,PreparedItemId,
@@ -3949,7 +4783,7 @@ BEGIN TRY
  IF EXISTS(SELECT 1 FROM @TransactionSeed x JOIN dbo.InventoryTransactions t
  ON t.InventoryTransactionId=x.InventoryTransactionId
  OR(t.InventoryDocumentDetailId=x.InventoryDocumentDetailId AND t.[Type]=x.[Type])
- WHERE t.InventoryTransactionId<>x.InventoryTransactionId OR t.StoreInventoryId<>x.StoreInventoryId
+ WHERE (t.InventoryTransactionId<>x.InventoryTransactionId OR t.StoreInventoryId<>x.StoreInventoryId
  OR t.[Type]<>x.[Type] OR t.StockStatus<>x.StockStatus OR t.Quantity<>x.Quantity
  OR t.BeforeQty<>x.BeforeQty OR t.AfterQty<>x.AfterQty OR t.UnitCost<>x.UnitCost
  OR t.TotalCost<>x.TotalCost OR t.InventoryDocumentId<>x.InventoryDocumentId
@@ -3957,7 +4791,7 @@ BEGIN TRY
  OR t.InventoryTransferId IS NOT NULL OR t.InventoryTransferDetailId IS NOT NULL
  OR t.ReferenceOrderId IS NOT NULL OR t.ProductionRunId IS NOT NULL OR t.SourceRecipeId IS NOT NULL
  OR t.InventoryConsolidationRunId IS NOT NULL OR t.BranchReceiptLineId IS NOT NULL
- OR t.OrderRefundId IS NOT NULL OR t.CreatedAt<>x.CreatedAt)
+ OR t.OrderRefundId IS NOT NULL OR t.CreatedAt<>x.CreatedAt))
   THROW 52912,N'InventoryTransaction có ID hoặc document-detail/type key xung đột.',1;
 
  SET IDENTITY_INSERT dbo.InventoryTransactions ON;
@@ -3981,7 +4815,7 @@ BEGIN TRY
  IF EXISTS(SELECT 1 FROM @PreparedTransaction x JOIN dbo.InventoryTransactions t
  ON t.InventoryTransactionId=x.InventoryTransactionId
  OR(t.StoreInventoryId=x.StoreInventoryId AND t.[Type]=5 AND t.SourceRecipeId=x.RecipeId)
- WHERE t.InventoryTransactionId<>x.InventoryTransactionId OR t.StoreInventoryId<>x.StoreInventoryId
+ WHERE (t.InventoryTransactionId<>x.InventoryTransactionId OR t.StoreInventoryId<>x.StoreInventoryId
  OR t.[Type]<>5 OR t.StockStatus<>1 OR t.Quantity<>x.Quantity OR t.BeforeQty<>0
  OR t.AfterQty<>x.Quantity OR t.UnitCost<>x.UnitCost OR t.TotalCost<>x.TotalCost
  OR t.InventoryDocumentId IS NOT NULL OR t.InventoryDocumentDetailId IS NOT NULL
@@ -3990,6 +4824,12 @@ BEGIN TRY
  OR(t.ProductionRunId IS NOT NULL AND t.ProductionRunId<>x.PreparedItemId)
  OR t.InventoryConsolidationRunId IS NOT NULL OR t.BranchReceiptLineId IS NOT NULL
  OR t.OrderRefundId IS NOT NULL OR t.CreatedAt<>'2026-01-01')
+ AND NOT EXISTS(
+     SELECT 1
+     FROM dbo.InventoryTransactions postSeed
+     WHERE postSeed.StoreInventoryId=t.StoreInventoryId
+       AND (postSeed.InventoryTransactionId>64 OR postSeed.CreatedAt>'2026-01-01')
+  ))
   THROW 52915,N'PreparedItem PRODUCTION_IN movement có identity hoặc valuation xung đột.',1;
 
  INSERT dbo.InventoryTransactions(InventoryTransactionId,StoreInventoryId,[Type],StockStatus,
@@ -4002,14 +4842,21 @@ BEGIN TRY
  WHERE t.InventoryTransactionId=x.InventoryTransactionId);
  SET IDENTITY_INSERT dbo.InventoryTransactions OFF;
 
- IF (SELECT COUNT(*) FROM dbo.InventoryDocuments)<>2
- OR(SELECT COUNT(*) FROM dbo.InventoryDocumentDetails)<>53
- OR(SELECT COUNT(*) FROM dbo.StoreInventories)<>60
- OR(SELECT COUNT(*) FROM dbo.InventoryTransactions)<>61
+ IF (SELECT COUNT(*) FROM dbo.InventoryDocuments)<2
+ OR(SELECT COUNT(*) FROM dbo.InventoryDocumentDetails)<53
+ OR(SELECT COUNT(*) FROM dbo.StoreInventories)<63
+ OR(SELECT COUNT(*) FROM dbo.InventoryTransactions)<64
   THROW 52913,N'Row count cuối Batch 08 không đúng contract database sạch.',1;
 
  IF EXISTS(SELECT 1 FROM @InventoryContract x JOIN dbo.StoreInventories si
- ON si.StoreId=1 AND si.IngredientId=x.IngredientId WHERE si.AvailableQty<>x.FinalQty)
+ ON si.StoreId=1 AND si.IngredientId=x.IngredientId
+ WHERE si.AvailableQty<>x.FinalQty
+   AND NOT EXISTS(
+       SELECT 1
+       FROM dbo.InventoryTransactions postSeed
+       WHERE postSeed.StoreInventoryId=si.StoreInventoryId
+         AND (postSeed.InventoryTransactionId>64 OR postSeed.CreatedAt>'2026-01-02')
+   ))
  OR EXISTS(SELECT 1 FROM dbo.StoreInventories si WHERE si.StoreId=1 AND si.IngredientId IS NOT NULL
  AND si.AvailableQty<>(SELECT COALESCE(SUM(CASE WHEN t.[Type] IN(1,5,8,11,13,14,15)
  THEN t.Quantity ELSE -t.Quantity END),0) FROM dbo.InventoryTransactions t
@@ -4107,12 +4954,15 @@ BEGIN TRY
  (5,5,CAST(4 AS decimal(18,5)),'64e343f4-90e0-45b5-9270-2f96df6e4aca',N'0E15D8052CA4BACE1704CA8929E546E2874FFF08EEE76EF4AD6D637D421EA38B',CAST(6000 AS decimal(18,3)),CAST(16 AS decimal(18,8))),
  (6,6,CAST(3 AS decimal(18,5)),'8d0abc8f-861c-4705-bc51-36ad89e8bad2',N'CE4636D8C5B6C1A06EBAE23E7073E26992070E310FFD6AE952D008181FA95D15',CAST(3000 AS decimal(18,3)),CAST(69 AS decimal(18,8))),
  (7,7,CAST(3 AS decimal(18,5)),'c06cdaf3-8cb3-4fe5-97db-3962518dc0bf',N'2F3FCC4704FCD3F2F39EBA97FBDF7AF672F7F17896021E66B2DBF28B7D5A1AAA',CAST(3000 AS decimal(18,3)),CAST(95 AS decimal(18,8))),
- (8,8,CAST(2.5 AS decimal(18,5)),'5e0a6a7c-5b92-48d6-bf67-514be80192ef',N'418DDAE1043F07E04E434A9686DB21E5CECEC7EF8046253592C55084238014F4',CAST(100 AS decimal(18,3)),CAST(2300 AS decimal(18,8)))
+ (8,8,CAST(2.5 AS decimal(18,5)),'5e0a6a7c-5b92-48d6-bf67-514be80192ef',N'418DDAE1043F07E04E434A9686DB21E5CECEC7EF8046253592C55084238014F4',CAST(100 AS decimal(18,3)),CAST(2300 AS decimal(18,8))),
+ (9,9,CAST(2 AS decimal(18,5)),'5e0a6a7c-5b92-48d6-bf67-514be8019209',N'B5F5AA2F1A4A40E8D36D0D9A100000000000000000000000000000000000000',CAST(2000 AS decimal(18,3)),CAST(18 AS decimal(18,8))),
+ (10,10,CAST(2 AS decimal(18,5)),'5e0a6a7c-5b92-48d6-bf67-514be8019210',N'B5F5AA2F1A4A40E8D36D0D9A100000000000000000000000000000000000010',CAST(2000 AS decimal(18,3)),CAST(22 AS decimal(18,8))),
+ (11,11,CAST(2 AS decimal(18,5)),'5e0a6a7c-5b92-48d6-bf67-514be8019211',N'B5F5AA2F1A4A40E8D36D0D9A100000000000000000000000000000000000011',CAST(2000 AS decimal(18,3)),CAST(28 AS decimal(18,8)))
  )x(ProductionRunId,PreparedItemId,RequestedRunCount,RequestKey,RequestFingerprint,OpeningQty,OutputUnitCost)
  JOIN dbo.PreparedItems p ON p.PreparedItemId=x.PreparedItemId AND p.Active=1
  JOIN dbo.Recipes r ON r.PreparedItemId=p.PreparedItemId AND r.Active=1 AND r.Status=N'Active';
 
- IF (SELECT COUNT(*) FROM @ProductionSeed)<>8
+ IF (SELECT COUNT(*) FROM @ProductionSeed)<>11
  OR EXISTS(SELECT 1 FROM @ProductionSeed x JOIN dbo.Recipes r ON r.RecipeId=x.RecipeId
  WHERE x.RequestedRunCount<=0 OR x.RequestedRunCount>9999 OR r.OutputQuantity*x.RequestedRunCount<>x.OpeningQty)
   THROW 53002,N'ProductionRun source không khớp Recipe output hoặc opening quantity.',1;
@@ -4144,7 +4994,7 @@ BEGIN TRY
  ON t.InventoryTransactionId=53+x.PreparedItemId
  WHERE t.StoreInventoryId<>52+x.PreparedItemId OR t.[Type]<>5 OR t.SourceRecipeId<>x.RecipeId
  OR(t.ProductionRunId IS NOT NULL AND t.ProductionRunId<>x.ProductionRunId))
- OR(SELECT COUNT(*) FROM dbo.InventoryTransactions WHERE InventoryTransactionId BETWEEN 54 AND 61)<>8
+ OR(SELECT COUNT(*) FROM dbo.InventoryTransactions WHERE InventoryTransactionId BETWEEN 54 AND 64)<>11
   THROW 53004,N'Không resolve được tám PRODUCTION_IN movements của Batch 08.',1;
 
  UPDATE t SET ProductionRunId=x.ProductionRunId
@@ -4177,7 +5027,7 @@ BEGIN TRY
  CONVERT(decimal(18,2),x.OutputUnitCost),'2026-01-01',x.ProductionRunId,NULL,NULL,NULL,NULL
  FROM @ProductionSeed x;
 
- IF (SELECT COUNT(*) FROM @LayerSeed)<>58
+ IF (SELECT COUNT(*) FROM @LayerSeed)<>61
  OR EXISTS(SELECT 1 FROM @LayerSeed WHERE Quantity<=0 OR RemainingQuantity<0
  OR RemainingQuantity>Quantity OR UnitCost<=0
  OR NOT((IngredientId IS NOT NULL AND PreparedItemId IS NULL)
@@ -4188,7 +5038,7 @@ BEGIN TRY
  ON l.InventoryCostLayerId=x.InventoryCostLayerId
  OR(x.SourceProductionRunId IS NOT NULL AND l.SourceProductionRunId=x.SourceProductionRunId)
  OR(x.SourceInventoryDocumentDetailId IS NOT NULL AND l.SourceInventoryDocumentDetailId=x.SourceInventoryDocumentDetailId)
- WHERE l.InventoryCostLayerId<>x.InventoryCostLayerId
+ WHERE (l.InventoryCostLayerId<>x.InventoryCostLayerId
  OR ISNULL(l.IngredientId,-1)<>ISNULL(x.IngredientId,-1)
  OR ISNULL(l.PreparedItemId,-1)<>ISNULL(x.PreparedItemId,-1) OR l.StoreId<>x.StoreId
  OR l.Quantity<>x.Quantity OR l.RemainingQuantity<>x.RemainingQuantity OR l.UnitCost<>x.UnitCost
@@ -4197,6 +5047,15 @@ BEGIN TRY
  OR l.SourceOrderRefundId IS NOT NULL
  OR ISNULL(l.SourceInventoryDocumentDetailId,-1)<>ISNULL(x.SourceInventoryDocumentDetailId,-1)
  OR l.SourceBranchReceiptLineId IS NOT NULL OR l.SourceTransferCostAllocationId IS NOT NULL)
+ AND NOT EXISTS(
+     SELECT 1
+     FROM dbo.InventoryTransactions postSeed
+     JOIN dbo.StoreInventories postSi ON postSi.StoreInventoryId=postSeed.StoreInventoryId
+     WHERE postSi.StoreId=x.StoreId
+       AND ((x.IngredientId IS NOT NULL AND postSi.IngredientId=x.IngredientId)
+         OR (x.PreparedItemId IS NOT NULL AND postSi.PreparedItemId=x.PreparedItemId))
+       AND (postSeed.InventoryTransactionId>64 OR postSeed.CreatedAt>'2026-01-01')
+ ))
   THROW 53007,N'InventoryCostLayer có ID hoặc source business key xung đột.',1;
 
  SET IDENTITY_INSERT dbo.InventoryCostLayers ON;
@@ -4215,7 +5074,7 @@ BEGIN TRY
  d.BaseQuantity,l.UnitCost
  FROM dbo.InventoryDocumentDetails d
  JOIN dbo.InventoryCostLayers l ON l.StoreId=1 AND l.IngredientId=d.IngredientId
-  AND l.PreparedItemId IS NULL
+  AND l.PreparedItemId IS NULL AND l.InventoryCostLayerId BETWEEN 1 AND 50
  WHERE d.InventoryDocumentId=2;
  IF (SELECT COUNT(*) FROM @AllocationSeed)<>3
  OR EXISTS(SELECT 1 FROM @AllocationSeed WHERE Quantity<=0 OR UnitCost<=0)
@@ -4238,13 +5097,18 @@ BEGIN TRY
  WHERE a.InventoryCostAllocationId=x.InventoryCostAllocationId);
  SET IDENTITY_INSERT dbo.InventoryCostAllocations OFF;
 
- IF (SELECT COUNT(*) FROM dbo.ProductionRuns)<>8
- OR(SELECT COUNT(*) FROM dbo.InventoryCostLayers)<>58
- OR(SELECT COUNT(*) FROM dbo.InventoryCostAllocations)<>3
- OR(SELECT COUNT(*) FROM dbo.InventoryTransactions)<>61
+ IF (SELECT COUNT(*) FROM dbo.ProductionRuns)<11
+ OR(SELECT COUNT(*) FROM dbo.InventoryCostLayers)<61
+ OR(SELECT COUNT(*) FROM dbo.InventoryCostAllocations)<3
+ OR(SELECT COUNT(*) FROM dbo.InventoryTransactions)<64
   THROW 53010,N'Row count cuối Batch 09 không đúng contract database sạch.',1;
 
- IF EXISTS(SELECT 1 FROM dbo.StoreInventories si WHERE si.StoreId=1
+ IF NOT EXISTS(
+     SELECT 1 FROM dbo.InventoryTransactions postSeed
+     WHERE postSeed.InventoryTransactionId>64 OR postSeed.CreatedAt>'2026-01-01'
+ )
+ AND (
+ EXISTS(SELECT 1 FROM dbo.StoreInventories si WHERE si.StoreId=1
  AND si.AvailableQty<>(SELECT COALESCE(SUM(l.RemainingQuantity),0)
  FROM dbo.InventoryCostLayers l WHERE l.StoreId=si.StoreId
  AND((si.IngredientId IS NOT NULL AND l.IngredientId=si.IngredientId AND l.PreparedItemId IS NULL)
@@ -4259,6 +5123,7 @@ BEGIN TRY
  WHERE SourceProductionRunId IS NOT NULL GROUP BY SourceProductionRunId HAVING COUNT(*)>1)
  OR EXISTS(SELECT SourceInventoryDocumentDetailId FROM dbo.InventoryCostLayers
  WHERE SourceInventoryDocumentDetailId IS NOT NULL GROUP BY SourceInventoryDocumentDetailId HAVING COUNT(*)>1)
+ )
   THROW 53011,N'FIFO remaining, allocation hoặc inventory reconciliation không cân bằng.',1;
 
  COMMIT;
@@ -4433,10 +5298,17 @@ BEGIN TRY
  IF EXISTS(SELECT 1 FROM @StockTakeDetailSeed x JOIN dbo.StockTakeDetails d
  ON d.StockTakeDetailId=x.StockTakeDetailId
  OR(d.StockTakeSessionId=x.StockTakeSessionId AND d.IngredientId=x.IngredientId)
- WHERE d.StockTakeDetailId<>x.StockTakeDetailId
+ WHERE (d.StockTakeDetailId<>x.StockTakeDetailId
  OR d.StockTakeSessionId<>x.StockTakeSessionId OR d.IngredientId<>x.IngredientId
  OR d.SystemQuantity<>x.SystemQuantity OR d.ActualQuantity<>x.ActualQuantity
  OR ISNULL(d.Note,N'')<>ISNULL(x.Note,N''))
+ AND NOT EXISTS(
+     SELECT 1
+     FROM dbo.InventoryTransactions postSeed
+     JOIN dbo.StoreInventories postSi ON postSi.StoreInventoryId=postSeed.StoreInventoryId
+     WHERE postSi.StoreId=1 AND postSi.IngredientId=x.IngredientId
+       AND (postSeed.InventoryTransactionId>64 OR postSeed.CreatedAt>'2026-01-01')
+ ))
   THROW 53108,N'StockTakeDetail có ID hoặc session/ingredient key xung đột.',1;
 
  SET IDENTITY_INSERT dbo.StockTakeDetails ON;
@@ -4850,23 +5722,35 @@ BEGIN TRY
  (29,9,N'Ingredient.Create',N'Tạo nguyên liệu',N'Create',N'Tạo nguyên liệu',1,'2026-01-01'),
  (30,9,N'Ingredient.Update',N'Cập nhật nguyên liệu',N'Update',N'Cập nhật nguyên liệu',1,'2026-01-01'),
  (31,9,N'Ingredient.ToggleStatus',N'Đổi trạng thái nguyên liệu',N'ToggleStatus',N'Đổi trạng thái nguyên liệu',1,'2026-01-01'),
+
  (32,10,N'UnitConversion.View',N'Xem quy đổi',N'View',N'Xem quy đổi',1,'2026-01-01'),
  (33,10,N'UnitConversion.Create',N'Tạo quy đổi',N'Create',N'Tạo quy đổi',1,'2026-01-01'),
  (34,10,N'UnitConversion.Update',N'Cập nhật quy đổi',N'Update',N'Cập nhật quy đổi',1,'2026-01-01'),
  (35,10,N'UnitConversion.ToggleStatus',N'Đổi trạng thái quy đổi',N'ToggleStatus',N'Đổi trạng thái quy đổi',1,'2026-01-01'),
+
  (36,11,N'Inventory.View',N'Xem tồn kho',N'View',N'Xem tồn kho',1,'2026-01-01'),
  (37,11,N'Inventory.Adjust',N'Điều chỉnh tồn kho',N'Adjust',N'Điều chỉnh tồn kho',1,'2026-01-01'),
  (38,11,N'Inventory.Export',N'Xuất dữ liệu tồn kho',N'Export',N'Xuất dữ liệu tồn kho',1,'2026-01-01'),
+
  (39,12,N'StockAlert.View',N'Xem cảnh báo kho',N'View',N'Xem cảnh báo kho',1,'2026-01-01'),
  (40,12,N'StockAlert.Resolve',N'Xử lý cảnh báo kho',N'Resolve',N'Xử lý cảnh báo kho',1,'2026-01-01'),
  (41,12,N'StockAlert.Configure',N'Cấu hình cảnh báo kho',N'Configure',N'Cấu hình cảnh báo kho',1,'2026-01-01'),
  (42,12,N'StockAlert.Export',N'Xuất cảnh báo kho',N'Export',N'Xuất cảnh báo kho',1,'2026-01-01'),
+ (131,12,N'StockAlert.Create',N'Báo thiếu nguyên liệu',N'Create',N'Tạo cảnh báo thiếu nguyên liệu từ nghiệp vụ cửa hàng',1,'2026-01-01'),
+ (132,12,N'StockAlert.CreateRestockRequest',N'Tạo yêu cầu nhập từ cảnh báo',N'CreateRestockRequest',N'Tạo yêu cầu nhập hàng từ cảnh báo kho đã được xác nhận',1,'2026-01-01'),
+
  (43,13,N'Restock.View',N'Xem yêu cầu nhập',N'View',N'Xem yêu cầu nhập',1,'2026-01-01'),
  (44,13,N'Restock.Create',N'Tạo yêu cầu nhập',N'Create',N'Tạo yêu cầu nhập',1,'2026-01-01'),
  (45,13,N'Restock.Submit',N'Gửi yêu cầu nhập',N'Submit',N'Gửi yêu cầu nhập',1,'2026-01-01'),
  (46,13,N'Restock.Approve',N'Duyệt yêu cầu nhập',N'Approve',N'Duyệt yêu cầu nhập',1,'2026-01-01'),
  (47,13,N'Restock.Reject',N'Từ chối yêu cầu nhập',N'Reject',N'Từ chối yêu cầu nhập',1,'2026-01-01'),
  (48,13,N'Restock.Cancel',N'Hủy yêu cầu nhập',N'Cancel',N'Hủy yêu cầu nhập',1,'2026-01-01'),
+ (133,13,N'Restock.Update',N'Cập nhật yêu cầu nhập',N'Update',N'Cập nhật yêu cầu nhập trước khi gửi hoặc khi trạng thái cho phép',1,'2026-01-01'),
+ (134,13,N'Restock.CloseRemaining',N'Đóng phần còn lại yêu cầu nhập',N'CloseRemaining',N'Đóng phần nhu cầu nhập còn lại không tiếp tục xử lý',1,'2026-01-01'),
+ (135,13,N'Restock.CreatePurchaseOrder',N'Tạo đơn đặt hàng từ yêu cầu nhập',N'CreatePurchaseOrder',N'Tạo đơn đặt hàng mua ngoài từ phần nhu cầu nhập được phân bổ',1,'2026-01-01'),
+ (136,13,N'Restock.CreateTransfer',N'Tạo điều chuyển từ yêu cầu nhập',N'CreateTransfer',N'Tạo phiếu điều chuyển từ phần nhu cầu nhập được phân bổ',1,'2026-01-01'),
+
+
  (49,14,N'PurchaseAdvice.View',N'Xem đề nghị mua',N'View',N'Xem đề nghị mua',1,'2026-01-01'),
  (50,14,N'PurchaseAdvice.Create',N'Tạo đề nghị mua',N'Create',N'Tạo đề nghị mua',1,'2026-01-01'),
  (51,14,N'PurchaseAdvice.Submit',N'Gửi đề nghị mua',N'Submit',N'Gửi đề nghị mua',1,'2026-01-01'),
@@ -4874,6 +5758,9 @@ BEGIN TRY
  (53,14,N'PurchaseAdvice.Approve',N'Duyệt đề nghị mua',N'Approve',N'Duyệt đề nghị mua',1,'2026-01-01'),
  (54,14,N'PurchaseAdvice.Reject',N'Từ chối đề nghị mua',N'Reject',N'Từ chối đề nghị mua',1,'2026-01-01'),
  (55,14,N'PurchaseAdvice.Consolidate',N'Tổng hợp đề nghị mua',N'Consolidate',N'Tổng hợp đề nghị mua',1,'2026-01-01'),
+ (137,14,N'PurchaseAdvice.SelectSupplier',N'Chọn nhà cung cấp',N'SelectSupplier',N'Chọn nhà cung cấp và quy cách mua cho đề nghị mua hàng',1,'2026-01-01'),
+ (138,14,N'PurchaseAdvice.CreatePurchaseOrder',N'Tạo đơn đặt hàng từ đề nghị mua',N'CreatePurchaseOrder',N'Tạo đơn đặt hàng từ đề nghị mua đã được tổng hợp',1,'2026-01-01'),
+
  (56,15,N'PurchaseOrder.View',N'Xem đơn đặt hàng',N'View',N'Xem đơn đặt hàng',1,'2026-01-01'),
  (57,15,N'PurchaseOrder.Create',N'Tạo đơn đặt hàng',N'Create',N'Tạo đơn đặt hàng',1,'2026-01-01'),
  (58,15,N'PurchaseOrder.Update',N'Cập nhật đơn đặt hàng',N'Update',N'Cập nhật đơn đặt hàng',1,'2026-01-01'),
@@ -4883,16 +5770,27 @@ BEGIN TRY
  (62,15,N'PurchaseOrder.ViewBatch',N'Xem batch PO',N'ViewBatch',N'Xem batch PO',1,'2026-01-01'),
  (63,15,N'PurchaseOrder.CreateBatch',N'Tạo batch PO',N'CreateBatch',N'Tạo batch PO',1,'2026-01-01'),
  (64,15,N'PurchaseOrder.Consolidate',N'Tổng hợp PO',N'Consolidate',N'Tổng hợp PO',1,'2026-01-01'),
+ (139,15,N'PurchaseOrder.Submit',N'Gửi đơn đặt hàng để duyệt',N'Submit',N'Chuyển đơn đặt hàng từ bản nháp sang trạng thái chờ duyệt',1,'2026-01-01'),
+ (140,15,N'PurchaseOrder.Approve',N'Duyệt đơn đặt hàng',N'Approve',N'Duyệt cam kết đặt hàng với nhà cung cấp',1,'2026-01-01'),
+ (141,15,N'PurchaseOrder.RejectApproval',N'Từ chối duyệt đơn đặt hàng',N'RejectApproval',N'Từ chối đơn đặt hàng đang chờ duyệt',1,'2026-01-01'),
+ (142,15,N'PurchaseOrder.OverrideAllocation',N'Duyệt vượt phân bổ',N'OverrideAllocation',N'Cho phép đơn đặt hàng vượt số lượng đã được phân bổ khi có lý do',1,'2026-01-01'),
+ (143,15,N'PurchaseOrder.Export',N'Xuất đơn đặt hàng',N'Export',N'Xuất tài liệu đơn đặt hàng để gửi hoặc lưu chứng từ',1,'2026-01-01'),
+
  (65,16,N'Receipt.View',N'Xem phiếu nhận hàng',N'View',N'Xem phiếu nhận hàng',1,'2026-01-01'),
  (66,16,N'Receipt.Create',N'Tạo phiếu nhận hàng',N'Create',N'Tạo phiếu nhận hàng',1,'2026-01-01'),
  (67,16,N'Receipt.Confirm',N'Xác nhận nhận hàng',N'Confirm',N'Xác nhận nhận hàng',1,'2026-01-01'),
  (68,16,N'Receipt.Reject',N'Ghi nhận hàng bị từ chối',N'Reject',N'Ghi nhận hàng bị từ chối',1,'2026-01-01'),
  (69,16,N'Receipt.Cancel',N'Hủy phiếu nhận hàng',N'Cancel',N'Hủy phiếu nhận hàng',1,'2026-01-01'),
+ (144,16,N'Receipt.UpdateDraft',N'Cập nhật phiếu nhận bản nháp',N'UpdateDraft',N'Cập nhật phiếu nhận trước khi xác nhận nhập kho',1,'2026-01-01'),
+ (145,16,N'Receipt.RecordSupplierIssue',N'Ghi nhận sự cố nhà cung cấp',N'RecordSupplierIssue',N'Ghi nhận sự cố hoặc lý do liên quan đến hàng giao từ nhà cung cấp',1,'2026-01-01'),
+ (146,16,N'Receipt.ViewCost',N'Xem giá vốn phiếu nhận',N'ViewCost',N'Xem giá vốn và giá trị của phiếu nhận hàng',1,'2026-01-01'),
+
  (70,17,N'Supplier.View',N'Xem nhà cung cấp',N'View',N'Xem nhà cung cấp',1,'2026-01-01'),
  (71,17,N'Supplier.Create',N'Tạo nhà cung cấp',N'Create',N'Tạo nhà cung cấp',1,'2026-01-01'),
  (72,17,N'Supplier.Update',N'Cập nhật nhà cung cấp',N'Update',N'Cập nhật nhà cung cấp',1,'2026-01-01'),
  (73,17,N'Supplier.ToggleStatus',N'Đổi trạng thái nhà cung cấp',N'ToggleStatus',N'Đổi trạng thái nhà cung cấp',1,'2026-01-01'),
  (74,17,N'Supplier.ViewQuality',N'Xem chất lượng nhà cung cấp',N'ViewQuality',N'Xem chất lượng nhà cung cấp',1,'2026-01-01'),
+
  (75,18,N'InventoryDocument.View',N'Xem phiếu kho',N'View',N'Xem phiếu kho',1,'2026-01-01'),
  (76,18,N'InventoryDocument.CreateDraft',N'Tạo nháp phiếu kho',N'CreateDraft',N'Tạo nháp phiếu kho',1,'2026-01-01'),
  (77,18,N'InventoryDocument.Submit',N'Gửi phiếu kho',N'Submit',N'Gửi phiếu kho',1,'2026-01-01'),
@@ -4900,6 +5798,7 @@ BEGIN TRY
  (79,18,N'InventoryDocument.ApproveNegative',N'Duyệt xuất âm',N'ApproveNegative',N'Duyệt xuất âm',1,'2026-01-01'),
  (80,18,N'InventoryDocument.Cancel',N'Hủy phiếu kho',N'Cancel',N'Hủy phiếu kho',1,'2026-01-01'),
  (81,18,N'InventoryDocument.Export',N'Xuất phiếu kho',N'Export',N'Xuất phiếu kho',1,'2026-01-01'),
+
  (82,19,N'InventoryTransfer.View',N'Xem chuyển kho',N'View',N'Xem chuyển kho',1,'2026-01-01'),
  (83,19,N'InventoryTransfer.CreateDraft',N'Tạo nháp chuyển kho',N'CreateDraft',N'Tạo nháp chuyển kho',1,'2026-01-01'),
  (84,19,N'InventoryTransfer.UpdateDraft',N'Sửa nháp chuyển kho',N'UpdateDraft',N'Sửa nháp chuyển kho',1,'2026-01-01'),
@@ -4907,43 +5806,58 @@ BEGIN TRY
  (86,19,N'InventoryTransfer.Receive',N'Nhận kho đích',N'Receive',N'Nhận kho đích',1,'2026-01-01'),
  (87,19,N'InventoryTransfer.Cancel',N'Hủy chuyển kho',N'Cancel',N'Hủy chuyển kho',1,'2026-01-01'),
  (88,19,N'InventoryTransfer.Export',N'Xuất dữ liệu chuyển kho',N'Export',N'Xuất dữ liệu chuyển kho',1,'2026-01-01'),
+
  (89,3,N'Order.View',N'Xem đơn hàng',N'View',N'Xem đơn hàng',1,'2026-01-01'),
  (90,3,N'Order.UpdateStatus',N'Cập nhật trạng thái đơn',N'UpdateStatus',N'Cập nhật trạng thái đơn',1,'2026-01-01'),
  (91,3,N'Order.Cancel',N'Hủy đơn hàng',N'Cancel',N'Hủy đơn hàng',1,'2026-01-01'),
  (92,3,N'Order.Refund',N'Hoàn tiền đơn hàng',N'Refund',N'Hoàn tiền đơn hàng',1,'2026-01-01'),
  (93,3,N'Order.Export',N'Xuất đơn hàng',N'Export',N'Xuất đơn hàng',1,'2026-01-01'),
+
  (94,20,N'Staff.View',N'Xem nhân viên',N'View',N'Xem nhân viên',1,'2026-01-01'),
  (95,20,N'Staff.Create',N'Tạo nhân viên',N'Create',N'Tạo nhân viên',1,'2026-01-01'),
  (96,20,N'Staff.Update',N'Cập nhật nhân viên',N'Update',N'Cập nhật nhân viên',1,'2026-01-01'),
  (97,20,N'Staff.ToggleStatus',N'Đổi trạng thái nhân viên',N'ToggleStatus',N'Đổi trạng thái nhân viên',1,'2026-01-01'),
  (98,20,N'Staff.ResetPassword',N'Đặt lại mật khẩu',N'ResetPassword',N'Đặt lại mật khẩu',1,'2026-01-01'),
+
  (99,21,N'Shift.View',N'Xem lịch làm việc',N'View',N'Xem lịch làm việc',1,'2026-01-01'),
  (101,21,N'Shift.Create',N'Tạo lịch làm việc',N'Create',N'Tạo lịch làm việc',1,'2026-01-01'),
  (102,21,N'Shift.Update',N'Cập nhật lịch làm việc',N'Update',N'Cập nhật lịch làm việc',1,'2026-01-01'),
  (103,21,N'Shift.Cancel',N'Hủy lịch làm việc',N'Cancel',N'Hủy lịch làm việc và giữ lịch sử',1,'2026-01-01'),
+
  (108,23,N'Store.View',N'Xem cửa hàng',N'View',N'Xem cửa hàng',1,'2026-01-01'),
  (109,23,N'Store.Create',N'Tạo cửa hàng',N'Create',N'Tạo cửa hàng',1,'2026-01-01'),
  (110,23,N'Store.Update',N'Cập nhật cửa hàng',N'Update',N'Cập nhật cửa hàng',1,'2026-01-01'),
  (111,23,N'Store.ToggleStatus',N'Đổi trạng thái cửa hàng',N'ToggleStatus',N'Đổi trạng thái cửa hàng',1,'2026-01-01'),
+
  (112,24,N'Settings.View',N'Xem cài đặt hệ thống',N'View',N'Xem cài đặt hệ thống',1,'2026-01-01'),
  (113,24,N'Settings.Update',N'Cập nhật cài đặt hệ thống',N'Update',N'Cập nhật cài đặt hệ thống',1,'2026-01-01'),
+
  (114,25,N'Recipe.View',N'Xem BOM',N'View',N'Xem BOM',1,'2026-01-01'),
  (115,25,N'Recipe.Create',N'Tạo BOM',N'Create',N'Tạo BOM',1,'2026-01-01'),
  (116,25,N'Recipe.Update',N'Cập nhật BOM',N'Update',N'Cập nhật BOM',1,'2026-01-01'),
+
  (117,25,N'PreparedItem.View',N'Xem bán thành phẩm',N'PreparedItemView',N'Xem bán thành phẩm',1,'2026-01-01'),
  (118,25,N'PreparedItem.Create',N'Tạo bán thành phẩm',N'PreparedItemCreate',N'Tạo bán thành phẩm',1,'2026-01-01'),
  (119,25,N'PreparedItem.Update',N'Cập nhật bán thành phẩm',N'PreparedItemUpdate',N'Cập nhật bán thành phẩm',1,'2026-01-01'),
+
  (120,25,N'ProductionOrder.View',N'Xem lệnh sản xuất',N'ProductionOrderView',N'Xem lệnh sản xuất',1,'2026-01-01'),
  (121,25,N'ProductionOrder.Create',N'Tạo lệnh sản xuất',N'ProductionOrderCreate',N'Tạo lệnh sản xuất',1,'2026-01-01'),
  (122,25,N'ProductionOrder.Confirm',N'Xác nhận lệnh sản xuất',N'ProductionOrderConfirm',N'Xác nhận lệnh sản xuất',1,'2026-01-01'),
+
  (123,1,N'StoreMenu.View',N'Xem menu cửa hàng',N'StoreMenuView',N'Xem menu cửa hàng',1,'2026-01-01'),
  (124,1,N'StoreMenu.Update',N'Cập nhật menu cửa hàng',N'StoreMenuUpdate',N'Cập nhật menu cửa hàng',1,'2026-01-01'),
+
  (125,1,N'Profitability.View',N'Xem vốn và lợi nhuận',N'ProfitabilityView',N'Xem vốn và lợi nhuận',1,'2026-01-01'),
+
  (126,11,N'InventoryThreshold.View',N'Xem ngưỡng tồn',N'ThresholdView',N'Xem ngưỡng tồn',1,'2026-01-01'),
  (127,11,N'InventoryThreshold.Update',N'Cập nhật ngưỡng tồn',N'ThresholdUpdate',N'Cập nhật ngưỡng tồn',1,'2026-01-01'),
+
  (128,12,N'Notification.View',N'Xem thông báo kho',N'NotificationView',N'Xem thông báo kho',1,'2026-01-01'),
+
  (129,13,N'ReorderSuggestion.View',N'Xem gợi ý nhập hàng',N'ReorderSuggestionView',N'Xem gợi ý nhập hàng',1,'2026-01-01'),
+
  (130,17,N'SupplierQuality.View',N'Xem báo cáo chất lượng NCC',N'SupplierQualityView',N'Xem báo cáo chất lượng NCC',1,'2026-01-01');
+
 
  IF EXISTS(SELECT 1 FROM @AdminPermissionSeed WHERE PermissionId=100)
   THROW 53321,N'PermissionId 100 được dành riêng cho rollback.',1;
@@ -4994,18 +5908,12 @@ BEGIN TRY
  (1,54),
  (1,55),
  (1,56),
- (1,57),
- (1,58),
  (1,59),
- (1,60),
  (1,61),
  (1,62),
  (1,63),
  (1,64),
  (1,65),
- (1,66),
- (1,67),
- (1,68),
  (1,69),
  (1,70),
  (1,71),
@@ -5063,6 +5971,11 @@ BEGIN TRY
  (1,128),
  (1,129),
  (1,130),
+ (1,140), -- PurchaseOrder.Approve
+ (1,141), -- PurchaseOrder.RejectApproval
+ (1,142), -- PurchaseOrder.OverrideAllocation
+ (1,143), -- PurchaseOrder.Export
+ (1,146), -- Receipt.ViewCost
  (2,28),
  (2,32),
  (2,36),
@@ -5097,6 +6010,7 @@ BEGIN TRY
  (2,128),
  (2,129),
  (2,130),
+ (2,146), -- Receipt.ViewCost
  (3,36),
  (3,39),
  (3,40),
@@ -5107,7 +6021,11 @@ BEGIN TRY
  (3,49),
  (3,50),
  (3,51),
+ (3,60),
  (3,65),
+ (3,66),
+ (3,67),
+ (3,68),
  (3,75),
  (3,76),
  (3,77),
@@ -5137,6 +6055,11 @@ BEGIN TRY
  (3,124),
  (3,126),
  (3,128),
+ (3,131), -- StockAlert.Create
+ (3,132), -- StockAlert.CreateRestockRequest
+ (3,133), -- Restock.Update
+ (3,144), -- Receipt.UpdateDraft
+ (3,145), -- Receipt.RecordSupplierIssue
  (5,28),
  (5,29),
  (5,30),
@@ -5169,15 +6092,11 @@ BEGIN TRY
  (5,57),
  (5,58),
  (5,59),
- (5,60),
  (5,61),
  (5,62),
  (5,63),
  (5,64),
  (5,65),
- (5,66),
- (5,67),
- (5,68),
  (5,69),
  (5,70),
  (5,71),
@@ -5212,6 +6131,15 @@ BEGIN TRY
  (5,127),
  (5,128),
  (5,129),
+ (5,131), -- StockAlert.Create
+ (5,134), -- Restock.CloseRemaining
+ (5,135), -- Restock.CreatePurchaseOrder
+ (5,136), -- Restock.CreateTransfer
+ (5,137), -- PurchaseAdvice.SelectSupplier
+ (5,138), -- PurchaseAdvice.CreatePurchaseOrder
+ (5,139), -- PurchaseOrder.Submit
+ (5,143), -- PurchaseOrder.Export
+ (5,146), -- Receipt.ViewCost
  (6,28),
  (6,29),
  (6,30),
@@ -5686,540 +6614,3373 @@ SELECT N'DEMO_DASHBOARD_V13' AS SeedMarker,
 GO
 
 /* ================================================================
-   BATCH 14/14 - POS BOM CONSUMPTION AND REORDER HISTORY
-   Canonical marker: DEMO_REORDER_V14
+   BATCH 14/14 - DEMO_REORDER_V14
+   Store 3 foundation + rolling POS/BOM/FIFO/COGS history
 
-   - 50 paid POS orders and 30 closed POS shifts per Store 1 / Store 3.
-   - 30 historical production runs per Store to provide PRODUCTION_OUT usage.
-   - SALES_DEDUCTION / PRODUCTION_OUT are generated from the active BOM only.
-   - The fixture is mutation-idempotent. Re-runs only roll fixture timestamps
-     into the latest 30-day analysis window.
+   Contract:
+   - No model/enum/migration changes.
+   - No IDENTITY hard-codes in this batch. Business keys only.
+   - One UTC anchor per run; all analytical fixtures stay in rolling 30 days.
+   - First run applies stock/FIFO exactly once.
+   - Replay only rebases fixture timestamps after validating the fixture contract.
+   - Any partial fixture or business-key payload drift aborts the whole batch.
+   ================================================================ */
+BEGIN TRY
+    SET XACT_ABORT ON;
+    BEGIN TRANSACTION;
+
+    DECLARE @SeedMarker nvarchar(50)=N'DEMO_REORDER_V14';
+    DECLARE @SeedAnchorUtc datetime2(0)=CONVERT(datetime2(0),SYSUTCDATETIME());
+    DECLARE @SeedDayUtc datetime2(0)=DATEADD(DAY,DATEDIFF(DAY,0,@SeedAnchorUtc),0);
+    /* Operational fixtures stay strictly inside the rolling window; no current-day fixed clock is used. */
+    DECLARE @WindowStartUtc datetime2(0)=DATEADD(DAY,-30,@SeedAnchorUtc);
+    DECLARE @Store1Id int,@Store3Id int,@Store1StaffId int,@Store3StaffId int,@Store3AccountId int;
+    DECLARE @SalesRoleId int,@StoreScopeTypeId int,@PaidStatusId int,@BankMethodId int,@CompletedOrderStatusId int,@TakeAwayTypeId int;
+
+    IF OBJECT_ID(N'dbo.Accounts',N'U') IS NULL OR OBJECT_ID(N'dbo.AccountRoles',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.Staffs',N'U') IS NULL OR OBJECT_ID(N'dbo.StaffScopes',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.Stores',N'U') IS NULL OR OBJECT_ID(N'dbo.StoreDrinks',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.StoreMenuItems',N'U') IS NULL OR OBJECT_ID(N'dbo.StoreToppings',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.SupplierStores',N'U') IS NULL OR OBJECT_ID(N'dbo.StoreInventories',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.InventoryDocuments',N'U') IS NULL OR OBJECT_ID(N'dbo.InventoryDocumentDetails',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.InventoryTransactions',N'U') IS NULL OR OBJECT_ID(N'dbo.InventoryCostLayers',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.ProductionRuns',N'U') IS NULL OR OBJECT_ID(N'dbo.ProductionCostAllocations',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.Orders',N'U') IS NULL OR OBJECT_ID(N'dbo.OrderDetails',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.OrderToppings',N'U') IS NULL OR OBJECT_ID(N'dbo.Payments',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.WorkShifts',N'U') IS NULL OR OBJECT_ID(N'dbo.SalesCostAllocations',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.Recipes',N'U') IS NULL OR OBJECT_ID(N'dbo.RecipeDetails',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.UnitConversions',N'U') IS NULL OR OBJECT_ID(N'dbo.IngredientSuppliers',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.IngredientSupplierPriceHistories',N'U') IS NULL OR OBJECT_ID(N'dbo.Suppliers',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.Ingredients',N'U') IS NULL OR OBJECT_ID(N'dbo.PreparedItems',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.Drinks',N'U') IS NULL OR OBJECT_ID(N'dbo.DrinkSizes',N'U') IS NULL OR OBJECT_ID(N'dbo.Sizes',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.DrinkSizeToppingPolicies',N'U') IS NULL OR OBJECT_ID(N'dbo.Toppings',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.Roles',N'U') IS NULL OR OBJECT_ID(N'dbo.ScopeTypes',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.PaymentStatuses',N'U') IS NULL OR OBJECT_ID(N'dbo.PaymentMethods',N'U') IS NULL
+    OR OBJECT_ID(N'dbo.OrderStatuses',N'U') IS NULL OR OBJECT_ID(N'dbo.OrderTypes',N'U') IS NULL
+        THROW 53400,N'DEMO_REORDER_V14: schema thiếu bảng bắt buộc.',1;
+
+    SELECT @Store1Id=StoreId FROM dbo.Stores WHERE Name=N'CafeChain Thủ Dầu Một';
+    SELECT @Store3Id=StoreId FROM dbo.Stores WHERE Name=N'CafeChain Dĩ An';
+    IF @Store1Id IS NULL OR @Store3Id IS NULL OR @Store1Id=@Store3Id
+        THROW 53401,N'DEMO_REORDER_V14: không resolve được Store 1 / Store 3 bằng business key.',1;
+
+    SELECT @SalesRoleId=RoleId FROM dbo.Roles WHERE Name=N'Nhân viên bán hàng' AND Active=1;
+    SELECT @StoreScopeTypeId=ScopeTypeId FROM dbo.ScopeTypes WHERE Code=N'STORE';
+    SELECT @PaidStatusId=PaymentStatusId FROM dbo.PaymentStatuses WHERE Code=N'PAID';
+    SELECT @BankMethodId=PaymentMethodId FROM dbo.PaymentMethods WHERE Code=N'BANK';
+    SELECT @CompletedOrderStatusId=OrderStatusId FROM dbo.OrderStatuses WHERE Name=N'Hoàn thành';
+    SELECT @TakeAwayTypeId=OrderTypeId FROM dbo.OrderTypes WHERE Name=N'Take Away';
+    IF @SalesRoleId IS NULL OR @StoreScopeTypeId IS NULL OR @PaidStatusId IS NULL OR @BankMethodId IS NULL
+       OR @CompletedOrderStatusId IS NULL OR @TakeAwayTypeId IS NULL
+        THROW 53402,N'DEMO_REORDER_V14: thiếu role/scope/status/payment/order type nền.',1;
+
+    /* Resolve first-run/replay before any inventory mutation. A replay with missing opening evidence is partial and must fail closed. */
+    DECLARE @ExistingOrders int=(SELECT COUNT(*) FROM dbo.Orders WHERE Source=@SeedMarker);
+    DECLARE @ExistingRuns int=(SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'DEMO_REORDER_V14_PROD_S%');
+    DECLARE @ExistingShifts int=(SELECT COUNT(*) FROM dbo.WorkShifts WHERE DiscrepancyReason LIKE N'DEMO_REORDER_V14_SHIFT_S%');
+    DECLARE @ExistingPayments int=(SELECT COUNT(*) FROM dbo.Payments WHERE TransactionCode LIKE N'DEMO_REORDER_V14_PAY_S%');
+    DECLARE @IsReplay bit=0;
+
+    IF @ExistingOrders=0 AND @ExistingRuns=0 AND @ExistingShifts=0 AND @ExistingPayments=0 SET @IsReplay=0;
+    ELSE IF @ExistingOrders=100 AND @ExistingRuns=60 AND @ExistingShifts=60 AND @ExistingPayments=100 SET @IsReplay=1;
+    ELSE THROW 53428,N'DEMO_REORDER_V14: phát hiện fixture partial; rollback để tránh trừ kho/FIFO lần hai.',1;
+
+    IF @IsReplay=1 AND NOT EXISTS(SELECT 1 FROM dbo.InventoryDocuments WHERE RequestKey=N'DEMO_REORDER_V14_OPENING_STORE3')
+        THROW 53495,N'DEMO_REORDER_V14: operational fixture tồn tại nhưng Store3 opening evidence bị thiếu.',1;
+
+    /* ------------------------------------------------------------
+       14.1 Store 3 demo sales identity - no hard-coded identity
+       ------------------------------------------------------------ */
+    DECLARE @Store3DemoEmail nvarchar(256)=N'demo.sales.dian@cafechain.local';
+    DECLARE @SourceSalesAccountId int,@SourceSalesStaffId int,@SourcePasswordHash nvarchar(max),
+            @SourceGender int,@SourceEmployeeStatus int;
+
+    SELECT TOP(1)
+        @SourceSalesAccountId=a.AccountId,@SourceSalesStaffId=s.StaffId,@SourcePasswordHash=a.PasswordHash,
+        @SourceGender=s.Gender,@SourceEmployeeStatus=s.EmployeeStatus
+    FROM dbo.Accounts a
+    JOIN dbo.Staffs s ON s.AccountId=a.AccountId
+    JOIN dbo.AccountRoles ar ON ar.AccountId=a.AccountId AND ar.RoleId=@SalesRoleId
+    WHERE a.Email=N'salesstaff@cafechain.vn' AND a.Active=1 AND s.Active=1 AND s.StoreId=@Store1Id;
+
+    IF @SourceSalesAccountId IS NULL OR @SourcePasswordHash IS NULL
+        THROW 53403,N'DEMO_REORDER_V14: thiếu account bán hàng Store 1 làm nguồn password/profile.',1;
+
+    IF EXISTS(
+        SELECT 1 FROM dbo.Accounts a
+        WHERE a.Email=@Store3DemoEmail
+          AND (a.Active<>1 OR a.RequiresPasswordChange<>0 OR NULLIF(LTRIM(RTRIM(a.PasswordHash)),N'') IS NULL)
+    ) THROW 53404,N'DEMO_REORDER_V14: account Store 3 cùng email nhưng payload khác contract.',1;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=@Store3DemoEmail)
+        INSERT dbo.Accounts(Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
+        VALUES(@Store3DemoEmail,@SourcePasswordHash,1,0,@SeedAnchorUtc,0,NULL);
+
+    SELECT @Store3AccountId=AccountId FROM dbo.Accounts WHERE Email=@Store3DemoEmail;
+
+    IF EXISTS(
+        SELECT 1 FROM dbo.AccountRoles ar
+        WHERE ar.AccountId=@Store3AccountId AND ar.RoleId<>@SalesRoleId
+    ) THROW 53405,N'DEMO_REORDER_V14: demo account Store 3 đang có role ngoài Nhân viên bán hàng.',1;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=@Store3AccountId AND RoleId=@SalesRoleId)
+        INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(@Store3AccountId,@SalesRoleId);
+
+    IF EXISTS(
+        SELECT 1 FROM dbo.Staffs s
+        WHERE s.AccountId=@Store3AccountId
+          AND (s.StoreId<>@Store3Id OR s.Active<>1 OR s.FullName<>N'Nhân viên bán hàng demo Dĩ An')
+    ) THROW 53406,N'DEMO_REORDER_V14: Staff demo Store 3 cùng account nhưng payload khác contract.',1;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=@Store3AccountId)
+        INSERT dbo.Staffs(AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,StoreId,
+                          AvatarUrl,AvatarPublicId,Active,CreatedAt)
+        SELECT @Store3AccountId,N'Nhân viên bán hàng demo Dĩ An',NULL,@SourceGender,@SeedAnchorUtc,
+               @SourceEmployeeStatus,NULL,@Store3Id,NULL,NULL,1,@SeedAnchorUtc;
+
+    SELECT @Store3StaffId=StaffId FROM dbo.Staffs WHERE AccountId=@Store3AccountId;
+
+    IF EXISTS(
+        SELECT 1 FROM dbo.StaffScopes ss
+        WHERE ss.StaffId=@Store3StaffId
+          AND (ss.ScopeTypeId<>@StoreScopeTypeId OR ss.ScopeRefId<>@Store3Id)
+    ) THROW 53407,N'DEMO_REORDER_V14: StaffScope demo Store 3 khác STORE/Store3 contract.',1;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=@Store3StaffId AND ScopeTypeId=@StoreScopeTypeId AND ScopeRefId=@Store3Id)
+        INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId) VALUES(@Store3StaffId,@StoreScopeTypeId,@Store3Id);
+
+    SELECT @Store1StaffId=s.StaffId
+    FROM dbo.Accounts a JOIN dbo.Staffs s ON s.AccountId=a.AccountId
+    WHERE a.Email=N'salesstaff@cafechain.vn' AND a.Active=1 AND s.Active=1 AND s.StoreId=@Store1Id;
+    IF @Store1StaffId IS NULL THROW 53408,N'DEMO_REORDER_V14: thiếu Staff bán hàng Store 1.',1;
+
+    /* ------------------------------------------------------------
+       14.2 Make DEMO_ING_SUGAR_SYRUP part of a real fruit-tea BOM.
+       Business keys only; base unit of the ingredient is used.
+       ------------------------------------------------------------ */
+    DECLARE @BottleSyrupIngredientId int=(SELECT IngredientId FROM dbo.Ingredients WHERE Code=N'DEMO_ING_SUGAR_SYRUP' AND Active=1);
+    DECLARE @BottleSyrupBaseUnitId int=(SELECT BaseUnitId FROM dbo.Ingredients WHERE IngredientId=@BottleSyrupIngredientId);
+    DECLARE @PeachTeaMRecipeId int=(SELECT RecipeId FROM dbo.Recipes WHERE RecipeCode=N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M' AND Active=1 AND Status=N'Active');
+    DECLARE @PeachTeaLRecipeId int=(SELECT RecipeId FROM dbo.Recipes WHERE RecipeCode=N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_L' AND Active=1 AND Status=N'Active');
+    IF @BottleSyrupIngredientId IS NULL OR @BottleSyrupBaseUnitId IS NULL OR @PeachTeaMRecipeId IS NULL OR @PeachTeaLRecipeId IS NULL
+        THROW 53409,N'DEMO_REORDER_V14: không resolve được syrup đóng chai hoặc BOM trà đào cam sả.',1;
+
+    IF EXISTS(
+        SELECT 1 FROM dbo.RecipeDetails rd
+        WHERE rd.RecipeId=@PeachTeaMRecipeId AND rd.IngredientId=@BottleSyrupIngredientId
+          AND (rd.ChildRecipeId IS NOT NULL OR rd.UnitId<>@BottleSyrupBaseUnitId OR rd.Quantity<>CAST(5 AS decimal(18,3)))
+    ) OR EXISTS(
+        SELECT 1 FROM dbo.RecipeDetails rd
+        WHERE rd.RecipeId=@PeachTeaLRecipeId AND rd.IngredientId=@BottleSyrupIngredientId
+          AND (rd.ChildRecipeId IS NOT NULL OR rd.UnitId<>@BottleSyrupBaseUnitId OR rd.Quantity<>CAST(7 AS decimal(18,3)))
+    ) THROW 53410,N'DEMO_REORDER_V14: syrup đã có trong fruit-tea BOM nhưng payload khác contract.',1;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.RecipeDetails WHERE RecipeId=@PeachTeaMRecipeId AND IngredientId=@BottleSyrupIngredientId)
+        INSERT dbo.RecipeDetails(RecipeId,IngredientId,ChildRecipeId,Quantity,UnitId)
+        VALUES(@PeachTeaMRecipeId,@BottleSyrupIngredientId,NULL,5,@BottleSyrupBaseUnitId);
+    IF NOT EXISTS(SELECT 1 FROM dbo.RecipeDetails WHERE RecipeId=@PeachTeaLRecipeId AND IngredientId=@BottleSyrupIngredientId)
+        INSERT dbo.RecipeDetails(RecipeId,IngredientId,ChildRecipeId,Quantity,UnitId)
+        VALUES(@PeachTeaLRecipeId,@BottleSyrupIngredientId,NULL,7,@BottleSyrupBaseUnitId);
+    /* ------------------------------------------------------------
+   14.2B Complete real BOM coverage for legacy ingredients.
+
+   - ING00008:
+       Vanilla syrup -> Caramel Macchiato M/L.
+   - DEMO_ING_WHITE_PEARL:
+       Ready white pearl -> Trà sữa truyền thống đặc biệt M/L.
+
+   Không tạo InventoryTransaction giả.
+   Consumption sau đó vẫn phải đi:
+   OrderDetail -> RecipeDetail -> SALES_DEDUCTION -> FIFO.
+   ------------------------------------------------------------ */
+
+    DECLARE @VanillaIngredientId int =
+    (
+        SELECT IngredientId
+        FROM dbo.Ingredients
+        WHERE Code = N'ING00008'
+          AND Active = 1
+    );
+
+    DECLARE @VanillaBaseUnitId int =
+    (
+        SELECT BaseUnitId
+        FROM dbo.Ingredients
+        WHERE IngredientId = @VanillaIngredientId
+    );
+
+    DECLARE @CaramelMacchiatoMRecipeId int =
+    (
+        SELECT RecipeId
+        FROM dbo.Recipes
+        WHERE RecipeCode = N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_M'
+          AND Active = 1
+          AND Status = N'Active'
+    );
+
+    DECLARE @CaramelMacchiatoLRecipeId int =
+    (
+        SELECT RecipeId
+        FROM dbo.Recipes
+        WHERE RecipeCode = N'DEMO_RECIPE_SKU_CARAMEL_MACCHIATO_L'
+          AND Active = 1
+          AND Status = N'Active'
+    );
+
+
+    DECLARE @WhitePearlIngredientId int =
+    (
+        SELECT IngredientId
+        FROM dbo.Ingredients
+        WHERE Code = N'DEMO_ING_WHITE_PEARL'
+          AND Active = 1
+    );
+
+    DECLARE @WhitePearlBaseUnitId int =
+    (
+        SELECT BaseUnitId
+        FROM dbo.Ingredients
+        WHERE IngredientId = @WhitePearlIngredientId
+    );
+
+    DECLARE @TradMilkTeaMRecipeId int =
+    (
+        SELECT RecipeId
+        FROM dbo.Recipes
+        WHERE RecipeCode = N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_M'
+          AND Active = 1
+          AND Status = N'Active'
+    );
+
+    DECLARE @TradMilkTeaLRecipeId int =
+    (
+        SELECT RecipeId
+        FROM dbo.Recipes
+        WHERE RecipeCode = N'DEMO_RECIPE_SKU_TRAD_MILK_TEA_L'
+          AND Active = 1
+          AND Status = N'Active'
+    );
+
+
+    /* ============================================================
+       Validate business keys
+       ============================================================ */
+    IF @VanillaIngredientId IS NULL
+       OR @VanillaBaseUnitId IS NULL
+       OR @CaramelMacchiatoMRecipeId IS NULL
+       OR @CaramelMacchiatoLRecipeId IS NULL
+    BEGIN
+        ;THROW 53505,
+               N'DEMO_REORDER_V14: không resolve được ING00008 hoặc Caramel Macchiato M/L.',
+               1;
+    END;
+
+
+    IF @WhitePearlIngredientId IS NULL
+       OR @WhitePearlBaseUnitId IS NULL
+       OR @TradMilkTeaMRecipeId IS NULL
+       OR @TradMilkTeaLRecipeId IS NULL
+    BEGIN
+        ;THROW 53506,
+               N'DEMO_REORDER_V14: không resolve được white pearl hoặc Trà sữa truyền thống M/L.',
+               1;
+    END;
+
+
+    /* ============================================================
+       Contract drift check - Vanilla
+
+       Demo BOM:
+       M = 10 ml
+       L = 15 ml
+       ============================================================ */
+    IF EXISTS
+    (
+        SELECT 1
+        FROM dbo.RecipeDetails rd
+        WHERE rd.RecipeId = @CaramelMacchiatoMRecipeId
+          AND rd.IngredientId = @VanillaIngredientId
+          AND
+          (
+              rd.ChildRecipeId IS NOT NULL
+              OR rd.UnitId <> @VanillaBaseUnitId
+              OR rd.Quantity <> CAST(10 AS decimal(18,3))
+          )
+    )
+    OR EXISTS
+    (
+        SELECT 1
+        FROM dbo.RecipeDetails rd
+        WHERE rd.RecipeId = @CaramelMacchiatoLRecipeId
+          AND rd.IngredientId = @VanillaIngredientId
+          AND
+          (
+              rd.ChildRecipeId IS NOT NULL
+              OR rd.UnitId <> @VanillaBaseUnitId
+              OR rd.Quantity <> CAST(15 AS decimal(18,3))
+          )
+    )
+    BEGIN
+        ;THROW 53507,
+               N'DEMO_REORDER_V14: vanilla syrup đã có trong Caramel Macchiato nhưng payload khác contract.',
+               1;
+    END;
+
+
+    /* ============================================================
+       Contract drift check - White Pearl
+
+       Ingredient này có BaseUnit = DEMO_PORTION.
+       BOM legacy của chính seed cũng dùng 1 portion.
+       ============================================================ */
+    IF EXISTS
+    (
+        SELECT 1
+        FROM dbo.RecipeDetails rd
+        WHERE rd.RecipeId = @TradMilkTeaMRecipeId
+          AND rd.IngredientId = @WhitePearlIngredientId
+          AND
+          (
+              rd.ChildRecipeId IS NOT NULL
+              OR rd.UnitId <> @WhitePearlBaseUnitId
+              OR rd.Quantity <> CAST(1 AS decimal(18,3))
+          )
+    )
+    OR EXISTS
+    (
+        SELECT 1
+        FROM dbo.RecipeDetails rd
+        WHERE rd.RecipeId = @TradMilkTeaLRecipeId
+          AND rd.IngredientId = @WhitePearlIngredientId
+          AND
+          (
+              rd.ChildRecipeId IS NOT NULL
+              OR rd.UnitId <> @WhitePearlBaseUnitId
+              OR rd.Quantity <> CAST(1 AS decimal(18,3))
+          )
+    )
+    BEGIN
+        ;THROW 53508,
+               N'DEMO_REORDER_V14: white pearl đã có trong Trà sữa truyền thống nhưng payload khác contract.',
+               1;
+    END;
+
+
+    /* ============================================================
+       Add Vanilla Syrup to real drink BOM
+       ============================================================ */
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.RecipeDetails
+        WHERE RecipeId = @CaramelMacchiatoMRecipeId
+          AND IngredientId = @VanillaIngredientId
+    )
+    BEGIN
+        INSERT dbo.RecipeDetails
+        (
+            RecipeId,
+            IngredientId,
+            ChildRecipeId,
+            Quantity,
+            UnitId
+        )
+        VALUES
+        (
+            @CaramelMacchiatoMRecipeId,
+            @VanillaIngredientId,
+            NULL,
+            10,
+            @VanillaBaseUnitId
+        );
+    END;
+
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.RecipeDetails
+        WHERE RecipeId = @CaramelMacchiatoLRecipeId
+          AND IngredientId = @VanillaIngredientId
+    )
+    BEGIN
+        INSERT dbo.RecipeDetails
+        (
+            RecipeId,
+            IngredientId,
+            ChildRecipeId,
+            Quantity,
+            UnitId
+        )
+        VALUES
+        (
+            @CaramelMacchiatoLRecipeId,
+            @VanillaIngredientId,
+            NULL,
+            15,
+            @VanillaBaseUnitId
+        );
+    END;
+
+
+    /* ============================================================
+       Add ready White Pearl to real drink BOM.
+
+       Không sửa/activate DEMO_RECIPE_TOP_WHITE_PEARL archived.
+       Không thay Legacy Recipe identity.
+       ============================================================ */
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.RecipeDetails
+        WHERE RecipeId = @TradMilkTeaMRecipeId
+          AND IngredientId = @WhitePearlIngredientId
+    )
+    BEGIN
+        INSERT dbo.RecipeDetails
+        (
+            RecipeId,
+            IngredientId,
+            ChildRecipeId,
+            Quantity,
+            UnitId
+        )
+        VALUES
+        (
+            @TradMilkTeaMRecipeId,
+            @WhitePearlIngredientId,
+            NULL,
+            1,
+            @WhitePearlBaseUnitId
+        );
+    END;
+
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.RecipeDetails
+        WHERE RecipeId = @TradMilkTeaLRecipeId
+          AND IngredientId = @WhitePearlIngredientId
+    )
+    BEGIN
+        INSERT dbo.RecipeDetails
+        (
+            RecipeId,
+            IngredientId,
+            ChildRecipeId,
+            Quantity,
+            UnitId
+        )
+        VALUES
+        (
+            @TradMilkTeaLRecipeId,
+            @WhitePearlIngredientId,
+            NULL,
+            1,
+            @WhitePearlBaseUnitId
+        );
+    END;
+
+    /* ------------------------------------------------------------
+       14.3 Clone Store 1 availability/configuration to Store 3
+       ------------------------------------------------------------ */
+    IF EXISTS(
+        SELECT 1 FROM dbo.StoreDrinks src
+        JOIN dbo.StoreDrinks dst ON dst.StoreId=@Store3Id AND dst.DrinkId=src.DrinkId
+        WHERE src.StoreId=@Store1Id AND dst.Active<>src.Active
+    ) THROW 53484,N'DEMO_REORDER_V14: StoreDrink Store3 cùng business key nhưng khác Store1.',1;
+
+    INSERT dbo.StoreDrinks(StoreId,DrinkId,Active)
+    SELECT @Store3Id,sd.DrinkId,sd.Active
+    FROM dbo.StoreDrinks sd
+    WHERE sd.StoreId=@Store1Id
+      AND NOT EXISTS(SELECT 1 FROM dbo.StoreDrinks x WHERE x.StoreId=@Store3Id AND x.DrinkId=sd.DrinkId);
+
+    DECLARE @ExtraDrinkNeeded int=30-(SELECT COUNT(*) FROM dbo.StoreDrinks WHERE StoreId=@Store1Id AND Active=1);
+    DECLARE @Store3ExtraDrinks TABLE(DrinkId int PRIMARY KEY);
+    IF @ExtraDrinkNeeded>0
+    BEGIN
+        INSERT @Store3ExtraDrinks(DrinkId)
+        SELECT TOP(@ExtraDrinkNeeded) d.DrinkId
+        FROM dbo.Drinks d
+        WHERE d.Active=1
+          AND EXISTS(SELECT 1 FROM dbo.DrinkSizes ds WHERE ds.DrinkId=d.DrinkId AND ds.Active=1)
+          AND NOT EXISTS(SELECT 1 FROM dbo.StoreDrinks src WHERE src.StoreId=@Store1Id AND src.DrinkId=d.DrinkId)
+        ORDER BY d.DrinkCode;
+
+        IF (SELECT COUNT(*) FROM @Store3ExtraDrinks)<>@ExtraDrinkNeeded
+            THROW 53485,N'DEMO_REORDER_V14: master hiện có không đủ Drink business key để Store3 đạt 30 StoreDrinks.',1;
+
+        IF EXISTS(
+            SELECT 1 FROM @Store3ExtraDrinks x
+            JOIN dbo.StoreDrinks dst ON dst.StoreId=@Store3Id AND dst.DrinkId=x.DrinkId
+            WHERE dst.Active<>1
+        ) THROW 53486,N'DEMO_REORDER_V14: Store3 extra StoreDrink business-key payload drift.',1;
+
+        INSERT dbo.StoreDrinks(StoreId,DrinkId,Active)
+        SELECT @Store3Id,x.DrinkId,1 FROM @Store3ExtraDrinks x
+        WHERE NOT EXISTS(SELECT 1 FROM dbo.StoreDrinks dst WHERE dst.StoreId=@Store3Id AND dst.DrinkId=x.DrinkId);
+    END;
+
+    IF (SELECT COUNT(*) FROM dbo.StoreDrinks WHERE StoreId=@Store3Id AND Active=1)<30
+        THROW 53411,N'DEMO_REORDER_V14: Store 3 không đạt tối thiểu 30 StoreDrinks từ master hiện có.',1;
+
+    IF EXISTS(
+        SELECT 1
+        FROM dbo.StoreMenuItems src
+        JOIN dbo.StoreMenuItems dst ON dst.StoreId=@Store3Id AND dst.DrinkSizeId=src.DrinkSizeId
+        WHERE src.StoreId=@Store1Id
+          AND (dst.IsEnabled<>src.IsEnabled
+            OR ISNULL(dst.PriceOverride,-1)<>ISNULL(src.PriceOverride,-1)
+            OR ISNULL(dst.EffectiveFromUtc,'19000101')<>ISNULL(src.EffectiveFromUtc,'19000101')
+            OR ISNULL(dst.EffectiveToUtc,'19000101')<>ISNULL(src.EffectiveToUtc,'19000101')
+            OR dst.DisplayOrder<>src.DisplayOrder
+            OR ISNULL(dst.PauseReason,N'')<>ISNULL(src.PauseReason,N'')
+            OR ISNULL(dst.Note,N'')<>ISNULL(src.Note,N''))
+    ) THROW 53412,N'DEMO_REORDER_V14: StoreMenuItem Store 3 cùng business key nhưng khác cấu hình Store 1.',1;
+
+    INSERT dbo.StoreMenuItems(StoreId,DrinkSizeId,IsEnabled,PriceOverride,EffectiveFromUtc,EffectiveToUtc,
+                              DisplayOrder,PauseReason,Note,PublishedAtUtc,PublishedByStaffId,CreatedAtUtc,UpdatedAtUtc)
+    SELECT @Store3Id,src.DrinkSizeId,src.IsEnabled,src.PriceOverride,src.EffectiveFromUtc,src.EffectiveToUtc,
+           src.DisplayOrder,src.PauseReason,src.Note,@SeedAnchorUtc,@Store3StaffId,@SeedAnchorUtc,@SeedAnchorUtc
+    FROM dbo.StoreMenuItems src
+    WHERE src.StoreId=@Store1Id
+      AND NOT EXISTS(SELECT 1 FROM dbo.StoreMenuItems dst WHERE dst.StoreId=@Store3Id AND dst.DrinkSizeId=src.DrinkSizeId);
+
+    IF (SELECT COUNT(*) FROM dbo.StoreMenuItems WHERE StoreId=@Store3Id)<30
+        THROW 53413,N'DEMO_REORDER_V14: Store 3 không đạt tối thiểu 30 StoreMenuItems.',1;
+
+    IF EXISTS(
+        SELECT 1 FROM dbo.StoreToppings src
+        JOIN dbo.StoreToppings dst ON dst.StoreId=@Store3Id AND dst.ToppingId=src.ToppingId
+        WHERE src.StoreId=@Store1Id AND dst.Active<>src.Active
+    ) THROW 53414,N'DEMO_REORDER_V14: StoreTopping Store 3 cùng business key nhưng khác Store 1.',1;
+
+    INSERT dbo.StoreToppings(StoreId,ToppingId,Active)
+    SELECT @Store3Id,src.ToppingId,src.Active
+    FROM dbo.StoreToppings src
+    WHERE src.StoreId=@Store1Id
+      AND NOT EXISTS(SELECT 1 FROM dbo.StoreToppings dst WHERE dst.StoreId=@Store3Id AND dst.ToppingId=src.ToppingId);
+
+    IF (SELECT COUNT(*) FROM dbo.StoreToppings WHERE StoreId=@Store3Id AND Active=1)<30
+        THROW 53415,N'DEMO_REORDER_V14: Store 3 không đạt tối thiểu 30 StoreToppings active.',1;
+
+    IF EXISTS(
+        SELECT 1 FROM dbo.SupplierStores src
+        JOIN dbo.SupplierStores dst ON dst.StoreId=@Store3Id AND dst.SupplierId=src.SupplierId
+        WHERE src.StoreId=@Store1Id
+          AND (dst.Active<>src.Active
+            OR ISNULL(dst.LeadTimeOverrideDays,-1)<>ISNULL(src.LeadTimeOverrideDays,-1)
+            OR ISNULL(dst.DeliverySchedule,N'')<>ISNULL(src.DeliverySchedule,N''))
+    ) THROW 53416,N'DEMO_REORDER_V14: SupplierStore Store 3 cùng business key nhưng khác Store 1.',1;
+
+    INSERT dbo.SupplierStores(SupplierId,StoreId,Active,LeadTimeOverrideDays,DeliverySchedule,Note,CreatedAt,UpdatedAt)
+    SELECT src.SupplierId,@Store3Id,src.Active,src.LeadTimeOverrideDays,src.DeliverySchedule,
+           N'DEMO_REORDER_V14 | cloned Store1 supplier scope',@SeedAnchorUtc,@SeedAnchorUtc
+    FROM dbo.SupplierStores src
+    WHERE src.StoreId=@Store1Id
+      AND NOT EXISTS(SELECT 1 FROM dbo.SupplierStores dst WHERE dst.StoreId=@Store3Id AND dst.SupplierId=src.SupplierId);
+
+    IF (SELECT COUNT(*) FROM dbo.SupplierStores WHERE StoreId=@Store3Id AND Active=1)<50
+        THROW 53417,N'DEMO_REORDER_V14: Store 3 không có đủ 50 SupplierStores active.',1;
+
+    /* Supplier and package/base-unit evidence required by Reorder. */
+    IF (SELECT COUNT(*) FROM dbo.InventoryDocumentDetails d JOIN dbo.InventoryDocuments h ON h.InventoryDocumentId=d.InventoryDocumentId WHERE h.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS')<>50
+    OR (SELECT COUNT(DISTINCT d.IngredientId) FROM dbo.InventoryDocumentDetails d JOIN dbo.InventoryDocuments h ON h.InventoryDocumentId=d.InventoryDocumentId WHERE h.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS')<>50
+        THROW 53418,N'DEMO_REORDER_V14: source opening contract không có đúng 50 distinct ingredients.',1;
+
+    IF EXISTS(
+        SELECT 1
+        FROM dbo.InventoryDocumentDetails seedLine
+        JOIN dbo.InventoryDocuments seedDoc ON seedDoc.InventoryDocumentId=seedLine.InventoryDocumentId AND seedDoc.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS'
+        JOIN dbo.Ingredients i ON i.IngredientId=seedLine.IngredientId AND i.Active=1
+        WHERE NOT EXISTS(
+              SELECT 1
+              FROM dbo.IngredientSuppliers o
+              JOIN dbo.Suppliers s ON s.SupplierId=o.SupplierId AND s.Active=1
+              JOIN dbo.SupplierStores ss ON ss.SupplierId=s.SupplierId AND ss.StoreId=@Store3Id AND ss.Active=1
+              WHERE o.IngredientId=i.IngredientId AND o.Active=1 AND o.IsPrimary=1
+                AND o.PackageQuantity>0 AND o.CurrentPrice>0 AND o.LeadTimeDays IS NOT NULL AND o.LeadTimeDays>=0
+                AND EXISTS(SELECT 1 FROM dbo.IngredientSupplierPriceHistories ph
+                           WHERE ph.IngredientSupplierId=o.IngredientSupplierId AND ph.IsCurrent=1
+                             AND ph.Price>0 AND ph.PackageQuantity>0 AND ph.PackageUnitId IS NOT NULL
+                             AND (ph.PackageUnitId=i.BaseUnitId OR EXISTS(
+                                 SELECT 1 FROM dbo.UnitConversions phuc
+                                 WHERE phuc.IngredientId=i.IngredientId AND phuc.FromUnitId=ph.PackageUnitId
+                                   AND phuc.ToUnitId=i.BaseUnitId AND phuc.Active=1
+                                   AND phuc.FromQuantity>0 AND phuc.ToQuantity>0)))
+                AND (o.UnitId=i.BaseUnitId OR EXISTS(
+                    SELECT 1 FROM dbo.UnitConversions uc
+                    WHERE uc.IngredientId=i.IngredientId AND uc.FromUnitId=o.UnitId
+                      AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1 AND uc.FromQuantity>0 AND uc.ToQuantity>0))
+          )
+    ) THROW 53419,N'DEMO_REORDER_V14: thiếu supplier/package/unit conversion/price/lead-time active cho ít nhất một ingredient.',1;
+
+    /* ------------------------------------------------------------
+       14.4 Store 3 opening inventory. Clone Store1 opening document
+       evidence, not the current on-hand quantity.
+       ------------------------------------------------------------ */
+    DECLARE @Store1OpeningDocId int=(SELECT InventoryDocumentId FROM dbo.InventoryDocuments WHERE RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS');
+    DECLARE @Store3OpeningKey nvarchar(100)=N'DEMO_REORDER_V14_OPENING_STORE3';
+    DECLARE @Store3OpeningDocId int=(SELECT InventoryDocumentId FROM dbo.InventoryDocuments WHERE RequestKey=@Store3OpeningKey);
+    IF @Store1OpeningDocId IS NULL OR (SELECT COUNT(*) FROM dbo.InventoryDocumentDetails WHERE InventoryDocumentId=@Store1OpeningDocId)<>50
+        THROW 53420,N'DEMO_REORDER_V14: opening document Store 1 không đủ 50 lines làm source evidence.',1;
+
+    /* EF/migration may already contain a Store3 ingredient balance without ledger/cost evidence.
+       Do not silently rewrite it to zero. Reconcile it through an auditable STOCK_TAKE/ADJUSTMENT_OUT first,
+       then create the new opening evidence from zero. */
+    DECLARE @Store3ReconcileKey nvarchar(100)=N'DEMO_REORDER_V14_RECONCILE_STORE3';
+    DECLARE @Store3ReconcileDocId int=(SELECT InventoryDocumentId FROM dbo.InventoryDocuments WHERE RequestKey=@Store3ReconcileKey);
+
+    IF @Store3OpeningDocId IS NULL
+    BEGIN
+        IF @Store3ReconcileDocId IS NOT NULL
+            THROW 53471,N'DEMO_REORDER_V14: có reconciliation Store3 nhưng thiếu opening document; fixture partial.',1;
+
+        IF EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE StoreId=@Store3Id AND IngredientId IS NOT NULL AND AvailableQty<0)
+            THROW 53472,N'DEMO_REORDER_V14: Store3 có legacy ingredient quantity âm trước opening; không tự sửa âm thầm.',1;
+
+        IF EXISTS(
+            SELECT 1 FROM dbo.StoreInventories si
+            WHERE si.StoreId=@Store3Id AND si.IngredientId IS NOT NULL
+              AND (si.RecipeId IS NOT NULL OR si.PreparedItemId IS NOT NULL OR si.BtpIdentityState IS NOT NULL
+                OR si.QuantitySemanticsStatus IS NOT NULL OR si.SupersededByStoreInventoryId IS NOT NULL
+                OR si.QuantitySemanticsEvidenceType IS NOT NULL OR si.QuantitySemanticsEvidenceReference IS NOT NULL
+                OR si.QuantitySemanticsReviewedAt IS NOT NULL OR si.QuantitySemanticsReviewedByAccountId IS NOT NULL
+                OR si.ReservedQty<>0)
+        ) THROW 53489,N'DEMO_REORDER_V14: Store3 legacy ingredient row có identity/lifecycle/reserved payload không hợp lệ để reconcile.',1;
+
+        IF EXISTS(
+            SELECT 1 FROM dbo.StoreInventories si
+            WHERE si.StoreId=@Store3Id AND si.IngredientId IS NOT NULL
+              AND (EXISTS(SELECT 1 FROM dbo.InventoryTransactions t WHERE t.StoreInventoryId=si.StoreInventoryId)
+                OR EXISTS(SELECT 1 FROM dbo.InventoryCostLayers l WHERE l.StoreId=@Store3Id AND l.IngredientId=si.IngredientId))
+        ) THROW 53421,N'DEMO_REORDER_V14: Store 3 đã có ingredient ledger/cost evidence ngoài fixture; không được overwrite opening.',1;
+
+        IF EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE StoreId=@Store3Id AND IngredientId IS NOT NULL AND AvailableQty>0)
+        BEGIN
+            INSERT dbo.InventoryDocuments(Code,StoreId,StaffId,DocumentDate,[Type],[Status],RequestKey,IsProcessing,
+                                          ConfirmedAt,ConfirmedBy,Purpose,PartnerType,PartnerId,PartnerName,SupplierId,
+                                          Note,AllowNegativeStock,NegativeReason,TotalAmount,VatAmount,FinalAmount)
+            VALUES(N'DEMO_REORDER_V14_RECON_STORE3',@Store3Id,@Store3StaffId,DATEADD(MINUTE,30,DATEADD(DAY,-29,@SeedDayUtc)),
+                   4,3,@Store3ReconcileKey,0,DATEADD(MINUTE,30,DATEADD(DAY,-29,@SeedDayUtc)),@Store3StaffId,11,0,
+                   NULL,NULL,NULL,N'DEMO_REORDER_V14 reconcile legacy Store3 quantity without ledger',0,NULL,0,0,0);
+            SET @Store3ReconcileDocId=SCOPE_IDENTITY();
+
+            INSERT dbo.InventoryDocumentDetails(InventoryDocumentId,IngredientId,Quantity,BaseQuantity,UnitId,
+                                                UnitPrice,CostPrice,CostAmount,Note,TotalAmount)
+            SELECT @Store3ReconcileDocId,si.IngredientId,si.AvailableQty,si.AvailableQty,i.BaseUnitId,
+                   NULL,NULL,NULL,N'DEMO_REORDER_V14_RECON_'+i.Code,0
+            FROM dbo.StoreInventories si
+            JOIN dbo.Ingredients i ON i.IngredientId=si.IngredientId
+            WHERE si.StoreId=@Store3Id AND si.IngredientId IS NOT NULL AND si.AvailableQty>0;
+
+            INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,UnitCost,TotalCost,
+                                              InventoryDocumentId,InventoryDocumentDetailId,InventoryTransferId,InventoryTransferDetailId,
+                                              ReferenceOrderId,ProductionRunId,SourceRecipeId,InventoryConsolidationRunId,BranchReceiptLineId,
+                                              OrderRefundId,CreatedAt)
+            SELECT si.StoreInventoryId,9,5,d.BaseQuantity,si.AvailableQty,0,NULL,NULL,@Store3ReconcileDocId,d.InventoryDocumentDetailId,
+                   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,DATEADD(MINUTE,30,DATEADD(DAY,-29,@SeedDayUtc))
+            FROM dbo.InventoryDocumentDetails d
+            JOIN dbo.StoreInventories si ON si.StoreId=@Store3Id AND si.IngredientId=d.IngredientId
+            WHERE d.InventoryDocumentId=@Store3ReconcileDocId;
+
+            UPDATE si SET si.AvailableQty=0,si.ReservedQty=0,si.LastUpdated=DATEADD(MINUTE,30,DATEADD(DAY,-29,@SeedDayUtc))
+            FROM dbo.StoreInventories si
+            WHERE si.StoreId=@Store3Id AND si.IngredientId IS NOT NULL AND si.AvailableQty>0;
+        END;
+        INSERT dbo.InventoryDocuments(Code,StoreId,StaffId,DocumentDate,[Type],[Status],RequestKey,IsProcessing,
+                                      ConfirmedAt,ConfirmedBy,Purpose,PartnerType,PartnerId,PartnerName,SupplierId,
+                                      Note,AllowNegativeStock,NegativeReason,TotalAmount,VatAmount,FinalAmount)
+        SELECT N'DEMO_REORDER_V14_OPENING_STORE3',@Store3Id,@Store3StaffId,DATEADD(HOUR,1,DATEADD(DAY,-29,@SeedDayUtc)),
+               8,3,@Store3OpeningKey,0,DATEADD(HOUR,1,DATEADD(DAY,-29,@SeedDayUtc)),@Store3StaffId,3,0,NULL,NULL,NULL,
+               N'DEMO_REORDER_V14 opening evidence cloned from Store1',0,NULL,
+               SUM(ISNULL(d.TotalAmount,ROUND(d.BaseQuantity*ISNULL(d.CostPrice,0),2))),0,
+               SUM(ISNULL(d.TotalAmount,ROUND(d.BaseQuantity*ISNULL(d.CostPrice,0),2)))
+        FROM dbo.InventoryDocumentDetails d WHERE d.InventoryDocumentId=@Store1OpeningDocId;
+
+        SET @Store3OpeningDocId=SCOPE_IDENTITY();
+
+        INSERT dbo.InventoryDocumentDetails(InventoryDocumentId,IngredientId,Quantity,BaseQuantity,UnitId,
+                                            UnitPrice,CostPrice,CostAmount,Note,TotalAmount)
+        SELECT @Store3OpeningDocId,d.IngredientId,d.Quantity,d.BaseQuantity,d.UnitId,
+               d.UnitPrice,d.CostPrice,d.CostAmount,N'DEMO_REORDER_V14_OPENING_'+i.Code,d.TotalAmount
+        FROM dbo.InventoryDocumentDetails d
+        JOIN dbo.Ingredients i ON i.IngredientId=d.IngredientId
+        WHERE d.InventoryDocumentId=@Store1OpeningDocId;
+
+        /* Insert missing ingredient identities at zero, then apply opening together with evidence. */
+        INSERT dbo.StoreInventories(StoreId,IngredientId,RecipeId,PreparedItemId,BtpIdentityState,QuantitySemanticsStatus,
+                                    SupersededByStoreInventoryId,QuantitySemanticsEvidenceType,QuantitySemanticsEvidenceReference,
+                                    QuantitySemanticsReviewedAt,QuantitySemanticsReviewedByAccountId,
+                                    AvailableQty,ReservedQty,MaxNegativeQty,MinStockLevel,LastUpdated)
+        SELECT @Store3Id,d.IngredientId,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,NULL,srcSi.MinStockLevel,@SeedAnchorUtc
+        FROM dbo.InventoryDocumentDetails d
+        JOIN dbo.StoreInventories srcSi ON srcSi.StoreId=@Store1Id AND srcSi.IngredientId=d.IngredientId
+        WHERE d.InventoryDocumentId=@Store1OpeningDocId
+          AND NOT EXISTS(SELECT 1 FROM dbo.StoreInventories dst WHERE dst.StoreId=@Store3Id AND dst.IngredientId=d.IngredientId);
+
+        IF (SELECT COUNT(*) FROM dbo.StoreInventories WHERE StoreId=@Store3Id AND IngredientId IS NOT NULL)<>50
+            THROW 53422,N'DEMO_REORDER_V14: Store 3 không resolve đúng 50 ingredient StoreInventories.',1;
+
+        UPDATE si
+        SET si.AvailableQty=d.BaseQuantity,si.ReservedQty=0,si.MaxNegativeQty=NULL,
+            si.MinStockLevel=srcSi.MinStockLevel,si.LastUpdated=@SeedAnchorUtc
+        FROM dbo.StoreInventories si
+        JOIN dbo.InventoryDocumentDetails d ON d.InventoryDocumentId=@Store3OpeningDocId AND d.IngredientId=si.IngredientId
+        JOIN dbo.StoreInventories srcSi ON srcSi.StoreId=@Store1Id AND srcSi.IngredientId=d.IngredientId
+        WHERE si.StoreId=@Store3Id;
+
+        INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,UnitCost,TotalCost,
+                                          InventoryDocumentId,InventoryDocumentDetailId,InventoryTransferId,InventoryTransferDetailId,
+                                          ReferenceOrderId,ProductionRunId,SourceRecipeId,InventoryConsolidationRunId,BranchReceiptLineId,
+                                          OrderRefundId,CreatedAt)
+        SELECT si.StoreInventoryId,8,5,d.BaseQuantity,0,d.BaseQuantity,d.CostPrice,
+               ISNULL(d.CostAmount,ROUND(d.BaseQuantity*d.CostPrice,2)),@Store3OpeningDocId,d.InventoryDocumentDetailId,
+               NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,DATEADD(HOUR,1,DATEADD(DAY,-29,@SeedDayUtc))
+        FROM dbo.InventoryDocumentDetails d
+        JOIN dbo.StoreInventories si ON si.StoreId=@Store3Id AND si.IngredientId=d.IngredientId
+        WHERE d.InventoryDocumentId=@Store3OpeningDocId;
+
+        INSERT dbo.InventoryCostLayers(IngredientId,PreparedItemId,StoreId,Quantity,RemainingQuantity,UnitCost,CreatedAt,
+                                       SourceProductionRunId,SourceOrderRefundId,SourceInventoryDocumentDetailId,
+                                       SourceBranchReceiptLineId,SourceTransferCostAllocationId,SourceTransferDiscrepancyPostingId)
+        SELECT d.IngredientId,NULL,@Store3Id,d.BaseQuantity,d.BaseQuantity,d.CostPrice,
+               DATEADD(HOUR,1,DATEADD(DAY,-29,@SeedDayUtc)),NULL,NULL,d.InventoryDocumentDetailId,NULL,NULL,NULL
+        FROM dbo.InventoryDocumentDetails d WHERE d.InventoryDocumentId=@Store3OpeningDocId;
+    END
+    ELSE
+    BEGIN
+        IF EXISTS(
+            SELECT 1
+            FROM dbo.InventoryDocuments d
+            WHERE d.InventoryDocumentId=@Store3OpeningDocId
+              AND (d.Code<>N'DEMO_REORDER_V14_OPENING_STORE3' OR d.StoreId<>@Store3Id OR d.StaffId<>@Store3StaffId
+                OR d.[Type]<>8 OR d.[Status]<>3 OR d.Purpose<>3 OR d.PartnerType<>0 OR d.IsProcessing<>0)
+        ) THROW 53423,N'DEMO_REORDER_V14: opening Store 3 business-key payload drift.',1;
+
+        IF @Store3ReconcileDocId IS NOT NULL
+        BEGIN
+            IF EXISTS(
+                SELECT 1 FROM dbo.InventoryDocuments d
+                WHERE d.InventoryDocumentId=@Store3ReconcileDocId
+                  AND (d.Code<>N'DEMO_REORDER_V14_RECON_STORE3' OR d.StoreId<>@Store3Id OR d.StaffId<>@Store3StaffId
+                    OR d.[Type]<>4 OR d.[Status]<>3 OR d.Purpose<>11 OR d.PartnerType<>0 OR d.IsProcessing<>0)
+            ) THROW 53473,N'DEMO_REORDER_V14: Store3 reconciliation payload drift.',1;
+
+            IF EXISTS(
+                SELECT 1
+                FROM dbo.InventoryDocumentDetails d
+                LEFT JOIN dbo.InventoryTransactions t ON t.InventoryDocumentDetailId=d.InventoryDocumentDetailId AND t.[Type]=9
+                WHERE d.InventoryDocumentId=@Store3ReconcileDocId
+                  AND (t.InventoryTransactionId IS NULL OR t.InventoryDocumentId<>@Store3ReconcileDocId
+                    OR t.Quantity<>d.BaseQuantity OR t.BeforeQty<>d.BaseQuantity OR t.AfterQty<>0)
+            ) THROW 53474,N'DEMO_REORDER_V14: Store3 reconciliation detail/transaction payload drift.',1;
+        END;
+
+        IF (SELECT COUNT(*) FROM dbo.InventoryDocumentDetails WHERE InventoryDocumentId=@Store3OpeningDocId)<>50
+        OR (SELECT COUNT(*) FROM dbo.InventoryTransactions WHERE InventoryDocumentId=@Store3OpeningDocId AND [Type]=8)<>50
+        OR (SELECT COUNT(*) FROM dbo.InventoryCostLayers l JOIN dbo.InventoryDocumentDetails d ON d.InventoryDocumentDetailId=l.SourceInventoryDocumentDetailId WHERE d.InventoryDocumentId=@Store3OpeningDocId)<>50
+            THROW 53424,N'DEMO_REORDER_V14: opening Store 3 thiếu detail/transaction/cost-layer evidence.',1;
+
+        IF EXISTS(
+            SELECT 1
+            FROM dbo.InventoryDocumentDetails src
+            JOIN dbo.InventoryDocumentDetails dst ON dst.InventoryDocumentId=@Store3OpeningDocId AND dst.IngredientId=src.IngredientId
+            WHERE src.InventoryDocumentId=@Store1OpeningDocId
+              AND (dst.BaseQuantity<>src.BaseQuantity OR dst.UnitId<>src.UnitId OR ISNULL(dst.CostPrice,-1)<>ISNULL(src.CostPrice,-1))
+        ) THROW 53425,N'DEMO_REORDER_V14: opening Store 3 detail payload drift so với source Store1.',1;
+
+        IF EXISTS(
+            SELECT 1
+            FROM dbo.InventoryDocumentDetails d
+            LEFT JOIN dbo.StoreInventories si ON si.StoreId=@Store3Id AND si.IngredientId=d.IngredientId
+            LEFT JOIN dbo.InventoryTransactions t ON t.InventoryDocumentDetailId=d.InventoryDocumentDetailId AND t.[Type]=8
+            WHERE d.InventoryDocumentId=@Store3OpeningDocId
+              AND (si.StoreInventoryId IS NULL OR t.InventoryTransactionId IS NULL OR t.StoreInventoryId<>si.StoreInventoryId
+                OR t.InventoryDocumentId<>@Store3OpeningDocId OR t.Quantity<>d.BaseQuantity OR t.BeforeQty<>0 OR t.AfterQty<>d.BaseQuantity
+                OR ISNULL(t.UnitCost,-1)<>ISNULL(d.CostPrice,-1)
+                OR ISNULL(t.TotalCost,-1)<>ISNULL(d.CostAmount,ROUND(d.BaseQuantity*ISNULL(d.CostPrice,0),2)))
+        ) THROW 53487,N'DEMO_REORDER_V14: Store3 opening transaction payload drift.',1;
+
+        IF EXISTS(
+            SELECT 1
+            FROM dbo.InventoryDocumentDetails d
+            LEFT JOIN dbo.InventoryCostLayers l ON l.SourceInventoryDocumentDetailId=d.InventoryDocumentDetailId
+            WHERE d.InventoryDocumentId=@Store3OpeningDocId
+              AND (l.InventoryCostLayerId IS NULL OR l.StoreId<>@Store3Id OR l.IngredientId<>d.IngredientId OR l.PreparedItemId IS NOT NULL
+                OR l.Quantity<>d.BaseQuantity OR ISNULL(l.UnitCost,-1)<>ISNULL(d.CostPrice,-1)
+                OR l.RemainingQuantity<0 OR l.RemainingQuantity>l.Quantity)
+        ) THROW 53488,N'DEMO_REORDER_V14: Store3 opening cost-layer payload drift.',1;
+    END;
+
+    /* Clone the current canonical Recipe+PreparedItem identity shape from Store 1 at zero.
+       Production fixtures are the only source of Store3 BTP quantity/layers. */
+    IF EXISTS(
+        SELECT 1 FROM dbo.StoreInventories src
+        JOIN dbo.PreparedItems p ON p.PreparedItemId=src.PreparedItemId
+        JOIN dbo.StoreInventories dst ON dst.StoreId=@Store3Id AND dst.RecipeId=src.RecipeId
+        WHERE src.StoreId=@Store1Id AND src.IngredientId IS NULL AND src.PreparedItemId IS NOT NULL AND src.BtpIdentityState=1
+          AND (dst.IngredientId IS NOT NULL OR dst.PreparedItemId<>src.PreparedItemId OR dst.BtpIdentityState<>src.BtpIdentityState
+            OR ISNULL(dst.QuantitySemanticsStatus,-1)<>ISNULL(src.QuantitySemanticsStatus,-1) OR dst.SupersededByStoreInventoryId IS NOT NULL
+            OR ISNULL(dst.QuantitySemanticsEvidenceType,-1)<>ISNULL(src.QuantitySemanticsEvidenceType,-1)
+            OR ISNULL(dst.QuantitySemanticsEvidenceReference,N'')<>N'DEMO_REORDER_V14_BTP_'+p.Code
+            OR ISNULL(dst.QuantitySemanticsReviewedByAccountId,-1)<>@Store3AccountId OR dst.ReservedQty<>0
+            OR dst.MaxNegativeQty IS NOT NULL OR ISNULL(dst.MinStockLevel,-1)<>ISNULL(src.MinStockLevel,-1))
+    ) THROW 53426,N'DEMO_REORDER_V14: Store3 BTP identity row cùng Recipe business key nhưng khác contract.',1;
+
+    INSERT dbo.StoreInventories(StoreId,IngredientId,RecipeId,PreparedItemId,BtpIdentityState,QuantitySemanticsStatus,
+                                SupersededByStoreInventoryId,QuantitySemanticsEvidenceType,QuantitySemanticsEvidenceReference,
+                                QuantitySemanticsReviewedAt,QuantitySemanticsReviewedByAccountId,
+                                AvailableQty,ReservedQty,MaxNegativeQty,MinStockLevel,LastUpdated)
+    SELECT @Store3Id,NULL,src.RecipeId,src.PreparedItemId,src.BtpIdentityState,src.QuantitySemanticsStatus,NULL,
+           src.QuantitySemanticsEvidenceType,N'DEMO_REORDER_V14_BTP_'+p.Code,@SeedAnchorUtc,@Store3AccountId,
+           0,0,NULL,src.MinStockLevel,@SeedAnchorUtc
+    FROM dbo.StoreInventories src
+    JOIN dbo.PreparedItems p ON p.PreparedItemId=src.PreparedItemId
+    WHERE src.StoreId=@Store1Id AND src.IngredientId IS NULL AND src.PreparedItemId IS NOT NULL AND src.BtpIdentityState=1
+      AND NOT EXISTS(SELECT 1 FROM dbo.StoreInventories dst WHERE dst.StoreId=@Store3Id AND dst.RecipeId=src.RecipeId);
+
+    /* ------------------------------------------------------------
+       14.5 Fixed fixture keys and first-run/replay state
+       ------------------------------------------------------------ */
+    DECLARE @FixtureStores TABLE(StoreId int PRIMARY KEY,StaffId int NOT NULL,StoreNo int NOT NULL);
+    INSERT @FixtureStores VALUES(@Store1Id,@Store1StaffId,1),(@Store3Id,@Store3StaffId,3);
+
+    /* ------------------------------------------------------------
+   14.5A Audited sales stock buffer for legacy ING00001
+
+   Batch 08 hiện có:
+   - Store 1 opening ING00001 = 100
+   - Adjustment OUT = 10
+   => Store 1 thực tế còn 90.
+
+   Trong khi BOM sales Batch 14 cần tổng cộng 110 ING00001
+   cho mỗi store.
+
+   Không sửa opening cũ của Batch 08.
+   Không UPDATE tồn trực tiếp mà không có chứng từ.
+
+   Vì vậy tạo một ADJUSTMENT_IN có đầy đủ:
+   InventoryDocument
+   -> InventoryDocumentDetail
+   -> InventoryTransaction
+   -> InventoryCostLayer
+   -> StoreInventory
+   ------------------------------------------------------------ */
+
+DECLARE @SalesBufferIngredientId int =
+(
+    SELECT IngredientId
+    FROM dbo.Ingredients
+    WHERE Code = N'ING00001'
+      AND Active = 1
+);
+
+DECLARE @SalesBufferBaseUnitId int =
+(
+    SELECT BaseUnitId
+    FROM dbo.Ingredients
+    WHERE IngredientId = @SalesBufferIngredientId
+);
+
+-- Thêm 100 base-unit cho mỗi Store.
+DECLARE @SalesBufferQty decimal(18,3) =
+    CAST(100 AS decimal(18,3));
+
+DECLARE @SalesBufferUnitCost decimal(18,2);
+
+DECLARE @SalesBufferAt datetime2(0) =
+    DATEADD(
+        HOUR,
+        2,
+        DATEADD(DAY,-29,@SeedDayUtc)
+    );
+
+/* ============================================================
+   Tính cost dựa trên supplier thật.
+   Không hard-code UnitCost.
+   ============================================================ */
+SELECT TOP(1)
+    @SalesBufferUnitCost =
+        CONVERT(
+            decimal(18,2),
+            ROUND(
+                o.CurrentPrice /
+                NULLIF(
+                    o.PackageQuantity *
+                    CASE
+                        WHEN o.UnitId = i.BaseUnitId
+                            THEN 1
+                        ELSE
+                            uc.ToQuantity /
+                            NULLIF(uc.FromQuantity,0)
+                    END,
+                    0
+                ),
+                2
+            )
+        )
+FROM dbo.IngredientSuppliers o
+
+JOIN dbo.Ingredients i
+    ON i.IngredientId = o.IngredientId
+
+LEFT JOIN dbo.UnitConversions uc
+    ON uc.IngredientId = i.IngredientId
+   AND uc.FromUnitId = o.UnitId
+   AND uc.ToUnitId = i.BaseUnitId
+   AND uc.Active = 1
+   AND uc.FromQuantity > 0
+   AND uc.ToQuantity > 0
+
+WHERE
+    o.IngredientId = @SalesBufferIngredientId
+    AND o.Active = 1
+    AND o.IsPrimary = 1
+    AND o.PackageQuantity > 0
+    AND o.CurrentPrice > 0
+
+    AND
+    (
+        o.UnitId = i.BaseUnitId
+
+        OR uc.UnitConversionId IS NOT NULL
+    )
+
+ORDER BY
+    o.IngredientSupplierId;
+
+
+/* ============================================================
+   Validate dữ liệu nguồn.
+   ============================================================ */
+IF @SalesBufferIngredientId IS NULL
+   OR @SalesBufferBaseUnitId IS NULL
+   OR @SalesBufferUnitCost IS NULL
+   OR @SalesBufferUnitCost <= 0
+BEGIN
+    ;THROW 53500,
+           N'DEMO_REORDER_V14: không resolve được ING00001/base-unit/current cost cho stock buffer.',
+           1;
+END;
+
+
+/* ============================================================
+   FIRST RUN
+   ============================================================ */
+IF @IsReplay = 0
+BEGIN
+
+    /* Không chấp nhận fixture partial. */
+    IF EXISTS
+    (
+        SELECT 1
+        FROM dbo.InventoryDocuments
+        WHERE RequestKey IN
+        (
+            N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
+            N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+        )
+    )
+    BEGIN
+        ;THROW 53501,
+              N'DEMO_REORDER_V14: stock-buffer document tồn tại khi operational fixture chưa tồn tại; fixture partial.',
+              1;
+    END;
+
+
+    DECLARE
+        @BufferStoreId int,
+        @BufferStaffId int,
+        @BufferStoreNo int,
+
+        @BufferInventoryId int,
+        @BufferDocId int,
+        @BufferDetailId int,
+
+        @BufferBefore decimal(18,3),
+
+        @BufferRequestKey nvarchar(100),
+        @BufferCode nvarchar(50);
+
+
+    DECLARE sales_buffer_cursor
+        CURSOR LOCAL FAST_FORWARD
+    FOR
+        SELECT
+            StoreId,
+            StaffId,
+            StoreNo
+        FROM @FixtureStores
+        ORDER BY StoreNo;
+
+
+    OPEN sales_buffer_cursor;
+
+    FETCH NEXT
+    FROM sales_buffer_cursor
+    INTO
+        @BufferStoreId,
+        @BufferStaffId,
+        @BufferStoreNo;
+
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+
+        /* ====================================================
+           Resolve StoreInventory ingredient thật.
+           ==================================================== */
+        SELECT
+            @BufferInventoryId =
+                si.StoreInventoryId,
+
+            @BufferBefore =
+                si.AvailableQty
+
+        FROM dbo.StoreInventories si
+
+        WHERE
+            si.StoreId = @BufferStoreId
+
+            AND si.IngredientId =
+                @SalesBufferIngredientId
+
+            AND si.RecipeId IS NULL
+            AND si.PreparedItemId IS NULL;
+
+
+        IF @BufferInventoryId IS NULL
+           OR @BufferBefore < 0
+        BEGIN
+            ;THROW 53502,
+                  N'DEMO_REORDER_V14: không resolve được StoreInventory ING00001 hợp lệ cho sales buffer.',
+                  1;
+        END;
+
+
+        SET @BufferRequestKey =
+            CONCAT(
+                N'DEMO_REORDER_V14_SALES_BUFFER_S',
+                @BufferStoreNo,
+                N'_ING00001'
+            );
+
+
+        SET @BufferCode =
+            CONCAT(
+                N'DEMO_V14_BUF_S',
+                @BufferStoreNo,
+                N'_ING00001'
+            );
+
+
+        /* ====================================================
+           1. InventoryDocument
+           ==================================================== */
+        INSERT dbo.InventoryDocuments
+        (
+            Code,
+            StoreId,
+            StaffId,
+            DocumentDate,
+
+            [Type],
+            [Status],
+
+            RequestKey,
+            IsProcessing,
+
+            ConfirmedAt,
+            ConfirmedBy,
+
+            Purpose,
+            PartnerType,
+
+            PartnerId,
+            PartnerName,
+            SupplierId,
+
+            Note,
+
+            AllowNegativeStock,
+            NegativeReason,
+
+            TotalAmount,
+            VatAmount,
+            FinalAmount
+        )
+        VALUES
+        (
+            @BufferCode,
+            @BufferStoreId,
+            @BufferStaffId,
+            @SalesBufferAt,
+
+            8,
+            3,
+
+            @BufferRequestKey,
+            0,
+
+            @SalesBufferAt,
+            @BufferStaffId,
+
+            3,
+            0,
+
+            NULL,
+            NULL,
+            NULL,
+
+            N'DEMO_REORDER_V14 audited stock buffer for legacy ING00001 BOM demand',
+
+            0,
+            NULL,
+
+            ROUND(
+                @SalesBufferQty *
+                @SalesBufferUnitCost,
+                2
+            ),
+
+            0,
+
+            ROUND(
+                @SalesBufferQty *
+                @SalesBufferUnitCost,
+                2
+            )
+        );
+
+
+        SET @BufferDocId =
+            SCOPE_IDENTITY();
+
+
+        /* ====================================================
+           2. InventoryDocumentDetail
+           ==================================================== */
+        INSERT dbo.InventoryDocumentDetails
+        (
+            InventoryDocumentId,
+            IngredientId,
+
+            Quantity,
+            BaseQuantity,
+
+            UnitId,
+
+            UnitPrice,
+            CostPrice,
+            CostAmount,
+
+            Note,
+            TotalAmount
+        )
+        VALUES
+        (
+            @BufferDocId,
+            @SalesBufferIngredientId,
+
+            @SalesBufferQty,
+            @SalesBufferQty,
+
+            @SalesBufferBaseUnitId,
+
+            @SalesBufferUnitCost,
+            @SalesBufferUnitCost,
+
+            ROUND(
+                @SalesBufferQty *
+                @SalesBufferUnitCost,
+                2
+            ),
+
+            CONCAT(
+                N'DEMO_REORDER_V14_SALES_BUFFER_S',
+                @BufferStoreNo,
+                N'_ING00001'
+            ),
+
+            ROUND(
+                @SalesBufferQty *
+                @SalesBufferUnitCost,
+                2
+            )
+        );
+
+
+        SET @BufferDetailId =
+            SCOPE_IDENTITY();
+
+
+        /* ====================================================
+           3. InventoryTransaction ADJUSTMENT_IN
+           ==================================================== */
+        INSERT dbo.InventoryTransactions
+        (
+            StoreInventoryId,
+
+            [Type],
+            StockStatus,
+
+            Quantity,
+
+            BeforeQty,
+            AfterQty,
+
+            UnitCost,
+            TotalCost,
+
+            InventoryDocumentId,
+            InventoryDocumentDetailId,
+
+            InventoryTransferId,
+            InventoryTransferDetailId,
+
+            ReferenceOrderId,
+            ProductionRunId,
+            SourceRecipeId,
+
+            InventoryConsolidationRunId,
+            BranchReceiptLineId,
+
+            OrderRefundId,
+
+            CreatedAt
+        )
+        VALUES
+        (
+            @BufferInventoryId,
+
+            8,
+            5,
+
+            @SalesBufferQty,
+
+            @BufferBefore,
+
+            @BufferBefore +
+            @SalesBufferQty,
+
+            @SalesBufferUnitCost,
+
+            ROUND(
+                @SalesBufferQty *
+                @SalesBufferUnitCost,
+                2
+            ),
+
+            @BufferDocId,
+            @BufferDetailId,
+
+            NULL,
+            NULL,
+
+            NULL,
+            NULL,
+            NULL,
+
+            NULL,
+            NULL,
+
+            NULL,
+
+            @SalesBufferAt
+        );
+
+
+        /* ====================================================
+           4. FIFO CostLayer
+           ==================================================== */
+        INSERT dbo.InventoryCostLayers
+        (
+            IngredientId,
+            PreparedItemId,
+
+            StoreId,
+
+            Quantity,
+            RemainingQuantity,
+
+            UnitCost,
+
+            CreatedAt,
+
+            SourceProductionRunId,
+            SourceOrderRefundId,
+
+            SourceInventoryDocumentDetailId,
+
+            SourceBranchReceiptLineId,
+            SourceTransferCostAllocationId,
+            SourceTransferDiscrepancyPostingId
+        )
+        VALUES
+        (
+            @SalesBufferIngredientId,
+            NULL,
+
+            @BufferStoreId,
+
+            @SalesBufferQty,
+            @SalesBufferQty,
+
+            @SalesBufferUnitCost,
+
+            @SalesBufferAt,
+
+            NULL,
+            NULL,
+
+            @BufferDetailId,
+
+            NULL,
+            NULL,
+            NULL
+        );
+
+
+        /* ====================================================
+           5. Cập nhật StoreInventory.
+           Đây không phải update tồn vô căn cứ vì phía trên
+           đã có Document + Detail + Transaction + CostLayer.
+           ==================================================== */
+        UPDATE dbo.StoreInventories
+        SET
+            AvailableQty =
+                @BufferBefore +
+                @SalesBufferQty,
+
+            LastUpdated =
+                @SalesBufferAt
+
+        WHERE
+            StoreInventoryId =
+                @BufferInventoryId;
+
+
+        FETCH NEXT
+        FROM sales_buffer_cursor
+        INTO
+            @BufferStoreId,
+            @BufferStaffId,
+            @BufferStoreNo;
+
+    END;
+
+
+    CLOSE sales_buffer_cursor;
+    DEALLOCATE sales_buffer_cursor;
+
+END
+
+/* ============================================================
+   REPLAY
+   Không cộng tồn lần hai.
+   ============================================================ */
+ELSE
+BEGIN
+
+    IF
+    (
+        SELECT COUNT(*)
+        FROM dbo.InventoryDocuments
+        WHERE RequestKey IN
+        (
+            N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
+            N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+        )
+    ) <> 2
+    BEGIN
+        ;THROW 53503,
+              N'DEMO_REORDER_V14: replay thiếu đúng 2 stock-buffer documents ING00001.',
+              1;
+    END;
+
+
+    /* ========================================================
+       Kiểm tra payload có bị sửa khác contract không.
+       ======================================================== */
+    IF EXISTS
+    (
+        SELECT 1
+
+        FROM dbo.InventoryDocuments h
+
+        JOIN dbo.InventoryDocumentDetails d
+            ON d.InventoryDocumentId =
+               h.InventoryDocumentId
+
+        JOIN dbo.InventoryTransactions t
+            ON t.InventoryDocumentDetailId =
+               d.InventoryDocumentDetailId
+
+           AND t.InventoryDocumentId =
+               h.InventoryDocumentId
+
+           AND t.[Type] = 8
+
+        JOIN dbo.StoreInventories si
+            ON si.StoreInventoryId =
+               t.StoreInventoryId
+
+        LEFT JOIN dbo.InventoryCostLayers l
+            ON l.SourceInventoryDocumentDetailId =
+               d.InventoryDocumentDetailId
+
+        WHERE
+            h.RequestKey IN
+            (
+                N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
+                N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+            )
+
+            AND
+            (
+                   h.[Type] <> 8
+                OR h.[Status] <> 3
+
+                OR h.Purpose <> 3
+                OR h.PartnerType <> 0
+
+                OR h.IsProcessing <> 0
+                OR h.AllowNegativeStock <> 0
+
+                OR d.IngredientId <>
+                   @SalesBufferIngredientId
+
+                OR d.BaseQuantity <>
+                   @SalesBufferQty
+
+                OR d.Quantity <>
+                   @SalesBufferQty
+
+                OR d.UnitId <>
+                   @SalesBufferBaseUnitId
+
+                OR d.CostPrice <>
+                   @SalesBufferUnitCost
+
+                OR t.Quantity <>
+                   @SalesBufferQty
+
+                OR ABS(
+                    (t.AfterQty - t.BeforeQty)
+                    - t.Quantity
+                ) > 0.001
+
+                OR si.StoreId <>
+                   h.StoreId
+
+                OR si.IngredientId <>
+                   @SalesBufferIngredientId
+
+                OR l.InventoryCostLayerId IS NULL
+
+                OR l.StoreId <>
+                   h.StoreId
+
+                OR l.IngredientId <>
+                   @SalesBufferIngredientId
+
+                OR l.PreparedItemId IS NOT NULL
+
+                OR l.Quantity <>
+                   @SalesBufferQty
+
+                OR l.RemainingQuantity < 0
+
+                OR l.RemainingQuantity >
+                   l.Quantity
+
+                OR l.UnitCost <>
+                   @SalesBufferUnitCost
+            )
+    )
+    BEGIN
+        ;THROW 53504,
+              N'DEMO_REORDER_V14: replay stock-buffer ING00001 payload drift.',
+              1;
+    END;
+
+
+    /* ========================================================
+       Replay chỉ cập nhật thời gian fixture.
+       TUYỆT ĐỐI không cộng AvailableQty thêm lần nữa.
+       ======================================================== */
+    UPDATE dbo.InventoryDocuments
+    SET
+        DocumentDate =
+            @SalesBufferAt,
+
+        ConfirmedAt =
+            @SalesBufferAt
+
+    WHERE RequestKey IN
+    (
+        N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
+        N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+    );
+
+
+    UPDATE t
+    SET
+        t.CreatedAt =
+            @SalesBufferAt
+
+    FROM dbo.InventoryTransactions t
+
+    JOIN dbo.InventoryDocuments h
+        ON h.InventoryDocumentId =
+           t.InventoryDocumentId
+
+    WHERE
+        h.RequestKey IN
+        (
+            N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
+            N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+        )
+
+        AND t.[Type] = 8;
+
+
+    UPDATE l
+    SET
+        l.CreatedAt =
+            @SalesBufferAt
+
+    FROM dbo.InventoryCostLayers l
+
+    JOIN dbo.InventoryDocumentDetails d
+        ON d.InventoryDocumentDetailId =
+           l.SourceInventoryDocumentDetailId
+
+    JOIN dbo.InventoryDocuments h
+        ON h.InventoryDocumentId =
+           d.InventoryDocumentId
+
+    WHERE
+        h.RequestKey IN
+        (
+            N'DEMO_REORDER_V14_SALES_BUFFER_S1_ING00001',
+            N'DEMO_REORDER_V14_SALES_BUFFER_S3_ING00001'
+        );
+
+END;
+
+    DECLARE @ShiftSeed TABLE(StoreId int,Seq int,StaffId int,Marker nvarchar(100),StartAt datetime2(0),EndAt datetime2(0),PRIMARY KEY(StoreId,Seq));
+    ;WITH n AS(SELECT 1 Seq UNION ALL SELECT Seq+1 FROM n WHERE Seq<30)
+    INSERT @ShiftSeed
+    SELECT fs.StoreId,n.Seq,fs.StaffId,
+           CONCAT(N'DEMO_REORDER_V14_SHIFT_S',fs.StoreNo,N'_',RIGHT(CONCAT(N'000',n.Seq),3)),
+           DATEADD(HOUR,CASE WHEN n.Seq%2=1 THEN 7 ELSE 15 END,DATEADD(DAY,-15+((n.Seq-1)/2),@SeedDayUtc)),
+           DATEADD(HOUR,CASE WHEN n.Seq%2=1 THEN 15 ELSE 23 END,DATEADD(DAY,-15+((n.Seq-1)/2),@SeedDayUtc))
+    FROM @FixtureStores fs CROSS JOIN n OPTION(MAXRECURSION 30);
+
+    DECLARE @PreparedRecipeOrder TABLE(RecipeRank int PRIMARY KEY,RecipeCode nvarchar(100) UNIQUE);
+    INSERT @PreparedRecipeOrder VALUES
+    (1,N'DEMO_RECIPE_PREP_VIET_COFFEE'),(2,N'DEMO_RECIPE_PREP_ESPRESSO'),
+    (3,N'DEMO_RECIPE_PREP_BLACK_TEA'),(4,N'DEMO_RECIPE_PREP_OOLONG_TEA'),
+    (5,N'DEMO_RECIPE_PREP_SUGAR_SYRUP'),(6,N'DEMO_RECIPE_PREP_SALTED_CREAM'),
+    (7,N'DEMO_RECIPE_PREP_CHEESE_CREAM'),(8,N'DEMO_RECIPE_PREP_BLACK_PEARL'),
+    (9,N'DEMO_RECIPE_PREP_ALOE_BASE'),(10,N'DEMO_RECIPE_PREP_COCONUT_JELLY_BASE'),
+    (11,N'DEMO_RECIPE_PREP_KHUC_BACH_BASE');
+
+    IF EXISTS(SELECT 1 FROM @PreparedRecipeOrder x LEFT JOIN dbo.Recipes r ON r.RecipeCode=x.RecipeCode AND r.Active=1 AND r.Status=N'Active' WHERE r.RecipeId IS NULL OR r.PreparedItemId IS NULL OR r.OutputQuantity<=0 OR r.OutputUnitId IS NULL)
+        THROW 53427,N'DEMO_REORDER_V14: thiếu active PreparedItem recipe/output identity.',1;
+
+    DECLARE @ProdSeed TABLE(StoreId int,Seq int,StaffId int,RecipeId int,RequestKey uniqueidentifier,RequestFingerprint varchar(64),Notes nvarchar(200),RunAt datetime2(0),PRIMARY KEY(StoreId,Seq));
+    ;WITH n AS(SELECT 1 Seq UNION ALL SELECT Seq+1 FROM n WHERE Seq<30)
+    INSERT @ProdSeed
+    SELECT fs.StoreId,n.Seq,fs.StaffId,r.RecipeId,
+           CONVERT(uniqueidentifier,CONCAT(CASE WHEN fs.StoreNo=1 THEN N'e141' ELSE N'e143' END,N'0000-0000-4000-8000-',RIGHT(CONCAT(N'000000000000',n.Seq),12))),
+           CONVERT(varchar(64),HASHBYTES('SHA2_256',CONCAT(N'DEMO_REORDER_V14|PROD|S',fs.StoreNo,N'|',r.RecipeCode,N'|1')),2),
+           CONCAT(N'DEMO_REORDER_V14_PROD_S',fs.StoreNo,N'_',RIGHT(CONCAT(N'000',n.Seq),3)),
+           DATEADD(MINUTE,360+n.Seq,DATEADD(DAY,-29+((n.Seq-1)/3),@SeedDayUtc))
+    FROM @FixtureStores fs CROSS JOIN n
+    JOIN @PreparedRecipeOrder pro ON pro.RecipeRank=((n.Seq-1)%11)+1
+    JOIN dbo.Recipes r ON r.RecipeCode=pro.RecipeCode AND r.Active=1 AND r.Status=N'Active'
+    OPTION(MAXRECURSION 30);
+
+    DECLARE @OrderSeed TABLE(StoreId int,Seq int,StaffId int,StoreNo int,ClientOrderId uniqueidentifier,ShiftSeq int,CreatedAt datetime2(0),PRIMARY KEY(StoreId,Seq));
+    ;WITH n AS(SELECT 1 Seq UNION ALL SELECT Seq+1 FROM n WHERE Seq<50)
+    INSERT @OrderSeed
+    SELECT fs.StoreId,n.Seq,fs.StaffId,fs.StoreNo,
+           CONVERT(uniqueidentifier,CONCAT(CASE WHEN fs.StoreNo=1 THEN N'd141' ELSE N'd143' END,N'0000-0000-4000-8000-',RIGHT(CONCAT(N'000000000000',n.Seq),12))),
+           1+((n.Seq-1)%30),
+           DATEADD(MINUTE,30+((n.Seq-1)%120),sh.StartAt)
+    FROM @FixtureStores fs CROSS JOIN n
+    JOIN @ShiftSeed sh ON sh.StoreId=fs.StoreId AND sh.Seq=1+((n.Seq-1)%30)
+    OPTION(MAXRECURSION 50);
+
+    IF EXISTS(SELECT 1 FROM @ShiftSeed WHERE StartAt<@WindowStartUtc OR EndAt>@SeedAnchorUtc)
+    OR EXISTS(SELECT 1 FROM @ProdSeed WHERE RunAt<@WindowStartUtc OR RunAt>@SeedAnchorUtc)
+    OR EXISTS(SELECT 1 FROM @OrderSeed WHERE CreatedAt<@WindowStartUtc OR CreatedAt>@SeedAnchorUtc)
+        THROW 53483,N'DEMO_REORDER_V14: fixture timestamp nằm ngoài rolling 30 days hoặc trong tương lai.',1;
+
+    IF (SELECT MAX(RunAt) FROM @ProdSeed)>=(SELECT MIN(CreatedAt) FROM @OrderSeed)
+        THROW 53494,N'DEMO_REORDER_V14: production timeline phải kết thúc trước POS timeline để BeforeQty/AfterQty phản ánh đúng ledger chronology.',1;
+
+    /* Existing fixture business-key payload must match before any replay timestamp update. */
+    IF @IsReplay=1
+    BEGIN
+        IF EXISTS(
+            SELECT 1 FROM @ShiftSeed x
+            LEFT JOIN dbo.WorkShifts ws ON ws.DiscrepancyReason=x.Marker
+            WHERE ws.ShiftId IS NULL OR ws.StoreId<>x.StoreId OR ws.UserId<>x.StaffId OR ws.Status<>N'Closed'
+               OR ws.StartingCash<>500000 OR ws.ExpectedEndingCash<>500000 OR ws.ActualEndingCash<>500000
+               OR ws.CashDiscrepancy<>0 OR ws.IsExceptionClosed<>0 OR ws.RequiresReconciliation<>0 OR ws.HasLateOfflineSync<>0
+        ) THROW 53429,N'DEMO_REORDER_V14: WorkShift payload drift.',1;
+
+        IF EXISTS(
+            SELECT 1 FROM @ProdSeed x
+            LEFT JOIN dbo.ProductionRuns pr ON pr.StoreId=x.StoreId AND pr.RequestKey=x.RequestKey
+            WHERE pr.ProductionRunId IS NULL OR pr.RecipeId<>x.RecipeId OR pr.RequestedRunCount<>1
+               OR pr.RequestFingerprint<>x.RequestFingerprint OR pr.Notes<>x.Notes OR pr.CreatedByStaffId<>x.StaffId
+               OR pr.CompletedByStaffId<>x.StaffId OR pr.Status<>2 OR pr.ValuationStatus<>1
+               OR pr.TotalInputCost IS NULL OR pr.OutputUnitCost IS NULL
+        ) THROW 53430,N'DEMO_REORDER_V14: ProductionRun payload drift.',1;
+
+        IF EXISTS(
+            SELECT 1 FROM @OrderSeed x
+            LEFT JOIN dbo.Orders o ON o.ClientOrderId=x.ClientOrderId
+            LEFT JOIN @ShiftSeed sh ON sh.StoreId=x.StoreId AND sh.Seq=x.ShiftSeq
+            LEFT JOIN dbo.WorkShifts ws ON ws.DiscrepancyReason=sh.Marker
+            WHERE o.OrderId IS NULL OR o.StoreId<>x.StoreId OR o.OrderStatusId<>@CompletedOrderStatusId
+               OR o.PaymentStatusId<>@PaidStatusId OR o.OrderTypeId<>@TakeAwayTypeId OR o.StaffId<>x.StaffId
+               OR o.WorkShiftId<>ws.ShiftId OR o.Source<>@SeedMarker
+               OR o.Note<>CONCAT(N'DEMO_REORDER_V14_ORDER_S',x.StoreNo,N'_',RIGHT(CONCAT(N'000',x.Seq),3))
+               OR o.CustomerId IS NOT NULL OR o.TableId IS NOT NULL OR o.RecommendationSessionId IS NOT NULL
+               OR o.ShippingFee<>0 OR o.VoucherDiscount<>0 OR o.PointDiscount<>0 OR o.PointsUsed<>0
+               OR o.CostStatus NOT IN(1,2)
+        ) THROW 53431,N'DEMO_REORDER_V14: Order payload drift.',1;
+
+        IF EXISTS(
+            SELECT 1 FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId AND o.Source=@SeedMarker
+            WHERE p.PaymentStatusId<>@PaidStatusId OR p.PaymentMethodId<>@BankMethodId OR p.Amount<>o.Total
+               OR p.TransactionCode NOT LIKE N'DEMO_REORDER_V14_PAY_S%'
+        ) THROW 53432,N'DEMO_REORDER_V14: Payment payload drift.',1;
+
+        IF EXISTS(
+            SELECT 1 FROM dbo.InventoryTransactions t
+            JOIN dbo.Orders o ON o.OrderId=t.ReferenceOrderId AND o.Source=@SeedMarker
+            WHERE t.[Type]<>7 OR t.Quantity<=0 OR ABS((t.BeforeQty-t.AfterQty)-t.Quantity)>0.001
+               OR t.AfterQty<0 OR t.SourceRecipeId IS NULL OR t.UnitCost IS NULL OR t.TotalCost IS NULL
+        ) OR EXISTS(
+            SELECT 1 FROM dbo.InventoryTransactions t
+            JOIN dbo.Orders o ON o.OrderId=t.ReferenceOrderId AND o.Source=@SeedMarker
+            LEFT JOIN dbo.SalesCostAllocations a ON a.InventoryTransactionId=t.InventoryTransactionId
+            WHERE t.[Type]=7
+            GROUP BY t.InventoryTransactionId,t.Quantity,t.TotalCost
+            HAVING ABS(SUM(ISNULL(a.Quantity,0))-t.Quantity)>0.001
+                OR ABS(SUM(ISNULL(a.TotalCost,0))-t.TotalCost)>0.01
+        ) THROW 53433,N'DEMO_REORDER_V14: Sales transaction/FIFO allocation payload drift.',1;
+
+        IF EXISTS(
+            SELECT 1 FROM dbo.InventoryTransactions t
+            JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId AND pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+            LEFT JOIN dbo.ProductionCostAllocations a ON a.InventoryTransactionId=t.InventoryTransactionId
+            WHERE t.[Type]=6
+            GROUP BY t.InventoryTransactionId,t.Quantity
+            HAVING ABS(SUM(ISNULL(a.Quantity,0))-t.Quantity)>0.001
+        ) THROW 53434,N'DEMO_REORDER_V14: Production FIFO allocation payload drift.',1;
+    END;
+
+    /* ------------------------------------------------------------
+       14.6 WorkShifts (PK is ShiftId; Orders.WorkShiftId is the FK)
+       ------------------------------------------------------------ */
+    IF @IsReplay=0
+    BEGIN
+        INSERT dbo.WorkShifts(StoreId,UserId,StartTime,EndTime,StartingCash,ExpectedEndingCash,ActualEndingCash,
+                              CashDiscrepancy,[Status],DiscrepancyReason,IsExceptionClosed,ExceptionCloseReason,
+                              ExceptionClosedByStaffId,ExceptionClosedAt,OfflineOrderCountAtClose,OfflineEstimatedTotalAtClose,
+                              OfflineCashTotalAtClose,RequiresReconciliation,HasLateOfflineSync,LateOfflineSyncCount,
+                              LastLateOfflineSyncedAt,PosTerminalId)
+        SELECT StoreId,StaffId,StartAt,EndAt,500000,500000,500000,0,N'Closed',Marker,0,NULL,NULL,NULL,0,0,0,0,0,0,NULL,NULL
+        FROM @ShiftSeed;
+    END
+    ELSE
+    BEGIN
+        UPDATE ws SET ws.StartTime=x.StartAt,ws.EndTime=x.EndAt
+        FROM dbo.WorkShifts ws JOIN @ShiftSeed x ON x.Marker=ws.DiscrepancyReason;
+    END;
+
+    /* ------------------------------------------------------------
+       14.7 Production fixtures. First run applies FIFO once.
+       Each run uses cumulative supply intervals over remaining layers.
+       ------------------------------------------------------------ */
+    IF @IsReplay=0
+    BEGIN
+        DECLARE @RunDemand TABLE(
+            DemandId int IDENTITY(1,1) PRIMARY KEY,StoreInventoryId int,IngredientId int NULL,PreparedItemId int NULL,
+            SourceRecipeId int,Quantity decimal(18,3));
+        DECLARE @AggRunDemand TABLE(StoreInventoryId int PRIMARY KEY,IngredientId int NULL,PreparedItemId int NULL,SourceRecipeId int,Quantity decimal(18,3));
+        DECLARE @CurrentProdStoreId int,@CurrentProdSeq int,@CurrentProdStaffId int,@CurrentProdRecipeId int,
+                @CurrentProdRequestKey uniqueidentifier,@CurrentProdFingerprint varchar(64),@CurrentProdNotes nvarchar(200),@CurrentProdAt datetime2(0),
+                @CurrentRunId int,@RunInputCost decimal(18,2),@OutputQty decimal(18,3),@OutputUnitCost decimal(18,8),
+                @OutputPreparedItemId int,@OutputUnitId int,@PreparedBaseUnitId int,@OutputInventoryId int,@OutputBefore decimal(18,3),@OutputMin decimal(18,3);
+
+        DECLARE prod_cursor CURSOR LOCAL FAST_FORWARD FOR
+        SELECT StoreId,Seq,StaffId,RecipeId,RequestKey,RequestFingerprint,Notes,RunAt FROM @ProdSeed ORDER BY RunAt,StoreId;
+        OPEN prod_cursor;
+        FETCH NEXT FROM prod_cursor INTO @CurrentProdStoreId,@CurrentProdSeq,@CurrentProdStaffId,@CurrentProdRecipeId,@CurrentProdRequestKey,@CurrentProdFingerprint,@CurrentProdNotes,@CurrentProdAt;
+        WHILE @@FETCH_STATUS=0
+        BEGIN
+            INSERT dbo.ProductionRuns(StoreId,RecipeId,RequestedRunCount,RequestKey,RequestFingerprint,[Status],Notes,
+                                      CreatedByStaffId,CreatedAt,ConfirmedAt,CompletedAt,CompletedByStaffId,ValuationStatus,
+                                      TotalInputCost,OutputUnitCost,ValuedAtUtc)
+            VALUES(@CurrentProdStoreId,@CurrentProdRecipeId,1,@CurrentProdRequestKey,@CurrentProdFingerprint,1,@CurrentProdNotes,
+                   @CurrentProdStaffId,@CurrentProdAt,@CurrentProdAt,NULL,NULL,0,NULL,NULL,NULL);
+            SET @CurrentRunId=SCOPE_IDENTITY();
+
+            DELETE FROM @RunDemand;
+
+            /* Direct ingredient requirements: recipe qty -> ingredient base unit exactly through UnitConversions. */
+            INSERT @RunDemand(StoreInventoryId,IngredientId,PreparedItemId,SourceRecipeId,Quantity)
+            SELECT si.StoreInventoryId,rd.IngredientId,NULL,@CurrentProdRecipeId,
+                   CONVERT(decimal(18,3),ROUND(rd.Quantity *
+                     CASE WHEN rd.UnitId=i.BaseUnitId THEN 1
+                          ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END,3))
+            FROM dbo.RecipeDetails rd
+            JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+            JOIN dbo.StoreInventories si ON si.StoreId=@CurrentProdStoreId AND si.IngredientId=i.IngredientId
+            LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId
+                 AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
+            WHERE rd.RecipeId=@CurrentProdRecipeId AND rd.IngredientId IS NOT NULL
+              AND (rd.UnitId=i.BaseUnitId OR uc.UnitConversionId IS NOT NULL);
+
+            IF EXISTS(
+                SELECT 1 FROM dbo.RecipeDetails rd JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+                WHERE rd.RecipeId=@CurrentProdRecipeId AND rd.IngredientId IS NOT NULL AND rd.UnitId<>i.BaseUnitId
+                  AND NOT EXISTS(SELECT 1 FROM dbo.UnitConversions uc WHERE uc.IngredientId=i.IngredientId
+                                 AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1 AND uc.FromQuantity>0 AND uc.ToQuantity>0)
+            ) THROW 53435,N'DEMO_REORDER_V14: thiếu UnitConversion cho production recipe detail.',1;
+
+            /* Child PreparedItem requirement keeps the exact RecipeId+PreparedItem identity. */
+            INSERT @RunDemand(StoreInventoryId,IngredientId,PreparedItemId,SourceRecipeId,Quantity)
+            SELECT si.StoreInventoryId,NULL,cr.PreparedItemId,cr.RecipeId,CONVERT(decimal(18,3),rd.Quantity)
+            FROM dbo.RecipeDetails rd
+            JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
+            JOIN dbo.PreparedItems p ON p.PreparedItemId=cr.PreparedItemId AND p.Active=1
+            JOIN dbo.StoreInventories si ON si.StoreId=@CurrentProdStoreId AND si.RecipeId=cr.RecipeId
+                 AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+            WHERE rd.RecipeId=@CurrentProdRecipeId AND rd.ChildRecipeId IS NOT NULL AND rd.UnitId=p.BaseUnitId;
+
+            IF EXISTS(
+                SELECT 1 FROM dbo.RecipeDetails rd
+                JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId
+                LEFT JOIN dbo.PreparedItems p ON p.PreparedItemId=cr.PreparedItemId
+                LEFT JOIN dbo.StoreInventories si ON si.StoreId=@CurrentProdStoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+                WHERE rd.RecipeId=@CurrentProdRecipeId AND rd.ChildRecipeId IS NOT NULL
+                  AND (cr.PreparedItemId IS NULL OR p.PreparedItemId IS NULL OR rd.UnitId<>p.BaseUnitId OR si.StoreInventoryId IS NULL)
+            ) THROW 53436,N'DEMO_REORDER_V14: child production BTP không có canonical Recipe+PreparedItem cost identity; không tự chuyển writer mode.',1;
+
+            IF NOT EXISTS(SELECT 1 FROM @RunDemand) THROW 53437,N'DEMO_REORDER_V14: ProductionRun không có BOM input.',1;
+
+            /* Aggregate same stock identity inside one run to satisfy unique Production transaction index. */
+            DELETE FROM @AggRunDemand;
+            INSERT @AggRunDemand
+            SELECT StoreInventoryId,MAX(IngredientId),MAX(PreparedItemId),MIN(SourceRecipeId),SUM(Quantity)
+            FROM @RunDemand GROUP BY StoreInventoryId;
+
+            IF EXISTS(SELECT 1 FROM @AggRunDemand d JOIN dbo.StoreInventories si ON si.StoreInventoryId=d.StoreInventoryId WHERE d.Quantity<=0 OR si.AvailableQty<d.Quantity)
+                THROW 53438,N'DEMO_REORDER_V14: production demand vượt tồn khả dụng.',1;
+
+            IF EXISTS(
+                SELECT 1 FROM @AggRunDemand d
+                OUTER APPLY(SELECT SUM(l.RemainingQuantity) Qty FROM dbo.InventoryCostLayers l
+                            WHERE l.StoreId=@CurrentProdStoreId AND l.RemainingQuantity>0
+                              AND ((d.IngredientId IS NOT NULL AND l.IngredientId=d.IngredientId AND l.PreparedItemId IS NULL)
+                                OR (d.PreparedItemId IS NOT NULL AND l.PreparedItemId=d.PreparedItemId AND l.IngredientId IS NULL))) s
+                WHERE ISNULL(s.Qty,0)<d.Quantity
+            ) THROW 53439,N'DEMO_REORDER_V14: production demand thiếu FIFO layer; không tạo cost gap giả.',1;
+
+            INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,UnitCost,TotalCost,
+                                              InventoryDocumentId,InventoryDocumentDetailId,InventoryTransferId,InventoryTransferDetailId,
+                                              ReferenceOrderId,ProductionRunId,SourceRecipeId,InventoryConsolidationRunId,BranchReceiptLineId,
+                                              OrderRefundId,CreatedAt)
+            SELECT d.StoreInventoryId,6,CASE WHEN si.AvailableQty-d.Quantity<=ISNULL(si.MinStockLevel,-1) THEN 2 ELSE 1 END,
+                   d.Quantity,si.AvailableQty,si.AvailableQty-d.Quantity,NULL,NULL,NULL,NULL,NULL,NULL,NULL,@CurrentRunId,d.SourceRecipeId,NULL,NULL,NULL,@CurrentProdAt
+            FROM @AggRunDemand d JOIN dbo.StoreInventories si ON si.StoreInventoryId=d.StoreInventoryId;
+
+            /* FIFO overlap = [demandStart,demandEnd] intersect [supplyStart,supplyEnd].
+               For one run demandStart=0 for each stock identity; supply remains cumulative. */
+            ;WITH Demand AS(
+                SELECT d.StoreInventoryId,d.IngredientId,d.PreparedItemId,d.Quantity,
+                       t.InventoryTransactionId,CAST(0 AS decimal(38,6)) DemandStart,CAST(d.Quantity AS decimal(38,6)) DemandEnd
+                FROM @AggRunDemand d
+                JOIN dbo.InventoryTransactions t ON t.ProductionRunId=@CurrentRunId AND t.StoreInventoryId=d.StoreInventoryId AND t.[Type]=6
+            ),Supply0 AS(
+                SELECT d.StoreInventoryId,l.InventoryCostLayerId,l.RemainingQuantity,l.UnitCost,l.CreatedAt,
+                       SUM(CONVERT(decimal(38,6),l.RemainingQuantity)) OVER(PARTITION BY d.StoreInventoryId ORDER BY l.CreatedAt,l.InventoryCostLayerId ROWS UNBOUNDED PRECEDING) SupplyEnd
+                FROM Demand d
+                JOIN dbo.InventoryCostLayers l ON l.StoreId=@CurrentProdStoreId AND l.RemainingQuantity>0
+                  AND ((d.IngredientId IS NOT NULL AND l.IngredientId=d.IngredientId AND l.PreparedItemId IS NULL)
+                    OR (d.PreparedItemId IS NOT NULL AND l.PreparedItemId=d.PreparedItemId AND l.IngredientId IS NULL))
+            ),Supply AS(
+                SELECT *,SupplyEnd-CONVERT(decimal(38,6),RemainingQuantity) SupplyStart FROM Supply0
+            ),Slices AS(
+                SELECT d.InventoryTransactionId,s.InventoryCostLayerId,s.UnitCost,
+                       CONVERT(decimal(18,3),
+                         CASE WHEN d.DemandEnd<s.SupplyEnd THEN d.DemandEnd ELSE s.SupplyEnd END
+                         -CASE WHEN d.DemandStart>s.SupplyStart THEN d.DemandStart ELSE s.SupplyStart END) Qty
+                FROM Demand d JOIN Supply s ON s.StoreInventoryId=d.StoreInventoryId
+                WHERE d.DemandEnd>s.SupplyStart AND s.SupplyEnd>d.DemandStart
+            )
+            INSERT dbo.ProductionCostAllocations(ProductionRunId,InventoryTransactionId,InventoryCostLayerId,Quantity,UnitCost,TotalCost,CreatedAtUtc)
+            SELECT @CurrentRunId,InventoryTransactionId,InventoryCostLayerId,Qty,UnitCost,ROUND(Qty*UnitCost,2),@CurrentProdAt
+            FROM Slices WHERE Qty>0;
+
+            IF EXISTS(
+                SELECT t.InventoryTransactionId,t.Quantity,SUM(ISNULL(a.Quantity,0)) AllocQty
+                FROM dbo.InventoryTransactions t LEFT JOIN dbo.ProductionCostAllocations a ON a.InventoryTransactionId=t.InventoryTransactionId
+                WHERE t.ProductionRunId=@CurrentRunId AND t.[Type]=6
+                GROUP BY t.InventoryTransactionId,t.Quantity HAVING ABS(t.Quantity-SUM(ISNULL(a.Quantity,0)))>0.001
+            ) THROW 53440,N'DEMO_REORDER_V14: production FIFO allocation không phủ đủ demand.',1;
+
+            UPDATE l SET l.RemainingQuantity=l.RemainingQuantity-x.Qty
+            FROM dbo.InventoryCostLayers l
+            JOIN(SELECT InventoryCostLayerId,SUM(Quantity) Qty FROM dbo.ProductionCostAllocations WHERE ProductionRunId=@CurrentRunId GROUP BY InventoryCostLayerId)x
+              ON x.InventoryCostLayerId=l.InventoryCostLayerId;
+
+            UPDATE si SET si.AvailableQty=si.AvailableQty-d.Quantity,si.LastUpdated=@CurrentProdAt
+            FROM dbo.StoreInventories si JOIN @AggRunDemand d ON d.StoreInventoryId=si.StoreInventoryId;
+
+            UPDATE t SET t.UnitCost=x.UnitCost,t.TotalCost=x.TotalCost
+            FROM dbo.InventoryTransactions t
+            JOIN(SELECT InventoryTransactionId,ROUND(SUM(TotalCost)/NULLIF(SUM(Quantity),0),2) UnitCost,SUM(TotalCost) TotalCost
+                 FROM dbo.ProductionCostAllocations WHERE ProductionRunId=@CurrentRunId GROUP BY InventoryTransactionId)x
+              ON x.InventoryTransactionId=t.InventoryTransactionId;
+
+            SELECT @RunInputCost=SUM(TotalCost) FROM dbo.ProductionCostAllocations WHERE ProductionRunId=@CurrentRunId;
+            SELECT @OutputPreparedItemId=r.PreparedItemId,@OutputQty=CONVERT(decimal(18,3),r.OutputQuantity),@OutputUnitId=r.OutputUnitId
+            FROM dbo.Recipes r WHERE r.RecipeId=@CurrentProdRecipeId;
+            SELECT @PreparedBaseUnitId=BaseUnitId FROM dbo.PreparedItems WHERE PreparedItemId=@OutputPreparedItemId;
+            IF @OutputPreparedItemId IS NULL OR @OutputQty<=0 OR @OutputUnitId<>@PreparedBaseUnitId
+                THROW 53441,N'DEMO_REORDER_V14: production output không phải PreparedItem base-unit identity.',1;
+
+            SELECT @OutputInventoryId=StoreInventoryId,@OutputBefore=AvailableQty,@OutputMin=MinStockLevel
+            FROM dbo.StoreInventories
+            WHERE StoreId=@CurrentProdStoreId AND RecipeId=@CurrentProdRecipeId AND PreparedItemId=@OutputPreparedItemId AND BtpIdentityState=1;
+            IF @OutputInventoryId IS NULL THROW 53442,N'DEMO_REORDER_V14: thiếu canonical output StoreInventory cho PreparedItem.',1;
+
+            SET @OutputUnitCost=CONVERT(decimal(18,8),@RunInputCost/NULLIF(@OutputQty,0));
+
+            INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,UnitCost,TotalCost,
+                                              InventoryDocumentId,InventoryDocumentDetailId,InventoryTransferId,InventoryTransferDetailId,
+                                              ReferenceOrderId,ProductionRunId,SourceRecipeId,InventoryConsolidationRunId,BranchReceiptLineId,
+                                              OrderRefundId,CreatedAt)
+            VALUES(@OutputInventoryId,5,CASE WHEN @OutputBefore+@OutputQty<=ISNULL(@OutputMin,-1) THEN 2 ELSE 1 END,
+                   @OutputQty,@OutputBefore,@OutputBefore+@OutputQty,ROUND(@OutputUnitCost,2),@RunInputCost,
+                   NULL,NULL,NULL,NULL,NULL,@CurrentRunId,@CurrentProdRecipeId,NULL,NULL,NULL,@CurrentProdAt);
+
+            UPDATE dbo.StoreInventories SET AvailableQty=AvailableQty+@OutputQty,LastUpdated=@CurrentProdAt WHERE StoreInventoryId=@OutputInventoryId;
+
+            INSERT dbo.InventoryCostLayers(IngredientId,PreparedItemId,StoreId,Quantity,RemainingQuantity,UnitCost,CreatedAt,
+                                           SourceProductionRunId,SourceOrderRefundId,SourceInventoryDocumentDetailId,
+                                           SourceBranchReceiptLineId,SourceTransferCostAllocationId,SourceTransferDiscrepancyPostingId)
+            VALUES(NULL,@OutputPreparedItemId,@CurrentProdStoreId,@OutputQty,@OutputQty,ROUND(@OutputUnitCost,2),@CurrentProdAt,
+                   @CurrentRunId,NULL,NULL,NULL,NULL,NULL);
+
+            UPDATE dbo.ProductionRuns
+            SET [Status]=2,CompletedAt=@CurrentProdAt,CompletedByStaffId=@CurrentProdStaffId,ValuationStatus=1,
+                TotalInputCost=@RunInputCost,OutputUnitCost=@OutputUnitCost,ValuedAtUtc=@CurrentProdAt
+            WHERE ProductionRunId=@CurrentRunId;
+
+            IF EXISTS(SELECT 1 FROM dbo.InventoryCostLayers WHERE RemainingQuantity<0)
+            OR EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE AvailableQty<0)
+                THROW 53443,N'DEMO_REORDER_V14: production làm tồn/layer âm.',1;
+
+            FETCH NEXT FROM prod_cursor INTO @CurrentProdStoreId,@CurrentProdSeq,@CurrentProdStaffId,@CurrentProdRecipeId,@CurrentProdRequestKey,@CurrentProdFingerprint,@CurrentProdNotes,@CurrentProdAt;
+        END;
+        CLOSE prod_cursor; DEALLOCATE prod_cursor;
+    END
+    ELSE
+    BEGIN
+        UPDATE pr SET pr.CreatedAt=x.RunAt,pr.ConfirmedAt=x.RunAt,pr.CompletedAt=x.RunAt,pr.ValuedAtUtc=x.RunAt
+        FROM dbo.ProductionRuns pr JOIN @ProdSeed x ON x.StoreId=pr.StoreId AND x.RequestKey=pr.RequestKey;
+
+        UPDATE t SET t.CreatedAt=x.RunAt
+        FROM dbo.InventoryTransactions t
+        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId
+        JOIN @ProdSeed x ON x.StoreId=pr.StoreId AND x.RequestKey=pr.RequestKey;
+
+        UPDATE a SET a.CreatedAtUtc=x.RunAt
+        FROM dbo.ProductionCostAllocations a
+        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=a.ProductionRunId
+        JOIN @ProdSeed x ON x.StoreId=pr.StoreId AND x.RequestKey=pr.RequestKey;
+
+        UPDATE l SET l.CreatedAt=x.RunAt
+        FROM dbo.InventoryCostLayers l
+        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=l.SourceProductionRunId
+        JOIN @ProdSeed x ON x.StoreId=pr.StoreId AND x.RequestKey=pr.RequestKey;
+    END;
+
+    /* ------------------------------------------------------------
+       14.8 POS orders/details/toppings/payments
+       50 orders/store; all Store1 cloned menu SKUs are distributed across
+       54 detail rows/store to maximize exact DrinkCode+SizeCode BOM coverage.
+       ------------------------------------------------------------ */
+    DECLARE @MenuSeed TABLE(StoreId int,MenuRank int,StoreMenuItemId int,DrinkSizeId int,DrinkId int,SizeId int,
+                            DrinkName nvarchar(200),SizeName nvarchar(200),SellPrice decimal(18,2),BasePrice decimal(18,2),PRIMARY KEY(StoreId,MenuRank));
+    ;WITH M AS(
+        SELECT sm.StoreId,sm.StoreMenuItemId,sm.DrinkSizeId,ds.DrinkId,ds.SizeId,d.Name DrinkName,s.Name SizeName,
+               CONVERT(decimal(18,2),COALESCE(sm.PriceOverride,ds.Price)) SellPrice,CONVERT(decimal(18,2),ds.Price) BasePrice,
+               ROW_NUMBER() OVER(PARTITION BY sm.StoreId ORDER BY d.DrinkCode,s.SizeCode) rn
+        FROM dbo.StoreMenuItems sm
+        JOIN dbo.DrinkSizes ds ON ds.DrinkSizeId=sm.DrinkSizeId AND ds.Active=1
+        JOIN dbo.Drinks d ON d.DrinkId=ds.DrinkId AND d.Active=1
+        JOIN dbo.Sizes s ON s.SizeId=ds.SizeId AND s.Active=1
+        WHERE sm.StoreId IN(@Store1Id,@Store3Id) AND sm.IsEnabled=1
+          AND EXISTS(SELECT 1 FROM dbo.Recipes r WHERE r.DrinkId=ds.DrinkId AND r.SizeId=ds.SizeId AND r.Active=1 AND r.Status=N'Active')
+    )
+    INSERT @MenuSeed SELECT StoreId,rn,StoreMenuItemId,DrinkSizeId,DrinkId,SizeId,DrinkName,SizeName,SellPrice,BasePrice FROM M WHERE rn<=54;
+
+    IF (SELECT COUNT(*) FROM @MenuSeed WHERE StoreId=@Store1Id)<>54 OR (SELECT COUNT(*) FROM @MenuSeed WHERE StoreId=@Store3Id)<>54
+        THROW 53444,N'DEMO_REORDER_V14: cần đúng 54 enabled StoreMenuItems có exact active BOM ở mỗi Store.',1;
+
+    /* ------------------------------------------------------------
+   14.8A Ensure real size-level policy for the two legacy toppings
+   whose BOM already exists but was unreachable by POS fixture.
+
+   PM_VIEN -> DEMO_ING_CHEESE_CUBE
+   KB_CM   -> DEMO_ING_KHUC_BACH_POWDER
+
+   Chỉ sử dụng DrinkToppings compatibility đã tồn tại.
+   Không tự tạo quan hệ DrinkTopping mới.
+   ------------------------------------------------------------ */
+
+    DECLARE @CheeseCubeToppingId int =
+    (
+        SELECT ToppingId
+        FROM dbo.Toppings
+        WHERE ToppingCode = N'PM_VIEN'  
+          AND Active = 1
+    );
+
+    DECLARE @KhucBachToppingId int =
+    (
+        SELECT ToppingId
+        FROM dbo.Toppings
+        WHERE ToppingCode = N'KB_CM'
+          AND Active = 1
+    );
+
+
+    /* ============================================================
+       Tìm một DrinkSize thật nằm trong 54 menu fixture
+       và đã có compatibility với CẢ HAI topping.
+
+       Seed nền hiện tại có DrinkToppings cho PM_VIEN / KB_CM;
+       không bịa compatibility mới.
+       ============================================================ */
+    DECLARE @CoverageDrinkSizeId int =
+    (
+        SELECT TOP(1)
+            m.DrinkSizeId
+
+        FROM @MenuSeed m
+
+        WHERE
+            m.StoreId = @Store1Id
+
+            AND EXISTS
+            (
+                SELECT 1
+                FROM dbo.DrinkToppings dt
+                WHERE dt.DrinkId = m.DrinkId
+                  AND dt.ToppingId = @CheeseCubeToppingId
+            )
+
+            AND EXISTS
+            (
+                SELECT 1
+                FROM dbo.DrinkToppings dt
+                WHERE dt.DrinkId = m.DrinkId
+                  AND dt.ToppingId = @KhucBachToppingId
+            )
+
+        ORDER BY
+            m.MenuRank
+    );
+
+
+    IF @CheeseCubeToppingId IS NULL
+       OR @KhucBachToppingId IS NULL
+       OR @CoverageDrinkSizeId IS NULL
+    BEGIN
+        ;THROW 53509,
+               N'DEMO_REORDER_V14: không tìm được menu DrinkSize có compatibility thật cho PM_VIEN và KB_CM.',
+               1;
+    END;
+
+
+    /* ============================================================
+       Existing active policy must respect contract.
+       ============================================================ */
+    IF EXISTS
+    (
+        SELECT 1
+        FROM dbo.DrinkSizeToppingPolicies p
+
+        WHERE
+            p.DrinkSizeId = @CoverageDrinkSizeId
+            AND p.ToppingId IN
+            (
+                @CheeseCubeToppingId,
+                @KhucBachToppingId
+            )
+            AND p.IsActive = 1
+
+            AND
+            (
+                p.IsDefaultSelected <> 0
+                OR p.IsRequired <> 0
+
+                OR p.PriceTreatment
+                    <> N'ADD_TOPPING_PRICE'
+
+                OR p.CostTreatment
+                    <> N'ADD_TOPPING_RECIPE_COST'
+
+                OR p.QuantityPerDrink
+                    <> CAST(1 AS decimal(18,5))
+            )
+    )
+    BEGIN
+        ;THROW 53510,
+               N'DEMO_REORDER_V14: PM_VIEN/KB_CM policy tồn tại nhưng khác contract.',
+               1;
+    END;
+
+
+    /* ============================================================
+       PM_VIEN policy
+       ============================================================ */
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.DrinkSizeToppingPolicies p
+
+        WHERE
+            p.DrinkSizeId = @CoverageDrinkSizeId
+            AND p.ToppingId = @CheeseCubeToppingId
+            AND p.IsActive = 1
+    )
+    BEGIN
+
+        INSERT dbo.DrinkSizeToppingPolicies
+        (
+            DrinkSizeId,
+            ToppingId,
+
+            IsDefaultSelected,
+            IsRequired,
+
+            PriceTreatment,
+            CostTreatment,
+
+            QuantityPerDrink,
+            IsActive,
+
+            CreatedByStaffId,
+            UpdatedByStaffId,
+
+            CreatedAtUtc,
+            UpdatedAtUtc
+        )
+        VALUES
+        (
+            @CoverageDrinkSizeId,
+            @CheeseCubeToppingId,
+
+            0,
+            0,
+
+            N'ADD_TOPPING_PRICE',
+            N'ADD_TOPPING_RECIPE_COST',
+
+            1,
+            1,
+
+            @Store1StaffId,
+            NULL,
+
+            @SeedAnchorUtc,
+            @SeedAnchorUtc
+        );
+
+    END;
+
+
+    /* ============================================================
+       KB_CM policy
+       ============================================================ */
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.DrinkSizeToppingPolicies p
+
+        WHERE
+            p.DrinkSizeId = @CoverageDrinkSizeId
+            AND p.ToppingId = @KhucBachToppingId
+            AND p.IsActive = 1
+    )
+    BEGIN
+
+        INSERT dbo.DrinkSizeToppingPolicies
+        (
+            DrinkSizeId,
+            ToppingId,
+
+            IsDefaultSelected,
+            IsRequired,
+
+            PriceTreatment,
+            CostTreatment,
+
+            QuantityPerDrink,
+            IsActive,
+
+            CreatedByStaffId,
+            UpdatedByStaffId,
+
+            CreatedAtUtc,
+            UpdatedAtUtc
+        )
+        VALUES
+        (
+            @CoverageDrinkSizeId,
+            @KhucBachToppingId,
+
+            0,
+            0,
+
+            N'ADD_TOPPING_PRICE',
+            N'ADD_TOPPING_RECIPE_COST',
+
+            1,
+            1,
+
+            @Store1StaffId,
+            NULL,
+
+            @SeedAnchorUtc,
+            @SeedAnchorUtc
+        );
+
+    END;
+
+    IF @IsReplay=1
+    BEGIN
+        /* 54 deterministic details per store, keyed by ClientOrderId + StoreMenuItem business identity. */
+        IF (SELECT COUNT(*) FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store1Id)<>54
+        OR (SELECT COUNT(*) FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store3Id)<>54
+            THROW 53475,N'DEMO_REORDER_V14: OrderDetail fixture count drift.',1;
+
+        IF EXISTS(
+            SELECT 1
+            FROM @MenuSeed m
+            JOIN @OrderSeed os ON os.StoreId=m.StoreId AND os.Seq=CASE WHEN m.MenuRank<=50 THEN m.MenuRank ELSE m.MenuRank-50 END
+            LEFT JOIN dbo.Orders o ON o.ClientOrderId=os.ClientOrderId
+            LEFT JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId AND od.StoreMenuItemId=m.StoreMenuItemId
+            WHERE od.OrderDetailId IS NULL OR od.DrinkId<>m.DrinkId OR od.SizeId<>m.SizeId OR od.DrinkSizeId<>m.DrinkSizeId
+               OR od.DrinkName<>m.DrinkName OR ISNULL(od.SizeName,N'')<>ISNULL(m.SizeName,N'') OR od.Price<>m.SellPrice
+               OR ISNULL(od.AcceptedBasePrice,-1)<>m.BasePrice
+               OR od.PriceSource<>CASE WHEN m.SellPrice=m.BasePrice THEN N'GLOBAL' ELSE N'STORE_OVERRIDE' END
+               OR od.AcceptedCatalogVersion IS NOT NULL OR od.Quantity<>1 OR od.Note<>@SeedMarker OR od.CostStatus NOT IN(1,2)
+        ) THROW 53476,N'DEMO_REORDER_V14: OrderDetail business-key payload drift.',1;
+
+        IF EXISTS(
+            SELECT 1
+            FROM dbo.OrderDetails od
+            JOIN dbo.Orders o ON o.OrderId=od.OrderId AND o.Source=@SeedMarker
+            WHERE NOT EXISTS(
+                SELECT 1 FROM @MenuSeed m
+                JOIN @OrderSeed os ON os.StoreId=m.StoreId AND os.Seq=CASE WHEN m.MenuRank<=50 THEN m.MenuRank ELSE m.MenuRank-50 END
+                WHERE os.ClientOrderId=o.ClientOrderId AND m.StoreMenuItemId=od.StoreMenuItemId)
+        ) THROW 53477,N'DEMO_REORDER_V14: có OrderDetail ngoài deterministic menu fixture contract.',1;
+
+        IF EXISTS(
+            SELECT 1
+            FROM dbo.OrderToppings ot
+            JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId
+            JOIN dbo.Orders o ON o.OrderId=od.OrderId AND o.Source=@SeedMarker
+            LEFT JOIN dbo.Toppings tp ON tp.ToppingId=ot.ToppingId AND tp.Active=1
+            LEFT JOIN dbo.StoreToppings st ON st.StoreId=o.StoreId AND st.ToppingId=ot.ToppingId AND st.Active=1
+            LEFT JOIN dbo.DrinkSizeToppingPolicies pol ON pol.DrinkSizeId=od.DrinkSizeId AND pol.ToppingId=ot.ToppingId
+                 AND pol.IsActive=1 AND pol.CostTreatment=N'ADD_TOPPING_RECIPE_COST'
+            WHERE tp.ToppingId IS NULL OR st.StoreToppingId IS NULL OR pol.DrinkSizeToppingPolicyId IS NULL
+               OR ot.ToppingName<>tp.Name OR ot.Price<>CONVERT(decimal(18,2),CASE WHEN pol.PriceTreatment=N'ADD_TOPPING_PRICE' THEN tp.Price ELSE 0 END)
+               OR ot.CostStatus NOT IN(1,2)
+        ) THROW 53478,N'DEMO_REORDER_V14: OrderTopping payload drift/policy không còn hợp lệ.',1;
+
+        IF EXISTS(
+            SELECT 1
+            FROM @OrderSeed os
+            LEFT JOIN dbo.Orders o ON o.ClientOrderId=os.ClientOrderId
+            LEFT JOIN dbo.Payments p ON p.OrderId=o.OrderId
+              AND p.TransactionCode=CONCAT(N'DEMO_REORDER_V14_PAY_S',os.StoreNo,N'_',RIGHT(CONCAT(N'000',os.Seq),3))
+            WHERE p.PaymentId IS NULL OR p.PaymentStatusId<>@PaidStatusId OR p.PaymentMethodId<>@BankMethodId
+               OR p.Amount<>o.Total OR p.CashSessionId IS NOT NULL
+        ) THROW 53479,N'DEMO_REORDER_V14: payment transaction business-key payload drift.',1;
+    END;
+
+    IF @IsReplay=0
+    BEGIN
+        INSERT dbo.Orders(CustomerId,StoreId,OrderStatusId,PaymentStatusId,OrderTypeId,TableId,StaffId,WorkShiftId,
+                          ClientOrderId,RecommendationSessionId,Source,Note,PaymentReference,ReceiverName,ReceiverPhone,
+                          DeliveryAddress,ShippingFee,SubTotal,VoucherDiscount,PointDiscount,PointsUsed,Total,
+                          CostStatus,TotalCogs,GrossProfit,CostedAtUtc,CreatedAt)
+        SELECT NULL,o.StoreId,@CompletedOrderStatusId,@PaidStatusId,@TakeAwayTypeId,NULL,o.StaffId,ws.ShiftId,
+               o.ClientOrderId,NULL,@SeedMarker,CONCAT(N'DEMO_REORDER_V14_ORDER_S',o.StoreNo,N'_',RIGHT(CONCAT(N'000',o.Seq),3)),
+               NULL,NULL,NULL,NULL,0,0,0,0,0,0,0,NULL,NULL,NULL,o.CreatedAt
+        FROM @OrderSeed o
+        JOIN @ShiftSeed sh ON sh.StoreId=o.StoreId AND sh.Seq=o.ShiftSeq
+        JOIN dbo.WorkShifts ws ON ws.DiscrepancyReason=sh.Marker;
+
+        /* 54 detail rows per store: ranks 1-50 on orders 1-50; ranks 51-54 on orders 1-4. */
+        INSERT dbo.OrderDetails(OrderId,DrinkId,SizeId,StoreMenuItemId,DrinkSizeId,DrinkName,SizeName,Price,
+                                AcceptedBasePrice,PriceSource,AcceptedCatalogVersion,Quantity,Note,CostStatus,UnitCogs,TotalCogs)
+        SELECT o.OrderId,m.DrinkId,m.SizeId,m.StoreMenuItemId,m.DrinkSizeId,m.DrinkName,m.SizeName,m.SellPrice,
+               m.BasePrice,CASE WHEN m.SellPrice=m.BasePrice THEN N'GLOBAL' ELSE N'STORE_OVERRIDE' END,NULL,1,@SeedMarker,0,NULL,NULL
+        FROM @MenuSeed m
+        JOIN @OrderSeed os ON os.StoreId=m.StoreId AND os.Seq=CASE WHEN m.MenuRank<=50 THEN m.MenuRank ELSE m.MenuRank-50 END
+        JOIN dbo.Orders o ON o.ClientOrderId=os.ClientOrderId;
+
+        /* 30 topping BOMs/store, greedily preferring toppings that cover ingredients
+           not already consumed by production/direct drink BOM. */
+        DECLARE @EligibleTopping TABLE(
+            StoreId int,ToppingId int,OrderDetailId int,ToppingName nvarchar(200),Price decimal(18,2),ToppingCode nvarchar(100),
+            PRIMARY KEY(StoreId,ToppingId));
+        ;WITH C AS(
+            SELECT os.StoreId,p.ToppingId,od.OrderDetailId,t.Name,
+                   CONVERT(decimal(18,2),CASE WHEN p.PriceTreatment=N'ADD_TOPPING_PRICE' THEN t.Price ELSE 0 END) Price,
+                   t.ToppingCode,
+                   ROW_NUMBER() OVER(PARTITION BY os.StoreId,p.ToppingId ORDER BY od.OrderDetailId) rn
+            FROM dbo.Orders o
+            JOIN @OrderSeed os ON os.ClientOrderId=o.ClientOrderId
+            JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId
+            JOIN dbo.DrinkSizeToppingPolicies p ON p.DrinkSizeId=od.DrinkSizeId AND p.IsActive=1
+                 AND p.CostTreatment=N'ADD_TOPPING_RECIPE_COST'
+            JOIN dbo.StoreToppings st ON st.StoreId=o.StoreId AND st.ToppingId=p.ToppingId AND st.Active=1
+            JOIN dbo.Toppings t ON t.ToppingId=p.ToppingId AND t.Active=1
+            WHERE EXISTS(SELECT 1 FROM dbo.Recipes r WHERE r.ToppingId=t.ToppingId AND r.Active=1 AND r.Status=N'Active')
+        )
+        INSERT @EligibleTopping
+        SELECT StoreId,ToppingId,OrderDetailId,Name,Price,ToppingCode FROM C WHERE rn=1;
+
+        IF (SELECT COUNT(*) FROM @EligibleTopping WHERE StoreId=@Store1Id)<30
+        OR (SELECT COUNT(*) FROM @EligibleTopping WHERE StoreId=@Store3Id)<30
+            THROW 53445,N'DEMO_REORDER_V14: không có đủ 30 topping policy+BOM hợp lệ cho mỗi Store.',1;
+
+        DECLARE @CoveredIngredient TABLE(StoreId int,IngredientId int,PRIMARY KEY(StoreId,IngredientId));
+        /* Real production consumption already posted in 14.7. */
+        INSERT @CoveredIngredient
+        SELECT DISTINCT si.StoreId,si.IngredientId
+        FROM dbo.InventoryTransactions t
+        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId AND pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+        JOIN dbo.StoreInventories si ON si.StoreInventoryId=t.StoreInventoryId
+        WHERE t.[Type]=6 AND si.IngredientId IS NOT NULL;
+
+        /* Direct ingredient requirements of the 54 selected drink BOMs. */
+        INSERT @CoveredIngredient(StoreId,IngredientId)
+        SELECT DISTINCT o.StoreId,rd.IngredientId
+        FROM dbo.Orders o JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId
+        JOIN dbo.Recipes r ON r.DrinkId=od.DrinkId AND r.SizeId=od.SizeId AND r.Active=1 AND r.Status=N'Active'
+        JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.IngredientId IS NOT NULL
+        WHERE o.Source=@SeedMarker
+          AND NOT EXISTS(SELECT 1 FROM @CoveredIngredient c WHERE c.StoreId=o.StoreId AND c.IngredientId=rd.IngredientId);
+
+        DECLARE @PickedTopping TABLE(StoreId int,ToppingId int,PickNo int,PRIMARY KEY(StoreId,ToppingId));
+        DECLARE @PickStoreId int,@PickNo int,@PickToppingId int;
+        DECLARE topping_store_cursor CURSOR LOCAL FAST_FORWARD FOR SELECT StoreId FROM @FixtureStores ORDER BY StoreId;
+        OPEN topping_store_cursor;
+        FETCH NEXT FROM topping_store_cursor INTO @PickStoreId;
+        WHILE @@FETCH_STATUS=0
+        BEGIN
+            SET @PickNo=1;
+            WHILE @PickNo<=30
+            BEGIN
+                SET @PickToppingId=NULL;
+                SELECT TOP(1) @PickToppingId=e.ToppingId
+                FROM @EligibleTopping e
+                OUTER APPLY(
+                    SELECT COUNT(DISTINCT rd.IngredientId) NewIngredientCount
+                    FROM dbo.Recipes r
+                    JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.IngredientId IS NOT NULL
+                    WHERE r.ToppingId=e.ToppingId AND r.Active=1 AND r.Status=N'Active'
+                      AND NOT EXISTS(SELECT 1 FROM @CoveredIngredient c WHERE c.StoreId=@PickStoreId AND c.IngredientId=rd.IngredientId)
+                )score
+                WHERE e.StoreId=@PickStoreId
+                  AND NOT EXISTS(SELECT 1 FROM @PickedTopping p WHERE p.StoreId=e.StoreId AND p.ToppingId=e.ToppingId)
+                ORDER BY ISNULL(score.NewIngredientCount,0) DESC,e.ToppingCode;
+
+                IF @PickToppingId IS NULL THROW 53469,N'DEMO_REORDER_V14: không thể chọn đủ topping fixture.',1;
+                INSERT @PickedTopping VALUES(@PickStoreId,@PickToppingId,@PickNo);
+
+                INSERT @CoveredIngredient(StoreId,IngredientId)
+                SELECT DISTINCT @PickStoreId,rd.IngredientId
+                FROM dbo.Recipes r JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.IngredientId IS NOT NULL
+                WHERE r.ToppingId=@PickToppingId AND r.Active=1 AND r.Status=N'Active'
+                  AND NOT EXISTS(SELECT 1 FROM @CoveredIngredient c WHERE c.StoreId=@PickStoreId AND c.IngredientId=rd.IngredientId);
+                SET @PickNo+=1;
+            END;
+            FETCH NEXT FROM topping_store_cursor INTO @PickStoreId;
+        END;
+        CLOSE topping_store_cursor; DEALLOCATE topping_store_cursor;
+
+        INSERT dbo.OrderToppings(OrderDetailId,ToppingId,ToppingName,Price,CostStatus,TotalCogs)
+        SELECT e.OrderDetailId,e.ToppingId,e.ToppingName,e.Price,0,NULL
+        FROM @PickedTopping p JOIN @EligibleTopping e ON e.StoreId=p.StoreId AND e.ToppingId=p.ToppingId;
+
+
+        IF (SELECT COUNT(*) FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store1Id)<>30
+        OR (SELECT COUNT(*) FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store3Id)<>30
+            THROW 53447,N'DEMO_REORDER_V14: không resolve được 30 OrderToppings hợp lệ mỗi Store.',1;
+
+        UPDATE o SET o.SubTotal=x.SubTotal,o.Total=x.SubTotal
+        FROM dbo.Orders o
+        CROSS APPLY(
+            SELECT CONVERT(decimal(18,2),
+                ISNULL((SELECT SUM(od.Price*od.Quantity) FROM dbo.OrderDetails od WHERE od.OrderId=o.OrderId),0)+
+                ISNULL((SELECT SUM(ot.Price) FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId WHERE od.OrderId=o.OrderId),0)) SubTotal
+        )x
+        WHERE o.Source=@SeedMarker;
+
+        INSERT dbo.Payments(OrderId,Amount,ReceivedAmount,ChangeAmount,PaymentMethodId,PaymentStatusId,CashSessionId,TransactionCode,PaidAt)
+        SELECT o.OrderId,o.Total,NULL,NULL,@BankMethodId,@PaidStatusId,NULL,
+               CONCAT(N'DEMO_REORDER_V14_PAY_S',os.StoreNo,N'_',RIGHT(CONCAT(N'000',os.Seq),3)),DATEADD(MINUTE,5,os.CreatedAt)
+        FROM dbo.Orders o JOIN @OrderSeed os ON os.ClientOrderId=o.ClientOrderId;
+    END
+    ELSE
+    BEGIN
+        UPDATE o SET o.CreatedAt=x.CreatedAt,o.CostedAtUtc=CASE WHEN o.CostStatus=1 THEN x.CreatedAt ELSE NULL END
+        FROM dbo.Orders o JOIN @OrderSeed x ON x.ClientOrderId=o.ClientOrderId;
+        UPDATE p SET p.PaidAt=DATEADD(MINUTE,5,x.CreatedAt)
+        FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId JOIN @OrderSeed x ON x.ClientOrderId=o.ClientOrderId;
+    END;
+
+    /* ------------------------------------------------------------
+       14.9 SALES_DEDUCTION + FIFO SalesCostAllocation on first run.
+       Demand is built only from real RecipeDetails.
+       ------------------------------------------------------------ */
+    IF @IsReplay=0
+    BEGIN
+        DECLARE @SalesDemand TABLE(
+            DemandId int IDENTITY(1,1) PRIMARY KEY,StoreId int,OrderId int,OrderDetailId int,OrderToppingId int NULL,
+            StoreInventoryId int,IngredientId int NULL,PreparedItemId int NULL,SourceRecipeId int,
+            Quantity decimal(18,3),DemandAt datetime2(0));
+
+        DECLARE @IncompleteDetail TABLE(OrderDetailId int PRIMARY KEY,Reason nvarchar(300));
+        DECLARE @IncompleteTopping TABLE(OrderToppingId int PRIMARY KEY,Reason nvarchar(300));
+
+        /* Legacy child Recipe without a valid PreparedItem cost identity is deliberately not fabricated. */
+        INSERT @IncompleteDetail(OrderDetailId,Reason)
+        SELECT DISTINCT od.OrderDetailId,N'Legacy ChildRecipe has no valid PreparedItem FIFO identity'
+        FROM dbo.Orders o JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId
+        JOIN dbo.Recipes r ON r.DrinkId=od.DrinkId AND r.SizeId=od.SizeId AND r.Active=1 AND r.Status=N'Active'
+        JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
+        JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId
+        LEFT JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
+        LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId
+             AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+        WHERE o.Source=@SeedMarker
+          AND (cr.PreparedItemId IS NULL OR pi.PreparedItemId IS NULL OR rd.UnitId<>pi.BaseUnitId OR si.StoreInventoryId IS NULL);
+
+        INSERT @IncompleteTopping(OrderToppingId,Reason)
+        SELECT DISTINCT ot.OrderToppingId,N'Legacy topping ChildRecipe has no valid PreparedItem FIFO identity'
+        FROM dbo.Orders o JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId JOIN dbo.OrderToppings ot ON ot.OrderDetailId=od.OrderDetailId
+        JOIN dbo.Recipes r ON r.ToppingId=ot.ToppingId AND r.Active=1 AND r.Status=N'Active'
+        JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
+        JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId
+        LEFT JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
+        LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId
+             AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+        WHERE o.Source=@SeedMarker
+          AND (cr.PreparedItemId IS NULL OR pi.PreparedItemId IS NULL OR rd.UnitId<>pi.BaseUnitId OR si.StoreInventoryId IS NULL);
+
+        /* Drink direct ingredients. */
+        INSERT @SalesDemand(StoreId,OrderId,OrderDetailId,OrderToppingId,StoreInventoryId,IngredientId,PreparedItemId,SourceRecipeId,Quantity,DemandAt)
+        SELECT o.StoreId,o.OrderId,od.OrderDetailId,NULL,si.StoreInventoryId,rd.IngredientId,NULL,r.RecipeId,
+               CONVERT(decimal(18,3),ROUND(rd.Quantity*od.Quantity*
+                 CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END,3)),o.CreatedAt
+        FROM dbo.Orders o
+        JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId
+        JOIN dbo.Recipes r ON r.DrinkId=od.DrinkId AND r.SizeId=od.SizeId AND r.Active=1 AND r.Status=N'Active'
+        JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.IngredientId IS NOT NULL
+        JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+        JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.IngredientId=rd.IngredientId
+        LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
+        WHERE o.Source=@SeedMarker AND (rd.UnitId=i.BaseUnitId OR uc.UnitConversionId IS NOT NULL);
+
+        /* Drink child PreparedItems, preserving Recipe+PreparedItem identity. */
+        INSERT @SalesDemand(StoreId,OrderId,OrderDetailId,OrderToppingId,StoreInventoryId,IngredientId,PreparedItemId,SourceRecipeId,Quantity,DemandAt)
+        SELECT o.StoreId,o.OrderId,od.OrderDetailId,NULL,si.StoreInventoryId,NULL,cr.PreparedItemId,cr.RecipeId,
+               CONVERT(decimal(18,3),rd.Quantity*od.Quantity),o.CreatedAt
+        FROM dbo.Orders o
+        JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId
+        JOIN dbo.Recipes r ON r.DrinkId=od.DrinkId AND r.SizeId=od.SizeId AND r.Active=1 AND r.Status=N'Active'
+        JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
+        JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
+        JOIN dbo.PreparedItems p ON p.PreparedItemId=cr.PreparedItemId
+        JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+        WHERE o.Source=@SeedMarker AND rd.UnitId=p.BaseUnitId;
+
+        /* Topping direct ingredients. */
+        INSERT @SalesDemand(StoreId,OrderId,OrderDetailId,OrderToppingId,StoreInventoryId,IngredientId,PreparedItemId,SourceRecipeId,Quantity,DemandAt)
+        SELECT o.StoreId,o.OrderId,od.OrderDetailId,ot.OrderToppingId,si.StoreInventoryId,rd.IngredientId,NULL,r.RecipeId,
+               CONVERT(decimal(18,3),ROUND(rd.Quantity*pol.QuantityPerDrink*
+                 CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END,3)),o.CreatedAt
+        FROM dbo.Orders o JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId JOIN dbo.OrderToppings ot ON ot.OrderDetailId=od.OrderDetailId
+        JOIN dbo.DrinkSizeToppingPolicies pol ON pol.DrinkSizeId=od.DrinkSizeId AND pol.ToppingId=ot.ToppingId AND pol.IsActive=1 AND pol.CostTreatment=N'ADD_TOPPING_RECIPE_COST'
+        JOIN dbo.Recipes r ON r.ToppingId=ot.ToppingId AND r.Active=1 AND r.Status=N'Active'
+        JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.IngredientId IS NOT NULL
+        JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+        JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.IngredientId=rd.IngredientId
+        LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
+        WHERE o.Source=@SeedMarker AND (rd.UnitId=i.BaseUnitId OR uc.UnitConversionId IS NOT NULL);
+
+        /* Topping child PreparedItems. */
+        INSERT @SalesDemand(StoreId,OrderId,OrderDetailId,OrderToppingId,StoreInventoryId,IngredientId,PreparedItemId,SourceRecipeId,Quantity,DemandAt)
+        SELECT o.StoreId,o.OrderId,od.OrderDetailId,ot.OrderToppingId,si.StoreInventoryId,NULL,cr.PreparedItemId,cr.RecipeId,
+               CONVERT(decimal(18,3),rd.Quantity*pol.QuantityPerDrink),o.CreatedAt
+        FROM dbo.Orders o JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId JOIN dbo.OrderToppings ot ON ot.OrderDetailId=od.OrderDetailId
+        JOIN dbo.DrinkSizeToppingPolicies pol ON pol.DrinkSizeId=od.DrinkSizeId AND pol.ToppingId=ot.ToppingId AND pol.IsActive=1 AND pol.CostTreatment=N'ADD_TOPPING_RECIPE_COST'
+        JOIN dbo.Recipes r ON r.ToppingId=ot.ToppingId AND r.Active=1 AND r.Status=N'Active'
+        JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
+        JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
+        JOIN dbo.PreparedItems p ON p.PreparedItemId=cr.PreparedItemId
+        JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+        WHERE o.Source=@SeedMarker AND rd.UnitId=p.BaseUnitId;
+
+        /* Fail closed on any recipe conversion or child identity that could not be represented above. */
+        IF EXISTS(
+            SELECT 1 FROM dbo.Orders o JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId
+            JOIN dbo.Recipes r ON r.DrinkId=od.DrinkId AND r.SizeId=od.SizeId AND r.Active=1 AND r.Status=N'Active'
+            JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+            WHERE o.Source=@SeedMarker AND rd.IngredientId IS NOT NULL AND rd.UnitId<>i.BaseUnitId
+              AND NOT EXISTS(SELECT 1 FROM dbo.UnitConversions uc WHERE uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1 AND uc.FromQuantity>0 AND uc.ToQuantity>0)
+        ) OR EXISTS(
+            SELECT 1 FROM dbo.Orders o JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId
+            JOIN dbo.OrderToppings ot ON ot.OrderDetailId=od.OrderDetailId
+            JOIN dbo.DrinkSizeToppingPolicies pol ON pol.DrinkSizeId=od.DrinkSizeId AND pol.ToppingId=ot.ToppingId
+                 AND pol.IsActive=1 AND pol.CostTreatment=N'ADD_TOPPING_RECIPE_COST'
+            JOIN dbo.Recipes r ON r.ToppingId=ot.ToppingId AND r.Active=1 AND r.Status=N'Active'
+            JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+            WHERE o.Source=@SeedMarker AND rd.IngredientId IS NOT NULL AND rd.UnitId<>i.BaseUnitId
+              AND NOT EXISTS(SELECT 1 FROM dbo.UnitConversions uc WHERE uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1 AND uc.FromQuantity>0 AND uc.ToQuantity>0)
+        ) THROW 53446,N'DEMO_REORDER_V14: thiếu UnitConversion cho sales/topping BOM.',1;
+
+        /* Invalid legacy child identities are tracked in @IncompleteDetail/@IncompleteTopping above. */
+
+        /* For stable transaction business key, one order/source-recipe/stock identity must aggregate to one transaction. */
+        DECLARE @SalesAgg TABLE(
+            StoreId int,OrderId int,StoreInventoryId int,IngredientId int NULL,PreparedItemId int NULL,SourceRecipeId int,
+            Quantity decimal(18,3),DemandAt datetime2(0),PRIMARY KEY(OrderId,StoreInventoryId,SourceRecipeId));
+        INSERT @SalesAgg
+        SELECT StoreId,OrderId,StoreInventoryId,MAX(IngredientId),MAX(PreparedItemId),SourceRecipeId,SUM(Quantity),MIN(DemandAt)
+        FROM @SalesDemand GROUP BY StoreId,OrderId,StoreInventoryId,SourceRecipeId;
+
+        IF EXISTS(SELECT 1 FROM @SalesAgg a JOIN dbo.StoreInventories si ON si.StoreInventoryId=a.StoreInventoryId WHERE a.Quantity<=0)
+            THROW 53448,N'DEMO_REORDER_V14: sales demand quantity không hợp lệ.',1;
+
+        /* Precheck final stock and layer supply before mutation. */
+IF EXISTS
+(
+    SELECT
+        a.StoreInventoryId,
+        SUM(a.Quantity) AS DemandQty,
+        MAX(si.AvailableQty) AS AvailableQty
+
+    FROM @SalesAgg a
+
+    JOIN dbo.StoreInventories si
+        ON si.StoreInventoryId=a.StoreInventoryId
+
+    GROUP BY a.StoreInventoryId
+
+    HAVING
+        SUM(a.Quantity)>MAX(si.AvailableQty)
+)
+BEGIN
+
+    SELECT
+        a.StoreId,
+        a.StoreInventoryId,
+
+        MAX(a.IngredientId) AS IngredientId,
+        MAX(i.Code) AS IngredientCode,
+        MAX(i.Name) AS IngredientName,
+
+        MAX(a.PreparedItemId) AS PreparedItemId,
+        MAX(pi.Code) AS PreparedItemCode,
+        MAX(pi.Name) AS PreparedItemName,
+
+        SUM(a.Quantity) AS DemandQty,
+        MAX(si.AvailableQty) AS AvailableQty,
+
+        SUM(a.Quantity)
+            - MAX(si.AvailableQty)
+            AS ShortageQty
+
+    FROM @SalesAgg a
+
+    JOIN dbo.StoreInventories si
+        ON si.StoreInventoryId=a.StoreInventoryId
+
+    LEFT JOIN dbo.Ingredients i
+        ON i.IngredientId=a.IngredientId
+
+    LEFT JOIN dbo.PreparedItems pi
+        ON pi.PreparedItemId=a.PreparedItemId
+
+    GROUP BY
+        a.StoreId,
+        a.StoreInventoryId
+
+    HAVING
+        SUM(a.Quantity)>MAX(si.AvailableQty)
+
+    ORDER BY
+        a.StoreId,
+        a.StoreInventoryId;
+
+
+    THROW 53449,
+          N'DEMO_REORDER_V14: sales demand vượt tồn khả dụng. Xem bảng ShortageQty phía trên.',
+          1;
+
+END;
+
+
+        IF EXISTS(
+            SELECT 1
+            FROM(
+                SELECT StoreInventoryId,MAX(StoreId) StoreId,MAX(IngredientId) IngredientId,MAX(PreparedItemId) PreparedItemId,SUM(Quantity) DemandQty
+                FROM @SalesAgg GROUP BY StoreInventoryId
+            )d
+            OUTER APPLY(
+                SELECT SUM(l.RemainingQuantity) SupplyQty
+                FROM dbo.InventoryCostLayers l
+                WHERE l.StoreId=d.StoreId AND l.RemainingQuantity>0
+                  AND ((d.IngredientId IS NOT NULL AND l.IngredientId=d.IngredientId AND l.PreparedItemId IS NULL)
+                    OR (d.PreparedItemId IS NOT NULL AND l.PreparedItemId=d.PreparedItemId AND l.IngredientId IS NULL))
+            )s
+            WHERE ISNULL(s.SupplyQty,0)<d.DemandQty
+        ) THROW 53450,N'DEMO_REORDER_V14: sales demand thiếu FIFO layer; không tạo SalesCostGap giả.',1;
+
+        ;WITH D AS(
+            SELECT a.*,si.AvailableQty StartQty,si.MinStockLevel,
+                   SUM(a.Quantity) OVER(PARTITION BY a.StoreInventoryId ORDER BY a.DemandAt,a.OrderId,a.SourceRecipeId ROWS UNBOUNDED PRECEDING) CumQty
+            FROM @SalesAgg a JOIN dbo.StoreInventories si ON si.StoreInventoryId=a.StoreInventoryId
+        )
+        INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,UnitCost,TotalCost,
+                                          InventoryDocumentId,InventoryDocumentDetailId,InventoryTransferId,InventoryTransferDetailId,
+                                          ReferenceOrderId,ProductionRunId,SourceRecipeId,InventoryConsolidationRunId,BranchReceiptLineId,
+                                          OrderRefundId,CreatedAt)
+        SELECT StoreInventoryId,7,CASE WHEN StartQty-CumQty<=ISNULL(MinStockLevel,-1) THEN 2 ELSE 1 END,Quantity,
+               StartQty-(CumQty-Quantity),StartQty-CumQty,NULL,NULL,NULL,NULL,NULL,NULL,OrderId,NULL,SourceRecipeId,NULL,NULL,NULL,DemandAt
+        FROM D;
+
+        DECLARE @SalesLayer TABLE(StoreInventoryId int,InventoryCostLayerId int,RemainingQuantity decimal(18,3),UnitCost decimal(18,2),CreatedAt datetime2(0));
+        INSERT @SalesLayer
+        SELECT DISTINCT a.StoreInventoryId,l.InventoryCostLayerId,l.RemainingQuantity,l.UnitCost,l.CreatedAt
+        FROM @SalesAgg a
+        JOIN dbo.InventoryCostLayers l ON l.StoreId=a.StoreId AND l.RemainingQuantity>0
+          AND ((a.IngredientId IS NOT NULL AND l.IngredientId=a.IngredientId AND l.PreparedItemId IS NULL)
+            OR (a.PreparedItemId IS NOT NULL AND l.PreparedItemId=a.PreparedItemId AND l.IngredientId IS NULL));
+
+        ;WITH Demand0 AS(
+            /* Detail/topping demands themselves form the cumulative demand intervals.
+               This preserves attribution while the transaction stays aggregated by Order+Recipe+Stock identity. */
+            SELECT sd.*,t.InventoryTransactionId,
+                   SUM(CONVERT(decimal(38,6),sd.Quantity)) OVER(
+                       PARTITION BY sd.StoreInventoryId
+                       ORDER BY sd.DemandAt,sd.OrderId,sd.SourceRecipeId,
+                                CASE WHEN sd.OrderToppingId IS NULL THEN 0 ELSE 1 END,sd.OrderDetailId,sd.OrderToppingId,sd.DemandId
+                       ROWS UNBOUNDED PRECEDING) DemandEnd
+            FROM @SalesDemand sd
+            JOIN dbo.InventoryTransactions t
+              ON t.ReferenceOrderId=sd.OrderId AND t.StoreInventoryId=sd.StoreInventoryId
+             AND t.SourceRecipeId=sd.SourceRecipeId AND t.[Type]=7
+        ),Demand AS(
+            SELECT *,DemandEnd-CONVERT(decimal(38,6),Quantity) DemandStart FROM Demand0
+        ),Supply0 AS(
+            SELECT l.*,
+                   SUM(CONVERT(decimal(38,6),l.RemainingQuantity)) OVER(
+                       PARTITION BY l.StoreInventoryId ORDER BY l.CreatedAt,l.InventoryCostLayerId ROWS UNBOUNDED PRECEDING) SupplyEnd
+            FROM @SalesLayer l
+        ),Supply AS(
+            SELECT *,SupplyEnd-CONVERT(decimal(38,6),RemainingQuantity) SupplyStart FROM Supply0
+        ),Slices AS(
+            SELECT d.OrderId,d.OrderDetailId,d.OrderToppingId,d.InventoryTransactionId,s.InventoryCostLayerId,
+                   d.IngredientId,d.PreparedItemId,s.UnitCost,
+                   CONVERT(decimal(18,3),
+                     CASE WHEN d.DemandEnd<s.SupplyEnd THEN d.DemandEnd ELSE s.SupplyEnd END
+                    -CASE WHEN d.DemandStart>s.SupplyStart THEN d.DemandStart ELSE s.SupplyStart END) Qty
+            FROM Demand d
+            JOIN Supply s ON s.StoreInventoryId=d.StoreInventoryId
+            WHERE d.DemandEnd>s.SupplyStart AND s.SupplyEnd>d.DemandStart
+        )
+        INSERT dbo.SalesCostAllocations(OrderId,OrderDetailId,OrderToppingId,InventoryTransactionId,InventoryCostLayerId,
+                                        IngredientId,PreparedItemId,Quantity,UnitCost,TotalCost,CreatedAtUtc)
+        SELECT x.OrderId,x.OrderDetailId,x.OrderToppingId,x.InventoryTransactionId,x.InventoryCostLayerId,
+               x.IngredientId,x.PreparedItemId,x.Qty,x.UnitCost,ROUND(x.Qty*x.UnitCost,2),o.CreatedAt
+        FROM Slices x JOIN dbo.Orders o ON o.OrderId=x.OrderId
+        WHERE x.Qty>0;
+
+        /* Every sales transaction must be fully explained by durable FIFO slices. */
+        IF EXISTS(
+            SELECT t.InventoryTransactionId,t.Quantity,SUM(ISNULL(a.Quantity,0)) AllocQty
+            FROM dbo.InventoryTransactions t
+            JOIN dbo.Orders o ON o.OrderId=t.ReferenceOrderId AND o.Source=@SeedMarker
+            LEFT JOIN dbo.SalesCostAllocations a ON a.InventoryTransactionId=t.InventoryTransactionId
+            WHERE t.[Type]=7
+            GROUP BY t.InventoryTransactionId,t.Quantity
+            HAVING ABS(t.Quantity-SUM(ISNULL(a.Quantity,0)))>0.001
+        ) THROW 53451,N'DEMO_REORDER_V14: SalesCostAllocation không phủ đủ transaction quantity.',1;
+
+        UPDATE l SET l.RemainingQuantity=l.RemainingQuantity-x.Qty
+        FROM dbo.InventoryCostLayers l
+        JOIN(
+            SELECT a.InventoryCostLayerId,SUM(a.Quantity) Qty
+            FROM dbo.SalesCostAllocations a JOIN dbo.Orders o ON o.OrderId=a.OrderId AND o.Source=@SeedMarker
+            GROUP BY a.InventoryCostLayerId
+        )x ON x.InventoryCostLayerId=l.InventoryCostLayerId;
+
+        UPDATE si SET si.AvailableQty=si.AvailableQty-x.Qty,si.LastUpdated=@SeedAnchorUtc
+        FROM dbo.StoreInventories si
+        JOIN(SELECT StoreInventoryId,SUM(Quantity) Qty FROM @SalesAgg GROUP BY StoreInventoryId)x ON x.StoreInventoryId=si.StoreInventoryId;
+
+        UPDATE t SET t.UnitCost=x.UnitCost,t.TotalCost=x.TotalCost
+        FROM dbo.InventoryTransactions t
+        JOIN(
+            SELECT a.InventoryTransactionId,ROUND(SUM(a.TotalCost)/NULLIF(SUM(a.Quantity),0),2) UnitCost,SUM(a.TotalCost) TotalCost
+            FROM dbo.SalesCostAllocations a JOIN dbo.Orders o ON o.OrderId=a.OrderId AND o.Source=@SeedMarker
+            GROUP BY a.InventoryTransactionId
+        )x ON x.InventoryTransactionId=t.InventoryTransactionId;
+
+        UPDATE ot SET ot.CostStatus=1,ot.TotalCogs=x.TotalCogs
+        FROM dbo.OrderToppings ot
+        JOIN(SELECT a.OrderToppingId,SUM(a.TotalCost) TotalCogs FROM dbo.SalesCostAllocations a
+             JOIN dbo.Orders o ON o.OrderId=a.OrderId AND o.Source=@SeedMarker WHERE a.OrderToppingId IS NOT NULL GROUP BY a.OrderToppingId)x
+          ON x.OrderToppingId=ot.OrderToppingId
+        WHERE NOT EXISTS(SELECT 1 FROM @IncompleteTopping z WHERE z.OrderToppingId=ot.OrderToppingId);
+
+        UPDATE ot SET ot.CostStatus=2,ot.TotalCogs=NULL
+        FROM dbo.OrderToppings ot JOIN @IncompleteTopping z ON z.OrderToppingId=ot.OrderToppingId;
+
+        UPDATE od SET od.CostStatus=1,od.TotalCogs=x.TotalCogs,od.UnitCogs=CONVERT(decimal(18,4),x.TotalCogs/NULLIF(od.Quantity,0))
+        FROM dbo.OrderDetails od
+        JOIN(SELECT a.OrderDetailId,SUM(a.TotalCost) TotalCogs FROM dbo.SalesCostAllocations a
+             JOIN dbo.Orders o ON o.OrderId=a.OrderId AND o.Source=@SeedMarker WHERE a.OrderToppingId IS NULL GROUP BY a.OrderDetailId)x
+          ON x.OrderDetailId=od.OrderDetailId
+        WHERE NOT EXISTS(SELECT 1 FROM @IncompleteDetail z WHERE z.OrderDetailId=od.OrderDetailId);
+
+        UPDATE od SET od.CostStatus=2,od.TotalCogs=NULL,od.UnitCogs=NULL
+        FROM dbo.OrderDetails od JOIN @IncompleteDetail z ON z.OrderDetailId=od.OrderDetailId;
+
+        IF EXISTS(
+            SELECT 1 FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId AND o.Source=@SeedMarker
+            WHERE od.CostStatus=0 OR (od.CostStatus=1 AND (od.TotalCogs IS NULL OR od.UnitCogs IS NULL OR ABS(od.UnitCogs*od.Quantity-od.TotalCogs)>0.02))
+               OR (od.CostStatus=2 AND (od.TotalCogs IS NOT NULL OR od.UnitCogs IS NOT NULL))
+        ) OR EXISTS(
+            SELECT 1 FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId JOIN dbo.Orders o ON o.OrderId=od.OrderId AND o.Source=@SeedMarker
+            WHERE ot.CostStatus=0 OR (ot.CostStatus=1 AND ot.TotalCogs IS NULL) OR (ot.CostStatus=2 AND ot.TotalCogs IS NOT NULL)
+        ) THROW 53452,N'DEMO_REORDER_V14: line COGS status/evidence không nhất quán.',1;
+
+        /* Complete only when every line has complete evidence. Incomplete orders never store a partial known COGS. */
+        UPDATE o SET o.CostStatus=1,o.TotalCogs=x.TotalCogs,o.GrossProfit=o.Total-x.TotalCogs,o.CostedAtUtc=o.CreatedAt
+        FROM dbo.Orders o
+        CROSS APPLY(
+            SELECT CONVERT(decimal(18,2),
+              ISNULL((SELECT SUM(od.TotalCogs) FROM dbo.OrderDetails od WHERE od.OrderId=o.OrderId),0)+
+              ISNULL((SELECT SUM(ot.TotalCogs) FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId WHERE od.OrderId=o.OrderId),0)) TotalCogs
+        )x
+        WHERE o.Source=@SeedMarker
+          AND NOT EXISTS(SELECT 1 FROM dbo.OrderDetails od WHERE od.OrderId=o.OrderId AND od.CostStatus<>1)
+          AND NOT EXISTS(SELECT 1 FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId WHERE od.OrderId=o.OrderId AND ot.CostStatus<>1);
+
+        UPDATE o SET o.CostStatus=2,o.TotalCogs=NULL,o.GrossProfit=NULL,o.CostedAtUtc=NULL
+        FROM dbo.Orders o
+        WHERE o.Source=@SeedMarker
+          AND (EXISTS(SELECT 1 FROM dbo.OrderDetails od WHERE od.OrderId=o.OrderId AND od.CostStatus=2)
+            OR EXISTS(SELECT 1 FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId WHERE od.OrderId=o.OrderId AND ot.CostStatus=2));
+
+
+        IF EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE AvailableQty<0)
+        OR EXISTS(SELECT 1 FROM dbo.InventoryCostLayers WHERE RemainingQuantity<0)
+            THROW 53453,N'DEMO_REORDER_V14: sales consumption làm tồn/layer âm.',1;
+    END
+    ELSE
+    BEGIN
+        UPDATE t SET t.CreatedAt=o.CreatedAt
+        FROM dbo.InventoryTransactions t JOIN dbo.Orders o ON o.OrderId=t.ReferenceOrderId AND o.Source=@SeedMarker
+        WHERE t.[Type]=7;
+        UPDATE a SET a.CreatedAtUtc=o.CreatedAt
+        FROM dbo.SalesCostAllocations a JOIN dbo.Orders o ON o.OrderId=a.OrderId AND o.Source=@SeedMarker;
+    END;
+
+    /* Rebase Store3 opening timestamps on replay only; quantity/layer remaining is never reset. */
+    IF @IsReplay=1
+    BEGIN
+        IF @Store3ReconcileDocId IS NOT NULL
+        BEGIN
+            UPDATE dbo.InventoryDocuments
+            SET DocumentDate=DATEADD(MINUTE,30,DATEADD(DAY,-29,@SeedDayUtc)),ConfirmedAt=DATEADD(MINUTE,30,DATEADD(DAY,-29,@SeedDayUtc))
+            WHERE InventoryDocumentId=@Store3ReconcileDocId;
+            UPDATE t SET t.CreatedAt=DATEADD(MINUTE,30,DATEADD(DAY,-29,@SeedDayUtc))
+            FROM dbo.InventoryTransactions t WHERE t.InventoryDocumentId=@Store3ReconcileDocId AND t.[Type]=9;
+        END;
+
+        UPDATE dbo.InventoryDocuments SET DocumentDate=DATEADD(HOUR,1,DATEADD(DAY,-29,@SeedDayUtc)),ConfirmedAt=DATEADD(HOUR,1,DATEADD(DAY,-29,@SeedDayUtc))
+        WHERE InventoryDocumentId=@Store3OpeningDocId;
+        UPDATE t SET t.CreatedAt=DATEADD(HOUR,1,DATEADD(DAY,-29,@SeedDayUtc))
+        FROM dbo.InventoryTransactions t WHERE t.InventoryDocumentId=@Store3OpeningDocId AND t.[Type]=8;
+        UPDATE l SET l.CreatedAt=DATEADD(HOUR,1,DATEADD(DAY,-29,@SeedDayUtc))
+        FROM dbo.InventoryCostLayers l JOIN dbo.InventoryDocumentDetails d ON d.InventoryDocumentDetailId=l.SourceInventoryDocumentDetailId
+        WHERE d.InventoryDocumentId=@Store3OpeningDocId;
+    END;
+
+    /* ------------------------------------------------------------
+       14.10 Acceptance gates for Reorder/POS/BOM/FIFO
+       ------------------------------------------------------------ */
+    IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=@SeedMarker AND StoreId=@Store1Id)<>50
+    OR (SELECT COUNT(*) FROM dbo.Orders WHERE Source=@SeedMarker AND StoreId=@Store3Id)<>50
+        THROW 53454,N'DEMO_REORDER_V14: phải có đúng 50 Orders mỗi Store.',1;
+
+    IF (SELECT COUNT(*) FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store1Id)<>54
+    OR (SELECT COUNT(*) FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store3Id)<>54
+        THROW 53455,N'DEMO_REORDER_V14: phải có đúng 54 OrderDetails mỗi Store.',1;
+
+    IF (SELECT COUNT(*) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store1Id AND p.PaymentStatusId=@PaidStatusId)<>50
+    OR (SELECT COUNT(*) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store3Id AND p.PaymentStatusId=@PaidStatusId)<>50
+        THROW 53456,N'DEMO_REORDER_V14: phải có đúng 50 paid Payments mỗi Store.',1;
+
+    IF (SELECT COUNT(*) FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store1Id)<>30
+    OR (SELECT COUNT(*) FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store3Id)<>30
+        THROW 53457,N'DEMO_REORDER_V14: phải có đúng 30 OrderToppings mỗi Store.',1;
+
+    IF (SELECT COUNT(*) FROM dbo.WorkShifts WHERE StoreId=@Store1Id AND DiscrepancyReason LIKE N'DEMO_REORDER_V14_SHIFT_S1_%' AND Status=N'Closed')<>30
+    OR (SELECT COUNT(*) FROM dbo.WorkShifts WHERE StoreId=@Store3Id AND DiscrepancyReason LIKE N'DEMO_REORDER_V14_SHIFT_S3_%' AND Status=N'Closed')<>30
+        THROW 53458,N'DEMO_REORDER_V14: phải có đúng 30 closed WorkShifts mỗi Store.',1;
+
+    IF (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE StoreId=@Store1Id AND Notes LIKE N'DEMO_REORDER_V14_PROD_S1_%' AND Status=2)<>30
+    OR (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE StoreId=@Store3Id AND Notes LIKE N'DEMO_REORDER_V14_PROD_S3_%' AND Status=2)<>30
+        THROW 53459,N'DEMO_REORDER_V14: phải có đúng 30 completed ProductionRuns mỗi Store.',1;
+
+    /* Recompute expected production BOM demand from current RecipeDetails and compare to durable movements. */
+    DECLARE @ExpectedProdCheck TABLE(
+        ProductionRunId int,StoreInventoryId int,SourceRecipeId int,Quantity decimal(18,3),
+        PRIMARY KEY(ProductionRunId,StoreInventoryId,SourceRecipeId));
+    INSERT @ExpectedProdCheck(ProductionRunId,StoreInventoryId,SourceRecipeId,Quantity)
+    SELECT x.ProductionRunId,x.StoreInventoryId,x.SourceRecipeId,SUM(x.Quantity)
+    FROM(
+        SELECT pr.ProductionRunId,si.StoreInventoryId,pr.RecipeId SourceRecipeId,
+               CONVERT(decimal(18,3),ROUND(rd.Quantity*pr.RequestedRunCount*
+                 CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END,3)) Quantity
+        FROM dbo.ProductionRuns pr
+        JOIN dbo.RecipeDetails rd ON rd.RecipeId=pr.RecipeId AND rd.IngredientId IS NOT NULL
+        JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+        JOIN dbo.StoreInventories si ON si.StoreId=pr.StoreId AND si.IngredientId=rd.IngredientId
+        LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId
+             AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
+        WHERE pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+          AND (rd.UnitId=i.BaseUnitId OR uc.UnitConversionId IS NOT NULL)
+        UNION ALL
+        SELECT pr.ProductionRunId,si.StoreInventoryId,cr.RecipeId,
+               CONVERT(decimal(18,3),rd.Quantity*pr.RequestedRunCount)
+        FROM dbo.ProductionRuns pr
+        JOIN dbo.RecipeDetails rd ON rd.RecipeId=pr.RecipeId AND rd.ChildRecipeId IS NOT NULL
+        JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
+        JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
+        JOIN dbo.StoreInventories si ON si.StoreId=pr.StoreId AND si.RecipeId=cr.RecipeId
+             AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+        WHERE pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%' AND rd.UnitId=pi.BaseUnitId
+    )x
+    GROUP BY x.ProductionRunId,x.StoreInventoryId,x.SourceRecipeId;
+
+    IF EXISTS(
+        SELECT 1
+        FROM @ExpectedProdCheck e
+        FULL OUTER JOIN(
+            SELECT t.ProductionRunId,t.StoreInventoryId,t.SourceRecipeId,SUM(t.Quantity) Quantity,COUNT(*) TxCount
+            FROM dbo.InventoryTransactions t
+            JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId AND pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+            WHERE t.[Type]=6
+            GROUP BY t.ProductionRunId,t.StoreInventoryId,t.SourceRecipeId
+        )a ON a.ProductionRunId=e.ProductionRunId AND a.StoreInventoryId=e.StoreInventoryId AND a.SourceRecipeId=e.SourceRecipeId
+        WHERE e.ProductionRunId IS NULL OR a.ProductionRunId IS NULL OR a.TxCount<>1 OR ABS(e.Quantity-a.Quantity)>0.001
+    ) THROW 53490,N'DEMO_REORDER_V14: PRODUCTION_OUT payload không khớp BOM đã quy đổi base unit.',1;
+
+    IF EXISTS(
+        SELECT 1
+        FROM dbo.ProductionRuns pr
+        JOIN dbo.Recipes r ON r.RecipeId=pr.RecipeId
+        LEFT JOIN dbo.StoreInventories si ON si.StoreId=pr.StoreId AND si.RecipeId=r.RecipeId
+             AND si.PreparedItemId=r.PreparedItemId AND si.BtpIdentityState=1
+        LEFT JOIN dbo.InventoryTransactions t ON t.ProductionRunId=pr.ProductionRunId AND t.StoreInventoryId=si.StoreInventoryId AND t.[Type]=5
+        LEFT JOIN dbo.InventoryCostLayers l ON l.SourceProductionRunId=pr.ProductionRunId
+        WHERE pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+          AND (si.StoreInventoryId IS NULL OR t.InventoryTransactionId IS NULL OR l.InventoryCostLayerId IS NULL
+            OR t.SourceRecipeId<>pr.RecipeId OR t.Quantity<>CONVERT(decimal(18,3),r.OutputQuantity)
+            OR ABS((t.AfterQty-t.BeforeQty)-t.Quantity)>0.001 OR t.TotalCost<>pr.TotalInputCost
+            OR l.PreparedItemId<>r.PreparedItemId OR l.IngredientId IS NOT NULL OR l.StoreId<>pr.StoreId
+            OR l.Quantity<>CONVERT(decimal(18,3),r.OutputQuantity) OR l.RemainingQuantity<0 OR l.RemainingQuantity>l.Quantity
+            OR ABS(l.UnitCost-ROUND(pr.OutputUnitCost,2))>0.01)
+    ) THROW 53491,N'DEMO_REORDER_V14: PRODUCTION_IN/output cost-layer payload drift.',1;
+
+    /* Recompute sales/topping demand to verify transaction quantity and allocation attribution on replay too. */
+    DECLARE @ExpectedSalesCheck TABLE(
+        StoreId int,OrderId int,OrderDetailId int,OrderToppingId int NULL,StoreInventoryId int,
+        IngredientId int NULL,PreparedItemId int NULL,SourceRecipeId int,Quantity decimal(18,3));
+
+    INSERT @ExpectedSalesCheck
+    SELECT o.StoreId,o.OrderId,od.OrderDetailId,NULL,si.StoreInventoryId,rd.IngredientId,NULL,r.RecipeId,
+           CONVERT(decimal(18,3),ROUND(rd.Quantity*od.Quantity*
+             CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END,3))
+    FROM dbo.Orders o JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId
+    JOIN dbo.Recipes r ON r.DrinkId=od.DrinkId AND r.SizeId=od.SizeId AND r.Active=1 AND r.Status=N'Active'
+    JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.IngredientId IS NOT NULL
+    JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+    JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.IngredientId=rd.IngredientId
+    LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
+    WHERE o.Source=@SeedMarker AND (rd.UnitId=i.BaseUnitId OR uc.UnitConversionId IS NOT NULL);
+
+    INSERT @ExpectedSalesCheck
+    SELECT o.StoreId,o.OrderId,od.OrderDetailId,NULL,si.StoreInventoryId,NULL,cr.PreparedItemId,cr.RecipeId,
+           CONVERT(decimal(18,3),rd.Quantity*od.Quantity)
+    FROM dbo.Orders o JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId
+    JOIN dbo.Recipes r ON r.DrinkId=od.DrinkId AND r.SizeId=od.SizeId AND r.Active=1 AND r.Status=N'Active'
+    JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
+    JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
+    JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
+    JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+    WHERE o.Source=@SeedMarker AND rd.UnitId=pi.BaseUnitId;
+
+    INSERT @ExpectedSalesCheck
+    SELECT o.StoreId,o.OrderId,od.OrderDetailId,ot.OrderToppingId,si.StoreInventoryId,rd.IngredientId,NULL,r.RecipeId,
+           CONVERT(decimal(18,3),ROUND(rd.Quantity*pol.QuantityPerDrink*
+             CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END,3))
+    FROM dbo.Orders o JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId JOIN dbo.OrderToppings ot ON ot.OrderDetailId=od.OrderDetailId
+    JOIN dbo.DrinkSizeToppingPolicies pol ON pol.DrinkSizeId=od.DrinkSizeId AND pol.ToppingId=ot.ToppingId AND pol.IsActive=1 AND pol.CostTreatment=N'ADD_TOPPING_RECIPE_COST'
+    JOIN dbo.Recipes r ON r.ToppingId=ot.ToppingId AND r.Active=1 AND r.Status=N'Active'
+    JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.IngredientId IS NOT NULL
+    JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
+    JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.IngredientId=rd.IngredientId
+    LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
+    WHERE o.Source=@SeedMarker AND (rd.UnitId=i.BaseUnitId OR uc.UnitConversionId IS NOT NULL);
+
+    INSERT @ExpectedSalesCheck
+    SELECT o.StoreId,o.OrderId,od.OrderDetailId,ot.OrderToppingId,si.StoreInventoryId,NULL,cr.PreparedItemId,cr.RecipeId,
+           CONVERT(decimal(18,3),rd.Quantity*pol.QuantityPerDrink)
+    FROM dbo.Orders o JOIN dbo.OrderDetails od ON od.OrderId=o.OrderId JOIN dbo.OrderToppings ot ON ot.OrderDetailId=od.OrderDetailId
+    JOIN dbo.DrinkSizeToppingPolicies pol ON pol.DrinkSizeId=od.DrinkSizeId AND pol.ToppingId=ot.ToppingId AND pol.IsActive=1 AND pol.CostTreatment=N'ADD_TOPPING_RECIPE_COST'
+    JOIN dbo.Recipes r ON r.ToppingId=ot.ToppingId AND r.Active=1 AND r.Status=N'Active'
+    JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
+    JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId AND cr.PreparedItemId IS NOT NULL
+    JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
+    JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+    WHERE o.Source=@SeedMarker AND rd.UnitId=pi.BaseUnitId;
+
+    IF EXISTS(
+        SELECT 1
+        FROM(
+            SELECT OrderId,StoreInventoryId,SourceRecipeId,SUM(Quantity) Quantity
+            FROM @ExpectedSalesCheck GROUP BY OrderId,StoreInventoryId,SourceRecipeId
+        )e
+        FULL OUTER JOIN(
+            SELECT t.ReferenceOrderId OrderId,t.StoreInventoryId,t.SourceRecipeId,SUM(t.Quantity) Quantity,COUNT(*) TxCount
+            FROM dbo.InventoryTransactions t JOIN dbo.Orders o ON o.OrderId=t.ReferenceOrderId AND o.Source=@SeedMarker
+            WHERE t.[Type]=7 GROUP BY t.ReferenceOrderId,t.StoreInventoryId,t.SourceRecipeId
+        )a ON a.OrderId=e.OrderId AND a.StoreInventoryId=e.StoreInventoryId AND a.SourceRecipeId=e.SourceRecipeId
+        WHERE e.OrderId IS NULL OR a.OrderId IS NULL OR a.TxCount<>1 OR ABS(e.Quantity-a.Quantity)>0.001
+    ) THROW 53492,N'DEMO_REORDER_V14: SALES_DEDUCTION payload không khớp BOM/policy đã quy đổi base unit.',1;
+
+    IF EXISTS(
+        SELECT 1
+        FROM(
+            SELECT OrderId,OrderDetailId,OrderToppingId,StoreInventoryId,SourceRecipeId,SUM(Quantity) Quantity
+            FROM @ExpectedSalesCheck
+            GROUP BY OrderId,OrderDetailId,OrderToppingId,StoreInventoryId,SourceRecipeId
+        )e
+        FULL OUTER JOIN(
+            SELECT a.OrderId,a.OrderDetailId,a.OrderToppingId,t.StoreInventoryId,t.SourceRecipeId,SUM(a.Quantity) Quantity
+            FROM dbo.SalesCostAllocations a
+            JOIN dbo.InventoryTransactions t ON t.InventoryTransactionId=a.InventoryTransactionId AND t.[Type]=7
+            JOIN dbo.Orders o ON o.OrderId=a.OrderId AND o.Source=@SeedMarker
+            GROUP BY a.OrderId,a.OrderDetailId,a.OrderToppingId,t.StoreInventoryId,t.SourceRecipeId
+        )a ON a.OrderId=e.OrderId AND a.OrderDetailId=e.OrderDetailId
+            AND ISNULL(a.OrderToppingId,-1)=ISNULL(e.OrderToppingId,-1)
+            AND a.StoreInventoryId=e.StoreInventoryId AND a.SourceRecipeId=e.SourceRecipeId
+        WHERE e.OrderId IS NULL OR a.OrderId IS NULL OR ABS(e.Quantity-a.Quantity)>0.001
+    ) THROW 53493,N'DEMO_REORDER_V14: SalesCostAllocation attribution không khớp OrderDetail/Topping BOM demand.',1;
+
+    IF (SELECT COUNT(*) FROM dbo.InventoryTransactions t JOIN dbo.StoreInventories si ON si.StoreInventoryId=t.StoreInventoryId
+        WHERE si.StoreId=@Store1Id AND t.[Type] IN(6,7) AND t.CreatedAt>=@WindowStartUtc AND t.CreatedAt<=@SeedAnchorUtc)<30
+    OR (SELECT COUNT(*) FROM dbo.InventoryTransactions t JOIN dbo.StoreInventories si ON si.StoreInventoryId=t.StoreInventoryId
+        WHERE si.StoreId=@Store3Id AND t.[Type] IN(6,7) AND t.CreatedAt>=@WindowStartUtc AND t.CreatedAt<=@SeedAnchorUtc)<30
+        THROW 53460,N'DEMO_REORDER_V14: thiếu 30 movement tiêu thụ hợp lệ trong rolling 30 days.',1;
+
+    IF (SELECT COUNT(*) FROM dbo.SalesCostAllocations a JOIN dbo.Orders o ON o.OrderId=a.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store1Id)<30
+    OR (SELECT COUNT(*) FROM dbo.SalesCostAllocations a JOIN dbo.Orders o ON o.OrderId=a.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store3Id)<30
+        THROW 53461,N'DEMO_REORDER_V14: thiếu SalesCostAllocations.',1;
+
+    /* Allocation semantic integrity: Order/detail/topping/transaction/layer and cost identity must agree. */
+    IF EXISTS(
+        SELECT 1
+        FROM dbo.SalesCostAllocations a
+        JOIN dbo.Orders o ON o.OrderId=a.OrderId AND o.Source=@SeedMarker
+        LEFT JOIN dbo.OrderDetails od ON od.OrderDetailId=a.OrderDetailId
+        LEFT JOIN dbo.OrderToppings ot ON ot.OrderToppingId=a.OrderToppingId
+        LEFT JOIN dbo.InventoryTransactions t ON t.InventoryTransactionId=a.InventoryTransactionId
+        LEFT JOIN dbo.StoreInventories si ON si.StoreInventoryId=t.StoreInventoryId
+        LEFT JOIN dbo.InventoryCostLayers l ON l.InventoryCostLayerId=a.InventoryCostLayerId
+        WHERE od.OrderDetailId IS NULL OR od.OrderId<>a.OrderId
+           OR (a.OrderToppingId IS NOT NULL AND (ot.OrderToppingId IS NULL OR ot.OrderDetailId<>a.OrderDetailId))
+           OR t.InventoryTransactionId IS NULL OR t.[Type]<>7 OR t.ReferenceOrderId<>a.OrderId OR t.SourceRecipeId IS NULL
+           OR si.StoreInventoryId IS NULL OR si.StoreId<>o.StoreId OR l.InventoryCostLayerId IS NULL OR l.StoreId<>o.StoreId
+           OR a.Quantity<=0 OR a.UnitCost<>l.UnitCost OR ABS(a.TotalCost-ROUND(a.Quantity*a.UnitCost,2))>0.01
+           OR (a.IngredientId IS NULL AND a.PreparedItemId IS NULL)
+           OR (a.IngredientId IS NOT NULL AND a.PreparedItemId IS NOT NULL)
+           OR (a.IngredientId IS NOT NULL AND (ISNULL(si.IngredientId,-1)<>a.IngredientId OR si.PreparedItemId IS NOT NULL
+                OR ISNULL(l.IngredientId,-1)<>a.IngredientId OR l.PreparedItemId IS NOT NULL))
+           OR (a.PreparedItemId IS NOT NULL AND (ISNULL(si.PreparedItemId,-1)<>a.PreparedItemId OR si.IngredientId IS NOT NULL
+                OR ISNULL(l.PreparedItemId,-1)<>a.PreparedItemId OR l.IngredientId IS NOT NULL))
+    ) THROW 53496,N'DEMO_REORDER_V14: SalesCostAllocation semantic identity/link payload drift.',1;
+
+    IF EXISTS(
+        SELECT 1
+        FROM dbo.ProductionCostAllocations a
+        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=a.ProductionRunId AND pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+        LEFT JOIN dbo.InventoryTransactions t ON t.InventoryTransactionId=a.InventoryTransactionId
+        LEFT JOIN dbo.StoreInventories si ON si.StoreInventoryId=t.StoreInventoryId
+        LEFT JOIN dbo.InventoryCostLayers l ON l.InventoryCostLayerId=a.InventoryCostLayerId
+        WHERE t.InventoryTransactionId IS NULL OR t.ProductionRunId<>a.ProductionRunId OR t.[Type]<>6
+           OR si.StoreInventoryId IS NULL OR si.StoreId<>pr.StoreId OR l.InventoryCostLayerId IS NULL OR l.StoreId<>pr.StoreId
+           OR a.Quantity<=0 OR a.UnitCost<>l.UnitCost OR ABS(a.TotalCost-ROUND(a.Quantity*a.UnitCost,2))>0.01
+           OR (si.IngredientId IS NOT NULL AND (ISNULL(l.IngredientId,-1)<>si.IngredientId OR l.PreparedItemId IS NOT NULL))
+           OR (si.PreparedItemId IS NOT NULL AND (ISNULL(l.PreparedItemId,-1)<>si.PreparedItemId OR l.IngredientId IS NOT NULL))
+    ) THROW 53497,N'DEMO_REORDER_V14: ProductionCostAllocation semantic identity/link payload drift.',1;
+
+    /* Strong FIFO invariant: a younger layer may not be allocated while an older eligible layer still has quantity. */
+    IF EXISTS(
+        SELECT 1
+        FROM dbo.SalesCostAllocations a
+        JOIN dbo.Orders o ON o.OrderId=a.OrderId AND o.Source=@SeedMarker
+        JOIN dbo.InventoryTransactions t ON t.InventoryTransactionId=a.InventoryTransactionId
+        JOIN dbo.InventoryCostLayers l ON l.InventoryCostLayerId=a.InventoryCostLayerId
+        WHERE EXISTS(
+            SELECT 1 FROM dbo.InventoryCostLayers older
+            WHERE older.StoreId=l.StoreId AND older.RemainingQuantity>0 AND older.CreatedAt<=t.CreatedAt
+              AND ((l.IngredientId IS NOT NULL AND older.IngredientId=l.IngredientId AND older.PreparedItemId IS NULL)
+                OR (l.PreparedItemId IS NOT NULL AND older.PreparedItemId=l.PreparedItemId AND older.IngredientId IS NULL))
+              AND (older.CreatedAt<l.CreatedAt OR (older.CreatedAt=l.CreatedAt AND older.InventoryCostLayerId<l.InventoryCostLayerId))
+        )
+    ) OR EXISTS(
+        SELECT 1
+        FROM dbo.ProductionCostAllocations a
+        JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=a.ProductionRunId AND pr.Notes LIKE N'DEMO_REORDER_V14_PROD_S%'
+        JOIN dbo.InventoryTransactions t ON t.InventoryTransactionId=a.InventoryTransactionId
+        JOIN dbo.InventoryCostLayers l ON l.InventoryCostLayerId=a.InventoryCostLayerId
+        WHERE EXISTS(
+            SELECT 1 FROM dbo.InventoryCostLayers older
+            WHERE older.StoreId=l.StoreId AND older.RemainingQuantity>0 AND older.CreatedAt<=t.CreatedAt
+              AND ((l.IngredientId IS NOT NULL AND older.IngredientId=l.IngredientId AND older.PreparedItemId IS NULL)
+                OR (l.PreparedItemId IS NOT NULL AND older.PreparedItemId=l.PreparedItemId AND older.IngredientId IS NULL))
+              AND (older.CreatedAt<l.CreatedAt OR (older.CreatedAt=l.CreatedAt AND older.InventoryCostLayerId<l.InventoryCostLayerId))
+        )
+    ) THROW 53498,N'DEMO_REORDER_V14: phát hiện allocation vi phạm FIFO layer ordering.',1;
+
+    IF (SELECT COUNT(*) FROM dbo.StoreInventories WHERE StoreId=@Store1Id AND IngredientId IS NOT NULL)<50
+    OR (SELECT COUNT(*) FROM dbo.StoreInventories WHERE StoreId=@Store3Id AND IngredientId IS NOT NULL)<50
+        THROW 53462,N'DEMO_REORDER_V14: mỗi Store phải có ít nhất 50 ingredient StoreInventories.',1;
+
+    IF (SELECT COUNT(*) FROM dbo.InventoryCostLayers l JOIN dbo.InventoryDocumentDetails d ON d.InventoryDocumentDetailId=l.SourceInventoryDocumentDetailId WHERE d.InventoryDocumentId=@Store3OpeningDocId)<50
+        THROW 53463,N'DEMO_REORDER_V14: Store 3 phải có ít nhất 50 opening cost layers.',1;
+
+    IF EXISTS(
+        SELECT 1
+        FROM dbo.InventoryDocumentDetails seedLine
+        JOIN dbo.InventoryDocuments seedDoc ON seedDoc.InventoryDocumentId=seedLine.InventoryDocumentId AND seedDoc.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS'
+        JOIN dbo.Ingredients i ON i.IngredientId=seedLine.IngredientId AND i.Active=1
+        WHERE NOT EXISTS(
+              SELECT 1
+              FROM dbo.StoreInventories si
+              JOIN dbo.InventoryTransactions t ON t.StoreInventoryId=si.StoreInventoryId
+              WHERE si.StoreId=@Store1Id AND si.IngredientId=i.IngredientId AND t.[Type] IN(6,7)
+                AND t.CreatedAt>=@WindowStartUtc AND t.CreatedAt<=@SeedAnchorUtc
+          )
+    ) THROW 53464,N'DEMO_REORDER_V14: Store 1 còn ingredient không có consumption movement thật trong rolling 30 days.',1;
+
+    IF EXISTS(
+        SELECT 1
+        FROM dbo.InventoryDocumentDetails seedLine
+        JOIN dbo.InventoryDocuments seedDoc ON seedDoc.InventoryDocumentId=seedLine.InventoryDocumentId AND seedDoc.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS'
+        JOIN dbo.Ingredients i ON i.IngredientId=seedLine.IngredientId AND i.Active=1
+        WHERE NOT EXISTS(
+              SELECT 1
+              FROM dbo.StoreInventories si
+              JOIN dbo.InventoryTransactions t ON t.StoreInventoryId=si.StoreInventoryId
+              WHERE si.StoreId=@Store3Id AND si.IngredientId=i.IngredientId AND t.[Type] IN(6,7)
+                AND t.CreatedAt>=@WindowStartUtc AND t.CreatedAt<=@SeedAnchorUtc
+          )
+    ) THROW 53465,N'DEMO_REORDER_V14: Store 3 còn ingredient không có consumption movement thật trong rolling 30 days.',1;
+
+    IF EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE StoreId IN(@Store1Id,@Store3Id) AND AvailableQty<0)
+    OR EXISTS(SELECT 1 FROM dbo.InventoryCostLayers WHERE StoreId IN(@Store1Id,@Store3Id) AND RemainingQuantity<0)
+        THROW 53466,N'DEMO_REORDER_V14: invariant no-negative stock/layer bị vi phạm.',1;
+
+    IF EXISTS(
+        SELECT 1 FROM dbo.Orders o WHERE o.Source=@SeedMarker
+          AND (o.CostStatus NOT IN(1,2)
+            OR (o.CostStatus=1 AND (o.TotalCogs IS NULL OR o.GrossProfit IS NULL OR o.CostedAtUtc IS NULL
+                OR ABS(o.GrossProfit-(o.Total-o.TotalCogs))>0.01
+                OR ABS(o.TotalCogs-(
+                    ISNULL((SELECT SUM(od.TotalCogs) FROM dbo.OrderDetails od WHERE od.OrderId=o.OrderId),0)
+                   +ISNULL((SELECT SUM(ot.TotalCogs) FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId WHERE od.OrderId=o.OrderId),0)))>0.01))
+            OR (o.CostStatus=2 AND (o.TotalCogs IS NOT NULL OR o.GrossProfit IS NOT NULL OR o.CostedAtUtc IS NOT NULL)))
+    ) THROW 53467,N'DEMO_REORDER_V14: Order CostStatus/COGS evidence không nhất quán.',1;
+
+    IF EXISTS(
+        SELECT 1 FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId AND o.Source=@SeedMarker
+        WHERE od.CostStatus NOT IN(1,2)
+           OR (od.CostStatus=1 AND (od.TotalCogs IS NULL OR od.UnitCogs IS NULL OR ABS(od.UnitCogs*od.Quantity-od.TotalCogs)>0.02))
+           OR (od.CostStatus=2 AND (od.TotalCogs IS NOT NULL OR od.UnitCogs IS NOT NULL))
+    ) OR EXISTS(
+        SELECT 1 FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId
+        JOIN dbo.Orders o ON o.OrderId=od.OrderId AND o.Source=@SeedMarker
+        WHERE ot.CostStatus NOT IN(1,2)
+           OR (ot.CostStatus=1 AND ot.TotalCogs IS NULL)
+           OR (ot.CostStatus=2 AND ot.TotalCogs IS NOT NULL)
+    ) THROW 53480,N'DEMO_REORDER_V14: detail/topping CostStatus/COGS evidence không nhất quán.',1;
+
+    IF EXISTS(
+        SELECT 1 FROM dbo.Orders o WHERE o.Source=@SeedMarker AND o.CostStatus=1
+          AND (EXISTS(SELECT 1 FROM dbo.OrderDetails od WHERE od.OrderId=o.OrderId AND od.CostStatus<>1)
+            OR EXISTS(SELECT 1 FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId WHERE od.OrderId=o.OrderId AND ot.CostStatus<>1))
+    ) OR EXISTS(
+        SELECT 1 FROM dbo.Orders o WHERE o.Source=@SeedMarker AND o.CostStatus=2
+          AND NOT (EXISTS(SELECT 1 FROM dbo.OrderDetails od WHERE od.OrderId=o.OrderId AND od.CostStatus=2)
+            OR EXISTS(SELECT 1 FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId WHERE od.OrderId=o.OrderId AND ot.CostStatus=2))
+    ) THROW 53481,N'DEMO_REORDER_V14: Order CostStatus không khớp line evidence.',1;
+
+    /* Incomplete is allowed only for an actual legacy ChildRecipe without a valid PreparedItem cost identity. */
+    IF EXISTS(
+        SELECT 1 FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId AND o.Source=@SeedMarker
+        WHERE od.CostStatus=2
+          AND NOT EXISTS(
+              SELECT 1 FROM dbo.Recipes r JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
+              JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId
+              LEFT JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
+              LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+              WHERE r.DrinkId=od.DrinkId AND r.SizeId=od.SizeId AND r.Active=1 AND r.Status=N'Active'
+                AND (cr.PreparedItemId IS NULL OR pi.PreparedItemId IS NULL OR rd.UnitId<>pi.BaseUnitId OR si.StoreInventoryId IS NULL)
+          )
+    ) THROW 53470,N'DEMO_REORDER_V14: có Incomplete detail không được giải thích bởi legacy BTP identity.',1;
+
+    IF EXISTS(
+        SELECT 1 FROM dbo.OrderToppings ot
+        JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId
+        JOIN dbo.Orders o ON o.OrderId=od.OrderId AND o.Source=@SeedMarker
+        WHERE ot.CostStatus=2
+          AND NOT EXISTS(
+              SELECT 1 FROM dbo.Recipes r
+              JOIN dbo.RecipeDetails rd ON rd.RecipeId=r.RecipeId AND rd.ChildRecipeId IS NOT NULL
+              JOIN dbo.Recipes cr ON cr.RecipeId=rd.ChildRecipeId
+              LEFT JOIN dbo.PreparedItems pi ON pi.PreparedItemId=cr.PreparedItemId
+              LEFT JOIN dbo.StoreInventories si ON si.StoreId=o.StoreId AND si.RecipeId=cr.RecipeId
+                   AND si.PreparedItemId=cr.PreparedItemId AND si.BtpIdentityState=1
+              WHERE r.ToppingId=ot.ToppingId AND r.Active=1 AND r.Status=N'Active'
+                AND (cr.PreparedItemId IS NULL OR pi.PreparedItemId IS NULL OR rd.UnitId<>pi.BaseUnitId OR si.StoreInventoryId IS NULL)
+          )
+    ) THROW 53482,N'DEMO_REORDER_V14: có Incomplete topping không được giải thích bởi legacy BTP identity.',1;
+
+    /* Reorder prerequisites: 50 ingredients/store, min threshold + real 30-day usage + active offer/scope. */
+    IF EXISTS(
+        SELECT 1
+        FROM dbo.InventoryDocumentDetails seedLine
+        JOIN dbo.InventoryDocuments seedDoc ON seedDoc.InventoryDocumentId=seedLine.InventoryDocumentId AND seedDoc.RequestKey=N'DEMO_OPENING_STORE1_INGREDIENTS'
+        JOIN dbo.Ingredients i ON i.IngredientId=seedLine.IngredientId AND i.Active=1
+        CROSS JOIN (VALUES(@Store1Id),(@Store3Id))s(StoreId)
+        LEFT JOIN dbo.StoreInventories si ON si.StoreId=s.StoreId AND si.IngredientId=i.IngredientId
+        WHERE si.StoreInventoryId IS NULL OR si.MinStockLevel IS NULL
+    ) THROW 53468,N'DEMO_REORDER_V14: Reorder prerequisite thiếu StoreInventory/minimum threshold.',1;
+
+    /* This batch deliberately never inserts PA/PO/Receiving nor SalesCostGap. */
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF CURSOR_STATUS('local','prod_cursor')>=0
+    BEGIN
+        CLOSE prod_cursor;
+        DEALLOCATE prod_cursor;
+    END;
+    IF CURSOR_STATUS('local','topping_store_cursor')>=0
+    BEGIN
+        CLOSE topping_store_cursor;
+        DEALLOCATE topping_store_cursor;
+    END;
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+
+SELECT N'DEMO_REORDER_V14' AS SeedMarker,
+       SYSUTCDATETIME() AS VerifiedAtUtc,
+       (SELECT COUNT(*) FROM dbo.Orders o JOIN dbo.Stores s ON s.StoreId=o.StoreId WHERE o.Source=N'DEMO_REORDER_V14' AND s.Name=N'CafeChain Thủ Dầu Một') AS Store1Orders,
+       (SELECT COUNT(*) FROM dbo.Orders o JOIN dbo.Stores s ON s.StoreId=o.StoreId WHERE o.Source=N'DEMO_REORDER_V14' AND s.Name=N'CafeChain Dĩ An') AS Store3Orders,
+       (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE N'DEMO_REORDER_V14_PROD_S%') AS ProductionRuns,
+       (SELECT COUNT(*) FROM dbo.WorkShifts WHERE DiscrepancyReason LIKE N'DEMO_REORDER_V14_SHIFT_S%') AS WorkShifts,
+       (SELECT COUNT(*) FROM dbo.Payments WHERE TransactionCode LIKE N'DEMO_REORDER_V14_PAY_S%') AS Payments;
+GO
+
+/* ================================================================
+   BATCH 15 - AI DASHBOARD ROLLING FIXTURE
+   Marker: DEMO_AI_DASHBOARD_ROLLING_V1
+
+   This fixture complements the fixed V13 contract with current-window
+   order status/refund, waste, reorder and procurement evidence. It does
+   not alter POS flow or existing user data.
    ================================================================ */
 SET XACT_ABORT ON;
 BEGIN TRY
- BEGIN TRANSACTION;
+    BEGIN TRANSACTION;
 
- DECLARE @SeedMarker nvarchar(50)=N'DEMO_REORDER_V14';
- DECLARE @SeedAnchorUtc datetime2=DATEADD(day,DATEDIFF(day,0,SYSUTCDATETIME()),0);
- DECLARE @OwnerStaffId int,@OwnerAccountId int,@Store3StaffId int,@Store3AccountId int;
- DECLARE @StoreRoleId int,@StoreScopeTypeId int;
+    DECLARE @AiDay datetime2(0)=DATEADD(DAY,DATEDIFF(DAY,0,SYSUTCDATETIME()),0);
+    DECLARE @AiStore1StaffId int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=1 AND Active=1 ORDER BY StaffId);
+    DECLARE @AiStore3StaffId int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=3 AND Active=1 ORDER BY StaffId);
+    DECLARE @AiCoffeeIngredientId int=(SELECT IngredientId FROM dbo.Ingredients WHERE Code=N'DEMO_ING_VIET_COFFEE');
+    DECLARE @AiCoffeeOfferId int=(SELECT IngredientSupplierId FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=10 AND Active=1);
+    DECLARE @AiCoffeeSupplierId int=(SELECT SupplierId FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=@AiCoffeeOfferId);
 
- IF OBJECT_ID(N'dbo.Orders',N'U') IS NULL
- OR OBJECT_ID(N'dbo.OrderDetails',N'U') IS NULL
- OR OBJECT_ID(N'dbo.Payments',N'U') IS NULL
- OR OBJECT_ID(N'dbo.InventoryTransactions',N'U') IS NULL
- OR OBJECT_ID(N'dbo.InventoryCostLayers',N'U') IS NULL
- OR OBJECT_ID(N'dbo.SalesCostAllocations',N'U') IS NULL
- OR OBJECT_ID(N'dbo.ProductionRuns',N'U') IS NULL
- OR OBJECT_ID(N'dbo.ProductionCostAllocations',N'U') IS NULL
-  THROW 53400,N'Schema thiếu bảng bắt buộc của SeedAll Batch 14.',1;
+    IF @AiStore1StaffId IS NULL OR @AiStore3StaffId IS NULL OR @AiCoffeeIngredientId IS NULL
+        THROW 53500,N'AI rolling fixture requires active staff at Store 1/3 and coffee ingredient.',1;
 
- IF NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE StoreId=1 AND Active=1)
- OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE StoreId=3 AND Active=1)
-  THROW 53401,N'Batch 14 yêu cầu Store 1 và Store 3 đang hoạt động.',1;
+    DECLARE @AiOrders TABLE
+    (
+        ClientOrderId uniqueidentifier PRIMARY KEY,
+        StoreId int NOT NULL,
+        StaffId int NOT NULL,
+        CreatedAt datetime2(0) NOT NULL,
+        OrderStatusId int NOT NULL,
+        PaymentStatusId int NOT NULL,
+        PaymentMethodId int NOT NULL,
+        DrinkCode nvarchar(50) NOT NULL,
+        SizeCode nvarchar(20) NOT NULL,
+        Quantity int NOT NULL,
+        Total decimal(18,2) NOT NULL,
+        CostStatus int NOT NULL,
+        TotalCogs decimal(18,2) NULL,
+        RefundKey uniqueidentifier NULL
+    );
 
- SELECT TOP(1) @OwnerStaffId=s.StaffId,@OwnerAccountId=s.AccountId
- FROM dbo.Staffs s
- JOIN dbo.Accounts a ON a.AccountId=s.AccountId AND a.Active=1
- JOIN dbo.AccountRoles ar ON ar.AccountId=a.AccountId
- JOIN dbo.Roles r ON r.RoleId=ar.RoleId AND r.Active=1
- WHERE s.Active=1 AND r.Name=N'Chủ doanh nghiệp'
- ORDER BY s.StaffId;
- SELECT @StoreRoleId=RoleId FROM dbo.Roles WHERE Name=N'Nhân viên bán hàng' AND Active=1;
- SELECT @StoreScopeTypeId=ScopeTypeId FROM dbo.ScopeTypes WHERE Code=N'STORE';
- IF @OwnerStaffId IS NULL OR @OwnerAccountId IS NULL OR @StoreRoleId IS NULL OR @StoreScopeTypeId IS NULL
-  THROW 53402,N'Thiếu Owner, role bán hàng hoặc scope STORE cho Batch 14.',1;
+    INSERT @AiOrders VALUES
+    ('41000000-0000-0000-0001-000000000001',1,@AiStore1StaffId,DATEADD(DAY,-1,@AiDay),5,2,1,N'CF_BacXiu',N'M',2,66000,1,20000,NULL),
+    ('41000000-0000-0000-0001-000000000002',1,@AiStore1StaffId,DATEADD(DAY,-2,@AiDay),5,2,2,N'CF_Latte',N'L',1,50000,1,17000,'42000000-0000-0000-0001-000000000002'),
+    ('41000000-0000-0000-0001-000000000003',1,@AiStore1StaffId,DATEADD(DAY,-3,@AiDay),5,2,3,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
+    ('41000000-0000-0000-0001-000000000004',1,@AiStore1StaffId,DATEADD(DAY,-4,@AiDay),5,2,1,N'CF_BacXiu',N'M',1,33000,1,10000,NULL),
+    ('41000000-0000-0000-0001-000000000005',1,@AiStore1StaffId,DATEADD(DAY,-5,@AiDay),4,1,1,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
+    ('41000000-0000-0000-0001-000000000006',1,@AiStore1StaffId,DATEADD(DAY,-6,@AiDay),4,1,2,N'CF_Latte',N'L',1,50000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000001',3,@AiStore3StaffId,DATEADD(DAY,-1,@AiDay),5,2,1,N'CF_BacXiu',N'M',1,33000,1,10000,NULL),
+    ('41000000-0000-0000-0003-000000000002',3,@AiStore3StaffId,DATEADD(DAY,-2,@AiDay),5,2,2,N'CF_Latte',N'L',2,100000,1,34000,NULL),
+    ('41000000-0000-0000-0003-000000000003',3,@AiStore3StaffId,DATEADD(DAY,-3,@AiDay),5,2,3,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000004',3,@AiStore3StaffId,DATEADD(DAY,-4,@AiDay),5,2,1,N'CF_BacXiu',N'M',1,33000,1,10000,'42000000-0000-0000-0003-000000000004'),
+    ('41000000-0000-0000-0003-000000000005',3,@AiStore3StaffId,DATEADD(DAY,-5,@AiDay),4,1,1,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000006',3,@AiStore3StaffId,DATEADD(DAY,-6,@AiDay),4,1,2,N'CF_Latte',N'L',1,50000,0,NULL,NULL),
+    ('41000000-0000-0000-0001-000000000007',1,@AiStore1StaffId,DATEADD(DAY,-7,@AiDay),5,2,1,N'TS_Matcha',N'M',2,74000,0,NULL,NULL),
+    ('41000000-0000-0000-0001-000000000008',1,@AiStore1StaffId,DATEADD(DAY,-8,@AiDay),5,2,2,N'CF_Latte',N'L',1,50000,1,17000,NULL),
+    ('41000000-0000-0000-0001-000000000009',1,@AiStore1StaffId,DATEADD(DAY,-9,@AiDay),5,2,3,N'CF_BacXiu',N'M',1,33000,1,10000,NULL),
+    ('41000000-0000-0000-0001-000000000010',1,@AiStore1StaffId,DATEADD(DAY,-10,@AiDay),4,1,1,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
+    ('41000000-0000-0000-0001-000000000011',1,@AiStore1StaffId,DATEADD(DAY,-11,@AiDay),5,2,2,N'CF_Latte',N'L',2,100000,1,34000,'42000000-0000-0000-0001-000000000011'),
+    ('41000000-0000-0000-0001-000000000012',1,@AiStore1StaffId,DATEADD(DAY,-12,@AiDay),5,2,1,N'CF_BacXiu',N'M',1,33000,1,10000,NULL),
+    ('41000000-0000-0000-0001-000000000013',1,@AiStore1StaffId,DATEADD(DAY,-13,@AiDay),4,1,3,N'CF_Latte',N'L',1,50000,0,NULL,NULL),
+    ('41000000-0000-0000-0001-000000000014',1,@AiStore1StaffId,DATEADD(DAY,-14,@AiDay),5,2,1,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
+    ('41000000-0000-0000-0001-000000000015',1,@AiStore1StaffId,DATEADD(DAY,-15,@AiDay),5,2,2,N'CF_BacXiu',N'M',2,66000,1,20000,NULL),
+    ('41000000-0000-0000-0003-000000000007',3,@AiStore3StaffId,DATEADD(DAY,-7,@AiDay),5,2,1,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000008',3,@AiStore3StaffId,DATEADD(DAY,-8,@AiDay),5,2,2,N'CF_Latte',N'L',1,50000,1,17000,NULL),
+    ('41000000-0000-0000-0003-000000000009',3,@AiStore3StaffId,DATEADD(DAY,-9,@AiDay),4,1,3,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000010',3,@AiStore3StaffId,DATEADD(DAY,-10,@AiDay),5,2,1,N'CF_BacXiu',N'M',2,66000,1,20000,NULL),
+    ('41000000-0000-0000-0003-000000000011',3,@AiStore3StaffId,DATEADD(DAY,-11,@AiDay),5,2,2,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000012',3,@AiStore3StaffId,DATEADD(DAY,-12,@AiDay),5,2,3,N'CF_Latte',N'L',2,100000,1,34000,'42000000-0000-0000-0003-000000000012'),
+    ('41000000-0000-0000-0003-000000000013',3,@AiStore3StaffId,DATEADD(DAY,-13,@AiDay),4,1,1,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000014',3,@AiStore3StaffId,DATEADD(DAY,-14,@AiDay),5,2,2,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000015',3,@AiStore3StaffId,DATEADD(DAY,-15,@AiDay),5,2,1,N'CF_Latte',N'L',1,50000,1,17000,NULL);
 
- /* Store 3 demo POS identity - business-key idempotent, no hard-coded identity. */
- IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=N'salesstaff.dian@cafechain.vn')
- BEGIN
-  INSERT dbo.Accounts(Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
-  SELECT N'salesstaff.dian@cafechain.vn',PasswordHash,1,0,'2026-01-01',0,NULL
-  FROM dbo.Accounts WHERE AccountId=@OwnerAccountId;
- END;
+    INSERT dbo.Orders
+    (
+        CustomerId,StoreId,OrderStatusId,PaymentStatusId,OrderTypeId,TableId,StaffId,WorkShiftId,
+        ClientOrderId,Source,Note,ShippingFee,SubTotal,VoucherDiscount,PointDiscount,PointsUsed,
+        Total,CostStatus,TotalCogs,GrossProfit,CostedAtUtc,CreatedAt
+    )
+    SELECT NULL,x.StoreId,x.OrderStatusId,x.PaymentStatusId,2,NULL,x.StaffId,NULL,
+           x.ClientOrderId,N'DEMO_AI_DASHBOARD_ROLLING_V1',
+           N'AI Dashboard rolling analytics fixture',0,x.Total,0,0,0,x.Total,x.CostStatus,
+           x.TotalCogs,CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.Total-x.TotalCogs END,
+           CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.CreatedAt END,x.CreatedAt
+    FROM @AiOrders x
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.Orders o WHERE o.ClientOrderId=x.ClientOrderId);
 
- SELECT @Store3AccountId=AccountId FROM dbo.Accounts WHERE Email=N'salesstaff.dian@cafechain.vn';
- IF @Store3AccountId IS NULL
-  THROW 53403,N'Không resolve được account POS Dĩ An.',1;
- UPDATE dbo.Accounts SET Active=1,RequiresPasswordChange=0 WHERE AccountId=@Store3AccountId;
+    INSERT dbo.OrderDetails
+    (
+        OrderId,DrinkId,SizeId,StoreMenuItemId,DrinkSizeId,DrinkName,SizeName,Price,
+        AcceptedBasePrice,PriceSource,AcceptedCatalogVersion,Quantity,Note,CostStatus,UnitCogs,TotalCogs
+    )
+    SELECT o.OrderId,d.DrinkId,s.SizeId,sm.StoreMenuItemId,ds.DrinkSizeId,d.Name,s.Name,
+           x.Total/NULLIF(x.Quantity,0),x.Total/NULLIF(x.Quantity,0),
+           N'DEMO_AI_DASHBOARD_ROLLING_V1',1,x.Quantity,
+           N'AI Dashboard rolling analytics fixture',x.CostStatus,
+           CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.TotalCogs/NULLIF(x.Quantity,0) END,x.TotalCogs
+    FROM @AiOrders x
+    JOIN dbo.Orders o ON o.ClientOrderId=x.ClientOrderId
+    JOIN dbo.Drinks d ON d.DrinkCode=x.DrinkCode
+    JOIN dbo.Sizes s ON s.SizeCode=x.SizeCode
+    JOIN dbo.DrinkSizes ds ON ds.DrinkId=d.DrinkId AND ds.SizeId=s.SizeId
+    LEFT JOIN dbo.StoreMenuItems sm ON sm.StoreId=x.StoreId AND sm.DrinkSizeId=ds.DrinkSizeId
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.OrderDetails od WHERE od.OrderId=o.OrderId);
 
- IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=@Store3AccountId AND RoleId=@StoreRoleId)
-  INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(@Store3AccountId,@StoreRoleId);
+    INSERT dbo.Payments
+    (
+        OrderId,Amount,ReceivedAmount,ChangeAmount,PaymentMethodId,PaymentStatusId,
+        CashSessionId,TransactionCode,PaidAt
+    )
+    SELECT o.OrderId,x.Total,x.Total,0,x.PaymentMethodId,2,NULL,
+           CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_',CONVERT(nvarchar(36),x.ClientOrderId)),x.CreatedAt
+    FROM @AiOrders x
+    JOIN dbo.Orders o ON o.ClientOrderId=x.ClientOrderId
+    WHERE x.OrderStatusId=5
+      AND NOT EXISTS
+      (
+          SELECT 1 FROM dbo.Payments p
+          WHERE p.TransactionCode=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_',CONVERT(nvarchar(36),x.ClientOrderId))
+      );
 
- IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=@Store3AccountId)
-  INSERT dbo.Staffs(AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,
-   StoreId,AvatarUrl,AvatarPublicId,Active,CreatedAt)
-  VALUES(@Store3AccountId,N'Nhân viên POS Dĩ An',NULL,1,'2026-01-01',2,NULL,3,NULL,NULL,1,'2026-01-01');
- SELECT @Store3StaffId=StaffId FROM dbo.Staffs WHERE AccountId=@Store3AccountId;
- IF @Store3StaffId IS NULL
-  THROW 53404,N'Không resolve được Staff POS Dĩ An.',1;
- UPDATE dbo.Staffs SET StoreId=3,Active=1 WHERE StaffId=@Store3StaffId;
- IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes
-  WHERE StaffId=@Store3StaffId AND ScopeTypeId=@StoreScopeTypeId AND ScopeRefId=3)
-  INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId)
-  VALUES(@Store3StaffId,@StoreScopeTypeId,3);
+    INSERT dbo.OrderRefunds
+    (
+        OrderId,StoreId,RefundKey,Status,PaymentMethodId,Reason,RefundAmount,CostStatus,ReversedCogs,
+        InventoryReversalStatus,RequestedAtUtc,RequestedByStaffId,ProcessingAtUtc,CompletedAtUtc,CompletedByStaffId
+    )
+    SELECT o.OrderId,x.StoreId,x.RefundKey,3,2,N'AI rolling fixture refund',o.Total,1,o.TotalCogs,2,
+           DATEADD(HOUR,2,x.CreatedAt),x.StaffId,DATEADD(HOUR,2,x.CreatedAt),
+           DATEADD(HOUR,3,x.CreatedAt),x.StaffId
+    FROM @AiOrders x
+    JOIN dbo.Orders o ON o.ClientOrderId=x.ClientOrderId
+    WHERE x.RefundKey IS NOT NULL
+      AND NOT EXISTS(SELECT 1 FROM dbo.OrderRefunds r WHERE r.RefundKey=x.RefundKey);
 
- DECLARE @Store1SalesStaffId int;
- SELECT TOP(1) @Store1SalesStaffId=s.StaffId
- FROM dbo.Staffs s JOIN dbo.AccountRoles ar ON ar.AccountId=s.AccountId
- WHERE s.StoreId=1 AND s.Active=1 AND ar.RoleId=@StoreRoleId ORDER BY s.StaffId;
- IF @Store1SalesStaffId IS NULL
-  THROW 53405,N'Store 1 thiếu nhân viên bán hàng active.',1;
+    /* Type 3 is the existing waste movement contract. */
+    DECLARE @AiWaste TABLE(StoreInventoryId int PRIMARY KEY);
+    INSERT dbo.InventoryTransactions
+    (
+        StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,UnitCost,TotalCost,CreatedAt
+    )
+    OUTPUT inserted.StoreInventoryId INTO @AiWaste(StoreInventoryId)
+    SELECT si.StoreInventoryId,3,1,2,si.AvailableQty,si.AvailableQty-2,12,24,
+           DATEADD(DAY,-2,@AiDay)
+    FROM dbo.StoreInventories si
+    WHERE si.StoreId IN (1,3) AND si.IngredientId=@AiCoffeeIngredientId
+      AND si.AvailableQty>=2
+      AND NOT EXISTS
+      (
+          SELECT 1 FROM dbo.InventoryTransactions t
+          WHERE t.StoreInventoryId=si.StoreInventoryId AND t.[Type]=3
+            AND t.TotalCost=24 AND t.CreatedAt=DATEADD(DAY,-2,@AiDay)
+      );
+    UPDATE si
+       SET si.AvailableQty=si.AvailableQty-2,
+           si.LastUpdated=DATEADD(DAY,-2,@AiDay)
+    FROM dbo.StoreInventories si
+    JOIN @AiWaste w ON w.StoreInventoryId=si.StoreInventoryId;
 
- /* Store 3 catalog and supplier scope mirror Store 1 business configuration. */
- INSERT dbo.StoreDrinks(StoreId,DrinkId,Active)
- SELECT 3,s.DrinkId,s.Active FROM dbo.StoreDrinks s
- WHERE s.StoreId=1 AND NOT EXISTS(SELECT 1 FROM dbo.StoreDrinks d WHERE d.StoreId=3 AND d.DrinkId=s.DrinkId);
+    DECLARE @AiRestock TABLE(StoreId int PRIMARY KEY,StaffId int,Note nvarchar(100),CreatedAt datetime2(0));
+    INSERT @AiRestock VALUES
+      (1,@AiStore1StaffId,N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S1',DATEADD(DAY,-1,@AiDay)),
+      (3,@AiStore3StaffId,N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S3',DATEADD(DAY,-1,@AiDay));
 
- INSERT dbo.StoreToppings(StoreId,ToppingId,Active)
- SELECT 3,s.ToppingId,s.Active FROM dbo.StoreToppings s
- WHERE s.StoreId=1 AND NOT EXISTS(SELECT 1 FROM dbo.StoreToppings t WHERE t.StoreId=3 AND t.ToppingId=s.ToppingId);
+    INSERT dbo.RestockRequests
+    (
+        StockAlertId,StoreId,IngredientId,RecipeId,PreparedItemId,RequestedQuantity,SuggestedQuantity,
+        SuggestionAnalysisWindowDays,SuggestionAvailableSnapshot,SuggestionMinLevelSnapshot,
+        SuggestionAverageDailyUsageSnapshot,SuggestionLeadTimeDaysSnapshot,SuggestionIncomingQuantitySnapshot,
+        SuggestionReason,Status,Priority,CreatedByStaffId,CreatedAt,UpdatedAt,Note,
+        HandledByStaffId,HandledAt,AcceptedByStaffId,AcceptedAtUtc,ProcessingNote,ClosedRemainingQuantity
+    )
+    SELECT NULL,x.StoreId,@AiCoffeeIngredientId,NULL,NULL,10,12,30,2,5,1,2,0,
+           N'AI rolling low-stock fixture',N'OPEN',N'HIGH',x.StaffId,x.CreatedAt,x.CreatedAt,x.Note,
+           NULL,NULL,NULL,NULL,NULL,0
+    FROM @AiRestock x
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.RestockRequests r WHERE r.Note=x.Note);
 
- INSERT dbo.StoreMenuItems(StoreId,DrinkSizeId,IsEnabled,PriceOverride,EffectiveFromUtc,
-  EffectiveToUtc,DisplayOrder,PauseReason,Note,PublishedAtUtc,PublishedByStaffId,CreatedAtUtc,UpdatedAtUtc)
- SELECT 3,s.DrinkSizeId,s.IsEnabled,s.PriceOverride,s.EffectiveFromUtc,s.EffectiveToUtc,
-  s.DisplayOrder,s.PauseReason,N'DEMO_REORDER_V14 copied from Store 1',
-  COALESCE(s.PublishedAtUtc,'2026-01-01'),@OwnerStaffId,'2026-01-01','2026-01-01'
- FROM dbo.StoreMenuItems s
- WHERE s.StoreId=1 AND NOT EXISTS(SELECT 1 FROM dbo.StoreMenuItems m WHERE m.StoreId=3 AND m.DrinkSizeId=s.DrinkSizeId);
+    INSERT dbo.PurchaseOrders
+    (
+        Code,StoreId,SupplierId,Status,OrderDate,ExpectedDeliveryAtUtc,CreatedByStaffId,
+        ApprovedByStaffId,SentByStaffId,CreatedAtUtc,UpdatedAtUtc,ApprovedAtUtc,SentAtUtc,Note
+    )
+    SELECT CONCAT(N'DEMO-AI-ROLLING-PO-S',x.StoreId),x.StoreId,@AiCoffeeSupplierId,N'MARKED_AS_SENT',
+           x.CreatedAt,DATEADD(DAY,1,x.CreatedAt),x.StaffId,x.StaffId,x.StaffId,
+           x.CreatedAt,x.CreatedAt,x.CreatedAt,DATEADD(MINUTE,10,x.CreatedAt),
+           N'DEMO_AI_DASHBOARD_ROLLING_V1'
+    FROM @AiRestock x
+    WHERE @AiCoffeeSupplierId IS NOT NULL
+      AND NOT EXISTS
+      (
+          SELECT 1 FROM dbo.PurchaseOrders p
+          WHERE p.Code=CONCAT(N'DEMO-AI-ROLLING-PO-S',x.StoreId)
+      );
 
- INSERT dbo.SupplierStores(SupplierId,StoreId,Active,LeadTimeOverrideDays,DeliverySchedule,Note,CreatedAt,UpdatedAt)
- SELECT s.SupplierId,3,s.Active,s.LeadTimeOverrideDays,s.DeliverySchedule,
-  N'DEMO_REORDER_V14 scope for Dĩ An','2026-01-01','2026-01-01'
- FROM dbo.SupplierStores s
- WHERE s.StoreId=1 AND NOT EXISTS(SELECT 1 FROM dbo.SupplierStores x WHERE x.SupplierId=s.SupplierId AND x.StoreId=3);
+    INSERT dbo.PurchaseOrderLines
+    (
+        PurchaseOrderId,RestockRequestId,IngredientId,IngredientSupplierId,PackageUnitIdSnapshot,
+        PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,OrderedBaseQuantity,
+        ClosedRemainingQuantity,PromisedLeadTimeDaysSnapshot,Note
+    )
+    SELECT po.PurchaseOrderId,rr.RestockRequestId,@AiCoffeeIngredientId,@AiCoffeeOfferId,
+           offer.UnitId,offer.PackageQuantity,offer.CurrentPrice,5,5,5,offer.LeadTimeDays,
+           CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_LINE_S',rr.StoreId)
+    FROM dbo.PurchaseOrders po
+    JOIN dbo.RestockRequests rr ON rr.Note=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S',po.StoreId)
+    JOIN dbo.IngredientSuppliers offer ON offer.IngredientSupplierId=@AiCoffeeOfferId
+    WHERE po.Note=N'DEMO_AI_DASHBOARD_ROLLING_V1'
+      AND NOT EXISTS
+      (
+          SELECT 1 FROM dbo.PurchaseOrderLines l
+          WHERE l.PurchaseOrderId=po.PurchaseOrderId
+            AND l.Note=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_LINE_S',rr.StoreId)
+      );
 
- IF (SELECT COUNT(*) FROM dbo.StoreDrinks WHERE StoreId=3 AND Active=1)<30
- OR (SELECT COUNT(*) FROM dbo.StoreMenuItems WHERE StoreId=3 AND IsEnabled=1)<30
- OR (SELECT COUNT(*) FROM dbo.StoreToppings WHERE StoreId=3 AND Active=1)<30
- OR (SELECT COUNT(*) FROM dbo.SupplierStores WHERE StoreId=3 AND Active=1)<50
-  THROW 53406,N'Catalog hoặc supplier scope Store 3 chưa đủ contract Batch 14.',1;
+    IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1')<>30
+        THROW 53501,N'AI rolling fixture phải có 30 orders.',1;
+    IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=1)<>15
+        OR (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=3)<>15
+        THROW 53504,N'AI rolling fixture phải phân bổ 15 orders cho mỗi store.',1;
+    IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=5)<20
+        OR (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=4)<6
+        OR (SELECT COUNT(*) FROM dbo.OrderRefunds r JOIN dbo.Orders o ON o.OrderId=r.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1')<4
+        THROW 53505,N'AI rolling fixture thiếu phân bố completed/cancelled/refunded.',1;
+    IF (SELECT COUNT(*) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%')<>2
+        THROW 53502,N'AI rolling fixture phải có 2 restock requests.',1;
+    IF (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1')<>2
+        THROW 53503,N'AI rolling fixture phải có 2 purchase orders.',1;
 
- /* Complete two intentional demo BOM gaps instead of fabricating usage rows. */
- DECLARE @SugarSyrupId int=(SELECT IngredientId FROM dbo.Ingredients WHERE Code=N'DEMO_ING_SUGAR_SYRUP');
- DECLARE @WhitePearlId int=(SELECT IngredientId FROM dbo.Ingredients WHERE Code=N'DEMO_ING_WHITE_PEARL');
- DECLARE @FruitTeaRecipeId int=(SELECT RecipeId FROM dbo.Recipes WHERE RecipeCode=N'DEMO_RECIPE_SKU_PEACH_ORANGE_TEA_M');
- DECLARE @WhitePearlRecipeId int=(SELECT RecipeId FROM dbo.Recipes WHERE RecipeCode=N'RCP_TC_TRANG');
- IF @SugarSyrupId IS NULL OR @WhitePearlId IS NULL OR @FruitTeaRecipeId IS NULL OR @WhitePearlRecipeId IS NULL
-  THROW 53407,N'Không resolve được BOM bổ sung của Batch 14.',1;
- IF NOT EXISTS(SELECT 1 FROM dbo.RecipeDetails WHERE RecipeId=@FruitTeaRecipeId AND IngredientId=@SugarSyrupId)
-  INSERT dbo.RecipeDetails(RecipeId,IngredientId,ChildRecipeId,Quantity,UnitId)
-  SELECT @FruitTeaRecipeId,@SugarSyrupId,NULL,10,BaseUnitId FROM dbo.Ingredients WHERE IngredientId=@SugarSyrupId;
- IF NOT EXISTS(SELECT 1 FROM dbo.RecipeDetails WHERE RecipeId=@WhitePearlRecipeId AND IngredientId=@WhitePearlId)
-  INSERT dbo.RecipeDetails(RecipeId,IngredientId,ChildRecipeId,Quantity,UnitId)
-  SELECT @WhitePearlRecipeId,@WhitePearlId,NULL,1,BaseUnitId FROM dbo.Ingredients WHERE IngredientId=@WhitePearlId;
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
 
- /* Ingredient inventories exist before the opening/top-up ledger is planned. */
- INSERT dbo.StoreInventories(StoreId,IngredientId,RecipeId,PreparedItemId,BtpIdentityState,
-  QuantitySemanticsStatus,SupersededByStoreInventoryId,QuantitySemanticsEvidenceType,
-  QuantitySemanticsEvidenceReference,QuantitySemanticsReviewedAt,QuantitySemanticsReviewedByAccountId,
-  AvailableQty,ReservedQty,MaxNegativeQty,MinStockLevel,LastUpdated)
- SELECT 3,i.IngredientId,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-  0,0,NULL,s.MinStockLevel,'2026-01-01'
- FROM dbo.Ingredients i
- JOIN dbo.StoreInventories s ON s.StoreId=1 AND s.IngredientId=i.IngredientId
- WHERE i.Active=1 AND NOT EXISTS(SELECT 1 FROM dbo.StoreInventories x WHERE x.StoreId=3 AND x.IngredientId=i.IngredientId);
- UPDATE d SET d.MinStockLevel=s.MinStockLevel
- FROM dbo.StoreInventories d JOIN dbo.StoreInventories s ON s.StoreId=1 AND s.IngredientId=d.IngredientId
- WHERE d.StoreId=3 AND d.IngredientId IS NOT NULL;
+SELECT N'DEMO_AI_DASHBOARD_ROLLING_V1' AS SeedMarker,
+       SYSUTCDATETIME() AS VerifiedAtUtc,
+       (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1') AS DemoOrders,
+       (SELECT COUNT(*) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%') AS DemoRestocks,
+       (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1') AS DemoPurchaseOrders;
+GO
 
- INSERT dbo.StoreInventories(StoreId,IngredientId,RecipeId,PreparedItemId,BtpIdentityState,
-  QuantitySemanticsStatus,SupersededByStoreInventoryId,QuantitySemanticsEvidenceType,
-  QuantitySemanticsEvidenceReference,QuantitySemanticsReviewedAt,QuantitySemanticsReviewedByAccountId,
-  AvailableQty,ReservedQty,MaxNegativeQty,MinStockLevel,LastUpdated)
- SELECT 3,NULL,r.RecipeId,p.PreparedItemId,1,1,NULL,1,N'DEMO_REORDER_V14 canonical prepared inventory',
-  '2026-01-01',@OwnerAccountId,0,0,NULL,NULL,'2026-01-01'
- FROM dbo.PreparedItems p JOIN dbo.Recipes r ON r.PreparedItemId=p.PreparedItemId AND r.Active=1 AND r.Status=N'Active'
- WHERE p.Active=1 AND NOT EXISTS(SELECT 1 FROM dbo.StoreInventories x
-  WHERE x.StoreId=3 AND (x.PreparedItemId=p.PreparedItemId OR x.RecipeId=r.RecipeId));
 
- IF (SELECT COUNT(*) FROM dbo.StoreInventories WHERE StoreId=3 AND IngredientId IS NOT NULL)<>50
- OR EXISTS(SELECT 1 FROM dbo.StoreInventories WHERE StoreId=3 AND IngredientId IS NOT NULL AND MinStockLevel IS NULL)
-  THROW 53408,N'Store 3 chưa có đủ 50 inventory ingredient và threshold.',1;
-
- DECLARE @ExistingOrders int=(SELECT COUNT(*) FROM dbo.Orders WHERE Source=@SeedMarker);
- DECLARE @ExistingRuns int=(SELECT COUNT(*) FROM dbo.ProductionRuns WHERE Notes LIKE @SeedMarker+N'%');
- IF @ExistingOrders NOT IN(0,100) OR @ExistingRuns NOT IN(0,60)
-  THROW 53409,N'Fixture DEMO_REORDER_V14 đang ở trạng thái không đầy đủ.',1;
- IF (@ExistingOrders=0 AND @ExistingRuns<>0) OR (@ExistingOrders<>0 AND @ExistingRuns=0)
-  THROW 53410,N'Order và Production fixture DEMO_REORDER_V14 không đồng bộ.',1;
- DECLARE @FirstFixtureRun bit=IIF(@ExistingOrders=0,1,0);
-
- DECLARE @MenuCandidates TABLE(RowNo int PRIMARY KEY,DrinkSizeId int,DrinkId int,SizeId int,RecipeId int,BasePrice decimal(18,2));
- INSERT @MenuCandidates
- SELECT ROW_NUMBER() OVER(ORDER BY r.RecipeId,m.StoreMenuItemId),m.DrinkSizeId,ds.DrinkId,ds.SizeId,r.RecipeId,
-  COALESCE(m.PriceOverride,ds.Price)
- FROM dbo.StoreMenuItems m JOIN dbo.DrinkSizes ds ON ds.DrinkSizeId=m.DrinkSizeId
- JOIN dbo.Recipes r ON r.DrinkId=ds.DrinkId AND r.SizeId=ds.SizeId AND r.ToppingId IS NULL
-  AND r.Active=1 AND r.Status=N'Active'
- WHERE m.StoreId=1 AND m.IsEnabled=1;
- IF (SELECT COUNT(*) FROM @MenuCandidates)<50
-  THROW 53411,N'Store 1 cần ít nhất 50 menu item có active BOM.',1;
-
- DECLARE @ToppingCandidates TABLE(RowNo int PRIMARY KEY,ToppingId int,RecipeId int,Price decimal(18,2));
- INSERT @ToppingCandidates
- SELECT ROW_NUMBER() OVER(ORDER BY r.RecipeId,t.ToppingId),t.ToppingId,r.RecipeId,t.Price
- FROM dbo.StoreToppings st JOIN dbo.Toppings t ON t.ToppingId=st.ToppingId AND t.Active=1
- JOIN dbo.Recipes r ON r.ToppingId=t.ToppingId AND r.Active=1 AND r.Status=N'Active'
- WHERE st.StoreId=1 AND st.Active=1;
- IF (SELECT COUNT(*) FROM @ToppingCandidates)<30
-  THROW 53412,N'Store 1 cần ít nhất 30 topping có active BOM.',1;
-
- DECLARE @OrderSeed TABLE(StoreId int,Ordinal int,ClientOrderId uniqueidentifier PRIMARY KEY,
-  OccurredAt datetime2,DayNo int,DrinkSizeId int,DrinkId int,SizeId int,RecipeId int,
-  Quantity int,BasePrice decimal(18,2),ToppingId int NULL,ToppingRecipeId int NULL,ToppingPrice decimal(18,2) NULL,
-  WorkShiftId int NULL,UNIQUE(StoreId,Ordinal));
- ;WITH N AS(SELECT 1 n UNION ALL SELECT n+1 FROM N WHERE n<50),S AS(SELECT 1 StoreId UNION ALL SELECT 3)
- INSERT @OrderSeed
- SELECT s.StoreId,n.n,
-  CONVERT(uniqueidentifier,CONCAT(N'33000000-0000-0000-000',s.StoreId,N'-',RIGHT(N'000000000000'+CONVERT(nvarchar(12),n.n),12))),
-  DATEADD(minute,(n.n%10)*7,DATEADD(hour,7+(n.n%10),DATEADD(day,-((n.n-1)%30),@SeedAnchorUtc))),
-  ((n.n-1)%30)+1,c.DrinkSizeId,c.DrinkId,c.SizeId,c.RecipeId,1+(n.n%2),c.BasePrice,
-  CASE WHEN n.n<=30 THEN tc.ToppingId END,CASE WHEN n.n<=30 THEN tc.RecipeId END,
-  CASE WHEN n.n<=30 THEN tc.Price END,NULL
- FROM S s CROSS JOIN N n JOIN @MenuCandidates c ON c.RowNo=n.n
- LEFT JOIN @ToppingCandidates tc ON tc.RowNo=n.n AND n.n<=30
- OPTION(MAXRECURSION 100);
-
- DECLARE @ProductionSeed TABLE(StoreId int,Ordinal int,RequestKey uniqueidentifier PRIMARY KEY,
-  OccurredAt datetime2,RecipeId int,PreparedItemId int,RequestedRunCount decimal(18,5),UNIQUE(StoreId,Ordinal));
- ;WITH N AS(SELECT 1 n UNION ALL SELECT n+1 FROM N WHERE n<30),S AS(SELECT 1 StoreId UNION ALL SELECT 3),
- R AS(SELECT RecipeId,PreparedItemId,ROW_NUMBER() OVER(ORDER BY RecipeId) rn,COUNT(*) OVER() rc
-  FROM dbo.Recipes WHERE PreparedItemId IS NOT NULL AND Active=1 AND Status=N'Active')
- INSERT @ProductionSeed
- SELECT s.StoreId,n.n,
-  CONVERT(uniqueidentifier,CONCAT(N'34000000-0000-0000-000',s.StoreId,N'-',RIGHT(N'000000000000'+CONVERT(nvarchar(12),n.n),12))),
-  DATEADD(hour,4,DATEADD(day,-((n.n-1)%30),@SeedAnchorUtc)),r.RecipeId,r.PreparedItemId,1
- FROM S s CROSS JOIN N n JOIN R r ON r.rn=((n.n-1)%r.rc)+1
- OPTION(MAXRECURSION 100);
-
- DECLARE @IngredientDemand TABLE(StoreId int,IngredientId int,Quantity decimal(18,3),PRIMARY KEY(StoreId,IngredientId));
- ;WITH D AS(
-  SELECT o.StoreId,rd.IngredientId,
-   rd.Quantity*o.Quantity*CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END Qty
-  FROM @OrderSeed o JOIN dbo.RecipeDetails rd ON rd.RecipeId=o.RecipeId AND rd.IngredientId IS NOT NULL
-  JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
-  LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
-  UNION ALL
-  SELECT o.StoreId,rd.IngredientId,
-   rd.Quantity*o.Quantity*CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END
-  FROM @OrderSeed o JOIN dbo.RecipeDetails rd ON rd.RecipeId=o.ToppingRecipeId AND rd.IngredientId IS NOT NULL
-  JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
-  LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
-  UNION ALL
-  SELECT p.StoreId,rd.IngredientId,
-   rd.Quantity*p.RequestedRunCount*CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END
-  FROM @ProductionSeed p JOIN dbo.RecipeDetails rd ON rd.RecipeId=p.RecipeId AND rd.IngredientId IS NOT NULL
-  JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
-  LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1)
- INSERT @IngredientDemand SELECT StoreId,IngredientId,ROUND(SUM(Qty),3) FROM D GROUP BY StoreId,IngredientId;
-
- IF EXISTS(SELECT 1 FROM @IngredientDemand WHERE Quantity IS NULL OR Quantity<=0)
- OR EXISTS(SELECT 1 FROM (VALUES(1),(3))s(StoreId) CROSS JOIN dbo.Ingredients i
-  WHERE i.Active=1 AND NOT EXISTS(SELECT 1 FROM @IngredientDemand d WHERE d.StoreId=s.StoreId AND d.IngredientId=i.IngredientId))
-  THROW 53413,N'Kế hoạch POS/production chưa bao phủ đủ active ingredient hoặc thiếu unit conversion.',1;
-
- DECLARE @InventoryTarget TABLE(StoreId int,IngredientId int,CurrentQty decimal(18,3),TargetQty decimal(18,3),
-  DeltaQty decimal(18,3),MinStock decimal(18,3),UnitCost decimal(18,2),BaseUnitId int,PRIMARY KEY(StoreId,IngredientId));
- INSERT @InventoryTarget
- SELECT s.StoreId,i.IngredientId,si.AvailableQty,
-  ROUND(d.Quantity+COALESCE(si.MinStockLevel,0)*2,3),
-  ROUND(CASE WHEN s.StoreId=3 THEN d.Quantity+COALESCE(si.MinStockLevel,0)*2
-   ELSE CASE WHEN d.Quantity+COALESCE(si.MinStockLevel,0)*2>si.AvailableQty
-    THEN d.Quantity+COALESCE(si.MinStockLevel,0)*2-si.AvailableQty ELSE 0 END END,3),
-  COALESCE(si.MinStockLevel,0),l.UnitCost,i.BaseUnitId
- FROM (VALUES(1),(3))s(StoreId) JOIN dbo.Ingredients i ON i.Active=1
- JOIN dbo.StoreInventories si ON si.StoreId=s.StoreId AND si.IngredientId=i.IngredientId
- JOIN @IngredientDemand d ON d.StoreId=s.StoreId AND d.IngredientId=i.IngredientId
- CROSS APPLY(SELECT TOP(1) cl.UnitCost FROM dbo.InventoryCostLayers cl
-  WHERE cl.StoreId=1 AND cl.IngredientId=i.IngredientId ORDER BY cl.CreatedAt,cl.InventoryCostLayerId)l;
- IF (SELECT COUNT(*) FROM @InventoryTarget)<>100 OR EXISTS(SELECT 1 FROM @InventoryTarget WHERE UnitCost<=0 OR TargetQty<=0)
- THROW 53414,N'Không lập được target inventory/cost cho 100 dòng Store-Ingredient.',1;
-
- /* First execution establishes Store 3 opening evidence and only tops up Store 1 shortages. */
- IF @FirstFixtureRun=1
- BEGIN
-  DECLARE @OpeningStoreId int=3,@OpeningCode nvarchar(50)=N'DEMO-REORDER-V14-DA-OPENING';
-  DECLARE @OpeningDocumentId int;
-  INSERT dbo.InventoryDocuments(Code,StoreId,StaffId,DocumentDate,[Type],[Status],RequestKey,
-   IsProcessing,ConfirmedAt,ConfirmedBy,Purpose,PartnerType,PartnerId,PartnerName,SupplierId,
-   Note,AllowNegativeStock,NegativeReason,TotalAmount,VatAmount,FinalAmount)
-  SELECT @OpeningCode,@OpeningStoreId,@OwnerStaffId,'2026-01-01',1,3,@OpeningCode,0,'2026-01-01',
-   @OwnerStaffId,1,0,NULL,N'DEMO_REORDER_V14 opening balance',NULL,
-   N'DEMO_REORDER_V14 Store 3 opening inventory',0,NULL,SUM(TargetQty*UnitCost),0,SUM(TargetQty*UnitCost)
-  FROM @InventoryTarget WHERE StoreId=3;
-  SET @OpeningDocumentId=SCOPE_IDENTITY();
-
-  INSERT dbo.InventoryDocumentDetails(InventoryDocumentId,IngredientId,Quantity,BaseQuantity,
-   UnitId,UnitPrice,CostPrice,CostAmount,Note,TotalAmount)
-  SELECT @OpeningDocumentId,IngredientId,TargetQty,TargetQty,BaseUnitId,UnitCost,UnitCost,
-   ROUND(TargetQty*UnitCost,2),N'DEMO_REORDER_V14 Store 3 opening',ROUND(TargetQty*UnitCost,2)
-  FROM @InventoryTarget WHERE StoreId=3;
-
-  INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,
-   UnitCost,TotalCost,InventoryDocumentId,InventoryDocumentDetailId,CreatedAt)
-  SELECT si.StoreInventoryId,1,1,t.TargetQty,0,t.TargetQty,t.UnitCost,ROUND(t.TargetQty*t.UnitCost,2),
-   @OpeningDocumentId,d.InventoryDocumentDetailId,'2026-01-01'
-  FROM @InventoryTarget t JOIN dbo.StoreInventories si ON si.StoreId=3 AND si.IngredientId=t.IngredientId
-  JOIN dbo.InventoryDocumentDetails d ON d.InventoryDocumentId=@OpeningDocumentId AND d.IngredientId=t.IngredientId
-  WHERE t.StoreId=3;
-
-  INSERT dbo.InventoryCostLayers(IngredientId,PreparedItemId,StoreId,Quantity,RemainingQuantity,
-   UnitCost,CreatedAt,SourceProductionRunId,SourceOrderRefundId,SourceInventoryDocumentDetailId,
-   SourceBranchReceiptLineId,SourceTransferCostAllocationId,SourceTransferDiscrepancyPostingId)
-  SELECT t.IngredientId,NULL,3,t.TargetQty,t.TargetQty,t.UnitCost,'2026-01-01',NULL,NULL,
-   d.InventoryDocumentDetailId,NULL,NULL,NULL
-  FROM @InventoryTarget t JOIN dbo.InventoryDocumentDetails d
-   ON d.InventoryDocumentId=@OpeningDocumentId AND d.IngredientId=t.IngredientId
-  WHERE t.StoreId=3;
-  UPDATE si SET AvailableQty=t.TargetQty,ReservedQty=0,LastUpdated='2026-01-01'
-  FROM dbo.StoreInventories si JOIN @InventoryTarget t ON t.StoreId=3 AND t.IngredientId=si.IngredientId;
-
-  IF EXISTS(SELECT 1 FROM @InventoryTarget WHERE StoreId=1 AND DeltaQty>0)
-  BEGIN
-   DECLARE @TopupDocumentId int,@TopupCode nvarchar(50)=N'DEMO-REORDER-V14-TDM-TOPUP';
-   INSERT dbo.InventoryDocuments(Code,StoreId,StaffId,DocumentDate,[Type],[Status],RequestKey,
-    IsProcessing,ConfirmedAt,ConfirmedBy,Purpose,PartnerType,PartnerId,PartnerName,SupplierId,
-    Note,AllowNegativeStock,NegativeReason,TotalAmount,VatAmount,FinalAmount)
-   SELECT @TopupCode,1,@OwnerStaffId,'2026-01-01',1,3,@TopupCode,0,'2026-01-01',@OwnerStaffId,
-    1,0,NULL,N'DEMO_REORDER_V14 top-up',NULL,N'DEMO_REORDER_V14 Store 1 demand top-up',0,NULL,
-    SUM(DeltaQty*UnitCost),0,SUM(DeltaQty*UnitCost)
-   FROM @InventoryTarget WHERE StoreId=1 AND DeltaQty>0;
-   SET @TopupDocumentId=SCOPE_IDENTITY();
-
-   INSERT dbo.InventoryDocumentDetails(InventoryDocumentId,IngredientId,Quantity,BaseQuantity,
-    UnitId,UnitPrice,CostPrice,CostAmount,Note,TotalAmount)
-   SELECT @TopupDocumentId,IngredientId,DeltaQty,DeltaQty,BaseUnitId,UnitCost,UnitCost,
-    ROUND(DeltaQty*UnitCost,2),N'DEMO_REORDER_V14 Store 1 top-up',ROUND(DeltaQty*UnitCost,2)
-   FROM @InventoryTarget WHERE StoreId=1 AND DeltaQty>0;
-
-   INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,
-    UnitCost,TotalCost,InventoryDocumentId,InventoryDocumentDetailId,CreatedAt)
-   SELECT si.StoreInventoryId,1,1,t.DeltaQty,t.CurrentQty,t.CurrentQty+t.DeltaQty,t.UnitCost,
-    ROUND(t.DeltaQty*t.UnitCost,2),@TopupDocumentId,d.InventoryDocumentDetailId,'2026-01-01'
-   FROM @InventoryTarget t JOIN dbo.StoreInventories si ON si.StoreId=1 AND si.IngredientId=t.IngredientId
-   JOIN dbo.InventoryDocumentDetails d ON d.InventoryDocumentId=@TopupDocumentId AND d.IngredientId=t.IngredientId
-   WHERE t.StoreId=1 AND t.DeltaQty>0;
-
-   INSERT dbo.InventoryCostLayers(IngredientId,PreparedItemId,StoreId,Quantity,RemainingQuantity,
-    UnitCost,CreatedAt,SourceProductionRunId,SourceOrderRefundId,SourceInventoryDocumentDetailId,
-    SourceBranchReceiptLineId,SourceTransferCostAllocationId,SourceTransferDiscrepancyPostingId)
-   SELECT t.IngredientId,NULL,1,t.DeltaQty,t.DeltaQty,t.UnitCost,'2026-01-01',NULL,NULL,
-    d.InventoryDocumentDetailId,NULL,NULL,NULL
-   FROM @InventoryTarget t JOIN dbo.InventoryDocumentDetails d
-    ON d.InventoryDocumentId=@TopupDocumentId AND d.IngredientId=t.IngredientId
-   WHERE t.StoreId=1 AND t.DeltaQty>0;
-   UPDATE si SET AvailableQty=si.AvailableQty+t.DeltaQty,LastUpdated='2026-01-01'
-   FROM dbo.StoreInventories si JOIN @InventoryTarget t ON t.StoreId=1 AND t.IngredientId=si.IngredientId
-   WHERE t.DeltaQty>0;
-  END;
- END;
-
- /* Thirty stable WorkShift rows per store. Existing fixture orders recover their shift on replay. */
- DECLARE @ShiftMap TABLE(StoreId int,DayNo int,ShiftId int,PRIMARY KEY(StoreId,DayNo));
- IF @FirstFixtureRun=0
- BEGIN
-  INSERT @ShiftMap
-  SELECT os.StoreId,os.DayNo,o.WorkShiftId
-  FROM @OrderSeed os JOIN dbo.Orders o ON o.ClientOrderId=os.ClientOrderId
-  WHERE os.Ordinal=os.DayNo AND o.WorkShiftId IS NOT NULL;
-  IF (SELECT COUNT(*) FROM @ShiftMap)<>60
-   THROW 53415,N'Không recover được 60 WorkShift fixture.',1;
- END
- ELSE
- BEGIN
-  DECLARE @ShiftStore int,@ShiftDay int,@ShiftStaff int,@ShiftId int,@ShiftStart datetime2;
-  DECLARE ShiftCursor CURSOR LOCAL FAST_FORWARD FOR
-   SELECT s.StoreId,n.n,CASE WHEN s.StoreId=1 THEN @Store1SalesStaffId ELSE @Store3StaffId END
-   FROM (VALUES(1),(3))s(StoreId)
-   CROSS JOIN (SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
-    UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
-    UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
-    UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
-    UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23 UNION ALL SELECT 24 UNION ALL SELECT 25
-    UNION ALL SELECT 26 UNION ALL SELECT 27 UNION ALL SELECT 28 UNION ALL SELECT 29 UNION ALL SELECT 30)n;
-  OPEN ShiftCursor;
-  FETCH NEXT FROM ShiftCursor INTO @ShiftStore,@ShiftDay,@ShiftStaff;
-  WHILE @@FETCH_STATUS=0
-  BEGIN
-   SET @ShiftStart=DATEADD(hour,6,DATEADD(day,-(@ShiftDay-1),@SeedAnchorUtc));
-   INSERT dbo.WorkShifts(StoreId,UserId,StartTime,EndTime,StartingCash,ExpectedEndingCash,
-    ActualEndingCash,CashDiscrepancy,[Status],DiscrepancyReason,IsExceptionClosed,
-    ExceptionCloseReason,ExceptionClosedByStaffId,ExceptionClosedAt,OfflineOrderCountAtClose,
-    OfflineEstimatedTotalAtClose,OfflineCashTotalAtClose,RequiresReconciliation,
-    HasLateOfflineSync,LateOfflineSyncCount,LastLateOfflineSyncedAt,PosTerminalId)
-   VALUES(@ShiftStore,@ShiftStaff,@ShiftStart,DATEADD(hour,12,@ShiftStart),500000,500000,
-    500000,0,N'Closed',NULL,0,NULL,NULL,NULL,0,0,0,0,0,0,NULL,NULL);
-   SET @ShiftId=SCOPE_IDENTITY();
-   INSERT @ShiftMap VALUES(@ShiftStore,@ShiftDay,@ShiftId);
-   FETCH NEXT FROM ShiftCursor INTO @ShiftStore,@ShiftDay,@ShiftStaff;
-  END;
-  CLOSE ShiftCursor; DEALLOCATE ShiftCursor;
- END;
- UPDATE o SET WorkShiftId=s.ShiftId FROM @OrderSeed o JOIN @ShiftMap s ON s.StoreId=o.StoreId AND s.DayNo=o.DayNo;
-
- IF @FirstFixtureRun=1
- BEGIN
-  INSERT dbo.Orders(CustomerId,StoreId,OrderStatusId,PaymentStatusId,OrderTypeId,TableId,StaffId,
-   WorkShiftId,ClientOrderId,RecommendationSessionId,Source,Note,PaymentReference,ReceiverName,
-   ReceiverPhone,DeliveryAddress,ShippingFee,SubTotal,VoucherDiscount,PointDiscount,PointsUsed,
-   Total,CostStatus,TotalCogs,GrossProfit,CostedAtUtc,CreatedAt)
-  SELECT NULL,o.StoreId,5,2,2,NULL,CASE WHEN o.StoreId=1 THEN @Store1SalesStaffId ELSE @Store3StaffId END,
-   o.WorkShiftId,o.ClientOrderId,NULL,@SeedMarker,CONCAT(@SeedMarker,N'_S',o.StoreId,N'_O',o.Ordinal),
-   CONCAT(@SeedMarker,N'-',o.StoreId,N'-',o.Ordinal),NULL,NULL,NULL,0,
-   o.Quantity*(o.BasePrice+COALESCE(o.ToppingPrice,0)),0,0,0,
-   o.Quantity*(o.BasePrice+COALESCE(o.ToppingPrice,0)),0,NULL,NULL,NULL,o.OccurredAt
-  FROM @OrderSeed o;
-
-  INSERT dbo.OrderDetails(OrderId,DrinkId,SizeId,StoreMenuItemId,DrinkSizeId,DrinkName,SizeName,
-   Price,AcceptedBasePrice,PriceSource,AcceptedCatalogVersion,Quantity,Note,CostStatus,UnitCogs,TotalCogs)
-  SELECT ord.OrderId,o.DrinkId,o.SizeId,m.StoreMenuItemId,o.DrinkSizeId,d.Name,z.Name,
-   o.BasePrice,o.BasePrice,@SeedMarker,1,o.Quantity,@SeedMarker,0,NULL,NULL
-  FROM @OrderSeed o JOIN dbo.Orders ord ON ord.ClientOrderId=o.ClientOrderId
-  JOIN dbo.StoreMenuItems m ON m.StoreId=o.StoreId AND m.DrinkSizeId=o.DrinkSizeId
-  JOIN dbo.Drinks d ON d.DrinkId=o.DrinkId LEFT JOIN dbo.Sizes z ON z.SizeId=o.SizeId;
-
-  INSERT dbo.OrderToppings(OrderDetailId,ToppingId,ToppingName,Price,CostStatus,TotalCogs)
-  SELECT od.OrderDetailId,o.ToppingId,t.Name,o.ToppingPrice,0,NULL
-  FROM @OrderSeed o JOIN dbo.Orders ord ON ord.ClientOrderId=o.ClientOrderId
-  JOIN dbo.OrderDetails od ON od.OrderId=ord.OrderId JOIN dbo.Toppings t ON t.ToppingId=o.ToppingId
-  WHERE o.ToppingId IS NOT NULL;
-
-  INSERT dbo.Payments(OrderId,Amount,ReceivedAmount,ChangeAmount,PaymentMethodId,PaymentStatusId,
-   CashSessionId,TransactionCode,PaidAt)
-  SELECT ord.OrderId,ord.Total,ord.Total,0,1+(o.Ordinal%5),2,NULL,
-   CONCAT(@SeedMarker,N'-PAY-S',o.StoreId,N'-',RIGHT(N'000'+CONVERT(nvarchar(3),o.Ordinal),3)),o.OccurredAt
-  FROM @OrderSeed o JOIN dbo.Orders ord ON ord.ClientOrderId=o.ClientOrderId;
- END
- ELSE
- BEGIN
-  UPDATE ord SET CreatedAt=o.OccurredAt,CostedAtUtc=CASE WHEN ord.CostedAtUtc IS NULL THEN NULL ELSE o.OccurredAt END,
-   WorkShiftId=o.WorkShiftId
-  FROM dbo.Orders ord JOIN @OrderSeed o ON o.ClientOrderId=ord.ClientOrderId;
-  UPDATE p SET PaidAt=o.OccurredAt FROM dbo.Payments p JOIN dbo.Orders ord ON ord.OrderId=p.OrderId
-  JOIN @OrderSeed o ON o.ClientOrderId=ord.ClientOrderId;
- END;
-
- /* Historical production: consume raw BOM by FIFO, then create valued prepared output. */
- IF @FirstFixtureRun=1
- BEGIN
-  DECLARE @ProdStore int,@ProdOrdinal int,@ProdKey uniqueidentifier,@ProdAt datetime2,
-   @ProdRecipeId int,@ProdPreparedId int,@ProdRunCount decimal(18,5),@ProductionRunId int;
-  DECLARE @ProdIngredientId int,@ProdQty decimal(18,3),@ProdInventoryId int,
-   @ProdBefore decimal(18,3),@ProdAfter decimal(18,3),@ProdTransactionId int;
-  DECLARE @Need decimal(18,3),@LayerId int,@LayerRemain decimal(18,3),@LayerCost decimal(18,2),
-   @Take decimal(18,3),@InputLineCost decimal(18,2),@RunInputCost decimal(18,2);
-  DECLARE @OutputInventoryId int,@OutputQty decimal(18,3),@OutputBefore decimal(18,3),
-   @OutputCost decimal(18,8),@Fingerprint char(64);
-
-  DECLARE ProductionCursor CURSOR LOCAL FAST_FORWARD FOR
-   SELECT StoreId,Ordinal,RequestKey,OccurredAt,RecipeId,PreparedItemId,RequestedRunCount
-   FROM @ProductionSeed ORDER BY OccurredAt,StoreId,Ordinal;
-  OPEN ProductionCursor;
-  FETCH NEXT FROM ProductionCursor INTO @ProdStore,@ProdOrdinal,@ProdKey,@ProdAt,
-   @ProdRecipeId,@ProdPreparedId,@ProdRunCount;
-  WHILE @@FETCH_STATUS=0
-  BEGIN
-   SET @Fingerprint=CONVERT(char(64),HASHBYTES('SHA2_256',
-    CONCAT(@SeedMarker,N'|',@ProdStore,N'|',@ProdOrdinal,N'|',@ProdRecipeId,N'|',@ProdRunCount)),2);
-   INSERT dbo.ProductionRuns(StoreId,RecipeId,RequestedRunCount,RequestKey,RequestFingerprint,
-    [Status],Notes,CreatedByStaffId,CreatedAt,ConfirmedAt,CompletedAt,CompletedByStaffId,
-    ValuationStatus,TotalInputCost,OutputUnitCost,ValuedAtUtc)
-   VALUES(@ProdStore,@ProdRecipeId,@ProdRunCount,@ProdKey,@Fingerprint,1,
-    CONCAT(@SeedMarker,N'_S',@ProdStore,N'_P',@ProdOrdinal),@OwnerStaffId,@ProdAt,@ProdAt,NULL,NULL,0,NULL,NULL,NULL);
-   SET @ProductionRunId=SCOPE_IDENTITY();
-   SET @RunInputCost=0;
-
-   DECLARE ProdRequirementCursor CURSOR LOCAL FAST_FORWARD FOR
-    SELECT rd.IngredientId,ROUND(rd.Quantity*@ProdRunCount*
-     CASE WHEN rd.UnitId=i.BaseUnitId THEN 1 ELSE uc.ToQuantity/NULLIF(uc.FromQuantity,0) END,3)
-    FROM dbo.RecipeDetails rd JOIN dbo.Ingredients i ON i.IngredientId=rd.IngredientId
-    LEFT JOIN dbo.UnitConversions uc ON uc.IngredientId=i.IngredientId AND uc.FromUnitId=rd.UnitId
-     AND uc.ToUnitId=i.BaseUnitId AND uc.Active=1
-    WHERE rd.RecipeId=@ProdRecipeId AND rd.IngredientId IS NOT NULL
-    ORDER BY rd.IngredientId;
-   OPEN ProdRequirementCursor;
-   FETCH NEXT FROM ProdRequirementCursor INTO @ProdIngredientId,@ProdQty;
-   WHILE @@FETCH_STATUS=0
-   BEGIN
-    SELECT @ProdInventoryId=StoreInventoryId,@ProdBefore=AvailableQty
-    FROM dbo.StoreInventories WHERE StoreId=@ProdStore AND IngredientId=@ProdIngredientId;
-    IF @ProdInventoryId IS NULL OR @ProdQty IS NULL OR @ProdQty<=0 OR @ProdBefore<@ProdQty
-     THROW 53416,N'Không đủ raw inventory cho production fixture.',1;
-    SET @ProdAfter=@ProdBefore-@ProdQty;
-    INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,
-     UnitCost,TotalCost,ProductionRunId,SourceRecipeId,CreatedAt)
-    VALUES(@ProdInventoryId,6,1,@ProdQty,@ProdBefore,@ProdAfter,NULL,NULL,
-     @ProductionRunId,@ProdRecipeId,@ProdAt);
-    SET @ProdTransactionId=SCOPE_IDENTITY();
-    UPDATE dbo.StoreInventories SET AvailableQty=@ProdAfter,LastUpdated=@ProdAt
-    WHERE StoreInventoryId=@ProdInventoryId;
-
-    SET @Need=@ProdQty; SET @InputLineCost=0;
-    WHILE @Need>0
-    BEGIN
-     SET @LayerId=NULL;
-     SELECT TOP(1) @LayerId=InventoryCostLayerId,@LayerRemain=RemainingQuantity,@LayerCost=UnitCost
-     FROM dbo.InventoryCostLayers WITH(UPDLOCK,ROWLOCK)
-     WHERE StoreId=@ProdStore AND IngredientId=@ProdIngredientId AND PreparedItemId IS NULL
-      AND RemainingQuantity>0 ORDER BY CreatedAt,InventoryCostLayerId;
-     IF @LayerId IS NULL THROW 53417,N'FIFO layer không đủ cho production fixture.',1;
-     SET @Take=CASE WHEN @LayerRemain<@Need THEN @LayerRemain ELSE @Need END;
-     UPDATE dbo.InventoryCostLayers SET RemainingQuantity=RemainingQuantity-@Take
-     WHERE InventoryCostLayerId=@LayerId;
-     INSERT dbo.ProductionCostAllocations(ProductionRunId,InventoryTransactionId,
-      InventoryCostLayerId,Quantity,UnitCost,TotalCost,CreatedAtUtc)
-     VALUES(@ProductionRunId,@ProdTransactionId,@LayerId,@Take,@LayerCost,ROUND(@Take*@LayerCost,2),@ProdAt);
-     SET @InputLineCost=@InputLineCost+ROUND(@Take*@LayerCost,2);
-     SET @Need=@Need-@Take;
-    END;
-    UPDATE dbo.InventoryTransactions SET UnitCost=ROUND(@InputLineCost/NULLIF(@ProdQty,0),2),
-     TotalCost=@InputLineCost WHERE InventoryTransactionId=@ProdTransactionId;
-    SET @RunInputCost=@RunInputCost+@InputLineCost;
-    FETCH NEXT FROM ProdRequirementCursor INTO @ProdIngredientId,@ProdQty;
-   END;
-   CLOSE ProdRequirementCursor; DEALLOCATE ProdRequirementCursor;
-
-   SELECT @OutputQty=ROUND(r.OutputQuantity*@ProdRunCount,3)
-   FROM dbo.Recipes r JOIN dbo.PreparedItems p ON p.PreparedItemId=r.PreparedItemId
-   WHERE r.RecipeId=@ProdRecipeId AND r.OutputUnitId=p.BaseUnitId;
-   SELECT @OutputInventoryId=StoreInventoryId,@OutputBefore=AvailableQty
-   FROM dbo.StoreInventories WHERE StoreId=@ProdStore AND PreparedItemId=@ProdPreparedId
-    AND BtpIdentityState=1;
-   IF @OutputQty IS NULL OR @OutputQty<=0 OR @OutputInventoryId IS NULL
-    THROW 53418,N'Output contract hoặc prepared inventory của production fixture không hợp lệ.',1;
-   SET @OutputCost=@RunInputCost/NULLIF(@OutputQty,0);
-   INSERT dbo.InventoryTransactions(StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,
-    UnitCost,TotalCost,ProductionRunId,SourceRecipeId,CreatedAt)
-   VALUES(@OutputInventoryId,5,1,@OutputQty,@OutputBefore,@OutputBefore+@OutputQty,
-    ROUND(@OutputCost,2),@RunInputCost,@ProductionRunId,@ProdRecipeId,@ProdAt);
-   UPDATE dbo.StoreInventories SET AvailableQty=@OutputBefore+@OutputQty,LastUpdated=@ProdAt
-   WHERE StoreInventoryId=@OutputInventoryId;
-   INSERT dbo.InventoryCostLayers(IngredientId,PreparedItemId,StoreId,Quantity,RemainingQuantity,
-    UnitCost,CreatedAt,SourceProductionRunId,SourceOrderRefundId,SourceInventoryDocumentDetailId,
-    SourceBranchReceiptLineId,SourceTransferCostAllocationId,SourceTransferDiscrepancyPostingId)
-   VALUES(NULL,@ProdPreparedId,@ProdStore,@OutputQty,@OutputQty,ROUND(@OutputCost,2),@ProdAt,
-    @ProductionRunId,NULL,NULL,NULL,NULL,NULL);
-   UPDATE dbo.ProductionRuns SET [Status]=2,CompletedAt=@ProdAt,CompletedByStaffId=@OwnerStaffId,
-    ValuationStatus=1,TotalInputCost=@RunInputCost,OutputUnitCost=@OutputCost,ValuedAtUtc=@ProdAt
-   WHERE ProductionRunId=@ProductionRunId;
-
-   FETCH NEXT FROM ProductionCursor INTO @ProdStore,@ProdOrdinal,@ProdKey,@ProdAt,
-    @ProdRecipeId,@ProdPreparedId,@ProdRunCount;
-  END;
-  CLOSE ProductionCursor; DEALLOCATE ProductionCursor;
- END
- ELSE
- BEGIN
-  UPDATE pr SET CreatedAt=s.OccurredAt,ConfirmedAt=s.OccurredAt,CompletedAt=s.OccurredAt,ValuedAtUtc=s.OccurredAt
-  FROM dbo.ProductionRuns pr JOIN @ProductionSeed s ON s.StoreId=pr.StoreId AND s.RequestKey=pr.RequestKey;
-  UPDATE t SET CreatedAt=s.OccurredAt FROM dbo.InventoryTransactions t
-  JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=t.ProductionRunId
-  JOIN @ProductionSeed s ON s.StoreId=pr.StoreId AND s.RequestKey=pr.RequestKey;
-  UPDATE a SET CreatedAtUtc=s.OccurredAt FROM dbo.ProductionCostAllocations a
-  JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=a.ProductionRunId
-  JOIN @ProductionSeed s ON s.StoreId=pr.StoreId AND s.RequestKey=pr.RequestKey;
-  UPDATE l SET CreatedAt=s.OccurredAt FROM dbo.InventoryCostLayers l
-  JOIN dbo.ProductionRuns pr ON pr.ProductionRunId=l.SourceProductionRunId
-  JOIN @ProductionSeed s ON s.StoreId=pr.StoreId AND s.RequestKey=pr.RequestKey;
- END;

@@ -37,8 +37,27 @@ public sealed class DashboardAnalyticsScriptTests
         var sql = ReadScript();
         Assert.All(CanonicalProcedures.Concat(LegacyProcedures), name =>
             Assert.Contains($"PROCEDURE dbo.{name}", sql, StringComparison.OrdinalIgnoreCase));
-        Assert.Equal(49, Regex.Matches(sql, @"CREATE\s+OR\s+ALTER\s+PROCEDURE", RegexOptions.IgnoreCase).Count);
+        Assert.Equal(37, Regex.Matches(sql, @"CREATE\s+OR\s+ALTER\s+PROCEDURE", RegexOptions.IgnoreCase).Count);
+        Assert.Equal(12, Regex.Matches(sql, @"ALTER\s+PROCEDURE\s+dbo\.sp_", RegexOptions.IgnoreCase).Count);
         Assert.Contains("DROP PROCEDURE IF EXISTS dbo.sp_Top_Customers", sql, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Script_normalizes_throw_validation_and_seedall_production_guard()
+    {
+        var sql = ReadScript();
+        Assert.Equal(6, Regex.Matches(sql, @"(?m)^\s*;THROW\s+(?:50001|50002|50003)", RegexOptions.IgnoreCase).Count);
+        Assert.Contains("IF @FromDate IS NULL OR @ToDate IS NULL OR @FromDate > @ToDate", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("IF @Granularity NOT IN ('HOUR','DAY','WEEK','MONTH')", sql, StringComparison.OrdinalIgnoreCase);
+
+        var seed = File.ReadAllText(Path.Combine(
+            FindRepoRoot(), "CafeChain", "Scripts", "SeedAll.sql"));
+        var guardStart = seed.IndexOf("IF EXISTS(SELECT 1 FROM @PreparedTransaction", StringComparison.Ordinal);
+        var insertStart = seed.IndexOf("INSERT dbo.InventoryTransactions", guardStart, StringComparison.Ordinal);
+        Assert.True(guardStart >= 0 && insertStart > guardStart);
+        var guard = seed[guardStart..insertStart];
+        Assert.Contains("THROW 52915", guard, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("BEGIN", guard, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -7,12 +7,25 @@
     const status = document.getElementById("dashboardAiStatus");
     const preview = document.getElementById("dashboardAiPreview");
     const result = document.getElementById("dashboardAiResult");
-    if (!root || !prompt || !analyzeButton || !status || !preview || !result) return;
+    const toggleResult = document.getElementById("dashboardAiToggleResult");
+    const toggleLabel = toggleResult?.querySelector("[data-ai-toggle-label]");
+    if (!root || !prompt || !analyzeButton || !status || !preview || !result || !toggleResult || !toggleLabel) return;
 
     const token = document.querySelector(
         "#dashboardAntiForgery input[name='__RequestVerificationToken']"
     )?.value || "";
     const chartTypes = new Set(["Kpi", "Line", "Bar", "Heatmap", "Table"]);
+
+    function applyQuestionFromGuide() {
+        const url = new URL(window.location.href);
+        const suggestedQuestion = url.searchParams.get("aiQuestion")?.trim();
+        if (!suggestedQuestion) return;
+
+        prompt.value = suggestedQuestion.slice(0, Number(prompt.maxLength) || 500);
+        prompt.focus();
+        url.searchParams.delete("aiQuestion");
+        window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+    }
 
     async function post(url, body) {
         const response = await fetch(url, {
@@ -35,6 +48,14 @@
         status.hidden = false;
         status.textContent = message;
         status.classList.toggle("is-error", isError);
+    }
+
+    function setResultVisibility(isVisible) {
+        result.hidden = !isVisible;
+        toggleResult.setAttribute("aria-expanded", String(isVisible));
+        toggleLabel.textContent = isVisible ? "Ẩn phân tích" : "Hiện phân tích";
+        toggleResult.querySelector("i")?.classList.toggle("bi-eye", isVisible);
+        toggleResult.querySelector("i")?.classList.toggle("bi-eye-slash", !isVisible);
     }
 
     function element(tag, className, text) {
@@ -92,7 +113,8 @@
 
     function renderResult(data) {
         result.replaceChildren();
-        result.hidden = false;
+        toggleResult.disabled = false;
+        setResultVisibility(true);
         preview.hidden = true;
 
         const meta = element("div", "dashboard-intelligence__meta");
@@ -132,6 +154,11 @@
             ));
     }
 
+    toggleResult.addEventListener("click", () => {
+        if (toggleResult.disabled) return;
+        setResultVisibility(result.hidden);
+    });
+
     async function analyze() {
         const question = prompt.value.trim();
         if (question.length < 3) {
@@ -170,4 +197,5 @@
             void analyze();
         }
     });
+    applyQuestionFromGuide();
 })();

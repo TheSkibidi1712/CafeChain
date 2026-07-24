@@ -392,7 +392,13 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
     private static long Long(JsonElement row, string name) => row.TryGetProperty(name, out var x) && x.TryGetInt64(out var value) ? value : 0;
     private static string CacheKey(int staffId, Guid analysisId) => $"dashboard-intelligence:{staffId}:{analysisId:N}";
     private static void RequireActor(AdminActorContext actor) { if (actor.StaffId <= 0) throw new UnauthorizedAccessException("Staff context is required."); }
-    private static DashboardIntentParseResultDto Unsupported() => new() { Success = false, ErrorCode = "UNSUPPORTED_INTENT", Message = "Câu hỏi chưa thuộc 8 intent Dashboard được hỗ trợ.", UsedFallback = true };
+    private static DashboardIntentParseResultDto Unsupported() => new()
+    {
+        Success = false,
+        ErrorCode = "UNSUPPORTED_INTENT",
+        Message = "Câu hỏi chưa thuộc các nhóm phân tích Dashboard được hỗ trợ.",
+        UsedFallback = true
+    };
     private void EnforceRate(AdminActorContext actor)
     {
         var key = $"dashboard-ai-rate:{actor.StaffId}";

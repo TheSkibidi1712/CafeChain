@@ -131,6 +131,44 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
             "SELECT COUNT_BIG(1) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE o.Source=N'DEMO_DASHBOARD_V13' AND p.CashSessionId IS NOT NULL;", 0L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.WorkShifts WHERE StoreId=1 AND StartTime IN ('2026-01-15T06:00:00','2026-01-15T12:00:00','2026-01-16T06:00:00','2026-01-18T06:00:00');", 4L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.PreparedItems;", 12L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.PreparedItems WHERE Active=1 AND PreparedItemId BETWEEN 9 AND 11;", 3L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.PreparedItems WHERE Active=0 AND PreparedItemId=12;", 1L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Recipes WHERE RecipeId BETWEEN 1 AND 148;", 148L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Recipes WHERE RecipeId=148 AND Active=0 AND Status=N'Archived' AND PreparedItemId=12;", 1L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.RecipeDetails WHERE RecipeDetailId BETWEEN 1 AND 732;", 732L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.StoreInventories WHERE StoreId=1 AND PreparedItemId BETWEEN 1 AND 11;", 11L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.ProductionRuns WHERE ProductionRunId BETWEEN 1 AND 11;", 11L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 30L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=1;", 15L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=3;", 15L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=4;", 6L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.OrderRefunds r JOIN dbo.Orders o ON o.OrderId=r.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 4L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 30L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 22L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.OrderDetails od LEFT JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE od.Note=N'AI Dashboard rolling analytics fixture' AND o.OrderId IS NULL;", 0L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Payments p LEFT JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE p.TransactionCode LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_%' AND o.OrderId IS NULL;", 0L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%';", 2L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 2L);
 
         await using (var command = AnalyticsCommand(connection, "dbo.usp_Workforce_ShiftStatus"))
         await using (var reader = await command.ExecuteReaderAsync())

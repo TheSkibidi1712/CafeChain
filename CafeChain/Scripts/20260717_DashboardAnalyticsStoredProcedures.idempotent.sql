@@ -95,10 +95,19 @@ CREATE OR ALTER PROCEDURE dbo.usp_Dashboard_NetSalesTrend
 AS
 BEGIN
     SET NOCOUNT ON;
-    IF @FromDate IS NULL OR @ToDate IS NULL OR @FromDate > @ToDate THROW 50001, 'Invalid date range.', 1;
-    IF DATEDIFF(day,@FromDate,@ToDate)>3660 THROW 50003, 'Date range cannot exceed 3660 days.', 1;
+    IF @FromDate IS NULL OR @ToDate IS NULL OR @FromDate > @ToDate
+    BEGIN
+        ;THROW 50001, 'Invalid date range.', 1;
+    END;
+    IF DATEDIFF(day,@FromDate,@ToDate)>3660
+    BEGIN
+        ;THROW 50003, 'Date range cannot exceed 3660 days.', 1;
+    END;
     SET @Granularity=UPPER(LTRIM(RTRIM(COALESCE(@Granularity,'DAY'))));
-    IF @Granularity NOT IN ('HOUR','DAY','WEEK','MONTH') THROW 50002, 'Invalid granularity.', 1;
+    IF @Granularity NOT IN ('HOUR','DAY','WEEK','MONTH')
+    BEGIN
+        ;THROW 50002, 'Invalid granularity.', 1;
+    END;
     DECLARE @ToExclusive datetime2 = DATEADD(day, 1, CONVERT(datetime2, @ToDate));
     DECLARE @FirstBucket datetime2=dbo.ufn_AnalyticsBucketStart(CONVERT(datetime2,@FromDate),@Granularity);
     DECLARE @LastBucket datetime2=dbo.ufn_AnalyticsBucketStart(DATEADD(second,-1,@ToExclusive),@Granularity);
@@ -152,7 +161,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET @Granularity=UPPER(LTRIM(RTRIM(COALESCE(@Granularity,'DAY'))));
-    IF @Granularity NOT IN ('HOUR','DAY','WEEK','MONTH') THROW 50002, 'Invalid granularity.', 1;
+    IF @Granularity NOT IN ('HOUR','DAY','WEEK','MONTH')
+    BEGIN
+        ;THROW 50002, 'Invalid granularity.', 1;
+    END;
     SELECT dbo.ufn_AnalyticsBucketStart(it.CreatedAt,@Granularity) AS MovementDate, it.Type AS TransactionType,
            COUNT_BIG(it.InventoryTransactionId) AS TransactionCount,
            SUM(it.Quantity) AS Quantity, COALESCE(SUM(it.TotalCost),0) AS TotalCost, 'AVAILABLE' AS DataStatus
@@ -280,7 +292,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET @Granularity=UPPER(LTRIM(RTRIM(COALESCE(@Granularity,'DAY'))));
-    IF @Granularity NOT IN ('HOUR','DAY','WEEK','MONTH') THROW 50002, 'Invalid granularity.', 1;
+    IF @Granularity NOT IN ('HOUR','DAY','WEEK','MONTH')
+    BEGIN
+        ;THROW 50002, 'Invalid granularity.', 1;
+    END;
     SELECT dbo.ufn_AnalyticsBucketStart(br.ReceivedAt,@Granularity) AS ReceiptDate,brl.IngredientId,i.Name AS IngredientName,
            AVG(brl.BaseUnitCostSnapshot) AS AverageBaseUnitCost,MIN(brl.BaseUnitCostSnapshot) AS MinimumBaseUnitCost,
            MAX(brl.BaseUnitCostSnapshot) AS MaximumBaseUnitCost,SUM(brl.ReceivedBaseQuantity) AS ReceivedBaseQuantity,'AVAILABLE' AS DataStatus
@@ -780,8 +795,27 @@ BEGIN
 END;
 GO
 
-/* Legacy compatibility contracts used by the current DashboardRepository. */
-CREATE OR ALTER PROCEDURE dbo.sp_Revenue_By_Store
+/*
+   Legacy compatibility contracts used by the current DashboardRepository.
+   Create local stubs first because SQL Server resolves names beginning with
+   sp_ against master; CREATE OR ALTER can otherwise bind to a master fixture
+   and fail with error 208 instead of creating the procedure in CafeChain.
+*/
+IF OBJECT_ID(N'dbo.sp_Revenue_By_Store',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Revenue_By_Store AS RETURN 0;');
+IF OBJECT_ID(N'dbo.sp_Revenue_Filtered',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Revenue_Filtered AS RETURN 0;');
+IF OBJECT_ID(N'dbo.sp_Inventory_Summary',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Inventory_Summary AS RETURN 0;');
+IF OBJECT_ID(N'dbo.sp_Waste_Report',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Waste_Report AS RETURN 0;');
+IF OBJECT_ID(N'dbo.sp_Cash_Flow_Today',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Cash_Flow_Today AS RETURN 0;');
+IF OBJECT_ID(N'dbo.sp_Top_Selling_Drinks_Filtered',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Top_Selling_Drinks_Filtered AS RETURN 0;');
+IF OBJECT_ID(N'dbo.sp_Top_Toppings_Filtered',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Top_Toppings_Filtered AS RETURN 0;');
+IF OBJECT_ID(N'dbo.sp_Revenue_By_PaymentMethod_Filtered',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Revenue_By_PaymentMethod_Filtered AS RETURN 0;');
+IF OBJECT_ID(N'dbo.sp_Order_Status_Stats',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Order_Status_Stats AS RETURN 0;');
+IF OBJECT_ID(N'dbo.sp_Revenue_By_Hour',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Revenue_By_Hour AS RETURN 0;');
+IF OBJECT_ID(N'dbo.sp_Staff_Performance_Filtered',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Staff_Performance_Filtered AS RETURN 0;');
+IF OBJECT_ID(N'dbo.sp_Dashboard_Summary_Filtered',N'P') IS NULL EXEC(N'CREATE PROCEDURE dbo.sp_Dashboard_Summary_Filtered AS RETURN 0;');
+GO
+
+ALTER PROCEDURE dbo.sp_Revenue_By_Store
     @FromDate datetime,@ToDate datetime,@StoreIds nvarchar(max)=NULL
 AS
 BEGIN
@@ -794,7 +828,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Revenue_Filtered
+ALTER PROCEDURE dbo.sp_Revenue_Filtered
     @FromDate datetime,@ToDate datetime,@StoreIds nvarchar(max)=NULL,@ProvinceId int=NULL,@DistrictId int=NULL
 AS
 BEGIN
@@ -810,7 +844,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Inventory_Summary @StoreId int
+ALTER PROCEDURE dbo.sp_Inventory_Summary @StoreId int
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -825,7 +859,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Waste_Report
+ALTER PROCEDURE dbo.sp_Waste_Report
     @FromDate datetime,@ToDate datetime,@StoreIds nvarchar(max)=NULL
 AS
 BEGIN
@@ -840,7 +874,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Cash_Flow_Today
+ALTER PROCEDURE dbo.sp_Cash_Flow_Today
     @StoreIds nvarchar(max),@FromDate date=NULL,@ToDate date=NULL
 AS
 BEGIN
@@ -872,7 +906,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Top_Selling_Drinks_Filtered
+ALTER PROCEDURE dbo.sp_Top_Selling_Drinks_Filtered
     @Top int=10,@FromDate datetime,@ToDate datetime,@StoreIds nvarchar(max)=NULL
 AS
 BEGIN
@@ -888,7 +922,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Top_Toppings_Filtered
+ALTER PROCEDURE dbo.sp_Top_Toppings_Filtered
     @FromDate datetime,@ToDate datetime,@StoreIds nvarchar(max)=NULL
 AS
 BEGIN
@@ -905,7 +939,7 @@ GO
 DROP PROCEDURE IF EXISTS dbo.sp_Top_Customers;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Revenue_By_PaymentMethod_Filtered
+ALTER PROCEDURE dbo.sp_Revenue_By_PaymentMethod_Filtered
     @FromDate datetime,@ToDate datetime,@StoreIds nvarchar(max)=NULL
 AS
 BEGIN
@@ -931,7 +965,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Order_Status_Stats
+ALTER PROCEDURE dbo.sp_Order_Status_Stats
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -940,7 +974,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Revenue_By_Hour
+ALTER PROCEDURE dbo.sp_Revenue_By_Hour
     @FromDate datetime=NULL,@ToDate datetime=NULL,@StoreIds nvarchar(max)=NULL
 AS
 BEGIN
@@ -954,7 +988,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Staff_Performance_Filtered
+ALTER PROCEDURE dbo.sp_Staff_Performance_Filtered
     @FromDate datetime,@ToDate datetime,@StoreIds nvarchar(max)=NULL
 AS
 BEGIN
@@ -968,7 +1002,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_Dashboard_Summary_Filtered
+ALTER PROCEDURE dbo.sp_Dashboard_Summary_Filtered
     @FromDate datetime,@ToDate datetime,@StoreIds nvarchar(max)=NULL
 AS
 BEGIN

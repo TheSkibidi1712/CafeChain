@@ -35,7 +35,7 @@
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <a class="analytics-button text-decoration-none" asp-area="Admin" asp-controller="Dashboard" asp-action="Guide">
-                <i class="bi bi-question-circle"></i> Hướng dẫn
+                <i class="bi bi-question-circle"></i> Hướng dẫn Dashboard &amp; AI
             </a>
             <button type="button" class="analytics-button" id="dashboardApply">
                 <i class="bi bi-arrow-clockwise"></i> Áp dụng
@@ -67,6 +67,15 @@
                 <h2 id="dashboardIntelligenceTitle">Hỏi Dashboard bằng tiếng Việt</h2>
                 <p>AI nhận diện intent; server chọn nhiều bộ dữ liệu read-only và áp dụng quyền cửa hàng trước khi phân tích.</p>
             </div>
+            <button type="button"
+                    class="analytics-button dashboard-intelligence__toggle"
+                    id="dashboardAiToggleResult"
+                    aria-controls="dashboardAiResult"
+                    aria-expanded="false"
+                    disabled>
+                <i class="bi bi-eye"></i>
+                <span data-ai-toggle-label>Ẩn phân tích</span>
+            </button>
         </div>
         <div class="dashboard-intelligence__input">
             <input id="dashboardAiPrompt" maxlength="500" autocomplete="off"
