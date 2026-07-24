@@ -315,10 +315,12 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
         await _context.SaveChangesAsync();
         foreach (var line in affectedAdviceLines)
         {
-            var activeOrderedBaseQuantity = await _context.PurchaseOrderLineAllocations
+            var activeAllocationQuantities = await _context.PurchaseOrderLineAllocations
                 .Where(x => x.PurchaseAdviceLineId == line.PurchaseAdviceLineId
                     && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled)
-                .SumAsync(x => (decimal?)x.AllocatedBaseQuantity) ?? 0m;
+                .Select(x => x.AllocatedBaseQuantity)
+                .ToListAsync();
+            var activeOrderedBaseQuantity = activeAllocationQuantities.Sum();
             var maximumCoverable = Math.Max(0m, line.RequestedPurchaseBaseQuantity - line.ClosedBaseQuantity);
             line.AllocatedToPoBaseQuantity = Math.Min(maximumCoverable, activeOrderedBaseQuantity);
             line.IsActiveReservation = line.AllocatedToPoBaseQuantity < maximumCoverable;

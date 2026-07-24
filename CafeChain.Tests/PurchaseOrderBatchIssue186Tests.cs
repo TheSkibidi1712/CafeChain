@@ -180,6 +180,39 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task CancelDoesNotCreateInventory_AndReleasesPaAllocations()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(db);
+        var service = BatchService(db);
+        var created = (await service.CreateAsync(Request(seed), Warehouse(seed))).Data!;
+
+        var cancelled = await service.CancelAsync(
+            created.PurchaseOrderBatchId,
+            new PurchaseOrderBatchTransitionRequest
+            {
+                RowVersion = created.RowVersion,
+                Reason = "Nhà cung cấp không thể giao hàng"
+            },
+            Owner(seed));
+
+        Assert.True(cancelled.IsSuccess, cancelled.Message);
+        Assert.Equal(PurchaseOrderBatchStatuses.Cancelled, cancelled.Data!.Status);
+        Assert.All(
+            await db.PurchaseOrders.AsNoTracking().ToListAsync(),
+            child => Assert.Equal(PurchaseOrderStatuses.Cancelled, child.Status));
+        Assert.All(
+            await db.PurchaseAdviceLines.AsNoTracking().ToListAsync(),
+            line =>
+            {
+                Assert.Equal(0m, line.AllocatedToPoBaseQuantity);
+                Assert.True(line.IsActiveReservation);
+            });
+        Assert.Empty(await db.PurchaseOrderReceiptPostings.AsNoTracking().ToListAsync());
+        Assert.Empty(await db.InventoryTransactions.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
     public async Task Batch_AtomicRollbackOnChildPoFailure()
     {
         using var db = CreateDbContext();
