@@ -39,7 +39,7 @@ namespace CafeChain.Tests.POS
             var service = CreateService(ctx);
 
             var result = await service.CreateFromConfirmedAlertAsync(
-                alertId, ManagerStaffId, StoreId, 25.5m, "Cần gấp", "HIGH");
+                alertId, ManagerStaffId, StoreId, 8m, "Cần gấp", "HIGH");
 
             Assert.True(result.IsSuccess);
             Assert.NotNull(result.Data);
@@ -49,7 +49,7 @@ namespace CafeChain.Tests.POS
             Assert.Equal(RestockRequestStatuses.Draft, req.Status);
             Assert.Equal(IngredientId, req.IngredientId);
             Assert.Null(req.RecipeId);
-            Assert.Equal(25.5m, req.RequestedQuantity);
+            Assert.Equal(8m, req.RequestedQuantity);
             Assert.Equal(RestockRequestPriorities.High, req.Priority);
             Assert.Equal(ManagerStaffId, req.CreatedByStaffId);
             Assert.Equal(alertId, req.StockAlertId);
@@ -70,7 +70,7 @@ namespace CafeChain.Tests.POS
             var service = CreateService(ctx);
 
             var result = await service.CreateFromConfirmedAlertAsync(
-                alertId, ManagerStaffId, StoreId, 10m, null, null);
+                alertId, ManagerStaffId, StoreId, 8m, null, null);
 
             Assert.True(result.IsSuccess);
             var req = await ctx.RestockRequests.SingleAsync();
@@ -169,6 +169,61 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
+        public async Task AboveThreshold_ConfirmedAlert_WithZeroSuggestion_IsRejected()
+        {
+            using var ctx = CreateDbContext();
+            var alertId = await SeedAlertAsync(ctx, StockAlertStatuses.Confirmed, ingredient: true, withAw: false);
+            var alert = await ctx.StockAlerts.SingleAsync(x => x.StockAlertId == alertId);
+            alert.CurrentQtySnapshot = 12m;
+            alert.ThresholdSnapshot = 10m;
+            await ctx.SaveChangesAsync();
+
+            var result = await CreateService(ctx).CreateFromConfirmedAlertAsync(
+                alertId, ManagerStaffId, StoreId, 1m, null, "NORMAL");
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("không còn nhu cầu", result.Message, System.StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(await ctx.RestockRequests.ToListAsync());
+        }
+
+        [Fact]
+        public async Task RequestedQuantity_CannotExceedVerifiedSuggestion()
+        {
+            using var ctx = CreateDbContext();
+            var alertId = await SeedAlertAsync(ctx, StockAlertStatuses.Confirmed, ingredient: true, withAw: false);
+
+            var result = await CreateService(ctx).CreateFromConfirmedAlertAsync(
+                alertId, ManagerStaffId, StoreId, 8.001m, null, "NORMAL");
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("không được vượt quá", result.Message, System.StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(await ctx.RestockRequests.ToListAsync());
+        }
+
+        [Fact]
+        public async Task ManualReview_UsesDecisionTargetAsVerifiedSuggestion()
+        {
+            using var ctx = CreateDbContext();
+            var alertId = await SeedAlertAsync(ctx, StockAlertStatuses.Confirmed, ingredient: true, withAw: false);
+            var alert = await ctx.StockAlerts.SingleAsync(x => x.StockAlertId == alertId);
+            alert.AlertType = StockAlertTypes.ManualReview;
+            alert.Severity = StockAlertSeverities.Review;
+            alert.CurrentQtySnapshot = 12m;
+            alert.ThresholdSnapshot = 20m;
+            await ctx.SaveChangesAsync();
+
+            var result = await CreateService(ctx).CreateFromConfirmedAlertAsync(
+                alertId, ManagerStaffId, StoreId, 8m, "Đã xác minh sự kiện", "HIGH");
+
+            Assert.True(result.IsSuccess, result.Message);
+            var request = await ctx.RestockRequests.SingleAsync();
+            Assert.Equal(8m, request.SuggestedQuantity);
+            Assert.Equal(12m, request.SuggestionAvailableSnapshot);
+            Assert.Null(request.SuggestionMinLevelSnapshot);
+            Assert.Contains("ngoài ngưỡng", request.SuggestionReason);
+        }
+
+        [Fact]
         public async Task DuplicateSubmitted_Rejected()
         {
             using var ctx = CreateDbContext();
@@ -220,7 +275,7 @@ namespace CafeChain.Tests.POS
             var service = CreateService(ctx);
 
             var result = await service.CreateFromConfirmedAlertAsync(
-                alertId, ManagerStaffId, StoreId, 12m, "note", "NORMAL");
+                alertId, ManagerStaffId, StoreId, 8m, "note", "NORMAL");
 
             Assert.True(result.IsSuccess);
             Assert.Equal(

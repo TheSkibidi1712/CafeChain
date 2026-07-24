@@ -15,6 +15,10 @@ namespace CafeChain.Application.DTOs.Admin.StockAlerts
         public string Source { get; set; } = string.Empty;
         public decimal CurrentQtySnapshot { get; set; }
         public decimal? ThresholdSnapshot { get; set; }
+        public bool IsOutOfThresholdManualDemand { get; set; }
+        public decimal? DecisionTargetBaseQuantity { get; set; }
+        public decimal? CurrentMinimumThresholdBaseQuantity { get; set; }
+        public string? BaseUnitName { get; set; }
         public bool HasCurrentInventory { get; set; }
         public decimal? OnHandQty { get; set; }
         public decimal? ReservedQty { get; set; }

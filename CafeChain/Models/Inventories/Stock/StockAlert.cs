@@ -25,10 +25,10 @@ namespace CafeChain.Models.Inventories.Stock
         /// <summary>Issue #122 — stable BTP identity for PreparedItem-mode alerts.</summary>
         public int? PreparedItemId { get; set; }
 
-        /// <summary>LOW_STOCK | OUT_OF_STOCK</summary>
+        /// <summary>LOW_STOCK | OUT_OF_STOCK | MANUAL_REVIEW</summary>
         public string AlertType { get; set; } = string.Empty;
 
-        /// <summary>WARNING | URGENT</summary>
+        /// <summary>WARNING | URGENT | REVIEW</summary>
         public string Severity { get; set; } = string.Empty;
 
         /// <summary>OPEN | CONFIRMED | REJECTED | RESOLVED | CLOSED</summary>
@@ -36,6 +36,11 @@ namespace CafeChain.Models.Inventories.Stock
 
         public decimal CurrentQtySnapshot { get; set; }
 
+        /// <summary>
+        /// Automatic alerts: minimum threshold snapshot.
+        /// MANUAL_REVIEW: verified decision target in canonical base UOM.
+        /// The source/type pair discriminates these meanings.
+        /// </summary>
         public decimal? ThresholdSnapshot { get; set; }
 
         /// <summary>AUTO | MANUAL_CHECK | POS_SALE | OFFLINE_SYNC | INVENTORY_TRANSACTION | SALES_REPORT</summary>

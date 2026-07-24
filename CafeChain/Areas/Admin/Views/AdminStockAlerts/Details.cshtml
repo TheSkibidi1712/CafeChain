@@ -11,6 +11,7 @@
         ? Math.Max(0m, Model.ThresholdSnapshot.Value - Model.CurrentQtySnapshot)
         : (decimal?)null;
     var defaultPriority = Model.AlertType == "OUT_OF_STOCK" ? "URGENT" : "HIGH";
+    var unitSuffix = string.IsNullOrWhiteSpace(Model.BaseUnitName) ? "" : $" {Model.BaseUnitName}";
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -49,7 +50,7 @@
         <div class="ops-metric"><span class="ops-metric-label">Tồn vật lý hiện tại</span><strong class="ops-metric-value">@(Model.OnHandQty.HasValue ? AdminStatusDisplay.Quantity(Model.OnHandQty.Value) : "—")</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Đang giữ chỗ</span><strong class="ops-metric-value warning">@(Model.ReservedQty.HasValue ? AdminStatusDisplay.Quantity(Model.ReservedQty.Value) : "—")</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Khả dụng hiện tại</span><strong class="ops-metric-value @(Model.AvailableQty.HasValue && Model.AvailableQty.Value <= 0 ? "danger" : "success")">@(Model.AvailableQty.HasValue ? AdminStatusDisplay.Quantity(Model.AvailableQty.Value) : "—")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Ngưỡng tối thiểu</span><strong class="ops-metric-value">@(Model.ThresholdSnapshot.HasValue ? AdminStatusDisplay.Quantity(Model.ThresholdSnapshot.Value) : "Chưa đặt")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Ngưỡng tối thiểu hiện tại</span><strong class="ops-metric-value">@(Model.CurrentMinimumThresholdBaseQuantity.HasValue ? $"{AdminStatusDisplay.Quantity(Model.CurrentMinimumThresholdBaseQuantity.Value)}{unitSuffix}" : "Chưa đặt")</strong></div>
     </section>
 
     <div class="ops-detail-grid">
@@ -66,7 +67,14 @@
                     </div>
                     <div class="ops-data-grid">
                         <div><span class="ops-data-label">Khả dụng lúc cảnh báo</span><span class="ops-data-value">@AdminStatusDisplay.Quantity(Model.CurrentQtySnapshot)</span></div>
-                        <div><span class="ops-data-label">Ngưỡng lúc cảnh báo</span><span class="ops-data-value">@(Model.ThresholdSnapshot.HasValue ? AdminStatusDisplay.Quantity(Model.ThresholdSnapshot.Value) : "Chưa cấu hình")</span></div>
+                        @if (Model.IsOutOfThresholdManualDemand)
+                        {
+                            <div><span class="ops-data-label">Mục tiêu thủ công</span><span class="ops-data-value">@(Model.DecisionTargetBaseQuantity.HasValue ? $"{AdminStatusDisplay.Quantity(Model.DecisionTargetBaseQuantity.Value)}{unitSuffix}" : "Chưa xác định")</span></div>
+                        }
+                        else
+                        {
+                            <div><span class="ops-data-label">Ngưỡng lúc cảnh báo</span><span class="ops-data-value">@(Model.ThresholdSnapshot.HasValue ? $"{AdminStatusDisplay.Quantity(Model.ThresholdSnapshot.Value)}{unitSuffix}" : "Chưa cấu hình")</span></div>
+                        }
                         <div><span class="ops-data-label">Nguồn phát hiện</span><span class="ops-data-value">@AdminStatusDisplay.StockAlertSource(Model.Source)</span></div>
                         <div><span class="ops-data-label">Cập nhật gần nhất</span><span class="ops-data-value">@Model.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></div>
                         <div><span class="ops-data-label">Người báo</span><span class="ops-data-value">@(Model.ReporterName ?? "Hệ thống")</span></div>
@@ -208,9 +216,18 @@
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
                             <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <div class="ops-form-group">
-                                <label class="ops-form-label" for="requestedQuantity">Số lượng yêu cầu <span class="text-danger">*</span></label>
-                                <input id="requestedQuantity" type="number" name="requestedQuantity" class="ops-input w-100" step="0.001" min="0.001" required value="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
-                                <div class="ops-help">Gợi ý có thể kiểm chứng: giá trị lớn hơn giữa 0 và (ngưỡng − khả dụng) = @(suggested.HasValue ? AdminStatusDisplay.Quantity(suggested.Value) : "chưa đủ dữ liệu").</div>
+                                <label class="ops-form-label" for="requestedQuantity">Số lượng yêu cầu theo đơn vị tồn kho@(string.IsNullOrWhiteSpace(Model.BaseUnitName) ? "" : $" ({Model.BaseUnitName})") <span class="text-danger">*</span></label>
+                                <input id="requestedQuantity" type="number" name="requestedQuantity" class="ops-input w-100" step="0.001" min="0.001" max="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" required disabled="@(suggested is not > 0 ? "disabled" : null)" value="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
+                                <div class="ops-help">
+                                    @if (Model.IsOutOfThresholdManualDemand)
+                                    {
+                                        <span>Nhu cầu đã xác minh: mục tiêu thủ công − khả dụng = @(suggested.HasValue ? $"{AdminStatusDisplay.Quantity(suggested.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Bù đến ngưỡng tối thiểu: max(0, ngưỡng − khả dụng) = @(suggested.HasValue ? $"{AdminStatusDisplay.Quantity(suggested.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
+                                    }
+                                </div>
                             </div>
                             <div class="ops-form-group">
                                 <label class="ops-form-label" for="priority">Mức ưu tiên</label>
@@ -224,7 +241,7 @@
                                 <label class="ops-form-label" for="note">Ghi chú</label>
                                 <textarea id="note" name="note" class="ops-textarea" maxlength="500" placeholder="Thông tin cần lưu ý cho bộ phận kho..."></textarea>
                             </div>
-                            <button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button>
+                            <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(suggested is not > 0 ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button>
                         </form>
                         <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post" class="mt-4">
                             @Html.AntiForgeryToken()

@@ -394,13 +394,44 @@ namespace CafeChain.Application.Services.Inventories
             if (openAlert == null && openLookup != null)
                 openAlert = await openLookup();
 
+            var isManualDemand = openAlert != null
+                && openAlert.Source == StockAlertSources.SalesReport
+                && (openAlert.AlertType == StockAlertTypes.ManualReview || !min.HasValue);
+            if (isManualDemand && openAlert!.ThresholdSnapshot.HasValue)
+            {
+                if (qty < openAlert.ThresholdSnapshot.Value)
+                {
+                    return;
+                }
+
+                var previousStatus = openAlert.Status;
+                var previousType = openAlert.AlertType;
+                var previousSeverity = openAlert.Severity;
+                openAlert.Status = StockAlertStatuses.Resolved;
+                openAlert.UpdatedAt = DateTime.UtcNow;
+                openAlert.ResolvedAt = DateTime.UtcNow;
+                openAlert.ResolvedReason = "Stock reached the verified manual demand target";
+                openAlert.CurrentQtySnapshot = qty;
+                openAlert.Source = source;
+                AddTransition(
+                    openAlert,
+                    item,
+                    previousStatus,
+                    previousType,
+                    previousSeverity,
+                    source,
+                    "Tồn khả dụng đã đạt mục tiêu bổ sung thủ công.");
+                summary.ResolvedCount++;
+                return;
+            }
+
             if (!min.HasValue)
             {
                 summary.SkippedUnconfiguredCount++;
                 return;
             }
 
-            if (qty > min.Value)
+            if (qty >= min.Value)
             {
                 if (openAlert != null)
                 {

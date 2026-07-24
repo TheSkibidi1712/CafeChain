@@ -79,7 +79,7 @@
                         <tr>
                             <td><span class="ops-item-name">#@item.RestockRequestId</span><div class="ops-secondary">Cảnh báo #@item.StockAlertId</div></td>
                             <td><div class="ops-item-name">@item.ItemName</div><div class="ops-secondary">@item.ItemTypeLabel</div></td>
-                            <td class="number"><strong>@AdminStatusDisplay.Quantity(item.RequestedQuantity)</strong>@if (item.SuggestedQuantity.HasValue) { <div class="ops-secondary">Gợi ý @AdminStatusDisplay.Quantity(item.SuggestedQuantity.Value)</div> }</td>
+                            <td class="number"><strong>@AdminStatusDisplay.Quantity(item.RequestedQuantity) @item.BaseUnitName</strong>@if (item.SuggestedQuantity.HasValue) { <div class="ops-secondary">Gợi ý @AdminStatusDisplay.Quantity(item.SuggestedQuantity.Value) @item.BaseUnitName</div> }</td>
                             <td><span class="ops-badge @AdminStatusDisplay.RestockRequestPriority(item.Priority).CssClass">@AdminStatusDisplay.RestockRequestPriority(item.Priority).Label</span></td>
                             <td><span class="ops-badge @AdminStatusDisplay.RestockRequest(item.Status).CssClass">@AdminStatusDisplay.RestockRequest(item.Status).Label</span></td>
                             <td>@(item.CreatedByName ?? "—")</td>

@@ -11,6 +11,24 @@ namespace CafeChain.Application.DTOs.POS
 
         /// <summary>Required report note (latest note on alert).</summary>
         public string Note { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Required business reason when usable stock is at/above the minimum threshold,
+        /// or when no threshold is configured.
+        /// </summary>
+        public string? Reason { get; set; }
+
+        /// <summary>
+        /// Explicit target in the inventory item's canonical base UOM.
+        /// Mutually exclusive with ForecastDemandUntilDeliveryBaseQuantity.
+        /// </summary>
+        public decimal? TargetStockBaseQuantity { get; set; }
+
+        /// <summary>
+        /// Additional demand expected before replenishment arrives, in canonical base UOM.
+        /// The service normalizes this to target = current usable + forecast.
+        /// </summary>
+        public decimal? ForecastDemandUntilDeliveryBaseQuantity { get; set; }
     }
 
     public class StockShortageReportResultDto
@@ -21,6 +39,12 @@ namespace CafeChain.Application.DTOs.POS
         public bool EmailAttempted { get; set; }
         public int EmailSentCount { get; set; }
         public int EmailFailedCount { get; set; }
+        public string AlertType { get; set; } = string.Empty;
+        public bool IsOutOfThresholdDemand { get; set; }
+        public decimal AvailableBaseQuantity { get; set; }
+        public decimal? MinimumThresholdBaseQuantity { get; set; }
+        public decimal? DecisionTargetBaseQuantity { get; set; }
+        public decimal SuggestedBaseQuantity { get; set; }
         public List<string> Warnings { get; set; } = new();
     }
 }

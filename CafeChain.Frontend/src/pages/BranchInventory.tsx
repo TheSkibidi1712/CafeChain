@@ -9,6 +9,7 @@ import {
 import { getPosSession } from '../services/posSession'
 
 type FilterChip = '' | BranchInventoryItemType
+type ManualDemandMode = 'target' | 'forecast'
 
 const FILTERS: { key: FilterChip; label: string }[] = [
   { key: '', label: 'Tất cả' },
@@ -97,6 +98,10 @@ export default function BranchInventory() {
   // Report modal
   const [reportItem, setReportItem] = useState<BranchInventoryItem | null>(null)
   const [reportNote, setReportNote] = useState('')
+  const [reportReason, setReportReason] = useState('')
+  const [manualDemandMode, setManualDemandMode] =
+    useState<ManualDemandMode>('target')
+  const [manualDemandQuantity, setManualDemandQuantity] = useState('')
   const [reportSubmitting, setReportSubmitting] = useState(false)
   const [reportError, setReportError] = useState<string | null>(null)
 
@@ -156,6 +161,9 @@ export default function BranchInventory() {
   const openReport = (item: BranchInventoryItem) => {
     setReportItem(item)
     setReportNote('')
+    setReportReason('')
+    setManualDemandMode('target')
+    setManualDemandQuantity('')
     setReportError(null)
   }
 
@@ -163,6 +171,8 @@ export default function BranchInventory() {
     if (reportSubmitting) return
     setReportItem(null)
     setReportNote('')
+    setReportReason('')
+    setManualDemandQuantity('')
     setReportError(null)
   }
 
@@ -178,12 +188,61 @@ export default function BranchInventory() {
       return
     }
 
+    const available = usableQty(reportItem)
+    const isOutOfThresholdDemand =
+      reportItem.minStockLevel == null ||
+      available >= reportItem.minStockLevel
+    const reason = reportReason.trim()
+    const manualQuantity = Number(manualDemandQuantity)
+
+    if (isOutOfThresholdDemand) {
+      if (reason.length < 5) {
+        setReportError('Lý do bổ sung ngoài ngưỡng phải có ít nhất 5 ký tự.')
+        return
+      }
+      if (reason.length > 500) {
+        setReportError('Lý do không được vượt quá 500 ký tự.')
+        return
+      }
+      if (!Number.isFinite(manualQuantity) || manualQuantity <= 0) {
+        setReportError(
+          manualDemandMode === 'target'
+            ? 'Mục tiêu tồn phải là số lớn hơn 0.'
+            : 'Dự báo nhu cầu phải là số lớn hơn 0.'
+        )
+        return
+      }
+      if (manualDemandMode === 'target' && manualQuantity <= available) {
+        setReportError('Mục tiêu tồn phải lớn hơn lượng khả dụng hiện tại.')
+        return
+      }
+    }
+
     setReportSubmitting(true)
     setReportError(null)
-    const result = await reportShortage({
-      storeInventoryId: reportItem.storeInventoryId,
-      note,
-    })
+    const result = await reportShortage(
+      !isOutOfThresholdDemand
+        ? {
+            kind: 'threshold-shortage',
+            storeInventoryId: reportItem.storeInventoryId,
+            note,
+          }
+        : manualDemandMode === 'target'
+        ? {
+            kind: 'manual-target',
+            storeInventoryId: reportItem.storeInventoryId,
+            note,
+            reason,
+            targetStockBaseQuantity: manualQuantity,
+          }
+        : {
+            kind: 'manual-forecast',
+            storeInventoryId: reportItem.storeInventoryId,
+            note,
+            reason,
+            forecastDemandUntilDeliveryBaseQuantity: manualQuantity,
+          }
+    )
     setReportSubmitting(false)
 
     if (!result.ok) {
@@ -201,6 +260,8 @@ export default function BranchInventory() {
     })
     setReportItem(null)
     setReportNote('')
+    setReportReason('')
+    setManualDemandQuantity('')
   }
 
   return (
@@ -470,8 +531,80 @@ export default function BranchInventory() {
               {formatQty(usableQty(reportItem))} {reportItem.unitName || ''} khả dụng
             </p>
 
+            {(reportItem.minStockLevel == null ||
+              usableQty(reportItem) >= reportItem.minStockLevel) && (
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs font-bold text-amber-800">
+                  Nhu cầu bổ sung ngoài ngưỡng
+                </p>
+                <p className="mt-1 text-[11px] text-amber-700">
+                  Tồn khả dụng chưa thấp hơn ngưỡng tối thiểu. Báo cáo này cần
+                  lý do, bằng chứng và một mục tiêu hoặc dự báo cụ thể để quản
+                  lý xác minh.
+                </p>
+
+                <label className="mt-3 block text-xs font-semibold text-text-secondary">
+                  Lý do (bắt buộc)
+                  <input
+                    value={reportReason}
+                    onChange={(event) => setReportReason(event.target.value)}
+                    maxLength={500}
+                    placeholder="Ví dụ: sự kiện cuối tuần làm nhu cầu tăng..."
+                    className="mt-1.5 w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
+                  />
+                </label>
+
+                <div className="mt-3 grid grid-cols-2 gap-2" role="group" aria-label="Cách xác định nhu cầu">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualDemandMode('target')
+                      setManualDemandQuantity('')
+                    }}
+                    className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
+                      manualDemandMode === 'target'
+                        ? 'border-brand-orange bg-brand-orange-light text-brand-orange'
+                        : 'border-border bg-surface-white text-text-secondary'
+                    }`}
+                  >
+                    Mục tiêu tồn
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualDemandMode('forecast')
+                      setManualDemandQuantity('')
+                    }}
+                    className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
+                      manualDemandMode === 'forecast'
+                        ? 'border-brand-orange bg-brand-orange-light text-brand-orange'
+                        : 'border-border bg-surface-white text-text-secondary'
+                    }`}
+                  >
+                    Dự báo đến khi giao
+                  </button>
+                </div>
+
+                <label className="mt-3 block text-xs font-semibold text-text-secondary">
+                  {manualDemandMode === 'target'
+                    ? `Mục tiêu tồn (${reportItem.unitName || 'đơn vị gốc'})`
+                    : `Nhu cầu dự báo (${reportItem.unitName || 'đơn vị gốc'})`}
+                  <input
+                    type="number"
+                    min="0.001"
+                    step="0.001"
+                    value={manualDemandQuantity}
+                    onChange={(event) =>
+                      setManualDemandQuantity(event.target.value)
+                    }
+                    className="mt-1.5 w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange"
+                  />
+                </label>
+              </div>
+            )}
+
             <label className="block mt-4 text-xs font-semibold text-text-secondary">
-              Ghi chú (bắt buộc)
+              Bằng chứng / ghi chú (bắt buộc)
               <textarea
                 value={reportNote}
                 onChange={(e) => setReportNote(e.target.value)}

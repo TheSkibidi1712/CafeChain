@@ -75,6 +75,12 @@ namespace CafeChain.Controllers.Api.v1
                     emailAttempted = data.EmailAttempted,
                     emailSentCount = data.EmailSentCount,
                     emailFailedCount = data.EmailFailedCount,
+                    alertType = data.AlertType,
+                    isOutOfThresholdDemand = data.IsOutOfThresholdDemand,
+                    availableBaseQuantity = data.AvailableBaseQuantity,
+                    minimumThresholdBaseQuantity = data.MinimumThresholdBaseQuantity,
+                    decisionTargetBaseQuantity = data.DecisionTargetBaseQuantity,
+                    suggestedBaseQuantity = data.SuggestedBaseQuantity,
                     warnings = data.Warnings
                 }
             });

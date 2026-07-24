@@ -518,8 +518,10 @@ namespace CafeChain.Application.Services.Inventories
             await _context.RestockRequests
                 .AsNoTracking()
                 .Include(r => r.Ingredient)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Include(r => r.Recipe)
                 .Include(r => r.PreparedItem)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Include(r => r.CreatedByStaff)
                 .Include(r => r.Store)
                 .Include(r => r.StockAlert)
@@ -539,8 +541,10 @@ namespace CafeChain.Application.Services.Inventories
 
             return await _context.RestockRequests
                 .Include(r => r.Ingredient)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Include(r => r.Recipe)
                 .Include(r => r.PreparedItem)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Include(r => r.CreatedByStaff)
                 .Include(r => r.Store)
                 .Include(r => r.StockAlert)
@@ -859,6 +863,9 @@ namespace CafeChain.Application.Services.Inventories
                 StoreName = r.Store?.Name,
                 ItemName = ResolveItemName(r),
                 ItemTypeLabel = ResolveItemType(r),
+                BaseUnitName = r.Ingredient?.BaseUnit?.Name
+                    ?? r.PreparedItem?.BaseUnit?.Name
+                    ?? "Đơn vị gốc",
                 RequestedQuantity = r.RequestedQuantity,
                 SuggestedQuantity = r.SuggestedQuantity,
                 Status = r.Status,
@@ -1000,6 +1007,10 @@ namespace CafeChain.Application.Services.Inventories
             await _context.Entry(request).Reference(x => x.Ingredient).LoadAsync();
             await _context.Entry(request).Reference(x => x.Recipe).LoadAsync();
             await _context.Entry(request).Reference(x => x.PreparedItem).LoadAsync();
+            if (request.Ingredient != null)
+                await _context.Entry(request.Ingredient).Reference(x => x.BaseUnit).LoadAsync();
+            if (request.PreparedItem != null)
+                await _context.Entry(request.PreparedItem).Reference(x => x.BaseUnit).LoadAsync();
             await _context.Entry(request).Reference(x => x.CreatedByStaff).LoadAsync();
             await _context.Entry(request).Reference(x => x.Store).LoadAsync();
             await _context.Entry(request).Reference(x => x.StockAlert).LoadAsync();

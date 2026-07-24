@@ -440,6 +440,10 @@ namespace CafeChain.Application.Services.Inventories
             Source = a.Source,
             CurrentQtySnapshot = a.CurrentQtySnapshot,
             ThresholdSnapshot = a.ThresholdSnapshot,
+            IsOutOfThresholdManualDemand = a.AlertType == StockAlertTypes.ManualReview,
+            DecisionTargetBaseQuantity = a.AlertType == StockAlertTypes.ManualReview
+                ? a.ThresholdSnapshot
+                : null,
             ReporterNote = a.Note,
             ReporterName = a.ReportedByStaff?.FullName,
             CreatedAt = a.CreatedAt,
@@ -452,7 +456,11 @@ namespace CafeChain.Application.Services.Inventories
         {
             var rows = await _context.StoreInventories
                 .AsNoTracking()
+                .Include(i => i.Ingredient)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Include(i => i.Recipe)
+                .Include(i => i.PreparedItem)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Where(i => i.StoreId == storeId)
                 .ToListAsync();
 
@@ -473,6 +481,17 @@ namespace CafeChain.Application.Services.Inventories
                 alert.OnHandQty = inventory.AvailableQty;
                 alert.ReservedQty = inventory.ReservedQty;
                 alert.AvailableQty = inventory.AvailableQty - inventory.ReservedQty;
+                alert.CurrentMinimumThresholdBaseQuantity = inventory.MinStockLevel;
+                alert.IsOutOfThresholdManualDemand =
+                    alert.Source == StockAlertSources.SalesReport
+                    && (!inventory.MinStockLevel.HasValue
+                        || alert.CurrentQtySnapshot >= inventory.MinStockLevel.Value);
+                alert.DecisionTargetBaseQuantity =
+                    alert.IsOutOfThresholdManualDemand
+                        ? alert.ThresholdSnapshot
+                        : null;
+                alert.BaseUnitName = inventory.Ingredient?.BaseUnit?.Name
+                    ?? inventory.PreparedItem?.BaseUnit?.Name;
             }
         }
 
@@ -493,6 +512,10 @@ namespace CafeChain.Application.Services.Inventories
                 Source = a.Source,
                 CurrentQtySnapshot = a.CurrentQtySnapshot,
                 ThresholdSnapshot = a.ThresholdSnapshot,
+                IsOutOfThresholdManualDemand = a.AlertType == StockAlertTypes.ManualReview,
+                DecisionTargetBaseQuantity = a.AlertType == StockAlertTypes.ManualReview
+                    ? a.ThresholdSnapshot
+                    : null,
                 ReporterNote = a.Note,
                 ReporterName = a.ReportedByStaff?.FullName,
                 CreatedAt = a.CreatedAt,

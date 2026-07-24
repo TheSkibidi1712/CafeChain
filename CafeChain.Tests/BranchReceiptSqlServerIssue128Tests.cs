@@ -355,9 +355,9 @@ IF DB_ID(N'{Database}') IS NULL
             await using var secondContext = CreateContext();
             var results = await Task.WhenAll(
                 CreateRestockService(firstContext).CreateFromConfirmedAlertAsync(
-                    alertId, _managerStaffId, _storeId, 100m, "request-a", RestockRequestPriorities.Normal),
+                    alertId, _managerStaffId, _storeId, 10m, "request-a", RestockRequestPriorities.Normal),
                 CreateRestockService(secondContext).CreateFromConfirmedAlertAsync(
-                    alertId, _managerStaffId, _storeId, 100m, "request-b", RestockRequestPriorities.Normal));
+                    alertId, _managerStaffId, _storeId, 10m, "request-b", RestockRequestPriorities.Normal));
 
             Assert.All(results, r => Assert.True(r.IsSuccess, r.Message));
             await using var verify = CreateContext();

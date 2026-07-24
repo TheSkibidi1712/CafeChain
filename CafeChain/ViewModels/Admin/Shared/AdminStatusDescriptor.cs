@@ -196,6 +196,7 @@ namespace CafeChain.ViewModels.Admin.Shared
             {
                 "OUT_OF_STOCK" => "Hết hàng",
                 "LOW_STOCK" => "Sắp hết",
+                "MANUAL_REVIEW" => "Báo thiếu thủ công — Cần xác minh",
                 _ => UnknownLabel("Loại cảnh báo kho", alertType)
             };
 

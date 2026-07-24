@@ -112,6 +112,60 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
+        public async Task AboveThreshold_AutoSuggestionIsZero()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredientInventory(ctx, qty: 10m, min: 10m);
+            await ctx.SaveChangesAsync();
+
+            var result = await CreateService(ctx)
+                .EvaluateStoreAsync(StoreId, StockAlertSources.Auto);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(0, result.Data!.CreatedCount);
+            Assert.Empty(await ctx.StockAlerts.ToListAsync());
+        }
+
+        [Fact]
+        public async Task ManualDemand_IsPreservedUntilVerifiedTargetIsReached()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredientInventory(ctx, qty: 12m, min: 10m);
+            ctx.StockAlerts.Add(new StockAlert
+            {
+                StoreId = StoreId,
+                IngredientId = IngredientId,
+                AlertType = StockAlertTypes.ManualReview,
+                Severity = StockAlertSeverities.Review,
+                Status = StockAlertStatuses.Open,
+                CurrentQtySnapshot = 12m,
+                ThresholdSnapshot = 20m,
+                Source = StockAlertSources.SalesReport,
+                CreatedAt = System.DateTime.UtcNow,
+                UpdatedAt = System.DateTime.UtcNow
+            });
+            await ctx.SaveChangesAsync();
+
+            var service = CreateService(ctx);
+            var belowTarget = await service.EvaluateStoreAsync(StoreId, StockAlertSources.Auto);
+
+            Assert.True(belowTarget.IsSuccess);
+            Assert.Equal(0, belowTarget.Data!.ResolvedCount);
+            Assert.Equal(StockAlertStatuses.Open, (await ctx.StockAlerts.SingleAsync()).Status);
+
+            var inventory = await ctx.StoreInventories.SingleAsync(x =>
+                x.StoreId == StoreId && x.IngredientId == IngredientId);
+            inventory.AvailableQty = 20m;
+            await ctx.SaveChangesAsync();
+
+            var atTarget = await service.EvaluateStoreAsync(StoreId, StockAlertSources.Auto);
+
+            Assert.True(atTarget.IsSuccess);
+            Assert.Equal(1, atTarget.Data!.ResolvedCount);
+            Assert.Equal(StockAlertStatuses.Resolved, (await ctx.StockAlerts.SingleAsync()).Status);
+        }
+
+        [Fact]
         public async Task DuplicateGuard_SecondEvaluate_DoesNotCreateSecondOpenAlert()
         {
             using var ctx = CreateDbContext();

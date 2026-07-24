@@ -128,7 +128,9 @@ namespace CafeChain.Tests.POS
                 new StockShortageReportRequestDto
                 {
                     StoreInventoryId = recipeInvId,
-                    Note = "BTP syrup đã hết trên bar."
+                    Note = "BTP syrup đã hết trên bar.",
+                    Reason = "Chưa có ngưỡng nhưng quầy đã hết.",
+                    TargetStockBaseQuantity = 5m
                 });
 
             Assert.True(result.IsSuccess);
@@ -181,12 +183,138 @@ namespace CafeChain.Tests.POS
                 new StockShortageReportRequestDto
                 {
                     StoreInventoryId = invId,
-                    Note = "Báo thiếu dù chưa cấu hình ngưỡng."
+                    Note = "Báo thiếu dù chưa cấu hình ngưỡng.",
+                    Reason = "Chuẩn bị sự kiện tại cửa hàng.",
+                    TargetStockBaseQuantity = 8m
                 });
 
             Assert.True(result.IsSuccess);
             Assert.Equal(1, await ctx.StockAlerts.CountAsync(a => a.Status == StockAlertStatuses.Open));
             Assert.Null((await ctx.StoreInventories.FirstAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
+        }
+
+        [Fact]
+        public async Task ManualShortage_RequiresReasonAndTarget_WhenAvailableAtOrAboveThreshold()
+        {
+            using var ctx = CreateDbContext();
+            SeedRolesAndInventory(ctx, ingredientQty: 12m, min: 10m);
+            SeedStaffWithRole(ctx, SalesStaffId, 9001, RoleConstants.SalesStaff, "sales@test.local");
+            SeedStaffWithRole(ctx, ManagerStaffId, 9003, RoleConstants.StoreManager, "manager@test.local");
+            await ctx.SaveChangesAsync();
+
+            var service = CreateService(ctx, CreateEmailMock(false).Object);
+            var result = await service.ReportShortageAsync(
+                StoreId,
+                SalesStaffId,
+                new StockShortageReportRequestDto
+                {
+                    StoreInventoryId = await IngredientInventoryIdAsync(ctx),
+                    Note = "Kệ pha chế dự kiến thiếu cho sự kiện."
+                });
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("Lý do", result.Message);
+            Assert.Empty(await ctx.StockAlerts.ToListAsync());
+        }
+
+        [Fact]
+        public async Task AboveThreshold_ManualTarget_CreatesReviewAlertWithAuditableTarget()
+        {
+            using var ctx = CreateDbContext();
+            SeedRolesAndInventory(ctx, ingredientQty: 12m, min: 10m);
+            SeedStaffWithRole(ctx, SalesStaffId, 9001, RoleConstants.SalesStaff, "sales@test.local");
+            await ctx.SaveChangesAsync();
+
+            var service = CreateService(ctx, CreateEmailMock(false).Object);
+            var result = await service.ReportShortageAsync(
+                StoreId,
+                SalesStaffId,
+                new StockShortageReportRequestDto
+                {
+                    StoreInventoryId = await IngredientInventoryIdAsync(ctx),
+                    Note = "Đã đối chiếu lịch đặt bàn cuối tuần.",
+                    Reason = "Nhu cầu sự kiện tăng cao.",
+                    TargetStockBaseQuantity = 20m
+                });
+
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.True(result.Data!.IsOutOfThresholdDemand);
+            Assert.Equal(8m, result.Data.SuggestedBaseQuantity);
+
+            var alert = await ctx.StockAlerts.SingleAsync();
+            Assert.Equal(StockAlertTypes.ManualReview, alert.AlertType);
+            Assert.Equal(StockAlertSeverities.Review, alert.Severity);
+            Assert.Equal(20m, alert.ThresholdSnapshot);
+
+            var transition = await ctx.StockAlertTransitions.SingleAsync();
+            Assert.Equal(10m, transition.MinLevelSnapshot);
+            Assert.Equal("Nhu cầu sự kiện tăng cao.", transition.Reason);
+            Assert.Equal(StockAlertSources.SalesReport, transition.SourceType);
+        }
+
+        [Fact]
+        public async Task AboveThreshold_Forecast_NormalizesToDecisionTarget()
+        {
+            using var ctx = CreateDbContext();
+            SeedRolesAndInventory(ctx, ingredientQty: 12m, min: 10m);
+            SeedStaffWithRole(ctx, SalesStaffId, 9001, RoleConstants.SalesStaff, "sales@test.local");
+            await ctx.SaveChangesAsync();
+
+            var service = CreateService(ctx, CreateEmailMock(false).Object);
+            var result = await service.ReportShortageAsync(
+                StoreId,
+                SalesStaffId,
+                new StockShortageReportRequestDto
+                {
+                    StoreInventoryId = await IngredientInventoryIdAsync(ctx),
+                    Note = "Dự báo dựa trên lượng đặt trước đã xác nhận.",
+                    Reason = "Đơn đặt trước tăng nhu cầu.",
+                    ForecastDemandUntilDeliveryBaseQuantity = 6m
+                });
+
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.Equal(18m, result.Data!.DecisionTargetBaseQuantity);
+            Assert.Equal(6m, result.Data.SuggestedBaseQuantity);
+            Assert.Equal(18m, (await ctx.StockAlerts.SingleAsync()).ThresholdSnapshot);
+        }
+
+        [Fact]
+        public async Task NewManualDemand_ReopensPreviouslyConfirmedAlertForVerification()
+        {
+            using var ctx = CreateDbContext();
+            SeedRolesAndInventory(ctx, ingredientQty: 12m, min: 10m);
+            SeedStaffWithRole(ctx, SalesStaffId, 9001, RoleConstants.SalesStaff, "sales@test.local");
+            SeedStaffWithRole(ctx, ManagerStaffId, 9003, RoleConstants.StoreManager, "manager@test.local");
+            await ctx.SaveChangesAsync();
+
+            var service = CreateService(ctx, CreateEmailMock(false).Object);
+            var request = new StockShortageReportRequestDto
+            {
+                StoreInventoryId = await IngredientInventoryIdAsync(ctx),
+                Note = "Đợt báo đầu tiên theo lịch sự kiện.",
+                Reason = "Sự kiện làm tăng nhu cầu.",
+                TargetStockBaseQuantity = 20m
+            };
+            Assert.True((await service.ReportShortageAsync(StoreId, SalesStaffId, request)).IsSuccess);
+
+            var alert = await ctx.StockAlerts.SingleAsync();
+            alert.Status = StockAlertStatuses.Confirmed;
+            alert.ConfirmedByStaffId = ManagerStaffId;
+            alert.ConfirmedAt = System.DateTime.UtcNow;
+            alert.ManagerNote = "Đã duyệt mục tiêu cũ.";
+            await ctx.SaveChangesAsync();
+
+            request.Note = "Cập nhật bằng chứng cho nhu cầu mới.";
+            request.TargetStockBaseQuantity = 22m;
+            var second = await service.ReportShortageAsync(StoreId, SalesStaffId, request);
+
+            Assert.True(second.IsSuccess, second.Message);
+            alert = await ctx.StockAlerts.SingleAsync();
+            Assert.Equal(StockAlertStatuses.Open, alert.Status);
+            Assert.Null(alert.ConfirmedByStaffId);
+            Assert.Null(alert.ConfirmedAt);
+            Assert.Null(alert.ManagerNote);
+            Assert.Equal(22m, alert.ThresholdSnapshot);
         }
 
         [Fact]
@@ -341,7 +469,9 @@ namespace CafeChain.Tests.POS
             var result = await service.ReportShortageAsync(StoreId, SalesStaffId, new StockShortageReportRequestDto
             {
                 StoreInventoryId = await IngredientInventoryIdAsync(ctx),
-                Note = "Không có quản lý nhưng vẫn ghi nhận."
+                Note = "Không có quản lý nhưng vẫn ghi nhận.",
+                Reason = "Cần bổ sung cho ca tiếp theo.",
+                TargetStockBaseQuantity = 5m
             });
 
             Assert.True(result.IsSuccess);

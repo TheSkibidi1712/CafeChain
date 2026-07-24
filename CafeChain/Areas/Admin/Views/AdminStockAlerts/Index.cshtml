@@ -99,7 +99,7 @@
                             <th class="number">Tồn vật lý</th>
                             <th class="number">Giữ chỗ</th>
                             <th class="number">Khả dụng</th>
-                            <th class="number">Ngưỡng</th>
+                            <th class="number">Ngưỡng / mục tiêu</th>
                             <th>Luồng xử lý</th>
                             <th>Nguồn</th>
                             <th>Cập nhật</th>
@@ -123,7 +123,18 @@
                             <td class="number">@(item.OnHandQty.HasValue ? AdminStatusDisplay.Quantity(item.OnHandQty.Value) : "—")</td>
                             <td class="number">@(item.ReservedQty.HasValue ? AdminStatusDisplay.Quantity(item.ReservedQty.Value) : "—")</td>
                             <td class="number fw-bold @(item.AvailableQty.HasValue && item.AvailableQty.Value <= 0 ? "text-danger" : "")">@(item.AvailableQty.HasValue ? AdminStatusDisplay.Quantity(item.AvailableQty.Value) : AdminStatusDisplay.Quantity(item.CurrentQtySnapshot))</td>
-                            <td class="number">@(item.ThresholdSnapshot.HasValue ? AdminStatusDisplay.Quantity(item.ThresholdSnapshot.Value) : "—")</td>
+                            <td class="number">
+                                @if (item.IsOutOfThresholdManualDemand)
+                                {
+                                    <strong>@(item.DecisionTargetBaseQuantity.HasValue ? AdminStatusDisplay.Quantity(item.DecisionTargetBaseQuantity.Value) : "—")</strong>
+                                    <div class="ops-secondary">Mục tiêu thủ công</div>
+                                }
+                                else
+                                {
+                                    <span>@(item.ThresholdSnapshot.HasValue ? AdminStatusDisplay.Quantity(item.ThresholdSnapshot.Value) : "—")</span>
+                                    <div class="ops-secondary">Ngưỡng tối thiểu</div>
+                                }
+                            </td>
                             <td><span class="ops-badge @AdminStatusDisplay.StockAlert(item.Status).CssClass">@AdminStatusDisplay.StockAlert(item.Status).Label</span></td>
                             <td><span class="ops-secondary">@AdminStatusDisplay.StockAlertSource(item.Source)</span></td>
                             <td class="text-nowrap"><span class="ops-secondary">@item.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></td>

@@ -104,8 +104,35 @@ export interface ShortageReportResult {
   emailAttempted: boolean
   emailSentCount: number
   emailFailedCount: number
+  alertType: string
+  isOutOfThresholdDemand: boolean
+  availableBaseQuantity: number
+  minimumThresholdBaseQuantity?: number | null
+  decisionTargetBaseQuantity?: number | null
+  suggestedBaseQuantity: number
   warnings?: string[]
 }
+
+export type ShortageReportRequest =
+  | {
+      kind: 'threshold-shortage'
+      storeInventoryId: number
+      note: string
+    }
+  | {
+      kind: 'manual-target'
+      storeInventoryId: number
+      note: string
+      reason: string
+      targetStockBaseQuantity: number
+    }
+  | {
+      kind: 'manual-forecast'
+      storeInventoryId: number
+      note: string
+      reason: string
+      forecastDemandUntilDeliveryBaseQuantity: number
+    }
 
 interface ShortageReportApiResponse {
   success?: boolean
@@ -116,10 +143,7 @@ interface ShortageReportApiResponse {
 /**
  * Issue #98 — POST /api/v1/pos/stock-alerts/report-shortage
  */
-export async function reportShortage(params: {
-  storeInventoryId: number
-  note: string
-}): Promise<{
+export async function reportShortage(params: ShortageReportRequest): Promise<{
   ok: boolean
   message?: string
   data: ShortageReportResult | null
@@ -128,10 +152,25 @@ export async function reportShortage(params: {
 }> {
   const res = await apiClient.post<ShortageReportApiResponse>(
     '/api/v1/pos/stock-alerts/report-shortage',
-    {
+    params.kind === 'threshold-shortage'
+      ? {
+          storeInventoryId: params.storeInventoryId,
+          note: params.note,
+        }
+      : params.kind === 'manual-target'
+      ? {
+          storeInventoryId: params.storeInventoryId,
+          note: params.note,
+          reason: params.reason,
+          targetStockBaseQuantity: params.targetStockBaseQuantity,
+        }
+      : {
       storeInventoryId: params.storeInventoryId,
       note: params.note,
-    }
+          reason: params.reason,
+          forecastDemandUntilDeliveryBaseQuantity:
+            params.forecastDemandUntilDeliveryBaseQuantity,
+        }
   )
 
   if (!res.ok || res.data == null) {

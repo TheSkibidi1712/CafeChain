@@ -200,7 +200,7 @@ namespace CafeChain.Tests
                 new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
                 NullLogger<RestockRequestService>.Instance);
             var result = await restock.CreateFromConfirmedAlertAsync(
-                alert.StockAlertId, StaffId, StoreId, 20m, null, null);
+                alert.StockAlertId, StaffId, StoreId, 5m, null, null);
             Assert.True(result.IsSuccess, result.Message);
 
             var req = await ctx.RestockRequests.SingleAsync();

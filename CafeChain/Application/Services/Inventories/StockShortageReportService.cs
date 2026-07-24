@@ -22,6 +22,8 @@ namespace CafeChain.Application.Services.Inventories
     {
         private const int MaxNoteLength = 500;
         private const int MinNoteLength = 5;
+        private const int MaxReasonLength = 500;
+        private const int MinReasonLength = 5;
 
         private readonly AppDbContext _context;
         private readonly IEmailService _emailService;
@@ -64,6 +66,15 @@ namespace CafeChain.Application.Services.Inventories
                     "Không tìm thấy tồn kho tại cửa hàng hiện tại.");
             }
 
+            var usableQty = CalculateUsableQuantity(inventory);
+            var decisionResult = ResolveShortageDecision(inventory, usableQty, request);
+            if (!decisionResult.IsSuccess)
+            {
+                return ServiceResult<StockShortageReportResultDto>.Failure(
+                    decisionResult.Message ?? "Dữ liệu báo thiếu hàng không hợp lệ.");
+            }
+            var decision = decisionResult.Data!;
+
             var reporter = await _context.Staffs
                 .AsNoTracking()
                 .Include(s => s.Account)
@@ -86,8 +97,6 @@ namespace CafeChain.Application.Services.Inventories
             var itemTypeLabel = inventory.IngredientId.HasValue ? "Nguyên liệu" : "Bán thành phẩm";
 
             var now = DateTime.UtcNow;
-            var usableQty = CalculateUsableQuantity(inventory);
-            var (alertType, severity) = MapTypeSeverity(usableQty);
             var preparedItemId = inventory.PreparedItemId ?? inventory.Recipe?.PreparedItemId;
             var recipeId = preparedItemId.HasValue ? null : inventory.RecipeId;
 
@@ -105,6 +114,9 @@ namespace CafeChain.Application.Services.Inventories
                             : a.RecipeId == inventory.RecipeId));
 
             string createdOrUpdated;
+            string? previousStatus = null;
+            string? previousType = null;
+            string? previousSeverity = null;
             if (openAlert == null)
             {
                 openAlert = new StockAlert
@@ -113,11 +125,11 @@ namespace CafeChain.Application.Services.Inventories
                     IngredientId = inventory.IngredientId,
                     RecipeId = recipeId,
                     PreparedItemId = preparedItemId,
-                    AlertType = alertType,
-                    Severity = severity,
+                    AlertType = decision.AlertType,
+                    Severity = decision.Severity,
                     Status = StockAlertStatuses.Open,
                     CurrentQtySnapshot = usableQty,
-                    ThresholdSnapshot = inventory.MinStockLevel,
+                    ThresholdSnapshot = decision.DecisionTargetBaseQuantity,
                     Source = StockAlertSources.SalesReport,
                     Note = note,
                     ReportedByStaffId = reportedByStaffId,
@@ -130,10 +142,20 @@ namespace CafeChain.Application.Services.Inventories
             }
             else
             {
-                openAlert.AlertType = alertType;
-                openAlert.Severity = severity;
+                previousStatus = openAlert.Status;
+                previousType = openAlert.AlertType;
+                previousSeverity = openAlert.Severity;
+                if (decision.IsOutOfThresholdDemand)
+                {
+                    openAlert.Status = StockAlertStatuses.Open;
+                    openAlert.ConfirmedByStaffId = null;
+                    openAlert.ConfirmedAt = null;
+                    openAlert.ManagerNote = null;
+                }
+                openAlert.AlertType = decision.AlertType;
+                openAlert.Severity = decision.Severity;
                 openAlert.CurrentQtySnapshot = usableQty;
-                openAlert.ThresholdSnapshot = inventory.MinStockLevel;
+                openAlert.ThresholdSnapshot = decision.DecisionTargetBaseQuantity;
                 openAlert.Source = StockAlertSources.SalesReport;
                 openAlert.Note = note; // latest note only — no history append
                 openAlert.ReportedByStaffId = reportedByStaffId;
@@ -142,13 +164,40 @@ namespace CafeChain.Application.Services.Inventories
                 createdOrUpdated = "updated";
             }
 
+            _context.StockAlertTransitions.Add(new StockAlertTransition
+            {
+                StockAlert = openAlert,
+                PreviousStatus = previousStatus,
+                NewStatus = openAlert.Status,
+                PreviousAlertType = previousType,
+                NewAlertType = openAlert.AlertType,
+                PreviousSeverity = previousSeverity,
+                NewSeverity = openAlert.Severity,
+                OnHandSnapshot = inventory.AvailableQty,
+                ReservedSnapshot = inventory.ReservedQty,
+                AvailableSnapshot = usableQty,
+                MinLevelSnapshot = inventory.MinStockLevel,
+                SourceType = StockAlertSources.SalesReport,
+                Reason = decision.IsOutOfThresholdDemand
+                    ? decision.Reason
+                    : note,
+                ActorStaffId = reportedByStaffId,
+                CreatedAtUtc = now
+            });
+
             await _context.SaveChangesAsync(); // need StockAlertId
 
             var recipients = await ResolveRecipientsAsync(storeId);
             var result = new StockShortageReportResultDto
             {
                 StockAlertId = openAlert.StockAlertId,
-                CreatedOrUpdated = createdOrUpdated
+                CreatedOrUpdated = createdOrUpdated,
+                AlertType = decision.AlertType,
+                IsOutOfThresholdDemand = decision.IsOutOfThresholdDemand,
+                AvailableBaseQuantity = usableQty,
+                MinimumThresholdBaseQuantity = inventory.MinStockLevel,
+                DecisionTargetBaseQuantity = decision.DecisionTargetBaseQuantity,
+                SuggestedBaseQuantity = decision.SuggestedBaseQuantity
             };
 
             if (recipients.Count == 0)
@@ -163,6 +212,10 @@ namespace CafeChain.Application.Services.Inventories
                 $"Tồn vật lý: {inventory.AvailableQty:N3}\n" +
                 $"Đang giữ chỗ: {inventory.ReservedQty:N3}\n" +
                 $"Khả dụng: {usableQty:N3}\n" +
+                $"Phân loại: {(decision.IsOutOfThresholdDemand ? "Nhu cầu bổ sung ngoài ngưỡng" : "Thiếu theo ngưỡng tối thiểu")}\n" +
+                (decision.IsOutOfThresholdDemand
+                    ? $"Mục tiêu quyết định: {decision.DecisionTargetBaseQuantity:N3}\nLý do: {decision.Reason}\n"
+                    : string.Empty) +
                 $"Người báo: {reporter.FullName}\n" +
                 $"Thời gian: {now:yyyy-MM-dd HH:mm} UTC\n" +
                 $"Ghi chú: {note}";
@@ -324,11 +377,93 @@ namespace CafeChain.Application.Services.Inventories
             return "Mặt hàng không xác định";
         }
 
-        private static (string alertType, string severity) MapTypeSeverity(decimal availableQty)
+        private static ServiceResult<ShortageDecision> ResolveShortageDecision(
+            StoreInventory inventory,
+            decimal availableQty,
+            StockShortageReportRequestDto request)
         {
-            if (availableQty <= 0)
-                return (StockAlertTypes.OutOfStock, StockAlertSeverities.Urgent);
-            return (StockAlertTypes.LowStock, StockAlertSeverities.Warning);
+            var minimum = inventory.MinStockLevel;
+            var isOutOfThresholdDemand = !minimum.HasValue || availableQty >= minimum.Value;
+
+            if (!isOutOfThresholdDemand)
+            {
+                if (request.TargetStockBaseQuantity.HasValue
+                    || request.ForecastDemandUntilDeliveryBaseQuantity.HasValue)
+                {
+                    return ServiceResult<ShortageDecision>.Failure(
+                        "Mặt hàng đang thiếu theo ngưỡng; không cần nhập mục tiêu hoặc dự báo thủ công.");
+                }
+
+                var alertType = availableQty <= 0
+                    ? StockAlertTypes.OutOfStock
+                    : StockAlertTypes.LowStock;
+                var severity = availableQty <= 0
+                    ? StockAlertSeverities.Urgent
+                    : StockAlertSeverities.Warning;
+                return ServiceResult<ShortageDecision>.Success(new ShortageDecision(
+                    false,
+                    alertType,
+                    severity,
+                    minimum,
+                    Math.Max(0m, minimum!.Value - availableQty),
+                    null));
+            }
+
+            var reason = (request.Reason ?? string.Empty).Trim();
+            if (reason.Length < MinReasonLength)
+            {
+                return ServiceResult<ShortageDecision>.Failure(
+                    $"Lý do báo thiếu ngoài ngưỡng phải có ít nhất {MinReasonLength} ký tự.");
+            }
+            if (reason.Length > MaxReasonLength)
+            {
+                return ServiceResult<ShortageDecision>.Failure(
+                    $"Lý do không được vượt quá {MaxReasonLength} ký tự.");
+            }
+
+            var hasTarget = request.TargetStockBaseQuantity.HasValue;
+            var hasForecast = request.ForecastDemandUntilDeliveryBaseQuantity.HasValue;
+            if (hasTarget == hasForecast)
+            {
+                return ServiceResult<ShortageDecision>.Failure(
+                    "Báo thiếu ngoài ngưỡng phải chọn đúng một dữ liệu: mục tiêu tồn hoặc dự báo nhu cầu.");
+            }
+
+            decimal decisionTarget;
+            if (hasTarget)
+            {
+                decisionTarget = request.TargetStockBaseQuantity!.Value;
+                if (decisionTarget <= availableQty)
+                {
+                    return ServiceResult<ShortageDecision>.Failure(
+                        "Mục tiêu tồn phải lớn hơn lượng khả dụng hiện tại.");
+                }
+            }
+            else
+            {
+                var forecast = request.ForecastDemandUntilDeliveryBaseQuantity!.Value;
+                if (forecast <= 0)
+                {
+                    return ServiceResult<ShortageDecision>.Failure(
+                        "Dự báo nhu cầu đến khi nhận hàng phải lớn hơn 0.");
+                }
+                decisionTarget = availableQty + forecast;
+            }
+
+            var manualAlertType = availableQty <= 0 && !minimum.HasValue
+                ? StockAlertTypes.OutOfStock
+                : StockAlertTypes.ManualReview;
+            var manualSeverity = manualAlertType == StockAlertTypes.OutOfStock
+                ? StockAlertSeverities.Urgent
+                : StockAlertSeverities.Review;
+
+            return ServiceResult<ShortageDecision>.Success(new ShortageDecision(
+                true,
+                manualAlertType,
+                manualSeverity,
+                decisionTarget,
+                decisionTarget - availableQty,
+                reason));
         }
 
         private static decimal CalculateUsableQuantity(StoreInventory inventory) =>
@@ -339,5 +474,13 @@ namespace CafeChain.Application.Services.Inventories
             if (string.IsNullOrEmpty(value)) return value;
             return value.Length <= max ? value : value[..max];
         }
+
+        private sealed record ShortageDecision(
+            bool IsOutOfThresholdDemand,
+            string AlertType,
+            string Severity,
+            decimal? DecisionTargetBaseQuantity,
+            decimal SuggestedBaseQuantity,
+            string? Reason);
     }
 }

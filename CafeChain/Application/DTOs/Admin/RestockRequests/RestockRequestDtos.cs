@@ -7,6 +7,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public int StoreId { get; set; }
         public string ItemName { get; set; } = string.Empty;
         public string ItemTypeLabel { get; set; } = string.Empty;
+        public string BaseUnitName { get; set; } = string.Empty;
         public decimal RequestedQuantity { get; set; }
         public decimal? SuggestedQuantity { get; set; }
         public string Status { get; set; } = string.Empty;

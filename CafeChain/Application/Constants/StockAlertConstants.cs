@@ -5,6 +5,11 @@ namespace CafeChain.Application.Constants
     {
         public const string LowStock = "LOW_STOCK";
         public const string OutOfStock = "OUT_OF_STOCK";
+        /// <summary>
+        /// Staff-reported demand while usable stock is at/above the minimum threshold,
+        /// or while no automatic threshold is configured.
+        /// </summary>
+        public const string ManualReview = "MANUAL_REVIEW";
     }
 
     /// <summary>Issue #97 — StockAlert status codes.</summary>
@@ -32,6 +37,7 @@ namespace CafeChain.Application.Constants
     {
         public const string Warning = "WARNING";
         public const string Urgent = "URGENT";
+        public const string Review = "REVIEW";
     }
 
     /// <summary>Issue #97 — StockAlert evaluation sources.</summary>

@@ -127,8 +127,31 @@ namespace CafeChain.Application.Services.Inventories
             {
                 suggested = Math.Max(0m, alert.ThresholdSnapshot.Value - alert.CurrentQtySnapshot);
             }
+            if (!suggested.HasValue || suggested.Value <= 0)
+            {
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    "Cảnh báo không còn nhu cầu nhập có thể kiểm chứng. Báo thiếu ngoài ngưỡng phải có mục tiêu tồn hoặc dự báo đã được xác nhận.");
+            }
+            if (requestedQuantity > suggested.Value)
+            {
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    $"Số lượng yêu cầu không được vượt quá nhu cầu còn có thể mua ({suggested.Value:N3} theo đơn vị tồn kho chuẩn).");
+            }
 
+            var latestSalesReportTransition = alert.Source == StockAlertSources.SalesReport
+                ? await _context.StockAlertTransitions
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.StockAlertId == alert.StockAlertId
+                        && x.SourceType == StockAlertSources.SalesReport)
+                    .OrderByDescending(x => x.CreatedAtUtc)
+                    .ThenByDescending(x => x.StockAlertTransitionId)
+                    .FirstOrDefaultAsync()
+                : null;
             var now = DateTime.UtcNow;
+            var isManualDemand = alert.AlertType == StockAlertTypes.ManualReview
+                || (alert.Source == StockAlertSources.SalesReport
+                    && latestSalesReportTransition?.MinLevelSnapshot == null);
             var request = new RestockRequest
             {
                 StockAlertId = alert.StockAlertId,
@@ -138,6 +161,13 @@ namespace CafeChain.Application.Services.Inventories
                 PreparedItemId = alert.IngredientId.HasValue ? null : preparedItemId,
                 RequestedQuantity = requestedQuantity,
                 SuggestedQuantity = suggested,
+                SuggestionAvailableSnapshot = alert.CurrentQtySnapshot,
+                SuggestionMinLevelSnapshot = isManualDemand
+                    ? null
+                    : alert.ThresholdSnapshot,
+                SuggestionReason = isManualDemand
+                    ? "Nhu cầu bổ sung ngoài ngưỡng đã được quản lý xác nhận; số lượng tính từ mục tiêu quyết định trừ khả dụng."
+                    : "Bù đến ngưỡng tối thiểu: max(0, ngưỡng tối thiểu - khả dụng).",
                 Status = RestockRequestStatuses.Draft,
                 Priority = resolvedPriority,
                 CreatedByStaffId = managerStaffId,
@@ -210,8 +240,10 @@ namespace CafeChain.Application.Services.Inventories
             var query = _context.RestockRequests
                 .AsNoTracking()
                 .Include(r => r.Ingredient)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Include(r => r.Recipe)
                 .Include(r => r.PreparedItem)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Include(r => r.CreatedByStaff)
                 .Where(r => r.StoreId == storeId);
 
@@ -250,8 +282,10 @@ namespace CafeChain.Application.Services.Inventories
             var r = await _context.RestockRequests
                 .AsNoTracking()
                 .Include(x => x.Ingredient)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Include(x => x.Recipe)
                 .Include(x => x.PreparedItem)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Include(x => x.CreatedByStaff)
                 .Include(x => x.Store)
                 .Include(x => x.StockAlert)
@@ -276,8 +310,10 @@ namespace CafeChain.Application.Services.Inventories
             var r = await _context.RestockRequests
                 .AsNoTracking()
                 .Include(x => x.Ingredient)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Include(x => x.Recipe)
                 .Include(x => x.PreparedItem)
+                    .ThenInclude(i => i!.BaseUnit)
                 .Include(x => x.CreatedByStaff)
                 .Where(x =>
                     x.StockAlertId == stockAlertId &&
@@ -360,6 +396,7 @@ namespace CafeChain.Application.Services.Inventories
             StoreId = r.StoreId,
             ItemName = ResolveItemName(r),
             ItemTypeLabel = r.IngredientId.HasValue ? "Nguyên liệu" : "Bán thành phẩm",
+            BaseUnitName = ResolveBaseUnitName(r),
             RequestedQuantity = r.RequestedQuantity,
             SuggestedQuantity = r.SuggestedQuantity,
             Status = r.Status,
@@ -380,6 +417,7 @@ namespace CafeChain.Application.Services.Inventories
                 ItemTypeLabel = r.IngredientId.HasValue
                     ? "Nguyên liệu"
                     : (r.PreparedItemId.HasValue ? "Bán thành phẩm (PreparedItem)" : "Bán thành phẩm"),
+                BaseUnitName = ResolveBaseUnitName(r),
                 RequestedQuantity = r.RequestedQuantity,
                 SuggestedQuantity = r.SuggestedQuantity,
                 Status = r.Status,
@@ -407,6 +445,11 @@ namespace CafeChain.Application.Services.Inventories
             };
             return dto;
         }
+
+        private static string ResolveBaseUnitName(RestockRequest r) =>
+            r.Ingredient?.BaseUnit?.Name
+            ?? r.PreparedItem?.BaseUnit?.Name
+            ?? "Đơn vị gốc";
 
         private static string ResolveItemName(RestockRequest r)
         {
