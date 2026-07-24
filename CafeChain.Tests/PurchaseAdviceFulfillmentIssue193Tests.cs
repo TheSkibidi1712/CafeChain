@@ -78,6 +78,30 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task RoundedPackReceipt_KeepsObligationLedgerButCapsPaDemandAggregate()
+    {
+        using var context = CreateDbContext();
+        await SeedScenarioAsync(
+            context,
+            allocationCount: 1,
+            requestedBaseQuantity: 7m,
+            singleAllocationBaseQuantity: 10m);
+        var service = new PurchaseAdviceFulfillmentService(context);
+
+        var result = await service.BackPostAcceptedAsync(20, 40, 10m, 99);
+        var report = await service.BuildBackfillDryRunReportAsync();
+
+        Assert.True(result.IsSuccess, result.Message);
+        var posting = await context.PurchaseAdviceFulfillmentPostings.SingleAsync();
+        Assert.Equal(10m, posting.Quantity);
+        var line = await context.PurchaseAdviceLines.SingleAsync();
+        Assert.Equal(7m, line.AcceptedBaseQuantity);
+        Assert.Equal(0m, line.ClosedBaseQuantity);
+        Assert.Equal(PurchaseAdviceStatuses.Completed, (await context.PurchaseAdvices.SingleAsync()).Status);
+        Assert.DoesNotContain(report.Items, x => x.Status == PurchaseAdviceBackfillStatuses.AggregateDrift);
+    }
+
+    [Fact]
     public async Task AcceptedBackPostRejectsReceiptLineFromDifferentPurchaseOrderLine()
     {
         using var context = CreateDbContext();
@@ -242,7 +266,11 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
         Assert.Empty(context.PurchaseAdviceFulfillmentPostings);
     }
 
-    private static async Task SeedScenarioAsync(AppDbContext context, int allocationCount)
+    private static async Task SeedScenarioAsync(
+        AppDbContext context,
+        int allocationCount,
+        decimal requestedBaseQuantity = 10m,
+        decimal? singleAllocationBaseQuantity = null)
     {
         var now = DateTime.UtcNow;
         context.Stores.Add(new Store
@@ -297,7 +325,7 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
             PurchaseAdviceId = 1,
             RestockRequestId = 1,
             IngredientId = IngredientId,
-            RequestedPurchaseBaseQuantity = 10m,
+            RequestedPurchaseBaseQuantity = requestedBaseQuantity,
             BaseUnitId = UnitId,
             NeededByDate = now.Date,
             IsActiveReservation = false
@@ -307,7 +335,9 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
         {
             var lineId = 20 + index;
             var receiptLineId = 40 + index;
-            var quantity = allocationCount == 1 ? 10m : 6m - (index * 2m);
+            var quantity = allocationCount == 1
+                ? singleAllocationBaseQuantity ?? 10m
+                : 6m - (index * 2m);
             context.PurchaseOrders.Add(new PurchaseOrder
             {
                 PurchaseOrderId = 10 + index,

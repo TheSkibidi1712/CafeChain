@@ -67,6 +67,100 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SqlServer_PerStoreReceipt_UpdatesOnlyItsAllocationAndMasterProgress()
+    {
+        await using var db = CreateContext();
+        var seed = await SeedFoundationAsync(db);
+        var prepared = await CreateReviewedBatchAsync(db, seed);
+        var approved = await BatchService(db).ApproveAsync(
+            prepared.Batch.PurchaseOrderBatchId,
+            new() { RowVersion = prepared.Batch.RowVersion },
+            Owner(seed));
+        Assert.True(approved.IsSuccess, approved.Message);
+
+        var children = approved.Data!.ChildPurchaseOrders.OrderBy(x => x.StoreId).ToArray();
+        var firstChild = children.Single(x => x.StoreId == seed.Store1Id);
+        var secondChild = children.Single(x => x.StoreId == seed.Store2Id);
+        var firstDraft = await PrepareReceiptAsync(
+            db,
+            firstChild.PurchaseOrderId,
+            seed.Manager1Id,
+            seed.Store1Id,
+            5m);
+
+        var firstConfirm = await ReceiptService(db).ConfirmAsync(
+            firstDraft.BranchReceiptId,
+            seed.Manager1Id,
+            seed.Store1Id,
+            new[] { RoleConstants.StoreManager },
+            firstDraft.RowVersion);
+        var replay = await ReceiptService(db).ConfirmAsync(
+            firstDraft.BranchReceiptId,
+            seed.Manager1Id,
+            seed.Store1Id,
+            new[] { RoleConstants.StoreManager },
+            firstDraft.RowVersion);
+
+        Assert.True(firstConfirm.IsSuccess, firstConfirm.Message);
+        Assert.True(replay.IsSuccess, replay.Message);
+        db.ChangeTracker.Clear();
+        Assert.Equal(
+            PurchaseOrderBatchStatuses.PartiallyReceived,
+            (await db.PurchaseOrderBatches.AsNoTracking().SingleAsync()).Status);
+        Assert.Equal(
+            PurchaseOrderStatuses.Completed,
+            (await db.PurchaseOrders.AsNoTracking().SingleAsync(x => x.PurchaseOrderId == firstChild.PurchaseOrderId)).Status);
+        Assert.Equal(
+            PurchaseOrderStatuses.Approved,
+            (await db.PurchaseOrders.AsNoTracking().SingleAsync(x => x.PurchaseOrderId == secondChild.PurchaseOrderId)).Status);
+        Assert.Equal(
+            5m,
+            await db.StoreInventories.AsNoTracking()
+                .Where(x => x.StoreId == seed.Store1Id && x.IngredientId == seed.IngredientId)
+                .SumAsync(x => x.AvailableQty));
+        Assert.Equal(
+            0m,
+            await db.StoreInventories.AsNoTracking()
+                .Where(x => x.StoreId == seed.Store2Id && x.IngredientId == seed.IngredientId)
+                .SumAsync(x => x.AvailableQty));
+        Assert.Single(await db.PurchaseOrderReceiptPostings.AsNoTracking().ToListAsync());
+        Assert.Single(await db.PurchaseAdviceFulfillmentPostings.AsNoTracking().ToListAsync());
+        Assert.Single(await db.InventoryTransactions.AsNoTracking().ToListAsync());
+
+        var adviceLines = await db.PurchaseAdviceLines.AsNoTracking()
+            .Include(x => x.PurchaseAdvice)
+            .ToArrayAsync();
+        Assert.Equal(
+            5m,
+            adviceLines.Single(x => x.PurchaseAdvice.StoreId == seed.Store1Id).AcceptedBaseQuantity);
+        Assert.Equal(
+            0m,
+            adviceLines.Single(x => x.PurchaseAdvice.StoreId == seed.Store2Id).AcceptedBaseQuantity);
+
+        var secondDraft = await PrepareReceiptAsync(
+            db,
+            secondChild.PurchaseOrderId,
+            seed.Manager2Id,
+            seed.Store2Id,
+            5m);
+        var secondConfirm = await ReceiptService(db).ConfirmAsync(
+            secondDraft.BranchReceiptId,
+            seed.Manager2Id,
+            seed.Store2Id,
+            new[] { RoleConstants.StoreManager },
+            secondDraft.RowVersion);
+
+        Assert.True(secondConfirm.IsSuccess, secondConfirm.Message);
+        db.ChangeTracker.Clear();
+        Assert.Equal(
+            PurchaseOrderBatchStatuses.Completed,
+            (await db.PurchaseOrderBatches.AsNoTracking().SingleAsync()).Status);
+        Assert.Equal(2, await db.PurchaseOrderReceiptPostings.AsNoTracking().CountAsync());
+        Assert.Equal(2, await db.PurchaseAdviceFulfillmentPostings.AsNoTracking().CountAsync());
+        Assert.Equal(2, await db.InventoryTransactions.AsNoTracking().CountAsync());
+    }
+
+    [Fact]
     public async Task SqlServer_E2E_PaBatchPdfZaloAndConcurrentReceiving_AreConsistent()
     {
         await using var db = CreateContext();

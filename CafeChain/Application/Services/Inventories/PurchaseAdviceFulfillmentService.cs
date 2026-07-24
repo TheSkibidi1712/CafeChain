@@ -349,8 +349,12 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
                 .Where(x => x.PurchaseAdviceLineId == adviceLine.PurchaseAdviceLineId
                     && x.PostingType == PurchaseAdviceFulfillmentPostingTypes.Closed)
                 .Sum(x => x.Quantity);
-            if (ledgerAccepted == adviceLine.AcceptedBaseQuantity
-                && ledgerClosed == adviceLine.ClosedBaseQuantity)
+            var expected = ClampFulfillmentToDemand(
+                adviceLine.RequestedPurchaseBaseQuantity,
+                ledgerAccepted,
+                ledgerClosed);
+            if (expected.Accepted == adviceLine.AcceptedBaseQuantity
+                && expected.Closed == adviceLine.ClosedBaseQuantity)
             {
                 continue;
             }
@@ -363,7 +367,7 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
                 SourceDocumentLineId = adviceLine.PurchaseAdviceLineId,
                 PurchaseAdviceLineId = adviceLine.PurchaseAdviceLineId,
                 Quantity = ledgerAccepted + ledgerClosed,
-                Message = $"Cache Accepted/Closed={adviceLine.AcceptedBaseQuantity:0.###}/{adviceLine.ClosedBaseQuantity:0.###}; ledger={ledgerAccepted:0.###}/{ledgerClosed:0.###}."
+                Message = $"Cache Accepted/Closed={adviceLine.AcceptedBaseQuantity:0.###}/{adviceLine.ClosedBaseQuantity:0.###}; expected demand aggregate={expected.Accepted:0.###}/{expected.Closed:0.###}; obligation ledger={ledgerAccepted:0.###}/{ledgerClosed:0.###}."
             });
         }
 
@@ -411,12 +415,31 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
 
     private async Task RefreshCachedQuantitiesAsync(PurchaseAdviceLine line)
     {
-        line.AcceptedBaseQuantity = await SumPostingQuantityAsync(
+        var ledgerAccepted = await SumPostingQuantityAsync(
             line.PurchaseAdviceLineId,
             PurchaseAdviceFulfillmentPostingTypes.Accepted);
-        line.ClosedBaseQuantity = await SumPostingQuantityAsync(
+        var ledgerClosed = await SumPostingQuantityAsync(
             line.PurchaseAdviceLineId,
             PurchaseAdviceFulfillmentPostingTypes.Closed);
+        var aggregate = ClampFulfillmentToDemand(
+            line.RequestedPurchaseBaseQuantity,
+            ledgerAccepted,
+            ledgerClosed);
+        line.AcceptedBaseQuantity = aggregate.Accepted;
+        line.ClosedBaseQuantity = aggregate.Closed;
+    }
+
+    private static (decimal Accepted, decimal Closed) ClampFulfillmentToDemand(
+        decimal requestedBaseQuantity,
+        decimal ledgerAccepted,
+        decimal ledgerClosed)
+    {
+        var demand = Math.Max(0m, requestedBaseQuantity);
+        var accepted = Math.Min(demand, Math.Max(0m, ledgerAccepted));
+        var closed = Math.Min(
+            Math.Max(0m, demand - accepted),
+            Math.Max(0m, ledgerClosed));
+        return (accepted, closed);
     }
 
     private async Task<PurchaseOrderLineAllocation?> LoadAllocationForUpdateAsync(int purchaseOrderLineId)
