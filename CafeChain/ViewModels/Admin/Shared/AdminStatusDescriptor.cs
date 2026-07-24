@@ -151,6 +151,7 @@ namespace CafeChain.ViewModels.Admin.Shared
             {
                 "ZALO_MANUAL" => "Zalo",
                 "EMAIL_MANUAL" => "Email",
+                "OTHER_MANUAL" => "Khác",
                 _ => UnknownLabel("Kênh gửi", channel)
             };
 

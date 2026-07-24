@@ -110,6 +110,15 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
         return File(result.Data!.Content, result.Data.ContentType, result.Data.FileName);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> PrintRevision(int revisionId)
+    {
+        var result = await _documentService.DownloadAsync(revisionId, _actorAccessor.Get(User));
+        if (!result.IsSuccess) return Failure(result.ErrorCode, result.Message);
+        Response.Headers.ContentDisposition = $"inline; filename=\"{result.Data!.FileName}\"";
+        return File(result.Data.Content, result.Data.ContentType);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkRevisionSent(int id, int revisionId, MarkPurchaseOrderBatchDocumentSentRequest request)

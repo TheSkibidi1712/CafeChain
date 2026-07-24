@@ -90,7 +90,8 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
                 .Where(x => x.PurchaseOrderBatchId == batchId)
                 .MaxAsync(x => (int?)x.RevisionNumber) ?? 0) + 1;
             var generatedAt = DateTime.UtcNow;
-            var fileName = $"CafeChain_PO_{SafeSegment(batch.BatchNumber)}_R{revisionNumber}.pdf";
+            var supplierSegment = SafeSegment(batch.Supplier.Code ?? batch.Supplier.Name ?? $"SUP-{batch.SupplierId}");
+            var fileName = $"PO-{SafeSegment(batch.BatchNumber)}-{supplierSegment}-v{revisionNumber}.pdf";
             storedReference = $"purchase-order-batches/{SafeSegment(batch.BatchNumber)}/{fileName}";
             var pdf = _renderer.Render(snapshot, revisionNumber, generatedAt, contentHash);
 
@@ -235,6 +236,8 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
                 .SingleOrDefaultAsync(x => x.PurchaseOrderBatchDocumentRevisionId == revisionId && x.PurchaseOrderBatchId == batchId);
             if (revision == null)
                 return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.DocumentNotFound, "Không tìm thấy phiên bản PDF thuộc đơn đặt hàng gộp này.");
+            if (!PurchaseOrderBatchStatuses.ApprovedOrLater.Contains(revision.PurchaseOrderBatch.Status))
+                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Chỉ đơn đặt hàng gộp đã duyệt và còn hiệu lực mới được ghi nhận gửi.");
             if (revision.Status == PurchaseOrderBatchDocumentStatuses.Sent)
             {
                 if (!string.Equals(revision.SentChannel, channel, StringComparison.OrdinalIgnoreCase))
@@ -259,7 +262,9 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
             revision.PurchaseOrderBatch.UpdatedAtUtc = now;
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
-            return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(revision), "Đã ghi nhận gửi phiên bản PDF qua Zalo.");
+            return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(
+                Map(revision),
+                $"Đã ghi nhận gửi phiên bản PDF qua {ChannelLabel(channel)}.");
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -401,6 +406,13 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
 
     private static bool CanGenerate(AdminActorContext actor) =>
         HasRole(actor, RoleConstants.AccountantWarehouse) || HasRole(actor, RoleConstants.BusinessOwner);
+    private static string ChannelLabel(string channel) => channel switch
+    {
+        PurchaseOrderBatchDocumentChannels.ZaloManual => "Zalo",
+        PurchaseOrderBatchDocumentChannels.EmailManual => "Email",
+        PurchaseOrderBatchDocumentChannels.OtherManual => "kênh khác",
+        _ => "kênh đã chọn"
+    };
     private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
     private static string SafeSegment(string value)

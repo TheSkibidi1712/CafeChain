@@ -66,10 +66,14 @@
 
         <aside class="pa-detail-side">
             <section class="pa-band">
-                <div class="pa-section-heading"><div><div class="pa-eyebrow">Tài liệu nhà cung cấp</div><h2>PDF &amp; Zalo</h2></div></div>
+                <div class="pa-section-heading"><div><div class="pa-eyebrow">Tài liệu nhà cung cấp</div><h2>PDF &amp; gửi Nhà cung cấp</h2></div></div>
                 <div class="pa-document-actions">
                     @if (canGenerate) { <form asp-action="GeneratePdf" asp-route-id="@batch.PurchaseOrderBatchId" method="post" data-loading-form>@Html.AntiForgeryToken()<button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="Đang tạo PDF..."><i class="fas fa-file-pdf"></i> Xuất PDF</button></form> }
-                    @if (latestRevision != null) { <a class="pa-action pa-action-block" asp-action="DownloadRevision" asp-route-revisionId="@latestRevision.RevisionId"><i class="fas fa-download"></i> Tải PDF @latestRevision.FileName</a> }
+                    @if (latestRevision != null)
+                    {
+                        <a class="pa-action pa-action-block" asp-action="DownloadRevision" asp-route-revisionId="@latestRevision.RevisionId"><i class="fas fa-download"></i> Tải PDF @latestRevision.FileName</a>
+                        <a class="pa-action pa-action-block" asp-action="PrintRevision" asp-route-revisionId="@latestRevision.RevisionId" target="_blank" rel="noopener"><i class="fas fa-print"></i> Mở để in PDF</a>
+                    }
                 </div>
                 @if (latestRevision == null) { <div class="pa-draft-empty pa-draft-empty-compact"><i class="fas fa-file-circle-xmark"></i><h2>Chưa có PDF</h2><p>Đơn đặt hàng gộp phải được duyệt trước khi xuất tài liệu.</p></div> }
                 else
@@ -82,10 +86,17 @@
                 {
                     <form asp-action="MarkRevisionSent" asp-route-id="@batch.PurchaseOrderBatchId" asp-route-revisionId="@sendableRevision.RevisionId" method="post" class="pa-send-form" data-loading-form>
                         @Html.AntiForgeryToken()
-                        <input type="hidden" name="Channel" value="@PurchaseOrderBatchDocumentChannels.ZaloManual" />
                         <input type="hidden" name="RowVersion" value="@sendableRevision.RowVersion" />
                         <input type="hidden" name="IdempotencyKey" value="@Guid.NewGuid().ToString("N")" />
-                        <div class="pa-field"><label for="send-note">Ghi chú gửi (không bắt buộc)</label><input id="send-note" name="Note" maxlength="500" placeholder="Ví dụ: gửi nhóm Zalo Nhà cung cấp lúc 09:30" /></div>
+                        <div class="pa-field">
+                            <label for="send-channel">Kênh đã gửi</label>
+                            <select id="send-channel" name="Channel" required>
+                                <option value="@PurchaseOrderBatchDocumentChannels.ZaloManual">Zalo</option>
+                                <option value="@PurchaseOrderBatchDocumentChannels.EmailManual">Email</option>
+                                <option value="@PurchaseOrderBatchDocumentChannels.OtherManual">Khác</option>
+                            </select>
+                        </div>
+                        <div class="pa-field"><label for="send-note">Ghi chú / bằng chứng gửi</label><input id="send-note" name="Note" maxlength="500" placeholder="Ví dụ: gửi nhóm Zalo Nhà cung cấp lúc 09:30" /></div>
                         <button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="Đang ghi nhận..."><i class="fas fa-paper-plane"></i> Đánh dấu đã gửi Nhà cung cấp</button>
                     </form>
                 }
@@ -103,6 +114,7 @@
                             @if (revision.SentAtUtc.HasValue) { <small class="pa-sent-meta">Gửi qua @AdminStatusDisplay.PurchaseOrderBatchDocumentChannel(revision.SentChannel) bởi @(revision.SentByName ?? $"Nhân viên #{revision.SentByStaffId}") · @AdminStatusDisplay.DateTime(revision.SentAtUtc.Value.ToLocalTime())</small> }
                             @if (!string.IsNullOrWhiteSpace(revision.SentNote)) { <small>Ghi chú: @revision.SentNote</small> }
                             <a asp-action="DownloadRevision" asp-route-revisionId="@revision.RevisionId">Tải phiên bản PDF này</a>
+                            <a asp-action="PrintRevision" asp-route-revisionId="@revision.RevisionId" target="_blank" rel="noopener">Mở để in phiên bản này</a>
                         </article>
                     }
                     @if (Model.DocumentRevisions.Count == 0) { <p class="pa-muted">Lịch sử sẽ xuất hiện sau lần tạo PDF đầu tiên.</p> }

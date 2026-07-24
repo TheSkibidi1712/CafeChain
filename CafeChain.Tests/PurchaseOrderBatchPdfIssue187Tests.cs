@@ -81,7 +81,7 @@ public sealed class PurchaseOrderBatchPdfIssue187Tests : IDisposable
         Assert.True(result.IsSuccess, result.Message);
         Assert.Equal(1, result.Data!.RevisionNumber);
         Assert.Equal(PurchaseOrderBatchDocumentStatuses.Generated, result.Data.Status);
-        Assert.Matches($"CafeChain_PO_.*_R1\\.pdf", result.Data.FileName);
+        Assert.Matches($"PO-.*-.*-v1\\.pdf", result.Data.FileName);
         Assert.Single(_storage.Files);
     }
 
@@ -148,7 +148,7 @@ public sealed class PurchaseOrderBatchPdfIssue187Tests : IDisposable
             .SingleAsync(x => x.PurchaseOrderBatchDocumentRevisionId == generated.Data.RevisionId);
         Assert.Equal(PurchaseOrderBatchDocumentStatuses.Superseded, old.Status);
         Assert.Equal(next.Data.RevisionId, old.SupersededByRevisionId);
-        Assert.Equal(before, _storage.Files.Single(x => x.Key.EndsWith("_R1.pdf", StringComparison.Ordinal)).Value);
+        Assert.Equal(before, _storage.Files.Single(x => x.Key.EndsWith("-v1.pdf", StringComparison.Ordinal)).Value);
         Assert.Equal(2, _storage.Files.Count);
     }
 

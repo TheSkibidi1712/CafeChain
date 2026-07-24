@@ -62,7 +62,8 @@ public sealed class ProcurementUiTerminologyTests
     public static TheoryData<string, string> SendChannelCases => new()
     {
         { PurchaseOrderBatchDocumentChannels.ZaloManual, "Zalo" },
-        { PurchaseOrderBatchDocumentChannels.EmailManual, "Email" }
+        { PurchaseOrderBatchDocumentChannels.EmailManual, "Email" },
+        { PurchaseOrderBatchDocumentChannels.OtherManual, "Khác" }
     };
 
     public static TheoryData<string, string> InventoryTransactionTypeCases => new()

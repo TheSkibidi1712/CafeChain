@@ -39,10 +39,12 @@ public static class PurchaseOrderBatchDocumentChannels
 {
     public const string ZaloManual = "ZALO_MANUAL";
     public const string EmailManual = "EMAIL_MANUAL";
+    public const string OtherManual = "OTHER_MANUAL";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         ZaloManual,
-        EmailManual
+        EmailManual,
+        OtherManual
     };
 }

@@ -79,6 +79,40 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
     }
 
     [Fact]
+    public async Task BatchSend_SupportsOtherChannelAndRejectsCancelledBatch()
+    {
+        var seed = await SeedAsync();
+        var other = await Service().MarkSentAsync(
+            seed.BatchId,
+            seed.RevisionId,
+            Request(seed.RowVersion, "Gửi trực tiếp", PurchaseOrderBatchDocumentChannels.OtherManual),
+            Actor(seed.StaffId, RoleConstants.AccountantWarehouse));
+        Assert.True(other.IsSuccess, other.Message);
+        Assert.Equal(
+            PurchaseOrderBatchDocumentChannels.OtherManual,
+            (await _db.PurchaseOrderBatchDocumentRevisions.AsNoTracking().SingleAsync()).SentChannel);
+
+        _db.ChangeTracker.Clear();
+        var batch = await _db.PurchaseOrderBatches.SingleAsync();
+        batch.Status = PurchaseOrderBatchStatuses.Cancelled;
+        var revision = await _db.PurchaseOrderBatchDocumentRevisions.SingleAsync();
+        revision.Status = PurchaseOrderBatchDocumentStatuses.Generated;
+        revision.SentChannel = null;
+        revision.SentAtUtc = null;
+        revision.SentByStaffId = null;
+        revision.SentIdempotencyKey = null;
+        await _db.SaveChangesAsync();
+
+        var rejected = await Service().MarkSentAsync(
+            seed.BatchId,
+            seed.RevisionId,
+            Request(Convert.ToBase64String(revision.RowVersion)),
+            Actor(seed.StaffId, RoleConstants.AccountantWarehouse));
+        Assert.False(rejected.IsSuccess);
+        Assert.Equal(PurchaseOrderBatchErrorCodes.Invalid, rejected.ErrorCode);
+    }
+
+    [Fact]
     public async Task BatchSend_WrongRoleRejected()
     {
         var seed = await SeedAsync();
@@ -97,6 +131,8 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
         Assert.Contains("canGenerate", view);
         Assert.Contains("canCancel", view);
         Assert.Contains("Sao chép nội dung gửi Zalo", view);
+        Assert.Contains("Mở để in PDF", view);
+        Assert.Contains("PurchaseOrderBatchDocumentChannels.OtherManual", view);
         Assert.Contains("Đánh dấu đã gửi Nhà cung cấp", view);
         Assert.Contains("không đồng nghĩa nhà cung cấp đã xác nhận", view);
     }
@@ -163,9 +199,12 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
         return new(batch.PurchaseOrderBatchId, revision.PurchaseOrderBatchDocumentRevisionId, staff.StaffId, Convert.ToBase64String(revision.RowVersion));
     }
 
-    private static MarkPurchaseOrderBatchDocumentSentRequest Request(string rowVersion, string? note = null) => new()
+    private static MarkPurchaseOrderBatchDocumentSentRequest Request(
+        string rowVersion,
+        string? note = null,
+        string channel = PurchaseOrderBatchDocumentChannels.ZaloManual) => new()
     {
-        Channel = PurchaseOrderBatchDocumentChannels.ZaloManual,
+        Channel = channel,
         IdempotencyKey = Guid.NewGuid().ToString("N"),
         RowVersion = rowVersion,
         Note = note
