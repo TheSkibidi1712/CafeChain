@@ -44,6 +44,7 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public int? RestockRequestId { get; set; }
         public int IngredientId { get; set; }
         public string IngredientName { get; set; } = string.Empty;
+        public string BaseUnitName { get; set; } = string.Empty;
         public decimal PackageCount { get; set; }
         public decimal PackageQuantitySnapshot { get; set; }
         public string PackageUnitName { get; set; } = string.Empty;

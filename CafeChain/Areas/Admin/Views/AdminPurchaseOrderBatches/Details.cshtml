@@ -52,11 +52,11 @@
                 @foreach (var line in batch.Lines.OrderBy(x => x.IngredientName))
                 {
                     <article class="pa-allocation-block">
-                        <div class="pa-allocation-head"><div><strong>@line.IngredientName</strong><span>@AdminStatusDisplay.Quantity(line.TotalPackageCount) kiện · @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot) @line.PackageUnitName/kiện</span></div><div><strong>@AdminStatusDisplay.Currency(line.LineTotal)</strong><span>@AdminStatusDisplay.Currency(line.PackagePriceSnapshot)/kiện</span></div></div>
+                        <div class="pa-allocation-head"><div><strong>@line.IngredientName</strong><span>@AdminStatusDisplay.Quantity(line.TotalPackageCount) kiện · 1 kiện = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot) @line.PackageUnitName</span><span>Đặt @AdminStatusDisplay.Quantity(line.TotalBaseQuantity) @line.BaseUnitName · phủ @AdminStatusDisplay.Quantity(line.DemandCoveredBaseQuantity) @line.BaseUnitName · dư @AdminStatusDisplay.Quantity(line.RoundingSurplusBaseQuantity) @line.BaseUnitName</span></div><div><strong>@AdminStatusDisplay.Currency(line.LineTotal)</strong><span>@AdminStatusDisplay.Currency(line.PackagePriceSnapshot)/kiện</span></div></div>
                         <div class="pa-allocation-rows">
                             @foreach (var allocation in line.Allocations.OrderBy(x => x.StoreName))
                             {
-                                <div><span><a class="pa-code" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@allocation.PurchaseAdviceId">@allocation.AdviceNumber</a> · @allocation.StoreName</span><strong>@AdminStatusDisplay.Quantity(allocation.AllocatedPackageQuantity) kiện · @AdminStatusDisplay.Quantity(allocation.AllocatedBaseQuantity) đơn vị cơ sở</strong></div>
+                                <div><span><a class="pa-code" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@allocation.PurchaseAdviceId">@allocation.AdviceNumber</a> · @allocation.StoreName</span><strong>@AdminStatusDisplay.Quantity(allocation.AllocatedPackageQuantity) kiện · đặt @AdminStatusDisplay.Quantity(allocation.AllocatedBaseQuantity) @line.BaseUnitName · phủ @AdminStatusDisplay.Quantity(allocation.DemandCoveredBaseQuantity) · dư @AdminStatusDisplay.Quantity(allocation.RoundingSurplusBaseQuantity)</strong></div>
                             }
                         </div>
                     </article>

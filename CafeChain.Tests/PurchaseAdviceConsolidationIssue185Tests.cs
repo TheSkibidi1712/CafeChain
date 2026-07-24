@@ -133,13 +133,28 @@ public sealed class PurchaseAdviceConsolidationIssue185Tests : IntegrationTestBa
     }
 
     [Fact]
-    public async Task Consolidation_CannotAllocateAboveRemaining()
+    public async Task Consolidation_RoundsRemainingDemandUpToWholePackage()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(db, requested: 2300m, packageQuantity: 1000m);
+        var result = await PreviewAsync(db, seed, 3);
+
+        Assert.True(result.IsSuccess, result.Message);
+        var allocation = Assert.Single(Assert.Single(result.Data!.Groups).Allocations);
+        Assert.Equal(3, allocation.SuggestedPackageCount);
+        Assert.Equal(2300m, allocation.DemandCoveredBaseQuantity);
+        Assert.Equal(3000m, allocation.OrderedBaseQuantity);
+        Assert.Equal(700m, allocation.RoundingSurplusBaseQuantity);
+    }
+
+    [Fact]
+    public async Task Consolidation_RejectsPackageCountIndependentFromServerSuggestion()
     {
         using var db = CreateDbContext();
         var seed = await SeedAsync(db, requested: 2m);
         var result = await PreviewAsync(db, seed, 3);
         Assert.False(result.IsSuccess);
-        Assert.Equal(PurchaseAdviceErrorCodes.ExceedsRemaining, result.ErrorCode);
+        Assert.Equal(PurchaseAdviceErrorCodes.PackageCountMismatch, result.ErrorCode);
     }
 
     [Fact]
@@ -222,7 +237,8 @@ public sealed class PurchaseAdviceConsolidationIssue185Tests : IntegrationTestBa
         AppDbContext db,
         string status = PurchaseAdviceStatuses.Submitted,
         decimal requested = 10m,
-        int moq = 1)
+        int moq = 1,
+        decimal packageQuantity = 1m)
     {
         var now = DateTime.UtcNow;
         var store = new Store { Name = "Store 185", Address = "Test", Phone = Guid.NewGuid().ToString("N")[..10], Active = true, CreatedAt = now };
@@ -231,7 +247,7 @@ public sealed class PurchaseAdviceConsolidationIssue185Tests : IntegrationTestBa
         var supplier = new Supplier { Code = "SUP185" + Guid.NewGuid().ToString("N")[..5], Name = "Supplier 185", Active = true, CreatedAt = now, UpdatedAt = now };
         db.AddRange(store, ingredient, supplier);
         await db.SaveChangesAsync();
-        var offer = new IngredientSupplier { IngredientId = ingredient.IngredientId, SupplierId = supplier.SupplierId, UnitId = unit.UnitId, PackageQuantity = 1m, CurrentPrice = 10000m, MinimumOrderPackageCount = moq, Active = true, CreatedAt = now, UpdatedAt = now };
+        var offer = new IngredientSupplier { IngredientId = ingredient.IngredientId, SupplierId = supplier.SupplierId, UnitId = unit.UnitId, PackageQuantity = packageQuantity, CurrentPrice = 10000m, MinimumOrderPackageCount = moq, Active = true, CreatedAt = now, UpdatedAt = now };
         var supplierStore = new SupplierStore { SupplierId = supplier.SupplierId, StoreId = store.StoreId, Active = true, CreatedAt = now, UpdatedAt = now };
         var restock = new RestockRequest { StoreId = store.StoreId, IngredientId = ingredient.IngredientId, RequestedQuantity = requested, Status = RestockRequestStatuses.Processing, Priority = RestockRequestPriorities.Normal, CreatedByStaffId = 1, CreatedAt = now, UpdatedAt = now };
         db.AddRange(offer, supplierStore, restock);

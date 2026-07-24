@@ -42,7 +42,8 @@ namespace CafeChain.Application.Services.Inventories
             if (!CanCreate(roles)) return Fail("Bạn không có quyền tạo đơn mua hàng.");
             if (input.StoreId <= 0 || input.SupplierId <= 0 || input.Lines.Count == 0)
                 return Fail("Cửa hàng, nhà cung cấp và ít nhất một dòng hàng là bắt buộc.");
-            if (input.Lines.Any(x => x.PackageCount <= 0)) return Fail("Số gói đặt phải lớn hơn 0.");
+            if (input.Lines.Any(x => !PurchasePackMath.IsWholePackageCount(x.PackageCount)))
+                return Fail("Số gói đặt phải là số nguyên lớn hơn 0.");
             if (!await CanAccessStoreAsync(actorStaffId, input.StoreId))
                 return Fail("Bạn không có quyền tạo đơn mua hàng cho cửa hàng này.");
             if (input.ExpectedDeliveryAtUtc.HasValue && input.ExpectedDeliveryAtUtc.Value < DateTime.UtcNow)
@@ -105,12 +106,31 @@ namespace CafeChain.Application.Services.Inventories
 
                     if (requested.RestockRequestId.HasValue)
                     {
+                        var summary = await _allocations.GetSummaryAsync(requested.RestockRequestId.Value);
+                        if (summary == null || summary.RemainingUnallocatedQuantity <= 0)
+                            return Fail("Yêu cầu nhập không còn số lượng chưa phân bổ.");
+                        var packageBaseQuantity = converted.Data / requested.PackageCount;
+                        if (!PurchasePackMath.TryPlan(
+                                summary.RemainingUnallocatedQuantity,
+                                packageBaseQuantity,
+                                out var packPlan))
+                        {
+                            return Fail("Không thể tính số gói cần đặt từ phần chưa phân bổ.");
+                        }
+                        if (requested.PackageCount < packPlan.PackageCount)
+                        {
+                            return Fail(
+                                $"Cần ít nhất {packPlan.PackageCount} gói để phủ {summary.RemainingUnallocatedQuantity:N3} đơn vị cơ sở.");
+                        }
+                        var allocationQuantity = requested.PackageCount == packPlan.PackageCount
+                            ? packPlan.DemandCoveredBaseQuantity
+                            : converted.Data;
                         var allocation = await _allocations.ValidateAllocationAsync(new RestockAllocationValidationRequest
                         {
                             RestockRequestId = requested.RestockRequestId.Value,
                             DestinationStoreId = input.StoreId,
                             IngredientId = requested.IngredientId,
-                            AllocationQuantity = converted.Data,
+                            AllocationQuantity = allocationQuantity,
                             ActorStaffId = actorStaffId,
                             ActorRoles = roles,
                             AllowOverallocationOverride = input.AllowOverallocationOverride,
@@ -488,7 +508,7 @@ namespace CafeChain.Application.Services.Inventories
         {
             var order = await _context.PurchaseOrders.AsNoTracking()
                 .Include(x => x.Store).Include(x => x.Supplier)
-                .Include(x => x.Lines).ThenInclude(x => x.Ingredient)
+                .Include(x => x.Lines).ThenInclude(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
                 .Include(x => x.Lines).ThenInclude(x => x.PackageUnitSnapshot)
                 .Include(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
                     .ThenInclude(x => x.BranchReceiptLine)
@@ -526,6 +546,7 @@ namespace CafeChain.Application.Services.Inventories
                         RestockRequestId = x.RestockRequestId,
                         IngredientId = x.IngredientId,
                         IngredientName = x.Ingredient.Name,
+                        BaseUnitName = x.Ingredient.BaseUnit.Name,
                         PackageCount = x.PackageCount,
                         PackageQuantitySnapshot = x.PackageQuantitySnapshot,
                         PackageUnitName = x.PackageUnitSnapshot.Name,

@@ -112,11 +112,13 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
     }
 
     [Fact]
-    public void PurchaseAdviceUi_PreservesValuesOnValidationError_AndShowsCommercialWarnings()
+    public void PurchaseAdviceUi_PreservesOfferAndDerivesPackageCountWithCommercialWarnings()
     {
         var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPurchaseAdviceConsolidation/Index.cshtml");
         Assert.Contains("submitted?.IngredientSupplierId", view);
-        Assert.Contains("submitted?.PackageCount", view);
+        Assert.Contains("suggestedPackageCount", view);
+        Assert.Contains("readonly", view);
+        Assert.Contains("Dư quy cách", view);
         Assert.Contains("Các giá trị vừa nhập vẫn được giữ", view);
         Assert.Contains("tối thiểu", view);
         Assert.Contains("giao trong", view);

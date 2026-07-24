@@ -51,6 +51,7 @@ namespace CafeChain.Application.Constants
         public const string SupplierStoreMismatch = "PURCHASE_ADVICE_SUPPLIER_STORE_MISMATCH";
         public const string OfferInvalid = "PURCHASE_ADVICE_OFFER_INVALID";
         public const string PackageMismatch = "PURCHASE_ADVICE_PACKAGE_MISMATCH";
+        public const string PackageCountMismatch = "PURCHASE_ADVICE_PACKAGE_COUNT_MISMATCH";
         public const string MoqViolation = "PURCHASE_ADVICE_MOQ_VIOLATION";
         public const string ExceedsRemaining = "PURCHASE_ADVICE_EXCEEDS_REMAINING";
         public const string AllocationNotFound = "PURCHASE_ADVICE_ALLOCATION_NOT_FOUND";

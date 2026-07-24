@@ -115,6 +115,71 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
     }
 
     [Fact]
+    public async Task PurchaseOrder_FractionalPackageCountIsRejected()
+    {
+        using var context = CreateDbContext();
+        await SeedFoundationAsync(context, 20m);
+        var offerId = await context.IngredientSuppliers
+            .Where(x => x.IngredientId == IngredientId && x.SupplierId == SupplierId)
+            .Select(x => x.IngredientSupplierId)
+            .SingleAsync();
+
+        var result = await CreateService(context).CreateDraftAsync(new CreatePurchaseOrderRequest
+        {
+            StoreId = StoreId,
+            SupplierId = SupplierId,
+            Lines =
+            {
+                new CreatePurchaseOrderLineRequest
+                {
+                    IngredientId = IngredientId,
+                    IngredientSupplierId = offerId,
+                    PackageCount = 1.5m
+                }
+            }
+        }, StaffId, new[] { RoleConstants.AccountantWarehouse });
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("số nguyên", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(context.PurchaseOrders);
+    }
+
+    [Fact]
+    public async Task PurchaseOrder_RoundedPackageCoversRestockDemandWithoutCountingSurplusAsDemand()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 2300m);
+        var offer = await context.IngredientSuppliers
+            .SingleAsync(x => x.IngredientId == IngredientId && x.SupplierId == SupplierId);
+        offer.PackageQuantity = 1000m;
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).CreateDraftAsync(new CreatePurchaseOrderRequest
+        {
+            StoreId = StoreId,
+            SupplierId = SupplierId,
+            Lines =
+            {
+                new CreatePurchaseOrderLineRequest
+                {
+                    RestockRequestId = request.RestockRequestId,
+                    IngredientId = IngredientId,
+                    IngredientSupplierId = offer.IngredientSupplierId,
+                    PackageCount = 3m
+                }
+            }
+        }, StaffId, new[] { RoleConstants.AccountantWarehouse });
+
+        Assert.True(result.IsSuccess, result.Message);
+        var line = await context.PurchaseOrderLines.AsNoTracking().SingleAsync();
+        Assert.Equal(3m, line.PackageCount);
+        Assert.Equal(3000m, line.OrderedBaseQuantity);
+        var demandCovered = await new PurchaseOrderQuantityProvider(context)
+            .GetAllocatedBaseQuantityAsync(request.RestockRequestId);
+        Assert.Equal(2300m, demandCovered);
+    }
+
+    [Fact]
     public async Task PurchaseOrderLine_CanLinkRestock_AndApprovalDoesNotFulfillRestock()
     {
         using var context = CreateDbContext();

@@ -82,7 +82,7 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
         request.Lines[0].PackageCount = 6;
         var result = await BatchService(db).CreateAsync(request, Warehouse(seed));
         Assert.False(result.IsSuccess);
-        Assert.Equal(PurchaseAdviceErrorCodes.ExceedsRemaining, result.ErrorCode);
+        Assert.Equal(PurchaseAdviceErrorCodes.PackageCountMismatch, result.ErrorCode);
         Assert.Empty(db.PurchaseOrderBatches);
     }
 

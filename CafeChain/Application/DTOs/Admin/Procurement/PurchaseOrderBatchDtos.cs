@@ -47,10 +47,13 @@ public sealed class PurchaseOrderBatchLineDto
     public int PurchaseOrderBatchLineId { get; set; }
     public int IngredientId { get; set; }
     public string IngredientName { get; set; } = string.Empty;
+    public string BaseUnitName { get; set; } = string.Empty;
     public string PackageUnitName { get; set; } = string.Empty;
     public decimal PackageQuantitySnapshot { get; set; }
     public decimal TotalPackageCount { get; set; }
     public decimal TotalBaseQuantity { get; set; }
+    public decimal DemandCoveredBaseQuantity { get; set; }
+    public decimal RoundingSurplusBaseQuantity { get; set; }
     public decimal PackagePriceSnapshot { get; set; }
     public decimal LineTotal { get; set; }
     public IReadOnlyList<PurchaseOrderBatchAllocationDto> Allocations { get; set; } = Array.Empty<PurchaseOrderBatchAllocationDto>();
@@ -68,6 +71,8 @@ public sealed class PurchaseOrderBatchAllocationDto
     public string StoreName { get; set; } = string.Empty;
     public decimal AllocatedBaseQuantity { get; set; }
     public decimal AllocatedPackageQuantity { get; set; }
+    public decimal DemandCoveredBaseQuantity { get; set; }
+    public decimal RoundingSurplusBaseQuantity { get; set; }
 }
 
 public sealed class PurchaseOrderBatchChildDto

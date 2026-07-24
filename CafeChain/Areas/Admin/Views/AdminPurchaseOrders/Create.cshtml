@@ -24,9 +24,13 @@
         {
             <div class="ops-line-editor po-line mb-3" data-index="@i">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-2"><label class="ops-form-label">Yêu cầu nhập hàng</label><input asp-for="Lines[i].RestockRequestId" class="ops-input w-100" placeholder="Mã yêu cầu" /></div>
+                    <div class="col-md-2">
+                        <label class="ops-form-label">Nguồn nhu cầu</label>
+                        <input asp-for="Lines[i].RestockRequestId" type="hidden" />
+                        <div class="ops-input w-100 restock-reference" aria-readonly="true">@(Model.Lines[i].RestockRequestId.HasValue ? $"Yêu cầu nhập hàng #{Model.Lines[i].RestockRequestId}" : "Mua chủ động")</div>
+                    </div>
                     <div class="col-md-5"><label class="ops-form-label">Quy cách và giá cung cấp</label><select asp-for="Lines[i].IngredientSupplierId" class="ops-select w-100 po-offer" data-index="@i" required><option value="">Chọn quy cách cung cấp</option>@foreach(var x in offers){<option value="@x.IngredientSupplierId" data-ingredient="@x.IngredientId" data-supplier="@x.SupplierId">@x.Ingredient.Name · @x.Supplier.Name · @x.PackageQuantity @x.Unit.Name · @x.CurrentPrice.ToString("N0") ₫</option>}</select><input asp-for="Lines[i].IngredientId" type="hidden" /></div>
-                    <div class="col-md-2"><label class="ops-form-label">Số gói</label><input asp-for="Lines[i].PackageCount" type="number" min="0.001" step="0.001" class="ops-input w-100" required /></div>
+                    <div class="col-md-2"><label class="ops-form-label">Số gói</label><input asp-for="Lines[i].PackageCount" type="number" min="1" step="1" class="ops-input w-100" required /><div class="ops-help">Chỉ nhận số nguyên.</div></div>
                     <div class="col-md-2"><label class="ops-form-label">Ghi chú dòng</label><input asp-for="Lines[i].Note" class="ops-input w-100" /></div>
                     <div class="col-md-1"><button class="ops-btn po-remove-line" type="button" title="Xóa dòng" aria-label="Xóa dòng"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></div>
                 </div>
@@ -89,6 +93,8 @@
             if (field.tagName === 'SELECT') field.selectedIndex = 0;
             else field.value = '';
         });
+        const reference = row.querySelector('.restock-reference');
+        if (reference) reference.textContent = 'Mua chủ động';
         const offer = row.querySelector('.po-offer');
         if (offer) bindOffer(offer);
         const remove = row.querySelector('.po-remove-line');

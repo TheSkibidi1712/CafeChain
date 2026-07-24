@@ -105,7 +105,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                     PackageUnitId = group.PackageUnitId,
                     PackageQuantitySnapshot = group.PackageQuantity,
                     TotalPackageCount = group.PackageCount,
-                    TotalBaseQuantity = group.AllocatedBaseQuantity,
+                    TotalBaseQuantity = group.OrderedBaseQuantity,
                     PackagePriceSnapshot = group.PackagePriceSnapshot,
                     LineTotal = group.LineTotal,
                     Currency = group.Currency,
@@ -148,7 +148,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                         PackageQuantitySnapshot = group.PackageQuantity,
                         PackagePriceSnapshot = group.PackagePriceSnapshot,
                         PackageCount = allocation.PackageCount,
-                        OrderedBaseQuantity = allocation.AllocatedBaseQuantity,
+                        OrderedBaseQuantity = allocation.OrderedBaseQuantity,
                         PromisedLeadTimeDaysSnapshot = group.LeadTimeDays,
                         Note = $"Allocation từ {allocation.AdviceNumber}"
                     };
@@ -158,14 +158,16 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                         PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
                         PurchaseOrder = child,
                         PurchaseOrderLine = childLine,
-                        AllocatedBaseQuantity = allocation.AllocatedBaseQuantity,
+                        AllocatedBaseQuantity = allocation.OrderedBaseQuantity,
                         AllocatedPackageQuantity = allocation.PackageCount,
                         CreatedAtUtc = now
                     });
 
                     var adviceLine = _context.ChangeTracker.Entries<PurchaseAdviceLine>()
                         .Select(x => x.Entity).Single(x => x.PurchaseAdviceLineId == allocation.PurchaseAdviceLineId);
-                    adviceLine.AllocatedToPoBaseQuantity += allocation.AllocatedBaseQuantity;
+                    adviceLine.AllocatedToPoBaseQuantity = Math.Min(
+                        adviceLine.RequestedPurchaseBaseQuantity,
+                        adviceLine.AllocatedToPoBaseQuantity + allocation.DemandCoveredBaseQuantity);
                     var remaining = Math.Max(0m, adviceLine.RequestedPurchaseBaseQuantity - adviceLine.AllocatedToPoBaseQuantity - adviceLine.ClosedBaseQuantity);
                     adviceLine.IsActiveReservation = remaining > 0;
                 }
@@ -289,11 +291,13 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
             child.CancelledAtUtc = now;
             child.UpdatedAtUtc = now;
         }
-        foreach (var allocation in batch.Lines.SelectMany(x => x.Allocations))
+        var affectedAdviceLines = batch.Lines
+            .SelectMany(x => x.Allocations)
+            .Select(x => x.PurchaseAdviceLine)
+            .DistinctBy(x => x.PurchaseAdviceLineId)
+            .ToArray();
+        foreach (var line in affectedAdviceLines)
         {
-            var line = allocation.PurchaseAdviceLine;
-            line.AllocatedToPoBaseQuantity = Math.Max(0m, line.AllocatedToPoBaseQuantity - allocation.AllocatedBaseQuantity);
-            line.IsActiveReservation = true;
             if (line.PurchaseAdvice.Status != PurchaseAdviceStatuses.UnderReview)
             {
                 line.PurchaseAdvice.Transitions.Add(new PurchaseAdviceTransition
@@ -307,6 +311,17 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
             }
             line.PurchaseAdvice.Status = PurchaseAdviceStatuses.UnderReview;
             line.PurchaseAdvice.UpdatedAtUtc = now;
+        }
+        await _context.SaveChangesAsync();
+        foreach (var line in affectedAdviceLines)
+        {
+            var activeOrderedBaseQuantity = await _context.PurchaseOrderLineAllocations
+                .Where(x => x.PurchaseAdviceLineId == line.PurchaseAdviceLineId
+                    && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled)
+                .SumAsync(x => (decimal?)x.AllocatedBaseQuantity) ?? 0m;
+            var maximumCoverable = Math.Max(0m, line.RequestedPurchaseBaseQuantity - line.ClosedBaseQuantity);
+            line.AllocatedToPoBaseQuantity = Math.Min(maximumCoverable, activeOrderedBaseQuantity);
+            line.IsActiveReservation = line.AllocatedToPoBaseQuantity < maximumCoverable;
         }
         await _context.SaveChangesAsync();
         await tx.CommitAsync();
@@ -323,7 +338,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
     {
         var batch = await _context.PurchaseOrderBatches.AsNoTracking()
             .Include(x => x.Supplier).Include(x => x.CreatedByStaff).Include(x => x.ApprovedByStaff)
-            .Include(x => x.Lines).ThenInclude(x => x.Ingredient)
+            .Include(x => x.Lines).ThenInclude(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
             .Include(x => x.Lines).ThenInclude(x => x.PackageUnit)
             .Include(x => x.Lines).ThenInclude(x => x.Allocations).ThenInclude(x => x.PurchaseAdviceLine).ThenInclude(x => x.PurchaseAdvice)
             .Include(x => x.Lines).ThenInclude(x => x.Allocations).ThenInclude(x => x.PurchaseOrder).ThenInclude(x => x.Store)
@@ -357,10 +372,21 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                 PurchaseOrderBatchLineId = line.PurchaseOrderBatchLineId,
                 IngredientId = line.IngredientId,
                 IngredientName = line.Ingredient.Name,
+                BaseUnitName = line.Ingredient.BaseUnit.Name,
                 PackageUnitName = line.PackageUnit.Name,
                 PackageQuantitySnapshot = line.PackageQuantitySnapshot,
                 TotalPackageCount = line.TotalPackageCount,
                 TotalBaseQuantity = line.TotalBaseQuantity,
+                DemandCoveredBaseQuantity = line.Allocations.Sum(a =>
+                    Math.Min(
+                        a.AllocatedBaseQuantity,
+                        a.PurchaseAdviceLine.RequestedPurchaseBaseQuantity)),
+                RoundingSurplusBaseQuantity = Math.Max(
+                    0m,
+                    line.TotalBaseQuantity - line.Allocations.Sum(a =>
+                        Math.Min(
+                            a.AllocatedBaseQuantity,
+                            a.PurchaseAdviceLine.RequestedPurchaseBaseQuantity))),
                 PackagePriceSnapshot = line.PackagePriceSnapshot,
                 LineTotal = line.LineTotal,
                 Allocations = line.Allocations.Select(a => new PurchaseOrderBatchAllocationDto
@@ -374,7 +400,15 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                     StoreId = a.PurchaseOrder.StoreId,
                     StoreName = a.PurchaseOrder.Store.Name,
                     AllocatedBaseQuantity = a.AllocatedBaseQuantity,
-                    AllocatedPackageQuantity = a.AllocatedPackageQuantity
+                    AllocatedPackageQuantity = a.AllocatedPackageQuantity,
+                    DemandCoveredBaseQuantity = Math.Min(
+                        a.AllocatedBaseQuantity,
+                        a.PurchaseAdviceLine.RequestedPurchaseBaseQuantity),
+                    RoundingSurplusBaseQuantity = Math.Max(
+                        0m,
+                        a.AllocatedBaseQuantity - Math.Min(
+                            a.AllocatedBaseQuantity,
+                            a.PurchaseAdviceLine.RequestedPurchaseBaseQuantity))
                 }).ToArray()
             }).ToArray(),
             ChildPurchaseOrders = batch.ChildPurchaseOrders.Select(po =>

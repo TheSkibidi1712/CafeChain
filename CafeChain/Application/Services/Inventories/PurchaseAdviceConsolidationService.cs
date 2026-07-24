@@ -192,9 +192,17 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             if (!conversion.IsSuccess || conversion.Data <= 0)
                 return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.PackageMismatch, $"Gói mua của {line.Ingredient.Name} không quy đổi được sang {line.BaseUnit.Name}.");
             var remaining = Remaining(line.RequestedPurchaseBaseQuantity, line.AllocatedToPoBaseQuantity, line.ClosedBaseQuantity);
-            var allocated = conversion.Data * selected.PackageCount;
-            if (allocated > remaining)
-                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ExceedsRemaining, $"Phân bổ {line.Ingredient.Name} vượt số lượng còn lại ({remaining:N3} {line.BaseUnit.Name}).");
+            if (!PurchasePackMath.TryPlan(remaining, conversion.Data, out var packPlan))
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.PackageMismatch, $"Không thể tính quy cách mua cho {line.Ingredient.Name}.");
+            if (selected.PackageCount > packPlan.PackageCount)
+            {
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(
+                    PurchaseAdviceErrorCodes.PackageCountMismatch,
+                    $"{line.Ingredient.Name} chỉ cần tối đa {packPlan.PackageCount} kiện để phủ {remaining:N3} {line.BaseUnit.Name}; mua vượt đề xuất cần luồng override riêng.");
+            }
+            var orderedBaseQuantity = conversion.Data * selected.PackageCount;
+            var demandCoveredBaseQuantity = Math.Min(remaining, orderedBaseQuantity);
+            var roundingSurplusBaseQuantity = Math.Max(0m, orderedBaseQuantity - remaining);
 
             allocations.Add((new PurchaseAdviceConsolidationAllocationDto
             {
@@ -203,8 +211,12 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                 StoreId = line.PurchaseAdvice.StoreId,
                 StoreName = line.PurchaseAdvice.Store.Name,
                 RestockRequestId = line.RestockRequestId,
+                SuggestedPackageCount = packPlan.PackageCount,
                 PackageCount = selected.PackageCount,
-                AllocatedBaseQuantity = allocated,
+                DemandCoveredBaseQuantity = demandCoveredBaseQuantity,
+                OrderedBaseQuantity = orderedBaseQuantity,
+                RoundingSurplusBaseQuantity = roundingSurplusBaseQuantity,
+                AllocatedBaseQuantity = orderedBaseQuantity,
                 RemainingBeforeAllocation = remaining,
                 NeededByDate = line.NeededByDate,
                 LineRowVersion = Convert.ToBase64String(line.RowVersion)
@@ -258,7 +270,10 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                     LeadTimeDays = group.Key.LeadTimeDays,
                     MinimumOrderPackageCount = group.Key.MinimumOrderPackageCount,
                     PackageCount = count,
-                    AllocatedBaseQuantity = group.Sum(x => x.Allocation.AllocatedBaseQuantity),
+                    DemandCoveredBaseQuantity = group.Sum(x => x.Allocation.DemandCoveredBaseQuantity),
+                    OrderedBaseQuantity = group.Sum(x => x.Allocation.OrderedBaseQuantity),
+                    RoundingSurplusBaseQuantity = group.Sum(x => x.Allocation.RoundingSurplusBaseQuantity),
+                    AllocatedBaseQuantity = group.Sum(x => x.Allocation.OrderedBaseQuantity),
                     LineTotal = count * group.Key.CurrentPackagePrice,
                     Allocations = group.Select(x => x.Allocation).OrderBy(x => x.StoreName).ToArray()
                 };

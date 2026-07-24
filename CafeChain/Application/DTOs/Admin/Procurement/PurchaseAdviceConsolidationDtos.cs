@@ -112,6 +112,10 @@ public sealed class PurchaseAdviceConsolidationGroupDto
     public int LeadTimeDays { get; set; }
     public int MinimumOrderPackageCount { get; set; }
     public int PackageCount { get; set; }
+    public decimal DemandCoveredBaseQuantity { get; set; }
+    public decimal OrderedBaseQuantity { get; set; }
+    public decimal RoundingSurplusBaseQuantity { get; set; }
+    // Compatibility alias for existing views/controllers; always equals OrderedBaseQuantity.
     public decimal AllocatedBaseQuantity { get; set; }
     public decimal LineTotal { get; set; }
     public IReadOnlyList<PurchaseAdviceConsolidationAllocationDto> Allocations { get; set; } = Array.Empty<PurchaseAdviceConsolidationAllocationDto>();
@@ -124,7 +128,12 @@ public sealed class PurchaseAdviceConsolidationAllocationDto
     public int StoreId { get; set; }
     public string StoreName { get; set; } = string.Empty;
     public int RestockRequestId { get; set; }
+    public int SuggestedPackageCount { get; set; }
     public int PackageCount { get; set; }
+    public decimal DemandCoveredBaseQuantity { get; set; }
+    public decimal OrderedBaseQuantity { get; set; }
+    public decimal RoundingSurplusBaseQuantity { get; set; }
+    // Compatibility alias for existing batch creation; always equals OrderedBaseQuantity.
     public decimal AllocatedBaseQuantity { get; set; }
     public decimal RemainingBeforeAllocation { get; set; }
     public DateTime NeededByDate { get; set; }
