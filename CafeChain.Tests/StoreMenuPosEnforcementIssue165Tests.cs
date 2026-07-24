@@ -14,6 +14,7 @@ using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using CafeChain.Tests.Testing;
 
 namespace CafeChain.Tests;
 
@@ -97,7 +98,7 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
         var clientOrderId = Guid.NewGuid();
         Order? captured = null;
 
-        repository.Setup(x => x.FindOrderByClientOrderIdAsync(clientOrderId)).ReturnsAsync((Order?)null);
+        repository.Setup(x => x.FindOrderByClientOrderIdAsync(clientOrderId, It.IsAny<int>())).ReturnsAsync((Order?)null);
         repository.Setup(x => x.BeginTransactionAsync()).Returns(Task.CompletedTask);
         repository.Setup(x => x.CommitTransactionAsync()).Returns(Task.CompletedTask);
         repository.Setup(x => x.CreateOrderAsync(It.IsAny<Order>()))
@@ -105,7 +106,7 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
             .ReturnsAsync((Order order) => order);
         repository.Setup(x => x.CreatePaymentAsync(It.IsAny<Payment>())).Returns(Task.CompletedTask);
         repository.Setup(x => x.SaveChangesAsync()).Returns(Task.CompletedTask);
-        shiftService.Setup(x => x.GetShiftByIdAsync(16530, 16531, 16501)).ReturnsAsync(new WorkShift
+        shiftService.Setup(x => x.GetShiftByIdAsync(16530)).ReturnsAsync(new WorkShift
         {
             ShiftId = 16530,
             UserId = 16531,
@@ -122,7 +123,9 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
             Mock.Of<IPrintDispatcher>(),
             Mock.Of<IPayOSService>(),
             Mock.Of<ILogger<POSOrderService>>(),
-            validator.Object);
+            validator.Object,
+            null,
+            AllowAllOrderAccessAuthorizationService.Instance);
         var dto = new POSOrderCommitDto
         {
             ClientOrderId = clientOrderId,
@@ -154,21 +157,34 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
         var repository = new Mock<IPOSOrderRepository>(MockBehavior.Loose);
         var validator = new Mock<IPOSStoreMenuSaleValidator>(MockBehavior.Strict);
         var clientOrderId = Guid.NewGuid();
-        repository.Setup(x => x.FindOrderByClientOrderIdAsync(clientOrderId)).ReturnsAsync(new Order
+        repository.Setup(x => x.FindOrderByClientOrderIdAsync(clientOrderId, It.IsAny<int>())).ReturnsAsync(new Order
         {
             OrderId = 16540,
             ClientOrderId = clientOrderId,
+            StoreId = 16501,
+            StaffId = 16531,
+            WorkShiftId = 16530,
             Total = 47_000m,
             SubTotal = 47_000m
         });
+        var shiftService = new Mock<IWorkShiftService>(MockBehavior.Loose);
+        shiftService.Setup(x => x.GetShiftByIdAsync(16530)).ReturnsAsync(new WorkShift
+        {
+            ShiftId = 16530,
+            UserId = 16531,
+            StoreId = 16501,
+            Status = "Closed"
+        });
         var service = new POSOrderService(
             repository.Object,
-            Mock.Of<IWorkShiftService>(),
+            shiftService.Object,
             Mock.Of<IAdminVoucherService>(),
             Mock.Of<IPrintDispatcher>(),
             Mock.Of<IPayOSService>(),
             Mock.Of<ILogger<POSOrderService>>(),
-            validator.Object);
+            validator.Object,
+            null,
+            AllowAllOrderAccessAuthorizationService.Instance);
 
         var result = await service.CommitOfflineSyncedOrderAsync(new POSOrderCommitDto
         {

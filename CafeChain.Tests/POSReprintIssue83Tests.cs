@@ -26,6 +26,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using CafeChain.Tests.Testing;
 
 namespace CafeChain.Tests.POS
 {
@@ -346,12 +347,14 @@ namespace CafeChain.Tests.POS
             var controller = new POSOrderController(
                 orderService.Object,
                 inventoryService.Object,
-                logger.Object);
+                logger.Object,
+                AllowAllOrderAccessAuthorizationService.Instance);
 
             var identity = new ClaimsIdentity(new[]
             {
                 new Claim("StaffId", "9"),
-                new Claim("StoreId", "3")
+                new Claim("StoreId", "3"),
+                new Claim(ClaimTypes.Role, RoleConstants.SalesStaff)
             }, "TestAuth");
 
             controller.ControllerContext = new ControllerContext

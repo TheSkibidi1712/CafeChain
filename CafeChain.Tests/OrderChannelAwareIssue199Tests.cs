@@ -595,9 +595,12 @@ public sealed class OrderChannelAwareIssue199SourceTests
     public void PosCsv_RevenueMatchesHistorySummary()
     {
         var controller = Read("CafeChain", "Areas", "Admin", "Controllers", "AdminOrderController.cs");
+        var service = Read("CafeChain", "Application", "Services", "Admin", "Order", "AdminOrderService.cs");
 
         Assert.Contains("GetFilteredOrdersForExportAsync", controller, StringComparison.Ordinal);
-        Assert.Contains("TotalRevenue = allData.Where(o => o.OrderStatusId == SystemConstants.PaymentStatuses.Paid)", controller, StringComparison.Ordinal);
+        Assert.Contains("GetPosSalesHistoryAsync", controller, StringComparison.Ordinal);
+        Assert.Contains("PaidRevenue = paidRevenue", service, StringComparison.Ordinal);
+        Assert.Contains("PaymentStatusId == SystemConstants.PaymentStatuses.Paid", service, StringComparison.Ordinal);
         Assert.Contains("var data = await _adminOrderService.GetFilteredOrdersForExportAsync", controller, StringComparison.Ordinal);
     }
 

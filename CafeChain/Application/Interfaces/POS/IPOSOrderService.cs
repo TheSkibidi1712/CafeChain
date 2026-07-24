@@ -32,10 +32,7 @@ namespace CafeChain.Application.Interfaces.POS
         /// </summary>
         Task<ServiceResult<object>> CommitOfflineSyncedOrderAsync(
             POSOrderCommitDto dto,
-            int userId,
-            int storeId,
-            int workShiftId,
-            DateTime soldAt);
+            OfflineOrderSyncContext syncContext);
 
         /// <summary>
         /// Lấy dữ liệu tóm tắt ca cho modal đóng ca

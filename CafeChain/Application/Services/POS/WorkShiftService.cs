@@ -207,6 +207,11 @@ namespace CafeChain.Application.Services.POS
             return await _shiftRepo.GetShiftByIdAsync(shiftId, userId, storeId);
         }
 
+        public async Task<WorkShift?> GetShiftByIdAsync(int shiftId)
+        {
+            return await _shiftRepo.GetShiftByIdAsync(shiftId);
+        }
+
         public async Task<ServiceResult> CloseShiftAsync(int userId, int storeId, CloseShiftRequestDto request)
         {
             try

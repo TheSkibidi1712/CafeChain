@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using CafeChain.Tests.Testing;
 
 namespace CafeChain.Tests
 {
@@ -74,21 +75,19 @@ namespace CafeChain.Tests
         [Fact]
         public void POS_Checkout_DoesNotRenderVoucherInput()
         {
-            var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPOS/Index.cshtml");
-            Assert.DoesNotContain("id=\"voucherCode\"", view);
-            Assert.DoesNotContain("Nhập mã voucher", view);
-            Assert.DoesNotContain("applyVoucher()", view);
+            var pos = ReadRepoFile("CafeChain.Frontend/src/POSLayout.tsx");
+            Assert.DoesNotContain("id=\"voucherCode\"", pos);
+            Assert.DoesNotContain("Nhập mã voucher", pos);
+            Assert.DoesNotContain("applyVoucher()", pos);
         }
 
         [Fact]
         public void POS_Checkout_DoesNotRenderLoyaltyControls()
         {
-            var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPOS/Index.cshtml");
-            var js = ReadRepoFile("CafeChain/wwwroot/js/pos-app.js");
-            Assert.DoesNotContain("Dùng điểm tích lũy", view);
-            Assert.DoesNotContain("successLoyalty", view);
-            Assert.DoesNotContain("Dùng điểm tích lũy?", js);
-            Assert.DoesNotContain("pointsToUse * 1000", js);
+            var pos = ReadRepoFile("CafeChain.Frontend/src/POSLayout.tsx");
+            Assert.DoesNotContain("Dùng điểm tích lũy", pos);
+            Assert.DoesNotContain("successLoyalty", pos);
+            Assert.DoesNotContain("pointsToUse * 1000", pos);
         }
 
         [Fact]
@@ -303,7 +302,10 @@ namespace CafeChain.Tests
         {
             using var ctx = CreateDbContext();
             await SeedRefundOrderAsync(ctx, voucherDiscount: 0, pointsUsed: 0, pointDiscount: 0);
-            var svc = new OrderRefundService(ctx, NullLogger<OrderRefundService>.Instance);
+            var svc = new OrderRefundService(
+                ctx,
+                NullLogger<OrderRefundService>.Instance,
+                HomeStoreOrderAccessAuthorizationService.Instance);
             var r = await svc.RequestFullRefundAsync(new RequestFullOrderRefundDto
             {
                 OrderId = 9001,
@@ -319,7 +321,10 @@ namespace CafeChain.Tests
         {
             using var ctx = CreateDbContext();
             await SeedRefundOrderAsync(ctx, voucherDiscount: 1000m, pointsUsed: 0, pointDiscount: 0);
-            var svc = new OrderRefundService(ctx, NullLogger<OrderRefundService>.Instance);
+            var svc = new OrderRefundService(
+                ctx,
+                NullLogger<OrderRefundService>.Instance,
+                HomeStoreOrderAccessAuthorizationService.Instance);
             var r = await svc.RequestFullRefundAsync(new RequestFullOrderRefundDto
             {
                 OrderId = 9001,
@@ -335,7 +340,10 @@ namespace CafeChain.Tests
         {
             using var ctx = CreateDbContext();
             await SeedRefundOrderAsync(ctx, voucherDiscount: 0, pointsUsed: 5, pointDiscount: 5000m);
-            var svc = new OrderRefundService(ctx, NullLogger<OrderRefundService>.Instance);
+            var svc = new OrderRefundService(
+                ctx,
+                NullLogger<OrderRefundService>.Instance,
+                HomeStoreOrderAccessAuthorizationService.Instance);
             var r = await svc.RequestFullRefundAsync(new RequestFullOrderRefundDto
             {
                 OrderId = 9001,
@@ -375,7 +383,7 @@ namespace CafeChain.Tests
                 ExpectedEndingCash = 500_000m
             };
 
-            repository.Setup(r => r.FindOrderByClientOrderIdAsync(It.IsAny<Guid>())).ReturnsAsync((Order?)null);
+            repository.Setup(r => r.FindOrderByClientOrderIdAsync(It.IsAny<Guid>(), It.IsAny<int>())).ReturnsAsync((Order?)null);
             repository.Setup(r => r.BeginTransactionAsync()).Returns(Task.CompletedTask);
             repository.Setup(r => r.RollbackTransactionAsync()).Returns(Task.CompletedTask);
             repository.Setup(r => r.CommitTransactionAsync()).Returns(Task.CompletedTask);
@@ -394,7 +402,7 @@ namespace CafeChain.Tests
 
             if (offline)
             {
-                workShift.Setup(s => s.GetShiftByIdAsync(42, 17, 3)).ReturnsAsync(shift);
+                workShift.Setup(s => s.GetShiftByIdAsync(42)).ReturnsAsync(shift);
             }
             else
             {
@@ -410,7 +418,10 @@ namespace CafeChain.Tests
                 voucher.Object,
                 print.Object,
                 payOs.Object,
-                logger.Object);
+                logger.Object,
+                null,
+                null,
+                AllowAllOrderAccessAuthorizationService.Instance);
 
             return new Harness
             {

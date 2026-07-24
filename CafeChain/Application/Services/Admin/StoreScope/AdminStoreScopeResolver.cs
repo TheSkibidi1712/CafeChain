@@ -1,5 +1,6 @@
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.StoreScope;
+using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Data;
@@ -28,9 +29,17 @@ namespace CafeChain.Application.Services.Admin.StoreScope
             int? requestedStoreId = null,
             CancellationToken cancellationToken = default)
         {
-            var allowedStores = actor.StaffId > 0
-                ? await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId)
-                : new List<Models.Stores.Store>();
+            var isSystemAdmin = actor.RoleNames.Contains(
+                RoleConstants.SystemAdmin,
+                StringComparer.OrdinalIgnoreCase);
+            var allowedStores = isSystemAdmin
+                ? await _context.Stores
+                    .AsNoTracking()
+                    .Where(x => x.Active)
+                    .ToListAsync(cancellationToken)
+                : actor.StaffId > 0
+                    ? await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId)
+                    : new List<Models.Stores.Store>();
             var options = allowedStores
                 .Where(x => x.Active)
                 .OrderBy(x => x.Name)

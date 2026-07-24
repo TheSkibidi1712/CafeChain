@@ -1,4 +1,5 @@
 using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.Results;
 
 namespace CafeChain.Application.Interfaces.POS
@@ -8,14 +9,10 @@ namespace CafeChain.Application.Interfaces.POS
     {
         Task<ServiceResult<OrderRefundResultDto>> RequestFullRefundAsync(
             RequestFullOrderRefundDto dto,
-            int staffId,
-            int staffHomeStoreId,
-            IReadOnlyList<string> roleNames);
+            AdminActorContext actor);
 
         Task<ServiceResult<OrderRefundResultDto>> ConfirmCashRefundAsync(
             ConfirmCashRefundDto dto,
-            int staffId,
-            int staffHomeStoreId,
-            IReadOnlyList<string> roleNames);
+            AdminActorContext actor);
     }
 }

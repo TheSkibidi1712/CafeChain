@@ -73,6 +73,19 @@ namespace CafeChain.Application.Interfaces.Admin
         /// Lấy danh sách đơn hàng với DataTables server-side processing (phân trang, sắp xếp, lọc).
         /// </summary>
         Task<DataTablesResponse<AdminOrderHistoryRowDto>> GetOrderHistoryAsync(DataTablesRequest request, int storeId);
+        Task<DataTablesResponse<AdminOrderHistoryRowDto>> GetOrderHistoryAsync(
+            DataTablesRequest request,
+            IReadOnlyCollection<int> storeIds);
+
+        Task<AdminOrderHistoryPageDto> GetPosSalesHistoryAsync(
+            int page,
+            int pageSize,
+            string searchKeyword,
+            string dateFrom,
+            string dateTo,
+            int? statusFilter,
+            int? paymentMethodFilter,
+            IReadOnlyCollection<int> storeIds);
 
         /// <summary>
         /// Lấy chi tiết đơn hàng cho Modal trong trang Lịch sử đơn hàng.
@@ -84,5 +97,12 @@ namespace CafeChain.Application.Interfaces.Admin
         /// </summary>
         Task<List<AdminOrderHistoryRowDto>> GetFilteredOrdersForExportAsync(
             string searchKeyword, string dateFrom, string dateTo, int? statusFilter, int? paymentMethodFilter, int storeId);
+        Task<List<AdminOrderHistoryRowDto>> GetFilteredOrdersForExportAsync(
+            string searchKeyword,
+            string dateFrom,
+            string dateTo,
+            int? statusFilter,
+            int? paymentMethodFilter,
+            IReadOnlyCollection<int> storeIds);
     }
 }

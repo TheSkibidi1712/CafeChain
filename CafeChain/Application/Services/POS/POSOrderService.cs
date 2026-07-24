@@ -1,7 +1,9 @@
 using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Vouchers;
 using CafeChain.Application.Interfaces.POS;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.PayOSIntegration;
 using CafeChain.Application.Options;
@@ -32,6 +34,7 @@ namespace CafeChain.Application.Services.POS
         private readonly IPayOSService _payOSService;
         private readonly ILogger<POSOrderService> _logger;
         private readonly IPOSStoreMenuSaleValidator? _storeMenuSaleValidator;
+        private readonly IOrderAccessAuthorizationService? _orderAccessAuthorization;
         private readonly decimal _cashDenominationStep;
 
         public POSOrderService(
@@ -41,7 +44,7 @@ namespace CafeChain.Application.Services.POS
             IPrintDispatcher printDispatcher,
             IPayOSService payOSService,
             ILogger<POSOrderService> logger)
-            : this(repository, workShiftService, voucherService, printDispatcher, payOSService, logger, null, null)
+            : this(repository, workShiftService, voucherService, printDispatcher, payOSService, logger, null, null, null)
         {
         }
 
@@ -53,7 +56,7 @@ namespace CafeChain.Application.Services.POS
             IPayOSService payOSService,
             ILogger<POSOrderService> logger,
             IPOSStoreMenuSaleValidator? storeMenuSaleValidator)
-            : this(repository, workShiftService, voucherService, printDispatcher, payOSService, logger, storeMenuSaleValidator, null)
+            : this(repository, workShiftService, voucherService, printDispatcher, payOSService, logger, storeMenuSaleValidator, null, null)
         {
         }
 
@@ -65,7 +68,8 @@ namespace CafeChain.Application.Services.POS
             IPayOSService payOSService,
             ILogger<POSOrderService> logger,
             IPOSStoreMenuSaleValidator? storeMenuSaleValidator,
-            IOptions<POSPaymentOptions>? paymentOptions)
+            IOptions<POSPaymentOptions>? paymentOptions,
+            IOrderAccessAuthorizationService? orderAccessAuthorization = null)
         {
             _repository = repository;
             _workShiftService = workShiftService;
@@ -74,6 +78,7 @@ namespace CafeChain.Application.Services.POS
             _payOSService = payOSService;
             _logger = logger;
             _storeMenuSaleValidator = storeMenuSaleValidator;
+            _orderAccessAuthorization = orderAccessAuthorization;
             _cashDenominationStep = paymentOptions?.Value.GetEffectiveCashDenominationStep()
                 ?? POSPaymentOptions.DefaultCashDenominationStep;
         }
@@ -166,7 +171,9 @@ namespace CafeChain.Application.Services.POS
             // Nếu ClientOrderId đã tồn tại → trả order cũ (200), không tạo duplicate
             if (dto.ClientOrderId.HasValue)
             {
-                var existingOrder = await _repository.FindOrderByClientOrderIdAsync(dto.ClientOrderId.Value);
+                var existingOrder = await _repository.FindOrderByClientOrderIdAsync(
+                    dto.ClientOrderId.Value,
+                    storeId);
                 if (existingOrder != null)
                 {
                     if (!IsCompatibleIdempotentReplay(existingOrder, dto))
@@ -571,10 +578,7 @@ namespace CafeChain.Application.Services.POS
         // ============================================================
         public async Task<ServiceResult<object>> CommitOfflineSyncedOrderAsync(
             POSOrderCommitDto dto,
-            int userId,
-            int storeId,
-            int workShiftId,
-            DateTime soldAt)
+            OfflineOrderSyncContext syncContext)
         {
             if (dto == null || dto.Items == null || !dto.Items.Any())
                 return ServiceResult<object>.Failure("Giỏ hàng offline trống.");
@@ -582,13 +586,91 @@ namespace CafeChain.Application.Services.POS
             if (!dto.ClientOrderId.HasValue)
                 return ServiceResult<object>.Failure("Thiếu ClientOrderId cho đơn offline.");
 
+            if (syncContext == null || syncContext.ActorStaffId <= 0 || syncContext.WorkShiftId <= 0)
+            {
+                return ServiceResult<object>.Failure(
+                    "Không xác định được người đồng bộ hoặc WorkShift gốc.",
+                    errorCode: OrderAccessErrorCodes.Forbidden);
+            }
+
             if ((dto.Payments != null && dto.Payments.Any(p => p.PaymentMethodId != 1)) ||
                 ((dto.Payments == null || !dto.Payments.Any()) && dto.PaymentMethodId != 1))
             {
                 return ServiceResult<object>.Failure("Offline Sync chỉ hỗ trợ thanh toán tiền mặt.");
             }
 
-            var existingOrder = await _repository.FindOrderByClientOrderIdAsync(dto.ClientOrderId.Value);
+            var originalShift = await _workShiftService.GetShiftByIdAsync(syncContext.WorkShiftId);
+            if (originalShift == null)
+            {
+                return ServiceResult<object>.Failure(
+                    "Không tìm thấy WorkShift gốc cho đơn offline.",
+                    errorCode: OrderAccessErrorCodes.WorkShiftNotFound);
+            }
+
+            var actor = new AdminActorContext
+            {
+                StaffId = syncContext.ActorStaffId,
+                StoreId = syncContext.ClaimedStoreId,
+                RoleNames = syncContext.ActorRoleNames
+            };
+
+            if (_orderAccessAuthorization == null)
+            {
+                return ServiceResult<object>.Failure(
+                    "Không thể xác minh quyền đồng bộ đơn offline.",
+                    errorCode: OrderAccessErrorCodes.Forbidden);
+            }
+
+            var access = await _orderAccessAuthorization.AuthorizeAsync(
+                actor,
+                OrderAccessActions.OfflineSync,
+                originalShift.StoreId);
+            if (access == OrderAccessDecision.Forbidden)
+            {
+                return ServiceResult<object>.Failure(
+                    "Bạn không có quyền đồng bộ đơn POS.",
+                    errorCode: OrderAccessErrorCodes.Forbidden);
+            }
+
+            if (access == OrderAccessDecision.NotFound)
+            {
+                return ServiceResult<object>.Failure(
+                    "Không tìm thấy WorkShift gốc cho đơn offline.",
+                    errorCode: OrderAccessErrorCodes.WorkShiftNotFound);
+            }
+
+            if (syncContext.ClaimedStaffId != originalShift.UserId ||
+                syncContext.ClaimedStoreId != originalShift.StoreId)
+            {
+                _logger.LogWarning(
+                    "[OfflineSync] Payload attribution mismatch | ActorStaffId={ActorStaffId} | " +
+                    "WorkShiftId={WorkShiftId} | ClaimedStaffId={ClaimedStaffId} | " +
+                    "ClaimedStoreId={ClaimedStoreId}",
+                    syncContext.ActorStaffId,
+                    originalShift.ShiftId,
+                    syncContext.ClaimedStaffId,
+                    syncContext.ClaimedStoreId);
+
+                return ServiceResult<object>.Failure(
+                    "Thông tin nhân viên/cửa hàng trong đơn offline không khớp WorkShift gốc.",
+                    errorCode: OrderAccessErrorCodes.OfflineAttributionMismatch);
+            }
+
+            var userId = originalShift.UserId;
+            var storeId = originalShift.StoreId;
+            var soldAt = syncContext.SoldAt;
+
+            _logger.LogInformation(
+                "[OfflineSync] Authorized actor | ActorStaffId={ActorStaffId} | " +
+                "AttributedStaffId={AttributedStaffId} | StoreId={StoreId} | WorkShiftId={WorkShiftId}",
+                syncContext.ActorStaffId,
+                userId,
+                storeId,
+                originalShift.ShiftId);
+
+            var existingOrder = await _repository.FindOrderByClientOrderIdAsync(
+                dto.ClientOrderId.Value,
+                storeId);
             if (existingOrder != null)
             {
                 _logger.LogInformation(
@@ -598,10 +680,6 @@ namespace CafeChain.Application.Services.POS
                 return ServiceResult<object>.Success(BuildIdempotentResponse(existingOrder, dto.ReceivedAmount),
                     "Đơn offline đã được đồng bộ trước đó.");
             }
-
-            var originalShift = await _workShiftService.GetShiftByIdAsync(workShiftId, userId, storeId);
-            if (originalShift == null)
-                return ServiceResult<object>.Failure("Không tìm thấy WorkShift gốc cho đơn offline hoặc WorkShift không khớp nhân viên/cửa hàng.");
 
             // Soft-removal: offline must not carry voucher/loyalty effects.
             if (!string.IsNullOrWhiteSpace(dto.VoucherCode) || dto.PointsUsed > 0)
@@ -823,6 +901,7 @@ namespace CafeChain.Application.Services.POS
                     orderId = newOrder.OrderId,
                     clientOrderId = newOrder.ClientOrderId?.ToString(),
                     workShiftId = newOrder.WorkShiftId,
+                    storeId = newOrder.StoreId,
                     subTotal,
                     total,
                     receivedAmount = effectiveReceivedAmount,
@@ -837,7 +916,9 @@ namespace CafeChain.Application.Services.POS
                     await _repository.RollbackTransactionAsync();
                 }
 
-                var racedOrder = await _repository.FindOrderByClientOrderIdAsync(dto.ClientOrderId.Value);
+                var racedOrder = await _repository.FindOrderByClientOrderIdAsync(
+                    dto.ClientOrderId.Value,
+                    storeId);
                 if (racedOrder != null)
                 {
                     _logger.LogWarning(
@@ -862,6 +943,7 @@ namespace CafeChain.Application.Services.POS
                 orderId = existingOrder.OrderId,
                 clientOrderId = existingOrder.ClientOrderId?.ToString(),
                 workShiftId = existingOrder.WorkShiftId,
+                storeId = existingOrder.StoreId,
                 subTotal = existingOrder.SubTotal,
                 total = existingOrder.Total,
                 receivedAmount = effectiveReceivedAmount,
@@ -1082,7 +1164,11 @@ namespace CafeChain.Application.Services.POS
 
             var order = await _repository.GetOrderForReprintAsync(orderId, storeId);
             if (order == null)
-                return ServiceResult<object>.Failure("Không tìm thấy đơn hàng để in lại.");
+            {
+                return ServiceResult<object>.Failure(
+                    "Không tìm thấy đơn hàng để in lại.",
+                    errorCode: OrderAccessErrorCodes.NotFound);
+            }
 
             if (!string.Equals(order.Source, "POS", StringComparison.OrdinalIgnoreCase))
                 return ServiceResult<object>.Failure("Chỉ hỗ trợ in lại đơn POS đã đồng bộ.");

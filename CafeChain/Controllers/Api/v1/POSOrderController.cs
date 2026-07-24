@@ -2,11 +2,15 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
+using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.DTOs.Admin.Actor;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace CafeChain.Controllers.Api.v1
@@ -27,15 +31,18 @@ namespace CafeChain.Controllers.Api.v1
         private readonly IPOSOrderService _orderService;
         private readonly IInventoryDeductionService _inventoryService;
         private readonly ILogger<POSOrderController> _logger;
+        private readonly IOrderAccessAuthorizationService? _orderAccessAuthorization;
 
         public POSOrderController(
             IPOSOrderService orderService,
             IInventoryDeductionService inventoryService,
-            ILogger<POSOrderController> logger)
+            ILogger<POSOrderController> logger,
+            IOrderAccessAuthorizationService? orderAccessAuthorization = null)
         {
             _orderService = orderService;
             _inventoryService = inventoryService;
             _logger = logger;
+            _orderAccessAuthorization = orderAccessAuthorization;
         }
 
         // ============================================================
@@ -94,10 +101,18 @@ namespace CafeChain.Controllers.Api.v1
         ///   - status: "created" | "duplicate" | "failed"
         /// </summary>
         [HttpPost("sync-offline")]
+        [Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
         public async Task<IActionResult> SyncOfflineOrders([FromBody] OfflineBatchSyncRequestDto request)
         {
             if (request?.Orders == null || !request.Orders.Any())
                 return BadRequest(new { success = false, message = "Không có đơn hàng để đồng bộ." });
+
+            var actor = GetCurrentActor();
+            if (_orderAccessAuthorization?.AuthorizeAction(actor, OrderAccessActions.OfflineSync)
+                != OrderAccessDecision.Allowed)
+            {
+                return Forbid();
+            }
 
             var results = new List<OfflineSyncItemResult>();
             int createdCount = 0;
@@ -149,10 +164,15 @@ namespace CafeChain.Controllers.Api.v1
 
                     var commitResult = await _orderService.CommitOfflineSyncedOrderAsync(
                         commitDto,
-                        orderDto.StaffId!.Value,
-                        orderDto.StoreId!.Value,
-                        orderDto.WorkShiftId!.Value,
-                        orderDto.SoldAt ?? DateTime.Now);
+                        new OfflineOrderSyncContext
+                        {
+                            ActorStaffId = actor.StaffId,
+                            ActorRoleNames = actor.RoleNames,
+                            ClaimedStaffId = orderDto.StaffId!.Value,
+                            ClaimedStoreId = orderDto.StoreId!.Value,
+                            WorkShiftId = orderDto.WorkShiftId!.Value,
+                            SoldAt = orderDto.SoldAt ?? DateTime.Now
+                        });
 
                     if (commitResult.IsSuccess)
                     {
@@ -167,9 +187,20 @@ namespace CafeChain.Controllers.Api.v1
 
                             if (itemResult.OrderId.HasValue)
                             {
+                                var committedStoreId = ExtractStoreId(commitResult.Data);
+                                if (!committedStoreId.HasValue)
+                                {
+                                    itemResult.Status = "failed";
+                                    itemResult.Error = "Không xác định được cửa hàng của đơn đã đồng bộ.";
+                                    failedCount++;
+                                    duplicateCount--;
+                                    results.Add(itemResult);
+                                    continue;
+                                }
+
                                 await DeductInventorySafeAsync(
                                     commitDto.Items,
-                                    orderDto.StoreId!.Value,
+                                    committedStoreId.Value,
                                     itemResult.OrderId.Value);
                             }
                         }
@@ -182,15 +213,38 @@ namespace CafeChain.Controllers.Api.v1
                             // Side-effects: Inventory Deduction chạy qua guard committed-order.
                             if (itemResult.OrderId.HasValue)
                             {
+                                var committedStoreId = ExtractStoreId(commitResult.Data);
+                                if (!committedStoreId.HasValue)
+                                {
+                                    itemResult.Status = "failed";
+                                    itemResult.Error = "Không xác định được cửa hàng của đơn đã đồng bộ.";
+                                    failedCount++;
+                                    createdCount--;
+                                    results.Add(itemResult);
+                                    continue;
+                                }
+
                                 await DeductInventorySafeAsync(
                                     commitDto.Items,
-                                    orderDto.StoreId!.Value,
+                                    committedStoreId.Value,
                                     itemResult.OrderId.Value);
                             }
                         }
                     }
                     else
                     {
+                        if (commitResult.ErrorCode == OrderAccessErrorCodes.Forbidden)
+                            return Forbid();
+
+                        if (commitResult.ErrorCode == OrderAccessErrorCodes.WorkShiftNotFound)
+                        {
+                            return NotFound(new
+                            {
+                                success = false,
+                                message = "Không tìm thấy WorkShift gốc cho đơn offline."
+                            });
+                        }
+
                         itemResult.Status = "failed";
                         itemResult.Error = commitResult.Message;
                         itemResult.ErrorCode = commitResult.ErrorCode;
@@ -229,10 +283,17 @@ namespace CafeChain.Controllers.Api.v1
         /// Response: { items[], pagination { page, pageSize, totalCount, totalPages } }
         /// </summary>
         [HttpGet]
+        [Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
         public async Task<IActionResult> GetOrderHistory(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
+            var access = await AuthorizeCurrentStoreAsync(OrderAccessActions.PosHistory);
+            if (access == OrderAccessDecision.Forbidden)
+                return Forbid();
+            if (access == OrderAccessDecision.NotFound)
+                return NotFound();
+
             var result = await _orderService.GetOrderHistoryAsync(CurrentStoreId, page, pageSize);
 
             if (!result.IsSuccess)
@@ -250,14 +311,26 @@ namespace CafeChain.Controllers.Api.v1
         /// Không tạo đơn, không tạo payment, không trừ kho.
         /// </summary>
         [HttpPost("{orderId:int}/reprint")]
+        [Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
         public async Task<IActionResult> ReprintOrder(
             [FromRoute] int orderId,
             [FromBody] POSOrderReprintRequestDto dto)
         {
+            var access = await AuthorizeCurrentStoreAsync(OrderAccessActions.Reprint);
+            if (access == OrderAccessDecision.Forbidden)
+                return Forbid();
+            if (access == OrderAccessDecision.NotFound)
+                return NotFound();
+
             var result = await _orderService.ReprintOrderAsync(orderId, dto, CurrentStoreId);
 
             if (!result.IsSuccess)
+            {
+                if (result.ErrorCode == OrderAccessErrorCodes.NotFound)
+                    return NotFound(new { success = false, message = result.Message });
+
                 return Ok(new { success = false, message = result.Message });
+            }
 
             return Ok(new { success = true, message = result.Message, data = result.Data });
         }
@@ -265,6 +338,33 @@ namespace CafeChain.Controllers.Api.v1
         // ============================================================
         // PRIVATE HELPERS
         // ============================================================
+
+        private AdminActorContext GetCurrentActor()
+        {
+            var roles = User.FindAll(ClaimTypes.Role).Select(claim => claim.Value)
+                .Concat(User.FindAll("role").Select(claim => claim.Value))
+                .Where(role => !string.IsNullOrWhiteSpace(role))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return new AdminActorContext
+            {
+                StaffId = CurrentStaffId,
+                StoreId = CurrentStoreId,
+                RoleNames = roles
+            };
+        }
+
+        private Task<OrderAccessDecision> AuthorizeCurrentStoreAsync(string action)
+        {
+            if (_orderAccessAuthorization == null)
+                return Task.FromResult(OrderAccessDecision.Forbidden);
+
+            return _orderAccessAuthorization.AuthorizeAsync(
+                GetCurrentActor(),
+                action,
+                CurrentStoreId);
+        }
 
         private static string? ValidateOfflineSyncOrder(OfflineOrderSyncDTO orderDto)
         {
@@ -360,6 +460,17 @@ namespace CafeChain.Controllers.Api.v1
             }
 
             return null;
+        }
+
+        private static int? ExtractStoreId(object? data)
+        {
+            if (data == null) return null;
+            var property = data.GetType().GetProperty("storeId")
+                ?? data.GetType().GetProperty("StoreId");
+            if (property == null) return null;
+
+            var value = property.GetValue(data);
+            return value is int storeId ? storeId : null;
         }
 
         /// <summary>

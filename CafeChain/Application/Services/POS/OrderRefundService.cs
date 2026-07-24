@@ -1,6 +1,8 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.POS;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
@@ -26,25 +28,29 @@ namespace CafeChain.Application.Services.POS
 
         private readonly AppDbContext _context;
         private readonly ILogger<OrderRefundService> _logger;
+        private readonly IOrderAccessAuthorizationService _orderAccessAuthorization;
 
-        public OrderRefundService(AppDbContext context, ILogger<OrderRefundService> logger)
+        public OrderRefundService(
+            AppDbContext context,
+            ILogger<OrderRefundService> logger,
+            IOrderAccessAuthorizationService orderAccessAuthorization)
         {
             _context = context;
             _logger = logger;
+            _orderAccessAuthorization = orderAccessAuthorization;
         }
 
         public async Task<ServiceResult<OrderRefundResultDto>> RequestFullRefundAsync(
             RequestFullOrderRefundDto dto,
-            int staffId,
-            int staffHomeStoreId,
-            IReadOnlyList<string> roleNames)
+            AdminActorContext actor)
         {
             if (dto == null || dto.OrderId <= 0)
                 return Fail(OrderRefundFailureCodes.InvalidRequest, "Yêu cầu hoàn đơn không hợp lệ.");
-            if (staffId <= 0 || staffHomeStoreId <= 0)
-                return Fail(OrderRefundFailureCodes.StoreUnauthorized, "Thiếu thông tin nhân viên/cửa hàng.");
-            if (!CanRequest(roleNames))
+            if (_orderAccessAuthorization.AuthorizeAction(actor, OrderAccessActions.RefundRequest)
+                != OrderAccessDecision.Allowed)
+            {
                 return Fail(OrderRefundFailureCodes.RoleUnauthorized, "Bạn không có quyền yêu cầu hoàn đơn.");
+            }
 
             if (!dto.RefundKey.HasValue || dto.RefundKey.Value == Guid.Empty)
                 return Fail(OrderRefundFailureCodes.InvalidRequest, "RefundKey (GUID) là bắt buộc.");
@@ -64,7 +70,11 @@ namespace CafeChain.Application.Services.POS
             if (order == null)
                 return Fail(OrderRefundFailureCodes.OrderNotFound, "Không tìm thấy đơn hàng.");
 
-            if (!CanAccessStore(order.StoreId, staffHomeStoreId, roleNames))
+            var access = await _orderAccessAuthorization.AuthorizeAsync(
+                actor,
+                OrderAccessActions.RefundRequest,
+                order.StoreId);
+            if (access != OrderAccessDecision.Allowed)
                 return Fail(OrderRefundFailureCodes.StoreUnauthorized, "Không có quyền hoàn đơn cửa hàng này.");
 
             var gate = ValidateRefundableOrder(order, expectedAmount: null);
@@ -107,7 +117,7 @@ namespace CafeChain.Application.Services.POS
                 CostStatus = SalesCostStatus.Pending,
                 InventoryReversalStatus = RefundInventoryReversalStatus.Pending,
                 RequestedAtUtc = DateTime.UtcNow,
-                RequestedByStaffId = staffId
+                RequestedByStaffId = actor.StaffId
             };
 
             _context.OrderRefunds.Add(refund);
@@ -132,22 +142,21 @@ namespace CafeChain.Application.Services.POS
 
         public async Task<ServiceResult<OrderRefundResultDto>> ConfirmCashRefundAsync(
             ConfirmCashRefundDto dto,
-            int staffId,
-            int staffHomeStoreId,
-            IReadOnlyList<string> roleNames)
+            AdminActorContext actor)
         {
             if (dto == null || dto.OrderRefundId <= 0)
                 return Fail(OrderRefundFailureCodes.InvalidRequest, "OrderRefundId không hợp lệ.");
             if (!dto.CashReturnedToCustomer)
                 return Fail(OrderRefundFailureCodes.CashConfirmRequired, "Phải xác nhận đã hoàn tiền mặt cho khách.");
-            if (staffId <= 0 || staffHomeStoreId <= 0)
-                return Fail(OrderRefundFailureCodes.StoreUnauthorized, "Thiếu thông tin nhân viên/cửa hàng.");
-            if (!CanConfirm(roleNames))
+            if (_orderAccessAuthorization.AuthorizeAction(actor, OrderAccessActions.RefundConfirm)
+                != OrderAccessDecision.Allowed)
+            {
                 return Fail(OrderRefundFailureCodes.RoleUnauthorized, "Bạn không có quyền xác nhận hoàn tiền mặt.");
+            }
 
             for (var attempt = 0; attempt < 3; attempt++)
             {
-                var result = await ConfirmOnceAsync(dto, staffId, staffHomeStoreId, roleNames);
+                var result = await ConfirmOnceAsync(dto, actor);
                 if (result.IsSuccess
                     || result.ErrorCode != OrderRefundFailureCodes.ConcurrencyConflict
                     || attempt == 2)
@@ -165,9 +174,7 @@ namespace CafeChain.Application.Services.POS
 
         private async Task<ServiceResult<OrderRefundResultDto>> ConfirmOnceAsync(
             ConfirmCashRefundDto dto,
-            int staffId,
-            int staffHomeStoreId,
-            IReadOnlyList<string> roleNames)
+            AdminActorContext actor)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -193,7 +200,11 @@ namespace CafeChain.Application.Services.POS
                     return Fail(OrderRefundFailureCodes.InvalidRequest, "Trạng thái refund không cho phép confirm.");
                 }
 
-                if (!CanAccessStore(refund.StoreId, staffHomeStoreId, roleNames))
+                var access = await _orderAccessAuthorization.AuthorizeAsync(
+                    actor,
+                    OrderAccessActions.RefundConfirm,
+                    refund.StoreId);
+                if (access != OrderAccessDecision.Allowed)
                 {
                     await transaction.RollbackAsync();
                     return Fail(OrderRefundFailureCodes.StoreUnauthorized, "Không có quyền hoàn đơn cửa hàng này.");
@@ -431,7 +442,7 @@ namespace CafeChain.Application.Services.POS
 
                 refund.Status = OrderRefundStatus.Completed;
                 refund.CompletedAtUtc = now;
-                refund.CompletedByStaffId = staffId;
+                refund.CompletedByStaffId = actor.StaffId;
                 if (!string.IsNullOrWhiteSpace(dto.Reason))
                     refund.Reason = dto.Reason.Trim().Length > 500 ? dto.Reason.Trim()[..500] : dto.Reason.Trim();
 
@@ -520,29 +531,6 @@ namespace CafeChain.Application.Services.POS
             }
 
             return ServiceResult.Success();
-        }
-
-        private static bool CanRequest(IReadOnlyList<string> roles)
-        {
-            return roles.Contains(RoleConstants.StoreManager)
-                   || roles.Contains(RoleConstants.ShiftSupervisor)
-                   || roles.Contains(RoleConstants.BusinessOwner)
-                   || roles.Contains(RoleConstants.SystemAdmin);
-        }
-
-        private static bool CanConfirm(IReadOnlyList<string> roles)
-        {
-            // ShiftSupervisor may request; confirm requires SM/BO/SA (PIN policy not auto-granted)
-            return roles.Contains(RoleConstants.StoreManager)
-                   || roles.Contains(RoleConstants.BusinessOwner)
-                   || roles.Contains(RoleConstants.SystemAdmin);
-        }
-
-        private static bool CanAccessStore(int orderStoreId, int staffHomeStoreId, IReadOnlyList<string> roles)
-        {
-            if (roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin))
-                return true;
-            return orderStoreId == staffHomeStoreId;
         }
 
         private async Task<OrderRefund?> LoadRefundForUpdateAsync(int orderRefundId)

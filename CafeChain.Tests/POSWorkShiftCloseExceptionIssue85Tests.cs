@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
+using CafeChain.Tests.Testing;
 
 namespace CafeChain.Tests.POS
 {
@@ -107,8 +108,8 @@ namespace CafeChain.Tests.POS
             var dto = CreateOfflineCashCommitDto(clientOrderId);
             var closedShift = CreateClosedShift();
 
-            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId)).ReturnsAsync((Order?)null);
-            workShiftService.Setup(service => service.GetShiftByIdAsync(42, 17, 3)).ReturnsAsync(closedShift);
+            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId, It.IsAny<int>())).ReturnsAsync((Order?)null);
+            workShiftService.Setup(service => service.GetShiftByIdAsync(42)).ReturnsAsync(closedShift);
             repository.Setup(repo => repo.BeginTransactionAsync()).Returns(Task.CompletedTask);
             repository.Setup(repo => repo.GetDrinkWithSizesAsync(10, 3)).ReturnsAsync(CreateDrink());
             repository.Setup(repo => repo.CreateOrderAsync(It.IsAny<Order>()))
@@ -136,21 +137,23 @@ namespace CafeChain.Tests.POS
             var workShiftService = new Mock<IWorkShiftService>(MockBehavior.Strict);
             var clientOrderId = Guid.NewGuid();
             var dto = CreateOfflineCashCommitDto(clientOrderId);
-            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId)).ReturnsAsync(new Order
+            repository.Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId, It.IsAny<int>())).ReturnsAsync(new Order
             {
                 OrderId = 702,
                 ClientOrderId = clientOrderId,
                 WorkShiftId = 42,
+                StoreId = 3,
                 SubTotal = 45000m,
                 Total = 45000m
             });
+            workShiftService.Setup(service => service.GetShiftByIdAsync(42)).ReturnsAsync(CreateClosedShift());
             var service = CreateOrderService(repository, workShiftService);
 
             var result = await service.CommitOfflineSyncedOrderAsync(dto, 17, 3, 42, DateTime.Now);
 
             Assert.True(result.IsSuccess, result.Message);
             Assert.Equal(true, result.Data!.GetType().GetProperty("isIdempotent")?.GetValue(result.Data));
-            workShiftService.Verify(service => service.GetShiftByIdAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+            workShiftService.Verify(service => service.GetShiftByIdAsync(42), Times.Once);
             repository.Verify(repo => repo.SaveChangesAsync(), Times.Never);
         }
 
@@ -220,7 +223,10 @@ namespace CafeChain.Tests.POS
                 Mock.Of<IAdminVoucherService>(),
                 Mock.Of<IPrintDispatcher>(),
                 Mock.Of<IPayOSService>(),
-                Mock.Of<ILogger<POSOrderService>>());
+                Mock.Of<ILogger<POSOrderService>>(),
+                null,
+                null,
+                AllowAllOrderAccessAuthorizationService.Instance);
         }
 
         private static CloseShiftExceptionRequestDto CreateExceptionRequestWithOtp()
