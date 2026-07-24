@@ -15,7 +15,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-orange: #d34817;
+            --primary-brown: #6f4e37;
+            --primary-brown-dark: #5c3f2b;
+            --primary-brown-soft: #f5ede3;
             --bg-color: #f9f9f9;
             --text-color: #1a1a1a;
             --border-color: #eeeeee;
@@ -61,16 +63,18 @@
         }
 
         .logo-icon {
-            background-color: #fff1ed;
-            color: var(--primary-orange);
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-brown), var(--primary-brown-dark));
+            color: #ffffff;
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.75rem;
+            font-size: 1.6rem;
+            font-weight: 800;
             margin: 0 auto 1rem;
+            box-shadow: 0 10px 24px rgba(111, 78, 55, 0.26);
         }
 
         .brand-name {
@@ -123,8 +127,8 @@
 
         .form-input:focus {
             outline: none;
-            border-color: var(--primary-orange);
-            box-shadow: 0 0 0 4px rgba(211, 72, 23, 0.1);
+            border-color: var(--primary-brown);
+            box-shadow: 0 0 0 4px rgba(111, 78, 55, 0.12);
         }
 
         .toggle-password {
@@ -155,18 +159,18 @@
             cursor: pointer;
             width: 18px;
             height: 18px;
-            accent-color: var(--primary-orange);
+            accent-color: var(--primary-brown);
         }
 
         .forgot-password {
-            color: var(--primary-orange);
+            color: var(--primary-brown);
             text-decoration: none;
             font-weight: 600;
         }
 
         .submit-btn {
             width: 100%;
-            background-color: var(--primary-orange);
+            background-color: var(--primary-brown);
             color: white;
             border: none;
             padding: 1.125rem;
@@ -175,10 +179,16 @@
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
-            box-shadow: 0 10px 20px rgba(211, 72, 23, 0.25);
+            box-shadow: 0 10px 20px rgba(111, 78, 55, 0.24);
             margin-bottom: 2rem;
             text-transform: uppercase;
             letter-spacing: 1px;
+        }
+
+        .submit-btn:not(:disabled):hover {
+            background-color: var(--primary-brown-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 14px 24px rgba(111, 78, 55, 0.28);
         }
 
         .submit-btn:disabled {
@@ -226,26 +236,28 @@
             }
 
                 .account-card:hover {
-                    border-color: #d34817;
+                    border-color: var(--primary-brown);
+                    background: var(--primary-brown-soft);
                     transform: translateY(-2px);
                 }
 
                 .account-card strong {
                     display: block;
-                    color: #d34817;
+                    color: var(--primary-brown);
                 }
 
                 .account-card small {
                     color: #666;
                     word-break: break-all;
                 }
+
     </style>
 </head>
 <body>
     <div class="login-card">
         <div class="logo-container">
             <div class="logo-icon">
-                <i class="fas fa-coffee"></i>
+                C
             </div>
             <h1 class="brand-name">CafeChain</h1>
             <p class="subtitle">Chào mừng bạn quay trở lại</p>
@@ -358,9 +370,6 @@
                 @(isLocked ? "Đang bị khóa..." : "Đăng nhập")
             </button>
 
-            <p class="register-link">
-                Chưa có tài khoản? <a asp-action="Register">Đăng ký ngay</a>
-            </p>
         </form>
 
         <div class="card-footer">

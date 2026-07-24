@@ -1,14 +1,32 @@
 .perm-page,
 .perm-modal {
-    --perm-accent: #f97316;
-    --perm-accent-dark: #d93d20;
+    --perm-accent: #6f4e37;
+    --perm-accent-dark: #5c3f2b;
     --perm-ink: #111827;
     --perm-muted: #6b7280;
     --perm-border: #edf0f5;
-    --perm-soft: #fff7ed;
+    --perm-soft: #f5ede3;
     --perm-green: #16a34a;
     --perm-red: #e11d48;
     color: var(--perm-ink);
+}
+
+/* This stylesheet is loaded only on the permission page, so its navigation state
+   follows the same coffee-brown accent without changing other admin modules. */
+.sidebar a:hover,
+.sidebar a.active,
+.sidebar-section-header:hover,
+.sidebar-section-header.active,
+.sidebar-sub a:hover,
+.sidebar-sub a.active {
+    color: #5c3f2b;
+    background-color: #f5ede3;
+    border-right-color: #6f4e37;
+}
+
+.sidebar-sub a.active i,
+.sidebar-sub a:hover i {
+    color: #6f4e37;
 }
 
 .perm-heading {
@@ -64,7 +82,7 @@
 .perm-tab.is-active {
     background: var(--perm-accent);
     color: #fff;
-    box-shadow: 0 10px 22px rgba(249, 115, 22, .22);
+    box-shadow: 0 10px 22px rgba(111, 78, 55, .22);
 }
 
 .perm-panel {
@@ -124,8 +142,8 @@
 
 .perm-search input:focus,
 .perm-form-row select:focus {
-    border-color: rgba(249, 115, 22, .7);
-    box-shadow: 0 0 0 4px rgba(249, 115, 22, .12);
+    border-color: rgba(111, 78, 55, .7);
+    box-shadow: 0 0 0 4px rgba(111, 78, 55, .12);
 }
 
 .perm-count {
@@ -164,7 +182,7 @@
 }
 
 .perm-table tbody tr:hover {
-    background: #fffaf5;
+    background: #faf6f1;
 }
 
 .perm-name {
@@ -206,8 +224,8 @@
     align-items: center;
     min-height: 24px;
     border-radius: 6px;
-    background: #fff7ed;
-    color: #c2410c;
+    background: #f5ede3;
+    color: #5c3f2b;
     padding: 3px 8px;
     font-size: 12px;
     font-weight: 800;
@@ -240,17 +258,17 @@
 }
 
 .perm-outline-button {
-    color: #c2410c;
+    color: #5c3f2b;
     background: #fff;
-    border-color: #fed7aa;
+    border-color: #d9c3b2;
     padding: 0 13px;
 }
 
 .perm-outline-button:hover,
 .perm-icon-button:hover {
     color: var(--perm-accent-dark);
-    border-color: #fdba74;
-    background: #fff7ed;
+    border-color: #b99a82;
+    background: #f5ede3;
 }
 
 .perm-primary-button {
@@ -258,20 +276,20 @@
     -webkit-text-fill-color: #fff;
     font-weight: 800;
     opacity: 1;
-    background: var(--perm-accent, #f97316);
-    border-color: var(--perm-accent, #f97316);
+    background: var(--perm-accent, #6f4e37);
+    border-color: var(--perm-accent, #6f4e37);
     padding: 0 16px;
     min-width: 96px;
-    box-shadow: 0 10px 22px rgba(249, 115, 22, .18);
+    box-shadow: 0 10px 22px rgba(111, 78, 55, .18);
 }
 
 .perm-primary-button:hover:not(:disabled),
 .perm-primary-button:focus-visible:not(:disabled) {
     color: #fff;
     -webkit-text-fill-color: #fff;
-    background: var(--perm-accent-dark, #d93d20);
-    border-color: var(--perm-accent-dark, #d93d20);
-    box-shadow: 0 12px 24px rgba(217, 61, 32, .24);
+    background: var(--perm-accent-dark, #5c3f2b);
+    border-color: var(--perm-accent-dark, #5c3f2b);
+    box-shadow: 0 12px 24px rgba(92, 63, 43, .24);
 }
 
 .perm-primary-button:disabled {
@@ -287,8 +305,8 @@
 .perm-primary-button.is-loading:disabled {
     color: #fff !important;
     -webkit-text-fill-color: #fff;
-    background: var(--perm-accent-dark, #d93d20);
-    border-color: var(--perm-accent-dark, #d93d20);
+    background: var(--perm-accent-dark, #5c3f2b);
+    border-color: var(--perm-accent-dark, #5c3f2b);
     cursor: wait;
 }
 
@@ -395,8 +413,8 @@
 
 .perm-staff-item:hover,
 .perm-staff-item.is-active {
-    background: #fff7ed;
-    border-color: #fed7aa;
+    background: #f5ede3;
+    border-color: #d9c3b2;
 }
 
 .perm-workspace {
@@ -547,8 +565,8 @@
 }
 
 .perm-permission-row:hover {
-    background: #fff7ed;
-    border-color: #fed7aa;
+    background: #f5ede3;
+    border-color: #d9c3b2;
 }
 
 .perm-permission-copy {
@@ -589,9 +607,9 @@
 }
 
 .perm-role-option:has(input:checked) {
-    background: #fff7ed;
-    border-color: #fdba74;
-    color: #c2410c;
+    background: #f5ede3;
+    border-color: #b99a82;
+    color: #5c3f2b;
 }
 
 .perm-note {
@@ -684,9 +702,9 @@
 }
 
 .perm-radio-set label:has(input:checked) {
-    border-color: #fdba74;
-    background: #fff7ed;
-    color: #c2410c;
+    border-color: #b99a82;
+    background: #f5ede3;
+    color: #5c3f2b;
 }
 
 .perm-radio-set .is-allow {
