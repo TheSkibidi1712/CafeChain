@@ -74,6 +74,84 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task TwoStorePaConsolidatesBySupplierSku_AndRoundsEachStoreAllocation()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(
+            db,
+            firstRequestedBaseQuantity: 2300m,
+            secondRequestedBaseQuantity: 1400m,
+            packageBaseQuantity: 1000m,
+            packagePrice: 160000m,
+            baseUnitName: "g");
+        var request = new CreatePurchaseOrderBatchRequest
+        {
+            SupplierId = seed.SupplierId,
+            RequestKey = "BATCH-219-" + Guid.NewGuid().ToString("N"),
+            Lines =
+            {
+                new()
+                {
+                    PurchaseAdviceLineId = seed.Lines[0].LineId,
+                    IngredientSupplierId = seed.OfferId,
+                    PackageCount = 3,
+                    RowVersion = seed.Lines[0].RowVersion
+                },
+                new()
+                {
+                    PurchaseAdviceLineId = seed.Lines[1].LineId,
+                    IngredientSupplierId = seed.OfferId,
+                    PackageCount = 2,
+                    RowVersion = seed.Lines[1].RowVersion
+                }
+            }
+        };
+
+        var result = await BatchService(db).CreateAsync(request, Warehouse(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Single(await db.PurchaseOrderBatches.AsNoTracking().ToListAsync());
+        Assert.Equal(2, await db.PurchaseOrders.AsNoTracking().CountAsync());
+        Assert.Equal(2, result.Data!.ChildPurchaseOrders.Count);
+        Assert.Equal(2, result.Data.ChildPurchaseOrders.Select(x => x.StoreId).Distinct().Count());
+
+        var masterLine = Assert.Single(result.Data.Lines);
+        Assert.Equal(5m, masterLine.TotalPackageCount);
+        Assert.Equal(5000m, masterLine.TotalBaseQuantity);
+        Assert.Equal(3700m, masterLine.DemandCoveredBaseQuantity);
+        Assert.Equal(1300m, masterLine.RoundingSurplusBaseQuantity);
+        Assert.Equal(160000m, masterLine.PackagePriceSnapshot);
+        Assert.Equal(800000m, masterLine.LineTotal);
+        Assert.Equal(800000m, result.Data.TotalAmount);
+
+        var firstAllocation = masterLine.Allocations.Single(x => x.StoreId == seed.Store1Id);
+        Assert.Equal(3m, firstAllocation.AllocatedPackageQuantity);
+        Assert.Equal(3000m, firstAllocation.AllocatedBaseQuantity);
+        Assert.Equal(2300m, firstAllocation.DemandCoveredBaseQuantity);
+        Assert.Equal(700m, firstAllocation.RoundingSurplusBaseQuantity);
+
+        var secondAllocation = masterLine.Allocations.Single(x => x.StoreId == seed.Store2Id);
+        Assert.Equal(2m, secondAllocation.AllocatedPackageQuantity);
+        Assert.Equal(2000m, secondAllocation.AllocatedBaseQuantity);
+        Assert.Equal(1400m, secondAllocation.DemandCoveredBaseQuantity);
+        Assert.Equal(600m, secondAllocation.RoundingSurplusBaseQuantity);
+
+        var firstChild = result.Data.ChildPurchaseOrders.Single(x => x.StoreId == seed.Store1Id);
+        Assert.Equal(3000m, firstChild.OrderedBaseQuantity);
+        Assert.Equal(480000m, firstChild.TotalAmount);
+        var secondChild = result.Data.ChildPurchaseOrders.Single(x => x.StoreId == seed.Store2Id);
+        Assert.Equal(2000m, secondChild.OrderedBaseQuantity);
+        Assert.Equal(320000m, secondChild.TotalAmount);
+
+        var adviceLines = await db.PurchaseAdviceLines.AsNoTracking()
+            .Include(x => x.PurchaseAdvice)
+            .OrderBy(x => x.PurchaseAdvice.StoreId)
+            .ToArrayAsync();
+        Assert.Equal(2300m, adviceLines.Single(x => x.PurchaseAdvice.StoreId == seed.Store1Id).AllocatedToPoBaseQuantity);
+        Assert.Equal(1400m, adviceLines.Single(x => x.PurchaseAdvice.StoreId == seed.Store2Id).AllocatedToPoBaseQuantity);
+    }
+
+    [Fact]
     public async Task Batch_RejectsOverAllocation()
     {
         using var db = CreateDbContext();
@@ -212,12 +290,18 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
     private static AdminActorContext Warehouse(Seed seed) => new() { StaffId = seed.WarehouseId, RoleNames = new[] { RoleConstants.AccountantWarehouse } };
     private static AdminActorContext Owner(Seed seed) => new() { StaffId = seed.OwnerId, RoleNames = new[] { RoleConstants.BusinessOwner } };
 
-    private static async Task<Seed> SeedAsync(AppDbContext db)
+    private static async Task<Seed> SeedAsync(
+        AppDbContext db,
+        decimal firstRequestedBaseQuantity = 5m,
+        decimal secondRequestedBaseQuantity = 5m,
+        decimal packageBaseQuantity = 1m,
+        decimal packagePrice = 12000m,
+        string baseUnitName = "kg")
     {
         var now = DateTime.UtcNow;
         var store1 = new Store { Name = "Store 186 A", Address = "A", Phone = Guid.NewGuid().ToString("N")[..10], Active = true, CreatedAt = now };
         var store2 = new Store { Name = "Store 186 B", Address = "B", Phone = Guid.NewGuid().ToString("N")[..10], Active = true, CreatedAt = now };
-        var unit = new Unit { UnitCode = "kg186" + Guid.NewGuid().ToString("N")[..3], Name = "kg", Active = true };
+        var unit = new Unit { UnitCode = "u186" + Guid.NewGuid().ToString("N")[..4], Name = baseUnitName, Active = true };
         var ingredient = new Ingredient { Code = "ING186" + Guid.NewGuid().ToString("N")[..4], Name = "Coffee 186", Active = true, BaseUnit = unit };
         var supplier = new Supplier { Code = "SUP186" + Guid.NewGuid().ToString("N")[..4], Name = "Supplier 186", Active = true, CreatedAt = now, UpdatedAt = now };
         var warehouseAccount = new Account { Email = Guid.NewGuid() + "@test.local", PasswordHash = "x", Active = true, CreatedAt = now };
@@ -228,23 +312,28 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
         var warehouse = new Staff { AccountId = warehouseAccount.AccountId, FullName = "Warehouse 186", Active = true, CreatedAt = now};
         var owner = new Staff { AccountId = ownerAccount.AccountId, FullName = "Owner 186", Active = true, CreatedAt = now};
         var manager = new Staff { AccountId = managerAccount.AccountId, StoreId = store1.StoreId, FullName = "Manager 186", Active = true, CreatedAt = now};
-        var offer = new IngredientSupplier { IngredientId = ingredient.IngredientId, SupplierId = supplier.SupplierId, UnitId = unit.UnitId, PackageQuantity = 1m, CurrentPrice = 12000m, MinimumOrderPackageCount = 1, LeadTimeDays = 2, Active = true, CreatedAt = now, UpdatedAt = now };
+        var offer = new IngredientSupplier { IngredientId = ingredient.IngredientId, SupplierId = supplier.SupplierId, UnitId = unit.UnitId, PackageQuantity = packageBaseQuantity, CurrentPrice = packagePrice, MinimumOrderPackageCount = 1, LeadTimeDays = 2, Active = true, CreatedAt = now, UpdatedAt = now };
         db.AddRange(warehouse, owner, manager, offer,
             new SupplierStore { SupplierId = supplier.SupplierId, StoreId = store1.StoreId, Active = true, CreatedAt = now, UpdatedAt = now },
             new SupplierStore { SupplierId = supplier.SupplierId, StoreId = store2.StoreId, Active = true, CreatedAt = now, UpdatedAt = now });
         await db.SaveChangesAsync();
 
         var lineSeeds = new List<LineSeed>();
-        foreach (var store in new[] { store1, store2 })
+        var storesWithDemand = new[]
         {
-            var restock = new RestockRequest { StoreId = store.StoreId, IngredientId = ingredient.IngredientId, RequestedQuantity = 5m, Status = RestockRequestStatuses.Processing, Priority = RestockRequestPriorities.Normal, CreatedByStaffId = manager.StaffId, CreatedAt = now, UpdatedAt = now };
+            (Store: store1, RequestedBaseQuantity: firstRequestedBaseQuantity),
+            (Store: store2, RequestedBaseQuantity: secondRequestedBaseQuantity)
+        };
+        foreach (var item in storesWithDemand)
+        {
+            var restock = new RestockRequest { StoreId = item.Store.StoreId, IngredientId = ingredient.IngredientId, RequestedQuantity = item.RequestedBaseQuantity, Status = RestockRequestStatuses.Processing, Priority = RestockRequestPriorities.Normal, CreatedByStaffId = manager.StaffId, CreatedAt = now, UpdatedAt = now };
             db.Add(restock); await db.SaveChangesAsync();
             var advice = new PurchaseAdvice
             {
-                AdviceNumber = "PA-186-" + Guid.NewGuid().ToString("N")[..6], RequestKey = Guid.NewGuid().ToString("N"), StoreId = store.StoreId,
+                AdviceNumber = "PA-186-" + Guid.NewGuid().ToString("N")[..6], RequestKey = Guid.NewGuid().ToString("N"), StoreId = item.Store.StoreId,
                 RequestedByStaffId = manager.StaffId, Status = PurchaseAdviceStatuses.Submitted, NeededByDate = now.Date.AddDays(4), Priority = PurchaseAdvicePriorities.Normal,
                 SubmittedAtUtc = now, CreatedAtUtc = now, UpdatedAtUtc = now,
-                Lines = new List<PurchaseAdviceLine> { new() { RestockRequestId = restock.RestockRequestId, IngredientId = ingredient.IngredientId, RequestedPurchaseBaseQuantity = 5m, BaseUnitId = unit.UnitId, NeededByDate = now.Date.AddDays(4), IsActiveReservation = true } }
+                Lines = new List<PurchaseAdviceLine> { new() { RestockRequestId = restock.RestockRequestId, IngredientId = ingredient.IngredientId, RequestedPurchaseBaseQuantity = item.RequestedBaseQuantity, BaseUnitId = unit.UnitId, NeededByDate = now.Date.AddDays(4), IsActiveReservation = true } }
             };
             db.Add(advice); await db.SaveChangesAsync();
             var line = advice.Lines.Single();
