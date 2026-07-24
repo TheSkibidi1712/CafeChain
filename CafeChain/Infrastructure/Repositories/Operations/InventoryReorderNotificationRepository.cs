@@ -19,13 +19,19 @@ public sealed class InventoryReorderNotificationRepository : IInventoryReorderNo
             {
                 x.StaffId,
                 x.AccountId,
+                x.FullName,
+                x.Account.Email,
                 Roles = x.Account.AccountRoles
                     .Where(ar => ar.Role.Active)
                     .Select(ar => ar.Role.Name)
                     .ToList()
             })
             .ToListAsync();
-        return rows.Select(x => new ReorderNotificationRecipientRow(x.StaffId, x.AccountId, x.Roles)).ToList();
+        return rows.Select(x => new ReorderNotificationRecipientRow(x.StaffId, x.AccountId, x.Roles)
+        {
+            Email = x.Email,
+            FullName = x.FullName
+        }).ToList();
     }
 
     public Task<StaffNotification?> GetByDeduplicationKeyAsync(string key) =>

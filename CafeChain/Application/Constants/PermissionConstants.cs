@@ -31,6 +31,7 @@ namespace CafeChain.Application.Constants
         public const string AppAdminDashboard = "App.AdminDashboard";
         public const string AppStaffHub = "App.StaffHub";
         public const string AppPos = "App.POS";
+        public const string NotificationView = "Notification.View";
 
         public const string IngredientView = "Ingredient.View";
         public const string IngredientCreate = "Ingredient.Create";

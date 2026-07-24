@@ -186,6 +186,38 @@
     color: var(--an-warning);
     font-size: .88rem;
 }
+.dashboard-intelligence__summary,
+.dashboard-intelligence__evidence,
+.dashboard-intelligence__chart {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--an-border);
+}
+.dashboard-intelligence__summary h3,
+.dashboard-intelligence__evidence h3,
+.dashboard-intelligence__chart h3 {
+    margin: 0 0 8px;
+    color: var(--an-ink);
+    font-size: .95rem;
+}
+.dashboard-intelligence__fact,
+.dashboard-intelligence__inference,
+.dashboard-intelligence__anomaly,
+.dashboard-intelligence__recommendation {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--an-border);
+    border-radius: 9px;
+    background: #fff;
+}
+.dashboard-intelligence__fact { border-left: 4px solid var(--an-primary); }
+.dashboard-intelligence__inference { border-left: 4px solid #7c5ce0; }
+.dashboard-intelligence__anomaly { border-left: 4px solid var(--an-danger); }
+.dashboard-intelligence__recommendation { border-left: 4px solid var(--an-success); }
+.dashboard-intelligence__fact p,
+.dashboard-intelligence__inference p,
+.dashboard-intelligence__anomaly p,
+.dashboard-intelligence__recommendation p { margin: 4px 0; }
 .dashboard-intelligence__table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: .86rem; }
 .dashboard-intelligence__table th,
 .dashboard-intelligence__table td {

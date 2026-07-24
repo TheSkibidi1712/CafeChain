@@ -8,15 +8,18 @@ public sealed class DashboardAnalyticsScriptTests
     [
         "usp_Dashboard_NetSalesTrend", "usp_Dashboard_StoreRanking", "usp_Dashboard_PaymentMethodMix",
         "usp_Dashboard_OrderHeatmap", "usp_Dashboard_OperationalAlerts",
+        "usp_Dashboard_OrderStatusSummary",
         "usp_Operations_WorkShiftCashDiscrepancy", "usp_Operations_WorkShiftSales", "usp_Operations_WorkShiftPaymentMix",
         "usp_Operations_OfflineReconciliationExceptions", "usp_Operations_HourlyOrders",
         "usp_Operations_WorkShiftTopDiscrepancies", "usp_Operations_WorkShiftKpis",
         "usp_Inventory_ShortageRisk", "usp_Inventory_MovementByType", "usp_Inventory_ThresholdRisk",
         "usp_Inventory_ReorderSuggestions", "usp_Inventory_WasteByStoreIngredient", "usp_Inventory_FifoLayerAge",
+        "usp_Inventory_IngredientConsumptionTrend",
         "usp_Procurement_PurchaseOrderPipeline", "usp_Procurement_OverduePurchaseOrders", "usp_Procurement_SupplierQuality",
         "usp_Procurement_PurchasePriceTrend", "usp_Procurement_SpendBreakdown", "usp_Procurement_SupplierIssueMix",
         "usp_Product_TopProducts", "usp_Product_VolumeMarginMatrix", "usp_Product_SizeMargin",
         "usp_Product_TopToppings", "usp_Product_BomHealth", "usp_Product_HighConsumptionLowEfficiency",
+        "usp_Product_CategoryPerformance", "usp_Product_PeriodPerformance",
         "usp_Workforce_ShiftStatus", "usp_Workforce_HourlyDemand", "usp_Workforce_StaffPerformance"
     ];
 
@@ -34,7 +37,7 @@ public sealed class DashboardAnalyticsScriptTests
         var sql = ReadScript();
         Assert.All(CanonicalProcedures.Concat(LegacyProcedures), name =>
             Assert.Contains($"PROCEDURE dbo.{name}", sql, StringComparison.OrdinalIgnoreCase));
-        Assert.Equal(45, Regex.Matches(sql, @"CREATE\s+OR\s+ALTER\s+PROCEDURE", RegexOptions.IgnoreCase).Count);
+        Assert.Equal(49, Regex.Matches(sql, @"CREATE\s+OR\s+ALTER\s+PROCEDURE", RegexOptions.IgnoreCase).Count);
         Assert.Contains("DROP PROCEDURE IF EXISTS dbo.sp_Top_Customers", sql, StringComparison.OrdinalIgnoreCase);
     }
 

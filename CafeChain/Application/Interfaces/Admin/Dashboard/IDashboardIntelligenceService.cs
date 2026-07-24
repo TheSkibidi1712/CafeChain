@@ -8,4 +8,8 @@ public interface IDashboardIntelligenceService
     Task<DashboardIntentParseResultDto> ParseAsync(AdminActorContext actor, DashboardPromptRequestDto request, CancellationToken cancellationToken = default);
     Task<DashboardAnalysisResultDto> ExecuteAsync(AdminActorContext actor, DashboardIntentDto intent, CancellationToken cancellationToken = default);
     Task<DashboardExplanationResultDto> ExplainAsync(AdminActorContext actor, Guid analysisId, CancellationToken cancellationToken = default);
+    Task<DashboardStructuredAnalysisResultDto> AnalyzeAsync(
+        AdminActorContext actor,
+        DashboardPromptRequestDto request,
+        CancellationToken cancellationToken = default);
 }

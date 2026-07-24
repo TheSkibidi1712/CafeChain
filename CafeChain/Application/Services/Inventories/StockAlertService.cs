@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Operations;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
@@ -21,15 +22,18 @@ namespace CafeChain.Application.Services.Inventories
         private readonly AppDbContext _context;
         private readonly ILogger<StockAlertService> _logger;
         private readonly IInventoryWriterModeService? _writerModeService;
+        private readonly IInventoryNotificationDeliveryService? _notificationDelivery;
 
         public StockAlertService(
             AppDbContext context,
             ILogger<StockAlertService> logger,
-            IInventoryWriterModeService? writerModeService = null)
+            IInventoryWriterModeService? writerModeService = null,
+            IInventoryNotificationDeliveryService? notificationDelivery = null)
         {
             _context = context;
             _logger = logger;
             _writerModeService = writerModeService;
+            _notificationDelivery = notificationDelivery;
         }
 
         public async Task<ServiceResult<StockAlertEvaluationResultDto>> EvaluateStoreInventoryItemAsync(
@@ -629,16 +633,62 @@ namespace CafeChain.Application.Services.Inventories
             _context.ChangeTracker.Entries<StockAlertTransition>()
                 .Where(e => e.State == EntityState.Added)
                 .Select(e => e.Entity)
-                .Where(t =>
-                    t.PreviousStatus == null
-                    || (t.PreviousAlertType == StockAlertTypes.LowStock
-                        && t.NewAlertType == StockAlertTypes.OutOfStock))
                 .ToList();
 
         private async Task NotifyTransitionsAsync(IReadOnlyCollection<StockAlertTransition> transitions)
         {
+            if (_notificationDelivery != null)
+            {
+                foreach (var transition in transitions)
+                {
+                    var alert = transition.StockAlert;
+                    if (string.Equals(alert.Status, StockAlertStatuses.Resolved, StringComparison.OrdinalIgnoreCase))
+                    {
+                        await _notificationDelivery.ResolveAsync(
+                            alert.StoreId,
+                            StaffNotificationTypes.StockAlertCreated,
+                            StaffNotificationEntityTypes.StockAlert,
+                            alert.StockAlertId,
+                            alert.Severity);
+                        continue;
+                    }
+
+                    if (transition.PreviousStatus != null
+                        && !(transition.PreviousAlertType == StockAlertTypes.LowStock
+                            && transition.NewAlertType == StockAlertTypes.OutOfStock))
+                    {
+                        continue;
+                    }
+
+                    var escalated = transition.PreviousStatus != null;
+                    await _notificationDelivery.DeliverAsync(new InventoryNotificationDeliveryRequest(
+                        alert.StoreId,
+                        StaffNotificationTypes.StockAlertCreated,
+                        escalated
+                            ? "Cảnh báo tồn kho đã chuyển mức khẩn cấp"
+                            : "Cảnh báo tồn kho mới",
+                        $"Cảnh báo #{alert.StockAlertId}: {alert.AlertType}, tồn khả dụng {transition.AvailableSnapshot:N3}.",
+                        alert.Severity,
+                        StaffNotificationEntityTypes.StockAlert,
+                        alert.StockAlertId,
+                        escalated
+                            ? InventoryNotificationChangeKinds.Escalated
+                            : InventoryNotificationChangeKinds.Created));
+                }
+
+                return;
+            }
+
+            // Backward-compatible test seam for callers that construct the service
+            // directly without the production notification delivery component.
             foreach (var transition in transitions)
             {
+                if (transition.PreviousStatus != null
+                    && !(transition.PreviousAlertType == StockAlertTypes.LowStock
+                        && transition.NewAlertType == StockAlertTypes.OutOfStock))
+                {
+                    continue;
+                }
                 var alert = transition.StockAlert;
                 var type = transition.PreviousStatus == null
                     ? StaffNotificationTypes.StockAlertCreated

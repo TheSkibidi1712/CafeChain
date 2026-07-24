@@ -980,3 +980,126 @@ BEGIN
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId;
 END;
 GO
+
+/* AI Dashboard v2 read-only datasets. These procedures accept the same
+   validated scope contract as the existing Dashboard procedures. */
+CREATE OR ALTER PROCEDURE dbo.usp_Dashboard_OrderStatusSummary
+    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @Granularity varchar(10) = 'Day', @Top int = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT s.StoreId, s.Name AS StoreName,
+           COUNT_BIG(o.OrderId) AS TotalOrders,
+           SUM(CASE WHEN o.OrderStatusId = 5 THEN 1 ELSE 0 END) AS CompletedOrders,
+           SUM(CASE WHEN o.OrderStatusId = 6 THEN 1 ELSE 0 END) AS CancelledOrders,
+           CONVERT(decimal(9,4), COALESCE(
+               SUM(CASE WHEN o.OrderStatusId = 6 THEN 1 ELSE 0 END) * 100.0
+               / NULLIF(COUNT_BIG(o.OrderId), 0), 0)) AS CancellationRate,
+           CASE WHEN COUNT_BIG(o.OrderId) = 0 THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
+    FROM dbo.Orders AS o
+    INNER JOIN dbo.Stores AS s ON s.StoreId = o.StoreId
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = o.StoreId
+    WHERE o.CreatedAt >= @FromDate
+      AND o.CreatedAt < DATEADD(day, 1, CONVERT(datetime2, @ToDate))
+    GROUP BY s.StoreId, s.Name
+    ORDER BY CancellationRate DESC, s.StoreId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Product_CategoryPerformance
+    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @Granularity varchar(10) = 'Day', @Top int = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP (ISNULL(NULLIF(@Top, 0), 10))
+           d.CategoryId, COALESCE(c.Name, N'Chưa phân loại') AS CategoryName,
+           SUM(od.Quantity) AS TotalSold,
+           SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity) AS Revenue,
+           SUM(CASE WHEN od.CostStatus = 1 THEN od.TotalCogs ELSE 0 END) AS ConfirmedCogs,
+           SUM(CASE WHEN od.CostStatus = 1
+               THEN (od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity - COALESCE(od.TotalCogs, 0)
+               ELSE 0 END) AS ConfirmedGrossProfit,
+           CONVERT(decimal(9,4), COALESCE(
+               SUM(CASE WHEN od.CostStatus = 1
+                   THEN (od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity - COALESCE(od.TotalCogs, 0)
+                   ELSE 0 END)
+               / NULLIF(SUM(CASE WHEN od.CostStatus = 1
+                   THEN (od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity ELSE 0 END), 0), 0)) AS ConfirmedMarginRate,
+           CASE WHEN SUM(CASE WHEN od.CostStatus <> 1 THEN 1 ELSE 0 END) > 0
+                THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
+    FROM dbo.OrderDetails AS od
+    INNER JOIN dbo.Drinks AS d ON d.DrinkId = od.DrinkId
+    LEFT JOIN dbo.DrinkCategories AS c ON c.CategoryId = d.CategoryId
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate, DATEADD(day, 1, CONVERT(datetime2, @ToDate))) AS f
+        ON f.OrderId = od.OrderId AND f.CountedOrder = 1
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = f.StoreId
+    OUTER APPLY (SELECT SUM(ot.Price) AS ToppingUnitPrice
+                 FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId = od.OrderDetailId) AS t
+    GROUP BY d.CategoryId, c.Name
+    ORDER BY Revenue DESC, TotalSold DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Product_PeriodPerformance
+    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @Granularity varchar(10) = 'Day', @Top int = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP (ISNULL(NULLIF(@Top, 0), 10))
+           od.DrinkId, od.DrinkName, SUM(od.Quantity) AS TotalSold,
+           SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity) AS Revenue,
+           SUM(CASE WHEN od.CostStatus = 1 THEN od.TotalCogs ELSE 0 END) AS ConfirmedCogs,
+           SUM(CASE WHEN od.CostStatus = 1
+               THEN (od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity - COALESCE(od.TotalCogs, 0)
+               ELSE 0 END) AS ConfirmedGrossProfit,
+           CONVERT(decimal(9,4), COALESCE(
+               SUM(CASE WHEN od.CostStatus = 1
+                   THEN (od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity - COALESCE(od.TotalCogs, 0)
+                   ELSE 0 END)
+               / NULLIF(SUM(CASE WHEN od.CostStatus = 1
+                   THEN (od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity ELSE 0 END), 0), 0)) AS ConfirmedMarginRate,
+           CASE WHEN SUM(CASE WHEN od.CostStatus <> 1 THEN 1 ELSE 0 END) > 0
+                THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
+    FROM dbo.OrderDetails AS od
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate, DATEADD(day, 1, CONVERT(datetime2, @ToDate))) AS f
+        ON f.OrderId = od.OrderId AND f.CountedOrder = 1
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = f.StoreId
+    OUTER APPLY (SELECT SUM(ot.Price) AS ToppingUnitPrice
+                 FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId = od.OrderDetailId) AS t
+    GROUP BY od.DrinkId, od.DrinkName
+    ORDER BY Revenue DESC, TotalSold DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Inventory_IngredientConsumptionTrend
+    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @Granularity varchar(10) = 'Day', @Top int = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET @Granularity = UPPER(LTRIM(RTRIM(COALESCE(@Granularity, 'DAY'))));
+    IF @Granularity NOT IN ('HOUR', 'DAY', 'WEEK', 'MONTH')
+        THROW 50002, 'Invalid granularity.', 1;
+    SELECT TOP (ISNULL(NULLIF(@Top, 0), 10))
+           dbo.ufn_AnalyticsBucketStart(it.CreatedAt, @Granularity) AS BucketDate,
+           si.StoreId, si.IngredientId, i.Name AS IngredientName,
+           SUM(ABS(it.Quantity)) AS ConsumedQuantity,
+           COALESCE(SUM(ABS(it.TotalCost)), 0) AS ConfirmedCost,
+           COUNT_BIG(it.InventoryTransactionId) AS TransactionCount,
+           'AVAILABLE' AS DataStatus
+    FROM dbo.InventoryTransactions AS it
+    INNER JOIN dbo.StoreInventories AS si ON si.StoreInventoryId = it.StoreInventoryId
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = si.StoreId
+    LEFT JOIN dbo.Ingredients AS i ON i.IngredientId = si.IngredientId
+    WHERE si.IngredientId IS NOT NULL
+      AND it.Type = 7
+      AND it.CreatedAt >= @FromDate
+      AND it.CreatedAt < DATEADD(day, 1, CONVERT(datetime2, @ToDate))
+    GROUP BY dbo.ufn_AnalyticsBucketStart(it.CreatedAt, @Granularity),
+             si.StoreId, si.IngredientId, i.Name
+    ORDER BY BucketDate, ConfirmedCost DESC;
+END;
+GO

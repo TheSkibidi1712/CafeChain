@@ -15,14 +15,16 @@ public enum DashboardSection
 public enum DashboardAnalyticsWidget
 {
     NetSalesTrend, StoreRanking, PaymentMethodMix, OrderHeatmap, OperationalAlerts,
+    OrderStatusSummary,
     WorkShiftCashDiscrepancy, WorkShiftSales, WorkShiftPaymentMix,
     OfflineReconciliationExceptions, HourlyOrders, WorkShiftTopDiscrepancies, WorkShiftKpis,
     InventoryShortageRisk, InventoryMovementByType, InventoryThresholdRisk,
     InventoryReorderSuggestions, InventoryWasteByStoreIngredient, InventoryFifoLayerAge,
+    IngredientConsumptionTrend,
     PurchaseOrderPipeline, OverduePurchaseOrders, SupplierQuality, PurchasePriceTrend,
     ProcurementSpendBreakdown, SupplierIssueMix,
     TopProducts, VolumeMarginMatrix, SizeMargin, TopToppings, BomHealth,
-    HighConsumptionLowEfficiency,
+    HighConsumptionLowEfficiency, CategoryPerformance, ProductPeriodPerformance,
     WorkforceShiftStatus, WorkforceHourlyDemand, WorkforceStaffPerformance
 }
 
@@ -100,6 +102,7 @@ public sealed class ExecutiveDashboardData
     public DashboardWidgetResult<PaymentMethodMixRow> PaymentMethodMix { get; set; } = new();
     public DashboardWidgetResult<OrderHeatmapRow> OrderHeatmap { get; set; } = new();
     public DashboardWidgetResult<OperationalAlertRow> OperationalAlerts { get; set; } = new();
+    public DashboardWidgetResult<OrderStatusSummaryRow> OrderStatusSummary { get; set; } = new();
 }
 
 public sealed class OperationsDashboardData
@@ -121,6 +124,7 @@ public sealed class InventoryDashboardData
     public DashboardWidgetResult<InventoryReorderRow> ReorderSuggestions { get; set; } = new();
     public DashboardWidgetResult<InventoryWasteRow> Waste { get; set; } = new();
     public DashboardWidgetResult<InventoryFifoAgeRow> FifoAge { get; set; } = new();
+    public DashboardWidgetResult<IngredientConsumptionTrendRow> IngredientConsumptionTrend { get; set; } = new();
 }
 
 public sealed class ProcurementDashboardData
@@ -141,6 +145,8 @@ public sealed class ProductDashboardData
     public DashboardWidgetResult<TopToppingAnalyticsRow> TopToppings { get; set; } = new();
     public DashboardWidgetResult<BomHealthRow> BomHealth { get; set; } = new();
     public DashboardWidgetResult<LowEfficiencyProductRow> LowEfficiency { get; set; } = new();
+    public DashboardWidgetResult<CategoryPerformanceRow> CategoryPerformance { get; set; } = new();
+    public DashboardWidgetResult<ProductPeriodPerformanceRow> ProductPeriodPerformance { get; set; } = new();
 }
 
 public sealed class WorkforceDashboardData
@@ -172,6 +178,7 @@ public sealed class StoreRankingRow : DashboardRow { public int StoreId { get; s
 public sealed class PaymentMethodMixRow : DashboardRow { public int PaymentMethodId { get; set; } public string PaymentMethodCode { get; set; } = string.Empty; public string PaymentMethodName { get; set; } = string.Empty; public long TotalTransactions { get; set; } public decimal Amount { get; set; } public decimal Share { get; set; } }
 public sealed class OrderHeatmapRow : DashboardRow { public int IsoWeekday { get; set; } public int HourOfDay { get; set; } public long TotalOrders { get; set; } public decimal NetSales { get; set; } }
 public sealed class OperationalAlertRow : DashboardRow { public string AlertType { get; set; } = string.Empty; public int StoreId { get; set; } public int EntityId { get; set; } public string Severity { get; set; } = string.Empty; public decimal AlertValue { get; set; } public string Message { get; set; } = string.Empty; }
+public sealed class OrderStatusSummaryRow : DashboardRow { public int StoreId { get; set; } public string StoreName { get; set; } = string.Empty; public long TotalOrders { get; set; } public long CompletedOrders { get; set; } public long CancelledOrders { get; set; } public decimal CancellationRate { get; set; } }
 
 public sealed class WorkShiftCashDiscrepancyRow : DashboardRow { public int WorkShiftId { get; set; } public int StoreId { get; set; } public string StoreName { get; set; } = string.Empty; public int StaffId { get; set; } public string FullName { get; set; } = string.Empty; public DateTime StartTime { get; set; } public DateTime? EndTime { get; set; } public decimal StartingCash { get; set; } public decimal? ExpectedEndingCash { get; set; } public decimal? ActualEndingCash { get; set; } public decimal? CashDiscrepancy { get; set; } public string? DiscrepancyReason { get; set; } public bool IsExceptionClosed { get; set; } public bool RequiresReconciliation { get; set; } }
 public sealed class WorkShiftSalesRow : DashboardRow { public int WorkShiftId { get; set; } public int StoreId { get; set; } public long TotalOrders { get; set; } public decimal NetSales { get; set; } public decimal AverageOrderValue { get; set; } }
@@ -187,6 +194,7 @@ public sealed class InventoryThresholdRiskRow : DashboardRow { public int StoreI
 public sealed class InventoryReorderRow : DashboardRow { public int RestockRequestId { get; set; } public int StoreId { get; set; } public int IngredientId { get; set; } public string IngredientName { get; set; } = string.Empty; public decimal RequestedQuantity { get; set; } public decimal? SuggestedQuantity { get; set; } public decimal? SuggestionAverageDailyUsageSnapshot { get; set; } public int? SuggestionLeadTimeDaysSnapshot { get; set; } public decimal? SuggestionIncomingQuantitySnapshot { get; set; } public string? SuggestionReason { get; set; } public string Status { get; set; } = string.Empty; public string Priority { get; set; } = string.Empty; public DateTime CreatedAt { get; set; } }
 public sealed class InventoryWasteRow : DashboardRow { public int StoreId { get; set; } public string StoreName { get; set; } = string.Empty; public int IngredientId { get; set; } public string IngredientName { get; set; } = string.Empty; public decimal WasteQuantity { get; set; } public decimal WasteValue { get; set; } public long TransactionCount { get; set; } }
 public sealed class InventoryFifoAgeRow : DashboardRow { public long InventoryCostLayerId { get; set; } public int StoreId { get; set; } public int? IngredientId { get; set; } public int? PreparedItemId { get; set; } public decimal RemainingQuantity { get; set; } public decimal UnitCost { get; set; } public DateTime CreatedAt { get; set; } public int AgeDays { get; set; } public decimal RemainingValue { get; set; } }
+public sealed class IngredientConsumptionTrendRow : DashboardRow { public DateTime BucketDate { get; set; } public int StoreId { get; set; } public int IngredientId { get; set; } public string IngredientName { get; set; } = string.Empty; public decimal ConsumedQuantity { get; set; } public decimal ConfirmedCost { get; set; } public long TransactionCount { get; set; } }
 
 public sealed class PurchaseOrderPipelineRow : DashboardRow { public string Status { get; set; } = string.Empty; public long PurchaseOrderCount { get; set; } public decimal OrderedValue { get; set; } }
 public sealed class OverduePurchaseOrderRow : DashboardRow { public int PurchaseOrderId { get; set; } public string Code { get; set; } = string.Empty; public int StoreId { get; set; } public int SupplierId { get; set; } public string SupplierName { get; set; } = string.Empty; public string Status { get; set; } = string.Empty; public DateTime OrderDate { get; set; } public DateTime ExpectedDeliveryAtUtc { get; set; } public int OverdueDays { get; set; } }
@@ -201,6 +209,8 @@ public sealed class SizeMarginRow : DashboardRow { public int? SizeId { get; set
 public sealed class TopToppingAnalyticsRow : DashboardRow { public int ToppingId { get; set; } public string ToppingName { get; set; } = string.Empty; public int TotalUsed { get; set; } public decimal Revenue { get; set; } public decimal ConfirmedCogs { get; set; } }
 public sealed class BomHealthRow : DashboardRow { public int DrinkId { get; set; } public string DrinkCode { get; set; } = string.Empty; public string DrinkName { get; set; } = string.Empty; public int RecipeCount { get; set; } public int RecipeLineCount { get; set; } public int InvalidLineCount { get; set; } }
 public sealed class LowEfficiencyProductRow : DashboardRow { public int DrinkId { get; set; } public string DrinkName { get; set; } = string.Empty; public int TotalSold { get; set; } public decimal ConfirmedCogs { get; set; } public decimal ConfirmedGrossProfit { get; set; } }
+public sealed class CategoryPerformanceRow : DashboardRow { public int? CategoryId { get; set; } public string CategoryName { get; set; } = string.Empty; public int TotalSold { get; set; } public decimal Revenue { get; set; } public decimal ConfirmedCogs { get; set; } public decimal ConfirmedGrossProfit { get; set; } public decimal ConfirmedMarginRate { get; set; } }
+public sealed class ProductPeriodPerformanceRow : DashboardRow { public int DrinkId { get; set; } public string DrinkName { get; set; } = string.Empty; public int TotalSold { get; set; } public decimal Revenue { get; set; } public decimal ConfirmedCogs { get; set; } public decimal ConfirmedGrossProfit { get; set; } public decimal ConfirmedMarginRate { get; set; } }
 
 public sealed class WorkforceShiftStatusRow : DashboardRow { public int StaffShiftId { get; set; } public int StaffId { get; set; } public string FullName { get; set; } = string.Empty; public int StoreId { get; set; } public DateTime WorkDate { get; set; } public int ShiftId { get; set; } public string ShiftName { get; set; } = string.Empty; public DateTime PlannedStartAt { get; set; } public DateTime PlannedEndAt { get; set; } public string StatusCode { get; set; } = string.Empty; public bool IsOvernight { get; set; } }
 public sealed class WorkforceHourlyDemandRow : DashboardRow { public int HourOfDay { get; set; } public long TotalOrders { get; set; } public long ScheduledStaffCount { get; set; } }

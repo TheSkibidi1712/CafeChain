@@ -215,11 +215,11 @@ public sealed class DashboardService : IDashboardService
             return DashboardSection.Executive;
         if (value <= (int)DashboardAnalyticsWidget.WorkShiftKpis)
             return DashboardSection.Operations;
-        if (value <= (int)DashboardAnalyticsWidget.InventoryFifoLayerAge)
+        if (value <= (int)DashboardAnalyticsWidget.IngredientConsumptionTrend)
             return DashboardSection.Inventory;
         if (value <= (int)DashboardAnalyticsWidget.SupplierIssueMix)
             return DashboardSection.Procurement;
-        if (value <= (int)DashboardAnalyticsWidget.HighConsumptionLowEfficiency)
+        if (value <= (int)DashboardAnalyticsWidget.ProductPeriodPerformance)
             return DashboardSection.Product;
         return DashboardSection.Workforce;
     }
@@ -231,6 +231,7 @@ public sealed class DashboardService : IDashboardService
         (DashboardAnalyticsWidget.PaymentMethodMix, DashboardSectionResponse<ExecutiveDashboardData> x) => Pack(x.Data.PaymentMethodMix),
         (DashboardAnalyticsWidget.OrderHeatmap, DashboardSectionResponse<ExecutiveDashboardData> x) => Pack(x.Data.OrderHeatmap),
         (DashboardAnalyticsWidget.OperationalAlerts, DashboardSectionResponse<ExecutiveDashboardData> x) => Pack(x.Data.OperationalAlerts),
+        (DashboardAnalyticsWidget.OrderStatusSummary, DashboardSectionResponse<ExecutiveDashboardData> x) => Pack(x.Data.OrderStatusSummary),
         (DashboardAnalyticsWidget.WorkShiftCashDiscrepancy, DashboardSectionResponse<OperationsDashboardData> x) => Pack(x.Data.CashDiscrepancy),
         (DashboardAnalyticsWidget.WorkShiftSales, DashboardSectionResponse<OperationsDashboardData> x) => Pack(x.Data.ShiftSales),
         (DashboardAnalyticsWidget.WorkShiftPaymentMix, DashboardSectionResponse<OperationsDashboardData> x) => Pack(x.Data.PaymentMix),
@@ -244,6 +245,7 @@ public sealed class DashboardService : IDashboardService
         (DashboardAnalyticsWidget.InventoryReorderSuggestions, DashboardSectionResponse<InventoryDashboardData> x) => Pack(x.Data.ReorderSuggestions),
         (DashboardAnalyticsWidget.InventoryWasteByStoreIngredient, DashboardSectionResponse<InventoryDashboardData> x) => Pack(x.Data.Waste),
         (DashboardAnalyticsWidget.InventoryFifoLayerAge, DashboardSectionResponse<InventoryDashboardData> x) => Pack(x.Data.FifoAge),
+        (DashboardAnalyticsWidget.IngredientConsumptionTrend, DashboardSectionResponse<InventoryDashboardData> x) => Pack(x.Data.IngredientConsumptionTrend),
         (DashboardAnalyticsWidget.PurchaseOrderPipeline, DashboardSectionResponse<ProcurementDashboardData> x) => Pack(x.Data.PurchaseOrderPipeline),
         (DashboardAnalyticsWidget.OverduePurchaseOrders, DashboardSectionResponse<ProcurementDashboardData> x) => Pack(x.Data.OverduePurchaseOrders),
         (DashboardAnalyticsWidget.SupplierQuality, DashboardSectionResponse<ProcurementDashboardData> x) => Pack(x.Data.SupplierQuality),
@@ -256,6 +258,8 @@ public sealed class DashboardService : IDashboardService
         (DashboardAnalyticsWidget.TopToppings, DashboardSectionResponse<ProductDashboardData> x) => Pack(x.Data.TopToppings),
         (DashboardAnalyticsWidget.BomHealth, DashboardSectionResponse<ProductDashboardData> x) => Pack(x.Data.BomHealth),
         (DashboardAnalyticsWidget.HighConsumptionLowEfficiency, DashboardSectionResponse<ProductDashboardData> x) => Pack(x.Data.LowEfficiency),
+        (DashboardAnalyticsWidget.CategoryPerformance, DashboardSectionResponse<ProductDashboardData> x) => Pack(x.Data.CategoryPerformance),
+        (DashboardAnalyticsWidget.ProductPeriodPerformance, DashboardSectionResponse<ProductDashboardData> x) => Pack(x.Data.ProductPeriodPerformance),
         (DashboardAnalyticsWidget.WorkforceShiftStatus, DashboardSectionResponse<WorkforceDashboardData> x) => Pack(x.Data.ShiftStatus),
         (DashboardAnalyticsWidget.WorkforceHourlyDemand, DashboardSectionResponse<WorkforceDashboardData> x) => Pack(x.Data.HourlyDemand),
         (DashboardAnalyticsWidget.WorkforceStaffPerformance, DashboardSectionResponse<WorkforceDashboardData> x) => Pack(x.Data.StaffPerformance),

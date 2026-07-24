@@ -27,6 +27,7 @@ namespace CafeChain.Extensions.Pipeline
             app.MapHub<OrderHub>("/orderHub");
             app.MapHub<PaymentHub>("/paymentHub");
             app.MapHub<PrintBridgeHub>("/hubs/print-bridge");
+            app.MapHub<InventoryNotificationHub>("/hubs/inventory-notifications");
 
             return app;
         }

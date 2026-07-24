@@ -24,6 +24,7 @@
       data-ai-parse="@Url.Action("Parse", "AdminDashboardIntelligence", new { area = "Admin" })"
       data-ai-execute="@Url.Action("Execute", "AdminDashboardIntelligence", new { area = "Admin" })"
       data-ai-explain="@Url.Action("Explain", "AdminDashboardIntelligence", new { area = "Admin" })"
+      data-ai-analyze="@Url.Action("Analyze", "AdminDashboardIntelligence", new { area = "Admin" })"
       data-province="@Model.Filter.ProvinceId" data-district="@Model.Filter.DistrictId" data-store="@Model.Filter.StoreId">
     <form id="dashboardAntiForgery" hidden>@Html.AntiForgeryToken()</form>
     <header class="analytics-header">
@@ -62,9 +63,9 @@
     <section class="dashboard-intelligence" aria-labelledby="dashboardIntelligenceTitle">
         <div class="dashboard-intelligence__heading">
             <div>
-                <span class="analytics-eyebrow">AI + Analytics whitelist</span>
+                <span class="analytics-eyebrow">AI Analyst dựa trên evidence</span>
                 <h2 id="dashboardIntelligenceTitle">Hỏi Dashboard bằng tiếng Việt</h2>
-                <p>AI chỉ chọn trong 8 thống kê được kiểm soát; hệ thống áp dụng quyền cửa hàng trước khi truy vấn.</p>
+                <p>AI nhận diện intent; server chọn nhiều bộ dữ liệu read-only và áp dụng quyền cửa hàng trước khi phân tích.</p>
             </div>
         </div>
         <div class="dashboard-intelligence__input">

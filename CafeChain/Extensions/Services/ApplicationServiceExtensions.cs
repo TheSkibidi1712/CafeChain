@@ -345,6 +345,14 @@ namespace CafeChain.Extensions.Services
             // Staff notifications read/mark (Issue #101)
             services.AddScoped<CafeChain.Application.Interfaces.Operations.IStaffNotificationQueryService,
                 CafeChain.Application.Services.Operations.StaffNotificationQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Operations.IInventoryNotificationAudienceResolver,
+                CafeChain.Application.Services.Operations.InventoryNotificationAudienceResolver>();
+            services.AddScoped<CafeChain.Application.Interfaces.Operations.IInventoryNotificationDeliveryService,
+                CafeChain.Application.Services.Operations.InventoryNotificationDeliveryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Operations.IInventoryNotificationPublisher,
+                CafeChain.Infrastructure.Realtime.SignalRInventoryNotificationPublisher>();
+            services.AddOptions<InventoryNotificationOptions>()
+                .BindConfiguration(InventoryNotificationOptions.SectionName);
 
             // Permissions
             services.AddScoped<IAdminPermissionService, AdminPermissionService>();
