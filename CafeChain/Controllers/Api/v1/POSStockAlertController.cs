@@ -56,11 +56,11 @@ namespace CafeChain.Controllers.Api.v1
 
             var data = result.Data!;
             var message = result.Message
-                ?? "Đã gửi yêu cầu kiểm tra tồn kho cho Quản lý chi nhánh và Kế toán/kho.";
+                ?? "Đã gửi thông báo trong hệ thống cho Quản lý chi nhánh và Kế toán/kho.";
 
             if (data.EmailFailedCount > 0)
             {
-                message = "Đã ghi nhận yêu cầu. Email có thể chưa gửi được.";
+                message += " Kênh email chưa gửi được nhưng thông báo realtime vẫn thành công.";
             }
 
             return Ok(new

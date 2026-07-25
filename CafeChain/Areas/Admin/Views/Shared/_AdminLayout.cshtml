@@ -563,6 +563,9 @@
                asp-controller="AdminNotifications"
                asp-action="Index"
                class="admin-notification-bell"
+               data-admin-notification-bell
+               data-unread-url="@Url.Action("UnreadCount", "AdminNotifications", new { area = "Admin" })"
+               data-list-url="@Url.Action("ListJson", "AdminNotifications", new { area = "Admin", page = 1, pageSize = 20 })"
                title="Thông báo"
                aria-label="Mở danh sách thông báo">
                 <i class="fas fa-bell" aria-hidden="true"></i>
@@ -592,26 +595,9 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/lib/microsoft-signalr/signalr.min.js" asp-append-version="true"></script>
+    <script src="~/js/Admin/Notifications/inventory-notification-realtime.js" asp-append-version="true"></script>
     <script src="~/js/shared/mutation-guard.js" asp-append-version="true"></script>
-    <script>
-        (() => {
-            const badge = document.getElementById('adminNotificationBadge');
-            if (!badge) return;
-            const endpoint = '@Url.Action("UnreadCount", "AdminNotifications", new { area = "Admin" })';
-            const refresh = async () => {
-                try {
-                    const response = await fetch(endpoint, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                    if (!response.ok) return;
-                    const payload = await response.json();
-                    const count = Number(payload?.data?.unreadCount || 0);
-                    badge.textContent = count > 99 ? '99+' : String(count);
-                    badge.classList.toggle('d-none', count <= 0);
-                } catch { /* Notification failure must not affect Admin navigation. */ }
-            };
-            void refresh();
-            window.setInterval(refresh, 60000);
-        })();
-    </script>
     
     <!-- Select2 (Global for BOM ecosystem) -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

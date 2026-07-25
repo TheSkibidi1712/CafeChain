@@ -4,6 +4,10 @@ import NetworkStatusIndicator from './NetworkStatusIndicator'
 import PrinterStatusBadge from './PrinterStatusBadge'
 import { getPosSession, type PosSession } from '../services/posSession'
 import { fetchUnreadCount } from '../services/notificationService'
+import {
+  startNotificationRealtime,
+  stopNotificationRealtime,
+} from '../services/notificationRealtime'
 
 const POLL_MS = 60_000
 
@@ -59,6 +63,14 @@ export default function TopNavbar() {
       window.removeEventListener('pos-notifications-changed', onNotifyChanged)
     }
   }, [session.token, currentPath])
+
+  useEffect(() => {
+    if (session.token) void startNotificationRealtime()
+    else void stopNotificationRealtime()
+    return () => {
+      void stopNotificationRealtime()
+    }
+  }, [session.token])
 
   const isTabActive = (path: string) => {
     if (path === '/order') {

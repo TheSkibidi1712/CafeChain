@@ -2,17 +2,38 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Application.DTOs.Admin.Dashboard;
 
-public static class DashboardIntentVersions { public const string V1 = "v1"; }
+public static class DashboardIntentVersions
+{
+    public const string V1 = "v1";
+    public const string V2 = "v2";
+}
 
 public enum DashboardPeriodType { Today, Yesterday, LastNDays, ThisWeek, LastWeek, ThisMonth, LastMonth, Custom }
 public enum DashboardComparison { None, PreviousPeriod, PreviousWeek, PreviousMonth, PreviousYear }
 public enum DashboardChartType { Kpi, Line, Bar, StackedBar, Heatmap, Table }
 public enum DashboardStoreSelectorMode { AllowedScope, NamedStore }
+public enum DashboardBusinessIntent
+{
+    RevenueAnalysis,
+    SalesTrend,
+    OrderAnalysis,
+    ProductPerformance,
+    StoreComparison,
+    InventoryAnalysis,
+    ReorderAnalysis,
+    SupplierAnalysis,
+    AnomalyDetection,
+    GeneralBusinessSummary,
+    StatisticsRequest
+}
 
 public sealed class DashboardPromptRequestDto
 {
     [Required, StringLength(500, MinimumLength = 3)] public string Prompt { get; set; } = string.Empty;
     public string Locale { get; set; } = "vi-VN";
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+    public int? StoreId { get; set; }
 }
 
 public sealed class DashboardPeriodDto
@@ -31,7 +52,10 @@ public sealed class DashboardStoreSelectorDto
 
 public sealed class DashboardIntentDto
 {
-    public string IntentVersion { get; set; } = DashboardIntentVersions.V1;
+    public string IntentVersion { get; set; } = DashboardIntentVersions.V2;
+    public DashboardBusinessIntent BusinessIntent { get; set; } = DashboardBusinessIntent.GeneralBusinessSummary;
+    public List<string> FocusMetrics { get; set; } = [];
+    // Kept for v1 API compatibility. In v2 the server derives this primary widget.
     public DashboardAnalyticsWidget Widget { get; set; }
     public DashboardPeriodDto Period { get; set; } = new();
     public DashboardComparison Comparison { get; set; }
@@ -101,13 +125,74 @@ public sealed class DashboardInsightExplanationContextDto
     public DateTime ToDate { get; set; }
     public DashboardComparisonResultDto Comparison { get; set; } = new();
     public IReadOnlyList<DashboardInsightDto> Insights { get; set; } = [];
+    public DashboardBusinessIntent BusinessIntent { get; set; }
+    public IReadOnlyList<DashboardEvidenceDto> Evidence { get; set; } = [];
 }
 
 public sealed class DashboardExplanationResultDto
 {
     public bool Success { get; set; }
     public string Explanation { get; set; } = string.Empty;
+    public string Summary { get; set; } = string.Empty;
+    public List<DashboardNarrativeItemDto> Inferences { get; set; } = [];
+    public List<DashboardNarrativeItemDto> Recommendations { get; set; } = [];
     public bool UsedOllama { get; set; }
     public bool UsedFallback { get; set; }
     public List<string> Warnings { get; set; } = [];
+}
+
+public sealed class DashboardDataPeriodResultDto
+{
+    public DateTime From { get; set; }
+    public DateTime To { get; set; }
+    public DateTime? ComparisonFrom { get; set; }
+    public DateTime? ComparisonTo { get; set; }
+}
+
+public sealed class DashboardEvidenceDto
+{
+    public string EvidenceId { get; set; } = string.Empty;
+    public string Kind { get; set; } = "FACT";
+    public DashboardAnalyticsWidget SourceWidget { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Statement { get; set; } = string.Empty;
+    public decimal CurrentValue { get; set; }
+    public decimal? BaselineValue { get; set; }
+    public decimal? DeviationPercent { get; set; }
+    public long SampleSize { get; set; }
+    public string Unit { get; set; } = string.Empty;
+}
+
+public sealed class DashboardNarrativeItemDto
+{
+    public string Text { get; set; } = string.Empty;
+    public List<string> EvidenceIds { get; set; } = [];
+}
+
+public sealed class DashboardAnomalyResultDto
+{
+    public string Code { get; set; } = string.Empty;
+    public string Severity { get; set; } = "INFO";
+    public string Message { get; set; } = string.Empty;
+    public List<string> EvidenceIds { get; set; } = [];
+}
+
+public sealed class DashboardStructuredAnalysisResultDto
+{
+    public Guid AnalysisId { get; set; }
+    public DashboardBusinessIntent Intent { get; set; }
+    public DashboardDataPeriodResultDto DataPeriod { get; set; } = new();
+    public IReadOnlyList<int> StoreIds { get; set; } = [];
+    public string DataStatus { get; set; } = "Insufficient";
+    public string Summary { get; set; } = string.Empty;
+    public List<DashboardEvidenceDto> Facts { get; set; } = [];
+    public List<DashboardNarrativeItemDto> Inferences { get; set; } = [];
+    public List<DashboardEvidenceDto> Statistics { get; set; } = [];
+    public List<DashboardAnomalyResultDto> Anomalies { get; set; } = [];
+    public List<DashboardNarrativeItemDto> Recommendations { get; set; } = [];
+    public decimal Confidence { get; set; }
+    public List<DashboardChartDto> Charts { get; set; } = [];
+    public List<string> Warnings { get; set; } = [];
+    public string AiStatus { get; set; } = "Fallback";
+    public bool UsedFallback { get; set; }
 }

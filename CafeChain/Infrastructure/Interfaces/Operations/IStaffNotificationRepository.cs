@@ -18,5 +18,15 @@ public interface IStaffNotificationRepository
     Task<List<StaffNotification>> GetUnreadAsync(
         int recipientStaffId,
         IReadOnlyCollection<int>? allowedStoreIds);
-    Task SaveChangesAsync();
+    Task<StaffNotification?> GetActiveByDeduplicationKeyAsync(
+        string key,
+        CancellationToken cancellationToken = default);
+    Task<List<StaffNotification>> GetActiveByEntityAsync(
+        int storeId,
+        string type,
+        string entityType,
+        int entityId,
+        CancellationToken cancellationToken = default);
+    void Add(StaffNotification notification);
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

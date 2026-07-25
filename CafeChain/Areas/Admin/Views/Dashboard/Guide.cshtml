@@ -1,12 +1,53 @@
 @{
-    ViewData["Title"] = "Hướng dẫn Dashboard Analytics";
+    ViewData["Title"] = "Hướng dẫn Dashboard Analytics và AI";
+    var questionGroups = new[]
+    {
+        (
+            "Tổng quan và doanh thu",
+            new[]
+            {
+                "Tôi nên chú ý điều gì trong kỳ đang chọn?",
+                "So sánh doanh thu kỳ này với kỳ trước.",
+                "Chi nhánh nào đang hoạt động kém hơn?",
+                "Doanh thu giảm có thể liên quan đến sản phẩm, số đơn hay giá trị đơn hàng?",
+                "Tạo thống kê doanh thu theo ngày trong kỳ đang chọn."
+            }
+        ),
+        (
+            "Đơn hàng và sản phẩm",
+            new[]
+            {
+                "Phân tích số đơn và tỷ lệ hủy theo chi nhánh.",
+                "Phương thức thanh toán nào được sử dụng nhiều nhất?",
+                "Sản phẩm và danh mục nào bán tốt nhất?",
+                "Sản phẩm nào bán chậm hoặc có biên lợi nhuận thấp?"
+            }
+        ),
+        (
+            "Kho và đặt hàng",
+            new[]
+            {
+                "Nguyên liệu nào đang có nguy cơ thiếu?",
+                "Nguyên liệu nào nên được đặt lại trước?",
+                "Phân tích xu hướng tiêu thụ nguyên liệu trong kỳ."
+            }
+        ),
+        (
+            "Nhà cung cấp và bất thường",
+            new[]
+            {
+                "Nhà cung cấp nào có rủi ro chất lượng hoặc đơn mua quá hạn?",
+                "Có bất thường vận hành nào cần chú ý không?"
+            }
+        )
+    };
 }
 
 <div class="container-fluid py-4 dashboard-guide">
     <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
         <div>
             <span class="text-uppercase text-muted small fw-bold">CafeChain Analytics</span>
-            <h1 class="h2 fw-bold mt-2">Hướng dẫn sử dụng Dashboard</h1>
+            <h1 class="h2 fw-bold mt-2">Hướng dẫn sử dụng Dashboard và AI Analyst</h1>
             <p class="text-muted mb-0">Dữ liệu luôn được giới hạn theo StaffScope và cửa hàng tài khoản được cấp quyền.</p>
         </div>
         <a class="btn btn-outline-secondary" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
@@ -18,6 +59,9 @@
         <aside class="col-xl-3">
             <nav class="list-group position-sticky" style="top:1rem" aria-label="Mục lục">
                 <a class="list-group-item list-group-item-action" href="#filters">Bộ lọc</a>
+                <a class="list-group-item list-group-item-action" href="#ai-usage">Sử dụng AI Analyst</a>
+                <a class="list-group-item list-group-item-action" href="#ai-questions">Câu hỏi mẫu</a>
+                <a class="list-group-item list-group-item-action" href="#ai-result">Đọc kết quả AI</a>
                 <a class="list-group-item list-group-item-action" href="#tabs">Sáu nhóm dữ liệu</a>
                 <a class="list-group-item list-group-item-action" href="#formulas">Công thức</a>
                 <a class="list-group-item list-group-item-action" href="#states">Trạng thái widget</a>
@@ -37,7 +81,73 @@
             </div></section>
 
             <section class="card border-0 shadow-sm mb-4"><div class="card-body p-4">
-                <h2 id="tabs" class="h4">2. Nội dung sáu tab</h2>
+                <h2 id="ai-usage" class="h4">2. Sử dụng AI Analyst</h2>
+                <ol>
+                    <li>Chọn khoảng ngày và cửa hàng thuộc phạm vi được cấp quyền.</li>
+                    <li>Nhấn <strong>Áp dụng</strong> để Dashboard đồng bộ bộ lọc.</li>
+                    <li>Nhập câu hỏi tiếng Việt vào vùng <strong>Hỏi Dashboard bằng tiếng Việt</strong>.</li>
+                    <li>Nhấn <strong>Phân tích</strong> và chờ hệ thống lập data plan read-only.</li>
+                    <li>Đọc Summary, Fact, Inference, bất thường, khuyến nghị và bảng thống kê.</li>
+                </ol>
+                <div class="alert alert-info mb-0">
+                    Bộ lọc ngày và cửa hàng trên Dashboard là phạm vi chính thức của lần phân tích.
+                    AI không được truy vấn ngoài StaffScope, không tự sinh SQL và không được điền số liệu còn thiếu bằng suy đoán.
+                </div>
+            </div></section>
+
+            <section class="card border-0 shadow-sm mb-4"><div class="card-body p-4">
+                <h2 id="ai-questions" class="h4">3. Câu hỏi mẫu cho AI Dashboard</h2>
+                <p class="text-muted">
+                    Nút <strong>Dùng câu hỏi này</strong> chỉ điền nội dung vào ô AI để bạn kiểm tra lại.
+                    Hệ thống không tự gửi câu hỏi.
+                </p>
+                <div class="row g-3">
+                    @foreach (var group in questionGroups)
+                    {
+                        <div class="col-lg-6">
+                            <div class="border rounded-3 p-3 h-100">
+                                <h3 class="h6 fw-bold">@group.Item1</h3>
+                                <div class="d-grid gap-2">
+                                    @foreach (var question in group.Item2)
+                                    {
+                                        <div class="border-top pt-2">
+                                            <p class="small mb-2">@question</p>
+                                            <a class="btn btn-sm btn-outline-primary"
+                                               asp-area="Admin"
+                                               asp-controller="Dashboard"
+                                               asp-action="Index"
+                                               asp-route-aiQuestion="@question">
+                                                <i class="bi bi-chat-dots"></i> Dùng câu hỏi này
+                                            </a>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div></section>
+
+            <section class="card border-0 shadow-sm mb-4"><div class="card-body p-4">
+                <h2 id="ai-result" class="h4">4. Đọc kết quả AI: Fact và Inference</h2>
+                <dl>
+                    <dt>Fact / Statistic</dt>
+                    <dd>Số liệu do server tạo từ stored procedure và dataset đã kiểm soát.</dd>
+                    <dt>Inference</dt>
+                    <dd>Nhận định có khả năng giải thích dữ liệu; phải tham chiếu evidence và không phải kết luận chắc chắn.</dd>
+                    <dt>DataStatus</dt>
+                    <dd><code>Complete</code> là đủ dataset, <code>Partial</code> là thiếu một phần và <code>Insufficient</code> là không đủ dữ liệu để kết luận.</dd>
+                    <dt>AI Available / Fallback</dt>
+                    <dd><code>Available</code> nghĩa là Ollama đã tạo phần diễn giải; <code>Fallback</code> vẫn trả kết quả có cấu trúc từ rule và evidence khi AI offline hoặc JSON không hợp lệ.</dd>
+                </dl>
+                <div class="alert alert-warning mb-0">
+                    Dữ liệu demo phù hợp kiểm thử các khoảng 7–15 ngày tại Store 1 và Store 3.
+                    Không dùng fixture để kết luận mùa vụ dài hạn hoặc so sánh những tháng không có dữ liệu.
+                </div>
+            </div></section>
+
+            <section class="card border-0 shadow-sm mb-4"><div class="card-body p-4">
+                <h2 id="tabs" class="h4">5. Nội dung sáu tab</h2>
                 <dl>
                     <dt>Điều hành</dt><dd>KPI, net sales, xếp hạng cửa hàng, payment mix, heatmap đơn hàng và cảnh báo vận hành.</dd>
                     <dt>POS / WorkShift</dt><dd>Chênh lệch két, doanh số ca, thanh toán theo ca, đối soát offline, đơn theo giờ và KPI ca.</dd>
@@ -50,7 +160,7 @@
             </div></section>
 
             <section class="card border-0 shadow-sm mb-4"><div class="card-body p-4">
-                <h2 id="formulas" class="h4">3. Công thức nghiệp vụ chính</h2>
+                <h2 id="formulas" class="h4">6. Công thức nghiệp vụ chính</h2>
                 <ul>
                     <li>Chỉ đơn <strong>Completed</strong> được tính vào doanh thu.</li>
                     <li><strong>Merchandise net</strong> = Order.Total − ShippingFee.</li>
@@ -60,7 +170,7 @@
             </div></section>
 
             <section class="card border-0 shadow-sm mb-4"><div class="card-body p-4">
-                <h2 id="states" class="h4">4. Trạng thái widget</h2>
+                <h2 id="states" class="h4">7. Trạng thái widget</h2>
                 <ul>
                     <li><strong>Loading:</strong> skeleton đang chờ Stored Procedure trả dữ liệu.</li>
                     <li><strong>NO_DATA:</strong> không có bản ghi trong filter hiện tại; thử mở rộng ngày hoặc cửa hàng.</li>
@@ -70,10 +180,12 @@
             </div></section>
 
             <section class="card border-0 shadow-sm"><div class="card-body p-4">
-                <h2 id="troubleshooting" class="h4">5. Xử lý sự cố và giới hạn</h2>
+                <h2 id="troubleshooting" class="h4">8. Xử lý sự cố và giới hạn</h2>
                 <ul class="mb-0">
                     <li><strong>403:</strong> tài khoản thiếu App.AdminDashboard hoặc cửa hàng nằm ngoài StaffScope.</li>
                     <li><strong>Không có dữ liệu:</strong> kiểm tra khoảng ngày, store và trạng thái nghiệp vụ đã hoàn tất.</li>
+                    <li><strong>AI Fallback:</strong> kiểm tra Ollama/model; phần fact và statistic vẫn lấy từ dữ liệu server.</li>
+                    <li><strong>Insufficient:</strong> mở rộng khoảng ngày hoặc chọn store có dữ liệu; AI sẽ không tự đoán.</li>
                     <li><strong>Biểu đồ chưa đổi:</strong> nhấn Áp dụng sau khi chỉnh filter; request trước đó sẽ bị hủy.</li>
                     <li>Dashboard chưa hỗ trợ export và không tự refresh liên tục; tải lại dữ liệu khi cần số liệu mới.</li>
                 </ul>

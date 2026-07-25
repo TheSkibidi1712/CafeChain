@@ -84,12 +84,17 @@ public sealed partial class AIService
                 StripMarkdownFence(response.Content), DashboardJsonOptions);
             if (parsed == null || parsed.AnalysisId != context.AnalysisId || parsed.Widget != context.Widget)
                 return DashboardFallback(fallback, "Phản hồi AI không khớp dữ liệu phân tích và đã bị từ chối.");
-            var explanation = parsed.Explanation.Trim();
-            if (explanation.Length is < 1 or > 1000)
+            var summary = parsed.Summary.Trim();
+            if (summary.Length is < 1 or > 1200)
                 return DashboardFallback(fallback, "Giải thích AI vượt giới hạn nội dung.");
             return new DashboardExplanationResultDto
             {
-                Success = true, Explanation = explanation, UsedOllama = true,
+                Success = true,
+                Explanation = summary,
+                Summary = summary,
+                Inferences = parsed.Inferences,
+                Recommendations = parsed.Recommendations,
+                UsedOllama = true,
                 Warnings = skill.Warnings.ToList()
             };
         }
@@ -121,13 +126,19 @@ public sealed partial class AIService
 
     private static DashboardExplanationResultDto DashboardFallback(string text, string warning) => new()
     {
-        Success = true, Explanation = text, UsedFallback = true, Warnings = [warning]
+        Success = true,
+        Explanation = text,
+        Summary = text,
+        UsedFallback = true,
+        Warnings = [warning]
     };
 
     private sealed class DashboardExplanationAiDto
     {
         public Guid AnalysisId { get; set; }
         public DashboardAnalyticsWidget Widget { get; set; }
-        public string Explanation { get; set; } = string.Empty;
+        public string Summary { get; set; } = string.Empty;
+        public List<DashboardNarrativeItemDto> Inferences { get; set; } = [];
+        public List<DashboardNarrativeItemDto> Recommendations { get; set; } = [];
     }
 }

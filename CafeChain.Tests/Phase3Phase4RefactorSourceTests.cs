@@ -69,6 +69,8 @@ public sealed class Phase3Phase4RefactorSourceTests
     {
         var markdown = Read("CafeChain", "docs", "user-guides", "dashboard-analytics.md");
         var view = Read("CafeChain", "Areas", "Admin", "Views", "Dashboard", "Guide.cshtml");
+        var index = Read("CafeChain", "Areas", "Admin", "Views", "Dashboard", "Index.cshtml");
+        var intelligenceScript = Read("CafeChain", "wwwroot", "js", "Admin", "Dashboard", "dashboard-intelligence.js");
         var controller = Read("CafeChain", "Areas", "Admin", "Controllers", "DashboardController.cs");
 
         foreach (var term in new[] { "Điều hành", "POS / WorkShift", "Kho", "Mua hàng", "Sản phẩm", "Nhân sự" })
@@ -76,7 +78,29 @@ public sealed class Phase3Phase4RefactorSourceTests
             Assert.Contains(term, markdown, StringComparison.Ordinal);
             Assert.Contains(term, view, StringComparison.Ordinal);
         }
+        foreach (var term in new[]
+                 {
+                     "Fact và Inference", "Dùng câu hỏi này",
+                     "So sánh doanh thu kỳ này với kỳ trước.",
+                     "Nguyên liệu nào đang có nguy cơ thiếu?",
+                     "Nhà cung cấp nào có rủi ro chất lượng hoặc đơn mua quá hạn?"
+                 })
+        {
+            Assert.Contains(term, markdown, StringComparison.Ordinal);
+            Assert.Contains(term, view, StringComparison.Ordinal);
+        }
+        Assert.Contains("Hướng dẫn Dashboard &amp; AI", index, StringComparison.Ordinal);
+        Assert.Contains("asp-route-aiQuestion", view, StringComparison.Ordinal);
+        Assert.Contains("searchParams.get(\"aiQuestion\")", intelligenceScript, StringComparison.Ordinal);
+        Assert.Contains("prompt.value = suggestedQuestion.slice", intelligenceScript, StringComparison.Ordinal);
         Assert.Contains("IActionResult Guide", controller, StringComparison.Ordinal);
+        Assert.Contains("dashboardAiToggleResult", index, StringComparison.Ordinal);
+        Assert.Contains("aria-controls=\"dashboardAiResult\"", index, StringComparison.Ordinal);
+        Assert.Contains("aria-expanded=\"false\"", index, StringComparison.Ordinal);
+        Assert.Contains("setResultVisibility", intelligenceScript, StringComparison.Ordinal);
+        Assert.Contains("result.hidden = !isVisible", intelligenceScript, StringComparison.Ordinal);
+        Assert.Contains("Ẩn phân tích", intelligenceScript, StringComparison.Ordinal);
+        Assert.Contains("Hiện phân tích", intelligenceScript, StringComparison.Ordinal);
     }
 
     private static string Read(params string[] path) =>

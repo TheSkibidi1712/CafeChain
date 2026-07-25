@@ -5,7 +5,11 @@ namespace CafeChain.Infrastructure.Interfaces.Operations;
 public sealed record ReorderNotificationRecipientRow(
     int StaffId,
     int AccountId,
-    IReadOnlyCollection<string> RoleNames);
+    IReadOnlyCollection<string> RoleNames)
+{
+    public string? Email { get; init; }
+    public string FullName { get; init; } = string.Empty;
+}
 
 public interface IInventoryReorderNotificationRepository
 {

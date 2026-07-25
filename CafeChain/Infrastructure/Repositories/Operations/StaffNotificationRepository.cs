@@ -49,7 +49,33 @@ public sealed class StaffNotificationRepository : IStaffNotificationRepository
             .Where(x => !x.IsRead)
             .ToListAsync();
 
-    public Task SaveChangesAsync() => _context.SaveChangesAsync();
+    public Task<StaffNotification?> GetActiveByDeduplicationKeyAsync(
+        string key,
+        CancellationToken cancellationToken = default) =>
+        _context.StaffNotifications.FirstOrDefaultAsync(
+            x => x.DeduplicationKey == key && x.ResolvedAt == null,
+            cancellationToken);
+
+    public Task<List<StaffNotification>> GetActiveByEntityAsync(
+        int storeId,
+        string type,
+        string entityType,
+        int entityId,
+        CancellationToken cancellationToken = default) =>
+        _context.StaffNotifications
+            .Where(x =>
+                x.StoreId == storeId &&
+                x.Type == type &&
+                x.EntityType == entityType &&
+                x.EntityId == entityId &&
+                x.ResolvedAt == null)
+            .ToListAsync(cancellationToken);
+
+    public void Add(StaffNotification notification) =>
+        _context.StaffNotifications.Add(notification);
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
+        _context.SaveChangesAsync(cancellationToken);
 
     private static IQueryable<StaffNotification> Scope(
         IQueryable<StaffNotification> query,

@@ -31,6 +31,10 @@ public sealed class AdminDashboardIntelligenceController : Controller
     public Task<IActionResult> Explain([FromBody] Guid analysisId) =>
         ExecuteAsync(() => _service.ExplainAsync(_actor.Get(User), analysisId, HttpContext.RequestAborted));
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> Analyze([FromBody] DashboardPromptRequestDto request) =>
+        ExecuteAsync(() => _service.AnalyzeAsync(_actor.Get(User), request, HttpContext.RequestAborted));
+
     private async Task<IActionResult> ExecuteAsync<T>(Func<Task<T>> action)
     {
         if (!ModelState.IsValid) return UnprocessableEntity(new { success = false, message = "Dữ liệu yêu cầu không hợp lệ." });

@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 
 namespace CafeChain.Application.Services.Admin.Dashboard;
 
-public sealed class DashboardIntelligenceService : IDashboardIntelligenceService
+public sealed partial class DashboardIntelligenceService : IDashboardIntelligenceService
 {
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, object> RateLocks = new();
     private static readonly HashSet<DashboardAnalyticsWidget> AllowedWidgets =
@@ -48,23 +48,34 @@ public sealed class DashboardIntelligenceService : IDashboardIntelligenceService
             throw new ArgumentException("Câu hỏi phải từ 3 đến 500 ký tự.");
 
         var page = await _dashboard.GetPageAsync(actor, new DashboardFilterDto(), cancellationToken);
+        DashboardIntentParseResultDto? aiFailure = null;
+        if (_options.IntentParserEnabled)
+        {
+            var ai = await _ai.ParseDashboardIntentAsync(
+                request,
+                page.Stores.Select(x => x.StoreName).ToList(),
+                cancellationToken);
+            if (ai.Success && ai.Intent != null)
+            {
+                ValidateIntent(ai.Intent);
+                ResolveNamedStore(ai.Intent, page.Stores);
+                return ai;
+            }
+            aiFailure = ai;
+        }
+
         var deterministic = ParseDeterministic(prompt, page.Stores.Select(x => x.StoreName).ToList());
         if (deterministic != null)
             return new DashboardIntentParseResultDto
             {
-                Success = true, Intent = deterministic, UsedFallback = true,
-                Message = "Đã phân tích câu hỏi bằng catalog Dashboard an toàn."
+                Success = true,
+                Intent = deterministic,
+                UsedFallback = true,
+                Message = "AI không khả dụng hoặc không trả đúng contract; đã dùng catalog intent an toàn.",
+                Warnings = aiFailure == null ? [] : [aiFailure.Message]
             };
 
-        if (!_options.IntentParserEnabled)
-            return Unsupported();
-
-        var ai = await _ai.ParseDashboardIntentAsync(request,
-            page.Stores.Select(x => x.StoreName).ToList(), cancellationToken);
-        if (!ai.Success || ai.Intent == null) return ai;
-        ValidateIntent(ai.Intent);
-        ResolveNamedStore(ai.Intent, page.Stores);
-        return ai;
+        return aiFailure ?? Unsupported();
     }
 
     public async Task<DashboardAnalysisResultDto> ExecuteAsync(
@@ -127,16 +138,31 @@ public sealed class DashboardIntelligenceService : IDashboardIntelligenceService
     private static DashboardIntentDto? ParseDeterministic(string prompt, IReadOnlyList<string> storeNames)
     {
         var text = Normalize(prompt);
-        DashboardAnalyticsWidget? widget = null;
-        if (text.Contains("po") && (text.Contains("tre") || text.Contains("qua han"))) widget = DashboardAnalyticsWidget.OverduePurchaseOrders;
-        else if (text.Contains("nha cung cap") || text.Contains("supplier")) widget = DashboardAnalyticsWidget.SupplierQuality;
-        else if (text.Contains("waste") || text.Contains("hao hut") || text.Contains("huy kho")) widget = DashboardAnalyticsWidget.InventoryWasteByStoreIngredient;
-        else if (text.Contains("ca lam") || text.Contains("lich lam") || text.Contains("phan ca")) widget = DashboardAnalyticsWidget.WorkforceShiftStatus;
-        else if (text.Contains("san pham") || text.Contains("ban chay") || text.Contains("top ")) widget = DashboardAnalyticsWidget.TopProducts;
-        else if (text.Contains("theo gio") || text.Contains("moi gio")) widget = DashboardAnalyticsWidget.HourlyOrders;
-        else if (text.Contains("chi nhanh") || text.Contains("cua hang")) widget = DashboardAnalyticsWidget.StoreRanking;
-        else if (text.Contains("doanh thu") || text.Contains("doanh so")) widget = DashboardAnalyticsWidget.NetSalesTrend;
-        if (!widget.HasValue) return null;
+        DashboardBusinessIntent? businessIntent = null;
+        if (text.Contains("nha cung cap") || text.Contains("supplier") || text.Contains("gia nhap"))
+            businessIntent = DashboardBusinessIntent.SupplierAnalysis;
+        else if (text.Contains("nhap hang") || text.Contains("reorder") || text.Contains("dat hang"))
+            businessIntent = DashboardBusinessIntent.ReorderAnalysis;
+        else if (text.Contains("ton kho") || text.Contains("nguyen lieu") || text.Contains("sap thieu")
+                 || text.Contains("waste") || text.Contains("hao hut"))
+            businessIntent = DashboardBusinessIntent.InventoryAnalysis;
+        else if (text.Contains("huy don") || text.Contains("don huy") || text.Contains("so don"))
+            businessIntent = DashboardBusinessIntent.OrderAnalysis;
+        else if (text.Contains("san pham") || text.Contains("do uong") || text.Contains("ban chay")
+                 || text.Contains("ban cham") || text.Contains("top "))
+            businessIntent = DashboardBusinessIntent.ProductPerformance;
+        else if (text.Contains("chi nhanh") || text.Contains("cua hang"))
+            businessIntent = DashboardBusinessIntent.StoreComparison;
+        else if (text.Contains("bat thuong") || text.Contains("anomaly") || text.Contains("can chu y"))
+            businessIntent = DashboardBusinessIntent.AnomalyDetection;
+        else if (text.Contains("doanh thu") || text.Contains("doanh so"))
+            businessIntent = text.Contains("xu huong")
+                ? DashboardBusinessIntent.SalesTrend
+                : DashboardBusinessIntent.RevenueAnalysis;
+        else if (text.Contains("tinh hinh") || text.Contains("tong quan") || text.Contains("phan tich"))
+            businessIntent = DashboardBusinessIntent.GeneralBusinessSummary;
+        if (!businessIntent.HasValue) return null;
+        var widget = PrimaryWidget(businessIntent.Value);
 
         var period = new DashboardPeriodDto { Type = DashboardPeriodType.LastNDays, Value = 7 };
         if (text.Contains("hom nay")) period = new() { Type = DashboardPeriodType.Today };
@@ -157,9 +183,11 @@ public sealed class DashboardIntelligenceService : IDashboardIntelligenceService
         var named = storeNames.FirstOrDefault(x => text.Contains(Normalize(x), StringComparison.Ordinal));
         return new DashboardIntentDto
         {
-            Widget = widget.Value, Period = period, Comparison = comparison,
+            IntentVersion = DashboardIntentVersions.V2,
+            BusinessIntent = businessIntent.Value,
+            Widget = widget, Period = period, Comparison = comparison,
             Granularity = widget == DashboardAnalyticsWidget.HourlyOrders ? "Hour" : "Day",
-            Top = ExtractTop(text), Chart = ChartFor(widget.Value),
+            Top = ExtractTop(text), Chart = ChartFor(widget),
             StoreSelector = named == null ? new() : new()
             {
                 Mode = DashboardStoreSelectorMode.NamedStore, StoreName = named
@@ -169,8 +197,16 @@ public sealed class DashboardIntelligenceService : IDashboardIntelligenceService
 
     private void ValidateIntent(DashboardIntentDto intent)
     {
-        if (intent.IntentVersion != DashboardIntentVersions.V1 || !AllowedWidgets.Contains(intent.Widget))
+        if (intent.IntentVersion == DashboardIntentVersions.V2)
+        {
+            if (!Enum.IsDefined(intent.BusinessIntent))
+                throw new ArgumentException("UNSUPPORTED_INTENT: Business intent không thuộc catalog được cho phép.");
+            intent.Widget = PrimaryWidget(intent.BusinessIntent);
+        }
+        else if (intent.IntentVersion != DashboardIntentVersions.V1 || !AllowedWidgets.Contains(intent.Widget))
+        {
             throw new ArgumentException("UNSUPPORTED_INTENT: Dashboard intent không thuộc catalog được cho phép.");
+        }
         if (intent.Top is < 1 or > 100) throw new ArgumentException("Top phải từ 1 đến 100.");
         if (intent.Granularity is not ("Hour" or "Day" or "Week" or "Month"))
             throw new ArgumentException("Granularity không hợp lệ.");
@@ -180,6 +216,21 @@ public sealed class DashboardIntelligenceService : IDashboardIntelligenceService
         var expected = ChartFor(intent.Widget);
         if (intent.Chart != expected) intent.Chart = expected;
     }
+
+    private static DashboardAnalyticsWidget PrimaryWidget(DashboardBusinessIntent intent) => intent switch
+    {
+        DashboardBusinessIntent.RevenueAnalysis or DashboardBusinessIntent.SalesTrend =>
+            DashboardAnalyticsWidget.NetSalesTrend,
+        DashboardBusinessIntent.OrderAnalysis => DashboardAnalyticsWidget.HourlyOrders,
+        DashboardBusinessIntent.ProductPerformance => DashboardAnalyticsWidget.TopProducts,
+        DashboardBusinessIntent.StoreComparison => DashboardAnalyticsWidget.StoreRanking,
+        DashboardBusinessIntent.InventoryAnalysis => DashboardAnalyticsWidget.InventoryShortageRisk,
+        DashboardBusinessIntent.ReorderAnalysis => DashboardAnalyticsWidget.InventoryReorderSuggestions,
+        DashboardBusinessIntent.SupplierAnalysis => DashboardAnalyticsWidget.SupplierQuality,
+        DashboardBusinessIntent.AnomalyDetection => DashboardAnalyticsWidget.OperationalAlerts,
+        DashboardBusinessIntent.StatisticsRequest => DashboardAnalyticsWidget.NetSalesTrend,
+        _ => DashboardAnalyticsWidget.NetSalesTrend
+    };
 
     private static int? ResolveNamedStore(DashboardIntentDto intent, IReadOnlyList<DashboardStoreOptionDto> stores)
     {
@@ -237,17 +288,28 @@ public sealed class DashboardIntelligenceService : IDashboardIntelligenceService
             value += widget switch
             {
                 DashboardAnalyticsWidget.NetSalesTrend or DashboardAnalyticsWidget.StoreRanking or DashboardAnalyticsWidget.HourlyOrders => Decimal(row, "netSales"),
-                DashboardAnalyticsWidget.TopProducts => Decimal(row, "productRevenue"),
+                DashboardAnalyticsWidget.TopProducts or DashboardAnalyticsWidget.ProductPeriodPerformance
+                    or DashboardAnalyticsWidget.CategoryPerformance => Decimal(row, "productRevenue") + Decimal(row, "revenue"),
+                DashboardAnalyticsWidget.VolumeMarginMatrix => Decimal(row, "revenue"),
                 DashboardAnalyticsWidget.InventoryWasteByStoreIngredient => Decimal(row, "wasteValue"),
                 DashboardAnalyticsWidget.SupplierQuality => Decimal(row, "rejectionRate"),
+                DashboardAnalyticsWidget.OrderStatusSummary => Decimal(row, "cancellationRate"),
+                DashboardAnalyticsWidget.IngredientConsumptionTrend => Decimal(row, "confirmedCost"),
+                DashboardAnalyticsWidget.PaymentMethodMix => Decimal(row, "amount"),
                 _ => 1
             };
             sample += widget switch
             {
                 DashboardAnalyticsWidget.NetSalesTrend or DashboardAnalyticsWidget.StoreRanking or DashboardAnalyticsWidget.HourlyOrders => Long(row, "totalOrders"),
                 DashboardAnalyticsWidget.TopProducts => Long(row, "totalSold"),
+                DashboardAnalyticsWidget.ProductPeriodPerformance or DashboardAnalyticsWidget.CategoryPerformance
+                    => Long(row, "totalSold"),
+                DashboardAnalyticsWidget.VolumeMarginMatrix => Long(row, "volume"),
                 DashboardAnalyticsWidget.InventoryWasteByStoreIngredient => Long(row, "transactionCount"),
                 DashboardAnalyticsWidget.SupplierQuality => Long(row, "receiptCount"),
+                DashboardAnalyticsWidget.OrderStatusSummary => Long(row, "totalOrders"),
+                DashboardAnalyticsWidget.IngredientConsumptionTrend => Long(row, "transactionCount"),
+                DashboardAnalyticsWidget.PaymentMethodMix => Long(row, "totalTransactions"),
                 _ => 1
             };
         }
@@ -330,7 +392,13 @@ public sealed class DashboardIntelligenceService : IDashboardIntelligenceService
     private static long Long(JsonElement row, string name) => row.TryGetProperty(name, out var x) && x.TryGetInt64(out var value) ? value : 0;
     private static string CacheKey(int staffId, Guid analysisId) => $"dashboard-intelligence:{staffId}:{analysisId:N}";
     private static void RequireActor(AdminActorContext actor) { if (actor.StaffId <= 0) throw new UnauthorizedAccessException("Staff context is required."); }
-    private static DashboardIntentParseResultDto Unsupported() => new() { Success = false, ErrorCode = "UNSUPPORTED_INTENT", Message = "Câu hỏi chưa thuộc 8 intent Dashboard được hỗ trợ.", UsedFallback = true };
+    private static DashboardIntentParseResultDto Unsupported() => new()
+    {
+        Success = false,
+        ErrorCode = "UNSUPPORTED_INTENT",
+        Message = "Câu hỏi chưa thuộc các nhóm phân tích Dashboard được hỗ trợ.",
+        UsedFallback = true
+    };
     private void EnforceRate(AdminActorContext actor)
     {
         var key = $"dashboard-ai-rate:{actor.StaffId}";
@@ -353,7 +421,11 @@ public sealed class DashboardIntelligenceService : IDashboardIntelligenceService
                 : $"Giá trị trong kỳ là {context.Comparison.CurrentValue:N0}.";
         return new DashboardExplanationResultDto
         {
-            Success = true, Explanation = text, UsedFallback = true, Warnings = [warning]
+            Success = true,
+            Explanation = text,
+            Summary = text,
+            UsedFallback = true,
+            Warnings = [warning]
         };
     }
     private readonly record struct MetricValue(decimal Value, long Sample);

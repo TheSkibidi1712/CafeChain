@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Operations;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Inventories.Stock;
@@ -28,15 +29,21 @@ namespace CafeChain.Application.Services.Inventories
         private readonly AppDbContext _context;
         private readonly IEmailService _emailService;
         private readonly ILogger<StockShortageReportService> _logger;
+        private readonly IInventoryNotificationDeliveryService? _notificationDelivery;
+        private readonly IInventoryNotificationAudienceResolver? _audienceResolver;
 
         public StockShortageReportService(
             AppDbContext context,
             IEmailService emailService,
-            ILogger<StockShortageReportService> logger)
+            ILogger<StockShortageReportService> logger,
+            IInventoryNotificationDeliveryService? notificationDelivery = null,
+            IInventoryNotificationAudienceResolver? audienceResolver = null)
         {
             _context = context;
             _emailService = emailService;
             _logger = logger;
+            _notificationDelivery = notificationDelivery;
+            _audienceResolver = audienceResolver;
         }
 
         public async Task<ServiceResult<StockShortageReportResultDto>> ReportShortageAsync(
@@ -187,7 +194,9 @@ namespace CafeChain.Application.Services.Inventories
 
             await _context.SaveChangesAsync(); // need StockAlertId
 
-            var recipients = await ResolveRecipientsAsync(storeId);
+            var recipients = _audienceResolver == null
+                ? await ResolveRecipientsAsync(storeId)
+                : [];
             var result = new StockShortageReportResultDto
             {
                 StockAlertId = openAlert.StockAlertId,
@@ -200,7 +209,7 @@ namespace CafeChain.Application.Services.Inventories
                 SuggestedBaseQuantity = decision.SuggestedBaseQuantity
             };
 
-            if (recipients.Count == 0)
+            if (_audienceResolver == null && recipients.Count == 0)
             {
                 result.Warnings.Add("Chưa tìm thấy người nhận thông báo phù hợp.");
             }
@@ -219,6 +228,73 @@ namespace CafeChain.Application.Services.Inventories
                 $"Người báo: {reporter.FullName}\n" +
                 $"Thời gian: {now:yyyy-MM-dd HH:mm} UTC\n" +
                 $"Ghi chú: {note}";
+
+            if (_notificationDelivery != null && _audienceResolver != null)
+            {
+                var audience = await _audienceResolver.ResolveAsync(storeId);
+                if (audience.Count == 0)
+                    result.Warnings.Add("Chưa tìm thấy người nhận có quyền Notification.View trong phạm vi cửa hàng.");
+
+                var delivery = await _notificationDelivery.DeliverAsync(
+                    new InventoryNotificationDeliveryRequest(
+                        storeId,
+                        StaffNotificationTypes.StockShortageReport,
+                        title,
+                        body,
+                        severity,
+                        StaffNotificationEntityTypes.StockAlert,
+                        openAlert.StockAlertId,
+                        createdOrUpdated == "created"
+                            ? InventoryNotificationChangeKinds.Created
+                            : InventoryNotificationChangeKinds.Updated));
+                result.NotificationCount = delivery.CreatedCount + delivery.UpdatedCount;
+
+                foreach (var notification in delivery.EmailCandidates)
+                {
+                    var recipient = audience.FirstOrDefault(x => x.StaffId == notification.RecipientStaffId);
+                    var email = recipient?.Email?.Trim();
+                    if (string.IsNullOrWhiteSpace(email))
+                        continue;
+
+                    result.EmailAttempted = true;
+                    notification.EmailAttempted = true;
+                    try
+                    {
+                        var subject = $"[Kho chi nhánh] Báo thiếu hàng — {store?.Name ?? $"Cửa hàng #{storeId}"}";
+                        var html = _emailService.BuildStockShortageReportEmail(
+                            store?.Name ?? $"Cửa hàng #{storeId}",
+                            itemName,
+                            itemTypeLabel,
+                            usableQty,
+                            note,
+                            reporter.FullName,
+                            now);
+                        await _emailService.SendAsync(email, subject, html);
+                        notification.EmailSent = true;
+                        result.EmailSentCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        result.EmailFailedCount++;
+                        notification.EmailSent = false;
+                        notification.EmailErrorSummary = TruncateSafe($"{ex.GetType().Name}: {ex.Message}", 500);
+                        _logger.LogWarning(
+                            ex,
+                            "[StockShortage] EMAIL_FAILED StoreId={StoreId} RecipientStaffId={RecipientStaffId} AlertId={AlertId} ErrorType={ErrorType}",
+                            storeId,
+                            notification.RecipientStaffId,
+                            openAlert.StockAlertId,
+                            ex.GetType().Name);
+                    }
+                }
+
+                if (delivery.EmailCandidates.Any(x => x.EmailAttempted))
+                    await _context.SaveChangesAsync();
+
+                return ServiceResult<StockShortageReportResultDto>.Success(
+                    result,
+                    "Đã gửi thông báo trong hệ thống cho Quản lý chi nhánh, Kế toán/kho và người có quyền trong phạm vi cửa hàng.");
+            }
 
             var notificationEntities = new List<StaffNotification>();
             foreach (var recipient in recipients)
