@@ -313,7 +313,7 @@
                 showCancelButton: true,
                 confirmButtonText: enabled ? "Xác nhận bật/lưu" : "Xác nhận tắt/lưu",
                 cancelButtonText: "Quay lại",
-                confirmButtonColor: "#d93d20"
+                confirmButtonColor: "#6f4e37"
             });
             return result.isConfirmed;
         }
@@ -323,7 +323,7 @@
 
     async function showMessage(title, text, icon) {
         if (window.Swal) {
-            await window.Swal.fire({ title, text, icon, confirmButtonColor: "#d93d20" });
+            await window.Swal.fire({ title, text, icon, confirmButtonColor: "#6f4e37" });
             return;
         }
         window.alert(`${title}: ${text}`);
