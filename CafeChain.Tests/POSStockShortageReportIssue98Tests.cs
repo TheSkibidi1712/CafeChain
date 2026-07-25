@@ -5,12 +5,14 @@ using System.Threading.Tasks;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Accounts;
+using CafeChain.Application.Interfaces.Operations;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Controllers.Api.v1;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Stock;
+using CafeChain.Models.Operations;
 using CafeChain.Models.Permissions;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
@@ -76,6 +78,58 @@ namespace CafeChain.Tests.POS
             Assert.All(
                 await ctx.StaffNotifications.ToListAsync(),
                 n => Assert.Equal(StaffNotificationTypes.StockShortageReport, n.Type));
+        }
+
+        [Fact]
+        public async Task ReportShortage_WithNotificationDelivery_UsesDecisionSeverity()
+        {
+            using var ctx = CreateDbContext();
+            SeedRolesAndInventory(ctx, ingredientQty: 2m, min: 10m);
+            SeedStaffWithRole(ctx, SalesStaffId, 9001, RoleConstants.SalesStaff, "sales@test.local");
+            await ctx.SaveChangesAsync();
+
+            var audience = new Mock<IInventoryNotificationAudienceResolver>();
+            audience
+                .Setup(x => x.ResolveAsync(
+                    StoreId,
+                    It.IsAny<System.Threading.CancellationToken>()))
+                .ReturnsAsync(Array.Empty<InventoryNotificationRecipient>());
+
+            var delivery = new Mock<IInventoryNotificationDeliveryService>();
+            delivery
+                .Setup(x => x.DeliverAsync(
+                    It.IsAny<InventoryNotificationDeliveryRequest>(),
+                    It.IsAny<System.Threading.CancellationToken>()))
+                .ReturnsAsync(new InventoryNotificationDeliveryResult(
+                    1,
+                    0,
+                    0,
+                    true,
+                    Array.Empty<StaffNotification>()));
+
+            var service = new StockShortageReportService(
+                ctx,
+                CreateEmailMock(false).Object,
+                new Mock<ILogger<StockShortageReportService>>().Object,
+                delivery.Object,
+                audience.Object);
+
+            var result = await service.ReportShortageAsync(
+                StoreId,
+                SalesStaffId,
+                new StockShortageReportRequestDto
+                {
+                    StoreInventoryId = await IngredientInventoryIdAsync(ctx),
+                    Note = "Hết sữa trên quầy, cần kiểm tra kho."
+                });
+
+            Assert.True(result.IsSuccess, result.Message);
+            delivery.Verify(
+                x => x.DeliverAsync(
+                    It.Is<InventoryNotificationDeliveryRequest>(
+                        request => request.Severity == StockAlertSeverities.Warning),
+                    It.IsAny<System.Threading.CancellationToken>()),
+                Times.Once);
         }
 
         [Fact]

@@ -241,7 +241,7 @@ namespace CafeChain.Application.Services.Inventories
                         StaffNotificationTypes.StockShortageReport,
                         title,
                         body,
-                        severity,
+                        decision.Severity,
                         StaffNotificationEntityTypes.StockAlert,
                         openAlert.StockAlertId,
                         createdOrUpdated == "created"
