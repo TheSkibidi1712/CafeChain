@@ -1,0 +1,318 @@
+.negative-inventory-page {
+    --ni-primary: #6f4e37;
+    --ni-primary-dark: #5c3f2b;
+    --ni-primary-soft: #f6efe9;
+    --ni-border: #e4d8cf;
+    --ni-muted: #6b7280;
+    --ni-surface: #fcfaf8;
+}
+
+.negative-inventory-page .ni-page-header { padding: 2px 2px 0; }
+.negative-inventory-page .ni-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 7px;
+    color: var(--ni-primary);
+    font-size: .74rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.negative-inventory-page .ni-page-title { color: #231f1c; }
+.negative-inventory-page .ni-role-badge {
+    border: 1px solid var(--ni-border);
+    color: var(--ni-primary-dark);
+    background: var(--ni-primary-soft);
+}
+.negative-inventory-page .ni-settings-card {
+    border: 1px solid rgba(111, 78, 55, .1) !important;
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(52, 39, 30, .055) !important;
+}
+.negative-inventory-page .ni-feature-panel {
+    padding: 16px 18px;
+    border: 0;
+    border-left: 4px solid var(--ni-primary);
+    border-radius: 8px;
+    background: #f8f5f2;
+}
+.negative-inventory-page .ni-feature-icon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    color: #fff;
+    background: var(--ni-primary);
+    box-shadow: 0 8px 18px rgba(92, 63, 43, .2);
+}
+.negative-inventory-page .ni-master-switch {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    padding: 10px 15px 10px 46px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .78);
+}
+.negative-inventory-page .ni-master-switch .form-check-input {
+    width: 2.35em;
+    height: 1.25em;
+    margin-left: -34px;
+}
+.negative-inventory-page .form-check-input:checked {
+    border-color: var(--ni-primary);
+    background-color: var(--ni-primary);
+}
+.negative-inventory-page .form-check-input:focus,
+.negative-inventory-page .form-control:focus,
+.negative-inventory-page .form-select:focus {
+    border-color: #9b7a62;
+    box-shadow: 0 0 0 .2rem rgba(111, 78, 55, .13);
+}
+.negative-inventory-page .ni-meta-field {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    height: 100%;
+    padding: 13px 14px;
+    border: 0;
+    border-radius: 9px;
+    background: #f8f7f5;
+    transition: border-color .18s ease, box-shadow .18s ease;
+}
+.negative-inventory-page .ni-meta-field:hover {
+    box-shadow: inset 0 0 0 1px #ded1c8;
+}
+.negative-inventory-page .ni-meta-icon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    color: var(--ni-primary);
+    background: #eee3da;
+}
+.negative-inventory-page .ni-policy-value {
+    color: #367250;
+    font-weight: 750;
+}
+.negative-inventory-page .ni-policy-version {
+    display: inline-flex;
+    margin-top: 2px;
+    padding: 5px 9px;
+    border-radius: 7px;
+    color: var(--ni-primary-dark);
+    background: #eee7e1;
+    font-size: .82rem;
+    font-weight: 700;
+}
+.negative-inventory-page .ni-policy-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 1.35fr) minmax(220px, .8fr) minmax(260px, 1fr);
+    gap: 10px;
+}
+.negative-inventory-page .ni-section-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: flex-end;
+    margin-bottom: 12px;
+}
+.negative-inventory-page .ni-section-heading h6 {
+    margin: 0 0 3px;
+    color: #2f2925;
+    font-size: .98rem;
+    font-weight: 800;
+}
+.negative-inventory-page .ni-section-heading p {
+    margin: 0;
+    color: var(--ni-muted);
+    font-size: .82rem;
+}
+.negative-inventory-page .ni-toolbar {
+    margin-right: 0;
+    margin-left: 0;
+    padding: 10px;
+    border: 0;
+    border-radius: 9px;
+    background: #f6f5f3;
+}
+.negative-inventory-page .negative-store-tabs-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+.negative-inventory-page #negativeInventoryStoreTabs {
+    width: max-content;
+    min-width: 100%;
+    gap: 6px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e7dfd9;
+}
+.negative-inventory-page #negativeInventoryStoreTabs .nav-link {
+    margin-right: 0;
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #64748b;
+    font-weight: 650;
+    white-space: nowrap;
+}
+.negative-inventory-page #negativeInventoryStoreTabs .nav-link:hover {
+    border-color: var(--ni-border);
+    color: var(--ni-primary);
+    background: #fbf8f5;
+}
+.negative-inventory-page #negativeInventoryStoreTabs .nav-link.active {
+    border-color: var(--ni-primary);
+    color: #fff;
+    background: var(--ni-primary);
+    box-shadow: none;
+}
+.negative-inventory-page .ni-search-wrap { position: relative; }
+.negative-inventory-page .ni-search-wrap > i {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    z-index: 2;
+    color: #8b7566;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+.negative-inventory-page .ni-search-wrap .form-control { padding-left: 40px; }
+.negative-inventory-page .ni-range-badge {
+    display: inline-flex;
+    padding: 7px 10px;
+    border-radius: 8px;
+    color: #6e5c50;
+    background: #eee7e1;
+    font-size: .75rem;
+    font-weight: 700;
+}
+.negative-inventory-page .ni-table-wrap { border-color: var(--ni-border) !important; }
+.negative-inventory-page #negativeInventoryItemsTable {
+    min-width: 980px;
+    table-layout: fixed;
+}
+.negative-inventory-page #negativeInventoryItemsTable thead th {
+    padding-top: 13px;
+    padding-bottom: 13px;
+    border-bottom-color: var(--ni-border);
+    color: #4b3a2f;
+    background: #f8f4f1;
+    font-size: .76rem;
+    letter-spacing: .02em;
+}
+.negative-inventory-page #negativeInventoryItemsTable tbody td {
+    padding: 11px 10px;
+    border-color: #eee8e3;
+}
+.negative-inventory-page #negativeInventoryItemsTable tbody tr:hover > * { background: #fcf9f7; }
+.negative-inventory-page #negativeInventoryItemsTable .badge { white-space: normal; text-align: left; }
+.negative-inventory-page .ni-item-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+    margin-bottom: 3px;
+}
+.negative-inventory-page .ni-item-code {
+    flex: 0 0 auto;
+    color: var(--ni-primary);
+    font-size: .75rem;
+    font-weight: 800;
+}
+.negative-inventory-page .ni-item-name {
+    overflow: hidden;
+    color: #25211e;
+    font-size: .88rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.negative-inventory-page .ni-stock-value { font-weight: 700; white-space: nowrap; }
+.negative-inventory-page .ni-col-item { width: 31%; }
+.negative-inventory-page .ni-col-stock { width: 13%; }
+.negative-inventory-page .ni-col-mode { width: 13%; }
+.negative-inventory-page .ni-col-limit { width: 22%; }
+.negative-inventory-page .ni-col-effective { width: 11%; }
+.negative-inventory-page .ni-col-status { width: 10%; }
+.negative-inventory-page .ni-limit-controls {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    min-width: 0;
+}
+.negative-inventory-page .ni-limit-controls .form-select {
+    flex: 1 1 65%;
+    width: 65%;
+    min-width: 0;
+    margin-bottom: 0 !important;
+}
+.negative-inventory-page .ni-limit-controls .form-control {
+    flex: 0 0 35%;
+    width: 35%;
+    min-width: 80px;
+}
+.negative-inventory-page .ni-status-badge {
+    padding: 6px 9px;
+    font-size: .7rem;
+}
+.negative-inventory-page #negativeInventoryItemsTable .form-select-sm,
+.negative-inventory-page #negativeInventoryItemsTable .form-control-sm {
+    min-height: 32px;
+    font-size: .78rem;
+}
+.negative-inventory-page #negativeInventoryPagination .page-link {
+    color: var(--ni-primary);
+    cursor: pointer;
+}
+.negative-inventory-page #negativeInventoryPagination .page-item.active .page-link {
+    border-color: var(--ni-primary);
+    color: #fff;
+    background: var(--ni-primary);
+}
+.negative-inventory-page #negativeInventoryPagination .page-item.disabled .page-link { cursor: default; }
+.negative-inventory-page .ni-save-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin: 20px -24px -24px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--ni-border);
+    background: rgba(255, 255, 255, .96);
+    backdrop-filter: blur(8px);
+}
+.negative-inventory-page .btn-ni-primary {
+    border-color: var(--ni-primary);
+    color: #fff;
+    background: var(--ni-primary);
+    box-shadow: 0 8px 18px rgba(92, 63, 43, .2);
+}
+.negative-inventory-page .btn-ni-primary:hover,
+.negative-inventory-page .btn-ni-primary:focus {
+    border-color: var(--ni-primary-dark);
+    color: #fff;
+    background: var(--ni-primary-dark);
+}
+
+@media (max-width: 767.98px) {
+    .negative-inventory-page .ni-settings-card .card-body { padding: 18px !important; }
+    .negative-inventory-page .ni-feature-panel { padding: 14px; }
+    .negative-inventory-page .ni-master-switch { width: 100%; }
+    .negative-inventory-page .ni-section-heading { display: grid; }
+    .negative-inventory-page .ni-policy-grid { grid-template-columns: 1fr; }
+    .negative-inventory-page .ni-save-bar { margin: 18px -18px -18px; padding: 14px 18px; }
+    .negative-inventory-page .btn-ni-primary { width: 100%; }
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    .negative-inventory-page .ni-policy-grid { grid-template-columns: 1fr 1fr; }
+    .negative-inventory-page .ni-policy-primary { grid-column: 1 / -1; }
+}

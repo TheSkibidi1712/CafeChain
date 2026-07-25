@@ -21,23 +21,27 @@
 }
 
 <div id="negative-inventory" data-pending-approval-count="@Model.PendingApprovalCount">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-        <div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-4 mb-4 ni-feature-panel">
+        <div class="d-flex align-items-start gap-3">
+            <span class="ni-feature-icon"><i class="fas fa-box-open"></i></span>
+            <div>
             <div class="d-flex align-items-center gap-2 mb-2">
-                <h5 class="fw-bold mb-0">Xuất âm thủ công</h5>
+                <h5 class="fw-bold mb-0">Cho phép xuất vượt tồn</h5>
                 <span class="badge rounded-pill @statusClass">@statusText</span>
             </div>
             <p class="text-muted mb-0">
-                Chỉ mở quy trình xin duyệt cho phiếu EXPORT với mục đích SALE; không tự xác nhận phiếu.
+                Áp dụng cho phiếu xuất bán hàng và luôn yêu cầu người có thẩm quyền phê duyệt.
             </p>
+            </div>
         </div>
-        <div class="form-check form-switch fs-5">
+        <div class="form-check form-switch fs-5 ni-master-switch">
             <input class="form-check-input" type="checkbox" role="switch"
                    id="negativeInventoryEnabled" name="Enabled" value="true"
+                   aria-label="Cho phép gửi yêu cầu xuất âm kho"
                    form="@formId" checked="@Model.Enabled" disabled="@(!Model.IsConfigurationValid)" />
             <input type="hidden" name="Enabled" value="false" form="@formId" />
             <label class="form-check-label fw-semibold" for="negativeInventoryEnabled">
-                Cho phép gửi yêu cầu xuất âm kho
+                Cho phép tạo yêu cầu
             </label>
         </div>
     </div>
@@ -59,9 +63,19 @@
         </div>
     }
 
-    <div class="row g-3 mb-4">
-        <div class="col-lg-4">
-            <label class="form-label fw-bold text-muted small text-uppercase">Hạn mức âm mặc định</label>
+    <div class="ni-section-heading">
+        <div>
+            <h6>Thiết lập chính sách</h6>
+            <p>Hạn mức chung và nguyên tắc phê duyệt đang áp dụng.</p>
+        </div>
+    </div>
+
+    <div class="ni-policy-grid mb-4">
+        <div class="ni-policy-primary">
+          <div class="ni-meta-field">
+            <span class="ni-meta-icon"><i class="fas fa-gauge-high"></i></span>
+            <div class="flex-grow-1">
+            <label class="form-label fw-bold mb-2">Hạn mức mặc định</label>
             <div class="input-group">
                 <input type="number" min="0" max="999999999999999.999" step="0.001"
                        class="form-control" name="DefaultMaxNegativeQuantity"
@@ -69,17 +83,36 @@
                        form="@formId" disabled="@(!Model.IsConfigurationValid)" />
                 <span class="input-group-text">base unit</span>
             </div>
-            <div class="form-text">Item có MaxNegativeQty = NULL sẽ dùng giá trị này.</div>
+            <div class="form-text">Tự động áp dụng khi item chưa có hạn mức riêng.</div>
+            </div>
+          </div>
         </div>
-        <div class="col-lg-4">
-            <label class="form-label fw-bold text-muted small text-uppercase">Maker-checker</label>
-            <input type="text" class="form-control" value="Bắt buộc phê duyệt: true" readonly />
-            <div class="form-text">Không thể tắt yêu cầu phê duyệt từ giao diện.</div>
+        <div>
+          <div class="ni-meta-field">
+            <span class="ni-meta-icon"><i class="fas fa-user-check"></i></span>
+            <div>
+                <label class="form-label fw-bold mb-1">Phê duyệt hai bước</label>
+                <div class="ni-policy-value"><i class="fas fa-circle-check"></i> Bắt buộc</div>
+                <div class="form-text">Không thể tắt trên giao diện.</div>
+            </div>
+          </div>
         </div>
-        <div class="col-lg-4">
-            <label class="form-label fw-bold text-muted small text-uppercase">Policy version</label>
-            <input type="text" class="form-control font-monospace" value="@Model.PolicyVersion" readonly />
-            <div class="form-text">Server tự tạo version mới khi cấu hình thực sự thay đổi.</div>
+        <div>
+          <div class="ni-meta-field">
+            <span class="ni-meta-icon"><i class="fas fa-code-branch"></i></span>
+            <div>
+                <label class="form-label fw-bold mb-1">Phiên bản chính sách</label>
+                <div class="ni-policy-version font-monospace">@Model.PolicyVersion</div>
+                <div class="form-text">Tự cập nhật sau mỗi thay đổi.</div>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <div class="ni-section-heading mb-2">
+        <div>
+            <h6>Hạn mức theo cửa hàng</h6>
+            <p>@stores.Count cửa hàng · @Model.Items.Count item · @Model.PendingApprovalCount yêu cầu chờ duyệt</p>
         </div>
     </div>
 
@@ -104,38 +137,38 @@
         </div>
     }
 
-    <div class="row g-3 align-items-end mb-3">
-        <div class="col-lg-6 col-md-7">
-            <label class="form-label fw-bold text-muted small text-uppercase" for="negativeInventoryItemSearch">Tìm item</label>
-            <input id="negativeInventoryItemSearch" type="search" class="form-control" placeholder="Mã, tên hoặc Item ID..." />
+    <div class="ni-toolbar row g-3 align-items-center mb-3">
+        <div class="col-lg-7 col-md-7">
+            <div class="ni-search-wrap">
+                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                <input id="negativeInventoryItemSearch" type="search" class="form-control" placeholder="Mã, tên hoặc Item ID..." />
+            </div>
         </div>
         <div class="col-lg-3 col-md-5">
-            <label class="form-label fw-bold text-muted small text-uppercase" for="negativeInventoryPageSize">Số dòng mỗi trang</label>
             <select id="negativeInventoryPageSize" class="form-select">
                 <option value="10" selected>10 dòng</option>
                 <option value="20">20 dòng</option>
                 <option value="50">50 dòng</option>
             </select>
         </div>
-        <div class="col-lg-3 text-lg-end">
-            <span class="text-muted small" id="negativeInventoryRangeSummary" aria-live="polite">
+        <div class="col-lg-2 text-lg-end">
+            <span class="ni-range-badge" id="negativeInventoryRangeSummary" aria-live="polite">
                 <span id="negativeInventoryRangeStart">0</span>–<span id="negativeInventoryRangeEnd">0</span>
                 / <span id="negativeInventoryFilteredCount">0</span> item
             </span>
         </div>
     </div>
 
-    <div class="table-responsive border rounded-3 bg-white">
+    <div class="table-responsive border rounded-3 bg-white ni-table-wrap">
         <table class="table table-hover align-middle mb-0" id="negativeInventoryItemsTable">
             <thead class="table-light">
                 <tr>
-                    <th>Cửa hàng</th>
-                    <th>Item</th>
-                    <th class="text-end">Tồn</th>
-                    <th style="min-width:180px">Chế độ</th>
-                    <th style="min-width:150px">Hạn mức riêng</th>
-                    <th>Hạn mức hiệu lực</th>
-                    <th>Trạng thái</th>
+                    <th class="ni-col-item">Item</th>
+                    <th class="text-end ni-col-stock">Tồn khả dụng</th>
+                    <th class="ni-col-mode">Chế độ</th>
+                    <th class="ni-col-limit">Hạn mức riêng</th>
+                    <th class="ni-col-effective">Hiệu lực</th>
+                    <th class="ni-col-status">Trạng thái</th>
                 </tr>
             </thead>
             <tbody>
@@ -149,16 +182,15 @@
                         data-base-effective-limit="@formatInput(item.EffectiveMaxNegativeQty)"
                         data-current-factor="1">
                         <td>
-                            <div class="fw-semibold">#@item.StoreId</div>
-                            <div class="small text-muted">@item.StoreName</div>
-                        </td>
-                        <td>
-                            <div class="fw-semibold">@item.ItemCode — @item.ItemName</div>
-                            <div class="small text-muted">@item.ItemType #@item.ItemId · base: @item.BaseUnitCode</div>
+                            <div class="ni-item-heading">
+                                <span class="ni-item-code">@item.ItemCode</span>
+                                <span class="ni-item-name">@item.ItemName</span>
+                            </div>
+                            <div class="small text-muted">@item.ItemType #@item.ItemId · Đơn vị gốc: @item.BaseUnitCode</div>
                         </td>
                         <td class="text-end">
-                            <div><span class="negative-available-qty">@formatQuantity(item.AvailableQty)</span> <span class="negative-display-unit-code">@item.BaseUnitCode</span></div>
-                            <div class="small text-muted">Reserved: <span class="negative-reserved-qty">@formatQuantity(item.ReservedQty)</span></div>
+                            <div class="ni-stock-value"><span class="negative-available-qty">@formatQuantity(item.AvailableQty)</span> <span class="negative-display-unit-code">@item.BaseUnitCode</span></div>
+                            <div class="small text-muted">Đã giữ: <span class="negative-reserved-qty">@formatQuantity(item.ReservedQty)</span></div>
                         </td>
                         <td>
                             <input type="hidden" name="Items[@index].StoreInventoryId" value="@item.StoreInventoryId" form="@formId" />
@@ -172,6 +204,7 @@
                             </select>
                         </td>
                         <td>
+                            <div class="ni-limit-controls">
                             <select class="form-select form-select-sm mb-2 negative-display-unit"
                                     name="Items[@index].DisplayUnitId" form="@formId"
                                     disabled="@(!Model.IsConfigurationValid || item.UnitOptions.Count <= 1)">
@@ -193,20 +226,21 @@
                                    value="@(item.MaxNegativeQty.HasValue ? formatInput(item.MaxNegativeQty.Value) : null)"
                                    form="@formId"
                                    disabled="@(item.LimitMode != NegativeInventoryLimitModes.Custom || !Model.IsConfigurationValid)" />
+                            </div>
                         </td>
                         <td>
                             <strong class="negative-effective-limit">@formatQuantity(item.EffectiveMaxNegativeQty)</strong>
                             <span class="negative-display-unit-code">@item.BaseUnitCode</span>
                         </td>
                         <td>
-                            <span class="badge @(item.CanRequestNegative ? "text-bg-success" : "text-bg-secondary")">
+                            <span class="badge rounded-pill ni-status-badge @(item.CanRequestNegative ? "text-bg-success" : "text-bg-secondary")">
                                 @item.EligibilityText
                             </span>
                         </td>
                     </tr>
                 }
                 <tr id="negativeInventoryEmptyRow" class="d-none">
-                    <td colspan="7" class="text-center py-5 text-muted">
+                    <td colspan="6" class="text-center py-5 text-muted">
                         <i class="fas fa-box-open fs-3 d-block mb-2"></i>
                         Không có item phù hợp trong cửa hàng này.
                     </td>
@@ -222,8 +256,8 @@
         </nav>
     </div>
 
-    <div class="d-flex justify-content-end border-top pt-4 mt-4">
-        <button type="submit" class="btn btn-danger px-5 py-2 fw-bold rounded-3 shadow-sm"
+    <div class="d-flex justify-content-end ni-save-bar">
+        <button type="submit" class="btn btn-ni-primary px-5 py-2 fw-bold rounded-3"
                 form="@formId" disabled="@(!Model.IsConfigurationValid)">
             <i class="fas fa-shield-halved me-2"></i>Lưu cấu hình âm kho
         </button>

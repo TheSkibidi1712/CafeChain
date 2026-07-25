@@ -3,16 +3,21 @@
     ViewData["Title"] = "Cấu hình âm kho";
 }
 
-<div class="container-fluid py-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+<link rel="stylesheet" href="~/css/Admin/Settings/negative-inventory.css" asp-append-version="true" />
+
+<div class="container-fluid py-4 negative-inventory-page">
+    <div class="ni-page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h1 class="h3 fw-bold mb-2">Cấu hình âm kho</h1>
-            <p class="text-muted mb-0">Quản lý kill switch và hạn mức xuất âm thủ công theo từng cửa hàng, nguyên liệu hoặc bán thành phẩm.</p>
+            <div class="ni-eyebrow"><i class="fas fa-shield-halved"></i> Chính sách tồn kho</div>
+            <h1 class="h3 fw-bold mb-2 ni-page-title">Cấu hình xuất âm kho</h1>
+            <p class="text-muted mb-0">Kiểm soát quyền yêu cầu xuất vượt tồn và hạn mức áp dụng tại từng cửa hàng.</p>
         </div>
-        <span class="badge text-bg-warning">Business Owner / System Admin</span>
+        <span class="badge rounded-pill px-3 py-2 ni-role-badge">
+            <i class="fas fa-user-shield me-1"></i>Business Owner / System Admin
+        </span>
     </div>
 
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm ni-settings-card">
         <div class="card-body p-4">
             @if (Model.NegativeInventory != null)
             {
@@ -26,40 +31,6 @@
         </div>
     </div>
 </div>
-
-<style>
-    #negativeInventoryItemsTable .badge { white-space: normal; text-align: left; }
-    #negativeInventoryItemsTable { min-width: 1080px; }
-    .negative-store-tabs-wrap {
-        overflow-x: auto;
-        overflow-y: hidden;
-        scrollbar-width: thin;
-    }
-    #negativeInventoryStoreTabs {
-        width: max-content;
-        min-width: 100%;
-    }
-    #negativeInventoryStoreTabs .nav-link {
-        color: #64748b;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-    #negativeInventoryStoreTabs .nav-link.active {
-        color: #d93d20;
-    }
-    #negativeInventoryPagination .page-link {
-        color: #d93d20;
-        cursor: pointer;
-    }
-    #negativeInventoryPagination .page-item.active .page-link {
-        color: #fff;
-        background-color: #d93d20;
-        border-color: #d93d20;
-    }
-    #negativeInventoryPagination .page-item.disabled .page-link {
-        cursor: default;
-    }
-</style>
 
 @section Scripts {
     <script src="~/js/Admin/Settings/adminsetting.js" asp-append-version="true"></script>
