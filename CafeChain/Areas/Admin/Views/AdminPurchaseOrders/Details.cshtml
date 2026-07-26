@@ -84,17 +84,21 @@
                                 <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.PackageCount) gói · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot)/gói · 1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot) @line.PackageUnitName</div>
                             </td>
                             <td>@(line.RestockRequestId.HasValue ? $"Yêu cầu nhập hàng #{line.RestockRequestId}" : "Mua chủ động")</td>
-                            <td class="number">@AdminStatusDisplay.Quantity(line.OrderedBaseQuantity) @line.BaseUnitName</td>
-                            <td class="number">@AdminStatusDisplay.Quantity(line.AcceptedBaseQuantity) @line.BaseUnitName</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.OrderedBaseQuantity) @line.BaseUnitName@if (line.OrderedProcurementQuantity.HasValue) { <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.Value) @line.ProcurementUnitName</div> }</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.AcceptedBaseQuantity) @line.BaseUnitName@if (line.AcceptedProcurementQuantity.HasValue) { <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.AcceptedProcurementQuantity.Value) @line.ProcurementUnitName</div> }</td>
                             <td class="number">@AdminStatusDisplay.Quantity(line.RejectedBaseQuantity) @line.BaseUnitName</td>
                             <td class="number">
                                 @AdminStatusDisplay.Quantity(line.ClosedRemainingQuantity) @line.BaseUnitName
+                                @if (line.ClosedRemainingQuantity > 0 && line.ProcurementUnitName != null)
+                                {
+                                    <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.ClosedRemainingQuantity / (line.OrderedBaseQuantity > 0 && line.OrderedProcurementQuantity.HasValue ? line.OrderedBaseQuantity / line.OrderedProcurementQuantity.Value : 1m)) @line.ProcurementUnitName</div>
+                                }
                                 @if (!string.IsNullOrWhiteSpace(line.CloseRemainingReason))
                                 {
                                     <div class="ops-secondary" title="@line.CloseRemainingReason">@line.CloseRemainingReason</div>
                                 }
                             </td>
-                            <td class="number"><strong>@AdminStatusDisplay.Quantity(line.RemainingBaseQuantity) @line.BaseUnitName</strong></td>
+                            <td class="number"><strong>@AdminStatusDisplay.Quantity(line.RemainingBaseQuantity) @line.BaseUnitName</strong>@if (line.RemainingProcurementQuantity.HasValue) { <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.RemainingProcurementQuantity.Value) @line.ProcurementUnitName</div> }</td>
                             <td>
                                 <span class="ops-badge ops-badge-neutral">@line.ReceiptCount lần nhận</span>
                                 @if (canCloseRemaining && canReceiveStatus && line.RemainingBaseQuantity > 0)

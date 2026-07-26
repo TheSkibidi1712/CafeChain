@@ -17,6 +17,8 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public int IngredientId { get; set; }
         public int IngredientSupplierId { get; set; }
         public decimal PackageCount { get; set; }
+        public decimal? OrderedProcurementQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
         public string? Note { get; set; }
     }
 
@@ -50,13 +52,21 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public string PackageUnitName { get; set; } = string.Empty;
         public decimal PackagePriceSnapshot { get; set; }
         public decimal OrderedBaseQuantity { get; set; }
+        public decimal? OrderedProcurementQuantity { get; set; }
+        public decimal? PackSizeProcurementQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
+        public string? ProcurementUnitName { get; set; }
+        public decimal? RoundingSurplusProcurementQuantity { get; set; }
         public decimal AcceptedBaseQuantity { get; set; }
+        public decimal? AcceptedProcurementQuantity { get; set; }
+        public decimal? InventoryPostingBaseQuantity { get; set; }
         public decimal RejectedBaseQuantity { get; set; }
         public decimal ClosedRemainingQuantity { get; set; }
         public string? CloseRemainingReason { get; set; }
         public int? ClosedRemainingByStaffId { get; set; }
         public DateTime? ClosedRemainingAtUtc { get; set; }
         public decimal RemainingBaseQuantity { get; set; }
+        public decimal? RemainingProcurementQuantity { get; set; }
         public int ReceiptCount { get; set; }
         public string RowVersion { get; set; } = string.Empty;
         public int PromisedLeadTimeDaysSnapshot { get; set; }

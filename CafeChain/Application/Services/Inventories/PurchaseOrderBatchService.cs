@@ -98,6 +98,59 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
             var childByStore = new Dictionary<int, PurchaseOrder>();
             foreach (var group in data.Groups)
             {
+                var groupAdviceLines = group.Allocations
+                    .Select(allocation => _context.ChangeTracker.Entries<PurchaseAdviceLine>()
+                        .Select(entry => entry.Entity)
+                        .Single(line => line.PurchaseAdviceLineId == allocation.PurchaseAdviceLineId))
+                    .ToArray();
+                var procurementLines = groupAdviceLines
+                    .Where(line => line.RequestedProcurementQuantity.HasValue && line.ProcurementUnitId.HasValue)
+                    .ToArray();
+                if (procurementLines.Length != 0 && procurementLines.Length != groupAdviceLines.Length)
+                {
+                    await transaction.RollbackAsync();
+                    return Failure<PurchaseOrderBatchDetailDto>(
+                        PurchaseOrderBatchErrorCodes.Invalid,
+                        $"Không thể gộp dữ liệu procurement mới và dữ liệu legacy trong cùng dòng {group.IngredientName}.");
+                }
+
+                var procurementUnitIds = procurementLines
+                    .Select(line => line.ProcurementUnitId!.Value)
+                    .Distinct()
+                    .ToArray();
+                if (procurementUnitIds.Length > 1)
+                {
+                    await transaction.RollbackAsync();
+                    return Failure<PurchaseOrderBatchDetailDto>(
+                        PurchaseOrderBatchErrorCodes.Invalid,
+                        $"Các đề nghị mua {group.IngredientName} không cùng đơn vị procurement.");
+                }
+                var procurementUnitId = procurementUnitIds.Length == 1
+                    ? procurementUnitIds[0]
+                    : (int?)null;
+
+                decimal? totalProcurementQuantity = null;
+                decimal? demandCoveredProcurementQuantity = null;
+                decimal? roundingSurplusProcurementQuantity = null;
+                if (procurementLines.Length > 0)
+                {
+                    var procurementAllocations = group.Allocations
+                        .Select(allocation => new
+                        {
+                            Ordered = allocation.OrderedProcurementQuantity
+                                ?? throw new InvalidOperationException(
+                                    $"Dòng đề nghị mua #{allocation.PurchaseAdviceLineId} thiếu số lượng procurement."),
+                            Covered = allocation.DemandCoveredProcurementQuantity
+                                ?? throw new InvalidOperationException(
+                                    $"Dòng đề nghị mua #{allocation.PurchaseAdviceLineId} thiếu số lượng procurement phủ nhu cầu.")
+                        })
+                        .ToArray();
+                    totalProcurementQuantity = procurementAllocations.Sum(x => x.Ordered);
+                    demandCoveredProcurementQuantity = procurementAllocations.Sum(x => x.Covered);
+                    roundingSurplusProcurementQuantity = procurementAllocations.Sum(
+                        x => Math.Max(0m, x.Ordered - x.Covered));
+                }
+
                 var batchLine = new PurchaseOrderBatchLine
                 {
                     IngredientId = group.IngredientId,
@@ -106,6 +159,10 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                     PackageQuantitySnapshot = group.PackageQuantity,
                     TotalPackageCount = group.PackageCount,
                     TotalBaseQuantity = group.OrderedBaseQuantity,
+                    TotalProcurementQuantity = totalProcurementQuantity,
+                    DemandCoveredProcurementQuantity = demandCoveredProcurementQuantity,
+                    RoundingSurplusProcurementQuantity = roundingSurplusProcurementQuantity,
+                    ProcurementUnitId = procurementUnitId,
                     PackagePriceSnapshot = group.PackagePriceSnapshot,
                     LineTotal = group.LineTotal,
                     Currency = group.Currency,
@@ -115,6 +172,21 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
 
                 foreach (var allocation in group.Allocations)
                 {
+                    var adviceLine = groupAdviceLines.Single(
+                        line => line.PurchaseAdviceLineId == allocation.PurchaseAdviceLineId);
+                    decimal? orderedProcurementQuantity = null;
+                    decimal? coveredProcurementQuantity = null;
+                    decimal? surplusProcurementQuantity = null;
+                    if (adviceLine.RequestedProcurementQuantity.HasValue
+                        && adviceLine.ProcurementUnitId.HasValue)
+                    {
+                        orderedProcurementQuantity = allocation.OrderedProcurementQuantity;
+                        coveredProcurementQuantity = allocation.DemandCoveredProcurementQuantity;
+                        surplusProcurementQuantity = Math.Max(
+                            0m,
+                            orderedProcurementQuantity.Value - coveredProcurementQuantity.Value);
+                    }
+
                     if (!childByStore.TryGetValue(allocation.StoreId, out var child))
                     {
                         var childSequence = await DocumentNumberCounterAllocator.NextAsync(_context, ChildCounterKey, now);
@@ -142,6 +214,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                     var childLine = new PurchaseOrderLine
                     {
                         RestockRequestId = allocation.RestockRequestId,
+                        PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
                         IngredientId = group.IngredientId,
                         IngredientSupplierId = group.IngredientSupplierId,
                         PackageUnitIdSnapshot = group.PackageUnitId,
@@ -149,6 +222,15 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                         PackagePriceSnapshot = group.PackagePriceSnapshot,
                         PackageCount = allocation.PackageCount,
                         OrderedBaseQuantity = allocation.OrderedBaseQuantity,
+                        OrderedPackQuantity = allocation.PackageCount,
+                        PackSizeProcurementQuantity = orderedProcurementQuantity / allocation.PackageCount,
+                        ProcurementUnitId = adviceLine.ProcurementUnitId,
+                        OrderedProcurementQuantity = orderedProcurementQuantity,
+                        RoundingSurplusProcurementQuantity = surplusProcurementQuantity,
+                        InventoryBaseUnitId = adviceLine.BaseUnitId,
+                        // The procurement-to-inventory conversion is deliberately deferred
+                        // until the branch confirms the receipt.
+                        ProcurementToInventoryFactor = null,
                         PromisedLeadTimeDaysSnapshot = group.LeadTimeDays,
                         Note = $"Allocation từ {allocation.AdviceNumber}"
                     };
@@ -160,16 +242,37 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                         PurchaseOrderLine = childLine,
                         AllocatedBaseQuantity = allocation.OrderedBaseQuantity,
                         AllocatedPackageQuantity = allocation.PackageCount,
+                        AllocatedProcurementQuantity = orderedProcurementQuantity,
+                        DemandCoveredProcurementQuantity = coveredProcurementQuantity,
+                        RoundingSurplusProcurementQuantity = surplusProcurementQuantity,
+                        ProcurementUnitId = adviceLine.ProcurementUnitId,
                         CreatedAtUtc = now
                     });
 
-                    var adviceLine = _context.ChangeTracker.Entries<PurchaseAdviceLine>()
-                        .Select(x => x.Entity).Single(x => x.PurchaseAdviceLineId == allocation.PurchaseAdviceLineId);
                     adviceLine.AllocatedToPoBaseQuantity = Math.Min(
                         adviceLine.RequestedPurchaseBaseQuantity,
                         adviceLine.AllocatedToPoBaseQuantity + allocation.DemandCoveredBaseQuantity);
-                    var remaining = Math.Max(0m, adviceLine.RequestedPurchaseBaseQuantity - adviceLine.AllocatedToPoBaseQuantity - adviceLine.ClosedBaseQuantity);
-                    adviceLine.IsActiveReservation = remaining > 0;
+                    if (coveredProcurementQuantity.HasValue && adviceLine.RequestedProcurementQuantity.HasValue)
+                    {
+                        adviceLine.AllocatedToPoProcurementQuantity = Math.Min(
+                            adviceLine.RequestedProcurementQuantity.Value,
+                            adviceLine.AllocatedToPoProcurementQuantity + coveredProcurementQuantity.Value);
+                    }
+                    var remainingProcurement = adviceLine.RequestedProcurementQuantity.HasValue
+                        ? Math.Max(
+                            0m,
+                            adviceLine.RequestedProcurementQuantity.Value
+                                - adviceLine.AllocatedToPoProcurementQuantity
+                                - adviceLine.ClosedProcurementQuantity)
+                        : (decimal?)null;
+                    var remainingBase = Math.Max(
+                        0m,
+                        adviceLine.RequestedPurchaseBaseQuantity
+                            - adviceLine.AllocatedToPoBaseQuantity
+                            - adviceLine.ClosedBaseQuantity);
+                    adviceLine.IsActiveReservation = remainingProcurement.HasValue
+                        ? remainingProcurement.Value > 0
+                        : remainingBase > 0;
                 }
             }
 
@@ -315,15 +418,38 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
         await _context.SaveChangesAsync();
         foreach (var line in affectedAdviceLines)
         {
-            var activeAllocationQuantities = await _context.PurchaseOrderLineAllocations
+            var activeAllocations = await _context.PurchaseOrderLineAllocations
                 .Where(x => x.PurchaseAdviceLineId == line.PurchaseAdviceLineId
                     && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled)
-                .Select(x => x.AllocatedBaseQuantity)
+                .Select(x => new
+                {
+                    x.AllocatedBaseQuantity,
+                    x.DemandCoveredProcurementQuantity
+                })
                 .ToListAsync();
-            var activeOrderedBaseQuantity = activeAllocationQuantities.Sum();
+            var activeOrderedBaseQuantity = activeAllocations.Sum(x => x.AllocatedBaseQuantity);
             var maximumCoverable = Math.Max(0m, line.RequestedPurchaseBaseQuantity - line.ClosedBaseQuantity);
             line.AllocatedToPoBaseQuantity = Math.Min(maximumCoverable, activeOrderedBaseQuantity);
-            line.IsActiveReservation = line.AllocatedToPoBaseQuantity < maximumCoverable;
+            decimal? remainingProcurement = null;
+            if (line.RequestedProcurementQuantity.HasValue)
+            {
+                var activeProcurementQuantity = activeAllocations.Sum(
+                    x => x.DemandCoveredProcurementQuantity ?? 0m);
+                var maximumProcurementCoverable = Math.Max(
+                    0m,
+                    line.RequestedProcurementQuantity.Value - line.ClosedProcurementQuantity);
+                line.AllocatedToPoProcurementQuantity = Math.Min(
+                    maximumProcurementCoverable,
+                    activeProcurementQuantity);
+                remainingProcurement = Math.Max(
+                    0m,
+                    line.RequestedProcurementQuantity.Value
+                        - line.AllocatedToPoProcurementQuantity
+                        - line.ClosedProcurementQuantity);
+            }
+            line.IsActiveReservation = remainingProcurement.HasValue
+                ? remainingProcurement.Value > 0
+                : line.AllocatedToPoBaseQuantity < maximumCoverable;
         }
         await _context.SaveChangesAsync();
         await tx.CommitAsync();
@@ -342,10 +468,13 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
             .Include(x => x.Supplier).Include(x => x.CreatedByStaff).Include(x => x.ApprovedByStaff)
             .Include(x => x.Lines).ThenInclude(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
             .Include(x => x.Lines).ThenInclude(x => x.PackageUnit)
+            .Include(x => x.Lines).ThenInclude(x => x.ProcurementUnit)
             .Include(x => x.Lines).ThenInclude(x => x.Allocations).ThenInclude(x => x.PurchaseAdviceLine).ThenInclude(x => x.PurchaseAdvice)
+            .Include(x => x.Lines).ThenInclude(x => x.Allocations).ThenInclude(x => x.ProcurementUnit)
             .Include(x => x.Lines).ThenInclude(x => x.Allocations).ThenInclude(x => x.PurchaseOrder).ThenInclude(x => x.Store)
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Store)
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
+            .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.ProcurementUnit)
             .AsSplitQuery()
             .SingleOrDefaultAsync(x => x.PurchaseOrderBatchId == id);
         if (batch == null) return null;
@@ -389,6 +518,11 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                         Math.Min(
                             a.AllocatedBaseQuantity,
                             a.PurchaseAdviceLine.RequestedPurchaseBaseQuantity))),
+                TotalProcurementQuantity = line.TotalProcurementQuantity,
+                DemandCoveredProcurementQuantity = line.DemandCoveredProcurementQuantity,
+                RoundingSurplusProcurementQuantity = line.RoundingSurplusProcurementQuantity,
+                ProcurementUnitId = line.ProcurementUnitId,
+                ProcurementUnitName = line.ProcurementUnit?.Name,
                 PackagePriceSnapshot = line.PackagePriceSnapshot,
                 LineTotal = line.LineTotal,
                 Allocations = line.Allocations.Select(a => new PurchaseOrderBatchAllocationDto
@@ -410,7 +544,12 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                         0m,
                         a.AllocatedBaseQuantity - Math.Min(
                             a.AllocatedBaseQuantity,
-                            a.PurchaseAdviceLine.RequestedPurchaseBaseQuantity))
+                            a.PurchaseAdviceLine.RequestedPurchaseBaseQuantity)),
+                    AllocatedProcurementQuantity = a.AllocatedProcurementQuantity,
+                    DemandCoveredProcurementQuantity = a.DemandCoveredProcurementQuantity,
+                    RoundingSurplusProcurementQuantity = a.RoundingSurplusProcurementQuantity,
+                    ProcurementUnitId = a.ProcurementUnitId,
+                    ProcurementUnitName = a.ProcurementUnit?.Name
                 }).ToArray()
             }).ToArray(),
             ChildPurchaseOrders = batch.ChildPurchaseOrders.Select(po =>
@@ -418,6 +557,20 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                 var accepted = po.Lines.SelectMany(x => x.ReceiptPostings).Sum(x => x.AcceptedBaseQuantity);
                 var ordered = po.Lines.Sum(x => x.OrderedBaseQuantity);
                 var closed = po.Lines.Sum(x => x.ClosedRemainingQuantity);
+                var procurementUnitNames = po.Lines
+                    .Where(x => x.ProcurementUnit != null)
+                    .Select(x => x.ProcurementUnit!.Name)
+                    .Distinct()
+                    .ToArray();
+                var orderedProcurement = po.Lines.All(x => x.OrderedProcurementQuantity.HasValue)
+                    ? po.Lines.Sum(x => x.OrderedProcurementQuantity!.Value)
+                    : (decimal?)null;
+                var acceptedProcurement = po.Lines.All(x =>
+                        !x.OrderedProcurementQuantity.HasValue
+                        || x.ReceiptPostings.All(posting => posting.AcceptedProcurementQuantity.HasValue))
+                    ? po.Lines.SelectMany(x => x.ReceiptPostings)
+                        .Sum(x => x.AcceptedProcurementQuantity ?? 0m)
+                    : (decimal?)null;
                 return new PurchaseOrderBatchChildDto
                 {
                     PurchaseOrderId = po.PurchaseOrderId,
@@ -428,7 +581,15 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                     TotalAmount = po.Lines.Sum(x => x.PackageCount * x.PackagePriceSnapshot),
                     OrderedBaseQuantity = ordered,
                     AcceptedBaseQuantity = accepted,
-                    RemainingBaseQuantity = Math.Max(0m, ordered - accepted - closed)
+                    RemainingBaseQuantity = Math.Max(0m, ordered - accepted - closed),
+                    OrderedProcurementQuantity = orderedProcurement,
+                    AcceptedProcurementQuantity = acceptedProcurement,
+                    RemainingProcurementQuantity = orderedProcurement.HasValue && acceptedProcurement.HasValue
+                        ? Math.Max(0m, orderedProcurement.Value - acceptedProcurement.Value)
+                        : null,
+                    ProcurementUnitName = procurementUnitNames.Length == 1
+                        ? procurementUnitNames[0]
+                        : null
                 };
             }).OrderBy(x => x.StoreName).ToArray()
         };

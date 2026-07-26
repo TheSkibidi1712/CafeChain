@@ -33,11 +33,11 @@
         <div class="ops-metric"><span class="ops-metric-label">Phiếu kiểm đếm</span><strong class="ops-metric-value">@Model.ReceiptCode</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Chi nhánh</span><strong class="ops-metric-value">@Model.StoreName</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Nhà cung cấp</span><strong class="ops-metric-value">@Model.SupplierName</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Dòng còn phải giao</span><strong class="ops-metric-value warning">@Model.Lines.Count(x => x.RemainingBaseQuantity > 0)</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Dòng còn phải giao</span><strong class="ops-metric-value warning">@Model.Lines.Count(x => x.OrderedProcurementQuantity.HasValue ? x.RemainingProcurementQuantity.GetValueOrDefault() > 0 : x.RemainingBaseQuantity > 0)</strong></div>
     </section>
 
     <div class="ops-notice ops-notice-info">
-        Số lượng thực giao và số lượng từ chối dùng cùng đơn vị gói của đơn đặt hàng. Số lượng chấp nhận = thực giao - từ chối. Lưu nháp chưa làm thay đổi tồn kho.
+        Số lượng thực giao và số lượng từ chối dùng cùng đơn vị gói của đơn đặt hàng. Số lượng chấp nhận = thực giao - từ chối. Lưu nháp chỉ giữ số lượng procurement; chỉ xác nhận phiếu mới quy đổi sang đơn vị tồn kho và ghi tồn kho.
     </div>
 
     <form asp-action="SavePurchaseOrderDraft" method="post">
@@ -82,19 +82,26 @@
                         @for (var i = 0; i < Model.Lines.Count; i++)
                         {
                             var line = Model.Lines[i];
-                            var isClosed = line.RemainingBaseQuantity <= 0;
+                            var usesProcurement = line.OrderedProcurementQuantity.HasValue;
+                            var isClosed = usesProcurement
+                                ? line.RemainingProcurementQuantity.GetValueOrDefault() <= 0
+                                : line.RemainingBaseQuantity <= 0;
                             <tr class="receipt-draft-line" data-line-index="@i">
                                 <td>
                                     <strong class="ops-item-name">@line.IngredientName</strong>
                                     <div class="ops-secondary">1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot) @line.PackageUnitName · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot)/gói</div>
+                                    @if (line.OrderedProcurementQuantity.HasValue)
+                                    {
+                                        <div class="ops-secondary">Đơn vị mua: đặt @AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.Value) @line.ProcurementUnitName · đã nhận @AdminStatusDisplay.Quantity(line.PreviouslyAcceptedProcurementQuantity.GetValueOrDefault()) · còn @AdminStatusDisplay.Quantity(line.RemainingProcurementQuantity.GetValueOrDefault()) @line.ProcurementUnitName</div>
+                                    }
                                     @if (line.RestockRequestId.HasValue)
                                     {
                                         <div class="ops-secondary">Yêu cầu nhập hàng #@line.RestockRequestId</div>
                                     }
                                 </td>
-                                <td class="number">@AdminStatusDisplay.Quantity(line.OrderedBaseQuantity)</td>
-                                <td class="number">@AdminStatusDisplay.Quantity(line.PreviouslyAcceptedBaseQuantity)</td>
-                                <td class="number"><strong>@AdminStatusDisplay.Quantity(line.RemainingBaseQuantity)</strong></td>
+                                <td class="number">@(usesProcurement ? AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity!.Value) + " " + line.ProcurementUnitName : AdminStatusDisplay.Quantity(line.OrderedBaseQuantity))</td>
+                                <td class="number">@(usesProcurement ? AdminStatusDisplay.Quantity(line.PreviouslyAcceptedProcurementQuantity.GetValueOrDefault()) + " " + line.ProcurementUnitName : AdminStatusDisplay.Quantity(line.PreviouslyAcceptedBaseQuantity))</td>
+                                <td class="number"><strong>@(usesProcurement ? AdminStatusDisplay.Quantity(line.RemainingProcurementQuantity.GetValueOrDefault()) + " " + line.ProcurementUnitName : AdminStatusDisplay.Quantity(line.RemainingBaseQuantity))</strong></td>
                                 <td>
                                     <input type="hidden" name="Lines[@i].PurchaseOrderLineId" value="@line.PurchaseOrderLineId" />
                                     <input class="ops-input w-100 actual-quantity" type="number" step="0.001" min="0" name="Lines[@i].ActualReceivedQuantity" value="@line.ActualReceivedQuantity" disabled="@isClosed" aria-label="Số lượng thực giao của @line.IngredientName" />

@@ -54,6 +54,11 @@ public sealed class PurchaseOrderBatchLineDto
     public decimal TotalBaseQuantity { get; set; }
     public decimal DemandCoveredBaseQuantity { get; set; }
     public decimal RoundingSurplusBaseQuantity { get; set; }
+    public decimal? TotalProcurementQuantity { get; set; }
+    public decimal? DemandCoveredProcurementQuantity { get; set; }
+    public decimal? RoundingSurplusProcurementQuantity { get; set; }
+    public int? ProcurementUnitId { get; set; }
+    public string? ProcurementUnitName { get; set; }
     public decimal PackagePriceSnapshot { get; set; }
     public decimal LineTotal { get; set; }
     public IReadOnlyList<PurchaseOrderBatchAllocationDto> Allocations { get; set; } = Array.Empty<PurchaseOrderBatchAllocationDto>();
@@ -73,6 +78,11 @@ public sealed class PurchaseOrderBatchAllocationDto
     public decimal AllocatedPackageQuantity { get; set; }
     public decimal DemandCoveredBaseQuantity { get; set; }
     public decimal RoundingSurplusBaseQuantity { get; set; }
+    public decimal? AllocatedProcurementQuantity { get; set; }
+    public decimal? DemandCoveredProcurementQuantity { get; set; }
+    public decimal? RoundingSurplusProcurementQuantity { get; set; }
+    public int? ProcurementUnitId { get; set; }
+    public string? ProcurementUnitName { get; set; }
 }
 
 public sealed class PurchaseOrderBatchChildDto
@@ -86,6 +96,10 @@ public sealed class PurchaseOrderBatchChildDto
     public decimal OrderedBaseQuantity { get; set; }
     public decimal AcceptedBaseQuantity { get; set; }
     public decimal RemainingBaseQuantity { get; set; }
+    public decimal? OrderedProcurementQuantity { get; set; }
+    public decimal? AcceptedProcurementQuantity { get; set; }
+    public decimal? RemainingProcurementQuantity { get; set; }
+    public string? ProcurementUnitName { get; set; }
 }
 
 public sealed class PurchaseOrderBatchDetailPageDto
