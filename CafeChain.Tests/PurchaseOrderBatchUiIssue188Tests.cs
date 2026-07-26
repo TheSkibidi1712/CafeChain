@@ -160,6 +160,9 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
         Assert.Contains("giao trong", view);
         Assert.Contains("PackagePriceSnapshot", view);
         Assert.Contains("group.Allocations", view);
+        Assert.Contains("preview?.LineCount > 1", view);
+        Assert.Contains("? \"Tạo đơn đặt hàng gộp\"", view);
+        Assert.Contains(": \"Tạo đơn đặt hàng\"", view);
     }
 
     private PurchaseOrderBatchDocumentService Service() => new(_db, _renderer.Object, _storage.Object, _scope.Object);

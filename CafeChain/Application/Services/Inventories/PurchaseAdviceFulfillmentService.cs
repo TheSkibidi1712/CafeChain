@@ -36,9 +36,9 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
             .Select(x => new { x.BranchReceiptLineId, x.BranchReceiptId, x.PurchaseOrderLineId })
             .SingleOrDefaultAsync();
         if (receiptLine == null)
-            return Failure(PurchaseAdviceErrorCodes.BackPostTraceMissing, "Không tìm thấy dòng phiếu nhận để truy vết Accepted.");
+            return Failure(PurchaseAdviceErrorCodes.BackPostTraceMissing, "Không tìm thấy dòng phiếu nhận để truy vết số lượng chấp nhận.");
         if (receiptLine.PurchaseOrderLineId != purchaseOrderLineId)
-            return Failure(PurchaseAdviceErrorCodes.BackPostTraceMissing, "Dòng phiếu nhận không thuộc dòng đơn mua được yêu cầu back-post.");
+            return Failure(PurchaseAdviceErrorCodes.BackPostTraceMissing, "Dòng phiếu nhận không thuộc dòng đơn mua cần ghi nhận.");
 
         var existing = await _context.PurchaseAdviceFulfillmentPostings
             .SingleOrDefaultAsync(x => x.BranchReceiptLineId == branchReceiptLineId
@@ -49,7 +49,7 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
             if (existing.Quantity != acceptedQuantity
                 || existing.PurchaseAdviceLineId != allocation.PurchaseAdviceLineId)
             {
-                return Failure(PurchaseAdviceErrorCodes.BackPostConflict, "Dòng phiếu nhận đã được back-post với số lượng hoặc phân bổ khác.");
+                return Failure(PurchaseAdviceErrorCodes.BackPostConflict, "Dòng phiếu nhận đã được ghi nhận với số lượng hoặc phân bổ khác.");
             }
 
             var replayLine = await LoadAdviceLineAsync(allocation.PurchaseAdviceLineId);
@@ -60,15 +60,15 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
             }
             if (replayLine != null)
             {
-                await RecomputeHeaderStatusAsync(replayLine.PurchaseAdviceId, actorStaffId, "Đồng bộ lại aggregate Accepted từ ledger.");
+                await RecomputeHeaderStatusAsync(replayLine.PurchaseAdviceId, actorStaffId, "Đồng bộ lại tổng số lượng chấp nhận từ sổ theo dõi.");
                 await _context.SaveChangesAsync();
             }
-            return ServiceResult.Success("Accepted đã được ghi nhận trước đó.");
+            return ServiceResult.Success("Số lượng chấp nhận đã được ghi nhận trước đó.");
         }
 
         var line = await LoadAdviceLineAsync(allocation.PurchaseAdviceLineId);
         if (line == null)
-            return Failure(PurchaseAdviceErrorCodes.BackPostTraceMissing, "Không tìm thấy Purchase Advice line để ghi Accepted.");
+            return Failure(PurchaseAdviceErrorCodes.BackPostTraceMissing, "Không tìm thấy dòng đề nghị mua để ghi số lượng chấp nhận.");
 
         var accepted = await SumPostingQuantityAsync(line.PurchaseAdviceLineId, PurchaseAdviceFulfillmentPostingTypes.Accepted);
         var closed = await SumPostingQuantityAsync(line.PurchaseAdviceLineId, PurchaseAdviceFulfillmentPostingTypes.Closed);
@@ -88,13 +88,13 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
         {
             return Failure(
                 PurchaseAdviceErrorCodes.AcceptedExceedsAllocation,
-                "Số lượng Accepted vượt số lượng đã phân bổ cho Purchase Advice.");
+                "Số lượng chấp nhận vượt số lượng đã phân bổ cho đề nghị mua.");
         }
         if (accepted + closed + acceptedQuantity > totalAllocated.Sum())
         {
             return Failure(
                 PurchaseAdviceErrorCodes.AcceptedExceedsAllocation,
-                "Tổng số lượng Accepted vượt tổng số lượng đã phân bổ cho Purchase Advice.");
+                "Tổng số lượng chấp nhận vượt tổng số lượng đã phân bổ cho đề nghị mua.");
         }
 
         var sourceHash = ComputeHash($"{branchReceiptLineId}|{allocation.PurchaseOrderLineAllocationId}|{acceptedQuantity:0.000}");
@@ -117,9 +117,9 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
         await _context.SaveChangesAsync();
 
         await RefreshCachedQuantitiesAsync(line);
-        await RecomputeHeaderStatusAsync(line.PurchaseAdviceId, actorStaffId, "Back-post Accepted từ phiếu nhận hàng.");
+        await RecomputeHeaderStatusAsync(line.PurchaseAdviceId, actorStaffId, "Ghi nhận số lượng chấp nhận từ phiếu nhận hàng.");
         await _context.SaveChangesAsync();
-        return ServiceResult.Success("Đã back-post Accepted về Purchase Advice.");
+        return ServiceResult.Success("Đã ghi số lượng chấp nhận về đề nghị mua.");
     }
 
     public async Task<ServiceResult> BackPostClosedAsync(
@@ -146,7 +146,7 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
                 || existing.Quantity != closedQuantity
                 || existing.PurchaseOrderLineId != purchaseOrderLineId)
             {
-                return Failure(PurchaseAdviceErrorCodes.BackPostConflict, "RequestKey đã được dùng cho payload Close Remaining khác.");
+                return Failure(PurchaseAdviceErrorCodes.BackPostConflict, "Mã chống gửi trùng đã được dùng cho dữ liệu đóng phần còn lại khác.");
             }
 
             var replayLine = await LoadAdviceLineAsync(allocation.PurchaseAdviceLineId);
@@ -154,15 +154,15 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
             {
                 await RefreshCachedQuantitiesAsync(replayLine);
                 await _context.SaveChangesAsync();
-                await RecomputeHeaderStatusAsync(replayLine.PurchaseAdviceId, actorStaffId, "Đồng bộ lại aggregate Closed từ ledger.");
+                await RecomputeHeaderStatusAsync(replayLine.PurchaseAdviceId, actorStaffId, "Đồng bộ lại tổng số lượng đóng từ sổ theo dõi.");
                 await _context.SaveChangesAsync();
             }
-            return ServiceResult.Success("Close Remaining đã được back-post trước đó.");
+            return ServiceResult.Success("Phần còn lại đã được đóng và ghi nhận trước đó.");
         }
 
         var line = await LoadAdviceLineAsync(allocation.PurchaseAdviceLineId);
         if (line == null)
-            return Failure(PurchaseAdviceErrorCodes.BackPostTraceMissing, "Không tìm thấy Purchase Advice line để ghi Closed.");
+            return Failure(PurchaseAdviceErrorCodes.BackPostTraceMissing, "Không tìm thấy dòng đề nghị mua để ghi số lượng đóng.");
 
         var accepted = await SumPostingQuantityAsync(line.PurchaseAdviceLineId, PurchaseAdviceFulfillmentPostingTypes.Accepted);
         var closed = await SumPostingQuantityAsync(line.PurchaseAdviceLineId, PurchaseAdviceFulfillmentPostingTypes.Closed);
@@ -182,13 +182,13 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
         {
             return Failure(
                 PurchaseAdviceErrorCodes.ClosedExceedsAllocation,
-                "Số lượng Closed vượt số lượng đã phân bổ cho Purchase Advice.");
+                "Số lượng đóng vượt số lượng đã phân bổ cho đề nghị mua.");
         }
         if (accepted + closed + closedQuantity > totalAllocated.Sum())
         {
             return Failure(
                 PurchaseAdviceErrorCodes.ClosedExceedsAllocation,
-                "Tổng số lượng Closed vượt tổng số lượng đã phân bổ cho Purchase Advice.");
+                "Tổng số lượng đóng vượt tổng số lượng đã phân bổ cho đề nghị mua.");
         }
 
         _context.PurchaseAdviceFulfillmentPostings.Add(new PurchaseAdviceFulfillmentPosting
@@ -210,9 +210,9 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
         await _context.SaveChangesAsync();
 
         await RefreshCachedQuantitiesAsync(line);
-        await RecomputeHeaderStatusAsync(line.PurchaseAdviceId, actorStaffId, "Back-post Closed từ đóng phần còn lại PO.");
+        await RecomputeHeaderStatusAsync(line.PurchaseAdviceId, actorStaffId, "Ghi nhận phần không giao bù từ đơn đặt hàng.");
         await _context.SaveChangesAsync();
-        return ServiceResult.Success("Đã back-post Closed về Purchase Advice.");
+        return ServiceResult.Success("Đã ghi số lượng đóng về đề nghị mua.");
     }
 
     public async Task<PurchaseAdviceCloseReplay?> FindClosedReplayAsync(string closeOperationKey)
@@ -277,7 +277,7 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
                     receiptPosting.BranchReceiptLineId,
                     receiptPosting.PurchaseOrderLineId,
                     receiptPosting.AcceptedBaseQuantity,
-                    "Không có PurchaseOrderLineAllocation để truy vết Accepted về Purchase Advice."));
+                    "Không có phân bổ dòng đơn đặt hàng để truy vết số lượng chấp nhận về đề nghị mua."));
                 continue;
             }
 
@@ -294,7 +294,9 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
                 PurchaseOrderLineId = receiptPosting.PurchaseOrderLineId,
                 PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
                 Quantity = receiptPosting.AcceptedBaseQuantity,
-                Message = exists ? "Accepted posting đã tồn tại." : "Có thể backfill Accepted bằng exact allocation."
+                Message = exists
+                    ? "Bản ghi số lượng chấp nhận đã tồn tại."
+                    : "Có thể bổ sung số lượng chấp nhận bằng phân bổ truy vết chính xác."
             });
         }
 
@@ -317,7 +319,7 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
                     closedLine.PurchaseOrderLineId,
                     closedLine.PurchaseOrderLineId,
                     closedLine.ClosedRemainingQuantity,
-                    "Không có PurchaseOrderLineAllocation để truy vết Closed về Purchase Advice."));
+                    "Không có phân bổ dòng đơn đặt hàng để truy vết số lượng đóng về đề nghị mua."));
                 continue;
             }
 
@@ -334,7 +336,9 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
                 PurchaseOrderLineId = closedLine.PurchaseOrderLineId,
                 PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
                 Quantity = closedLine.ClosedRemainingQuantity,
-                Message = exists ? "Closed posting đã tồn tại." : "Có thể backfill Closed bằng exact allocation."
+                Message = exists
+                    ? "Bản ghi số lượng đóng đã tồn tại."
+                    : "Có thể bổ sung số lượng đóng bằng phân bổ truy vết chính xác."
             });
         }
 
@@ -367,7 +371,7 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
                 SourceDocumentLineId = adviceLine.PurchaseAdviceLineId,
                 PurchaseAdviceLineId = adviceLine.PurchaseAdviceLineId,
                 Quantity = ledgerAccepted + ledgerClosed,
-                Message = $"Cache Accepted/Closed={adviceLine.AcceptedBaseQuantity:0.###}/{adviceLine.ClosedBaseQuantity:0.###}; expected demand aggregate={expected.Accepted:0.###}/{expected.Closed:0.###}; obligation ledger={ledgerAccepted:0.###}/{ledgerClosed:0.###}."
+                Message = $"Số lượng chấp nhận/đóng đang lưu={adviceLine.AcceptedBaseQuantity:0.###}/{adviceLine.ClosedBaseQuantity:0.###}; tổng đúng theo nhu cầu={expected.Accepted:0.###}/{expected.Closed:0.###}; sổ nghĩa vụ={ledgerAccepted:0.###}/{ledgerClosed:0.###}."
             });
         }
 
@@ -427,14 +431,59 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
             ledgerClosed);
         line.AcceptedBaseQuantity = aggregate.Accepted;
         line.ClosedBaseQuantity = aggregate.Closed;
+
+        if (!line.RequestedProcurementQuantity.HasValue
+            || line.RequestedProcurementQuantity.Value <= 0
+            || !line.ProcurementUnitId.HasValue)
+        {
+            return;
+        }
+
+        var procurementEvidence = await _context.PurchaseOrderLineAllocations
+            .AsNoTracking()
+            .Where(x => x.PurchaseAdviceLineId == line.PurchaseAdviceLineId)
+            .Select(x => new
+            {
+                x.PurchaseOrderLineId,
+                x.DemandCoveredProcurementQuantity,
+                x.PurchaseOrder.Status,
+                x.PurchaseOrderLine.ClosedProcurementQuantity
+            })
+            .ToListAsync();
+        var purchaseOrderLineIds = procurementEvidence
+            .Select(x => x.PurchaseOrderLineId)
+            .Distinct()
+            .ToArray();
+        var acceptedProcurementRows = await _context.PurchaseOrderReceiptPostings
+            .AsNoTracking()
+            .Where(x => purchaseOrderLineIds.Contains(x.PurchaseOrderLineId))
+            .Select(x => new
+            {
+                x.PurchaseOrderLineId,
+                x.AcceptedProcurementQuantity
+            })
+            .ToListAsync();
+
+        line.AllocatedToPoProcurementQuantity = Math.Min(
+            line.RequestedProcurementQuantity.Value,
+            procurementEvidence
+                .Where(x => x.Status != PurchaseOrderStatuses.Cancelled)
+                .Sum(x => x.DemandCoveredProcurementQuantity ?? 0m));
+
+        var procurementAggregate = ClampFulfillmentToDemand(
+            line.RequestedProcurementQuantity.Value,
+            acceptedProcurementRows.Sum(x => x.AcceptedProcurementQuantity ?? 0m),
+            procurementEvidence.Sum(x => x.ClosedProcurementQuantity));
+        line.AcceptedProcurementQuantity = procurementAggregate.Accepted;
+        line.ClosedProcurementQuantity = procurementAggregate.Closed;
     }
 
     private static (decimal Accepted, decimal Closed) ClampFulfillmentToDemand(
-        decimal requestedBaseQuantity,
+        decimal requestedQuantity,
         decimal ledgerAccepted,
         decimal ledgerClosed)
     {
-        var demand = Math.Max(0m, requestedBaseQuantity);
+        var demand = Math.Max(0m, requestedQuantity);
         var accepted = Math.Min(demand, Math.Max(0m, ledgerAccepted));
         var closed = Math.Min(
             Math.Max(0m, demand - accepted),
@@ -462,10 +511,10 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
             .Select(x => new { x.PurchaseOrder.PurchaseOrderBatchId })
             .SingleOrDefaultAsync();
         if (orderLine == null)
-            return Failure(PurchaseAdviceErrorCodes.AllocationNotFound, "Không tìm thấy dòng đơn mua để back-post Purchase Advice.");
+            return Failure(PurchaseAdviceErrorCodes.AllocationNotFound, "Không tìm thấy dòng đơn mua để ghi nhận về đề nghị mua.");
         if (!orderLine.PurchaseOrderBatchId.HasValue)
-            return ServiceResult.Success("Đơn mua thủ công không có Purchase Advice để back-post.");
-        return Failure(PurchaseAdviceErrorCodes.AllocationNotFound, "Đơn mua từ Purchase Advice bị thiếu phân bổ truy vết.");
+            return ServiceResult.Success("Đơn mua thủ công không có đề nghị mua để ghi nhận.");
+        return Failure(PurchaseAdviceErrorCodes.AllocationNotFound, "Đơn mua từ đề nghị mua bị thiếu phân bổ truy vết.");
     }
 
     private static ServiceResult Failure(string code, string message) => ServiceResult.Failure(message, errorCode: code);

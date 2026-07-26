@@ -76,12 +76,12 @@ namespace CafeChain.Areas.Admin.Controllers
                 var request = await _context.RestockRequests.AsNoTracking()
                     .Include(x => x.Ingredient)
                     .SingleOrDefaultAsync(x => x.RestockRequestId == restockRequestId.Value);
-                if (request?.IngredientId == null) return BadRequest("Chỉ tạo PO cho RestockRequest nguyên liệu.");
+                if (request?.IngredientId == null) return BadRequest("Chỉ tạo đơn đặt hàng cho yêu cầu nhập nguyên liệu.");
                 var allocation = await _allocations.GetSummaryAsync(request.RestockRequestId);
                 var remaining = allocation?.RemainingUnallocatedQuantity ?? request.RequestedQuantity;
                 if (remaining <= 0)
                 {
-                    TempData["ErrorMessage"] = "Yêu cầu nhập không còn số lượng chưa phân bổ để tạo PO.";
+                    TempData["ErrorMessage"] = "Yêu cầu nhập không còn số lượng chưa phân bổ để tạo đơn đặt hàng.";
                     return RedirectToAction("Details", "AdminRestockRequests", new { id = request.RestockRequestId });
                 }
                 model.StoreId = request.StoreId;

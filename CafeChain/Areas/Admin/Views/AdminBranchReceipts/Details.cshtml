@@ -53,7 +53,7 @@
                     <tbody>
                     @foreach (var line in Model.Lines)
                     {
-                        var identity = line.IngredientId.HasValue ? $"Nguyên liệu #{line.IngredientId}" : line.PreparedItemId.HasValue ? $"Bán thành phẩm #{line.PreparedItemId}" : $"Công thức legacy #{line.RecipeId}";
+                        var identity = line.IngredientId.HasValue ? $"Nguyên liệu #{line.IngredientId}" : line.PreparedItemId.HasValue ? $"Bán thành phẩm #{line.PreparedItemId}" : $"Công thức cũ #{line.RecipeId}";
                         <tr>
                             <td>
                                 @if (line.RestockRequestId.HasValue)

@@ -218,6 +218,9 @@ public sealed class ProcurementUiTerminologyTests
         Assert.DoesNotContain("Supplier Offer", views);
         Assert.DoesNotContain(">SUPERSEDED<", views);
         Assert.DoesNotContain("@revision.SentChannel", views);
+        Assert.DoesNotContain("số lượng procurement", views, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(" MOQ ", views);
+        Assert.DoesNotContain("Công thức legacy", views);
     }
 
     [Fact]

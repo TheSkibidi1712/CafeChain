@@ -7,6 +7,13 @@
     var canConsolidate = Model.Actor.RoleNames.Contains(RoleConstants.AccountantWarehouse)
         || Model.Actor.RoleNames.Contains(RoleConstants.BusinessOwner);
     var preview = ViewBag.Preview as PurchaseAdviceConsolidationPreviewDto;
+    var createsConsolidatedOrder = preview?.LineCount > 1;
+    var createOrderLabel = createsConsolidatedOrder
+        ? "Tạo đơn đặt hàng gộp"
+        : "Tạo đơn đặt hàng";
+    var creatingOrderLabel = createsConsolidatedOrder
+        ? "Đang tạo đơn đặt hàng gộp..."
+        : "Đang tạo đơn đặt hàng...";
     var selectedIds = ViewBag.SelectedLineIds as int[] ?? Array.Empty<int>();
     var selectedSupplierId = ViewBag.SelectedSupplierId as int?;
     var submittedSelections = ViewBag.SubmittedSelections as IReadOnlyDictionary<int, PurchaseAdviceConsolidationSelectionRequest>
@@ -19,7 +26,7 @@
         <div>
             <div class="pa-eyebrow">Kho &amp; Cung ứng / Mua hàng</div>
             <h1>Tổng hợp đề nghị mua</h1>
-            <p class="pa-subtitle">Gom nhu cầu theo Nhà cung cấp, kiểm tra quy cách mua rồi tạo đơn đặt hàng gộp và phân bổ về từng chi nhánh.</p>
+            <p class="pa-subtitle">Kiểm tra nhu cầu, quy cách mua và phân bổ đơn đặt hàng về đúng từng chi nhánh.</p>
         </div>
         <div class="pa-actions">
             <a class="pa-action" asp-controller="AdminPurchaseOrderBatches" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Đơn đặt hàng gộp</a>
@@ -101,7 +108,7 @@
                                         @foreach (var offer in offers)
                                         {
                                             <option value="@offer.IngredientSupplierId" data-supplier="@offer.SupplierId" data-package-base="@offer.PackageBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-package-proc="@offer.PackageProcurementQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected="@(initialOffer?.IngredientSupplierId == offer.IngredientSupplierId)">
-                                                @offer.SupplierName · 1 kiện = @(hasProcurementContract && offer.PackageProcurementQuantity.HasValue ? AdminStatusDisplay.Quantity(offer.PackageProcurementQuantity.Value) + " " + line.ProcurementUnitName : AdminStatusDisplay.Quantity(offer.PackageBaseQuantity) + " " + line.BaseUnitName) · @AdminStatusDisplay.Currency(offer.CurrentPackagePrice)/kiện · MOQ @offer.MinimumOrderPackageCount · giao trong @offer.LeadTimeDays ngày
+                                                @offer.SupplierName · 1 kiện = @(hasProcurementContract && offer.PackageProcurementQuantity.HasValue ? AdminStatusDisplay.Quantity(offer.PackageProcurementQuantity.Value) + " " + line.ProcurementUnitName : AdminStatusDisplay.Quantity(offer.PackageBaseQuantity) + " " + line.BaseUnitName) · @AdminStatusDisplay.Currency(offer.CurrentPackagePrice)/kiện · tối thiểu @offer.MinimumOrderPackageCount kiện · giao trong @offer.LeadTimeDays ngày
                                             </option>
                                         }
                                     </select>
@@ -124,7 +131,7 @@
             {
                 <div class="pa-band pa-draft-empty">
                     <i class="fas fa-file-circle-plus"></i>
-                    <h2>Bản nháp đơn đặt hàng gộp</h2>
+                    <h2>Bản nháp đơn đặt hàng</h2>
                     <p>Chọn đề nghị, Nhà cung cấp và quy cách cung cấp để xem phân bổ theo chi nhánh trước khi tạo đơn đặt hàng.</p>
                 </div>
             }
@@ -172,9 +179,9 @@
                             <div class="pa-field"><label>Giao từ ngày</label><input type="date" name="ExpectedDeliveryFrom" lang="vi" value="@preview.Groups.SelectMany(x => x.Allocations).Min(x => x.NeededByDate).ToString("yyyy-MM-dd")" required /><span class="pa-muted">Ngày/tháng/năm</span></div>
                             <div class="pa-field"><label>Đến ngày</label><input type="date" name="ExpectedDeliveryTo" lang="vi" value="@preview.Groups.SelectMany(x => x.Allocations).Max(x => x.NeededByDate).ToString("yyyy-MM-dd")" required /><span class="pa-muted">Ngày/tháng/năm</span></div>
                         </div>
-                        <div class="pa-field"><label>Ghi chú cho đơn đặt hàng gộp</label><textarea name="Note" rows="2" maxlength="1000" placeholder="Điều kiện giao hàng hoặc lưu ý chung..."></textarea></div>
+                        <div class="pa-field"><label>Ghi chú cho đơn đặt hàng</label><textarea name="Note" rows="2" maxlength="1000" placeholder="Điều kiện giao hàng hoặc lưu ý chung..."></textarea></div>
                         <div class="pa-create-warning"><i class="fas fa-lock"></i> Khi tạo, hệ thống khóa và kiểm tra lại số lượng còn cần đặt, giá, số lượng tối thiểu và phạm vi phục vụ chi nhánh.</div>
-                        <button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="Đang tạo đơn đặt hàng gộp..."><i class="fas fa-boxes-stacked"></i> Tạo đơn đặt hàng gộp</button>
+                        <button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="@creatingOrderLabel"><i class="fas fa-boxes-stacked"></i> @createOrderLabel</button>
                     </form>
                 </div>
             }

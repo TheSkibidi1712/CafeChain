@@ -211,7 +211,7 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             if (!offers.TryGetValue(selected.IngredientSupplierId, out var offer)
                 || !offer.Active || offer.SupplierId != request.SupplierId || offer.IngredientId != line.IngredientId
                 || !offer.PackageQuantity.HasValue || offer.PackageQuantity <= 0 || offer.CurrentPrice <= 0)
-                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.OfferInvalid, $"Offer cho {line.Ingredient.Name} không hợp lệ hoặc đã hết hiệu lực.");
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.OfferInvalid, $"Quy cách cung cấp cho {line.Ingredient.Name} không hợp lệ hoặc đã hết hiệu lực.");
 
             var baseConversion = await _physicalConversion.ConvertAsync(
                 offer.PackageQuantity.Value,
@@ -246,7 +246,7 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                 {
                     return Failure<PurchaseAdviceConsolidationPreviewDto>(
                         PurchaseAdviceErrorCodes.PackageMismatch,
-                        $"Gói mua của {line.Ingredient.Name} không quy đổi được sang {line.ProcurementUnit?.Name ?? "đơn vị procurement"}.");
+                        $"Gói mua của {line.Ingredient.Name} không quy đổi được sang {line.ProcurementUnit?.Name ?? "đơn vị mua hàng"}.");
                 }
 
                 packageProcurementQuantity = procurementQuantity;
@@ -336,7 +336,7 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             {
                 IngredientSupplierId = offer.IngredientSupplierId,
                 SupplierId = offer.SupplierId,
-                SupplierName = supplier.Name ?? $"Supplier #{supplier.SupplierId}",
+                SupplierName = supplier.Name ?? $"Nhà cung cấp #{supplier.SupplierId}",
                 IngredientId = offer.IngredientId,
                 PackageUnitId = offer.UnitId,
                 PackageUnitName = offer.Unit.Name,
@@ -418,13 +418,13 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
 
         var warnings = allocations
             .Where(x => DateTime.UtcNow.Date.AddDays(x.Offer.LeadTimeDays) > x.Allocation.NeededByDate.Date)
-            .Select(x => $"{x.Allocation.AdviceNumber}: lead time dự kiến vượt ngày cần hàng.")
+            .Select(x => $"{x.Allocation.AdviceNumber}: thời gian giao dự kiến vượt ngày cần hàng.")
             .Distinct().ToArray();
         if (transaction != null) await transaction.CommitAsync();
         return ServiceResult<PurchaseAdviceConsolidationPreviewDto>.Success(new PurchaseAdviceConsolidationPreviewDto
         {
             SupplierId = supplier.SupplierId,
-            SupplierName = supplier.Name ?? $"Supplier #{supplier.SupplierId}",
+            SupplierName = supplier.Name ?? $"Nhà cung cấp #{supplier.SupplierId}",
             Groups = groups,
             TotalAmount = groups.Sum(x => x.LineTotal),
             StoreCount = allocations.Select(x => x.Allocation.StoreId).Distinct().Count(),
@@ -471,7 +471,7 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             {
                 IngredientSupplierId = offer.IngredientSupplierId,
                 SupplierId = offer.SupplierId,
-                SupplierName = offer.Supplier.Name ?? $"Supplier #{offer.SupplierId}",
+                SupplierName = offer.Supplier.Name ?? $"Nhà cung cấp #{offer.SupplierId}",
                 IngredientId = offer.IngredientId,
                 PackageUnitId = offer.UnitId,
                 PackageUnitName = offer.Unit.Name,

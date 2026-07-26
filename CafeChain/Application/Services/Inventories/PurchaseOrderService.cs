@@ -94,7 +94,7 @@ namespace CafeChain.Application.Services.Inventories
                     if (offer.CurrentPrice <= 0)
                         return Fail("Gói mua chưa có giá hợp lệ.");
                     if (requested.PackageCount < offer.MinimumOrderPackageCount.GetValueOrDefault())
-                        return Fail($"Số gói đặt thấp hơn MOQ {offer.MinimumOrderPackageCount:N3}.");
+                        return Fail($"Số gói đặt thấp hơn mức tối thiểu {offer.MinimumOrderPackageCount:N3}.");
 
                     var demand = requested.RestockRequestId.HasValue
                         ? await _context.RestockRequests.AsNoTracking()
@@ -103,7 +103,7 @@ namespace CafeChain.Application.Services.Inventories
                     if (demand?.ProcurementUnitId.HasValue == true
                         && requested.ProcurementUnitId.HasValue
                         && requested.ProcurementUnitId.Value != demand.ProcurementUnitId.Value)
-                        return Fail("Đơn vị procurement của dòng PO không khớp nhu cầu.");
+                        return Fail("Đơn vị mua hàng của dòng đơn đặt hàng không khớp nhu cầu.");
 
                     var converted = await _conversion.ConvertAsync(
                         offer.IngredientId,
@@ -125,7 +125,7 @@ namespace CafeChain.Application.Services.Inventories
                             offer.UnitId,
                             procurementUnitId.Value);
                         if (!procurementConverted.IsSuccess || procurementConverted.Data <= 0)
-                            return Fail(procurementConverted.Message ?? "Không quy đổi được số lượng đặt về đơn vị procurement.");
+                            return Fail(procurementConverted.Message ?? "Không quy đổi được số lượng đặt về đơn vị mua hàng.");
                         orderedProcurement = procurementConverted.Data;
                         procurementPerPack = orderedProcurement / requested.PackageCount;
                         if (demand?.RequestedProcurementQuantity is decimal requestedProcurement)
@@ -184,9 +184,7 @@ namespace CafeChain.Application.Services.Inventories
                         OrderedProcurementQuantity = orderedProcurement,
                         RoundingSurplusProcurementQuantity = roundingSurplus,
                         InventoryBaseUnitId = offer.Ingredient.BaseUnitId,
-                        ProcurementToInventoryFactor = orderedProcurement.GetValueOrDefault() > 0
-                            ? converted.Data / orderedProcurement.Value
-                            : null,
+                        ProcurementToInventoryFactor = null,
                         PromisedLeadTimeDaysSnapshot = offer.LeadTimeDays.GetValueOrDefault(),
                         Note = Trim(requested.Note, 500)
                     });
@@ -218,7 +216,7 @@ namespace CafeChain.Application.Services.Inventories
             if (!CanCancel(roles)) return Fail("Bạn không có quyền hủy đơn mua hàng.");
             if (string.IsNullOrWhiteSpace(reason)) return Fail("Lý do hủy là bắt buộc.");
             if (!TryParseRowVersion(rowVersion, out var expectedVersion))
-                return Fail("Thiếu hoặc sai RowVersion.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
+                return Fail("Thiếu hoặc sai phiên bản dữ liệu.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
             var order = await _context.PurchaseOrders.Include(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
                 .SingleOrDefaultAsync(x => x.PurchaseOrderId == id);
             if (order == null) return Fail("Không tìm thấy đơn mua hàng.");
@@ -257,9 +255,9 @@ namespace CafeChain.Application.Services.Inventories
             if (string.IsNullOrWhiteSpace(input.Reason))
                 return Fail("Lý do không yêu cầu giao bù là bắt buộc.");
             if (string.IsNullOrWhiteSpace(input.RequestKey) || input.RequestKey.Trim().Length > 100)
-                return Fail("RequestKey ổn định là bắt buộc và không được vượt quá 100 ký tự.", PurchaseAdviceErrorCodes.BackPostRequestKeyRequired);
+                return Fail("Khóa yêu cầu ổn định là bắt buộc và không được vượt quá 100 ký tự.", PurchaseAdviceErrorCodes.BackPostRequestKeyRequired);
             if (!TryParseRowVersion(input.RowVersion, out var expectedVersion))
-                return Fail("Thiếu hoặc sai RowVersion.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
+                return Fail("Thiếu hoặc sai phiên bản dữ liệu.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
 
             var requestKey = input.RequestKey.Trim();
             var payloadHash = PurchaseAdviceFulfillmentService.ComputeClosePayloadHash(
@@ -290,7 +288,7 @@ namespace CafeChain.Application.Services.Inventories
                         || replay.PayloadHash != payloadHash)
                     {
                         await transaction.RollbackAsync();
-                        return Fail("RequestKey đã được dùng cho một thao tác đóng phần còn lại khác.", PurchaseAdviceErrorCodes.BackPostConflict);
+                        return Fail("Khóa yêu cầu đã được dùng cho một thao tác đóng phần còn lại khác.", PurchaseAdviceErrorCodes.BackPostConflict);
                     }
 
                     var replayPurchaseOrderId = await _context.PurchaseOrderLines
@@ -316,7 +314,7 @@ namespace CafeChain.Application.Services.Inventories
                         || replayAfterLock.PayloadHash != payloadHash)
                     {
                         await transaction.RollbackAsync();
-                        return Fail("RequestKey đã được dùng cho một thao tác đóng phần còn lại khác.", PurchaseAdviceErrorCodes.BackPostConflict);
+                        return Fail("Khóa yêu cầu đã được dùng cho một thao tác đóng phần còn lại khác.", PurchaseAdviceErrorCodes.BackPostConflict);
                     }
 
                     await transaction.CommitAsync();
@@ -327,23 +325,66 @@ namespace CafeChain.Application.Services.Inventories
                 if (!await CanAccessStoreAsync(actorStaffId, line.PurchaseOrder.StoreId))
                     return Fail("Bạn không có quyền đóng phần còn lại tại cửa hàng này.");
                 if (line.PurchaseOrder.Status is PurchaseOrderStatuses.Cancelled or PurchaseOrderStatuses.Completed)
-                    return Fail($"Không thể đóng phần còn lại khi PO ở trạng thái {line.PurchaseOrder.Status}.");
+                    return Fail("Không thể đóng phần còn lại khi đơn đặt hàng ở trạng thái hiện tại.");
                 if (!RowVersionMatches(line.RowVersion, expectedVersion))
                     return Fail("Dòng đơn mua đã được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
 
                 _context.Entry(line).Property(x => x.RowVersion).OriginalValue = expectedVersion;
-                var acceptedValues = await _context.PurchaseOrderReceiptPostings
+                var receiptEvidence = await _context.PurchaseOrderReceiptPostings
                     .Where(x => x.PurchaseOrderLineId == line.PurchaseOrderLineId)
-                    .Select(x => x.AcceptedBaseQuantity)
+                    .Select(x => new
+                    {
+                        x.AcceptedBaseQuantity,
+                        x.AcceptedProcurementQuantity
+                    })
                     .ToListAsync();
-                var accepted = acceptedValues.Sum();
-                var remaining = Math.Max(0m, line.OrderedBaseQuantity - accepted - line.ClosedRemainingQuantity);
-                if (remaining <= 0)
+
+                var acceptedBase = receiptEvidence.Sum(x => x.AcceptedBaseQuantity);
+                var remainingBase = Math.Max(
+                    0m,
+                    line.OrderedBaseQuantity - acceptedBase - line.ClosedRemainingQuantity);
+                decimal? remainingProcurement = null;
+                if (line.OrderedProcurementQuantity.GetValueOrDefault() > 0
+                    && line.ProcurementUnitId.HasValue)
+                {
+                    var acceptedProcurement = receiptEvidence
+                        .Where(x => x.AcceptedProcurementQuantity.HasValue)
+                        .Sum(x => x.AcceptedProcurementQuantity!.Value);
+                    if (acceptedProcurement <= 0m && acceptedBase > 0m && line.OrderedBaseQuantity > 0m)
+                    {
+                        acceptedProcurement = acceptedBase
+                            * line.OrderedProcurementQuantity!.Value
+                            / line.OrderedBaseQuantity;
+                    }
+
+                    remainingProcurement = Math.Max(
+                        0m,
+                        line.OrderedProcurementQuantity!.Value
+                        - acceptedProcurement
+                        - line.ClosedProcurementQuantity);
+                    remainingBase = line.OrderedBaseQuantity > 0m
+                        ? line.OrderedBaseQuantity
+                            * remainingProcurement.Value
+                            / line.OrderedProcurementQuantity.Value
+                        : 0m;
+                }
+
+                if (remainingBase <= 0m
+                    || (remainingProcurement.HasValue && remainingProcurement.Value <= 0m))
                     return Fail("Dòng đơn mua không còn số lượng để đóng.");
+
+                line.ClosedRemainingQuantity += remainingBase;
+                if (remainingProcurement.HasValue)
+                    line.ClosedProcurementQuantity += remainingProcurement.Value;
+                line.CloseRemainingReason = Trim(input.Reason, 500);
+                line.ClosedRemainingByStaffId = actorStaffId;
+                line.ClosedRemainingAtUtc = DateTime.UtcNow;
+                line.PurchaseOrder.UpdatedAtUtc = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
 
                 var backPost = await _purchaseAdviceFulfillment.BackPostClosedAsync(
                     line.PurchaseOrderLineId,
-                    remaining,
+                    remainingBase,
                     requestKey,
                     payloadHash,
                     actorStaffId);
@@ -353,25 +394,13 @@ namespace CafeChain.Application.Services.Inventories
                     return Fail(backPost.Message, backPost.ErrorCode);
                 }
 
-                line.ClosedRemainingQuantity += remaining;
-                if (line.OrderedProcurementQuantity.HasValue
-                    && line.ProcurementToInventoryFactor.GetValueOrDefault() > 0)
-                {
-                    line.ClosedProcurementQuantity += remaining
-                        / line.ProcurementToInventoryFactor!.Value;
-                }
-                line.CloseRemainingReason = Trim(input.Reason, 500);
-                line.ClosedRemainingByStaffId = actorStaffId;
-                line.ClosedRemainingAtUtc = DateTime.UtcNow;
-                line.PurchaseOrder.UpdatedAtUtc = DateTime.UtcNow;
-
                 await _context.SaveChangesAsync();
                 await RecalculateOrderStatusAsync(line.PurchaseOrder);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return ServiceResult<PurchaseOrderDetailDto>.Success(
                     await MapAsync(line.PurchaseOrderId),
-                    "Đã đóng phần còn lại; không phát sinh nhập kho hoặc fulfillment.");
+                    "Đã đóng phần còn lại; không phát sinh nhập kho hoặc ghi nhận hoàn tất.");
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -424,7 +453,7 @@ namespace CafeChain.Application.Services.Inventories
             var poLine = await LoadLineForUpdateAsync(line.PurchaseOrderLineId.Value);
             if (poLine == null) return ServiceResult.Failure("Không tìm thấy dòng đơn mua hàng.");
             if (poLine.PurchaseOrder.Status is not (PurchaseOrderStatuses.Approved or PurchaseOrderStatuses.MarkedAsSent or PurchaseOrderStatuses.PartiallyReceived))
-                return ServiceResult.Failure($"Đơn mua hàng không thể nhận ở trạng thái {poLine.PurchaseOrder.Status}.");
+                return ServiceResult.Failure("Đơn mua hàng chưa ở trạng thái cho phép nhận.");
             if (poLine.PurchaseOrder.StoreId != receipt.StoreId || poLine.PurchaseOrder.SupplierId != receipt.SupplierId)
                 return ServiceResult.Failure("Cửa hàng hoặc nhà cung cấp trên phiếu nhận không khớp đơn mua.");
             if (poLine.IngredientId != line.IngredientId || poLine.RestockRequestId != line.RestockRequestId)
@@ -441,18 +470,20 @@ namespace CafeChain.Application.Services.Inventories
                     || line.RejectedProcurementQuantity.GetValueOrDefault() < 0
                     || line.AcceptedProcurementQuantity.Value
                         + line.RejectedProcurementQuantity.GetValueOrDefault() <= 0)
-                    return ServiceResult.Failure("Số lượng procurement chấp nhận/loại bỏ không hợp lệ.");
+                    return ServiceResult.Failure("Số lượng mua hàng chấp nhận/loại bỏ không hợp lệ.");
 
-                var acceptedProcurement = await _context.PurchaseOrderReceiptPostings.AsNoTracking()
+                var acceptedProcurementRows = await _context.PurchaseOrderReceiptPostings.AsNoTracking()
                     .Where(x => x.PurchaseOrderLineId == poLine.PurchaseOrderLineId)
-                    .SumAsync(x => x.AcceptedProcurementQuantity ?? 0m);
+                    .Select(x => x.AcceptedProcurementQuantity)
+                    .ToListAsync();
+                var acceptedProcurement = acceptedProcurementRows.Sum(x => x ?? 0m);
                 var remainingProcurement = Math.Max(
                     0m,
                     poLine.OrderedProcurementQuantity.Value
                         - acceptedProcurement
                         - poLine.ClosedProcurementQuantity);
                 if (line.AcceptedProcurementQuantity.Value > remainingProcurement)
-                    return ServiceResult.Failure("Tổng số lượng procurement nhận vượt nghĩa vụ còn lại của dòng đơn mua.");
+                    return ServiceResult.Failure("Tổng số lượng mua hàng đã nhận vượt nghĩa vụ còn lại của dòng đơn mua.");
             }
             else
             {
@@ -537,14 +568,15 @@ namespace CafeChain.Application.Services.Inventories
         {
             if (!permission(roles)) return Fail("Bạn không có quyền cập nhật đơn mua hàng.");
             if (!TryParseRowVersion(rowVersion, out var expectedVersion))
-                return Fail("Thiếu hoặc sai RowVersion.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
+                return Fail("Thiếu hoặc sai phiên bản dữ liệu.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
             var order = await _context.PurchaseOrders.SingleOrDefaultAsync(x => x.PurchaseOrderId == id);
             if (order == null) return Fail("Không tìm thấy đơn mua hàng.");
             if (next == PurchaseOrderStatuses.Approved && order.PurchaseOrderBatchId.HasValue)
-                return Fail("PO con được duyệt theo batch; không duyệt lại từng PO.");
+                return Fail("Đơn đặt hàng con được duyệt theo đơn gộp; không duyệt lại từng đơn.");
             if (!await CanAccessStoreAsync(actorStaffId, order.StoreId))
                 return Fail("Bạn không có quyền cập nhật đơn mua hàng của cửa hàng này.");
-            if (order.Status != expected) return Fail($"Chỉ chuyển {next} từ {expected}. Trạng thái hiện tại: {order.Status}.");
+            if (order.Status != expected)
+                return Fail("Trạng thái đơn mua hàng đã thay đổi. Vui lòng tải lại trước khi thao tác.");
             if (!RowVersionMatches(order.RowVersion, expectedVersion))
                 return Fail("Đơn mua hàng đã được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
             SetExpectedRowVersion(order, expectedVersion);
