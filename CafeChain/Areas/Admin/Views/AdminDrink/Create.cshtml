@@ -10,8 +10,12 @@
     <link rel="stylesheet" href="~/css/Admin/AI/ai-image-pipeline.css" asp-append-version="true" />
 }
 
-<div class="container-fluid px-4">
-    <h1 class="mt-4">Thêm Nước Uống Mới</h1>
+<div class="container-fluid px-0 drink-form-page">
+    <div class="drink-form-heading">
+        <span class="drink-eyebrow"><i class="fas fa-wand-magic-sparkles"></i> Sản phẩm mới</span>
+        <h1>Thêm nước uống mới</h1>
+        <p>Hoàn thiện thông tin, hình ảnh và phân loại để sản phẩm sẵn sàng lên menu.</p>
+    </div>
     <ol class="breadcrumb mb-4">
         <li class="breadcrumb-item">
             <a asp-area="Admin"
@@ -180,7 +184,11 @@
                             </select>
                             <div class="input-group">
                             <input id="drinkAiIdea" class="form-control" maxlength="200" placeholder="Ví dụ: trà đào mùa hè" autocomplete="off" />
-                            <button type="button" id="btnDrinkAiSuggestion" class="btn btn-outline-primary">
+                            <button type="button"
+                                    id="btnDrinkAiSuggestion"
+                                    class="btn btn-outline-primary d-none"
+                                    aria-hidden="true"
+                                    tabindex="-1">
                                 <i class="fas fa-wand-magic-sparkles me-1"></i> AI gợi ý
                             </button>
                             </div>

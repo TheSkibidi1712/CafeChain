@@ -24,10 +24,19 @@
 
     string TabClass(bool? active) =>
         filter.Active == active ? "drink-tab active" : "drink-tab";
+    var hasFilters = !string.IsNullOrWhiteSpace(filter.Keyword) || filter.Active.HasValue;
     var canCreate = false;
+    var canUpdate = false;
+    var canToggle = false;
+    var canUpdateImage = false;
     if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
     {
-        canCreate = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.DrinkCreate)).Data?.Allowed == true;
+        var permissions = (await PermissionService.GetEffectivePermissionCodesAsync(accountId)).Data
+            ?? new HashSet<string>(StringComparer.Ordinal);
+        canCreate = permissions.Contains(PermissionConstants.DrinkCreate);
+        canUpdate = permissions.Contains(PermissionConstants.DrinkUpdate);
+        canToggle = permissions.Contains(PermissionConstants.DrinkToggleStatus);
+        canUpdateImage = permissions.Contains(PermissionConstants.DrinkUpdateImage);
     }
 }
 
@@ -39,12 +48,16 @@
     @Html.AntiForgeryToken()
     <div class="drink-page-header">
         <div>
-            <h1>Danh sách Nước uống</h1>
-            <p>Quản lý tất cả sản phẩm đồ uống trong hệ thống.</p>
+            <span class="drink-eyebrow">
+                <i class="fas fa-mug-hot"></i>
+                Thực đơn CafeChain
+            </span>
+            <h1>Danh sách nước uống</h1>
+            <p>Theo dõi hình ảnh, danh mục và trạng thái bán của toàn bộ sản phẩm.</p>
         </div>
 
         <div class="drink-header-actions">
-            <a asp-action="Index" class="btn drink-filter-btn">
+            <a asp-action="Index" class="btn drink-filter-btn @(hasFilters ? "" : "is-muted")">
                 <i class="fas fa-rotate-left"></i>
                 Xóa lọc
             </a>
@@ -56,6 +69,21 @@
                 Thêm mới
             </a>
             }
+        </div>
+    </div>
+
+    <div class="drink-summary-grid">
+        <div class="drink-summary-card drink-summary-total">
+            <span class="drink-summary-icon"><i class="fas fa-mug-hot"></i></span>
+            <span><strong>@Model.TotalCount</strong><small>Tổng đồ uống</small></span>
+        </div>
+        <div class="drink-summary-card drink-summary-active">
+            <span class="drink-summary-icon"><i class="fas fa-circle-check"></i></span>
+            <span><strong>@Model.ActiveCount</strong><small>Đang bán</small></span>
+        </div>
+        <div class="drink-summary-card drink-summary-inactive">
+            <span class="drink-summary-icon"><i class="fas fa-circle-pause"></i></span>
+            <span><strong>@Model.InactiveCount</strong><small>Ngừng bán</small></span>
         </div>
     </div>
 
@@ -101,6 +129,9 @@
                        name="Keyword"
                        value="@filter.Keyword"
                        placeholder="Tìm đồ uống..." />
+                <button type="submit" title="Tìm kiếm" aria-label="Tìm kiếm">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
             </label>
 
             <label class="drink-page-size">
@@ -117,6 +148,13 @@
     </div>
 
     <div class="drink-table-card">
+        <div class="drink-list-heading">
+            <div>
+                <h2>Kho đồ uống</h2>
+                <p>Cập nhật hình ảnh và thông tin sản phẩm ngay tại một nơi.</p>
+            </div>
+            <span>@totalFilteredDrinks kết quả</span>
+        </div>
         <div class="table-responsive">
             <table class="table align-middle mb-0 drink-table" id="datatablesSimple">
                 <thead>
@@ -138,7 +176,9 @@
                     {
                         <tr>
                             <td colspan="8" class="drink-empty-state">
-                                Không tìm thấy đồ uống phù hợp.
+                                <span class="drink-empty-icon"><i class="fas fa-martini-glass-citrus"></i></span>
+                                <strong>Không tìm thấy đồ uống phù hợp</strong>
+                                <small>Thử đổi từ khóa hoặc trạng thái lọc để xem thêm kết quả.</small>
                             </td>
                         </tr>
                     }
@@ -150,35 +190,35 @@
                                 <input type="checkbox" aria-label="Chọn @item.Name" />
                             </td>
 
-                            <td>
+                            <td data-label="Hình ảnh">
                                 <div class="drink-image-box">
                                     <img src="@item.ImageUrl" alt="@item.Name" />
                                 </div>
                             </td>
 
-                            <td>
+                            <td data-label="Mã">
                                 <span class="drink-badge drink-badge-type">
                                     @item.DrinkCode
                                 </span>
                             </td>
 
-                            <td>
+                            <td data-label="Tên nước uống">
                                 <div class="drink-name">@item.Name</div>
                             </td>
 
-                            <td>
+                            <td data-label="Danh mục">
                                 <span class="drink-badge drink-badge-category">
                                     @item.CategoryName
                                 </span>
                             </td>
 
-                            <td>
+                            <td data-label="Loại sản phẩm">
                                 <span class="drink-badge drink-badge-type">
                                     @item.ProductTypeName
                                 </span>
                             </td>
 
-                            <td>
+                            <td data-label="Trạng thái">
                                 @if (item.Active)
                                 {
                                     <span class="drink-status-badge active">
@@ -195,8 +235,10 @@
                                 }
                             </td>
 
-                            <td class="text-center">
+                            <td class="text-center" data-label="Thao tác">
                                 <div class="drink-action-group">
+                                    @if (canUpdateImage)
+                                    {
                                     <button type="button"
                                             class="btn drink-action-btn btn-manage-images"
                                             data-id="@item.DrinkId"
@@ -204,13 +246,27 @@
                                             title="Quản lý ảnh">
                                         <i class="fas fa-images"></i>
                                     </button>
+                                    }
 
+                                    @if (canUpdate)
+                                    {
                                     <a asp-action="Edit"
                                        asp-route-id="@item.DrinkId"
                                        class="btn drink-action-btn"
                                        title="Sửa đồ uống">
                                         <i class="fas fa-pen"></i>
                                     </a>
+                                    }
+
+                                    @if (canToggle)
+                                    {
+                                    <button type="button"
+                                            class="btn drink-action-btn js-toggle-drink"
+                                            data-id="@item.DrinkId"
+                                            title="@(item.Active ? "Ngừng bán" : "Mở bán lại")">
+                                        <i class="fas @(item.Active ? "fa-pause" : "fa-play")"></i>
+                                    </button>
+                                    }
                                 </div>
                             </td>
                         </tr>
@@ -295,26 +351,36 @@
 
 <!-- Modal Image Management -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content drink-modal-content">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content drink-modal-content drink-image-manager">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold text-primary">Quản lý Ảnh - <span id="modalDrinkName"></span></h5>
+                <div class="drink-image-modal-title">
+                    <span class="drink-image-modal-icon"><i class="fas fa-images"></i></span>
+                    <div>
+                        <h5 class="modal-title">Quản lý ảnh</h5>
+                        <p id="modalDrinkName"></p>
+                    </div>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="currentDrinkId" value="" />
 
-                <div class="border rounded-3 p-3 mb-4 bg-light">
-                    <label class="form-label fw-semibold">
-                        Thêm ảnh mới
-                    </label>
+                <div class="drink-image-upload-panel">
+                    <div class="drink-image-upload-heading">
+                        <span><i class="fas fa-cloud-arrow-up"></i></span>
+                        <div>
+                            <h6>Thêm ảnh mới</h6>
+                            <p>Ảnh JPG hoặc PNG, nên sử dụng ảnh vuông để hiển thị đẹp nhất.</p>
+                        </div>
+                    </div>
 
                     <input type="file"
-                           class="form-control mb-2"
+                           class="form-control drink-image-file-input"
                            id="uploadImageInput"
                            accept=".jpg,.jpeg,.png" />
 
-                    <div class="d-flex align-items-center justify-content-between gap-3">
+                    <div class="drink-image-upload-actions">
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input"
                                    type="checkbox"
@@ -328,7 +394,7 @@
                         </div>
 
                         <button type="button"
-                                class="btn btn-primary btn-sm"
+                                class="btn drink-image-upload-btn"
                                 id="btnUploadDrinkImage">
                             <i class="fas fa-upload me-1"></i>
                             Tải ảnh
@@ -337,8 +403,14 @@
                 </div>
 
                 <!-- Image List -->
-                <h6 class="fw-bold mb-3 border-bottom pb-2"><i class="fas fa-layer-group"></i> Danh Sách Ảnh Đã Tải Lên</h6>
-                <div class="row g-3" id="imageListContainer">
+                <div class="drink-image-library-heading">
+                    <div>
+                        <i class="fas fa-layer-group"></i>
+                        <span>Thư viện ảnh</span>
+                    </div>
+                    <small>Chọn ảnh đại diện, chỉnh sửa hoặc xóa ảnh</small>
+                </div>
+                <div class="row g-3 drink-image-grid" id="imageListContainer">
                     <div class="col-12 text-center text-muted">Đang tải...</div>
                 </div>
             </div>
@@ -349,7 +421,7 @@
 <!-- Modal Edit Image -->
 <div class="modal fade" id="editImageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm">
-        <div class="modal-content drink-modal-content">
+        <div class="modal-content drink-modal-content drink-image-edit-modal">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold text-warning"><i class="fas fa-pencil-alt"></i> Chỉnh sửa ảnh</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -358,8 +430,8 @@
                 <input type="hidden" id="editImageId" value="" />
                 <div class="mb-3 text-center">
                     <p class="text-muted small mb-2">Ảnh hiện tại:</p>
-                    <img id="editCurrentPreview" src="" alt="Current Image"
-                         style="max-height: 150px; max-width: 100%; object-fit: contain; border-radius: 6px; border: 1px solid #dee2e6;" />
+                    <img id="editCurrentPreview" src="" alt="Ảnh hiện tại"
+                         class="drink-edit-image-preview" />
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Chọn ảnh mới <span class="text-danger">*</span></label>
@@ -368,13 +440,13 @@
                 </div>
                 <div id="newImagePreviewWrapper" class="text-center mb-2" style="display:none;">
                     <p class="text-muted small mb-1">Xem trước ảnh mới:</p>
-                    <img id="newImagePreview" src="" alt="New Image Preview"
-                         style="max-height: 150px; max-width: 100%; object-fit: contain; border-radius: 6px; border: 1px dashed #0d6efd;" />
+                    <img id="newImagePreview" src="" alt="Xem trước ảnh mới"
+                         class="drink-edit-image-preview is-new" />
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-warning btn-sm" id="btnConfirmEditImage">
+                <button type="button" class="btn drink-image-upload-btn" id="btnConfirmEditImage">
                     <i class="fas fa-save"></i> Lưu ảnh mới
                 </button>
             </div>

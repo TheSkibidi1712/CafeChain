@@ -45,15 +45,25 @@
             toggleStatusDecision.IsSuccess &&
             toggleStatusDecision.Data?.Allowed == true;
     }
+
+    var categories = Model.Categories.Items.ToList();
+    var activeCategoryCount = categories.Count(item => item.Active);
+    var inactiveCategoryCount = categories.Count - activeCategoryCount;
+    var hasKeyword = !string.IsNullOrWhiteSpace(Model.Filter.Keyword);
 }
 
 <link rel="stylesheet" href="~/css/Admin/Category/Category.css" />
 
 @Html.AntiForgeryToken()
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="category-page">
+<div class="category-page-header">
 
-    <div>
+    <div class="category-heading">
+        <span class="category-eyebrow">
+            <i class="fas fa-layer-group"></i>
+            Cấu trúc thực đơn
+        </span>
 
         <h2 class="category-page-title">
             Quản lý danh mục
@@ -65,42 +75,67 @@
 
     </div>
 
+    @if (canCreateCategory)
+    {
     <button type="button"
-            class="btn category-primary-btn"
-            data-bs-toggle="@(canCreateCategory ? "modal" : null)"
-            data-bs-target="@(canCreateCategory ? "#createCategoryModal" : null)"
-            disabled="@(!canCreateCategory)"
-            title="@(canCreateCategory ? "Thêm danh mục mới" : "Bạn không có quyền thêm danh mục")">
+            class="btn category-primary-btn category-add-btn"
+            data-bs-toggle="modal"
+            data-bs-target="#createCategoryModal"
+            title="Thêm danh mục mới">
 
         <i class="fas fa-plus me-2"></i>
         Thêm danh mục mới
 
     </button>
+    }
 
+</div>
+
+<div class="category-summary-grid">
+    <div class="category-summary-card category-summary-total">
+        <span class="category-summary-icon"><i class="fas fa-layer-group"></i></span>
+        <span><strong>@Model.Categories.TotalCount</strong><small>Tổng danh mục</small></span>
+    </div>
+    <div class="category-summary-card category-summary-active">
+        <span class="category-summary-icon"><i class="fas fa-eye"></i></span>
+        <span><strong>@activeCategoryCount</strong><small>Đang hiển thị trang này</small></span>
+    </div>
+    <div class="category-summary-card category-summary-hidden">
+        <span class="category-summary-icon"><i class="fas fa-eye-slash"></i></span>
+        <span><strong>@inactiveCategoryCount</strong><small>Đang ẩn trang này</small></span>
+    </div>
 </div>
 
 <!-- ========================================= -->
 <!-- SEARCH -->
 <!-- ========================================= -->
 
-<div class="card border-0 shadow-sm category-card mb-3">
+<div class="card category-card category-filter-card mb-3">
 
     <div class="card-body">
 
         <form asp-action="Index"
               method="get">
 
-            <div class="row g-3 align-items-center">
+            <div class="category-search-row">
 
-                <div class="col-md-10">
+                <label class="category-search-field">
+                    <i class="fas fa-search"></i>
 
                     <input asp-for="Filter.Keyword"
                            class="form-control category-input"
                            placeholder="Tìm theo mã danh mục hoặc tên danh mục..." />
 
-                </div>
+                </label>
 
-                <div class="col-md-2 d-grid">
+                <div class="category-search-actions">
+                    @if (hasKeyword)
+                    {
+                        <a asp-action="Index" class="btn category-clear-btn">
+                            <i class="fas fa-rotate-left"></i>
+                            Xóa lọc
+                        </a>
+                    }
 
                     <button type="submit"
                             class="btn category-primary-btn">
@@ -120,10 +155,18 @@
 
 </div>
 
-<div class="card border-0 shadow-sm category-card">
+<div class="card category-card category-list-card">
 
     <div class="card-body p-0">
+        <div class="category-list-heading">
+            <div>
+                <h3>Danh sách danh mục</h3>
+                <p>Sắp xếp sản phẩm theo từng nhóm để khách hàng tìm món nhanh hơn.</p>
+            </div>
+            <span class="category-result-pill">@Model.Categories.TotalCount kết quả</span>
+        </div>
 
+        <div class="table-responsive">
         <table class="table table-hover mb-0 category-table">
 
             <thead class="bg-light text-muted">
@@ -156,21 +199,22 @@
 
             <tbody>
 
-                @if (!Model.Categories.Items.Any())
+                @if (!categories.Any())
                 {
                     <tr>
 
                         <td colspan="5"
-                            class="text-center py-4 text-muted">
+                            class="category-empty-state">
 
-                            Chưa có danh mục nào.
-
+                            <span class="category-empty-icon"><i class="fas fa-mug-hot"></i></span>
+                            <strong>@(hasKeyword ? "Không tìm thấy danh mục phù hợp" : "Chưa có danh mục nào")</strong>
+                            <small>@(hasKeyword ? "Thử một từ khóa khác hoặc xóa bộ lọc hiện tại." : "Tạo danh mục đầu tiên để bắt đầu tổ chức thực đơn.")</small>
                         </td>
 
                     </tr>
                 }
 
-                @foreach (var item in Model.Categories.Items)
+                @foreach (var item in categories)
                 {
                     <tr>
 
@@ -223,27 +267,31 @@
 
                         <td class="text-end px-4 py-3 category-actions-cell">
 
+                            @if (canUpdateCategory)
+                            {
                             <button type="button"
                                     class="btn btn-sm category-action-btn category-action-edit btn-edit-category"
                                     data-id="@item.CategoryId"
-                                    data-bs-toggle="@(canUpdateCategory ? "modal" : null)"
-                                    data-bs-target="@(canUpdateCategory ? "#editCategoryModal" : null)"
-                                    disabled="@(!canUpdateCategory)"
-                                    title="@(canUpdateCategory ? "Sửa" : "Bạn không có quyền cập nhật danh mục")">
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editCategoryModal"
+                                    title="Sửa">
 
                                 <i class="fas fa-pen"></i>
 
                             </button>
+                            }
 
+                            @if (canToggleCategoryStatus)
+                            {
                             <button type="button"
                                     class="btn btn-sm category-action-btn @(item.Active ? "category-action-lock" : "category-action-unlock")"
-                                    onclick="@(canToggleCategoryStatus ? $"toggleCategory({item.CategoryId})" : null)"
-                                    disabled="@(!canToggleCategoryStatus)"
-                                    title="@(canToggleCategoryStatus ? (item.Active ? "Ẩn" : "Hiển thị") : "Bạn không có quyền ẩn / hiện danh mục")">
+                                    onclick="toggleCategory(@item.CategoryId)"
+                                    title="@(item.Active ? "Ẩn" : "Hiển thị")">
 
                                 <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
 
                             </button>
+                            }
 
                         </td>
 
@@ -253,9 +301,10 @@
             </tbody>
 
         </table>
+        </div>
 
     </div>
-        <div class="card-footer bg-white border-top-0 py-3 px-4 d-flex justify-content-between align-items-center">
+        <div class="card-footer category-table-footer">
 
         <span class="text-muted">
 
@@ -279,8 +328,7 @@
                 <a asp-action="Index"
                    asp-route-keyword="@Model.Filter.Keyword"
                    asp-route-page="@i"
-                   class="btn btn-sm @(i == Model.Categories.PageIndex ? "text-white" : "btn-light border")"
-                   style="@(i == Model.Categories.PageIndex ? "background-color:#d93d20;" : "")">
+                   class="btn btn-sm category-page-link @(i == Model.Categories.PageIndex ? "active" : "")">
 
                     @i
 
@@ -300,6 +348,7 @@
 
     </div>
 
+</div>
 </div>
 
 <!-- ========================================= -->
@@ -338,7 +387,12 @@
                     @Html.AntiForgeryToken()
 
                     <div class="mb-3">
-                        <button type="button" id="btnSuggestCategories" class="btn btn-outline-primary" disabled="@(!canCreateCategory)">
+                        <button type="button"
+                                id="btnSuggestCategories"
+                                class="btn btn-outline-primary d-none"
+                                aria-hidden="true"
+                                tabindex="-1"
+                                disabled>
                             <i class="fas fa-wand-magic-sparkles me-2"></i>AI Gợi Ý
                         </button>
                     </div>
