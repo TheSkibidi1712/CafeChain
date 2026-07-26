@@ -99,7 +99,12 @@ public sealed class PurchaseOrderBatchPdfRenderer : IPurchaseOrderBatchPdfRender
             foreach (var line in snapshot.Lines)
             {
                 table.Cell().Element(BodyCell).Text(line.IngredientName);
-                table.Cell().Element(BodyCell).Text($"{Quantity(line.PackageQuantity)} {line.PackageUnitName}");
+                table.Cell().Element(BodyCell).Text(text =>
+                {
+                    text.Span($"{Quantity(line.PackageQuantity)} {line.PackageUnitName}");
+                    if (line.TotalProcurementQuantity.HasValue)
+                        text.Line($"Đơn vị mua: {Quantity(line.TotalProcurementQuantity.Value)} {Value(line.ProcurementUnitName)}");
+                });
                 table.Cell().Element(BodyCell).AlignRight().Text(Quantity(line.PackageCount));
                 table.Cell().Element(BodyCell).AlignRight().Text(Money(line.PackagePrice));
                 table.Cell().Element(BodyCell).AlignRight().Text(Money(line.LineTotal));
@@ -137,9 +142,19 @@ public sealed class PurchaseOrderBatchPdfRenderer : IPurchaseOrderBatchPdfRender
                     foreach (var line in store.Lines)
                     {
                         table.Cell().Element(BodyCell).Text(line.IngredientName);
-                        table.Cell().Element(BodyCell).Text($"{Quantity(line.PackageQuantity)} {line.PackageUnitName}");
+                        table.Cell().Element(BodyCell).Text(text =>
+                        {
+                            text.Span($"{Quantity(line.PackageQuantity)} {line.PackageUnitName}");
+                            if (line.ProcurementQuantity.HasValue)
+                                text.Line($"Đơn vị mua: {Quantity(line.ProcurementQuantity.Value)} {Value(line.ProcurementUnitName)}");
+                        });
                         table.Cell().Element(BodyCell).AlignRight().Text(Quantity(line.PackageCount));
-                        table.Cell().Element(BodyCell).AlignRight().Text(Quantity(line.BaseQuantity));
+                        table.Cell().Element(BodyCell).AlignRight().Text(text =>
+                        {
+                            text.Span($"{Quantity(line.BaseQuantity)} cơ sở");
+                            if (line.ProcurementQuantity.HasValue)
+                                text.Line($"{Quantity(line.ProcurementQuantity.Value)} {Value(line.ProcurementUnitName)}");
+                        });
                     }
                 });
             });

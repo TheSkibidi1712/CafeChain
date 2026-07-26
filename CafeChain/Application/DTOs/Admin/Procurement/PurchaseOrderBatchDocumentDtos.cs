@@ -74,6 +74,10 @@ public sealed class PurchaseOrderBatchDocumentLineSnapshot
     public decimal PackageQuantity { get; set; }
     public decimal PackageCount { get; set; }
     public decimal TotalBaseQuantity { get; set; }
+    public decimal? TotalProcurementQuantity { get; set; }
+    public decimal? DemandCoveredProcurementQuantity { get; set; }
+    public decimal? RoundingSurplusProcurementQuantity { get; set; }
+    public string? ProcurementUnitName { get; set; }
     public decimal PackagePrice { get; set; }
     public decimal LineTotal { get; set; }
     public string? Note { get; set; }
@@ -100,5 +104,7 @@ public sealed class PurchaseOrderBatchDocumentStoreLineSnapshot
     public decimal PackageQuantity { get; set; }
     public decimal PackageCount { get; set; }
     public decimal BaseQuantity { get; set; }
+    public decimal? ProcurementQuantity { get; set; }
+    public string? ProcurementUnitName { get; set; }
     public DateTime NeededByDate { get; set; }
 }

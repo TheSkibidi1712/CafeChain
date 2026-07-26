@@ -286,9 +286,11 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
             .Include(x => x.ApprovedByStaff)
             .Include(x => x.Lines).ThenInclude(x => x.Ingredient)
             .Include(x => x.Lines).ThenInclude(x => x.PackageUnit)
+            .Include(x => x.Lines).ThenInclude(x => x.ProcurementUnit)
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Store)
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.Ingredient)
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.PackageUnitSnapshot)
+            .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.ProcurementUnit)
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.BatchAllocations)
                 .ThenInclude(x => x.PurchaseAdviceLine)
             .AsSplitQuery()
@@ -324,6 +326,10 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
                 PackageQuantity = x.PackageQuantitySnapshot,
                 PackageCount = x.TotalPackageCount,
                 TotalBaseQuantity = x.TotalBaseQuantity,
+                TotalProcurementQuantity = x.TotalProcurementQuantity,
+                DemandCoveredProcurementQuantity = x.DemandCoveredProcurementQuantity,
+                RoundingSurplusProcurementQuantity = x.RoundingSurplusProcurementQuantity,
+                ProcurementUnitName = x.ProcurementUnit?.Name,
                 PackagePrice = x.PackagePriceSnapshot,
                 LineTotal = x.LineTotal,
                 Note = x.Note
@@ -340,6 +346,8 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
                     PackageQuantity = line.PackageQuantitySnapshot,
                     PackageCount = line.PackageCount,
                     BaseQuantity = line.OrderedBaseQuantity,
+                    ProcurementQuantity = line.OrderedProcurementQuantity,
+                    ProcurementUnitName = line.ProcurementUnit?.Name,
                     NeededByDate = line.BatchAllocations.Select(x => x.PurchaseAdviceLine.NeededByDate).DefaultIfEmpty(po.ExpectedDeliveryAtUtc ?? batch.ExpectedDeliveryTo).Min()
                 }).ToArray();
             return new PurchaseOrderBatchDocumentStoreSnapshot
