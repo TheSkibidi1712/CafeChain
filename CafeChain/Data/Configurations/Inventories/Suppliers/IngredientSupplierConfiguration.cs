@@ -50,6 +50,9 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
             entity.Property(x => x.Active)
                 .HasDefaultValue(true);
 
+            entity.Property(x => x.AllowsLoosePurchase)
+                .HasDefaultValue(false);
+
             entity.Property(x => x.Note)
                 .HasMaxLength(1000);
 

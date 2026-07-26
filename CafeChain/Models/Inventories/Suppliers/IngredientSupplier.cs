@@ -40,6 +40,8 @@ namespace CafeChain.Models.Inventories.Suppliers
 
         public bool Active { get; set; }
 
+        public bool AllowsLoosePurchase { get; set; }
+
         public string? Note { get; set; }
 
         public DateTime CreatedAt { get; set; }

@@ -47,6 +47,10 @@ public class PurchaseOrderBatchLine
     public decimal PackageQuantitySnapshot { get; set; }
     public decimal TotalPackageCount { get; set; }
     public decimal TotalBaseQuantity { get; set; }
+    public decimal? TotalProcurementQuantity { get; set; }
+    public decimal? DemandCoveredProcurementQuantity { get; set; }
+    public decimal? RoundingSurplusProcurementQuantity { get; set; }
+    public int? ProcurementUnitId { get; set; }
     public decimal PackagePriceSnapshot { get; set; }
     public decimal LineTotal { get; set; }
     public string Currency { get; set; } = "VND";
@@ -56,6 +60,7 @@ public class PurchaseOrderBatchLine
     public virtual Ingredient Ingredient { get; set; } = null!;
     public virtual IngredientSupplier IngredientSupplier { get; set; } = null!;
     public virtual Unit PackageUnit { get; set; } = null!;
+    public virtual Unit? ProcurementUnit { get; set; }
     public virtual ICollection<PurchaseOrderLineAllocation> Allocations { get; set; } = new List<PurchaseOrderLineAllocation>();
 }
 
@@ -68,6 +73,10 @@ public class PurchaseOrderLineAllocation
     public int PurchaseOrderLineId { get; set; }
     public decimal AllocatedBaseQuantity { get; set; }
     public decimal AllocatedPackageQuantity { get; set; }
+    public decimal? AllocatedProcurementQuantity { get; set; }
+    public decimal? DemandCoveredProcurementQuantity { get; set; }
+    public decimal? RoundingSurplusProcurementQuantity { get; set; }
+    public int? ProcurementUnitId { get; set; }
     public DateTime CreatedAtUtc { get; set; }
 
     [Timestamp]
@@ -77,4 +86,5 @@ public class PurchaseOrderLineAllocation
     public virtual PurchaseOrderBatchLine PurchaseOrderBatchLine { get; set; } = null!;
     public virtual PurchaseOrder PurchaseOrder { get; set; } = null!;
     public virtual PurchaseOrderLine PurchaseOrderLine { get; set; } = null!;
+    public virtual Unit? ProcurementUnit { get; set; }
 }

@@ -41,6 +41,13 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasColumnType("decimal(18,3)")
                 .HasDefaultValue(0m)
                 .IsRequired();
+            entity.Property(x => x.ReceivedPackQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.AcceptedPackQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.ReceivedProcurementQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.RejectedProcurementQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.AcceptedProcurementQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.InventoryPostingBaseQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.ProcurementToInventoryFactor).HasPrecision(18, 6);
 
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
             entity.Property(x => x.RejectionIssueType).HasMaxLength(40);
@@ -118,6 +125,14 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .WithMany()
                 .HasForeignKey(x => x.BaseUnitId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.ProcurementUnit)
+                .WithMany()
+                .HasForeignKey(x => x.ProcurementUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.InventoryBaseUnit)
+                .WithMany()
+                .HasForeignKey(x => x.InventoryBaseUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Supplier)
                 .WithMany()
@@ -148,6 +163,8 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasFilter("[SourceTransferCostAllocationId] IS NOT NULL");
             entity.HasIndex(x => x.IngredientId);
             entity.HasIndex(x => x.PreparedItemId);
+            entity.HasIndex(x => x.ProcurementUnitId);
+            entity.HasIndex(x => x.InventoryBaseUnitId);
         }
     }
 }

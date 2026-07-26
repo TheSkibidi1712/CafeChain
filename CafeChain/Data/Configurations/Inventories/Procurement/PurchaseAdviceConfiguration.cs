@@ -35,6 +35,7 @@ namespace CafeChain.Data.Configurations.Inventories.Procurement
             b.ToTable("PurchaseAdviceLines", table =>
             {
                 table.HasCheckConstraint("CK_PurchaseAdviceLines_RequestedPositive", "[RequestedPurchaseBaseQuantity] > 0");
+                table.HasCheckConstraint("CK_PurchaseAdviceLines_ProcurementRequestedPositive", "[RequestedProcurementQuantity] IS NULL OR [RequestedProcurementQuantity] > 0");
                 table.HasCheckConstraint("CK_PurchaseAdviceLines_AllocatedNonNegative", "[AllocatedToPoBaseQuantity] >= 0");
                 table.HasCheckConstraint("CK_PurchaseAdviceLines_AcceptedNonNegative", "[AcceptedBaseQuantity] >= 0");
                 table.HasCheckConstraint("CK_PurchaseAdviceLines_ClosedNonNegative", "[ClosedBaseQuantity] >= 0");
@@ -44,6 +45,10 @@ namespace CafeChain.Data.Configurations.Inventories.Procurement
             b.Property(x => x.AllocatedToPoBaseQuantity).HasPrecision(18, 3).HasDefaultValue(0m);
             b.Property(x => x.AcceptedBaseQuantity).HasPrecision(18, 3).HasDefaultValue(0m);
             b.Property(x => x.ClosedBaseQuantity).HasPrecision(18, 3).HasDefaultValue(0m);
+            b.Property(x => x.RequestedProcurementQuantity).HasPrecision(18, 3);
+            b.Property(x => x.AllocatedToPoProcurementQuantity).HasPrecision(18, 3).HasDefaultValue(0m);
+            b.Property(x => x.AcceptedProcurementQuantity).HasPrecision(18, 3).HasDefaultValue(0m);
+            b.Property(x => x.ClosedProcurementQuantity).HasPrecision(18, 3).HasDefaultValue(0m);
             b.Property(x => x.Note).HasMaxLength(500);
             b.Property(x => x.RowVersion).IsRowVersion();
             b.HasIndex(x => x.RestockRequestId);
@@ -55,6 +60,10 @@ namespace CafeChain.Data.Configurations.Inventories.Procurement
             b.HasOne(x => x.RestockRequest).WithMany().HasForeignKey(x => x.RestockRequestId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.Ingredient).WithMany().HasForeignKey(x => x.IngredientId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.BaseUnit).WithMany().HasForeignKey(x => x.BaseUnitId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.ProcurementUnit).WithMany().HasForeignKey(x => x.ProcurementUnitId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.RestockSourcingAllocation).WithMany().HasForeignKey(x => x.RestockSourcingAllocationId).OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(x => x.ProcurementUnitId);
+            b.HasIndex(x => x.RestockSourcingAllocationId);
         }
     }
 

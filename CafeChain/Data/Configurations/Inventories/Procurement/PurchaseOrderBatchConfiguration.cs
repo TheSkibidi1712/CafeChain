@@ -42,15 +42,20 @@ public sealed class PurchaseOrderBatchLineConfiguration : IEntityTypeConfigurati
         b.Property(x => x.PackageQuantitySnapshot).HasPrecision(18, 5);
         b.Property(x => x.TotalPackageCount).HasPrecision(18, 3);
         b.Property(x => x.TotalBaseQuantity).HasPrecision(18, 3);
+        b.Property(x => x.TotalProcurementQuantity).HasPrecision(18, 3);
+        b.Property(x => x.DemandCoveredProcurementQuantity).HasPrecision(18, 3);
+        b.Property(x => x.RoundingSurplusProcurementQuantity).HasPrecision(18, 3);
         b.Property(x => x.PackagePriceSnapshot).HasPrecision(18, 2);
         b.Property(x => x.LineTotal).HasPrecision(18, 2);
         b.Property(x => x.Currency).HasMaxLength(3).IsRequired();
         b.Property(x => x.Note).HasMaxLength(500);
         b.HasIndex(x => new { x.PurchaseOrderBatchId, x.IngredientId });
+        b.HasIndex(x => x.ProcurementUnitId);
         b.HasOne(x => x.PurchaseOrderBatch).WithMany(x => x.Lines).HasForeignKey(x => x.PurchaseOrderBatchId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne(x => x.Ingredient).WithMany().HasForeignKey(x => x.IngredientId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.IngredientSupplier).WithMany().HasForeignKey(x => x.IngredientSupplierId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.PackageUnit).WithMany().HasForeignKey(x => x.PackageUnitId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.ProcurementUnit).WithMany().HasForeignKey(x => x.ProcurementUnitId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -66,15 +71,20 @@ public sealed class PurchaseOrderLineAllocationConfiguration : IEntityTypeConfig
         b.HasKey(x => x.PurchaseOrderLineAllocationId);
         b.Property(x => x.AllocatedBaseQuantity).HasPrecision(18, 3);
         b.Property(x => x.AllocatedPackageQuantity).HasPrecision(18, 3);
+        b.Property(x => x.AllocatedProcurementQuantity).HasPrecision(18, 3);
+        b.Property(x => x.DemandCoveredProcurementQuantity).HasPrecision(18, 3);
+        b.Property(x => x.RoundingSurplusProcurementQuantity).HasPrecision(18, 3);
         b.Property(x => x.RowVersion).IsRowVersion();
         b.HasIndex(x => x.PurchaseAdviceLineId);
         b.HasIndex(x => x.PurchaseOrderBatchLineId);
         b.HasIndex(x => x.PurchaseOrderId);
         b.HasIndex(x => x.PurchaseOrderLineId).IsUnique();
+        b.HasIndex(x => x.ProcurementUnitId);
         b.HasOne(x => x.PurchaseAdviceLine).WithMany().HasForeignKey(x => x.PurchaseAdviceLineId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.PurchaseOrderBatchLine).WithMany(x => x.Allocations).HasForeignKey(x => x.PurchaseOrderBatchLineId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne(x => x.PurchaseOrder).WithMany(x => x.BatchAllocations).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.PurchaseOrderLine).WithMany(x => x.BatchAllocations).HasForeignKey(x => x.PurchaseOrderLineId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.ProcurementUnit).WithMany().HasForeignKey(x => x.ProcurementUnitId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

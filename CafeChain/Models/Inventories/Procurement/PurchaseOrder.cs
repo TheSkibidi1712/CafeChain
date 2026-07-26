@@ -11,6 +11,7 @@ namespace CafeChain.Models.Inventories.Procurement
     {
         public int PurchaseOrderId { get; set; }
         public int? PurchaseOrderBatchId { get; set; }
+        public int? MasterPurchaseOrderId { get; set; }
         public string Code { get; set; } = string.Empty;
         public int StoreId { get; set; }
         public int SupplierId { get; set; }
@@ -38,6 +39,8 @@ namespace CafeChain.Models.Inventories.Procurement
         public virtual Staff? SentByStaff { get; set; }
         public virtual ICollection<PurchaseOrderLine> Lines { get; set; } = new List<PurchaseOrderLine>();
         public virtual PurchaseOrderBatch? PurchaseOrderBatch { get; set; }
+        public virtual PurchaseOrder? MasterPurchaseOrder { get; set; }
+        public virtual ICollection<PurchaseOrder> ChildPurchaseOrders { get; set; } = new List<PurchaseOrder>();
         public virtual ICollection<PurchaseOrderLineAllocation> BatchAllocations { get; set; } = new List<PurchaseOrderLineAllocation>();
     }
 
@@ -46,6 +49,7 @@ namespace CafeChain.Models.Inventories.Procurement
         public int PurchaseOrderLineId { get; set; }
         public int PurchaseOrderId { get; set; }
         public int? RestockRequestId { get; set; }
+        public int? PurchaseAdviceLineId { get; set; }
         public int IngredientId { get; set; }
         public int IngredientSupplierId { get; set; }
         public int PackageUnitIdSnapshot { get; set; }
@@ -53,6 +57,17 @@ namespace CafeChain.Models.Inventories.Procurement
         public decimal PackagePriceSnapshot { get; set; }
         public decimal PackageCount { get; set; }
         public decimal OrderedBaseQuantity { get; set; }
+        public decimal? OrderedPackQuantity { get; set; }
+        public decimal? PackSizeProcurementQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
+        public decimal? OrderedProcurementQuantity { get; set; }
+        public decimal? RoundingSurplusProcurementQuantity { get; set; }
+        public decimal? AcceptedPackQuantity { get; set; }
+        public decimal? AcceptedProcurementQuantity { get; set; }
+        public decimal ClosedProcurementQuantity { get; set; }
+        public decimal? InventoryPostingBaseQuantity { get; set; }
+        public int? InventoryBaseUnitId { get; set; }
+        public decimal? ProcurementToInventoryFactor { get; set; }
         public decimal ClosedRemainingQuantity { get; set; }
         public string? CloseRemainingReason { get; set; }
         public int? ClosedRemainingByStaffId { get; set; }
@@ -65,9 +80,12 @@ namespace CafeChain.Models.Inventories.Procurement
 
         public virtual PurchaseOrder PurchaseOrder { get; set; } = null!;
         public virtual RestockRequest? RestockRequest { get; set; }
+        public virtual PurchaseAdviceLine? PurchaseAdviceLine { get; set; }
         public virtual Ingredient Ingredient { get; set; } = null!;
         public virtual IngredientSupplier IngredientSupplier { get; set; } = null!;
         public virtual Unit PackageUnitSnapshot { get; set; } = null!;
+        public virtual Unit? ProcurementUnit { get; set; }
+        public virtual Unit? InventoryBaseUnit { get; set; }
         public virtual Staff? ClosedRemainingByStaff { get; set; }
         public virtual ICollection<PurchaseOrderReceiptPosting> ReceiptPostings { get; set; } = new List<PurchaseOrderReceiptPosting>();
         public virtual ICollection<PurchaseOrderLineAllocation> BatchAllocations { get; set; } = new List<PurchaseOrderLineAllocation>();
@@ -80,11 +98,19 @@ namespace CafeChain.Models.Inventories.Procurement
         public int BranchReceiptLineId { get; set; }
         public decimal AcceptedBaseQuantity { get; set; }
         public decimal RejectedBaseQuantity { get; set; }
+        public decimal? AcceptedProcurementQuantity { get; set; }
+        public decimal? RejectedProcurementQuantity { get; set; }
+        public decimal? InventoryPostingBaseQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
+        public int? InventoryBaseUnitId { get; set; }
+        public decimal? ProcurementToInventoryFactor { get; set; }
         public int CreatedByStaffId { get; set; }
         public DateTime CreatedAtUtc { get; set; }
 
         public virtual PurchaseOrderLine PurchaseOrderLine { get; set; } = null!;
         public virtual BranchReceiptLine BranchReceiptLine { get; set; } = null!;
         public virtual Staff CreatedByStaff { get; set; } = null!;
+        public virtual Unit? ProcurementUnit { get; set; }
+        public virtual Unit? InventoryBaseUnit { get; set; }
     }
 }

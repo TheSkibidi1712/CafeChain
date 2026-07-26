@@ -170,6 +170,7 @@ namespace CafeChain.Data
         public DbSet<BranchReceipt> BranchReceipts { get; set; }
         public DbSet<BranchReceiptLine> BranchReceiptLines { get; set; }
         public DbSet<RestockRequestFulfillment> RestockRequestFulfillments { get; set; }
+        public DbSet<RestockSourcingAllocation> RestockSourcingAllocations { get; set; }
         public DbSet<RestockFulfillmentPosting> RestockFulfillmentPostings { get; set; }
         public DbSet<RestockRequestTransition> RestockRequestTransitions { get; set; }
         public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
