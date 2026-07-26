@@ -106,6 +106,13 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public string? InputUnitName { get; set; }
         public decimal ReceivedBaseQuantity { get; set; }
         public decimal RejectedBaseQuantity { get; set; }
+        public decimal? ReceivedProcurementQuantity { get; set; }
+        public decimal? RejectedProcurementQuantity { get; set; }
+        public decimal? AcceptedProcurementQuantity { get; set; }
+        public decimal? InventoryPostingBaseQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
+        public string? ProcurementUnitName { get; set; }
+        public decimal? ProcurementToInventoryFactor { get; set; }
         public string? RejectionReason { get; set; }
         public string? RejectionIssueType { get; set; }
         public int BaseUnitId { get; set; }
@@ -201,6 +208,10 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public decimal PreviouslyAcceptedBaseQuantity { get; set; }
         public decimal ClosedRemainingQuantity { get; set; }
         public decimal RemainingBaseQuantity { get; set; }
+        public decimal? OrderedProcurementQuantity { get; set; }
+        public decimal? PreviouslyAcceptedProcurementQuantity { get; set; }
+        public decimal? RemainingProcurementQuantity { get; set; }
+        public string? ProcurementUnitName { get; set; }
         public decimal? ActualReceivedQuantity { get; set; }
         public decimal RejectedQuantity { get; set; }
         public string? RejectionReason { get; set; }

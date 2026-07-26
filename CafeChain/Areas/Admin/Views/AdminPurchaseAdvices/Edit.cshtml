@@ -16,8 +16,23 @@
         @for (var i = 0; i < Model.Lines.Count; i++)
         {
             var source = detail.Lines.Single(x => x.PurchaseAdviceLineId == Model.Lines[i].PurchaseAdviceLineId);
-            var available = source.RemainingToPurchaseQuantity;
-            <tr><td><strong>@source.IngredientName</strong><div class="pa-muted">Yêu cầu nhập hàng #@source.RestockRequestId</div><input type="hidden" asp-for="Lines[i].PurchaseAdviceLineId" /><input type="hidden" asp-for="Lines[i].RowVersion" /></td><td><div class="pa-muted">Điều chuyển @AdminStatusDisplay.Quantity(source.TransferAllocatedQuantity) · Đề nghị khác @AdminStatusDisplay.Quantity(source.ExistingPurchaseAdviceQuantity) · Đã đặt hàng @AdminStatusDisplay.Quantity(source.ExistingPurchaseOrderQuantity)</div></td><td><strong>@AdminStatusDisplay.Quantity(available) @source.BaseUnitName</strong></td><td class="pa-field"><input asp-for="Lines[i].RequestedPurchaseBaseQuantity" type="number" min="0.001" max="@available" step="0.001" /></td><td><div class="pa-field"><input asp-for="Lines[i].NeededByDate" type="date" lang="vi" /><span class="pa-muted">Ngày/tháng/năm</span></div><div class="pa-field" style="margin-top:.35rem"><input asp-for="Lines[i].Note" maxlength="500" /></div></td></tr>
+            var usesProcurement = source.RequestedProcurementQuantity.HasValue
+                && source.RemainingToPurchaseProcurementQuantity.HasValue;
+            var available = usesProcurement
+                ? source.RemainingToPurchaseProcurementQuantity!.Value
+                : source.RemainingToPurchaseQuantity;
+            var unitName = usesProcurement ? source.ProcurementUnitName : source.BaseUnitName;
+            <tr><td><strong>@source.IngredientName</strong><div class="pa-muted">Yêu cầu nhập hàng #@source.RestockRequestId</div><input type="hidden" asp-for="Lines[i].PurchaseAdviceLineId" /><input type="hidden" asp-for="Lines[i].RowVersion" /></td><td><div class="pa-muted">Điều chuyển @AdminStatusDisplay.Quantity(usesProcurement ? source.TransferAllocatedProcurementQuantity.GetValueOrDefault() : source.TransferAllocatedQuantity) @unitName · Đề nghị khác @AdminStatusDisplay.Quantity(usesProcurement ? source.ExistingPurchaseAdviceProcurementQuantity.GetValueOrDefault() : source.ExistingPurchaseAdviceQuantity) @unitName · Đã đặt hàng @AdminStatusDisplay.Quantity(usesProcurement ? source.ExistingPurchaseOrderProcurementQuantity.GetValueOrDefault() : source.ExistingPurchaseOrderQuantity) @unitName</div></td><td><strong>@AdminStatusDisplay.Quantity(available) @unitName</strong></td><td class="pa-field">
+                @if (usesProcurement)
+                {
+                    <input type="hidden" asp-for="Lines[i].RequestedPurchaseBaseQuantity" />
+                    <input asp-for="Lines[i].RequestedPurchaseProcurementQuantity" type="number" min="0.001" max="@available" step="0.001" />
+                }
+                else
+                {
+                    <input asp-for="Lines[i].RequestedPurchaseBaseQuantity" type="number" min="0.001" max="@available" step="0.001" />
+                }
+            </td><td><div class="pa-field"><input asp-for="Lines[i].NeededByDate" type="date" lang="vi" /><span class="pa-muted">Ngày/tháng/năm</span></div><div class="pa-field" style="margin-top:.35rem"><input asp-for="Lines[i].Note" maxlength="500" /></div></td></tr>
         }
         </tbody></table></div>
         <div class="pa-actions" style="margin-top:1rem"><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-save"></i> Lưu thay đổi</button><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId">Hủy</a></div>

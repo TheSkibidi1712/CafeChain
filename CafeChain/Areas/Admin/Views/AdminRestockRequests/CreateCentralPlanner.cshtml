@@ -1,0 +1,50 @@
+@model CafeChain.Application.DTOs.Admin.RestockRequests.CreateProcurementDemandRequest
+@{
+    ViewData["Title"] = "Tạo kế hoạch bổ sung trung tâm";
+    var ingredients = ViewBag.Ingredients;
+    var units = ViewBag.Units;
+}
+<div class="ops-page">
+    <header class="ops-page-header">
+        <div>
+            <div class="ops-eyebrow">Kho &amp; Cung ứng / Kế hoạch trung tâm</div>
+            <h1>Tạo kế hoạch bổ sung trung tâm</h1>
+            <p class="ops-subtitle">Kế hoạch chỉ áp dụng trong StoreScope của người lập và vẫn phải qua quyết định nguồn cung.</p>
+        </div>
+        <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Quay lại</a>
+    </header>
+    <section class="ops-card">
+        <form asp-action="CreateCentralPlanner" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="StoreId" />
+            <input type="hidden" asp-for="SourceType" />
+            <div class="ops-form-grid">
+                <label>Nguyên liệu
+                    <select asp-for="IngredientId" required>
+                        <option value="">Chọn nguyên liệu</option>
+                        @foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }
+                    </select>
+                </label>
+                <label>Đơn vị procurement
+                    <select asp-for="ProcurementUnitId" required>
+                        <option value="">Chọn đơn vị</option>
+                        @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }
+                    </select>
+                </label>
+                <label>Số lượng mục tiêu
+                    <input asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required />
+                </label>
+                <label>Cần trước ngày
+                    <input asp-for="NeedByDate" type="date" />
+                </label>
+                <label class="ops-form-wide">Bằng chứng dự báo / kế hoạch
+                    <textarea asp-for="ForecastEvidence" maxlength="1000" rows="3" required></textarea>
+                </label>
+                <label class="ops-form-wide">Ghi chú
+                    <textarea asp-for="Note" maxlength="500" rows="3"></textarea>
+                </label>
+            </div>
+            <button class="ops-btn ops-btn-primary" type="submit">Tạo kế hoạch bổ sung</button>
+        </form>
+    </section>
+</div>

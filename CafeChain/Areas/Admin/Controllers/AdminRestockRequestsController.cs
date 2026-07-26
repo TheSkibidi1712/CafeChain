@@ -4,6 +4,8 @@ using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
 using Microsoft.AspNetCore.Mvc;
+using CafeChain.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -16,17 +18,20 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IRestockRequestWorkflowService _workflow;
         private readonly IAdminActorContextAccessor _actor;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
+        private readonly AppDbContext? _context;
 
         public AdminRestockRequestsController(
             IRestockRequestService service,
             IRestockRequestWorkflowService workflow,
             IAdminActorContextAccessor actor,
-            IAdminStoreScopeResolver storeScopeResolver)
+            IAdminStoreScopeResolver storeScopeResolver,
+            AppDbContext? context = null)
         {
             _service = service;
             _workflow = workflow;
             _actor = actor;
             _storeScopeResolver = storeScopeResolver;
+            _context = context;
         }
 
         [HttpGet]
@@ -61,6 +66,38 @@ namespace CafeChain.Areas.Admin.Controllers
             ViewBag.CanWarehouse = CanWarehouseActions();
             ViewBag.CanCreateReceipt = CanCreateReceipt();
             return View(result.Data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CreateManual(int? storeId = null)
+        {
+            if (!CanCreateDemand()) return Forbid();
+            var ctx = _actor.Get(User);
+            var scope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
+            if (!scope.IsResolved) return StoreScopeFailure(scope);
+            await PopulateDemandOptionsAsync(scope.StoreId!.Value);
+            return View(new CreateProcurementDemandRequest
+            {
+                StoreId = scope.StoreId.Value,
+                SourceType = RestockRequestSourceTypes.ManualByStore,
+                NeedByDate = DateTime.Today.AddDays(2)
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CreateCentralPlanner(int? storeId = null)
+        {
+            if (!CanCentralPlan()) return Forbid();
+            var ctx = _actor.Get(User);
+            var scope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
+            if (!scope.IsResolved) return StoreScopeFailure(scope);
+            await PopulateDemandOptionsAsync(scope.StoreId!.Value);
+            return View(new CreateProcurementDemandRequest
+            {
+                StoreId = scope.StoreId.Value,
+                SourceType = RestockRequestSourceTypes.CentralPlanner,
+                NeedByDate = DateTime.Today.AddDays(2)
+            });
         }
 
         [HttpGet]
@@ -236,6 +273,52 @@ namespace CafeChain.Areas.Admin.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateManual(CreateProcurementDemandRequest model)
+        {
+            if (!CanCreateDemand())
+                return Forbid();
+
+            var ctx = _actor.Get(User);
+            var result = await _service.CreateManualAsync(model, ctx.StaffId);
+            TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
+                result.Message ?? (result.IsSuccess ? "Đã tạo nhu cầu bổ sung." : "Không thể tạo nhu cầu bổ sung.");
+            return result.IsSuccess && result.Data != null
+                ? RedirectToAction(nameof(Details), new { id = result.Data.RestockRequestId })
+                : RedirectToAction(nameof(Index), new { storeId = model.StoreId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateCentralPlanner(CreateProcurementDemandRequest model)
+        {
+            if (!CanCentralPlan())
+                return Forbid();
+
+            var ctx = _actor.Get(User);
+            var result = await _service.CreateCentralPlannerAsync(model, ctx.StaffId);
+            TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
+                result.Message ?? (result.IsSuccess ? "Đã tạo kế hoạch bổ sung." : "Không thể tạo kế hoạch bổ sung.");
+            return result.IsSuccess && result.Data != null
+                ? RedirectToAction(nameof(Details), new { id = result.Data.RestockRequestId })
+                : RedirectToAction(nameof(Index), new { storeId = model.StoreId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetSourcingDecision(SourcingDecisionRequest model)
+        {
+            if (!CanWarehouseActions())
+                return Forbid();
+
+            var ctx = _actor.Get(User);
+            var result = await _service.SetSourcingDecisionAsync(model, ctx.StaffId);
+            TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
+                result.Message ?? (result.IsSuccess ? "Đã ghi nhận quyết định nguồn cung." : "Không thể ghi nhận quyết định nguồn cung.");
+            return RedirectToAction(nameof(Details), new { id = model.RestockRequestId });
+        }
+
         private bool CanViewRestockRequests() =>
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
@@ -257,6 +340,38 @@ namespace CafeChain.Areas.Admin.Controllers
         private bool CanSubmit() =>
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.BusinessOwner);
+
+        private bool CanCreateDemand() =>
+            User.IsInRole(RoleConstants.StoreManager)
+            || User.IsInRole(RoleConstants.AccountantWarehouse)
+            || User.IsInRole(RoleConstants.AreaManager)
+            || User.IsInRole(RoleConstants.BusinessOwner);
+
+        private bool CanCentralPlan() =>
+            User.IsInRole(RoleConstants.AccountantWarehouse)
+            || User.IsInRole(RoleConstants.AreaManager)
+            || User.IsInRole(RoleConstants.BusinessOwner);
+
+        private async Task PopulateDemandOptionsAsync(int storeId)
+        {
+            if (_context == null)
+                throw new InvalidOperationException("AppDbContext chưa được cấu hình cho form nhu cầu procurement.");
+            ViewBag.Ingredients = await _context.Ingredients
+                .AsNoTracking()
+                .Where(x => x.Active)
+                .OrderBy(x => x.Name)
+                .Select(x => new { x.IngredientId, x.Name })
+                .ToListAsync();
+            ViewBag.Units = await _context.Units
+                .AsNoTracking()
+                .Where(x => x.Active && (x.UnitCode == ProcurementUnitCodes.Kilogram
+                    || x.UnitCode == ProcurementUnitCodes.Liter
+                    || x.UnitCode == ProcurementUnitCodes.Piece))
+                .OrderBy(x => x.UnitCode)
+                .Select(x => new { x.UnitId, x.UnitCode, x.Name })
+                .ToListAsync();
+            ViewBag.SelectedStoreId = storeId;
+        }
 
     }
 }

@@ -1,5 +1,45 @@
 namespace CafeChain.Application.DTOs.Admin.RestockRequests
 {
+    public sealed class CreateProcurementDemandRequest
+    {
+        public int StoreId { get; set; }
+        public int IngredientId { get; set; }
+        public decimal RequestedProcurementQuantity { get; set; }
+        public int ProcurementUnitId { get; set; }
+        public DateTime? NeedByDate { get; set; }
+        public string SourceType { get; set; } = string.Empty;
+        public string? SourceReferenceId { get; set; }
+        public decimal? TargetStockProcurementQuantity { get; set; }
+        public string? ForecastEvidence { get; set; }
+        public string? Priority { get; set; }
+        public string? Note { get; set; }
+    }
+
+    public sealed class SourcingDecisionRequest
+    {
+        public int RestockRequestId { get; set; }
+        public string DecisionType { get; set; } = string.Empty;
+        public decimal ProcurementQuantity { get; set; }
+        public int ProcurementUnitId { get; set; }
+        public int? SourceDocumentId { get; set; }
+        public int? SourceDocumentLineId { get; set; }
+        public string? Reason { get; set; }
+    }
+
+    public sealed class SourcingAllocationDto
+    {
+        public int RestockSourcingAllocationId { get; set; }
+        public int RestockRequestId { get; set; }
+        public string DecisionType { get; set; } = string.Empty;
+        public decimal ProcurementQuantity { get; set; }
+        public int ProcurementUnitId { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public int? PurchaseAdviceLineId { get; set; }
+        public int? PurchaseOrderLineId { get; set; }
+        public string? Reason { get; set; }
+        public DateTime CreatedAtUtc { get; set; }
+    }
+
     public class RestockRequestListItemDto
     {
         public int RestockRequestId { get; set; }
@@ -15,6 +55,12 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public string? Note { get; set; }
         public string? CreatedByName { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string SourceType { get; set; } = string.Empty;
+        public string SourcingStatus { get; set; } = string.Empty;
+        public string? SourcingDecision { get; set; }
+        public decimal? RequestedProcurementQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
+        public string? ProcurementUnitName { get; set; }
     }
 
     public class RestockRequestDetailDto : RestockRequestListItemDto
@@ -38,6 +84,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public decimal? SuggestionIncomingQuantitySnapshot { get; set; }
         public string? SuggestionReason { get; set; }
         public string RowVersion { get; set; } = string.Empty;
+        public List<SourcingAllocationDto> SourcingAllocations { get; set; } = new();
     }
 
     public class RestockRequestListResultDto

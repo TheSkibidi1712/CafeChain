@@ -67,8 +67,11 @@ namespace CafeChain.Areas.Admin.Controllers
                 {
                     RestockRequestId = x.RestockRequestId,
                     RequestedPurchaseBaseQuantity = x.RestockRequestId == restockRequestId
-                        ? x.RemainingToPurchaseQuantity
+                        ? (x.RestockRequestedProcurementQuantity.HasValue ? 0m : x.RemainingToPurchaseQuantity)
                         : 0m,
+                    RequestedPurchaseProcurementQuantity = x.RestockRequestId == restockRequestId
+                        ? x.RemainingToPurchaseProcurementQuantity
+                        : null,
                     NeededByDate = DateTime.Today.AddDays(2),
                     RestockRowVersion = x.RestockRowVersion
                 }).ToList()
@@ -80,7 +83,7 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Create(CreatePurchaseAdviceRequest model, int[] selectedRestockIds)
         {
             model.Lines = model.Lines
-                .Where(x => selectedRestockIds.Contains(x.RestockRequestId))
+                .Where(x => x.RestockRequestId.HasValue && selectedRestockIds.Contains(x.RestockRequestId.Value))
                 .ToList();
             var result = await _service.CreateAsync(model, _actorAccessor.Get(User));
             if (result.IsSuccess)
@@ -93,6 +96,22 @@ namespace CafeChain.Areas.Admin.Controllers
             ViewBag.Sources = sources.Data ?? Array.Empty<PurchaseAdviceSourceDto>();
             ViewBag.SelectedRestockIds = selectedRestockIds;
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateDirect(CreatePurchaseAdviceRequest model)
+        {
+            model.IsDirectProposal = true;
+            var result = await _service.CreateDirectAsync(model, _actorAccessor.Get(User));
+            if (result.IsSuccess)
+            {
+                TempData["Success"] = "Đã tạo đề nghị mua trực tiếp và ghi nhận nhu cầu bổ sung.";
+                return RedirectToAction(nameof(Details), new { id = result.Data!.PurchaseAdviceId });
+            }
+
+            TempData["Error"] = result.Message;
+            return RedirectToAction(nameof(Index), new { storeId = model.StoreId });
         }
 
         [HttpGet]
@@ -121,6 +140,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 {
                     PurchaseAdviceLineId = x.PurchaseAdviceLineId,
                     RequestedPurchaseBaseQuantity = x.RequestedPurchaseBaseQuantity,
+                    RequestedPurchaseProcurementQuantity = x.RequestedProcurementQuantity,
                     NeededByDate = x.NeededByDate,
                     Note = x.Note,
                     RowVersion = x.RowVersion

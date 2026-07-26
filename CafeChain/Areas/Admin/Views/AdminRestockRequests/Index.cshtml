@@ -23,6 +23,13 @@
             <p class="ops-subtitle">Theo dõi yêu cầu bổ sung hàng cho chi nhánh #@Model.StoreId. Yêu cầu chỉ ghi nhận nhu cầu; tồn kho chỉ thay đổi từ phiếu nhận hoặc điều chuyển đã xác nhận.</p>
         </div>
         <div class="ops-actions">
+            <a class="ops-btn" asp-action="CreateManual" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo thủ công</a>
+            @if (User.IsInRole(CafeChain.Application.Constants.RoleConstants.AccountantWarehouse)
+                || User.IsInRole(CafeChain.Application.Constants.RoleConstants.AreaManager)
+                || User.IsInRole(CafeChain.Application.Constants.RoleConstants.BusinessOwner))
+            {
+                <a class="ops-btn" asp-action="CreateCentralPlanner" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Kế hoạch trung tâm</a>
+            }
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</a>
             <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Phiếu nhận hàng</a>
         </div>
@@ -77,9 +84,19 @@
                     @foreach (var item in Model.Items)
                     {
                         <tr>
-                            <td><span class="ops-item-name">#@item.RestockRequestId</span><div class="ops-secondary">Cảnh báo #@item.StockAlertId</div></td>
+                            <td><span class="ops-item-name">#@item.RestockRequestId</span><div class="ops-secondary">@AdminStatusDisplay.RestockSource(item.SourceType)</div></td>
                             <td><div class="ops-item-name">@item.ItemName</div><div class="ops-secondary">@item.ItemTypeLabel</div></td>
-                            <td class="number"><strong>@AdminStatusDisplay.Quantity(item.RequestedQuantity) @item.BaseUnitName</strong>@if (item.SuggestedQuantity.HasValue) { <div class="ops-secondary">Gợi ý @AdminStatusDisplay.Quantity(item.SuggestedQuantity.Value) @item.BaseUnitName</div> }</td>
+                            <td class="number">
+                                @if (item.RequestedProcurementQuantity.HasValue)
+                                {
+                                    <strong>@AdminStatusDisplay.Quantity(item.RequestedProcurementQuantity.Value) @(item.ProcurementUnitName ?? "đơn vị procurement")</strong>
+                                    <div class="ops-secondary">@AdminStatusDisplay.SourcingDecision(item.SourcingDecision)</div>
+                                }
+                                else
+                                {
+                                    <strong>@AdminStatusDisplay.Quantity(item.RequestedQuantity) @item.BaseUnitName</strong>
+                                }
+                            </td>
                             <td><span class="ops-badge @AdminStatusDisplay.RestockRequestPriority(item.Priority).CssClass">@AdminStatusDisplay.RestockRequestPriority(item.Priority).Label</span></td>
                             <td><span class="ops-badge @AdminStatusDisplay.RestockRequest(item.Status).CssClass">@AdminStatusDisplay.RestockRequest(item.Status).Label</span></td>
                             <td>@(item.CreatedByName ?? "—")</td>

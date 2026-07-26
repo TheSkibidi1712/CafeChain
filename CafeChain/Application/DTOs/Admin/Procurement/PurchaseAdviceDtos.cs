@@ -39,11 +39,19 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public string BaseUnitName { get; set; } = string.Empty;
         public string Priority { get; set; } = string.Empty;
         public decimal RestockRequestedQuantity { get; set; }
+        public decimal? RestockRequestedProcurementQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
+        public string? ProcurementUnitName { get; set; }
         public decimal TransferAllocatedQuantity { get; set; }
         public decimal ExistingPurchaseAdviceQuantity { get; set; }
         public decimal ExistingPurchaseOrderQuantity { get; set; }
         public decimal ExplicitlyClosedQuantity { get; set; }
         public decimal RemainingToPurchaseQuantity { get; set; }
+        public decimal? TransferAllocatedProcurementQuantity { get; set; }
+        public decimal? ExistingPurchaseAdviceProcurementQuantity { get; set; }
+        public decimal? ExistingPurchaseOrderProcurementQuantity { get; set; }
+        public decimal? ExplicitlyClosedProcurementQuantity { get; set; }
+        public decimal? RemainingToPurchaseProcurementQuantity { get; set; }
         public string RestockRowVersion { get; set; } = string.Empty;
     }
 
@@ -51,6 +59,7 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
     {
         public int StoreId { get; set; }
         public string RequestKey { get; set; } = string.Empty;
+        public bool IsDirectProposal { get; set; }
         public DateTime NeededByDate { get; set; }
         public string Priority { get; set; } = string.Empty;
         public string? Note { get; set; }
@@ -59,8 +68,12 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
 
     public sealed class CreatePurchaseAdviceLineRequest
     {
-        public int RestockRequestId { get; set; }
+        public int? RestockRequestId { get; set; }
+        public int? IngredientId { get; set; }
+        public decimal? RequestedProcurementQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
         public decimal RequestedPurchaseBaseQuantity { get; set; }
+        public decimal? RequestedPurchaseProcurementQuantity { get; set; }
         public DateTime? NeededByDate { get; set; }
         public string? Note { get; set; }
         public string RestockRowVersion { get; set; } = string.Empty;
@@ -80,6 +93,7 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
     {
         public int PurchaseAdviceLineId { get; set; }
         public decimal RequestedPurchaseBaseQuantity { get; set; }
+        public decimal? RequestedPurchaseProcurementQuantity { get; set; }
         public DateTime? NeededByDate { get; set; }
         public string? Note { get; set; }
         public string RowVersion { get; set; } = string.Empty;
@@ -120,12 +134,19 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
     {
         public int PurchaseAdviceLineId { get; set; }
         public decimal RequestedPurchaseBaseQuantity { get; set; }
+        public decimal? RequestedProcurementQuantity { get; set; }
+        public decimal AllocatedToPoProcurementQuantity { get; set; }
+        public decimal AcceptedProcurementQuantity { get; set; }
+        public decimal ClosedProcurementQuantity { get; set; }
         public decimal AllocatedToPoBaseQuantity { get; set; }
         public decimal AcceptedBaseQuantity { get; set; }
         public decimal ClosedBaseQuantity { get; set; }
         public decimal RemainingToOrderQuantity { get; set; }
         public decimal RemainingToReceiveQuantity { get; set; }
         public decimal UnresolvedQuantity { get; set; }
+        public decimal? RemainingToOrderProcurementQuantity { get; set; }
+        public decimal? RemainingToReceiveProcurementQuantity { get; set; }
+        public decimal? UnresolvedProcurementQuantity { get; set; }
         public string LineStatus { get; set; } = string.Empty;
         public DateTime NeededByDate { get; set; }
         public string? Note { get; set; }

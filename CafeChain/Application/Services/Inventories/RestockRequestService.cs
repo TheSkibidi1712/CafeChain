@@ -22,15 +22,18 @@ namespace CafeChain.Application.Services.Inventories
         private readonly AppDbContext _context;
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<RestockRequestService> _logger;
+        private readonly IUnitConversionService? _unitConversion;
 
         public RestockRequestService(
             AppDbContext context,
             IScopeAuthorizationService scopeAuthorization,
-            ILogger<RestockRequestService> logger)
+            ILogger<RestockRequestService> logger,
+            IUnitConversionService? unitConversion = null)
         {
             _context = context;
             _scopeAuthorization = scopeAuthorization;
             _logger = logger;
+            _unitConversion = unitConversion;
         }
 
         public async Task<ServiceResult<CreateRestockRequestResultDto>> CreateFromConfirmedAlertAsync(
@@ -244,6 +247,7 @@ namespace CafeChain.Application.Services.Inventories
                 .Include(r => r.Recipe)
                 .Include(r => r.PreparedItem)
                     .ThenInclude(i => i!.BaseUnit)
+                .Include(r => r.ProcurementUnit)
                 .Include(r => r.CreatedByStaff)
                 .Where(r => r.StoreId == storeId);
 
@@ -286,9 +290,11 @@ namespace CafeChain.Application.Services.Inventories
                 .Include(x => x.Recipe)
                 .Include(x => x.PreparedItem)
                     .ThenInclude(i => i!.BaseUnit)
+                .Include(x => x.ProcurementUnit)
                 .Include(x => x.CreatedByStaff)
                 .Include(x => x.Store)
                 .Include(x => x.StockAlert)
+                .Include(x => x.SourcingAllocations)
                 .FirstOrDefaultAsync(x => x.RestockRequestId == requestId);
 
             if (r == null)
@@ -326,6 +332,178 @@ namespace CafeChain.Application.Services.Inventories
                 r == null ? null : MapListItem(r));
         }
 
+        public Task<ServiceResult<CreateRestockRequestResultDto>> CreateManualAsync(
+            CreateProcurementDemandRequest request,
+            int actorStaffId) =>
+            CreateProcurementDemandAsync(request, actorStaffId, RestockRequestSourceTypes.ManualByStore);
+
+        public Task<ServiceResult<CreateRestockRequestResultDto>> CreateCentralPlannerAsync(
+            CreateProcurementDemandRequest request,
+            int actorStaffId) =>
+            CreateProcurementDemandAsync(request, actorStaffId, RestockRequestSourceTypes.CentralPlanner);
+
+        public async Task<ServiceResult<SourcingAllocationDto>> SetSourcingDecisionAsync(
+            SourcingDecisionRequest request,
+            int actorStaffId)
+        {
+            if (request.RestockRequestId <= 0 || request.ProcurementQuantity <= 0)
+                return ServiceResult<SourcingAllocationDto>.Failure("Yêu cầu và số lượng phân bổ không hợp lệ.");
+
+            var decision = request.DecisionType.Trim().ToUpperInvariant();
+            if (!RestockSourcingDecisionTypes.All.Contains(decision, StringComparer.Ordinal))
+                return ServiceResult<SourcingAllocationDto>.Failure("Quyết định nguồn cung không hợp lệ.");
+            if (decision == RestockSourcingDecisionTypes.Reject
+                && string.IsNullOrWhiteSpace(request.Reason))
+                return ServiceResult<SourcingAllocationDto>.Failure("Từ chối nhu cầu phải có lý do.");
+
+            var demand = await _context.RestockRequests
+                .Include(x => x.SourcingAllocations)
+                .SingleOrDefaultAsync(x => x.RestockRequestId == request.RestockRequestId);
+            if (demand == null)
+                return ServiceResult<SourcingAllocationDto>.Failure("Không tìm thấy yêu cầu bổ sung.");
+            if (!await IsAuthorizedRequesterAsync(actorStaffId, demand.StoreId, allowWarehouseRole: true))
+                return ServiceResult<SourcingAllocationDto>.Failure("Bạn không có quyền quyết định nguồn cung cho cửa hàng này.");
+            if (request.ProcurementUnitId != demand.ProcurementUnitId)
+                return ServiceResult<SourcingAllocationDto>.Failure("Đơn vị procurement phải trùng với đơn vị của nhu cầu.");
+
+            var allocated = demand.SourcingAllocations
+                .Where(x => x.Status is RestockSourcingAllocationStatuses.Active
+                    or RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
+                .Sum(x => x.ProcurementQuantity);
+            var requested = demand.RequestedProcurementQuantity ?? demand.RequestedQuantity;
+            if (request.ProcurementQuantity > requested - allocated)
+                return ServiceResult<SourcingAllocationDto>.Failure(
+                    $"Số lượng phân bổ vượt nhu cầu còn lại ({Math.Max(0m, requested - allocated):N3}).");
+
+            var now = DateTime.UtcNow;
+            var allocation = new RestockSourcingAllocation
+            {
+                RestockRequestId = demand.RestockRequestId,
+                DecisionType = decision,
+                ProcurementQuantity = request.ProcurementQuantity,
+                ProcurementUnitId = request.ProcurementUnitId,
+                Status = decision == RestockSourcingDecisionTypes.Purchase
+                    ? RestockSourcingAllocationStatuses.PendingPurchaseAdvice
+                    : RestockSourcingAllocationStatuses.Active,
+                SourceDocumentType = decision,
+                SourceDocumentId = request.SourceDocumentId,
+                SourceDocumentLineId = request.SourceDocumentLineId,
+                Reason = Clean(request.Reason, 500),
+                CreatedByStaffId = actorStaffId,
+                CreatedAtUtc = now
+            };
+            demand.SourcingDecision = decision;
+            demand.SourcingStatus = allocated + request.ProcurementQuantity >= requested
+                ? RestockSourcingStatuses.FullyAllocated
+                : RestockSourcingStatuses.PartiallyAllocated;
+            _context.RestockSourcingAllocations.Add(allocation);
+            await _context.SaveChangesAsync();
+
+            return ServiceResult<SourcingAllocationDto>.Success(MapSourcingAllocation(allocation),
+                decision == RestockSourcingDecisionTypes.Purchase
+                    ? "Đã ghi nhận nhu cầu mua; đề nghị mua sẽ được tạo từ allocation này."
+                    : "Đã ghi nhận quyết định nguồn cung.");
+        }
+
+        private async Task<ServiceResult<CreateRestockRequestResultDto>> CreateProcurementDemandAsync(
+            CreateProcurementDemandRequest request,
+            int actorStaffId,
+            string sourceType)
+        {
+            if (request.StoreId <= 0 || request.IngredientId <= 0 || request.ProcurementUnitId <= 0
+                || request.RequestedProcurementQuantity <= 0)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Thông tin nhu cầu bổ sung không hợp lệ.");
+            if (!await IsAuthorizedRequesterAsync(
+                    actorStaffId,
+                    request.StoreId,
+                    allowWarehouseRole: sourceType == RestockRequestSourceTypes.CentralPlanner,
+                    requireWarehouseScope: sourceType == RestockRequestSourceTypes.CentralPlanner))
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Bạn không có quyền tạo nhu cầu cho cửa hàng này.");
+
+            var ingredient = await _context.Ingredients
+                .Include(x => x.BaseUnit)
+                .SingleOrDefaultAsync(x => x.IngredientId == request.IngredientId && x.Active);
+            var unit = await _context.Units
+                .SingleOrDefaultAsync(x => x.UnitId == request.ProcurementUnitId && x.Active);
+            if (ingredient == null || unit == null)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Nguyên liệu hoặc đơn vị procurement không hợp lệ.");
+            if (!AllowedProcurementUnitCodes.Contains(unit.UnitCode, StringComparer.OrdinalIgnoreCase))
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Đơn vị procurement phải là kg, L hoặc piece.");
+
+            var sourceReference = Clean(request.SourceReferenceId, 100);
+            if (sourceReference != null)
+            {
+                var duplicate = await _context.RestockRequests
+                    .AsNoTracking()
+                    .Where(x => x.StoreId == request.StoreId
+                        && x.SourceType == sourceType
+                        && x.SourceReferenceId == sourceReference
+                        && RestockRequestStatuses.ActiveValues.Contains(x.Status))
+                    .Select(x => x.RestockRequestId)
+                    .FirstOrDefaultAsync();
+                if (duplicate > 0)
+                    return ServiceResult<CreateRestockRequestResultDto>.Success(
+                        new CreateRestockRequestResultDto { RestockRequestId = duplicate, AlreadyExisted = true },
+                        "Nhu cầu cùng nguồn đã tồn tại; hệ thống trả lại bản ghi hiện có.");
+            }
+
+            var now = DateTime.UtcNow;
+            var requested = request.RequestedProcurementQuantity;
+            decimal requestedBaseQuantity;
+            if (unit.UnitId == ingredient.BaseUnitId)
+            {
+                requestedBaseQuantity = requested;
+            }
+            else
+            {
+                if (_unitConversion == null)
+                    return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                        "Chưa cấu hình dịch vụ quy đổi đơn vị procurement sang đơn vị tồn kho.");
+
+                var conversion = await _unitConversion.ConvertAsync(
+                    ingredient.IngredientId,
+                    requested,
+                    unit.UnitId,
+                    ingredient.BaseUnitId);
+                if (!conversion.IsSuccess || conversion.Data <= 0)
+                    return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                        $"Không thể quy đổi {requested:N3} {unit.Name} sang {ingredient.BaseUnit.Name}: {conversion.Message}");
+
+                requestedBaseQuantity = conversion.Data;
+            }
+
+            var demand = new RestockRequest
+            {
+                StoreId = request.StoreId,
+                CreatedForStoreId = request.StoreId,
+                SourceType = sourceType,
+                SourceReferenceId = sourceReference,
+                NeedByDate = request.NeedByDate?.ToUniversalTime(),
+                RequestedProcurementQuantity = requested,
+                ProcurementUnitId = unit.UnitId,
+                TargetStockProcurementQuantity = request.TargetStockProcurementQuantity,
+                ForecastEvidence = Clean(request.ForecastEvidence, 1000),
+                // Legacy base-quantity fields remain populated for existing allocation/workflow code.
+                // Procurement quantity/UOM above is the authoritative purchasing contract.
+                RequestedQuantity = requestedBaseQuantity,
+                SuggestedQuantity = requestedBaseQuantity,
+                IngredientId = ingredient.IngredientId,
+                Status = RestockRequestStatuses.Draft,
+                Priority = ResolvePriority(request.Priority, StockAlertTypes.ManualReview),
+                CreatedByStaffId = actorStaffId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                Note = Clean(request.Note, MaxNoteLength)
+            };
+            _context.RestockRequests.Add(demand);
+            await _context.SaveChangesAsync();
+            return ServiceResult<CreateRestockRequestResultDto>.Success(
+                new CreateRestockRequestResultDto { RestockRequestId = demand.RestockRequestId },
+                sourceType == RestockRequestSourceTypes.CentralPlanner
+                    ? "Đã tạo nhu cầu bổ sung từ kế hoạch trung tâm."
+                    : "Đã tạo nhu cầu bổ sung thủ công cho cửa hàng.");
+        }
+
         private async Task<List<int>> ResolveAccountantWarehouseAsync(int storeId)
         {
             return await _context.Staffs
@@ -350,7 +528,11 @@ namespace CafeChain.Application.Services.Inventories
                    || message.Contains("UX_RestockRequest_Open_", StringComparison.OrdinalIgnoreCase);
         }
 
-        private async Task<bool> IsAuthorizedRequesterAsync(int staffId, int storeId)
+        private async Task<bool> IsAuthorizedRequesterAsync(
+            int staffId,
+            int storeId,
+            bool allowWarehouseRole = false,
+            bool requireWarehouseScope = false)
         {
             var staff = await _context.Staffs
                 .AsNoTracking()
@@ -368,7 +550,22 @@ namespace CafeChain.Application.Services.Inventories
                 return true;
             if (roles.Contains(RoleConstants.AreaManager))
                 return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
+            if (allowWarehouseRole && roles.Contains(RoleConstants.AccountantWarehouse))
+                return requireWarehouseScope
+                    ? await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId)
+                    : staff.StoreId == storeId
+                        || await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
             return roles.Contains(RoleConstants.StoreManager) && staff.StoreId == storeId;
+        }
+
+        private static readonly string[] AllowedProcurementUnitCodes =
+            { ProcurementUnitCodes.Kilogram, ProcurementUnitCodes.Liter, ProcurementUnitCodes.Piece };
+
+        private static string? Clean(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            var clean = value.Trim();
+            return clean.Length <= maxLength ? clean : clean[..maxLength];
         }
 
         private static string ResolvePriority(string? priority, string alertType)
@@ -403,7 +600,13 @@ namespace CafeChain.Application.Services.Inventories
             Priority = r.Priority,
             Note = r.Note,
             CreatedByName = r.CreatedByStaff?.FullName,
-            CreatedAt = r.CreatedAt
+            CreatedAt = r.CreatedAt,
+            SourceType = r.SourceType,
+            SourcingStatus = r.SourcingStatus,
+            SourcingDecision = r.SourcingDecision,
+            RequestedProcurementQuantity = r.RequestedProcurementQuantity,
+            ProcurementUnitId = r.ProcurementUnitId,
+            ProcurementUnitName = r.ProcurementUnit?.Name
         };
 
         private static RestockRequestDetailDto MapDetail(RestockRequest r)
@@ -441,10 +644,31 @@ namespace CafeChain.Application.Services.Inventories
                 SuggestionAverageDailyUsageSnapshot = r.SuggestionAverageDailyUsageSnapshot,
                 SuggestionLeadTimeDaysSnapshot = r.SuggestionLeadTimeDaysSnapshot,
                 SuggestionIncomingQuantitySnapshot = r.SuggestionIncomingQuantitySnapshot,
-                SuggestionReason = r.SuggestionReason
+                SuggestionReason = r.SuggestionReason,
+                SourceType = r.SourceType,
+                SourcingStatus = r.SourcingStatus,
+                SourcingDecision = r.SourcingDecision,
+                RequestedProcurementQuantity = r.RequestedProcurementQuantity,
+                ProcurementUnitId = r.ProcurementUnitId,
+                ProcurementUnitName = r.ProcurementUnit?.Name,
+                SourcingAllocations = r.SourcingAllocations?.Select(MapSourcingAllocation).ToList() ?? new()
             };
             return dto;
         }
+
+        private static SourcingAllocationDto MapSourcingAllocation(RestockSourcingAllocation allocation) => new()
+        {
+            RestockSourcingAllocationId = allocation.RestockSourcingAllocationId,
+            RestockRequestId = allocation.RestockRequestId,
+            DecisionType = allocation.DecisionType,
+            ProcurementQuantity = allocation.ProcurementQuantity,
+            ProcurementUnitId = allocation.ProcurementUnitId,
+            Status = allocation.Status,
+            PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
+            PurchaseOrderLineId = allocation.PurchaseOrderLineId,
+            Reason = allocation.Reason,
+            CreatedAtUtc = allocation.CreatedAtUtc
+        };
 
         private static string ResolveBaseUnitName(RestockRequest r) =>
             r.Ingredient?.BaseUnit?.Name

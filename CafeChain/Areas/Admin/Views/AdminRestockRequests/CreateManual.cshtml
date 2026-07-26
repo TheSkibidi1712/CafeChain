@@ -1,0 +1,50 @@
+@model CafeChain.Application.DTOs.Admin.RestockRequests.CreateProcurementDemandRequest
+@{
+    ViewData["Title"] = "Tạo nhu cầu bổ sung thủ công";
+    var ingredients = ViewBag.Ingredients;
+    var units = ViewBag.Units;
+}
+<div class="ops-page">
+    <header class="ops-page-header">
+        <div>
+            <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
+            <h1>Tạo nhu cầu bổ sung thủ công</h1>
+            <p class="ops-subtitle">Ghi nhận nhu cầu theo đơn vị procurement; chưa tạo đề nghị mua cho đến khi có quyết định nguồn cung.</p>
+        </div>
+        <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Quay lại</a>
+    </header>
+    <section class="ops-card">
+        <form asp-action="CreateManual" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="StoreId" />
+            <input type="hidden" asp-for="SourceType" />
+            <div class="ops-form-grid">
+                <label>Nguyên liệu
+                    <select asp-for="IngredientId" required>
+                        <option value="">Chọn nguyên liệu</option>
+                        @foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }
+                    </select>
+                </label>
+                <label>Đơn vị procurement
+                    <select asp-for="ProcurementUnitId" required>
+                        <option value="">Chọn đơn vị</option>
+                        @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }
+                    </select>
+                </label>
+                <label>Số lượng yêu cầu
+                    <input asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required />
+                </label>
+                <label>Cần trước ngày
+                    <input asp-for="NeedByDate" type="date" />
+                </label>
+                <label class="ops-form-wide">Mã tham chiếu
+                    <input asp-for="SourceReferenceId" maxlength="100" placeholder="Ví dụ: COUNT-20260726-01" />
+                </label>
+                <label class="ops-form-wide">Lý do / ghi chú
+                    <textarea asp-for="Note" maxlength="500" rows="3"></textarea>
+                </label>
+            </div>
+            <button class="ops-btn ops-btn-primary" type="submit">Tạo nhu cầu bổ sung</button>
+        </form>
+    </section>
+</div>
