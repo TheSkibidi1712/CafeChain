@@ -4,6 +4,7 @@
     ViewData["Title"] = "Dashboard Analytics";
     var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     var storesJson = JsonSerializer.Serialize(Model.Stores, jsonOptions);
+    var contextJson = JsonSerializer.Serialize(Model.AnalysisContext, jsonOptions);
     var tabs = new[]
     {
         ("Executive", "Điều hành", "bi-speedometer2"),
@@ -25,6 +26,10 @@
       data-ai-execute="@Url.Action("Execute", "AdminDashboardIntelligence", new { area = "Admin" })"
       data-ai-explain="@Url.Action("Explain", "AdminDashboardIntelligence", new { area = "Admin" })"
       data-ai-analyze="@Url.Action("Analyze", "AdminDashboardIntelligence", new { area = "Admin" })"
+      data-context-endpoint="@Url.Action("CreateContext", "Dashboard", new { area = "Admin" })"
+      data-context-id="@Model.AnalysisContext?.ContextId"
+      data-generated-at="@Model.AnalysisContext?.GeneratedAt.ToString("O")"
+      data-filter-fingerprint="@Model.AnalysisContext?.FilterFingerprint"
       data-province="@Model.Filter.ProvinceId" data-district="@Model.Filter.DistrictId" data-store="@Model.Filter.StoreId">
     <form id="dashboardAntiForgery" hidden>@Html.AntiForgeryToken()</form>
     <header class="analytics-header">
@@ -58,6 +63,15 @@
             </select>
         </label>
         <label>Top<input id="dashboardTop" type="number" min="1" max="100" value="@Model.Filter.Top" /></label>
+        <label>Preset
+            <select id="dashboardPreset">
+                <option value="">Tùy chọn hiện tại</option>
+                <option value="Today">Hôm nay</option>
+                <option value="Last7Days">7 ngày gần nhất</option>
+                <option value="Last30Days">30 ngày gần nhất</option>
+                <option value="ThisMonth">Tháng hiện tại</option>
+            </select>
+        </label>
     </section>
 
     <section class="dashboard-intelligence" aria-labelledby="dashboardIntelligenceTitle">
@@ -104,6 +118,7 @@
 </main>
 
 <script id="dashboardStores" type="application/json">@Html.Raw(storesJson)</script>
+<script id="dashboardContext" type="application/json">@Html.Raw(contextJson)</script>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>

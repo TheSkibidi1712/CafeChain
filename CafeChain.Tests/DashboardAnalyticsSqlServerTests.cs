@@ -154,7 +154,7 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=3;", 15L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=4;", 6L);
+            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=6;", 6L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.OrderRefunds r JOIN dbo.Orders o ON o.OrderId=r.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 4L);
         await AssertScalarAsync(connection,

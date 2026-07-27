@@ -4,6 +4,10 @@ using CafeChain.Application.Interfaces.Admin.Dashboard;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Infrastrusture.Interfaces.Admin.Dashboard;
 using CafeChain.ViewModels.Admin.Dashboard;
+using Microsoft.Extensions.Caching.Memory;
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CafeChain.Application.Services.Admin.Dashboard;
 
@@ -12,17 +16,41 @@ public sealed class DashboardService : IDashboardService
     private sealed record ScopeResolution(
         DashboardFilterDto Filter,
         IReadOnlyList<int> StoreIds,
+        IReadOnlyList<DashboardStoreOptionDto> StoreOptions,
+        DateTimeOffset? GeneratedAt = null);
+
+    private sealed record CachedContext(
+        DashboardAnalysisContextDto Context,
+        DashboardFilterDto Filter,
+        IReadOnlyList<int> StoreIds,
         IReadOnlyList<DashboardStoreOptionDto> StoreOptions);
 
     private readonly IDashboardRepository _repository;
     private readonly IScopeAuthorizationService _scopeAuthorization;
+    private readonly IMemoryCache _cache;
+    private readonly TimeProvider _clock;
 
     public DashboardService(
         IDashboardRepository repository,
         IScopeAuthorizationService scopeAuthorization)
+        : this(
+            repository,
+            scopeAuthorization,
+            new MemoryCache(new MemoryCacheOptions()),
+            TimeProvider.System)
+    {
+    }
+
+    public DashboardService(
+        IDashboardRepository repository,
+        IScopeAuthorizationService scopeAuthorization,
+        IMemoryCache cache,
+        TimeProvider clock)
     {
         _repository = repository;
         _scopeAuthorization = scopeAuthorization;
+        _cache = cache;
+        _clock = clock;
     }
 
     public async Task<DashboardPageDto> GetPageAsync(
@@ -31,22 +59,68 @@ public sealed class DashboardService : IDashboardService
         CancellationToken cancellationToken = default)
     {
         var scope = await ResolveScopeAsync(actor, filter, cancellationToken);
+        var context = CreateContext(scope.Filter, scope.StoreIds, scope.StoreOptions, generatedAt: scope.GeneratedAt);
+        StoreContext(actor, context, scope);
         return new DashboardPageDto
         {
             Filter = scope.Filter,
             Stores = scope.StoreOptions,
-            RoleName = actor.RoleNames.FirstOrDefault() ?? string.Empty
+            RoleName = actor.RoleNames.FirstOrDefault() ?? string.Empty,
+            AnalysisContext = context
         };
+    }
+
+    public async Task<DashboardAnalysisContextDto> CreateContextAsync(
+        AdminActorContext actor,
+        DashboardContextRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var filter = CopyFilter(request);
+        if (request.Preset.HasValue)
+            ApplyPreset(filter, request.Preset.Value, _clock.GetLocalNow());
+        var scope = await ResolveScopeAsync(actor, filter, cancellationToken);
+        var context = CreateContext(scope.Filter, scope.StoreIds, scope.StoreOptions, request.Preset, scope.GeneratedAt);
+        StoreContext(actor, context, scope);
+        return context;
+    }
+
+    public Task<DashboardAnalysisContextDto> GetContextAsync(
+        AdminActorContext actor,
+        Guid contextId,
+        CancellationToken cancellationToken = default)
+    {
+        if (TryGetContext(actor, contextId, out var cached))
+            return Task.FromResult(cached.Context);
+        throw new KeyNotFoundException("Dashboard context đã hết hạn. Vui lòng tải lại dữ liệu.");
     }
 
     public async Task<object> GetSectionAsync(
         AdminActorContext actor,
         DashboardSection section,
         DashboardFilterDto filter,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Guid? contextId = null)
     {
-        var scope = await ResolveScopeAsync(actor, filter, cancellationToken);
-        object data = section switch
+        ScopeResolution scope;
+        if (contextId.HasValue)
+        {
+            if (!TryGetContext(actor, contextId.Value, out var cached))
+                throw new KeyNotFoundException("Dashboard context đã hết hạn. Vui lòng tải lại dữ liệu.");
+            scope = new ScopeResolution(cached.Filter, cached.StoreIds, cached.StoreOptions, cached.Context.GeneratedAt);
+        }
+        else
+            scope = await ResolveScopeAsync(actor, filter, cancellationToken);
+        filter = scope.Filter;
+        var data = await LoadSectionAsync(section, scope, cancellationToken);
+        return CreateSectionResponse(section, scope, data, contextId);
+    }
+
+    private async Task<object> LoadSectionAsync(
+        DashboardSection section,
+        ScopeResolution scope,
+        CancellationToken cancellationToken)
+    {
+        return section switch
         {
             DashboardSection.Executive => await _repository.GetExecutiveAsync(scope.Filter, scope.StoreIds, cancellationToken),
             DashboardSection.Operations => await _repository.GetOperationsAsync(scope.Filter, scope.StoreIds, cancellationToken),
@@ -56,8 +130,6 @@ public sealed class DashboardService : IDashboardService
             DashboardSection.Workforce => await _repository.GetWorkforceAsync(scope.Filter, scope.StoreIds, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(section))
         };
-
-        return CreateSectionResponse(section, scope, data);
     }
 
     public async Task<DashboardVM> GetDashboardAsync(DashboardRequest request)
@@ -111,33 +183,68 @@ public sealed class DashboardService : IDashboardService
         CancellationToken cancellationToken = default)
     {
         if (!filter.StaffId.HasValue) throw new UnauthorizedAccessException("Staff context is required.");
-        var section = SectionFor(widget);
         var actor = new AdminActorContext { StaffId = filter.StaffId.Value };
-        var normalized = CopyFilter(filter);
-        var response = await GetSectionAsync(actor, section, normalized, cancellationToken);
-        var extracted = ExtractWidget(widget, response);
-        var storeIds = response switch
-        {
-            DashboardSectionResponse<ExecutiveDashboardData> x => x.StoreIds,
-            DashboardSectionResponse<OperationsDashboardData> x => x.StoreIds,
-            DashboardSectionResponse<InventoryDashboardData> x => x.StoreIds,
-            DashboardSectionResponse<ProcurementDashboardData> x => x.StoreIds,
-            DashboardSectionResponse<ProductDashboardData> x => x.StoreIds,
-            DashboardSectionResponse<WorkforceDashboardData> x => x.StoreIds,
-            _ => []
-        };
-        return new DashboardAnalyticsResponse
-        {
-            Widget = widget,
-            FromDate = normalized.FromDate,
-            ToExclusive = normalized.ToDate.AddDays(1),
-            Granularity = normalized.Granularity,
-            StoreIds = storeIds,
-            Rows = extracted.Data,
-            DataStatus = extracted.Status,
-            Warnings = extracted.Warnings
-        };
+        var batch = await GetAnalyticsBatchAsync(actor, [widget], filter, cancellationToken: cancellationToken);
+        return batch.Widgets[widget];
     }
+
+    public async Task<DashboardAnalyticsBatchResponse> GetAnalyticsBatchAsync(
+        AdminActorContext actor,
+        IReadOnlyCollection<DashboardAnalyticsWidget> widgets,
+        DashboardAnalyticsFilter filter,
+        string period = "Current",
+        CancellationToken cancellationToken = default)
+    {
+        if (widgets.Count == 0)
+            return new DashboardAnalyticsBatchResponse();
+
+        var normalized = CopyFilter(filter);
+        var scope = await ResolveScopeAsync(actor, normalized, cancellationToken);
+        var results = new Dictionary<DashboardAnalyticsWidget, DashboardAnalyticsResponse>();
+        var telemetry = new List<DashboardSectionTelemetryDto>();
+
+        foreach (var group in widgets.Distinct().GroupBy(widget => DashboardWidgetCatalog.Get(widget).Section))
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var sectionData = await LoadSectionAsync(group.Key, scope, cancellationToken);
+            var response = CreateSectionResponse(group.Key, scope, sectionData, contextId: null);
+            var failed = 0;
+            foreach (var widget in group)
+            {
+                var extracted = ExtractWidget(widget, response);
+                if (string.Equals(extracted.Status, "ERROR", StringComparison.OrdinalIgnoreCase))
+                    failed++;
+                results[widget] = new DashboardAnalyticsResponse
+                {
+                    Widget = widget,
+                    FromDate = scope.Filter.FromDate,
+                    ToExclusive = scope.Filter.PeriodEndOverride ?? scope.Filter.ToDate.AddDays(1),
+                    Granularity = scope.Filter.Granularity,
+                    StoreIds = scope.StoreIds,
+                    Rows = extracted.Data,
+                    DataStatus = extracted.Status,
+                    Warnings = extracted.Warnings
+                };
+            }
+            stopwatch.Stop();
+            telemetry.Add(new DashboardSectionTelemetryDto
+            {
+                Period = period,
+                Section = group.Key,
+                ElapsedMilliseconds = stopwatch.ElapsedMilliseconds,
+                WidgetCount = group.Count(),
+                FailedWidgetCount = failed
+            });
+        }
+
+        return new DashboardAnalyticsBatchResponse { Widgets = results, Telemetry = telemetry };
+    }
+
+    public Task WriteAnalysisAuditAsync(
+        int staffId,
+        DashboardAnalysisAuditDto audit,
+        CancellationToken cancellationToken = default) =>
+        _repository.WriteAnalysisAuditAsync(staffId, audit, cancellationToken);
 
     private async Task<ScopeResolution> ResolveScopeAsync(
         AdminActorContext actor,
@@ -146,12 +253,23 @@ public sealed class DashboardService : IDashboardService
     {
         if (actor.StaffId <= 0) throw new UnauthorizedAccessException("Staff context is required.");
         var normalized = NormalizeFilter(filter);
+        var now = _clock.GetLocalNow();
+        if (normalized.ToDate.Date > now.Date)
+            normalized.ToDate = now.Date;
+        if (normalized.FromDate.Date > normalized.ToDate.Date)
+            throw new ArgumentException("FromDate không được lớn hơn thời điểm hiện tại.", nameof(filter));
+        normalized.PeriodStartOverride ??= normalized.FromDate.Date;
+        normalized.PeriodEndOverride ??= normalized.ToDate.Date >= now.Date
+            ? now.DateTime
+            : normalized.ToDate.Date.AddDays(1);
         var allowed = await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId);
         var allowedIds = allowed.Select(x => x.StoreId).Distinct().ToArray();
         if (allowedIds.Length == 0) throw new UnauthorizedAccessException("Không có cửa hàng trong phạm vi được cấp.");
         var options = await _repository.GetStoreOptionsAsync(allowedIds, cancellationToken);
 
         IEnumerable<DashboardStoreOptionDto> selected = options;
+        if (normalized.StoreIdsOverride is { Count: > 0 })
+            selected = selected.Where(x => normalized.StoreIdsOverride.Contains(x.StoreId));
         if (normalized.ProvinceId.HasValue) selected = selected.Where(x => x.ProvinceId == normalized.ProvinceId);
         if (normalized.DistrictId.HasValue) selected = selected.Where(x => x.DistrictId == normalized.DistrictId);
         if (normalized.StoreId.HasValue)
@@ -163,7 +281,7 @@ public sealed class DashboardService : IDashboardService
 
         var ids = selected.Select(x => x.StoreId).Distinct().OrderBy(x => x).ToArray();
         if (ids.Length == 0) throw new UnauthorizedAccessException("Bộ lọc không còn cửa hàng hợp lệ.");
-        return new ScopeResolution(normalized, ids, options);
+        return new ScopeResolution(normalized, ids, options, now);
     }
 
     private static DashboardFilterDto NormalizeFilter(DashboardFilterDto filter)
@@ -180,7 +298,10 @@ public sealed class DashboardService : IDashboardService
             ProvinceId = filter.ProvinceId,
             DistrictId = filter.DistrictId,
             Granularity = NormalizeGranularity(filter.Granularity, filter.FromDate, filter.ToDate),
-            Top = Math.Clamp(filter.Top, 1, 100)
+            Top = Math.Clamp(filter.Top, 1, 100),
+            PeriodStartOverride = filter.PeriodStartOverride,
+            PeriodEndOverride = filter.PeriodEndOverride,
+            StoreIdsOverride = filter.StoreIdsOverride
         };
     }
 
@@ -188,41 +309,124 @@ public sealed class DashboardService : IDashboardService
     {
         FromDate=filter.FromDate,ToDate=filter.ToDate,StoreId=filter.StoreId,
         ProvinceId=filter.ProvinceId,DistrictId=filter.DistrictId,
-        Granularity=filter.Granularity,Top=filter.Top
+        Granularity=filter.Granularity,Top=filter.Top,
+        PeriodStartOverride=filter.PeriodStartOverride,
+        PeriodEndOverride=filter.PeriodEndOverride,
+        StoreIdsOverride=filter.StoreIdsOverride
     };
 
-    private static object CreateSectionResponse(DashboardSection section, ScopeResolution scope, object data) => data switch
+    private DashboardAnalysisContextDto CreateContext(
+        DashboardFilterDto filter,
+        IReadOnlyList<int> storeIds,
+        IReadOnlyList<DashboardStoreOptionDto> storeOptions,
+        DashboardPeriodPreset? preset = null,
+        DateTimeOffset? generatedAt = null)
     {
-        ExecutiveDashboardData value => Response(section, scope, value),
-        OperationsDashboardData value => Response(section, scope, value),
-        InventoryDashboardData value => Response(section, scope, value),
-        ProcurementDashboardData value => Response(section, scope, value),
-        ProductDashboardData value => Response(section, scope, value),
-        WorkforceDashboardData value => Response(section, scope, value),
+        var generated = generatedAt ?? _clock.GetLocalNow();
+        var offset = generated.Offset;
+        var start = new DateTimeOffset(
+            filter.PeriodStartOverride ?? filter.FromDate.Date, offset);
+        var requestedEnd = filter.PeriodEndOverride
+            ?? filter.ToDate.Date.AddDays(1);
+        var end = new DateTimeOffset(
+            requestedEnd > generated.DateTime ? generated.DateTime : requestedEnd,
+            offset);
+        var comparison = ResolveComparison(start, end);
+        return new DashboardAnalysisContextDto
+        {
+            ContextId = Guid.NewGuid(),
+            GeneratedAt = generated,
+            PeriodStart = start,
+            PeriodEnd = end,
+            FromDate = filter.FromDate.Date,
+            ToDate = filter.ToDate.Date,
+            Preset = preset,
+            PeriodType = preset?.ToString() ?? "Custom",
+            ComparisonStart = comparison.Start,
+            ComparisonEnd = comparison.End,
+            StoreId = filter.StoreId,
+            StoreIds = storeIds,
+            Stores = storeOptions.Where(store => storeIds.Contains(store.StoreId)).ToList(),
+            FilterFingerprint = CreateFilterFingerprint(filter, storeIds),
+            ProvinceId = filter.ProvinceId,
+            DistrictId = filter.DistrictId,
+            Granularity = filter.Granularity,
+            Top = filter.Top,
+            Widgets = DashboardWidgetCatalog.Metadata()
+        };
+    }
+
+    internal static string CreateFilterFingerprint(
+        DashboardFilterDto filter,
+        IReadOnlyList<int> storeIds)
+    {
+        var canonical = string.Join(
+            "|",
+            (filter.PeriodStartOverride ?? filter.FromDate.Date).ToUniversalTime().ToString("O"),
+            (filter.PeriodEndOverride ?? filter.ToDate.Date.AddDays(1)).ToUniversalTime().ToString("O"),
+            string.Join(",", storeIds.OrderBy(id => id)),
+            filter.Granularity.Trim().ToUpperInvariant(),
+            Math.Clamp(filter.Top, 1, 100));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))).ToLowerInvariant();
+    }
+
+    private void StoreContext(AdminActorContext actor, DashboardAnalysisContextDto context, ScopeResolution scope)
+    {
+        var filter = CopyFilter(scope.Filter);
+        filter.PeriodStartOverride = context.PeriodStart.DateTime;
+        filter.PeriodEndOverride = context.PeriodEnd.DateTime;
+        _cache.Set(
+            ContextKey(actor.StaffId, context.ContextId),
+            new CachedContext(context, filter, scope.StoreIds, scope.StoreOptions),
+            TimeSpan.FromMinutes(15));
+    }
+
+    private bool TryGetContext(AdminActorContext actor, Guid contextId, out CachedContext context) =>
+        _cache.TryGetValue(ContextKey(actor.StaffId, contextId), out context!);
+
+    private static string ContextKey(int staffId, Guid contextId) =>
+        $"dashboard-context:{staffId}:{contextId:N}";
+
+    private static void ApplyPreset(DashboardFilterDto filter, DashboardPeriodPreset preset, DateTimeOffset now)
+    {
+        var today = now.Date;
+        filter.FromDate = preset switch
+        {
+            DashboardPeriodPreset.Today => today,
+            DashboardPeriodPreset.Last7Days => today.AddDays(-7),
+            DashboardPeriodPreset.Last30Days => today.AddDays(-30),
+            DashboardPeriodPreset.ThisMonth => new DateTime(today.Year, today.Month, 1),
+            _ => filter.FromDate
+        };
+        filter.ToDate = today;
+    }
+
+    private static (DateTimeOffset? Start, DateTimeOffset? End) ResolveComparison(
+        DateTimeOffset start, DateTimeOffset end)
+    {
+        var duration = end - start;
+        if (duration <= TimeSpan.Zero) return (null, null);
+        return (start - duration, start);
+    }
+
+    private static object CreateSectionResponse(DashboardSection section, ScopeResolution scope, object data, Guid? contextId) => data switch
+    {
+        ExecutiveDashboardData value => Response(section, scope, value, contextId),
+        OperationsDashboardData value => Response(section, scope, value, contextId),
+        InventoryDashboardData value => Response(section, scope, value, contextId),
+        ProcurementDashboardData value => Response(section, scope, value, contextId),
+        ProductDashboardData value => Response(section, scope, value, contextId),
+        WorkforceDashboardData value => Response(section, scope, value, contextId),
         _ => throw new InvalidOperationException("Unsupported dashboard section data.")
     };
 
-    private static DashboardSectionResponse<T> Response<T>(DashboardSection section, ScopeResolution scope, T data) => new()
+    private static DashboardSectionResponse<T> Response<T>(DashboardSection section, ScopeResolution scope, T data, Guid? contextId) => new()
     {
-        Section=section,FromDate=scope.Filter.FromDate,ToExclusive=scope.Filter.ToDate.AddDays(1),
+        Section=section,ContextId=contextId,FromDate=scope.Filter.FromDate,
+        ToExclusive=scope.Filter.PeriodEndOverride ?? scope.Filter.ToDate.AddDays(1),
+        GeneratedAt=scope.GeneratedAt,
         Granularity=scope.Filter.Granularity,StoreIds=scope.StoreIds,Data=data
     };
-
-    private static DashboardSection SectionFor(DashboardAnalyticsWidget widget)
-    {
-        var value = (int)widget;
-        if (value <= (int)DashboardAnalyticsWidget.OperationalAlerts)
-            return DashboardSection.Executive;
-        if (value <= (int)DashboardAnalyticsWidget.WorkShiftKpis)
-            return DashboardSection.Operations;
-        if (value <= (int)DashboardAnalyticsWidget.IngredientConsumptionTrend)
-            return DashboardSection.Inventory;
-        if (value <= (int)DashboardAnalyticsWidget.SupplierIssueMix)
-            return DashboardSection.Procurement;
-        if (value <= (int)DashboardAnalyticsWidget.ProductPeriodPerformance)
-            return DashboardSection.Product;
-        return DashboardSection.Workforce;
-    }
 
     private static (object Data, string Status, List<string> Warnings) ExtractWidget(DashboardAnalyticsWidget widget, object response) => (widget, response) switch
     {

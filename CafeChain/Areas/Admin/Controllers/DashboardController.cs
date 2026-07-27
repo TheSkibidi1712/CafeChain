@@ -39,13 +39,20 @@ public sealed class DashboardController : Controller
     [HttpGet]
     public async Task<IActionResult> GetSection(
         [FromQuery] DashboardSection section,
-        [FromQuery] DashboardFilterDto filter)
+        [FromQuery] DashboardFilterDto filter,
+        [FromQuery] Guid? contextId)
     {
         if (!ModelState.IsValid)
             return BadRequest(new { success = false, message = "Bộ lọc analytics không hợp lệ." });
         return await ExecuteJsonAsync(() => _service.GetSectionAsync(
-            _actorAccessor.Get(User), section, filter, HttpContext.RequestAborted));
+            _actorAccessor.Get(User), section, filter, HttpContext.RequestAborted, contextId));
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> CreateContext([FromBody] DashboardContextRequestDto request) =>
+        ExecuteJsonAsync(() => _service.CreateContextAsync(
+            _actorAccessor.Get(User), request, HttpContext.RequestAborted));
 
     // Compatibility adapter: the legacy route now returns the Executive section.
     [HttpGet]
@@ -74,6 +81,10 @@ public sealed class DashboardController : Controller
         {
             return StatusCode(StatusCodes.Status403Forbidden,
                 new { success = false, message = exception.Message });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { success = false, message = exception.Message });
         }
         catch (ArgumentException exception)
         {

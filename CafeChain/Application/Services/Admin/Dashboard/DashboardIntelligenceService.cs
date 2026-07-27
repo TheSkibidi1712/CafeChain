@@ -7,6 +7,7 @@ using CafeChain.Application.Interfaces.AI;
 using CafeChain.Application.Interfaces.Admin.Dashboard;
 using CafeChain.Application.Options;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace CafeChain.Application.Services.Admin.Dashboard;
@@ -23,19 +24,44 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         DashboardAnalyticsWidget.WorkforceShiftStatus
     ];
 
+    private static readonly IReadOnlyList<DashboardAnalyticsWidget> DashboardWidgets =
+    [
+        DashboardAnalyticsWidget.NetSalesTrend, DashboardAnalyticsWidget.StoreRanking,
+        DashboardAnalyticsWidget.PaymentMethodMix, DashboardAnalyticsWidget.OrderHeatmap,
+        DashboardAnalyticsWidget.OperationalAlerts,
+        DashboardAnalyticsWidget.WorkShiftCashDiscrepancy, DashboardAnalyticsWidget.WorkShiftSales,
+        DashboardAnalyticsWidget.WorkShiftPaymentMix, DashboardAnalyticsWidget.HourlyOrders,
+        DashboardAnalyticsWidget.OfflineReconciliationExceptions,
+        DashboardAnalyticsWidget.WorkShiftTopDiscrepancies, DashboardAnalyticsWidget.WorkShiftKpis,
+        DashboardAnalyticsWidget.InventoryShortageRisk, DashboardAnalyticsWidget.InventoryMovementByType,
+        DashboardAnalyticsWidget.InventoryThresholdRisk, DashboardAnalyticsWidget.InventoryReorderSuggestions,
+        DashboardAnalyticsWidget.InventoryWasteByStoreIngredient, DashboardAnalyticsWidget.InventoryFifoLayerAge,
+        DashboardAnalyticsWidget.PurchaseOrderPipeline, DashboardAnalyticsWidget.OverduePurchaseOrders,
+        DashboardAnalyticsWidget.SupplierQuality, DashboardAnalyticsWidget.PurchasePriceTrend,
+        DashboardAnalyticsWidget.ProcurementSpendBreakdown, DashboardAnalyticsWidget.SupplierIssueMix,
+        DashboardAnalyticsWidget.TopProducts, DashboardAnalyticsWidget.VolumeMarginMatrix,
+        DashboardAnalyticsWidget.SizeMargin, DashboardAnalyticsWidget.TopToppings,
+        DashboardAnalyticsWidget.BomHealth, DashboardAnalyticsWidget.HighConsumptionLowEfficiency,
+        DashboardAnalyticsWidget.WorkforceShiftStatus, DashboardAnalyticsWidget.WorkforceHourlyDemand,
+        DashboardAnalyticsWidget.WorkforceStaffPerformance
+    ];
+
     private readonly IDashboardService _dashboard;
     private readonly IAIService _ai;
     private readonly IMemoryCache _cache;
     private readonly DashboardIntelligenceOptions _options;
+    private readonly ILogger<DashboardIntelligenceService> _logger;
 
     public DashboardIntelligenceService(
         IDashboardService dashboard, IAIService ai, IMemoryCache cache,
-        IOptions<DashboardIntelligenceOptions> options)
+        IOptions<DashboardIntelligenceOptions> options,
+        ILogger<DashboardIntelligenceService>? logger = null)
     {
         _dashboard = dashboard;
         _ai = ai;
         _cache = cache;
         _options = options.Value;
+        _logger = logger ?? NullLogger<DashboardIntelligenceService>.Instance;
     }
 
     public async Task<DashboardIntentParseResultDto> ParseAsync(
@@ -44,8 +70,22 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         RequireActor(actor);
         EnforceRate(actor);
         var prompt = request.Prompt?.Trim() ?? string.Empty;
-        if (prompt.Length is < 3 or > 500 || prompt.Length > _options.MaximumPromptLength)
-            throw new ArgumentException("Câu hỏi phải từ 3 đến 500 ký tự.");
+        if (prompt.Length > 500 || prompt.Length > _options.MaximumPromptLength)
+            throw new ArgumentException("Câu hỏi tối đa 500 ký tự.");
+        if (prompt.Length == 0)
+            return new DashboardIntentParseResultDto
+            {
+                Success = true,
+                Message = "Phân tích toàn bộ Dashboard theo context hiện tại.",
+                Intent = new DashboardIntentDto
+                {
+                    BusinessIntent = DashboardBusinessIntent.GeneralBusinessSummary,
+                    Widget = DashboardAnalyticsWidget.NetSalesTrend,
+                    Period = new DashboardPeriodDto { Type = DashboardPeriodType.LastNDays, Value = 7 },
+                    Comparison = DashboardComparison.PreviousPeriod
+                },
+                UsedFallback = true
+            };
 
         var page = await _dashboard.GetPageAsync(actor, new DashboardFilterDto(), cancellationToken);
         DashboardIntentParseResultDto? aiFailure = null;
@@ -108,7 +148,11 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
             Comparison = comparison, Insights = insights,
             Chart = new DashboardChartDto
             {
-                Type = ChartFor(intent.Widget), Title = TitleFor(intent.Widget), Rows = current.Rows
+                Type = ChartFor(intent.Widget),
+                WidgetKey = intent.Widget.ToString(),
+                Section = DashboardWidgetCatalog.Get(intent.Widget).Section,
+                Title = DashboardWidgetCatalog.Get(intent.Widget).Title,
+                Rows = current.Rows
             },
             Warnings = current.Warnings.Concat(baseline?.Warnings ?? []).Distinct().ToList()
         };
@@ -139,23 +183,30 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
     {
         var text = Normalize(prompt);
         DashboardBusinessIntent? businessIntent = null;
-        if (text.Contains("nha cung cap") || text.Contains("supplier") || text.Contains("gia nhap"))
+        if (text.Contains("nha cung cap") || text.Contains("supplier") || text.Contains("gia nhap")
+            || text.Contains("mua hang"))
             businessIntent = DashboardBusinessIntent.SupplierAnalysis;
-        else if (text.Contains("nhap hang") || text.Contains("reorder") || text.Contains("dat hang"))
+        else if (text.Contains("nhap hang") || text.Contains("reorder") || text.Contains("dat hang")
+                 || text.StartsWith("po ") || text.Contains(" po "))
             businessIntent = DashboardBusinessIntent.ReorderAnalysis;
-        else if (text.Contains("ton kho") || text.Contains("nguyen lieu") || text.Contains("sap thieu")
+        else if (text.Contains("ton kho") || text.Contains("kho") || text.Contains("nguyen lieu")
+                 || text.Contains("sap thieu") || text.Contains("thieu hang")
                  || text.Contains("waste") || text.Contains("hao hut"))
             businessIntent = DashboardBusinessIntent.InventoryAnalysis;
-        else if (text.Contains("huy don") || text.Contains("don huy") || text.Contains("so don"))
+        else if (text.Contains("huy don") || text.Contains("don huy") || text.Contains("so don")
+                 || text.Contains("don hang") || text.Contains("thanh toan"))
             businessIntent = DashboardBusinessIntent.OrderAnalysis;
-        else if (text.Contains("san pham") || text.Contains("do uong") || text.Contains("ban chay")
-                 || text.Contains("ban cham") || text.Contains("top "))
+        else if (text.Contains("san pham") || text.Contains("do uong") || text.Contains("mon ")
+                 || text.Contains("ban chay") || text.Contains("ban cham") || text.Contains("top "))
             businessIntent = DashboardBusinessIntent.ProductPerformance;
+        else if (text.Contains("ca lam") || text.Contains("nhan su"))
+            businessIntent = DashboardBusinessIntent.GeneralBusinessSummary;
         else if (text.Contains("chi nhanh") || text.Contains("cua hang"))
             businessIntent = DashboardBusinessIntent.StoreComparison;
-        else if (text.Contains("bat thuong") || text.Contains("anomaly") || text.Contains("can chu y"))
+        else if (text.Contains("bat thuong") || text.Contains("anomaly") || text.Contains("can chu y")
+                 || text.Contains("canh bao"))
             businessIntent = DashboardBusinessIntent.AnomalyDetection;
-        else if (text.Contains("doanh thu") || text.Contains("doanh so"))
+        else if (text.Contains("doanh thu") || text.Contains("doanh so") || text.Contains("ban hang"))
             businessIntent = text.Contains("xu huong")
                 ? DashboardBusinessIntent.SalesTrend
                 : DashboardBusinessIntent.RevenueAnalysis;
@@ -242,10 +293,19 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         return matches[0].StoreId;
     }
 
-    private static DashboardAnalyticsFilter Filter(AdminActorContext actor, DashboardIntentDto intent, DateTime from, DateTime to, int? storeId) => new()
+    private static DashboardAnalyticsFilter Filter(
+        AdminActorContext actor,
+        DashboardIntentDto intent,
+        DateTime from,
+        DateTime to,
+        int? storeId,
+        IReadOnlyList<int>? storeIds = null) => new()
     {
         StaffId = actor.StaffId, FromDate = from, ToDate = to, StoreId = storeId,
-        Granularity = intent.Granularity, Top = intent.Top
+        Granularity = intent.Granularity, Top = intent.Top,
+        PeriodStartOverride = from,
+        PeriodEndOverride = to,
+        StoreIdsOverride = storeIds
     };
 
     private static (DateTime From, DateTime To) ResolveWindow(DashboardPeriodDto period, DateTime today)
@@ -282,22 +342,52 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
     private static MetricValue Metric(DashboardAnalyticsWidget widget, object rows)
     {
         var json = JsonSerializer.SerializeToElement(rows, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        decimal value = 0; long sample = 0;
+        decimal value = 0;
+        decimal numerator = 0;
+        decimal denominator = 0;
+        long sample = 0;
         foreach (var row in json.ValueKind == JsonValueKind.Array ? json.EnumerateArray() : [])
         {
             value += widget switch
             {
-                DashboardAnalyticsWidget.NetSalesTrend or DashboardAnalyticsWidget.StoreRanking or DashboardAnalyticsWidget.HourlyOrders => Decimal(row, "netSales"),
+                DashboardAnalyticsWidget.NetSalesTrend or DashboardAnalyticsWidget.StoreRanking => Decimal(row, "netSales"),
+                DashboardAnalyticsWidget.HourlyOrders => Decimal(row, "totalOrders"),
                 DashboardAnalyticsWidget.TopProducts or DashboardAnalyticsWidget.ProductPeriodPerformance
                     or DashboardAnalyticsWidget.CategoryPerformance => Decimal(row, "productRevenue") + Decimal(row, "revenue"),
                 DashboardAnalyticsWidget.VolumeMarginMatrix => Decimal(row, "revenue"),
                 DashboardAnalyticsWidget.InventoryWasteByStoreIngredient => Decimal(row, "wasteValue"),
-                DashboardAnalyticsWidget.SupplierQuality => Decimal(row, "rejectionRate"),
-                DashboardAnalyticsWidget.OrderStatusSummary => Decimal(row, "cancellationRate"),
                 DashboardAnalyticsWidget.IngredientConsumptionTrend => Decimal(row, "confirmedCost"),
                 DashboardAnalyticsWidget.PaymentMethodMix => Decimal(row, "amount"),
+                DashboardAnalyticsWidget.PurchasePriceTrend =>
+                    Decimal(row, "averageBaseUnitCost") * Decimal(row, "receivedBaseQuantity"),
+                DashboardAnalyticsWidget.ProcurementSpendBreakdown => Decimal(row, "spend"),
+                DashboardAnalyticsWidget.InventoryShortageRisk => Decimal(row, "shortageQuantity"),
+                DashboardAnalyticsWidget.InventoryReorderSuggestions =>
+                    Decimal(row, "suggestedQuantity") != 0
+                        ? Decimal(row, "suggestedQuantity")
+                        : Decimal(row, "requestedQuantity"),
+                DashboardAnalyticsWidget.SupplierIssueMix => Decimal(row, "issueCount"),
+                DashboardAnalyticsWidget.OverduePurchaseOrders => Decimal(row, "overdueDays"),
+                DashboardAnalyticsWidget.WorkforceHourlyDemand => Decimal(row, "totalOrders"),
                 _ => 1
             };
+            if (widget == DashboardAnalyticsWidget.SupplierQuality)
+            {
+                numerator += Decimal(row, "rejectedBaseQuantity");
+                denominator += Decimal(row, "acceptedBaseQuantity") + Decimal(row, "rejectedBaseQuantity");
+            }
+            else if (widget == DashboardAnalyticsWidget.OrderStatusSummary)
+            {
+                numerator += Decimal(row, "cancelledOrders");
+                denominator += Decimal(row, "totalOrders");
+            }
+            else if (widget == DashboardAnalyticsWidget.VolumeMarginMatrix)
+            {
+                numerator += Decimal(row, "revenue") * Decimal(row, "confirmedMarginRate");
+                denominator += Decimal(row, "revenue");
+            }
+            else if (widget == DashboardAnalyticsWidget.PurchasePriceTrend)
+                denominator += Decimal(row, "receivedBaseQuantity");
             sample += widget switch
             {
                 DashboardAnalyticsWidget.NetSalesTrend or DashboardAnalyticsWidget.StoreRanking or DashboardAnalyticsWidget.HourlyOrders => Long(row, "totalOrders"),
@@ -310,11 +400,17 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
                 DashboardAnalyticsWidget.OrderStatusSummary => Long(row, "totalOrders"),
                 DashboardAnalyticsWidget.IngredientConsumptionTrend => Long(row, "transactionCount"),
                 DashboardAnalyticsWidget.PaymentMethodMix => Long(row, "totalTransactions"),
+                DashboardAnalyticsWidget.SupplierIssueMix => Long(row, "issueCount"),
+                DashboardAnalyticsWidget.WorkforceHourlyDemand => Long(row, "totalOrders"),
                 _ => 1
             };
         }
-        if (widget == DashboardAnalyticsWidget.SupplierQuality && json.GetArrayLength() > 0)
-            value /= json.GetArrayLength();
+        if (widget is DashboardAnalyticsWidget.SupplierQuality
+            or DashboardAnalyticsWidget.OrderStatusSummary
+            or DashboardAnalyticsWidget.VolumeMarginMatrix)
+            value = denominator == 0 ? 0 : numerator / denominator;
+        else if (widget == DashboardAnalyticsWidget.PurchasePriceTrend)
+            value = denominator == 0 ? 0 : value / denominator;
         return new MetricValue(value, sample);
     }
 
@@ -352,13 +448,8 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         CurrentValue = c.CurrentValue, BaselineValue = c.BaselineValue, DeviationPercent = c.PercentageDifference
     };
 
-    private static DashboardChartType ChartFor(DashboardAnalyticsWidget widget) => widget switch
-    {
-        DashboardAnalyticsWidget.NetSalesTrend or DashboardAnalyticsWidget.HourlyOrders => DashboardChartType.Line,
-        DashboardAnalyticsWidget.StoreRanking or DashboardAnalyticsWidget.TopProducts
-            or DashboardAnalyticsWidget.InventoryWasteByStoreIngredient or DashboardAnalyticsWidget.SupplierQuality => DashboardChartType.Bar,
-        _ => DashboardChartType.Table
-    };
+    private static DashboardChartType ChartFor(DashboardAnalyticsWidget widget) =>
+        DashboardWidgetCatalog.Get(widget).ChartType;
 
     private static string TitleFor(DashboardAnalyticsWidget widget) => widget switch
     {

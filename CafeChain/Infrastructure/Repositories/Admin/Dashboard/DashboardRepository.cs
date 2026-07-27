@@ -3,7 +3,9 @@ using System.Data.Common;
 using CafeChain.Application.DTOs.Admin.Dashboard;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.Dashboard;
+using CafeChain.Models.Inventories.Auditing;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace CafeChain.Infrastrusture.Repositories.Admin.Dashboard;
 
@@ -36,6 +38,23 @@ public sealed class DashboardRepository : IDashboardRepository
                 DistrictName = x.District != null ? x.District.Name : string.Empty
             })
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task WriteAnalysisAuditAsync(
+        int staffId,
+        DashboardAnalysisAuditDto audit,
+        CancellationToken cancellationToken = default)
+    {
+        _context.AuditLogs.Add(new AuditLog
+        {
+            TableName = "DashboardAnalysis",
+            RecordId = 0,
+            Action = "ANALYZE",
+            NewData = JsonSerializer.Serialize(audit, new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+            UserId = staffId,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     public Task<ExecutiveDashboardData> GetExecutiveAsync(
@@ -134,8 +153,10 @@ public sealed class DashboardRepository : IDashboardRepository
             command.CommandText = procedure;
             command.CommandType = CommandType.StoredProcedure;
             command.CommandTimeout = 120;
-            AddParameter(command, "@FromDate", DbType.Date, filter.FromDate.Date);
-            AddParameter(command, "@ToDate", DbType.Date, filter.ToDate.Date);
+            var periodStart = filter.PeriodStartOverride ?? filter.FromDate.Date;
+            var periodEnd = filter.PeriodEndOverride ?? filter.ToDate.Date.AddDays(1);
+            AddParameter(command, "@FromDate", DbType.DateTime2, periodStart);
+            AddParameter(command, "@ToDate", DbType.DateTime2, periodEnd);
             AddParameter(command, "@StoreIds", DbType.String, string.Join(',', storeIds.OrderBy(x => x)));
             AddParameter(command, "@Granularity", DbType.String, filter.Granularity);
             AddParameter(command, "@Top", DbType.Int32, filter.Top);
@@ -166,7 +187,7 @@ public sealed class DashboardRepository : IDashboardRepository
     private static StoreRankingRow MapStoreRanking(DbDataReader r) => new() { StoreId = Int(r,"StoreId"), StoreName = String(r,"StoreName"), TotalOrders = Long(r,"TotalOrders"), NetSales = Decimal(r,"NetSales"), AverageOrderValue = Decimal(r,"AverageOrderValue"), DataStatus = String(r,"DataStatus") };
     private static PaymentMethodMixRow MapPaymentMethodMix(DbDataReader r) => new() { PaymentMethodId = Int(r,"PaymentMethodId"), PaymentMethodCode = String(r,"PaymentMethodCode"), PaymentMethodName = String(r,"PaymentMethodName"), TotalTransactions = Long(r,"TotalTransactions"), Amount = Decimal(r,"Amount"), Share = Decimal(r,"Share"), DataStatus = String(r,"DataStatus") };
     private static OrderHeatmapRow MapOrderHeatmap(DbDataReader r) => new() { IsoWeekday = Int(r,"IsoWeekday"), HourOfDay = Int(r,"HourOfDay"), TotalOrders = Long(r,"TotalOrders"), NetSales = Decimal(r,"NetSales"), DataStatus = String(r,"DataStatus") };
-    private static OperationalAlertRow MapOperationalAlert(DbDataReader r) => new() { AlertType = String(r,"AlertType"), StoreId = Int(r,"StoreId"), EntityId = Int(r,"EntityId"), Severity = String(r,"Severity"), AlertValue = Decimal(r,"AlertValue"), Message = String(r,"Message"), DataStatus = String(r,"DataStatus") };
+    private static OperationalAlertRow MapOperationalAlert(DbDataReader r) => new() { AlertType = String(r,"AlertType"), StoreId = Int(r,"StoreId"), StoreName=String(r,"StoreName"), EntityType=String(r,"EntityType"), EntityId = Int(r,"EntityId"), EntityCode=String(r,"EntityCode"), EntityName=String(r,"EntityName"), Severity = String(r,"Severity"), AlertValue = Decimal(r,"AlertValue"), Unit=String(r,"Unit"), Message = String(r,"Message"), DataStatus = String(r,"DataStatus") };
     private static OrderStatusSummaryRow MapOrderStatusSummary(DbDataReader r) => new() { StoreId=Int(r,"StoreId"),StoreName=String(r,"StoreName"),TotalOrders=Long(r,"TotalOrders"),CompletedOrders=Long(r,"CompletedOrders"),CancelledOrders=Long(r,"CancelledOrders"),CancellationRate=Decimal(r,"CancellationRate"),DataStatus=String(r,"DataStatus") };
     private static WorkShiftCashDiscrepancyRow MapCashDiscrepancy(DbDataReader r) => new() { WorkShiftId=Int(r,"WorkShiftId"),StoreId=Int(r,"StoreId"),StoreName=String(r,"StoreName"),StaffId=Int(r,"StaffId"),FullName=String(r,"FullName"),StartTime=Date(r,"StartTime"),EndTime=NullableDate(r,"EndTime"),StartingCash=Decimal(r,"StartingCash"),ExpectedEndingCash=NullableDecimal(r,"ExpectedEndingCash"),ActualEndingCash=NullableDecimal(r,"ActualEndingCash"),CashDiscrepancy=NullableDecimal(r,"CashDiscrepancy"),DiscrepancyReason=NullableString(r,"DiscrepancyReason"),IsExceptionClosed=Bool(r,"IsExceptionClosed"),RequiresReconciliation=Bool(r,"RequiresReconciliation"),DataStatus=String(r,"DataStatus") };
     private static WorkShiftSalesRow MapShiftSales(DbDataReader r) => new() { WorkShiftId=Int(r,"WorkShiftId"),StoreId=Int(r,"StoreId"),TotalOrders=Long(r,"TotalOrders"),NetSales=Decimal(r,"NetSales"),AverageOrderValue=Decimal(r,"AverageOrderValue"),DataStatus=String(r,"DataStatus") };
@@ -175,10 +196,10 @@ public sealed class DashboardRepository : IDashboardRepository
     private static HourlyOrdersRow MapHourlyOrders(DbDataReader r) => new() { HourOfDay=Int(r,"HourOfDay"),TotalOrders=Long(r,"TotalOrders"),NetSales=Decimal(r,"NetSales"),DataStatus=String(r,"DataStatus") };
     private static WorkShiftTopDiscrepancyRow MapTopDiscrepancy(DbDataReader r) => new() { WorkShiftId=Int(r,"WorkShiftId"),StoreId=Int(r,"StoreId"),StaffId=Int(r,"StaffId"),CashDiscrepancy=NullableDecimal(r,"CashDiscrepancy"),AbsoluteDiscrepancy=Decimal(r,"AbsoluteDiscrepancy"),DiscrepancyReason=NullableString(r,"DiscrepancyReason"),EndTime=Date(r,"EndTime"),DataStatus=String(r,"DataStatus") };
     private static WorkShiftKpiRow MapShiftKpi(DbDataReader r) => new() { TotalWorkShifts=Long(r,"TotalWorkShifts"),OpenWorkShifts=Int(r,"OpenWorkShifts"),ExceptionClosedCount=Int(r,"ExceptionClosedCount"),ReconciliationCount=Int(r,"ReconciliationCount"),AbsoluteCashDiscrepancy=Decimal(r,"AbsoluteCashDiscrepancy"),DataStatus=String(r,"DataStatus") };
-    private static InventoryShortageRiskRow MapShortageRisk(DbDataReader r) => new() { StoreInventoryId=Int(r,"StoreInventoryId"),StoreId=Int(r,"StoreId"),IngredientId=Int(r,"IngredientId"),IngredientName=String(r,"IngredientName"),AvailableQty=Decimal(r,"AvailableQty"),ReservedQty=Decimal(r,"ReservedQty"),MinStockLevel=NullableDecimal(r,"MinStockLevel"),RiskLevel=String(r,"RiskLevel"),DataStatus=String(r,"DataStatus") };
+    private static InventoryShortageRiskRow MapShortageRisk(DbDataReader r) => new() { StoreInventoryId=Int(r,"StoreInventoryId"),StoreId=Int(r,"StoreId"),StoreName=String(r,"StoreName"),IngredientId=Int(r,"IngredientId"),IngredientCode=String(r,"IngredientCode"),IngredientName=String(r,"IngredientName"),Unit=String(r,"Unit"),OnHandQuantity=Decimal(r,"OnHandQuantity"),ReservedQuantity=Decimal(r,"ReservedQuantity"),AvailableQuantity=Decimal(r,"AvailableQuantity"),MinimumStock=NullableDecimal(r,"MinimumStock"),ShortageQuantity=Decimal(r,"ShortageQuantity"),SuggestedReorderQuantity=Decimal(r,"SuggestedReorderQuantity"),RiskLevel=String(r,"RiskLevel"),DataStatus=String(r,"DataStatus") };
     private static InventoryMovementRow MapInventoryMovement(DbDataReader r) => new() { MovementDate=Date(r,"MovementDate"),TransactionType=Int(r,"TransactionType"),TransactionCount=Long(r,"TransactionCount"),Quantity=Decimal(r,"Quantity"),TotalCost=Decimal(r,"TotalCost"),DataStatus=String(r,"DataStatus") };
     private static InventoryThresholdRiskRow MapThresholdRisk(DbDataReader r) => new() { StoreInventoryId=Int(r,"StoreInventoryId"),StoreId=Int(r,"StoreId"),IngredientId=Int(r,"IngredientId"),IngredientName=String(r,"IngredientName"),AvailableQty=Decimal(r,"AvailableQty"),ReservedQty=Decimal(r,"ReservedQty"),MinStockLevel=NullableDecimal(r,"MinStockLevel"),MaxNegativeQty=Decimal(r,"MaxNegativeQty"),QuantityAboveMinimum=Decimal(r,"QuantityAboveMinimum"),DataStatus=String(r,"DataStatus") };
-    private static InventoryReorderRow MapReorder(DbDataReader r) => new() { RestockRequestId=Int(r,"RestockRequestId"),StoreId=Int(r,"StoreId"),IngredientId=Int(r,"IngredientId"),IngredientName=String(r,"IngredientName"),RequestedQuantity=Decimal(r,"RequestedQuantity"),SuggestedQuantity=NullableDecimal(r,"SuggestedQuantity"),SuggestionAverageDailyUsageSnapshot=NullableDecimal(r,"SuggestionAverageDailyUsageSnapshot"),SuggestionLeadTimeDaysSnapshot=NullableInt(r,"SuggestionLeadTimeDaysSnapshot"),SuggestionIncomingQuantitySnapshot=NullableDecimal(r,"SuggestionIncomingQuantitySnapshot"),SuggestionReason=NullableString(r,"SuggestionReason"),Status=String(r,"Status"),Priority=String(r,"Priority"),CreatedAt=Date(r,"CreatedAt"),DataStatus=String(r,"DataStatus") };
+    private static InventoryReorderRow MapReorder(DbDataReader r) => new() { RestockRequestId=Int(r,"RestockRequestId"),StoreId=Int(r,"StoreId"),StoreName=String(r,"StoreName"),IngredientId=Int(r,"IngredientId"),IngredientCode=String(r,"IngredientCode"),IngredientName=String(r,"IngredientName"),Unit=String(r,"Unit"),OnHandQuantity=Decimal(r,"OnHandQuantity"),ReservedQuantity=Decimal(r,"ReservedQuantity"),AvailableQuantity=Decimal(r,"AvailableQuantity"),MinimumStock=NullableDecimal(r,"MinimumStock"),ShortageQuantity=Decimal(r,"ShortageQuantity"),RequestedQuantity=Decimal(r,"RequestedQuantity"),SuggestedQuantity=NullableDecimal(r,"SuggestedQuantity"),SuggestionAverageDailyUsageSnapshot=NullableDecimal(r,"SuggestionAverageDailyUsageSnapshot"),SuggestionLeadTimeDaysSnapshot=NullableInt(r,"SuggestionLeadTimeDaysSnapshot"),SuggestionIncomingQuantitySnapshot=NullableDecimal(r,"SuggestionIncomingQuantitySnapshot"),SuggestionReason=NullableString(r,"SuggestionReason"),Status=String(r,"Status"),Priority=String(r,"Priority"),CreatedAt=Date(r,"CreatedAt"),DataStatus=String(r,"DataStatus") };
     private static InventoryWasteRow MapInventoryWaste(DbDataReader r) => new() { StoreId=Int(r,"StoreId"),StoreName=String(r,"StoreName"),IngredientId=Int(r,"IngredientId"),IngredientName=String(r,"IngredientName"),WasteQuantity=Decimal(r,"WasteQuantity"),WasteValue=Decimal(r,"WasteValue"),TransactionCount=Long(r,"TransactionCount"),DataStatus=String(r,"DataStatus") };
     private static InventoryFifoAgeRow MapFifoAge(DbDataReader r) => new() { InventoryCostLayerId=Long(r,"InventoryCostLayerId"),StoreId=Int(r,"StoreId"),IngredientId=NullableInt(r,"IngredientId"),PreparedItemId=NullableInt(r,"PreparedItemId"),RemainingQuantity=Decimal(r,"RemainingQuantity"),UnitCost=Decimal(r,"UnitCost"),CreatedAt=Date(r,"CreatedAt"),AgeDays=Int(r,"AgeDays"),RemainingValue=Decimal(r,"RemainingValue"),DataStatus=String(r,"DataStatus") };
     private static IngredientConsumptionTrendRow MapIngredientConsumptionTrend(DbDataReader r) => new() { BucketDate=Date(r,"BucketDate"),StoreId=Int(r,"StoreId"),IngredientId=Int(r,"IngredientId"),IngredientName=String(r,"IngredientName"),ConsumedQuantity=Decimal(r,"ConsumedQuantity"),ConfirmedCost=Decimal(r,"ConfirmedCost"),TransactionCount=Long(r,"TransactionCount"),DataStatus=String(r,"DataStatus") };
@@ -187,8 +208,8 @@ public sealed class DashboardRepository : IDashboardRepository
     private static SupplierQualityRow MapSupplierQuality(DbDataReader r) => new() { SupplierId=Int(r,"SupplierId"),SupplierName=String(r,"SupplierName"),AcceptedBaseQuantity=Decimal(r,"AcceptedBaseQuantity"),RejectedBaseQuantity=Decimal(r,"RejectedBaseQuantity"),RejectionRate=Decimal(r,"RejectionRate"),ReceiptCount=Long(r,"ReceiptCount"),DataStatus=String(r,"DataStatus") };
     private static PurchasePriceTrendRow MapPurchasePriceTrend(DbDataReader r) => new() { ReceiptDate=Date(r,"ReceiptDate"),IngredientId=Int(r,"IngredientId"),IngredientName=String(r,"IngredientName"),AverageBaseUnitCost=Decimal(r,"AverageBaseUnitCost"),MinimumBaseUnitCost=Decimal(r,"MinimumBaseUnitCost"),MaximumBaseUnitCost=Decimal(r,"MaximumBaseUnitCost"),ReceivedBaseQuantity=Decimal(r,"ReceivedBaseQuantity"),DataStatus=String(r,"DataStatus") };
     private static ProcurementSpendRow MapProcurementSpend(DbDataReader r) => new() { SupplierId=Int(r,"SupplierId"),SupplierName=String(r,"SupplierName"),StoreId=Int(r,"StoreId"),Spend=Decimal(r,"Spend"),ReceiptCount=Long(r,"ReceiptCount"),DataStatus=String(r,"DataStatus") };
-    private static SupplierIssueMixRow MapSupplierIssueMix(DbDataReader r) => new() { IssueType=String(r,"IssueType"),Status=String(r,"Status"),IssueCount=Long(r,"IssueCount"),AffectedBaseQuantity=Decimal(r,"AffectedBaseQuantity"),DataStatus=String(r,"DataStatus") };
-    private static TopProductRow MapTopProduct(DbDataReader r) => new() { DrinkId=Int(r,"DrinkId"),DrinkName=String(r,"DrinkName"),TotalSold=Int(r,"TotalSold"),ProductRevenue=Decimal(r,"ProductRevenue"),ConfirmedCogs=Decimal(r,"ConfirmedCogs"),ConfirmedGrossProfit=Decimal(r,"ConfirmedGrossProfit"),DataStatus=String(r,"DataStatus") };
+    private static SupplierIssueMixRow MapSupplierIssueMix(DbDataReader r) => new() { SupplierId=Int(r,"SupplierId"),SupplierName=String(r,"SupplierName"),StoreId=Int(r,"StoreId"),StoreName=String(r,"StoreName"),IssueType=String(r,"IssueType"),Status=String(r,"Status"),IssueCount=Long(r,"IssueCount"),AffectedBaseQuantity=Decimal(r,"AffectedBaseQuantity"),DataStatus=String(r,"DataStatus") };
+    private static TopProductRow MapTopProduct(DbDataReader r) => new() { DrinkId=Int(r,"DrinkId"),DrinkName=String(r,"DrinkName"),CategoryId=NullableInt(r,"CategoryId"),CategoryName=String(r,"CategoryName"),TotalSold=Int(r,"TotalSold"),ProductRevenue=Decimal(r,"ProductRevenue"),ConfirmedCogs=Decimal(r,"ConfirmedCogs"),ConfirmedGrossProfit=Decimal(r,"ConfirmedGrossProfit"),ConfirmedMarginRate=Decimal(r,"ConfirmedMarginRate"),DataStatus=String(r,"DataStatus") };
     private static VolumeMarginRow MapVolumeMargin(DbDataReader r) => new() { DrinkId=Int(r,"DrinkId"),DrinkName=String(r,"DrinkName"),Volume=Int(r,"Volume"),Revenue=Decimal(r,"Revenue"),ConfirmedCogs=Decimal(r,"ConfirmedCogs"),ConfirmedMarginRate=Decimal(r,"ConfirmedMarginRate"),DataStatus=String(r,"DataStatus") };
     private static SizeMarginRow MapSizeMargin(DbDataReader r) => new() { SizeId=NullableInt(r,"SizeId"),SizeName=String(r,"SizeName"),TotalSold=Int(r,"TotalSold"),Revenue=Decimal(r,"Revenue"),ConfirmedCogs=Decimal(r,"ConfirmedCogs"),ConfirmedGrossProfit=Decimal(r,"ConfirmedGrossProfit"),DataStatus=String(r,"DataStatus") };
     private static TopToppingAnalyticsRow MapTopTopping(DbDataReader r) => new() { ToppingId=Int(r,"ToppingId"),ToppingName=String(r,"ToppingName"),TotalUsed=Int(r,"TotalUsed"),Revenue=Decimal(r,"Revenue"),ConfirmedCogs=Decimal(r,"ConfirmedCogs"),DataStatus=String(r,"DataStatus") };

@@ -30,13 +30,6 @@ public sealed partial class AIService
                 && ComponentsMatch(x.GetProperty("componentScores"), context.ComponentScores),
             $"Nhà cung cấp đạt {context.TotalScore:N1} điểm với độ tin cậy {context.Confidence}. {string.Join(" ", context.Warnings)}", ct);
 
-    public Task<TypedExplanationResultDto> ExplainShiftProposalAsync(ShiftProposalExplanationContextDto context, CancellationToken ct = default) =>
-        ExplainTyped("shift-proposal-explanation", context,
-            x => x.GetProperty("proposalId").GetGuid() == context.ProposalId
-                && x.GetProperty("status").GetString() == context.Status
-                && x.GetProperty("score").GetDecimal() == context.Score,
-            $"Đề xuất {context.Status}, gồm {context.AssignmentCount} phân công, điểm {context.Score:N1}. {string.Join(", ", context.ReasonCodes)}", ct);
-
     public Task<TypedExplanationResultDto> ExplainAnomalyAsync(AnomalyExplanationContextDto context, CancellationToken ct = default) =>
         ExplainTyped("anomaly-explanation", context,
             x => x.GetProperty("anomalyId").GetInt64() == context.AnomalyId

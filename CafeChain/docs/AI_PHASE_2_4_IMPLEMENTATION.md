@@ -12,7 +12,7 @@ Tài liệu này là phần triển khai tiếp theo của `AI_BUSINESS_ANALYSIS
 | 2 | Dashboard insight/explanation | Hoàn thành code, mặc định OFF | Rule/statistics quyết định insight; LLM chỉ giải thích `AnalysisId` do server lưu |
 | 3 | Revenue/product forecast | Hoàn thành engine và worker, mặc định OFF | Data-quality gate, rolling-origin backtest, không future leakage |
 | 3 | Supplier scoring | Hoàn thành code, mặc định OFF | Score deterministic, conversion/MOQ là constraint, AI không đổi ranking |
-| 4 | Shift proposal | Hoàn thành schema, UI, heuristic và apply, mặc định OFF | Giữ lịch cũ, hard constraints, revalidate + RowVersion + một transaction |
+| 4 | Cấu hình lịch và cảnh báo thiếu người | Hoàn thành cấu hình và worker, mặc định OFF | Rule backend phát hiện thiếu người; quản lý phân lịch thủ công |
 | 4 | POS cross-sell | Hoàn thành materialization, POS panel và A/B telemetry, mặc định OFF | Tối đa 3 mục, không tự thêm, POS có fallback |
 | 4 | Operational anomaly | Hoàn thành baseline/MAD, feedback và notification, mặc định OFF | Materiality + robust score, StoreScope, không kết luận gian lận |
 
@@ -65,13 +65,13 @@ Nếu thiếu một điều kiện, hệ thống trả quality/warning như `MIS
 
 Supplier score v1 dùng giá base-unit 30%, on-time 20%, fill rate 20%, quality 20% và lead time 10%. Package/conversion sai bị loại; MOQ/overbuy là constraint hoặc penalty. Dưới 5 receipt trả `INSUFFICIENT_DATA`; LLM không đổi score, ranking hoặc primary supplier.
 
-## 4. Shift Optimization
+## 4. Cấu hình lịch và cảnh báo thiếu người
 
-- Availability định kỳ hỗ trợ cả khoảng qua đêm; exception và time-off được kiểm tra theo interval.
-- Hard constraints gồm active staff/role, Store, availability, time-off, overlap, minimum rest, max giờ ngày/tuần, required role và staffing range.
-- Heuristic giữ nguyên lịch hiện có, lấp deficit, ưu tiên target hours/fairness và tie-break bằng `StaffId` để kết quả tái lập.
-- Apply reload lịch và toàn bộ constraints, kiểm tra RowVersion, revalidate từng assignment, rồi ghi lịch + audit trong một transaction/một lần SaveChanges.
-- Solver chỉ tạo proposal. Manager có quyền và đúng StoreScope mới được apply; LLM không tạo assignment.
+- Màn hình giữ bốn cấu hình: availability, giới hạn giờ, định mức nhân sự và time-off.
+- Worker rule-based kiểm tra định mức và lịch hiện có trong hai ngày tới.
+- Danh sách ứng viên chỉ gồm nhân viên active, đúng Store/role, khả dụng, không nghỉ, không trùng ca và không vượt giới hạn giờ/nghỉ.
+- Thông báo được persist, dedupe, nhắc lại theo cooldown, resolve khi ca đủ người và phát realtime qua SignalR.
+- Chức năng tạo, giải thích và áp dụng phương án phân công đã được gỡ. Quản lý tiếp tục phân lịch thủ công trên màn hình lịch hiện có.
 
 ## 5. POS Recommendation
 
@@ -99,7 +99,6 @@ Các skill typed được whitelist:
 - `dashboard-insight-explanation`.
 - `forecast-result-explanation`.
 - `supplier-score-explanation`.
-- `shift-proposal-explanation`.
 - `anomaly-explanation`.
 
 Mỗi schema dùng `additionalProperties=false`. Kết quả explanation phải echo đúng ID, metric/score/model và các số liệu server đã tính. JSON lỗi, field lạ hoặc echo mismatch đều bị reject và trả deterministic fallback. Worker không gọi Ollama.
@@ -114,7 +113,7 @@ DashboardIntelligence:ExplanationEnabled
 Forecasting:RevenueEnabled
 Forecasting:ProductEnabled
 SupplierIntelligence:ScoringEnabled
-ShiftOptimization:ProposalEnabled
+StaffScheduleNotifications:Enabled
 PosRecommendation:Enabled
 AnomalyDetection:Enabled
 ```
@@ -127,7 +126,7 @@ Không có cờ AI tổng. Mỗi capability được pilot độc lập theo Sto
 2. Chạy shadow mode tối thiểu một chu kỳ dữ liệu, chưa gửi notification thật.
 3. Kiểm tra chéo StoreScope bằng Owner, Area Manager và Store Manager.
 4. Forecast đạt data-quality gate và không kém seasonal naive.
-5. Shift proposal không có hard-constraint violation; apply stale phải trả conflict.
+5. Cảnh báo thiếu lịch đúng StoreScope, không lặp thông báo và tự resolve khi ca đủ người.
 6. POS pilot xác nhận cả menu và inventory availability, đồng thời có control group.
 7. Anomaly đo false-positive/dismiss rate trước khi gửi rộng.
 8. Ollama OFF/timeout/JSON sai không làm lỗi Dashboard, Forecast, Shift, POS hoặc Notification core.

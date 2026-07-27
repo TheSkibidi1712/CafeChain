@@ -2,35 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Application.DTOs.Admin.Staffs;
 
-public sealed class ShiftOptimizationInputDto
-{
-    public int StoreId { get; set; }
-    [Required] public DateTime FromDate { get; set; }
-    [Required] public DateTime ToDate { get; set; }
-}
-public sealed class ShiftOptimizationAssignmentDto
-{
-    public long AssignmentId { get; set; }
-    public int StaffId { get; set; }
-    public string StaffName { get; set; } = string.Empty;
-    public int ShiftId { get; set; }
-    public string ShiftName { get; set; } = string.Empty;
-    public DateTime WorkDate { get; set; }
-    public TimeSpan StartTime { get; set; }
-    public TimeSpan EndTime { get; set; }
-    public List<string> ReasonCodes { get; set; } = [];
-}
-public sealed class ShiftOptimizationProposalDto
-{
-    public Guid ProposalId { get; set; }
-    public int StoreId { get; set; }
-    public DateTime FromDate { get; set; }
-    public DateTime ToDate { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public string RowVersion { get; set; } = string.Empty;
-    public List<string> Violations { get; set; } = [];
-    public List<ShiftOptimizationAssignmentDto> Assignments { get; set; } = [];
-}
 public sealed class SaveAvailabilityRuleDto
 {
     public int StaffId { get; set; }
@@ -69,16 +40,12 @@ public sealed class SaveTimeOffDto
     public DateTime ToUtc { get; set; }
     [Required, StringLength(500)] public string Reason { get; set; } = string.Empty;
 }
-public sealed class ApplyScheduleProposalDto
-{
-    public Guid ProposalId { get; set; }
-    [Required] public string RowVersion { get; set; } = string.Empty;
-}
 public sealed class ShiftOptimizationSetupDto
 {
     public int StoreId { get; set; }
     public List<ShiftOptimizationOptionDto> Staffs { get; set; } = [];
     public List<ShiftOptimizationOptionDto> Shifts { get; set; } = [];
+    public List<ShiftOptimizationOptionDto> Roles { get; set; } = [];
     public List<object> Availability { get; set; } = [];
     public List<object> Constraints { get; set; } = [];
     public List<object> Requirements { get; set; } = [];

@@ -1,0 +1,77 @@
+.shift-optimization-page {
+    color: #1f2937;
+}
+
+.shift-optimization-header h1 {
+    letter-spacing: -.02em;
+}
+
+.shift-optimization-page .tab-content {
+    min-height: 260px;
+}
+
+.shift-optimization-page .form-label {
+    margin-bottom: .35rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.shift-optimization-page .form-control,
+.shift-optimization-page .form-select {
+    min-height: 42px;
+}
+
+.shift-optimization-page .nav-link {
+    font-weight: 600;
+}
+
+.shift-optimization-page .config-card {
+    height: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    padding: 1rem;
+}
+
+.shift-optimization-page .config-card h3 {
+    font-size: .95rem;
+    margin-bottom: .75rem;
+}
+
+.shift-optimization-page .config-item {
+    display: grid;
+    grid-template-columns: minmax(7rem, 1fr) minmax(0, 1.2fr);
+    margin: 0 0 .75rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid #cbd5e1;
+    font-size: .82rem;
+}
+
+.shift-optimization-page .config-item dt,
+.shift-optimization-page .config-item dd {
+    margin: 0;
+    padding: .35rem .4rem;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+
+.shift-optimization-page .config-item dt {
+    color: #475569;
+    font-weight: 600;
+}
+
+@media (max-width: 576px) {
+    .shift-optimization-header {
+        flex-direction: column;
+    }
+
+    .shift-optimization-page .nav-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+
+    .shift-optimization-page .nav-link {
+        white-space: nowrap;
+    }
+}

@@ -15,6 +15,17 @@ public interface IDashboardService
         AdminActorContext actor,
         DashboardSection section,
         DashboardFilterDto filter,
+        CancellationToken cancellationToken = default,
+        Guid? contextId = null);
+
+    Task<DashboardAnalysisContextDto> CreateContextAsync(
+        AdminActorContext actor,
+        DashboardContextRequestDto request,
+        CancellationToken cancellationToken = default);
+
+    Task<DashboardAnalysisContextDto> GetContextAsync(
+        AdminActorContext actor,
+        Guid contextId,
         CancellationToken cancellationToken = default);
 
     Task<DashboardVM> GetDashboardAsync(DashboardRequest request);
@@ -22,5 +33,17 @@ public interface IDashboardService
     Task<DashboardAnalyticsResponse> GetAnalyticsAsync(
         DashboardAnalyticsWidget widget,
         DashboardAnalyticsFilter filter,
+        CancellationToken cancellationToken = default);
+
+    Task<DashboardAnalyticsBatchResponse> GetAnalyticsBatchAsync(
+        AdminActorContext actor,
+        IReadOnlyCollection<DashboardAnalyticsWidget> widgets,
+        DashboardAnalyticsFilter filter,
+        string period = "Current",
+        CancellationToken cancellationToken = default);
+
+    Task WriteAnalysisAuditAsync(
+        int staffId,
+        DashboardAnalysisAuditDto audit,
         CancellationToken cancellationToken = default);
 }

@@ -76,15 +76,6 @@ public sealed class SupplierExplanationContextDto
     public IReadOnlyList<string> Warnings { get; init; } = [];
 }
 
-public sealed class ShiftProposalExplanationContextDto
-{
-    public Guid ProposalId { get; init; }
-    public string Status { get; init; } = string.Empty;
-    public decimal Score { get; init; }
-    public int AssignmentCount { get; init; }
-    public IReadOnlyList<string> ReasonCodes { get; init; } = [];
-}
-
 public sealed class AnomalyExplanationContextDto
 {
     public int AnomalyId { get; init; }

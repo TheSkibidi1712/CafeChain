@@ -2,11 +2,18 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["analysisId", "widget", "summary", "inferences", "recommendations"],
+  "required": ["analysisId", "widget", "summary", "summaryEvidenceIds", "overview", "chartAnalyses", "notablePoints", "conclusions", "inferences", "recommendations"],
   "properties": {
     "analysisId": { "type": "string", "format": "uuid" },
     "widget": { "type": "string" },
     "summary": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "summaryEvidenceIds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^E-" }
+    },
     "inferences": {
       "type": "array",
       "maxItems": 6,
@@ -16,6 +23,42 @@
       "type": "array",
       "maxItems": 6,
       "items": { "$ref": "#/$defs/narrative" }
+    },
+    "overview": {
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/narrative" }
+    },
+    "notablePoints": {
+      "type": "array",
+      "maxItems": 12,
+      "items": { "$ref": "#/$defs/narrative" }
+    },
+    "conclusions": {
+      "type": "array",
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/narrative" }
+    },
+    "chartAnalyses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["widget", "summary", "evidenceIds"],
+        "properties": {
+          "widget": { "type": "string" },
+          "summary": { "type": "string", "minLength": 1, "maxLength": 800 },
+          "evidenceIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^E-" }
+          },
+          "priority": { "type": ["string", "null"], "enum": ["Critical", "High", "Medium", "Low", null] },
+          "verifyCondition": { "type": ["string", "null"], "maxLength": 400 }
+        }
+      }
     }
   },
   "$defs": {
@@ -31,7 +74,9 @@
           "maxItems": 5,
           "uniqueItems": true,
           "items": { "type": "string", "pattern": "^E-" }
-        }
+        },
+        "priority": { "type": ["string", "null"], "enum": ["Critical", "High", "Medium", "Low", null] },
+        "verifyCondition": { "type": ["string", "null"], "maxLength": 400 }
       }
     }
   }

@@ -78,6 +78,7 @@ namespace CafeChain.Extensions.Services
     {
         public static IServiceCollection AddCafeChainApplicationServices(this IServiceCollection services)
         {
+            services.AddSingleton(TimeProvider.System);
             services.AddScoped<IUserContext, UserContext>();
             services.AddScoped<IAIService, AIService>();
             services.AddScoped<IAIImagePipelineService, AIImagePipelineService>();
@@ -184,6 +185,10 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IAdminStaffService, AdminStaffService>();
             services.AddScoped<IAdminStaffShiftService, AdminStaffShiftService>();
             services.AddScoped<IShiftOptimizationService, ShiftOptimizationService>();
+            services.AddScoped<IStaffScheduleGapNotificationService,
+                StaffScheduleGapNotificationService>();
+            services.AddOptions<StaffScheduleGapNotificationOptions>()
+                .BindConfiguration(StaffScheduleGapNotificationOptions.SectionName);
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Profiles.IAdminProfileService,
                 CafeChain.Application.Services.Admin.Profiles.AdminProfileService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Stores.IAdminStoreService,

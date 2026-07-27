@@ -31,8 +31,16 @@ public sealed class InventoryNotificationDeliveryService : IInventoryNotificatio
         CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var cooldown = TimeSpan.FromMinutes(Math.Clamp(_options.InventoryCooldownMinutes, 1, 24 * 60));
+        var cooldownMinutes = request.CooldownMinutes ?? _options.InventoryCooldownMinutes;
+        var cooldown = TimeSpan.FromMinutes(Math.Clamp(cooldownMinutes, 1, 7 * 24 * 60));
         var recipients = await _audience.ResolveAsync(request.StoreId, cancellationToken);
+        if (request.RecipientStaffIds is { Count: > 0 })
+        {
+            var allowedRecipientIds = request.RecipientStaffIds.ToHashSet();
+            recipients = recipients
+                .Where(x => allowedRecipientIds.Contains(x.StaffId))
+                .ToList();
+        }
         var created = 0;
         var updated = 0;
         var shouldToast = false;
@@ -164,8 +172,39 @@ public sealed class InventoryNotificationDeliveryService : IInventoryNotificatio
         return new InventoryNotificationDeliveryResult(0, 0, active.Count, active.Count > 0, []);
     }
 
+    public async Task<InventoryNotificationDeliveryResult> ResolveByDeduplicationKeyAsync(
+        string deduplicationKey,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(deduplicationKey))
+            return new InventoryNotificationDeliveryResult(0, 0, 0, false, []);
+
+        var notification = await _repository.GetActiveByDeduplicationKeyAsync(
+            deduplicationKey.Trim(), cancellationToken);
+        if (notification == null)
+            return new InventoryNotificationDeliveryResult(0, 0, 0, false, []);
+
+        notification.ResolvedAt = DateTime.UtcNow;
+        notification.UpdatedAt = notification.ResolvedAt;
+        await _repository.SaveChangesAsync(cancellationToken);
+        await _publisher.PublishAsync(new InventoryNotificationChangedDto(
+            Guid.NewGuid().ToString("N"),
+            notification.StoreId,
+            notification.Type,
+            notification.Severity,
+            InventoryNotificationChangeKinds.Resolved,
+            notification.EntityType,
+            notification.EntityId,
+            false,
+            notification.ResolvedAt.Value), cancellationToken);
+
+        return new InventoryNotificationDeliveryResult(0, 0, 1, true, []);
+    }
+
     private static string BuildKey(int staffId, InventoryNotificationDeliveryRequest request) =>
-        $"{staffId}:{request.StoreId}:{request.Type}:{request.EntityType}:{request.EntityId}";
+        string.IsNullOrWhiteSpace(request.DeduplicationKey)
+            ? $"{staffId}:{request.StoreId}:{request.Type}:{request.EntityType}:{request.EntityId}"
+            : $"{staffId}:{request.DeduplicationKey.Trim()}";
 
     private static int SeverityRank(string severity) => severity.ToUpperInvariant() switch
     {

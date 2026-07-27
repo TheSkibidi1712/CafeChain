@@ -1,1019 +1,2175 @@
-# PROMPT: Refactor Thông báo Kho bằng SignalR và Thiết kế lại AI Dashboard
+# PROMPT REFACTOR VÀ HOÀN THIỆN AI DASHBOARD – CAFECHAIN
 
-Hãy đóng vai trò là **Senior ASP.NET Core MVC Developer + AI Engineer có nhiều năm kinh nghiệm**, ưu tiên kiến trúc Layered Architecture, SignalR, thiết kế hệ thống AI và khả năng bảo trì lâu dài.
+## 1. Vai trò
 
-Bạn hãy **inspect kỹ code hiện tại trước khi chỉnh sửa**. Không được tự ý thay đổi những module nằm ngoài phạm vi yêu cầu.
+Hãy đóng vai đồng thời là:
 
----
+* Senior Software Architect.
+* Senior ASP.NET Core MVC Developer.
+* Senior AI Engineer.
+* Senior Data/BI Engineer.
+* BA/PM có kinh nghiệm triển khai hệ thống quản lý chuỗi F&B.
 
-# I. PHẠM VI ĐƯỢC PHÉP CHỈNH SỬA
+Nhiệm vụ của bạn là **inspect, phân tích và hoàn thiện AI Dashboard của dự án CafeChain** dựa trên mã nguồn, Stored Procedure, Dashboard Analytics, dữ liệu seed, AI Service và frontend hiện có.
 
-Trong task này, bạn **CHỈ được phép chỉnh sửa hai nhóm chức năng sau**:
+Không được thiết kế lại toàn bộ hệ thống từ đầu.
 
-1. **Thông báo kho liên quan đến thiếu hàng từ POS.**
-2. **AI Dashboard và các thành phần trực tiếp phục vụ AI Dashboard.**
+Phải ưu tiên:
 
-Ngoài hai phạm vi trên:
-
-* Không refactor module khác.
-* Không thay đổi nghiệp vụ khác.
-* Không tự ý chỉnh sửa POS.
-* Không sửa cấu trúc hệ thống nếu không thật sự cần thiết.
-* Không tự ý đổi model/database/schema nếu chưa chứng minh được sự cần thiết.
-
-Đặc biệt:
-
-> **Không sửa `POS Service` nếu không thực sự cần thiết.**
-
-Nếu chỉ cần lấy sự kiện hoặc dữ liệu có sẵn từ POS để phát thông báo thì phải tận dụng logic hiện tại.
-
-Nếu bắt buộc phải chỉnh sửa POS Service, trước tiên phải:
-
-* Giải thích lý do.
-* Chỉ ra chính xác đoạn nào cần sửa.
-* Chứng minh không thể giải quyết sạch hơn ở Notification/Inventory layer.
-* Giữ thay đổi ở mức tối thiểu.
+> Sửa đúng kiến trúc hiện tại → sửa tính đúng dữ liệu → sửa Evidence → sửa biểu đồ → tối ưu → kiểm thử.
 
 ---
 
-# II. REFACTOR THÔNG BÁO KHO + SIGNALR
+# 2. Mục tiêu cuối cùng
 
-Hiện tại hệ thống đã có chức năng thông báo kho nhưng tôi muốn bổ sung cơ chế realtime bằng **SignalR**, đặc biệt trong trường hợp POS phát hiện thiếu nguyên liệu/hàng hóa.
+AI Dashboard phải trở thành một công cụ:
 
-## 1. Inspect nghiệp vụ hiện tại
+> **Read-only Decision Support System**
 
-Trước tiên hãy inspect toàn bộ các thành phần liên quan đến:
+AI chỉ được:
 
-* Notification.
-* Inventory Notification.
-* Stock Alert.
-* Reorder Suggestion.
-* POS kiểm tra tồn kho.
-* Thiếu nguyên liệu khi bán hàng.
-* Notification Bell.
-* Unread Notification.
-* Background Service nếu đang có.
-* Hub/SignalR nếu dự án đã có.
-* Các repository/service liên quan.
+* Đọc dữ liệu.
+* Phân tích dữ liệu.
+* Trình bày Fact.
+* Giải thích Fact dựa trên Evidence.
+* Phát hiện bất thường.
+* Đưa Recommendation.
+* Gợi ý bước kiểm tra hoặc hành động tiếp theo cho quản lý.
 
-Phải tận dụng code hiện tại tối đa, tránh tạo hệ thống Notification thứ hai chạy song song.
+AI **không được thay thế nghiệp vụ backend**.
+
+AI không có quyền tự thay đổi dữ liệu hệ thống.
 
 ---
 
-## 2. SignalR cho cảnh báo thiếu hàng từ POS
+# 3. Kiến trúc bắt buộc phải giữ
 
-Khi POS phát hiện một nguyên liệu hoặc hàng hóa không đủ để phục vụ đơn hàng, hệ thống cần có khả năng tạo cảnh báo kho và gửi realtime tới những người có quyền phù hợp.
+Các nguyên tắc sau hiện đang đúng và bắt buộc phải tiếp tục giữ nguyên.
 
-Luồng nghiệp vụ mong muốn:
+## 3.1. Quyền dữ liệu
+
+AI chỉ được phân tích dữ liệu thuộc những cửa hàng mà người dùng hiện tại được phép truy cập.
+
+Phải tiếp tục tuân thủ:
 
 ```text
-POS
- ↓
-Kiểm tra tồn kho/BOM
- ↓
-Phát hiện nguyên liệu thiếu hoặc tồn thấp
- ↓
-Inventory/Notification Service
- ↓
-Lưu Notification vào Database nếu nghiệp vụ yêu cầu
- ↓
-SignalR Hub
- ↓
-Frontend nhận Notification realtime
- ↓
-Badge chuông + Toast/Notification
+Current User
+→ Permission
+→ StaffScope
+→ Allowed StoreIds
+→ Dashboard Filter
+→ Stored Procedure
+→ Evidence
+→ AI Analysis
 ```
 
-Không để SignalR trở thành nơi chứa business logic.
+Không cho phép:
 
-SignalR chỉ chịu trách nhiệm:
-
-* Push realtime.
-* Gửi notification tới đúng user/role/store.
-* Đồng bộ badge hoặc danh sách notification trên UI.
-
-Business logic vẫn phải nằm trong Service phù hợp.
+```text
+AI
+→ tự chọn StoreId ngoài StaffScope
+```
 
 ---
 
-## 3. Phạm vi người nhận
+## 3.2. Nguồn dữ liệu
 
-Hãy inspect Role/Permission hiện tại để xác định chính xác ai được nhận thông báo kho.
+Stored Procedure và backend là nguồn dữ liệu chính thức.
 
-Không hard-code role nếu hệ thống đang sử dụng Permission.
-
-Ưu tiên cơ chế:
+Luồng chuẩn:
 
 ```text
-Permission
-→ Store Scope
-→ SignalR Group
-→ User
+Dashboard Filter
+        ↓
+Backend
+        ↓
+Stored Procedure
+        ↓
+Raw Data
+        ↓
+EvidenceBuilder
+        ↓
+Fact / Statistic / Alert / Chart Data
+        ↓
+Ollama
+        ↓
+Inference / Recommendation
+        ↓
+Frontend
 ```
 
-Ví dụ có thể tổ chức group dạng:
-
-```text
-store:{StoreId}
-permission:{PermissionCode}
-```
-
-hoặc kiến trúc phù hợp hơn với hệ thống hiện tại.
-
-Một nhân viên chỉ được nhận cảnh báo thuộc phạm vi cửa hàng/quyền mà họ được phép xem.
+Không được thay thế Stored Procedure bằng SQL do AI tạo.
 
 ---
 
-## 4. Chống spam thông báo
+## 3.3. AI tuyệt đối không sinh SQL tự do
 
-POS có thể liên tục bán cùng một sản phẩm nên không được tạo hàng chục notification giống nhau.
+Không được triển khai:
 
-Hãy thiết kế cơ chế chống duplicate/throttling, ví dụ dựa trên:
+```text
+User Question
+→ LLM
+→ Generate SQL
+→ Execute SQL
+```
 
-* StoreId
-* IngredientId/ProductId
-* Notification Type
-* Trạng thái cảnh báo
-* Khoảng thời gian gần nhất
+AI chỉ được lựa chọn dữ liệu từ registry/data-plan cố định của backend.
+
+Nếu cần dữ liệu mới thì phải:
+
+1. xác định nghiệp vụ;
+2. xác định Stored Procedure hoặc query backend chính thức;
+3. đăng ký widget/data source;
+4. xây EvidenceBuilder;
+5. sau đó AI mới được sử dụng.
+
+---
+
+# 4. Phạm vi AI Dashboard cần hỗ trợ
+
+AI Dashboard phải hỗ trợ các nhóm nghiệp vụ sau.
+
+---
+
+# 4.1. Doanh thu và xu hướng
+
+Phải hỗ trợ:
+
+* Doanh thu theo ngày.
+* Doanh thu theo tuần.
+* Doanh thu theo tháng.
+* So sánh kỳ hiện tại với kỳ trước.
+* Ranking cửa hàng.
+* Đơn hàng theo ngày.
+* Đơn hàng theo giờ.
+* Danh mục đóng góp doanh thu.
+* Sản phẩm đóng góp doanh thu.
+
+AI có thể đưa ra:
+
+* Revenue trend.
+* Tăng/giảm so với kỳ trước.
+* Cửa hàng đóng góp nhiều/ít.
+* Khoảng thời gian bán tốt/yếu.
+* Revenue anomaly.
+
+Nhưng chỉ được nêu tên store/product khi Evidence thực sự có tên thực thể đó.
+
+---
+
+# 4.2. Đơn hàng và thanh toán
+
+Phải hỗ trợ:
+
+* Tổng số đơn.
+* Completed order.
+* Cancelled order.
+* Cancellation rate.
+* Order status.
+* Orders by hour.
+* Orders by day.
+* Payment method.
+* Day/hour heatmap.
+
+## Quy tắc bắt buộc
+
+Khi nhiều cửa hàng được chọn:
+
+```text
+CancellationRate
+=
+TotalCancelledOrders / TotalOrders
+```
+
+Không được:
+
+```text
+SUM(StoreCancellationRate)
+```
+
+và cũng không được:
+
+```text
+AVG(StoreCancellationRate)
+```
+
+trừ khi đó thực sự là weighted average theo số đơn.
+
+---
+
+# 4.3. Sản phẩm
+
+Phải hỗ trợ:
+
+* Top Product.
+* Product Revenue.
+* Product Quantity.
+* Category Performance.
+* Quantity vs Margin.
+* Size Performance.
+* Topping Performance.
+* BOM status.
+* COGS status.
+* Product profitability.
+
+Evidence cần có ít nhất khi phù hợp:
+
+```text
+ProductId
+ProductName
+QuantitySold
+Revenue
+COGS
+Margin
+MarginPercent
+Category
+Rank
+DataStatus
+```
+
+AI không được kết luận sản phẩm nào tốt/xấu nếu Evidence chỉ chứa tổng số sản phẩm hoặc số dòng dữ liệu.
+
+---
+
+# 4.4. Kho và Reorder
+
+Phải hỗ trợ:
+
+* Low stock.
+* Available stock.
+* Minimum stock.
+* Reserved quantity.
+* Inventory movement.
+* Consumption trend.
+* Waste.
+* Reorder suggestion.
+* Stock-out risk.
+
+Evidence phải ưu tiên cung cấp:
+
+```text
+IngredientId
+IngredientCode
+IngredientName
+
+StoreId
+StoreName
+
+OnHandQuantity
+ReservedQuantity
+AvailableQuantity
+
+MinimumStock
+ShortageQuantity
+
+SuggestedReorderQuantity
+
+Unit
+
+Priority
+RiskLevel
+
+EvidenceId
+```
+
+AI phải có khả năng trả lời:
+
+* Nguyên liệu nào đang thiếu?
+* Nguyên liệu nào cần đặt trước?
+* Cửa hàng nào có nguy cơ thiếu hàng?
+* Mức thiếu là bao nhiêu?
+* Đề xuất đặt bao nhiêu?
+
+Nếu Evidence không có tên Ingredient thì AI không được tự suy đoán tên nguyên liệu.
+
+---
+
+# 4.5. Nhà cung cấp và mua hàng
+
+Phải hỗ trợ:
+
+* Supplier quality.
+* Rejection rate.
+* Purchase price trend.
+* Purchase spend.
+* Supplier incidents.
+* PO overdue.
+* PO pipeline.
+
+Evidence cần chứa khi phù hợp:
+
+```text
+SupplierId
+SupplierName
+
+ReceivedQuantity
+RejectedQuantity
+RejectionRate
+
+PurchasePrice
+PreviousPrice
+PriceChangePercent
+
+PurchaseSpend
+
+IssueCount
+IssueType
+
+OverduePOCount
+
+LeadTimeDays
+
+DataStatus
+```
+
+## Weighted Supplier Rejection Rate
+
+Khi tổng hợp nhiều dòng:
+
+```text
+SupplierRejectionRate
+=
+SUM(RejectedQuantity)
+/
+SUM(ReceivedQuantity)
+```
+
+Không được cộng các phần trăm riêng lẻ.
+
+Không được biến:
+
+* Purchase Price.
+* Purchase Spend.
+* Supplier Issue.
+* Rejection Rate.
+
+thành `COUNT` chỉ vì dataset có nhiều row.
+
+---
+
+# 4.6. Tổng quan điều hành
+
+AI cần hỗ trợ các câu hỏi như:
+
+> Tôi nên chú ý điều gì trong kỳ này?
+
+AI phải tổng hợp:
+
+* Revenue.
+* Store ranking.
+* Product performance.
+* Inventory.
+* Supplier.
+* Purchase Order.
+* WorkShift.
+* Operational alerts.
+
+Kết quả phải ưu tiên vấn đề quan trọng nhất.
+
+Mỗi issue cần cố gắng có:
+
+```text
+Priority
+Issue
+AffectedEntity
+Evidence
+BusinessImpact
+RecommendedAction
+```
+
+---
+
+# 5. Refactor EvidenceBuilder
+
+Đây là phần quan trọng nhất.
+
+Không được dùng một EvidenceBuilder chung theo kiểu:
+
+```text
+Rows.Count
+SUM(numericColumn)
+```
+
+cho tất cả widget.
+
+Phải xây cơ chế EvidenceBuilder theo từng widget hoặc từng loại dữ liệu.
 
 Ví dụ:
 
 ```text
-Store 1
-+
-Ingredient 15
-+
-LOW_STOCK
+RevenueTrendEvidenceBuilder
+
+StoreRankingEvidenceBuilder
+
+CancellationEvidenceBuilder
+
+TopProductEvidenceBuilder
+
+InventoryRiskEvidenceBuilder
+
+ReorderEvidenceBuilder
+
+SupplierQualityEvidenceBuilder
+
+PurchasePriceEvidenceBuilder
+
+OperationalAlertEvidenceBuilder
 ```
 
-không được liên tục tạo notification mới trong thời gian rất ngắn.
+Có thể dùng Strategy/Registry/Handler nếu phù hợp kiến trúc hiện tại.
 
-Nếu notification cũ vẫn đang ACTIVE/UNREAD thì ưu tiên cập nhật hoặc bỏ qua notification trùng tùy nghiệp vụ phù hợp.
+Không cần tạo class riêng một cách máy móc nếu có thể thiết kế registry rõ ràng hơn.
 
----
+Mục tiêu quan trọng là:
 
-# III. LƯU Ý VỀ FRONTEND
-
-Nếu cần chỉnh sửa giao diện, JavaScript hoặc SignalR Client:
-
-> UI nằm trong project **`CafeChain.Frontend`**.
-
-Không được tìm hoặc chỉnh nhầm UI ở project `CafeChain` nếu giao diện thực tế thuộc `CafeChain.Frontend`.
-
-Hãy inspect rõ cấu trúc solution trước khi sửa.
-
-Frontend cần hỗ trợ tối thiểu:
-
-* Nhận SignalR realtime.
-* Cập nhật badge số notification chưa đọc.
-* Hiển thị toast/thông báo phù hợp.
-* Không reload toàn trang.
-* Không tạo duplicate notification trên UI.
-* Reconnect SignalR khi kết nối bị mất nếu cần.
+> Mỗi Widget phải biết dữ liệu nào là Metric, Dimension, Unit, Baseline, Entity và Sample Size.
 
 ---
 
-# IV. INSPECT TOÀN BỘ AI TRONG DỰ ÁN
+# 6. Cấu trúc Evidence chuẩn
 
-Trước khi chỉnh AI Dashboard, hãy inspect toàn bộ nghiệp vụ AI hiện đang tồn tại trong project.
-
-Bao gồm nhưng không giới hạn:
-
-* AIService.
-* Ollama.
-* Gemini nếu có.
-* Prompt Builder.
-* Skill.md.
-* `Resources/skills`.
-* AI Analyst.
-* AI Dashboard.
-* AI Suggestion.
-* AI Image.
-* Pexels.
-* ComfyUI.
-* Reorder AI.
-* Inventory AI.
-* Supplier/Price AI.
-* Các rule/statistic engine hiện có.
-* Stored Procedure hoặc query phục vụ AI.
-* JSON parser/output schema.
-* Cache AI nếu có.
-
-Mục đích của bước này là:
-
-> Hiểu toàn bộ kiến trúc AI hiện tại trước khi chỉnh AI Dashboard, tránh tạo thêm một AI architecture mới không tương thích với hệ thống.
-
----
-
-# V. ĐỌC KỸ FILE AI ANALYST
-
-Tôi sẽ cung cấp file **AI Analyst**.
-
-Bạn phải đọc kỹ file này và phân tích:
-
-* Vai trò của AI Analyst.
-* Input.
-* Output.
-* Rule.
-* Prompt.
-* Skill.
-* Data source.
-* Business constraints.
-* Những AI nào sử dụng chung logic.
-* Những phần nào dành riêng cho Dashboard.
-
-Không được chỉ đọc tên file rồi suy đoán.
-
-Phải đối chiếu nội dung AI Analyst với implementation thực tế trong source code.
-
----
-
-# VI. THIẾT KẾ LẠI AI DASHBOARD
-
-AI Dashboard hiện tại đang có vấn đề:
-
-> AI bị quá cố định, chủ yếu trả về những thống kê hoặc phỏng đoán được lập trình sẵn.
-
-Tôi không muốn AI Dashboard chỉ hoạt động theo kiểu:
+Hãy chuẩn hóa Evidence theo hướng có thể bao gồm:
 
 ```text
-if revenue < x
-→ trả câu A
+EvidenceId
 
-if stock < y
-→ trả câu B
+WidgetKey
+SectionKey
+
+Title
+Description
+
+MetricName
+MetricValue
+Unit
+
+PreviousValue
+Delta
+DeltaPercent
+
+SampleSize
+
+DataStatus
+
+EntityType
+EntityId
+EntityCode
+EntityName
+
+StoreId
+StoreName
+
+Baseline
+
+Priority
+RiskLevel
+
+Metadata
 ```
 
-Rule vẫn có thể tồn tại để:
+Không bắt buộc mọi Evidence phải có toàn bộ field.
 
-* Detect anomaly.
-* Validate dữ liệu.
-* Tạo cảnh báo chắc chắn.
-* Làm guardrail.
-
-Nhưng AI phải có khả năng **phân tích linh hoạt dữ liệu thực tế**.
+Nhưng phải đủ dữ liệu để AI hiểu đúng ý nghĩa nghiệp vụ.
 
 ---
 
-# VII. AI DASHBOARD PHẢI PHÂN TÍCH THEO DỮ LIỆU
+# 7. Entity-Level Evidence
 
-AI Dashboard phải có thể nhận dữ liệu động như:
+AI hiện thiếu tên đối tượng cụ thể.
 
-* Doanh thu.
-* Số đơn.
-* AOV.
-* Đơn hủy.
-* Đồ uống bán chạy.
-* Đồ uống bán chậm.
-* Giờ cao điểm.
-* Ngày cao điểm.
-* Store performance.
-* Category performance.
-* Inventory.
-* Ingredient consumption.
-* Low stock.
-* Reorder.
+Phải bổ sung Top-N hoặc Bottom-N Evidence cho:
+
+* Store.
+* Product.
+* Ingredient.
 * Supplier.
-* Giá nhập.
-* Profit/Margin nếu dữ liệu có.
-* Xu hướng ngày/tuần/tháng.
-* So sánh kỳ.
-* Anomaly.
+* Category.
+* Payment Method.
+* Alert.
 
-AI phải dựa vào dữ liệu hiện tại để tự tìm insight thay vì chỉ điền dữ liệu vào các câu có sẵn.
-
-Ví dụ thay vì hard-code:
+Ví dụ thay vì:
 
 ```text
-Doanh thu giảm hơn 20% → cảnh báo doanh thu giảm.
+Có 5 nguyên liệu dưới ngưỡng.
 ```
 
-AI nên có thể phân tích:
+Evidence nên có:
 
 ```text
-Doanh thu Store A giảm 18%, nhưng số đơn chỉ giảm 3%.
-Nguyên nhân chính có thể đến từ AOV giảm mạnh.
+1. Sữa tươi
+Available: 12 lít
+Minimum: 20 lít
+Shortage: 8 lít
+Risk: High
 
-Nhóm đồ uống Premium giảm 31%, trong khi nhóm trà vẫn ổn định.
-
-Khung giờ 18:00–21:00 giảm rõ nhất so với 7 ngày trước.
+2. Trân châu đường đen
+Available: 4 kg
+Minimum: 10 kg
+Shortage: 6 kg
+Risk: Medium
 ```
-
-Những kết luận mang tính nguyên nhân phải được biểu đạt đúng mức độ chắc chắn, không được bịa.
 
 ---
 
-# VIII. AI DASHBOARD PHẢI HỖ TRỢ CÂU HỎI TỰ DO
+# 8. Quy tắc chống Hallucination
 
-Người dùng có thể hỏi AI Dashboard các câu như:
-
-```text
-Tại sao doanh thu hôm nay giảm?
-```
+Phải ép AI tuân thủ:
 
 ```text
-Chi nhánh nào đang hoạt động kém?
+Không được nêu tên Store/Product/Ingredient/Supplier
+nếu tên đó không tồn tại trong Evidence.
 ```
+
+Recommendation cũng phải tham chiếu EvidenceId.
+
+Ví dụ:
 
 ```text
-Đồ uống nào nên đẩy bán?
+EvidenceId: INV_LOW_STOCK_001
 ```
+
+Recommendation:
 
 ```text
-Có nguyên liệu nào sắp thiếu không?
+Ưu tiên kiểm tra kế hoạch nhập Sữa tươi tại CafeChain Dĩ An.
+Evidence: INV_LOW_STOCK_001
 ```
 
-```text
-So sánh doanh thu tuần này và tuần trước.
-```
-
-```text
-Tại sao tỷ lệ hủy đơn tăng?
-```
-
-```text
-Tôi nên chú ý điều gì hôm nay?
-```
-
-```text
-Phân tích tình hình kinh doanh tháng này.
-```
-
-```text
-Tạo cho tôi thống kê doanh thu 7 ngày gần nhất.
-```
-
-AI phải hiểu intent và lấy đúng dataset cần thiết thay vì sử dụng một prompt cố định cho mọi câu hỏi.
+Không được tạo Recommendation không có căn cứ.
 
 ---
 
-# IX. THIẾT KẾ AI THEO INTENT
+# 9. Phân biệt Fact, Statistic, Inference và Recommendation
 
-Có thể thiết kế pipeline theo hướng:
+Chuẩn hóa rõ:
 
-```text
-User Question
-      ↓
-Intent Detection
-      ↓
-Data Requirement Planning
-      ↓
-Dashboard Data Service
-      ↓
-Structured Data / DTO
-      ↓
-AI Analyst
-      ↓
-Insight / Statistics / Recommendation
-      ↓
-Frontend
-```
+## Fact
 
-Ví dụ intent:
+Dữ liệu backend xác định chắc chắn.
+
+Ví dụ:
 
 ```text
-REVENUE_ANALYSIS
-SALES_TREND
-ORDER_ANALYSIS
-PRODUCT_PERFORMANCE
-STORE_COMPARISON
-INVENTORY_ANALYSIS
-REORDER_ANALYSIS
-SUPPLIER_ANALYSIS
-ANOMALY_DETECTION
-GENERAL_BUSINESS_SUMMARY
-STATISTICS_REQUEST
+Doanh thu kỳ này: 125.000.000 VND
 ```
-
-Không bắt buộc phải dùng đúng tên trên nếu code hiện tại có cấu trúc tốt hơn.
 
 ---
 
-# X. KHÔNG CHO AI QUERY DATABASE TỰ DO
+## Statistic
 
-Không cho LLM tự sinh SQL rồi chạy trực tiếp vào database một cách không kiểm soát.
+Chỉ số tổng hợp có ý nghĩa thống kê/nghiệp vụ.
 
-AI chỉ được lấy dữ liệu qua:
+Ví dụ:
 
 ```text
-Repository
+Cancellation Rate: 4,3%
+Average Order Value: 78.000 VND
+Revenue Change: -12,5%
+```
+
+Không dùng Statistics như bản sao của Fact.
+
+Nếu Statistics hiện tại không có giá trị riêng thì:
+
+* hoặc thiết kế lại;
+* hoặc xóa khỏi response contract nếu không còn sử dụng.
+
+Không giữ code thừa chỉ để tương thích nếu không cần thiết.
+
+---
+
+## Inference
+
+Giải thích của AI.
+
+Ví dụ:
+
+```text
+Doanh thu giảm có thể liên quan đến lượng đơn trong khung 14h–17h thấp hơn kỳ trước.
+```
+
+Phải dùng cách diễn đạt thận trọng như:
+
+* có thể;
+* có dấu hiệu;
+* dữ liệu cho thấy;
+* cần kiểm tra thêm.
+
+---
+
+## Anomaly
+
+Bất thường từ:
+
+* Backend rule.
+* Operational Alert.
+* Statistical comparison đáng tin cậy.
+
+---
+
+## Recommendation
+
+Đề xuất hành động.
+
+Recommendation không phải lệnh tự động thực thi.
+
+---
+
+# 10. Operational Alerts → Anomaly
+
+Các Operational Alert sau phải được đưa vào Anomaly khi phù hợp:
+
+* Low Stock.
+* Cash Discrepancy.
+* Overdue PO.
+* Supplier Issue.
+* Inventory anomaly.
+* COGS partial nếu ảnh hưởng phân tích lợi nhuận.
+
+Không được xảy ra trường hợp:
+
+```text
+OperationalAlerts = có LowStock nghiêm trọng
+
+nhưng
+
+Anomalies = []
+```
+
+và AI kết luận:
+
+> Không có bất thường.
+
+---
+
+# 11. Chuẩn hóa Title
+
+Mỗi widget phải có title riêng.
+
+Không để title fallback sai nghiệp vụ.
+
+Ví dụ:
+
+```text
+Revenue Trend
+→ Xu hướng doanh thu
+
+Store Ranking
+→ Xếp hạng cửa hàng
+
+Cancellation Rate
+→ Tỷ lệ hủy đơn
+
+Low Stock
+→ Nguyên liệu dưới ngưỡng tồn
+
+Supplier Quality
+→ Chất lượng nhà cung cấp
+
+Purchase Price Trend
+→ Xu hướng giá mua
+```
+
+Không được để widget kho hoặc supplier mang title liên quan tới WorkShift.
+
+---
+
+# 12. Chuẩn hóa Unit
+
+Phải thiết kế Unit/Formatter rõ ràng.
+
+Ví dụ:
+
+```text
+VND
+COUNT
+PERCENT
+ORDER
+PRODUCT
+INGREDIENT
+DAY
+HOUR
+KG
+GRAM
+LITER
+ML
+```
+
+Frontend không được đoán đơn vị từ tên field một cách tùy tiện nếu backend đã biết Unit.
+
+## VND
+
+Dùng formatter theo `vi-VN`.
+
+Ví dụ:
+
+```text
+125.000.000 ₫
+```
+
+hoặc format VND hiện tại của dự án nếu đã thống nhất.
+
+---
+
+# 13. DataStatus
+
+Phải chuẩn hóa:
+
+```text
+Complete
+Partial
+Insufficient
+```
+
+Không được xác định Complete chỉ vì Stored Procedure trả về ít nhất một row.
+
+Phải xét:
+
+* Dataset có thực sự có dữ liệu không.
+* Row có `NO_DATA` không.
+* COGS có Partial không.
+* Có widget lỗi không.
+* Có missing baseline không.
+* Có empty bucket không.
+* Planned data có bị nhầm với actual data không.
+
+---
+
+# 14. Quy tắc tổng hợp DataStatus
+
+Ví dụ:
+
+```text
+Nếu tất cả widget Complete
+→ Complete
+
+Nếu có ít nhất một widget Partial
+→ Partial
+
+Nếu widget quan trọng không có đủ dữ liệu
+→ Partial hoặc Insufficient
+
+Nếu không có evidence đủ để trả câu hỏi
+→ Insufficient
+```
+
+Không được để Confidence cao nếu DataStatus là Partial hoặc Insufficient mà không có lý do phù hợp.
+
+---
+
+# 15. Confidence
+
+Confidence phải phản ánh chất lượng Evidence.
+
+Confidence nên giảm khi:
+
+* Sample size thấp.
+* Missing baseline.
+* COGS partial.
+* Widget failed.
+* DataStatus Partial.
+* Không có entity-level evidence.
+* AI phải inference gián tiếp.
+
+Không được để AI tự chọn Confidence tùy ý mà không có constraint/backend validation.
+
+---
+
+# 16. Filter là nguồn phạm vi chính thức
+
+Dashboard filter gồm:
+
+```text
+FromDate
+ToDate
+SelectedStoreIds
+```
+
+phải là phạm vi chính thức của phân tích.
+
+Nếu người dùng hỏi:
+
+> Phân tích doanh thu Store 3 tháng trước
+
+nhưng filter hiện tại đang chọn:
+
+```text
+Store 1
+01/07 → 26/07
+```
+
+thì phải xử lý rõ ràng.
+
+Không âm thầm bỏ filter.
+
+Có thể:
+
+* ưu tiên Dashboard Filter;
+* và hiển thị warning:
+
+```text
+Phân tích sử dụng phạm vi Dashboard hiện tại.
+Phần ngày/cửa hàng trong câu hỏi không thay đổi bộ lọc.
+```
+
+Nếu hệ thống hiện tại đã chọn policy khác thì giữ policy, nhưng bắt buộc hiển thị rõ phạm vi được sử dụng.
+
+---
+
+# 17. Chống Race Condition khi đổi Filter
+
+Khi người dùng đang chạy AI Analysis rồi đổi filter:
+
+```text
+Filter A
+→ AI Request A
+
+User Apply Filter B
+
+→ Abort Request A
+
+Filter B
+→ AI Request B
+```
+
+Response A không được render sau khi filter đã đổi sang B.
+
+Hãy sử dụng:
+
+* AbortController hoặc cơ chế tương đương.
+* Filter fingerprint.
+* Analysis request fingerprint.
+
+Ví dụ:
+
+```text
+Fingerprint =
+FromDate
++ ToDate
++ SortedStoreIds
+```
+
+Chỉ render nếu fingerprint response khớp fingerprint hiện tại.
+
+---
+
+# 18. Tối ưu Stored Procedure Calls
+
+Hiện tại có khả năng một section bị tải nhiều lần cho từng widget.
+
+Hãy refactor DataPlan.
+
+Sai:
+
+```text
+Widget A
+→ Load Sales Section
+
+Widget B
+→ Load Sales Section
+
+Widget C
+→ Load Sales Section
+```
+
+Đúng:
+
+```text
+Analysis Plan
+      ↓
+Determine Sections
+
+Sales
+Inventory
+Supplier
+Products
+
+      ↓
+
+Load each Section ONCE
+      ↓
+Cache in Analysis Context
+      ↓
+Widgets reuse dataset
+```
+
+Nếu cần baseline:
+
+```text
+Current Period
+→ mỗi Section tối đa một lần
+
+Previous Period
+→ mỗi Section tối đa một lần
+```
+
+trong cùng một Analysis Request.
+
+Không nhất thiết cache cross-request nếu chưa cần.
+
+---
+
+# 19. Chart Rendering
+
+Hiện backend có chart type nhưng frontend đang render toàn bộ thành table.
+
+Phải sửa.
+
+AI Dashboard cần render thật các loại chart:
+
+```text
+Line
+Bar
+HorizontalBar
+Donut
+Heatmap
+Scatter
+Table
+```
+
+Không cho AI sinh JavaScript chart.
+
+Chart type phải do:
+
+```text
+Widget Registry
+hoặc
+Backend
+```
+
+quyết định.
+
+---
+
+# 20. Mapping biểu đồ đề xuất
+
+## Revenue Trend
+
+```text
+Line Chart
+```
+
+X:
+
+```text
+Date
+```
+
+Y:
+
+```text
+Revenue
+```
+
+---
+
+## Orders by Hour
+
+```text
+Line hoặc Bar
+```
+
+---
+
+## Store Ranking
+
+```text
+Horizontal Bar
+```
+
+---
+
+## Top Product
+
+```text
+Horizontal Bar
+```
+
+---
+
+## Payment Method
+
+```text
+Donut
+```
+
+hoặc Bar khi dữ liệu không phù hợp Donut.
+
+---
+
+## Day × Hour Order Distribution
+
+```text
+Heatmap
+```
+
+---
+
+## Quantity vs Margin
+
+```text
+Scatter
+```
+
+X:
+
+```text
+Quantity
+```
+
+Y:
+
+```text
+Margin
+```
+
+---
+
+## Purchase Price Trend
+
+```text
+Line
+```
+
+---
+
+## Waste
+
+```text
+Bar
+```
+
+---
+
+## Staffing Demand
+
+```text
+Line
+```
+
+hoặc Grouped Bar.
+
+---
+
+## PO Pipeline
+
+```text
+Stacked Bar
+```
+
+hoặc Donut.
+
+---
+
+# 21. Chart Fallback
+
+Nếu dữ liệu không phù hợp chart:
+
+```text
+Rows < minimum
+hoặc
+Missing X/Y
+hoặc
+All values null
+```
+
+thì frontend fallback:
+
+```text
+Table
+```
+
+Không crash JavaScript.
+
+---
+
+# 22. Tooltip và Formatter
+
+Tooltip phải sử dụng Unit.
+
+Ví dụ:
+
+Revenue:
+
+```text
+125.000.000 ₫
+```
+
+Cancellation:
+
+```text
+4,2%
+```
+
+Orders:
+
+```text
+125 đơn
+```
+
+Ingredient:
+
+```text
+12,5 kg
+```
+
+Không hiển thị raw decimal khó đọc.
+
+---
+
+# 23. Việt hóa dữ liệu hiển thị
+
+Các field kỹ thuật:
+
+```text
+totalRevenue
+cancelledCount
+availableQty
+supplierName
+```
+
+không nên xuất trực tiếp cho người dùng.
+
+Phải map sang label tiếng Việt.
+
+Ví dụ:
+
+```text
+totalRevenue
+→ Doanh thu
+
+cancelledCount
+→ Đơn hủy
+
+availableQty
+→ Tồn khả dụng
+
+supplierName
+→ Nhà cung cấp
+```
+
+Có thể dùng metadata/registry.
+
+Không hard-code map rải rác ở nhiều file.
+
+---
+
+# 24. AI Response phải trình bày dễ hiểu
+
+AI Analysis không được trả một đoạn văn dài duy nhất.
+
+Nên chia:
+
+## Tóm tắt
+
+2–5 câu.
+
+## Số liệu chính
+
+Fact/Statistic quan trọng.
+
+## Phân tích
+
+Giải thích từng nhóm số liệu.
+
+## Bất thường
+
+Anomaly.
+
+## Khuyến nghị
+
+Recommendation.
+
+## Biểu đồ/dữ liệu minh họa
+
+Charts.
+
+## Cảnh báo dữ liệu
+
+Partial/Insufficient/Fallback.
+
+---
+
+# 25. Không để AI phân tích quá ngắn
+
+Hiện AI có thể trả phân tích ngắn, khó hiểu.
+
+Hãy cải thiện prompt/schema để AI:
+
+* Giải thích nguyên nhân dựa trên dữ liệu.
+* Tách từng luận điểm.
+* Nêu Evidence liên quan.
+* So sánh current vs baseline nếu có.
+* Giải thích chart khi phù hợp.
+* Nêu rõ giới hạn dữ liệu.
+
+Nhưng không được kéo dài bằng nội dung chung chung.
+
+Ưu tiên:
+
+```text
+Fact
+→ Evidence
+→ Interpretation
+→ Business Impact
+→ Recommended Check
+```
+
+---
+
+# 26. Ollama Fallback
+
+Khi Ollama:
+
+* Không chạy.
+* Timeout.
+* Invalid JSON.
+* Sai schema.
+* Hallucination EvidenceId.
+
+backend vẫn phải trả:
+
+```text
+AIStatus = Fallback
+```
+
+và vẫn cung cấp:
+
+* Fact.
+* Statistics nếu có.
+* Backend Anomaly.
+* Chart.
+* Warning.
+* DataStatus.
+
+Không được để toàn bộ AI Dashboard lỗi chỉ vì Ollama không chạy.
+
+---
+
+# 27. Fallback Parser
+
+Mở rộng parser cho câu hỏi tiếng Việt phổ biến.
+
+Ví dụ:
+
+```text
+doanh thu
+bán hàng
+đơn hàng
+đơn hủy
+thanh toán
+sản phẩm
+món bán chạy
+món bán chậm
+kho
+nguyên liệu
+thiếu hàng
+đặt hàng
+nhập hàng
+nhà cung cấp
+PO
+mua hàng
+ca làm
+nhân sự
+tổng quan
+bất thường
+cảnh báo
+```
+
+Nhưng fallback parser không được biến thành NLP engine quá phức tạp.
+
+---
+
+# 28. Feature Flag
+
+Phải có khả năng bật/tắt AI theo môi trường.
+
+Ví dụ concept:
+
+```text
+AI:
+  Enabled: true
+```
+
+Development có thể bật.
+
+Production/UAT tùy cấu hình.
+
+Không hard-code.
+
+---
+
+# 29. Logging
+
+Bổ sung logging phù hợp nhưng không log dữ liệu nhạy cảm.
+
+Nên log:
+
+```text
+AnalysisId
+UserId/StaffId nếu policy cho phép
+Store scope
+FromDate
+ToDate
+Intent
+Selected sections
+AIStatus
+DataStatus
+Execution time
+Fallback reason
+Widget failure
+```
+
+Không log toàn bộ prompt/evidence chứa dữ liệu nhạy cảm nếu không cần.
+
+---
+
+# 30. AnalysisId
+
+Mỗi lần chạy Analysis nên có:
+
+```text
+AnalysisId
+```
+
+để trace:
+
+```text
+Request
+→ Stored Procedures
+→ Evidence
+→ Ollama
+→ Response
+```
+
+Phục vụ debug và audit.
+
+---
+
+# 31. Evidence Source Viewer – P2
+
+Sau khi phần chính ổn định có thể cho người dùng:
+
+```text
+Xem nguồn dữ liệu
+```
+
+Ví dụ:
+
+```text
+Khuyến nghị:
+Kiểm tra tồn Sữa tươi tại Dĩ An.
+
+Evidence:
+Available = 12L
+Minimum = 20L
+Shortage = 8L
+```
+
+Không cần hiển thị raw SQL.
+
+---
+
+# 32. Recommendation Priority
+
+Recommendation nên có:
+
+```text
+Priority:
+Critical
+High
+Medium
+Low
+```
+
+Có thể kèm:
+
+```text
+VerifyCondition
+```
+
+Ví dụ:
+
+```text
+Priority: High
+
+Recommendation:
+Kiểm tra kế hoạch bổ sung Sữa tươi.
+
+VerifyCondition:
+Xác nhận tồn thực tế và PO đang mở trước khi tạo yêu cầu mua.
+```
+
+AI chỉ đề xuất.
+
+Không tự thao tác.
+
+---
+
+# 33. Seed Data
+
+Phải inspect SeedAll hiện tại.
+
+Giữ hai nhóm scenario.
+
+---
+
+## Scenario A – Normal
+
+Rolling theo ngày hiện tại.
+
+Bao gồm:
+
+* Revenue ổn định.
+* Completed orders.
+* Cancellation thấp.
+* Không cash discrepancy nghiêm trọng.
+* Stock đủ.
+* Supplier bình thường.
+* COGS Complete.
+* Nhiều payment method hợp lý.
+* POS/BOM/FIFO đủ.
+
+---
+
+## Scenario B – Anomaly
+
+Cũng phải nằm trong rolling window gần ngày hiện tại.
+
+Phải có tối thiểu:
+
+* Một Store giảm doanh thu rõ rệt.
+* Cancelled order.
+* Refund.
+* Cash discrepancy.
+* Một hoặc nhiều Overdue PO.
+* Supplier issue.
+* Ingredient dưới Minimum Stock.
+* Một Product margin thấp.
+* COGS Partial.
+* Nhiều Payment Method.
+* Inventory anomaly phù hợp.
+
+Mục đích:
+
+Dashboard mặc định vẫn có thể demo được anomaly.
+
+---
+
+# 34. Không phá seed hiện tại
+
+Không xóa các scenario cố định tháng 01/2026 nếu chúng còn dùng để test exception.
+
+Chỉ bổ sung rolling anomaly fixture nếu cần.
+
+Seed phải:
+
+* Idempotent.
+* Không double insert.
+* Không double stock deduction.
+* Không làm hỏng POS/BOM/FIFO chain hiện tại.
+
+---
+
+# 35. Test Backend bắt buộc
+
+Bổ sung hoặc cập nhật test cho:
+
+## Permission
+
+* User không có quyền → không được Analyze.
+* Store ngoài StaffScope → không được truy cập.
+
+## Cancellation
+
+Kiểm tra weighted cancellation rate.
+
+## Supplier
+
+Kiểm tra weighted rejection rate.
+
+## Evidence
+
+* Product evidence có ProductName.
+* Inventory evidence có IngredientName.
+* Supplier evidence có SupplierName.
+* Store evidence có StoreName.
+
+## Hallucination
+
+AI output chứa EvidenceId không tồn tại phải bị reject/sanitize.
+
+## DataStatus
+
+Test:
+
+```text
+Complete
+Partial
+Insufficient
+```
+
+## Fallback
+
+Ollama unavailable vẫn có backend response.
+
+---
+
+# 36. Test Frontend bắt buộc
+
+Test hoặc kiểm tra rõ:
+
+* Line render.
+* Bar render.
+* Donut render.
+* Heatmap render.
+* Scatter render.
+* Table fallback.
+* Tooltip.
+* Unit.
+* Empty state.
+* Partial warning.
+* Insufficient warning.
+* Ollama fallback.
+* Abort previous request.
+* Fingerprint mismatch không render response cũ.
+
+---
+
+# 37. P0 – Bắt buộc hoàn thành trước nghiệm thu
+
+Ưu tiên cao nhất.
+
+Thực hiện đầy đủ:
+
+1. Render chart thật:
+
+   * Line.
+   * Bar.
+   * Donut.
+   * Heatmap.
+   * Scatter.
+
+2. EvidenceBuilder theo từng Widget.
+
+3. Chuẩn hóa:
+
+   * Title.
+   * Unit.
+   * Formatter.
+
+4. Sửa:
+
+   * Weighted Cancellation Rate.
+   * Weighted Supplier Rejection Rate.
+
+5. DataStatus phải phản ánh đúng chất lượng dữ liệu.
+
+6. Operational Alert phải được chuyển thành Anomaly phù hợp.
+
+7. Truyền Top-N entity-level Evidence cho AI.
+
+8. Không cho AI nêu entity không tồn tại trong Evidence.
+
+---
+
+# 38. P1 – Hoàn thành trước UAT chính thức
+
+Sau P0 mới thực hiện:
+
+1. Group Stored Procedure calls theo Section.
+2. Abort AI request cũ khi đổi filter.
+3. Filter fingerprint.
+4. Mở rộng Vietnamese fallback parser.
+5. Việt hóa field/formatter.
+6. Thiết kế lại hoặc xóa Statistics.
+7. AI Feature Flag.
+8. Backend test.
+9. Frontend test.
+10. Rolling anomaly seed.
+11. Hiển thị rõ filter override.
+
+---
+
+# 39. P2 – Sau khi hệ thống ổn định
+
+Không ưu tiên trước P0/P1.
+
+Bao gồm:
+
+* Evidence Source Viewer.
+* Analysis Audit Log.
+* Performance telemetry từng Section.
+* Fallback reason.
+* Recommendation Priority.
+* Recommendation VerifyCondition.
+
+---
+
+# 40. Những thứ KHÔNG ĐƯỢC mở rộng
+
+Không triển khai:
+
+* AI tự tạo PO.
+* AI tự duyệt PO.
+* AI tự đặt hàng.
+* AI tự trừ/cộng kho.
+* AI tự điều chỉnh tồn.
+* AI tự sửa giá bán.
+* AI tự tạo discount.
+* AI tự lập lịch nhân sự hoàn chỉnh.
+* AI tự thay đổi WorkShift.
+* AI tự chạy SQL.
+* AI tự sinh Stored Procedure.
+* AI tự đánh giá/kỷ luật nhân viên.
+* AI tự thực thi Recommendation.
+* Forecasting dài hạn khi chưa đủ historical data.
+* AI accounting thay thế báo cáo kế toán.
+
+AI chỉ:
+
+```text
+READ
+ANALYZE
+EXPLAIN
+ALERT
+RECOMMEND
+```
+
+---
+
+# 41. Không ưu tiên đổi Model AI
+
+Không được giải quyết vấn đề bằng cách đổi sang model Ollama lớn hơn trước.
+
+Thứ tự bắt buộc:
+
+```text
+Correct Data
 ↓
-Service
+Correct Aggregation
 ↓
-DTO
+Correct Evidence
 ↓
-AI Context
+Correct Entity
+↓
+Correct Unit
+↓
+Correct DataStatus
+↓
+Correct Chart
+↓
+Correct Prompt
+↓
+sau đó mới đánh giá Model
 ```
 
-hoặc Stored Procedure/query đã được kiểm soát.
-
-AI không được:
-
-* tự chạy DELETE;
-* tự chạy UPDATE;
-* tự sinh arbitrary SQL;
-* tự truy cập DbContext;
-* tự thay đổi dữ liệu Dashboard.
-
-Dashboard AI mặc định là read-only.
+Model lớn hơn không sửa được Evidence sai.
 
 ---
 
-# XI. GIỮ ĐÚNG LAYERED ARCHITECTURE
+# 42. Quy tắc khi refactor mã nguồn
 
-Tiếp tục tuân thủ architecture của project.
+Tuân thủ kiến trúc CafeChain hiện tại.
 
 ## Controller
 
-```text
-Controller
-↓
-Service
-```
+Controller chỉ điều phối request.
 
-Controller không được dùng:
+Không đưa logic phân tích Dashboard lớn vào Controller.
 
-* AppDbContext.
-* Repository trực tiếp.
-* AI provider trực tiếp.
-
-Controller chỉ:
-
-* Nhận request.
-* Validate request.
-* Gọi service.
-* Trả response.
+Không dùng trực tiếp DbContext nếu kiến trúc dự án đang yêu cầu thông qua Service/Repository.
 
 ---
 
 ## Service
 
-```text
-Service
-↓
-Repository
-```
+Business orchestration nằm trong Service.
 
-Service không dùng AppDbContext trực tiếp.
+Service dùng Repository hoặc Data Access abstraction hiện có.
 
-Business logic nằm ở Service.
+Không tạo dependency vòng.
 
 ---
 
-## Repository
+## Repository/Data layer
 
-Repository chịu trách nhiệm:
+Stored Procedure execution nằm tại data layer phù hợp.
 
-* Query dữ liệu.
-* Stored Procedure nếu cần.
-* Persistence.
+Không SaveChanges nhiều lần không cần thiết.
 
-Không đặt business rule hoặc AI prompt trong Repository.
+AI Dashboard phần read-only không được phát sinh thay đổi DB ngoài logging nếu thực sự được thiết kế.
 
 ---
 
-# XII. AI OUTPUT PHẢI CÓ CẤU TRÚC
+# 43. Không tự ý tạo file
 
-Không nên để AI Dashboard chỉ trả về một chuỗi text không kiểm soát.
+Trước khi sửa:
 
-Ưu tiên structured output tương tự:
+1. Inspect project.
+2. Tìm file hiện có.
+3. Tìm Service/Repository/Controller/DTO/VM/JS/CSS liên quan.
+4. Tìm Dashboard widget registry.
+5. Tìm AI request/response model.
+6. Tìm Stored Procedure execution.
+7. Tìm Ollama client.
+8. Tìm frontend chart library hiện tại.
 
-```json
-{
-  "summary": "...",
-  "insights": [],
-  "statistics": [],
-  "anomalies": [],
-  "recommendations": [],
-  "confidence": 0.0,
-  "dataPeriod": {
-    "from": "...",
-    "to": "..."
-  }
-}
-```
+Ưu tiên refactor file đang tồn tại.
 
-Schema có thể điều chỉnh theo model hiện tại.
+Chỉ tạo file mới khi thật sự cần thiết và phải giải thích lý do.
 
-Frontend có thể từ đó hiển thị:
-
-* Summary.
-* Insight Card.
-* Warning.
-* Statistic.
-* Recommendation.
-* Chart data nếu phù hợp.
+Không tự bịa tên file.
 
 ---
 
-# XIII. PHÂN BIỆT FACT VÀ AI INFERENCE
+# 44. Không thay chart library nếu không cần
 
-AI Dashboard phải phân biệt rõ:
-
-### FACT
-
-Dữ liệu lấy trực tiếp từ hệ thống.
-
-Ví dụ:
+Nếu dự án đã có:
 
 ```text
-Doanh thu hôm nay giảm 17,8% so với trung bình 7 ngày.
+Chart.js
+ApexCharts
+ECharts
+Highcharts
 ```
 
-### INFERENCE
+hoặc thư viện tương đương thì ưu tiên tái sử dụng.
 
-Nhận định AI suy ra từ dữ liệu.
+Không cài thêm library chỉ để render AI chart nếu library hiện tại đủ khả năng.
 
-Ví dụ:
+---
+
+# 45. Không sửa ngoài AI Dashboard
+
+Phạm vi chính của task là:
 
 ```text
-Mức giảm có thể liên quan đến doanh số nhóm đồ uống Premium giảm mạnh trong khung giờ tối.
+AI Dashboard
+Dashboard analytics integration
+Evidence
+AI analysis
+Charts
+Stored Procedure consumption
+Relevant seed/test
 ```
 
-Không được trình bày inference như một fact chắc chắn.
+Không refactor module không liên quan chỉ vì phát hiện code chưa đẹp.
 
----
-
-# XIV. AI KHÔNG ĐƯỢC HALLUCINATE
-
-Nếu không đủ dữ liệu:
-
-AI phải trả:
+Nếu phát hiện lỗi ngoài scope:
 
 ```text
-Không đủ dữ liệu để kết luận.
+ghi nhận
+nhưng không sửa
 ```
 
-hoặc:
+trừ khi lỗi đó trực tiếp chặn AI Dashboard hoạt động.
+
+---
+
+# 46. Cách làm việc bắt buộc
+
+Không sửa code ngay khi chưa inspect.
+
+Thực hiện theo thứ tự:
+
+## Phase 1 – Inspect
+
+Đọc:
+
+* Controller.
+* Service.
+* Repository.
+* DTO.
+* ViewModel.
+* View.
+* JavaScript.
+* CSS liên quan.
+* AI Service.
+* Ollama client.
+* Widget registry.
+* EvidenceBuilder.
+* Dashboard stored procedures.
+* Seed.
+* Test.
+
+---
+
+## Phase 2 – Current-State Analysis
+
+Lập bảng:
 
 ```text
-Chưa có đủ dữ liệu trong giai đoạn được chọn để xác định nguyên nhân.
-```
-
-Không được tự tạo:
-
-* Doanh thu.
-* Số đơn.
-* Tỷ lệ.
-* Store.
-* Drink.
-* Ingredient.
-* Supplier.
-* Trend.
-* Nguyên nhân.
-
----
-
-# XV. RULE ENGINE VẪN ĐƯỢC GIỮ LẠI
-
-Các rule hiện có như:
-
-```text
-Revenue today < avg7d - 20%
-Cancelled orders > avg7d + 30%
-Top seller drop > 40%
-Stock < MinThreshold
-```
-
-không nhất thiết phải xóa.
-
-Hãy đánh giá chúng.
-
-Nếu hợp lý thì giữ chúng làm:
-
-```text
-Rule Engine
-      ↓
-Deterministic Signals
-      ↓
-AI Analyst
-      ↓
-Contextual Explanation
-```
-
-Tức là:
-
-* Rule phát hiện tín hiệu.
-* AI phân tích tín hiệu trong bối cảnh rộng hơn.
-* AI giải thích nguyên nhân khả dĩ.
-* AI đưa ra insight/recommendation dựa trên nhiều dataset.
-
-Không để Rule Engine biến AI thành hệ thống template.
-
----
-
-# XVI. PROMPT/SKILL CHO AI DASHBOARD
-
-Hãy inspect các file Skill hiện tại.
-
-Nếu Dashboard AI đã có Skill thì refactor Skill đó.
-
-Nếu cần chỉnh Prompt thì prompt phải yêu cầu AI:
-
-1. Chỉ sử dụng dữ liệu được cung cấp.
-2. Không tự tạo số liệu.
-3. So sánh nhiều metric trước khi kết luận.
-4. Nêu rõ period phân tích.
-5. Phân biệt fact và inference.
-6. Ưu tiên insight có business impact.
-7. Không đưa recommendation chung chung.
-8. Không lặp lại toàn bộ raw data.
-9. Nếu không có anomaly thì nói rõ hệ thống đang ổn định.
-10. Nếu dữ liệu không đủ thì không đoán.
-
----
-
-# XVII. DOCUMENT NGHIỆP VỤ AI
-
-Ngoài source code, hãy tạo thêm **một file tài liệu `.docx`** giải thích toàn bộ AI hiện có trong dự án.
-
-Tài liệu phải dành cho cả:
-
-* Developer.
-* Người sử dụng hệ thống.
-* Người cần bảo trì project sau này.
-
-Tên file có thể theo dạng:
-
-```text
-CafeChain_AI_Business_And_User_Guide.docx
-```
-
----
-
-# XVIII. NỘI DUNG FILE DOC
-
-Tài liệu phải có tối thiểu các phần:
-
-## 1. Tổng quan hệ thống AI
-
-Giải thích:
-
-* Hệ thống hiện đang có những AI nào.
-* Mục đích từng AI.
-* AI nào sử dụng Ollama.
-* AI nào sử dụng Pexels.
-* AI nào sử dụng ComfyUI.
-* AI nào sử dụng Rule Engine.
-* AI nào sử dụng dữ liệu Dashboard.
-
----
-
-## 2. Kiến trúc AI
-
-Mô tả luồng:
-
-```text
-Frontend
-↓
-Controller
-↓
-AI/Application Service
-↓
-Data Service / Repository
-↓
-Prompt + Skill
-↓
-AI Provider
-↓
-Structured Result
-↓
-Frontend
-```
-
-Giải thích nhiệm vụ của từng layer.
-
----
-
-## 3. AI Dashboard
-
-Giải thích chi tiết:
-
-* Cách hoạt động.
-* Data source.
-* Intent.
-* Prompt.
-* Skill.
-* Structured output.
-* Rule Engine.
-* Fact vs Inference.
-* Cách AI tạo insight.
-* Cách AI tạo statistic.
-* Cách AI trả lời câu hỏi tự do.
-
----
-
-## 4. Inventory/Reorder AI
-
-Nếu project đang có:
-
-* Giải thích cách kiểm tra tồn kho.
-* Threshold.
-* Consumption.
-* Reorder suggestion.
-* Notification.
-
----
-
-## 5. AI Supplier/Price
-
-Nếu project có chức năng:
-
-* So sánh NCC.
-* Giá nhập.
-* Package quantity.
-* Unit.
-* Price history.
-
-thì giải thích chi tiết cách hoạt động.
-
----
-
-## 6. AI Image
-
-Giải thích toàn bộ pipeline:
-
-```text
-AI Suggestion
-↓
-Search Query
-↓
-Pexels
-↓
-Match validation
-↓
-Fallback
-↓
-ComfyUI
-↓
-Generated Image
-```
-
-Bao gồm:
-
-* Khi nào dùng Pexels.
-* Khi nào fallback ComfyUI.
-* Prompt ảnh được tạo thế nào.
-* Workflow ComfyUI.
-* Checkpoint.
-* Positive Prompt.
-* Negative Prompt.
-
----
-
-## 7. Ollama
-
-Hướng dẫn:
-
-* Cài Ollama.
-* Kiểm tra Ollama đang chạy.
-* Kiểm tra model.
-* Endpoint.
-* Cách test.
-* Khi nào project gọi Ollama.
-* Xử lý khi Ollama offline.
-* Timeout.
-* Fallback nếu đang có.
-
----
-
-## 8. ComfyUI
-
-Hướng dẫn từng bước:
-
-* Cài.
-* Chạy.
-* Checkpoint.
-* Workflow.
-* Port.
-* Node configuration.
-* Test workflow.
-* Project kết nối như thế nào.
-* Các lỗi phổ biến.
-
----
-
-## 9. Pexels
-
-Hướng dẫn:
-
-* API key nằm ở configuration nào.
-* Search flow.
-* Query generation.
-* Match score.
-* Fallback.
-
-Không ghi API key thật vào tài liệu.
-
----
-
-## 10. SignalR Notification
-
-Giải thích:
-
-```text
-POS
-↓
-Inventory Alert
-↓
-Notification
-↓
-SignalR
-↓
-CafeChain.Frontend
-```
-
-Bao gồm:
-
-* Hub.
-* Group.
-* Permission.
-* Store scope.
-* Badge.
-* Reconnect.
-* Duplicate prevention.
-
----
-
-## 11. Hướng dẫn sử dụng AI Dashboard
-
-Viết hướng dẫn cho user theo từng bước.
-
-Ví dụ:
-
-```text
-Bước 1: Mở Dashboard.
-Bước 2: Chọn cửa hàng/phạm vi nếu có.
-Bước 3: Chọn thời gian.
-Bước 4: Nhập câu hỏi AI.
-Bước 5: AI lấy dữ liệu.
-Bước 6: Xem Summary / Insight / Recommendation.
-```
-
-Có thêm ví dụ câu hỏi.
-
----
-
-## 12. Troubleshooting
-
-Phải có bảng lỗi phổ biến:
-
-```text
-Ollama không chạy
-Không tìm thấy model
-Timeout
-JSON AI invalid
-Pexels không có ảnh phù hợp
-ComfyUI offline
-SignalR disconnect
-Notification không realtime
-Không nhận notification do permission
-AI Dashboard không có dữ liệu
-```
-
-Với mỗi lỗi phải có:
-
-* Nguyên nhân.
-* Cách kiểm tra.
-* Cách xử lý.
-
----
-
-# XIX. QUY TRÌNH THỰC HIỆN
-
-Không được bắt đầu sửa code ngay lập tức.
-
-Hãy thực hiện theo thứ tự:
-
-### Bước 1 — Inspect
-
-Đọc toàn bộ source liên quan:
-
-```text
-Notification
-Inventory
-POS stock checking
-SignalR
-Dashboard
-AI
-AI Analyst
-Skill
-Ollama
-Pexels
-ComfyUI
-```
-
-### Bước 2 — Current Architecture
-
-Trình bày kiến trúc hiện tại.
-
-### Bước 3 — Problem Analysis
-
-Chỉ ra:
-
-```text
-Current behavior
+Feature
+Current State
 Problem
-Root cause
-Impact
+Business Risk
+Files Involved
+Priority
+Proposed Fix
 ```
 
-### Bước 4 — Proposed Architecture
-
-Đề xuất kiến trúc mới nhưng phải tận dụng code hiện tại.
-
-### Bước 5 — Impacted Files
-
-Liệt kê rõ:
+Phân loại:
 
 ```text
-File
+P0
+P1
+P2
+```
+
+---
+
+## Phase 3 – Data correctness
+
+Ưu tiên sửa:
+
+```text
+Weighted Rate
+Evidence
+Entity
+Unit
+Title
+DataStatus
+Alert
+```
+
+---
+
+## Phase 4 – Frontend
+
+Sau khi dữ liệu đúng mới sửa:
+
+```text
+Chart
+Formatter
+Vietnamese labels
+Abort request
+Filter fingerprint
+```
+
+---
+
+## Phase 5 – Performance
+
+Sau đó mới:
+
+```text
+Group Section Query
+Baseline reuse
+Telemetry
+```
+
+---
+
+## Phase 6 – Test
+
+Chạy test nếu môi trường cho phép.
+
+Không được tuyên bố test PASS nếu chưa chạy.
+
+---
+
+# 47. Output tôi yêu cầu từ bạn
+
+Sau khi hoàn thành hãy báo cáo rõ.
+
+## 47.1. Current-State Findings
+
+Liệt kê các lỗi thực sự tìm thấy trong code.
+
+Không chỉ lặp lại prompt.
+
+---
+
+## 47.2. Files Changed
+
+Ví dụ:
+
+```text
+File:
+CafeChain/Services/AI/DashboardAiService.cs
+
+Changed:
+- Refactor EvidenceBuilder.
+- Group section queries.
+- Validate entity evidence.
+```
+
+---
+
+## 47.3. Methods Changed
+
+Ghi rõ:
+
+```text
+BuildEvidenceAsync()
+BuildWidgetEvidence()
+CalculateCancellationRate()
+CalculateSupplierRejectionRate()
+...
+```
+
+Chỉ ghi method thực sự tồn tại sau khi inspect.
+
+---
+
+## 47.4. Database/Stored Procedure Changes
+
+Nếu sửa SQL:
+
+Ghi rõ:
+
+```text
+Stored Procedure
 Reason
-Changes
+Before
+After
 ```
 
-### Bước 6 — Implementation
-
-Sau đó mới bắt đầu chỉnh sửa.
-
-### Bước 7 — Verification
-
-Kiểm tra lại:
-
-* Compile.
-* Dependency Injection.
-* SignalR.
-* Permission.
-* Store scope.
-* Notification duplicate.
-* AI structured output.
-* AI prompt.
-* Null handling.
-* Error handling.
-* Ollama offline.
-* Data empty.
-* AI invalid response.
-
-### Bước 8 — Documentation
-
-Cuối cùng tạo file `.docx` hướng dẫn đầy đủ.
+Không thay SP nếu backend có thể tính đúng mà không cần thay.
 
 ---
 
-# XX. NHỮNG ĐIỀU CẤM
+## 47.5. Frontend Changes
 
-Không được:
-
-* Refactor toàn bộ project.
-* Sửa POS Service nếu không cần.
-* Đổi nghiệp vụ POS.
-* Đổi Inventory Transaction.
-* Đổi BOM.
-* Đổi Order flow.
-* Thêm AI mới không liên quan.
-* Tạo database/schema mới tùy tiện.
-* Cho AI query database trực tiếp.
-* Đưa AppDbContext vào Service.
-* Đưa Repository vào Controller.
-* Hard-code user/role/store nếu hệ thống đã có Permission Scope.
-* Hard-code câu trả lời AI.
-* Fake dữ liệu AI.
-* Fake số liệu Dashboard.
-* Tạo notification liên tục không chống duplicate.
-* Đặt business logic trong SignalR Hub.
-* Chỉnh UI sai project.
-
-Nhớ rằng:
-
-> **UI nếu cần chỉnh sửa nằm ở `CafeChain.Frontend`, không phải project `CafeChain` thông thường.**
-
----
-
-# XXI. KẾT QUẢ CUỐI CÙNG PHẢI BÁO CÁO
-
-Sau khi hoàn thành, hãy tổng hợp:
+Ghi:
 
 ```text
-1. Files đã inspect
-2. Kiến trúc AI hiện tại
-3. Các vấn đề phát hiện
-4. Kiến trúc SignalR Notification sau khi chỉnh
-5. Luồng POS → Inventory Alert → Notification → SignalR
-6. Kiến trúc AI Dashboard sau khi chỉnh
-7. Các intent AI Dashboard hỗ trợ
-8. Các rule được giữ lại
-9. Các hard-code/template đã loại bỏ
-10. Files đã sửa
-11. Files mới tạo
-12. Các method quan trọng đã sửa
-13. Database có thay đổi hay không
-14. POS Service có bị sửa hay không và lý do
-15. Cách test SignalR
-16. Cách test AI Dashboard
-17. Các test case đã kiểm tra
-18. Đường dẫn file tài liệu `.docx`
+Chart type
+Render function
+Formatter
+Abort mechanism
+Fingerprint mechanism
+Fallback
 ```
 
-Mục tiêu cuối cùng là:
+---
 
-> **Thông báo thiếu hàng từ POS phải realtime, đúng store, đúng quyền và không spam bằng SignalR; AI Dashboard phải trở thành một AI Analyst thực sự có khả năng hiểu câu hỏi, lựa chọn dữ liệu cần phân tích, tạo thống kê và insight động dựa trên dữ liệu thực tế thay vì chỉ trả về các template/rule cố định. Đồng thời toàn bộ hệ thống AI phải được tài liệu hóa rõ ràng để có thể cài đặt, sử dụng, kiểm tra và bảo trì.**
+## 47.6. Seed Changes
+
+Ghi rõ scenario nào thêm:
+
+```text
+NORMAL
+ANOMALY
+```
+
+và anomaly nào có thể test.
+
+---
+
+## 47.7. Tests
+
+Phân biệt:
+
+```text
+Tests added
+Tests executed
+Tests passed
+Tests failed
+Tests not executed
+```
+
+Không được đánh đồng việc viết test với test đã chạy thành công.
+
+---
+
+# 48. Acceptance Criteria
+
+Task chỉ được xem là hoàn thành khi các tiêu chí P0 sau đạt.
+
+## Security
+
+* Không query ngoài StaffScope.
+* Không bypass permission.
+* Không cho AI sinh SQL.
+
+## Fact
+
+* Fact lấy từ backend.
+* Không cho AI tự sinh số.
+
+## Entity
+
+Câu hỏi về:
+
+```text
+Store
+Product
+Ingredient
+Supplier
+```
+
+phải có entity thực sự trong Evidence.
+
+Không đủ Evidence phải trả:
+
+```text
+Không đủ dữ liệu để xác định.
+```
+
+---
+
+## Rates
+
+Cancellation:
+
+```text
+SUM(Cancelled) / SUM(Total)
+```
+
+Supplier rejection:
+
+```text
+SUM(Rejected) / SUM(Received)
+```
+
+---
+
+## Units
+
+* Revenue → VND.
+* Ratio → PERCENT.
+* Order → COUNT/ORDER.
+* Ingredient → Unit thực tế.
+* Không dùng COUNT cho monetary metric.
+
+---
+
+## DataStatus
+
+* Empty → Insufficient.
+* Partial COGS → Partial.
+* Widget failure → Partial.
+* Missing critical data → Partial/Insufficient.
+* Có row không đồng nghĩa Complete.
+
+---
+
+## Anomaly
+
+Nếu có:
+
+```text
+Low Stock
+Cash Discrepancy
+Overdue PO
+Supplier Issue
+```
+
+thì AI không được kết luận:
+
+```text
+Không có bất thường.
+```
+
+---
+
+## Charts
+
+Phải render thật:
+
+```text
+Line
+Bar
+Donut
+Heatmap
+Scatter
+```
+
+Không chỉ hiện table.
+
+Không đủ data:
+
+```text
+fallback Table
+```
+
+---
+
+## Filter
+
+Kết quả AI phải hiển thị:
+
+* Date range.
+* Store scope.
+
+Đổi filter:
+
+```text
+old request aborted/ignored
+```
+
+---
+
+## Fallback
+
+Ollama unavailable:
+
+```text
+Backend facts remain available
+Charts remain available
+AIStatus = Fallback
+```
+
+---
+
+# 49. Kết luận nghiệp vụ bắt buộc giữ
+
+Hướng AI Dashboard hiện tại của CafeChain là đúng.
+
+Không cần redesign thành AI Agent có quyền thao tác hệ thống.
+
+Mục tiêu là hoàn thiện:
+
+```text
+Trusted Data
++
+Trusted Evidence
++
+Controlled AI Explanation
++
+Useful Visualization
++
+Business Recommendations
+```
+
+AI Dashboard phải đóng vai trò:
+
+> Trợ lý phân tích dữ liệu cho quản lý CafeChain, dựa trên dữ liệu backend đã kiểm chứng, có Evidence, có giới hạn quyền, có cảnh báo dữ liệu và không tự thực hiện nghiệp vụ.
+
+---
+
+# 50. Yêu cầu cuối cùng
+
+Hãy bắt đầu bằng việc inspect toàn bộ luồng AI Dashboard hiện tại.
+
+Không sửa mù.
+
+Không giả định tên class, method hoặc file.
+
+Không thay đổi module ngoài phạm vi.
+
+Không đổi Ollama model trước khi sửa Evidence/Data.
+
+Không tuyên bố hoàn thành nếu P0 chưa đạt.
+
+Nếu một yêu cầu trong prompt đã được code hiện tại đáp ứng đúng thì:
+
+```text
+KEEP
+```
+
+không refactor chỉ để thay đổi style.
+
+Nếu phát hiện giải pháp hiện tại tốt hơn đề xuất trong prompt nhưng vẫn đáp ứng đầy đủ nghiệp vụ:
+
+* giữ giải pháp hiện tại;
+* giải thích lý do;
+* chứng minh Acceptance Criteria vẫn đạt.
+
+Mục tiêu cuối cùng không phải viết lại nhiều code nhất.
+
+Mục tiêu là:
+
+> **Sửa ít nhất có thể nhưng đủ để AI Dashboard đúng dữ liệu, đúng Evidence, đúng biểu đồ, đúng phạm vi quyền và đủ độ tin cậy để quản lý CafeChain sử dụng.**
