@@ -96,6 +96,7 @@ public sealed class PurchaseOrderBatchPdfSqlServerIssue187Tests : IAsyncLifetime
             {
                 new() { IngredientId = ingredient.IngredientId, IngredientSupplierId = offer.IngredientSupplierId, PackageUnitId = unit.UnitId,
                     PackageQuantitySnapshot = 1, TotalPackageCount = 2, TotalBaseQuantity = 2, PackagePriceSnapshot = 100000,
+                    OrderedPackageCount = 2, UnitPricePerPackage = 100000,
                     LineTotal = 200000, Currency = "VND" }
             },
             ChildPurchaseOrders = new List<PurchaseOrder>
@@ -108,7 +109,9 @@ public sealed class PurchaseOrderBatchPdfSqlServerIssue187Tests : IAsyncLifetime
                     Lines = new List<PurchaseOrderLine>
                     {
                         new() { IngredientId = ingredient.IngredientId, IngredientSupplierId = offer.IngredientSupplierId, PackageUnitIdSnapshot = unit.UnitId,
-                            PackageQuantitySnapshot = 1, PackagePriceSnapshot = 100000, PackageCount = 2, OrderedBaseQuantity = 2, PromisedLeadTimeDaysSnapshot = 1 }
+                            PackageQuantitySnapshot = 1, PackagePriceSnapshot = 100000, PackageCount = 2,
+                            OrderedPackageCount = 2, UnitPricePerPackage = 100000,
+                            OrderedBaseQuantity = 2, PromisedLeadTimeDaysSnapshot = 1 }
                     }
                 }
             }

@@ -1,6 +1,9 @@
 using System.Linq;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.RestockRequests;
+using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
@@ -282,6 +285,147 @@ namespace CafeChain.Tests.POS
                 result.Data!.NotifiedAccountantWarehouse,
                 await ctx.StaffNotifications.AnyAsync(n => n.Type == StaffNotificationTypes.RestockRequestSubmitted));
             Assert.Equal(1, await ctx.RestockRequests.CountAsync());
+        }
+
+        [Fact]
+        public async Task ManualProcurementDemand_StoresSourceAndProcurementUom()
+        {
+            using var ctx = CreateDbContext();
+            EnsureBase(ctx);
+            var manualStaffId = (await ctx.Staffs
+                .Select(x => (int?)x.StaffId)
+                .MaxAsync() ?? 90000) + 1000;
+            EnsureStaffWithRole(ctx, manualStaffId, RoleConstants.StoreManager, "manual-procurement@test.local");
+            await ctx.SaveChangesAsync();
+            var kg = await ctx.Units.FirstOrDefaultAsync(x => x.UnitCode == "kg");
+            if (kg == null)
+            {
+                kg = new Unit { UnitCode = "kg", Name = "kg", Active = true };
+                ctx.Units.Add(kg);
+                await ctx.SaveChangesAsync();
+            }
+            var seededStaff = await ctx.Staffs
+                .Include(x => x.Account)
+                .ThenInclude(x => x.AccountRoles)
+                .ThenInclude(x => x.Role)
+                .SingleAsync(x => x.StaffId == manualStaffId);
+            Assert.Equal(StoreId, seededStaff.StoreId);
+            Assert.Contains(
+                seededStaff.Account.AccountRoles.Select(x => x.Role.Name),
+                x => x == RoleConstants.StoreManager);
+
+            var conversion = new Mock<IUnitConversionService>();
+            conversion.Setup(x => x.ConvertAsync(
+                    IngredientId,
+                    1.25m,
+                    kg.UnitId,
+                    It.IsAny<int?>()))
+                .ReturnsAsync(ServiceResult<decimal>.Success(1250m));
+            var service = new RestockRequestService(
+                ctx,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
+                new Mock<ILogger<RestockRequestService>>().Object,
+                conversion.Object);
+
+            var result = await service.CreateManualAsync(
+                new CreateProcurementDemandRequest
+                {
+                    StoreId = StoreId,
+                    IngredientId = IngredientId,
+                    RequestedProcurementQuantity = 1.25m,
+                    ProcurementUnitId = kg.UnitId,
+                    SourceReferenceId = "MANUAL-100-1",
+                    NeedByDate = DateTime.UtcNow.AddDays(2),
+                    Note = "Bổ sung hạt cà phê"
+                },
+                manualStaffId);
+
+            Assert.True(result.IsSuccess, result.Message);
+            var request = await ctx.RestockRequests.SingleAsync();
+            Assert.Equal(RestockRequestSourceTypes.ManualByStore, request.SourceType);
+            Assert.Equal(1.25m, request.RequestedProcurementQuantity);
+            Assert.Equal(kg.UnitId, request.ProcurementUnitId);
+            Assert.Equal(1250m, request.RequestedQuantity);
+
+            var sourcing = await service.SetSourcingDecisionAsync(
+                new SourcingDecisionRequest
+                {
+                    RestockRequestId = request.RestockRequestId,
+                    DecisionType = RestockSourcingDecisionTypes.Purchase,
+                    ProcurementQuantity = 1.25m,
+                    ProcurementUnitId = kg.UnitId,
+                    Reason = "Mua theo kế hoạch bổ sung"
+                },
+                manualStaffId);
+
+            Assert.True(sourcing.IsSuccess, sourcing.Message);
+            Assert.Equal(RestockSourcingAllocationStatuses.PendingPurchaseAdvice, sourcing.Data!.Status);
+            Assert.Equal(
+                RestockSourcingStatuses.FullyAllocated,
+                (await ctx.RestockRequests.SingleAsync(x => x.RestockRequestId == request.RestockRequestId))
+                    .SourcingStatus);
+        }
+
+        [Fact]
+        public async Task CentralPlanner_RequiresStaffScopeForTargetStore()
+        {
+            using var ctx = CreateDbContext();
+            EnsureBase(ctx);
+            var plannerStaffId = (await ctx.Staffs
+                .Select(x => (int?)x.StaffId)
+                .MaxAsync() ?? 90000) + 2000;
+            EnsureStaffWithRole(
+                ctx,
+                plannerStaffId,
+                RoleConstants.AccountantWarehouse,
+                "central-planner-scope@test.local");
+            var kg = await ctx.Units.FirstOrDefaultAsync(x => x.UnitCode == "kg");
+            if (kg == null)
+            {
+                kg = new Unit { UnitCode = "kg", Name = "kg", Active = true };
+                ctx.Units.Add(kg);
+            }
+            await ctx.SaveChangesAsync();
+
+            var conversion = new Mock<IUnitConversionService>();
+            conversion.Setup(x => x.ConvertAsync(
+                    IngredientId,
+                    2m,
+                    kg.UnitId,
+                    It.IsAny<int?>()))
+                .ReturnsAsync(ServiceResult<decimal>.Success(2000m));
+            var service = new RestockRequestService(
+                ctx,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
+                new Mock<ILogger<RestockRequestService>>().Object,
+                conversion.Object);
+            var request = new CreateProcurementDemandRequest
+            {
+                StoreId = StoreId,
+                IngredientId = IngredientId,
+                RequestedProcurementQuantity = 2m,
+                ProcurementUnitId = kg.UnitId,
+                SourceReferenceId = "CENTRAL-SCOPE-100-1"
+            };
+
+            var withoutScope = await service.CreateCentralPlannerAsync(request, plannerStaffId);
+            Assert.False(withoutScope.IsSuccess);
+            Assert.Contains("không có quyền", withoutScope.Message, StringComparison.OrdinalIgnoreCase);
+
+            ctx.StaffScopes.Add(new StaffScope
+            {
+                StaffId = plannerStaffId,
+                ScopeTypeId = (int)CafeChain.Application.Interfaces.Security.ScopeLevel.Store,
+                ScopeRefId = StoreId
+            });
+            await ctx.SaveChangesAsync();
+
+            var withScope = await service.CreateCentralPlannerAsync(request, plannerStaffId);
+            Assert.True(withScope.IsSuccess, withScope.Message);
+            Assert.NotNull(withScope.Data);
+            Assert.Equal(2000m, (await ctx.RestockRequests
+                .SingleAsync(x => x.RestockRequestId == withScope.Data!.RestockRequestId))
+                .RequestedQuantity);
         }
 
         [Fact]

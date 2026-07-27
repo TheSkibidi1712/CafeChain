@@ -340,6 +340,8 @@ public sealed class SupplierQualityIssue179Tests : IntegrationTestBase
             PackageQuantitySnapshot = 1m,
             PackagePriceSnapshot = 10m,
             PackageCount = ordered,
+            OrderedPackageCount = ordered,
+            UnitPricePerPackage = 10m,
             OrderedBaseQuantity = ordered,
             PromisedLeadTimeDaysSnapshot = 1
         };

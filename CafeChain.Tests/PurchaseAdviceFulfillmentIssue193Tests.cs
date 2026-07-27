@@ -221,6 +221,109 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
     }
 
     [Fact]
+    public void StatusPolicyUsesProcurementQuantitiesAsAuthorityForNewContract()
+    {
+        var line = new PurchaseAdviceLine
+        {
+            RequestedPurchaseBaseQuantity = 8750m,
+            AllocatedToPoBaseQuantity = 0m,
+            AcceptedBaseQuantity = 0m,
+            RequestedProcurementQuantity = 8.75m,
+            ProcurementUnitId = UnitId,
+            AllocatedToPoProcurementQuantity = 8.75m,
+            AcceptedProcurementQuantity = 8.75m
+        };
+
+        Assert.Equal(
+            PurchaseAdviceStatuses.Completed,
+            PurchaseAdviceStatusPolicy.DeriveLineStatus(
+                line,
+                PurchaseAdviceStatuses.Submitted));
+        Assert.Equal(
+            PurchaseAdviceStatuses.Completed,
+            PurchaseAdviceStatusPolicy.DeriveHeaderStatus(new PurchaseAdvice
+            {
+                Status = PurchaseAdviceStatuses.Submitted,
+                Lines = { line }
+            }));
+    }
+
+    [Fact]
+    public async Task ProcurementReceiptCapsAcceptedAtDemandAndCompletesAdvice()
+    {
+        using var context = CreateDbContext();
+        await SeedScenarioAsync(
+            context,
+            allocationCount: 1,
+            requestedBaseQuantity: 8750m,
+            singleAllocationBaseQuantity: 9000m,
+            requestedProcurementQuantity: 8.75m,
+            singleAllocationProcurementQuantity: 9m);
+        var receiptLine = await context.BranchReceiptLines
+            .Include(x => x.BranchReceipt)
+            .SingleAsync(x => x.BranchReceiptLineId == 40);
+        receiptLine.ReceivedBaseQuantity = 9000m;
+        receiptLine.AcceptedProcurementQuantity = 9m;
+        receiptLine.ReceivedProcurementQuantity = 9m;
+        receiptLine.ProcurementUnitId = UnitId;
+        await context.SaveChangesAsync();
+
+        var result = await new PurchaseOrderService(
+            context,
+            Mock.Of<IUnitConversionService>(),
+            Mock.Of<IRestockAllocationService>(),
+            purchaseAdviceFulfillment: new PurchaseAdviceFulfillmentService(context))
+            .RegisterReceiptPostingAsync(receiptLine.BranchReceipt, receiptLine, 99);
+
+        Assert.True(result.IsSuccess, result.Message);
+        var line = await context.PurchaseAdviceLines.AsNoTracking().SingleAsync();
+        Assert.Equal(8.75m, line.AcceptedProcurementQuantity);
+        Assert.Equal(0m, line.ClosedProcurementQuantity);
+        Assert.Equal(
+            PurchaseAdviceStatuses.Completed,
+            (await context.PurchaseAdvices.AsNoTracking().SingleAsync()).Status);
+    }
+
+    [Fact]
+    public async Task CloseRemainingUsesProcurementQuantityWithoutEarlyConversionFactor()
+    {
+        using var context = CreateDbContext();
+        await SeedScenarioAsync(
+            context,
+            allocationCount: 1,
+            requestedBaseQuantity: 8750m,
+            singleAllocationBaseQuantity: 9000m,
+            requestedProcurementQuantity: 8.75m,
+            singleAllocationProcurementQuantity: 9m);
+        var purchaseOrderLine = await context.PurchaseOrderLines
+            .SingleAsync(x => x.PurchaseOrderLineId == 20);
+        Assert.Null(purchaseOrderLine.ProcurementToInventoryFactor);
+
+        var result = await new PurchaseOrderService(
+            context,
+            Mock.Of<IUnitConversionService>(),
+            Mock.Of<IRestockAllocationService>(),
+            purchaseAdviceFulfillment: new PurchaseAdviceFulfillmentService(context))
+            .CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
+            {
+                PurchaseOrderLineId = purchaseOrderLine.PurchaseOrderLineId,
+                RowVersion = Convert.ToBase64String(purchaseOrderLine.RowVersion),
+                Reason = "Nhà cung cấp không giao hàng",
+                RequestKey = "close-procurement-193"
+            }, 99, new[] { RoleConstants.BusinessOwner });
+
+        Assert.True(result.IsSuccess, result.Message);
+        var persistedOrderLine = await context.PurchaseOrderLines.AsNoTracking().SingleAsync();
+        Assert.Equal(9m, persistedOrderLine.ClosedProcurementQuantity);
+        Assert.Null(persistedOrderLine.ProcurementToInventoryFactor);
+        var adviceLine = await context.PurchaseAdviceLines.AsNoTracking().SingleAsync();
+        Assert.Equal(8.75m, adviceLine.ClosedProcurementQuantity);
+        Assert.Equal(
+            PurchaseAdviceStatuses.Completed,
+            (await context.PurchaseAdvices.AsNoTracking().SingleAsync()).Status);
+    }
+
+    [Fact]
     public async Task BackfillDryRunReportsTraceableCandidateWithoutWritingLedger()
     {
         using var context = CreateDbContext();
@@ -270,7 +373,9 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
         AppDbContext context,
         int allocationCount,
         decimal requestedBaseQuantity = 10m,
-        decimal? singleAllocationBaseQuantity = null)
+        decimal? singleAllocationBaseQuantity = null,
+        decimal? requestedProcurementQuantity = null,
+        decimal? singleAllocationProcurementQuantity = null)
     {
         var now = DateTime.UtcNow;
         context.Stores.Add(new Store
@@ -327,6 +432,9 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
             IngredientId = IngredientId,
             RequestedPurchaseBaseQuantity = requestedBaseQuantity,
             BaseUnitId = UnitId,
+            RequestedProcurementQuantity = requestedProcurementQuantity,
+            ProcurementUnitId = requestedProcurementQuantity.HasValue ? UnitId : null,
+            AllocatedToPoProcurementQuantity = requestedProcurementQuantity.GetValueOrDefault(),
             NeededByDate = now.Date,
             IsActiveReservation = false
         });
@@ -360,7 +468,19 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
                 PackageQuantitySnapshot = 1m,
                 PackagePriceSnapshot = 1m,
                 PackageCount = quantity,
+                OrderedPackageCount = quantity,
+                UnitPricePerPackage = 1m,
                 OrderedBaseQuantity = quantity,
+                OrderedPackQuantity = singleAllocationProcurementQuantity.HasValue
+                    ? singleAllocationProcurementQuantity
+                    : null,
+                PackSizeProcurementQuantity = singleAllocationProcurementQuantity.HasValue
+                    ? 1m
+                    : null,
+                ProcurementUnitId = singleAllocationProcurementQuantity.HasValue ? UnitId : null,
+                OrderedProcurementQuantity = singleAllocationProcurementQuantity,
+                InventoryBaseUnitId = UnitId,
+                ProcurementToInventoryFactor = null,
                 PromisedLeadTimeDaysSnapshot = 1
             });
             context.PurchaseOrderLineAllocations.Add(new PurchaseOrderLineAllocation
@@ -372,6 +492,19 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
                 PurchaseOrderLineId = lineId,
                 AllocatedBaseQuantity = quantity,
                 AllocatedPackageQuantity = quantity,
+                AllocatedProcurementQuantity = singleAllocationProcurementQuantity,
+                DemandCoveredProcurementQuantity = requestedProcurementQuantity.HasValue
+                    ? Math.Min(
+                        requestedProcurementQuantity.Value,
+                        singleAllocationProcurementQuantity.GetValueOrDefault())
+                    : null,
+                RoundingSurplusProcurementQuantity = requestedProcurementQuantity.HasValue
+                    ? Math.Max(
+                        0m,
+                        singleAllocationProcurementQuantity.GetValueOrDefault()
+                            - requestedProcurementQuantity.Value)
+                    : null,
+                ProcurementUnitId = singleAllocationProcurementQuantity.HasValue ? UnitId : null,
                 CreatedAtUtc = now
             });
             context.BranchReceipts.Add(new BranchReceipt

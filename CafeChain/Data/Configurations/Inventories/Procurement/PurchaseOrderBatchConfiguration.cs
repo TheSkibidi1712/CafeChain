@@ -1,6 +1,7 @@
 using CafeChain.Models.Inventories.Procurement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Data.Configurations.Inventories.Procurement;
 
@@ -34,23 +35,38 @@ public sealed class PurchaseOrderBatchLineConfiguration : IEntityTypeConfigurati
     {
         b.ToTable("PurchaseOrderBatchLines", table =>
         {
-            table.HasCheckConstraint("CK_PurchaseOrderBatchLines_PackagePositive", "[PackageQuantitySnapshot] > 0 AND [TotalPackageCount] > 0");
+            table.HasCheckConstraint(
+                "CK_PurchaseOrderBatchLines_PurchaseModeAuthority",
+                "([PurchaseMode] = 'Packaged' AND [PackageQuantitySnapshot] IS NOT NULL AND [PackageQuantitySnapshot] > 0 AND [OrderedPackageCount] IS NOT NULL AND [OrderedPackageCount] > 0 AND [OrderedPackageCount] = FLOOR([OrderedPackageCount]) AND [UnitPricePerPackage] IS NOT NULL AND [UnitPricePerPackage] >= 0 AND [UnitPricePerProcurementUnit] IS NULL) OR ([PurchaseMode] = 'Loose' AND [OrderedPackageCount] IS NULL AND [TotalProcurementQuantity] IS NOT NULL AND [TotalProcurementQuantity] > 0 AND [ProcurementUnitId] IS NOT NULL AND [UnitPricePerProcurementUnit] IS NOT NULL AND [UnitPricePerProcurementUnit] >= 0 AND [UnitPricePerPackage] IS NULL)");
             table.HasCheckConstraint("CK_PurchaseOrderBatchLines_BasePositive", "[TotalBaseQuantity] > 0");
-            table.HasCheckConstraint("CK_PurchaseOrderBatchLines_PriceNonNegative", "[PackagePriceSnapshot] >= 0 AND [LineTotal] >= 0");
+            table.HasCheckConstraint("CK_PurchaseOrderBatchLines_PriceNonNegative", "([PackagePriceSnapshot] IS NULL OR [PackagePriceSnapshot] >= 0) AND [LineTotal] >= 0");
         });
         b.HasKey(x => x.PurchaseOrderBatchLineId);
         b.Property(x => x.PackageQuantitySnapshot).HasPrecision(18, 5);
         b.Property(x => x.TotalPackageCount).HasPrecision(18, 3);
+        b.Property(x => x.PurchaseMode)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .HasDefaultValue(PurchaseMode.Packaged)
+            .IsRequired();
+        b.Property(x => x.OrderedPackageCount).HasPrecision(18, 3);
         b.Property(x => x.TotalBaseQuantity).HasPrecision(18, 3);
+        b.Property(x => x.TotalProcurementQuantity).HasPrecision(18, 3);
+        b.Property(x => x.UnitPricePerPackage).HasPrecision(18, 2);
+        b.Property(x => x.UnitPricePerProcurementUnit).HasPrecision(18, 2);
+        b.Property(x => x.DemandCoveredProcurementQuantity).HasPrecision(18, 3);
+        b.Property(x => x.RoundingSurplusProcurementQuantity).HasPrecision(18, 3);
         b.Property(x => x.PackagePriceSnapshot).HasPrecision(18, 2);
         b.Property(x => x.LineTotal).HasPrecision(18, 2);
         b.Property(x => x.Currency).HasMaxLength(3).IsRequired();
         b.Property(x => x.Note).HasMaxLength(500);
         b.HasIndex(x => new { x.PurchaseOrderBatchId, x.IngredientId });
+        b.HasIndex(x => x.ProcurementUnitId);
         b.HasOne(x => x.PurchaseOrderBatch).WithMany(x => x.Lines).HasForeignKey(x => x.PurchaseOrderBatchId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne(x => x.Ingredient).WithMany().HasForeignKey(x => x.IngredientId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.IngredientSupplier).WithMany().HasForeignKey(x => x.IngredientSupplierId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.PackageUnit).WithMany().HasForeignKey(x => x.PackageUnitId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.ProcurementUnit).WithMany().HasForeignKey(x => x.ProcurementUnitId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -61,20 +77,32 @@ public sealed class PurchaseOrderLineAllocationConfiguration : IEntityTypeConfig
         b.ToTable("PurchaseOrderLineAllocations", table =>
         {
             table.HasCheckConstraint("CK_PurchaseOrderLineAllocations_BasePositive", "[AllocatedBaseQuantity] > 0");
-            table.HasCheckConstraint("CK_PurchaseOrderLineAllocations_PackagePositive", "[AllocatedPackageQuantity] > 0");
+            table.HasCheckConstraint(
+                "CK_PurchaseOrderLineAllocations_PurchaseModeAuthority",
+                "([PurchaseMode] = 'Packaged' AND [AllocatedPackageQuantity] IS NOT NULL AND [AllocatedPackageQuantity] > 0) OR ([PurchaseMode] = 'Loose' AND [AllocatedPackageQuantity] IS NULL AND [AllocatedProcurementQuantity] IS NOT NULL AND [AllocatedProcurementQuantity] > 0)");
         });
         b.HasKey(x => x.PurchaseOrderLineAllocationId);
         b.Property(x => x.AllocatedBaseQuantity).HasPrecision(18, 3);
         b.Property(x => x.AllocatedPackageQuantity).HasPrecision(18, 3);
+        b.Property(x => x.PurchaseMode)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .HasDefaultValue(PurchaseMode.Packaged)
+            .IsRequired();
+        b.Property(x => x.AllocatedProcurementQuantity).HasPrecision(18, 3);
+        b.Property(x => x.DemandCoveredProcurementQuantity).HasPrecision(18, 3);
+        b.Property(x => x.RoundingSurplusProcurementQuantity).HasPrecision(18, 3);
         b.Property(x => x.RowVersion).IsRowVersion();
         b.HasIndex(x => x.PurchaseAdviceLineId);
         b.HasIndex(x => x.PurchaseOrderBatchLineId);
         b.HasIndex(x => x.PurchaseOrderId);
         b.HasIndex(x => x.PurchaseOrderLineId).IsUnique();
+        b.HasIndex(x => x.ProcurementUnitId);
         b.HasOne(x => x.PurchaseAdviceLine).WithMany().HasForeignKey(x => x.PurchaseAdviceLineId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.PurchaseOrderBatchLine).WithMany(x => x.Allocations).HasForeignKey(x => x.PurchaseOrderBatchLineId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne(x => x.PurchaseOrder).WithMany(x => x.BatchAllocations).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(x => x.PurchaseOrderLine).WithMany(x => x.BatchAllocations).HasForeignKey(x => x.PurchaseOrderLineId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.ProcurementUnit).WithMany().HasForeignKey(x => x.ProcurementUnitId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

@@ -105,8 +105,9 @@ public sealed class PurchaseOrderBatchPdfIssue187Tests : IDisposable
         var first = await Service().GenerateAsync(seed.BatchId, Owner(seed.StaffId));
         var line = await _db.PurchaseOrderBatchLines.SingleAsync(x => x.PurchaseOrderBatchId == seed.BatchId);
         line.TotalPackageCount += 1;
-        line.TotalBaseQuantity += line.PackageQuantitySnapshot;
-        line.LineTotal = line.TotalPackageCount * line.PackagePriceSnapshot;
+        line.TotalBaseQuantity += line.PackageQuantitySnapshot.GetValueOrDefault();
+        line.LineTotal = line.TotalPackageCount.GetValueOrDefault()
+            * line.PackagePriceSnapshot.GetValueOrDefault();
         await _db.SaveChangesAsync();
         var second = await Service().GenerateAsync(seed.BatchId, Owner(seed.StaffId));
         Assert.True(second.IsSuccess, second.Message);
@@ -139,7 +140,8 @@ public sealed class PurchaseOrderBatchPdfIssue187Tests : IDisposable
 
         var line = await _db.PurchaseOrderBatchLines.SingleAsync(x => x.PurchaseOrderBatchId == seed.BatchId);
         line.PackagePriceSnapshot += 10_000m;
-        line.LineTotal = line.TotalPackageCount * line.PackagePriceSnapshot;
+        line.LineTotal = line.TotalPackageCount.GetValueOrDefault()
+            * line.PackagePriceSnapshot.GetValueOrDefault();
         await _db.SaveChangesAsync();
         var next = await Service().GenerateAsync(seed.BatchId, Owner(seed.StaffId));
         Assert.True(next.IsSuccess, next.Message);

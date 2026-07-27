@@ -6,6 +6,7 @@ using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Inventories.Procurement;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Models.Inventories.Stock
 {
@@ -39,6 +40,16 @@ namespace CafeChain.Models.Inventories.Stock
 
         public decimal ReceivedBaseQuantity { get; set; }
         public decimal RejectedBaseQuantity { get; set; }
+        public decimal? ReceivedPackQuantity { get; set; }
+        public decimal? AcceptedPackQuantity { get; set; }
+        public decimal? ReceivedProcurementQuantity { get; set; }
+        public decimal? RejectedProcurementQuantity { get; set; }
+        public decimal? AcceptedProcurementQuantity { get; set; }
+        public decimal? InventoryPostingBaseQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
+        public int? InventoryBaseUnitId { get; set; }
+        public decimal? ProcurementToInventoryFactor { get; set; }
+        public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
         public string? RejectionReason { get; set; }
         public string? RejectionIssueType { get; set; }
 
@@ -76,6 +87,8 @@ namespace CafeChain.Models.Inventories.Stock
         public virtual Recipe? Recipe { get; set; }
         public virtual Unit InputUnit { get; set; } = null!;
         public virtual Unit BaseUnit { get; set; } = null!;
+        public virtual Unit? ProcurementUnit { get; set; }
+        public virtual Unit? InventoryBaseUnit { get; set; }
         public virtual Supplier? Supplier { get; set; }
         public virtual IngredientSupplier? IngredientSupplier { get; set; }
         public virtual Unit? PackageUnitSnapshot { get; set; }

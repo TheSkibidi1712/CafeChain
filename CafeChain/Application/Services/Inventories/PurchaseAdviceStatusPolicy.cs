@@ -9,14 +9,17 @@ public static class PurchaseAdviceStatusPolicy
     {
         if (headerStatus is PurchaseAdviceStatuses.Rejected or PurchaseAdviceStatuses.Cancelled)
             return headerStatus;
-        if (line.AllocatedToPoBaseQuantity <= 0)
+
+        var requested = Requested(line);
+        var allocated = Allocated(line);
+        var fulfilled = Fulfilled(line);
+        if (allocated <= 0)
             return headerStatus;
-        if (line.AllocatedToPoBaseQuantity < line.RequestedPurchaseBaseQuantity)
+        if (allocated < requested)
             return PurchaseAdviceStatuses.PartiallyAllocated;
-        var fulfilled = line.AcceptedBaseQuantity + line.ClosedBaseQuantity;
         if (fulfilled <= 0)
             return PurchaseAdviceStatuses.FullyAllocated;
-        return fulfilled < line.RequestedPurchaseBaseQuantity
+        return fulfilled < requested
             ? PurchaseAdviceStatuses.PartiallyFulfilled
             : PurchaseAdviceStatuses.Completed;
     }
@@ -27,14 +30,34 @@ public static class PurchaseAdviceStatusPolicy
             return advice.Status;
         if (advice.Lines.Count == 0)
             return advice.Status;
-        if (advice.Lines.All(x => x.AcceptedBaseQuantity + x.ClosedBaseQuantity >= x.RequestedPurchaseBaseQuantity))
+        if (advice.Lines.All(x => Fulfilled(x) >= Requested(x)))
             return PurchaseAdviceStatuses.Completed;
-        if (advice.Lines.Any(x => x.AcceptedBaseQuantity + x.ClosedBaseQuantity > 0))
+        if (advice.Lines.Any(x => Fulfilled(x) > 0))
             return PurchaseAdviceStatuses.PartiallyFulfilled;
-        if (advice.Lines.All(x => x.AllocatedToPoBaseQuantity >= x.RequestedPurchaseBaseQuantity))
+        if (advice.Lines.All(x => Allocated(x) >= Requested(x)))
             return PurchaseAdviceStatuses.FullyAllocated;
-        if (advice.Lines.Any(x => x.AllocatedToPoBaseQuantity > 0))
+        if (advice.Lines.Any(x => Allocated(x) > 0))
             return PurchaseAdviceStatuses.PartiallyAllocated;
         return advice.Status;
     }
+
+    private static bool UsesProcurementContract(PurchaseAdviceLine line) =>
+        line.RequestedProcurementQuantity.HasValue
+        && line.RequestedProcurementQuantity.Value > 0
+        && line.ProcurementUnitId.HasValue;
+
+    private static decimal Requested(PurchaseAdviceLine line) =>
+        UsesProcurementContract(line)
+            ? line.RequestedProcurementQuantity!.Value
+            : line.RequestedPurchaseBaseQuantity;
+
+    private static decimal Allocated(PurchaseAdviceLine line) =>
+        UsesProcurementContract(line)
+            ? line.AllocatedToPoProcurementQuantity
+            : line.AllocatedToPoBaseQuantity;
+
+    private static decimal Fulfilled(PurchaseAdviceLine line) =>
+        UsesProcurementContract(line)
+            ? line.AcceptedProcurementQuantity + line.ClosedProcurementQuantity
+            : line.AcceptedBaseQuantity + line.ClosedBaseQuantity;
 }

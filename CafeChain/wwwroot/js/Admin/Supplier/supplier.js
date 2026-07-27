@@ -158,6 +158,11 @@
         state.units = unitPayload.data || [];
         fillSelect($('#offerIngredient'), state.ingredients, 'ingredientId', item => `${item.code} · ${item.name}`);
         fillSelect($('#offerUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`);
+        fillSelect(
+            $('#offerLooseUnit'),
+            state.units.filter(item => ['kg', 'l', 'pcs'].includes(String(item.unitCode || '').toLowerCase())),
+            'unitId',
+            item => `${item.unitCode} · ${item.name}`);
         fillSelect($('#newPackageUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`);
     }
 
@@ -404,7 +409,7 @@
                 <div class="supplier-stack-item-main">
                     <strong>${escapeHtml(offer.ingredientName)} ${offer.isPrimary ? '<span class="supplier-status is-current">Nguồn chính</span>' : ''}</strong>
                     <span>${escapeHtml(offer.packageDisplay)} · ${escapeHtml(offer.priceDisplay)}</span>
-                    <small>MOQ ${offer.minimumOrderPackageCount || 0} gói · Lead time ${offer.leadTimeDays || 0} ngày · ${offer.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</small>
+                    <small>MOQ ${offer.minimumOrderPackageCount || 0} gói · Lead time ${offer.leadTimeDays || 0} ngày · ${offer.allowsLoosePurchase ? `Có mua lẻ theo ${escapeHtml(offer.looseProcurementUnitName || 'đơn vị procurement')}` : 'Chỉ mua theo gói'} · ${offer.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</small>
                 </div>
                 <div class="supplier-stack-actions">
                     <button type="button" class="supplier-btn supplier-btn-light view-price" data-id="${offer.ingredientSupplierId}">Đổi giá & lịch sử</button>
@@ -421,6 +426,8 @@
         $('#offerId').value = '';
         $('#offerRowVersion').value = '';
         $('#offerActive').checked = true;
+        $('#offerAllowsLoose').checked = false;
+        syncLooseOfferFields();
         ['offerIngredient', 'offerUnit', 'offerPackageQuantity', 'offerPrice'].forEach(id => { if ($(`#${id}`)) $(`#${id}`).disabled = false; });
         $('#cancelOfferEdit')?.classList.add('is-hidden');
         if ($('#saveOfferButton')) $('#saveOfferButton').textContent = 'Thêm gói mua';
@@ -439,6 +446,10 @@
         $('#offerLeadTime').value = offer.leadTimeDays ?? '';
         $('#offerPrimary').checked = Boolean(offer.isPrimary);
         $('#offerActive').checked = Boolean(offer.active);
+        $('#offerAllowsLoose').checked = Boolean(offer.allowsLoosePurchase);
+        $('#offerLooseUnit').value = offer.looseProcurementUnitId || '';
+        $('#offerLoosePrice').value = offer.currentProcurementUnitPrice ?? '';
+        syncLooseOfferFields();
         $('#offerNote').value = offer.note || '';
         ['offerIngredient', 'offerUnit', 'offerPackageQuantity', 'offerPrice'].forEach(fieldId => $(`#${fieldId}`).disabled = true);
         $('#cancelOfferEdit').classList.remove('is-hidden');
@@ -446,6 +457,14 @@
         $('#offerForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
     $('#cancelOfferEdit')?.addEventListener('click', resetOfferForm);
+
+    function syncLooseOfferFields() {
+        const enabled = Boolean($('#offerAllowsLoose')?.checked);
+        $$('[data-loose-field]').forEach(field => field.classList.toggle('is-hidden', !enabled));
+        if ($('#offerLooseUnit')) $('#offerLooseUnit').required = enabled;
+        if ($('#offerLoosePrice')) $('#offerLoosePrice').required = enabled;
+    }
+    $('#offerAllowsLoose')?.addEventListener('change', syncLooseOfferFields);
 
     $('#offerForm')?.addEventListener('submit', async event => {
         event.preventDefault();
@@ -462,6 +481,13 @@
             leadTimeDays: $('#offerLeadTime').value ? Number($('#offerLeadTime').value) : null,
             isPrimary: $('#offerPrimary').checked,
             active: $('#offerActive').checked,
+            allowsLoosePurchase: $('#offerAllowsLoose').checked,
+            looseProcurementUnitId: $('#offerAllowsLoose').checked
+                ? Number($('#offerLooseUnit').value)
+                : null,
+            currentProcurementUnitPrice: $('#offerAllowsLoose').checked
+                ? Number($('#offerLoosePrice').value)
+                : null,
             note: $('#offerNote').value.trim() || null,
             rowVersion: current?.rowVersion || null
         };

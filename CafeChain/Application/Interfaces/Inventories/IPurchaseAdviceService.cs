@@ -10,6 +10,7 @@ namespace CafeChain.Application.Interfaces.Inventories
         Task<ServiceResult<IReadOnlyList<PurchaseAdviceSourceDto>>> GetAvailableSourcesAsync(int storeId, AdminActorContext actor);
         Task<ServiceResult<PurchaseAdviceDetailDto>> GetDetailAsync(int purchaseAdviceId, AdminActorContext actor);
         Task<ServiceResult<PurchaseAdviceDetailDto>> CreateAsync(CreatePurchaseAdviceRequest request, AdminActorContext actor);
+        Task<ServiceResult<PurchaseAdviceDetailDto>> CreateDirectAsync(CreatePurchaseAdviceRequest request, AdminActorContext actor);
         Task<ServiceResult<PurchaseAdviceDetailDto>> UpdateAsync(UpdatePurchaseAdviceRequest request, AdminActorContext actor);
         Task<ServiceResult<PurchaseAdviceDetailDto>> SubmitAsync(int purchaseAdviceId, PurchaseAdviceTransitionRequest request, AdminActorContext actor);
         Task<ServiceResult<PurchaseAdviceDetailDto>> StartReviewAsync(int purchaseAdviceId, PurchaseAdviceTransitionRequest request, AdminActorContext actor);

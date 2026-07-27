@@ -1,7 +1,9 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Procurement;
+using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
@@ -284,6 +286,66 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         Assert.Empty(context.PurchaseOrders);
     }
 
+    [Fact]
+    public async Task DirectPurchase_CreatesImplicitDemandAndLinksPurchaseAllocation()
+    {
+        using var context = CreateDbContext();
+        var seed = await SeedAsync(context, 8.75m);
+        var procurementUnit = await context.Units
+            .SingleAsync(x => x.UnitCode == "kg" && x.Active);
+        var directIngredient = new Ingredient
+        {
+            Code = "ING-DIRECT-" + Guid.NewGuid().ToString("N")[..8],
+            Name = "Direct coffee #184",
+            BaseUnitId = seed.UnitId,
+            Active = true
+        };
+        context.Ingredients.Add(directIngredient);
+        await context.SaveChangesAsync();
+
+        var conversion = new Mock<IUnitConversionService>();
+        conversion.Setup(x => x.ConvertAsync(
+                directIngredient.IngredientId,
+                8.75m,
+                procurementUnit.UnitId,
+                It.IsAny<int?>()))
+            .ReturnsAsync(ServiceResult<decimal>.Success(8.75m));
+
+        var result = await CreateService(context, conversion.Object).CreateDirectAsync(
+            new CreatePurchaseAdviceRequest
+            {
+                IsDirectProposal = true,
+                StoreId = seed.StoreId,
+                RequestKey = "DIRECT-184-" + Guid.NewGuid().ToString("N"),
+                NeededByDate = DateTime.UtcNow.AddDays(3),
+                Priority = PurchaseAdvicePriorities.Normal,
+                Lines = new List<CreatePurchaseAdviceLineRequest>
+                {
+                    new()
+                    {
+                        IngredientId = directIngredient.IngredientId,
+                        RequestedProcurementQuantity = 8.75m,
+                        ProcurementUnitId = procurementUnit.UnitId
+                    }
+                }
+            },
+            Manager(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        var demand = await context.RestockRequests
+            .SingleAsync(x => x.SourceType == RestockRequestSourceTypes.DirectPurchaseProposal);
+        var allocation = await context.RestockSourcingAllocations
+            .SingleAsync(x => x.RestockRequestId == demand.RestockRequestId);
+        var line = await context.PurchaseAdviceLines
+            .SingleAsync(x => x.RestockRequestId == demand.RestockRequestId);
+        Assert.Equal(8.75m, demand.RequestedProcurementQuantity);
+        Assert.Equal(procurementUnit.UnitId, demand.ProcurementUnitId);
+        Assert.Equal(RestockSourcingDecisionTypes.Purchase, demand.SourcingDecision);
+        Assert.Equal(RestockSourcingAllocationStatuses.Active, allocation.Status);
+        Assert.Equal(line.PurchaseAdviceLineId, allocation.PurchaseAdviceLineId);
+        Assert.Equal(8.75m, line.RequestedProcurementQuantity);
+    }
+
     private static async Task<PurchaseAdviceDetailDto> SubmitAsync(PurchaseAdviceService service, Seed seed)
     {
         var created = (await service.CreateAsync(CreateRequest(seed, 5m), Manager(seed))).Data!;
@@ -291,11 +353,13 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
             new PurchaseAdviceTransitionRequest { RowVersion = created.RowVersion }, Manager(seed))).Data!;
     }
 
-    private static PurchaseAdviceService CreateService(AppDbContext context)
+    private static PurchaseAdviceService CreateService(
+        AppDbContext context,
+        IUnitConversionService? unitConversion = null)
     {
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(false);
-        return new PurchaseAdviceService(context, scope.Object);
+        return new PurchaseAdviceService(context, scope.Object, unitConversion);
     }
 
     private static CreatePurchaseAdviceRequest CreateRequest(Seed seed, decimal quantity) => new()

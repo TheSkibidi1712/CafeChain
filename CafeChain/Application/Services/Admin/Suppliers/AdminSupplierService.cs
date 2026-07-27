@@ -739,6 +739,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 .AsNoTracking()
                 .Include(x => x.Ingredient).ThenInclude(i => i.BaseUnit)
                 .Include(x => x.Unit)
+                .Include(x => x.LooseProcurementUnit)
                 .Include(x => x.Supplier)
                 .Where(x => x.SupplierId == supplierId)
                 .OrderBy(x => x.Ingredient.Name)
@@ -760,6 +761,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         public async Task<int> CreateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto)
         {
             ValidateOfferOperationalTerms(dto);
+            await ValidateLooseOfferAsync(dto);
 
             var requirePackage = dto.Active;
             var validation = await _packageValidator.ValidateAsync(
@@ -791,6 +793,13 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     LeadTimeDays = dto.LeadTimeDays,
                     IsPrimary = dto.IsPrimary,
                     Active = dto.Active,
+                    AllowsLoosePurchase = dto.AllowsLoosePurchase,
+                    CurrentProcurementUnitPrice = dto.AllowsLoosePurchase
+                        ? dto.CurrentProcurementUnitPrice
+                        : null,
+                    LooseProcurementUnitId = dto.AllowsLoosePurchase
+                        ? dto.LooseProcurementUnitId
+                        : null,
                     Note = dto.Note?.Trim(),
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -833,6 +842,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             EnsureRowVersionMatches(entity.RowVersion, expectedVersion);
 
             ValidateOfferOperationalTerms(dto);
+            await ValidateLooseOfferAsync(dto);
 
             var packageOrPriceChanged =
                 entity.CurrentPrice != dto.CurrentPrice
@@ -905,6 +915,13 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 entity.LeadTimeDays = dto.LeadTimeDays;
                 entity.IsPrimary = dto.IsPrimary;
                 entity.Active = dto.Active;
+                entity.AllowsLoosePurchase = dto.AllowsLoosePurchase;
+                entity.CurrentProcurementUnitPrice = dto.AllowsLoosePurchase
+                    ? dto.CurrentProcurementUnitPrice
+                    : null;
+                entity.LooseProcurementUnitId = dto.AllowsLoosePurchase
+                    ? dto.LooseProcurementUnitId
+                    : null;
                 entity.Note = dto.Note?.Trim();
                 entity.UpdatedAt = DateTime.UtcNow;
 
@@ -1231,6 +1248,46 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 throw new InvalidOperationException("Thời gian giao hàng không được âm.");
         }
 
+        private async Task ValidateLooseOfferAsync(AdminIngredientSupplierSaveDTO dto)
+        {
+            if (!dto.AllowsLoosePurchase)
+                return;
+
+            if (!dto.LooseProcurementUnitId.HasValue)
+                throw new InvalidOperationException("Mua lẻ phải chọn đơn vị kg, L hoặc cái.");
+
+            if (!dto.CurrentProcurementUnitPrice.HasValue
+                || dto.CurrentProcurementUnitPrice.Value <= 0m)
+                throw new InvalidOperationException("Đơn giá mua lẻ phải lớn hơn 0.");
+
+            var ingredient = await _context.Ingredients
+                .AsNoTracking()
+                .Include(x => x.BaseUnit)
+                .SingleOrDefaultAsync(x => x.IngredientId == dto.IngredientId && x.Active)
+                ?? throw new InvalidOperationException("Nguyên liệu không tồn tại hoặc đã ngừng hoạt động.");
+
+            var looseUnit = await _context.Units
+                .AsNoTracking()
+                .SingleOrDefaultAsync(x =>
+                    x.UnitId == dto.LooseProcurementUnitId.Value
+                    && x.Active)
+                ?? throw new InvalidOperationException("Đơn vị mua lẻ không tồn tại hoặc đã ngừng hoạt động.");
+
+            var expectedCode = ingredient.BaseUnit.Type switch
+            {
+                Models.Enums.Unit.UnitType.KhoiLuong => ProcurementUnitCodes.Kilogram,
+                Models.Enums.Unit.UnitType.TheTich => ProcurementUnitCodes.Liter,
+                Models.Enums.Unit.UnitType.Dem => ProcurementUnitCodes.Piece,
+                _ => string.Empty
+            };
+
+            if (looseUnit.Type != ingredient.BaseUnit.Type
+                || string.IsNullOrEmpty(expectedCode)
+                || !string.Equals(looseUnit.UnitCode, expectedCode, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    $"Đơn vị mua lẻ không phù hợp với nguyên liệu. Hãy chọn đơn vị {expectedCode}.");
+        }
+
         private static byte[] ParseRequiredRowVersion(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -1273,6 +1330,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             IQueryable<IngredientSupplier> q = _context.IngredientSuppliers
                 .Include(x => x.Ingredient).ThenInclude(i => i.BaseUnit)
                 .Include(x => x.Unit)
+                .Include(x => x.LooseProcurementUnit)
                 .Include(x => x.Supplier);
 
             if (asNoTracking)
@@ -1308,12 +1366,19 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 LeadTimeDays = x.LeadTimeDays,
                 IsPrimary = x.IsPrimary,
                 Active = x.Active,
+                AllowsLoosePurchase = x.AllowsLoosePurchase,
+                CurrentProcurementUnitPrice = x.CurrentProcurementUnitPrice,
+                LooseProcurementUnitId = x.LooseProcurementUnitId,
+                LooseProcurementUnitName = x.LooseProcurementUnit?.Name,
                 Note = x.Note,
                 UpdatedAt = x.UpdatedAt,
                 RowVersion = Convert.ToBase64String(x.RowVersion),
                 HasCompletePackageDefinition = complete,
                 PackageDisplay = packageDisplay,
-                PriceDisplay = $"{x.CurrentPrice.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} ₫ / gói mua"
+                PriceDisplay = x.AllowsLoosePurchase
+                    ? $"{x.CurrentPrice.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} ₫ / gói · "
+                      + $"{x.CurrentProcurementUnitPrice.GetValueOrDefault().ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} ₫ / {x.LooseProcurementUnit?.Name}"
+                    : $"{x.CurrentPrice.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} ₫ / gói mua"
             };
         }
     }

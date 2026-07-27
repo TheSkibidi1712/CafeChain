@@ -152,6 +152,63 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task ProcurementContract_875KgRoundsToNineKgWithoutLosingDemandAudit()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(
+            db,
+            firstRequestedBaseQuantity: 8.75m,
+            secondRequestedBaseQuantity: 1m,
+            packageBaseQuantity: 1m,
+            packagePrice: 100000m,
+            baseUnitName: "kg");
+        await EnableProcurementContractAsync(db, seed, first: 8.75m, second: 1m, unitName: "kg");
+
+        var request = Request(seed);
+        request.Lines[0].PackageCount = 9;
+        request.Lines[1].PackageCount = 1;
+        var result = await BatchService(db).CreateAsync(request, Warehouse(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        var firstChild = result.Data!.ChildPurchaseOrders.Single(x => x.StoreId == seed.Store1Id);
+        Assert.Equal(8.75m, (await db.PurchaseAdviceLines
+            .Include(x => x.PurchaseAdvice)
+            .SingleAsync(x => x.PurchaseAdvice.StoreId == seed.Store1Id))
+            .RequestedProcurementQuantity);
+        Assert.Equal(9m, firstChild.OrderedProcurementQuantity);
+        Assert.Equal(0.25m, firstChild.OrderedProcurementQuantity - 8.75m);
+        Assert.Equal("kg", firstChild.ProcurementUnitName);
+    }
+
+    [Fact]
+    public async Task ProcurementContract_TwoStoresKeepSeparateProcurementAllocations()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(
+            db,
+            firstRequestedBaseQuantity: 2300m,
+            secondRequestedBaseQuantity: 1400m,
+            packageBaseQuantity: 1000m,
+            packagePrice: 160000m,
+            baseUnitName: "g");
+        await EnableProcurementContractAsync(db, seed, first: 2.30m, second: 1.40m, unitName: "kg");
+        var request = Request(seed);
+        request.Lines[0].PackageCount = 3;
+        request.Lines[1].PackageCount = 2;
+
+        var result = await BatchService(db).CreateAsync(request, Warehouse(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        var masterLine = Assert.Single(result.Data!.Lines);
+        Assert.Equal(5m, masterLine.TotalProcurementQuantity);
+        Assert.Equal(3.70m, masterLine.DemandCoveredProcurementQuantity);
+        Assert.Equal(1.30m, masterLine.RoundingSurplusProcurementQuantity);
+        Assert.Equal("kg", masterLine.ProcurementUnitName);
+        Assert.Equal(3m, result.Data.ChildPurchaseOrders.Single(x => x.StoreId == seed.Store1Id).OrderedProcurementQuantity);
+        Assert.Equal(2m, result.Data.ChildPurchaseOrders.Single(x => x.StoreId == seed.Store2Id).OrderedProcurementQuantity);
+    }
+
+    [Fact]
     public async Task Batch_RejectsOverAllocation()
     {
         using var db = CreateDbContext();
@@ -373,6 +430,44 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
             lineSeeds.Add(new LineSeed(line.PurchaseAdviceLineId, Convert.ToBase64String(line.RowVersion)));
         }
         return new Seed(store1.StoreId, store2.StoreId, warehouse.StaffId, owner.StaffId, manager.StaffId, supplier.SupplierId, offer.IngredientSupplierId, lineSeeds);
+    }
+
+    private static async Task EnableProcurementContractAsync(
+        AppDbContext db,
+        Seed seed,
+        decimal first,
+        decimal second,
+        string unitName)
+    {
+        var baseUnitId = await db.PurchaseAdviceLines
+            .AsNoTracking()
+            .Select(x => x.BaseUnitId)
+            .FirstAsync();
+        var procurementUnit = new Unit
+        {
+            UnitCode = "proc186" + Guid.NewGuid().ToString("N")[..4],
+            Name = unitName,
+            Active = true
+        };
+        db.Units.Add(procurementUnit);
+        await db.SaveChangesAsync();
+
+        var lines = await db.PurchaseAdviceLines
+            .Include(x => x.PurchaseAdvice)
+            .OrderBy(x => x.PurchaseAdvice.StoreId)
+            .ToListAsync();
+        var restocks = await db.RestockRequests
+            .OrderBy(x => x.StoreId)
+            .ToListAsync();
+        var quantities = new[] { first, second };
+        for (var i = 0; i < lines.Count; i++)
+        {
+            lines[i].RequestedProcurementQuantity = quantities[i];
+            lines[i].ProcurementUnitId = procurementUnit.UnitId;
+            restocks[i].RequestedProcurementQuantity = quantities[i];
+            restocks[i].ProcurementUnitId = procurementUnit.UnitId;
+        }
+        await db.SaveChangesAsync();
     }
 
     private sealed record LineSeed(int LineId, string RowVersion);

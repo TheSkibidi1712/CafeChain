@@ -587,6 +587,54 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
         Assert.Equal(480m, line.OrderedBaseQuantity);
     }
 
+    [Fact]
+    public async Task PurchaseOrder_ProcurementRoundingDefersInventoryFactorUntilReceiptConfirmation()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 8750m);
+        var baseUnit = await context.Units.SingleAsync(x => x.UnitCode == "g");
+        var procurementUnit = await context.Units.SingleAsync(x => x.UnitCode == "kg");
+        var ingredient = await context.Ingredients.SingleAsync(x => x.IngredientId == IngredientId);
+        ingredient.BaseUnitId = baseUnit.UnitId;
+        request.RequestedProcurementQuantity = 8.75m;
+        request.ProcurementUnitId = procurementUnit.UnitId;
+        var offer = await context.IngredientSuppliers.SingleAsync(
+            x => x.IngredientId == IngredientId && x.SupplierId == SupplierId);
+        offer.UnitId = procurementUnit.UnitId;
+        offer.PackageQuantity = 1m;
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).CreateDraftAsync(
+            new CreatePurchaseOrderRequest
+            {
+                StoreId = StoreId,
+                SupplierId = SupplierId,
+                Lines =
+                {
+                    new CreatePurchaseOrderLineRequest
+                    {
+                        RestockRequestId = request.RestockRequestId,
+                        IngredientId = IngredientId,
+                        IngredientSupplierId = offer.IngredientSupplierId,
+                        PackageCount = 9m,
+                        ProcurementUnitId = procurementUnit.UnitId
+                    }
+                }
+            },
+            StaffId,
+            new[] { RoleConstants.AccountantWarehouse });
+
+        Assert.True(result.IsSuccess, result.Message);
+        var line = await context.PurchaseOrderLines.AsNoTracking().SingleAsync();
+        Assert.Equal(9m, line.OrderedPackQuantity);
+        Assert.Equal(1m, line.PackSizeProcurementQuantity);
+        Assert.Equal(9m, line.OrderedProcurementQuantity);
+        Assert.Equal(0.25m, line.RoundingSurplusProcurementQuantity);
+        Assert.Equal(9000m, line.OrderedBaseQuantity);
+        Assert.Null(line.InventoryPostingBaseQuantity);
+        Assert.Null(line.ProcurementToInventoryFactor);
+    }
+
     private static PurchaseOrderService CreateService(AppDbContext context)
     {
         var physical = new PhysicalUnitConversionService(context, NullLogger<PhysicalUnitConversionService>.Instance);
@@ -636,7 +684,20 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
         var offer = await context.IngredientSuppliers.SingleAsync(
             x => x.IngredientId == IngredientId && x.SupplierId == SupplierId);
         var order = new PurchaseOrder { Code = "PO-178-" + Guid.NewGuid().ToString("N")[..6], StoreId = StoreId, SupplierId = SupplierId, Status = PurchaseOrderStatuses.MarkedAsSent, OrderDate = DateTime.UtcNow, CreatedByStaffId = StaffId, CreatedAtUtc = DateTime.UtcNow, UpdatedAtUtc = DateTime.UtcNow };
-        var line = new PurchaseOrderLine { RestockRequestId = request.RestockRequestId, IngredientId = IngredientId, IngredientSupplierId = offer.IngredientSupplierId, PackageUnitIdSnapshot = UnitId, PackageQuantitySnapshot = 10m, PackagePriceSnapshot = 100m, PackageCount = ordered / 10m, OrderedBaseQuantity = ordered, PromisedLeadTimeDaysSnapshot = 2 };
+        var line = new PurchaseOrderLine
+        {
+            RestockRequestId = request.RestockRequestId,
+            IngredientId = IngredientId,
+            IngredientSupplierId = offer.IngredientSupplierId,
+            PackageUnitIdSnapshot = UnitId,
+            PackageQuantitySnapshot = 10m,
+            PackagePriceSnapshot = 100m,
+            PackageCount = ordered / 10m,
+            OrderedPackageCount = ordered / 10m,
+            UnitPricePerPackage = 100m,
+            OrderedBaseQuantity = ordered,
+            PromisedLeadTimeDaysSnapshot = 2
+        };
         order.Lines.Add(line);
         context.PurchaseOrders.Add(order);
         await context.SaveChangesAsync();

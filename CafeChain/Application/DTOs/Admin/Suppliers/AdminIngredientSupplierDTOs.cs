@@ -21,6 +21,10 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public int? LeadTimeDays { get; set; }
         public bool IsPrimary { get; set; }
         public bool Active { get; set; }
+        public bool AllowsLoosePurchase { get; set; }
+        public decimal? CurrentProcurementUnitPrice { get; set; }
+        public int? LooseProcurementUnitId { get; set; }
+        public string? LooseProcurementUnitName { get; set; }
         [MaxLength(500)]
         public string? Note { get; set; }
         public DateTime UpdatedAt { get; set; }
@@ -60,6 +64,12 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public bool IsPrimary { get; set; }
 
         public bool Active { get; set; } = true;
+        public bool AllowsLoosePurchase { get; set; }
+
+        [Range(typeof(decimal), "0.01", "999999999")]
+        public decimal? CurrentProcurementUnitPrice { get; set; }
+
+        public int? LooseProcurementUnitId { get; set; }
 
         public string? Note { get; set; }
 

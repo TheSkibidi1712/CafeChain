@@ -1,5 +1,6 @@
 @using CafeChain.Application.Constants
 @using CafeChain.Application.DTOs.Admin.Procurement
+@using CafeChain.Models.Enums.Inventory
 @using CafeChain.ViewModels.Admin.Shared
 @model PurchaseAdviceConsolidationPageDto
 @{
@@ -7,6 +8,13 @@
     var canConsolidate = Model.Actor.RoleNames.Contains(RoleConstants.AccountantWarehouse)
         || Model.Actor.RoleNames.Contains(RoleConstants.BusinessOwner);
     var preview = ViewBag.Preview as PurchaseAdviceConsolidationPreviewDto;
+    var createsConsolidatedOrder = preview?.LineCount > 1;
+    var createOrderLabel = createsConsolidatedOrder
+        ? "Tạo đơn đặt hàng gộp"
+        : "Tạo đơn đặt hàng";
+    var creatingOrderLabel = createsConsolidatedOrder
+        ? "Đang tạo đơn đặt hàng gộp..."
+        : "Đang tạo đơn đặt hàng...";
     var selectedIds = ViewBag.SelectedLineIds as int[] ?? Array.Empty<int>();
     var selectedSupplierId = ViewBag.SelectedSupplierId as int?;
     var submittedSelections = ViewBag.SubmittedSelections as IReadOnlyDictionary<int, PurchaseAdviceConsolidationSelectionRequest>
@@ -19,7 +27,7 @@
         <div>
             <div class="pa-eyebrow">Kho &amp; Cung ứng / Mua hàng</div>
             <h1>Tổng hợp đề nghị mua</h1>
-            <p class="pa-subtitle">Gom nhu cầu theo Nhà cung cấp, kiểm tra quy cách mua rồi tạo đơn đặt hàng gộp và phân bổ về từng chi nhánh.</p>
+            <p class="pa-subtitle">Kiểm tra nhu cầu, quy cách mua và phân bổ đơn đặt hàng về đúng từng chi nhánh.</p>
         </div>
         <div class="pa-actions">
             <a class="pa-action" asp-controller="AdminPurchaseOrderBatches" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Đơn đặt hàng gộp</a>
@@ -60,7 +68,7 @@
 
                 <div class="pa-table-wrap">
                     <table class="pa-table pa-consolidation-table">
-                        <thead><tr><th>Chọn</th><th>Đề nghị / chi nhánh</th><th>Nguyên liệu</th><th>Số lượng còn cần đặt</th><th>Ngày cần hàng</th><th>Quy cách và giá cung cấp</th><th>Số kiện</th></tr></thead>
+                        <thead><tr><th>Chọn</th><th>Đề nghị / chi nhánh</th><th>Nguyên liệu</th><th>Số lượng còn cần đặt</th><th>Ngày cần hàng</th><th>Quy cách và giá cung cấp</th><th>Hình thức / số lượng</th></tr></thead>
                         <tbody>
                         @if (Model.Lines.Count == 0) { <tr><td colspan="7" class="pa-empty"><i class="fas fa-inbox"></i><strong>Không có đề nghị mua sẵn sàng tổng hợp</strong><span>Hãy kiểm tra bộ lọc hoặc trạng thái đề nghị.</span></td></tr> }
                         @for (var i = 0; i < Model.Lines.Count; i++)
@@ -72,27 +80,52 @@
                             var initialOffer = offers.FirstOrDefault(x => x.IngredientSupplierId == submitted?.IngredientSupplierId)
                                 ?? offers.FirstOrDefault(x => !selectedSupplierId.HasValue || x.SupplierId == selectedSupplierId.Value)
                                 ?? offers.FirstOrDefault();
-                            var suggestedPackageCount = initialOffer?.PackageBaseQuantity > 0
-                                ? (int)Math.Ceiling(line.RemainingToOrderBaseQuantity / initialOffer.PackageBaseQuantity)
+                            var hasProcurementContract = line.RemainingToOrderProcurementQuantity.HasValue;
+                            var planningRemaining = hasProcurementContract
+                                ? line.RemainingToOrderProcurementQuantity!.Value
+                                : line.RemainingToOrderBaseQuantity;
+                            var planningUnitName = hasProcurementContract
+                                ? line.ProcurementUnitName
+                                : line.BaseUnitName;
+                            var packageQuantityForPlanning = hasProcurementContract
+                                ? initialOffer?.PackageProcurementQuantity
+                                : initialOffer?.PackageBaseQuantity;
+                            var suggestedPackageCount = packageQuantityForPlanning > 0
+                                ? (int)Math.Ceiling(planningRemaining / packageQuantityForPlanning.Value)
                                 : 1;
-                            <tr data-line data-compatible="@string.Join(',', line.CompatibleSupplierIds)" data-remaining="@line.RemainingToOrderBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-base-unit="@line.BaseUnitName" class="@(isSelected ? "pa-row-selected" : string.Empty)">
+                            var initialMode = submitted?.PurchaseMode ?? PurchaseMode.Packaged;
+                            if (initialMode == PurchaseMode.Loose && initialOffer?.AllowsLoosePurchase != true)
+                                initialMode = PurchaseMode.Packaged;
+                            var initialLooseQuantity = submitted?.OrderedProcurementQuantity ?? planningRemaining;
+                            <tr data-line data-compatible="@string.Join(',', line.CompatibleSupplierIds)" data-remaining="@planningRemaining.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-plan-unit="@planningUnitName" data-procurement="@hasProcurementContract.ToString().ToLowerInvariant()" class="@(isSelected ? "pa-row-selected" : string.Empty)">
                                 <td><input class="pa-check line-check" type="checkbox" name="selectedLineIds" value="@line.PurchaseAdviceLineId" checked="@isSelected" disabled="@(!canConsolidate || offers.Count == 0)" aria-label="Chọn @line.IngredientName từ @line.StoreName" /></td>
                                 <td><a class="pa-code" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@line.PurchaseAdviceId">@line.AdviceNumber</a><div class="pa-muted">@line.StoreName · Yêu cầu nhập hàng #@line.RestockRequestId</div><input type="hidden" name="Lines[@i].PurchaseAdviceLineId" value="@line.PurchaseAdviceLineId" /><input type="hidden" name="Lines[@i].RowVersion" value="@line.RowVersion" /></td>
-                                <td><strong>@line.IngredientName</strong><div class="pa-muted">@line.BaseUnitName · @AdminStatusDisplay.PurchaseAdvicePriority(line.Priority).Label</div></td>
-                                <td><strong>@AdminStatusDisplay.Quantity(line.RemainingToOrderBaseQuantity) @line.BaseUnitName</strong><div class="pa-muted">Đã đưa vào đơn @AdminStatusDisplay.Quantity(line.AllocatedToPoBaseQuantity) @line.BaseUnitName</div></td>
+                                <td><strong>@line.IngredientName</strong><div class="pa-muted">@(hasProcurementContract ? line.ProcurementUnitName : line.BaseUnitName) · @AdminStatusDisplay.PurchaseAdvicePriority(line.Priority).Label</div></td>
+                                <td>
+                                    <strong>@AdminStatusDisplay.Quantity(planningRemaining) @planningUnitName</strong>
+                                    <div class="pa-muted">Đã đưa vào đơn @(hasProcurementContract ? AdminStatusDisplay.Quantity(line.AllocatedToPoProcurementQuantity.GetValueOrDefault()) + " " + line.ProcurementUnitName : AdminStatusDisplay.Quantity(line.AllocatedToPoBaseQuantity) + " " + line.BaseUnitName)</div>
+                                    @if (hasProcurementContract) { <div class="pa-muted">Tồn kho chỉ quy đổi khi xác nhận nhập.</div> }
+                                </td>
                                 <td>@AdminStatusDisplay.Date(line.NeededByDate)</td>
                                 <td>
                                     <select class="offer-select" name="Lines[@i].IngredientSupplierId" disabled="@(!canConsolidate)">
                                         <option value="">Chọn quy cách cung cấp</option>
                                         @foreach (var offer in offers)
                                         {
-                                            <option value="@offer.IngredientSupplierId" data-supplier="@offer.SupplierId" data-package-base="@offer.PackageBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected="@(initialOffer?.IngredientSupplierId == offer.IngredientSupplierId)">@offer.SupplierName · 1 kiện = @AdminStatusDisplay.Quantity(offer.PackageBaseQuantity) @line.BaseUnitName · @AdminStatusDisplay.Currency(offer.CurrentPackagePrice)/kiện · MOQ @offer.MinimumOrderPackageCount · giao trong @offer.LeadTimeDays ngày</option>
+                                            <option value="@offer.IngredientSupplierId" data-supplier="@offer.SupplierId" data-package-base="@offer.PackageBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-package-proc="@offer.PackageProcurementQuantity?.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-allows-loose="@offer.AllowsLoosePurchase.ToString().ToLowerInvariant()" data-loose-unit="@offer.LooseProcurementUnitName" data-loose-price="@offer.CurrentProcurementUnitPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected="@(initialOffer?.IngredientSupplierId == offer.IngredientSupplierId)">
+                                                @offer.SupplierName · @(offer.PackageQuantity > 0 ? $"1 kiện = {AdminStatusDisplay.Quantity(hasProcurementContract && offer.PackageProcurementQuantity.HasValue ? offer.PackageProcurementQuantity.Value : offer.PackageBaseQuantity)} {(hasProcurementContract ? line.ProcurementUnitName : line.BaseUnitName)} · {AdminStatusDisplay.Currency(offer.CurrentPackagePrice)}/kiện" : "Không có quy cách đóng gói")@(offer.AllowsLoosePurchase ? $" · mua rời {AdminStatusDisplay.Currency(offer.CurrentProcurementUnitPrice.GetValueOrDefault())}/{offer.LooseProcurementUnitName}" : string.Empty) · giao trong @offer.LeadTimeDays ngày
+                                            </option>
                                         }
                                     </select>
                                     @if (offers.Count == 0) { <div class="pa-inline-warning">Chưa có quy cách cung cấp hoặc Nhà cung cấp chưa phục vụ chi nhánh này.</div> }
                                 </td>
                                 <td>
-                                    <input class="pack-count" type="number" name="Lines[@i].PackageCount" value="@suggestedPackageCount" min="1" step="1" readonly disabled="@(!canConsolidate)" aria-label="Số kiện đề xuất cho @line.IngredientName" />
+                                    <select class="purchase-mode mb-2" name="Lines[@i].PurchaseMode" disabled="@(!canConsolidate || !hasProcurementContract)">
+                                        <option value="@PurchaseMode.Packaged" selected="@(initialMode == PurchaseMode.Packaged)">Đóng gói</option>
+                                        <option value="@PurchaseMode.Loose" selected="@(initialMode == PurchaseMode.Loose)" disabled="@(initialOffer?.AllowsLoosePurchase != true)">Mua rời</option>
+                                    </select>
+                                    <input class="pack-count" type="number" name="Lines[@i].PackageCount" value="@(submitted?.PackageCount ?? suggestedPackageCount)" min="1" step="1" readonly disabled="@(!canConsolidate || initialMode == PurchaseMode.Loose)" aria-label="Số kiện đề xuất cho @line.IngredientName" />
+                                    <input class="loose-quantity" type="number" name="Lines[@i].OrderedProcurementQuantity" value="@initialLooseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" min="0.001" max="@planningRemaining.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" disabled="@(!canConsolidate || initialMode != PurchaseMode.Loose)" aria-label="Số lượng mua rời cho @line.IngredientName" />
                                     <div class="pa-muted pack-math">Tự tính theo phần còn cần và quy cách.</div>
                                 </td>
                             </tr>
@@ -108,7 +141,7 @@
             {
                 <div class="pa-band pa-draft-empty">
                     <i class="fas fa-file-circle-plus"></i>
-                    <h2>Bản nháp đơn đặt hàng gộp</h2>
+                    <h2>Bản nháp đơn đặt hàng</h2>
                     <p>Chọn đề nghị, Nhà cung cấp và quy cách cung cấp để xem phân bổ theo chi nhánh trước khi tạo đơn đặt hàng.</p>
                 </div>
             }
@@ -121,15 +154,15 @@
                     @foreach (var group in preview.Groups)
                     {
                         <div class="pa-preview-group">
-                            <div class="pa-preview-group-head"><div><strong>@group.IngredientName</strong><div class="pa-muted">@AdminStatusDisplay.Quantity(group.PackageQuantity) @group.PackageUnitName/kiện · tối thiểu @group.MinimumOrderPackageCount kiện · giao trong @group.LeadTimeDays ngày</div></div><strong>@AdminStatusDisplay.Currency(group.LineTotal)</strong></div>
-                            <div class="pa-package-line"><span>@AdminStatusDisplay.Quantity(group.PackageCount) kiện</span><span>@AdminStatusDisplay.Currency(group.PackagePriceSnapshot)/kiện</span><span>Đặt @AdminStatusDisplay.Quantity(group.OrderedBaseQuantity) đơn vị cơ sở</span></div>
-                            <div class="pa-package-line"><span>Phủ nhu cầu @AdminStatusDisplay.Quantity(group.DemandCoveredBaseQuantity)</span><span>Dư quy cách @AdminStatusDisplay.Quantity(group.RoundingSurplusBaseQuantity)</span></div>
+                            <div class="pa-preview-group-head"><div><strong>@group.IngredientName</strong><div class="pa-muted">@(group.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose ? $"Mua rời theo {group.ProcurementUnitName}" : $"{AdminStatusDisplay.Quantity(group.PackageQuantity.GetValueOrDefault())} {group.PackageUnitName}/kiện · tối thiểu {group.MinimumOrderPackageCount} kiện") · giao trong @group.LeadTimeDays ngày</div></div><strong>@AdminStatusDisplay.Currency(group.LineTotal)</strong></div>
+                            <div class="pa-package-line">@if (group.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Packaged) { <span>@AdminStatusDisplay.Quantity(group.PackageCount.GetValueOrDefault()) kiện</span><span>@AdminStatusDisplay.Currency(group.PackagePriceSnapshot.GetValueOrDefault())/kiện</span> } else { <span>@AdminStatusDisplay.Currency(group.UnitPricePerProcurementUnit.GetValueOrDefault())/@group.ProcurementUnitName</span> }@if (group.OrderedProcurementQuantity.HasValue) { <span>Đặt @AdminStatusDisplay.Quantity(group.OrderedProcurementQuantity.Value) @group.ProcurementUnitName</span> } else { <span>Đặt @AdminStatusDisplay.Quantity(group.OrderedBaseQuantity) đơn vị cơ sở</span> }</div>
+                            <div class="pa-package-line">@if (group.DemandCoveredProcurementQuantity.HasValue) { <span>Phủ @AdminStatusDisplay.Quantity(group.DemandCoveredProcurementQuantity.Value) @group.ProcurementUnitName</span><span>Dư quy cách @AdminStatusDisplay.Quantity(group.RoundingSurplusProcurementQuantity.GetValueOrDefault()) @group.ProcurementUnitName</span> } else { <span>Phủ nhu cầu @AdminStatusDisplay.Quantity(group.DemandCoveredBaseQuantity)</span><span>Dư quy cách @AdminStatusDisplay.Quantity(group.RoundingSurplusBaseQuantity)</span> }</div>
                             <div class="pa-allocation-list">
                                 @foreach (var allocation in group.Allocations)
                                 {
                                     <div>
                                         <span>@allocation.StoreName · Yêu cầu nhập #@allocation.RestockRequestId</span>
-                                        <strong>@allocation.PackageCount kiện · đặt @AdminStatusDisplay.Quantity(allocation.OrderedBaseQuantity), phủ @AdminStatusDisplay.Quantity(allocation.DemandCoveredBaseQuantity), dư @AdminStatusDisplay.Quantity(allocation.RoundingSurplusBaseQuantity)</strong>
+                                    <strong>@if (allocation.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Packaged) { <span>@allocation.PackageCount kiện</span> } @if (allocation.OrderedProcurementQuantity.HasValue) { <span>· đặt @AdminStatusDisplay.Quantity(allocation.OrderedProcurementQuantity.Value) @allocation.ProcurementUnitName, phủ @AdminStatusDisplay.Quantity(allocation.DemandCoveredProcurementQuantity.GetValueOrDefault()) @allocation.ProcurementUnitName, dư @AdminStatusDisplay.Quantity(allocation.RoundingSurplusProcurementQuantity.GetValueOrDefault()) @allocation.ProcurementUnitName</span> } else { <span>· đặt @AdminStatusDisplay.Quantity(allocation.OrderedBaseQuantity), phủ @AdminStatusDisplay.Quantity(allocation.DemandCoveredBaseQuantity), dư @AdminStatusDisplay.Quantity(allocation.RoundingSurplusBaseQuantity)</span> }</strong>
                                     </div>
                                 }
                             </div>
@@ -147,7 +180,9 @@
                             {
                                 <input type="hidden" name="Lines[@selectionIndex].PurchaseAdviceLineId" value="@allocation.PurchaseAdviceLineId" />
                                 <input type="hidden" name="Lines[@selectionIndex].IngredientSupplierId" value="@group.IngredientSupplierId" />
+                                <input type="hidden" name="Lines[@selectionIndex].PurchaseMode" value="@allocation.PurchaseMode" />
                                 <input type="hidden" name="Lines[@selectionIndex].PackageCount" value="@allocation.PackageCount" />
+                                <input type="hidden" name="Lines[@selectionIndex].OrderedProcurementQuantity" value="@allocation.OrderedProcurementQuantity" />
                                 <input type="hidden" name="Lines[@selectionIndex].RowVersion" value="@allocation.LineRowVersion" />
                                 selectionIndex++;
                             }
@@ -156,9 +191,9 @@
                             <div class="pa-field"><label>Giao từ ngày</label><input type="date" name="ExpectedDeliveryFrom" lang="vi" value="@preview.Groups.SelectMany(x => x.Allocations).Min(x => x.NeededByDate).ToString("yyyy-MM-dd")" required /><span class="pa-muted">Ngày/tháng/năm</span></div>
                             <div class="pa-field"><label>Đến ngày</label><input type="date" name="ExpectedDeliveryTo" lang="vi" value="@preview.Groups.SelectMany(x => x.Allocations).Max(x => x.NeededByDate).ToString("yyyy-MM-dd")" required /><span class="pa-muted">Ngày/tháng/năm</span></div>
                         </div>
-                        <div class="pa-field"><label>Ghi chú cho đơn đặt hàng gộp</label><textarea name="Note" rows="2" maxlength="1000" placeholder="Điều kiện giao hàng hoặc lưu ý chung..."></textarea></div>
+                        <div class="pa-field"><label>Ghi chú cho đơn đặt hàng</label><textarea name="Note" rows="2" maxlength="1000" placeholder="Điều kiện giao hàng hoặc lưu ý chung..."></textarea></div>
                         <div class="pa-create-warning"><i class="fas fa-lock"></i> Khi tạo, hệ thống khóa và kiểm tra lại số lượng còn cần đặt, giá, số lượng tối thiểu và phạm vi phục vụ chi nhánh.</div>
-                        <button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="Đang tạo đơn đặt hàng gộp..."><i class="fas fa-boxes-stacked"></i> Tạo đơn đặt hàng gộp</button>
+                        <button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="@creatingOrderLabel"><i class="fas fa-boxes-stacked"></i> @createOrderLabel</button>
                     </form>
                 </div>
             }
@@ -172,19 +207,40 @@
     const supplier = document.getElementById('supplier-select');
     const updatePackMath = row => {
         const select = row.querySelector('.offer-select');
-        const input = row.querySelector('.pack-count');
+        const packInput = row.querySelector('.pack-count');
+        const looseInput = row.querySelector('.loose-quantity');
+        const modeInput = row.querySelector('.purchase-mode');
         const copy = row.querySelector('.pack-math');
-        const packageBase = Number(select?.selectedOptions[0]?.dataset.packageBase || 0);
+        const useProcurement = row.dataset.procurement === 'true';
+        const offer = select?.selectedOptions[0];
+        const allowsLoose = useProcurement && offer?.dataset.allowsLoose === 'true';
+        const looseOption = modeInput?.querySelector('option[value="Loose"]');
+        if (looseOption) looseOption.disabled = !allowsLoose;
+        if (modeInput?.value === 'Loose' && !allowsLoose) modeInput.value = 'Packaged';
+        const isLoose = modeInput?.value === 'Loose';
+        if (packInput) packInput.disabled = isLoose;
+        if (looseInput) looseInput.disabled = !isLoose;
+        if (isLoose) {
+            const remaining = Number(row.dataset.remaining || 0);
+            if (looseInput && (!Number(looseInput.value) || Number(looseInput.value) > remaining))
+                looseInput.value = String(remaining);
+            if (copy) copy.textContent = `Mua rời ${Number(looseInput?.value || 0).toLocaleString('vi-VN')} ${offer?.dataset.looseUnit || row.dataset.planUnit} · ${Number(offer?.dataset.loosePrice || 0).toLocaleString('vi-VN')} ₫/đơn vị.`;
+            return;
+        }
+        const packageQuantity = Number(
+            (useProcurement
+                ? offer?.dataset.packageProc
+                : offer?.dataset.packageBase) || 0);
         const remaining = Number(row.dataset.remaining || 0);
-        if (!input || !copy || packageBase <= 0 || remaining <= 0) {
-            if (input) input.value = '1';
+        if (!packInput || !copy || packageQuantity <= 0 || remaining <= 0) {
+            if (packInput) packInput.value = '1';
             if (copy) copy.textContent = 'Chọn quy cách hợp lệ để tính số kiện.';
             return;
         }
-        const count = Math.ceil(remaining / packageBase);
-        const ordered = count * packageBase;
-        input.value = String(count);
-        copy.textContent = `${count} kiện · đặt ${ordered.toLocaleString('vi-VN')} ${row.dataset.baseUnit} · dư ${(ordered - remaining).toLocaleString('vi-VN')} ${row.dataset.baseUnit}`;
+        const count = Math.ceil(remaining / packageQuantity);
+        const ordered = count * packageQuantity;
+        packInput.value = String(count);
+        copy.textContent = `${count} kiện · đặt ${ordered.toLocaleString('vi-VN')} ${row.dataset.planUnit} · dư ${(ordered - remaining).toLocaleString('vi-VN')} ${row.dataset.planUnit}`;
     };
     if (supplier) {
         const syncOffers = () => {
@@ -211,6 +267,10 @@
 
     document.querySelectorAll('.offer-select').forEach(select => {
         select.addEventListener('change', () => updatePackMath(select.closest('[data-line]')));
+    });
+    document.querySelectorAll('.purchase-mode, .loose-quantity').forEach(input => {
+        input.addEventListener('change', () => updatePackMath(input.closest('[data-line]')));
+        input.addEventListener('input', () => updatePackMath(input.closest('[data-line]')));
     });
     document.querySelectorAll('[data-line]').forEach(updatePackMath);
     document.querySelectorAll('.line-check').forEach(check => check.addEventListener('change', () => {

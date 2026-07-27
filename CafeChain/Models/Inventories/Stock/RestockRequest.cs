@@ -20,6 +20,17 @@ namespace CafeChain.Models.Inventories.Stock
 
         public int StoreId { get; set; }
 
+        public string SourceType { get; set; } = "Legacy";
+        public string? SourceReferenceId { get; set; }
+        public int? CreatedForStoreId { get; set; }
+        public DateTime? NeedByDate { get; set; }
+        public decimal? RequestedProcurementQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
+        public decimal? TargetStockProcurementQuantity { get; set; }
+        public string? ForecastEvidence { get; set; }
+        public string? SourcingDecision { get; set; }
+        public string SourcingStatus { get; set; } = "UNALLOCATED";
+
         public int? IngredientId { get; set; }
 
         public int? RecipeId { get; set; }
@@ -72,6 +83,8 @@ namespace CafeChain.Models.Inventories.Stock
 
         public virtual StockAlert? StockAlert { get; set; }
         public virtual Store Store { get; set; } = null!;
+        public virtual Store? CreatedForStore { get; set; }
+        public virtual Unit? ProcurementUnit { get; set; }
         public virtual Ingredient? Ingredient { get; set; }
         public virtual Recipe? Recipe { get; set; }
         public virtual PreparedItem? PreparedItem { get; set; }
@@ -80,5 +93,6 @@ namespace CafeChain.Models.Inventories.Stock
         public virtual Staff? AcceptedByStaff { get; set; }
         public virtual Staff? RemainingClosedByStaff { get; set; }
         public virtual ICollection<RestockFulfillmentPosting> FulfillmentPostings { get; set; } = new List<RestockFulfillmentPosting>();
+        public virtual ICollection<RestockSourcingAllocation> SourcingAllocations { get; set; } = new List<RestockSourcingAllocation>();
     }
 }

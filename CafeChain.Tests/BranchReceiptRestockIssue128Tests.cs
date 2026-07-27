@@ -11,6 +11,7 @@ using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Stock;
@@ -32,6 +33,9 @@ namespace CafeChain.Tests
         private const int IngredientId = 12801;
         private const int PreparedItemId = 12802;
         private const int UnitGram = 1;
+        private const int UnitMilliliter = 3;
+        private const int UnitLiter = 4;
+        private const int FallbackKilogramUnitId = 12803;
         private const int ManagerStaffId = 12810;
         private const int WarehouseStaffId = 12811;
         private const int SupervisorStaffId = 12812;
@@ -127,6 +131,110 @@ namespace CafeChain.Tests
 
             Assert.True(await ctx.RestockRequestTransitions.AnyAsync(t =>
                 t.RestockRequestId == requestId && t.BranchReceiptId == draft.Data.BranchReceiptId));
+        }
+
+        [Fact]
+        public async Task ProcurementReceipt_OneKilogram_PostsExactlyOneThousandBaseGrams()
+        {
+            using var ctx = CreateDbContext();
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 1000m);
+            var kilogram = await ctx.Units.SingleAsync(u => u.UnitCode == "kg");
+            var request = await ctx.RestockRequests.SingleAsync(r => r.RestockRequestId == requestId);
+            request.SourceType = RestockRequestSourceTypes.ManualByStore;
+            request.CreatedForStoreId = StoreId;
+            request.RequestedProcurementQuantity = 1m;
+            request.ProcurementUnitId = kilogram.UnitId;
+            request.SourcingDecision = RestockSourcingDecisionTypes.Purchase;
+            request.SourcingStatus = RestockSourcingStatuses.PartiallyAllocated;
+            await ctx.SaveChangesAsync();
+
+            var service = CreateReceiptService(ctx);
+            var draft = await service.CreateDraftAsync(
+                NewReceiptRequest(requestId, 1m, kilogram.UnitId, 140_000m, "k-procurement-kg"),
+                ManagerStaffId,
+                ManagerRoles);
+            Assert.True(draft.IsSuccess, draft.Message);
+
+            var line = await ctx.BranchReceiptLines.SingleAsync();
+            Assert.Equal(1m, line.ReceivedProcurementQuantity);
+            Assert.Equal(kilogram.UnitId, line.ProcurementUnitId);
+            Assert.Equal(0m, line.ReceivedBaseQuantity);
+            Assert.Null(line.InventoryPostingBaseQuantity);
+            Assert.Null(line.ProcurementToInventoryFactor);
+            Assert.Empty(ctx.InventoryTransactions);
+
+            var confirm = await service.ConfirmAsync(
+                draft.Data!.BranchReceiptId,
+                ManagerStaffId,
+                StoreId,
+                ManagerRoles,
+                draft.Data.RowVersion);
+            Assert.True(confirm.IsSuccess, confirm.Message);
+
+            line = await ctx.BranchReceiptLines.SingleAsync();
+            Assert.Equal(1000m, line.ReceivedBaseQuantity);
+            Assert.Equal(1000m, line.InventoryPostingBaseQuantity);
+            Assert.Equal(1000m, line.ProcurementToInventoryFactor);
+            var inventory = await ctx.StoreInventories.SingleAsync(i =>
+                i.StoreId == StoreId && i.IngredientId == IngredientId);
+            Assert.Equal(1000m, inventory.AvailableQty);
+            Assert.Equal(1000m, await ctx.InventoryTransactions
+                .Where(t => t.Type == InventoryTransactionTypeEnum.BRANCH_RECEIPT_IN)
+                .Select(t => t.Quantity)
+                .SingleAsync());
+        }
+
+        [Fact]
+        public async Task ProcurementReceipt_OneLiter_PostsExactlyOneThousandBaseMilliliters()
+        {
+            using var ctx = CreateDbContext();
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 1000m, alertSuffix: 2);
+            var milliliter = await ctx.Units.SingleAsync(u => u.UnitId == UnitMilliliter);
+            var liter = await ctx.Units.SingleAsync(u => u.UnitId == UnitLiter);
+            var request = await ctx.RestockRequests.SingleAsync(r => r.RestockRequestId == requestId);
+            var ingredient = await ctx.Ingredients.SingleAsync(i => i.IngredientId == request.IngredientId);
+            ingredient.BaseUnitId = milliliter.UnitId;
+            request.SourceType = RestockRequestSourceTypes.ManualByStore;
+            request.CreatedForStoreId = StoreId;
+            request.RequestedProcurementQuantity = 1m;
+            request.ProcurementUnitId = liter.UnitId;
+            request.SourcingDecision = RestockSourcingDecisionTypes.Purchase;
+            request.SourcingStatus = RestockSourcingStatuses.PartiallyAllocated;
+            await ctx.SaveChangesAsync();
+
+            var service = CreateReceiptService(ctx);
+            var draft = await service.CreateDraftAsync(
+                NewReceiptRequest(requestId, 1m, liter.UnitId, 95_000m, "k-procurement-liter"),
+                ManagerStaffId,
+                ManagerRoles);
+            Assert.True(draft.IsSuccess, draft.Message);
+
+            var line = await ctx.BranchReceiptLines.SingleAsync();
+            Assert.Equal(1m, line.ReceivedProcurementQuantity);
+            Assert.Equal(0m, line.ReceivedBaseQuantity);
+            Assert.Null(line.InventoryPostingBaseQuantity);
+            Assert.Null(line.ProcurementToInventoryFactor);
+            Assert.Empty(ctx.InventoryTransactions);
+
+            var confirm = await service.ConfirmAsync(
+                draft.Data!.BranchReceiptId,
+                ManagerStaffId,
+                StoreId,
+                ManagerRoles,
+                draft.Data.RowVersion);
+            Assert.True(confirm.IsSuccess, confirm.Message);
+
+            line = await ctx.BranchReceiptLines.SingleAsync();
+            Assert.Equal(1000m, line.ReceivedBaseQuantity);
+            Assert.Equal(1000m, line.InventoryPostingBaseQuantity);
+            Assert.Equal(1000m, line.ProcurementToInventoryFactor);
+            var inventory = await ctx.StoreInventories.SingleAsync(i =>
+                i.StoreId == StoreId && i.IngredientId == request.IngredientId);
+            Assert.Equal(1000m, inventory.AvailableQty);
+            Assert.Equal(1000m, await ctx.InventoryTransactions
+                .Where(t => t.Type == InventoryTransactionTypeEnum.BRANCH_RECEIPT_IN)
+                .Select(t => t.Quantity)
+                .SingleAsync());
         }
 
         [Fact]
@@ -678,9 +786,12 @@ namespace CafeChain.Tests
                 .Select(x => x.RowVersion)
                 .SingleAsync());
 
-        private async Task<int> SeedProcessingRequestAsync(AppDbContext ctx, decimal requested)
+        private async Task<int> SeedProcessingRequestAsync(
+            AppDbContext ctx,
+            decimal requested,
+            int alertSuffix = 1)
         {
-            var id = await SeedSubmittedRequestAsync(ctx, requested);
+            var id = await SeedSubmittedRequestAsync(ctx, requested, alertSuffix);
             var r = await ctx.RestockRequests.SingleAsync(x => x.RestockRequestId == id);
             r.Status = RestockRequestStatuses.Processing;
             r.HandledByStaffId = WarehouseStaffId;
@@ -747,13 +858,50 @@ namespace CafeChain.Tests
 
         private static void EnsureBase(AppDbContext ctx)
         {
-            if (!ctx.Units.Any(u => u.UnitId == UnitGram))
+            if (!ctx.Units.Any(u => u.UnitId == UnitGram)
+                && !ctx.Units.Local.Any(u => u.UnitId == UnitGram))
             {
                 ctx.Units.Add(new Unit
                 {
                     UnitId = UnitGram,
                     UnitCode = "g",
                     Name = "Gram",
+                    Active = true
+                });
+            }
+            if (!ctx.Units.Any(u => u.UnitCode == "kg")
+                && !ctx.Units.Local.Any(u => u.UnitCode == "kg"))
+            {
+                ctx.Units.Add(new Unit
+                {
+                    UnitId = FallbackKilogramUnitId,
+                    UnitCode = "kg",
+                    Name = "Kilogram",
+                    Type = UnitType.KhoiLuong,
+                    Active = true
+                });
+            }
+            if (!ctx.Units.Any(u => u.UnitId == UnitMilliliter)
+                && !ctx.Units.Local.Any(u => u.UnitId == UnitMilliliter))
+            {
+                ctx.Units.Add(new Unit
+                {
+                    UnitId = UnitMilliliter,
+                    UnitCode = "ml",
+                    Name = "Milliliter",
+                    Type = UnitType.TheTich,
+                    Active = true
+                });
+            }
+            if (!ctx.Units.Any(u => u.UnitId == UnitLiter)
+                && !ctx.Units.Local.Any(u => u.UnitId == UnitLiter))
+            {
+                ctx.Units.Add(new Unit
+                {
+                    UnitId = UnitLiter,
+                    UnitCode = "l",
+                    Name = "Liter",
+                    Type = UnitType.TheTich,
                     Active = true
                 });
             }

@@ -30,13 +30,32 @@
                 {
                     var source = sources[i];
                     var isSelected = selected.Contains(source.RestockRequestId) || preselected == source.RestockRequestId;
+                    var usesProcurement = source.RestockRequestedProcurementQuantity.HasValue
+                        && source.RemainingToPurchaseProcurementQuantity.HasValue;
+                    var requested = usesProcurement
+                        ? source.RestockRequestedProcurementQuantity!.Value
+                        : source.RestockRequestedQuantity;
+                    var remaining = usesProcurement
+                        ? source.RemainingToPurchaseProcurementQuantity!.Value
+                        : source.RemainingToPurchaseQuantity;
+                    var unitName = usesProcurement ? source.ProcurementUnitName : source.BaseUnitName;
                     <tr data-source-row>
                         <td><input class="pa-check" type="checkbox" name="selectedRestockIds" value="@source.RestockRequestId" checked="@isSelected" /></td>
-                        <td><strong>@source.IngredientName</strong><div class="pa-muted">Yêu cầu nhập hàng #@source.RestockRequestId · @AdminStatusDisplay.Quantity(source.RestockRequestedQuantity) @source.BaseUnitName</div>
+                        <td><strong>@source.IngredientName</strong><div class="pa-muted">Yêu cầu nhập hàng #@source.RestockRequestId · @AdminStatusDisplay.Quantity(requested) @unitName</div>
                             <input type="hidden" name="Lines[@i].RestockRequestId" value="@source.RestockRequestId" /><input type="hidden" name="Lines[@i].RestockRowVersion" value="@source.RestockRowVersion" /></td>
-                        <td><div class="pa-quantity-grid" style="grid-template-columns:repeat(3,minmax(100px,1fr));"><div><span>Điều chuyển</span><strong>@AdminStatusDisplay.Quantity(source.TransferAllocatedQuantity)</strong></div><div><span>Đề nghị khác</span><strong>@AdminStatusDisplay.Quantity(source.ExistingPurchaseAdviceQuantity)</strong></div><div><span>Đã đặt hàng</span><strong>@AdminStatusDisplay.Quantity(source.ExistingPurchaseOrderQuantity)</strong></div></div></td>
-                        <td><strong>@AdminStatusDisplay.Quantity(source.RemainingToPurchaseQuantity) @source.BaseUnitName</strong></td>
-                        <td class="pa-field"><input name="Lines[@i].RequestedPurchaseBaseQuantity" type="number" min="0.001" max="@source.RemainingToPurchaseQuantity" step="0.001" value="@(isSelected ? source.RemainingToPurchaseQuantity : 0)" data-quantity /></td>
+                        <td><div class="pa-quantity-grid" style="grid-template-columns:repeat(3,minmax(100px,1fr));"><div><span>Điều chuyển</span><strong>@AdminStatusDisplay.Quantity(usesProcurement ? source.TransferAllocatedProcurementQuantity.GetValueOrDefault() : source.TransferAllocatedQuantity) @unitName</strong></div><div><span>Đề nghị khác</span><strong>@AdminStatusDisplay.Quantity(usesProcurement ? source.ExistingPurchaseAdviceProcurementQuantity.GetValueOrDefault() : source.ExistingPurchaseAdviceQuantity) @unitName</strong></div><div><span>Đã đặt hàng</span><strong>@AdminStatusDisplay.Quantity(usesProcurement ? source.ExistingPurchaseOrderProcurementQuantity.GetValueOrDefault() : source.ExistingPurchaseOrderQuantity) @unitName</strong></div></div></td>
+                        <td><strong>@AdminStatusDisplay.Quantity(remaining) @unitName</strong></td>
+                        <td class="pa-field">
+                            @if (usesProcurement)
+                            {
+                                <input type="hidden" name="Lines[@i].RequestedPurchaseBaseQuantity" value="0" />
+                                <input name="Lines[@i].RequestedPurchaseProcurementQuantity" type="number" min="0.001" max="@remaining" step="0.001" value="@(isSelected ? remaining : 0)" data-quantity />
+                            }
+                            else
+                            {
+                                <input name="Lines[@i].RequestedPurchaseBaseQuantity" type="number" min="0.001" max="@remaining" step="0.001" value="@(isSelected ? remaining : 0)" data-quantity />
+                            }
+                        </td>
                         <td><div class="pa-field"><input name="Lines[@i].NeededByDate" type="date" lang="vi" value="@Model.NeededByDate.ToString("yyyy-MM-dd")" /><span class="pa-muted">Ngày/tháng/năm</span></div><div class="pa-field" style="margin-top:.35rem"><input name="Lines[@i].Note" maxlength="500" placeholder="Ghi chú dòng" /></div></td>
                     </tr>
                 }

@@ -77,6 +77,30 @@ namespace CafeChain.ViewModels.Admin.Shared
                 _ => Unknown("Mức ưu tiên yêu cầu nhập hàng", priority, "ops-badge-neutral")
             };
 
+        public static string RestockSource(string? sourceType) =>
+            sourceType switch
+            {
+                "StockAlert" => "Cảnh báo tồn kho",
+                "ManualByStore" => "Thủ công tại cửa hàng",
+                "CentralPlanner" => "Kế hoạch trung tâm",
+                "StockCountVariance" => "Chênh lệch kiểm kê",
+                "PromotionOrEvent" => "Khuyến mãi / sự kiện",
+                "Forecast" => "Dự báo",
+                "DirectPurchaseProposal" => "Đề nghị mua trực tiếp",
+                "Legacy" => "Dữ liệu cũ",
+                _ => UnknownLabel("Nguồn nhu cầu", sourceType)
+            };
+
+        public static string SourcingDecision(string? decision) =>
+            decision?.ToUpperInvariant() switch
+            {
+                "TRANSFER" => "Điều chuyển",
+                "PURCHASE" => "Mua ngoài",
+                "PRODUCTION" => "Sản xuất",
+                "REJECT" => "Từ chối",
+                _ => "Chưa quyết định"
+            };
+
         public static AdminStatusDescriptor BranchReceipt(string status) =>
             status?.ToUpperInvariant() switch
             {

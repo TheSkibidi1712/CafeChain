@@ -1,6 +1,7 @@
 using CafeChain.Models.Inventories.Stock;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Data.Configurations.Inventories.Stock
 {
@@ -21,10 +22,10 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
 )");
                 t.HasCheckConstraint(
                     "CK_BranchReceiptLines_Quantities",
-                    "[InputQuantity] > 0 AND [ReceivedBaseQuantity] >= 0 AND [RejectedBaseQuantity] >= 0 AND ([ReceivedBaseQuantity] + [RejectedBaseQuantity]) > 0");
+                    "[InputQuantity] > 0 AND [ReceivedBaseQuantity] >= 0 AND [RejectedBaseQuantity] >= 0 AND (([ReceivedProcurementQuantity] IS NOT NULL AND [ReceivedProcurementQuantity] > 0 AND [AcceptedProcurementQuantity] IS NOT NULL AND [AcceptedProcurementQuantity] >= 0 AND [RejectedProcurementQuantity] IS NOT NULL AND [RejectedProcurementQuantity] >= 0) OR ([ReceivedBaseQuantity] + [RejectedBaseQuantity]) > 0)");
                 t.HasCheckConstraint(
                     "CK_BranchReceiptLines_RejectionReason",
-                    "[RejectedBaseQuantity] = 0 OR (LEN(LTRIM(RTRIM([RejectionReason]))) > 0 AND LEN(LTRIM(RTRIM([RejectionIssueType]))) > 0)");
+                    "([RejectedBaseQuantity] = 0 AND ([RejectedProcurementQuantity] IS NULL OR [RejectedProcurementQuantity] = 0)) OR (LEN(LTRIM(RTRIM([RejectionReason]))) > 0 AND LEN(LTRIM(RTRIM([RejectionIssueType]))) > 0)");
             });
 
             entity.HasKey(x => x.BranchReceiptLineId);
@@ -40,6 +41,18 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.Property(x => x.RejectedBaseQuantity)
                 .HasColumnType("decimal(18,3)")
                 .HasDefaultValue(0m)
+                .IsRequired();
+            entity.Property(x => x.ReceivedPackQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.AcceptedPackQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.ReceivedProcurementQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.RejectedProcurementQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.AcceptedProcurementQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.InventoryPostingBaseQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.ProcurementToInventoryFactor).HasPrecision(18, 6);
+            entity.Property(x => x.PurchaseMode)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .HasDefaultValue(PurchaseMode.Packaged)
                 .IsRequired();
 
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
@@ -118,6 +131,14 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .WithMany()
                 .HasForeignKey(x => x.BaseUnitId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.ProcurementUnit)
+                .WithMany()
+                .HasForeignKey(x => x.ProcurementUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.InventoryBaseUnit)
+                .WithMany()
+                .HasForeignKey(x => x.InventoryBaseUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Supplier)
                 .WithMany()
@@ -148,6 +169,8 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasFilter("[SourceTransferCostAllocationId] IS NOT NULL");
             entity.HasIndex(x => x.IngredientId);
             entity.HasIndex(x => x.PreparedItemId);
+            entity.HasIndex(x => x.ProcurementUnitId);
+            entity.HasIndex(x => x.InventoryBaseUnitId);
         }
     }
 }

@@ -40,6 +40,20 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .IsRequired()
                 .HasMaxLength(32);
 
+            entity.Property(x => x.SourceType)
+                .IsRequired()
+                .HasMaxLength(32)
+                .HasDefaultValue("Legacy");
+            entity.Property(x => x.SourceReferenceId).HasMaxLength(100);
+            entity.Property(x => x.RequestedProcurementQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.TargetStockProcurementQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.ForecastEvidence).HasMaxLength(1000);
+            entity.Property(x => x.SourcingDecision).HasMaxLength(24);
+            entity.Property(x => x.SourcingStatus)
+                .IsRequired()
+                .HasMaxLength(24)
+                .HasDefaultValue("UNALLOCATED");
+
             entity.Property(x => x.Priority)
                 .IsRequired()
                 .HasMaxLength(16);
@@ -70,6 +84,16 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.HasOne(x => x.Store)
                 .WithMany()
                 .HasForeignKey(x => x.StoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.CreatedForStore)
+                .WithMany()
+                .HasForeignKey(x => x.CreatedForStoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ProcurementUnit)
+                .WithMany()
+                .HasForeignKey(x => x.ProcurementUnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Ingredient)
@@ -108,6 +132,8 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.StoreId);
+            entity.HasIndex(x => new { x.StoreId, x.SourceType, x.Status });
+            entity.HasIndex(x => new { x.StoreId, x.SourcingStatus });
             entity.HasIndex(x => x.StockAlertId);
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.CreatedByStaffId);

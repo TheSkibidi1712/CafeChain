@@ -781,7 +781,12 @@ namespace CafeChain.Application.Services.Inventories
                 SupplierName = x.Supplier.Name,
                 Status = x.Status,
                 OrderDate = x.OrderDate,
-                TotalAmount = x.Lines.Sum(l => l.PackageCount * l.PackagePriceSnapshot)
+                TotalAmount = x.Lines.Sum(l => ProcurementPurchaseMath.CalculateLineTotal(
+                    l.PurchaseMode,
+                    l.PackageCount,
+                    l.UnitPricePerPackage ?? l.PackagePriceSnapshot,
+                    l.OrderedProcurementQuantity,
+                    l.UnitPricePerProcurementUnit))
             }).ToList();
 
             var supplierIssueEntities = await _context.SupplierReceiptIssues.AsNoTracking()

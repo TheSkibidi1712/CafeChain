@@ -6537,18 +6537,20 @@ BEGIN TRY
  IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderLines WHERE PurchaseOrderId=@PartialPoId AND Note=N'DEMO_DASHBOARD_V13_PO_LINE')
    INSERT dbo.PurchaseOrderLines(
      PurchaseOrderId,RestockRequestId,IngredientId,IngredientSupplierId,PackageUnitIdSnapshot,
-     PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,OrderedBaseQuantity,ClosedRemainingQuantity,
+     PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,PurchaseMode,OrderedPackageCount,
+     UnitPricePerPackage,OrderedBaseQuantity,ClosedRemainingQuantity,
      PromisedLeadTimeDaysSnapshot,Note)
    SELECT @PartialPoId,@DashboardRestockId,@CoffeeIngredientId,@CoffeeOfferId,UnitId,
-     PackageQuantity,CurrentPrice,10,10,0,LeadTimeDays,N'DEMO_DASHBOARD_V13_PO_LINE'
+     PackageQuantity,CurrentPrice,10,N'Packaged',10,CurrentPrice,10,0,LeadTimeDays,N'DEMO_DASHBOARD_V13_PO_LINE'
    FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=@CoffeeOfferId;
  IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderLines WHERE PurchaseOrderId=@OverduePoId AND Note=N'DEMO_DASHBOARD_V13_OVERDUE_LINE')
    INSERT dbo.PurchaseOrderLines(
      PurchaseOrderId,RestockRequestId,IngredientId,IngredientSupplierId,PackageUnitIdSnapshot,
-     PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,OrderedBaseQuantity,ClosedRemainingQuantity,
+     PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,PurchaseMode,OrderedPackageCount,
+     UnitPricePerPackage,OrderedBaseQuantity,ClosedRemainingQuantity,
      PromisedLeadTimeDaysSnapshot,Note)
    SELECT @OverduePoId,NULL,@CoffeeIngredientId,@CoffeeOfferId,UnitId,
-     PackageQuantity,CurrentPrice,5,5,0,LeadTimeDays,N'DEMO_DASHBOARD_V13_OVERDUE_LINE'
+     PackageQuantity,CurrentPrice,5,N'Packaged',5,CurrentPrice,5,0,LeadTimeDays,N'DEMO_DASHBOARD_V13_OVERDUE_LINE'
    FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=@CoffeeOfferId;
 
  DECLARE @PartialPoLineId int=(SELECT PurchaseOrderLineId FROM dbo.PurchaseOrderLines WHERE PurchaseOrderId=@PartialPoId AND Note=N'DEMO_DASHBOARD_V13_PO_LINE');
@@ -9937,11 +9939,13 @@ BEGIN TRY
     INSERT dbo.PurchaseOrderLines
     (
         PurchaseOrderId,RestockRequestId,IngredientId,IngredientSupplierId,PackageUnitIdSnapshot,
-        PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,OrderedBaseQuantity,
+        PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,PurchaseMode,OrderedPackageCount,
+        UnitPricePerPackage,OrderedBaseQuantity,
         ClosedRemainingQuantity,PromisedLeadTimeDaysSnapshot,Note
     )
     SELECT po.PurchaseOrderId,rr.RestockRequestId,@AiCoffeeIngredientId,@AiCoffeeOfferId,
-           offer.UnitId,offer.PackageQuantity,offer.CurrentPrice,5,5,5,offer.LeadTimeDays,
+           offer.UnitId,offer.PackageQuantity,offer.CurrentPrice,5,N'Packaged',5,
+           offer.CurrentPrice,5,5,offer.LeadTimeDays,
            CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_LINE_S',rr.StoreId)
     FROM dbo.PurchaseOrders po
     JOIN dbo.RestockRequests rr ON rr.Note=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S',po.StoreId)

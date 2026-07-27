@@ -1,6 +1,7 @@
 using System.Globalization;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Models.Enums.Inventory;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -92,16 +93,28 @@ public sealed class PurchaseOrderBatchPdfRenderer : IPurchaseOrderBatchPdfRender
             {
                 header.Cell().Element(HeaderCell).Text("Nguyên liệu").Bold();
                 header.Cell().Element(HeaderCell).Text("Quy cách").Bold();
-                header.Cell().Element(HeaderCell).AlignRight().Text("Số gói").Bold();
+                header.Cell().Element(HeaderCell).AlignRight().Text("Số lượng").Bold();
                 header.Cell().Element(HeaderCell).AlignRight().Text("Đơn giá").Bold();
                 header.Cell().Element(HeaderCell).AlignRight().Text("Thành tiền").Bold();
             });
             foreach (var line in snapshot.Lines)
             {
                 table.Cell().Element(BodyCell).Text(line.IngredientName);
-                table.Cell().Element(BodyCell).Text($"{Quantity(line.PackageQuantity)} {line.PackageUnitName}");
-                table.Cell().Element(BodyCell).AlignRight().Text(Quantity(line.PackageCount));
-                table.Cell().Element(BodyCell).AlignRight().Text(Money(line.PackagePrice));
+                table.Cell().Element(BodyCell).Text(text =>
+                {
+                    if (line.PurchaseMode == PurchaseMode.Loose)
+                        text.Span($"Mua rời theo {Value(line.ProcurementUnitName)}");
+                    else
+                        text.Span($"{Quantity(line.PackageQuantity!.Value)} {line.PackageUnitName}/gói");
+                });
+                table.Cell().Element(BodyCell).AlignRight().Text(
+                    line.PurchaseMode == PurchaseMode.Loose
+                        ? $"{Quantity(line.TotalProcurementQuantity!.Value)} {Value(line.ProcurementUnitName)}"
+                        : $"{Quantity(line.PackageCount!.Value)} gói");
+                table.Cell().Element(BodyCell).AlignRight().Text(
+                    line.PurchaseMode == PurchaseMode.Loose
+                        ? $"{Money(line.UnitPricePerProcurementUnit!.Value)}/{Value(line.ProcurementUnitName)}"
+                        : $"{Money(line.PackagePrice!.Value)}/gói");
                 table.Cell().Element(BodyCell).AlignRight().Text(Money(line.LineTotal));
             }
         });
@@ -131,15 +144,29 @@ public sealed class PurchaseOrderBatchPdfRenderer : IPurchaseOrderBatchPdfRender
                     {
                         header.Cell().Element(HeaderCell).Text("Nguyên liệu").Bold();
                         header.Cell().Element(HeaderCell).Text("Quy cách").Bold();
-                        header.Cell().Element(HeaderCell).AlignRight().Text("Số gói").Bold();
+                        header.Cell().Element(HeaderCell).AlignRight().Text("Số lượng").Bold();
                         header.Cell().Element(HeaderCell).AlignRight().Text("SL cơ sở").Bold();
                     });
                     foreach (var line in store.Lines)
                     {
                         table.Cell().Element(BodyCell).Text(line.IngredientName);
-                        table.Cell().Element(BodyCell).Text($"{Quantity(line.PackageQuantity)} {line.PackageUnitName}");
-                        table.Cell().Element(BodyCell).AlignRight().Text(Quantity(line.PackageCount));
-                        table.Cell().Element(BodyCell).AlignRight().Text(Quantity(line.BaseQuantity));
+                        table.Cell().Element(BodyCell).Text(text =>
+                        {
+                            if (line.PurchaseMode == PurchaseMode.Loose)
+                                text.Span($"Mua rời theo {Value(line.ProcurementUnitName)}");
+                            else
+                                text.Span($"{Quantity(line.PackageQuantity!.Value)} {line.PackageUnitName}/gói");
+                        });
+                        table.Cell().Element(BodyCell).AlignRight().Text(
+                            line.PurchaseMode == PurchaseMode.Loose
+                                ? $"{Quantity(line.ProcurementQuantity!.Value)} {Value(line.ProcurementUnitName)}"
+                                : $"{Quantity(line.PackageCount!.Value)} gói");
+                        table.Cell().Element(BodyCell).AlignRight().Text(text =>
+                        {
+                            text.Span($"{Quantity(line.BaseQuantity)} cơ sở");
+                            if (line.ProcurementQuantity.HasValue)
+                                text.Line($"{Quantity(line.ProcurementQuantity.Value)} {Value(line.ProcurementUnitName)}");
+                        });
                     }
                 });
             });

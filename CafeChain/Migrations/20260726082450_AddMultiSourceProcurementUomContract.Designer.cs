@@ -4,6 +4,7 @@ using CafeChain.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260726082450_AddMultiSourceProcurementUomContract")]
+    partial class AddMultiSourceProcurementUomContract
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4801,13 +4804,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("PurchaseAdviceId")
                         .HasColumnType("int");
 
-                    b.Property<string>("PurchaseMode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)")
-                        .HasDefaultValue("Packaged");
-
                     b.Property<decimal?>("RequestedProcurementQuantity")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
@@ -5223,30 +5219,19 @@ namespace CafeChain.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<decimal?>("OrderedPackageCount")
-                        .HasPrecision(18, 3)
-                        .HasColumnType("decimal(18,3)");
-
-                    b.Property<decimal?>("PackagePriceSnapshot")
+                    b.Property<decimal>("PackagePriceSnapshot")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal?>("PackageQuantitySnapshot")
+                    b.Property<decimal>("PackageQuantitySnapshot")
                         .HasPrecision(18, 5)
                         .HasColumnType("decimal(18,5)");
 
-                    b.Property<int?>("PackageUnitId")
+                    b.Property<int>("PackageUnitId")
                         .HasColumnType("int");
 
                     b.Property<int?>("ProcurementUnitId")
                         .HasColumnType("int");
-
-                    b.Property<string>("PurchaseMode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)")
-                        .HasDefaultValue("Packaged");
 
                     b.Property<int>("PurchaseOrderBatchId")
                         .HasColumnType("int");
@@ -5259,21 +5244,13 @@ namespace CafeChain.Migrations
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
 
-                    b.Property<decimal?>("TotalPackageCount")
+                    b.Property<decimal>("TotalPackageCount")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
 
                     b.Property<decimal?>("TotalProcurementQuantity")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
-
-                    b.Property<decimal?>("UnitPricePerPackage")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("UnitPricePerProcurementUnit")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("PurchaseOrderBatchLineId");
 
@@ -5291,9 +5268,9 @@ namespace CafeChain.Migrations
                         {
                             t.HasCheckConstraint("CK_PurchaseOrderBatchLines_BasePositive", "[TotalBaseQuantity] > 0");
 
-                            t.HasCheckConstraint("CK_PurchaseOrderBatchLines_PriceNonNegative", "([PackagePriceSnapshot] IS NULL OR [PackagePriceSnapshot] >= 0) AND [LineTotal] >= 0");
+                            t.HasCheckConstraint("CK_PurchaseOrderBatchLines_PackagePositive", "[PackageQuantitySnapshot] > 0 AND [TotalPackageCount] > 0");
 
-                            t.HasCheckConstraint("CK_PurchaseOrderBatchLines_PurchaseModeAuthority", "([PurchaseMode] = 'Packaged' AND [PackageQuantitySnapshot] IS NOT NULL AND [PackageQuantitySnapshot] > 0 AND [OrderedPackageCount] IS NOT NULL AND [OrderedPackageCount] > 0 AND [OrderedPackageCount] = FLOOR([OrderedPackageCount]) AND [UnitPricePerPackage] IS NOT NULL AND [UnitPricePerPackage] >= 0 AND [UnitPricePerProcurementUnit] IS NULL) OR ([PurchaseMode] = 'Loose' AND [OrderedPackageCount] IS NULL AND [TotalProcurementQuantity] IS NOT NULL AND [TotalProcurementQuantity] > 0 AND [ProcurementUnitId] IS NOT NULL AND [UnitPricePerProcurementUnit] IS NOT NULL AND [UnitPricePerProcurementUnit] >= 0 AND [UnitPricePerPackage] IS NULL)");
+                            t.HasCheckConstraint("CK_PurchaseOrderBatchLines_PriceNonNegative", "[PackagePriceSnapshot] >= 0 AND [LineTotal] >= 0");
                         });
                 });
 
@@ -5360,10 +5337,6 @@ namespace CafeChain.Migrations
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
 
-                    b.Property<decimal?>("OrderedPackageCount")
-                        .HasPrecision(18, 3)
-                        .HasColumnType("decimal(18,3)");
-
                     b.Property<decimal?>("OrderedProcurementQuantity")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
@@ -5372,19 +5345,19 @@ namespace CafeChain.Migrations
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
 
-                    b.Property<decimal?>("PackageCount")
+                    b.Property<decimal>("PackageCount")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
 
-                    b.Property<decimal?>("PackagePriceSnapshot")
+                    b.Property<decimal>("PackagePriceSnapshot")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal?>("PackageQuantitySnapshot")
+                    b.Property<decimal>("PackageQuantitySnapshot")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
 
-                    b.Property<int?>("PackageUnitIdSnapshot")
+                    b.Property<int>("PackageUnitIdSnapshot")
                         .HasColumnType("int");
 
                     b.Property<decimal?>("ProcurementToInventoryFactor")
@@ -5399,13 +5372,6 @@ namespace CafeChain.Migrations
 
                     b.Property<int?>("PurchaseAdviceLineId")
                         .HasColumnType("int");
-
-                    b.Property<string>("PurchaseMode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)")
-                        .HasDefaultValue("Packaged");
 
                     b.Property<int>("PurchaseOrderId")
                         .HasColumnType("int");
@@ -5422,14 +5388,6 @@ namespace CafeChain.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
-
-                    b.Property<decimal?>("UnitPricePerPackage")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("UnitPricePerProcurementUnit")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("PurchaseOrderLineId");
 
@@ -5454,8 +5412,6 @@ namespace CafeChain.Migrations
                     b.ToTable("PurchaseOrderLines", null, t =>
                         {
                             t.HasCheckConstraint("CK_PurchaseOrderLines_ClosedRemainingQuantity_NonNegative", "[ClosedRemainingQuantity] >= 0");
-
-                            t.HasCheckConstraint("CK_PurchaseOrderLines_PurchaseModeAuthority", "([PurchaseMode] = 'Packaged' AND [OrderedPackageCount] IS NOT NULL AND [OrderedPackageCount] > 0 AND [OrderedPackageCount] = FLOOR([OrderedPackageCount]) AND [UnitPricePerPackage] IS NOT NULL AND [UnitPricePerPackage] >= 0 AND [UnitPricePerProcurementUnit] IS NULL AND ([PackSizeProcurementQuantity] IS NULL OR [PackSizeProcurementQuantity] > 0)) OR ([PurchaseMode] = 'Loose' AND [OrderedPackageCount] IS NULL AND [OrderedProcurementQuantity] IS NOT NULL AND [OrderedProcurementQuantity] > 0 AND [ProcurementUnitId] IS NOT NULL AND [UnitPricePerProcurementUnit] IS NOT NULL AND [UnitPricePerProcurementUnit] >= 0 AND [UnitPricePerPackage] IS NULL)");
                         });
                 });
 
@@ -5471,7 +5427,7 @@ namespace CafeChain.Migrations
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
 
-                    b.Property<decimal?>("AllocatedPackageQuantity")
+                    b.Property<decimal>("AllocatedPackageQuantity")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
 
@@ -5491,13 +5447,6 @@ namespace CafeChain.Migrations
 
                     b.Property<int>("PurchaseAdviceLineId")
                         .HasColumnType("int");
-
-                    b.Property<string>("PurchaseMode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)")
-                        .HasDefaultValue("Packaged");
 
                     b.Property<int>("PurchaseOrderBatchLineId")
                         .HasColumnType("int");
@@ -5535,7 +5484,7 @@ namespace CafeChain.Migrations
                         {
                             t.HasCheckConstraint("CK_PurchaseOrderLineAllocations_BasePositive", "[AllocatedBaseQuantity] > 0");
 
-                            t.HasCheckConstraint("CK_PurchaseOrderLineAllocations_PurchaseModeAuthority", "([PurchaseMode] = 'Packaged' AND [AllocatedPackageQuantity] IS NOT NULL AND [AllocatedPackageQuantity] > 0) OR ([PurchaseMode] = 'Loose' AND [AllocatedPackageQuantity] IS NULL AND [AllocatedProcurementQuantity] IS NOT NULL AND [AllocatedProcurementQuantity] > 0)");
+                            t.HasCheckConstraint("CK_PurchaseOrderLineAllocations_PackagePositive", "[AllocatedPackageQuantity] > 0");
                         });
                 });
 
@@ -5577,13 +5526,6 @@ namespace CafeChain.Migrations
 
                     b.Property<int?>("ProcurementUnitId")
                         .HasColumnType("int");
-
-                    b.Property<string>("PurchaseMode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)")
-                        .HasDefaultValue("Packaged");
 
                     b.Property<int>("PurchaseOrderLineId")
                         .HasColumnType("int");
@@ -6228,13 +6170,6 @@ namespace CafeChain.Migrations
                     b.Property<int?>("ProcurementUnitId")
                         .HasColumnType("int");
 
-                    b.Property<string>("PurchaseMode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)")
-                        .HasDefaultValue("Packaged");
-
                     b.Property<int?>("PurchaseOrderLineId")
                         .HasColumnType("int");
 
@@ -6334,9 +6269,9 @@ namespace CafeChain.Migrations
                         {
                             t.HasCheckConstraint("CK_BranchReceiptLines_Identity", "\r\n(\r\n  ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n)");
 
-                            t.HasCheckConstraint("CK_BranchReceiptLines_Quantities", "[InputQuantity] > 0 AND [ReceivedBaseQuantity] >= 0 AND [RejectedBaseQuantity] >= 0 AND (([ReceivedProcurementQuantity] IS NOT NULL AND [ReceivedProcurementQuantity] > 0 AND [AcceptedProcurementQuantity] IS NOT NULL AND [AcceptedProcurementQuantity] >= 0 AND [RejectedProcurementQuantity] IS NOT NULL AND [RejectedProcurementQuantity] >= 0) OR ([ReceivedBaseQuantity] + [RejectedBaseQuantity]) > 0)");
+                            t.HasCheckConstraint("CK_BranchReceiptLines_Quantities", "[InputQuantity] > 0 AND [ReceivedBaseQuantity] >= 0 AND [RejectedBaseQuantity] >= 0 AND ([ReceivedBaseQuantity] + [RejectedBaseQuantity]) > 0");
 
-                            t.HasCheckConstraint("CK_BranchReceiptLines_RejectionReason", "([RejectedBaseQuantity] = 0 AND ([RejectedProcurementQuantity] IS NULL OR [RejectedProcurementQuantity] = 0)) OR (LEN(LTRIM(RTRIM([RejectionReason]))) > 0 AND LEN(LTRIM(RTRIM([RejectionIssueType]))) > 0)");
+                            t.HasCheckConstraint("CK_BranchReceiptLines_RejectionReason", "[RejectedBaseQuantity] = 0 OR (LEN(LTRIM(RTRIM([RejectionReason]))) > 0 AND LEN(LTRIM(RTRIM([RejectionIssueType]))) > 0)");
                         });
                 });
 
@@ -7170,9 +7105,6 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("CurrentPrice")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal?>("CurrentProcurementUnitPrice")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<int>("IngredientId")
                         .HasColumnType("int");
 
@@ -7182,9 +7114,6 @@ namespace CafeChain.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<int?>("LeadTimeDays")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("LooseProcurementUnitId")
                         .HasColumnType("int");
 
                     b.Property<int?>("MinimumOrderPackageCount")
@@ -7220,8 +7149,6 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("IngredientId");
 
-                    b.HasIndex("LooseProcurementUnitId");
-
                     b.HasIndex("SupplierId");
 
                     b.HasIndex("UnitId");
@@ -7234,8 +7161,6 @@ namespace CafeChain.Migrations
                             t.HasCheckConstraint("CK_IngredientSupplier_CurrentPrice", "[CurrentPrice] >= 0");
 
                             t.HasCheckConstraint("CK_IngredientSupplier_LeadTime", "[LeadTimeDays] IS NULL OR [LeadTimeDays] >= 0");
-
-                            t.HasCheckConstraint("CK_IngredientSupplier_LoosePurchase", "[AllowsLoosePurchase] = 0 OR ([CurrentProcurementUnitPrice] IS NOT NULL AND [CurrentProcurementUnitPrice] > 0 AND [LooseProcurementUnitId] IS NOT NULL)");
 
                             t.HasCheckConstraint("CK_IngredientSupplier_MOQ", "[MinimumOrderPackageCount] IS NULL OR [MinimumOrderPackageCount] > 0");
 
@@ -13462,7 +13387,8 @@ namespace CafeChain.Migrations
                     b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "PackageUnit")
                         .WithMany()
                         .HasForeignKey("PackageUnitId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "ProcurementUnit")
                         .WithMany()
@@ -13513,7 +13439,8 @@ namespace CafeChain.Migrations
                     b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "PackageUnitSnapshot")
                         .WithMany()
                         .HasForeignKey("PackageUnitIdSnapshot")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "ProcurementUnit")
                         .WithMany()
@@ -14388,11 +14315,6 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "LooseProcurementUnit")
-                        .WithMany()
-                        .HasForeignKey("LooseProcurementUnitId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("CafeChain.Models.Inventories.Suppliers.Supplier", "Supplier")
                         .WithMany("IngredientSuppliers")
                         .HasForeignKey("SupplierId")
@@ -14406,8 +14328,6 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.Navigation("Ingredient");
-
-                    b.Navigation("LooseProcurementUnit");
 
                     b.Navigation("Supplier");
 

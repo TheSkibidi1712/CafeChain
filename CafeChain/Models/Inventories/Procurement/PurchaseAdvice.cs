@@ -3,6 +3,7 @@ using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Models.Inventories.Procurement
 {
@@ -51,6 +52,13 @@ namespace CafeChain.Models.Inventories.Procurement
         public decimal AcceptedBaseQuantity { get; set; }
         public decimal ClosedBaseQuantity { get; set; }
         public int BaseUnitId { get; set; }
+        public decimal? RequestedProcurementQuantity { get; set; }
+        public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
+        public decimal AllocatedToPoProcurementQuantity { get; set; }
+        public decimal AcceptedProcurementQuantity { get; set; }
+        public decimal ClosedProcurementQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
+        public int? RestockSourcingAllocationId { get; set; }
         public DateTime NeededByDate { get; set; }
         public string? Note { get; set; }
         public bool IsActiveReservation { get; set; }
@@ -62,6 +70,8 @@ namespace CafeChain.Models.Inventories.Procurement
         public virtual RestockRequest RestockRequest { get; set; } = null!;
         public virtual Ingredient Ingredient { get; set; } = null!;
         public virtual Unit BaseUnit { get; set; } = null!;
+        public virtual Unit? ProcurementUnit { get; set; }
+        public virtual RestockSourcingAllocation? RestockSourcingAllocation { get; set; }
     }
 
     public class PurchaseAdviceTransition

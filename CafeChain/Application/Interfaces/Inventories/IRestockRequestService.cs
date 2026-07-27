@@ -28,5 +28,17 @@ namespace CafeChain.Application.Interfaces.Inventories
         Task<ServiceResult<RestockRequestListItemDto?>> GetOpenByAlertAsync(
             int stockAlertId,
             int storeId);
+
+        Task<ServiceResult<CreateRestockRequestResultDto>> CreateManualAsync(
+            CreateProcurementDemandRequest request,
+            int actorStaffId);
+
+        Task<ServiceResult<CreateRestockRequestResultDto>> CreateCentralPlannerAsync(
+            CreateProcurementDemandRequest request,
+            int actorStaffId);
+
+        Task<ServiceResult<SourcingAllocationDto>> SetSourcingDecisionAsync(
+            SourcingDecisionRequest request,
+            int actorStaffId);
     }
 }
