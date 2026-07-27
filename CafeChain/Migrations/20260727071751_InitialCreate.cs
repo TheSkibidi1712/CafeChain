@@ -1052,6 +1052,9 @@ namespace CafeChain.Migrations
                     LeadTimeDays = table.Column<int>(type: "int", nullable: true),
                     IsPrimary = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    AllowsLoosePurchase = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    CurrentProcurementUnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    LooseProcurementUnitId = table.Column<int>(type: "int", nullable: true),
                     Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
@@ -1062,6 +1065,7 @@ namespace CafeChain.Migrations
                     table.PrimaryKey("PK_IngredientSuppliers", x => x.IngredientSupplierId);
                     table.CheckConstraint("CK_IngredientSupplier_CurrentPrice", "[CurrentPrice] >= 0");
                     table.CheckConstraint("CK_IngredientSupplier_LeadTime", "[LeadTimeDays] IS NULL OR [LeadTimeDays] >= 0");
+                    table.CheckConstraint("CK_IngredientSupplier_LoosePurchase", "[AllowsLoosePurchase] = 0 OR ([CurrentProcurementUnitPrice] IS NOT NULL AND [CurrentProcurementUnitPrice] > 0 AND [LooseProcurementUnitId] IS NOT NULL)");
                     table.CheckConstraint("CK_IngredientSupplier_MOQ", "[MinimumOrderPackageCount] IS NULL OR [MinimumOrderPackageCount] > 0");
                     table.CheckConstraint("CK_IngredientSupplier_PackageQuantity", "[PackageQuantity] IS NULL OR [PackageQuantity] > 0");
                     table.ForeignKey(
@@ -1075,6 +1079,12 @@ namespace CafeChain.Migrations
                         column: x => x.SupplierId,
                         principalTable: "Suppliers",
                         principalColumn: "SupplierId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_IngredientSuppliers_Units_LooseProcurementUnitId",
+                        column: x => x.LooseProcurementUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_IngredientSuppliers_Units_UnitId",
@@ -3349,11 +3359,19 @@ namespace CafeChain.Migrations
                     PurchaseOrderBatchId = table.Column<int>(type: "int", nullable: false),
                     IngredientId = table.Column<int>(type: "int", nullable: false),
                     IngredientSupplierId = table.Column<int>(type: "int", nullable: false),
-                    PackageUnitId = table.Column<int>(type: "int", nullable: false),
-                    PackageQuantitySnapshot = table.Column<decimal>(type: "decimal(18,5)", precision: 18, scale: 5, nullable: false),
-                    TotalPackageCount = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
+                    PackageUnitId = table.Column<int>(type: "int", nullable: true),
+                    PackageQuantitySnapshot = table.Column<decimal>(type: "decimal(18,5)", precision: 18, scale: 5, nullable: true),
+                    TotalPackageCount = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    PurchaseMode = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false, defaultValue: "Packaged"),
+                    OrderedPackageCount = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
                     TotalBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
-                    PackagePriceSnapshot = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    TotalProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    UnitPricePerPackage = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    UnitPricePerProcurementUnit = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    DemandCoveredProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    RoundingSurplusProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    ProcurementUnitId = table.Column<int>(type: "int", nullable: true),
+                    PackagePriceSnapshot = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
                     LineTotal = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     Currency = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: false),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
@@ -3362,8 +3380,8 @@ namespace CafeChain.Migrations
                 {
                     table.PrimaryKey("PK_PurchaseOrderBatchLines", x => x.PurchaseOrderBatchLineId);
                     table.CheckConstraint("CK_PurchaseOrderBatchLines_BasePositive", "[TotalBaseQuantity] > 0");
-                    table.CheckConstraint("CK_PurchaseOrderBatchLines_PackagePositive", "[PackageQuantitySnapshot] > 0 AND [TotalPackageCount] > 0");
-                    table.CheckConstraint("CK_PurchaseOrderBatchLines_PriceNonNegative", "[PackagePriceSnapshot] >= 0 AND [LineTotal] >= 0");
+                    table.CheckConstraint("CK_PurchaseOrderBatchLines_PriceNonNegative", "([PackagePriceSnapshot] IS NULL OR [PackagePriceSnapshot] >= 0) AND [LineTotal] >= 0");
+                    table.CheckConstraint("CK_PurchaseOrderBatchLines_PurchaseModeAuthority", "([PurchaseMode] = 'Packaged' AND [PackageQuantitySnapshot] IS NOT NULL AND [PackageQuantitySnapshot] > 0 AND [OrderedPackageCount] IS NOT NULL AND [OrderedPackageCount] > 0 AND [OrderedPackageCount] = FLOOR([OrderedPackageCount]) AND [UnitPricePerPackage] IS NOT NULL AND [UnitPricePerPackage] >= 0 AND [UnitPricePerProcurementUnit] IS NULL) OR ([PurchaseMode] = 'Loose' AND [OrderedPackageCount] IS NULL AND [TotalProcurementQuantity] IS NOT NULL AND [TotalProcurementQuantity] > 0 AND [ProcurementUnitId] IS NOT NULL AND [UnitPricePerProcurementUnit] IS NOT NULL AND [UnitPricePerProcurementUnit] >= 0 AND [UnitPricePerPackage] IS NULL)");
                     table.ForeignKey(
                         name: "FK_PurchaseOrderBatchLines_IngredientSuppliers_IngredientSupplierId",
                         column: x => x.IngredientSupplierId,
@@ -3388,6 +3406,12 @@ namespace CafeChain.Migrations
                         principalTable: "Units",
                         principalColumn: "UnitId",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderBatchLines_Units_ProcurementUnitId",
+                        column: x => x.ProcurementUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -3397,6 +3421,7 @@ namespace CafeChain.Migrations
                     PurchaseOrderId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PurchaseOrderBatchId = table.Column<int>(type: "int", nullable: true),
+                    MasterPurchaseOrderId = table.Column<int>(type: "int", nullable: true),
                     Code = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
                     StoreId = table.Column<int>(type: "int", nullable: false),
                     SupplierId = table.Column<int>(type: "int", nullable: false),
@@ -3423,6 +3448,12 @@ namespace CafeChain.Migrations
                         column: x => x.PurchaseOrderBatchId,
                         principalTable: "PurchaseOrderBatches",
                         principalColumn: "PurchaseOrderBatchId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrders_PurchaseOrders_MasterPurchaseOrderId",
+                        column: x => x.MasterPurchaseOrderId,
+                        principalTable: "PurchaseOrders",
+                        principalColumn: "PurchaseOrderId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_PurchaseOrders_Staffs_ApprovedByStaffId",
@@ -3501,6 +3532,16 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StockAlertId = table.Column<int>(type: "int", nullable: true),
                     StoreId = table.Column<int>(type: "int", nullable: false),
+                    SourceType = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false, defaultValue: "Legacy"),
+                    SourceReferenceId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    CreatedForStoreId = table.Column<int>(type: "int", nullable: true),
+                    NeedByDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RequestedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    ProcurementUnitId = table.Column<int>(type: "int", nullable: true),
+                    TargetStockProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    ForecastEvidence = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    SourcingDecision = table.Column<string>(type: "nvarchar(24)", maxLength: 24, nullable: true),
+                    SourcingStatus = table.Column<string>(type: "nvarchar(24)", maxLength: 24, nullable: false, defaultValue: "UNALLOCATED"),
                     IngredientId = table.Column<int>(type: "int", nullable: true),
                     RecipeId = table.Column<int>(type: "int", nullable: true),
                     PreparedItemId = table.Column<int>(type: "int", nullable: true),
@@ -3583,10 +3624,22 @@ namespace CafeChain.Migrations
                         principalColumn: "StockAlertId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
+                        name: "FK_RestockRequests_Stores_CreatedForStoreId",
+                        column: x => x.CreatedForStoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
                         name: "FK_RestockRequests_Stores_StoreId",
                         column: x => x.StoreId,
                         principalTable: "Stores",
                         principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockRequests_Units_ProcurementUnitId",
+                        column: x => x.ProcurementUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -3972,123 +4025,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PurchaseAdviceLines",
-                columns: table => new
-                {
-                    PurchaseAdviceLineId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PurchaseAdviceId = table.Column<int>(type: "int", nullable: false),
-                    RestockRequestId = table.Column<int>(type: "int", nullable: false),
-                    IngredientId = table.Column<int>(type: "int", nullable: false),
-                    RequestedPurchaseBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
-                    AllocatedToPoBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
-                    AcceptedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
-                    ClosedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
-                    BaseUnitId = table.Column<int>(type: "int", nullable: false),
-                    NeededByDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    IsActiveReservation = table.Column<bool>(type: "bit", nullable: false),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PurchaseAdviceLines", x => x.PurchaseAdviceLineId);
-                    table.CheckConstraint("CK_PurchaseAdviceLines_AcceptedNonNegative", "[AcceptedBaseQuantity] >= 0");
-                    table.CheckConstraint("CK_PurchaseAdviceLines_AllocatedNonNegative", "[AllocatedToPoBaseQuantity] >= 0");
-                    table.CheckConstraint("CK_PurchaseAdviceLines_ClosedNonNegative", "[ClosedBaseQuantity] >= 0");
-                    table.CheckConstraint("CK_PurchaseAdviceLines_RequestedPositive", "[RequestedPurchaseBaseQuantity] > 0");
-                    table.ForeignKey(
-                        name: "FK_PurchaseAdviceLines_Ingredients_IngredientId",
-                        column: x => x.IngredientId,
-                        principalTable: "Ingredients",
-                        principalColumn: "IngredientId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseAdviceLines_PurchaseAdvices_PurchaseAdviceId",
-                        column: x => x.PurchaseAdviceId,
-                        principalTable: "PurchaseAdvices",
-                        principalColumn: "PurchaseAdviceId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PurchaseAdviceLines_RestockRequests_RestockRequestId",
-                        column: x => x.RestockRequestId,
-                        principalTable: "RestockRequests",
-                        principalColumn: "RestockRequestId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseAdviceLines_Units_BaseUnitId",
-                        column: x => x.BaseUnitId,
-                        principalTable: "Units",
-                        principalColumn: "UnitId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PurchaseOrderLines",
-                columns: table => new
-                {
-                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PurchaseOrderId = table.Column<int>(type: "int", nullable: false),
-                    RestockRequestId = table.Column<int>(type: "int", nullable: true),
-                    IngredientId = table.Column<int>(type: "int", nullable: false),
-                    IngredientSupplierId = table.Column<int>(type: "int", nullable: false),
-                    PackageUnitIdSnapshot = table.Column<int>(type: "int", nullable: false),
-                    PackageQuantitySnapshot = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
-                    PackagePriceSnapshot = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    PackageCount = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
-                    OrderedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
-                    ClosedRemainingQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
-                    CloseRemainingReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ClosedRemainingByStaffId = table.Column<int>(type: "int", nullable: true),
-                    ClosedRemainingAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    PromisedLeadTimeDaysSnapshot = table.Column<int>(type: "int", nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PurchaseOrderLines", x => x.PurchaseOrderLineId);
-                    table.CheckConstraint("CK_PurchaseOrderLines_ClosedRemainingQuantity_NonNegative", "[ClosedRemainingQuantity] >= 0");
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderLines_IngredientSuppliers_IngredientSupplierId",
-                        column: x => x.IngredientSupplierId,
-                        principalTable: "IngredientSuppliers",
-                        principalColumn: "IngredientSupplierId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderLines_Ingredients_IngredientId",
-                        column: x => x.IngredientId,
-                        principalTable: "Ingredients",
-                        principalColumn: "IngredientId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderLines_PurchaseOrders_PurchaseOrderId",
-                        column: x => x.PurchaseOrderId,
-                        principalTable: "PurchaseOrders",
-                        principalColumn: "PurchaseOrderId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderLines_RestockRequests_RestockRequestId",
-                        column: x => x.RestockRequestId,
-                        principalTable: "RestockRequests",
-                        principalColumn: "RestockRequestId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderLines_Staffs_ClosedRemainingByStaffId",
-                        column: x => x.ClosedRemainingByStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderLines_Units_PackageUnitIdSnapshot",
-                        column: x => x.PackageUnitIdSnapshot,
-                        principalTable: "Units",
-                        principalColumn: "UnitId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "RestockFulfillmentPostings",
                 columns: table => new
                 {
@@ -4430,52 +4366,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PurchaseOrderLineAllocations",
-                columns: table => new
-                {
-                    PurchaseOrderLineAllocationId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PurchaseAdviceLineId = table.Column<int>(type: "int", nullable: false),
-                    PurchaseOrderBatchLineId = table.Column<int>(type: "int", nullable: false),
-                    PurchaseOrderId = table.Column<int>(type: "int", nullable: false),
-                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false),
-                    AllocatedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
-                    AllocatedPackageQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
-                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PurchaseOrderLineAllocations", x => x.PurchaseOrderLineAllocationId);
-                    table.CheckConstraint("CK_PurchaseOrderLineAllocations_BasePositive", "[AllocatedBaseQuantity] > 0");
-                    table.CheckConstraint("CK_PurchaseOrderLineAllocations_PackagePositive", "[AllocatedPackageQuantity] > 0");
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderLineAllocations_PurchaseAdviceLines_PurchaseAdviceLineId",
-                        column: x => x.PurchaseAdviceLineId,
-                        principalTable: "PurchaseAdviceLines",
-                        principalColumn: "PurchaseAdviceLineId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderLineAllocations_PurchaseOrderBatchLines_PurchaseOrderBatchLineId",
-                        column: x => x.PurchaseOrderBatchLineId,
-                        principalTable: "PurchaseOrderBatchLines",
-                        principalColumn: "PurchaseOrderBatchLineId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderLineAllocations_PurchaseOrderLines_PurchaseOrderLineId",
-                        column: x => x.PurchaseOrderLineId,
-                        principalTable: "PurchaseOrderLines",
-                        principalColumn: "PurchaseOrderLineId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderLineAllocations_PurchaseOrders_PurchaseOrderId",
-                        column: x => x.PurchaseOrderId,
-                        principalTable: "PurchaseOrders",
-                        principalColumn: "PurchaseOrderId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "InventoryTransferDetails",
                 columns: table => new
                 {
@@ -4700,6 +4590,16 @@ namespace CafeChain.Migrations
                     InputUnitId = table.Column<int>(type: "int", nullable: false),
                     ReceivedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
                     RejectedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false, defaultValue: 0m),
+                    ReceivedPackQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    AcceptedPackQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    ReceivedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    RejectedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    AcceptedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    InventoryPostingBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    ProcurementUnitId = table.Column<int>(type: "int", nullable: true),
+                    InventoryBaseUnitId = table.Column<int>(type: "int", nullable: true),
+                    ProcurementToInventoryFactor = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true),
+                    PurchaseMode = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false, defaultValue: "Packaged"),
                     RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     RejectionIssueType = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
                     BaseUnitId = table.Column<int>(type: "int", nullable: false),
@@ -4718,8 +4618,8 @@ namespace CafeChain.Migrations
                 {
                     table.PrimaryKey("PK_BranchReceiptLines", x => x.BranchReceiptLineId);
                     table.CheckConstraint("CK_BranchReceiptLines_Identity", "\r\n(\r\n  ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n)");
-                    table.CheckConstraint("CK_BranchReceiptLines_Quantities", "[InputQuantity] > 0 AND [ReceivedBaseQuantity] >= 0 AND [RejectedBaseQuantity] >= 0 AND ([ReceivedBaseQuantity] + [RejectedBaseQuantity]) > 0");
-                    table.CheckConstraint("CK_BranchReceiptLines_RejectionReason", "[RejectedBaseQuantity] = 0 OR (LEN(LTRIM(RTRIM([RejectionReason]))) > 0 AND LEN(LTRIM(RTRIM([RejectionIssueType]))) > 0)");
+                    table.CheckConstraint("CK_BranchReceiptLines_Quantities", "[InputQuantity] > 0 AND [ReceivedBaseQuantity] >= 0 AND [RejectedBaseQuantity] >= 0 AND (([ReceivedProcurementQuantity] IS NOT NULL AND [ReceivedProcurementQuantity] > 0 AND [AcceptedProcurementQuantity] IS NOT NULL AND [AcceptedProcurementQuantity] >= 0 AND [RejectedProcurementQuantity] IS NOT NULL AND [RejectedProcurementQuantity] >= 0) OR ([ReceivedBaseQuantity] + [RejectedBaseQuantity]) > 0)");
+                    table.CheckConstraint("CK_BranchReceiptLines_RejectionReason", "([RejectedBaseQuantity] = 0 AND ([RejectedProcurementQuantity] IS NULL OR [RejectedProcurementQuantity] = 0)) OR (LEN(LTRIM(RTRIM([RejectionReason]))) > 0 AND LEN(LTRIM(RTRIM([RejectionIssueType]))) > 0)");
                     table.ForeignKey(
                         name: "FK_BranchReceiptLines_BranchReceipts_BranchReceiptId",
                         column: x => x.BranchReceiptId,
@@ -4749,12 +4649,6 @@ namespace CafeChain.Migrations
                         column: x => x.PreparedItemId,
                         principalTable: "PreparedItems",
                         principalColumn: "PreparedItemId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_BranchReceiptLines_PurchaseOrderLines_PurchaseOrderLineId",
-                        column: x => x.PurchaseOrderLineId,
-                        principalTable: "PurchaseOrderLines",
-                        principalColumn: "PurchaseOrderLineId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_BranchReceiptLines_Recipes_RecipeId",
@@ -4793,8 +4687,20 @@ namespace CafeChain.Migrations
                         principalColumn: "UnitId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
+                        name: "FK_BranchReceiptLines_Units_InventoryBaseUnitId",
+                        column: x => x.InventoryBaseUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
                         name: "FK_BranchReceiptLines_Units_PackageUnitIdSnapshot",
                         column: x => x.PackageUnitIdSnapshot,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_BranchReceiptLines_Units_ProcurementUnitId",
+                        column: x => x.ProcurementUnitId,
                         principalTable: "Units",
                         principalColumn: "UnitId",
                         onDelete: ReferentialAction.Restrict);
@@ -4897,195 +4803,6 @@ namespace CafeChain.Migrations
                         column: x => x.StoreInventoryId,
                         principalTable: "StoreInventories",
                         principalColumn: "StoreInventoryId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PurchaseAdviceFulfillmentPostings",
-                columns: table => new
-                {
-                    PurchaseAdviceFulfillmentPostingId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PurchaseAdviceLineId = table.Column<int>(type: "int", nullable: false),
-                    PurchaseOrderLineAllocationId = table.Column<int>(type: "int", nullable: false),
-                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false),
-                    BranchReceiptLineId = table.Column<int>(type: "int", nullable: true),
-                    CloseOperationKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    PostingType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Quantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
-                    BaseUnitId = table.Column<int>(type: "int", nullable: false),
-                    SourceDocumentType = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
-                    SourceDocumentId = table.Column<int>(type: "int", nullable: false),
-                    SourceDocumentLineId = table.Column<int>(type: "int", nullable: false),
-                    PayloadHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    ActorStaffId = table.Column<int>(type: "int", nullable: false),
-                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PurchaseAdviceFulfillmentPostings", x => x.PurchaseAdviceFulfillmentPostingId);
-                    table.CheckConstraint("CK_PurchaseAdviceFulfillmentPostings_QuantityPositive", "[Quantity] > 0");
-                    table.CheckConstraint("CK_PurchaseAdviceFulfillmentPostings_SourceByType", "([PostingType] = 'ACCEPTED' AND [BranchReceiptLineId] IS NOT NULL AND [CloseOperationKey] IS NULL) OR ([PostingType] = 'CLOSED' AND [BranchReceiptLineId] IS NULL AND [CloseOperationKey] IS NOT NULL)");
-                    table.CheckConstraint("CK_PurchaseAdviceFulfillmentPostings_Type", "[PostingType] IN ('ACCEPTED','CLOSED')");
-                    table.ForeignKey(
-                        name: "FK_PurchaseAdviceFulfillmentPostings_BranchReceiptLines_BranchReceiptLineId",
-                        column: x => x.BranchReceiptLineId,
-                        principalTable: "BranchReceiptLines",
-                        principalColumn: "BranchReceiptLineId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseAdviceFulfillmentPostings_PurchaseAdviceLines_PurchaseAdviceLineId",
-                        column: x => x.PurchaseAdviceLineId,
-                        principalTable: "PurchaseAdviceLines",
-                        principalColumn: "PurchaseAdviceLineId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseAdviceFulfillmentPostings_PurchaseOrderLineAllocations_PurchaseOrderLineAllocationId",
-                        column: x => x.PurchaseOrderLineAllocationId,
-                        principalTable: "PurchaseOrderLineAllocations",
-                        principalColumn: "PurchaseOrderLineAllocationId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseAdviceFulfillmentPostings_PurchaseOrderLines_PurchaseOrderLineId",
-                        column: x => x.PurchaseOrderLineId,
-                        principalTable: "PurchaseOrderLines",
-                        principalColumn: "PurchaseOrderLineId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseAdviceFulfillmentPostings_Staffs_ActorStaffId",
-                        column: x => x.ActorStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseAdviceFulfillmentPostings_Units_BaseUnitId",
-                        column: x => x.BaseUnitId,
-                        principalTable: "Units",
-                        principalColumn: "UnitId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PurchaseOrderReceiptPostings",
-                columns: table => new
-                {
-                    PurchaseOrderReceiptPostingId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false),
-                    BranchReceiptLineId = table.Column<int>(type: "int", nullable: false),
-                    AcceptedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
-                    RejectedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
-                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
-                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PurchaseOrderReceiptPostings", x => x.PurchaseOrderReceiptPostingId);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderReceiptPostings_BranchReceiptLines_BranchReceiptLineId",
-                        column: x => x.BranchReceiptLineId,
-                        principalTable: "BranchReceiptLines",
-                        principalColumn: "BranchReceiptLineId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderReceiptPostings_PurchaseOrderLines_PurchaseOrderLineId",
-                        column: x => x.PurchaseOrderLineId,
-                        principalTable: "PurchaseOrderLines",
-                        principalColumn: "PurchaseOrderLineId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderReceiptPostings_Staffs_CreatedByStaffId",
-                        column: x => x.CreatedByStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SupplierReceiptIssues",
-                columns: table => new
-                {
-                    SupplierReceiptIssueId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    SupplierId = table.Column<int>(type: "int", nullable: false),
-                    StoreId = table.Column<int>(type: "int", nullable: false),
-                    PurchaseOrderId = table.Column<int>(type: "int", nullable: false),
-                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false),
-                    BranchReceiptId = table.Column<int>(type: "int", nullable: false),
-                    BranchReceiptLineId = table.Column<int>(type: "int", nullable: false),
-                    IssueType = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    AffectedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
-                    ResolutionNote = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    DismissReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ReportedByStaffId = table.Column<int>(type: "int", nullable: false),
-                    ResolvedByStaffId = table.Column<int>(type: "int", nullable: true),
-                    DismissedByStaffId = table.Column<int>(type: "int", nullable: true),
-                    ReportedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ResolvedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DismissedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ClosedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SupplierReceiptIssues", x => x.SupplierReceiptIssueId);
-                    table.CheckConstraint("CK_SupplierReceiptIssue_AffectedQuantity", "[AffectedBaseQuantity] >= 0");
-                    table.ForeignKey(
-                        name: "FK_SupplierReceiptIssues_BranchReceiptLines_BranchReceiptLineId",
-                        column: x => x.BranchReceiptLineId,
-                        principalTable: "BranchReceiptLines",
-                        principalColumn: "BranchReceiptLineId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SupplierReceiptIssues_BranchReceipts_BranchReceiptId",
-                        column: x => x.BranchReceiptId,
-                        principalTable: "BranchReceipts",
-                        principalColumn: "BranchReceiptId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SupplierReceiptIssues_PurchaseOrderLines_PurchaseOrderLineId",
-                        column: x => x.PurchaseOrderLineId,
-                        principalTable: "PurchaseOrderLines",
-                        principalColumn: "PurchaseOrderLineId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SupplierReceiptIssues_PurchaseOrders_PurchaseOrderId",
-                        column: x => x.PurchaseOrderId,
-                        principalTable: "PurchaseOrders",
-                        principalColumn: "PurchaseOrderId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SupplierReceiptIssues_Staffs_DismissedByStaffId",
-                        column: x => x.DismissedByStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SupplierReceiptIssues_Staffs_ReportedByStaffId",
-                        column: x => x.ReportedByStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SupplierReceiptIssues_Staffs_ResolvedByStaffId",
-                        column: x => x.ResolvedByStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SupplierReceiptIssues_Stores_StoreId",
-                        column: x => x.StoreId,
-                        principalTable: "Stores",
-                        principalColumn: "StoreId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SupplierReceiptIssues_Suppliers_SupplierId",
-                        column: x => x.SupplierId,
-                        principalTable: "Suppliers",
-                        principalColumn: "SupplierId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -5200,36 +4917,6 @@ namespace CafeChain.Migrations
                         principalTable: "Staffs",
                         principalColumn: "StaffId",
                         onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SupplierReceiptIssueTransitions",
-                columns: table => new
-                {
-                    SupplierReceiptIssueTransitionId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    SupplierReceiptIssueId = table.Column<int>(type: "int", nullable: false),
-                    PreviousStatus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    NewStatus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    ActorStaffId = table.Column<int>(type: "int", nullable: false),
-                    Reason = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
-                    OccurredAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SupplierReceiptIssueTransitions", x => x.SupplierReceiptIssueTransitionId);
-                    table.ForeignKey(
-                        name: "FK_SupplierReceiptIssueTransitions_Staffs_ActorStaffId",
-                        column: x => x.ActorStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SupplierReceiptIssueTransitions_SupplierReceiptIssues_SupplierReceiptIssueId",
-                        column: x => x.SupplierReceiptIssueId,
-                        principalTable: "SupplierReceiptIssues",
-                        principalColumn: "SupplierReceiptIssueId",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -5571,6 +5258,531 @@ namespace CafeChain.Migrations
                         principalTable: "SalesCostAllocations",
                         principalColumn: "SalesCostAllocationId",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PurchaseAdviceFulfillmentPostings",
+                columns: table => new
+                {
+                    PurchaseAdviceFulfillmentPostingId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PurchaseAdviceLineId = table.Column<int>(type: "int", nullable: false),
+                    PurchaseOrderLineAllocationId = table.Column<int>(type: "int", nullable: false),
+                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false),
+                    BranchReceiptLineId = table.Column<int>(type: "int", nullable: true),
+                    CloseOperationKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    PostingType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
+                    BaseUnitId = table.Column<int>(type: "int", nullable: false),
+                    SourceDocumentType = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    SourceDocumentId = table.Column<int>(type: "int", nullable: false),
+                    SourceDocumentLineId = table.Column<int>(type: "int", nullable: false),
+                    PayloadHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    ActorStaffId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PurchaseAdviceFulfillmentPostings", x => x.PurchaseAdviceFulfillmentPostingId);
+                    table.CheckConstraint("CK_PurchaseAdviceFulfillmentPostings_QuantityPositive", "[Quantity] > 0");
+                    table.CheckConstraint("CK_PurchaseAdviceFulfillmentPostings_SourceByType", "([PostingType] = 'ACCEPTED' AND [BranchReceiptLineId] IS NOT NULL AND [CloseOperationKey] IS NULL) OR ([PostingType] = 'CLOSED' AND [BranchReceiptLineId] IS NULL AND [CloseOperationKey] IS NOT NULL)");
+                    table.CheckConstraint("CK_PurchaseAdviceFulfillmentPostings_Type", "[PostingType] IN ('ACCEPTED','CLOSED')");
+                    table.ForeignKey(
+                        name: "FK_PurchaseAdviceFulfillmentPostings_BranchReceiptLines_BranchReceiptLineId",
+                        column: x => x.BranchReceiptLineId,
+                        principalTable: "BranchReceiptLines",
+                        principalColumn: "BranchReceiptLineId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseAdviceFulfillmentPostings_Staffs_ActorStaffId",
+                        column: x => x.ActorStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseAdviceFulfillmentPostings_Units_BaseUnitId",
+                        column: x => x.BaseUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PurchaseAdviceLines",
+                columns: table => new
+                {
+                    PurchaseAdviceLineId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PurchaseAdviceId = table.Column<int>(type: "int", nullable: false),
+                    RestockRequestId = table.Column<int>(type: "int", nullable: false),
+                    IngredientId = table.Column<int>(type: "int", nullable: false),
+                    RequestedPurchaseBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
+                    AllocatedToPoBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
+                    AcceptedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
+                    ClosedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
+                    BaseUnitId = table.Column<int>(type: "int", nullable: false),
+                    RequestedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    PurchaseMode = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false, defaultValue: "Packaged"),
+                    AllocatedToPoProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
+                    AcceptedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
+                    ClosedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
+                    ProcurementUnitId = table.Column<int>(type: "int", nullable: true),
+                    RestockSourcingAllocationId = table.Column<int>(type: "int", nullable: true),
+                    NeededByDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    IsActiveReservation = table.Column<bool>(type: "bit", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PurchaseAdviceLines", x => x.PurchaseAdviceLineId);
+                    table.CheckConstraint("CK_PurchaseAdviceLines_AcceptedNonNegative", "[AcceptedBaseQuantity] >= 0");
+                    table.CheckConstraint("CK_PurchaseAdviceLines_AllocatedNonNegative", "[AllocatedToPoBaseQuantity] >= 0");
+                    table.CheckConstraint("CK_PurchaseAdviceLines_ClosedNonNegative", "[ClosedBaseQuantity] >= 0");
+                    table.CheckConstraint("CK_PurchaseAdviceLines_ProcurementRequestedPositive", "[RequestedProcurementQuantity] IS NULL OR [RequestedProcurementQuantity] > 0");
+                    table.CheckConstraint("CK_PurchaseAdviceLines_RequestedPositive", "[RequestedPurchaseBaseQuantity] > 0");
+                    table.ForeignKey(
+                        name: "FK_PurchaseAdviceLines_Ingredients_IngredientId",
+                        column: x => x.IngredientId,
+                        principalTable: "Ingredients",
+                        principalColumn: "IngredientId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseAdviceLines_PurchaseAdvices_PurchaseAdviceId",
+                        column: x => x.PurchaseAdviceId,
+                        principalTable: "PurchaseAdvices",
+                        principalColumn: "PurchaseAdviceId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PurchaseAdviceLines_RestockRequests_RestockRequestId",
+                        column: x => x.RestockRequestId,
+                        principalTable: "RestockRequests",
+                        principalColumn: "RestockRequestId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseAdviceLines_Units_BaseUnitId",
+                        column: x => x.BaseUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseAdviceLines_Units_ProcurementUnitId",
+                        column: x => x.ProcurementUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PurchaseOrderLines",
+                columns: table => new
+                {
+                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PurchaseOrderId = table.Column<int>(type: "int", nullable: false),
+                    RestockRequestId = table.Column<int>(type: "int", nullable: true),
+                    PurchaseAdviceLineId = table.Column<int>(type: "int", nullable: true),
+                    IngredientId = table.Column<int>(type: "int", nullable: false),
+                    IngredientSupplierId = table.Column<int>(type: "int", nullable: false),
+                    PackageUnitIdSnapshot = table.Column<int>(type: "int", nullable: true),
+                    PackageQuantitySnapshot = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    PackagePriceSnapshot = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    PackageCount = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    PurchaseMode = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false, defaultValue: "Packaged"),
+                    OrderedPackageCount = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    OrderedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
+                    OrderedPackQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    PackSizeProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    ProcurementUnitId = table.Column<int>(type: "int", nullable: true),
+                    OrderedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    UnitPricePerPackage = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    UnitPricePerProcurementUnit = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    RoundingSurplusProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    AcceptedPackQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    AcceptedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    ClosedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
+                    InventoryPostingBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    InventoryBaseUnitId = table.Column<int>(type: "int", nullable: true),
+                    ProcurementToInventoryFactor = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true),
+                    ClosedRemainingQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false, defaultValue: 0m),
+                    CloseRemainingReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ClosedRemainingByStaffId = table.Column<int>(type: "int", nullable: true),
+                    ClosedRemainingAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    PromisedLeadTimeDaysSnapshot = table.Column<int>(type: "int", nullable: false),
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PurchaseOrderLines", x => x.PurchaseOrderLineId);
+                    table.CheckConstraint("CK_PurchaseOrderLines_ClosedRemainingQuantity_NonNegative", "[ClosedRemainingQuantity] >= 0");
+                    table.CheckConstraint("CK_PurchaseOrderLines_PurchaseModeAuthority", "([PurchaseMode] = 'Packaged' AND [OrderedPackageCount] IS NOT NULL AND [OrderedPackageCount] > 0 AND [OrderedPackageCount] = FLOOR([OrderedPackageCount]) AND [UnitPricePerPackage] IS NOT NULL AND [UnitPricePerPackage] >= 0 AND [UnitPricePerProcurementUnit] IS NULL AND ([PackSizeProcurementQuantity] IS NULL OR [PackSizeProcurementQuantity] > 0)) OR ([PurchaseMode] = 'Loose' AND [OrderedPackageCount] IS NULL AND [OrderedProcurementQuantity] IS NOT NULL AND [OrderedProcurementQuantity] > 0 AND [ProcurementUnitId] IS NOT NULL AND [UnitPricePerProcurementUnit] IS NOT NULL AND [UnitPricePerProcurementUnit] >= 0 AND [UnitPricePerPackage] IS NULL)");
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLines_IngredientSuppliers_IngredientSupplierId",
+                        column: x => x.IngredientSupplierId,
+                        principalTable: "IngredientSuppliers",
+                        principalColumn: "IngredientSupplierId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLines_Ingredients_IngredientId",
+                        column: x => x.IngredientId,
+                        principalTable: "Ingredients",
+                        principalColumn: "IngredientId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLines_PurchaseAdviceLines_PurchaseAdviceLineId",
+                        column: x => x.PurchaseAdviceLineId,
+                        principalTable: "PurchaseAdviceLines",
+                        principalColumn: "PurchaseAdviceLineId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLines_PurchaseOrders_PurchaseOrderId",
+                        column: x => x.PurchaseOrderId,
+                        principalTable: "PurchaseOrders",
+                        principalColumn: "PurchaseOrderId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLines_RestockRequests_RestockRequestId",
+                        column: x => x.RestockRequestId,
+                        principalTable: "RestockRequests",
+                        principalColumn: "RestockRequestId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLines_Staffs_ClosedRemainingByStaffId",
+                        column: x => x.ClosedRemainingByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLines_Units_InventoryBaseUnitId",
+                        column: x => x.InventoryBaseUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLines_Units_PackageUnitIdSnapshot",
+                        column: x => x.PackageUnitIdSnapshot,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLines_Units_ProcurementUnitId",
+                        column: x => x.ProcurementUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PurchaseOrderLineAllocations",
+                columns: table => new
+                {
+                    PurchaseOrderLineAllocationId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PurchaseAdviceLineId = table.Column<int>(type: "int", nullable: false),
+                    PurchaseOrderBatchLineId = table.Column<int>(type: "int", nullable: false),
+                    PurchaseOrderId = table.Column<int>(type: "int", nullable: false),
+                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false),
+                    AllocatedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
+                    AllocatedPackageQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    PurchaseMode = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false, defaultValue: "Packaged"),
+                    AllocatedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    DemandCoveredProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    RoundingSurplusProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    ProcurementUnitId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PurchaseOrderLineAllocations", x => x.PurchaseOrderLineAllocationId);
+                    table.CheckConstraint("CK_PurchaseOrderLineAllocations_BasePositive", "[AllocatedBaseQuantity] > 0");
+                    table.CheckConstraint("CK_PurchaseOrderLineAllocations_PurchaseModeAuthority", "([PurchaseMode] = 'Packaged' AND [AllocatedPackageQuantity] IS NOT NULL AND [AllocatedPackageQuantity] > 0) OR ([PurchaseMode] = 'Loose' AND [AllocatedPackageQuantity] IS NULL AND [AllocatedProcurementQuantity] IS NOT NULL AND [AllocatedProcurementQuantity] > 0)");
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLineAllocations_PurchaseAdviceLines_PurchaseAdviceLineId",
+                        column: x => x.PurchaseAdviceLineId,
+                        principalTable: "PurchaseAdviceLines",
+                        principalColumn: "PurchaseAdviceLineId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLineAllocations_PurchaseOrderBatchLines_PurchaseOrderBatchLineId",
+                        column: x => x.PurchaseOrderBatchLineId,
+                        principalTable: "PurchaseOrderBatchLines",
+                        principalColumn: "PurchaseOrderBatchLineId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLineAllocations_PurchaseOrderLines_PurchaseOrderLineId",
+                        column: x => x.PurchaseOrderLineId,
+                        principalTable: "PurchaseOrderLines",
+                        principalColumn: "PurchaseOrderLineId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLineAllocations_PurchaseOrders_PurchaseOrderId",
+                        column: x => x.PurchaseOrderId,
+                        principalTable: "PurchaseOrders",
+                        principalColumn: "PurchaseOrderId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderLineAllocations_Units_ProcurementUnitId",
+                        column: x => x.ProcurementUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PurchaseOrderReceiptPostings",
+                columns: table => new
+                {
+                    PurchaseOrderReceiptPostingId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false),
+                    BranchReceiptLineId = table.Column<int>(type: "int", nullable: false),
+                    AcceptedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
+                    RejectedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
+                    AcceptedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    RejectedProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    InventoryPostingBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    ProcurementUnitId = table.Column<int>(type: "int", nullable: true),
+                    InventoryBaseUnitId = table.Column<int>(type: "int", nullable: true),
+                    ProcurementToInventoryFactor = table.Column<decimal>(type: "decimal(18,6)", precision: 18, scale: 6, nullable: true),
+                    PurchaseMode = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false, defaultValue: "Packaged"),
+                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PurchaseOrderReceiptPostings", x => x.PurchaseOrderReceiptPostingId);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderReceiptPostings_BranchReceiptLines_BranchReceiptLineId",
+                        column: x => x.BranchReceiptLineId,
+                        principalTable: "BranchReceiptLines",
+                        principalColumn: "BranchReceiptLineId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderReceiptPostings_PurchaseOrderLines_PurchaseOrderLineId",
+                        column: x => x.PurchaseOrderLineId,
+                        principalTable: "PurchaseOrderLines",
+                        principalColumn: "PurchaseOrderLineId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderReceiptPostings_Staffs_CreatedByStaffId",
+                        column: x => x.CreatedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderReceiptPostings_Units_InventoryBaseUnitId",
+                        column: x => x.InventoryBaseUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderReceiptPostings_Units_ProcurementUnitId",
+                        column: x => x.ProcurementUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RestockSourcingAllocations",
+                columns: table => new
+                {
+                    RestockSourcingAllocationId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    RestockRequestId = table.Column<int>(type: "int", nullable: false),
+                    DecisionType = table.Column<string>(type: "nvarchar(24)", maxLength: 24, nullable: false),
+                    ProcurementQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
+                    ProcurementUnitId = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(24)", maxLength: 24, nullable: false),
+                    SourceDocumentType = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
+                    SourceDocumentId = table.Column<int>(type: "int", nullable: true),
+                    SourceDocumentLineId = table.Column<int>(type: "int", nullable: true),
+                    PurchaseAdviceLineId = table.Column<int>(type: "int", nullable: true),
+                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: true),
+                    InventoryTransferId = table.Column<int>(type: "int", nullable: true),
+                    ProductionRunId = table.Column<int>(type: "int", nullable: true),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ReleasedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    ReleasedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ReleaseReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RestockSourcingAllocations", x => x.RestockSourcingAllocationId);
+                    table.CheckConstraint("CK_RestockSourcingAllocations_ActivePurchaseLink", "[Status] NOT IN ('ACTIVE','PENDING_PURCHASE') OR [DecisionType] <> 'PURCHASE' OR [PurchaseAdviceLineId] IS NOT NULL OR [PurchaseOrderLineId] IS NOT NULL OR [Status] = 'PENDING_PURCHASE'");
+                    table.CheckConstraint("CK_RestockSourcingAllocations_Decision", "[DecisionType] IN ('TRANSFER','PURCHASE','PRODUCTION','REJECT')");
+                    table.CheckConstraint("CK_RestockSourcingAllocations_Quantity", "[ProcurementQuantity] > 0");
+                    table.ForeignKey(
+                        name: "FK_RestockSourcingAllocations_InventoryTransfers_InventoryTransferId",
+                        column: x => x.InventoryTransferId,
+                        principalTable: "InventoryTransfers",
+                        principalColumn: "InventoryTransferId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockSourcingAllocations_ProductionRuns_ProductionRunId",
+                        column: x => x.ProductionRunId,
+                        principalTable: "ProductionRuns",
+                        principalColumn: "ProductionRunId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockSourcingAllocations_PurchaseAdviceLines_PurchaseAdviceLineId",
+                        column: x => x.PurchaseAdviceLineId,
+                        principalTable: "PurchaseAdviceLines",
+                        principalColumn: "PurchaseAdviceLineId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockSourcingAllocations_PurchaseOrderLines_PurchaseOrderLineId",
+                        column: x => x.PurchaseOrderLineId,
+                        principalTable: "PurchaseOrderLines",
+                        principalColumn: "PurchaseOrderLineId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockSourcingAllocations_RestockRequests_RestockRequestId",
+                        column: x => x.RestockRequestId,
+                        principalTable: "RestockRequests",
+                        principalColumn: "RestockRequestId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockSourcingAllocations_Staffs_CreatedByStaffId",
+                        column: x => x.CreatedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockSourcingAllocations_Staffs_ReleasedByStaffId",
+                        column: x => x.ReleasedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockSourcingAllocations_Units_ProcurementUnitId",
+                        column: x => x.ProcurementUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SupplierReceiptIssues",
+                columns: table => new
+                {
+                    SupplierReceiptIssueId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SupplierId = table.Column<int>(type: "int", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    PurchaseOrderId = table.Column<int>(type: "int", nullable: false),
+                    PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false),
+                    BranchReceiptId = table.Column<int>(type: "int", nullable: false),
+                    BranchReceiptLineId = table.Column<int>(type: "int", nullable: false),
+                    IssueType = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    AffectedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    ResolutionNote = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    DismissReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ReportedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    ResolvedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    DismissedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    ReportedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ResolvedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DismissedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ClosedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupplierReceiptIssues", x => x.SupplierReceiptIssueId);
+                    table.CheckConstraint("CK_SupplierReceiptIssue_AffectedQuantity", "[AffectedBaseQuantity] >= 0");
+                    table.ForeignKey(
+                        name: "FK_SupplierReceiptIssues_BranchReceiptLines_BranchReceiptLineId",
+                        column: x => x.BranchReceiptLineId,
+                        principalTable: "BranchReceiptLines",
+                        principalColumn: "BranchReceiptLineId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupplierReceiptIssues_BranchReceipts_BranchReceiptId",
+                        column: x => x.BranchReceiptId,
+                        principalTable: "BranchReceipts",
+                        principalColumn: "BranchReceiptId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupplierReceiptIssues_PurchaseOrderLines_PurchaseOrderLineId",
+                        column: x => x.PurchaseOrderLineId,
+                        principalTable: "PurchaseOrderLines",
+                        principalColumn: "PurchaseOrderLineId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupplierReceiptIssues_PurchaseOrders_PurchaseOrderId",
+                        column: x => x.PurchaseOrderId,
+                        principalTable: "PurchaseOrders",
+                        principalColumn: "PurchaseOrderId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupplierReceiptIssues_Staffs_DismissedByStaffId",
+                        column: x => x.DismissedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupplierReceiptIssues_Staffs_ReportedByStaffId",
+                        column: x => x.ReportedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupplierReceiptIssues_Staffs_ResolvedByStaffId",
+                        column: x => x.ResolvedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupplierReceiptIssues_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupplierReceiptIssues_Suppliers_SupplierId",
+                        column: x => x.SupplierId,
+                        principalTable: "Suppliers",
+                        principalColumn: "SupplierId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SupplierReceiptIssueTransitions",
+                columns: table => new
+                {
+                    SupplierReceiptIssueTransitionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SupplierReceiptIssueId = table.Column<int>(type: "int", nullable: false),
+                    PreviousStatus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    NewStatus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    ActorStaffId = table.Column<int>(type: "int", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    OccurredAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupplierReceiptIssueTransitions", x => x.SupplierReceiptIssueTransitionId);
+                    table.ForeignKey(
+                        name: "FK_SupplierReceiptIssueTransitions_Staffs_ActorStaffId",
+                        column: x => x.ActorStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupplierReceiptIssueTransitions_SupplierReceiptIssues_SupplierReceiptIssueId",
+                        column: x => x.SupplierReceiptIssueId,
+                        principalTable: "SupplierReceiptIssues",
+                        principalColumn: "SupplierReceiptIssueId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.InsertData(
@@ -6146,18 +6358,18 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "IngredientSuppliers",
-                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "IngredientId", "IsPrimary", "LeadTimeDays", "MinimumOrderPackageCount", "Note", "PackageQuantity", "SupplierId", "UnitId" },
+                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "CurrentProcurementUnitPrice", "IngredientId", "IsPrimary", "LeadTimeDays", "LooseProcurementUnitId", "MinimumOrderPackageCount", "Note", "PackageQuantity", "SupplierId", "UnitId" },
                 values: new object[,]
                 {
-                    { 1, true, 22000m, 6, true, 1, 1, "Đường Biên Hòa", 1m, 1, 2 },
-                    { 2, true, 27000m, 2, true, 2, 24, "Sữa đặc demo lon 380 ml (synthetic)", 380m, 2, 3 },
-                    { 3, true, 140000m, 1, true, 3, 5, "Cà phê hạt", 1m, 3, 2 },
-                    { 4, true, 250000m, 8, true, 4, 6, "Syrup Torani", 750m, 4, 3 },
-                    { 5, true, 95000m, 10, true, 2, 12, "Kem béo Rich", 1m, 2, 4 },
-                    { 6, true, 450000m, 9, true, 5, 1, "Matcha Nhật", 500m, 5, 1 },
-                    { 7, true, 180000m, 5, true, 3, 2, "Bột cacao", 1m, 3, 2 },
-                    { 8, true, 85000m, 4, true, 2, 2, "Bột sữa", 1m, 1, 2 },
-                    { 9, true, 120000m, 3, true, 5, 1, "Trà đen demo 100 túi × 2 g (synthetic)", 200m, 4, 1 }
+                    { 1, true, 22000m, null, 6, true, 1, null, 1, "Đường Biên Hòa", 1m, 1, 2 },
+                    { 2, true, 27000m, null, 2, true, 2, null, 24, "Sữa đặc demo lon 380 ml (synthetic)", 380m, 2, 3 },
+                    { 3, true, 140000m, null, 1, true, 3, null, 5, "Cà phê hạt", 1m, 3, 2 },
+                    { 4, true, 250000m, null, 8, true, 4, null, 6, "Syrup Torani", 750m, 4, 3 },
+                    { 5, true, 95000m, null, 10, true, 2, null, 12, "Kem béo Rich", 1m, 2, 4 },
+                    { 6, true, 450000m, null, 9, true, 5, null, 1, "Matcha Nhật", 500m, 5, 1 },
+                    { 7, true, 180000m, null, 5, true, 3, null, 2, "Bột cacao", 1m, 3, 2 },
+                    { 8, true, 85000m, null, 4, true, 2, null, 2, "Bột sữa", 1m, 1, 2 },
+                    { 9, true, 120000m, null, 3, true, 5, null, 1, "Trà đen demo 100 túi × 2 g (synthetic)", 200m, 4, 1 }
                 });
 
             migrationBuilder.InsertData(
@@ -6416,6 +6628,11 @@ namespace CafeChain.Migrations
                 column: "InputUnitId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_BranchReceiptLines_InventoryBaseUnitId",
+                table: "BranchReceiptLines",
+                column: "InventoryBaseUnitId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_BranchReceiptLines_InventoryTransactionId",
                 table: "BranchReceiptLines",
                 column: "InventoryTransactionId");
@@ -6429,6 +6646,11 @@ namespace CafeChain.Migrations
                 name: "IX_BranchReceiptLines_PreparedItemId",
                 table: "BranchReceiptLines",
                 column: "PreparedItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BranchReceiptLines_ProcurementUnitId",
+                table: "BranchReceiptLines",
+                column: "ProcurementUnitId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_BranchReceiptLines_PurchaseOrderLineId",
@@ -6788,6 +7010,11 @@ namespace CafeChain.Migrations
                 table: "IngredientSuppliers",
                 columns: new[] { "IngredientId", "SupplierId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_IngredientSuppliers_LooseProcurementUnitId",
+                table: "IngredientSuppliers",
+                column: "LooseProcurementUnitId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_IngredientSuppliers_SupplierId",
@@ -7934,9 +8161,19 @@ namespace CafeChain.Migrations
                 column: "IngredientId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PurchaseAdviceLines_ProcurementUnitId",
+                table: "PurchaseAdviceLines",
+                column: "ProcurementUnitId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PurchaseAdviceLines_PurchaseAdviceId",
                 table: "PurchaseAdviceLines",
                 column: "PurchaseAdviceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseAdviceLines_RestockSourcingAllocationId",
+                table: "PurchaseAdviceLines",
+                column: "RestockSourcingAllocationId");
 
             migrationBuilder.CreateIndex(
                 name: "UX_PurchaseAdviceLines_ActiveRestock",
@@ -8079,9 +8316,19 @@ namespace CafeChain.Migrations
                 column: "PackageUnitId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PurchaseOrderBatchLines_ProcurementUnitId",
+                table: "PurchaseOrderBatchLines",
+                column: "ProcurementUnitId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PurchaseOrderBatchLines_PurchaseOrderBatchId_IngredientId",
                 table: "PurchaseOrderBatchLines",
                 columns: new[] { "PurchaseOrderBatchId", "IngredientId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseOrderLineAllocations_ProcurementUnitId",
+                table: "PurchaseOrderLineAllocations",
+                column: "ProcurementUnitId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PurchaseOrderLineAllocations_PurchaseAdviceLineId",
@@ -8120,9 +8367,24 @@ namespace CafeChain.Migrations
                 column: "IngredientSupplierId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PurchaseOrderLines_InventoryBaseUnitId",
+                table: "PurchaseOrderLines",
+                column: "InventoryBaseUnitId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PurchaseOrderLines_PackageUnitIdSnapshot",
                 table: "PurchaseOrderLines",
                 column: "PackageUnitIdSnapshot");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseOrderLines_ProcurementUnitId",
+                table: "PurchaseOrderLines",
+                column: "ProcurementUnitId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseOrderLines_PurchaseAdviceLineId",
+                table: "PurchaseOrderLines",
+                column: "PurchaseAdviceLineId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PurchaseOrderLines_PurchaseOrderId",
@@ -8146,6 +8408,16 @@ namespace CafeChain.Migrations
                 column: "CreatedByStaffId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PurchaseOrderReceiptPostings_InventoryBaseUnitId",
+                table: "PurchaseOrderReceiptPostings",
+                column: "InventoryBaseUnitId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseOrderReceiptPostings_ProcurementUnitId",
+                table: "PurchaseOrderReceiptPostings",
+                column: "ProcurementUnitId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PurchaseOrderReceiptPostings_PurchaseOrderLineId",
                 table: "PurchaseOrderReceiptPostings",
                 column: "PurchaseOrderLineId");
@@ -8165,6 +8437,11 @@ namespace CafeChain.Migrations
                 name: "IX_PurchaseOrders_CreatedByStaffId",
                 table: "PurchaseOrders",
                 column: "CreatedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseOrders_MasterPurchaseOrderId",
+                table: "PurchaseOrders",
+                column: "MasterPurchaseOrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PurchaseOrders_PurchaseOrderBatchId",
@@ -8428,6 +8705,11 @@ namespace CafeChain.Migrations
                 column: "CreatedByStaffId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_RestockRequests_CreatedForStoreId",
+                table: "RestockRequests",
+                column: "CreatedForStoreId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RestockRequests_HandledByStaffId",
                 table: "RestockRequests",
                 column: "HandledByStaffId");
@@ -8441,6 +8723,11 @@ namespace CafeChain.Migrations
                 name: "IX_RestockRequests_PreparedItemId",
                 table: "RestockRequests",
                 column: "PreparedItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockRequests_ProcurementUnitId",
+                table: "RestockRequests",
+                column: "ProcurementUnitId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RestockRequests_RecipeId",
@@ -8461,6 +8748,16 @@ namespace CafeChain.Migrations
                 name: "IX_RestockRequests_StoreId",
                 table: "RestockRequests",
                 column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockRequests_StoreId_SourceType_Status",
+                table: "RestockRequests",
+                columns: new[] { "StoreId", "SourceType", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockRequests_StoreId_SourcingStatus",
+                table: "RestockRequests",
+                columns: new[] { "StoreId", "SourcingStatus" });
 
             migrationBuilder.CreateIndex(
                 name: "UX_RestockRequest_Active_StockAlert",
@@ -8517,6 +8814,62 @@ namespace CafeChain.Migrations
                 name: "IX_RestockRequestTransitions_RestockRequestId_OccurredAtUtc",
                 table: "RestockRequestTransitions",
                 columns: new[] { "RestockRequestId", "OccurredAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockSourcingAllocations_CreatedByStaffId",
+                table: "RestockSourcingAllocations",
+                column: "CreatedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockSourcingAllocations_InventoryTransferId",
+                table: "RestockSourcingAllocations",
+                column: "InventoryTransferId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockSourcingAllocations_ProcurementUnitId",
+                table: "RestockSourcingAllocations",
+                column: "ProcurementUnitId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockSourcingAllocations_ProductionRunId",
+                table: "RestockSourcingAllocations",
+                column: "ProductionRunId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockSourcingAllocations_PurchaseAdviceLineId",
+                table: "RestockSourcingAllocations",
+                column: "PurchaseAdviceLineId",
+                unique: true,
+                filter: "[PurchaseAdviceLineId] IS NOT NULL AND [Status] = 'ACTIVE'");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockSourcingAllocations_PurchaseOrderLineId",
+                table: "RestockSourcingAllocations",
+                column: "PurchaseOrderLineId",
+                unique: true,
+                filter: "[PurchaseOrderLineId] IS NOT NULL AND [Status] = 'ACTIVE'");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockSourcingAllocations_ReleasedByStaffId",
+                table: "RestockSourcingAllocations",
+                column: "ReleasedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockSourcingAllocations_RestockRequestId_DecisionType_Status",
+                table: "RestockSourcingAllocations",
+                columns: new[] { "RestockRequestId", "DecisionType", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockSourcingAllocations_RestockRequestId_SourceDocumentType_SourceDocumentId_SourceDocumentLineId",
+                table: "RestockSourcingAllocations",
+                columns: new[] { "RestockRequestId", "SourceDocumentType", "SourceDocumentId", "SourceDocumentLineId" },
+                unique: true,
+                filter: "[SourceDocumentType] IS NOT NULL AND [SourceDocumentId] IS NOT NULL AND [Status] = 'ACTIVE'");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockSourcingAllocations_RestockRequestId_Status",
+                table: "RestockSourcingAllocations",
+                columns: new[] { "RestockRequestId", "Status" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_RolePermissions_PermissionId",
@@ -9358,6 +9711,14 @@ namespace CafeChain.Migrations
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
+                name: "FK_BranchReceiptLines_PurchaseOrderLines_PurchaseOrderLineId",
+                table: "BranchReceiptLines",
+                column: "PurchaseOrderLineId",
+                principalTable: "PurchaseOrderLines",
+                principalColumn: "PurchaseOrderLineId",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_InventoryCostAllocations_InventoryCostLayers_InventoryCostLayerId",
                 table: "InventoryCostAllocations",
                 column: "InventoryCostLayerId",
@@ -9387,6 +9748,38 @@ namespace CafeChain.Migrations
                 column: "SourceTransferDiscrepancyPostingId",
                 principalTable: "InventoryTransferDiscrepancyPostings",
                 principalColumn: "InventoryTransferDiscrepancyPostingId",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_PurchaseAdviceFulfillmentPostings_PurchaseAdviceLines_PurchaseAdviceLineId",
+                table: "PurchaseAdviceFulfillmentPostings",
+                column: "PurchaseAdviceLineId",
+                principalTable: "PurchaseAdviceLines",
+                principalColumn: "PurchaseAdviceLineId",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_PurchaseAdviceFulfillmentPostings_PurchaseOrderLineAllocations_PurchaseOrderLineAllocationId",
+                table: "PurchaseAdviceFulfillmentPostings",
+                column: "PurchaseOrderLineAllocationId",
+                principalTable: "PurchaseOrderLineAllocations",
+                principalColumn: "PurchaseOrderLineAllocationId",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_PurchaseAdviceFulfillmentPostings_PurchaseOrderLines_PurchaseOrderLineId",
+                table: "PurchaseAdviceFulfillmentPostings",
+                column: "PurchaseOrderLineId",
+                principalTable: "PurchaseOrderLines",
+                principalColumn: "PurchaseOrderLineId",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_PurchaseAdviceLines_RestockSourcingAllocations_RestockSourcingAllocationId",
+                table: "PurchaseAdviceLines",
+                column: "RestockSourcingAllocationId",
+                principalTable: "RestockSourcingAllocations",
+                principalColumn: "RestockSourcingAllocationId",
                 onDelete: ReferentialAction.Restrict);
         }
 
@@ -9434,6 +9827,10 @@ namespace CafeChain.Migrations
                 table: "InventoryTransferDetails");
 
             migrationBuilder.DropForeignKey(
+                name: "FK_PurchaseAdviceLines_Ingredients_IngredientId",
+                table: "PurchaseAdviceLines");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_PurchaseOrderLines_Ingredients_IngredientId",
                 table: "PurchaseOrderLines");
 
@@ -9464,6 +9861,106 @@ namespace CafeChain.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_InventoryTransferDiscrepancyPostings_InventoryTransferCostAllocations_InventoryTransferCostAllocationId",
                 table: "InventoryTransferDiscrepancyPostings");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Recipes_PreparedItems_PreparedItemId",
+                table: "Recipes");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_RestockRequests_PreparedItems_PreparedItemId",
+                table: "RestockRequests");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_StockAlerts_PreparedItems_PreparedItemId",
+                table: "StockAlerts");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_RestockSourcingAllocations_PurchaseOrderLines_PurchaseOrderLineId",
+                table: "RestockSourcingAllocations");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_ProductionRuns_Recipes_RecipeId",
+                table: "ProductionRuns");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_RestockRequests_Recipes_RecipeId",
+                table: "RestockRequests");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_StockAlerts_Recipes_RecipeId",
+                table: "StockAlerts");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_PurchaseAdviceLines_RestockRequests_RestockRequestId",
+                table: "PurchaseAdviceLines");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_RestockSourcingAllocations_RestockRequests_RestockRequestId",
+                table: "RestockSourcingAllocations");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_PurchaseAdviceLines_Units_BaseUnitId",
+                table: "PurchaseAdviceLines");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_PurchaseAdviceLines_Units_ProcurementUnitId",
+                table: "PurchaseAdviceLines");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_RestockSourcingAllocations_Units_ProcurementUnitId",
+                table: "RestockSourcingAllocations");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_RestockSourcingAllocations_InventoryTransfers_InventoryTransferId",
+                table: "RestockSourcingAllocations");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_ProductionRuns_Staffs_CompletedByStaffId",
+                table: "ProductionRuns");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_ProductionRuns_Staffs_CreatedByStaffId",
+                table: "ProductionRuns");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_PurchaseAdvices_Staffs_CancelledByStaffId",
+                table: "PurchaseAdvices");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_PurchaseAdvices_Staffs_RejectedByStaffId",
+                table: "PurchaseAdvices");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_PurchaseAdvices_Staffs_RequestedByStaffId",
+                table: "PurchaseAdvices");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_PurchaseAdvices_Staffs_ReviewedByStaffId",
+                table: "PurchaseAdvices");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_RestockSourcingAllocations_Staffs_CreatedByStaffId",
+                table: "RestockSourcingAllocations");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_RestockSourcingAllocations_Staffs_ReleasedByStaffId",
+                table: "RestockSourcingAllocations");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_ProductionRuns_Stores_StoreId",
+                table: "ProductionRuns");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_PurchaseAdvices_Stores_StoreId",
+                table: "PurchaseAdvices");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_RestockSourcingAllocations_ProductionRuns_ProductionRunId",
+                table: "RestockSourcingAllocations");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_RestockSourcingAllocations_PurchaseAdviceLines_PurchaseAdviceLineId",
+                table: "RestockSourcingAllocations");
 
             migrationBuilder.DropTable(
                 name: "AccountPermissionOverrides");
@@ -9745,9 +10242,6 @@ namespace CafeChain.Migrations
                 name: "SalesCostGaps");
 
             migrationBuilder.DropTable(
-                name: "PurchaseAdviceLines");
-
-            migrationBuilder.DropTable(
                 name: "PurchaseOrderBatchLines");
 
             migrationBuilder.DropTable(
@@ -9764,9 +10258,6 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "OrderToppings");
-
-            migrationBuilder.DropTable(
-                name: "PurchaseAdvices");
 
             migrationBuilder.DropTable(
                 name: "OrderDetails");
@@ -9817,12 +10308,6 @@ namespace CafeChain.Migrations
                 name: "OrderRefunds");
 
             migrationBuilder.DropTable(
-                name: "ProductionRuns");
-
-            migrationBuilder.DropTable(
-                name: "PurchaseOrderLines");
-
-            migrationBuilder.DropTable(
                 name: "InventoryDocuments");
 
             migrationBuilder.DropTable(
@@ -9830,12 +10315,6 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "Orders");
-
-            migrationBuilder.DropTable(
-                name: "PurchaseOrders");
-
-            migrationBuilder.DropTable(
-                name: "InventoryTransfers");
 
             migrationBuilder.DropTable(
                 name: "RestockRequestFulfillments");
@@ -9856,34 +10335,31 @@ namespace CafeChain.Migrations
                 name: "WorkShifts");
 
             migrationBuilder.DropTable(
-                name: "PurchaseOrderBatches");
-
-            migrationBuilder.DropTable(
-                name: "RestockRequests");
-
-            migrationBuilder.DropTable(
                 name: "MemberLevels");
 
             migrationBuilder.DropTable(
                 name: "PosTerminals");
 
             migrationBuilder.DropTable(
-                name: "Suppliers");
+                name: "PreparedItems");
 
             migrationBuilder.DropTable(
-                name: "StockAlerts");
+                name: "PurchaseOrderLines");
+
+            migrationBuilder.DropTable(
+                name: "PurchaseOrders");
+
+            migrationBuilder.DropTable(
+                name: "PurchaseOrderBatches");
+
+            migrationBuilder.DropTable(
+                name: "Suppliers");
 
             migrationBuilder.DropTable(
                 name: "Recipes");
 
             migrationBuilder.DropTable(
-                name: "Staffs");
-
-            migrationBuilder.DropTable(
                 name: "Drinks");
-
-            migrationBuilder.DropTable(
-                name: "PreparedItems");
 
             migrationBuilder.DropTable(
                 name: "Sizes");
@@ -9892,16 +10368,28 @@ namespace CafeChain.Migrations
                 name: "Toppings");
 
             migrationBuilder.DropTable(
-                name: "Stores");
-
-            migrationBuilder.DropTable(
                 name: "DrinkCategories");
 
             migrationBuilder.DropTable(
                 name: "ProductTypes");
 
             migrationBuilder.DropTable(
+                name: "RestockRequests");
+
+            migrationBuilder.DropTable(
+                name: "StockAlerts");
+
+            migrationBuilder.DropTable(
                 name: "Units");
+
+            migrationBuilder.DropTable(
+                name: "InventoryTransfers");
+
+            migrationBuilder.DropTable(
+                name: "Staffs");
+
+            migrationBuilder.DropTable(
+                name: "Stores");
 
             migrationBuilder.DropTable(
                 name: "Wards");
@@ -9914,6 +10402,18 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "Countries");
+
+            migrationBuilder.DropTable(
+                name: "ProductionRuns");
+
+            migrationBuilder.DropTable(
+                name: "PurchaseAdviceLines");
+
+            migrationBuilder.DropTable(
+                name: "PurchaseAdvices");
+
+            migrationBuilder.DropTable(
+                name: "RestockSourcingAllocations");
         }
     }
 }
