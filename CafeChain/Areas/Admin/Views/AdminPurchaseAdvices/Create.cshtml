@@ -7,6 +7,32 @@
     var sources = (IReadOnlyList<PurchaseAdviceSourceDto>)(ViewBag.Sources ?? Array.Empty<PurchaseAdviceSourceDto>());
     var selected = ViewBag.SelectedRestockIds as int[] ?? Array.Empty<int>();
     var preselected = ViewBag.SelectedRestockRequestId as int?;
+    var selectedIds = selected.ToHashSet();
+    if (preselected.HasValue)
+    {
+        selectedIds.Add(preselected.Value);
+    }
+
+    decimal EligibleQuantity(PurchaseAdviceSourceDto source)
+    {
+        var usesProcurement = source.RestockRequestedProcurementQuantity.HasValue
+            && source.RemainingToPurchaseProcurementQuantity.HasValue;
+        var remaining = usesProcurement
+            ? source.RemainingToPurchaseProcurementQuantity!.Value
+            : source.RemainingToPurchaseQuantity;
+        var pendingPurchase = usesProcurement
+            ? source.PendingPurchaseAllocationProcurementQuantity.GetValueOrDefault()
+            : source.PendingPurchaseAllocationBaseQuantity;
+        var isLegacy = string.Equals(
+            source.SourceType,
+            RestockRequestSourceTypes.Legacy,
+            StringComparison.OrdinalIgnoreCase);
+        return isLegacy ? remaining : Math.Min(remaining, pendingPurchase);
+    }
+
+    var hasInitialValidSelection = sources.Any(source =>
+        selectedIds.Contains(source.RestockRequestId)
+        && EligibleQuantity(source) > 0);
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 
@@ -66,7 +92,7 @@
                     @for (var i = 0; i < sources.Count; i++)
                     {
                         var source = sources[i];
-                        var isSelected = selected.Contains(source.RestockRequestId) || preselected == source.RestockRequestId;
+                        var isSelected = selectedIds.Contains(source.RestockRequestId);
                         var usesProcurement = source.RestockRequestedProcurementQuantity.HasValue
                             && source.RemainingToPurchaseProcurementQuantity.HasValue;
                         var requested = usesProcurement ? source.RestockRequestedProcurementQuantity!.Value : source.RestockRequestedQuantity;
@@ -74,8 +100,7 @@
                         var pendingPurchase = usesProcurement
                             ? source.PendingPurchaseAllocationProcurementQuantity.GetValueOrDefault()
                             : source.PendingPurchaseAllocationBaseQuantity;
-                        var isLegacy = string.Equals(source.SourceType, RestockRequestSourceTypes.Legacy, StringComparison.OrdinalIgnoreCase);
-                        var eligible = isLegacy ? remaining : Math.Min(remaining, pendingPurchase);
+                        var eligible = EligibleQuantity(source);
                         var unitName = usesProcurement ? source.ProcurementUnitName : source.BaseUnitName;
                         var sourcingLabel = source.SourcingStatus switch { "FULLY_ALLOCATED" => "Đã phân bổ đủ", "PARTIALLY_ALLOCATED" => "Đã phân bổ một phần", _ => "Chưa phân bổ đủ" };
                         var modelLine = Model.Lines.FirstOrDefault(x => x.RestockRequestId == source.RestockRequestId);
@@ -97,11 +122,11 @@
                                 @if (usesProcurement)
                                 {
                                     <input type="hidden" name="Lines[@i].RequestedPurchaseBaseQuantity" value="0" />
-                                    <input name="Lines[@i].RequestedPurchaseProcurementQuantity" type="number" min="0.001" max="@eligible.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" value="@initialQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-quantity />
+                                    <input name="Lines[@i].RequestedPurchaseProcurementQuantity" type="number" min="0.001" max="@eligible.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" value="@initialQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-quantity data-max-quantity="@eligible.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
                                 }
                                 else
                                 {
-                                    <input name="Lines[@i].RequestedPurchaseBaseQuantity" type="number" min="0.001" max="@eligible.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" value="@initialQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-quantity />
+                                    <input name="Lines[@i].RequestedPurchaseBaseQuantity" type="number" min="0.001" max="@eligible.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" value="@initialQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-quantity data-max-quantity="@eligible.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
                                 }
                                 <input type="hidden" name="Lines[@i].Note" value="" />
                             </td>
@@ -113,7 +138,8 @@
         }
 
         <div class="pa-actions pa-create-actions">
-            <button id="savePurchaseAdvice" class="pa-action pa-action-primary" type="submit" disabled><i class="fas fa-save" aria-hidden="true"></i> Lưu đề nghị mua nháp</button>
+            <span id="purchaseAdviceSubmitStatus" class="pa-muted pa-submit-status" role="status" aria-live="polite"></span>
+            <button id="savePurchaseAdvice" class="pa-action pa-action-primary" type="submit" disabled="@(!hasInitialValidSelection)"><i class="fas fa-save" aria-hidden="true"></i> Lưu đề nghị mua nháp</button>
             <a class="pa-action" asp-action="Index">Hủy</a>
         </div>
     </form>
@@ -123,14 +149,24 @@
 (() => {
     const form = document.getElementById('purchaseAdviceForm');
     const save = document.getElementById('savePurchaseAdvice');
+    const status = document.getElementById('purchaseAdviceSubmitStatus');
     const rows = [...document.querySelectorAll('[data-source-row]')];
+    const originalButtonContent = save.innerHTML;
+    let submitting = false;
+    let submitWatchdog = null;
+
+    const rowIsValid = row => {
+        const check = row.querySelector('.pa-check');
+        const qty = row.querySelector('[data-quantity]');
+        if (!check || !qty || !check.checked || qty.disabled) return false;
+        const value = qty.valueAsNumber;
+        const max = Number(qty.dataset.maxQuantity);
+        return Number.isFinite(value) && Number.isFinite(max) && value > 0 && value <= max;
+    };
+
     const syncSave = () => {
-        const validSelection = rows.some(row => {
-            const check = row.querySelector('.pa-check');
-            const qty = row.querySelector('[data-quantity]');
-            return check && check.checked && qty && Number(qty.value) > 0 && Number(qty.value) <= Number(qty.max);
-        });
-        save.disabled = !validSelection;
+        if (submitting) return;
+        save.disabled = !rows.some(rowIsValid);
     };
     rows.forEach(row => {
         const check = row.querySelector('.pa-check');
@@ -146,9 +182,39 @@
         syncRow();
     });
     form.addEventListener('submit', event => {
-        if (save.disabled) { event.preventDefault(); return; }
-        save.disabled = true;
+        if (submitting || !rows.some(rowIsValid)) {
+            event.preventDefault();
+            status.textContent = 'Hãy chọn ít nhất một yêu cầu và nhập số lượng hợp lệ.';
+            syncSave();
+            return;
+        }
+
+        submitting = true;
+        save.setAttribute('aria-disabled', 'true');
+        save.setAttribute('aria-busy', 'true');
+        save.style.pointerEvents = 'none';
         save.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Đang lưu...';
+        status.textContent = 'Đang gửi yêu cầu tạo đề nghị mua...';
+
+        submitWatchdog = window.setTimeout(() => {
+            submitting = false;
+            save.removeAttribute('aria-disabled');
+            save.removeAttribute('aria-busy');
+            save.style.pointerEvents = '';
+            save.innerHTML = originalButtonContent;
+            status.textContent = 'Yêu cầu chưa hoàn tất. Bạn có thể thử lại; hệ thống sẽ không tạo trùng đề nghị.';
+            syncSave();
+        }, 15000);
+    });
+
+    window.addEventListener('pageshow', () => {
+        if (submitWatchdog) window.clearTimeout(submitWatchdog);
+        submitting = false;
+        save.removeAttribute('aria-disabled');
+        save.removeAttribute('aria-busy');
+        save.style.pointerEvents = '';
+        save.innerHTML = originalButtonContent;
+        syncSave();
     });
     syncSave();
 })();

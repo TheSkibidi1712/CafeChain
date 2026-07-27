@@ -270,6 +270,12 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
         Assert.Contains("Chưa có yêu cầu nào sẵn sàng", advice);
         Assert.Contains("PendingPurchaseAllocationProcurementQuantity", advice);
         Assert.Contains("savePurchaseAdvice", advice);
+        Assert.Contains("hasInitialValidSelection", advice);
+        Assert.Contains("data-max-quantity", advice);
+        Assert.Contains("valueAsNumber", advice);
+        Assert.Contains("purchaseAdviceSubmitStatus", advice);
+        Assert.Contains("Yêu cầu chưa hoàn tất", advice);
+        Assert.DoesNotContain("save.disabled = true", advice);
         Assert.Contains("@media (max-width:600px)", css);
     }
 
