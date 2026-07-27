@@ -9784,34 +9784,34 @@ BEGIN TRY
     );
 
     INSERT @AiOrders VALUES
-    ('41000000-0000-0000-0001-000000000001',1,@AiStore1StaffId,DATEADD(DAY,-1,@AiDay),5,2,1,N'CF_BacXiu',N'M',2,66000,1,20000,NULL),
-    ('41000000-0000-0000-0001-000000000002',1,@AiStore1StaffId,DATEADD(DAY,-2,@AiDay),5,2,2,N'CF_Latte',N'L',1,50000,1,17000,'42000000-0000-0000-0001-000000000002'),
-    ('41000000-0000-0000-0001-000000000003',1,@AiStore1StaffId,DATEADD(DAY,-3,@AiDay),5,2,3,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
-    ('41000000-0000-0000-0001-000000000004',1,@AiStore1StaffId,DATEADD(DAY,-4,@AiDay),5,2,1,N'CF_BacXiu',N'M',1,33000,1,10000,NULL),
-    ('41000000-0000-0000-0001-000000000005',1,@AiStore1StaffId,DATEADD(DAY,-5,@AiDay),4,1,1,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
-    ('41000000-0000-0000-0001-000000000006',1,@AiStore1StaffId,DATEADD(DAY,-6,@AiDay),4,1,2,N'CF_Latte',N'L',1,50000,0,NULL,NULL),
+    ('41000000-0000-0000-0001-000000000001',1,@AiStore1StaffId,DATEADD(DAY,-1,@AiDay),5,2,1,N'CF_BacXiu',N'M',2,100000,1,30000,NULL),
+    ('41000000-0000-0000-0001-000000000002',1,@AiStore1StaffId,DATEADD(DAY,-2,@AiDay),5,2,2,N'CF_Latte',N'L',1,80000,1,25000,'42000000-0000-0000-0001-000000000002'),
+    ('41000000-0000-0000-0001-000000000003',1,@AiStore1StaffId,DATEADD(DAY,-3,@AiDay),5,2,3,N'TS_Matcha',N'M',1,60000,1,20000,NULL),
+    ('41000000-0000-0000-0001-000000000004',1,@AiStore1StaffId,DATEADD(DAY,-4,@AiDay),5,2,1,N'CF_BacXiu',N'M',1,70000,1,22000,NULL),
+    ('41000000-0000-0000-0001-000000000005',1,@AiStore1StaffId,DATEADD(DAY,-5,@AiDay),6,1,1,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
+    ('41000000-0000-0000-0001-000000000006',1,@AiStore1StaffId,DATEADD(DAY,-6,@AiDay),5,2,2,N'CF_Latte',N'L',1,83000,1,28000,NULL),
     ('41000000-0000-0000-0003-000000000001',3,@AiStore3StaffId,DATEADD(DAY,-1,@AiDay),5,2,1,N'CF_BacXiu',N'M',1,33000,1,10000,NULL),
-    ('41000000-0000-0000-0003-000000000002',3,@AiStore3StaffId,DATEADD(DAY,-2,@AiDay),5,2,2,N'CF_Latte',N'L',2,100000,1,34000,NULL),
+    ('41000000-0000-0000-0003-000000000002',3,@AiStore3StaffId,DATEADD(DAY,-2,@AiDay),5,2,2,N'CF_Latte',N'L',2,100000,1,95000,NULL),
     ('41000000-0000-0000-0003-000000000003',3,@AiStore3StaffId,DATEADD(DAY,-3,@AiDay),5,2,3,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
     ('41000000-0000-0000-0003-000000000004',3,@AiStore3StaffId,DATEADD(DAY,-4,@AiDay),5,2,1,N'CF_BacXiu',N'M',1,33000,1,10000,'42000000-0000-0000-0003-000000000004'),
-    ('41000000-0000-0000-0003-000000000005',3,@AiStore3StaffId,DATEADD(DAY,-5,@AiDay),4,1,1,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
-    ('41000000-0000-0000-0003-000000000006',3,@AiStore3StaffId,DATEADD(DAY,-6,@AiDay),4,1,2,N'CF_Latte',N'L',1,50000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000005',3,@AiStore3StaffId,DATEADD(DAY,-5,@AiDay),6,1,1,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000006',3,@AiStore3StaffId,DATEADD(DAY,-6,@AiDay),6,1,2,N'CF_Latte',N'L',1,50000,0,NULL,NULL),
     ('41000000-0000-0000-0001-000000000007',1,@AiStore1StaffId,DATEADD(DAY,-7,@AiDay),5,2,1,N'TS_Matcha',N'M',2,74000,0,NULL,NULL),
     ('41000000-0000-0000-0001-000000000008',1,@AiStore1StaffId,DATEADD(DAY,-8,@AiDay),5,2,2,N'CF_Latte',N'L',1,50000,1,17000,NULL),
     ('41000000-0000-0000-0001-000000000009',1,@AiStore1StaffId,DATEADD(DAY,-9,@AiDay),5,2,3,N'CF_BacXiu',N'M',1,33000,1,10000,NULL),
-    ('41000000-0000-0000-0001-000000000010',1,@AiStore1StaffId,DATEADD(DAY,-10,@AiDay),4,1,1,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
+    ('41000000-0000-0000-0001-000000000010',1,@AiStore1StaffId,DATEADD(DAY,-10,@AiDay),6,1,1,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
     ('41000000-0000-0000-0001-000000000011',1,@AiStore1StaffId,DATEADD(DAY,-11,@AiDay),5,2,2,N'CF_Latte',N'L',2,100000,1,34000,'42000000-0000-0000-0001-000000000011'),
     ('41000000-0000-0000-0001-000000000012',1,@AiStore1StaffId,DATEADD(DAY,-12,@AiDay),5,2,1,N'CF_BacXiu',N'M',1,33000,1,10000,NULL),
-    ('41000000-0000-0000-0001-000000000013',1,@AiStore1StaffId,DATEADD(DAY,-13,@AiDay),4,1,3,N'CF_Latte',N'L',1,50000,0,NULL,NULL),
+    ('41000000-0000-0000-0001-000000000013',1,@AiStore1StaffId,DATEADD(DAY,-13,@AiDay),6,1,3,N'CF_Latte',N'L',1,50000,0,NULL,NULL),
     ('41000000-0000-0000-0001-000000000014',1,@AiStore1StaffId,DATEADD(DAY,-14,@AiDay),5,2,1,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
     ('41000000-0000-0000-0001-000000000015',1,@AiStore1StaffId,DATEADD(DAY,-15,@AiDay),5,2,2,N'CF_BacXiu',N'M',2,66000,1,20000,NULL),
     ('41000000-0000-0000-0003-000000000007',3,@AiStore3StaffId,DATEADD(DAY,-7,@AiDay),5,2,1,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
     ('41000000-0000-0000-0003-000000000008',3,@AiStore3StaffId,DATEADD(DAY,-8,@AiDay),5,2,2,N'CF_Latte',N'L',1,50000,1,17000,NULL),
-    ('41000000-0000-0000-0003-000000000009',3,@AiStore3StaffId,DATEADD(DAY,-9,@AiDay),4,1,3,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000009',3,@AiStore3StaffId,DATEADD(DAY,-9,@AiDay),6,1,3,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
     ('41000000-0000-0000-0003-000000000010',3,@AiStore3StaffId,DATEADD(DAY,-10,@AiDay),5,2,1,N'CF_BacXiu',N'M',2,66000,1,20000,NULL),
     ('41000000-0000-0000-0003-000000000011',3,@AiStore3StaffId,DATEADD(DAY,-11,@AiDay),5,2,2,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
     ('41000000-0000-0000-0003-000000000012',3,@AiStore3StaffId,DATEADD(DAY,-12,@AiDay),5,2,3,N'CF_Latte',N'L',2,100000,1,34000,'42000000-0000-0000-0003-000000000012'),
-    ('41000000-0000-0000-0003-000000000013',3,@AiStore3StaffId,DATEADD(DAY,-13,@AiDay),4,1,1,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
+    ('41000000-0000-0000-0003-000000000013',3,@AiStore3StaffId,DATEADD(DAY,-13,@AiDay),6,1,1,N'CF_BacXiu',N'M',1,33000,0,NULL,NULL),
     ('41000000-0000-0000-0003-000000000014',3,@AiStore3StaffId,DATEADD(DAY,-14,@AiDay),5,2,2,N'TS_Matcha',N'M',1,37000,0,NULL,NULL),
     ('41000000-0000-0000-0003-000000000015',3,@AiStore3StaffId,DATEADD(DAY,-15,@AiDay),5,2,1,N'CF_Latte',N'L',1,50000,1,17000,NULL);
 
@@ -9823,11 +9823,24 @@ BEGIN TRY
     )
     SELECT NULL,x.StoreId,x.OrderStatusId,x.PaymentStatusId,2,NULL,x.StaffId,NULL,
            x.ClientOrderId,N'DEMO_AI_DASHBOARD_ROLLING_V1',
-           N'AI Dashboard rolling analytics fixture',0,x.Total,0,0,0,x.Total,x.CostStatus,
+           CASE WHEN x.StoreId=1 THEN N'AI_DASHBOARD_SCENARIO_NORMAL'
+                ELSE N'AI_DASHBOARD_SCENARIO_ANOMALY' END,
+           0,x.Total,0,0,0,x.Total,x.CostStatus,
            x.TotalCogs,CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.Total-x.TotalCogs END,
            CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.CreatedAt END,x.CreatedAt
     FROM @AiOrders x
     WHERE NOT EXISTS(SELECT 1 FROM dbo.Orders o WHERE o.ClientOrderId=x.ClientOrderId);
+
+    /* Rebase the fixture on every replay without inserting duplicate business rows. */
+    UPDATE o
+       SET o.OrderStatusId=x.OrderStatusId,o.PaymentStatusId=x.PaymentStatusId,
+           o.Note=CASE WHEN x.StoreId=1 THEN N'AI_DASHBOARD_SCENARIO_NORMAL'
+                       ELSE N'AI_DASHBOARD_SCENARIO_ANOMALY' END,
+           o.SubTotal=x.Total,o.Total=x.Total,o.CostStatus=x.CostStatus,o.TotalCogs=x.TotalCogs,
+           o.GrossProfit=CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.Total-x.TotalCogs END,
+           o.CostedAtUtc=CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.CreatedAt END,
+           o.CreatedAt=x.CreatedAt
+    FROM dbo.Orders o JOIN @AiOrders x ON x.ClientOrderId=o.ClientOrderId;
 
     INSERT dbo.OrderDetails
     (
@@ -9847,6 +9860,16 @@ BEGIN TRY
     LEFT JOIN dbo.StoreMenuItems sm ON sm.StoreId=x.StoreId AND sm.DrinkSizeId=ds.DrinkSizeId
     WHERE NOT EXISTS(SELECT 1 FROM dbo.OrderDetails od WHERE od.OrderId=o.OrderId);
 
+    UPDATE od
+       SET od.Price=x.Total/NULLIF(x.Quantity,0),od.AcceptedBasePrice=x.Total/NULLIF(x.Quantity,0),
+           od.Quantity=x.Quantity,od.CostStatus=x.CostStatus,
+           od.UnitCogs=CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.TotalCogs/NULLIF(x.Quantity,0) END,
+           od.TotalCogs=x.TotalCogs
+    FROM dbo.OrderDetails od
+    JOIN dbo.Orders o ON o.OrderId=od.OrderId
+    JOIN @AiOrders x ON x.ClientOrderId=o.ClientOrderId
+    WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';
+
     INSERT dbo.Payments
     (
         OrderId,Amount,ReceivedAmount,ChangeAmount,PaymentMethodId,PaymentStatusId,
@@ -9863,6 +9886,14 @@ BEGIN TRY
           WHERE p.TransactionCode=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_',CONVERT(nvarchar(36),x.ClientOrderId))
       );
 
+    UPDATE p
+       SET p.Amount=x.Total,p.ReceivedAmount=x.Total,p.PaidAt=x.CreatedAt,
+           p.PaymentMethodId=x.PaymentMethodId
+    FROM dbo.Payments p
+    JOIN dbo.Orders o ON o.OrderId=p.OrderId
+    JOIN @AiOrders x ON x.ClientOrderId=o.ClientOrderId
+    WHERE p.TransactionCode=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_',CONVERT(nvarchar(36),x.ClientOrderId));
+
     INSERT dbo.OrderRefunds
     (
         OrderId,StoreId,RefundKey,Status,PaymentMethodId,Reason,RefundAmount,CostStatus,ReversedCogs,
@@ -9875,6 +9906,15 @@ BEGIN TRY
     JOIN dbo.Orders o ON o.ClientOrderId=x.ClientOrderId
     WHERE x.RefundKey IS NOT NULL
       AND NOT EXISTS(SELECT 1 FROM dbo.OrderRefunds r WHERE r.RefundKey=x.RefundKey);
+
+    UPDATE r
+       SET r.RefundAmount=o.Total,r.ReversedCogs=o.TotalCogs,
+           r.RequestedAtUtc=DATEADD(HOUR,2,x.CreatedAt),
+           r.ProcessingAtUtc=DATEADD(HOUR,2,x.CreatedAt),
+           r.CompletedAtUtc=DATEADD(HOUR,3,x.CreatedAt)
+    FROM dbo.OrderRefunds r
+    JOIN @AiOrders x ON x.RefundKey=r.RefundKey
+    JOIN dbo.Orders o ON o.ClientOrderId=x.ClientOrderId;
 
     /* Type 3 is the existing waste movement contract. */
     DECLARE @AiWaste TABLE(StoreInventoryId int PRIMARY KEY);
@@ -9892,13 +9932,27 @@ BEGIN TRY
       (
           SELECT 1 FROM dbo.InventoryTransactions t
           WHERE t.StoreInventoryId=si.StoreInventoryId AND t.[Type]=3
-            AND t.TotalCost=24 AND t.CreatedAt=DATEADD(DAY,-2,@AiDay)
+            AND t.UnitCost=12 AND t.TotalCost=24
       );
     UPDATE si
        SET si.AvailableQty=si.AvailableQty-2,
            si.LastUpdated=DATEADD(DAY,-2,@AiDay)
     FROM dbo.StoreInventories si
     JOIN @AiWaste w ON w.StoreInventoryId=si.StoreInventoryId;
+
+    UPDATE t SET t.CreatedAt=DATEADD(DAY,-2,@AiDay)
+    FROM dbo.InventoryTransactions t
+    JOIN dbo.StoreInventories si ON si.StoreInventoryId=t.StoreInventoryId
+    WHERE si.StoreId IN (1,3) AND si.IngredientId=@AiCoffeeIngredientId
+      AND t.[Type]=3 AND t.UnitCost=12 AND t.TotalCost=24;
+
+    /* NORMAL keeps stock above threshold; ANOMALY uses the same FIFO quantity but a higher alert threshold. */
+    UPDATE si
+       SET si.MinStockLevel=CASE WHEN si.StoreId=1
+                                THEN CASE WHEN si.AvailableQty>10 THEN si.AvailableQty-10 ELSE 0 END
+                                ELSE si.AvailableQty-si.ReservedQty+10 END
+    FROM dbo.StoreInventories si
+    WHERE si.StoreId IN (1,3) AND si.IngredientId=@AiCoffeeIngredientId;
 
     DECLARE @AiRestock TABLE(StoreId int PRIMARY KEY,StaffId int,Note nvarchar(100),CreatedAt datetime2(0));
     INSERT @AiRestock VALUES
@@ -9919,13 +9973,16 @@ BEGIN TRY
     FROM @AiRestock x
     WHERE NOT EXISTS(SELECT 1 FROM dbo.RestockRequests r WHERE r.Note=x.Note);
 
+    UPDATE rr SET rr.CreatedAt=x.CreatedAt,rr.UpdatedAt=x.CreatedAt
+    FROM dbo.RestockRequests rr JOIN @AiRestock x ON x.Note=rr.Note;
+
     INSERT dbo.PurchaseOrders
     (
         Code,StoreId,SupplierId,Status,OrderDate,ExpectedDeliveryAtUtc,CreatedByStaffId,
         ApprovedByStaffId,SentByStaffId,CreatedAtUtc,UpdatedAtUtc,ApprovedAtUtc,SentAtUtc,Note
     )
     SELECT CONCAT(N'DEMO-AI-ROLLING-PO-S',x.StoreId),x.StoreId,@AiCoffeeSupplierId,N'MARKED_AS_SENT',
-           x.CreatedAt,DATEADD(DAY,1,x.CreatedAt),x.StaffId,x.StaffId,x.StaffId,
+           DATEADD(DAY,-3,x.CreatedAt),DATEADD(DAY,-2,x.CreatedAt),x.StaffId,x.StaffId,x.StaffId,
            x.CreatedAt,x.CreatedAt,x.CreatedAt,DATEADD(MINUTE,10,x.CreatedAt),
            N'DEMO_AI_DASHBOARD_ROLLING_V1'
     FROM @AiRestock x
@@ -9935,6 +9992,17 @@ BEGIN TRY
           SELECT 1 FROM dbo.PurchaseOrders p
           WHERE p.Code=CONCAT(N'DEMO-AI-ROLLING-PO-S',x.StoreId)
       );
+
+    UPDATE po
+       SET po.OrderDate=DATEADD(DAY,-3,x.CreatedAt),
+           po.ExpectedDeliveryAtUtc=DATEADD(DAY,-2,x.CreatedAt),
+           po.CreatedAtUtc=DATEADD(DAY,-3,x.CreatedAt),
+           po.UpdatedAtUtc=DATEADD(DAY,-3,x.CreatedAt),
+           po.ApprovedAtUtc=DATEADD(DAY,-3,x.CreatedAt),
+           po.SentAtUtc=DATEADD(MINUTE,10,DATEADD(DAY,-3,x.CreatedAt))
+    FROM dbo.PurchaseOrders po
+    JOIN @AiRestock x ON po.Code=CONCAT(N'DEMO-AI-ROLLING-PO-S',x.StoreId)
+    WHERE po.Note=N'DEMO_AI_DASHBOARD_ROLLING_V1';
 
     INSERT dbo.PurchaseOrderLines
     (
@@ -9958,17 +10026,121 @@ BEGIN TRY
             AND l.Note=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_LINE_S',rr.StoreId)
       );
 
+    /* ANOMALY: cash discrepancy in the rolling window. */
+    IF NOT EXISTS(SELECT 1 FROM dbo.WorkShifts WHERE DiscrepancyReason=N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY')
+      INSERT dbo.WorkShifts
+      (
+        StoreId,UserId,StartTime,EndTime,StartingCash,ExpectedEndingCash,ActualEndingCash,
+        CashDiscrepancy,[Status],DiscrepancyReason,IsExceptionClosed,ExceptionCloseReason,
+        ExceptionClosedByStaffId,ExceptionClosedAt,OfflineOrderCountAtClose,OfflineEstimatedTotalAtClose,
+        OfflineCashTotalAtClose,RequiresReconciliation,HasLateOfflineSync,LateOfflineSyncCount,
+        LastLateOfflineSyncedAt,PosTerminalId
+      )
+      VALUES
+      (
+        3,@AiStore3StaffId,DATEADD(HOUR,6,DATEADD(DAY,-1,@AiDay)),
+        DATEADD(HOUR,12,DATEADD(DAY,-1,@AiDay)),500000,500000,420000,-80000,
+        N'Closed',N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY',0,NULL,NULL,NULL,
+        0,0,0,1,0,0,NULL,NULL
+      );
+
+    UPDATE ws
+       SET ws.StartTime=DATEADD(HOUR,6,DATEADD(DAY,-1,@AiDay)),
+           ws.EndTime=DATEADD(HOUR,12,DATEADD(DAY,-1,@AiDay)),
+           ws.ExpectedEndingCash=500000,ws.ActualEndingCash=420000,
+           ws.CashDiscrepancy=-80000,ws.RequiresReconciliation=1
+    FROM dbo.WorkShifts ws
+    WHERE ws.DiscrepancyReason=N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY';
+
+    /* ANOMALY: supplier rejection and issue, tied to rolling PO business keys. */
+    DECLARE @AiPo3Id int=(SELECT PurchaseOrderId FROM dbo.PurchaseOrders WHERE Code=N'DEMO-AI-ROLLING-PO-S3');
+    DECLARE @AiPo3LineId int=(SELECT TOP(1) PurchaseOrderLineId FROM dbo.PurchaseOrderLines WHERE PurchaseOrderId=@AiPo3Id ORDER BY PurchaseOrderLineId);
+    DECLARE @AiRestock3Id int=(SELECT RestockRequestId FROM dbo.RestockRequests WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S3');
+    IF @AiPo3Id IS NOT NULL AND @AiPo3LineId IS NOT NULL
+       AND NOT EXISTS(SELECT 1 FROM dbo.BranchReceipts WHERE ReceiptCode=N'DEMO-AI-ROLLING-BR-S3')
+      INSERT dbo.BranchReceipts
+      (
+        ReceiptCode,StoreId,SupplierId,PurchaseOrderId,[Status],ReceiptKey,ReferenceNumber,
+        ReceivedAt,ReceivedByStaffId,ConfirmedAt,ConfirmedByStaffId,Notes,CreatedAt,CreatedByStaffId
+      )
+      VALUES
+      (
+        N'DEMO-AI-ROLLING-BR-S3',3,@AiCoffeeSupplierId,@AiPo3Id,N'CONFIRMED',
+        N'DEMO_AI_DASHBOARD_ROLLING_V1_RECEIPT_S3',N'DEMO-AI-ROLLING-INVOICE-S3',
+        DATEADD(HOUR,9,DATEADD(DAY,-2,@AiDay)),@AiStore3StaffId,
+        DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay)),@AiStore3StaffId,
+        N'AI_DASHBOARD_SCENARIO_ANOMALY supplier receipt',
+        DATEADD(HOUR,9,DATEADD(DAY,-2,@AiDay)),@AiStore3StaffId
+      );
+
+    DECLARE @AiReceipt3Id int=(SELECT BranchReceiptId FROM dbo.BranchReceipts WHERE ReceiptCode=N'DEMO-AI-ROLLING-BR-S3');
+    IF @AiReceipt3Id IS NOT NULL
+       AND NOT EXISTS(SELECT 1 FROM dbo.BranchReceiptLines WHERE BranchReceiptId=@AiReceipt3Id AND PurchaseOrderLineId=@AiPo3LineId)
+      INSERT dbo.BranchReceiptLines
+      (
+        BranchReceiptId,RestockRequestId,PurchaseOrderLineId,IngredientId,PreparedItemId,RecipeId,
+        InputQuantity,InputUnitId,ReceivedBaseQuantity,RejectedBaseQuantity,RejectionReason,RejectionIssueType,
+        BaseUnitId,SupplierId,IngredientSupplierId,ActualPackagePrice,PackageQuantitySnapshot,
+        PackageUnitIdSnapshot,BaseUnitCostSnapshot,LineTotalCost,CreatedAt
+      )
+      SELECT @AiReceipt3Id,@AiRestock3Id,@AiPo3LineId,@AiCoffeeIngredientId,NULL,NULL,
+             10,o.UnitId,8,2,N'Bao bì rách',N'PACKAGING_FAILURE',
+             i.BaseUnitId,@AiCoffeeSupplierId,@AiCoffeeOfferId,o.CurrentPrice,o.PackageQuantity,
+             o.UnitId,o.CurrentPrice/NULLIF(o.PackageQuantity,0),
+             8*(o.CurrentPrice/NULLIF(o.PackageQuantity,0)),DATEADD(HOUR,9,DATEADD(DAY,-2,@AiDay))
+      FROM dbo.IngredientSuppliers o
+      JOIN dbo.Ingredients i ON i.IngredientId=o.IngredientId
+      WHERE o.IngredientSupplierId=@AiCoffeeOfferId;
+
+    DECLARE @AiReceipt3LineId int=(SELECT TOP(1) BranchReceiptLineId FROM dbo.BranchReceiptLines WHERE BranchReceiptId=@AiReceipt3Id AND PurchaseOrderLineId=@AiPo3LineId);
+    IF @AiReceipt3LineId IS NOT NULL
+       AND NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues WHERE Description=N'DEMO_AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE')
+      INSERT dbo.SupplierReceiptIssues
+      (
+        SupplierId,StoreId,PurchaseOrderId,PurchaseOrderLineId,BranchReceiptId,BranchReceiptLineId,
+        IssueType,[Status],AffectedBaseQuantity,Description,ReportedByStaffId,ReportedAtUtc,UpdatedAtUtc
+      )
+      VALUES
+      (
+        @AiCoffeeSupplierId,3,@AiPo3Id,@AiPo3LineId,@AiReceipt3Id,@AiReceipt3LineId,
+        N'PACKAGING_FAILURE',N'OPEN',2,N'DEMO_AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE',
+        @AiStore3StaffId,DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay)),
+        DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay))
+      );
+
+    UPDATE br
+       SET br.ReceivedAt=DATEADD(HOUR,9,DATEADD(DAY,-2,@AiDay)),
+           br.ConfirmedAt=DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay)),
+           br.CreatedAt=DATEADD(HOUR,9,DATEADD(DAY,-2,@AiDay))
+    FROM dbo.BranchReceipts br WHERE br.ReceiptCode=N'DEMO-AI-ROLLING-BR-S3';
+    UPDATE brl SET brl.CreatedAt=DATEADD(HOUR,9,DATEADD(DAY,-2,@AiDay))
+    FROM dbo.BranchReceiptLines brl WHERE brl.BranchReceiptId=@AiReceipt3Id;
+    UPDATE issue
+       SET issue.ReportedAtUtc=DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay)),
+           issue.UpdatedAtUtc=DATEADD(HOUR,10,DATEADD(DAY,-2,@AiDay))
+    FROM dbo.SupplierReceiptIssues issue
+    WHERE issue.Description=N'DEMO_AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE';
+
     IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1')<>30
         THROW 53501,N'AI rolling fixture phải có 30 orders.',1;
     IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=1)<>15
         OR (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=3)<>15
         THROW 53504,N'AI rolling fixture phải phân bổ 15 orders cho mỗi store.',1;
     IF (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=5)<20
-        OR (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=4)<6
+        OR (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=6)<5
         OR (SELECT COUNT(*) FROM dbo.OrderRefunds r JOIN dbo.Orders o ON o.OrderId=r.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1')<4
         THROW 53505,N'AI rolling fixture thiếu phân bố completed/cancelled/refunded.',1;
     IF (SELECT COUNT(*) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%')<>2
         THROW 53502,N'AI rolling fixture phải có 2 restock requests.',1;
+    IF NOT EXISTS(SELECT 1 FROM dbo.WorkShifts WHERE DiscrepancyReason=N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY' AND ABS(CashDiscrepancy)>=50000)
+        OR NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues WHERE Description=N'DEMO_AI_DASHBOARD_ROLLING_V1_SUPPLIER_ISSUE')
+        THROW 53506,N'AI rolling fixture missing cash discrepancy or supplier issue.',1;
+    IF NOT EXISTS
+    (
+        SELECT 1 FROM dbo.StoreInventories
+        WHERE StoreId=3 AND IngredientId=@AiCoffeeIngredientId
+          AND AvailableQty-ReservedQty<=MinStockLevel
+    ) THROW 53507,N'AI rolling fixture missing low-stock anomaly.',1;
     IF (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1')<>2
         THROW 53503,N'AI rolling fixture phải có 2 purchase orders.',1;
 
@@ -9983,6 +10155,8 @@ GO
 SELECT N'DEMO_AI_DASHBOARD_ROLLING_V1' AS SeedMarker,
        SYSUTCDATETIME() AS VerifiedAtUtc,
        (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1') AS DemoOrders,
+       (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND Note=N'AI_DASHBOARD_SCENARIO_NORMAL') AS NormalOrders,
+       (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND Note=N'AI_DASHBOARD_SCENARIO_ANOMALY') AS AnomalyOrders,
        (SELECT COUNT(*) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%') AS DemoRestocks,
        (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1') AS DemoPurchaseOrders;
 GO

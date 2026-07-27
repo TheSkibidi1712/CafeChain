@@ -111,6 +111,72 @@ public sealed class DashboardAnalyticsServiceTests
         service.VerifyAll();
     }
 
+    [Fact]
+    public async Task GetAnalyticsBatchAsync_LoadsEachSectionOnlyOnce()
+    {
+        var (repository, scope) = CreateDependencies();
+        repository.Setup(x => x.GetExecutiveAsync(
+                It.IsAny<DashboardFilterDto>(),
+                It.Is<IReadOnlyCollection<int>>(ids => ids.SequenceEqual(new[] { 10, 20 })),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ExecutiveDashboardData
+            {
+                NetSalesTrend = DashboardWidgetResult<NetSalesTrendRow>.Success([
+                    new NetSalesTrendRow { BucketDate = new DateTime(2026, 7, 1), TotalOrders = 3, NetSales = 300000m }
+                ]),
+                StoreRanking = DashboardWidgetResult<StoreRankingRow>.Success([
+                    new StoreRankingRow { StoreId = 10, StoreName = "Store 10", TotalOrders = 3, NetSales = 300000m }
+                ])
+            });
+        var service = new DashboardService(repository.Object, scope.Object);
+        var filter = new DashboardAnalyticsFilter
+        {
+            FromDate = new DateTime(2026, 7, 1),
+            ToDate = new DateTime(2026, 7, 17)
+        };
+        typeof(DashboardAnalyticsFilter).GetProperty(
+            "StaffId",
+            BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(filter, 7);
+
+        var batch = await service.GetAnalyticsBatchAsync(
+            Actor,
+            [DashboardAnalyticsWidget.NetSalesTrend, DashboardAnalyticsWidget.StoreRanking],
+            filter);
+
+        Assert.Equal(2, batch.Widgets.Count);
+        Assert.Single(batch.Telemetry);
+        repository.Verify(x => x.GetExecutiveAsync(
+            It.IsAny<DashboardFilterDto>(),
+            It.IsAny<IReadOnlyCollection<int>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateContextAsync_UsesCatalogAndStableFingerprint()
+    {
+        var (repository, scope) = CreateDependencies();
+        var service = new DashboardService(repository.Object, scope.Object);
+        var request = new DashboardContextRequestDto
+        {
+            FromDate = new DateTime(2026, 7, 1),
+            ToDate = new DateTime(2026, 7, 17),
+            Granularity = "Day",
+            Top = 10
+        };
+
+        var first = await service.CreateContextAsync(Actor, request);
+        var second = await service.CreateContextAsync(Actor, request);
+
+        Assert.Equal(Enum.GetValues<DashboardAnalyticsWidget>().Length, first.Widgets.Count);
+        Assert.Equal(first.FilterFingerprint, second.FilterFingerprint);
+        Assert.Contains(first.Widgets, widget =>
+            widget.Widget == DashboardAnalyticsWidget.PaymentMethodMix
+            && widget.ChartType == DashboardChartType.Donut);
+        Assert.Contains(first.Widgets, widget =>
+            widget.Widget == DashboardAnalyticsWidget.VolumeMarginMatrix
+            && widget.ChartType == DashboardChartType.Scatter);
+    }
+
     private static (Mock<IDashboardRepository> Repository, Mock<IScopeAuthorizationService> Scope) CreateDependencies()
     {
         var repository = new Mock<IDashboardRepository>();

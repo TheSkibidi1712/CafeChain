@@ -54,7 +54,7 @@
 
         <nav class="week-nav" aria-label="Điều hướng tuần">
             <a class="btn-nav" asp-controller="AdminShiftOptimization" asp-action="Index" asp-route-targetStoreId="@Model.StoreId">
-                <i class="fa-solid fa-wand-magic-sparkles"></i><span>Tối ưu lịch</span>
+                <i class="fa-solid fa-sliders"></i><span>Cấu hình lịch &amp; cảnh báo</span>
             </a>
             <a class="btn-nav" asp-action="Index" asp-route-targetStoreId="@Model.StoreId" asp-route-startDate="@Model.StartDate.AddDays(-7).ToString("yyyy-MM-dd")">
                 <i class="fa-solid fa-chevron-left"></i><span>Tuần trước</span>

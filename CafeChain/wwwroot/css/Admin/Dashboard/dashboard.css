@@ -226,6 +226,64 @@
 .dashboard-intelligence__inference { border-left: 4px solid #7c5ce0; }
 .dashboard-intelligence__anomaly { border-left: 4px solid var(--an-danger); }
 .dashboard-intelligence__recommendation { border-left: 4px solid var(--an-success); }
+.dashboard-intelligence__chart-group { margin-top: 12px; }
+.dashboard-intelligence__chart-group h4 { margin: 8px 0; color: var(--an-warning); }
+.dashboard-intelligence__chart-analysis {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--an-border);
+    border-radius: 9px;
+    background: #fff;
+}
+.dashboard-intelligence__chart-analysis h5 { margin: 0 0 6px; color: var(--an-ink); }
+.dashboard-intelligence__chart-analysis ul { margin: 0; padding-left: 20px; }
+.dashboard-intelligence__chart-analysis small { display: block; margin-top: 8px; color: var(--an-muted); }
+.dashboard-intelligence__charts > h3 { margin: 18px 0 4px; color: var(--an-ink); font-size: 1rem; }
+.dashboard-intelligence__chart {
+    min-width: 0;
+    overflow: hidden;
+}
+.dashboard-intelligence__chart > h3 {
+    position: relative;
+    z-index: 1;
+    margin: 16px 0 6px;
+    overflow-wrap: anywhere;
+}
+.dashboard-intelligence__chart-canvas {
+    width: 100%;
+    height: 380px;
+    min-height: 0;
+    margin-top: 6px;
+    overflow: hidden;
+}
+.dashboard-intelligence__table-wrap { overflow-x: auto; }
+.dashboard-intelligence__priority {
+    display: inline-flex;
+    margin-bottom: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef2f7;
+    color: var(--an-ink);
+    font-size: .72rem;
+    font-weight: 800;
+}
+.dashboard-intelligence__priority.is-critical { background: #fde8e7; color: #a61b1b; }
+.dashboard-intelligence__priority.is-high { background: #fff0dc; color: #9a4d00; }
+.dashboard-intelligence__priority.is-medium { background: #fff8d7; color: #745b00; }
+.dashboard-intelligence__priority.is-low { background: #e8f5ed; color: #17623a; }
+.dashboard-intelligence__verify { color: var(--an-muted); font-size: .83rem; }
+.dashboard-intelligence__source { margin-top: 8px; border-top: 1px dashed var(--an-border); padding-top: 7px; }
+.dashboard-intelligence__source summary { cursor: pointer; color: var(--an-primary); font-weight: 700; }
+.dashboard-intelligence__source-row {
+    display: grid;
+    gap: 2px;
+    margin-top: 7px;
+    padding: 8px;
+    border-radius: 7px;
+    background: #faf8f6;
+    color: var(--an-muted);
+    font-size: .79rem;
+}
 .dashboard-intelligence__fact p,
 .dashboard-intelligence__inference p,
 .dashboard-intelligence__anomaly p,
@@ -535,6 +593,7 @@
 @media (max-width: 720px) {
     .dashboard-intelligence__heading { flex-direction: column; }
     .dashboard-intelligence__input { flex-direction: column; }
+    .dashboard-intelligence__chart-canvas { height: 360px; }
 }
 @media (max-width: 560px) {
     .analytics-page { padding: 16px 14px 48px; }

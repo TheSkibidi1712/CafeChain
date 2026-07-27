@@ -720,114 +720,68 @@ Forecast skill phải echo model/version/point/bounds/quality. Supplier skill ph
 - Không có supplier/forecast ngoài StoreScope.
 - Không tự tạo PA/PO hoặc thay đổi supplier primary.
 
-## 17. Thiết kế chi tiết Phase 4 – Optimization và Recommendation nâng cao
+## 17. Thiết kế chi tiết Phase 4 – Cảnh báo lịch và Recommendation nâng cao
 
-### 17.1 Data gate cho Shift Optimization
+### 17.1 Cấu hình lịch và phạm vi nghiệp vụ
 
-`StaffShift` và `Shift` hiện có lịch, giờ bắt đầu/kết thúc, overnight, Store và status. Chưa đủ dữ liệu để tự động tối ưu vì thiếu:
+`StaffShift` và `Shift` tiếp tục là nguồn lịch chính thức. Màn hình **Cấu hình lịch & cảnh báo** chỉ quản lý:
 
-- Availability định kỳ và ngày ngoại lệ của nhân viên.
-- Giới hạn giờ/ngày, giờ/tuần và minimum rest.
-- Role/skill cần thiết cho từng ca.
-- Minimum/target/maximum staffing theo Store và time slot.
-- Contract hours hoặc target hours dùng cho fairness.
+- Availability định kỳ của nhân viên.
+- Giới hạn giờ/ngày, giờ/tuần và thời gian nghỉ tối thiểu.
+- Vai trò và minimum/target/maximum staffing theo Store, ca và ngày.
 - Leave/time-off đã duyệt.
 
-Phase 4 không được triển khai solver trước khi các dữ liệu này có owner nghiệp vụ, validation và audit rõ ràng.
+Hệ thống không tự tạo phương án phân công và không ghi `StaffShift`. Quản lý vẫn phân lịch thủ công qua service lịch hiện có.
 
-### 17.2 Shift optimization architecture
+### 17.2 Kiến trúc cảnh báo thiếu lịch
 
 ```text
-Forecast/Hourly Demand
-    + Staff Availability
-    + Staffing Requirement
+Staffing Requirement
     + Existing StaffShift
-    + Employment Constraints
+    + Staff Availability
+    + Time-off
+    + Work Constraints/Role
         ↓
-Constraint Validator
+Rule-based Gap Detector
         ↓
-Optimization Provider
+Persist + Dedupe + Resolve
         ↓
-Schedule Proposal DTO
+SignalR Notification
         ↓
-Manager Review/Diff
-        ↓
-Existing Staff Schedule Service revalidates
-        ↓
-User Confirm → Save
+Manager opens manual schedule
 ```
 
-Controller không gọi solver trực tiếp. Solver không ghi `StaffShift`.
+Worker chỉ kiểm tra cửa hàng active và phạm vi thời gian được cấu hình. Rule backend quyết định ca có thiếu người; Ollama không tham gia quyết định và downtime AI không ảnh hưởng cảnh báo.
 
-### 17.3 Hard constraints
+### 17.3 Điều kiện ứng viên phù hợp
 
-- Staff/Account/Role active.
-- Staff thuộc Store hoặc scope được phép.
-- Không xếp ngoài availability/time-off.
+- Staff/Account/Role active và thuộc đúng Store.
+- Availability bao phủ toàn bộ ca.
+- Không nằm trong time-off đã duyệt.
 - Không trùng ca, kể cả ca qua đêm.
-- Đủ minimum rest giữa hai ca.
-- Không vượt giới hạn giờ bắt buộc.
-- Đúng role/skill tối thiểu của ca.
-- Mỗi ca đạt minimum staffing.
-- Lịch hiện hữu đã khóa không được tự thay đổi.
+- Đủ thời gian nghỉ tối thiểu giữa hai ca.
+- Không vượt giới hạn giờ ngày/tuần.
+- Đúng vai trò bắt buộc của định mức.
 
-Vi phạm hard constraint làm proposal không hợp lệ; LLM không được “giải thích để bỏ qua”.
+Thông báo chỉ liệt kê ứng viên để quản lý kiểm tra; hệ thống không tự phân công người vào ca.
 
-### 17.4 Soft objectives
+### 17.4 Dedupe, nhắc lại và resolve
 
-- Giảm understaff/overstaff so với hourly demand.
-- Cân bằng tổng giờ theo target hours.
-- Giảm split shift và thay đổi lịch sát ngày.
-- Tôn trọng preference mềm.
-- Phân bổ cuối tuần/ca muộn công bằng.
-- Giảm overtime dự kiến.
+- Dedupe theo người nhận, Store, định mức và ngày làm việc.
+- Nếu ca vẫn thiếu, cập nhật cùng thông báo sau cooldown thay vì tạo dòng trùng.
+- Khi ca đủ người hoặc ra ngoài cửa sổ kiểm tra, thông báo đang hoạt động được resolve.
+- Người nhận phải có quyền xem thông báo, quyền xem lịch và StoreScope phù hợp.
 
-Mỗi objective có weight versioned. UI phải cho biết lý do và trade-off, không chỉ hiển thị một “AI score”.
+### 17.5 Giữ dữ liệu lịch sử
 
-### 17.5 Schedule proposal contract
+Hai bảng lưu phương án phân công lịch sử và EF mapping tương ứng được giữ để bảo toàn dữ liệu. Không còn endpoint, service, AI skill hoặc giao diện tạo/đọc/áp dụng dữ liệu lịch sử này.
 
-```json
-{
-  "proposalId": "server-generated-id",
-  "storeId": 3,
-  "fromDate": "2026-05-11",
-  "toDate": "2026-05-17",
-  "constraintVersion": "v1",
-  "forecastRunId": "optional",
-  "status": "FEASIBLE",
-  "assignments": [
-    {
-      "staffId": 25,
-      "shiftId": 7,
-      "workDate": "2026-05-11",
-      "start": "08:00",
-      "end": "16:00",
-      "isNew": true,
-      "reasonCodes": ["DEMAND_COVERAGE", "FAIR_HOURS"]
-    }
-  ],
-  "violations": [],
-  "scoreBreakdown": {
-    "coverage": 92,
-    "fairness": 84,
-    "preference": 75,
-    "overtimePenalty": 0
-  }
-}
-```
+### 17.6 Giới hạn bắt buộc
 
-Khi user Apply, service phải reload RowVersion/lịch hiện tại và chạy constraint validator lại để chống stale proposal.
-
-### 17.6 Optimization technology
-
-Thứ tự đề xuất:
-
-1. Constraint validator + heuristic deterministic để kiểm chứng nghiệp vụ.
-2. Solver abstraction trong service layer.
-3. Xem xét OR-Tools khi hard/soft constraints đã ổn định.
-4. Python optimization service chỉ khi .NET provider không đáp ứng và có nhu cầu vận hành rõ.
-
-LLM chỉ giải thích proposal và violation; không phải solver.
+- Không tự xếp hoặc thay đổi lịch.
+- Không dùng LLM làm solver.
+- Không gửi cảnh báo ngoài StoreScope.
+- Không phụ thuộc Ollama để phát hiện, lưu hoặc phát cảnh báo.
 
 ### 17.7 Cross-sell/Upsell không cá nhân hóa
 
@@ -912,7 +866,7 @@ Anomaly chỉ là tín hiệu cần xem xét, không phải kết luận gian l�
 
 ### 17.11 Human approval và safety
 
-- Schedule proposal: Manager phải review và confirm.
+- Lịch nhân viên: Manager tự review và phân ca thủ công; cảnh báo không tự ghi lịch.
 - Recommendation: chỉ hiển thị, không tự thêm vào order.
 - Menu/price: không tự thay đổi.
 - Inventory/Purchase: không tự mutation.
@@ -921,17 +875,16 @@ Anomaly chỉ là tín hiệu cần xem xét, không phải kết luận gian l�
 
 ### 17.12 Chia lát triển khai
 
-1. **Phase 4A:** bổ sung dữ liệu availability/requirements và constraint validator.
-2. **Phase 4B:** heuristic schedule proposal + review UI.
+1. **Phase 4A:** bổ sung dữ liệu availability/requirements/constraint/time-off.
+2. **Phase 4B:** cảnh báo thiếu lịch rule-based, dedupe, resolve và SignalR.
 3. **Phase 4C:** basket association offline + POS recommendation read-only.
 4. **Phase 4D:** exposure logging và A/B testing.
 5. **Phase 4E:** robust anomaly detection.
-6. **Phase 4F:** solver/model nâng cao chỉ sau khi baseline được đo.
 
 ### 17.13 Exit gate Phase 4
 
-- Không proposal nào vi phạm hard constraints.
-- Apply luôn revalidate và dùng concurrency protection.
+- Cảnh báo thiếu lịch đúng định mức, StoreScope và điều kiện ứng viên.
+- Dedupe, cooldown và resolve không tạo thông báo trùng hoặc tồn đọng sai.
 - Recommendation không bypass menu/inventory/StoreScope.
 - Có control group và conversion metric trước khi tuyên bố business value.
 - Anomaly false-positive rate được theo dõi và có feedback workflow.
@@ -949,7 +902,7 @@ DashboardIntelligence:ExplanationEnabled
 Forecasting:RevenueEnabled
 Forecasting:ProductEnabled
 SupplierIntelligence:ScoringEnabled
-ShiftOptimization:ProposalEnabled
+StaffScheduleNotifications:Enabled
 PosRecommendation:Enabled
 AnomalyDetection:Enabled
 ```

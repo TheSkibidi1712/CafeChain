@@ -10,7 +10,10 @@ public sealed record InventoryNotificationDeliveryRequest(
     string Severity,
     string EntityType,
     int EntityId,
-    string ChangeKind);
+    string ChangeKind,
+    string? DeduplicationKey = null,
+    int? CooldownMinutes = null,
+    IReadOnlyCollection<int>? RecipientStaffIds = null);
 
 public sealed record InventoryNotificationDeliveryResult(
     int CreatedCount,
@@ -31,5 +34,9 @@ public interface IInventoryNotificationDeliveryService
         string entityType,
         int entityId,
         string severity,
+        CancellationToken cancellationToken = default);
+
+    Task<InventoryNotificationDeliveryResult> ResolveByDeduplicationKeyAsync(
+        string deduplicationKey,
         CancellationToken cancellationToken = default);
 }

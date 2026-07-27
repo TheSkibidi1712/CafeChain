@@ -5,6 +5,7 @@
     if (!root) return;
 
     const stores = JSON.parse(document.getElementById("dashboardStores")?.textContent || "[]");
+    const dashboardContext = JSON.parse(document.getElementById("dashboardContext")?.textContent || "null");
     const panel = document.getElementById("dashboardPanel");
     const notice = document.getElementById("dashboardNotice");
     const applyButton = document.getElementById("dashboardApply");
@@ -12,7 +13,7 @@
         from: document.getElementById("dashboardFromDate"), to: document.getElementById("dashboardToDate"),
         province: document.getElementById("dashboardProvince"), district: document.getElementById("dashboardDistrict"),
         store: document.getElementById("dashboardStore"), granularity: document.getElementById("dashboardGranularity"),
-        top: document.getElementById("dashboardTop")
+        top: document.getElementById("dashboardTop"), preset: document.getElementById("dashboardPreset")
     };
     const cache = new Map();
     const charts = new Map();
@@ -232,6 +233,7 @@
 
     function query(section) {
         const parameters = new URLSearchParams({ section, FromDate: fields.from.value, ToDate: fields.to.value, Granularity: fields.granularity.value, Top: fields.top.value || "10" });
+        if (root.dataset.contextId) parameters.set("contextId", root.dataset.contextId);
         if (fields.province.value) parameters.set("ProvinceId", fields.province.value);
         if (fields.district.value) parameters.set("DistrictId", fields.district.value);
         if (fields.store.value) parameters.set("StoreId", fields.store.value);
@@ -256,6 +258,8 @@
             const payload = await response.json();
             if (!response.ok || !payload.success) throw new Error(payload.message || "Không thể tải dữ liệu dashboard.");
             cache.set(section, payload.data);
+            if (payload.data?.contextId) root.dataset.contextId = payload.data.contextId;
+            if (payload.data?.generatedAt) root.dataset.generatedAt = payload.data.generatedAt;
             renderSection(section, payload.data);
         } catch (error) {
             if (error.name !== "AbortError") renderSectionError(section, error.message);
@@ -567,9 +571,54 @@
     }));
     fields.province.addEventListener("change", () => { fields.district.value = ""; fields.store.value = ""; populateFilters(); });
     fields.district.addEventListener("change", () => { fields.store.value = ""; populateFilters(); });
-    applyButton.addEventListener("click", () => {
+    [fields.from, fields.to].forEach(field => field.addEventListener("change", () => { if (fields.preset) fields.preset.value = ""; }));
+    async function applyDashboardContext() {
+        window.dispatchEvent(new CustomEvent("cafechain:dashboard-context-changing"));
         if (fields.from.value && fields.to.value && fields.from.value > fields.to.value) { showNotice("Từ ngày không được lớn hơn đến ngày."); return; }
-        cache.clear(); activeRequest?.abort(); loadSection(activeSection, true);
+        applyButton.disabled = true;
+        try {
+            const token = document.querySelector("#dashboardAntiForgery input[name='__RequestVerificationToken']")?.value || "";
+            const response = await fetch(root.dataset.contextEndpoint, {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json", "RequestVerificationToken": token, "X-Requested-With": "XMLHttpRequest" },
+                body: JSON.stringify({
+                    fromDate: fields.from.value,
+                    toDate: fields.to.value,
+                    provinceId: fields.province.value ? Number(fields.province.value) : null,
+                    districtId: fields.district.value ? Number(fields.district.value) : null,
+                    storeId: fields.store.value ? Number(fields.store.value) : null,
+                    granularity: fields.granularity.value,
+                    top: Number(fields.top.value || 10),
+                    preset: fields.preset?.value || null
+                })
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload.success) throw new Error(payload.message || "Không thể tạo context Dashboard.");
+            root.dataset.contextId = payload.data.contextId;
+            root.dataset.generatedAt = payload.data.generatedAt;
+            root.dataset.filterFingerprint = payload.data.filterFingerprint || "";
+            if (payload.data.fromDate) fields.from.value = String(payload.data.fromDate).slice(0, 10);
+            if (payload.data.toDate) fields.to.value = String(payload.data.toDate).slice(0, 10);
+            cache.clear();
+            activeRequest?.abort();
+            await loadSection(activeSection, true);
+            window.dispatchEvent(new CustomEvent("cafechain:dashboard-context-changed", {
+                detail: {
+                    contextId: root.dataset.contextId,
+                    filterFingerprint: root.dataset.filterFingerprint
+                }
+            }));
+        } catch (error) {
+            showNotice(error instanceof Error ? error.message : String(error));
+        } finally {
+            applyButton.disabled = false;
+        }
+    }
+    applyButton.addEventListener("click", () => void applyDashboardContext());
+    fields.preset?.addEventListener("change", () => {
+        if (!fields.preset.value) return;
+        void applyDashboardContext();
     });
     window.addEventListener("resize", () => charts.forEach(context => refreshChartLayout(context.element)));
 

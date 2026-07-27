@@ -85,6 +85,31 @@ public sealed partial class AIService
             if (parsed == null || parsed.AnalysisId != context.AnalysisId || parsed.Widget != context.Widget)
                 return DashboardFallback(fallback, "Phản hồi AI không khớp dữ liệu phân tích và đã bị từ chối.");
             var summary = parsed.Summary.Trim();
+            var allowedEvidenceIds = context.Evidence
+                .Select(item => item.EvidenceId)
+                .ToHashSet(StringComparer.Ordinal);
+            var narratives = parsed.Inferences
+                .Concat(parsed.Recommendations)
+                .Concat(parsed.Overview)
+                .Concat(parsed.NotablePoints)
+                .Concat(parsed.Conclusions);
+            var priorities = new HashSet<string>(
+                ["Critical", "High", "Medium", "Low"],
+                StringComparer.OrdinalIgnoreCase);
+            if (parsed.SummaryEvidenceIds.Count == 0
+                || parsed.SummaryEvidenceIds.Any(id => !allowedEvidenceIds.Contains(id))
+                || narratives.Any(item =>
+                    item.EvidenceIds.Count == 0
+                    || item.EvidenceIds.Any(id => !allowedEvidenceIds.Contains(id))
+                    || (item.Priority != null && !priorities.Contains(item.Priority)))
+                || parsed.ChartAnalyses.Any(item =>
+                    item.EvidenceIds.Count == 0
+                    || item.EvidenceIds.Any(id => !allowedEvidenceIds.Contains(id))))
+            {
+                return DashboardFallback(
+                    fallback,
+                    "Phản hồi AI tham chiếu EvidenceId hoặc priority không hợp lệ và đã bị từ chối.");
+            }
             if (summary.Length is < 1 or > 1200)
                 return DashboardFallback(fallback, "Giải thích AI vượt giới hạn nội dung.");
             return new DashboardExplanationResultDto
@@ -94,6 +119,16 @@ public sealed partial class AIService
                 Summary = summary,
                 Inferences = parsed.Inferences,
                 Recommendations = parsed.Recommendations,
+                Overview = parsed.Overview,
+                NotablePoints = parsed.NotablePoints,
+                Conclusions = parsed.Conclusions,
+                ChartAnalyses = parsed.ChartAnalyses
+                    .Select(x => new DashboardChartAnalysisDto
+                    {
+                        Widget = x.Widget,
+                        Summary = x.Summary,
+                        Evidence = x.EvidenceIds.Select(id => new DashboardEvidenceDto { EvidenceId = id }).ToList()
+                    }).ToList(),
                 UsedOllama = true,
                 Warnings = skill.Warnings.ToList()
             };
@@ -138,7 +173,19 @@ public sealed partial class AIService
         public Guid AnalysisId { get; set; }
         public DashboardAnalyticsWidget Widget { get; set; }
         public string Summary { get; set; } = string.Empty;
+        public List<string> SummaryEvidenceIds { get; set; } = [];
         public List<DashboardNarrativeItemDto> Inferences { get; set; } = [];
         public List<DashboardNarrativeItemDto> Recommendations { get; set; } = [];
+        public List<DashboardNarrativeItemDto> Overview { get; set; } = [];
+        public List<DashboardNarrativeItemDto> NotablePoints { get; set; } = [];
+        public List<DashboardNarrativeItemDto> Conclusions { get; set; } = [];
+        public List<DashboardChartNarrativeAiDto> ChartAnalyses { get; set; } = [];
+    }
+
+    private sealed class DashboardChartNarrativeAiDto
+    {
+        public DashboardAnalyticsWidget Widget { get; set; }
+        public string Summary { get; set; } = string.Empty;
+        public List<string> EvidenceIds { get; set; } = [];
     }
 }

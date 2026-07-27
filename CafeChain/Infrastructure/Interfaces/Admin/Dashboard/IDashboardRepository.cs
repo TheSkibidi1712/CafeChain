@@ -14,4 +14,8 @@ public interface IDashboardRepository
     Task<ProcurementDashboardData> GetProcurementAsync(DashboardFilterDto filter, IReadOnlyCollection<int> storeIds, CancellationToken cancellationToken = default);
     Task<ProductDashboardData> GetProductAsync(DashboardFilterDto filter, IReadOnlyCollection<int> storeIds, CancellationToken cancellationToken = default);
     Task<WorkforceDashboardData> GetWorkforceAsync(DashboardFilterDto filter, IReadOnlyCollection<int> storeIds, CancellationToken cancellationToken = default);
+    Task WriteAnalysisAuditAsync(
+        int staffId,
+        DashboardAnalysisAuditDto audit,
+        CancellationToken cancellationToken = default);
 }

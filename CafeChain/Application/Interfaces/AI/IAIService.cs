@@ -24,6 +24,5 @@ public interface IAIService
         CancellationToken cancellationToken = default);
     Task<TypedExplanationResultDto> ExplainForecastAsync(ForecastExplanationContextDto context, CancellationToken cancellationToken = default);
     Task<TypedExplanationResultDto> ExplainSupplierScoreAsync(SupplierExplanationContextDto context, CancellationToken cancellationToken = default);
-    Task<TypedExplanationResultDto> ExplainShiftProposalAsync(ShiftProposalExplanationContextDto context, CancellationToken cancellationToken = default);
     Task<TypedExplanationResultDto> ExplainAnomalyAsync(AnomalyExplanationContextDto context, CancellationToken cancellationToken = default);
 }

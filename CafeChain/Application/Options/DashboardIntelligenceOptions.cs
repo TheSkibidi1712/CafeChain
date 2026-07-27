@@ -14,4 +14,7 @@ public sealed class DashboardIntelligenceOptions
     public int MinimumOrderSample { get; set; } = 10;
     public decimal WasteIncreasePercent { get; set; } = 25;
     public decimal WasteIncreaseAmount { get; set; } = 100_000;
+    public decimal LargeChangePercent { get; set; } = 20;
+    public int MinimumSeriesPoints { get; set; } = 2;
+    public decimal AnomalyDeviationPercent { get; set; } = 30;
 }

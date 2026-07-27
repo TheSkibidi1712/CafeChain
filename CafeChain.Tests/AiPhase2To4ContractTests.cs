@@ -43,23 +43,6 @@
 //     }
 
 //     [Fact]
-//     public void Shift_proposal_apply_reloads_and_revalidates_before_one_transaction()
-//     {
-//         var service = Read("CafeChain", "Application", "Services", "Admin", "Staffs", "ShiftOptimizationService.cs");
-//         var apply = service[service.IndexOf("public async Task ApplyAsync", StringComparison.Ordinal)..
-//             service.IndexOf("public async Task SaveAvailabilityAsync", StringComparison.Ordinal)];
-
-//         Assert.Contains("GetAvailabilityAsync", apply, StringComparison.Ordinal);
-//         Assert.Contains("GetTimeOffsAsync", apply, StringComparison.Ordinal);
-//         Assert.Contains("GetConstraintsAsync", apply, StringComparison.Ordinal);
-//         Assert.Contains("GetRequirementsAsync", apply, StringComparison.Ordinal);
-//         Assert.Contains("Eligible", apply, StringComparison.Ordinal);
-//         Assert.Contains("BeginTransactionAsync", apply, StringComparison.Ordinal);
-//         Assert.Equal(1, Count(apply, "SaveChangesAsync"));
-//         Assert.DoesNotContain("AssignAsync", apply, StringComparison.Ordinal);
-//     }
-
-//     [Fact]
 //     public void Pos_recommendations_are_bounded_optional_and_do_not_mutate_the_cart()
 //     {
 //         var service = Read("CafeChain", "Application", "Services", "AI", "PosRecommendationService.cs");
@@ -101,7 +84,7 @@
 //         {
 //             "dashboard-intent.schema.json", "dashboard-insight-explanation.schema.json",
 //             "forecast-result-explanation.schema.json", "supplier-score-explanation.schema.json",
-//             "shift-proposal-explanation.schema.json", "anomaly-explanation.schema.json"
+//             "anomaly-explanation.schema.json"
 //         })
 //         {
 //             using var document = JsonDocument.Parse(Read("CafeChain", "Resources", "AI", "schemas", schemaName));
@@ -120,7 +103,7 @@
 //         Assert.False(root.GetProperty("Forecasting").GetProperty("RevenueEnabled").GetBoolean());
 //         Assert.False(root.GetProperty("Forecasting").GetProperty("ProductEnabled").GetBoolean());
 //         Assert.False(root.GetProperty("SupplierIntelligence").GetProperty("ScoringEnabled").GetBoolean());
-//         Assert.False(root.GetProperty("ShiftOptimization").GetProperty("ProposalEnabled").GetBoolean());
+//         Assert.False(root.GetProperty("StaffScheduleNotifications").GetProperty("Enabled").GetBoolean());
 //         Assert.False(root.GetProperty("PosRecommendation").GetProperty("Enabled").GetBoolean());
 //         Assert.False(root.GetProperty("AnomalyDetection").GetProperty("Enabled").GetBoolean());
 //     }

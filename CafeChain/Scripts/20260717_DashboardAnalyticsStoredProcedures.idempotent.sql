@@ -90,7 +90,7 @@ RETURN
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Dashboard_NetSalesTrend
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max),
     @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
@@ -108,7 +108,7 @@ BEGIN
     BEGIN
         ;THROW 50002, 'Invalid granularity.', 1;
     END;
-    DECLARE @ToExclusive datetime2 = DATEADD(day, 1, CONVERT(datetime2, @ToDate));
+    DECLARE @ToExclusive datetime2 = @ToDate;
     DECLARE @FirstBucket datetime2=dbo.ufn_AnalyticsBucketStart(CONVERT(datetime2,@FromDate),@Granularity);
     DECLARE @LastBucket datetime2=dbo.ufn_AnalyticsBucketStart(DATEADD(second,-1,@ToExclusive),@Granularity);
     ;WITH Buckets AS
@@ -137,26 +137,36 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Inventory_ShortageRisk
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT TOP (ISNULL(NULLIF(@Top,0),10)) si.StoreInventoryId, si.StoreId, si.IngredientId, i.Name AS IngredientName,
-           si.AvailableQty, si.ReservedQty, si.MinStockLevel,
-           CASE WHEN si.AvailableQty < 0 THEN 'CRITICAL' WHEN si.MinStockLevel IS NULL THEN 'UNCONFIGURED'
-                WHEN si.AvailableQty <= si.MinStockLevel THEN 'HIGH' ELSE 'NORMAL' END AS RiskLevel,
+    SELECT TOP (ISNULL(NULLIF(@Top,0),10)) si.StoreInventoryId, si.StoreId, s.Name AS StoreName,
+           si.IngredientId, i.Code AS IngredientCode, i.Name AS IngredientName, u.UnitCode AS Unit,
+           si.AvailableQty AS OnHandQuantity, si.ReservedQty AS ReservedQuantity,
+           si.AvailableQty-si.ReservedQty AS AvailableQuantity, si.MinStockLevel AS MinimumStock,
+           CASE WHEN si.MinStockLevel IS NULL THEN 0
+                WHEN si.MinStockLevel>(si.AvailableQty-si.ReservedQty)
+                THEN si.MinStockLevel-(si.AvailableQty-si.ReservedQty) ELSE 0 END AS ShortageQuantity,
+           CASE WHEN si.MinStockLevel IS NULL THEN 0
+                WHEN si.MinStockLevel>(si.AvailableQty-si.ReservedQty)
+                THEN si.MinStockLevel-(si.AvailableQty-si.ReservedQty) ELSE 0 END AS SuggestedReorderQuantity,
+           CASE WHEN si.AvailableQty-si.ReservedQty < 0 THEN 'CRITICAL' WHEN si.MinStockLevel IS NULL THEN 'UNCONFIGURED'
+                WHEN si.AvailableQty-si.ReservedQty <= si.MinStockLevel THEN 'HIGH' ELSE 'NORMAL' END AS RiskLevel,
            CASE WHEN si.MinStockLevel IS NULL THEN 'THRESHOLD_NOT_CONFIGURED' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.StoreInventories AS si
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=si.StoreId
+    INNER JOIN dbo.Stores AS s ON s.StoreId=si.StoreId
     LEFT JOIN dbo.Ingredients AS i ON i.IngredientId=si.IngredientId
+    LEFT JOIN dbo.Units AS u ON u.UnitId=i.BaseUnitId
     WHERE si.IngredientId IS NOT NULL
-    ORDER BY CASE WHEN si.AvailableQty < 0 THEN 0 WHEN si.MinStockLevel IS NULL THEN 2 ELSE 1 END,
-             si.AvailableQty-COALESCE(si.MinStockLevel,0), si.StoreInventoryId;
+    ORDER BY CASE WHEN si.AvailableQty-si.ReservedQty < 0 THEN 0 WHEN si.MinStockLevel IS NULL THEN 2 ELSE 1 END,
+             (si.AvailableQty-si.ReservedQty)-COALESCE(si.MinStockLevel,0), si.StoreInventoryId;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Inventory_MovementByType
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -171,13 +181,13 @@ BEGIN
     FROM dbo.InventoryTransactions AS it
     INNER JOIN dbo.StoreInventories AS si ON si.StoreInventoryId=it.StoreInventoryId
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=si.StoreId
-    WHERE it.CreatedAt>=@FromDate AND it.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE it.CreatedAt>=@FromDate AND it.CreatedAt<@ToDate
     GROUP BY dbo.ufn_AnalyticsBucketStart(it.CreatedAt,@Granularity),it.Type ORDER BY MovementDate,it.Type;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Inventory_ThresholdRisk
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -194,23 +204,31 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Inventory_ReorderSuggestions
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT TOP (ISNULL(NULLIF(@Top,0),10)) rr.RestockRequestId,rr.StoreId,rr.IngredientId,i.Name AS IngredientName,
+    SELECT TOP (ISNULL(NULLIF(@Top,0),10)) rr.RestockRequestId,rr.StoreId,s.Name AS StoreName,
+           rr.IngredientId,i.Code AS IngredientCode,i.Name AS IngredientName,u.UnitCode AS Unit,
+           COALESCE(si.AvailableQty,0) AS OnHandQuantity,COALESCE(si.ReservedQty,0) AS ReservedQuantity,
+           COALESCE(si.AvailableQty-si.ReservedQty,0) AS AvailableQuantity,si.MinStockLevel AS MinimumStock,
+           CASE WHEN si.MinStockLevel>COALESCE(si.AvailableQty-si.ReservedQty,0)
+                THEN si.MinStockLevel-COALESCE(si.AvailableQty-si.ReservedQty,0) ELSE 0 END AS ShortageQuantity,
            rr.RequestedQuantity,rr.SuggestedQuantity,rr.SuggestionAverageDailyUsageSnapshot,
            rr.SuggestionLeadTimeDaysSnapshot,rr.SuggestionIncomingQuantitySnapshot,rr.SuggestionReason,
            rr.Status,rr.Priority,rr.CreatedAt,'AVAILABLE' AS DataStatus
     FROM dbo.RestockRequests AS rr INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=rr.StoreId
+    INNER JOIN dbo.Stores AS s ON s.StoreId=rr.StoreId
     LEFT JOIN dbo.Ingredients AS i ON i.IngredientId=rr.IngredientId
-    WHERE rr.CreatedAt>=@FromDate AND rr.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    LEFT JOIN dbo.Units AS u ON u.UnitId=i.BaseUnitId
+    LEFT JOIN dbo.StoreInventories AS si ON si.StoreId=rr.StoreId AND si.IngredientId=rr.IngredientId
+    WHERE rr.CreatedAt>=@FromDate AND rr.CreatedAt<@ToDate
     ORDER BY CASE rr.Priority WHEN 'URGENT' THEN 0 WHEN 'HIGH' THEN 1 ELSE 2 END,rr.CreatedAt DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Inventory_WasteByStoreIngredient
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -220,13 +238,13 @@ BEGIN
     FROM dbo.InventoryTransactions AS it INNER JOIN dbo.StoreInventories AS si ON si.StoreInventoryId=it.StoreInventoryId
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=si.StoreId
     INNER JOIN dbo.Stores AS s ON s.StoreId=si.StoreId LEFT JOIN dbo.Ingredients AS i ON i.IngredientId=si.IngredientId
-    WHERE it.Type=3 AND it.CreatedAt>=@FromDate AND it.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE it.Type=3 AND it.CreatedAt>=@FromDate AND it.CreatedAt<@ToDate
     GROUP BY si.StoreId,s.Name,si.IngredientId,i.Name ORDER BY WasteValue DESC,WasteQuantity DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Inventory_FifoLayerAge
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -241,7 +259,7 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Procurement_PurchaseOrderPipeline
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -249,13 +267,13 @@ BEGIN
            COALESCE(SUM(line.OrderValue),0) AS OrderedValue,'AVAILABLE' AS DataStatus
     FROM dbo.PurchaseOrders AS po INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=po.StoreId
     OUTER APPLY(SELECT SUM(pol.PackagePriceSnapshot*pol.PackageCount) AS OrderValue FROM dbo.PurchaseOrderLines AS pol WHERE pol.PurchaseOrderId=po.PurchaseOrderId) line
-    WHERE po.OrderDate>=@FromDate AND po.OrderDate<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE po.OrderDate>=@FromDate AND po.OrderDate<@ToDate
     GROUP BY po.Status ORDER BY PurchaseOrderCount DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Procurement_OverduePurchaseOrders
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -270,7 +288,7 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Procurement_SupplierQuality
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -281,13 +299,13 @@ BEGIN
     FROM dbo.BranchReceipts AS br INNER JOIN dbo.BranchReceiptLines AS brl ON brl.BranchReceiptId=br.BranchReceiptId
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=br.StoreId
     LEFT JOIN dbo.Suppliers AS s ON s.SupplierId=br.SupplierId
-    WHERE br.Status='CONFIRMED' AND br.ReceivedAt>=@FromDate AND br.ReceivedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE br.Status='CONFIRMED' AND br.ReceivedAt>=@FromDate AND br.ReceivedAt<@ToDate
     GROUP BY br.SupplierId,s.Name ORDER BY RejectionRate DESC,RejectedBaseQuantity DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Procurement_PurchasePriceTrend
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -301,13 +319,13 @@ BEGIN
            MAX(brl.BaseUnitCostSnapshot) AS MaximumBaseUnitCost,SUM(brl.ReceivedBaseQuantity) AS ReceivedBaseQuantity,'AVAILABLE' AS DataStatus
     FROM dbo.BranchReceipts AS br INNER JOIN dbo.BranchReceiptLines AS brl ON brl.BranchReceiptId=br.BranchReceiptId
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=br.StoreId LEFT JOIN dbo.Ingredients AS i ON i.IngredientId=brl.IngredientId
-    WHERE br.Status='CONFIRMED' AND brl.IngredientId IS NOT NULL AND br.ReceivedAt>=@FromDate AND br.ReceivedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE br.Status='CONFIRMED' AND brl.IngredientId IS NOT NULL AND br.ReceivedAt>=@FromDate AND br.ReceivedAt<@ToDate
     GROUP BY dbo.ufn_AnalyticsBucketStart(br.ReceivedAt,@Granularity),brl.IngredientId,i.Name ORDER BY ReceiptDate,brl.IngredientId;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Procurement_SpendBreakdown
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -315,31 +333,35 @@ BEGIN
            SUM(brl.LineTotalCost) AS Spend,COUNT_BIG(DISTINCT br.BranchReceiptId) AS ReceiptCount,'AVAILABLE' AS DataStatus
     FROM dbo.BranchReceipts AS br INNER JOIN dbo.BranchReceiptLines AS brl ON brl.BranchReceiptId=br.BranchReceiptId
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=br.StoreId LEFT JOIN dbo.Suppliers AS s ON s.SupplierId=br.SupplierId
-    WHERE br.Status='CONFIRMED' AND br.ReceivedAt>=@FromDate AND br.ReceivedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE br.Status='CONFIRMED' AND br.ReceivedAt>=@FromDate AND br.ReceivedAt<@ToDate
     GROUP BY br.SupplierId,s.Name,br.StoreId ORDER BY Spend DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Procurement_SupplierIssueMix
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT issue.IssueType,issue.Status,COUNT_BIG(issue.SupplierReceiptIssueId) AS IssueCount,
+    SELECT issue.SupplierId,s.Name AS SupplierName,issue.StoreId,st.Name AS StoreName,
+           issue.IssueType,issue.Status,COUNT_BIG(issue.SupplierReceiptIssueId) AS IssueCount,
            SUM(issue.AffectedBaseQuantity) AS AffectedBaseQuantity,'AVAILABLE' AS DataStatus
     FROM dbo.SupplierReceiptIssues AS issue INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=issue.StoreId
-    WHERE issue.ReportedAtUtc>=@FromDate AND issue.ReportedAtUtc<DATEADD(day,1,CONVERT(datetime2,@ToDate))
-    GROUP BY issue.IssueType,issue.Status ORDER BY IssueCount DESC,issue.IssueType;
+    INNER JOIN dbo.Suppliers AS s ON s.SupplierId=issue.SupplierId
+    INNER JOIN dbo.Stores AS st ON st.StoreId=issue.StoreId
+    WHERE issue.ReportedAtUtc>=@FromDate AND issue.ReportedAtUtc<@ToDate
+    GROUP BY issue.SupplierId,s.Name,issue.StoreId,st.Name,issue.IssueType,issue.Status
+    ORDER BY IssueCount DESC,issue.IssueType;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Dashboard_StoreRanking
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max),
     @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @ToExclusive datetime2 = DATEADD(day, 1, CONVERT(datetime2, @ToDate));
+    DECLARE @ToExclusive datetime2 = @ToDate;
     SELECT TOP (ISNULL(NULLIF(@Top, 0), 10)) s.StoreId, s.Name AS StoreName,
            COALESCE(SUM(f.CountedOrder),0) AS TotalOrders,
            COALESCE(SUM(f.NetSales),0) AS NetSales,
@@ -354,12 +376,12 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Dashboard_PaymentMethodMix
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max),
     @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @ToExclusive datetime2 = DATEADD(day, 1, CONVERT(datetime2, @ToDate));
+    DECLARE @ToExclusive datetime2 = @ToDate;
     ;WITH PaymentEvents AS
     (
         SELECT p.PaymentMethodId,CONVERT(bigint,CASE WHEN f.CountedOrder=1 THEN 1 ELSE 0 END) AS TransactionCount,
@@ -390,12 +412,12 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Dashboard_OrderHeatmap
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max),
     @Granularity varchar(10) = 'Hour', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @ToExclusive datetime2 = DATEADD(day, 1, CONVERT(datetime2, @ToDate));
+    DECLARE @ToExclusive datetime2 = @ToDate;
     ;WITH WeekDays AS (SELECT value AS IsoWeekday FROM (VALUES(1),(2),(3),(4),(5),(6),(7)) d(value)),
     Hours AS (SELECT 0 AS HourOfDay UNION ALL SELECT HourOfDay + 1 FROM Hours WHERE HourOfDay < 23),
     Actual AS
@@ -417,43 +439,63 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Dashboard_OperationalAlerts
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max),
     @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT TOP (ISNULL(NULLIF(@Top, 0), 10)) alert.AlertType, alert.StoreId, alert.EntityId,
-           alert.Severity, alert.AlertValue, alert.Message, alert.DataStatus
+    SELECT TOP (ISNULL(NULLIF(@Top, 0), 10)) alert.AlertType, alert.StoreId, alert.StoreName,
+           alert.EntityType, alert.EntityId, alert.EntityCode, alert.EntityName,
+           alert.Severity, alert.AlertValue, alert.Unit, alert.Message, alert.DataStatus
     FROM
     (
-        SELECT 'LOW_STOCK' AS AlertType, si.StoreId, si.StoreInventoryId AS EntityId,
-               CASE WHEN si.AvailableQty < 0 THEN 'CRITICAL' ELSE 'WARNING' END AS Severity,
-               si.AvailableQty AS AlertValue, CONCAT('Tồn dưới ngưỡng: ', i.Name) AS Message, 'AVAILABLE' AS DataStatus
+        SELECT 'LOW_STOCK' AS AlertType, si.StoreId, s.Name AS StoreName,
+               'INGREDIENT' AS EntityType, i.IngredientId AS EntityId, i.Code AS EntityCode, i.Name AS EntityName,
+                CASE WHEN si.AvailableQty-si.ReservedQty < 0 THEN 'CRITICAL' ELSE 'WARNING' END AS Severity,
+               si.AvailableQty-si.ReservedQty AS AlertValue, u.UnitCode AS Unit,
+               CONCAT('Tồn dưới ngưỡng: ', i.Name) AS Message, 'AVAILABLE' AS DataStatus
         FROM dbo.StoreInventories AS si
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = si.StoreId
+        INNER JOIN dbo.Stores AS s ON s.StoreId=si.StoreId
         LEFT JOIN dbo.Ingredients AS i ON i.IngredientId = si.IngredientId
-        WHERE si.MinStockLevel IS NOT NULL AND si.AvailableQty <= si.MinStockLevel
+        LEFT JOIN dbo.Units AS u ON u.UnitId=i.BaseUnitId
+        WHERE si.MinStockLevel IS NOT NULL AND si.AvailableQty-si.ReservedQty <= si.MinStockLevel
         UNION ALL
-        SELECT 'CASH_DISCREPANCY', w.StoreId, w.ShiftId,
+        SELECT 'CASH_DISCREPANCY', w.StoreId, s.Name, 'WORK_SHIFT', w.ShiftId,
+               CONVERT(nvarchar(50),w.ShiftId), CONCAT('WorkShift #',w.ShiftId),
                CASE WHEN ABS(COALESCE(w.CashDiscrepancy, 0)) >= 50000 THEN 'CRITICAL' ELSE 'WARNING' END,
-               COALESCE(w.CashDiscrepancy, 0), CONCAT('Chênh lệch WorkShift #', w.ShiftId), 'AVAILABLE'
+               COALESCE(w.CashDiscrepancy, 0), 'VND', CONCAT('Chênh lệch WorkShift #', w.ShiftId), 'AVAILABLE'
         FROM dbo.WorkShifts AS w
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
-        WHERE w.EndTime >= @FromDate AND w.EndTime < DATEADD(day, 1, CONVERT(datetime2, @ToDate))
+        INNER JOIN dbo.Stores AS s ON s.StoreId=w.StoreId
+        WHERE w.EndTime >= @FromDate AND w.EndTime < @ToDate
           AND ABS(COALESCE(w.CashDiscrepancy, 0)) > 0
         UNION ALL
-        SELECT 'OVERDUE_PO', po.StoreId, po.PurchaseOrderId, 'WARNING',
-               DATEDIFF(day, po.ExpectedDeliveryAtUtc, SYSUTCDATETIME()), CONCAT('PO quá hạn: ', po.Code), 'AVAILABLE'
+        SELECT 'OVERDUE_PO', po.StoreId, st.Name, 'PURCHASE_ORDER', po.PurchaseOrderId,
+               po.Code,po.Code,'WARNING',DATEDIFF(day, po.ExpectedDeliveryAtUtc, SYSUTCDATETIME()),
+               'DAY',CONCAT('PO quá hạn: ', po.Code), 'AVAILABLE'
         FROM dbo.PurchaseOrders AS po
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = po.StoreId
+        INNER JOIN dbo.Stores AS st ON st.StoreId=po.StoreId
         WHERE po.ExpectedDeliveryAtUtc < SYSUTCDATETIME() AND po.Status NOT IN ('COMPLETED', 'CANCELLED')
+        UNION ALL
+        SELECT 'SUPPLIER_ISSUE', issue.StoreId,st.Name,'SUPPLIER',issue.SupplierId,
+               CONVERT(nvarchar(50),issue.SupplierId),s.Name,
+               CASE WHEN issue.Status='OPEN' THEN 'WARNING' ELSE 'INFO' END,
+               issue.AffectedBaseQuantity,'INGREDIENT',
+               CONCAT('Sự cố nhà cung cấp: ',s.Name,' - ',issue.IssueType),'AVAILABLE'
+        FROM dbo.SupplierReceiptIssues AS issue
+        INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=issue.StoreId
+        INNER JOIN dbo.Stores AS st ON st.StoreId=issue.StoreId
+        INNER JOIN dbo.Suppliers AS s ON s.SupplierId=issue.SupplierId
+        WHERE issue.ReportedAtUtc>=@FromDate AND issue.ReportedAtUtc<@ToDate
     ) AS alert
     ORDER BY CASE alert.Severity WHEN 'CRITICAL' THEN 0 ELSE 1 END, ABS(alert.AlertValue) DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Operations_WorkShiftCashDiscrepancy
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -465,14 +507,14 @@ BEGIN
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
     INNER JOIN dbo.Stores AS s ON s.StoreId = w.StoreId
     INNER JOIN dbo.Staffs AS st ON st.StaffId = w.UserId
-    WHERE w.StartTime < DATEADD(day, 1, CONVERT(datetime2, @ToDate))
-      AND COALESCE(w.EndTime, DATEADD(day, 1, CONVERT(datetime2, @ToDate))) >= @FromDate
+    WHERE w.StartTime < @ToDate
+      AND COALESCE(w.EndTime, @ToDate) >= @FromDate
     ORDER BY w.StartTime DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Operations_WorkShiftSales
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -482,14 +524,14 @@ BEGIN
            CASE WHEN COALESCE(SUM(f.CountedOrder),0) = 0 THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.WorkShifts AS w
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
-    LEFT JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.WorkShiftId=w.ShiftId
-    WHERE w.StartTime >= @FromDate AND w.StartTime < DATEADD(day, 1, CONVERT(datetime2, @ToDate))
+    LEFT JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.WorkShiftId=w.ShiftId
+    WHERE w.StartTime >= @FromDate AND w.StartTime < @ToDate
     GROUP BY w.ShiftId, w.StoreId ORDER BY w.ShiftId DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Operations_WorkShiftPaymentMix
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -498,11 +540,11 @@ BEGIN
         SELECT f.WorkShiftId,f.StoreId,p.PaymentMethodId,
                CONVERT(bigint,CASE WHEN f.CountedOrder=1 THEN 1 ELSE 0 END) AS TransactionCount,
                CONVERT(decimal(19,2),p.Amount) AS Amount
-        FROM dbo.Payments AS p INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=p.OrderId
+        FROM dbo.Payments AS p INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=p.OrderId
         WHERE p.PaymentStatusId=2
         UNION ALL
         SELECT f.WorkShiftId,f.StoreId,r.PaymentMethodId,CONVERT(bigint,0),-f.CompletedRefundAmount
-        FROM dbo.OrderRefunds AS r INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=r.OrderId
+        FROM dbo.OrderRefunds AS r INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=r.OrderId
         WHERE r.Status=3
     )
     SELECT e.WorkShiftId,e.StoreId,pm.PaymentMethodId,pm.Code AS PaymentMethodCode,pm.Name AS PaymentMethodName,
@@ -518,7 +560,7 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Operations_OfflineReconciliationExceptions
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -527,14 +569,14 @@ BEGIN
            w.HasLateOfflineSync, w.LateOfflineSyncCount, w.LastLateOfflineSyncedAt,
            CASE WHEN w.RequiresReconciliation = 1 THEN 'REQUIRES_RECONCILIATION' ELSE 'LATE_SYNC' END AS DataStatus
     FROM dbo.WorkShifts AS w INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
-    WHERE w.StartTime >= @FromDate AND w.StartTime < DATEADD(day, 1, CONVERT(datetime2, @ToDate))
+    WHERE w.StartTime >= @FromDate AND w.StartTime < @ToDate
       AND (w.IsExceptionClosed = 1 OR w.RequiresReconciliation = 1 OR w.HasLateOfflineSync = 1)
     ORDER BY w.StartTime DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Operations_HourlyOrders
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Hour', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Hour', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -542,7 +584,7 @@ BEGIN
     Actual AS
     (
         SELECT DATEPART(hour,f.CreatedAt) AS HourOfDay,SUM(f.CountedOrder) AS TotalOrders,SUM(f.NetSales) AS NetSales
-        FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+        FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
         GROUP BY DATEPART(hour,f.CreatedAt)
     )
@@ -554,7 +596,7 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Operations_WorkShiftTopDiscrepancies
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -562,13 +604,13 @@ BEGIN
            w.CashDiscrepancy, ABS(COALESCE(w.CashDiscrepancy,0)) AS AbsoluteDiscrepancy,
            w.DiscrepancyReason, w.EndTime, 'AVAILABLE' AS DataStatus
     FROM dbo.WorkShifts AS w INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
-    WHERE w.EndTime >= @FromDate AND w.EndTime < DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE w.EndTime >= @FromDate AND w.EndTime < @ToDate
       AND w.CashDiscrepancy IS NOT NULL ORDER BY ABS(w.CashDiscrepancy) DESC, w.ShiftId DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Operations_WorkShiftKpis
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -579,32 +621,37 @@ BEGIN
            COALESCE(SUM(ABS(COALESCE(w.CashDiscrepancy,0))),0) AS AbsoluteCashDiscrepancy,
            CASE WHEN COUNT_BIG(w.ShiftId)=0 THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.WorkShifts AS w INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=w.StoreId
-    WHERE w.StartTime >= @FromDate AND w.StartTime < DATEADD(day,1,CONVERT(datetime2,@ToDate));
+    WHERE w.StartTime >= @FromDate AND w.StartTime < @ToDate;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Product_TopProducts
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT TOP (ISNULL(NULLIF(@Top,0),10)) od.DrinkId,od.DrinkName,
+    SELECT TOP (ISNULL(NULLIF(@Top,0),10)) od.DrinkId,od.DrinkName,d.CategoryId,c.Name AS CategoryName,
            SUM(od.Quantity) AS TotalSold,
            SUM((od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity) AS ProductRevenue,
            SUM(CASE WHEN od.CostStatus=1 THEN od.TotalCogs ELSE 0 END) AS ConfirmedCogs,
            SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity-COALESCE(od.TotalCogs,0) ELSE 0 END) AS ConfirmedGrossProfit,
+           CONVERT(decimal(9,4),COALESCE(
+               SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity-COALESCE(od.TotalCogs,0) ELSE 0 END)
+               / NULLIF(SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity ELSE 0 END),0),0)) AS ConfirmedMarginRate,
            CASE WHEN SUM(CASE WHEN od.CostStatus<>1 THEN 1 ELSE 0 END)>0 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.OrderDetails AS od
-    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
+    LEFT JOIN dbo.Drinks AS d ON d.DrinkId=od.DrinkId
+    LEFT JOIN dbo.DrinkCategories AS c ON c.CategoryId=d.CategoryId
     OUTER APPLY(SELECT SUM(ot.Price) AS ToppingUnitPrice FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId=od.OrderDetailId) t
-    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
-    GROUP BY od.DrinkId,od.DrinkName ORDER BY ProductRevenue DESC,TotalSold DESC;
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<@ToDate
+    GROUP BY od.DrinkId,od.DrinkName,d.CategoryId,c.Name ORDER BY ProductRevenue DESC,TotalSold DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Product_VolumeMarginMatrix
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -615,16 +662,16 @@ BEGIN
              /NULLIF(SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity ELSE 0 END),0),0)) AS ConfirmedMarginRate,
            CASE WHEN SUM(CASE WHEN od.CostStatus<>1 THEN 1 ELSE 0 END)>0 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.OrderDetails AS od
-    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
     OUTER APPLY(SELECT SUM(ot.Price) AS ToppingUnitPrice FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId=od.OrderDetailId) t
-    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<@ToDate
     GROUP BY od.DrinkId,od.DrinkName ORDER BY Volume DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Product_SizeMargin
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -634,16 +681,16 @@ BEGIN
            SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity-COALESCE(od.TotalCogs,0) ELSE 0 END) AS ConfirmedGrossProfit,
            CASE WHEN SUM(CASE WHEN od.CostStatus<>1 THEN 1 ELSE 0 END)>0 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.OrderDetails AS od
-    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
     OUTER APPLY(SELECT SUM(ot.Price) AS ToppingUnitPrice FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId=od.OrderDetailId) t
-    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<@ToDate
     GROUP BY od.SizeId,od.SizeName ORDER BY Revenue DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Product_TopToppings
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -652,15 +699,15 @@ BEGIN
            SUM(CASE WHEN ot.CostStatus=1 THEN ot.TotalCogs ELSE 0 END) AS ConfirmedCogs,
            CASE WHEN SUM(CASE WHEN ot.CostStatus<>1 THEN 1 ELSE 0 END)>0 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.OrderToppings AS ot INNER JOIN dbo.OrderDetails AS od ON od.OrderDetailId=ot.OrderDetailId
-    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
-    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<@ToDate
     GROUP BY ot.ToppingId,ot.ToppingName ORDER BY Revenue DESC,TotalUsed DESC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Product_BomHealth
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -677,7 +724,7 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Product_HighConsumptionLowEfficiency
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -686,16 +733,16 @@ BEGIN
            SUM(CASE WHEN od.CostStatus=1 THEN od.Price*od.Quantity-COALESCE(od.TotalCogs,0) ELSE 0 END) AS ConfirmedGrossProfit,
            CASE WHEN SUM(CASE WHEN od.CostStatus<>1 THEN 1 ELSE 0 END)>0 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.OrderDetails AS od
-    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
-    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<@ToDate
     GROUP BY od.DrinkId,od.DrinkName
     ORDER BY ConfirmedCogs DESC,ConfirmedGrossProfit ASC;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Workforce_ShiftStatus
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -718,14 +765,14 @@ BEGIN
                DATEADD(day,DATEDIFF(day,0,ss.WorkDate),
                    CONVERT(datetime2,COALESCE(ss.CustomStartTime,sh.StartTime))) AS PlannedStartAt
     ) AS planned
-    WHERE ss.WorkDate>=@FromDate AND ss.WorkDate<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE ss.WorkDate>=@FromDate AND ss.WorkDate<@ToDate
       AND status.Code IN ('SCHEDULED','CANCELLED')
     ORDER BY ss.WorkDate DESC,ss.StaffShiftId;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Workforce_HourlyDemand
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Hour',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Hour',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -733,7 +780,7 @@ BEGIN
     Demand AS
     (
         SELECT DATEPART(hour,f.CreatedAt) AS HourOfDay,SUM(f.CountedOrder) AS TotalOrders
-        FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+        FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
         GROUP BY DATEPART(hour,f.CreatedAt)
     ),Schedules AS
@@ -746,7 +793,7 @@ BEGIN
         INNER JOIN dbo.Shifts AS sh ON sh.ShiftId=ss.ShiftId
         INNER JOIN dbo.StaffShiftStatuses AS status ON status.StaffShiftStatusId=ss.StatusId
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=sh.StoreId
-        WHERE ss.WorkDate>=DATEADD(day,-1,@FromDate) AND ss.WorkDate<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+        WHERE ss.WorkDate>=DATEADD(day,-1,@FromDate) AND ss.WorkDate<@ToDate
           AND status.Code='SCHEDULED'
     ),Staffing AS
     (
@@ -767,7 +814,7 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Workforce_StaffPerformance
-    @FromDate date,@ToDate date,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
+    @FromDate datetime2,@ToDate datetime2,@StoreIds nvarchar(max),@Granularity varchar(10)='Day',@Top int=10
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -783,12 +830,12 @@ BEGIN
         SELECT COUNT_BIG(w.ShiftId) AS WorkShiftCount
         FROM dbo.WorkShifts AS w
         WHERE w.UserId=st.StaffId AND w.StoreId=st.StoreId
-          AND w.StartTime>=@FromDate AND w.StartTime<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+          AND w.StartTime>=@FromDate AND w.StartTime<@ToDate
     ) AS shifts
     OUTER APPLY
     (
         SELECT SUM(f.CountedOrder) AS TotalOrders,SUM(f.NetSales) AS NetSales
-        FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+        FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f
         WHERE f.StaffId=st.StaffId AND f.StoreId=st.StoreId
     ) AS sales
     ORDER BY NetSales DESC,st.StaffId;
@@ -823,7 +870,7 @@ BEGIN
     SELECT s.StoreId,s.Name,COALESCE(SUM(f.CountedOrder),0) AS TotalOrders,
            COALESCE(SUM(f.NetSales),0) AS Revenue
     FROM dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope INNER JOIN dbo.Stores AS s ON s.StoreId=scope.StoreId
-    LEFT JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.StoreId=s.StoreId
+    LEFT JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.StoreId=s.StoreId
     GROUP BY s.StoreId,s.Name ORDER BY Revenue DESC,s.StoreId;
 END;
 GO
@@ -835,10 +882,10 @@ BEGIN
     SET NOCOUNT ON;
     SELECT CONVERT(date,f.CreatedAt) AS [Date],SUM(f.CountedOrder) AS TotalOrders,
            COALESCE(SUM(f.NetSales),0) AS Revenue
-    FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+    FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f
     INNER JOIN dbo.Stores AS s ON s.StoreId=f.StoreId
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
-    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<@ToDate
       AND (@ProvinceId IS NULL OR s.ProvinceId=@ProvinceId) AND (@DistrictId IS NULL OR s.DistrictId=@DistrictId)
     GROUP BY CONVERT(date,f.CreatedAt) ORDER BY [Date];
 END;
@@ -885,12 +932,12 @@ BEGIN
     (
         SELECT f.WorkShiftId,f.StoreId,p.PaymentMethodId,CONVERT(decimal(19,2),p.Amount) AS Amount
         FROM dbo.Payments AS p
-        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=p.OrderId
+        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=p.OrderId
         WHERE p.PaymentStatusId=2
         UNION ALL
         SELECT f.WorkShiftId,f.StoreId,r.PaymentMethodId,-f.CompletedRefundAmount
         FROM dbo.OrderRefunds AS r
-        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=r.OrderId
+        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=r.OrderId
         WHERE r.Status=3
     )
     SELECT w.ShiftId AS CashSessionId,w.UserId AS StaffId,w.StartTime AS OpenTime,w.EndTime AS CloseTime,w.StartingCash AS StartCash,
@@ -901,7 +948,7 @@ BEGIN
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=w.StoreId
     LEFT JOIN PaymentEvents AS e ON e.WorkShiftId=w.ShiftId
     LEFT JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId=e.PaymentMethodId
-    WHERE w.StartTime>=@FromDate AND w.StartTime<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE w.StartTime>=@FromDate AND w.StartTime<@ToDate
     GROUP BY w.ShiftId,w.UserId,w.StartTime,w.EndTime,w.StartingCash ORDER BY w.StartTime DESC;
 END;
 GO
@@ -914,10 +961,10 @@ BEGIN
     SELECT TOP (ISNULL(NULLIF(@Top,0),10)) od.DrinkId,od.DrinkName,SUM(od.Quantity) AS TotalSold,
            SUM((od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity) AS Revenue
     FROM dbo.OrderDetails AS od
-    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
     OUTER APPLY(SELECT SUM(ot.Price) AS ToppingUnitPrice FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId=od.OrderDetailId) t
-    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<@ToDate
     GROUP BY od.DrinkId,od.DrinkName ORDER BY TotalSold DESC,Revenue DESC;
 END;
 GO
@@ -929,9 +976,9 @@ BEGIN
     SET NOCOUNT ON;
     SELECT ot.ToppingId,ot.ToppingName,SUM(od.Quantity) AS TotalUsed,SUM(ot.Price*od.Quantity) AS Revenue
     FROM dbo.OrderToppings AS ot INNER JOIN dbo.OrderDetails AS od ON od.OrderDetailId=ot.OrderDetailId
-    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
-    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
+    WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<@ToDate
     GROUP BY ot.ToppingId,ot.ToppingName ORDER BY TotalUsed DESC;
 END;
 GO
@@ -949,13 +996,13 @@ BEGIN
         SELECT p.PaymentMethodId,CONVERT(bigint,CASE WHEN f.CountedOrder=1 THEN 1 ELSE 0 END) AS TransactionCount,
                CONVERT(decimal(19,2),p.Amount) AS Amount
         FROM dbo.Payments AS p
-        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=p.OrderId
+        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=p.OrderId
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
         WHERE p.PaymentStatusId=2
         UNION ALL
         SELECT r.PaymentMethodId,CONVERT(bigint,0),-f.CompletedRefundAmount
         FROM dbo.OrderRefunds AS r
-        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f ON f.OrderId=r.OrderId
+        INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=r.OrderId
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
         WHERE r.Status=3
     )
@@ -982,7 +1029,7 @@ BEGIN
     SET @FromDate=COALESCE(@FromDate,CONVERT(datetime,'19000101'));
     SET @ToDate=COALESCE(@ToDate,CONVERT(datetime,'99991230'));
     SELECT DATEPART(hour,f.CreatedAt) AS HourOfDay,SUM(f.CountedOrder) AS TotalOrders,SUM(f.NetSales) AS Revenue
-    FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+    FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
     GROUP BY DATEPART(hour,f.CreatedAt) ORDER BY HourOfDay;
 END;
@@ -996,7 +1043,7 @@ BEGIN
     SELECT st.StaffId,st.FullName,COALESCE(SUM(f.CountedOrder),0) AS TotalOrders,
            COALESCE(SUM(f.NetSales),0) AS Revenue
     FROM dbo.Staffs AS st INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=st.StoreId
-    LEFT JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+    LEFT JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f
       ON f.StaffId=st.StaffId AND f.StoreId=st.StoreId
     GROUP BY st.StaffId,st.FullName ORDER BY Revenue DESC,TotalOrders DESC;
 END;
@@ -1010,7 +1057,7 @@ BEGIN
     SELECT COALESCE(SUM(f.CountedOrder),0) AS TotalOrders,
            COALESCE(SUM(f.NetSales),0) AS Revenue,
            COALESCE(SUM(CASE WHEN CONVERT(date,f.CreatedAt)=CONVERT(date,@ToDate) THEN f.CountedOrder ELSE 0 END),0) AS TodayOrders
-    FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,DATEADD(day,1,CONVERT(datetime2,@ToDate))) AS f
+    FROM dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId;
 END;
 GO
@@ -1018,7 +1065,7 @@ GO
 /* AI Dashboard v2 read-only datasets. These procedures accept the same
    validated scope contract as the existing Dashboard procedures. */
 CREATE OR ALTER PROCEDURE dbo.usp_Dashboard_OrderStatusSummary
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max),
     @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
@@ -1028,21 +1075,21 @@ BEGIN
            SUM(CASE WHEN o.OrderStatusId = 5 THEN 1 ELSE 0 END) AS CompletedOrders,
            SUM(CASE WHEN o.OrderStatusId = 6 THEN 1 ELSE 0 END) AS CancelledOrders,
            CONVERT(decimal(9,4), COALESCE(
-               SUM(CASE WHEN o.OrderStatusId = 6 THEN 1 ELSE 0 END) * 100.0
+               SUM(CASE WHEN o.OrderStatusId = 6 THEN 1 ELSE 0 END) * 1.0
                / NULLIF(COUNT_BIG(o.OrderId), 0), 0)) AS CancellationRate,
            CASE WHEN COUNT_BIG(o.OrderId) = 0 THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.Orders AS o
     INNER JOIN dbo.Stores AS s ON s.StoreId = o.StoreId
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = o.StoreId
     WHERE o.CreatedAt >= @FromDate
-      AND o.CreatedAt < DATEADD(day, 1, CONVERT(datetime2, @ToDate))
+      AND o.CreatedAt < @ToDate
     GROUP BY s.StoreId, s.Name
     ORDER BY CancellationRate DESC, s.StoreId;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Product_CategoryPerformance
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max),
     @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
@@ -1066,7 +1113,7 @@ BEGIN
     FROM dbo.OrderDetails AS od
     INNER JOIN dbo.Drinks AS d ON d.DrinkId = od.DrinkId
     LEFT JOIN dbo.DrinkCategories AS c ON c.CategoryId = d.CategoryId
-    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate, DATEADD(day, 1, CONVERT(datetime2, @ToDate))) AS f
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate, @ToDate) AS f
         ON f.OrderId = od.OrderId AND f.CountedOrder = 1
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = f.StoreId
     OUTER APPLY (SELECT SUM(ot.Price) AS ToppingUnitPrice
@@ -1077,7 +1124,7 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Product_PeriodPerformance
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max),
     @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
@@ -1098,7 +1145,7 @@ BEGIN
            CASE WHEN SUM(CASE WHEN od.CostStatus <> 1 THEN 1 ELSE 0 END) > 0
                 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.OrderDetails AS od
-    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate, DATEADD(day, 1, CONVERT(datetime2, @ToDate))) AS f
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate, @ToDate) AS f
         ON f.OrderId = od.OrderId AND f.CountedOrder = 1
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = f.StoreId
     OUTER APPLY (SELECT SUM(ot.Price) AS ToppingUnitPrice
@@ -1109,7 +1156,7 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Inventory_IngredientConsumptionTrend
-    @FromDate date, @ToDate date, @StoreIds nvarchar(max),
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max),
     @Granularity varchar(10) = 'Day', @Top int = 10
 AS
 BEGIN
@@ -1131,7 +1178,7 @@ BEGIN
     WHERE si.IngredientId IS NOT NULL
       AND it.Type = 7
       AND it.CreatedAt >= @FromDate
-      AND it.CreatedAt < DATEADD(day, 1, CONVERT(datetime2, @ToDate))
+      AND it.CreatedAt < @ToDate
     GROUP BY dbo.ufn_AnalyticsBucketStart(it.CreatedAt, @Granularity),
              si.StoreId, si.IngredientId, i.Name
     ORDER BY BucketDate, ConfirmedCost DESC;

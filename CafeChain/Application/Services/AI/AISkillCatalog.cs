@@ -16,7 +16,6 @@ public sealed class AISkillCatalog : IAISkillCatalog
             ["dashboard-insight-explanation"] = "dashboard-insight-explanation.schema.json",
             ["forecast-result-explanation"] = "forecast-result-explanation.schema.json",
             ["supplier-score-explanation"] = "supplier-score-explanation.schema.json",
-            ["shift-proposal-explanation"] = "shift-proposal-explanation.schema.json",
             ["anomaly-explanation"] = "anomaly-explanation.schema.json"
         };
     private sealed record CacheEntry(DateTime LastWriteUtc, string Content);

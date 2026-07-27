@@ -21,7 +21,7 @@ public sealed class DashboardWidgetContractTests
             ["offlineReconciliation"] = (typeof(OfflineReconciliationRow), ["WorkShiftId", "StoreId", "OfflineOrderCountAtClose", "OfflineEstimatedTotalAtClose", "RequiresReconciliation", "HasLateOfflineSync"]),
             ["topDiscrepancies"] = (typeof(WorkShiftTopDiscrepancyRow), ["WorkShiftId", "StoreId", "StaffId", "CashDiscrepancy", "DiscrepancyReason", "EndTime"]),
 
-            ["shortageRisk"] = (typeof(InventoryShortageRiskRow), ["StoreId", "IngredientId", "IngredientName", "AvailableQty"]),
+            ["shortageRisk"] = (typeof(InventoryShortageRiskRow), ["StoreId", "StoreName", "IngredientId", "IngredientCode", "IngredientName", "Unit", "OnHandQuantity", "ReservedQuantity", "AvailableQuantity", "MinimumStock", "ShortageQuantity"]),
             ["movement"] = (typeof(InventoryMovementRow), ["MovementDate", "TransactionType", "Quantity"]),
             ["thresholdRisk"] = (typeof(InventoryThresholdRiskRow), ["StoreId", "IngredientName", "AvailableQty", "MinStockLevel", "MaxNegativeQty"]),
             ["reorderSuggestions"] = (typeof(InventoryReorderRow), ["StoreId", "IngredientName", "RequestedQuantity", "SuggestedQuantity", "Priority", "Status"]),
@@ -33,9 +33,9 @@ public sealed class DashboardWidgetContractTests
             ["supplierQuality"] = (typeof(SupplierQualityRow), ["SupplierId", "SupplierName", "RejectionRate"]),
             ["purchasePriceTrend"] = (typeof(PurchasePriceTrendRow), ["ReceiptDate", "IngredientId", "IngredientName", "AverageBaseUnitCost"]),
             ["spendBreakdown"] = (typeof(ProcurementSpendRow), ["SupplierId", "SupplierName", "StoreId", "Spend"]),
-            ["supplierIssueMix"] = (typeof(SupplierIssueMixRow), ["IssueType", "Status", "IssueCount"]),
+            ["supplierIssueMix"] = (typeof(SupplierIssueMixRow), ["SupplierId", "SupplierName", "StoreId", "StoreName", "IssueType", "Status", "IssueCount"]),
 
-            ["topProducts"] = (typeof(TopProductRow), ["DrinkId", "DrinkName", "ProductRevenue"]),
+            ["topProducts"] = (typeof(TopProductRow), ["DrinkId", "DrinkName", "CategoryName", "ProductRevenue", "ConfirmedMarginRate"]),
             ["volumeMargin"] = (typeof(VolumeMarginRow), ["DrinkId", "DrinkName", "Volume", "Revenue", "ConfirmedCogs", "ConfirmedMarginRate"]),
             ["sizeMargin"] = (typeof(SizeMarginRow), ["SizeId", "SizeName", "ConfirmedGrossProfit"]),
             ["topToppings"] = (typeof(TopToppingAnalyticsRow), ["ToppingId", "ToppingName", "Revenue"]),

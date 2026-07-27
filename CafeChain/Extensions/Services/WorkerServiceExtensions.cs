@@ -13,6 +13,7 @@ namespace CafeChain.Extensions.Services
             services.AddHostedService<ForecastGenerationWorker>();
             services.AddHostedService<PosRecommendationWorker>();
             services.AddHostedService<AnomalyDetectionWorker>();
+            services.AddHostedService<StaffScheduleGapNotificationWorker>();
 
             return services;
         }
