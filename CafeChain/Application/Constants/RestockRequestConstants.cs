@@ -29,6 +29,21 @@ namespace CafeChain.Application.Constants
         public const string Urgent = "URGENT";
     }
 
+    public static class RestockRequestErrorCodes
+    {
+        public const string ActiveRequestExists = "ACTIVE_RESTOCK_REQUEST_EXISTS";
+        public const string DemandAdjustmentInvalid = "DEMAND_ADJUSTMENT_INVALID";
+        public const string DemandAdjustmentNotAllowed = "DEMAND_ADJUSTMENT_NOT_ALLOWED";
+        public const string ProcurementUnitMismatch = "PROCUREMENT_UNIT_MISMATCH";
+        public const string ResourceChanged = "RESTOCK_REQUEST_RESOURCE_CHANGED";
+        public const string Unauthorized = "RESTOCK_REQUEST_UNAUTHORIZED";
+    }
+
+    public static class RestockRequestAuditKeys
+    {
+        public const string DemandAdjustmentPrefix = "DEMAND_ADJUSTMENT:";
+    }
+
     public static class RestockFulfillmentDocumentTypes
     {
         public const string BranchReceipt = "BRANCH_RECEIPT";

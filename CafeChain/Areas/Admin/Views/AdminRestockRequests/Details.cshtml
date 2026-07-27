@@ -7,6 +7,7 @@
     var canWarehouse = ViewBag.CanWarehouse as bool? ?? false;
     var canCancel = ViewBag.CanCancel as bool? ?? false;
     var canSubmit = ViewBag.CanSubmit as bool? ?? false;
+    var canAddDemand = ViewBag.CanAddDemand as bool? ?? false;
     var hasPendingPurchaseAllocation = Model.SourcingAllocations.Any(x =>
         x.DecisionType == RestockSourcingDecisionTypes.Purchase
         && x.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice
@@ -156,6 +157,29 @@
                 </div>
             </section>
 
+            @if (canAddDemand && usesProcurement)
+            {
+                <section id="add-demand" class="ops-panel">
+                    <div class="ops-panel-header"><h2 class="ops-panel-title">Bổ sung nhu cầu vào yêu cầu hiện tại</h2></div>
+                    <div class="ops-panel-body">
+                        <p class="ops-secondary">Dùng khi chi nhánh phát sinh thêm nhu cầu cho cùng nguyên liệu. Hệ thống chỉ tăng tổng nhu cầu; các phân bổ nguồn cung, đề nghị mua và đơn đặt hàng hiện có không bị thay đổi.</p>
+                        <form method="post" asp-action="AddDemand" data-single-submit>
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="RestockRequestId" value="@Model.RestockRequestId" />
+                            <input type="hidden" name="ProcurementUnitId" value="@Model.ProcurementUnitId" />
+                            <input type="hidden" name="RowVersion" value="@Model.RowVersion" />
+                            <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
+                            <div class="ops-data-grid">
+                                <div><label class="ops-form-label" for="adjustmentQuantity">Số lượng bổ sung (@requestUnitName)</label><input id="adjustmentQuantity" name="AdjustmentProcurementQuantity" class="ops-input" type="number" min="0.001" step="0.001" required /></div>
+                                <div><label class="ops-form-label" for="adjustmentNeedBy">Cần trước ngày mới (nếu đổi)</label><input id="adjustmentNeedBy" name="NeedByDate" class="ops-input" type="date" value="@Model.NeedByDate?.ToString("yyyy-MM-dd")" /></div>
+                            </div>
+                            <div class="mt-3"><label class="ops-form-label" for="adjustmentReason">Lý do bổ sung</label><textarea id="adjustmentReason" name="Reason" class="ops-textarea" maxlength="500" required placeholder="Ví dụ: tăng nhu cầu cuối tuần, phát sinh sự kiện..."></textarea></div>
+                            <button type="submit" class="ops-btn ops-btn-primary mt-3" data-submit-button>Bổ sung nhu cầu</button>
+                        </form>
+                    </div>
+                </section>
+            }
+
             <section class="ops-panel">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Đề nghị mua liên kết</h2></div>
                 <div class="ops-panel-body">
@@ -202,9 +226,13 @@
                             @foreach (var transition in Model.Timeline)
                             {
                                 <li>
-                                    <strong>@AdminStatusDisplay.RestockRequest(transition.NewStatus).Label</strong>
+                                    <strong>@(transition.IsDemandAdjustment ? "Đã bổ sung nhu cầu" : AdminStatusDisplay.RestockRequest(transition.NewStatus).Label)</strong>
                                     <div class="ops-secondary">@transition.OccurredAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @(transition.ActorName ?? $"Nhân viên #{transition.ActorStaffId}")</div>
-                                    @if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@AdminStatusDisplay.SystemGeneratedMessage(transition.Reason)</div> }
+                                    @if (transition.IsDemandAdjustment && transition.QuantityBefore.HasValue && transition.QuantityAfter.HasValue)
+                                    {
+                                        <div><strong>+@AdminStatusDisplay.Quantity(transition.QuantityAfter.Value - transition.QuantityBefore.Value) @requestUnitName</strong> · từ @AdminStatusDisplay.Quantity(transition.QuantityBefore.Value) lên @AdminStatusDisplay.Quantity(transition.QuantityAfter.Value) @requestUnitName</div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@(transition.IsDemandAdjustment ? transition.Reason : AdminStatusDisplay.SystemGeneratedMessage(transition.Reason))</div> }
                                     @if (transition.BranchReceiptId.HasValue) { <div>Phiếu nhận <a asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Details" asp-route-id="@transition.BranchReceiptId">#@transition.BranchReceiptId</a>@(transition.QuantityAfter.HasValue ? $" · đã nhận {AdminStatusDisplay.Quantity(transition.QuantityAfter.Value)}" : "")</div> }
                                     @if (transition.InventoryTransferId.HasValue) { <div>Điều chuyển <a asp-area="Admin" asp-controller="AdminInventoryTransfer" asp-action="Detail" asp-route-id="@transition.InventoryTransferId">#@transition.InventoryTransferId</a>@(transition.QuantityAfter.HasValue ? $" · lũy kế {AdminStatusDisplay.Quantity(transition.QuantityAfter.Value)}" : "")</div> }
                                 </li>
@@ -353,3 +381,14 @@
         </aside>
     </div>
 </main>
+
+<script>
+document.querySelectorAll('[data-single-submit]').forEach(form => {
+    form.addEventListener('submit', () => {
+        const button = form.querySelector('[data-submit-button]');
+        if (!button) return;
+        button.disabled = true;
+        button.textContent = 'Đang ghi nhận...';
+    });
+});
+</script>

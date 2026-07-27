@@ -19,6 +19,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public decimal? QuantityBefore { get; set; }
         public decimal? QuantityAfter { get; set; }
         public string? RequestKey { get; set; }
+        public bool IsDemandAdjustment { get; set; }
     }
 
     public class RestockRequestWorkflowDetailDto : RestockRequestDetailDto

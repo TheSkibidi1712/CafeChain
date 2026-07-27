@@ -123,7 +123,12 @@ namespace CafeChain.Application.Services.Inventories
                 var source = await BuildSourceAsync(requestId, null, false);
                 if (source != null
                     && HasRemainingToPurchase(source)
-                    && source.ExistingPurchaseAdviceQuantity == 0)
+                    && source.ExistingPurchaseAdviceQuantity == 0
+                    && (string.Equals(
+                            source.SourceType,
+                            RestockRequestSourceTypes.Legacy,
+                            StringComparison.OrdinalIgnoreCase)
+                        || source.PendingPurchaseAllocationBaseQuantity > 0))
                     result.Add(source);
             }
 
@@ -764,6 +769,9 @@ namespace CafeChain.Application.Services.Inventories
                 BaseUnitId = request.Ingredient.BaseUnitId,
                 BaseUnitName = request.Ingredient.BaseUnit.Name,
                 Priority = request.Priority,
+                SourceType = request.SourceType,
+                SourcingStatus = request.SourcingStatus,
+                NeedByDate = request.NeedByDate,
                 RestockRequestedQuantity = request.RequestedQuantity,
                 RestockRequestedProcurementQuantity = request.RequestedProcurementQuantity,
                 ProcurementUnitId = request.ProcurementUnitId,

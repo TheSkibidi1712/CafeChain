@@ -126,7 +126,36 @@ namespace CafeChain.Areas.Admin.Controllers
             ViewBag.CanCreateReceipt = CanCreateReceipt();
             ViewBag.CanCancel = CanCancel();
             ViewBag.CanSubmit = CanSubmit();
+            ViewBag.CanAddDemand = CanCreateDemand()
+                && RestockRequestStatuses.ActiveValues.Contains(result.Data.Status);
             return View(result.Data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckActive(int storeId, int ingredientId)
+        {
+            if (!CanCreateDemand()) return Forbid();
+            var ctx = _actor.Get(User);
+            var result = await _service.GetActiveForStoreIngredientAsync(
+                storeId,
+                ingredientId,
+                ctx.StaffId);
+            if (!result.IsSuccess)
+            {
+                if (result.ErrorCode == RestockRequestErrorCodes.Unauthorized)
+                    return Forbid();
+                return BadRequest(new
+                {
+                    success = false,
+                    code = result.ErrorCode,
+                    message = result.Message
+                });
+            }
+
+            if (result.Data == null)
+                return Ok(new { success = true, exists = false });
+
+            return ActiveRequestConflict(result.Data);
         }
 
         [HttpPost]
@@ -244,13 +273,51 @@ namespace CafeChain.Areas.Admin.Controllers
             if (!CanCreateDemand())
                 return Forbid();
 
+            if (!ModelState.IsValid)
+            {
+                await PopulateDemandOptionsAsync(model.StoreId);
+                return View(model);
+            }
+
             var ctx = _actor.Get(User);
             var result = await _service.CreateManualAsync(model, ctx.StaffId);
+            if (result.IsSuccess && result.Data != null)
+            {
+                TempData["SuccessMessage"] = result.Message ?? "Đã tạo nhu cầu bổ sung.";
+                return RedirectToAction(nameof(Details), new { id = result.Data.RestockRequestId });
+            }
+
+            if (result.ErrorCode == RestockRequestErrorCodes.ActiveRequestExists
+                && result.Data?.ExistingActiveRequest != null)
+            {
+                if (WantsJsonResponse())
+                    return ActiveRequestConflict(result.Data.ExistingActiveRequest);
+
+                TempData["ErrorMessage"] = result.Message;
+                return RedirectToAction(nameof(Details), new
+                {
+                    id = result.Data.ExistingActiveRequest.RestockRequestId
+                });
+            }
+
+            ModelState.AddModelError(string.Empty,
+                result.Message ?? "Không thể tạo nhu cầu bổ sung.");
+            await PopulateDemandOptionsAsync(model.StoreId);
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddDemand(AddRestockDemandAdjustmentRequest model)
+        {
+            if (!CanCreateDemand()) return Forbid();
+            var ctx = _actor.Get(User);
+            var result = await _service.AddDemandAdjustmentAsync(model, ctx.StaffId);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
-                result.Message ?? (result.IsSuccess ? "Đã tạo nhu cầu bổ sung." : "Không thể tạo nhu cầu bổ sung.");
-            return result.IsSuccess && result.Data != null
-                ? RedirectToAction(nameof(Details), new { id = result.Data.RestockRequestId })
-                : RedirectToAction(nameof(Index), new { storeId = model.StoreId });
+                result.Message ?? (result.IsSuccess
+                    ? "Đã bổ sung nhu cầu."
+                    : "Không thể bổ sung nhu cầu.");
+            return RedirectToAction(nameof(Details), new { id = model.RestockRequestId });
         }
 
         [HttpPost]
@@ -336,6 +403,27 @@ namespace CafeChain.Areas.Admin.Controllers
                 .ToListAsync();
             ViewBag.SelectedStoreId = storeId;
         }
+
+        private ObjectResult ActiveRequestConflict(ActiveRestockRequestDto existing) =>
+            Conflict(new
+            {
+                success = false,
+                code = RestockRequestErrorCodes.ActiveRequestExists,
+                message = "Chi nhánh đã có một yêu cầu bổ sung đang xử lý cho nguyên liệu này. Hãy mở yêu cầu hiện tại hoặc bổ sung thêm nhu cầu.",
+                existingRequestId = existing.RestockRequestId,
+                existingRequestCode = $"#{existing.RestockRequestId}",
+                existingStatus = existing.Status,
+                existingRequestedQty = existing.RequestedProcurementQuantity,
+                existingAllocatedQty = existing.AllocatedProcurementQuantity,
+                existingRemainingQty = existing.RemainingUnallocatedProcurementQuantity,
+                procurementUnit = existing.ProcurementUnitName,
+                needByDate = existing.NeedByDate,
+                detailUrl = Url.Action(nameof(Details), new { id = existing.RestockRequestId })
+            });
+
+        private bool WantsJsonResponse() =>
+            Request.Headers.Accept.Any(x =>
+                x?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true);
 
     }
 }

@@ -774,7 +774,9 @@ namespace CafeChain.Application.Services.Inventories
                     InventoryTransactionId = t.InventoryTransactionId,
                     QuantityBefore = t.QuantityBefore,
                     QuantityAfter = t.QuantityAfter,
-                    RequestKey = t.RequestKey
+                    RequestKey = t.RequestKey,
+                    IsDemandAdjustment = t.RequestKey != null
+                        && t.RequestKey.StartsWith(RestockRequestAuditKeys.DemandAdjustmentPrefix)
                 })
                 .ToListAsync();
 
@@ -974,6 +976,7 @@ namespace CafeChain.Application.Services.Inventories
                 Note = r.Note,
                 CreatedByName = r.CreatedByStaff?.FullName,
                 CreatedAt = r.CreatedAt,
+                NeedByDate = r.NeedByDate,
                 UpdatedAt = r.UpdatedAt,
                 IngredientId = r.IngredientId,
                 RecipeId = r.RecipeId,

@@ -38,6 +38,9 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public int BaseUnitId { get; set; }
         public string BaseUnitName { get; set; } = string.Empty;
         public string Priority { get; set; } = string.Empty;
+        public string SourceType { get; set; } = string.Empty;
+        public string SourcingStatus { get; set; } = string.Empty;
+        public DateTime? NeedByDate { get; set; }
         public decimal RestockRequestedQuantity { get; set; }
         public decimal? RestockRequestedProcurementQuantity { get; set; }
         public int? ProcurementUnitId { get; set; }
