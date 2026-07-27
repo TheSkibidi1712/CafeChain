@@ -53,18 +53,28 @@
     .avatar-upload-placeholder span { color: #64748b; font-size: 12px; }
     .avatar-actions { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
     .staff-scope-help { background: #fff7ed; border: 1px solid #fed7aa; color: #7c2d12; border-radius: 10px; padding: 12px 14px; font-size: 13px; }
+    .staff-modal .modal-content { box-shadow: 0 28px 80px rgba(45,29,20,.28); }
+    .staff-modal .modal-header { background: linear-gradient(135deg, #fffdfb, #f7f3ee); }
+    .staff-modal-heading-icon { width: 44px; height: 44px; border: 1px solid #d7c3b3; border-radius: 13px; color: #fff; background: linear-gradient(145deg,#6f4e37,#8b6b55); box-shadow: 0 8px 18px rgba(111,78,55,.2); }
+    .staff-modal .modal-body { background: #faf7f4; }
+    .staff-modal .nav-tabs { margin: -16px -8px 20px; padding: 0 8px; background: #fffdfb; border-radius: 12px 12px 0 0; }
+    .staff-modal .tab-pane { border: 1px solid #e7dcd3; border-radius: 15px; padding: 20px; background: #fff; box-shadow: 0 10px 26px rgba(71,50,35,.06); }
+    .staff-modal .section-title { display: flex; align-items: center; gap: 7px; padding-bottom: 9px; border-bottom: 1px solid #eee4dc; color: #6f4e37; }
+    .staff-modal .form-control:hover, .staff-modal .form-select:hover { border-color: #b8957d; }
+    .staff-modal .form-control:focus, .staff-modal .form-select:focus { border-color: #6f4e37; box-shadow: 0 0 0 3px rgba(111,78,55,.12); }
+    .staff-modal .modal-footer { border-top: 1px solid #e7dcd3; background: #fffdfb; box-shadow: 0 -8px 20px rgba(71,50,35,.04); }
     @@media (max-width: 767.98px) { .avatar-upload-box { width: 140px; height: 140px; } .staff-modal .nav-link { padding: 10px 8px; font-size: 10px; } }
 </style>
 
 <div class="modal fade staff-modal" id="createStaffModal" tabindex="-1" aria-labelledby="createStaffTitle" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content admin-wo-card shadow">
-            <form asp-action="Create" asp-controller="AdminStaff" asp-area="Admin" method="post"
+            <form asp-action="Create" asp-controller="AdminStaff" asp-area="Admin" method="post" class="staff-create-form"
                   enctype="multipart/form-data" id="createStaffForm" novalidate>
                 @Html.AntiForgeryToken()
                 <div class="modal-header">
                     <div class="d-flex align-items-center gap-3">
-                        <span class="d-flex align-items-center justify-content-center" style="width:40px;height:40px;border-radius:11px;background:#f5ede3;color:#c67a45">
+                        <span class="staff-modal-heading-icon d-flex align-items-center justify-content-center">
                             <i class="fas fa-user-plus"></i>
                         </span>
                         <div><h4 class="modal-title fw-bold mb-0" id="createStaffTitle">Thêm nhân viên mới</h4><small class="text-muted">Tạo hồ sơ, tài khoản và phạm vi làm việc trong một giao dịch.</small></div>

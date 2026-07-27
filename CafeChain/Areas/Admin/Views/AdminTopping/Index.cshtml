@@ -23,7 +23,7 @@
 }
 
 
-<link rel="stylesheet" href="~/css/Admin/Topping/topping.css" />
+<link rel="stylesheet" href="~/css/Admin/Topping/topping.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/Admin/AI/ai-image-pipeline.css" asp-append-version="true" />
 
 <div class="container-fluid p-4">
@@ -313,15 +313,18 @@
      tabindex="-1"
      aria-hidden="true">
 
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered topping-create-dialog">
 
-        <div class="modal-content p-3">
+        <div class="modal-content topping-create-modal">
 
-            <div class="modal-header border-0">
-
-                <h6 class="fw-bold mb-0">
-                    Thêm Topping
-                </h6>
+            <div class="modal-header">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="topping-create-icon"><i class="fas fa-cookie-bite"></i></span>
+                    <div>
+                        <h6 class="fw-bold mb-0">Thêm Topping mới</h6>
+                        <small class="text-muted text-uppercase">Cấu hình thực đơn</small>
+                    </div>
+                </div>
 
                 <button type="button"
                         class="btn-close"
@@ -338,10 +341,11 @@
                 @Html.AntiForgeryToken()
 
                 <div class="modal-body">
+                    <div class="topping-create-fields">
 
                     <!-- CODE -->
 
-                    <div class="mb-3">
+                    <div class="mb-3 topping-code-field">
 
                         <label class="form-label">
                             Mã topping
@@ -361,7 +365,7 @@
 
                     <!-- NAME -->
 
-                    <div class="mb-3">
+                    <div class="mb-3 topping-name-field">
 
                         <label class="form-label">
                             Tên topping
@@ -380,7 +384,7 @@
 
                     <!-- PRICE -->
 
-                    <div class="mb-3">
+                    <div class="mb-3 topping-price-field">
 
                         <label class="form-label">
                             Giá topping
@@ -400,7 +404,7 @@
 
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-3 topping-ai-section d-none">
                         <label for="toppingAiIdea" class="form-label">Ý tưởng cho AI <span class="text-muted">(không bắt buộc)</span></label>
                         <select id="toppingAiGenerationMode" class="form-select mb-2" aria-label="Chế độ gợi ý topping">
                             <option value="0">Tạo mới</option>
@@ -436,7 +440,7 @@
 
                     <!-- IMAGE -->
 
-                    <div class="mb-3">
+                    <div class="mb-3 topping-image-field">
 
                         <label class="form-label">
                             Ảnh topping
@@ -479,6 +483,7 @@
                               data-valmsg-for="ImageFile">
                         </span>
 
+                    </div>
                     </div>
 
                 </div>
