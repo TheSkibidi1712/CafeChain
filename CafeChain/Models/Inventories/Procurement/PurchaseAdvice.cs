@@ -3,6 +3,7 @@ using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Models.Inventories.Procurement
 {
@@ -52,6 +53,7 @@ namespace CafeChain.Models.Inventories.Procurement
         public decimal ClosedBaseQuantity { get; set; }
         public int BaseUnitId { get; set; }
         public decimal? RequestedProcurementQuantity { get; set; }
+        public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
         public decimal AllocatedToPoProcurementQuantity { get; set; }
         public decimal AcceptedProcurementQuantity { get; set; }
         public decimal ClosedProcurementQuantity { get; set; }

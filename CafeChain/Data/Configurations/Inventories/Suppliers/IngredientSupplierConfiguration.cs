@@ -29,6 +29,11 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     "CK_IngredientSupplier_PackageQuantity",
                     "[PackageQuantity] IS NULL OR [PackageQuantity] > 0"
                 );
+
+                table.HasCheckConstraint(
+                    "CK_IngredientSupplier_LoosePurchase",
+                    "[AllowsLoosePurchase] = 0 OR ([CurrentProcurementUnitPrice] IS NOT NULL AND [CurrentProcurementUnitPrice] > 0 AND [LooseProcurementUnitId] IS NOT NULL)"
+                );
             });
 
             entity.HasKey(x => x.IngredientSupplierId);
@@ -52,6 +57,9 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
 
             entity.Property(x => x.AllowsLoosePurchase)
                 .HasDefaultValue(false);
+
+            entity.Property(x => x.CurrentProcurementUnitPrice)
+                .HasColumnType("decimal(18,2)");
 
             entity.Property(x => x.Note)
                 .HasMaxLength(1000);
@@ -78,6 +86,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
             entity.HasIndex(x => x.IngredientId);
 
             entity.HasIndex(x => x.Active);
+            entity.HasIndex(x => x.LooseProcurementUnitId);
 
             // ================= RELATION =================
 
@@ -94,6 +103,11 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
             entity.HasOne(x => x.Unit)
                 .WithMany()
                 .HasForeignKey(x => x.UnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.LooseProcurementUnit)
+                .WithMany()
+                .HasForeignKey(x => x.LooseProcurementUnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasMany(x => x.PriceHistories)

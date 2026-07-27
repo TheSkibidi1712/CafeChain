@@ -1,6 +1,7 @@
 using CafeChain.Models.Inventories.Stock;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Data.Configurations.Inventories.Stock
 {
@@ -21,10 +22,10 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
 )");
                 t.HasCheckConstraint(
                     "CK_BranchReceiptLines_Quantities",
-                    "[InputQuantity] > 0 AND [ReceivedBaseQuantity] >= 0 AND [RejectedBaseQuantity] >= 0 AND ([ReceivedBaseQuantity] + [RejectedBaseQuantity]) > 0");
+                    "[InputQuantity] > 0 AND [ReceivedBaseQuantity] >= 0 AND [RejectedBaseQuantity] >= 0 AND (([ReceivedProcurementQuantity] IS NOT NULL AND [ReceivedProcurementQuantity] > 0 AND [AcceptedProcurementQuantity] IS NOT NULL AND [AcceptedProcurementQuantity] >= 0 AND [RejectedProcurementQuantity] IS NOT NULL AND [RejectedProcurementQuantity] >= 0) OR ([ReceivedBaseQuantity] + [RejectedBaseQuantity]) > 0)");
                 t.HasCheckConstraint(
                     "CK_BranchReceiptLines_RejectionReason",
-                    "[RejectedBaseQuantity] = 0 OR (LEN(LTRIM(RTRIM([RejectionReason]))) > 0 AND LEN(LTRIM(RTRIM([RejectionIssueType]))) > 0)");
+                    "([RejectedBaseQuantity] = 0 AND ([RejectedProcurementQuantity] IS NULL OR [RejectedProcurementQuantity] = 0)) OR (LEN(LTRIM(RTRIM([RejectionReason]))) > 0 AND LEN(LTRIM(RTRIM([RejectionIssueType]))) > 0)");
             });
 
             entity.HasKey(x => x.BranchReceiptLineId);
@@ -48,6 +49,11 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.Property(x => x.AcceptedProcurementQuantity).HasPrecision(18, 3);
             entity.Property(x => x.InventoryPostingBaseQuantity).HasPrecision(18, 3);
             entity.Property(x => x.ProcurementToInventoryFactor).HasPrecision(18, 6);
+            entity.Property(x => x.PurchaseMode)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .HasDefaultValue(PurchaseMode.Packaged)
+                .IsRequired();
 
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
             entity.Property(x => x.RejectionIssueType).HasMaxLength(40);

@@ -42,6 +42,14 @@ namespace CafeChain.Models.Inventories.Suppliers
 
         public bool AllowsLoosePurchase { get; set; }
 
+        /// <summary>
+        /// Price per procurement unit when this SKU is bought loose.
+        /// CurrentPrice remains the price per package for Packaged mode.
+        /// </summary>
+        public decimal? CurrentProcurementUnitPrice { get; set; }
+
+        public int? LooseProcurementUnitId { get; set; }
+
         public string? Note { get; set; }
 
         public DateTime CreatedAt { get; set; }
@@ -57,6 +65,7 @@ namespace CafeChain.Models.Inventories.Suppliers
         public virtual Supplier Supplier { get; set; } = null!;
 
         public virtual Unit Unit { get; set; } = null!;
+        public virtual Unit? LooseProcurementUnit { get; set; }
 
         public virtual ICollection<IngredientSupplierPriceHistory> PriceHistories { get; set; }
             = new List<IngredientSupplierPriceHistory>();

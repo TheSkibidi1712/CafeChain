@@ -1,6 +1,7 @@
 using CafeChain.Models.Inventories.Procurement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Data.Configurations.Inventories.Procurement
 {
@@ -46,6 +47,11 @@ namespace CafeChain.Data.Configurations.Inventories.Procurement
             b.Property(x => x.AcceptedBaseQuantity).HasPrecision(18, 3).HasDefaultValue(0m);
             b.Property(x => x.ClosedBaseQuantity).HasPrecision(18, 3).HasDefaultValue(0m);
             b.Property(x => x.RequestedProcurementQuantity).HasPrecision(18, 3);
+            b.Property(x => x.PurchaseMode)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .HasDefaultValue(PurchaseMode.Packaged)
+                .IsRequired();
             b.Property(x => x.AllocatedToPoProcurementQuantity).HasPrecision(18, 3).HasDefaultValue(0m);
             b.Property(x => x.AcceptedProcurementQuantity).HasPrecision(18, 3).HasDefaultValue(0m);
             b.Property(x => x.ClosedProcurementQuantity).HasPrecision(18, 3).HasDefaultValue(0m);

@@ -1,6 +1,7 @@
 using CafeChain.Models.Inventories.Procurement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Data.Configurations.Inventories.Procurement
 {
@@ -33,17 +34,30 @@ namespace CafeChain.Data.Configurations.Inventories.Procurement
         public void Configure(EntityTypeBuilder<PurchaseOrderLine> b)
         {
             b.ToTable("PurchaseOrderLines", table =>
+            {
                 table.HasCheckConstraint(
                     "CK_PurchaseOrderLines_ClosedRemainingQuantity_NonNegative",
-                    "[ClosedRemainingQuantity] >= 0"));
+                    "[ClosedRemainingQuantity] >= 0");
+                table.HasCheckConstraint(
+                    "CK_PurchaseOrderLines_PurchaseModeAuthority",
+                    "([PurchaseMode] = 'Packaged' AND [OrderedPackageCount] IS NOT NULL AND [OrderedPackageCount] > 0 AND [OrderedPackageCount] = FLOOR([OrderedPackageCount]) AND [UnitPricePerPackage] IS NOT NULL AND [UnitPricePerPackage] >= 0 AND [UnitPricePerProcurementUnit] IS NULL AND ([PackSizeProcurementQuantity] IS NULL OR [PackSizeProcurementQuantity] > 0)) OR ([PurchaseMode] = 'Loose' AND [OrderedPackageCount] IS NULL AND [OrderedProcurementQuantity] IS NOT NULL AND [OrderedProcurementQuantity] > 0 AND [ProcurementUnitId] IS NOT NULL AND [UnitPricePerProcurementUnit] IS NOT NULL AND [UnitPricePerProcurementUnit] >= 0 AND [UnitPricePerPackage] IS NULL)");
+            });
             b.HasKey(x => x.PurchaseOrderLineId);
             b.Property(x => x.PackageQuantitySnapshot).HasPrecision(18, 3);
             b.Property(x => x.PackagePriceSnapshot).HasPrecision(18, 2);
             b.Property(x => x.PackageCount).HasPrecision(18, 3);
+            b.Property(x => x.PurchaseMode)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .HasDefaultValue(PurchaseMode.Packaged)
+                .IsRequired();
+            b.Property(x => x.OrderedPackageCount).HasPrecision(18, 3);
             b.Property(x => x.OrderedBaseQuantity).HasPrecision(18, 3);
             b.Property(x => x.OrderedPackQuantity).HasPrecision(18, 3);
             b.Property(x => x.PackSizeProcurementQuantity).HasPrecision(18, 3);
             b.Property(x => x.OrderedProcurementQuantity).HasPrecision(18, 3);
+            b.Property(x => x.UnitPricePerPackage).HasPrecision(18, 2);
+            b.Property(x => x.UnitPricePerProcurementUnit).HasPrecision(18, 2);
             b.Property(x => x.RoundingSurplusProcurementQuantity).HasPrecision(18, 3);
             b.Property(x => x.AcceptedPackQuantity).HasPrecision(18, 3);
             b.Property(x => x.AcceptedProcurementQuantity).HasPrecision(18, 3);
@@ -83,6 +97,11 @@ namespace CafeChain.Data.Configurations.Inventories.Procurement
             b.Property(x => x.RejectedProcurementQuantity).HasPrecision(18, 3);
             b.Property(x => x.InventoryPostingBaseQuantity).HasPrecision(18, 3);
             b.Property(x => x.ProcurementToInventoryFactor).HasPrecision(18, 6);
+            b.Property(x => x.PurchaseMode)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .HasDefaultValue(PurchaseMode.Packaged)
+                .IsRequired();
             b.HasIndex(x => x.BranchReceiptLineId).IsUnique();
             b.HasIndex(x => x.PurchaseOrderLineId);
             b.HasIndex(x => x.ProcurementUnitId);

@@ -3,6 +3,7 @@ using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
+using CafeChain.Models.Enums.Inventory;
 using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Models.Inventories.Procurement
@@ -52,15 +53,19 @@ namespace CafeChain.Models.Inventories.Procurement
         public int? PurchaseAdviceLineId { get; set; }
         public int IngredientId { get; set; }
         public int IngredientSupplierId { get; set; }
-        public int PackageUnitIdSnapshot { get; set; }
-        public decimal PackageQuantitySnapshot { get; set; }
-        public decimal PackagePriceSnapshot { get; set; }
-        public decimal PackageCount { get; set; }
+        public int? PackageUnitIdSnapshot { get; set; }
+        public decimal? PackageQuantitySnapshot { get; set; }
+        public decimal? PackagePriceSnapshot { get; set; }
+        public decimal? PackageCount { get; set; }
+        public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
+        public decimal? OrderedPackageCount { get; set; }
         public decimal OrderedBaseQuantity { get; set; }
         public decimal? OrderedPackQuantity { get; set; }
         public decimal? PackSizeProcurementQuantity { get; set; }
         public int? ProcurementUnitId { get; set; }
         public decimal? OrderedProcurementQuantity { get; set; }
+        public decimal? UnitPricePerPackage { get; set; }
+        public decimal? UnitPricePerProcurementUnit { get; set; }
         public decimal? RoundingSurplusProcurementQuantity { get; set; }
         public decimal? AcceptedPackQuantity { get; set; }
         public decimal? AcceptedProcurementQuantity { get; set; }
@@ -83,7 +88,7 @@ namespace CafeChain.Models.Inventories.Procurement
         public virtual PurchaseAdviceLine? PurchaseAdviceLine { get; set; }
         public virtual Ingredient Ingredient { get; set; } = null!;
         public virtual IngredientSupplier IngredientSupplier { get; set; } = null!;
-        public virtual Unit PackageUnitSnapshot { get; set; } = null!;
+        public virtual Unit? PackageUnitSnapshot { get; set; }
         public virtual Unit? ProcurementUnit { get; set; }
         public virtual Unit? InventoryBaseUnit { get; set; }
         public virtual Staff? ClosedRemainingByStaff { get; set; }
@@ -104,6 +109,7 @@ namespace CafeChain.Models.Inventories.Procurement
         public int? ProcurementUnitId { get; set; }
         public int? InventoryBaseUnitId { get; set; }
         public decimal? ProcurementToInventoryFactor { get; set; }
+        public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
         public int CreatedByStaffId { get; set; }
         public DateTime CreatedAtUtc { get; set; }
 

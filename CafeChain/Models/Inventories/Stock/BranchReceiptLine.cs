@@ -6,6 +6,7 @@ using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Inventories.Procurement;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Models.Inventories.Stock
 {
@@ -48,6 +49,7 @@ namespace CafeChain.Models.Inventories.Stock
         public int? ProcurementUnitId { get; set; }
         public int? InventoryBaseUnitId { get; set; }
         public decimal? ProcurementToInventoryFactor { get; set; }
+        public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
         public string? RejectionReason { get; set; }
         public string? RejectionIssueType { get; set; }
 
