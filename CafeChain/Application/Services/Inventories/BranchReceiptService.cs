@@ -1199,11 +1199,12 @@ namespace CafeChain.Application.Services.Inventories
                             p => p.AcceptedProcurementQuantity ?? 0m);
                         return new PurchaseOrderReceiptDraftLineDto
                         {
+                            PurchaseMode = x.PurchaseMode,
                             PurchaseOrderLineId = x.PurchaseOrderLineId,
                             RestockRequestId = x.RestockRequestId,
                             IngredientId = x.IngredientId,
                             IngredientName = x.Ingredient.Name,
-                            PackageUnitName = x.PackageUnitSnapshot.Name,
+                            PackageUnitName = x.PackageUnitSnapshot?.Name ?? string.Empty,
                             PackageQuantitySnapshot = x.PackageQuantitySnapshot,
                             PackagePriceSnapshot = x.PackagePriceSnapshot,
                             OrderedBaseQuantity = x.OrderedBaseQuantity,
@@ -1219,14 +1220,18 @@ namespace CafeChain.Application.Services.Inventories
                                 : null,
                             ProcurementUnitName = x.ProcurementUnit?.Name,
                             ActualReceivedQuantity = saved?.InputQuantity,
-                            RejectedQuantity = saved == null || saved.InputQuantity <= 0
-                                || saved.ReceivedBaseQuantity + saved.RejectedBaseQuantity <= 0
+                            RejectedQuantity = saved == null
                                 ? 0m
-                                : Math.Round(
-                                    saved.InputQuantity * saved.RejectedBaseQuantity
-                                        / (saved.ReceivedBaseQuantity + saved.RejectedBaseQuantity),
-                                    3,
-                                    MidpointRounding.AwayFromZero),
+                                : saved.PurchaseMode == PurchaseMode.Loose
+                                    ? saved.RejectedProcurementQuantity.GetValueOrDefault()
+                                    : saved.InputQuantity <= 0
+                                        || saved.ReceivedBaseQuantity + saved.RejectedBaseQuantity <= 0
+                                            ? 0m
+                                            : Math.Round(
+                                                saved.InputQuantity * saved.RejectedBaseQuantity
+                                                    / (saved.ReceivedBaseQuantity + saved.RejectedBaseQuantity),
+                                                3,
+                                                MidpointRounding.AwayFromZero),
                             RejectionReason = saved?.RejectionReason,
                             RejectionIssueType = saved?.RejectionIssueType
                         };
@@ -1274,12 +1279,32 @@ namespace CafeChain.Application.Services.Inventories
             decimal? rejectedProcurement = null;
             decimal? acceptedProcurement = null;
             decimal? conversionFactor = null;
-            if (poLine.OrderedProcurementQuantity.HasValue
+            if (poLine.PurchaseMode == PurchaseMode.Loose)
+            {
+                if (!poLine.OrderedProcurementQuantity.HasValue
+                    || !poLine.ProcurementUnitId.HasValue
+                    || poLine.UnitPricePerProcurementUnit <= 0m)
+                {
+                    return ServiceResult<BranchReceiptLine>.Failure(
+                        "Dòng mua rời thiếu số lượng, đơn vị hoặc đơn giá mua hàng.",
+                        errorCode: BranchReceiptErrorCodes.ReceiptCostIncomplete);
+                }
+
+                receivedProcurement = actual;
+                rejectedProcurement = input.RejectedQuantity;
+                acceptedProcurement = ProcurementPurchaseMath.GetAcceptedProcurementQuantity(
+                    receivedProcurement.Value,
+                    rejectedProcurement.Value);
+                actualBaseQuantity = 0m;
+                rejectedBase = 0m;
+                acceptedBase = 0m;
+            }
+            else if (poLine.OrderedProcurementQuantity.HasValue
                 && poLine.PackageCount > 0
                 && poLine.ProcurementUnitId.HasValue)
             {
                 var procurementPerPack = poLine.PackSizeProcurementQuantity
-                    ?? poLine.OrderedProcurementQuantity.Value / poLine.PackageCount;
+                    ?? poLine.OrderedProcurementQuantity.Value / poLine.PackageCount.Value;
                 receivedProcurement = actual * procurementPerPack;
                 rejectedProcurement = Math.Round(
                     receivedProcurement.Value * input.RejectedQuantity / actual,
@@ -1294,8 +1319,8 @@ namespace CafeChain.Application.Services.Inventories
             {
                 var actualBase = await _unitConversion.ConvertAsync(
                     poLine.IngredientId,
-                    actual * poLine.PackageQuantitySnapshot,
-                    poLine.PackageUnitIdSnapshot,
+                    actual * poLine.PackageQuantitySnapshot!.Value,
+                    poLine.PackageUnitIdSnapshot!.Value,
                     poLine.Ingredient.BaseUnitId);
                 if (!actualBase.IsSuccess || actualBase.Data <= 0)
                     return ServiceResult<BranchReceiptLine>.Failure(
@@ -1321,7 +1346,15 @@ namespace CafeChain.Application.Services.Inventories
                     $"Số lượng chấp nhận vượt phần đơn đặt hàng còn phải giao {remaining:N3}.",
                     errorCode: BranchReceiptErrorCodes.ReceiptExceedsRemaining);
 
-            var actualLineTotal = Math.Round(actual * poLine.PackagePriceSnapshot, 2, MidpointRounding.AwayFromZero);
+            var actualLineTotal = poLine.PurchaseMode == PurchaseMode.Loose
+                ? Math.Round(
+                    actual * poLine.UnitPricePerProcurementUnit!.Value,
+                    2,
+                    MidpointRounding.AwayFromZero)
+                : Math.Round(
+                    actual * (poLine.UnitPricePerPackage ?? poLine.PackagePriceSnapshot)!.Value,
+                    2,
+                    MidpointRounding.AwayFromZero);
             var baseUnitCost = receivedProcurement.HasValue
                 ? 0m
                 : Math.Round(actualLineTotal / actualBaseQuantity, 4, MidpointRounding.AwayFromZero);
@@ -1333,15 +1366,20 @@ namespace CafeChain.Application.Services.Inventories
                 : Math.Round(acceptedBase * baseUnitCost, 2, MidpointRounding.AwayFromZero);
             return ServiceResult<BranchReceiptLine>.Success(new BranchReceiptLine
             {
+                PurchaseMode = poLine.PurchaseMode,
                 PurchaseOrderLineId = poLine.PurchaseOrderLineId,
                 RestockRequestId = poLine.RestockRequestId,
                 IngredientId = poLine.IngredientId,
                 InputQuantity = actual,
-                InputUnitId = poLine.PackageUnitIdSnapshot,
+                InputUnitId = poLine.PurchaseMode == PurchaseMode.Loose
+                    ? poLine.ProcurementUnitId!.Value
+                    : poLine.PackageUnitIdSnapshot!.Value,
                 ReceivedBaseQuantity = acceptedBase,
                 RejectedBaseQuantity = rejectedBase,
-                ReceivedPackQuantity = actual,
-                AcceptedPackQuantity = actual - input.RejectedQuantity,
+                ReceivedPackQuantity = poLine.PurchaseMode == PurchaseMode.Packaged ? actual : null,
+                AcceptedPackQuantity = poLine.PurchaseMode == PurchaseMode.Packaged
+                    ? actual - input.RejectedQuantity
+                    : null,
                 ReceivedProcurementQuantity = receivedProcurement,
                 RejectedProcurementQuantity = rejectedProcurement,
                 AcceptedProcurementQuantity = acceptedProcurement,
@@ -1354,9 +1392,15 @@ namespace CafeChain.Application.Services.Inventories
                 BaseUnitId = poLine.Ingredient.BaseUnitId,
                 SupplierId = receipt.SupplierId,
                 IngredientSupplierId = poLine.IngredientSupplierId,
-                ActualPackagePrice = poLine.PackagePriceSnapshot,
-                PackageQuantitySnapshot = poLine.PackageQuantitySnapshot,
-                PackageUnitIdSnapshot = poLine.PackageUnitIdSnapshot,
+                ActualPackagePrice = poLine.PurchaseMode == PurchaseMode.Loose
+                    ? poLine.UnitPricePerProcurementUnit
+                    : poLine.UnitPricePerPackage ?? poLine.PackagePriceSnapshot,
+                PackageQuantitySnapshot = poLine.PurchaseMode == PurchaseMode.Packaged
+                    ? poLine.PackageQuantitySnapshot
+                    : null,
+                PackageUnitIdSnapshot = poLine.PurchaseMode == PurchaseMode.Packaged
+                    ? poLine.PackageUnitIdSnapshot
+                    : null,
                 BaseUnitCostSnapshot = baseUnitCost,
                 LineTotalCost = acceptedLineTotal,
                 CreatedAt = DateTime.UtcNow
@@ -2031,6 +2075,7 @@ namespace CafeChain.Application.Services.Inventories
                 TotalLineCost = r.Lines?.Sum(l => l.LineTotalCost) ?? 0,
                 Lines = (r.Lines ?? Enumerable.Empty<BranchReceiptLine>()).Select(l => new BranchReceiptLineDto
                 {
+                    PurchaseMode = l.PurchaseMode,
                     BranchReceiptLineId = l.BranchReceiptLineId,
                     PurchaseOrderLineId = l.PurchaseOrderLineId,
                     RestockRequestId = l.RestockRequestId,

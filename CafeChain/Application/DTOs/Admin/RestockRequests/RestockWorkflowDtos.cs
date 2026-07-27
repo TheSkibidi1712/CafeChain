@@ -1,5 +1,7 @@
 using CafeChain.Application.DTOs.Admin.Procurement;
 
+using CafeChain.Models.Enums.Inventory;
+
 namespace CafeChain.Application.DTOs.Admin.RestockRequests
 {
     public class RestockTimelineItemDto
@@ -95,6 +97,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
 
     public class BranchReceiptLineDto
     {
+        public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
         public int BranchReceiptLineId { get; set; }
         public int? RestockRequestId { get; set; }
         public int? PurchaseOrderLineId { get; set; }
@@ -197,13 +200,15 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
 
     public sealed class PurchaseOrderReceiptDraftLineDto
     {
+        public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
         public int PurchaseOrderLineId { get; set; }
         public int? RestockRequestId { get; set; }
         public int IngredientId { get; set; }
         public string IngredientName { get; set; } = string.Empty;
         public string PackageUnitName { get; set; } = string.Empty;
-        public decimal PackageQuantitySnapshot { get; set; }
-        public decimal PackagePriceSnapshot { get; set; }
+        public decimal? PackageQuantitySnapshot { get; set; }
+        public decimal? PackagePriceSnapshot { get; set; }
+        public decimal? UnitPricePerProcurementUnit { get; set; }
         public decimal OrderedBaseQuantity { get; set; }
         public decimal PreviouslyAcceptedBaseQuantity { get; set; }
         public decimal ClosedRemainingQuantity { get; set; }

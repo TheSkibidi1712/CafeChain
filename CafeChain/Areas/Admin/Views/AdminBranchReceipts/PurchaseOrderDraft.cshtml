@@ -1,5 +1,6 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.PurchaseOrderReceiptDraftDto
 @using CafeChain.Application.Constants
+@using CafeChain.Models.Enums.Inventory
 @using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Kiểm đếm theo đơn đặt hàng";
@@ -37,7 +38,7 @@
     </section>
 
     <div class="ops-notice ops-notice-info">
-        Số lượng thực giao và số lượng từ chối dùng cùng đơn vị gói của đơn đặt hàng. Số lượng chấp nhận = thực giao - từ chối. Lưu nháp chỉ giữ số lượng theo đơn vị mua hàng; chỉ xác nhận phiếu mới quy đổi sang đơn vị tồn kho và ghi tồn kho.
+        Số lượng thực giao và số lượng từ chối dùng đúng đơn vị trên đơn đặt hàng. Với mua rời, số kg/L được giữ nguyên trong phiếu nháp; chỉ xác nhận phiếu mới quy đổi sang đơn vị tồn kho và ghi tồn kho.
     </div>
 
     <form asp-action="SavePurchaseOrderDraft" method="post">
@@ -82,6 +83,7 @@
                         @for (var i = 0; i < Model.Lines.Count; i++)
                         {
                             var line = Model.Lines[i];
+                            var isLoose = line.PurchaseMode == PurchaseMode.Loose;
                             var usesProcurement = line.OrderedProcurementQuantity.HasValue;
                             var isClosed = usesProcurement
                                 ? line.RemainingProcurementQuantity.GetValueOrDefault() <= 0
@@ -89,7 +91,14 @@
                             <tr class="receipt-draft-line" data-line-index="@i">
                                 <td>
                                     <strong class="ops-item-name">@line.IngredientName</strong>
-                                    <div class="ops-secondary">1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot) @line.PackageUnitName · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot)/gói</div>
+                                    @if (isLoose)
+                                    {
+                                        <div class="ops-secondary">Mua rời · @AdminStatusDisplay.Currency(line.UnitPricePerProcurementUnit.GetValueOrDefault())/@line.ProcurementUnitName</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="ops-secondary">1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()) @line.PackageUnitName · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())/gói</div>
+                                    }
                                     @if (line.OrderedProcurementQuantity.HasValue)
                                     {
                                         <div class="ops-secondary">Đơn vị mua: đặt @AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.Value) @line.ProcurementUnitName · đã nhận @AdminStatusDisplay.Quantity(line.PreviouslyAcceptedProcurementQuantity.GetValueOrDefault()) · còn @AdminStatusDisplay.Quantity(line.RemainingProcurementQuantity.GetValueOrDefault()) @line.ProcurementUnitName</div>
@@ -105,12 +114,12 @@
                                 <td>
                                     <input type="hidden" name="Lines[@i].PurchaseOrderLineId" value="@line.PurchaseOrderLineId" />
                                     <input class="ops-input w-100 actual-quantity" type="number" step="0.001" min="0" name="Lines[@i].ActualReceivedQuantity" value="@line.ActualReceivedQuantity" disabled="@isClosed" aria-label="Số lượng thực giao của @line.IngredientName" />
-                                    <div class="ops-secondary">gói @line.PackageUnitName</div>
+                                    <div class="ops-secondary">@(isLoose ? line.ProcurementUnitName : $"gói {line.PackageUnitName}")</div>
                                 </td>
                                 <td>
                                     <input class="ops-input w-100 rejected-quantity" type="number" step="0.001" min="0" name="Lines[@i].RejectedQuantity" value="@line.RejectedQuantity" disabled="@isClosed" aria-label="Số lượng từ chối của @line.IngredientName" />
                                 </td>
-                                <td><strong class="accepted-preview">0</strong> gói</td>
+                                <td><strong class="accepted-preview">0</strong> @(isLoose ? line.ProcurementUnitName : "gói")</td>
                                 <td style="min-width:240px">
                                     <select class="ops-select w-100 mb-2" name="Lines[@i].RejectionIssueType" disabled="@isClosed">
                                         <option value="">Không có sự cố</option>

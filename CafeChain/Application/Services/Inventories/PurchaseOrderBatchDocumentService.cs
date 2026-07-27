@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Procurement;
@@ -21,7 +22,8 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-        WriteIndented = false
+        WriteIndented = false,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     private readonly AppDbContext _context;
@@ -320,9 +322,10 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
         var lines = batch.Lines.OrderBy(x => x.IngredientId).ThenBy(x => x.PurchaseOrderBatchLineId)
             .Select(x => new PurchaseOrderBatchDocumentLineSnapshot
             {
+                PurchaseMode = x.PurchaseMode,
                 IngredientId = x.IngredientId,
                 IngredientName = x.Ingredient.Name,
-                PackageUnitName = x.PackageUnit.Name,
+                PackageUnitName = x.PackageUnit?.Name ?? string.Empty,
                 PackageQuantity = x.PackageQuantitySnapshot,
                 PackageCount = x.TotalPackageCount,
                 TotalBaseQuantity = x.TotalBaseQuantity,
@@ -331,6 +334,7 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
                 RoundingSurplusProcurementQuantity = x.RoundingSurplusProcurementQuantity,
                 ProcurementUnitName = x.ProcurementUnit?.Name,
                 PackagePrice = x.PackagePriceSnapshot,
+                UnitPricePerProcurementUnit = x.UnitPricePerProcurementUnit,
                 LineTotal = x.LineTotal,
                 Note = x.Note
             }).ToArray();
@@ -340,9 +344,10 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
             var storeLines = po.Lines.OrderBy(x => x.IngredientId).ThenBy(x => x.PurchaseOrderLineId)
                 .Select(line => new PurchaseOrderBatchDocumentStoreLineSnapshot
                 {
+                    PurchaseMode = line.PurchaseMode,
                     IngredientId = line.IngredientId,
                     IngredientName = line.Ingredient.Name,
-                    PackageUnitName = line.PackageUnitSnapshot.Name,
+                    PackageUnitName = line.PackageUnitSnapshot?.Name ?? string.Empty,
                     PackageQuantity = line.PackageQuantitySnapshot,
                     PackageCount = line.PackageCount,
                     BaseQuantity = line.OrderedBaseQuantity,

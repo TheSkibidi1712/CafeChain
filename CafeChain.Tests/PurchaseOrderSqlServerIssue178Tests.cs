@@ -410,6 +410,8 @@ public sealed class PurchaseOrderSqlServerIssue178Tests : IAsyncLifetime
             PackageQuantitySnapshot = 1m,
             PackagePriceSnapshot = 10m,
             PackageCount = ordered,
+            OrderedPackageCount = ordered,
+            UnitPricePerPackage = 10m,
             OrderedBaseQuantity = ordered,
             PromisedLeadTimeDaysSnapshot = 2
         };

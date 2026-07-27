@@ -201,6 +201,8 @@ public sealed class SupplierQualitySqlServerIssue179Tests : IAsyncLifetime
             PackageQuantitySnapshot = 1m,
             PackagePriceSnapshot = 10m,
             PackageCount = 10m,
+            OrderedPackageCount = 10m,
+            UnitPricePerPackage = 10m,
             OrderedBaseQuantity = 10m,
             PromisedLeadTimeDaysSnapshot = 1
         };

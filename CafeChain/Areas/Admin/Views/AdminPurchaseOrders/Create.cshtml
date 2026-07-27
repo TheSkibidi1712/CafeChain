@@ -1,6 +1,7 @@
 @model CafeChain.Application.DTOs.Admin.Procurement.CreatePurchaseOrderRequest
 @using CafeChain.Models.Inventories.Suppliers
 @using CafeChain.Models.Stores
+@using CafeChain.Models.Enums.Inventory
 @{
     ViewData["Title"] = "Tạo đơn đặt hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -29,8 +30,8 @@
                         <input asp-for="Lines[i].RestockRequestId" type="hidden" />
                         <div class="ops-input w-100 restock-reference" aria-readonly="true">@(Model.Lines[i].RestockRequestId.HasValue ? $"Yêu cầu nhập hàng #{Model.Lines[i].RestockRequestId}" : "Mua chủ động")</div>
                     </div>
-                    <div class="col-md-5"><label class="ops-form-label">Quy cách và giá cung cấp</label><select asp-for="Lines[i].IngredientSupplierId" class="ops-select w-100 po-offer" data-index="@i" required><option value="">Chọn quy cách cung cấp</option>@foreach(var x in offers){<option value="@x.IngredientSupplierId" data-ingredient="@x.IngredientId" data-supplier="@x.SupplierId">@x.Ingredient.Name · @x.Supplier.Name · @x.PackageQuantity @x.Unit.Name · @x.CurrentPrice.ToString("N0") ₫</option>}</select><input asp-for="Lines[i].IngredientId" type="hidden" /></div>
-                    <div class="col-md-2"><label class="ops-form-label">Số gói</label><input asp-for="Lines[i].PackageCount" type="number" min="1" step="1" class="ops-input w-100" required /><div class="ops-help">Chỉ nhận số nguyên.</div></div>
+                    <div class="col-md-5"><label class="ops-form-label">Quy cách và giá cung cấp</label><select asp-for="Lines[i].IngredientSupplierId" class="ops-select w-100 po-offer" data-index="@i" required><option value="">Chọn quy cách cung cấp</option>@foreach(var x in offers){<option value="@x.IngredientSupplierId" data-ingredient="@x.IngredientId" data-supplier="@x.SupplierId" data-allows-loose="@x.AllowsLoosePurchase.ToString().ToLowerInvariant()" data-loose-unit-id="@x.LooseProcurementUnitId" data-loose-unit="@x.LooseProcurementUnit?.Name" data-loose-price="@x.CurrentProcurementUnitPrice">@x.Ingredient.Name · @x.Supplier.Name · @(x.PackageQuantity > 0 ? $"{x.PackageQuantity} {x.Unit.Name} · {x.CurrentPrice:N0} ₫/gói" : "không có gói")@(x.AllowsLoosePurchase ? $" · mua rời {x.CurrentProcurementUnitPrice:N0} ₫/{x.LooseProcurementUnit?.Name}" : "")</option>}</select><input asp-for="Lines[i].IngredientId" type="hidden" /><input asp-for="Lines[i].ProcurementUnitId" type="hidden" class="po-procurement-unit" /></div>
+                    <div class="col-md-2"><label class="ops-form-label">Hình thức</label><select asp-for="Lines[i].PurchaseMode" class="ops-select w-100 po-mode"><option value="@PurchaseMode.Packaged">Đóng gói</option><option value="@PurchaseMode.Loose">Mua rời</option></select><input asp-for="Lines[i].PackageCount" type="number" min="1" step="1" class="ops-input w-100 po-package-count mt-2" placeholder="Số gói" /><input asp-for="Lines[i].OrderedProcurementQuantity" type="number" min="0.001" step="0.001" class="ops-input w-100 po-loose-quantity mt-2" placeholder="Số lượng kg/L" /><div class="ops-help po-mode-help">Đóng gói chỉ nhận số nguyên.</div></div>
                     <div class="col-md-2"><label class="ops-form-label">Ghi chú dòng</label><input asp-for="Lines[i].Note" class="ops-input w-100" /></div>
                     <div class="col-md-1"><button class="ops-btn po-remove-line" type="button" title="Xóa dòng" aria-label="Xóa dòng"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></div>
                 </div>
@@ -45,11 +46,39 @@
     const container = document.getElementById('poLines');
     const addButton = document.getElementById('addPoLine');
 
+    const syncMode = row => {
+        const offer = row.querySelector('.po-offer')?.selectedOptions[0];
+        const mode = row.querySelector('.po-mode');
+        const packageInput = row.querySelector('.po-package-count');
+        const looseInput = row.querySelector('.po-loose-quantity');
+        const procurementUnit = row.querySelector('.po-procurement-unit');
+        const help = row.querySelector('.po-mode-help');
+        const looseOption = mode?.querySelector('option[value="Loose"]');
+        const allowsLoose = offer?.dataset.allowsLoose === 'true';
+        if (looseOption) looseOption.disabled = !allowsLoose;
+        if (mode?.value === 'Loose' && !allowsLoose) mode.value = 'Packaged';
+        const isLoose = mode?.value === 'Loose';
+        if (packageInput) {
+            packageInput.disabled = isLoose;
+            packageInput.required = !isLoose;
+        }
+        if (looseInput) {
+            looseInput.disabled = !isLoose;
+            looseInput.required = isLoose;
+        }
+        if (procurementUnit && isLoose) procurementUnit.value = offer?.dataset.looseUnitId || '';
+        if (help) help.textContent = isLoose
+            ? `Nhập trực tiếp theo ${offer?.dataset.looseUnit || 'đơn vị mua hàng'}; không dùng số gói.`
+            : 'Đóng gói chỉ nhận số nguyên.';
+    };
+
     const bindOffer = select => select.addEventListener('change', () => {
         const option = select.selectedOptions[0];
-        const index = select.closest('.po-line')?.dataset.index;
+        const row = select.closest('.po-line');
+        const index = row?.dataset.index;
         const ingredient = container.querySelector(`[name="Lines[${index}].IngredientId"]`);
         if (ingredient) ingredient.value = option?.dataset.ingredient || '';
+        syncMode(row);
     });
 
     const refreshRemoveButtons = () => {
@@ -78,6 +107,8 @@
     });
 
     container.querySelectorAll('.po-offer').forEach(bindOffer);
+    container.querySelectorAll('.po-mode').forEach(select => select.addEventListener('change', () => syncMode(select.closest('.po-line'))));
+    container.querySelectorAll('.po-line').forEach(syncMode);
     container.querySelectorAll('.po-remove-line').forEach(bindRemove);
     refreshRemoveButtons();
 
@@ -97,9 +128,12 @@
         if (reference) reference.textContent = 'Mua chủ động';
         const offer = row.querySelector('.po-offer');
         if (offer) bindOffer(offer);
+        const mode = row.querySelector('.po-mode');
+        if (mode) mode.addEventListener('change', () => syncMode(row));
         const remove = row.querySelector('.po-remove-line');
         if (remove) bindRemove(remove);
         container.appendChild(row);
+        syncMode(row);
         refreshRemoveButtons();
     });
 })();

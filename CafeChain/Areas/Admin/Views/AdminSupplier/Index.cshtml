@@ -167,7 +167,7 @@
                     </section>
 
                     <section class="supplier-tab" data-tab-panel="offers">
-                        <div class="supplier-section-heading"><div><h3>Gói mua nguyên liệu</h3><p>Giá được hiểu theo một gói mua; MOQ là số gói tối thiểu.</p></div></div>
+                        <div class="supplier-section-heading"><div><h3>Quy cách mua nguyên liệu</h3><p>Duy trì giá theo gói và có thể cho phép mua lẻ trực tiếp theo kg, L hoặc cái.</p></div></div>
                         @if (canMutate)
                         {
                             <form class="supplier-form supplier-subform" id="offerForm">
@@ -182,6 +182,9 @@
                                     <label><span>Lead time (ngày)</span><input id="offerLeadTime" type="number" min="0" step="1" /></label>
                                     <label class="supplier-check"><input id="offerPrimary" type="checkbox" /><span>Nguồn cung chính</span></label>
                                     <label class="supplier-check"><input id="offerActive" type="checkbox" checked /><span>Đang hoạt động</span></label>
+                                    <label class="supplier-check"><input id="offerAllowsLoose" type="checkbox" /><span>Cho phép mua lẻ</span></label>
+                                    <label data-loose-field class="is-hidden"><span>Đơn vị mua lẻ</span><select id="offerLooseUnit"></select></label>
+                                    <label data-loose-field class="is-hidden"><span>Đơn giá mỗi kg/L/cái</span><input id="offerLoosePrice" type="number" min="0.01" step="1" /></label>
                                     <label class="is-wide"><span>Ghi chú</span><input id="offerNote" /></label>
                                 </div>
                                 <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet is-hidden" id="cancelOfferEdit">Hủy sửa</button><button class="supplier-btn supplier-btn-primary" type="submit" id="saveOfferButton">Thêm gói mua</button></div>

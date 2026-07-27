@@ -1,3 +1,5 @@
+using CafeChain.Models.Enums.Inventory;
+
 namespace CafeChain.Application.DTOs.Admin.Procurement;
 
 public sealed class PurchaseOrderBatchDocumentRevisionDto
@@ -38,7 +40,7 @@ public sealed class MarkPurchaseOrderBatchDocumentSentRequest
 
 public sealed class PurchaseOrderBatchDocumentSnapshot
 {
-    public string ContractVersion { get; set; } = "1";
+    public string ContractVersion { get; set; } = "2";
     public int PurchaseOrderBatchId { get; set; }
     public string BatchNumber { get; set; } = string.Empty;
     public string Currency { get; set; } = "VND";
@@ -68,17 +70,19 @@ public sealed class PurchaseOrderBatchDocumentSupplierSnapshot
 
 public sealed class PurchaseOrderBatchDocumentLineSnapshot
 {
+    public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
     public int IngredientId { get; set; }
     public string IngredientName { get; set; } = string.Empty;
     public string PackageUnitName { get; set; } = string.Empty;
-    public decimal PackageQuantity { get; set; }
-    public decimal PackageCount { get; set; }
+    public decimal? PackageQuantity { get; set; }
+    public decimal? PackageCount { get; set; }
     public decimal TotalBaseQuantity { get; set; }
     public decimal? TotalProcurementQuantity { get; set; }
     public decimal? DemandCoveredProcurementQuantity { get; set; }
     public decimal? RoundingSurplusProcurementQuantity { get; set; }
     public string? ProcurementUnitName { get; set; }
-    public decimal PackagePrice { get; set; }
+    public decimal? PackagePrice { get; set; }
+    public decimal? UnitPricePerProcurementUnit { get; set; }
     public decimal LineTotal { get; set; }
     public string? Note { get; set; }
 }
@@ -98,11 +102,12 @@ public sealed class PurchaseOrderBatchDocumentStoreSnapshot
 
 public sealed class PurchaseOrderBatchDocumentStoreLineSnapshot
 {
+    public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
     public int IngredientId { get; set; }
     public string IngredientName { get; set; } = string.Empty;
     public string PackageUnitName { get; set; } = string.Empty;
-    public decimal PackageQuantity { get; set; }
-    public decimal PackageCount { get; set; }
+    public decimal? PackageQuantity { get; set; }
+    public decimal? PackageCount { get; set; }
     public decimal BaseQuantity { get; set; }
     public decimal? ProcurementQuantity { get; set; }
     public string? ProcurementUnitName { get; set; }

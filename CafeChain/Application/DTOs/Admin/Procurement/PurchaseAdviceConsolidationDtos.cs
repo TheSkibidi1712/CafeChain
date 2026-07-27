@@ -1,4 +1,5 @@
 using CafeChain.Application.DTOs.Admin.Actor;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Application.DTOs.Admin.Procurement;
 
@@ -67,9 +68,9 @@ public sealed class PurchaseAdviceOfferDto
     public int SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public int IngredientId { get; set; }
-    public int PackageUnitId { get; set; }
+    public int? PackageUnitId { get; set; }
     public string PackageUnitName { get; set; } = string.Empty;
-    public decimal PackageQuantity { get; set; }
+    public decimal? PackageQuantity { get; set; }
     public decimal PackageBaseQuantity { get; set; }
     public decimal? PackageProcurementQuantity { get; set; }
     public int? ProcurementUnitId { get; set; }
@@ -77,6 +78,10 @@ public sealed class PurchaseAdviceOfferDto
     public int MinimumOrderPackageCount { get; set; }
     public int LeadTimeDays { get; set; }
     public decimal CurrentPackagePrice { get; set; }
+    public bool AllowsLoosePurchase { get; set; }
+    public decimal? CurrentProcurementUnitPrice { get; set; }
+    public int? LooseProcurementUnitId { get; set; }
+    public string? LooseProcurementUnitName { get; set; }
     public string Currency { get; set; } = "VND";
     public string? Specification { get; set; }
 }
@@ -91,7 +96,9 @@ public sealed class PurchaseAdviceConsolidationSelectionRequest
 {
     public int PurchaseAdviceLineId { get; set; }
     public int IngredientSupplierId { get; set; }
-    public int PackageCount { get; set; }
+    public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
+    public int? PackageCount { get; set; }
+    public decimal? OrderedProcurementQuantity { get; set; }
     public string RowVersion { get; set; } = string.Empty;
 }
 
@@ -108,20 +115,22 @@ public sealed class PurchaseAdviceConsolidationPreviewDto
 
 public sealed class PurchaseAdviceConsolidationGroupDto
 {
+    public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
     public int IngredientId { get; set; }
     public string IngredientName { get; set; } = string.Empty;
     public int IngredientSupplierId { get; set; }
-    public int PackageUnitId { get; set; }
+    public int? PackageUnitId { get; set; }
     public string PackageUnitName { get; set; } = string.Empty;
-    public decimal PackageQuantity { get; set; }
+    public decimal? PackageQuantity { get; set; }
     public decimal PackageBaseQuantity { get; set; }
     public decimal? PackageProcurementQuantity { get; set; }
-    public decimal PackagePriceSnapshot { get; set; }
+    public decimal? PackagePriceSnapshot { get; set; }
+    public decimal? UnitPricePerProcurementUnit { get; set; }
     public string Currency { get; set; } = "VND";
     public string? Specification { get; set; }
     public int LeadTimeDays { get; set; }
     public int MinimumOrderPackageCount { get; set; }
-    public int PackageCount { get; set; }
+    public int? PackageCount { get; set; }
     public decimal DemandCoveredBaseQuantity { get; set; }
     public decimal OrderedBaseQuantity { get; set; }
     public decimal RoundingSurplusBaseQuantity { get; set; }
@@ -138,13 +147,14 @@ public sealed class PurchaseAdviceConsolidationGroupDto
 
 public sealed class PurchaseAdviceConsolidationAllocationDto
 {
+    public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
     public int PurchaseAdviceLineId { get; set; }
     public string AdviceNumber { get; set; } = string.Empty;
     public int StoreId { get; set; }
     public string StoreName { get; set; } = string.Empty;
     public int RestockRequestId { get; set; }
-    public int SuggestedPackageCount { get; set; }
-    public int PackageCount { get; set; }
+    public int? SuggestedPackageCount { get; set; }
+    public int? PackageCount { get; set; }
     public decimal DemandCoveredBaseQuantity { get; set; }
     public decimal OrderedBaseQuantity { get; set; }
     public decimal RoundingSurplusBaseQuantity { get; set; }

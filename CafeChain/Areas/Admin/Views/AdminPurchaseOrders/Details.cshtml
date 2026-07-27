@@ -81,7 +81,14 @@
                         <tr>
                             <td>
                                 <strong class="ops-item-name">@line.IngredientName</strong>
-                                <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.PackageCount) gói · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot)/gói · 1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot) @line.PackageUnitName</div>
+                                @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose)
+                                {
+                                    <div class="ops-secondary">Mua rời @AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.GetValueOrDefault()) @line.ProcurementUnitName · @AdminStatusDisplay.Currency(line.UnitPricePerProcurementUnit.GetValueOrDefault())/@line.ProcurementUnitName</div>
+                                }
+                                else
+                                {
+                                    <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault()) gói · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())/gói · 1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()) @line.PackageUnitName</div>
+                                }
                             </td>
                             <td>@(line.RestockRequestId.HasValue ? $"Yêu cầu nhập hàng #{line.RestockRequestId}" : "Mua chủ động")</td>
                             <td class="number">@AdminStatusDisplay.Quantity(line.OrderedBaseQuantity) @line.BaseUnitName@if (line.OrderedProcurementQuantity.HasValue) { <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.Value) @line.ProcurementUnitName</div> }</td>

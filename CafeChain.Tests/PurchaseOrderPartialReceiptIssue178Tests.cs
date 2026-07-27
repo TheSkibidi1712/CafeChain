@@ -684,7 +684,20 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
         var offer = await context.IngredientSuppliers.SingleAsync(
             x => x.IngredientId == IngredientId && x.SupplierId == SupplierId);
         var order = new PurchaseOrder { Code = "PO-178-" + Guid.NewGuid().ToString("N")[..6], StoreId = StoreId, SupplierId = SupplierId, Status = PurchaseOrderStatuses.MarkedAsSent, OrderDate = DateTime.UtcNow, CreatedByStaffId = StaffId, CreatedAtUtc = DateTime.UtcNow, UpdatedAtUtc = DateTime.UtcNow };
-        var line = new PurchaseOrderLine { RestockRequestId = request.RestockRequestId, IngredientId = IngredientId, IngredientSupplierId = offer.IngredientSupplierId, PackageUnitIdSnapshot = UnitId, PackageQuantitySnapshot = 10m, PackagePriceSnapshot = 100m, PackageCount = ordered / 10m, OrderedBaseQuantity = ordered, PromisedLeadTimeDaysSnapshot = 2 };
+        var line = new PurchaseOrderLine
+        {
+            RestockRequestId = request.RestockRequestId,
+            IngredientId = IngredientId,
+            IngredientSupplierId = offer.IngredientSupplierId,
+            PackageUnitIdSnapshot = UnitId,
+            PackageQuantitySnapshot = 10m,
+            PackagePriceSnapshot = 100m,
+            PackageCount = ordered / 10m,
+            OrderedPackageCount = ordered / 10m,
+            UnitPricePerPackage = 100m,
+            OrderedBaseQuantity = ordered,
+            PromisedLeadTimeDaysSnapshot = 2
+        };
         order.Lines.Add(line);
         context.PurchaseOrders.Add(order);
         await context.SaveChangesAsync();

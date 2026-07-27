@@ -7,6 +7,7 @@ using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Repositories;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Procurement;
 using Microsoft.EntityFrameworkCore;
 
@@ -153,17 +154,23 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
 
                 var batchLine = new PurchaseOrderBatchLine
                 {
+                    PurchaseMode = group.PurchaseMode,
                     IngredientId = group.IngredientId,
                     IngredientSupplierId = group.IngredientSupplierId,
-                    PackageUnitId = group.PackageUnitId,
-                    PackageQuantitySnapshot = group.PackageQuantity,
-                    TotalPackageCount = group.PackageCount,
+                    PackageUnitId = group.PurchaseMode == PurchaseMode.Packaged ? group.PackageUnitId : null,
+                    PackageQuantitySnapshot = group.PurchaseMode == PurchaseMode.Packaged ? group.PackageQuantity : null,
+                    TotalPackageCount = group.PurchaseMode == PurchaseMode.Packaged ? group.PackageCount : null,
+                    OrderedPackageCount = group.PurchaseMode == PurchaseMode.Packaged ? group.PackageCount : null,
                     TotalBaseQuantity = group.OrderedBaseQuantity,
                     TotalProcurementQuantity = totalProcurementQuantity,
                     DemandCoveredProcurementQuantity = demandCoveredProcurementQuantity,
                     RoundingSurplusProcurementQuantity = roundingSurplusProcurementQuantity,
                     ProcurementUnitId = procurementUnitId,
-                    PackagePriceSnapshot = group.PackagePriceSnapshot,
+                    PackagePriceSnapshot = group.PurchaseMode == PurchaseMode.Packaged ? group.PackagePriceSnapshot : null,
+                    UnitPricePerPackage = group.PurchaseMode == PurchaseMode.Packaged ? group.PackagePriceSnapshot : null,
+                    UnitPricePerProcurementUnit = group.PurchaseMode == PurchaseMode.Loose
+                        ? group.UnitPricePerProcurementUnit
+                        : null,
                     LineTotal = group.LineTotal,
                     Currency = group.Currency,
                     Note = Clean(group.Specification, 500)
@@ -213,19 +220,31 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
 
                     var childLine = new PurchaseOrderLine
                     {
+                        PurchaseMode = group.PurchaseMode,
                         RestockRequestId = allocation.RestockRequestId,
                         PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
                         IngredientId = group.IngredientId,
                         IngredientSupplierId = group.IngredientSupplierId,
-                        PackageUnitIdSnapshot = group.PackageUnitId,
-                        PackageQuantitySnapshot = group.PackageQuantity,
-                        PackagePriceSnapshot = group.PackagePriceSnapshot,
-                        PackageCount = allocation.PackageCount,
+                        PackageUnitIdSnapshot = group.PurchaseMode == PurchaseMode.Packaged ? group.PackageUnitId : null,
+                        PackageQuantitySnapshot = group.PurchaseMode == PurchaseMode.Packaged ? group.PackageQuantity : null,
+                        PackagePriceSnapshot = group.PurchaseMode == PurchaseMode.Packaged ? group.PackagePriceSnapshot : null,
+                        PackageCount = group.PurchaseMode == PurchaseMode.Packaged ? allocation.PackageCount : null,
+                        OrderedPackageCount = group.PurchaseMode == PurchaseMode.Packaged ? allocation.PackageCount : null,
                         OrderedBaseQuantity = allocation.OrderedBaseQuantity,
-                        OrderedPackQuantity = allocation.PackageCount,
-                        PackSizeProcurementQuantity = orderedProcurementQuantity / allocation.PackageCount,
+                        OrderedPackQuantity = group.PurchaseMode == PurchaseMode.Packaged ? allocation.PackageCount : null,
+                        PackSizeProcurementQuantity = group.PurchaseMode == PurchaseMode.Packaged
+                            && orderedProcurementQuantity.HasValue
+                            && allocation.PackageCount > 0
+                                ? orderedProcurementQuantity.Value / allocation.PackageCount.Value
+                                : null,
                         ProcurementUnitId = adviceLine.ProcurementUnitId,
                         OrderedProcurementQuantity = orderedProcurementQuantity,
+                        UnitPricePerPackage = group.PurchaseMode == PurchaseMode.Packaged
+                            ? group.PackagePriceSnapshot
+                            : null,
+                        UnitPricePerProcurementUnit = group.PurchaseMode == PurchaseMode.Loose
+                            ? group.UnitPricePerProcurementUnit
+                            : null,
                         RoundingSurplusProcurementQuantity = surplusProcurementQuantity,
                         InventoryBaseUnitId = adviceLine.BaseUnitId,
                         // The procurement-to-inventory conversion is deliberately deferred
@@ -237,11 +256,14 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                     child.Lines.Add(childLine);
                     batchLine.Allocations.Add(new PurchaseOrderLineAllocation
                     {
+                        PurchaseMode = group.PurchaseMode,
                         PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
                         PurchaseOrder = child,
                         PurchaseOrderLine = childLine,
                         AllocatedBaseQuantity = allocation.OrderedBaseQuantity,
-                        AllocatedPackageQuantity = allocation.PackageCount,
+                        AllocatedPackageQuantity = group.PurchaseMode == PurchaseMode.Packaged
+                            ? allocation.PackageCount
+                            : null,
                         AllocatedProcurementQuantity = orderedProcurementQuantity,
                         DemandCoveredProcurementQuantity = coveredProcurementQuantity,
                         RoundingSurplusProcurementQuantity = surplusProcurementQuantity,
@@ -258,6 +280,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                             adviceLine.RequestedProcurementQuantity.Value,
                             adviceLine.AllocatedToPoProcurementQuantity + coveredProcurementQuantity.Value);
                     }
+                    adviceLine.PurchaseMode = group.PurchaseMode;
                     var remainingProcurement = adviceLine.RequestedProcurementQuantity.HasValue
                         ? Math.Max(
                             0m,
@@ -500,11 +523,12 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
             StoreCount = batch.ChildPurchaseOrders.Select(x => x.StoreId).Distinct().Count(),
             Lines = batch.Lines.Select(line => new PurchaseOrderBatchLineDto
             {
+                PurchaseMode = line.PurchaseMode,
                 PurchaseOrderBatchLineId = line.PurchaseOrderBatchLineId,
                 IngredientId = line.IngredientId,
                 IngredientName = line.Ingredient.Name,
                 BaseUnitName = line.Ingredient.BaseUnit.Name,
-                PackageUnitName = line.PackageUnit.Name,
+                PackageUnitName = line.PackageUnit?.Name ?? string.Empty,
                 PackageQuantitySnapshot = line.PackageQuantitySnapshot,
                 TotalPackageCount = line.TotalPackageCount,
                 TotalBaseQuantity = line.TotalBaseQuantity,
@@ -524,9 +548,11 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                 ProcurementUnitId = line.ProcurementUnitId,
                 ProcurementUnitName = line.ProcurementUnit?.Name,
                 PackagePriceSnapshot = line.PackagePriceSnapshot,
+                UnitPricePerProcurementUnit = line.UnitPricePerProcurementUnit,
                 LineTotal = line.LineTotal,
                 Allocations = line.Allocations.Select(a => new PurchaseOrderBatchAllocationDto
                 {
+                    PurchaseMode = a.PurchaseMode,
                     PurchaseOrderLineAllocationId = a.PurchaseOrderLineAllocationId,
                     PurchaseAdviceLineId = a.PurchaseAdviceLineId,
                     PurchaseAdviceId = a.PurchaseAdviceLine.PurchaseAdviceId,
@@ -578,7 +604,12 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                     StoreId = po.StoreId,
                     StoreName = po.Store.Name,
                     Status = po.Status,
-                    TotalAmount = po.Lines.Sum(x => x.PackageCount * x.PackagePriceSnapshot),
+                    TotalAmount = po.Lines.Sum(x => ProcurementPurchaseMath.CalculateLineTotal(
+                        x.PurchaseMode,
+                        x.PackageCount,
+                        x.UnitPricePerPackage ?? x.PackagePriceSnapshot,
+                        x.OrderedProcurementQuantity,
+                        x.UnitPricePerProcurementUnit)),
                     OrderedBaseQuantity = ordered,
                     AcceptedBaseQuantity = accepted,
                     RemainingBaseQuantity = Math.Max(0m, ordered - accepted - closed),

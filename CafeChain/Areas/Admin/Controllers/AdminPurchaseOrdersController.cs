@@ -7,6 +7,7 @@ using CafeChain.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -93,18 +94,30 @@ namespace CafeChain.Areas.Admin.Controllers
                     .FirstOrDefaultAsync();
                 if (offer != null)
                 {
-                    var packageBaseQuantity = await _conversion.ConvertAsync(
-                        request.IngredientId.Value,
-                        offer.PackageQuantity.GetValueOrDefault(),
-                        offer.UnitId,
-                        request.Ingredient!.BaseUnitId);
                     model.SupplierId = offer.SupplierId;
                     model.Lines[0].IngredientSupplierId = offer.IngredientSupplierId;
-                    model.Lines[0].PackageCount = Math.Max(
-                        offer.MinimumOrderPackageCount.GetValueOrDefault(1),
-                        packageBaseQuantity.IsSuccess && packageBaseQuantity.Data > 0
-                            ? Math.Ceiling(remaining / packageBaseQuantity.Data)
-                            : 1);
+                    model.Lines[0].ProcurementUnitId = request.ProcurementUnitId;
+                    if ((!offer.PackageQuantity.HasValue || offer.PackageQuantity <= 0m)
+                        && offer.AllowsLoosePurchase
+                        && offer.LooseProcurementUnitId == request.ProcurementUnitId)
+                    {
+                        model.Lines[0].PurchaseMode = PurchaseMode.Loose;
+                        model.Lines[0].OrderedProcurementQuantity = request.RequestedProcurementQuantity;
+                        model.Lines[0].PackageCount = null;
+                    }
+                    else
+                    {
+                        var packageBaseQuantity = await _conversion.ConvertAsync(
+                            request.IngredientId.Value,
+                            offer.PackageQuantity.GetValueOrDefault(),
+                            offer.UnitId,
+                            request.Ingredient!.BaseUnitId);
+                        model.Lines[0].PackageCount = Math.Max(
+                            offer.MinimumOrderPackageCount.GetValueOrDefault(1),
+                            packageBaseQuantity.IsSuccess && packageBaseQuantity.Data > 0
+                                ? Math.Ceiling(remaining / packageBaseQuantity.Data)
+                                : 1);
+                    }
                 }
             }
             var actor = _actor.Get(User);
@@ -196,7 +209,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 .ToList();
             ViewBag.Suppliers = await _context.Suppliers.AsNoTracking().Where(x => x.Active).OrderBy(x => x.Name).ToListAsync();
             ViewBag.Offers = await _context.IngredientSuppliers.AsNoTracking()
-                .Include(x => x.Ingredient).Include(x => x.Supplier).Include(x => x.Unit)
+                .Include(x => x.Ingredient).Include(x => x.Supplier).Include(x => x.Unit).Include(x => x.LooseProcurementUnit)
                 .Where(x => x.Active && (storeId <= 0 || x.Supplier.SupplierStores.Any(s => s.StoreId == storeId && s.Active)))
                 .OrderBy(x => x.Ingredient.Name).ToListAsync();
         }

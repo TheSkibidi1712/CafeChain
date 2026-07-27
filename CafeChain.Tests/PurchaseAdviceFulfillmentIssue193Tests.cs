@@ -468,6 +468,8 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
                 PackageQuantitySnapshot = 1m,
                 PackagePriceSnapshot = 1m,
                 PackageCount = quantity,
+                OrderedPackageCount = quantity,
+                UnitPricePerPackage = 1m,
                 OrderedBaseQuantity = quantity,
                 OrderedPackQuantity = singleAllocationProcurementQuantity.HasValue
                     ? singleAllocationProcurementQuantity

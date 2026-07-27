@@ -1,3 +1,5 @@
+using CafeChain.Models.Enums.Inventory;
+
 namespace CafeChain.Application.DTOs.Admin.Procurement;
 
 public sealed class CreatePurchaseOrderBatchRequest : PurchaseAdviceConsolidationPreviewRequest
@@ -44,13 +46,14 @@ public sealed class PurchaseOrderBatchDetailDto : PurchaseOrderBatchListItemDto
 
 public sealed class PurchaseOrderBatchLineDto
 {
+    public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
     public int PurchaseOrderBatchLineId { get; set; }
     public int IngredientId { get; set; }
     public string IngredientName { get; set; } = string.Empty;
     public string BaseUnitName { get; set; } = string.Empty;
     public string PackageUnitName { get; set; } = string.Empty;
-    public decimal PackageQuantitySnapshot { get; set; }
-    public decimal TotalPackageCount { get; set; }
+    public decimal? PackageQuantitySnapshot { get; set; }
+    public decimal? TotalPackageCount { get; set; }
     public decimal TotalBaseQuantity { get; set; }
     public decimal DemandCoveredBaseQuantity { get; set; }
     public decimal RoundingSurplusBaseQuantity { get; set; }
@@ -59,13 +62,15 @@ public sealed class PurchaseOrderBatchLineDto
     public decimal? RoundingSurplusProcurementQuantity { get; set; }
     public int? ProcurementUnitId { get; set; }
     public string? ProcurementUnitName { get; set; }
-    public decimal PackagePriceSnapshot { get; set; }
+    public decimal? PackagePriceSnapshot { get; set; }
+    public decimal? UnitPricePerProcurementUnit { get; set; }
     public decimal LineTotal { get; set; }
     public IReadOnlyList<PurchaseOrderBatchAllocationDto> Allocations { get; set; } = Array.Empty<PurchaseOrderBatchAllocationDto>();
 }
 
 public sealed class PurchaseOrderBatchAllocationDto
 {
+    public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
     public int PurchaseOrderLineAllocationId { get; set; }
     public int PurchaseAdviceLineId { get; set; }
     public int PurchaseAdviceId { get; set; }
@@ -75,7 +80,7 @@ public sealed class PurchaseOrderBatchAllocationDto
     public int StoreId { get; set; }
     public string StoreName { get; set; } = string.Empty;
     public decimal AllocatedBaseQuantity { get; set; }
-    public decimal AllocatedPackageQuantity { get; set; }
+    public decimal? AllocatedPackageQuantity { get; set; }
     public decimal DemandCoveredBaseQuantity { get; set; }
     public decimal RoundingSurplusBaseQuantity { get; set; }
     public decimal? AllocatedProcurementQuantity { get; set; }
