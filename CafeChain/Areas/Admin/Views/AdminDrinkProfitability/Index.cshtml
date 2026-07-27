@@ -11,10 +11,13 @@
     @Html.AntiForgeryToken()
 
     <header class="pf-header">
-        <div>
-            <nav class="pf-breadcrumb" aria-label="breadcrumb">Sản phẩm / Giá bán</nav>
+        <div class="pf-heading">
+            <span class="pf-eyebrow"><i class="fas fa-chart-line"></i> Phân tích hiệu quả sản phẩm</span>
             <h1>Vốn và lợi nhuận gộp dự kiến</h1>
-            <p>Đối chiếu BOM theo size với lớp giá FIFO hiện tại.</p>
+            <p>Đối chiếu giá vốn FIFO, giá bán và biên lợi nhuận theo từng size đồ uống.</p>
+            <nav class="pf-breadcrumb" aria-label="breadcrumb">
+                <i class="fas fa-house"></i><span>Sản phẩm</span><i class="fas fa-chevron-right"></i><strong>Vốn &amp; lợi nhuận</strong>
+            </nav>
         </div>
         <a class="pf-link-button" asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index">
             <i class="fas fa-flask" aria-hidden="true"></i>
@@ -22,6 +25,13 @@
         </a>
     </header>
 
+    <div class="pf-section-heading">
+        <div>
+            <span class="pf-section-icon"><i class="fas fa-sliders"></i></span>
+            <div><h2>Thiết lập mô phỏng</h2><p>Chọn phạm vi dữ liệu cần phân tích.</p></div>
+        </div>
+        <span class="pf-section-note"><i class="fas fa-shield-halved"></i> Dữ liệu FIFO theo cửa hàng</span>
+    </div>
     <section class="pf-filter-band" aria-label="Bộ lọc mô phỏng giá vốn">
         <label>
             <span>Cửa hàng mô phỏng FIFO</span>
@@ -61,6 +71,9 @@
     </section>
 
     <section class="pf-result-band" aria-live="polite">
+        <div class="pf-result-heading">
+            <div><span class="pf-section-icon"><i class="fas fa-table-list"></i></span><div><h2>Kết quả phân tích</h2><p>So sánh chi phí và khả năng sinh lời theo từng cấu hình size.</p></div></div>
+        </div>
         <div id="loadingState" class="pf-state" hidden>
             <span class="pf-spinner" aria-hidden="true"></span>
             <strong>Đang mô phỏng lớp giá FIFO...</strong>

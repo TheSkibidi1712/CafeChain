@@ -12,10 +12,13 @@
     @Html.AntiForgeryToken()
 
     <header class="sm-header">
-        <div>
-            <nav aria-label="breadcrumb">Sản phẩm / Menu cửa hàng</nav>
+        <div class="sm-heading">
+            <span class="sm-eyebrow"><i class="fas fa-store"></i> Vận hành thực đơn</span>
             <h1>Menu cửa hàng</h1>
-            <p>Quản lý từng SKU đồ uống theo cửa hàng, giá hiệu lực và khả năng bán hiện tại.</p>
+            <p>Kiểm soát SKU, giá hiệu lực và khả năng phục vụ tại từng chi nhánh CafeChain.</p>
+            <nav aria-label="breadcrumb">
+                <i class="fas fa-house"></i><span>Sản phẩm</span><i class="fas fa-chevron-right"></i><strong>Menu cửa hàng</strong>
+            </nav>
         </div>
         <a class="sm-link-button" asp-area="Admin" asp-controller="AdminDrinkProfitability" asp-action="Index">
             <i class="fas fa-chart-line" aria-hidden="true"></i>
@@ -23,6 +26,13 @@
         </a>
     </header>
 
+    <div class="sm-section-heading">
+        <div>
+            <span class="sm-section-icon"><i class="fas fa-filter"></i></span>
+            <div><h2>Bộ lọc vận hành</h2><p>Thu hẹp menu theo cửa hàng, SKU và trạng thái bán.</p></div>
+        </div>
+        <span class="sm-section-note"><i class="fas fa-circle-check"></i> Theo dõi theo thời gian thực</span>
+    </div>
     <section class="sm-toolbar" aria-label="Bộ lọc menu cửa hàng">
         <label class="sm-store-filter">
             <span>Cửa hàng</span>
@@ -76,6 +86,9 @@
     </section>
 
     <section class="sm-content" aria-live="polite">
+        <div class="sm-content-heading">
+            <div><span class="sm-section-icon"><i class="fas fa-list-check"></i></span><div><h2>Danh sách SKU cửa hàng</h2><p>Ưu tiên xử lý các món tạm dừng hoặc thiếu nguyên liệu.</p></div></div>
+        </div>
         <div id="storeMenuLoading" class="sm-state">
             <div class="sm-skeleton-grid" aria-hidden="true">
                 <span></span><span></span><span></span><span></span>
