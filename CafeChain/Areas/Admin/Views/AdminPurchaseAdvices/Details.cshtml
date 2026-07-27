@@ -19,6 +19,18 @@
         <tr><td><strong>@line.IngredientName</strong><div class="pa-muted">Yêu cầu nhập hàng #@line.RestockRequestId · @unitName</div></td><td><div class="pa-quantity-grid"><div><span>Yêu cầu nhập</span><strong>@AdminStatusDisplay.Quantity(usesProcurement ? line.RestockRequestedProcurementQuantity.GetValueOrDefault() : line.RestockRequestedQuantity) @unitName</strong></div><div><span>Điều chuyển</span><strong>@AdminStatusDisplay.Quantity(usesProcurement ? line.TransferAllocatedProcurementQuantity.GetValueOrDefault() : line.TransferAllocatedQuantity) @unitName</strong></div><div><span>Đề nghị khác</span><strong>@AdminStatusDisplay.Quantity(usesProcurement ? line.ExistingPurchaseAdviceProcurementQuantity.GetValueOrDefault() : line.ExistingPurchaseAdviceQuantity) @unitName</strong></div><div><span>Đã đặt hàng</span><strong>@AdminStatusDisplay.Quantity(usesProcurement ? line.ExistingPurchaseOrderProcurementQuantity.GetValueOrDefault() : line.ExistingPurchaseOrderQuantity) @unitName</strong></div><div><span>Phần đã đóng</span><strong>@AdminStatusDisplay.Quantity(usesProcurement ? line.ExplicitlyClosedProcurementQuantity.GetValueOrDefault() : line.ExplicitlyClosedQuantity) @unitName</strong></div></div></td><td><strong>@AdminStatusDisplay.Quantity(usesProcurement ? line.RequestedProcurementQuantity!.Value : line.RequestedPurchaseBaseQuantity) @unitName</strong>@if (!string.IsNullOrWhiteSpace(line.Note)) { <div class="pa-muted">@line.Note</div> }</td><td>@AdminStatusDisplay.Date(line.NeededByDate)</td></tr>
     }
     </tbody></table></section>
+    <section class="pa-band" style="margin-top:1rem">
+        <h2 class="pa-section-title">Nhà cung cấp và hình thức mua</h2>
+        <p class="pa-muted">Nhà cung cấp, mã SKU của nhà cung cấp và phương thức mua theo quy cách hoặc mua lẻ được chọn tại bước tổng hợp đề nghị mua. Bản nháp chưa khóa nhà cung cấp.</p>
+        @if (Model.Status is PurchaseAdviceStatuses.Submitted or PurchaseAdviceStatuses.UnderReview)
+        {
+            <a class="pa-action pa-action-primary" asp-area="Admin" asp-controller="AdminPurchaseAdviceConsolidation" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fas fa-layer-group"></i> Chọn nhà cung cấp và tổng hợp</a>
+        }
+        else if (Model.Status == PurchaseAdviceStatuses.Draft)
+        {
+            <span class="pa-muted">Gửi đề nghị mua để chuyển sang bước chọn nhà cung cấp.</span>
+        }
+    </section>
     <section class="pa-band" style="margin-top:1rem"><h2 class="pa-section-title">Thao tác</h2><div class="pa-actions">
         @if (Model.CanSubmit) { <form asp-action="Submit" asp-route-id="@Model.PurchaseAdviceId" method="post">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-paper-plane"></i> Gửi Kế toán</button></form> }
         @if (Model.CanReview) { <form asp-action="StartReview" asp-route-id="@Model.PurchaseAdviceId" method="post">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-search"></i> Bắt đầu xem xét</button></form> }

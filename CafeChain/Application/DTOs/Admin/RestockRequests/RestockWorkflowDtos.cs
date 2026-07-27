@@ -53,6 +53,37 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public List<BranchReceiptListItemDto> Receipts { get; set; } = new();
         public List<RestockFulfillmentDto> Fulfillments { get; set; } = new();
         public List<RestockFulfillmentPostingDto> FulfillmentPostings { get; set; } = new();
+        public List<RestockWorkflowStepDto> WorkflowSteps { get; set; } = new();
+        public List<LinkedPurchaseAdviceDto> PurchaseAdvices { get; set; } = new();
+        public List<DraftPurchaseAdviceOptionDto> DraftPurchaseAdvices { get; set; } = new();
+        public bool HasOrphanPurchaseAllocation { get; set; }
+    }
+
+    public sealed class RestockWorkflowStepDto
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public sealed class LinkedPurchaseAdviceDto
+    {
+        public int PurchaseAdviceId { get; set; }
+        public int PurchaseAdviceLineId { get; set; }
+        public string AdviceNumber { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public decimal ProcurementQuantity { get; set; }
+        public string? ProcurementUnitName { get; set; }
+        public string? SupplierName { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public sealed class DraftPurchaseAdviceOptionDto
+    {
+        public int PurchaseAdviceId { get; set; }
+        public string AdviceNumber { get; set; } = string.Empty;
+        public DateTime NeededByDate { get; set; }
+        public string RowVersion { get; set; } = string.Empty;
     }
 
     public class RestockFulfillmentPostingDto

@@ -845,6 +845,46 @@ namespace CafeChain.Application.Services.Inventories
                     l.UnitPricePerProcurementUnit))
             }).ToList();
 
+            var purchaseAdviceLines = await _context.PurchaseAdviceLines
+                .AsNoTracking()
+                .Include(x => x.PurchaseAdvice)
+                .Where(x => x.RestockRequestId == r.RestockRequestId)
+                .OrderByDescending(x => x.PurchaseAdvice.CreatedAtUtc)
+                .ToListAsync();
+            var linkedPurchaseAdvices = purchaseAdviceLines.Select(x => new LinkedPurchaseAdviceDto
+            {
+                PurchaseAdviceId = x.PurchaseAdviceId,
+                PurchaseAdviceLineId = x.PurchaseAdviceLineId,
+                AdviceNumber = x.PurchaseAdvice.AdviceNumber,
+                Status = x.PurchaseAdvice.Status,
+                ProcurementQuantity = x.RequestedProcurementQuantity ?? x.RequestedPurchaseBaseQuantity,
+                ProcurementUnitName = x.RequestedProcurementQuantity.HasValue
+                    ? r.ProcurementUnit?.Name
+                    : r.Ingredient?.BaseUnit?.Name,
+                SupplierName = purchaseOrderEntities.FirstOrDefault(po =>
+                    po.Lines.Any(line => line.RestockRequestId == r.RestockRequestId))?.Supplier?.Name,
+                IsActive = x.IsActiveReservation
+            }).ToList();
+            var draftPurchaseAdvices = await _context.PurchaseAdvices
+                .AsNoTracking()
+                .Where(x => x.StoreId == r.StoreId
+                    && x.Status == PurchaseAdviceStatuses.Draft
+                    && !x.Lines.Any(line => line.RestockRequestId == r.RestockRequestId))
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .Select(x => new DraftPurchaseAdviceOptionDto
+                {
+                    PurchaseAdviceId = x.PurchaseAdviceId,
+                    AdviceNumber = x.AdviceNumber,
+                    NeededByDate = x.NeededByDate,
+                    RowVersion = Convert.ToBase64String(x.RowVersion)
+                })
+                .ToListAsync();
+            var hasOrphanPurchaseAllocation = sourcingEntities.Any(x =>
+                x.DecisionType == RestockSourcingDecisionTypes.Purchase
+                && x.Status == RestockSourcingAllocationStatuses.Active
+                && x.PurchaseAdviceLineId == null
+                && x.PurchaseOrderLineId == null);
+
             var supplierIssueEntities = await _context.SupplierReceiptIssues.AsNoTracking()
                 .Include(x => x.Supplier).Include(x => x.Store)
                 .Include(x => x.PurchaseOrder)
@@ -990,7 +1030,42 @@ namespace CafeChain.Application.Services.Inventories
                 SupplierIssues = supplierIssues,
                 Receipts = receipts,
                 Fulfillments = fulfillments,
-                FulfillmentPostings = postings
+                FulfillmentPostings = postings,
+                PurchaseAdvices = linkedPurchaseAdvices,
+                DraftPurchaseAdvices = draftPurchaseAdvices,
+                HasOrphanPurchaseAllocation = hasOrphanPurchaseAllocation,
+                WorkflowSteps = BuildWorkflowSteps(r, sourcingEntities, linkedPurchaseAdvices, purchaseOrders, receipts, postings)
+            };
+        }
+
+        private static List<RestockWorkflowStepDto> BuildWorkflowSteps(
+            RestockRequest request,
+            IReadOnlyCollection<RestockSourcingAllocation> allocations,
+            IReadOnlyCollection<LinkedPurchaseAdviceDto> advices,
+            IReadOnlyCollection<PurchaseOrderListItemDto> orders,
+            IReadOnlyCollection<BranchReceiptListItemDto> receipts,
+            IReadOnlyCollection<RestockFulfillmentPostingDto> postings)
+        {
+            static RestockWorkflowStepDto Step(string label, string status, string description) =>
+                new() { Label = label, Status = status, Description = description };
+            var rejected = request.Status is RestockRequestStatuses.Rejected or RestockRequestStatuses.Cancelled;
+            var hasSourcing = allocations.Count > 0;
+            var hasPa = advices.Count > 0;
+            var hasPo = orders.Count > 0;
+            var sent = orders.Any(x => x.Status == PurchaseOrderStatuses.MarkedAsSent
+                || x.Status == PurchaseOrderStatuses.PartiallyReceived
+                || x.Status == PurchaseOrderStatuses.Completed);
+            var hasReceipt = receipts.Count > 0;
+            var posted = postings.Count > 0;
+            return new()
+            {
+                Step("Yêu cầu bổ sung", rejected ? "REJECTED" : "COMPLETED", rejected ? "Đã hủy hoặc từ chối" : "Đã tạo yêu cầu"),
+                Step("Xét nguồn cung", rejected ? "REJECTED" : hasSourcing ? "COMPLETED" : request.Status == RestockRequestStatuses.Submitted || request.Status == RestockRequestStatuses.Processing ? "ACTIVE" : "PENDING", hasSourcing ? "Đã ghi nhận nguồn cung" : "Chưa xác định nguồn"),
+                Step("Đề nghị mua", hasPa ? "COMPLETED" : hasSourcing ? "ACTIVE" : "PENDING", hasPa ? "Đã liên kết đề nghị mua" : "Chưa có đề nghị mua liên kết"),
+                Step("Đơn đặt hàng", hasPo ? "COMPLETED" : hasPa ? "ACTIVE" : "PENDING", hasPo ? "Đã tạo đơn đặt hàng" : "Chưa có đơn đặt hàng liên kết"),
+                Step("Gửi nhà cung cấp", sent ? "COMPLETED" : hasPo ? "ACTIVE" : "PENDING", sent ? "Đã ghi nhận gửi nhà cung cấp" : "Thực hiện trên đơn đặt hàng đã duyệt"),
+                Step("Nhận hàng", hasReceipt ? "COMPLETED" : sent ? "ACTIVE" : "PENDING", hasReceipt ? "Đã có chứng từ nhận hàng" : "Chưa có chứng từ nhận hàng"),
+                Step("Nhập kho", posted ? "COMPLETED" : hasReceipt ? "ACTIVE" : "PENDING", posted ? "Đã phát sinh số lượng nhận hợp lệ" : "Chưa phát sinh số lượng nhận hợp lệ")
             };
         }
 
@@ -1029,7 +1104,13 @@ namespace CafeChain.Application.Services.Inventories
                 return ServiceResult.Success();
 
             if (roleNames.Contains(RoleConstants.AccountantWarehouse))
-                return ServiceResult.Success();
+            {
+                return await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, request.StoreId)
+                    ? ServiceResult.Success()
+                    : ServiceResult.Failure(
+                        "Yêu cầu nằm ngoài phạm vi cửa hàng được phân công.",
+                        errorCode: BranchReceiptErrorCodes.StoreMismatch);
+            }
 
             if (roleNames.Contains(RoleConstants.AreaManager))
             {

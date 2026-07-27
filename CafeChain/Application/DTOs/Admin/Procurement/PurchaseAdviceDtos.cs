@@ -52,6 +52,8 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public decimal? ExistingPurchaseOrderProcurementQuantity { get; set; }
         public decimal? ExplicitlyClosedProcurementQuantity { get; set; }
         public decimal? RemainingToPurchaseProcurementQuantity { get; set; }
+        public decimal? PendingPurchaseAllocationProcurementQuantity { get; set; }
+        public decimal PendingPurchaseAllocationBaseQuantity { get; set; }
         public string RestockRowVersion { get; set; } = string.Empty;
     }
 
@@ -103,6 +105,14 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
     {
         public string RowVersion { get; set; } = string.Empty;
         public string? Reason { get; set; }
+    }
+
+    public sealed class AddRestockRequestToDraftPurchaseAdviceRequest
+    {
+        public int PurchaseAdviceId { get; set; }
+        public int RestockRequestId { get; set; }
+        public string PurchaseAdviceRowVersion { get; set; } = string.Empty;
+        public string RestockRowVersion { get; set; } = string.Empty;
     }
 
     public sealed class PurchaseAdviceDetailDto

@@ -152,6 +152,142 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task CancelledDraftPa_ReleasesAllocation()
+    {
+        using var context = CreateDbContext();
+        var seed = await SeedAsync(context, 10m);
+        var restock = await context.RestockRequests.SingleAsync(x => x.RestockRequestId == seed.RestockRequestId);
+        restock.SourceType = RestockRequestSourceTypes.ManualByStore;
+        restock.SourcingDecision = RestockSourcingDecisionTypes.Purchase;
+        restock.RequestedProcurementQuantity = 10m;
+        restock.ProcurementUnitId = seed.UnitId;
+        restock.SourcingAllocations.Add(new RestockSourcingAllocation
+        {
+            DecisionType = RestockSourcingDecisionTypes.Purchase,
+            ProcurementQuantity = 4m,
+            ProcurementUnitId = seed.UnitId,
+            Status = RestockSourcingAllocationStatuses.PendingPurchaseAdvice,
+            CreatedByStaffId = seed.ManagerId,
+            CreatedAtUtc = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context);
+        var create = CreateRequest(seed, 4m);
+        create.Lines[0].RequestedPurchaseProcurementQuantity = 4m;
+        create.Lines[0].RestockRowVersion = Convert.ToBase64String(restock.RowVersion);
+        var created = await service.CreateAsync(create, Manager(seed));
+        Assert.True(created.IsSuccess, created.Message);
+        var allocation = await context.RestockSourcingAllocations.SingleAsync();
+        Assert.Equal(RestockSourcingAllocationStatuses.Active, allocation.Status);
+        Assert.NotNull(allocation.PurchaseAdviceLineId);
+
+        var cancelled = await service.CancelAsync(created.Data!.PurchaseAdviceId,
+            new PurchaseAdviceTransitionRequest { RowVersion = created.Data.RowVersion }, Manager(seed));
+
+        Assert.True(cancelled.IsSuccess, cancelled.Message);
+        allocation = await context.RestockSourcingAllocations.AsNoTracking().SingleAsync();
+        Assert.Equal(RestockSourcingAllocationStatuses.Released, allocation.Status);
+        Assert.NotNull(allocation.ReleasedAtUtc);
+        Assert.Equal(seed.ManagerId, allocation.ReleasedByStaffId);
+    }
+
+    [Fact]
+    public async Task PurchaseAllocation_DoesNotExceedSelectedPurchaseQuantity()
+    {
+        using var context = CreateDbContext();
+        var seed = await SeedAsync(context, 10m);
+        var restock = await context.RestockRequests.SingleAsync(x => x.RestockRequestId == seed.RestockRequestId);
+        restock.SourceType = RestockRequestSourceTypes.ManualByStore;
+        restock.SourcingDecision = RestockSourcingDecisionTypes.Purchase;
+        restock.RequestedProcurementQuantity = 10m;
+        restock.ProcurementUnitId = seed.UnitId;
+        restock.SourcingAllocations.Add(new RestockSourcingAllocation
+        {
+            DecisionType = RestockSourcingDecisionTypes.Purchase,
+            ProcurementQuantity = 4m,
+            ProcurementUnitId = seed.UnitId,
+            Status = RestockSourcingAllocationStatuses.PendingPurchaseAdvice,
+            CreatedByStaffId = seed.ManagerId,
+            CreatedAtUtc = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        var request = CreateRequest(seed, 5m);
+        request.Lines[0].RequestedPurchaseProcurementQuantity = 5m;
+        request.Lines[0].RestockRowVersion = Convert.ToBase64String(restock.RowVersion);
+
+        var result = await CreateService(context).CreateAsync(request, Manager(seed));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(PurchaseAdviceErrorCodes.ExceedsRestockRemaining, result.ErrorCode);
+        Assert.Empty(await context.PurchaseAdviceLines.ToListAsync());
+    }
+
+    [Fact]
+    public async Task PurchaseDecision_CanAddToExistingDraftPa()
+    {
+        using var context = CreateDbContext();
+        var seed = await SeedAsync(context, 10m);
+        var service = CreateService(context);
+        var draft = await service.CreateAsync(CreateRequest(seed, 3m), Manager(seed));
+        Assert.True(draft.IsSuccess, draft.Message);
+
+        var secondIngredient = new Ingredient
+        {
+            Code = "ING-" + Guid.NewGuid().ToString("N")[..8],
+            Name = "Second ingredient #184",
+            BaseUnitId = seed.UnitId,
+            Active = true
+        };
+        context.Ingredients.Add(secondIngredient);
+        await context.SaveChangesAsync();
+        var second = new RestockRequest
+        {
+            StoreId = seed.StoreId,
+            IngredientId = secondIngredient.IngredientId,
+            RequestedQuantity = 8m,
+            RequestedProcurementQuantity = 8m,
+            ProcurementUnitId = seed.UnitId,
+            SourceType = RestockRequestSourceTypes.ManualByStore,
+            SourcingDecision = RestockSourcingDecisionTypes.Purchase,
+            Status = RestockRequestStatuses.Processing,
+            Priority = RestockRequestPriorities.Normal,
+            CreatedByStaffId = seed.ManagerId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            SourcingAllocations = new List<RestockSourcingAllocation>
+            {
+                new()
+                {
+                    DecisionType = RestockSourcingDecisionTypes.Purchase,
+                    ProcurementQuantity = 4m,
+                    ProcurementUnitId = seed.UnitId,
+                    Status = RestockSourcingAllocationStatuses.PendingPurchaseAdvice,
+                    CreatedByStaffId = seed.ManagerId,
+                    CreatedAtUtc = DateTime.UtcNow
+                }
+            }
+        };
+        context.RestockRequests.Add(second);
+        await context.SaveChangesAsync();
+
+        var result = await service.AddRestockRequestToDraftAsync(new AddRestockRequestToDraftPurchaseAdviceRequest
+        {
+            PurchaseAdviceId = draft.Data!.PurchaseAdviceId,
+            RestockRequestId = second.RestockRequestId,
+            PurchaseAdviceRowVersion = draft.Data.RowVersion,
+            RestockRowVersion = Convert.ToBase64String(second.RowVersion)
+        }, Manager(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(2, result.Data!.Lines.Count);
+        var allocation = await context.RestockSourcingAllocations.AsNoTracking()
+            .SingleAsync(x => x.RestockRequestId == second.RestockRequestId);
+        Assert.Equal(RestockSourcingAllocationStatuses.Active, allocation.Status);
+        Assert.NotNull(allocation.PurchaseAdviceLineId);
+    }
+
+    [Fact]
     public async Task PurchaseAdvice_CannotCancelAfterReview()
     {
         using var context = CreateDbContext();

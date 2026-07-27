@@ -115,58 +115,11 @@ namespace CafeChain.Areas.Admin.Controllers
 
             if (!result.IsSuccess || result.Data == null)
             {
-                if (ctx.StoreId > 0)
-                {
-                    var simple = await _service.GetDetailAsync(id, ctx.StoreId);
-                    if (simple.IsSuccess && simple.Data != null)
-                    {
-                        ViewBag.CanWarehouse = CanWarehouseActions();
-                        ViewBag.CanCreateReceipt = CanCreateReceipt();
-                        ViewBag.CanCancel = CanCancel();
-                        ViewBag.CanSubmit = CanSubmit();
-                        return View("Details", new RestockRequestWorkflowDetailDto
-                        {
-                            RestockRequestId = simple.Data.RestockRequestId,
-                            StockAlertId = simple.Data.StockAlertId,
-                            StoreId = simple.Data.StoreId,
-                            StoreName = simple.Data.StoreName,
-                            ItemName = simple.Data.ItemName,
-                            ItemTypeLabel = simple.Data.ItemTypeLabel,
-                            RequestedQuantity = simple.Data.RequestedQuantity,
-                            SuggestedQuantity = simple.Data.SuggestedQuantity,
-                            Status = simple.Data.Status,
-                            Priority = simple.Data.Priority,
-                            Note = simple.Data.Note,
-                            CreatedByName = simple.Data.CreatedByName,
-                            CreatedAt = simple.Data.CreatedAt,
-                            UpdatedAt = simple.Data.UpdatedAt,
-                            RowVersion = simple.Data.RowVersion,
-                            IngredientId = simple.Data.IngredientId,
-                            RecipeId = simple.Data.RecipeId,
-                            PreparedItemId = simple.Data.PreparedItemId,
-                            CreatedByStaffId = simple.Data.CreatedByStaffId,
-                            AlertType = simple.Data.AlertType,
-                            AlertStatus = simple.Data.AlertStatus,
-                            AlertCurrentQtySnapshot = simple.Data.AlertCurrentQtySnapshot,
-                            AlertThresholdSnapshot = simple.Data.AlertThresholdSnapshot,
-                            SourceType = simple.Data.SourceType,
-                            SourceReferenceId = simple.Data.SourceReferenceId,
-                            CreatedForStoreId = simple.Data.CreatedForStoreId,
-                            SourcingStatus = simple.Data.SourcingStatus,
-                            SourcingDecision = simple.Data.SourcingDecision,
-                            RequestedProcurementQuantity = simple.Data.RequestedProcurementQuantity,
-                            ProcurementUnitId = simple.Data.ProcurementUnitId,
-                            ProcurementUnitName = simple.Data.ProcurementUnitName,
-                            SourcingAllocations = simple.Data.SourcingAllocations,
-                            RemainingQuantity = simple.Data.RequestedQuantity,
-                            RemainingUnallocatedProcurementQuantity = simple.Data.RequestedProcurementQuantity,
-                            RemainingToReceiveProcurementQuantity = simple.Data.RequestedProcurementQuantity
-                        });
-                    }
-                }
-
-                TempData["ErrorMessage"] = result.Message ?? "Không tìm thấy yêu cầu.";
-                return RedirectToAction(nameof(Index));
+                if (result.ErrorCode == BranchReceiptErrorCodes.StoreMismatch)
+                    return NotFound();
+                if (result.ErrorCode == BranchReceiptErrorCodes.Unauthorized)
+                    return Forbid();
+                return NotFound(result.Message ?? "Không tìm thấy yêu cầu.");
             }
 
             ViewBag.CanWarehouse = CanWarehouseActions();
