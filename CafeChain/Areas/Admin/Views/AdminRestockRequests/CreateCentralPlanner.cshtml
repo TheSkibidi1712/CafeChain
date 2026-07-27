@@ -9,7 +9,7 @@
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng / Kế hoạch trung tâm</div>
             <h1>Tạo kế hoạch bổ sung trung tâm</h1>
-            <p class="ops-subtitle">Kế hoạch chỉ áp dụng trong StoreScope của người lập và vẫn phải qua quyết định nguồn cung.</p>
+            <p class="ops-subtitle">Kế hoạch chỉ áp dụng trong phạm vi cửa hàng được cấp và vẫn phải qua quyết định nguồn cung.</p>
         </div>
         <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Quay lại</a>
     </header>
@@ -25,7 +25,7 @@
                         @foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }
                     </select>
                 </label>
-                <label>Đơn vị procurement
+                <label>Đơn vị mua hàng
                     <select asp-for="ProcurementUnitId" required>
                         <option value="">Chọn đơn vị</option>
                         @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }

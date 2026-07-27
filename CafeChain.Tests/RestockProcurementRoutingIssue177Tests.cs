@@ -167,6 +167,75 @@ public sealed class RestockProcurementRoutingIssue177Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task WorkflowDetail_UsesProcurementUnitsForMultiSourceSummary()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedRequestAsync(
+            context,
+            RestockRequestStatuses.Processing,
+            8750m);
+        var procurementUnit = await context.Units
+            .SingleOrDefaultAsync(x => x.UnitCode == ProcurementUnitCodes.Kilogram);
+        if (procurementUnit == null)
+        {
+            procurementUnit = new Unit
+            {
+                UnitCode = ProcurementUnitCodes.Kilogram,
+                Name = "Kilogram",
+                Active = true
+            };
+            context.Units.Add(procurementUnit);
+            await context.SaveChangesAsync();
+        }
+        request.CreatedForStoreId = StoreId;
+        request.SourceType = RestockRequestSourceTypes.CentralPlanner;
+        request.SourceReferenceId = "PLAN-177";
+        request.RequestedProcurementQuantity = 8.75m;
+        request.ProcurementUnitId = procurementUnit.UnitId;
+        request.SourcingStatus = RestockSourcingStatuses.PartiallyAllocated;
+        request.SourcingAllocations = new List<RestockSourcingAllocation>
+        {
+            Allocation(RestockSourcingDecisionTypes.Transfer, 2m, RestockSourcingAllocationStatuses.Active),
+            Allocation(RestockSourcingDecisionTypes.Purchase, 3.25m, RestockSourcingAllocationStatuses.PendingPurchaseAdvice),
+            Allocation(RestockSourcingDecisionTypes.Production, 1m, RestockSourcingAllocationStatuses.Active),
+            Allocation(RestockSourcingDecisionTypes.Reject, 0.5m, RestockSourcingAllocationStatuses.Active)
+        };
+        await context.SaveChangesAsync();
+
+        var result = await CreateWorkflow(context).GetWorkflowDetailAsync(
+            request.RestockRequestId,
+            WarehouseId,
+            null,
+            new[] { RoleConstants.AccountantWarehouse });
+
+        Assert.True(result.IsSuccess, result.Message);
+        var detail = result.Data!;
+        Assert.Equal(RestockRequestSourceTypes.CentralPlanner, detail.SourceType);
+        Assert.Equal("PLAN-177", detail.SourceReferenceId);
+        Assert.Equal(8.75m, detail.RequestedProcurementQuantity);
+        Assert.Equal("Kilogram", detail.ProcurementUnitName);
+        Assert.Equal(2m, detail.TransferAllocatedProcurementQuantity);
+        Assert.Equal(3.25m, detail.PurchaseAllocatedProcurementQuantity);
+        Assert.Equal(1m, detail.ProductionAllocatedProcurementQuantity);
+        Assert.Equal(0.5m, detail.RejectedProcurementQuantity);
+        Assert.Equal(2m, detail.RemainingUnallocatedProcurementQuantity);
+        Assert.Equal(8.75m, detail.RemainingToReceiveProcurementQuantity);
+        Assert.Equal(4, detail.SourcingAllocations.Count);
+
+        RestockSourcingAllocation Allocation(string decision, decimal quantity, string status) =>
+            new()
+            {
+                RestockRequest = request,
+                DecisionType = decision,
+                ProcurementQuantity = quantity,
+                ProcurementUnitId = procurementUnit.UnitId,
+                Status = status,
+                CreatedByStaffId = WarehouseId,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+    }
+
+    [Fact]
     public async Task BusinessOwnerOverallocation_RequiresReasonAndWritesAudit()
     {
         using var context = CreateDbContext();

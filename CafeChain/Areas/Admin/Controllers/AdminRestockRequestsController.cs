@@ -149,7 +149,18 @@ namespace CafeChain.Areas.Admin.Controllers
                             AlertStatus = simple.Data.AlertStatus,
                             AlertCurrentQtySnapshot = simple.Data.AlertCurrentQtySnapshot,
                             AlertThresholdSnapshot = simple.Data.AlertThresholdSnapshot,
-                            RemainingQuantity = simple.Data.RequestedQuantity
+                            SourceType = simple.Data.SourceType,
+                            SourceReferenceId = simple.Data.SourceReferenceId,
+                            CreatedForStoreId = simple.Data.CreatedForStoreId,
+                            SourcingStatus = simple.Data.SourcingStatus,
+                            SourcingDecision = simple.Data.SourcingDecision,
+                            RequestedProcurementQuantity = simple.Data.RequestedProcurementQuantity,
+                            ProcurementUnitId = simple.Data.ProcurementUnitId,
+                            ProcurementUnitName = simple.Data.ProcurementUnitName,
+                            SourcingAllocations = simple.Data.SourcingAllocations,
+                            RemainingQuantity = simple.Data.RequestedQuantity,
+                            RemainingUnallocatedProcurementQuantity = simple.Data.RequestedProcurementQuantity,
+                            RemainingToReceiveProcurementQuantity = simple.Data.RequestedProcurementQuantity
                         });
                     }
                 }
@@ -179,7 +190,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var result = await _workflow.SubmitAsync(
                 id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
-                result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
+                result.Message ?? (result.IsSuccess ? "Thao tác thành công." : "Thao tác thất bại.");
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -189,7 +200,7 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             if (!CanWarehouseActions())
             {
-                TempData["ErrorMessage"] = "Không có quyền chuyển PROCESSING.";
+                TempData["ErrorMessage"] = "Bạn không có quyền tiếp nhận xử lý yêu cầu.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
@@ -197,7 +208,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var result = await _workflow.StartProcessingAsync(
                 id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
-                result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
+                result.Message ?? (result.IsSuccess ? "Thao tác thành công." : "Thao tác thất bại.");
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -215,7 +226,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var result = await _workflow.RejectAsync(
                 id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
-                result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
+                result.Message ?? (result.IsSuccess ? "Thao tác thành công." : "Thao tác thất bại.");
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -233,7 +244,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var result = await _workflow.CancelAsync(
                 id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
-                result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
+                result.Message ?? (result.IsSuccess ? "Thao tác thành công." : "Thao tác thất bại.");
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -251,7 +262,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var result = await _workflow.CloseRemainingAsync(
                 id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
-                result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
+                result.Message ?? (result.IsSuccess ? "Thao tác thành công." : "Thao tác thất bại.");
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -261,7 +272,7 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             if (!CanWarehouseActions())
             {
-                TempData["ErrorMessage"] = "Không có quyền gắn fulfillment.";
+                TempData["ErrorMessage"] = "Bạn không có quyền gắn nguồn thực hiện.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
@@ -269,7 +280,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var result = await _workflow.LinkFulfillmentAsync(
                 id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, model, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
-                result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
+                result.Message ?? (result.IsSuccess ? "Thao tác thành công." : "Thao tác thất bại.");
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -355,7 +366,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private async Task PopulateDemandOptionsAsync(int storeId)
         {
             if (_context == null)
-                throw new InvalidOperationException("AppDbContext chưa được cấu hình cho form nhu cầu procurement.");
+                throw new InvalidOperationException("AppDbContext chưa được cấu hình cho form nhu cầu mua hàng.");
             ViewBag.Ingredients = await _context.Ingredients
                 .AsNoTracking()
                 .Where(x => x.Active)

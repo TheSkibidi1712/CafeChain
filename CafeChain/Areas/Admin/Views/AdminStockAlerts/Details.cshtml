@@ -7,11 +7,15 @@
     var isOpen = Model.Status == "OPEN";
     var isConfirmed = Model.Status == "CONFIRMED";
     var openRestock = ViewBag.OpenRestockRequest as RestockRequestListItemDto;
-    var suggested = Model.ThresholdSnapshot.HasValue
+    var suggestedBase = Model.ThresholdSnapshot.HasValue
         ? Math.Max(0m, Model.ThresholdSnapshot.Value - Model.CurrentQtySnapshot)
         : (decimal?)null;
+    var suggestedProcurement = Model.SuggestedProcurementQuantity;
     var defaultPriority = Model.AlertType == "OUT_OF_STOCK" ? "URGENT" : "HIGH";
     var unitSuffix = string.IsNullOrWhiteSpace(Model.BaseUnitName) ? "" : $" {Model.BaseUnitName}";
+    var procurementUnitSuffix = string.IsNullOrWhiteSpace(Model.ProcurementUnitName)
+        ? ""
+        : $" {Model.ProcurementUnitName}";
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -101,7 +105,7 @@
                                 <strong>@AdminStatusDisplay.StockAlert(transition.NewStatus).Label · @AdminStatusDisplay.StockAlertType(transition.NewAlertType)</strong>
                                 <div class="ops-secondary">@transition.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @(transition.ActorName ?? (transition.ActorStaffId.HasValue ? $"Nhân viên #{transition.ActorStaffId}" : "Hệ thống"))</div>
                                 <div>Tồn vật lý @AdminStatusDisplay.Quantity(transition.OnHandSnapshot) · Giữ chỗ @AdminStatusDisplay.Quantity(transition.ReservedSnapshot) · Khả dụng @AdminStatusDisplay.Quantity(transition.AvailableSnapshot)</div>
-                                @if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@transition.Reason</div> }
+                                @if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@AdminStatusDisplay.SystemGeneratedMessage(transition.Reason)</div> }
                             </li>
                         }
                         @if (openRestock != null)
@@ -110,7 +114,7 @@
                         }
                         @if (Model.ResolvedAt.HasValue)
                         {
-                            <li><strong>Tồn kho đã phục hồi</strong><div class="ops-secondary">@Model.ResolvedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div><div>@Model.ResolvedReason</div></li>
+                            <li><strong>Tồn kho đã phục hồi</strong><div class="ops-secondary">@Model.ResolvedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div><div>@AdminStatusDisplay.SystemGeneratedMessage(Model.ResolvedReason)</div></li>
                         }
                     </ol>
                 </div>
@@ -215,18 +219,20 @@
                             <input type="hidden" name="id" value="@Model.StockAlertId" />
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
                             <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                            <input type="hidden" name="procurementUnitId" value="@Model.ProcurementUnitId" />
                             <div class="ops-form-group">
-                                <label class="ops-form-label" for="requestedQuantity">Số lượng yêu cầu theo đơn vị tồn kho@(string.IsNullOrWhiteSpace(Model.BaseUnitName) ? "" : $" ({Model.BaseUnitName})") <span class="text-danger">*</span></label>
-                                <input id="requestedQuantity" type="number" name="requestedQuantity" class="ops-input w-100" step="0.001" min="0.001" max="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" required disabled="@(suggested is not > 0 ? "disabled" : null)" value="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
+                                <label class="ops-form-label" for="requestedProcurementQuantity">Số lượng yêu cầu theo đơn vị mua hàng@(string.IsNullOrWhiteSpace(Model.ProcurementUnitName) ? "" : $" ({Model.ProcurementUnitName})") <span class="text-danger">*</span></label>
+                                <input id="requestedProcurementQuantity" type="number" name="requestedProcurementQuantity" class="ops-input w-100" step="0.001" min="0.001" max="@(suggestedProcurement is > 0 ? suggestedProcurement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" required disabled="@(suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)" value="@(suggestedProcurement is > 0 ? suggestedProcurement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
                                 <div class="ops-help">
                                     @if (Model.IsOutOfThresholdManualDemand)
                                     {
-                                        <span>Nhu cầu đã xác minh: mục tiêu thủ công − khả dụng = @(suggested.HasValue ? $"{AdminStatusDisplay.Quantity(suggested.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
+                                        <span>Nhu cầu đã xác minh: mục tiêu thủ công − khả dụng = @(suggestedProcurement.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedProcurement.Value)}{procurementUnitSuffix}" : "chưa đủ dữ liệu đơn vị mua hàng").</span>
                                     }
                                     else
                                     {
-                                        <span>Bù đến ngưỡng tối thiểu: max(0, ngưỡng − khả dụng) = @(suggested.HasValue ? $"{AdminStatusDisplay.Quantity(suggested.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
+                                        <span>Bù đến ngưỡng tối thiểu: max(0, ngưỡng − khả dụng) = @(suggestedProcurement.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedProcurement.Value)}{procurementUnitSuffix}" : "chưa đủ dữ liệu đơn vị mua hàng").</span>
                                     }
+                                    <span class="d-block mt-1">Snapshot tồn kho tương ứng: @(suggestedBase.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedBase.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
                                 </div>
                             </div>
                             <div class="ops-form-group">
@@ -241,7 +247,7 @@
                                 <label class="ops-form-label" for="note">Ghi chú</label>
                                 <textarea id="note" name="note" class="ops-textarea" maxlength="500" placeholder="Thông tin cần lưu ý cho bộ phận kho..."></textarea>
                             </div>
-                            <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(suggested is not > 0 ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button>
+                            <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button>
                         </form>
                         <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post" class="mt-4">
                             @Html.AntiForgeryToken()

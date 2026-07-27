@@ -156,7 +156,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
     {
         using var context = CreateDbContext();
         var seed = await SeedAsync(context, 10m);
-        var service = CreateService(context);
+        var service = CreateScopedService(context, seed);
         var submitted = await SubmitAsync(service, seed);
         var review = await service.StartReviewAsync(submitted.PurchaseAdviceId,
             new PurchaseAdviceTransitionRequest { RowVersion = submitted.RowVersion }, Warehouse(seed));
@@ -171,7 +171,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
     {
         using var context = CreateDbContext();
         var seed = await SeedAsync(context, 10m);
-        var service = CreateService(context);
+        var service = CreateScopedService(context, seed);
         var submitted = await SubmitAsync(service, seed);
         var review = await service.StartReviewAsync(submitted.PurchaseAdviceId,
             new PurchaseAdviceTransitionRequest { RowVersion = submitted.RowVersion }, Warehouse(seed));
@@ -235,7 +235,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task AccountantWarehouse_CanReview_ButCannotCreateOrConfirmReceiptByThisIssue()
+    public async Task AccountantWarehouse_WithoutStoreScope_CannotCreateOrReview()
     {
         using var context = CreateDbContext();
         var seed = await SeedAsync(context, 10m);
@@ -244,10 +244,38 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         var review = await service.StartReviewAsync(submitted.PurchaseAdviceId,
             new PurchaseAdviceTransitionRequest { RowVersion = submitted.RowVersion }, Warehouse(seed));
         var create = await service.CreateAsync(CreateRequest(seed, 1m), Warehouse(seed));
-        Assert.True(review.IsSuccess, review.Message);
+        Assert.False(review.IsSuccess);
         Assert.False(create.IsSuccess);
         Assert.Empty(context.BranchReceipts);
         Assert.Empty(context.InventoryTransactions);
+    }
+
+    [Fact]
+    public async Task AccountantWarehouse_WithStoreScope_CanCreateSubmitAndReview()
+    {
+        using var context = CreateDbContext();
+        var seed = await SeedAsync(context, 10m);
+        var scope = new Mock<IScopeAuthorizationService>();
+        scope.Setup(x => x.CanAccessStoreAsync(seed.WarehouseId, seed.StoreId))
+            .ReturnsAsync(true);
+        var service = new PurchaseAdviceService(context, scope.Object);
+
+        var created = await service.CreateAsync(CreateRequest(seed, 5m), Warehouse(seed));
+        Assert.True(created.IsSuccess, created.Message);
+
+        var submitted = await service.SubmitAsync(
+            created.Data!.PurchaseAdviceId,
+            new PurchaseAdviceTransitionRequest { RowVersion = created.Data.RowVersion },
+            Warehouse(seed));
+        Assert.True(submitted.IsSuccess, submitted.Message);
+
+        var review = await service.StartReviewAsync(
+            submitted.Data!.PurchaseAdviceId,
+            new PurchaseAdviceTransitionRequest { RowVersion = submitted.Data.RowVersion },
+            Warehouse(seed));
+
+        Assert.True(review.IsSuccess, review.Message);
+        Assert.Equal(PurchaseAdviceStatuses.UnderReview, review.Data!.Status);
     }
 
     [Fact]
@@ -311,12 +339,13 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
                 It.IsAny<int?>()))
             .ReturnsAsync(ServiceResult<decimal>.Success(8.75m));
 
-        var result = await CreateService(context, conversion.Object).CreateDirectAsync(
-            new CreatePurchaseAdviceRequest
+        var requestKey = "DIRECT-184-" + Guid.NewGuid().ToString("N");
+        CreatePurchaseAdviceRequest DirectRequest() =>
+            new()
             {
                 IsDirectProposal = true,
                 StoreId = seed.StoreId,
-                RequestKey = "DIRECT-184-" + Guid.NewGuid().ToString("N"),
+                RequestKey = requestKey,
                 NeededByDate = DateTime.UtcNow.AddDays(3),
                 Priority = PurchaseAdvicePriorities.Normal,
                 Lines = new List<CreatePurchaseAdviceLineRequest>
@@ -328,8 +357,9 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
                         ProcurementUnitId = procurementUnit.UnitId
                     }
                 }
-            },
-            Manager(seed));
+            };
+        var service = CreateService(context, conversion.Object);
+        var result = await service.CreateDirectAsync(DirectRequest(), Manager(seed));
 
         Assert.True(result.IsSuccess, result.Message);
         var demand = await context.RestockRequests
@@ -344,6 +374,17 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         Assert.Equal(RestockSourcingAllocationStatuses.Active, allocation.Status);
         Assert.Equal(line.PurchaseAdviceLineId, allocation.PurchaseAdviceLineId);
         Assert.Equal(8.75m, line.RequestedProcurementQuantity);
+
+        var replay = await service.CreateDirectAsync(DirectRequest(), Manager(seed));
+
+        Assert.True(replay.IsSuccess, replay.Message);
+        Assert.Equal(result.Data!.PurchaseAdviceId, replay.Data!.PurchaseAdviceId);
+        Assert.Single(await context.RestockRequests
+            .Where(x => x.SourceType == RestockRequestSourceTypes.DirectPurchaseProposal)
+            .ToListAsync());
+        Assert.Single(await context.RestockSourcingAllocations
+            .Where(x => x.SourceDocumentType == RestockRequestSourceTypes.DirectPurchaseProposal)
+            .ToListAsync());
     }
 
     private static async Task<PurchaseAdviceDetailDto> SubmitAsync(PurchaseAdviceService service, Seed seed)
@@ -359,6 +400,17 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
     {
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(false);
+        return new PurchaseAdviceService(context, scope.Object, unitConversion);
+    }
+
+    private static PurchaseAdviceService CreateScopedService(
+        AppDbContext context,
+        Seed seed,
+        IUnitConversionService? unitConversion = null)
+    {
+        var scope = new Mock<IScopeAuthorizationService>();
+        scope.Setup(x => x.CanAccessStoreAsync(seed.WarehouseId, seed.StoreId))
+            .ReturnsAsync(true);
         return new PurchaseAdviceService(context, scope.Object, unitConversion);
     }
 

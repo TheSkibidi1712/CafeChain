@@ -185,6 +185,24 @@ public sealed class ProcurementUiTerminologyTests
     public void Currency_UsesVndFormatting() =>
         Assert.Equal("648.000 ₫", AdminStatusDisplay.Currency(648000m));
 
+    [Theory]
+    [InlineData(
+        "Stock reached the verified manual demand target",
+        "Tồn kho đã đạt mục tiêu bổ sung thủ công đã xác nhận.")]
+    [InlineData(
+        "Stock replenished above MinStockLevel",
+        "Tồn khả dụng đã cao hơn ngưỡng tối thiểu.")]
+    public void KnownLegacyEnglishAuditMessage_IsMapped(string storedMessage, string expected) =>
+        Assert.Equal(expected, AdminStatusDisplay.SystemGeneratedMessage(storedMessage));
+
+    [Fact]
+    public void UserNote_IsNotAutoTranslated()
+    {
+        const string userNote = "Please deliver before 8 AM";
+
+        Assert.Equal(userNote, AdminStatusDisplay.SystemGeneratedMessage(userNote));
+    }
+
     [Fact]
     public void MixedUnitAdvice_DoesNotShowInvalidTotalQuantity()
     {
@@ -193,6 +211,19 @@ public sealed class ProcurementUiTerminologyTests
         Assert.DoesNotContain("TotalRequestedBaseQuantity", view);
         Assert.DoesNotContain("Tổng SL", view);
         Assert.Contains("Số dòng đề nghị", view);
+    }
+
+    [Fact]
+    public void PurchaseAdviceCreateAction_UsesScopedStoresForAuthorizedRoles()
+    {
+        var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPurchaseAdvices/Index.cshtml");
+
+        Assert.Contains("RoleConstants.StoreManager", view);
+        Assert.Contains("RoleConstants.AccountantWarehouse", view);
+        Assert.Contains("RoleConstants.BusinessOwner", view);
+        Assert.Contains("Model.Stores.Any", view);
+        Assert.Contains("asp-route-storeId=\"@createStoreId\"", view);
+        Assert.DoesNotContain("asp-route-storeId=\"@Model.Actor.StoreId\"", view);
     }
 
     [Fact]
@@ -224,6 +255,27 @@ public sealed class ProcurementUiTerminologyTests
     }
 
     [Fact]
+    public void ProcurementServiceMessages_DoNotExposeKnownEnglishTerms()
+    {
+        var services = string.Join('\n', new[]
+        {
+            "CafeChain/Application/Services/Inventories/PurchaseAdviceService.cs",
+            "CafeChain/Application/Services/Inventories/PurchaseOrderService.cs",
+            "CafeChain/Application/Services/Inventories/PurchaseOrderBatchService.cs",
+            "CafeChain/Application/Services/Inventories/RestockRequestService.cs",
+            "CafeChain/Application/Services/Inventories/RestockRequestWorkflowService.cs",
+            "CafeChain/Application/Services/Inventories/RestockFulfillmentPostingService.cs",
+            "CafeChain/Application/Services/Inventories/StockAlertManagerService.cs"
+        }.Select(ReadRepoFile));
+
+        Assert.DoesNotContain("đơn vị procurement", services, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("identity Ingredient/PreparedItem", services);
+        Assert.DoesNotContain("Bán thành phẩm (PreparedItem)", services);
+        Assert.DoesNotContain("(CONFIRMED)", services);
+        Assert.DoesNotContain("Fulfillment phải", services);
+    }
+
+    [Fact]
     public void ProcurementNavigation_UsesStandardLabels()
     {
         var layout = ReadRepoFile("CafeChain/Areas/Admin/Views/Shared/_AdminLayout.cshtml");
@@ -250,6 +302,8 @@ public sealed class ProcurementUiTerminologyTests
         "CafeChain/Areas/Admin/Views/AdminBranchReceipts/Details.cshtml",
         "CafeChain/Areas/Admin/Views/AdminBranchReceipts/PurchaseOrderDraft.cshtml",
         "CafeChain/Areas/Admin/Views/AdminRestockRequests/Index.cshtml",
+        "CafeChain/Areas/Admin/Views/AdminRestockRequests/CreateManual.cshtml",
+        "CafeChain/Areas/Admin/Views/AdminRestockRequests/CreateCentralPlanner.cshtml",
         "CafeChain/Areas/Admin/Views/AdminRestockRequests/Details.cshtml",
         "CafeChain/Areas/Admin/Views/AdminStockAlerts/Index.cshtml",
         "CafeChain/Areas/Admin/Views/AdminStockAlerts/Details.cshtml",
