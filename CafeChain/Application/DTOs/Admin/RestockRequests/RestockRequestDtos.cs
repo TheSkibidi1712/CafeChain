@@ -56,6 +56,8 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public string? CreatedByName { get; set; }
         public DateTime CreatedAt { get; set; }
         public string SourceType { get; set; } = string.Empty;
+        public string? SourceReferenceId { get; set; }
+        public int? CreatedForStoreId { get; set; }
         public string SourcingStatus { get; set; } = string.Empty;
         public string? SourcingDecision { get; set; }
         public decimal? RequestedProcurementQuantity { get; set; }

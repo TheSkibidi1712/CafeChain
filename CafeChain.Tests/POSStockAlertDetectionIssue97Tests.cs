@@ -253,7 +253,7 @@ namespace CafeChain.Tests.POS
             var resolved = await ctx.StockAlerts.SingleAsync();
             Assert.Equal(StockAlertStatuses.Resolved, resolved.Status);
             Assert.NotNull(resolved.ResolvedAt);
-            Assert.Contains("replenished", resolved.ResolvedReason!, System.StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("Tồn khả dụng đã cao hơn ngưỡng tối thiểu.", resolved.ResolvedReason);
         }
 
         [Fact]

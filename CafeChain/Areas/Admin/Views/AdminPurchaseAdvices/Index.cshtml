@@ -3,7 +3,16 @@
 @model CafeChain.Application.DTOs.Admin.Procurement.PurchaseAdvicePageDto
 @{
     ViewData["Title"] = "Đề nghị mua hàng";
-    var canCreate = Model.Actor.RoleNames.Contains(RoleConstants.StoreManager) && Model.Actor.StoreId > 0;
+    var hasCreateRole = Model.Actor.RoleNames.Contains(RoleConstants.StoreManager)
+        || Model.Actor.RoleNames.Contains(RoleConstants.AccountantWarehouse)
+        || Model.Actor.RoleNames.Contains(RoleConstants.BusinessOwner);
+    var createStoreId = Model.Filter.StoreId.HasValue
+        && Model.Stores.Any(x => x.StoreId == Model.Filter.StoreId.Value)
+            ? Model.Filter.StoreId
+            : Model.Stores.Any(x => x.StoreId == Model.Actor.StoreId)
+                ? Model.Actor.StoreId
+                : Model.Stores.FirstOrDefault().StoreId;
+    var canCreate = hasCreateRole && createStoreId > 0;
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 
@@ -16,7 +25,7 @@
         </div>
         @if (canCreate)
         {
-            <a class="pa-action pa-action-primary" asp-action="Create" asp-route-storeId="@Model.Actor.StoreId"><i class="fas fa-plus"></i> Tạo đề nghị mua</a>
+            <a class="pa-action pa-action-primary" asp-action="Create" asp-route-storeId="@createStoreId"><i class="fas fa-plus"></i> Tạo đề nghị mua</a>
         }
     </header>
 

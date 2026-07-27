@@ -4,6 +4,7 @@ using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
+using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Operations;
 using Microsoft.EntityFrameworkCore;
@@ -433,7 +434,7 @@ namespace CafeChain.Application.Services.Inventories
             ItemName = ResolveItemName(a),
             ItemTypeLabel = a.IngredientId.HasValue
                 ? "Nguyên liệu"
-                : (a.PreparedItemId.HasValue ? "Bán thành phẩm (PreparedItem)" : "Bán thành phẩm"),
+                : "Bán thành phẩm",
             AlertType = a.AlertType,
             Severity = a.Severity,
             Status = a.Status,
@@ -454,6 +455,13 @@ namespace CafeChain.Application.Services.Inventories
             int storeId,
             IEnumerable<StockAlertListItemDto> alerts)
         {
+            var procurementUnits = await _context.Units
+                .AsNoTracking()
+                .Where(x => x.Active
+                    && (x.UnitCode == ProcurementUnitCodes.Kilogram
+                        || x.UnitCode == ProcurementUnitCodes.Liter
+                        || x.UnitCode == ProcurementUnitCodes.Piece))
+                .ToListAsync();
             var rows = await _context.StoreInventories
                 .AsNoTracking()
                 .Include(i => i.Ingredient)
@@ -492,6 +500,55 @@ namespace CafeChain.Application.Services.Inventories
                         : null;
                 alert.BaseUnitName = inventory.Ingredient?.BaseUnit?.Name
                     ?? inventory.PreparedItem?.BaseUnit?.Name;
+                var baseUnit = inventory.Ingredient?.BaseUnit
+                    ?? inventory.PreparedItem?.BaseUnit;
+                if (baseUnit == null)
+                    continue;
+
+                var procurementCode = baseUnit.Type switch
+                {
+                    UnitType.KhoiLuong => ProcurementUnitCodes.Kilogram,
+                    UnitType.TheTich => ProcurementUnitCodes.Liter,
+                    UnitType.Dem => ProcurementUnitCodes.Piece,
+                    _ => string.Empty
+                };
+                var procurementUnit = procurementUnits.FirstOrDefault(x =>
+                    string.Equals(x.UnitCode, procurementCode, StringComparison.OrdinalIgnoreCase));
+                if (procurementUnit == null)
+                    continue;
+
+                decimal procurementToBaseFactor;
+                if (procurementUnit.UnitId == baseUnit.UnitId)
+                {
+                    procurementToBaseFactor = 1m;
+                }
+                else if (procurementUnit.Type == UnitType.Dem
+                    && baseUnit.Type == UnitType.Dem)
+                {
+                    procurementToBaseFactor = 1m;
+                }
+                else if (!PhysicalUnitConversionRegistry.TryGetPairFactor(
+                    procurementUnit.UnitCode,
+                    baseUnit.UnitCode,
+                    procurementUnit.Type,
+                    baseUnit.Type,
+                    out procurementToBaseFactor))
+                {
+                    continue;
+                }
+
+                alert.ProcurementUnitId = procurementUnit.UnitId;
+                alert.ProcurementUnitName = procurementUnit.Name;
+                if (alert.ThresholdSnapshot.HasValue)
+                {
+                    var suggestedBase = Math.Max(
+                        0m,
+                        alert.ThresholdSnapshot.Value - alert.CurrentQtySnapshot);
+                    alert.SuggestedProcurementQuantity =
+                        suggestedBase / procurementToBaseFactor;
+                    alert.DecisionTargetProcurementQuantity =
+                        alert.ThresholdSnapshot.Value / procurementToBaseFactor;
+                }
             }
         }
 
@@ -505,7 +562,7 @@ namespace CafeChain.Application.Services.Inventories
                 ItemName = ResolveItemName(a),
                 ItemTypeLabel = a.IngredientId.HasValue
                     ? "Nguyên liệu"
-                    : (a.PreparedItemId.HasValue ? "Bán thành phẩm (PreparedItem)" : "Bán thành phẩm"),
+                    : "Bán thành phẩm",
                 AlertType = a.AlertType,
                 Severity = a.Severity,
                 Status = a.Status,

@@ -26,6 +26,14 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public decimal ReceivedQuantity { get; set; }
         public decimal RemainingQuantity { get; set; }
         public decimal TargetQuantity { get; set; }
+        public decimal? FulfilledProcurementQuantity { get; set; }
+        public decimal? TransferAllocatedProcurementQuantity { get; set; }
+        public decimal? PurchaseAllocatedProcurementQuantity { get; set; }
+        public decimal? ProductionAllocatedProcurementQuantity { get; set; }
+        public decimal? RejectedProcurementQuantity { get; set; }
+        public decimal? RemainingUnallocatedProcurementQuantity { get; set; }
+        public decimal? RemainingToReceiveProcurementQuantity { get; set; }
+        public decimal? ClosedProcurementQuantity { get; set; }
         public decimal FulfilledQuantity { get; set; }
         public decimal TransferAllocatedQuantity { get; set; }
         public decimal PurchaseAllocatedQuantity { get; set; }

@@ -171,7 +171,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateRestockRequest(
             int id,
-            decimal requestedQuantity,
+            decimal requestedProcurementQuantity,
+            int procurementUnitId,
             string? priority,
             string? note,
             int? storeId = null)
@@ -190,8 +191,14 @@ namespace CafeChain.Areas.Admin.Controllers
                 return StoreScopeFailure(storeScope);
             var targetStoreId = storeScope.StoreId!.Value;
 
-            var result = await _restockService.CreateFromConfirmedAlertAsync(
-                id, actor.StaffId, targetStoreId, requestedQuantity, note, priority);
+            var result = await _restockService.CreateFromConfirmedAlertProcurementAsync(
+                id,
+                actor.StaffId,
+                targetStoreId,
+                requestedProcurementQuantity,
+                procurementUnitId,
+                note,
+                priority);
 
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;

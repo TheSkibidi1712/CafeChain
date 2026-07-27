@@ -237,6 +237,21 @@ namespace CafeChain.ViewModels.Admin.Shared
                 _ => UnknownLabel("Nguồn cảnh báo kho", source)
             };
 
+        public static string? SystemGeneratedMessage(string? message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+                return message;
+
+            return message.Trim() switch
+            {
+                "Stock reached the verified manual demand target" =>
+                    "Tồn kho đã đạt mục tiêu bổ sung thủ công đã xác nhận.",
+                "Stock replenished above MinStockLevel" =>
+                    "Tồn khả dụng đã cao hơn ngưỡng tối thiểu.",
+                _ => message
+            };
+        }
+
         public static string InventoryTransactionType(string? transactionType) =>
             transactionType?.ToUpperInvariant() switch
             {

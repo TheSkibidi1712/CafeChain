@@ -4,6 +4,7 @@ using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
+using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Operations;
 using Microsoft.EntityFrameworkCore;
@@ -91,14 +92,14 @@ namespace CafeChain.Application.Services.Inventories
             if (alert.Status != StockAlertStatuses.Confirmed)
             {
                 return ServiceResult<CreateRestockRequestResultDto>.Failure(
-                    $"Chỉ tạo yêu cầu nhập hàng từ cảnh báo đã xác nhận (CONFIRMED). Trạng thái hiện tại: {alert.Status}.");
+                    $"Chỉ tạo yêu cầu nhập hàng từ cảnh báo đã xác nhận. Trạng thái hiện tại: {StockAlertStatusLabel(alert.Status)}.");
             }
 
             var preparedItemId = alert.PreparedItemId ?? alert.Recipe?.PreparedItemId;
             if (!alert.IngredientId.HasValue && !preparedItemId.HasValue)
             {
                 return ServiceResult<CreateRestockRequestResultDto>.Failure(
-                    "Cảnh báo chưa có identity Ingredient/PreparedItem hợp lệ.");
+                    "Cảnh báo chưa có định danh nguyên liệu hoặc bán thành phẩm hợp lệ.");
             }
 
             var existingOpen = await _context.RestockRequests
@@ -225,6 +226,122 @@ namespace CafeChain.Application.Services.Inventories
             return ServiceResult<CreateRestockRequestResultDto>.Success(
                 dto,
                 "Đã tạo yêu cầu nhập hàng nháp từ cảnh báo đã xác nhận.");
+        }
+
+        public async Task<ServiceResult<CreateRestockRequestResultDto>> CreateFromConfirmedAlertProcurementAsync(
+            int alertId,
+            int managerStaffId,
+            int managerStoreId,
+            decimal requestedProcurementQuantity,
+            int procurementUnitId,
+            string? note,
+            string? priority)
+        {
+            if (requestedProcurementQuantity <= 0 || procurementUnitId <= 0)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    "Số lượng và đơn vị mua hàng phải hợp lệ.");
+
+            var alert = await _context.StockAlerts
+                .AsNoTracking()
+                .Include(x => x.Ingredient)
+                    .ThenInclude(x => x!.BaseUnit)
+                .Include(x => x.PreparedItem)
+                    .ThenInclude(x => x!.BaseUnit)
+                .Include(x => x.Recipe)
+                    .ThenInclude(x => x!.PreparedItem)
+                        .ThenInclude(x => x!.BaseUnit)
+                .SingleOrDefaultAsync(x => x.StockAlertId == alertId);
+            if (alert == null)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    "Không tìm thấy cảnh báo.");
+
+            var baseUnit = alert.Ingredient?.BaseUnit
+                ?? alert.PreparedItem?.BaseUnit
+                ?? alert.Recipe?.PreparedItem?.BaseUnit;
+            var procurementUnit = await _context.Units
+                .AsNoTracking()
+                .SingleOrDefaultAsync(x => x.UnitId == procurementUnitId && x.Active);
+            if (baseUnit == null || procurementUnit == null)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    "Cảnh báo chưa có đơn vị tồn kho hoặc đơn vị mua hàng hợp lệ.");
+
+            var expectedProcurementCode = baseUnit.Type switch
+            {
+                UnitType.KhoiLuong => ProcurementUnitCodes.Kilogram,
+                UnitType.TheTich => ProcurementUnitCodes.Liter,
+                UnitType.Dem => ProcurementUnitCodes.Piece,
+                _ => string.Empty
+            };
+            if (!string.Equals(
+                    procurementUnit.UnitCode,
+                    expectedProcurementCode,
+                    StringComparison.OrdinalIgnoreCase))
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    "Đơn vị mua hàng không tương thích với đơn vị tồn kho của mặt hàng.");
+
+            decimal procurementToBaseFactor;
+            if (procurementUnit.UnitId == baseUnit.UnitId)
+            {
+                procurementToBaseFactor = 1m;
+            }
+            else if (procurementUnit.Type == UnitType.Dem
+                && baseUnit.Type == UnitType.Dem)
+            {
+                procurementToBaseFactor = 1m;
+            }
+            else if (!PhysicalUnitConversionRegistry.TryGetPairFactor(
+                procurementUnit.UnitCode,
+                baseUnit.UnitCode,
+                procurementUnit.Type,
+                baseUnit.Type,
+                out procurementToBaseFactor))
+            {
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    "Chưa cấu hình quy đổi từ đơn vị mua hàng sang đơn vị tồn kho.");
+            }
+
+            var requestedBaseQuantity =
+                requestedProcurementQuantity * procurementToBaseFactor;
+            var suggestedBaseQuantity = alert.ThresholdSnapshot.HasValue
+                ? Math.Max(0m, alert.ThresholdSnapshot.Value - alert.CurrentQtySnapshot)
+                : 0m;
+            var suggestedProcurementQuantity =
+                suggestedBaseQuantity / procurementToBaseFactor;
+            if (suggestedProcurementQuantity <= 0)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    "Cảnh báo không còn nhu cầu nhập có thể kiểm chứng.");
+            if (requestedProcurementQuantity > suggestedProcurementQuantity)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    $"Số lượng yêu cầu không được vượt quá {suggestedProcurementQuantity:N3} {procurementUnit.Name}.");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var result = await CreateFromConfirmedAlertAsync(
+                alertId,
+                managerStaffId,
+                managerStoreId,
+                requestedBaseQuantity,
+                note,
+                priority);
+            if (!result.IsSuccess || result.Data!.AlreadyExisted)
+            {
+                await transaction.RollbackAsync();
+                return result;
+            }
+
+            var request = await _context.RestockRequests
+                .SingleAsync(x => x.RestockRequestId == result.Data.RestockRequestId);
+            request.CreatedForStoreId = alert.StoreId;
+            request.SourceType = RestockRequestSourceTypes.StockAlert;
+            request.SourceReferenceId = alert.StockAlertId.ToString();
+            request.RequestedProcurementQuantity = requestedProcurementQuantity;
+            request.ProcurementUnitId = procurementUnit.UnitId;
+            request.TargetStockProcurementQuantity = alert.ThresholdSnapshot.HasValue
+                ? alert.ThresholdSnapshot.Value / procurementToBaseFactor
+                : null;
+            request.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return result;
         }
 
         public async Task<ServiceResult<RestockRequestListResultDto>> ListForStoreAsync(
@@ -364,7 +481,7 @@ namespace CafeChain.Application.Services.Inventories
             if (!await IsAuthorizedRequesterAsync(actorStaffId, demand.StoreId, allowWarehouseRole: true))
                 return ServiceResult<SourcingAllocationDto>.Failure("Bạn không có quyền quyết định nguồn cung cho cửa hàng này.");
             if (request.ProcurementUnitId != demand.ProcurementUnitId)
-                return ServiceResult<SourcingAllocationDto>.Failure("Đơn vị procurement phải trùng với đơn vị của nhu cầu.");
+                return ServiceResult<SourcingAllocationDto>.Failure("Đơn vị mua hàng phải trùng với đơn vị của nhu cầu.");
 
             var allocated = demand.SourcingAllocations
                 .Where(x => x.Status is RestockSourcingAllocationStatuses.Active
@@ -426,9 +543,9 @@ namespace CafeChain.Application.Services.Inventories
             var unit = await _context.Units
                 .SingleOrDefaultAsync(x => x.UnitId == request.ProcurementUnitId && x.Active);
             if (ingredient == null || unit == null)
-                return ServiceResult<CreateRestockRequestResultDto>.Failure("Nguyên liệu hoặc đơn vị procurement không hợp lệ.");
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Nguyên liệu hoặc đơn vị mua hàng không hợp lệ.");
             if (!AllowedProcurementUnitCodes.Contains(unit.UnitCode, StringComparer.OrdinalIgnoreCase))
-                return ServiceResult<CreateRestockRequestResultDto>.Failure("Đơn vị procurement phải là kg, L hoặc piece.");
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Đơn vị mua hàng phải là kg, L hoặc cái.");
 
             var sourceReference = Clean(request.SourceReferenceId, 100);
             if (sourceReference != null)
@@ -458,7 +575,7 @@ namespace CafeChain.Application.Services.Inventories
             {
                 if (_unitConversion == null)
                     return ServiceResult<CreateRestockRequestResultDto>.Failure(
-                        "Chưa cấu hình dịch vụ quy đổi đơn vị procurement sang đơn vị tồn kho.");
+                        "Chưa cấu hình dịch vụ quy đổi đơn vị mua hàng sang đơn vị tồn kho.");
 
                 var conversion = await _unitConversion.ConvertAsync(
                     ingredient.IngredientId,
@@ -586,6 +703,16 @@ namespace CafeChain.Application.Services.Inventories
             return RestockRequestPriorities.Normal;
         }
 
+        private static string StockAlertStatusLabel(string? status) => status switch
+        {
+            StockAlertStatuses.Open => "Đang mở",
+            StockAlertStatuses.Confirmed => "Đã xác nhận",
+            StockAlertStatuses.Resolved => "Đã phục hồi",
+            StockAlertStatuses.Rejected => "Đã từ chối",
+            StockAlertStatuses.Closed => "Đã đóng",
+            _ => "Không xác định"
+        };
+
         private static RestockRequestListItemDto MapListItem(RestockRequest r) => new()
         {
             RestockRequestId = r.RestockRequestId,
@@ -602,6 +729,8 @@ namespace CafeChain.Application.Services.Inventories
             CreatedByName = r.CreatedByStaff?.FullName,
             CreatedAt = r.CreatedAt,
             SourceType = r.SourceType,
+            SourceReferenceId = r.SourceReferenceId,
+            CreatedForStoreId = r.CreatedForStoreId,
             SourcingStatus = r.SourcingStatus,
             SourcingDecision = r.SourcingDecision,
             RequestedProcurementQuantity = r.RequestedProcurementQuantity,
@@ -619,7 +748,7 @@ namespace CafeChain.Application.Services.Inventories
                 ItemName = ResolveItemName(r),
                 ItemTypeLabel = r.IngredientId.HasValue
                     ? "Nguyên liệu"
-                    : (r.PreparedItemId.HasValue ? "Bán thành phẩm (PreparedItem)" : "Bán thành phẩm"),
+                    : "Bán thành phẩm",
                 BaseUnitName = ResolveBaseUnitName(r),
                 RequestedQuantity = r.RequestedQuantity,
                 SuggestedQuantity = r.SuggestedQuantity,
@@ -646,6 +775,8 @@ namespace CafeChain.Application.Services.Inventories
                 SuggestionIncomingQuantitySnapshot = r.SuggestionIncomingQuantitySnapshot,
                 SuggestionReason = r.SuggestionReason,
                 SourceType = r.SourceType,
+                SourceReferenceId = r.SourceReferenceId,
+                CreatedForStoreId = r.CreatedForStoreId,
                 SourcingStatus = r.SourcingStatus,
                 SourcingDecision = r.SourcingDecision,
                 RequestedProcurementQuantity = r.RequestedProcurementQuantity,
@@ -683,7 +814,7 @@ namespace CafeChain.Application.Services.Inventories
             {
                 if (!string.IsNullOrWhiteSpace(r.PreparedItem?.Name)) return r.PreparedItem.Name;
                 if (!string.IsNullOrWhiteSpace(r.PreparedItem?.Code)) return r.PreparedItem.Code;
-                return $"PreparedItem #{r.PreparedItemId}";
+                return $"Bán thành phẩm #{r.PreparedItemId}";
             }
             if (r.RecipeId.HasValue)
             {
@@ -702,7 +833,7 @@ namespace CafeChain.Application.Services.Inventories
             {
                 if (!string.IsNullOrWhiteSpace(a.PreparedItem?.Name)) return a.PreparedItem.Name;
                 if (!string.IsNullOrWhiteSpace(a.PreparedItem?.Code)) return a.PreparedItem.Code;
-                return $"PreparedItem #{a.PreparedItemId}";
+                return $"Bán thành phẩm #{a.PreparedItemId}";
             }
             if (a.RecipeId.HasValue)
             {

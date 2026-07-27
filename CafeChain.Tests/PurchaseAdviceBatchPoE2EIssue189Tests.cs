@@ -393,6 +393,19 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
         var owner = Staff(accounts[3], store1, "Chủ doanh nghiệp", now);
         db.AddRange(manager1, manager2, warehouse, owner);
         await db.SaveChangesAsync();
+        db.StaffScopes.AddRange(
+            new StaffScope
+            {
+                StaffId = warehouse.StaffId,
+                ScopeTypeId = (int)ScopeLevel.Store,
+                ScopeRefId = store1.StoreId
+            },
+            new StaffScope
+            {
+                StaffId = warehouse.StaffId,
+                ScopeTypeId = (int)ScopeLevel.Store,
+                ScopeRefId = store2.StoreId
+            });
         var offer = new IngredientSupplier { IngredientId = ingredient.IngredientId, SupplierId = supplier.SupplierId, UnitId = unit.UnitId, PackageQuantity = 1m, CurrentPrice = 100000m, MinimumOrderPackageCount = 1, LeadTimeDays = 1, Active = true, CreatedAt = now, UpdatedAt = now };
         db.AddRange(offer,
             new SupplierStore { SupplierId = supplier.SupplierId, StoreId = store1.StoreId, Active = true, CreatedAt = now, UpdatedAt = now },

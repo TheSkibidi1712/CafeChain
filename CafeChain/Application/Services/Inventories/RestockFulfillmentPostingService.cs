@@ -22,7 +22,7 @@ namespace CafeChain.Application.Services.Inventories
             if (command.Quantity <= 0 || command.BaseUnitId <= 0)
                 return Failure("Số lượng fulfillment và đơn vị cơ sở phải hợp lệ.");
             if (command.IngredientId.HasValue == command.PreparedItemId.HasValue)
-                return Failure("Fulfillment phải có đúng một identity Ingredient/PreparedItem.");
+                return Failure("Nguồn thực hiện phải có đúng một định danh nguyên liệu hoặc bán thành phẩm.");
             if (command.SourceDocumentType is not (
                 RestockFulfillmentDocumentTypes.BranchReceipt or
                 RestockFulfillmentDocumentTypes.InventoryTransfer))
