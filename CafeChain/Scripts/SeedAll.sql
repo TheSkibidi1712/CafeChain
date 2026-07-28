@@ -1,7 +1,397 @@
-use master
+use CafeChain
 go
 
-USE [CafeChain];
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
+
+/* ============================================================
+   BATCH 16 - DEMO_COVERAGE_V16 branch receipt integrity
+   - Remediates the two historical confirmed demo receipts.
+   - Adds Store 2 and enough confirmed receipts for supplier analytics.
+   - Inventory/FIFO/posting writes are guarded by durable business keys.
+   ============================================================ */
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.SeedDemoCoverageV16
+AS
+BEGIN
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    DECLARE @CoverageNow datetime2(7)=SYSUTCDATETIME();
+    DECLARE @CoverageStore1 int=(SELECT StoreId FROM dbo.Stores WHERE StoreId=1 AND Active=1);
+    DECLARE @CoverageStore2 int=(SELECT StoreId FROM dbo.Stores WHERE StoreId=2 AND Active=1);
+    DECLARE @CoverageStore3 int=(SELECT StoreId FROM dbo.Stores WHERE StoreId=3 AND Active=1);
+    DECLARE @CoverageSupplier int=COALESCE(
+        (SELECT SupplierId FROM dbo.Suppliers WHERE Code=N'DEMO_SUP_VIET_COFFEE'),
+        (SELECT SupplierId FROM dbo.Suppliers WHERE SupplierId=6));
+    DECLARE @CoverageOffer int=(SELECT TOP(1) IngredientSupplierId
+                                FROM dbo.IngredientSuppliers
+                                WHERE SupplierId=@CoverageSupplier AND IngredientId=14 AND Active=1
+                                ORDER BY IngredientSupplierId);
+    DECLARE @CoverageIngredient int=(SELECT IngredientId FROM dbo.Ingredients WHERE IngredientId=14);
+    DECLARE @CoverageBaseUnit int=(SELECT BaseUnitId FROM dbo.Ingredients WHERE IngredientId=14);
+    DECLARE @CoverageProcurementUnit int=(SELECT UnitId FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=@CoverageOffer);
+    DECLARE @CoveragePackageQty decimal(18,5)=(SELECT PackageQuantity FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=@CoverageOffer);
+    DECLARE @CoveragePackagePrice decimal(18,2)=(SELECT CurrentPrice FROM dbo.IngredientSuppliers WHERE IngredientSupplierId=@CoverageOffer);
+    DECLARE @CoverageFactor decimal(18,6)=1000;
+    DECLARE @CoverageUnitCost decimal(18,6)=@CoveragePackagePrice/@CoverageFactor;
+
+    IF @CoverageStore1 IS NULL OR @CoverageStore2 IS NULL OR @CoverageStore3 IS NULL
+       OR @CoverageSupplier IS NULL OR @CoverageOffer IS NULL OR @CoverageBaseUnit IS NULL
+        THROW 53610,N'DEMO_COVERAGE_V16: missing store, supplier, offer, ingredient, or unit foundation.',1;
+
+    DECLARE @CoverageStore2Email nvarchar(256)=N'demo.manager.thuanan@cafechain.local';
+    DECLARE @CoverageStore2Account int;
+    DECLARE @CoverageStore2Staff int;
+    DECLARE @CoverageManagerRole int=(SELECT TOP(1) RoleId FROM dbo.Roles WHERE Name=N'Quản lý chi nhánh' OR RoleId=3 ORDER BY CASE WHEN RoleId=3 THEN 0 ELSE 1 END);
+    DECLARE @CoverageSourcePassword nvarchar(max)=(SELECT TOP(1) PasswordHash FROM dbo.Accounts ORDER BY AccountId);
+    DECLARE @CoverageStoreScopeType int=(SELECT TOP(1) ScopeTypeId FROM dbo.ScopeTypes WHERE Name=N'Store' OR ScopeTypeId=1 ORDER BY ScopeTypeId);
+
+    IF @CoverageManagerRole IS NULL OR @CoverageSourcePassword IS NULL OR @CoverageStoreScopeType IS NULL
+        THROW 53611,N'DEMO_COVERAGE_V16: missing role, password fixture, or Store scope type.',1;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=@CoverageStore2Email)
+        INSERT dbo.Accounts(Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
+        VALUES(@CoverageStore2Email,@CoverageSourcePassword,1,0,'2026-02-01T07:00:00',0,NULL);
+    SELECT @CoverageStore2Account=AccountId FROM dbo.Accounts WHERE Email=@CoverageStore2Email;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=@CoverageStore2Account AND RoleId=@CoverageManagerRole)
+        INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(@CoverageStore2Account,@CoverageManagerRole);
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=@CoverageStore2Account)
+        INSERT dbo.Staffs(AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,StoreId,
+                          AvatarUrl,AvatarPublicId,Active,CreatedAt)
+        VALUES(@CoverageStore2Account,N'Quản lý demo Thuận An',NULL,1,'2026-02-01',2,NULL,@CoverageStore2,
+               NULL,NULL,1,'2026-02-01T07:00:00');
+    SELECT @CoverageStore2Staff=StaffId FROM dbo.Staffs WHERE AccountId=@CoverageStore2Account;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes
+                  WHERE StaffId=@CoverageStore2Staff AND ScopeTypeId=@CoverageStoreScopeType AND ScopeRefId=@CoverageStore2)
+        INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId)
+        VALUES(@CoverageStore2Staff,@CoverageStoreScopeType,@CoverageStore2);
+
+    DECLARE @CoverageStaff1 int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=1 AND Active=1 ORDER BY StaffId);
+    DECLARE @CoverageStaff3 int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=3 AND Active=1 ORDER BY StaffId);
+    IF @CoverageStaff1 IS NULL OR @CoverageStore2Staff IS NULL OR @CoverageStaff3 IS NULL
+        THROW 53612,N'DEMO_COVERAGE_V16: each store needs an active receipt actor.',1;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.SupplierStores WHERE SupplierId=@CoverageSupplier AND StoreId=@CoverageStore2)
+        INSERT dbo.SupplierStores(SupplierId,StoreId,Active,LeadTimeOverrideDays,DeliverySchedule,Note,CreatedAt,UpdatedAt)
+        VALUES(@CoverageSupplier,@CoverageStore2,1,1,N'Thứ 2-4-6',N'DEMO_COVERAGE_V16 receipt scope','2026-02-01','2026-02-01');
+
+    INSERT dbo.StoreInventories(StoreId,IngredientId,RecipeId,PreparedItemId,AvailableQty,ReservedQty,MinStockLevel,LastUpdated)
+    SELECT s.StoreId,@CoverageIngredient,NULL,NULL,0,0,500,'2026-02-01'
+    FROM (VALUES(@CoverageStore1),(@CoverageStore2),(@CoverageStore3)) s(StoreId)
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.StoreInventories si
+                     WHERE si.StoreId=s.StoreId AND si.IngredientId=@CoverageIngredient);
+
+    /* Historical rows used package quantities as base quantities. Repair only before any posting exists. */
+    UPDATE brl
+       SET InputQuantity=10,InputUnitId=@CoverageProcurementUnit,
+           ReceivedBaseQuantity=8000,RejectedBaseQuantity=2000,
+           ReceivedPackQuantity=10,AcceptedPackQuantity=8,
+           ReceivedProcurementQuantity=10,RejectedProcurementQuantity=2,AcceptedProcurementQuantity=8,
+           InventoryPostingBaseQuantity=8000,ProcurementUnitId=@CoverageProcurementUnit,
+           InventoryBaseUnitId=@CoverageBaseUnit,ProcurementToInventoryFactor=@CoverageFactor,
+           PurchaseMode=N'Packaged',BaseUnitId=@CoverageBaseUnit,
+           ActualPackagePrice=@CoveragePackagePrice,PackageQuantitySnapshot=@CoveragePackageQty,
+           PackageUnitIdSnapshot=@CoverageProcurementUnit,BaseUnitCostSnapshot=@CoverageUnitCost,
+           LineTotalCost=ROUND(8000*@CoverageUnitCost,2)
+    FROM dbo.BranchReceiptLines brl
+    JOIN dbo.BranchReceipts br ON br.BranchReceiptId=brl.BranchReceiptId
+    WHERE br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+      AND brl.InventoryTransactionId IS NULL
+      AND NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderReceiptPostings p WHERE p.BranchReceiptLineId=brl.BranchReceiptLineId);
+
+    UPDATE pol
+       SET PackageCount=10,PurchaseMode=N'Packaged',OrderedPackageCount=10,OrderedBaseQuantity=10000,
+           OrderedPackQuantity=10,PackSizeProcurementQuantity=1,ProcurementUnitId=@CoverageProcurementUnit,
+           OrderedProcurementQuantity=10,UnitPricePerPackage=@CoveragePackagePrice,
+           UnitPricePerProcurementUnit=NULL,AcceptedPackQuantity=8,AcceptedProcurementQuantity=8,
+           InventoryPostingBaseQuantity=8000,InventoryBaseUnitId=@CoverageBaseUnit,
+           ProcurementToInventoryFactor=@CoverageFactor,ClosedRemainingQuantity=2000
+    FROM dbo.PurchaseOrderLines pol
+    JOIN dbo.BranchReceiptLines brl ON brl.PurchaseOrderLineId=pol.PurchaseOrderLineId
+    JOIN dbo.BranchReceipts br ON br.BranchReceiptId=brl.BranchReceiptId
+    WHERE br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+      AND NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderReceiptPostings p WHERE p.BranchReceiptLineId=brl.BranchReceiptLineId);
+
+    UPDATE rr
+       SET RequestedQuantity=10000,SuggestedQuantity=10000,Status=N'PROCESSING',
+           UpdatedAt=@CoverageNow,ClosedRemainingQuantity=2000
+    FROM dbo.RestockRequests rr
+    JOIN dbo.BranchReceiptLines brl ON brl.RestockRequestId=rr.RestockRequestId
+    JOIN dbo.BranchReceipts br ON br.BranchReceiptId=brl.BranchReceiptId
+    WHERE br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+      AND NOT EXISTS(SELECT 1 FROM dbo.RestockFulfillmentPostings p
+                     WHERE p.SourceDocumentType=N'BRANCH_RECEIPT'
+                       AND p.SourceDocumentId=br.BranchReceiptId
+                       AND p.SourceDocumentLineId=brl.BranchReceiptLineId);
+
+    DECLARE @ReceiptScenario TABLE
+    (
+        ScenarioCode nvarchar(30) PRIMARY KEY, StoreId int NOT NULL, ActorStaffId int NOT NULL,
+        ReceiptStatus nvarchar(16) NOT NULL, OrderedBase decimal(18,3) NOT NULL,
+        AcceptedBase decimal(18,3) NOT NULL, RejectedBase decimal(18,3) NOT NULL,
+        InputPackages decimal(18,3) NOT NULL, EventAt datetime2(0) NOT NULL
+    );
+    INSERT @ReceiptScenario VALUES
+      (N'S1-FULL-001',@CoverageStore1,@CoverageStaff1,N'CONFIRMED',1000,1000,0,1,'2026-02-03T09:00:00'),
+      (N'S2-PART-001',@CoverageStore2,@CoverageStore2Staff,N'CONFIRMED',1000,800,200,1,'2026-02-04T09:00:00'),
+      (N'S2-FULL-002',@CoverageStore2,@CoverageStore2Staff,N'CONFIRMED',1000,1000,0,1,'2026-02-05T09:00:00'),
+      (N'S3-DRAFT-001',@CoverageStore3,@CoverageStaff3,N'DRAFT',1000,1000,0,1,'2026-02-06T09:00:00');
+
+    INSERT dbo.PurchaseOrders
+    (Code,StoreId,SupplierId,Status,OrderDate,ExpectedDeliveryAtUtc,CreatedByStaffId,
+     ApprovedByStaffId,SentByStaffId,CreatedAtUtc,UpdatedAtUtc,ApprovedAtUtc,SentAtUtc,Note)
+    SELECT CONCAT(N'DEMO-COVERAGE-V16-PO-',x.ScenarioCode),x.StoreId,@CoverageSupplier,N'MARKED_AS_SENT',
+           DATEADD(DAY,-2,x.EventAt),DATEADD(HOUR,-1,x.EventAt),x.ActorStaffId,x.ActorStaffId,x.ActorStaffId,
+           DATEADD(DAY,-2,x.EventAt),DATEADD(DAY,-1,x.EventAt),DATEADD(DAY,-2,x.EventAt),
+           DATEADD(DAY,-2,x.EventAt),N'DEMO_COVERAGE_V16'
+    FROM @ReceiptScenario x
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrders p
+                     WHERE p.Code=CONCAT(N'DEMO-COVERAGE-V16-PO-',x.ScenarioCode));
+
+    INSERT dbo.PurchaseOrderLines
+    (PurchaseOrderId,RestockRequestId,IngredientId,IngredientSupplierId,
+     PackageUnitIdSnapshot,PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,
+     PurchaseMode,OrderedPackageCount,OrderedBaseQuantity,OrderedPackQuantity,
+     PackSizeProcurementQuantity,ProcurementUnitId,OrderedProcurementQuantity,
+     UnitPricePerPackage,UnitPricePerProcurementUnit,RoundingSurplusProcurementQuantity,
+     ClosedProcurementQuantity,InventoryBaseUnitId,ProcurementToInventoryFactor,
+     ClosedRemainingQuantity,PromisedLeadTimeDaysSnapshot,Note)
+    SELECT po.PurchaseOrderId,NULL,@CoverageIngredient,@CoverageOffer,
+           @CoverageProcurementUnit,@CoveragePackageQty,@CoveragePackagePrice,x.InputPackages,
+           N'Packaged',x.InputPackages,x.OrderedBase,x.InputPackages,
+           @CoveragePackageQty,@CoverageProcurementUnit,x.InputPackages,
+           @CoveragePackagePrice,NULL,0,0,@CoverageBaseUnit,@CoverageFactor,
+           CASE WHEN x.ReceiptStatus=N'CONFIRMED' THEN x.RejectedBase ELSE 0 END,
+           1,CONCAT(N'DEMO_COVERAGE_V16_POL_',x.ScenarioCode)
+    FROM @ReceiptScenario x
+    JOIN dbo.PurchaseOrders po ON po.Code=CONCAT(N'DEMO-COVERAGE-V16-PO-',x.ScenarioCode)
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderLines l
+                     WHERE l.Note=CONCAT(N'DEMO_COVERAGE_V16_POL_',x.ScenarioCode));
+
+    INSERT dbo.BranchReceipts
+    (ReceiptCode,StoreId,SupplierId,PurchaseOrderId,SourceInventoryTransferId,
+     Status,ReceiptKey,ReferenceNumber,ReceivedAt,ReceivedByStaffId,
+     ConfirmedAt,ConfirmedByStaffId,Notes,CreatedAt,CreatedByStaffId)
+    SELECT CONCAT(N'DEMO-COVERAGE-V16-BR-',x.ScenarioCode),x.StoreId,@CoverageSupplier,po.PurchaseOrderId,NULL,
+           x.ReceiptStatus,CONCAT(N'DEMO_COVERAGE_V16_RECEIPT_',x.ScenarioCode),CONCAT(N'INV-',x.ScenarioCode),
+           x.EventAt,x.ActorStaffId,
+           CASE WHEN x.ReceiptStatus=N'CONFIRMED' THEN DATEADD(MINUTE,10,x.EventAt) END,
+           CASE WHEN x.ReceiptStatus=N'CONFIRMED' THEN x.ActorStaffId END,
+           CONCAT(N'DEMO_COVERAGE_V16 ',x.ReceiptStatus),x.EventAt,x.ActorStaffId
+    FROM @ReceiptScenario x
+    JOIN dbo.PurchaseOrders po ON po.Code=CONCAT(N'DEMO-COVERAGE-V16-PO-',x.ScenarioCode)
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.BranchReceipts br
+                     WHERE br.ReceiptCode=CONCAT(N'DEMO-COVERAGE-V16-BR-',x.ScenarioCode));
+
+    INSERT dbo.BranchReceiptLines
+    (BranchReceiptId,RestockRequestId,PurchaseOrderLineId,IngredientId,PreparedItemId,RecipeId,
+     InputQuantity,InputUnitId,ReceivedBaseQuantity,RejectedBaseQuantity,
+     ReceivedPackQuantity,AcceptedPackQuantity,ReceivedProcurementQuantity,
+     RejectedProcurementQuantity,AcceptedProcurementQuantity,InventoryPostingBaseQuantity,
+     ProcurementUnitId,InventoryBaseUnitId,ProcurementToInventoryFactor,PurchaseMode,
+     RejectionReason,RejectionIssueType,BaseUnitId,SupplierId,IngredientSupplierId,
+     ActualPackagePrice,PackageQuantitySnapshot,PackageUnitIdSnapshot,
+     BaseUnitCostSnapshot,LineTotalCost,CreatedAt)
+    SELECT br.BranchReceiptId,NULL,pol.PurchaseOrderLineId,@CoverageIngredient,NULL,NULL,
+           x.InputPackages,@CoverageProcurementUnit,x.AcceptedBase,x.RejectedBase,
+           x.InputPackages,x.AcceptedBase/@CoverageFactor,x.InputPackages,
+           x.RejectedBase/@CoverageFactor,x.AcceptedBase/@CoverageFactor,x.AcceptedBase,
+           @CoverageProcurementUnit,@CoverageBaseUnit,@CoverageFactor,N'Packaged',
+           CASE WHEN x.RejectedBase>0 THEN N'Bao bì hư hỏng khi giao' END,
+           CASE WHEN x.RejectedBase>0 THEN N'PACKAGING_FAILURE' END,
+           @CoverageBaseUnit,@CoverageSupplier,@CoverageOffer,@CoveragePackagePrice,
+           @CoveragePackageQty,@CoverageProcurementUnit,@CoverageUnitCost,
+           ROUND(x.AcceptedBase*@CoverageUnitCost,2),x.EventAt
+    FROM @ReceiptScenario x
+    JOIN dbo.BranchReceipts br ON br.ReceiptCode=CONCAT(N'DEMO-COVERAGE-V16-BR-',x.ScenarioCode)
+    JOIN dbo.PurchaseOrderLines pol ON pol.Note=CONCAT(N'DEMO_COVERAGE_V16_POL_',x.ScenarioCode)
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.BranchReceiptLines l WHERE l.BranchReceiptId=br.BranchReceiptId);
+
+    INSERT dbo.PurchaseOrderReceiptPostings
+    (PurchaseOrderLineId,BranchReceiptLineId,AcceptedBaseQuantity,RejectedBaseQuantity,
+     AcceptedProcurementQuantity,RejectedProcurementQuantity,InventoryPostingBaseQuantity,
+     ProcurementUnitId,InventoryBaseUnitId,ProcurementToInventoryFactor,PurchaseMode,
+     CreatedByStaffId,CreatedAtUtc)
+    SELECT brl.PurchaseOrderLineId,brl.BranchReceiptLineId,brl.ReceivedBaseQuantity,brl.RejectedBaseQuantity,
+           brl.AcceptedProcurementQuantity,brl.RejectedProcurementQuantity,
+           COALESCE(brl.InventoryPostingBaseQuantity,brl.ReceivedBaseQuantity),
+           brl.ProcurementUnitId,brl.InventoryBaseUnitId,brl.ProcurementToInventoryFactor,
+           brl.PurchaseMode,br.ConfirmedByStaffId,COALESCE(br.ConfirmedAt,@CoverageNow)
+    FROM dbo.BranchReceipts br
+    JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
+    WHERE br.Status=N'CONFIRMED'
+      AND (br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+           OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
+      AND brl.PurchaseOrderLineId IS NOT NULL
+      AND NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderReceiptPostings p
+                     WHERE p.BranchReceiptLineId=brl.BranchReceiptLineId);
+
+    INSERT dbo.RestockFulfillmentPostings
+    (RestockRequestId,SourceDocumentType,SourceDocumentId,SourceDocumentLineId,
+     IngredientId,PreparedItemId,Quantity,BaseUnitId,CreatedAtUtc)
+    SELECT brl.RestockRequestId,N'BRANCH_RECEIPT',br.BranchReceiptId,brl.BranchReceiptLineId,
+           brl.IngredientId,brl.PreparedItemId,
+           COALESCE(brl.InventoryPostingBaseQuantity,brl.ReceivedBaseQuantity),
+           brl.BaseUnitId,COALESCE(br.ConfirmedAt,@CoverageNow)
+    FROM dbo.BranchReceipts br
+    JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
+    WHERE br.Status=N'CONFIRMED' AND brl.RestockRequestId IS NOT NULL
+      AND br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+      AND NOT EXISTS(SELECT 1 FROM dbo.RestockFulfillmentPostings p
+                     WHERE p.SourceDocumentType=N'BRANCH_RECEIPT'
+                       AND p.SourceDocumentId=br.BranchReceiptId
+                       AND p.SourceDocumentLineId=brl.BranchReceiptLineId);
+
+    DECLARE @PostingLines TABLE(BranchReceiptLineId int PRIMARY KEY, Done bit NOT NULL DEFAULT 0);
+    INSERT @PostingLines(BranchReceiptLineId)
+    SELECT brl.BranchReceiptLineId
+    FROM dbo.BranchReceipts br
+    JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
+    WHERE br.Status=N'CONFIRMED'
+      AND (br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+           OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
+      AND brl.InventoryTransactionId IS NULL
+      AND NOT EXISTS(SELECT 1 FROM dbo.InventoryTransactions it WHERE it.BranchReceiptLineId=brl.BranchReceiptLineId);
+
+    WHILE EXISTS(SELECT 1 FROM @PostingLines WHERE Done=0)
+    BEGIN
+        DECLARE @LineId int=(SELECT TOP(1) BranchReceiptLineId FROM @PostingLines WHERE Done=0 ORDER BY BranchReceiptLineId);
+        DECLARE @LineStore int,@LineIngredient int,@LineQty decimal(18,3),@LineCost decimal(18,6),
+                @LineAt datetime2(7),@StoreInventoryId int,@BeforeQty decimal(18,3),@InventoryTransactionId int;
+        SELECT @LineStore=br.StoreId,@LineIngredient=brl.IngredientId,
+               @LineQty=COALESCE(brl.InventoryPostingBaseQuantity,brl.ReceivedBaseQuantity),
+               @LineCost=brl.BaseUnitCostSnapshot,@LineAt=COALESCE(br.ConfirmedAt,@CoverageNow)
+        FROM dbo.BranchReceiptLines brl JOIN dbo.BranchReceipts br ON br.BranchReceiptId=brl.BranchReceiptId
+        WHERE brl.BranchReceiptLineId=@LineId;
+        SELECT @StoreInventoryId=StoreInventoryId,@BeforeQty=AvailableQty
+        FROM dbo.StoreInventories WITH(UPDLOCK,HOLDLOCK)
+        WHERE StoreId=@LineStore AND IngredientId=@LineIngredient;
+        IF @StoreInventoryId IS NULL THROW 53613,N'DEMO_COVERAGE_V16: receipt inventory identity missing.',1;
+
+        UPDATE dbo.StoreInventories
+           SET AvailableQty=AvailableQty+@LineQty,LastUpdated=@CoverageNow
+        WHERE StoreInventoryId=@StoreInventoryId;
+
+        INSERT dbo.InventoryTransactions
+        (StoreInventoryId,Type,Quantity,BeforeQty,AfterQty,UnitCost,TotalCost,BranchReceiptLineId,CreatedAt)
+        VALUES(@StoreInventoryId,14,@LineQty,@BeforeQty,@BeforeQty+@LineQty,@LineCost,
+               ROUND(@LineQty*@LineCost,2),@LineId,@LineAt);
+        SET @InventoryTransactionId=CONVERT(int,SCOPE_IDENTITY());
+
+        INSERT dbo.InventoryCostLayers
+        (IngredientId,PreparedItemId,StoreId,Quantity,RemainingQuantity,UnitCost,CreatedAt,SourceBranchReceiptLineId)
+        VALUES(@LineIngredient,NULL,@LineStore,@LineQty,@LineQty,@LineCost,@LineAt,@LineId);
+
+        UPDATE dbo.BranchReceiptLines SET InventoryTransactionId=@InventoryTransactionId
+        WHERE BranchReceiptLineId=@LineId;
+        UPDATE @PostingLines SET Done=1 WHERE BranchReceiptLineId=@LineId;
+    END
+
+    UPDATE rr
+       SET Status=N'COMPLETED',SourcingStatus=N'FULFILLED',UpdatedAt=@CoverageNow
+    FROM dbo.RestockRequests rr
+    WHERE EXISTS(SELECT 1 FROM dbo.RestockFulfillmentPostings p
+                 WHERE p.RestockRequestId=rr.RestockRequestId AND p.SourceDocumentType=N'BRANCH_RECEIPT');
+
+    INSERT dbo.RestockRequestTransitions
+    (RestockRequestId,PreviousStatus,NewStatus,ActorStaffId,OccurredAtUtc,Reason)
+    SELECT DISTINCT brl.RestockRequestId,N'PROCESSING',N'COMPLETED',br.ConfirmedByStaffId,
+           COALESCE(br.ConfirmedAt,@CoverageNow),N'DEMO_COVERAGE_V16 confirmed receipt remediation'
+    FROM dbo.BranchReceipts br
+    JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
+    WHERE brl.RestockRequestId IS NOT NULL
+      AND br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+      AND NOT EXISTS(SELECT 1 FROM dbo.RestockRequestTransitions t
+                     WHERE t.RestockRequestId=brl.RestockRequestId
+                       AND t.Reason=N'DEMO_COVERAGE_V16 confirmed receipt remediation');
+
+    UPDATE po
+       SET Status=CASE WHEN br.Status=N'CONFIRMED' THEN N'COMPLETED' ELSE po.Status END,
+           CompletedAtUtc=CASE WHEN br.Status=N'CONFIRMED' THEN COALESCE(po.CompletedAtUtc,br.ConfirmedAt,@CoverageNow) ELSE po.CompletedAtUtc END,
+           UpdatedAtUtc=@CoverageNow
+    FROM dbo.PurchaseOrders po
+    JOIN dbo.BranchReceipts br ON br.PurchaseOrderId=po.PurchaseOrderId
+    WHERE br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+       OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%';
+
+    INSERT dbo.SupplierReceiptIssues
+    (SupplierId,StoreId,PurchaseOrderId,PurchaseOrderLineId,BranchReceiptId,BranchReceiptLineId,
+     IssueType,Status,AffectedBaseQuantity,Description,ReportedByStaffId,ReportedAtUtc,UpdatedAtUtc)
+    SELECT br.SupplierId,br.StoreId,br.PurchaseOrderId,brl.PurchaseOrderLineId,
+           br.BranchReceiptId,brl.BranchReceiptLineId,brl.RejectionIssueType,N'OPEN',
+           brl.RejectedBaseQuantity,CONCAT(N'DEMO_COVERAGE_V16_REJECTION_',brl.BranchReceiptLineId),
+           br.ConfirmedByStaffId,COALESCE(br.ConfirmedAt,@CoverageNow),COALESCE(br.ConfirmedAt,@CoverageNow)
+    FROM dbo.BranchReceipts br
+    JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
+    WHERE br.Status=N'CONFIRMED' AND brl.RejectedBaseQuantity>0
+      AND (br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+           OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
+      AND NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssues i WHERE i.BranchReceiptLineId=brl.BranchReceiptLineId);
+
+    INSERT dbo.SupplierReceiptIssueTransitions
+    (SupplierReceiptIssueId,PreviousStatus,NewStatus,ActorStaffId,Reason,OccurredAtUtc)
+    SELECT i.SupplierReceiptIssueId,N'OPEN',N'OPEN',i.ReportedByStaffId,
+           N'DEMO_COVERAGE_V16 issue recorded',i.ReportedAtUtc
+    FROM dbo.SupplierReceiptIssues i
+    JOIN dbo.BranchReceipts br ON br.BranchReceiptId=i.BranchReceiptId
+    WHERE (br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+           OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
+      AND NOT EXISTS(SELECT 1 FROM dbo.SupplierReceiptIssueTransitions t
+                     WHERE t.SupplierReceiptIssueId=i.SupplierReceiptIssueId
+                       AND t.Reason=N'DEMO_COVERAGE_V16 issue recorded');
+
+    IF (SELECT COUNT(DISTINCT StoreId) FROM dbo.BranchReceipts
+        WHERE ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+           OR ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')<>3
+        THROW 53620,N'DEMO_COVERAGE_V16: branch receipts do not cover all three stores.',1;
+    IF (SELECT COUNT(*) FROM dbo.BranchReceipts WHERE SupplierId=@CoverageSupplier AND Status=N'CONFIRMED')<5
+        THROW 53621,N'DEMO_COVERAGE_V16: supplier analytics needs at least five confirmed receipts.',1;
+    IF EXISTS
+    (
+        SELECT 1 FROM dbo.BranchReceipts br
+        JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
+        WHERE br.Status=N'CONFIRMED'
+          AND (br.ReceiptCode IN(N'DEMO-DASH-V13-BR-001',N'DEMO-AI-ROLLING-BR-S3')
+               OR br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
+          AND (brl.InventoryTransactionId IS NULL
+               OR NOT EXISTS(SELECT 1 FROM dbo.InventoryCostLayers l WHERE l.SourceBranchReceiptLineId=brl.BranchReceiptLineId)
+               OR (brl.PurchaseOrderLineId IS NOT NULL AND NOT EXISTS
+                   (SELECT 1 FROM dbo.PurchaseOrderReceiptPostings p WHERE p.BranchReceiptLineId=brl.BranchReceiptLineId)))
+    ) THROW 53622,N'DEMO_COVERAGE_V16: confirmed receipt ledger is incomplete.',1;
+    IF EXISTS
+    (
+        SELECT 1 FROM dbo.BranchReceipts br
+        JOIN dbo.BranchReceiptLines brl ON brl.BranchReceiptId=br.BranchReceiptId
+        WHERE br.Status=N'DRAFT' AND br.ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%'
+          AND (brl.InventoryTransactionId IS NOT NULL
+               OR EXISTS(SELECT 1 FROM dbo.PurchaseOrderReceiptPostings p WHERE p.BranchReceiptLineId=brl.BranchReceiptLineId))
+    ) THROW 53623,N'DEMO_COVERAGE_V16: draft receipt unexpectedly posted inventory.',1;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+END;
+GO
+
+IF EXISTS(SELECT 1 FROM dbo.BranchReceipts WHERE ReceiptCode LIKE N'DEMO-COVERAGE-V16-BR-%')
+SELECT N'DEMO_COVERAGE_V16_RECEIPTS' SeedMarker,
+       (SELECT COUNT(*) FROM dbo.BranchReceipts WHERE Status=N'CONFIRMED') ConfirmedReceipts,
+       (SELECT COUNT(DISTINCT StoreId) FROM dbo.BranchReceipts) StoresWithReceipts,
+       (SELECT COUNT(*) FROM dbo.InventoryTransactions WHERE BranchReceiptLineId IS NOT NULL) ReceiptTransactions,
+       (SELECT COUNT(*) FROM dbo.InventoryCostLayers WHERE SourceBranchReceiptLineId IS NOT NULL) ReceiptCostLayers,
+       (SELECT COUNT(*) FROM dbo.PurchaseOrderReceiptPostings) PurchaseOrderPostings,
+       (SELECT COUNT(*) FROM dbo.RestockFulfillmentPostings) RestockPostings;
 GO
 
 /*
@@ -69,8 +459,6 @@ SET QUOTED_IDENTIFIER ON;
 SET NUMERIC_ROUNDABORT OFF;
 GO
 
-IF UPPER(DB_NAME()) <> N'CAFECHAIN'
-    THROW 52000, N'Từ chối chạy: SeedAll.sql chỉ dành cho database CafeChain.', 1;
 
 
 IF OBJECT_ID(N'dbo.DrinkCategories', N'U') IS NULL
@@ -5015,7 +5403,9 @@ BEGIN TRY
  SourceOrderRefundId int NULL,SourceInventoryDocumentDetailId int NULL,
  SourceBranchReceiptLineId int NULL,SourceTransferCostAllocationId bigint NULL);
  INSERT @LayerSeed
- SELECT i.IngredientId,i.IngredientId,NULL,1,t.Quantity,si.AvailableQty,t.UnitCost,'2026-01-01',
+ SELECT i.IngredientId,i.IngredientId,NULL,1,t.Quantity,
+        CASE WHEN si.AvailableQty>t.Quantity THEN t.Quantity ELSE si.AvailableQty END,
+        t.UnitCost,'2026-01-01',
  NULL,NULL,d.InventoryDocumentDetailId,NULL,NULL
  FROM dbo.Ingredients i
  JOIN dbo.StoreInventories si ON si.StoreId=1 AND si.IngredientId=i.IngredientId
@@ -10159,6 +10549,485 @@ SELECT N'DEMO_AI_DASHBOARD_ROLLING_V1' AS SeedMarker,
        (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND Note=N'AI_DASHBOARD_SCENARIO_ANOMALY') AS AnomalyOrders,
        (SELECT COUNT(*) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%') AS DemoRestocks,
        (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1') AS DemoPurchaseOrders;
+GO
+
+EXEC dbo.SeedDemoCoverageV16;
+DROP PROCEDURE dbo.SeedDemoCoverageV16;
+GO
+
+SELECT N'DEMO_COVERAGE_V16_RECEIPTS' SeedMarker,
+       (SELECT COUNT(*) FROM dbo.BranchReceipts WHERE Status=N'CONFIRMED') ConfirmedReceipts,
+       (SELECT COUNT(DISTINCT StoreId) FROM dbo.BranchReceipts) StoresWithReceipts,
+       (SELECT COUNT(*) FROM dbo.InventoryTransactions WHERE BranchReceiptLineId IS NOT NULL) ReceiptTransactions,
+       (SELECT COUNT(*) FROM dbo.InventoryCostLayers WHERE SourceBranchReceiptLineId IS NOT NULL) ReceiptCostLayers,
+       (SELECT COUNT(*) FROM dbo.PurchaseOrderReceiptPostings) PurchaseOrderPostings,
+       (SELECT COUNT(*) FROM dbo.RestockFulfillmentPostings) RestockPostings;
+GO
+
+/* ============================================================
+   BATCH 17 - DEMO_COVERAGE_V17 cross-module business scenarios
+   ============================================================ */
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+GO
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    DECLARE @Coverage17Now datetime2(7)='2026-07-20T08:00:00';
+    DECLARE @Coverage17Customer int=(SELECT TOP(1) CustomerId FROM dbo.Customers WHERE CustomerCode=N'CUS000111' ORDER BY CustomerId);
+    DECLARE @Coverage17Order int=(SELECT TOP(1) OrderId FROM dbo.Orders WHERE Source=N'DEMO_DASHBOARD_V13' ORDER BY OrderId);
+    DECLARE @Coverage17Voucher int=(SELECT VoucherId FROM dbo.Vouchers WHERE Code=N'CAFECHAIN50');
+    DECLARE @Coverage17PointType int=(SELECT PointTransactionTypeId FROM dbo.PointTransactionTypes WHERE Code=N'EARN');
+    DECLARE @Coverage17Staff int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=1 AND Active=1 ORDER BY StaffId);
+    DECLARE @Coverage17Staff2 int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=2 AND Active=1 ORDER BY StaffId);
+    DECLARE @Coverage17Staff3 int=(SELECT TOP(1) StaffId FROM dbo.Staffs WHERE StoreId=3 AND Active=1 ORDER BY StaffId);
+    DECLARE @Coverage17Shift int=(SELECT TOP(1) ShiftId FROM dbo.Shifts WHERE StoreId=1 ORDER BY ShiftId);
+    DECLARE @Coverage17Restock int=(SELECT TOP(1) brl.RestockRequestId
+                                    FROM dbo.BranchReceiptLines brl
+                                    JOIN dbo.BranchReceipts br ON br.BranchReceiptId=brl.BranchReceiptId
+                                    WHERE br.ReceiptCode=N'DEMO-DASH-V13-BR-001');
+    DECLARE @Coverage17Pol int=(SELECT TOP(1) pol.PurchaseOrderLineId
+                               FROM dbo.PurchaseOrderLines pol
+                               WHERE pol.Note=N'DEMO_COVERAGE_V16_POL_S1-FULL-001');
+    DECLARE @Coverage17Po int=(SELECT PurchaseOrderId FROM dbo.PurchaseOrderLines WHERE PurchaseOrderLineId=@Coverage17Pol);
+    DECLARE @Coverage17Offer int=(SELECT IngredientSupplierId FROM dbo.PurchaseOrderLines WHERE PurchaseOrderLineId=@Coverage17Pol);
+    DECLARE @Coverage17Supplier int=(SELECT SupplierId FROM dbo.PurchaseOrders WHERE PurchaseOrderId=@Coverage17Po);
+    DECLARE @Coverage17BaseUnit int=(SELECT BaseUnitId FROM dbo.Ingredients WHERE IngredientId=14);
+    DECLARE @Coverage17ProcUnit int=(SELECT ProcurementUnitId FROM dbo.PurchaseOrderLines WHERE PurchaseOrderLineId=@Coverage17Pol);
+
+    IF @Coverage17Customer IS NULL OR @Coverage17Order IS NULL OR @Coverage17Voucher IS NULL
+       OR @Coverage17PointType IS NULL OR @Coverage17Staff IS NULL OR @Coverage17Staff2 IS NULL
+       OR @Coverage17Staff3 IS NULL OR @Coverage17Shift IS NULL OR @Coverage17Restock IS NULL
+       OR @Coverage17Pol IS NULL OR @Coverage17Offer IS NULL
+        THROW 53700,N'DEMO_COVERAGE_V17: prerequisite demo business keys are missing.',1;
+
+    /* Customer -> loyalty -> voucher -> wheel -> rating. */
+    IF EXISTS(SELECT 1 FROM dbo.Orders WHERE OrderId=@Coverage17Order AND CustomerId IS NULL)
+        UPDATE dbo.Orders SET CustomerId=@Coverage17Customer WHERE OrderId=@Coverage17Order;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.PointTransactions
+                  WHERE CustomerId=@Coverage17Customer AND OrderId=@Coverage17Order
+                    AND PointTransactionTypeId=@Coverage17PointType)
+    BEGIN
+        DECLARE @OldPoints int=(SELECT CurrentPoints FROM dbo.Customers WHERE CustomerId=@Coverage17Customer);
+        INSERT dbo.PointTransactions(CustomerId,OrderId,Points,PointTransactionTypeId,BalanceAfter,CreatedAt,ExpiredAt)
+        VALUES(@Coverage17Customer,@Coverage17Order,33,@Coverage17PointType,@OldPoints+33,@Coverage17Now,DATEADD(YEAR,1,@Coverage17Now));
+        UPDATE dbo.Customers
+           SET CurrentPoints=CurrentPoints+33,TotalOrders=TotalOrders+1,
+               TotalSpent=TotalSpent+(SELECT Total FROM dbo.Orders WHERE OrderId=@Coverage17Order),
+               LastOrderDate=(SELECT CreatedAt FROM dbo.Orders WHERE OrderId=@Coverage17Order),
+               UpdatedAt=@Coverage17Now
+        WHERE CustomerId=@Coverage17Customer;
+    END
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.CustomerVouchers WHERE CustomerId=@Coverage17Customer AND VoucherId=@Coverage17Voucher)
+        INSERT dbo.CustomerVouchers(CustomerId,VoucherId,IsUsed,CollectedDate,UsedDate)
+        VALUES(@Coverage17Customer,@Coverage17Voucher,1,DATEADD(DAY,-2,@Coverage17Now),@Coverage17Now);
+    IF NOT EXISTS(SELECT 1 FROM dbo.OrderVouchers WHERE OrderId=@Coverage17Order)
+        INSERT dbo.OrderVouchers(OrderId,VoucherId,DiscountValue)
+        VALUES(@Coverage17Order,@Coverage17Voucher,10000);
+    IF NOT EXISTS(SELECT 1 FROM dbo.VoucherUsages
+                  WHERE VoucherId=@Coverage17Voucher AND CustomerId=@Coverage17Customer AND UsedAt=@Coverage17Now)
+        INSERT dbo.VoucherUsages(VoucherId,CustomerId,UsedAt)
+        VALUES(@Coverage17Voucher,@Coverage17Customer,@Coverage17Now);
+
+    DECLARE @Coverage17Wheel int;
+    IF NOT EXISTS(SELECT 1 FROM dbo.WheelConfigs WHERE Name=N'DEMO_COVERAGE_V17_WHEEL')
+        INSERT dbo.WheelConfigs(Name,SpinCost,SlotCount,Active,CreatedAt)
+        VALUES(N'DEMO_COVERAGE_V17_WHEEL',10,6,1,@Coverage17Now);
+    SELECT @Coverage17Wheel=WheelConfigId FROM dbo.WheelConfigs WHERE Name=N'DEMO_COVERAGE_V17_WHEEL';
+    INSERT dbo.WheelPrizes(WheelConfigId,SlotIndex,VoucherId,Probability,IsLose)
+    SELECT @Coverage17Wheel,v.SlotIndex,v.VoucherId,v.Probability,v.IsLose
+    FROM (VALUES
+          (0,@Coverage17Voucher,CONVERT(decimal(5,4),0.2000),CONVERT(bit,0)),
+          (1,NULL,CONVERT(decimal(5,4),0.2000),CONVERT(bit,1)),
+          (2,2,CONVERT(decimal(5,4),0.1500),CONVERT(bit,0)),
+          (3,NULL,CONVERT(decimal(5,4),0.2000),CONVERT(bit,1)),
+          (4,3,CONVERT(decimal(5,4),0.1000),CONVERT(bit,0)),
+          (5,NULL,CONVERT(decimal(5,4),0.1500),CONVERT(bit,1))) v(SlotIndex,VoucherId,Probability,IsLose)
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.WheelPrizes p
+                     WHERE p.WheelConfigId=@Coverage17Wheel AND p.SlotIndex=v.SlotIndex);
+    DECLARE @Coverage17Prize int=(SELECT WheelPrizeId FROM dbo.WheelPrizes WHERE WheelConfigId=@Coverage17Wheel AND SlotIndex=0);
+    IF NOT EXISTS(SELECT 1 FROM dbo.WheelSpins
+                  WHERE CustomerId=@Coverage17Customer AND WheelConfigId=@Coverage17Wheel AND CreatedAt=@Coverage17Now)
+        INSERT dbo.WheelSpins(CustomerId,WheelConfigId,WheelPrizeId,CreatedAt)
+        VALUES(@Coverage17Customer,@Coverage17Wheel,@Coverage17Prize,@Coverage17Now);
+
+    DECLARE @Coverage17Rating int;
+    IF NOT EXISTS(SELECT 1 FROM dbo.Ratings
+                  WHERE CustomerId=@Coverage17Customer AND DrinkId=1 AND ParentRatingId IS NULL)
+        INSERT dbo.Ratings(CustomerId,DrinkId,Stars,Comment,IsDeleted,CreatedAt,ParentRatingId)
+        VALUES(@Coverage17Customer,1,5,N'DEMO_COVERAGE_V17: đồ uống ổn định, phục vụ nhanh.',0,@Coverage17Now,NULL);
+    SELECT @Coverage17Rating=RatingId FROM dbo.Ratings
+    WHERE CustomerId=@Coverage17Customer AND DrinkId=1 AND ParentRatingId IS NULL;
+    IF NOT EXISTS(SELECT 1 FROM dbo.RatingImages WHERE PublicId=N'demo_coverage_v17_rating')
+        INSERT dbo.RatingImages(RatingId,ImageUrl,PublicId,CreatedAt)
+        VALUES(@Coverage17Rating,N'https://example.invalid/demo/coverage-v17-rating.jpg',N'demo_coverage_v17_rating',@Coverage17Now);
+    IF NOT EXISTS(SELECT 1 FROM dbo.RatingReactions WHERE RatingId=@Coverage17Rating AND CustomerId=@Coverage17Customer)
+        INSERT dbo.RatingReactions(RatingId,CustomerId,Type,CreatedAt)
+        VALUES(@Coverage17Rating,@Coverage17Customer,1,@Coverage17Now);
+
+    /* POS terminals and payment webhook ledger. */
+    INSERT dbo.PosTerminals(TerminalId,StoreId,Name,Active,CreatedAt)
+    SELECT v.TerminalId,v.StoreId,v.Name,1,@Coverage17Now
+    FROM (VALUES
+          (N'DEMO_COVERAGE_V17_POS_S1',1,N'POS Demo Chi nhánh 1'),
+          (N'DEMO_COVERAGE_V17_POS_S2',2,N'POS Demo Chi nhánh 2'),
+          (N'DEMO_COVERAGE_V17_POS_S3',3,N'POS Demo Chi nhánh 3')) v(TerminalId,StoreId,Name)
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.PosTerminals p WHERE p.TerminalId=v.TerminalId);
+    IF NOT EXISTS(SELECT 1 FROM dbo.TransactionLogs WHERE TransactionId=N'DEMO_COVERAGE_V17_PAYOS')
+        INSERT dbo.TransactionLogs(OrderId,TransactionId,Amount,Description,Status,RawPayload,CreatedAt)
+        SELECT @Coverage17Order,N'DEMO_COVERAGE_V17_PAYOS',Total,N'Đối soát thanh toán demo',
+               N'PAID',N'{"marker":"DEMO_COVERAGE_V17","provider":"PAYOS"}',@Coverage17Now
+        FROM dbo.Orders WHERE OrderId=@Coverage17Order;
+
+    /* Forecast, recommendations, anomaly, and workforce optimization. */
+    DECLARE @Coverage17Forecast bigint;
+    IF NOT EXISTS(SELECT 1 FROM dbo.ForecastRuns
+                  WHERE StoreId=1 AND SeriesType=N'REVENUE' AND EntityId IS NULL
+                    AND TrainingToExclusive='2026-07-20' AND HorizonDays=7 AND ModelVersion=N'demo-v17')
+        INSERT dbo.ForecastRuns
+        (SeriesType,StoreId,EntityId,TrainingFrom,TrainingToExclusive,HorizonDays,ModelType,ModelVersion,
+         SampleCount,Mae,Wape,QualityStatus,WarningJson,CreatedAtUtc,ExpiresAtUtc,InputDataVersion)
+        VALUES(N'REVENUE',1,NULL,'2026-06-20','2026-07-20',7,N'ROBUST_BASELINE',N'demo-v17',
+               30,12000,0.0830,N'GOOD',N'[]',@Coverage17Now,'2026-08-20',N'DEMO_COVERAGE_V17');
+    SELECT @Coverage17Forecast=ForecastRunId FROM dbo.ForecastRuns
+    WHERE StoreId=1 AND SeriesType=N'REVENUE' AND EntityId IS NULL
+      AND TrainingToExclusive='2026-07-20' AND HorizonDays=7 AND ModelVersion=N'demo-v17';
+    INSERT dbo.ForecastPoints(ForecastRunId,ForecastDate,PointForecast,LowerBound,UpperBound)
+    SELECT @Coverage17Forecast,v.ForecastDate,v.PointForecast,v.LowerBound,v.UpperBound
+    FROM (VALUES
+          (CONVERT(datetime2,'2026-07-20'),CONVERT(decimal(19,4),3200000),CONVERT(decimal(19,4),2800000),CONVERT(decimal(19,4),3600000)),
+          (CONVERT(datetime2,'2026-07-21'),CONVERT(decimal(19,4),3400000),CONVERT(decimal(19,4),3000000),CONVERT(decimal(19,4),3800000)))
+         v(ForecastDate,PointForecast,LowerBound,UpperBound)
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.ForecastPoints p
+                     WHERE p.ForecastRunId=@Coverage17Forecast AND p.ForecastDate=v.ForecastDate);
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.PosRecommendationCatalog
+                  WHERE StoreId=1 AND TriggerDrinkId=1 AND RecommendedDrinkId=2 AND ModelVersion=N'demo-v17')
+        INSERT dbo.PosRecommendationCatalog
+        (StoreId,TriggerDrinkId,RecommendedDrinkId,Support,Confidence,Lift,Margin,Rank,ModelVersion,GeneratedAtUtc,ExpiresAtUtc)
+        VALUES(1,1,2,0.120000,0.440000,1.310000,14000,1,N'demo-v17',@Coverage17Now,'2026-08-20');
+    DECLARE @Coverage17Session uniqueidentifier='17171717-1717-1717-1717-171717171717';
+    DECLARE @Coverage17Exposure bigint;
+    IF NOT EXISTS(SELECT 1 FROM dbo.PosRecommendationExposures WHERE RecommendationSessionId=@Coverage17Session)
+        INSERT dbo.PosRecommendationExposures
+        (RecommendationSessionId,StoreId,OrderId,Variant,ModelVersion,CreatedAtUtc,ConvertedAtUtc)
+        VALUES(@Coverage17Session,1,@Coverage17Order,N'TREATMENT',N'demo-v17',@Coverage17Now,DATEADD(MINUTE,2,@Coverage17Now));
+    SELECT @Coverage17Exposure=PosRecommendationExposureId
+    FROM dbo.PosRecommendationExposures WHERE RecommendationSessionId=@Coverage17Session;
+    IF NOT EXISTS(SELECT 1 FROM dbo.PosRecommendationExposureItems
+                  WHERE PosRecommendationExposureId=@Coverage17Exposure AND TriggerDrinkId=1 AND RecommendedDrinkId=2)
+        INSERT dbo.PosRecommendationExposureItems
+        (PosRecommendationExposureId,TriggerDrinkId,RecommendedDrinkId,Rank,WasDisplayed,WasClicked,WasAdded,WasPurchased)
+        VALUES(@Coverage17Exposure,1,2,1,1,1,1,1);
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.OperationalAnomalies
+                  WHERE StoreId=1 AND MetricCode=N'CASH_DISCREPANCY' AND PeriodKey=N'DEMO_COVERAGE_V17')
+        INSERT dbo.OperationalAnomalies
+        (StoreId,MetricCode,PeriodKey,CurrentValue,BaselineValue,AbsoluteDeviation,PercentageDeviation,
+         RobustScore,WindowFromUtc,WindowToExclusiveUtc,SampleCount,Severity,Confidence,Status,
+         ReasonCodesJson,CreatedAtUtc,UpdatedAtUtc,AcknowledgedAtUtc,AcknowledgedByStaffId,
+         ResolvedAtUtc,Feedback,FeedbackByStaffId)
+        VALUES(1,N'CASH_DISCREPANCY',N'DEMO_COVERAGE_V17',75000,5000,70000,14,4.2,
+               '2026-07-19','2026-07-20',30,N'HIGH',N'HIGH',N'ACKNOWLEDGED',
+               N'["ABOVE_BASELINE"]',@Coverage17Now,@Coverage17Now,@Coverage17Now,@Coverage17Staff,
+               NULL,N'Demo manager acknowledged',@Coverage17Staff);
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffAvailabilityRules
+                  WHERE StaffId=@Coverage17Staff AND DayOfWeek=1 AND EffectiveFrom='2026-07-01')
+        INSERT dbo.StaffAvailabilityRules
+        (StaffId,DayOfWeek,StartTime,EndTime,EffectiveFrom,EffectiveTo,Active,CreatedByStaffId,CreatedAtUtc)
+        VALUES(@Coverage17Staff,1,'06:00','14:00','2026-07-01',NULL,1,@Coverage17Staff,@Coverage17Now);
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffAvailabilityExceptions
+                  WHERE StaffId=@Coverage17Staff AND Date='2026-07-21')
+        INSERT dbo.StaffAvailabilityExceptions
+        (StaffId,Date,StartTime,EndTime,IsAvailable,Reason,CreatedByStaffId,CreatedAtUtc)
+        VALUES(@Coverage17Staff,'2026-07-21','08:00','12:00',1,N'DEMO_COVERAGE_V17 hỗ trợ cao điểm',@Coverage17Staff,@Coverage17Now);
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffTimeOffs
+                  WHERE StaffId=@Coverage17Staff AND FromUtc='2026-08-01T00:00:00')
+        INSERT dbo.StaffTimeOffs
+        (StaffId,FromUtc,ToUtc,Status,Reason,RequestedByStaffId,ReviewedByStaffId,CreatedAtUtc,ReviewedAtUtc)
+        VALUES(@Coverage17Staff,'2026-08-01','2026-08-02',N'APPROVED',N'DEMO_COVERAGE_V17 nghỉ phép',
+               @Coverage17Staff,@Coverage17Staff,@Coverage17Now,@Coverage17Now);
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffWorkConstraints
+                  WHERE StaffId=@Coverage17Staff AND EffectiveFrom='2026-07-01')
+        INSERT dbo.StaffWorkConstraints
+        (StaffId,EffectiveFrom,EffectiveTo,TargetWeeklyHours,MaxWeeklyHours,MaxDailyHours,
+         MinimumRestMinutes,CreatedByStaffId,CreatedAtUtc)
+        VALUES(@Coverage17Staff,'2026-07-01',NULL,40,48,8,480,@Coverage17Staff,@Coverage17Now);
+
+    INSERT dbo.StoreStaffingRequirements
+    (StoreId,ShiftId,DayOfWeek,MinimumStaff,TargetStaff,MaximumStaff,RequiredRoleId,
+     EffectiveFrom,EffectiveTo,Active,CreatedByStaffId,CreatedAtUtc)
+    SELECT s.StoreId,sh.ShiftId,1,1,2,4,NULL,'2026-07-01',NULL,1,s.StaffId,@Coverage17Now
+    FROM (VALUES(1,@Coverage17Staff),(2,@Coverage17Staff2),(3,@Coverage17Staff3)) s(StoreId,StaffId)
+    CROSS APPLY(SELECT TOP(1) ShiftId FROM dbo.Shifts WHERE StoreId=s.StoreId ORDER BY ShiftId) sh
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.StoreStaffingRequirements r
+                     WHERE r.StoreId=s.StoreId AND r.ShiftId=sh.ShiftId
+                       AND r.DayOfWeek=1 AND r.EffectiveFrom='2026-07-01');
+
+    DECLARE @Coverage17Proposal uniqueidentifier='17171717-0000-0000-0000-171717171717';
+    IF NOT EXISTS(SELECT 1 FROM dbo.ScheduleOptimizationProposals WHERE ScheduleOptimizationProposalId=@Coverage17Proposal)
+        INSERT dbo.ScheduleOptimizationProposals
+        (ScheduleOptimizationProposalId,StoreId,FromDate,ToDate,ConstraintVersion,ForecastRunId,Status,
+         ScoreBreakdownJson,ViolationsJson,CreatedByStaffId,CreatedAtUtc,ExpiresAtUtc,AppliedAtUtc)
+        VALUES(@Coverage17Proposal,1,'2026-07-20','2026-07-26',N'demo-v17',@Coverage17Forecast,N'APPLIED',
+               N'{"coverage":0.98,"fairness":0.94}',N'[]',@Coverage17Staff,@Coverage17Now,'2026-08-01',@Coverage17Now);
+    IF NOT EXISTS(SELECT 1 FROM dbo.ScheduleOptimizationAssignments
+                  WHERE ScheduleOptimizationProposalId=@Coverage17Proposal AND StaffId=@Coverage17Staff
+                    AND ShiftId=@Coverage17Shift AND WorkDate='2026-07-21')
+        INSERT dbo.ScheduleOptimizationAssignments
+        (ScheduleOptimizationProposalId,StaffId,ShiftId,WorkDate,StartTime,EndTime,ReasonCodesJson)
+        VALUES(@Coverage17Proposal,@Coverage17Staff,@Coverage17Shift,'2026-07-21','06:00','14:00',N'["FORECAST_COVERAGE"]');
+
+    /* Stock alert -> sourcing -> purchase advice -> PO batch. */
+    DECLARE @Coverage17Alert int;
+    IF NOT EXISTS(SELECT 1 FROM dbo.StockAlerts WHERE Note=N'DEMO_COVERAGE_V17_STOCK_ALERT')
+        INSERT dbo.StockAlerts
+        (StoreId,IngredientId,RecipeId,PreparedItemId,AlertType,Severity,Status,CurrentQtySnapshot,
+         ThresholdSnapshot,Source,Note,ReportedByStaffId,ReportedAt,ConfirmedByStaffId,ConfirmedAt,
+         ManagerNote,CreatedAt,UpdatedAt,ResolvedAt,ResolvedReason)
+        VALUES(2,14,NULL,NULL,N'LOW_STOCK',N'MEDIUM',N'RESOLVED',300,500,N'MANUAL',
+               N'DEMO_COVERAGE_V17_STOCK_ALERT',@Coverage17Staff2,@Coverage17Now,@Coverage17Staff2,@Coverage17Now,
+               N'Đã lập phương án mua',@Coverage17Now,@Coverage17Now,@Coverage17Now,N'Purchase advice created');
+    SELECT @Coverage17Alert=StockAlertId FROM dbo.StockAlerts WHERE Note=N'DEMO_COVERAGE_V17_STOCK_ALERT';
+    IF NOT EXISTS(SELECT 1 FROM dbo.StockAlertTransitions
+                  WHERE StockAlertId=@Coverage17Alert AND Reason=N'DEMO_COVERAGE_V17 transition')
+        INSERT dbo.StockAlertTransitions
+        (StockAlertId,PreviousStatus,NewStatus,PreviousAlertType,NewAlertType,PreviousSeverity,NewSeverity,
+         OnHandSnapshot,ReservedSnapshot,AvailableSnapshot,MinLevelSnapshot,SourceType,SourceId,Reason,ActorStaffId,CreatedAtUtc)
+        VALUES(@Coverage17Alert,N'CONFIRMED',N'RESOLVED',N'LOW_STOCK',N'LOW_STOCK',N'MEDIUM',N'MEDIUM',
+               300,0,300,500,N'PURCHASE_ADVICE',NULL,N'DEMO_COVERAGE_V17 transition',@Coverage17Staff2,@Coverage17Now);
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.RestockRequestFulfillments
+                  WHERE RestockRequestId=@Coverage17Restock AND Notes=N'DEMO_COVERAGE_V17 fulfillment')
+        INSERT dbo.RestockRequestFulfillments
+        (RestockRequestId,SourceType,InventoryDocumentDetailId,Status,PlannedBaseQuantity,CreatedAt,CreatedByStaffId,Notes)
+        VALUES(@Coverage17Restock,N'PURCHASE',NULL,N'COMPLETED',8000,@Coverage17Now,@Coverage17Staff,N'DEMO_COVERAGE_V17 fulfillment');
+
+    DECLARE @Coverage17Advice int;
+    IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseAdvices WHERE RequestKey=N'DEMO_COVERAGE_V17_ADVICE')
+        INSERT dbo.PurchaseAdvices
+        (AdviceNumber,RequestKey,StoreId,RequestedByStaffId,Status,NeededByDate,Priority,Note,
+         SubmittedAtUtc,ReviewedAtUtc,ReviewedByStaffId,CreatedAtUtc,UpdatedAtUtc)
+        VALUES(N'DEMO-ADV-V17-001',N'DEMO_COVERAGE_V17_ADVICE',1,@Coverage17Staff,N'APPROVED',
+               '2026-07-25',N'HIGH',N'DEMO_COVERAGE_V17 purchase advice',
+               @Coverage17Now,@Coverage17Now,@Coverage17Staff,@Coverage17Now,@Coverage17Now);
+    SELECT @Coverage17Advice=PurchaseAdviceId FROM dbo.PurchaseAdvices WHERE RequestKey=N'DEMO_COVERAGE_V17_ADVICE';
+
+    DECLARE @Coverage17AdviceLine int;
+    IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseAdviceLines
+                  WHERE PurchaseAdviceId=@Coverage17Advice AND Note=N'DEMO_COVERAGE_V17 advice line')
+        INSERT dbo.PurchaseAdviceLines
+        (PurchaseAdviceId,RestockRequestId,IngredientId,RequestedPurchaseBaseQuantity,
+         AllocatedToPoBaseQuantity,AcceptedBaseQuantity,ClosedBaseQuantity,BaseUnitId,
+         RequestedProcurementQuantity,PurchaseMode,AllocatedToPoProcurementQuantity,
+         AcceptedProcurementQuantity,ClosedProcurementQuantity,ProcurementUnitId,
+         RestockSourcingAllocationId,NeededByDate,Note,IsActiveReservation)
+        VALUES(@Coverage17Advice,@Coverage17Restock,14,1000,1000,1000,0,@Coverage17BaseUnit,
+               1,N'Packaged',1,1,0,@Coverage17ProcUnit,NULL,'2026-07-25',
+               N'DEMO_COVERAGE_V17 advice line',0);
+    SELECT @Coverage17AdviceLine=PurchaseAdviceLineId FROM dbo.PurchaseAdviceLines
+    WHERE PurchaseAdviceId=@Coverage17Advice AND Note=N'DEMO_COVERAGE_V17 advice line';
+
+    DECLARE @Coverage17Sourcing int;
+    IF NOT EXISTS(SELECT 1 FROM dbo.RestockSourcingAllocations
+                  WHERE RestockRequestId=@Coverage17Restock AND Reason=N'DEMO_COVERAGE_V17 sourcing')
+        INSERT dbo.RestockSourcingAllocations
+        (RestockRequestId,DecisionType,ProcurementQuantity,ProcurementUnitId,Status,
+         SourceDocumentType,SourceDocumentId,SourceDocumentLineId,PurchaseAdviceLineId,
+         PurchaseOrderLineId,InventoryTransferId,ProductionRunId,Reason,CreatedByStaffId,CreatedAtUtc)
+        VALUES(@Coverage17Restock,N'PURCHASE',1,@Coverage17ProcUnit,N'COMPLETED',
+               N'PURCHASE_ORDER',@Coverage17Po,@Coverage17Pol,@Coverage17AdviceLine,
+               @Coverage17Pol,NULL,NULL,N'DEMO_COVERAGE_V17 sourcing',@Coverage17Staff,@Coverage17Now);
+    SELECT @Coverage17Sourcing=RestockSourcingAllocationId FROM dbo.RestockSourcingAllocations
+    WHERE RestockRequestId=@Coverage17Restock AND Reason=N'DEMO_COVERAGE_V17 sourcing';
+    UPDATE dbo.PurchaseAdviceLines SET RestockSourcingAllocationId=@Coverage17Sourcing
+    WHERE PurchaseAdviceLineId=@Coverage17AdviceLine AND RestockSourcingAllocationId IS NULL;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseAdviceTransitions
+                  WHERE PurchaseAdviceId=@Coverage17Advice AND Reason=N'DEMO_COVERAGE_V17 approved')
+        INSERT dbo.PurchaseAdviceTransitions(PurchaseAdviceId,PreviousStatus,NewStatus,ActorStaffId,OccurredAtUtc,Reason)
+        VALUES(@Coverage17Advice,N'SUBMITTED',N'APPROVED',@Coverage17Staff,@Coverage17Now,N'DEMO_COVERAGE_V17 approved');
+
+    DECLARE @Coverage17Batch int;
+    IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderBatches WHERE RequestKey=N'DEMO_COVERAGE_V17_PO_BATCH')
+        INSERT dbo.PurchaseOrderBatches
+        (BatchNumber,RequestKey,SupplierId,Status,Currency,ExpectedDeliveryFrom,ExpectedDeliveryTo,
+         Note,CreatedByStaffId,ApprovedByStaffId,ApprovedAtUtc,CreatedAtUtc,UpdatedAtUtc)
+        VALUES(N'DEMO-POB-V17-001',N'DEMO_COVERAGE_V17_PO_BATCH',@Coverage17Supplier,N'APPROVED',N'VND',
+               '2026-07-24','2026-07-25',N'DEMO_COVERAGE_V17 supplier consolidation',
+               @Coverage17Staff,@Coverage17Staff,@Coverage17Now,@Coverage17Now,@Coverage17Now);
+    SELECT @Coverage17Batch=PurchaseOrderBatchId FROM dbo.PurchaseOrderBatches WHERE RequestKey=N'DEMO_COVERAGE_V17_PO_BATCH';
+
+    DECLARE @Coverage17BatchLine int;
+    IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderBatchLines
+                  WHERE PurchaseOrderBatchId=@Coverage17Batch AND IngredientId=14)
+        INSERT dbo.PurchaseOrderBatchLines
+        (PurchaseOrderBatchId,IngredientId,IngredientSupplierId,PackageUnitId,PackageQuantitySnapshot,
+         TotalPackageCount,PurchaseMode,OrderedPackageCount,TotalBaseQuantity,TotalProcurementQuantity,
+         UnitPricePerPackage,UnitPricePerProcurementUnit,DemandCoveredProcurementQuantity,
+         RoundingSurplusProcurementQuantity,ProcurementUnitId,PackagePriceSnapshot,LineTotal,Currency,Note)
+        SELECT @Coverage17Batch,14,@Coverage17Offer,PackageUnitIdSnapshot,PackageQuantitySnapshot,
+               1,N'Packaged',1,1000,1,UnitPricePerPackage,NULL,1,0,ProcurementUnitId,
+               UnitPricePerPackage,UnitPricePerPackage,N'VND',N'DEMO_COVERAGE_V17 batch line'
+        FROM dbo.PurchaseOrderLines WHERE PurchaseOrderLineId=@Coverage17Pol;
+    SELECT @Coverage17BatchLine=PurchaseOrderBatchLineId FROM dbo.PurchaseOrderBatchLines
+    WHERE PurchaseOrderBatchId=@Coverage17Batch AND IngredientId=14;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderLineAllocations WHERE PurchaseOrderLineId=@Coverage17Pol)
+        INSERT dbo.PurchaseOrderLineAllocations
+        (PurchaseAdviceLineId,PurchaseOrderBatchLineId,PurchaseOrderId,PurchaseOrderLineId,
+         AllocatedBaseQuantity,AllocatedPackageQuantity,PurchaseMode,AllocatedProcurementQuantity,
+         DemandCoveredProcurementQuantity,RoundingSurplusProcurementQuantity,ProcurementUnitId,CreatedAtUtc)
+        VALUES(@Coverage17AdviceLine,@Coverage17BatchLine,@Coverage17Po,@Coverage17Pol,
+               1000,1,N'Packaged',1,1,0,@Coverage17ProcUnit,@Coverage17Now);
+    IF NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrderBatchDocumentRevisions
+                  WHERE PurchaseOrderBatchId=@Coverage17Batch AND RevisionNumber=1)
+        INSERT dbo.PurchaseOrderBatchDocumentRevisions
+        (PurchaseOrderBatchId,RevisionNumber,GeneratedAtUtc,GeneratedByStaffId,FileName,StorageReference,
+         ContentHash,SnapshotJson,Status,SentChannel,SentAtUtc,SentByStaffId,SentNote,
+         SentIdempotencyKey,CreatedAtUtc)
+        VALUES(@Coverage17Batch,1,@Coverage17Now,@Coverage17Staff,N'demo-po-batch-v17.pdf',
+               N'demo://purchase-order-batch/v17/1',
+               N'1717171717171717171717171717171717171717171717171717171717171717',
+               N'{"marker":"DEMO_COVERAGE_V17","revision":1}',N'SENT',N'EMAIL',@Coverage17Now,
+               @Coverage17Staff,N'Demo supplier document',N'DEMO_COVERAGE_V17_SEND_1',@Coverage17Now);
+
+    /* Consolidation evidence and transfer cost lineage. */
+    DECLARE @Coverage17Consolidation int;
+    DECLARE @Coverage17StoreInventory int=(SELECT TOP(1) StoreInventoryId FROM dbo.StoreInventories
+                                           WHERE StoreId=1 AND PreparedItemId IS NOT NULL ORDER BY StoreInventoryId);
+    DECLARE @Coverage17Prepared int=(SELECT PreparedItemId FROM dbo.StoreInventories WHERE StoreInventoryId=@Coverage17StoreInventory);
+    DECLARE @Coverage17Available decimal(18,3)=(SELECT AvailableQty FROM dbo.StoreInventories WHERE StoreInventoryId=@Coverage17StoreInventory);
+    IF NOT EXISTS(SELECT 1 FROM dbo.InventoryConsolidationRuns
+                  WHERE StoreId=1 AND RequestKey='17171717-1717-0000-0000-171717171717')
+        INSERT dbo.InventoryConsolidationRuns
+        (StoreId,RequestKey,RunType,Status,ManifestVersion,QueryContractVersion,ManifestHash,DryRunHash,
+         EnvironmentFingerprint,ManifestJson,ReportJson,RequestedByStaffId,ApprovedByStaffId,ExecutedByStaffId,
+         CreatedAt,DryRunAt,CompletedAt,BeforeAvailableTotal,BeforeReservedTotal,AfterAvailableTotal,AfterReservedTotal)
+        VALUES(1,'17171717-1717-0000-0000-171717171717',1,5,N'demo-v17',N'demo-v17',
+               N'1717171717171717171717171717171717171717171717171717171717171717',
+               N'1717171717171717171717171717171717171717171717171717171717171717',
+               N'DEMO_COVERAGE_V17',N'{"mode":"audit-no-op"}',N'{"result":"no-op"}',
+               @Coverage17Staff,@Coverage17Staff,@Coverage17Staff,@Coverage17Now,@Coverage17Now,@Coverage17Now,
+               @Coverage17Available,0,@Coverage17Available,0);
+    SELECT @Coverage17Consolidation=InventoryConsolidationRunId FROM dbo.InventoryConsolidationRuns
+    WHERE StoreId=1 AND RequestKey='17171717-1717-0000-0000-171717171717';
+    IF NOT EXISTS(SELECT 1 FROM dbo.InventoryConsolidationLines
+                  WHERE InventoryConsolidationRunId=@Coverage17Consolidation
+                    AND StoreInventoryId=@Coverage17StoreInventory AND LineRole=2)
+        INSERT dbo.InventoryConsolidationLines
+        (InventoryConsolidationRunId,StoreInventoryId,LineRole,PreparedItemId,SourceRecipeId,
+         BeforeAvailableQty,BeforeReservedQty,BeforeMinStockLevel,BeforeMaxNegativeQty,
+         BeforeIdentityState,BeforeQuantitySemantics,ApprovedConversionFactor,
+         ApprovedConversionFromUnitId,ApprovedConversionToUnitId,ConvertedAvailableQty,
+         ConvertedReservedQty,AfterAvailableQty,AfterReservedQty,EvidenceType,EvidenceReference,IsTargetCreated)
+        SELECT @Coverage17Consolidation,StoreInventoryId,2,PreparedItemId,RecipeId,
+               AvailableQty,ReservedQty,MinStockLevel,NULL,NULL,NULL,NULL,NULL,NULL,
+               AvailableQty,ReservedQty,AvailableQty,ReservedQty,
+               N'DEMO_AUDIT_NO_OP',N'DEMO_COVERAGE_V17',0
+        FROM dbo.StoreInventories WHERE StoreInventoryId=@Coverage17StoreInventory;
+
+    DECLARE @Coverage17TransferDetail int=(SELECT TOP(1) itd.InventoryTransferDetailId
+                                           FROM dbo.InventoryTransferDetails itd
+                                           JOIN dbo.InventoryTransfers it ON it.InventoryTransferId=itd.InventoryTransferId
+                                           WHERE it.Code=N'SEEDALL_TRANSFER_20260104' AND itd.IngredientId IS NOT NULL
+                                           ORDER BY itd.InventoryTransferDetailId);
+    DECLARE @Coverage17Layer int=(SELECT TOP(1) l.InventoryCostLayerId
+                                  FROM dbo.InventoryTransferDetails itd
+                                  JOIN dbo.InventoryTransfers it ON it.InventoryTransferId=itd.InventoryTransferId
+                                  JOIN dbo.InventoryCostLayers l ON l.StoreId=it.FromStoreId AND l.IngredientId=itd.IngredientId
+                                  WHERE itd.InventoryTransferDetailId=@Coverage17TransferDetail
+                                    AND l.RemainingQuantity>0 ORDER BY l.InventoryCostLayerId);
+    IF @Coverage17TransferDetail IS NOT NULL AND @Coverage17Layer IS NOT NULL
+       AND NOT EXISTS(SELECT 1 FROM dbo.InventoryTransferCostAllocations
+                      WHERE InventoryTransferDetailId=@Coverage17TransferDetail
+                        AND SourceInventoryCostLayerId=@Coverage17Layer)
+        INSERT dbo.InventoryTransferCostAllocations
+        (InventoryTransferDetailId,SourceInventoryCostLayerId,Quantity,ReceivedQuantity,UnitCost,TotalCost,CreatedAt)
+        SELECT @Coverage17TransferDetail,@Coverage17Layer,1,0,UnitCost,ROUND(UnitCost,2),@Coverage17Now
+        FROM dbo.InventoryCostLayers WHERE InventoryCostLayerId=@Coverage17Layer;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffNotifications WHERE DeduplicationKey=N'DEMO_COVERAGE_V17_STOCK_ALERT')
+        INSERT dbo.StaffNotifications
+        (StoreId,RecipientStaffId,Type,Title,Body,Severity,DeduplicationKey,UpdatedAt,ResolvedAt,
+         EntityType,EntityId,IsRead,ReadAt,CreatedAt,EmailAttempted,EmailSent,EmailErrorSummary)
+        VALUES(2,@Coverage17Staff2,N'STOCK_ALERT_RESOLVED',N'Cảnh báo tồn kho demo',
+               N'Kịch bản DEMO_COVERAGE_V17 đã có purchase advice.',N'INFO',
+               N'DEMO_COVERAGE_V17_STOCK_ALERT',@Coverage17Now,@Coverage17Now,
+               N'StockAlert',@Coverage17Alert,1,@Coverage17Now,@Coverage17Now,0,0,NULL);
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+
+/* Explicit empty-table policy. Any new unclassified empty model table fails the seed. */
+DECLARE @AllowedEmpty TABLE(TableName sysname PRIMARY KEY, Reason nvarchar(300) NOT NULL);
+INSERT @AllowedEmpty(TableName,Reason) VALUES
+(N'AccountPermissionOverrides',N'Optional exceptional RBAC override; role grants are seeded.'),
+(N'AuditLogs',N'Runtime audit trail only.'),
+(N'DocumentNumberCounters',N'Runtime concurrency counter only.'),
+(N'DrinkSizePriceAudits',N'Runtime price-change audit only.'),
+(N'DrinkSizeToppingPolicyAudits',N'Runtime policy-change audit only.'),
+(N'InventoryCostGapSettlements',N'Exceptional costing remediation only.'),
+(N'InventoryNegativeApprovalLines',N'Exceptional negative-stock approval only.'),
+(N'InventoryNegativeApprovals',N'Exceptional negative-stock approval only.'),
+(N'InventoryNegativeCostGaps',N'Exceptional negative-stock cost gap only.'),
+(N'InventoryTransferDiscrepancyPostings',N'Exceptional transfer discrepancy only.'),
+(N'InventoryWriterModeTransitions',N'Operational rollout transition only.'),
+(N'InvoiceAuditLogs',N'Runtime invoice audit only.'),
+(N'OtpChallenges',N'Sensitive ephemeral authentication data.'),
+(N'PasswordResetOtps',N'Sensitive ephemeral authentication data.'),
+(N'PurchaseAdviceFulfillmentPostings',N'Created only by later confirmed purchase fulfillment.'),
+(N'RefundCostGaps',N'Exceptional refund costing gap only.'),
+(N'RefundCostReversals',N'Created only by a qualifying costed refund.'),
+(N'RequestDeduplications',N'Runtime idempotency ledger only.'),
+(N'SalesCostGaps',N'Exceptional sales costing gap only.'),
+(N'StoreMenuItemAudits',N'Runtime menu mutation audit only.'),
+(N'SupplierDuplicateWarnings',N'Exceptional supplier deduplication warning only.'),
+(N'Provinces',N'Location catalog is outside this demo seed.'),
+(N'Districts',N'Location catalog is outside this demo seed.'),
+(N'Wards',N'Location catalog is outside this demo seed.');
+
+DECLARE @UnexpectedEmpty nvarchar(max);
+SELECT @UnexpectedEmpty=STRING_AGG(QUOTENAME(t.name),N', ')
+FROM sys.tables t
+WHERE t.is_ms_shipped=0
+  AND t.name<>N'__EFMigrationsHistory'
+  AND NOT EXISTS(SELECT 1 FROM @AllowedEmpty a WHERE a.TableName=t.name)
+  AND NOT EXISTS
+  (
+      SELECT 1 FROM sys.dm_db_partition_stats ps
+      WHERE ps.object_id=t.object_id AND ps.index_id IN(0,1) AND ps.row_count>0
+  );
+IF @UnexpectedEmpty IS NOT NULL
+BEGIN
+    DECLARE @CoverageFailure nvarchar(2048)=CONCAT(N'SeedAll has unclassified empty business tables: ',@UnexpectedEmpty);
+    THROW 53701,@CoverageFailure,1;
+END;
+
+IF EXISTS
+(
+    SELECT 1 FROM @AllowedEmpty a
+    WHERE OBJECT_ID(N'dbo.'+QUOTENAME(a.TableName),N'U') IS NULL
+)
+    THROW 53702,N'SeedAll empty-table allowlist contains a table absent from the current model.',1;
+
+SELECT N'DEMO_COVERAGE_V17' SeedMarker,
+       (SELECT COUNT(*) FROM dbo.PointTransactions) PointTransactions,
+       (SELECT COUNT(*) FROM dbo.ForecastRuns) ForecastRuns,
+       (SELECT COUNT(*) FROM dbo.ScheduleOptimizationProposals) ScheduleProposals,
+       (SELECT COUNT(*) FROM dbo.PurchaseAdvices) PurchaseAdvices,
+       (SELECT COUNT(*) FROM dbo.PurchaseOrderBatches) PurchaseOrderBatches,
+       (SELECT COUNT(*) FROM dbo.InventoryConsolidationRuns) ConsolidationRuns,
+       (SELECT COUNT(*) FROM @AllowedEmpty) AllowedEmptyTables;
 GO
 
 

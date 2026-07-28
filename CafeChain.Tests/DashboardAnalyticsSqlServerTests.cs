@@ -112,11 +112,13 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
     {
         var root = FindRepoRoot();
         var seed = File.ReadAllText(Path.Combine(root, "CafeChain", "Scripts", "SeedAll.sql"))
+            .Replace("$(TargetDatabase)", Database, StringComparison.Ordinal)
             .Replace("USE [CafeChain];", $"USE [{Database}];", StringComparison.Ordinal)
             .Replace("IF UPPER(DB_NAME()) <> N'CAFECHAIN'",
                 $"IF UPPER(DB_NAME()) <> N'{Database.ToUpperInvariant()}'", StringComparison.Ordinal);
         var analytics = File.ReadAllText(Path.Combine(root, "CafeChain", "Scripts",
-            "20260717_DashboardAnalyticsStoredProcedures.idempotent.sql"));
+            "20260717_DashboardAnalyticsStoredProcedures.idempotent.sql"))
+            .Replace("use CafeChain", $"use [{Database}]", StringComparison.OrdinalIgnoreCase);
 
         await ExecuteBatchesAsync(seed);
         await ExecuteBatchesAsync(seed);
@@ -154,13 +156,13 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND StoreId=3;", 15L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=6;", 6L);
+            "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND OrderStatusId=6;", 7L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.OrderRefunds r JOIN dbo.Orders o ON o.OrderId=r.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 4L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.OrderDetails od JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 30L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 22L);
+            "SELECT COUNT_BIG(1) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE o.Source=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 23L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.OrderDetails od LEFT JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE od.Note=N'AI Dashboard rolling analytics fixture' AND o.OrderId IS NULL;", 0L);
         await AssertScalarAsync(connection,

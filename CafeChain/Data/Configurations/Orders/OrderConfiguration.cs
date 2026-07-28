@@ -42,6 +42,9 @@ namespace CafeChain.Data.Configurations.Orders
             entity.Property(x => x.Total)
                 .HasColumnType("decimal(18,2)");
 
+            entity.Property(x => x.ShippingFee)
+                .HasPrecision(18, 2);
+
             // Issue #133 — actual sales COGS snapshot (separate from selling price)
             entity.Property(x => x.CostStatus)
                 .HasConversion<int>()

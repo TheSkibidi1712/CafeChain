@@ -382,7 +382,7 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     OrderId = table.Column<int>(type: "int", nullable: false),
                     TransactionId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     RawPayload = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -1140,7 +1140,7 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     RecipeCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    YieldPercentage = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 100m),
+                    YieldPercentage = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 100m),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Active"),
                     EffectiveDate = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -3782,7 +3782,7 @@ namespace CafeChain.Migrations
                     ReceiverName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     ReceiverPhone = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     DeliveryAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ShippingFee = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ShippingFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     SubTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     VoucherDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     PointDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
@@ -4303,8 +4303,7 @@ namespace CafeChain.Migrations
                     PointTransactionTypeId = table.Column<int>(type: "int", nullable: false),
                     BalanceAfter = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
-                    ExpiredAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CustomerId1 = table.Column<int>(type: "int", nullable: true)
+                    ExpiredAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -4315,11 +4314,6 @@ namespace CafeChain.Migrations
                         principalTable: "Customers",
                         principalColumn: "CustomerId",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PointTransactions_Customers_CustomerId1",
-                        column: x => x.CustomerId1,
-                        principalTable: "Customers",
-                        principalColumn: "CustomerId");
                     table.ForeignKey(
                         name: "FK_PointTransactions_Orders_OrderId",
                         column: x => x.OrderId,
@@ -7947,11 +7941,6 @@ namespace CafeChain.Migrations
                 name: "IX_PointTransactions_CustomerId",
                 table: "PointTransactions",
                 column: "CustomerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PointTransactions_CustomerId1",
-                table: "PointTransactions",
-                column: "CustomerId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PointTransactions_OrderId",

@@ -173,4 +173,15 @@ namespace CafeChain.Data.Configurations.Payments
             );
         }
     }
+
+    public class TransactionLogConfiguration : IEntityTypeConfiguration<TransactionLog>
+    {
+        public void Configure(EntityTypeBuilder<TransactionLog> entity)
+        {
+            entity.ToTable("TransactionLogs");
+            entity.HasKey(x => x.TransactionLogId);
+            entity.Property(x => x.Amount)
+                .HasPrecision(18, 2);
+        }
+    }
 }
