@@ -11,12 +11,15 @@
     <link rel="stylesheet" href="~/css/Admin/Staff/staff.css" asp-append-version="true" />
 }
 
-<div class="admin-wo-page">
-    <div class="page-header">
-        <div><h3 class="fw-bold mb-0">Cập nhật nhân viên</h3><p class="mb-0">Chỉnh sửa thông tin cá nhân; vai trò và phạm vi được quản lý ở màn hình phân quyền.</p></div>
+<div class="admin-wo-page staff-edit-page">
+    <div class="page-header staff-edit-header">
+        <div class="d-flex align-items-center gap-3">
+            <span class="staff-edit-heading-icon"><i class="fas fa-user-pen"></i></span>
+            <div><h3 class="fw-bold mb-0">Cập nhật nhân viên</h3><p class="mb-0">Chỉnh sửa thông tin cá nhân; vai trò và phạm vi được quản lý ở màn hình phân quyền.</p></div>
+        </div>
         <a asp-action="Index" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Quay lại</a>
     </div>
-    <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editStaffForm" class="card admin-wo-card">
+    <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editStaffForm" class="card admin-wo-card staff-edit-card">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="StaffId" />
         <input type="hidden" asp-for="AccountId" />
@@ -28,6 +31,7 @@
         <input type="hidden" asp-for="Active" />
         <div class="card-body p-4">
             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <div class="staff-edit-section-title"><span><i class="fas fa-id-card"></i></span><div><strong>Thông tin nhân viên</strong><small>Thông tin định danh và trạng thái làm việc hiện tại.</small></div></div>
             <div class="row g-3">
                 <div class="col-md-6"><label asp-for="FullName" class="form-label">Họ và tên *</label><input asp-for="FullName" class="form-control" /><span asp-validation-for="FullName" class="text-danger"></span></div>
                 <div class="col-md-6"><label asp-for="Email" class="form-label">Email *</label><input asp-for="Email" class="form-control" /><span asp-validation-for="Email" class="text-danger"></span></div>
@@ -37,11 +41,11 @@
                 <div class="col-md-4"><label asp-for="StartDate" class="form-label">Ngày bắt đầu</label><input asp-for="StartDate" type="date" class="form-control" /></div>
                 <div class="col-md-4"><label asp-for="EmployeeStatus" class="form-label">Trạng thái nhân sự</label><select asp-for="EmployeeStatus" class="form-select"><option value="1">Thử việc</option><option value="2">Chính thức</option><option value="3">Nghỉ việc</option></select></div>
                 <div class="col-md-4"><label class="form-label">Số điện thoại</label><input name="Phones[0]" value="@(Model.Phones.FirstOrDefault())" class="form-control" /></div>
-                <div class="col-md-6"><label asp-for="AvatarFile" class="form-label">Ảnh đại diện</label><div class="d-flex gap-3 align-items-center"><img id="staffAvatarPreview" src="@(string.IsNullOrWhiteSpace(Model.CurrentAvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.CurrentAvatarUrl)" width="56" height="56" class="rounded-circle" style="object-fit:cover" onerror="this.src='@DefaultImages.StaffAvatarUrl'" /><input asp-for="AvatarFile" type="file" accept=".jpg,.jpeg,.png,.webp" class="form-control" /></div></div>
+                <div class="col-md-6"><label asp-for="AvatarFile" class="form-label">Ảnh đại diện</label><div class="staff-edit-avatar d-flex gap-3 align-items-center"><img id="staffAvatarPreview" src="@(string.IsNullOrWhiteSpace(Model.CurrentAvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.CurrentAvatarUrl)" width="56" height="56" class="rounded-circle" onerror="this.src='@DefaultImages.StaffAvatarUrl'" /><input asp-for="AvatarFile" type="file" accept=".jpg,.jpeg,.png,.webp" class="form-control" /></div></div>
             </div>
 
-            <hr class="my-4" />
-            <h6 class="text-uppercase text-muted mb-3">Địa chỉ thường trú</h6>
+            <div class="staff-edit-divider"></div>
+            <div class="staff-edit-section-title"><span><i class="fas fa-location-dot"></i></span><div><strong>Địa chỉ thường trú</strong><small>Thông tin khu vực và địa chỉ liên hệ của nhân viên.</small></div></div>
             <div class="row g-3">
                 <div class="col-md-4"><label asp-for="ProvinceId" class="form-label">Tỉnh/Thành phố *</label><select asp-for="ProvinceId" id="editProvince" class="form-select"><option value="">-- Chọn Tỉnh/Thành phố --</option>@foreach (var p in provinces) { <option value="@p.ProvinceId">@p.Name</option> }</select></div>
                 <div class="col-md-4"><label asp-for="DistrictId" class="form-label">Quận/Huyện *</label><select asp-for="DistrictId" id="editDistrict" class="form-select"><option value="">-- Chọn Quận/Huyện --</option></select></div>
@@ -49,7 +53,7 @@
                 <div class="col-12"><label asp-for="Address" class="form-label">Địa chỉ chi tiết *</label><input asp-for="Address" class="form-control" placeholder="Số nhà, tên đường..." /><span asp-validation-for="Address" class="text-danger"></span></div>
             </div>
         </div>
-        <div class="card-footer bg-white d-flex justify-content-end gap-2 p-3"><a asp-action="Index" class="btn btn-outline-secondary">Hủy</a><button type="submit" class="btn btn-primary">Lưu thay đổi</button></div>
+        <div class="card-footer bg-white d-flex justify-content-end gap-2 p-3"><a asp-action="Index" class="btn btn-outline-secondary">Hủy</a><button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk me-1"></i>Lưu thay đổi</button></div>
     </form>
 </div>
 

@@ -14,13 +14,13 @@
     
     /* UX Nút bấm popup */
     .btn-maps-universal {
-        background-color: #d35400; 
+        background-color: #6f4e37;
         color: white; 
         border-radius: 20px;
         font-weight: bold;
     }
     .btn-maps-universal:hover {
-        background-color: #e65c00;
+        background-color: #5c3f2b;
         color: white;
     }
 
@@ -61,10 +61,10 @@
     /* Highlight cửa hàng GẦN NHẤT (Top 1) */
     .store-highlight {
         background-color: #2a1b12; /* Tone Nâu Cam nền tối */
-        border: 1px solid #d35400 !important; /* Viền Cam nổi bật */
+        border: 1px solid #8b6b55 !important; /* Viền nâu nổi bật */
     }
     .store-highlight .store-name {
-        color: #f39c12; /* Tên màu vàng */
+        color: #d7b99f;
     }
     
     .store-name {
@@ -93,7 +93,25 @@
     }
     .leaflet-control-locate i {
         font-size: 1.3rem; 
-        color: #0d6efd; /* Blue Google-like color */
+        color: #6f4e37;
+    }
+
+    .footer-map-heading-icon {
+        color: #9f8069;
+    }
+
+    #btnFindNearestStore {
+        border-color: #9f8069;
+        color: #d7b99f;
+        background: rgba(111, 78, 55, 0.12);
+    }
+
+    #btnFindNearestStore:hover,
+    #btnFindNearestStore:focus-visible {
+        border-color: #8b6b55;
+        color: #fff;
+        background: #6f4e37;
+        box-shadow: 0 7px 18px rgba(111, 78, 55, 0.28) !important;
     }
 
     /* Chấm đỏ pulsing cho vị trí người dùng */
@@ -124,7 +142,7 @@
 <div class="row mb-5">
     <div class="col-12 text-center mb-4">
         <h4 class="text-white fw-bold d-flex align-items-center justify-content-center gap-2">
-            <i class="bi bi-geo-alt-fill text-orange"></i> Hệ thống Cửa hàng CafeChain
+            <i class="bi bi-geo-alt-fill footer-map-heading-icon"></i> Hệ thống Cửa hàng CafeChain
         </h4>
         <button id="btnFindNearestStore" class="btn btn-outline-warning rounded-pill mt-2 px-4 shadow-sm fw-bold">
             <i class="bi bi-compass"></i> Tìm quán gần nhất quanh tôi

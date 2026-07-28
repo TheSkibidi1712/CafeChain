@@ -16,13 +16,22 @@
     }
 }
 
-<link rel="stylesheet" href="~/css/Admin/Size/size.css" />
+<link rel="stylesheet" href="~/css/Admin/Size/size.css" asp-append-version="true" />
 
-<div class="container-fluid p-4">
+<div class="container-fluid p-4 size-admin-page">
     @Html.AntiForgeryToken()
 
+    <div class="size-page-heading">
+        <div class="size-page-heading-icon"><i class="fas fa-ruler-combined"></i></div>
+        <div>
+            <span class="size-page-kicker">Cấu hình sản phẩm</span>
+            <h1>Quản lý Size đồ uống</h1>
+            <p>Thiết lập mã hiển thị, tên gọi và loại kích thước sử dụng trên thực đơn.</p>
+        </div>
+    </div>
+
     <!-- Tabs -->
-    <div class="d-flex mb-3 border-bottom">
+    <div class="size-page-tabs d-flex mb-3">
         <a asp-area="Admin"
                asp-controller="AdminSize"
                asp-action="Index"
@@ -69,6 +78,7 @@
         </div>
 
         <!-- Table -->
+        <div class="size-table-wrap">
         <table class="table table-borderless">
             <thead class="text-muted">
                 <tr>
@@ -122,7 +132,7 @@
                             <!-- ASSIGN DRINK-->
                             @if (canAssign)
                             {
-                            <button class="btn btn-sm btn-warning me-2"
+                            <button class="size-action-btn is-assign me-2"
                                     onclick="openDrinkModal(@item.SizeId, '@item.Name')">
                                 <i class="fas fa-link"></i>
                             </button>
@@ -131,7 +141,7 @@
                             <!-- EDIT -->
                             @if (canUpdate)
                             {
-                            <button class="btn btn-sm btn-light me-2"
+                            <button class="size-action-btn is-edit me-2"
                                     data-bs-toggle="modal"
                                     data-bs-target="#editModal"
                                     onclick="openEditModal(
@@ -141,16 +151,16 @@
                                 '@Html.Raw(item.Description?.Replace("'", "\\'"))',
                                 @((int)item.SizeType)
                                 )">
-                                <i class="fas fa-pen text-primary"></i>
+                                <i class="fas fa-pen"></i>
                             </button>
                             }
 
                             <!-- TOGGLE -->
                             @if (canToggle)
                             {
-                            <button class="btn btn-sm btn-light"
+                            <button class="size-action-btn @(item.Active ? "is-lock" : "is-unlock")"
                                     onclick="toggleSize(@item.SizeId)">
-                                <i class="fas @(item.Active ? "fa-lock text-danger" : "fa-unlock text-success")"></i>
+                                <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
                             </button>
                             }
 
@@ -159,20 +169,21 @@
                 }
             </tbody>
         </table>
+        </div>
 
     </div>
 </div>
 
 <!-- ================= CREATE MODAL ================= -->
 <div class="modal fade" id="createModal">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-3">
+    <div class="modal-dialog modal-dialog-centered size-modal-dialog">
+        <div class="modal-content p-3 size-modal">
 
             <!-- Header -->
             <div class="modal-header border-0 pb-0">
                 <div class="d-flex align-items-start gap-2">
-                    <div class="p-2 rounded-3" style="background:#FBE9E7;">
-                        <i class="fas fa-box text-danger"></i>
+                    <div class="size-modal-icon">
+                        <i class="fas fa-mug-hot"></i>
                     </div>
                     <div>
                         <h6 class="fw-bold mb-0">Thêm mới Size đồ uống</h6>
@@ -189,9 +200,9 @@
             <form id="createSizeForm">
                 <div class="modal-body">
 
-                    <div class="row g-3">
+                    <div class="row g-3 size-primary-fields">
                         <!-- Mã Size -->
-                        <div class="col-md-4">
+                        <div class="col-md-4 size-code-field">
                             <label class="form-label fw-semibold">
                                 Mã Size <span class="text-danger">*</span>
                             </label>
@@ -204,7 +215,7 @@
                         </div>
 
                         <!-- Tên Size -->
-                        <div class="col-md-4">
+                        <div class="col-md-4 size-name-field">
                             <label class="form-label fw-semibold">
                                 Tên Size <span class="text-danger">*</span>
                             </label>
@@ -216,7 +227,7 @@
                                    required />
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-4 size-type-field">
                             <label class="form-label fw-semibold">
                                 Loại Size <span class="text-danger">*</span>
                             </label>
@@ -231,7 +242,7 @@
                         </div>
 
                         <!-- Mô Tả Size -->
-                        <div class="col-12">
+                        <div class="col-12 size-description-field">
                             <label class="form-label fw-semibold">
                                 Mô Tả Size
                             </label>
@@ -242,7 +253,7 @@
                                    maxlength="300" />
                         </div>
 
-                        <div class="col-12">
+                        <div class="col-12 size-ai-section d-none">
                             <label for="sizeAiIdea" class="form-label fw-semibold">Ý tưởng cho AI <span class="text-muted fw-normal">(không bắt buộc)</span></label>
                             <select id="sizeAiGenerationMode" class="form-select mb-2" aria-label="Chế độ gợi ý size">
                                 <option value="0">Tạo mới</option>
@@ -292,14 +303,14 @@
 </div>
 <!-- ================= EDIT MODAL ================= -->
 <div class="modal fade" id="editModal">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-3">
+    <div class="modal-dialog modal-dialog-centered size-modal-dialog">
+        <div class="modal-content p-3 size-modal">
 
             <!-- Header -->
             <div class="modal-header border-0 pb-0">
                 <div class="d-flex align-items-start gap-2">
-                    <div class="p-2 rounded-3" style="background:#E3F2FD;">
-                        <i class="fas fa-pen text-primary"></i>
+                    <div class="size-modal-icon is-edit">
+                        <i class="fas fa-pen"></i>
                     </div>
                     <div>
                         <h6 class="fw-bold mb-0">Chỉnh sửa Size</h6>
@@ -318,10 +329,10 @@
 
                 <div class="modal-body">
 
-                    <div class="row g-3">
+                    <div class="row g-3 size-primary-fields">
 
                         <!-- Mã -->
-                        <div class="col-md-4">
+                        <div class="col-md-4 size-code-field">
                             <label class="form-label fw-semibold">
                                 Mã Size <span class="text-danger">*</span>
                             </label>
@@ -333,7 +344,7 @@
                         </div>
 
                         <!-- Tên -->
-                        <div class="col-md-4">
+                        <div class="col-md-4 size-name-field">
                             <label class="form-label fw-semibold">
                                 Tên Size <span class="text-danger">*</span>
                             </label>
@@ -344,7 +355,7 @@
                                    required />
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-4 size-type-field">
                             <label class="form-label fw-semibold">
                                 Loại Size <span class="text-danger">*</span>
                             </label>

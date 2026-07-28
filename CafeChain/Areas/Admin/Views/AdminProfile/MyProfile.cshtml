@@ -173,9 +173,10 @@
         .modal-header.accent { background: var(--accent); color: white; border-radius: 14px 14px 0 0; border: none; }
         .modal-content { border-radius: 14px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
     </style>
+    <link rel="stylesheet" href="~/css/Admin/Profile/admin-profile.css" asp-append-version="true" />
 }
 
-<div class="profile-page">
+<div class="profile-page admin-profile-page">
     <!-- ==================== HEADER ==================== -->
     <div class="profile-header">
         <div class="avatar-wrap">
@@ -189,15 +190,17 @@
             <input type="file" id="avatarInput" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" style="display: none;" onchange="uploadAvatar(this)" />
         </div>
         <div class="info">
+            <div class="profile-eyebrow"><i class="fas fa-user-shield"></i> Hồ sơ quản trị</div>
             <h3>@Model.FullName</h3>
             <span class="role-badge"><i class="fas fa-shield-alt me-1"></i> @Model.RoleName</span>
+            <p class="profile-summary">Quản lý thông tin cá nhân, công việc và bảo mật tài khoản tại một nơi.</p>
         </div>
     </div>
 
     @Html.AntiForgeryToken()
 
     <!-- ==================== THÔNG TIN CÁ NHÂN (Read-only) ==================== -->
-    <div class="section-card">
+    <div class="section-card profile-personal">
         <div class="section-title"><i class="fas fa-id-card"></i> Thông tin cá nhân</div>
         <div class="field-row">
             <div class="field-label">Họ và tên</div>
@@ -222,7 +225,7 @@
     </div>
 
     <!-- ==================== CÔNG VIỆC (Read-only) ==================== -->
-    <div class="section-card">
+    <div class="section-card profile-work">
         <div class="section-title"><i class="fas fa-briefcase"></i> Thông tin công việc</div>
         <div class="field-row">
             <div class="field-label">Vai trò</div>
@@ -245,7 +248,7 @@
     </div>
 
     <!-- ==================== LIÊN HỆ (Editable) ==================== -->
-    <div class="section-card">
+    <div class="section-card profile-contact">
         <div class="section-title"><i class="fas fa-phone-alt"></i> Liên hệ</div>
         <div class="field-row">
             <div class="field-label">Số điện thoại</div>
@@ -259,7 +262,7 @@
     </div>
 
     <!-- ==================== BẢO MẬT ==================== -->
-    <div class="section-card">
+    <div class="section-card profile-security">
         <div class="section-title"><i class="fas fa-lock"></i> Bảo mật tài khoản</div>
         <div class="field-row">
             <div class="field-label">Mật khẩu</div>

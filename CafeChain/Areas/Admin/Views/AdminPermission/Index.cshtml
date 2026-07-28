@@ -23,11 +23,17 @@
      data-save-staff-overrides-url="@Url.Action(nameof(AdminPermissionController.SaveStaffOverrides), "AdminPermission", new { area = "Admin" })"
      data-scope-references-url="@Url.Action(nameof(AdminPermissionController.ScopeReferences), "AdminPermission", new { area = "Admin" })"
      data-login-url="@Url.Action("Login", "Account", new { area = "" })"
-     data-access-denied-url="@Url.Action("AccessDenied", "Account", new { area = "" })">
+    data-access-denied-url="@Url.Action("AccessDenied", "Account", new { area = "" })">
     <div class="perm-heading">
-        <div>
+        <div class="perm-heading-copy">
             <div class="perm-breadcrumb">Hệ thống / Bảng phân quyền</div>
-            <h1>Bảng phân quyền</h1>
+            <div class="perm-title-row">
+                <span class="perm-title-icon"><i class="fas fa-shield-halved"></i></span>
+                <div>
+                    <h1>Bảng phân quyền</h1>
+                    <p>Kiểm soát vai trò, quyền thao tác và phạm vi dữ liệu của từng nhân viên.</p>
+                </div>
+            </div>
         </div>
         <button type="button" class="perm-icon-button" id="permRefreshBtn" title="Tải lại" aria-label="Tải lại dữ liệu phân quyền">
             <i class="fas fa-rotate-right"></i>
@@ -211,15 +217,15 @@
                     <i class="fas fa-magnifying-glass"></i>
                     <input type="search" id="permRolePermissionSearch" placeholder="Tìm quyền..." autocomplete="off" />
                 </label>
-                <button type="button" class="perm-outline-button" id="permSelectAllPermissions">
+                <button type="button" class="perm-outline-button perm-tool-select-all" id="permSelectAllPermissions">
                     <i class="fas fa-check-square"></i>
                     Chọn tất cả
                 </button>
-                <button type="button" class="perm-outline-button" id="permClearPermissions">
+                <button type="button" class="perm-outline-button perm-tool-clear" id="permClearPermissions">
                     <i class="far fa-square"></i>
                     Bỏ chọn
                 </button>
-                <button type="button" class="perm-outline-button" id="permExpandPermissions">
+                <button type="button" class="perm-outline-button perm-tool-expand" id="permExpandPermissions">
                     <i class="fas fa-chevron-down"></i>
                     Mở tất cả
                 </button>
