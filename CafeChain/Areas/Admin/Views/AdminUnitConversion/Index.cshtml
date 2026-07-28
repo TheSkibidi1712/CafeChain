@@ -10,13 +10,13 @@
 <link rel="stylesheet" href="~/css/unit-conversion.css" asp-append-version="true" />
 @Html.AntiForgeryToken()
 
-<div class="uc-page">
+<div class="uc-page cc-page">
 <div class="container-fluid px-4 pt-4 pb-5">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <header class="cc-page-header">
         <div>
-            <p class="text-muted small mb-1">Kho &amp; Cung ứng</p>
-            <h1 class="uc-page-title mb-1">Đơn vị và quy đổi</h1>
-            <p class="text-muted mb-0" style="max-width:40rem;">
+            <p class="cc-page-kicker">Kho &amp; Cung ứng</p>
+            <h1 class="uc-page-title cc-page-title">Đơn vị và quy đổi</h1>
+            <p class="cc-page-description">
                 Tách rõ <strong>quy đổi vật lý chuẩn</strong>, <strong>quy đổi đo lường theo nguyên liệu</strong>
                 và <strong>quy cách đóng gói nhà cung cấp</strong> (nguồn chuẩn để tính giá vốn).
             </p>
@@ -25,15 +25,15 @@
         {
             <a asp-action="Create" class="btn btn-uc-primary">Thêm quy đổi đo lường</a>
         }
-    </div>
+    </header>
 
     @if (TempData["SuccessMsg"] != null)
     {
-        <div class="alert alert-success">@TempData["SuccessMsg"]</div>
+        <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMsg"]</div>
     }
     @if (TempData["ErrorMsg"] != null)
     {
-        <div class="alert alert-danger">@TempData["ErrorMsg"]</div>
+        <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMsg"]</div>
     }
 
     <div class="uc-tab-bar" role="tablist">
@@ -70,7 +70,7 @@
                     }
                     </tbody>
                 </table>
-                <p class="small text-muted mt-2 mb-0">oz / cup / tsp / tbsp không thuộc chuẩn vật lý — chỉ xuất hiện trong quy đổi đo lường theo nguyên liệu khi có row.</p>
+                <p class="small text-muted mt-2 mb-0">oz / cup / tsp / tbsp không thuộc chuẩn vật lý, chỉ xuất hiện khi nguyên liệu có bản ghi quy đổi đo lường phù hợp.</p>
             </div>
         </div>
     }
@@ -99,7 +99,7 @@
                     <select class="form-select" id="status" name="status">
                         <option value="ALL" selected="@(data.StatusFilter == "ALL")">Tất cả</option>
                         <option value="ok" selected="@(data.StatusFilter == "ok")">Hợp lệ</option>
-                        <option value="package_conflict" selected="@(data.StatusFilter == "package_conflict")">Mâu thuẫn package</option>
+                        <option value="package_conflict" selected="@(data.StatusFilter == "package_conflict")">Mâu thuẫn quy cách đóng gói</option>
                         <option value="review" selected="@(data.StatusFilter == "review")">Cần xem xét</option>
                     </select>
                 </div>
@@ -222,7 +222,7 @@
                                 @if (g.HasPackageConflict)
                                 {
                                     <div class="alert alert-warning py-2 mt-2 mb-0 small" role="alert">
-                                        <strong>Dữ liệu đang mâu thuẫn</strong> giữa quy đổi đo lường (package-like) và quy cách NCC.
+                                        <strong>Dữ liệu đang mâu thuẫn</strong> giữa quy đổi đo lường dạng đóng gói và quy cách nhà cung cấp.
                                         Giá vốn dùng <em>quy cách nhà cung cấp</em>. Không tự chọn winner.
                                     </div>
                                 }

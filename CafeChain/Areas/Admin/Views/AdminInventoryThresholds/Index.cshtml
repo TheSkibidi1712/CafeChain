@@ -94,7 +94,7 @@
                                         <input type="hidden" name="storeId" value="@Model.SelectedStoreId" />
                                         <input type="hidden" name="search" value="@search" />
                                         <input type="hidden" name="page" value="@currentPage" />
-                                        <input type="number" name="minStockLevel" class="ops-input" style="width:112px" step="0.001" min="0" value="@(item.MinStockLevel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")" aria-label="Ngưỡng tối thiểu cho @item.ItemName" placeholder="Để trống" />
+                            <input type="number" name="minStockLevel" class="ops-input ops-quantity-input" step="0.001" min="0" value="@(item.MinStockLevel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")" aria-label="Ngưỡng tối thiểu cho @item.ItemName" placeholder="Để trống" />
                                         <button type="submit" class="ops-btn ops-btn-primary">Lưu</button>
                                     </form>
                                 }

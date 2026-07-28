@@ -10,7 +10,7 @@
     var offers = ViewBag.Offers as IReadOnlyList<IngredientSupplier> ?? Array.Empty<IngredientSupplier>();
 }
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
-<main class="ops-shell" style="max-width:1100px">
+<main class="ops-shell ops-shell-narrow">
 <header class="ops-header"><div><div class="ops-eyebrow">Mua hàng từ Nhà cung cấp</div><h1 class="ops-title">Tạo đơn đặt hàng</h1><p class="ops-subtitle">Quy cách, giá và thời gian giao được lấy từ thông tin cung cấp hiện hành.</p></div><a class="ops-btn" asp-action="Index">Quay lại</a></header>
 @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error">@TempData["ErrorMessage"]</div> }
 <form method="post">@Html.AntiForgeryToken()

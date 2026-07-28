@@ -11,7 +11,7 @@
     <div asp-validation-summary="All" class="pa-alert"></div>
     <form method="post">
         @Html.AntiForgeryToken()<input type="hidden" asp-for="PurchaseAdviceId" /><input type="hidden" asp-for="RowVersion" />
-        <section class="pa-band"><div class="pa-filter-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));"><div class="pa-field"><label>Ngày cần hàng</label><input asp-for="NeededByDate" type="date" lang="vi" required /><span class="pa-muted">Ngày/tháng/năm</span></div><div class="pa-field"><label>Ưu tiên</label><select asp-for="Priority"><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="URGENT">Khẩn cấp</option></select></div><div class="pa-field"><label>Ghi chú</label><input asp-for="Note" maxlength="1000" /></div></div></section>
+    <section class="pa-band"><div class="pa-filter-grid pa-filter-grid-three"><div class="pa-field"><label>Ngày cần hàng</label><input asp-for="NeededByDate" type="date" lang="vi" required /><span class="pa-muted">Ngày/tháng/năm</span></div><div class="pa-field"><label>Ưu tiên</label><select asp-for="Priority"><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="URGENT">Khẩn cấp</option></select></div><div class="pa-field"><label>Ghi chú</label><input asp-for="Note" maxlength="1000" /></div></div></section>
         <div class="pa-table-wrap"><table class="pa-table"><thead><tr><th>Nguồn</th><th>Phân bổ</th><th>Còn khả dụng khi sửa</th><th>Số lượng</th><th>Ngày cần / ghi chú</th></tr></thead><tbody>
         @for (var i = 0; i < Model.Lines.Count; i++)
         {
@@ -32,9 +32,9 @@
                 {
                     <input asp-for="Lines[i].RequestedPurchaseBaseQuantity" type="number" min="0.001" max="@available" step="0.001" />
                 }
-            </td><td><div class="pa-field"><input asp-for="Lines[i].NeededByDate" type="date" lang="vi" /><span class="pa-muted">Ngày/tháng/năm</span></div><div class="pa-field" style="margin-top:.35rem"><input asp-for="Lines[i].Note" maxlength="500" /></div></td></tr>
+                </td><td><div class="pa-field"><input asp-for="Lines[i].NeededByDate" type="date" lang="vi" /><span class="pa-muted">Ngày/tháng/năm</span></div><div class="pa-field pa-field-spaced"><input asp-for="Lines[i].Note" maxlength="500" /></div></td></tr>
         }
         </tbody></table></div>
-        <div class="pa-actions" style="margin-top:1rem"><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-save"></i> Lưu thay đổi</button><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId">Hủy</a></div>
+    <div class="pa-actions pa-actions-spaced"><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-save"></i> Lưu thay đổi</button><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId">Hủy</a></div>
     </form>
 </div>

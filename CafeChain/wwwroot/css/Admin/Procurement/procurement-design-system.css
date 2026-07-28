@@ -28,6 +28,221 @@
     --cc-space-6: 32px;
 }
 
+html { background: var(--cc-app-bg); }
+
+.cc-page,
+.inventory-container,
+.reorder-page,
+.uc-page,
+.notification-page,
+.admin-wo-page {
+    min-height: 100%;
+    background: var(--cc-app-bg);
+    color: var(--cc-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.cc-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--cc-space-5);
+    margin-bottom: var(--cc-space-5);
+}
+
+.cc-page-kicker {
+    margin: 0 0 var(--cc-space-1);
+    color: var(--cc-accent);
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.cc-page-title {
+    margin: 0;
+    color: var(--cc-text-primary);
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+    font-weight: 800;
+    line-height: 1.2;
+    text-wrap: balance;
+}
+
+.cc-page-description {
+    max-width: 68ch;
+    margin: var(--cc-space-2) 0 0;
+    color: var(--cc-text-secondary);
+    font-size: .86rem;
+    line-height: 1.5;
+}
+
+.cc-actions { display: flex; flex-wrap: wrap; gap: var(--cc-space-2); }
+
+.cc-button {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--cc-space-2);
+    padding: 8px 13px;
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-sm);
+    background: var(--cc-surface);
+    color: var(--cc-text-primary);
+    font-size: .8rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+}
+
+.cc-button:hover { border-color: var(--cc-primary); color: var(--cc-primary); }
+.cc-button:active { transform: translateY(1px); }
+.cc-button-primary { border-color: var(--cc-primary); background: var(--cc-primary); color: var(--cc-surface); }
+.cc-button-primary:hover { border-color: var(--cc-primary-hover); background: var(--cc-primary-hover); color: var(--cc-surface); }
+.cc-button-danger { border-color: color-mix(in srgb, var(--cc-danger) 30%, white); color: var(--cc-danger); }
+.cc-button:disabled { cursor: not-allowed; opacity: .55; transform: none; }
+
+/* Keep legacy Bootstrap helpers inside procurement screens on the CafeChain palette. */
+.cc-page .btn-primary,
+.cc-page .btn-info,
+.cc-page .btn-outline-primary:hover,
+.cc-page .btn-outline-info:hover,
+.admin-wo-page .btn-primary,
+.admin-wo-page .btn-info {
+    border-color: var(--cc-primary);
+    background: var(--cc-primary);
+    color: var(--cc-surface);
+}
+
+.cc-page .btn-primary:hover,
+.cc-page .btn-info:hover,
+.admin-wo-page .btn-primary:hover,
+.admin-wo-page .btn-info:hover {
+    border-color: var(--cc-primary-hover);
+    background: var(--cc-primary-hover);
+    color: var(--cc-surface);
+}
+
+.cc-page .btn-outline-primary,
+.cc-page .btn-outline-info {
+    border-color: var(--cc-primary);
+    background: var(--cc-surface);
+    color: var(--cc-primary);
+}
+
+.cc-page :is(.btn-primary, .btn-info, .btn-outline-primary, .btn-outline-info):focus-visible,
+.admin-wo-page :is(.btn-primary, .btn-info):focus-visible {
+    outline: 3px solid var(--cc-focus);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.cc-page .bg-primary,
+.cc-page .bg-info { background-color: var(--cc-primary) !important; }
+.cc-page .text-primary,
+.cc-page .text-info { color: var(--cc-primary) !important; }
+
+.cc-form-section,
+.cc-filter-panel,
+.cc-action-panel,
+.cc-summary-card,
+.cc-data-table,
+.cc-modal {
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-md);
+    background: var(--cc-surface);
+    box-shadow: var(--cc-shadow);
+}
+
+.cc-form-section,
+.cc-filter-panel,
+.cc-action-panel { padding: var(--cc-space-4); }
+
+.cc-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 7px;
+    border: 1px solid var(--cc-border);
+    border-radius: 6px;
+    background: var(--cc-surface-muted);
+    color: var(--cc-text-secondary);
+    font-size: .7rem;
+    font-weight: 800;
+}
+
+.cc-status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.cc-status-success { border-color: color-mix(in srgb, var(--cc-success) 28%, white); background: var(--cc-success-bg); color: var(--cc-success); }
+.cc-status-warning { border-color: color-mix(in srgb, var(--cc-warning) 28%, white); background: var(--cc-warning-bg); color: var(--cc-warning); }
+.cc-status-danger { border-color: color-mix(in srgb, var(--cc-danger) 28%, white); background: var(--cc-danger-bg); color: var(--cc-danger); }
+
+.cc-empty-state,
+.cc-loading-state,
+.cc-error-alert {
+    padding: var(--cc-space-6);
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-md);
+    background: var(--cc-surface);
+    color: var(--cc-text-secondary);
+    text-align: center;
+}
+
+.cc-empty-state h2,
+.cc-loading-state h2,
+.cc-error-alert h2 { margin: 0 0 var(--cc-space-2); color: var(--cc-text-primary); font-size: 1rem; }
+.cc-empty-state p,
+.cc-loading-state p,
+.cc-error-alert p { max-width: 60ch; margin: 0 auto; }
+.cc-error-alert { border-color: color-mix(in srgb, var(--cc-danger) 28%, white); background: var(--cc-danger-bg); color: var(--cc-danger); }
+
+.cc-timeline-dot { background: var(--cc-accent); }
+.cc-danger-zone { border-top: 1px solid var(--cc-border-soft); color: var(--cc-danger); }
+.ops-shell-narrow { max-width: 1100px; margin-inline: auto; }
+.ops-shell-compact { max-width: 1000px; margin-inline: auto; }
+.ops-table-min-620 { min-width: 620px; }
+.ops-table-min-680 { min-width: 680px; }
+.ops-table-min-720 { min-width: 720px; }
+.ops-table-min-850 { min-width: 850px; }
+.ops-table-min-900 { min-width: 900px; }
+.ops-table-min-1100 { min-width: 1100px; }
+.ops-cell-min-240 { min-width: 240px; }
+.ops-quantity-input { width: 112px; }
+.ops-pre-wrap { white-space: pre-wrap; }
+.pa-section-spaced,
+.pa-actions-spaced { margin-top: 1rem; }
+.pa-note { margin: 1rem 0 0; }
+.pa-alert-compact { margin-top: 1rem; margin-bottom: 0; }
+.pa-filter-grid-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pa-field-spaced { margin-top: .35rem; }
+
+.ops-progress-native,
+.pa-progress-native {
+    display: block;
+    overflow: hidden;
+    border: 0;
+    border-radius: 4px;
+    background: var(--cc-border-soft);
+    accent-color: var(--cc-success);
+}
+
+.ops-progress-native { width: 100%; height: 8px; margin-top: var(--cc-space-2); }
+.pa-progress-native { width: 120px; max-width: 100%; height: 5px; margin-top: .4rem; }
+.ops-progress-native::-webkit-progress-bar,
+.pa-progress-native::-webkit-progress-bar { background: var(--cc-border-soft); }
+.ops-progress-native::-webkit-progress-value,
+.pa-progress-native::-webkit-progress-value,
+.ops-progress-native::-moz-progress-bar,
+.pa-progress-native::-moz-progress-bar { background: var(--cc-success); }
+
+.cc-button:focus-visible,
+.cc-form-section :is(input, select, textarea, button, a):focus-visible,
+.cc-filter-panel :is(input, select, textarea, button, a):focus-visible,
+.cc-data-table a:focus-visible,
+.cc-modal :is(input, select, textarea, button, a):focus-visible {
+    outline: 3px solid var(--cc-focus);
+    outline-offset: 2px;
+}
+
 .ops-shell,
 .pa-page {
     min-height: 100%;
@@ -316,7 +531,180 @@
     animation: cc-skeleton 1.4s ease-in-out infinite;
 }
 
+/* Compatibility layer for the existing supply-chain view families. */
+.ops-filterbar,
+.ops-empty,
+.ops-line-editor,
+.inventory-table-wrap,
+.transaction-state,
+.modal-content,
+.reorder-filters,
+.reorder-table-shell,
+.uc-card,
+.uc-eval-panel,
+.notification-list {
+    border-color: var(--cc-border);
+    border-radius: var(--cc-radius-md);
+    background: var(--cc-surface);
+    color: var(--cc-text-primary);
+}
+
+.ops-tab,
+.inventory-kind-tab,
+.store-tab,
+.uc-tab { color: var(--cc-text-secondary); }
+
+.ops-tab:hover,
+.ops-tab.active,
+.inventory-kind-tab:hover,
+.inventory-kind-tab.active,
+.store-tab:hover,
+.store-tab.active,
+.uc-tab:hover,
+.uc-tab.active {
+    border-color: var(--cc-primary);
+    color: var(--cc-primary);
+    background: var(--cc-warning-bg);
+}
+
+.ops-line-editor { border-left-color: var(--cc-accent); background: var(--cc-surface-muted); }
+.ops-timeline li::before { background: var(--cc-accent); }
+.ops-timeline li::after { background: var(--cc-border); }
+.ops-badge-info,
+.ops-notice-info { border-color: var(--cc-border); background: var(--cc-surface-muted); color: var(--cc-text-secondary); }
+
+.pa-badge-submitted,
+.pa-badge-review,
+.pa-badge-partial { background: var(--cc-warning-bg); color: var(--cc-warning); }
+.pa-badge-draft { background: var(--cc-surface-muted); color: var(--cc-text-secondary); }
+.pa-badge-rejected,
+.pa-badge-cancelled { background: var(--cc-danger-bg); color: var(--cc-danger); }
+.pa-badge-complete { background: var(--cc-success-bg); color: var(--cc-success); }
+
+.inventory-container,
+.reorder-page,
+.uc-page,
+.notification-page { padding: var(--cc-space-5); }
+
+.inventory-header,
+.reorder-header,
+.notification-header { align-items: flex-start; gap: var(--cc-space-5); margin-bottom: var(--cc-space-5); }
+
+.inventory-header h2,
+.reorder-header h1,
+.uc-page-title,
+.notification-header h1 { color: var(--cc-text-primary); }
+
+.inventory-subtitle,
+.reorder-header p,
+.uc-page .text-muted,
+.notification-meta { color: var(--cc-text-secondary) !important; }
+
+.search-form input,
+.reorder-filters :is(input, select),
+.uc-page :is(.form-control, .form-select),
+.notification-page :is(.form-control, .form-select) {
+    border-color: var(--cc-border);
+    border-radius: var(--cc-radius-sm);
+    background: var(--cc-surface);
+    color: var(--cc-text-primary);
+}
+
+.search-form input:focus,
+.reorder-filters :is(input, select):focus,
+.uc-page :is(.form-control, .form-select):focus,
+.notification-page :is(.form-control, .form-select):focus {
+    border-color: var(--cc-primary);
+    box-shadow: 0 0 0 3px var(--cc-focus);
+    outline: 0;
+}
+
+.search-form button,
+.btn-view-all,
+.btn-view,
+.reorder-page .btn-primary,
+.btn-uc-primary {
+    border-color: var(--cc-primary);
+    background: var(--cc-primary);
+    color: var(--cc-surface);
+}
+
+.search-form button:hover,
+.btn-view-all:hover,
+.btn-view:hover,
+.reorder-page .btn-primary:hover,
+.btn-uc-primary:hover {
+    border-color: var(--cc-primary-hover);
+    background: var(--cc-primary-hover);
+    color: var(--cc-surface);
+}
+
+.inventory-table th,
+.transaction-table th,
+.reorder-table th { border-color: var(--cc-border-soft); background: var(--cc-surface-muted); color: var(--cc-text-secondary); }
+.inventory-table td,
+.transaction-table td,
+.reorder-table td { border-color: var(--cc-border-soft); color: var(--cc-text-primary); }
+.inventory-table tbody tr:hover,
+.transaction-table tbody tr:hover,
+.reorder-table tbody tr:hover { background: var(--cc-warning-bg); }
+
+.reserved,
+.inventory-warning,
+.cost-missing { color: var(--cc-warning); }
+.usable,
+.plus,
+.inventory-identity-badge { color: var(--cc-success); }
+.usable.danger,
+.minus { color: var(--cc-danger); }
+
+.modal { background: rgba(31, 41, 55, .46); }
+.modal-content { width: min(1180px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; box-shadow: var(--cc-shadow); }
+.modal-close { border-radius: var(--cc-radius-sm); background: var(--cc-surface-muted); color: var(--cc-text-secondary); }
+.modal-close:hover { background: var(--cc-danger-bg); color: var(--cc-danger); }
+
+.reorder-eyebrow { color: var(--cc-accent) !important; }
+.reorder-note,
+.uc-phys-strip { border-color: color-mix(in srgb, var(--cc-warning) 30%, white); background: var(--cc-warning-bg); color: var(--cc-warning); }
+.reorder-status { border-color: var(--cc-border); background: var(--cc-surface-muted); color: var(--cc-text-secondary) !important; }
+.reorder-status--ready { border-color: color-mix(in srgb, var(--cc-success) 30%, white); background: var(--cc-success-bg); color: var(--cc-success) !important; }
+.reorder-status--missing_threshold,
+.reorder-status--insufficient_history,
+.reorder-status--no_active_supplier,
+.reorder-status--invalid_conversion,
+.reorder-status--missing_lead_time,
+.reorder-status--missing_cost { border-color: color-mix(in srgb, var(--cc-warning) 30%, white); background: var(--cc-warning-bg); color: var(--cc-warning) !important; }
+
+.uc-status-ok { background: var(--cc-success-bg); color: var(--cc-success); }
+.uc-status-warn,
+.uc-status-review { background: var(--cc-warning-bg); color: var(--cc-warning); }
+.uc-status-error { background: var(--cc-danger-bg); color: var(--cc-danger); }
+.btn-uc-ghost { border-color: var(--cc-border); color: var(--cc-text-secondary); }
+.btn-uc-ghost:hover { border-color: var(--cc-primary); background: var(--cc-warning-bg); color: var(--cc-primary); }
+
+.notification-list { overflow: hidden; box-shadow: var(--cc-shadow); }
+.notification-item { padding: var(--cc-space-4); border-bottom: 1px solid var(--cc-border-soft); background: var(--cc-surface); }
+.notification-item:last-child { border-bottom: 0; }
+.notification-item.is-unread { border-left: 3px solid var(--cc-accent); background: var(--cc-warning-bg); }
+.notification-title { color: var(--cc-text-primary); font-weight: 750; }
+.notification-body { color: var(--cc-text-secondary); white-space: pre-wrap; }
+
+.ingredient-status-review { border-color: color-mix(in srgb, var(--cc-warning) 30%, white); background: var(--cc-warning-bg); color: var(--cc-warning); }
+
 @keyframes cc-skeleton { to { background-position: -200% 0; } }
+
+@media (min-width: 1440px) {
+    .cc-page,
+    .ops-shell,
+    .pa-page,
+    .inventory-container,
+    .reorder-page,
+    .uc-page,
+    .notification-page {
+        width: min(100%, 1680px);
+        margin-inline: auto;
+    }
+}
 
 @media (max-width: 1366px) {
     .ops-shell,
@@ -336,9 +724,32 @@
     .ops-next-action { position: static; }
 }
 
+@media (max-width: 1024px) {
+    .cc-page,
+    .inventory-container,
+    .reorder-page,
+    .uc-page,
+    .notification-page { padding: var(--cc-space-4); }
+
+    .cc-data-table,
+    .ops-table-wrap,
+    .pa-table-wrap,
+    .inventory-table-wrap,
+    .reorder-table-shell { max-width: 100%; overflow-x: auto; }
+
+    .cc-modal,
+    .modal-content { width: min(100%, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
+}
+
 @media (max-width: 800px) {
     .ops-source-options { grid-template-columns: 1fr; }
     .ops-source-form-grid { grid-template-columns: 1fr; }
+    .cc-page-header,
+    .inventory-header,
+    .reorder-header,
+    .notification-header { flex-direction: column; }
+    .cc-actions { width: 100%; }
+    .cc-actions > * { flex: 1 1 auto; }
 }
 
 @media (max-width: 600px) {

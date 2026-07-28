@@ -4,6 +4,41 @@
    ============================================================ */
 
 /* ---- Custom Modal (non-Bootstrap, AJAX-driven) ---- */
+.ingredient-page-icon,
+.ingredient-row-icon {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--cc-radius-md);
+    background: var(--cc-warning-bg);
+    color: var(--cc-accent);
+}
+
+.ingredient-page-icon { width: 46px; height: 46px; font-size: 20px; }
+.ingredient-row-icon { width: 34px; height: 34px; font-size: 13px; }
+.ingredient-small-icon { font-size: 11px; }
+.ingredient-meta { font-size: 13px; }
+.ingredient-col-code { width: 120px; }
+.ingredient-col-status { width: 130px; }
+.ingredient-col-actions { width: 110px; }
+.ingredient-status-dot { font-size: 7px; }
+.ingredient-empty-icon { display: block; margin-bottom: var(--cc-space-2); color: var(--cc-border); font-size: 2rem; }
+
+#ingredientModal .btn-primary {
+    border-color: var(--cc-primary) !important;
+    background: var(--cc-primary) !important;
+    color: var(--cc-surface) !important;
+    font-weight: 800;
+    box-shadow: 0 8px 20px var(--cc-focus);
+}
+
+#ingredientModal .btn-primary:hover { border-color: var(--cc-primary-hover) !important; background: var(--cc-primary-hover) !important; }
+#ingredientModal .form-control:focus,
+#ingredientModal .form-select:focus { border-color: var(--cc-primary); box-shadow: 0 0 0 3px var(--cc-focus); }
+#ingredientModal label,
+#ingredientModal .form-label { color: var(--cc-text-secondary); font-size: 13px; font-weight: 800; }
+
 .custom-modal {
     display: none;
     position: fixed;
@@ -22,9 +57,9 @@
 .modal-box {
     width: 700px;
     max-width: 95vw;
-    background: #fff;
+    background: var(--cc-surface);
     border-radius: 14px;
-    border: 1px solid #E5E0D8;
+    border: 1px solid var(--cc-border);
     box-shadow: 0 24px 60px rgba(111, 78, 55, 0.16);
     animation: ingModalIn 0.22s ease;
     overflow: hidden;
@@ -38,24 +73,24 @@
 /* Modal sections */
 #ingredientModal .modal-header {
     padding: 20px 24px;
-    border-bottom: 1px solid #EEE8E1;
+    border-bottom: 1px solid var(--cc-border-soft);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #fff;
+    background: var(--cc-surface);
 }
 
 #ingredientModal .modal-header h5 {
     margin: 0;
     font-weight: 800;
     font-size: 17px;
-    color: #1F2937;
+    color: var(--cc-text-primary);
 }
 
 #ingredientModal .close-btn {
     cursor: pointer;
     font-size: 1.1rem;
-    color: #475569;
+    color: var(--cc-text-secondary);
     transition: color 0.2s;
     padding: 4px 8px;
     border-radius: 6px;
@@ -63,19 +98,19 @@
 }
 
 #ingredientModal .close-btn:hover {
-    color: #991B1B;
-    background: #FEE2E2;
+    color: var(--cc-danger);
+    background: var(--cc-danger-bg);
 }
 
 #ingredientModal .modal-body {
     padding: 24px;
-    background: #fff;
+    background: var(--cc-surface);
 }
 
 #ingredientModal .modal-footer {
     padding: 16px 24px;
-    border-top: 1px solid #EEE8E1;
-    background: #FAF7F4;
+    border-top: 1px solid var(--cc-border-soft);
+    background: var(--cc-surface-muted);
     display: flex;
     justify-content: flex-end;
     gap: 10px;
@@ -84,37 +119,37 @@
 
 /* ---- Conversion section inside modal ---- */
 .ingredient-conv-section .card-header {
-    background: #F5EDE3 !important;
-    border-bottom: 1px solid #DBC4A9 !important;
+    background: var(--cc-warning-bg) !important;
+    border-bottom: 1px solid var(--cc-border) !important;
     border-radius: 8px 8px 0 0 !important;
     padding: 12px 16px !important;
 }
 
 .ingredient-conv-section .card-header h6 {
-    color: #5C3F2B;
+    color: var(--cc-primary-hover);
     font-weight: 800;
     margin: 0;
 }
 
 /* ---- Table inside modal ---- */
 .ingredient-conv-section .table thead th {
-    background: #FAF7F4 !important;
-    color: #475569 !important;
+    background: var(--cc-surface-muted) !important;
+    color: var(--cc-text-secondary) !important;
     font-size: 11px !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
     padding: 10px 12px !important;
-    border-bottom: 1px solid #E5E0D8 !important;
+    border-bottom: 1px solid var(--cc-border) !important;
 }
 
 .ingredient-conv-section .table tbody td {
     padding: 10px 12px !important;
     vertical-align: middle;
-    border-bottom: 1px solid #EEE8E1 !important;
+    border-bottom: 1px solid var(--cc-border-soft) !important;
 }
 
 .ingredient-conv-section .table tbody tr:hover {
-    background: #F5EDE3;
+    background: var(--cc-warning-bg);
 }
 
 /* ---- Remove row btn inside conversion ---- */
@@ -122,9 +157,9 @@
     width: 30px;
     height: 30px;
     border-radius: 7px;
-    border: 1px solid #FECACA;
-    background: #fff;
-    color: #991B1B;
+    border: 1px solid var(--cc-danger-bg);
+    background: var(--cc-surface);
+    color: var(--cc-danger);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -135,8 +170,8 @@
 }
 
 .btn-remove-conv:hover {
-    background: #FEE2E2;
-    border-color: #991B1B;
+    background: var(--cc-danger-bg);
+    border-color: var(--cc-danger);
 }
 
 /* ---- Pagination ---- */
@@ -149,13 +184,13 @@
 
 .page-btn {
     padding: 7px 14px;
-    border: 1px solid #E5E0D8;
-    background: #fff;
+    border: 1px solid var(--cc-border);
+    background: var(--cc-surface);
     cursor: pointer;
     border-radius: 8px;
     transition: all 0.2s;
     text-decoration: none;
-    color: #1F2937;
+    color: var(--cc-text-primary);
     font-weight: 600;
     font-size: 13px;
     display: inline-flex;
@@ -164,23 +199,23 @@
 }
 
 .page-btn:hover {
-    background: #F5EDE3;
-    border-color: #6F4E37;
-    color: #5C3F2B;
+    background: var(--cc-warning-bg);
+    border-color: var(--cc-primary);
+    color: var(--cc-primary-hover);
 }
 
 .page-btn.active {
-    background: #6F4E37;
-    color: #fff;
-    border-color: #6F4E37;
+    background: var(--cc-primary);
+    color: var(--cc-surface);
+    border-color: var(--cc-primary);
     box-shadow: 0 4px 12px rgba(111, 78, 55, 0.28);
 }
 
 /* ---- Unit badge ---- */
 .unit-badge {
-    background: #EEF0FF;
-    border: 1px solid #C7D2FE;
-    color: #3730A3;
+    background: var(--cc-warning-bg);
+    border: 1px solid var(--cc-border);
+    color: var(--cc-warning);
     border-radius: 6px;
     padding: 3px 10px;
     font-size: 12px;
@@ -192,9 +227,9 @@
 .ing-code {
     font-family: 'Courier New', monospace;
     font-weight: 700;
-    color: #99623B;
-    background: #F5EDE3;
-    border: 1px solid #DBC4A9;
+    color: var(--cc-warning);
+    background: var(--cc-warning-bg);
+    border: 1px solid var(--cc-border);
     border-radius: 6px;
     padding: 2px 8px;
     font-size: 13px;

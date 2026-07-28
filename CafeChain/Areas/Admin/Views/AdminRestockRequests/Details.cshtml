@@ -104,7 +104,7 @@
         <div class="ops-metric"><span class="ops-metric-label">Chưa xác định nguồn cung</span><strong class="ops-metric-value @(remainingSource > 0 ? "warning" : "success")">@AdminStatusDisplay.Quantity(remainingSource) @requestUnitName</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Còn thiếu theo nhu cầu</span><strong class="ops-metric-value @(remainingToReceive > 0 ? "warning" : "success")">@AdminStatusDisplay.Quantity(remainingToReceive) @requestUnitName</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Đã nhận thực tế</span><strong class="ops-metric-value success">@AdminStatusDisplay.Quantity(fulfilled) @requestUnitName</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Tiến độ</span><strong class="ops-metric-value">@progress.ToString("N0")%</strong><div class="ops-progress mt-2"><div class="ops-progress-bar" style="width:@progress.ToString(System.Globalization.CultureInfo.InvariantCulture)%"></div></div></div>
+        <div class="ops-metric"><span class="ops-metric-label">Tiến độ</span><strong class="ops-metric-value">@progress.ToString("N0")%</strong><progress class="ops-progress-native" value="@progress" max="100" aria-label="Tiến độ đáp ứng @progress.ToString("N0") phần trăm">@progress.ToString("N0")%</progress></div>
     </section>
 
     @if (hasAllocationDetail)
@@ -316,7 +316,7 @@
                     @if (Model.FulfillmentPostings.Count == 0) { <div class="p-3 ops-secondary">Chưa có lượng thực nhận từ chứng từ đã hoàn tất.</div> }
                     else
                     {
-                        <div class="ops-table-scroll"><table class="ops-table" style="min-width:620px"><thead><tr><th>Nguồn</th><th>Dòng chứng từ</th><th class="number">Số lượng</th><th>Thời gian</th></tr></thead><tbody>
+                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-620"><thead><tr><th>Nguồn</th><th>Dòng chứng từ</th><th class="number">Số lượng</th><th>Thời gian</th></tr></thead><tbody>
                         @foreach (var posting in Model.FulfillmentPostings)
                         {
                             <tr><td><strong>@AdminStatusDisplay.RestockFulfillmentDocumentType(posting.SourceDocumentType)</strong> #@posting.SourceDocumentId</td><td>#@posting.SourceDocumentLineId</td><td class="number">@AdminStatusDisplay.Quantity(posting.Quantity) @(posting.BaseUnitName ?? $"Đơn vị #{posting.BaseUnitId}")</td><td>@AdminStatusDisplay.DateTime(posting.CreatedAtUtc.ToLocalTime())</td></tr>
@@ -332,7 +332,7 @@
                     @if (Model.PurchaseOrders.Count == 0) { <div class="p-3 ops-secondary">Chưa có đơn đặt hàng liên kết. Đơn đặt hàng sẽ xuất hiện sau khi PA được gửi, xét duyệt và tổng hợp.</div> }
                     else
                     {
-                        <div class="ops-table-scroll"><table class="ops-table" style="min-width:680px"><thead><tr><th>Đơn đặt hàng</th><th>Nhà cung cấp</th><th>Trạng thái đơn</th><th>Ngày đặt</th><th class="number">Giá trị</th><th></th></tr></thead><tbody>
+                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-680"><thead><tr><th>Đơn đặt hàng</th><th>Nhà cung cấp</th><th>Trạng thái đơn</th><th>Ngày đặt</th><th class="number">Giá trị</th><th></th></tr></thead><tbody>
                         @foreach (var order in Model.PurchaseOrders)
                         {
                             <tr>
@@ -355,7 +355,7 @@
                     @if (Model.SupplierIssues.Count == 0) { <div class="p-3 ops-secondary">Chưa có sự cố nhà cung cấp liên quan.</div> }
                     else
                     {
-                        <div class="ops-table-scroll"><table class="ops-table" style="min-width:720px"><thead><tr><th>Nhà cung cấp</th><th>Sự cố</th><th>Trạng thái</th><th class="number">Ảnh hưởng</th><th>Chứng từ</th></tr></thead><tbody>
+                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-720"><thead><tr><th>Nhà cung cấp</th><th>Sự cố</th><th>Trạng thái</th><th class="number">Ảnh hưởng</th><th>Chứng từ</th></tr></thead><tbody>
                         @foreach (var issue in Model.SupplierIssues)
                         {
                             <tr><td>@issue.SupplierName</td><td><strong>@AdminStatusDisplay.SupplierReceiptIssueType(issue.IssueType)</strong><div class="ops-secondary">@issue.Description</div></td><td><span class="ops-badge @AdminStatusDisplay.SupplierReceiptIssue(issue.Status).CssClass">@AdminStatusDisplay.SupplierReceiptIssue(issue.Status).Label</span></td><td class="number">@AdminStatusDisplay.Quantity(issue.AffectedBaseQuantity)</td><td><a asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Index" asp-route-storeId="@issue.StoreId" asp-route-supplierId="@issue.SupplierId">@issue.BranchReceiptCode</a></td></tr>
@@ -371,7 +371,7 @@
                     @if (Model.Receipts.Count == 0) { <div class="p-3 ops-secondary">Chưa có chứng từ nhận hàng. Chỉ tạo phiếu nhận từ đơn đặt hàng đã duyệt và gửi nhà cung cấp.</div> }
                     else
                     {
-                        <div class="ops-table-scroll"><table class="ops-table" style="min-width:620px"><thead><tr><th>Phiếu</th><th>Trạng thái</th><th class="number">Lượng nhận</th><th class="number">Giá trị</th><th></th></tr></thead><tbody>
+                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-620"><thead><tr><th>Phiếu</th><th>Trạng thái</th><th class="number">Lượng nhận</th><th class="number">Giá trị</th><th></th></tr></thead><tbody>
                         @foreach (var receipt in Model.Receipts)
                         {
                             <tr><td><strong>@receipt.ReceiptCode</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(receipt.ReceivedAt.ToLocalTime())</div></td><td><span class="ops-badge @AdminStatusDisplay.BranchReceipt(receipt.Status).CssClass">@AdminStatusDisplay.BranchReceipt(receipt.Status).Label</span></td><td class="number">@AdminStatusDisplay.Quantity(receipt.TotalBaseQuantity)</td><td class="number">@AdminStatusDisplay.Currency(receipt.TotalLineCost)</td><td><a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Details" asp-route-id="@receipt.BranchReceiptId">Xem phiếu</a></td></tr>

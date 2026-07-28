@@ -48,7 +48,7 @@
         <section class="ops-panel">
             <div class="ops-panel-header"><h2 class="ops-panel-title">Các dòng hàng thực nhận</h2></div>
             <div class="ops-table-scroll">
-                <table class="ops-table" style="min-width:900px">
+<table class="ops-table ops-table-min-900">
                     <thead><tr><th>Nguồn yêu cầu nhập</th><th>Mặt hàng</th><th class="number">Số lượng thực giao</th><th class="number">Số lượng chấp nhận</th><th class="number">Số lượng từ chối</th><th class="number">Giá vốn cơ sở</th><th class="number">Thành tiền</th><th>Giao dịch kho</th><th></th></tr></thead>
                     <tbody>
                     @foreach (var line in Model.Lines)
@@ -92,7 +92,7 @@
                         <div><span class="ops-data-label">Người xác nhận</span><span class="ops-data-value">@(Model.ConfirmedByStaffId.HasValue ? $"Nhân viên #{Model.ConfirmedByStaffId}" : "—")</span></div>
                         <div><span class="ops-data-label">Xác nhận lúc</span><span class="ops-data-value">@(Model.ConfirmedAt.HasValue ? AdminStatusDisplay.DateTime(Model.ConfirmedAt.Value.ToLocalTime()) : "—")</span></div>
                     </div>
-                    <div class="mt-3"><span class="ops-data-label">Ghi chú</span><div class="ops-notice mt-1 mb-0" style="white-space:pre-wrap">@(Model.Notes ?? "Không có ghi chú")</div></div>
+<div class="mt-3"><span class="ops-data-label">Ghi chú</span><div class="ops-notice ops-pre-wrap mt-1 mb-0">@(Model.Notes ?? "Không có ghi chú")</div></div>
                 </div>
             </section>
 
