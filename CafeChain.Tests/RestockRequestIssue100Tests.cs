@@ -329,6 +329,14 @@ namespace CafeChain.Tests.POS
                 .Select(x => (int?)x.StaffId)
                 .MaxAsync() ?? 90000) + 1000;
             EnsureStaffWithRole(ctx, manualStaffId, RoleConstants.StoreManager, "manual-procurement@test.local");
+            var sourcingStaffId = manualStaffId + 1;
+            EnsureStaffWithRole(ctx, sourcingStaffId, RoleConstants.AccountantWarehouse, "manual-sourcing@test.local");
+            ctx.StaffScopes.Add(new StaffScope
+            {
+                StaffId = sourcingStaffId,
+                ScopeTypeId = (int)CafeChain.Application.Interfaces.Security.ScopeLevel.Store,
+                ScopeRefId = StoreId
+            });
             await ctx.SaveChangesAsync();
             var kg = await ctx.Units.FirstOrDefaultAsync(x => x.UnitCode == "kg");
             if (kg == null)
@@ -389,7 +397,7 @@ namespace CafeChain.Tests.POS
                     ProcurementUnitId = kg.UnitId,
                     Reason = "Mua theo kế hoạch bổ sung"
                 },
-                manualStaffId);
+                sourcingStaffId);
 
             Assert.True(sourcing.IsSuccess, sourcing.Message);
             Assert.Equal(RestockSourcingAllocationStatuses.PendingPurchaseAdvice, sourcing.Data!.Status);

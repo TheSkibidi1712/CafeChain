@@ -67,10 +67,10 @@ namespace CafeChain.Areas.Admin.Controllers
                 {
                     RestockRequestId = x.RestockRequestId,
                     RequestedPurchaseBaseQuantity = x.RestockRequestId == restockRequestId
-                        ? (x.RestockRequestedProcurementQuantity.HasValue ? 0m : x.RemainingToPurchaseQuantity)
+                        ? (x.RestockRequestedProcurementQuantity.HasValue ? 0m : x.PendingPurchaseAllocationBaseQuantity)
                         : 0m,
                     RequestedPurchaseProcurementQuantity = x.RestockRequestId == restockRequestId
-                        ? x.RemainingToPurchaseProcurementQuantity
+                        ? x.PendingPurchaseAllocationProcurementQuantity
                         : null,
                     NeededByDate = DateTime.Today.AddDays(2),
                     RestockRowVersion = x.RestockRowVersion
@@ -96,6 +96,21 @@ namespace CafeChain.Areas.Admin.Controllers
             ViewBag.Sources = sources.Data ?? Array.Empty<PurchaseAdviceSourceDto>();
             ViewBag.SelectedRestockIds = selectedRestockIds;
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddRestockRequestToDraft(AddRestockRequestToDraftPurchaseAdviceRequest model)
+        {
+            var result = await _service.AddRestockRequestToDraftAsync(model, _actorAccessor.Get(User));
+            if (!result.IsSuccess)
+            {
+                TempData["ErrorMessage"] = result.Message;
+                return RedirectToAction("Details", "AdminRestockRequests", new { id = model.RestockRequestId });
+            }
+
+            TempData["Success"] = "Đã thêm yêu cầu vào đề nghị mua nháp.";
+            return RedirectToAction(nameof(Details), new { id = result.Data!.PurchaseAdviceId });
         }
 
         [HttpPost]

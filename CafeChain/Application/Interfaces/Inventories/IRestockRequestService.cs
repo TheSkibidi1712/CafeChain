@@ -38,12 +38,21 @@ namespace CafeChain.Application.Interfaces.Inventories
             int stockAlertId,
             int storeId);
 
+        Task<ServiceResult<ActiveRestockRequestDto?>> GetActiveForStoreIngredientAsync(
+            int storeId,
+            int ingredientId,
+            int actorStaffId);
+
         Task<ServiceResult<CreateRestockRequestResultDto>> CreateManualAsync(
             CreateProcurementDemandRequest request,
             int actorStaffId);
 
         Task<ServiceResult<CreateRestockRequestResultDto>> CreateCentralPlannerAsync(
             CreateProcurementDemandRequest request,
+            int actorStaffId);
+
+        Task<ServiceResult<RestockDemandAdjustmentResultDto>> AddDemandAdjustmentAsync(
+            AddRestockDemandAdjustmentRequest request,
             int actorStaffId);
 
         Task<ServiceResult<SourcingAllocationDto>> SetSourcingDecisionAsync(

@@ -38,6 +38,9 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public int BaseUnitId { get; set; }
         public string BaseUnitName { get; set; } = string.Empty;
         public string Priority { get; set; } = string.Empty;
+        public string SourceType { get; set; } = string.Empty;
+        public string SourcingStatus { get; set; } = string.Empty;
+        public DateTime? NeedByDate { get; set; }
         public decimal RestockRequestedQuantity { get; set; }
         public decimal? RestockRequestedProcurementQuantity { get; set; }
         public int? ProcurementUnitId { get; set; }
@@ -52,6 +55,8 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public decimal? ExistingPurchaseOrderProcurementQuantity { get; set; }
         public decimal? ExplicitlyClosedProcurementQuantity { get; set; }
         public decimal? RemainingToPurchaseProcurementQuantity { get; set; }
+        public decimal? PendingPurchaseAllocationProcurementQuantity { get; set; }
+        public decimal PendingPurchaseAllocationBaseQuantity { get; set; }
         public string RestockRowVersion { get; set; } = string.Empty;
     }
 
@@ -103,6 +108,14 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
     {
         public string RowVersion { get; set; } = string.Empty;
         public string? Reason { get; set; }
+    }
+
+    public sealed class AddRestockRequestToDraftPurchaseAdviceRequest
+    {
+        public int PurchaseAdviceId { get; set; }
+        public int RestockRequestId { get; set; }
+        public string PurchaseAdviceRowVersion { get; set; } = string.Empty;
+        public string RestockRowVersion { get; set; } = string.Empty;
     }
 
     public sealed class PurchaseAdviceDetailDto
