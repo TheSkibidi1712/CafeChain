@@ -58,7 +58,15 @@
 
     @if (Model.Items.Count == 0)
     {
-        <section class="ops-empty">Không có dòng tồn kho phù hợp với phạm vi và từ khóa hiện tại.</section>
+        <section class="ops-empty" aria-labelledby="thresholdEmptyTitle">
+            <span class="ops-empty-icon"><i class="fa-solid fa-sliders" aria-hidden="true"></i></span>
+            <h2 id="thresholdEmptyTitle" class="ops-empty-title">Không tìm thấy mặt hàng cần cấu hình</h2>
+            <p class="ops-empty-copy">Thử đổi từ khóa hoặc chọn cửa hàng khác. Mặt hàng chỉ xuất hiện khi tài khoản có phạm vi xem kho tương ứng.</p>
+            <div class="ops-empty-actions">
+                <a class="ops-btn" asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId">Xóa từ khóa</a>
+                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId">Mở tồn kho cửa hàng</a>
+            </div>
+        </section>
     }
     else
     {
@@ -76,7 +84,7 @@
                             <td>@item.ItemTypeLabel</td>
                             <td class="number">@item.OnHandQty.ToString("N3")</td>
                             <td class="number">@item.ReservedQty.ToString("N3")</td>
-                            <td class="number fw-bold @(isOut ? "text-danger" : "")">@item.UsableQty.ToString("N3")</td>
+                            <td class="number fw-bold @(isOut ? "ops-text-danger" : "")">@item.UsableQty.ToString("N3")</td>
                             <td>
                                 @if (!item.ThresholdConfigured) { <span class="ops-badge ops-badge-neutral">Chưa cấu hình</span> }
                                 else if (isOut) { <span class="ops-badge ops-badge-danger">Hết khả dụng</span> }

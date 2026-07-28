@@ -10,11 +10,56 @@
     var offers = ViewBag.Offers as IReadOnlyList<IngredientSupplier> ?? Array.Empty<IngredientSupplier>();
 }
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
-<main class="ops-shell ops-shell-narrow">
-<header class="ops-header"><div><div class="ops-eyebrow">Mua hàng từ Nhà cung cấp</div><h1 class="ops-title">Tạo đơn đặt hàng</h1><p class="ops-subtitle">Quy cách, giá và thời gian giao được lấy từ thông tin cung cấp hiện hành.</p></div><a class="ops-btn" asp-action="Index">Quay lại</a></header>
-@if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error">@TempData["ErrorMessage"]</div> }
-<form method="post">@Html.AntiForgeryToken()
-<section class="ops-panel"><div class="ops-panel-body"><div class="row g-3"><div class="col-md-4"><label class="ops-form-label">Chi nhánh</label><select asp-for="StoreId" class="ops-select w-100" required><option value="">Chọn chi nhánh</option>@foreach(var x in stores){<option value="@x.StoreId">@x.Name</option>}</select></div><div class="col-md-4"><label class="ops-form-label">Nhà cung cấp</label><select asp-for="SupplierId" class="ops-select w-100" required><option value="">Chọn Nhà cung cấp</option>@foreach(var x in suppliers){<option value="@x.SupplierId">@x.Code · @x.Name</option>}</select></div><div class="col-md-4"><label class="ops-form-label">Ngày giao dự kiến</label><input asp-for="ExpectedDeliveryAtUtc" type="datetime-local" lang="vi" class="ops-input w-100" /><div class="ops-help">Ngày/tháng/năm, giờ:phút</div></div><div class="col-12"><label class="ops-form-label">Ghi chú</label><textarea asp-for="Note" class="ops-textarea"></textarea></div><div class="col-md-4"><label class="ops-form-label d-flex align-items-center gap-2"><input asp-for="AllowOverallocationOverride" type="checkbox" /> Cho phép vượt phân bổ</label><div class="ops-help">Chỉ Chủ doanh nghiệp được duyệt và phải ghi rõ lý do.</div></div><div class="col-md-8"><label class="ops-form-label">Lý do vượt phân bổ</label><input asp-for="OverallocationOverrideReason" class="ops-input w-100" maxlength="500" placeholder="Bắt buộc khi bật cho phép vượt phân bổ" /></div></div></div></section>
+<main class="ops-shell ops-shell-compact">
+<header class="ops-header">
+    <div>
+        <div class="ops-eyebrow">Mua hàng từ nhà cung cấp</div>
+        <h1 class="ops-title">Tạo đơn đặt hàng</h1>
+        <p class="ops-subtitle">Chọn đúng chi nhánh, nhà cung cấp và quy cách mua. Giá cùng thời gian giao được lấy từ thông tin cung cấp hiện hành.</p>
+    </div>
+    <a class="ops-btn" asp-action="Index"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách đơn</a>
+</header>
+@if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
+@if (!ViewData.ModelState.IsValid) { <div asp-validation-summary="All" class="ops-notice ops-notice-error" role="alert"></div> }
+<form id="createPurchaseOrderForm" method="post" data-single-submit>
+@Html.AntiForgeryToken()
+<section class="ops-panel">
+    <div class="ops-panel-header">
+        <div><h2 class="ops-panel-title">Thông tin đơn đặt hàng</h2><div class="ops-secondary">Các trường có dấu <span class="ops-required">*</span> là bắt buộc.</div></div>
+    </div>
+    <div class="ops-panel-body">
+        <div class="ops-form-grid">
+            <div class="ops-form-field">
+                <label class="ops-form-label" asp-for="StoreId">Chi nhánh <span class="ops-required">*</span></label>
+                <select asp-for="StoreId" class="ops-select w-100" required><option value="">Chọn chi nhánh</option>@foreach(var x in stores){<option value="@x.StoreId">@x.Name</option>}</select>
+                <span asp-validation-for="StoreId" class="ops-text-danger"></span>
+            </div>
+            <div class="ops-form-field">
+                <label class="ops-form-label" asp-for="SupplierId">Nhà cung cấp <span class="ops-required">*</span></label>
+                <select asp-for="SupplierId" class="ops-select w-100" required><option value="">Chọn nhà cung cấp</option>@foreach(var x in suppliers){<option value="@x.SupplierId">@x.Code · @x.Name</option>}</select>
+                <span asp-validation-for="SupplierId" class="ops-text-danger"></span>
+            </div>
+            <div class="ops-form-field">
+                <label class="ops-form-label" asp-for="ExpectedDeliveryAtUtc">Ngày giao dự kiến</label>
+                <input asp-for="ExpectedDeliveryAtUtc" type="datetime-local" lang="vi" class="ops-input w-100" />
+                <div class="ops-help">Ngày/tháng/năm, giờ:phút</div>
+                <span asp-validation-for="ExpectedDeliveryAtUtc" class="ops-text-danger"></span>
+            </div>
+            <div class="ops-form-field ops-form-field-wide">
+                <label class="ops-form-label" asp-for="Note">Ghi chú</label>
+                <textarea asp-for="Note" class="ops-textarea" placeholder="Điều kiện giao hàng hoặc lưu ý chung cho đơn..."></textarea>
+                <span asp-validation-for="Note" class="ops-text-danger"></span>
+            </div>
+            <div class="ops-form-field ops-form-field-wide ops-policy-panel">
+                <label class="ops-check-row" asp-for="AllowOverallocationOverride"><input asp-for="AllowOverallocationOverride" type="checkbox" /> <span>Cho phép vượt phân bổ</span></label>
+                <div class="ops-help">Chỉ Chủ doanh nghiệp được duyệt và phải ghi rõ lý do. Chính sách này không thay đổi nhu cầu gốc.</div>
+                <label class="ops-form-label mt-3" asp-for="OverallocationOverrideReason">Lý do vượt phân bổ</label>
+                <input asp-for="OverallocationOverrideReason" class="ops-input w-100" maxlength="500" placeholder="Bắt buộc khi bật cho phép vượt phân bổ" />
+                <span asp-validation-for="OverallocationOverrideReason" class="ops-text-danger"></span>
+            </div>
+        </div>
+    </div>
+</section>
 <section class="ops-panel">
     <div class="ops-panel-header">
         <div><h2 class="ops-panel-title">Dòng đặt hàng</h2><div class="ops-secondary">Mỗi yêu cầu nhập chỉ liên kết một lần; mọi dòng phải cùng chi nhánh và Nhà cung cấp.</div></div>
@@ -26,20 +71,23 @@
             <div class="ops-line-editor po-line mb-3" data-index="@i">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-2">
-                        <label class="ops-form-label">Nguồn nhu cầu</label>
+                        <span class="ops-form-label">Nguồn nhu cầu</span>
                         <input asp-for="Lines[i].RestockRequestId" type="hidden" />
-                        <div class="ops-input w-100 restock-reference" aria-readonly="true">@(Model.Lines[i].RestockRequestId.HasValue ? $"Yêu cầu nhập hàng #{Model.Lines[i].RestockRequestId}" : "Mua chủ động")</div>
+                        <div class="ops-readonly-field restock-reference" aria-readonly="true">@(Model.Lines[i].RestockRequestId.HasValue ? $"Yêu cầu nhập hàng #{Model.Lines[i].RestockRequestId}" : "Mua chủ động")</div>
                     </div>
-                    <div class="col-md-5"><label class="ops-form-label">Quy cách và giá cung cấp</label><select asp-for="Lines[i].IngredientSupplierId" class="ops-select w-100 po-offer" data-index="@i" required><option value="">Chọn quy cách cung cấp</option>@foreach(var x in offers){<option value="@x.IngredientSupplierId" data-ingredient="@x.IngredientId" data-supplier="@x.SupplierId" data-allows-loose="@x.AllowsLoosePurchase.ToString().ToLowerInvariant()" data-loose-unit-id="@x.LooseProcurementUnitId" data-loose-unit="@x.LooseProcurementUnit?.Name" data-loose-price="@x.CurrentProcurementUnitPrice">@x.Ingredient.Name · @x.Supplier.Name · @(x.PackageQuantity > 0 ? $"{x.PackageQuantity} {x.Unit.Name} · {x.CurrentPrice:N0} ₫/gói" : "không có gói")@(x.AllowsLoosePurchase ? $" · mua rời {x.CurrentProcurementUnitPrice:N0} ₫/{x.LooseProcurementUnit?.Name}" : "")</option>}</select><input asp-for="Lines[i].IngredientId" type="hidden" /><input asp-for="Lines[i].ProcurementUnitId" type="hidden" class="po-procurement-unit" /></div>
-                    <div class="col-md-2"><label class="ops-form-label">Hình thức</label><select asp-for="Lines[i].PurchaseMode" class="ops-select w-100 po-mode"><option value="@PurchaseMode.Packaged">Đóng gói</option><option value="@PurchaseMode.Loose">Mua rời</option></select><input asp-for="Lines[i].PackageCount" type="number" min="1" step="1" class="ops-input w-100 po-package-count mt-2" placeholder="Số gói" /><input asp-for="Lines[i].OrderedProcurementQuantity" type="number" min="0.001" step="0.001" class="ops-input w-100 po-loose-quantity mt-2" placeholder="Số lượng kg/L" /><div class="ops-help po-mode-help">Đóng gói chỉ nhận số nguyên.</div></div>
-                    <div class="col-md-2"><label class="ops-form-label">Ghi chú dòng</label><input asp-for="Lines[i].Note" class="ops-input w-100" /></div>
+                    <div class="col-md-5"><label class="ops-form-label" asp-for="Lines[i].IngredientSupplierId">Quy cách và giá cung cấp</label><select asp-for="Lines[i].IngredientSupplierId" class="ops-select w-100 po-offer" data-index="@i" required><option value="">Chọn quy cách cung cấp</option>@foreach(var x in offers){<option value="@x.IngredientSupplierId" data-ingredient="@x.IngredientId" data-supplier="@x.SupplierId" data-allows-loose="@x.AllowsLoosePurchase.ToString().ToLowerInvariant()" data-loose-unit-id="@x.LooseProcurementUnitId" data-loose-unit="@x.LooseProcurementUnit?.Name" data-loose-price="@x.CurrentProcurementUnitPrice">@x.Ingredient.Name · @x.Supplier.Name · @(x.PackageQuantity > 0 ? $"{x.PackageQuantity} {x.Unit.Name} · {x.CurrentPrice:N0} ₫/gói" : "không có gói")@(x.AllowsLoosePurchase ? $" · mua rời {x.CurrentProcurementUnitPrice:N0} ₫/{x.LooseProcurementUnit?.Name}" : "")</option>}</select><input asp-for="Lines[i].IngredientId" type="hidden" /><input asp-for="Lines[i].ProcurementUnitId" type="hidden" class="po-procurement-unit" /></div>
+                    <div class="col-md-2"><label class="ops-form-label" asp-for="Lines[i].PurchaseMode">Hình thức</label><select asp-for="Lines[i].PurchaseMode" class="ops-select w-100 po-mode"><option value="@PurchaseMode.Packaged">Đóng gói</option><option value="@PurchaseMode.Loose">Mua rời</option></select><input asp-for="Lines[i].PackageCount" type="number" min="1" step="1" class="ops-input w-100 po-package-count mt-2" placeholder="Số gói" aria-label="Số gói" /><input asp-for="Lines[i].OrderedProcurementQuantity" type="number" min="0.001" step="0.001" class="ops-input w-100 po-loose-quantity mt-2" placeholder="Số lượng kg/L" aria-label="Số lượng mua rời" /><div class="ops-help po-mode-help">Đóng gói chỉ nhận số nguyên.</div></div>
+                    <div class="col-md-2"><label class="ops-form-label" asp-for="Lines[i].Note">Ghi chú dòng</label><input asp-for="Lines[i].Note" class="ops-input w-100" /></div>
                     <div class="col-md-1"><button class="ops-btn po-remove-line" type="button" title="Xóa dòng" aria-label="Xóa dòng"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></div>
                 </div>
             </div>
         }
     </div>
 </section>
-<div class="ops-actions justify-content-end"><button class="ops-btn ops-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Lưu bản nháp</button></div>
+<div class="ops-form-actions">
+    <a class="ops-btn" asp-action="Index">Hủy</a>
+    <button class="ops-btn ops-btn-primary" type="submit" data-submit-button><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu bản nháp</button>
+</div>
 </form></main>
 <script>
 (() => {
@@ -135,6 +183,13 @@
         container.appendChild(row);
         syncMode(row);
         refreshRemoveButtons();
+    });
+
+    document.getElementById('createPurchaseOrderForm')?.addEventListener('submit', event => {
+        const button = event.currentTarget.querySelector('[data-submit-button]');
+        if (!button || button.disabled) return;
+        button.disabled = true;
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Đang lưu bản nháp...';
     });
 })();
 </script>

@@ -1,11 +1,12 @@
 ﻿@model CafeChain.ViewModels.Admin.StoreInventories.InventoryIndexVM
 
-<div class="store-tabs">
+<nav class="store-tabs" aria-label="Chọn cửa hàng xem tồn kho">
     @if (Model.Stores != null && Model.Stores.Any())
     {
         foreach (var store in Model.Stores)
         {
             <a class="store-tab @(store.StoreId == Model.StoreId ? "active" : "")"
+               aria-current="@(store.StoreId == Model.StoreId ? "page" : null)"
                href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = store.StoreId, inventoryType = Model.ActiveTab, search = Model.Search, page = 1 })">
                 @store.StoreName
             </a>
@@ -14,7 +15,9 @@
     else
     {
         <div class="scope-empty">
-            Tài khoản hiện tại chưa được cấp phạm vi xem kho.
+            <i class="fa-solid fa-store-slash" aria-hidden="true"></i>
+            <strong>Chưa có phạm vi xem kho</strong>
+            <p>Tài khoản hiện tại chưa được cấp quyền xem tồn kho tại bất kỳ cửa hàng nào.</p>
         </div>
     }
-</div>
+</nav>

@@ -129,7 +129,10 @@
         </div>
     </section>
 
-    <section class="ops-panel">
+    <section class="ops-panel ops-action-panel">
+        <div class="ops-panel-header">
+            <div><h2 class="ops-panel-title">Thao tác tiếp theo</h2><div class="ops-secondary">Chỉ các thao tác phù hợp với trạng thái hiện tại được hiển thị.</div></div>
+        </div>
         <div class="ops-panel-body">
             <div class="ops-inline-actions">
                 @if (Model.Status == "DRAFT")
@@ -147,12 +150,18 @@
             </div>
             @if (Model.Status is "DRAFT" or "APPROVED" or "MARKED_AS_SENT")
             {
-                <form method="post" asp-action="Cancel" asp-route-id="@Model.PurchaseOrderId" class="mt-3">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                    <label class="ops-form-label" for="cancelReason">Lý do hủy đơn đặt hàng</label>
-                    <div class="d-flex gap-2"><input id="cancelReason" name="reason" class="ops-input flex-grow-1" maxlength="500" required placeholder="Nhập lý do hủy..." /><button class="ops-btn ops-btn-danger" type="submit">Hủy đơn</button></div>
-                </form>
+                <details class="ops-danger-disclosure">
+                    <summary>Hủy đơn đặt hàng</summary>
+                    <div class="ops-danger-content">
+                        <p class="ops-secondary">Chỉ hủy khi đơn không còn được tiếp tục xử lý. Lý do sẽ được lưu cùng lịch sử chứng từ.</p>
+                        <form method="post" asp-action="Cancel" asp-route-id="@Model.PurchaseOrderId">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                            <label class="ops-form-label" for="cancelReason">Lý do hủy đơn đặt hàng <span class="ops-required">*</span></label>
+                            <div class="ops-inline-actions"><input id="cancelReason" name="reason" class="ops-input flex-grow-1" maxlength="500" required placeholder="Nhập lý do hủy..." /><button class="ops-btn ops-btn-danger" type="submit">Xác nhận hủy</button></div>
+                        </form>
+                    </div>
+                </details>
             }
         </div>
     </section>

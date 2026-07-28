@@ -59,7 +59,11 @@
     color: var(--cc-surface);
     cursor: pointer;
     text-decoration: none;
+    transition: border-color .18s ease, background-color .18s ease, color .18s ease, transform .18s ease;
 }
+.search-form button:active,
+.btn-view-all:active,
+.btn-view:active { transform: translateY(1px); }
 .search-form button:hover,
 .btn-view-all:hover,
 .btn-view:hover { background: var(--cc-primary-hover); border-color: var(--cc-primary-hover); }
@@ -110,6 +114,17 @@
     color: var(--cc-text-secondary);
     text-align: center;
 }
+.scope-empty {
+    display: grid;
+    width: 100%;
+    min-height: 150px;
+    place-content: center;
+    gap: 6px;
+    border: 1px solid var(--cc-border);
+}
+.scope-empty i { color: var(--cc-accent); font-size: 1rem; }
+.scope-empty strong { color: var(--cc-text-primary); }
+.scope-empty p { max-width: 480px; margin: 0; line-height: 1.5; }
 
 .transaction-state {
     display: flex;
@@ -221,6 +236,16 @@
 }
 .page-btn:hover,
 .page-btn.active { border-color: var(--cc-primary); background: var(--cc-warning-bg); color: var(--cc-accent); }
+.page-btn:focus-visible,
+.store-tab:focus-visible,
+.inventory-kind-tab:focus-visible,
+.search-form button:focus-visible,
+.btn-view-all:focus-visible,
+.btn-view:focus-visible,
+.modal-close:focus-visible {
+    outline: 2px solid var(--cc-focus);
+    outline-offset: 2px;
+}
 
 .modal {
     display: none;
@@ -271,4 +296,10 @@
     .inventory-container { padding: 16px; }
     .inventory-table { min-width: 560px; }
     .inventory-kind-tabs { gap: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .search-form button,
+    .btn-view-all,
+    .btn-view { transition: none; }
 }
