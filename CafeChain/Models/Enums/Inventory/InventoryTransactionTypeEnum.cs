@@ -24,6 +24,9 @@ namespace CafeChain.Models.Enums.Inventory
         SALES_RETURN = 15,
 
         /// <summary>SC-02 — source warehouse confirms physical transfer return.</summary>
-        TRANSFER_RETURN_IN = 16
+        TRANSFER_RETURN_IN = 16,
+
+        /// <summary>Operational ice positive variance approved at shift close.</summary>
+        ICE_VARIANCE_OUT = 17
     }
 }

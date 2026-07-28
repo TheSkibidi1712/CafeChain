@@ -85,6 +85,14 @@ namespace CafeChain.Data.Configurations.Permissions
                     Name = "Hệ thống",
                     DisplayOrder = 999,
                     Active = true
+                },
+                new PermissionGroup
+                {
+                    PermissionGroupId = 20,
+                    Code = "OPERATIONAL_ICE",
+                    Name = "Quản lý đá vận hành",
+                    DisplayOrder = 20,
+                    Active = true
                 }
             );
         }
