@@ -36,6 +36,7 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IInventoryWriterModeService? _writerModeService;
         private readonly IStoreInventoryWriteResolver? _writeResolver;
         private readonly IInventoryCostLayerConsumptionService? _costLayerConsumption;
+        private readonly IOperationalIceReservationConsumptionService? _iceReservationConsumption;
 
         public InventoryDeductionService(
             AppDbContext context,
@@ -46,7 +47,8 @@ namespace CafeChain.Application.Services.Inventories
             IStockAlertService? stockAlertService = null,
             IInventoryWriterModeService? writerModeService = null,
             IStoreInventoryWriteResolver? writeResolver = null,
-            IInventoryCostLayerConsumptionService? costLayerConsumption = null)
+            IInventoryCostLayerConsumptionService? costLayerConsumption = null,
+            IOperationalIceReservationConsumptionService? iceReservationConsumption = null)
         {
             _context = context;
             _logger = logger;
@@ -57,6 +59,7 @@ namespace CafeChain.Application.Services.Inventories
             _writerModeService = writerModeService;
             _writeResolver = writeResolver;
             _costLayerConsumption = costLayerConsumption;
+            _iceReservationConsumption = iceReservationConsumption;
         }
 
         public async Task<ServiceResult<decimal>> CalculateRecipeCogsAsync(int recipeId)
@@ -308,6 +311,11 @@ namespace CafeChain.Application.Services.Inventories
                     .OrderBy(x => x.StoreInventoryId)
                     .ToList();
 
+                var ingredientRequirements = requirements
+                    .Where(requirement => requirement.IngredientId.HasValue)
+                    .GroupBy(requirement => requirement.IngredientId!.Value)
+                    .ToDictionary(group => group.Key, group => group.Sum(line => line.RequiredQty));
+
                 var ledgerGroups = requirements
                     .GroupBy(r => new { r.StoreInventoryId, r.SourceRecipeId })
                     .Select(g => new
@@ -397,6 +405,17 @@ namespace CafeChain.Application.Services.Inventories
                             "[InventoryDeduction] Kho âm — StoreId={StoreId}, Item={ItemName}, " +
                             "Before={Before:N2}, Deducted={Deducted:N2}, After={After:N2}",
                             storeId, line.DisplayName, beforeQty, line.RequiredQty, tracked.AvailableQty);
+                    }
+                }
+
+                if (_iceReservationConsumption != null && lockedOrder != null)
+                {
+                    var reservationResult = await _iceReservationConsumption
+                        .ConsumeForCommittedOrderAsync(lockedOrder, ingredientRequirements);
+                    if (!reservationResult.IsSuccess)
+                    {
+                        await transaction.RollbackAsync();
+                        return reservationResult;
                     }
                 }
 

@@ -45,3 +45,15 @@ public static class IceCostSnapshotStatuses
     public const string Available = "Available";
     public const string Missing = "Missing";
 }
+
+public static class OperationalIceErrorCodes
+{
+    public const string Forbidden = "OPERATIONAL_ICE_FORBIDDEN";
+    public const string StoreScopeForbidden = "OPERATIONAL_ICE_STORE_SCOPE_FORBIDDEN";
+    public const string NotFound = "OPERATIONAL_ICE_NOT_FOUND";
+    public const string InvalidRequest = "OPERATIONAL_ICE_INVALID_REQUEST";
+    public const string InvalidState = "OPERATIONAL_ICE_INVALID_STATE";
+    public const string InsufficientUsableStock = "OPERATIONAL_ICE_INSUFFICIENT_USABLE_STOCK";
+    public const string WorkShiftAlreadyLinked = "OPERATIONAL_ICE_WORKSHIFT_ALREADY_LINKED";
+    public const string ConcurrencyConflict = "OPERATIONAL_ICE_CONCURRENCY_CONFLICT";
+}
