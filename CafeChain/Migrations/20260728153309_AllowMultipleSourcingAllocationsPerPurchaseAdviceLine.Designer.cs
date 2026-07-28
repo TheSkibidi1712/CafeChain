@@ -4,6 +4,7 @@ using CafeChain.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260728153309_AllowMultipleSourcingAllocationsPerPurchaseAdviceLine")]
+    partial class AllowMultipleSourcingAllocationsPerPurchaseAdviceLine
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2126,7 +2129,6 @@ namespace CafeChain.Migrations
 
                     b.Property<decimal>("YieldPercentage")
                         .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
                         .HasDefaultValue(100m);
 
@@ -8611,6 +8613,9 @@ namespace CafeChain.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CustomerId1")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("ExpiredAt")
                         .HasColumnType("datetime2");
 
@@ -8626,6 +8631,8 @@ namespace CafeChain.Migrations
                     b.HasKey("PointTransactionId");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("CustomerId1");
 
                     b.HasIndex("OrderId");
 
@@ -9029,7 +9036,6 @@ namespace CafeChain.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("ShippingFee")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Source")
@@ -9559,7 +9565,6 @@ namespace CafeChain.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TransactionLogId"));
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
@@ -9586,7 +9591,7 @@ namespace CafeChain.Migrations
 
                     b.HasKey("TransactionLogId");
 
-                    b.ToTable("TransactionLogs", (string)null);
+                    b.ToTable("TransactionLogs");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Permissions.AccountPermissionOverride", b =>
@@ -14753,10 +14758,14 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Loyalties.PointTransaction", b =>
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
-                        .WithMany("PointTransactions")
+                        .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Customers.Customer", null)
+                        .WithMany("PointTransactions")
+                        .HasForeignKey("CustomerId1");
 
                     b.HasOne("CafeChain.Models.Orders.Order", "Order")
                         .WithMany("PointTransactions")

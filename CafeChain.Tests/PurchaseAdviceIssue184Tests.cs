@@ -15,6 +15,8 @@ using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Moq;
 using Xunit;
 
@@ -221,6 +223,86 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         Assert.False(result.IsSuccess);
         Assert.Equal(PurchaseAdviceErrorCodes.ExceedsRestockRemaining, result.ErrorCode);
         Assert.Empty(await context.PurchaseAdviceLines.ToListAsync());
+    }
+
+    [Fact]
+    public async Task PurchaseAdvice_TwoPendingPurchaseAllocations_LinkToOneLineAndPreserveAudit()
+    {
+        using var context = CreateDbContext();
+        var seed = await SeedAsync(context, 12m);
+        var restock = await context.RestockRequests
+            .SingleAsync(x => x.RestockRequestId == seed.RestockRequestId);
+        restock.SourceType = RestockRequestSourceTypes.ManualByStore;
+        restock.SourcingDecision = RestockSourcingDecisionTypes.Purchase;
+        restock.SourcingStatus = RestockSourcingStatuses.FullyAllocated;
+        restock.RequestedProcurementQuantity = 12m;
+        restock.ProcurementUnitId = seed.UnitId;
+        restock.SourcingAllocations.Add(new RestockSourcingAllocation
+        {
+            DecisionType = RestockSourcingDecisionTypes.Purchase,
+            ProcurementQuantity = 1m,
+            ProcurementUnitId = seed.UnitId,
+            Status = RestockSourcingAllocationStatuses.PendingPurchaseAdvice,
+            CreatedByStaffId = seed.WarehouseId,
+            CreatedAtUtc = DateTime.UtcNow.AddMinutes(-1)
+        });
+        restock.SourcingAllocations.Add(new RestockSourcingAllocation
+        {
+            DecisionType = RestockSourcingDecisionTypes.Purchase,
+            ProcurementQuantity = 11m,
+            ProcurementUnitId = seed.UnitId,
+            Status = RestockSourcingAllocationStatuses.PendingPurchaseAdvice,
+            CreatedByStaffId = seed.WarehouseId,
+            CreatedAtUtc = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        var request = CreateRequest(seed, 12m);
+        request.Lines[0].RequestedPurchaseProcurementQuantity = 12m;
+        request.Lines[0].RestockRowVersion = Convert.ToBase64String(restock.RowVersion);
+
+        var result = await CreateService(context).CreateAsync(request, Manager(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        var line = await context.PurchaseAdviceLines
+            .SingleAsync(x => x.RestockRequestId == seed.RestockRequestId);
+        var allocations = await context.RestockSourcingAllocations
+            .Where(x => x.RestockRequestId == seed.RestockRequestId)
+            .ToListAsync();
+        Assert.Equal(12m, line.RequestedPurchaseBaseQuantity);
+        Assert.Equal(12m, line.RequestedProcurementQuantity);
+        Assert.Equal(new[] { 1m, 11m }, allocations
+            .Select(x => x.ProcurementQuantity)
+            .OrderBy(x => x));
+        Assert.All(allocations, allocation =>
+        {
+            Assert.Equal(RestockSourcingAllocationStatuses.Active, allocation.Status);
+            Assert.Equal(line.PurchaseAdviceLineId, allocation.PurchaseAdviceLineId);
+        });
+    }
+
+    [Fact]
+    public void PurchaseAllocationModel_AllowsManyActiveAllocationsPerAdviceLine_WhileRestockReservationStaysUnique()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=CafeChainIssue242ModelOnly;Trusted_Connection=True;")
+            .Options;
+        using var context = new AppDbContext(options);
+        var model = context.GetService<IDesignTimeModel>().Model;
+
+        var allocation = model.FindEntityType(typeof(RestockSourcingAllocation))!;
+        var allocationIndex = allocation.GetIndexes()
+            .Single(x => x.GetDatabaseName() == "IX_RestockSourcingAllocations_PurchaseAdviceLineId");
+        Assert.False(allocationIndex.IsUnique);
+        Assert.Equal(
+            "[PurchaseAdviceLineId] IS NOT NULL AND [Status] = 'ACTIVE'",
+            allocationIndex.GetFilter());
+
+        var adviceLine = model.FindEntityType(typeof(PurchaseAdviceLine))!;
+        var activeRestockIndex = adviceLine.GetIndexes()
+            .Single(x => x.GetDatabaseName() == "UX_PurchaseAdviceLines_ActiveRestock");
+        Assert.True(activeRestockIndex.IsUnique);
+        Assert.Equal("[IsActiveReservation] = 1", activeRestockIndex.GetFilter());
     }
 
     [Fact]
