@@ -18,7 +18,7 @@
             <h1 class="uc-page-title mb-1">Đơn vị và quy đổi</h1>
             <p class="text-muted mb-0" style="max-width:40rem;">
                 Tách rõ <strong>quy đổi vật lý chuẩn</strong>, <strong>quy đổi đo lường theo nguyên liệu</strong>
-                và <strong>quy cách đóng gói nhà cung cấp</strong> (authority giá vốn).
+                và <strong>quy cách đóng gói nhà cung cấp</strong> (nguồn chuẩn để tính giá vốn).
             </p>
         </div>
         @if (canWrite)
@@ -46,7 +46,7 @@
     @if (tab == "physical")
     {
         <div class="uc-card mb-3">
-            <div class="uc-card-header">Quy đổi vật lý chuẩn (read-only)</div>
+            <div class="uc-card-header">Quy đổi vật lý chuẩn (chỉ đọc)</div>
             <div class="p-3">
                 <p class="small text-muted">Nguồn: hệ thống (<code>PhysicalUnitConversionRegistry</code>). Không thêm/sửa/xóa trong Admin.</p>
                 <table class="table mb-0" aria-label="Quy đổi vật lý chuẩn">
@@ -79,7 +79,7 @@
     @if (tab == "measuring" || string.IsNullOrEmpty(tab))
     {
         <div class="uc-phys-strip" aria-label="Tham chiếu vật lý">
-            <strong class="small text-uppercase text-muted">Quy đổi vật lý chuẩn (read-only):</strong>
+            <strong class="small text-uppercase text-muted">Quy đổi vật lý chuẩn (chỉ đọc):</strong>
             @foreach (var p in data.PhysicalStandards)
             {
                 <span class="uc-phys-item ms-2">@p.DisplayText</span>
@@ -189,7 +189,7 @@
                             </div>
                         }
 
-                        <div class="uc-section-label">Quy cách đóng gói nhà cung cấp (authority giá vốn)</div>
+                        <div class="uc-section-label">Quy cách đóng gói nhà cung cấp (nguồn chuẩn để tính giá vốn)</div>
                         @if (g.PrimaryPackage != null)
                         {
                             <div class="small">
