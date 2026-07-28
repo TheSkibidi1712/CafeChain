@@ -17,6 +17,16 @@
         return new Intl.NumberFormat('vi-VN').format(Math.round(n || 0));
     }
 
+    function formatUnitLabel(value) {
+        var code = String(value || '').trim().toLowerCase();
+        if (code === 'g' || code === 'gram') return 'g';
+        if (code === 'kg' || code === 'kilogram') return 'kg';
+        if (code === 'ml' || code === 'milliliter') return 'ml';
+        if (code === 'l' || code === 'liter') return 'L';
+        if (code === 'pcs' || code === 'piece') return 'cái';
+        return value || 'ĐVT';
+    }
+
     function buildItemDataMap() {
         var map = {};
         $('#itemTemplateSelect option').each(function () {
@@ -28,10 +38,10 @@
                 packageprice: parseFloat($(this).attr('data-packageprice')) || 0,
                 packageqty: parseFloat($(this).attr('data-packageqty')) || 0,
                 packageunit: $(this).attr('data-packageunit') || '',
-                baseunitcode: $(this).attr('data-baseunitcode') || '',
+                baseunitcode: formatUnitLabel($(this).attr('data-baseunitcode') || ''),
                 costmessage: $(this).attr('data-costmessage') || '',
                 unitid: parseInt($(this).attr('data-unitid'), 10) || 0,
-                unitname: $(this).attr('data-unitname') || '',
+                unitname: formatUnitLabel($(this).attr('data-unitname') || ''),
                 kind: $(this).attr('data-kind') || '',
                 label: $(this).attr('data-label') || $(this).text(),
                 recipeid: $(this).attr('data-recipeid') || '',
@@ -93,7 +103,30 @@
         var itemDataMap = buildItemDataMap();
         var previewTimer = null;
         var createBlockedByActiveRecipe = false;
+        var saveInFlight = false;
         var tableBody = $('#bomTableBody');
+
+        function showFormError(message, errors) {
+            var items = Array.isArray(errors) ? errors.filter(Boolean) : [];
+            var html = '<div class="fw-semibold">' + $('<div>').text(message || 'Dữ liệu công thức chưa hợp lệ.').html() + '</div>';
+            if (items.length) {
+                html += '<ul class="mb-0 mt-2">';
+                items.forEach(function (item) {
+                    html += '<li>' + $('<div>').text(item).html() + '</li>';
+                });
+                html += '</ul>';
+            }
+            $('#formErrorSummary').html(html).show().focus();
+            document.getElementById('formErrorSummary')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function setSaving(isSaving) {
+            saveInFlight = isSaving;
+            var btn = $('#btnSaveRecipe');
+            btn.prop('disabled', isSaving || createBlockedByActiveRecipe);
+            btn.text(isSaving ? 'Đang lưu...' : 'Lưu công thức');
+            btn.attr('aria-busy', isSaving ? 'true' : 'false');
+        }
 
         function clearBtpFields() {
             $('#preparedItemSelect').val(null).trigger('change');
@@ -567,8 +600,10 @@
         addRow();
 
         $('#btnSaveRecipe').on('click', function () {
+            if (saveInFlight) return;
+
             if (createBlockedByActiveRecipe) {
-                $('#formErrorSummary').text('BTP đã có công thức Active. Hãy tạo phiên bản mới từ màn Edit.').show().focus();
+                showFormError('BTP đã có công thức Active. Hãy tạo phiên bản mới từ màn Edit.');
                 return;
             }
             var recipeType = $('input[name="RecipeType"]:checked').val();
@@ -603,15 +638,16 @@
             });
 
             if (!payload.Details.length) {
-                $('#formErrorSummary').text('Vui lòng thêm ít nhất một thành phần vào công thức.').show().focus();
+                showFormError('Vui lòng thêm ít nhất một thành phần vào công thức.');
                 return;
             }
             if (hasDup) {
-                $('#formErrorSummary').text('Có thành phần trùng ItemCode. Hãy gộp dòng hoặc chọn khác trước khi lưu. Server vẫn là authority.').show().focus();
+                showFormError('Có thành phần trùng ItemCode. Hãy gộp dòng hoặc chọn khác trước khi lưu.');
                 return;
             }
 
             $('#formErrorSummary').hide();
+            setSaving(true);
             if (window.Swal) {
                 Swal.fire({ title: 'Đang lưu…', allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } });
             }
@@ -620,6 +656,7 @@
                 url: cfg.createUrl,
                 type: 'POST',
                 headers: antiforgeryHeaders(),
+                contentType: 'application/json; charset=utf-8',
                 data: JSON.stringify(payload),
                 success: function (res) {
                     if (res.success) {
@@ -631,14 +668,22 @@
                         }
                     } else {
                         var msg = res.message || 'Lỗi lưu công thức';
-                        if (res.errors && res.errors.length) msg += ' — ' + res.errors.join('; ');
-                        $('#formErrorSummary').text(msg).show().focus();
+                        showFormError(msg, res.errors);
                         if (window.Swal) Swal.close();
                     }
                 },
-                error: function () {
-                    $('#formErrorSummary').text('Lỗi kết nối hoặc antiforgery.').show().focus();
+                error: function (xhr) {
+                    var res = xhr.responseJSON || {};
+                    var fallback = xhr.status === 409
+                        ? 'Công thức đang bị trùng với một phiên bản đang hoạt động.'
+                        : (xhr.status >= 500
+                            ? 'Không thể lưu công thức lúc này. Vui lòng thử lại hoặc liên hệ quản trị viên.'
+                            : 'Dữ liệu công thức chưa hợp lệ.');
+                    showFormError(res.message || fallback, res.errors);
                     if (window.Swal) Swal.close();
+                },
+                complete: function () {
+                    setSaving(false);
                 }
             });
         });
