@@ -51,6 +51,41 @@ public sealed class DecideSupplementalIceRequest
     public string? RejectionReason { get; init; }
 }
 
+public sealed class CloseIceAllocationRequest
+{
+    public int IceAllocationId { get; init; }
+    public decimal ReturnedQuantity { get; init; }
+    public string? ReturnCondition { get; init; }
+    public int? ReturnReceivedByStaffId { get; init; }
+    public string? CloseReason { get; init; }
+}
+
+public sealed class ApproveIceVarianceRequest
+{
+    public int IceAllocationId { get; init; }
+    public string Reason { get; init; } = string.Empty;
+}
+
+public sealed class ReconcileIceVarianceRequest
+{
+    public int IceAllocationId { get; init; }
+    public string Reason { get; init; } = string.Empty;
+}
+
+public sealed class ConfirmIceCarryOverRequest
+{
+    public int FromIceAllocationId { get; init; }
+    public int ToIceAllocationId { get; init; }
+    public decimal Quantity { get; init; }
+    public int ReceivedByStaffId { get; init; }
+}
+
+public sealed class CancelIceAllocationRequest
+{
+    public int IceAllocationId { get; init; }
+    public string Reason { get; init; } = string.Empty;
+}
+
 public sealed class OperationalShiftSummaryDto
 {
     public int OperationalShiftId { get; init; }
@@ -82,4 +117,27 @@ public sealed class IceSupplementalIssueDto
     public decimal Quantity { get; init; }
     public string Status { get; init; } = string.Empty;
     public bool ReservationApplied { get; init; }
+}
+
+public sealed class IceCloseResultDto
+{
+    public int IceAllocationId { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public decimal OpeningCarryQuantity { get; init; }
+    public decimal TotalIssuedQuantity { get; init; }
+    public decimal ReturnedQuantity { get; init; }
+    public decimal ClosingCarryQuantity { get; init; }
+    public decimal ActualUsageQuantity { get; init; }
+    public decimal TheoreticalUsageQuantity { get; init; }
+    public decimal VarianceQuantity { get; init; }
+    public bool RequiresApproval { get; init; }
+}
+
+public sealed class IceCarryOverDto
+{
+    public Guid PublicId { get; init; }
+    public int FromIceAllocationId { get; init; }
+    public int ToIceAllocationId { get; init; }
+    public decimal Quantity { get; init; }
+    public string Status { get; init; } = string.Empty;
 }

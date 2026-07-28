@@ -6,6 +6,8 @@ using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Inventories.Ice;
+using CafeChain.Models.Inventories.Transactions;
+using CafeChain.Models.Enums.Inventory;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Application.Services.Inventories;
@@ -29,13 +31,25 @@ public sealed class OperationalIceService : IOperationalIceService
         RoleConstants.SystemAdmin
     ];
 
+    private static readonly string[] HighVarianceApproveRoles =
+    [
+        RoleConstants.BusinessOwner,
+        RoleConstants.AccountantWarehouse,
+        RoleConstants.SystemAdmin
+    ];
+
     private readonly AppDbContext _context;
     private readonly IScopeAuthorizationService _scopeAuthorization;
+    private readonly IInventoryCostLayerConsumptionService? _costLayerConsumption;
 
-    public OperationalIceService(AppDbContext context, IScopeAuthorizationService scopeAuthorization)
+    public OperationalIceService(
+        AppDbContext context,
+        IScopeAuthorizationService scopeAuthorization,
+        IInventoryCostLayerConsumptionService? costLayerConsumption = null)
     {
         _context = context;
         _scopeAuthorization = scopeAuthorization;
+        _costLayerConsumption = costLayerConsumption;
     }
 
     public async Task<ServiceResult> SavePolicyAsync(
@@ -343,6 +357,418 @@ public sealed class OperationalIceService : IOperationalIceService
             : Fail<IceSupplementalIssueDto>(saved);
     }
 
+    public async Task<ServiceResult<IceCarryOverDto>> ConfirmCarryOverAsync(
+        ConfirmIceCarryOverRequest request,
+        AdminActorContext actor,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.Quantity <= 0 || request.FromIceAllocationId == request.ToIceAllocationId
+            || request.ReceivedByStaffId <= 0 || request.ReceivedByStaffId == actor.StaffId)
+        {
+            return Invalid<IceCarryOverDto>("Dữ liệu bàn giao đá không hợp lệ; người giao và người nhận phải khác nhau.");
+        }
+
+        var allocations = await _context.IceAllocations
+            .Include(x => x.OperationalShift)
+            .Include(x => x.IcePolicy)
+            .Include(x => x.StoreInventory)
+            .Where(x => x.IceAllocationId == request.FromIceAllocationId || x.IceAllocationId == request.ToIceAllocationId)
+            .ToListAsync(cancellationToken);
+        var source = allocations.SingleOrDefault(x => x.IceAllocationId == request.FromIceAllocationId);
+        var target = allocations.SingleOrDefault(x => x.IceAllocationId == request.ToIceAllocationId);
+        if (source == null || target == null)
+            return NotFound<IceCarryOverDto>("Không tìm thấy phân bổ đá giao hoặc nhận.");
+
+        var authorization = await AuthorizeAsync(actor, source.OperationalShift.StoreId, ManageRoles, cancellationToken);
+        if (!authorization.IsSuccess)
+            return Fail<IceCarryOverDto>(authorization);
+        if (source.Status != OperationalIceStatuses.Open || target.Status != OperationalIceStatuses.Open)
+            return InvalidState<IceCarryOverDto>("Chỉ phân bổ đang mở mới được bàn giao đá.");
+        if (!source.IcePolicy.AllowSameDayCarryOver || !target.IcePolicy.AllowSameDayCarryOver)
+            return InvalidState<IceCarryOverDto>("Chính sách cửa hàng không cho phép bàn giao đá giữa ca.");
+        if (source.OperationalShift.StoreId != target.OperationalShift.StoreId
+            || source.OperationalShift.BusinessDate.Date != target.OperationalShift.BusinessDate.Date
+            || source.IngredientId != target.IngredientId
+            || source.StoreInventoryId != target.StoreInventoryId)
+        {
+            return Invalid<IceCarryOverDto>("Chỉ được bàn giao cùng nguyên liệu, cùng cửa hàng và cùng ngày kinh doanh.");
+        }
+        if (source.OperationalShift.EndAtUtc > target.OperationalShift.StartAtUtc)
+            return Invalid<IceCarryOverDto>("Ca nhận phải bắt đầu sau ca giao.");
+        if (source.ReservedOutstandingQuantity < request.Quantity)
+            return Invalid<IceCarryOverDto>("Lượng đá còn giữ chỗ của ca giao không đủ để bàn giao.");
+        if (await _context.IceCarryOvers.AnyAsync(x =>
+                x.FromIceAllocationId == source.IceAllocationId
+                && x.ToIceAllocationId == target.IceAllocationId,
+                cancellationToken))
+        {
+            return InvalidState<IceCarryOverDto>("Hai ca này đã có một lần bàn giao đá.");
+        }
+
+        var receiverValid = await _context.Staffs.AsNoTracking().AnyAsync(x =>
+            x.StaffId == request.ReceivedByStaffId && x.StoreId == source.OperationalShift.StoreId && x.Active,
+            cancellationToken);
+        if (!receiverValid)
+            return Invalid<IceCarryOverDto>("Người nhận không hoạt động tại cửa hàng này.");
+
+        var now = DateTime.UtcNow;
+        var carry = new IceCarryOver
+        {
+            PublicId = Guid.NewGuid(),
+            FromOperationalShiftId = source.OperationalShiftId,
+            ToOperationalShiftId = target.OperationalShiftId,
+            FromIceAllocationId = source.IceAllocationId,
+            ToIceAllocationId = target.IceAllocationId,
+            Quantity = request.Quantity,
+            Status = IceCarryOverStatuses.Confirmed,
+            HandedOverByStaffId = actor.StaffId,
+            ReceivedByStaffId = request.ReceivedByStaffId,
+            CreatedAtUtc = now,
+            ConfirmedAtUtc = now
+        };
+        _context.IceCarryOvers.Add(carry);
+        source.ClosingCarryQuantity += request.Quantity;
+        source.ReservedOutstandingQuantity -= request.Quantity;
+        target.OpeningCarryQuantity += request.Quantity;
+        target.ReservedOutstandingQuantity += request.Quantity;
+        source.Revision += 1;
+        target.Revision += 1;
+
+        var saved = await SaveAsync("Đã xác nhận bàn giao đá giữa hai ca.", cancellationToken);
+        return saved.IsSuccess
+            ? ServiceResult<IceCarryOverDto>.Success(Map(carry), saved.Message)
+            : Fail<IceCarryOverDto>(saved);
+    }
+
+    public async Task<ServiceResult<IceCloseResultDto>> CloseAllocationAsync(
+        CloseIceAllocationRequest request,
+        AdminActorContext actor,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.ReturnedQuantity < 0)
+            return Invalid<IceCloseResultDto>("Lượng đá trả kho không được âm.");
+
+        var allocation = await LoadAllocationForCloseAsync(request.IceAllocationId, cancellationToken);
+        if (allocation == null)
+            return NotFound<IceCloseResultDto>("Không tìm thấy phân bổ đá.");
+        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ManageRoles, cancellationToken);
+        if (!authorization.IsSuccess)
+            return Fail<IceCloseResultDto>(authorization);
+        if (allocation.Status != OperationalIceStatuses.Open)
+            return InvalidState<IceCloseResultDto>("Chỉ phân bổ đang mở mới được gửi chốt.");
+        if (allocation.SupplementalIssues.Any(x => x.Status == IceSupplementalIssueStatuses.Pending))
+            return InvalidState<IceCloseResultDto>("Còn yêu cầu cấp bổ sung chưa được xử lý.");
+        if (request.ReturnedQuantity > allocation.ReservedOutstandingQuantity)
+            return Invalid<IceCloseResultDto>("Lượng trả vượt quá lượng đá còn giữ chỗ của ca.");
+
+        if (request.ReturnedQuantity > 0)
+        {
+            if (!string.Equals(request.ReturnCondition, IceReturnConditions.SealedIntact, StringComparison.Ordinal)
+                || !request.ReturnReceivedByStaffId.HasValue
+                || request.ReturnReceivedByStaffId.Value <= 0
+                || request.ReturnReceivedByStaffId.Value == actor.StaffId)
+            {
+                return Invalid<IceCloseResultDto>("Chỉ đá còn nguyên bao mới được trả và phải có hai nhân sự giao nhận khác nhau.");
+            }
+            var receiverValid = await _context.Staffs.AsNoTracking().AnyAsync(x =>
+                x.StaffId == request.ReturnReceivedByStaffId.Value
+                && x.StoreId == allocation.OperationalShift.StoreId
+                && x.Active,
+                cancellationToken);
+            if (!receiverValid)
+                return Invalid<IceCloseResultDto>("Người nhận trả kho không hoạt động tại cửa hàng này.");
+        }
+
+        var theoretical = await CalculateTheoreticalUsageAsync(allocation, cancellationToken);
+        var totalIssued = allocation.InitialIssuedQuantity + allocation.SupplementalIssuedQuantity;
+        var actual = allocation.OpeningCarryQuantity + totalIssued
+                     - allocation.ClosingCarryQuantity - request.ReturnedQuantity;
+        if (actual < 0)
+            return Invalid<IceCloseResultDto>("Tồn bàn giao và lượng trả vượt tổng lượng đá ca đã nhận.");
+        var variance = actual - theoretical;
+        if (variance != 0 && string.IsNullOrWhiteSpace(request.CloseReason))
+            return Invalid<IceCloseResultDto>("Phải nhập lý do khi lượng dùng thực tế lệch lượng dùng theo POS.");
+
+        var now = DateTime.UtcNow;
+        allocation.ReturnedQuantity = request.ReturnedQuantity;
+        allocation.ReturnCondition = request.ReturnedQuantity > 0 ? IceReturnConditions.SealedIntact : null;
+        allocation.ReturnedByStaffId = request.ReturnedQuantity > 0 ? actor.StaffId : null;
+        allocation.ReturnReceivedByStaffId = request.ReturnedQuantity > 0 ? request.ReturnReceivedByStaffId : null;
+        allocation.ReturnedAtUtc = request.ReturnedQuantity > 0 ? now : null;
+        allocation.TheoreticalUsageQuantity = theoretical;
+        allocation.ActualUsageQuantity = actual;
+        allocation.VarianceQuantity = variance;
+        allocation.CloseReason = string.IsNullOrWhiteSpace(request.CloseReason) ? null : request.CloseReason.Trim();
+        allocation.Revision += 1;
+
+        if (variance > 0)
+        {
+            allocation.Status = OperationalIceStatuses.PendingApproval;
+            allocation.OperationalShift.Status = OperationalIceStatuses.PendingApproval;
+        }
+        else if (variance < 0)
+        {
+            if (!ReleaseOutstandingReservation(allocation))
+                return InvalidState<IceCloseResultDto>("Dữ liệu giữ chỗ tồn kho không còn nhất quán. Vui lòng đối soát trước khi chốt.");
+            allocation.Status = OperationalIceStatuses.ReconciliationRequired;
+            allocation.OperationalShift.Status = OperationalIceStatuses.ReconciliationRequired;
+        }
+        else
+        {
+            if (!ReleaseOutstandingReservation(allocation))
+                return InvalidState<IceCloseResultDto>("Dữ liệu giữ chỗ tồn kho không còn nhất quán. Vui lòng tải lại.");
+            CloseAllocation(allocation, actor.StaffId, now);
+        }
+
+        var saved = await SaveAsync(
+            variance > 0 ? "Chênh lệch dương đang chờ quản lý duyệt."
+            : variance < 0 ? "Ca cần đối soát; hệ thống không tự tăng tồn kho."
+            : "Đã chốt phân bổ đá, không phát sinh chênh lệch.",
+            cancellationToken);
+        return saved.IsSuccess
+            ? ServiceResult<IceCloseResultDto>.Success(MapClose(allocation), saved.Message)
+            : Fail<IceCloseResultDto>(saved);
+    }
+
+    public async Task<ServiceResult<IceCloseResultDto>> ApproveVarianceAsync(
+        ApproveIceVarianceRequest request,
+        AdminActorContext actor,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return Invalid<IceCloseResultDto>("Lý do duyệt chênh lệch là bắt buộc.");
+        var allocation = await LoadAllocationForCloseAsync(request.IceAllocationId, cancellationToken);
+        if (allocation == null)
+            return NotFound<IceCloseResultDto>("Không tìm thấy phân bổ đá.");
+
+        var existingPosting = await _context.IceInventoryPostings.AsNoTracking()
+            .AnyAsync(x => x.IceAllocationId == allocation.IceAllocationId
+                           && x.PostingType == IcePostingTypes.VarianceOut,
+                cancellationToken);
+        if (allocation.Status == OperationalIceStatuses.Closed && existingPosting)
+            return ServiceResult<IceCloseResultDto>.Success(MapClose(allocation), "Chênh lệch này đã được ghi nhận trước đó.");
+
+        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ApproveRoles, cancellationToken);
+        if (!authorization.IsSuccess)
+            return Fail<IceCloseResultDto>(authorization);
+        if (allocation.Status != OperationalIceStatuses.PendingApproval || allocation.VarianceQuantity is not > 0)
+            return InvalidState<IceCloseResultDto>("Phân bổ không có chênh lệch dương đang chờ duyệt.");
+
+        var variance = allocation.VarianceQuantity.Value;
+        var percent = allocation.TheoreticalUsageQuantity > 0
+            ? variance / allocation.TheoreticalUsageQuantity * 100m
+            : 100m;
+        var overLimit = (allocation.IcePolicy.VarianceApprovalQuantityThreshold > 0
+                         && variance > allocation.IcePolicy.VarianceApprovalQuantityThreshold)
+                        || (allocation.IcePolicy.VarianceApprovalPercentThreshold > 0
+                            && percent > allocation.IcePolicy.VarianceApprovalPercentThreshold);
+        if (overLimit && !actor.RoleNames.Any(role => HighVarianceApproveRoles.Contains(role, StringComparer.OrdinalIgnoreCase)))
+        {
+            return ServiceResult<IceCloseResultDto>.Failure(
+                "Chênh lệch vượt hạn mức của quản lý chi nhánh và cần Kế toán kho hoặc Chủ doanh nghiệp duyệt.",
+                errorCode: OperationalIceErrorCodes.Forbidden);
+        }
+        if (allocation.StoreInventory.AvailableQty < variance)
+            return Insufficient<IceCloseResultDto>(allocation.StoreInventory.AvailableQty - allocation.StoreInventory.ReservedQty);
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            CostLayerConsumptionPlan? costPlan = null;
+            if (_costLayerConsumption != null)
+            {
+                var costResult = await _costLayerConsumption.PlanConsumeAsync(
+                    allocation.OperationalShift.StoreId,
+                    allocation.IngredientId,
+                    null,
+                    variance,
+                    requireFullCoverage: false,
+                    cancellationToken);
+                if (!costResult.IsSuccess)
+                    return ServiceResult<IceCloseResultDto>.Failure(costResult.Message, costResult.Errors, costResult.ErrorCode);
+                costPlan = costResult.Data;
+                _costLayerConsumption.ApplyPlan(costPlan);
+            }
+
+            var now = DateTime.UtcNow;
+            var before = allocation.StoreInventory.AvailableQty;
+            allocation.StoreInventory.AvailableQty -= variance;
+            allocation.StoreInventory.LastUpdated = now;
+            if (!ReleaseOutstandingReservation(allocation))
+                return InvalidState<IceCloseResultDto>("Dữ liệu giữ chỗ tồn kho không còn nhất quán. Vui lòng tải lại.");
+
+            var hasCompleteCost = costPlan?.IsFullyCovered == true;
+            var movement = new InventoryTransaction
+            {
+                StoreInventoryId = allocation.StoreInventoryId,
+                Type = InventoryTransactionTypeEnum.ICE_VARIANCE_OUT,
+                StockStatus = ResolveStockStatus(allocation.StoreInventory),
+                Quantity = -variance,
+                BeforeQty = before,
+                AfterQty = allocation.StoreInventory.AvailableQty,
+                UnitCost = hasCompleteCost ? costPlan!.WeightedUnitCost : null,
+                TotalCost = hasCompleteCost ? costPlan!.TotalCost : null,
+                CreatedAt = now
+            };
+            _context.InventoryTransactions.Add(movement);
+            _context.IceInventoryPostings.Add(new IceInventoryPosting
+            {
+                IceAllocationId = allocation.IceAllocationId,
+                Revision = allocation.Revision,
+                PostingType = IcePostingTypes.VarianceOut,
+                IdempotencyKey = $"IceVariancePosting:{allocation.IceAllocationId}:{allocation.Revision}",
+                InventoryTransaction = movement,
+                Quantity = variance,
+                UnitCost = movement.UnitCost,
+                TotalCost = movement.TotalCost,
+                ApprovedByStaffId = actor.StaffId,
+                Reason = request.Reason.Trim(),
+                CreatedAtUtc = now
+            });
+            allocation.UnitCostSnapshot = movement.UnitCost;
+            allocation.CostSnapshotStatus = hasCompleteCost ? IceCostSnapshotStatuses.Available : IceCostSnapshotStatuses.Missing;
+            CloseAllocation(allocation, actor.StaffId, now);
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return ServiceResult<IceCloseResultDto>.Success(MapClose(allocation), "Đã duyệt và ghi giảm đúng một lần phần đá chênh lệch.");
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return Conflict<IceCloseResultDto>();
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return InvalidState<IceCloseResultDto>("Chênh lệch đã được xử lý hoặc dữ liệu vừa thay đổi. Vui lòng tải lại.");
+        }
+    }
+
+    public async Task<ServiceResult<IceCloseResultDto>> ReconcileVarianceAsync(
+        ReconcileIceVarianceRequest request,
+        AdminActorContext actor,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return Invalid<IceCloseResultDto>("Lý do đối soát là bắt buộc.");
+        var allocation = await LoadAllocationForCloseAsync(request.IceAllocationId, cancellationToken);
+        if (allocation == null)
+            return NotFound<IceCloseResultDto>("Không tìm thấy phân bổ đá.");
+        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ApproveRoles, cancellationToken);
+        if (!authorization.IsSuccess)
+            return Fail<IceCloseResultDto>(authorization);
+        if (allocation.Status != OperationalIceStatuses.ReconciliationRequired || allocation.VarianceQuantity is not < 0)
+            return InvalidState<IceCloseResultDto>("Phân bổ không có chênh lệch âm cần đối soát.");
+
+        allocation.ReconciliationReason = request.Reason.Trim();
+        CloseAllocation(allocation, actor.StaffId, DateTime.UtcNow);
+        var saved = await SaveAsync("Đã hoàn tất đối soát; không phát sinh bút toán tăng tồn tự động.", cancellationToken);
+        return saved.IsSuccess
+            ? ServiceResult<IceCloseResultDto>.Success(MapClose(allocation), saved.Message)
+            : Fail<IceCloseResultDto>(saved);
+    }
+
+    public async Task<ServiceResult> CancelAllocationAsync(
+        CancelIceAllocationRequest request,
+        AdminActorContext actor,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return Invalid("Lý do hủy phân bổ là bắt buộc.");
+        var allocation = await LoadAllocationForCloseAsync(request.IceAllocationId, cancellationToken);
+        if (allocation == null)
+            return NotFound("Không tìm thấy phân bổ đá.");
+        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ApproveRoles, cancellationToken);
+        if (!authorization.IsSuccess)
+            return authorization;
+        if (allocation.Status is OperationalIceStatuses.Closed or OperationalIceStatuses.Cancelled)
+            return InvalidState("Phân bổ đã kết thúc.");
+        if (allocation.TheoreticalUsageQuantity > 0 || allocation.ActualUsageQuantity.HasValue
+            || allocation.OutgoingCarryOvers.Any(x => x.Status == IceCarryOverStatuses.Confirmed)
+            || allocation.IncomingCarryOvers.Any(x => x.Status == IceCarryOverStatuses.Confirmed))
+        {
+            return InvalidState("Không thể hủy phân bổ đã phát sinh tiêu hao hoặc bàn giao; hãy thực hiện chốt và đối soát.");
+        }
+        if (!ReleaseOutstandingReservation(allocation))
+            return InvalidState("Dữ liệu giữ chỗ tồn kho không còn nhất quán. Vui lòng tải lại.");
+
+        var now = DateTime.UtcNow;
+        foreach (var issue in allocation.SupplementalIssues.Where(x => x.Status == IceSupplementalIssueStatuses.Pending))
+            issue.Status = IceSupplementalIssueStatuses.Cancelled;
+        allocation.Status = OperationalIceStatuses.Cancelled;
+        allocation.CloseReason = request.Reason.Trim();
+        allocation.ClosedByStaffId = actor.StaffId;
+        allocation.ClosedAtUtc = now;
+        allocation.OperationalShift.Status = OperationalIceStatuses.Cancelled;
+        allocation.OperationalShift.ClosedByStaffId = actor.StaffId;
+        allocation.OperationalShift.ClosedAtUtc = now;
+        allocation.Revision += 1;
+        return await SaveAsync("Đã hủy phân bổ và giải phóng toàn bộ lượng giữ chỗ.", cancellationToken);
+    }
+
+    private async Task<IceAllocation?> LoadAllocationForCloseAsync(int allocationId, CancellationToken cancellationToken) =>
+        await _context.IceAllocations
+            .Include(x => x.OperationalShift)
+            .Include(x => x.IcePolicy)
+            .Include(x => x.StoreInventory)
+            .Include(x => x.SupplementalIssues)
+            .Include(x => x.OutgoingCarryOvers)
+            .Include(x => x.IncomingCarryOvers)
+            .SingleOrDefaultAsync(x => x.IceAllocationId == allocationId, cancellationToken);
+
+    private async Task<decimal> CalculateTheoreticalUsageAsync(IceAllocation allocation, CancellationToken cancellationToken)
+    {
+        var movements = await (
+            from movement in _context.InventoryTransactions.AsNoTracking()
+            join order in _context.Orders.AsNoTracking()
+                on movement.ReferenceOrderId equals (int?)order.OrderId
+            join link in _context.OperationalShiftWorkShifts.AsNoTracking()
+                on order.WorkShiftId equals (int?)link.WorkShiftId
+            where link.OperationalShiftId == allocation.OperationalShiftId
+                  && movement.StoreInventoryId == allocation.StoreInventoryId
+                  && (movement.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION
+                      || movement.Type == InventoryTransactionTypeEnum.SALES_RETURN)
+            select new { movement.Type, movement.Quantity })
+            .ToListAsync(cancellationToken);
+
+        var total = movements.Sum(x => -x.Quantity);
+        return Math.Max(0m, total);
+    }
+
+    private static bool ReleaseOutstandingReservation(IceAllocation allocation)
+    {
+        var release = allocation.ReservedOutstandingQuantity;
+        if (release <= 0)
+            return true;
+        if (allocation.StoreInventory.ReservedQty < release)
+            return false;
+        allocation.StoreInventory.ReservedQty -= release;
+        allocation.StoreInventory.LastUpdated = DateTime.UtcNow;
+        allocation.ReservedOutstandingQuantity = 0;
+        return true;
+    }
+
+    private static void CloseAllocation(IceAllocation allocation, int staffId, DateTime now)
+    {
+        allocation.Status = OperationalIceStatuses.Closed;
+        allocation.ClosedByStaffId = staffId;
+        allocation.ClosedAtUtc = now;
+        allocation.OperationalShift.Status = OperationalIceStatuses.Closed;
+        allocation.OperationalShift.ClosedByStaffId = staffId;
+        allocation.OperationalShift.ClosedAtUtc = now;
+        allocation.Revision += 1;
+    }
+
+    private static InventoryStockStatus ResolveStockStatus(CafeChain.Models.Stores.StoreInventory inventory)
+    {
+        if (inventory.AvailableQty < 0)
+            return InventoryStockStatus.NEGATIVE_CONFIRMED;
+        if (inventory.MinStockLevel.HasValue && inventory.AvailableQty <= inventory.MinStockLevel.Value)
+            return InventoryStockStatus.LOW_STOCK;
+        return InventoryStockStatus.NORMAL;
+    }
+
     private async Task<ServiceResult> ValidateWorkShiftsAsync(
         OperationalShift operationalShift,
         IReadOnlyList<int> workShiftIds,
@@ -428,6 +854,29 @@ public sealed class OperationalIceService : IOperationalIceService
         Quantity = issue.Quantity,
         Status = issue.Status,
         ReservationApplied = issue.ReservationApplied
+    };
+
+    private static IceCarryOverDto Map(IceCarryOver carry) => new()
+    {
+        PublicId = carry.PublicId,
+        FromIceAllocationId = carry.FromIceAllocationId,
+        ToIceAllocationId = carry.ToIceAllocationId,
+        Quantity = carry.Quantity,
+        Status = carry.Status
+    };
+
+    private static IceCloseResultDto MapClose(IceAllocation allocation) => new()
+    {
+        IceAllocationId = allocation.IceAllocationId,
+        Status = allocation.Status,
+        OpeningCarryQuantity = allocation.OpeningCarryQuantity,
+        TotalIssuedQuantity = allocation.InitialIssuedQuantity + allocation.SupplementalIssuedQuantity,
+        ReturnedQuantity = allocation.ReturnedQuantity,
+        ClosingCarryQuantity = allocation.ClosingCarryQuantity,
+        ActualUsageQuantity = allocation.ActualUsageQuantity ?? 0,
+        TheoreticalUsageQuantity = allocation.TheoreticalUsageQuantity,
+        VarianceQuantity = allocation.VarianceQuantity ?? 0,
+        RequiresApproval = allocation.Status == OperationalIceStatuses.PendingApproval
     };
 
     private static ServiceResult Invalid(string message) => ServiceResult.Failure(message, errorCode: OperationalIceErrorCodes.InvalidRequest);

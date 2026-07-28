@@ -40,6 +40,11 @@ public static class IcePostingTypes
     public const string VarianceOut = "VarianceOut";
 }
 
+public static class IceReturnConditions
+{
+    public const string SealedIntact = "SEALED_INTACT";
+}
+
 public static class IceCostSnapshotStatuses
 {
     public const string Available = "Available";
