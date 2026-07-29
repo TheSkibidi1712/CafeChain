@@ -557,6 +557,41 @@
     gap: 10px;
 }
 
+.ice-mode-switch,
+.ice-workshift-options {
+    border: 1px solid var(--ice-border);
+    padding: 12px;
+}
+
+.ice-mode-switch {
+    display: flex;
+    gap: 20px;
+}
+
+.ice-mode-switch legend,
+.ice-workshift-options legend {
+    padding: 0 6px;
+    font-weight: 700;
+}
+
+.ice-mode-switch label,
+.ice-workshift-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ice-link-workshifts {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.ice-workshift-options {
+    display: grid;
+    gap: 10px;
+}
+
 .ice-inline-form input {
     width: 92px;
     min-height: 34px;

@@ -246,6 +246,44 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="StoreId" value="@Model.StoreId" />
                 <input type="hidden" name="BusinessDate" value="@Model.BusinessDate.ToString("yyyy-MM-dd")" />
+                <input id="creationSource" type="hidden" name="CreationSource" value="@(Model.ScheduleOptions.Count > 0 ? OperationalIceCreationSources.StaffSchedule : OperationalIceCreationSources.Manual)" />
+                <input id="sourceScheduleShiftId" type="hidden" name="SourceScheduleShiftId" />
+                <fieldset class="ice-mode-switch ice-span-2">
+                    <legend>Cách tạo ca</legend>
+                    <label>
+                        <input type="radio" name="createMode" value="schedule" checked="@(Model.ScheduleOptions.Count > 0)" />
+                        Tạo từ lịch làm việc
+                    </label>
+                    <label>
+                        <input type="radio" name="createMode" value="manual" checked="@(Model.ScheduleOptions.Count == 0)" />
+                        Tạo thủ công
+                    </label>
+                </fieldset>
+                <div id="scheduleSourceField" class="ice-field ice-span-2" hidden="@(Model.ScheduleOptions.Count == 0)">
+                    <label for="scheduleSource">Ca theo lịch</label>
+                    @if (Model.ScheduleOptions.Count > 0)
+                    {
+                        <select id="scheduleSource">
+                            @foreach (var option in Model.ScheduleOptions)
+                            {
+                                <option value="@option.ScheduleShiftId"
+                                        data-name="@option.Name"
+                                        data-start="@option.StartLocalValue"
+                                        data-end="@option.EndLocalValue"
+                                        data-lead-id="@option.SuggestedShiftLeadId">
+                                    @option.Label
+                                </option>
+                            }
+                        </select>
+                        <small>Mỗi ca mẫu trong ngày chỉ tạo một ca vận hành đá đang hiệu lực.</small>
+                    }
+                    else
+                    {
+                        <div class="ice-notice ice-notice-warning">
+                            Không tìm thấy lịch làm việc phù hợp trong ngày này. Hãy chuyển sang tạo thủ công.
+                        </div>
+                    }
+                </div>
                 <div class="ice-field ice-span-2">
                     <label for="shiftName">Tên ca</label>
                     <input id="shiftName" name="Name" maxlength="100" placeholder="Ví dụ: Ca sáng" required disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)" />
@@ -337,7 +375,11 @@
                             <tr>
                                 <td>
                                     <strong>@row.ShiftName</strong>
-                                    <small>Ca #@row.OperationalShiftId</small>
+                                    <small>
+                                        Ca #@row.OperationalShiftId ·
+                                        @(row.CreationSource == OperationalIceCreationSources.StaffSchedule ? "Lịch làm việc" : "Thủ công") ·
+                                        Đã liên kết @row.LinkedWorkShiftCount ca POS
+                                    </small>
                                 </td>
                                 <td>@row.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") – @row.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                                 <td class="ice-number">@DisplayQuantity(row.SuggestedQuantity, unitLabel)</td>
@@ -413,6 +455,48 @@
 
             unitSelect?.addEventListener('change', updateUnitLabels);
             updateUnitLabels();
+
+            const scheduleSelect = document.getElementById('scheduleSource');
+            const scheduleField = document.getElementById('scheduleSourceField');
+            const creationSource = document.getElementById('creationSource');
+            const sourceScheduleShiftId = document.getElementById('sourceScheduleShiftId');
+            const shiftName = document.getElementById('shiftName');
+            const shiftStartDisplay = document.getElementById('shiftStartDisplay');
+            const shiftEndDisplay = document.getElementById('shiftEndDisplay');
+            const shiftLead = document.getElementById('shiftLead');
+
+            const displayDateTime = value => {
+                const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value || '');
+                return match ? `${match[3]}/${match[2]}/${match[1]} ${match[4]}:${match[5]}` : '';
+            };
+
+            const applySchedule = () => {
+                const option = scheduleSelect?.selectedOptions?.[0];
+                if (!option) return;
+                sourceScheduleShiftId.value = option.value;
+                shiftName.value = option.dataset.name || '';
+                shiftStartDisplay.value = displayDateTime(option.dataset.start);
+                shiftEndDisplay.value = displayDateTime(option.dataset.end);
+                if (option.dataset.leadId && shiftLead)
+                    shiftLead.value = option.dataset.leadId;
+            };
+
+            const setCreateMode = mode => {
+                const fromSchedule = mode === 'schedule' && Boolean(scheduleSelect);
+                creationSource.value = fromSchedule ? 'StaffSchedule' : 'Manual';
+                sourceScheduleShiftId.disabled = !fromSchedule;
+                scheduleField.hidden = !fromSchedule;
+                if (fromSchedule)
+                    applySchedule();
+                else
+                    sourceScheduleShiftId.value = '';
+            };
+
+            document.querySelectorAll('input[name="createMode"]').forEach(input => {
+                input.addEventListener('change', () => setCreateMode(input.value));
+            });
+            scheduleSelect?.addEventListener('change', applySchedule);
+            setCreateMode(document.querySelector('input[name="createMode"]:checked')?.value || 'manual');
 
             const parseVietnameseDate = value => {
                 const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());

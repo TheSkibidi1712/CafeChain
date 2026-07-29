@@ -127,7 +127,10 @@
                         <span class="ice-section-kicker">Liên kết bán hàng</span>
                         <h2>WorkShift POS</h2>
                     </div>
-                    <p>Lý thuyết lấy từ ledger của đơn hoàn tất thuộc các WorkShift này.</p>
+                    <p>
+                        @(Model.WorkShifts.Count == 0 ? "Chưa liên kết" : $"Đã liên kết {Model.WorkShifts.Count} ca")
+                        · Nguồn tính tiêu hao lý thuyết
+                    </p>
                 </div>
 
                 @if (Model.WorkShifts.Count == 0)
@@ -157,20 +160,25 @@
 
                 @if (isOpen && Model.CanManage && Model.AvailableWorkShifts.Count > 0)
                 {
-                    <form asp-action="LinkWorkShift" method="post" class="ice-inline-action">
+                    <form asp-action="LinkWorkShifts" method="post" class="ice-link-workshifts" data-ice-submit>
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="OperationalShiftId" value="@Model.OperationalShiftId" />
                         <input type="hidden" name="allocationId" value="@Model.IceAllocationId" />
-                        <div class="ice-field">
-                            <label for="workShiftId">Liên kết WorkShift</label>
-                            <select id="workShiftId" name="WorkShiftId" required>
-                                @foreach (var option in Model.AvailableWorkShifts)
-                                {
-                                    <option value="@option.Id">@option.Label</option>
-                                }
-                            </select>
+                        <fieldset class="ice-workshift-options">
+                            <legend>Đã tìm thấy @Model.AvailableWorkShifts.Count WorkShift POS phù hợp</legend>
+                            @foreach (var option in Model.AvailableWorkShifts)
+                            {
+                                <label>
+                                    <input type="checkbox" name="WorkShiftIds" value="@option.Id" />
+                                    <span>@option.Label</span>
+                                </label>
+                            }
+                        </fieldset>
+                        <div class="ice-form-actions">
+                            <button class="ice-btn ice-btn-secondary" type="submit">
+                                <i class="fa-solid fa-link" aria-hidden="true"></i> Xác nhận liên kết
+                            </button>
                         </div>
-                        <button class="ice-btn ice-btn-secondary" type="submit"><i class="fa-solid fa-link" aria-hidden="true"></i> Liên kết</button>
                     </form>
                 }
             </section>

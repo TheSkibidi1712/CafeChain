@@ -108,7 +108,9 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 TheoreticalUsageQuantity = x.IceAllocations.Select(a => a.TheoreticalUsageQuantity / displayToBaseFactor).FirstOrDefault(),
                 VarianceQuantity = x.IceAllocations.Select(a => a.VarianceQuantity / displayToBaseFactor).FirstOrDefault(),
                 Status = x.Status,
-                HasShiftLead = x.ShiftLeadId.HasValue
+                HasShiftLead = x.ShiftLeadId.HasValue,
+                CreationSource = x.CreationSource,
+                LinkedWorkShiftCount = x.WorkShiftLinks.Count
             })
             .ToListAsync(cancellationToken);
 
@@ -151,6 +153,9 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 Label = x.Label
             }).ToList() : [],
             ShiftLeads = canManage ? await GetShiftLeadOptionsAsync(selectedStoreId, cancellationToken) : [],
+            ScheduleOptions = canManage
+                ? await GetScheduleOptionsAsync(selectedStoreId, date, actor, cancellationToken)
+                : [],
             Inventory = setup.Inventory == null ? null : new OperationalIceInventoryVM
             {
                 PhysicalQuantity = setup.Inventory.PhysicalQuantity / displayToBaseFactor,
@@ -213,19 +218,20 @@ public sealed class AdminOperationalIceController : AdminBaseController
         if (!displayToBaseFactorResult.IsSuccess)
             TempData["ErrorMessage"] = "Không thể quy đổi đơn vị đá. Dữ liệu đang hiển thị theo đơn vị tồn kho.";
 
-        var linkedIds = allocation.OperationalShift.WorkShiftLinks.Select(x => x.WorkShiftId).ToArray();
-        var availableWorkShifts = canManage ? await _context.WorkShifts.AsNoTracking()
-            .Where(x => x.StoreId == allocation.OperationalShift.StoreId
-                        && !linkedIds.Contains(x.ShiftId)
-                        && !_context.OperationalShiftWorkShifts.Any(link => link.WorkShiftId == x.ShiftId))
-            .OrderByDescending(x => x.StartTime)
-            .Take(30)
+        var availableWorkShiftRows = canManage
+            ? (await _service.GetWorkShiftSuggestionsAsync(
+                allocation.OperationalShiftId,
+                actor,
+                cancellationToken)).Data ?? []
+            : [];
+        var availableWorkShifts = availableWorkShiftRows
             .Select(x => new OperationalIceOptionVM
             {
-                Id = x.ShiftId,
-                Label = "POS #" + x.ShiftId + " · " + x.User.FullName + " · " + x.Status
+                Id = x.WorkShiftId,
+                Label = $"POS #{x.WorkShiftId} · {x.StaffName} · {x.StartTime:dd/MM/yyyy HH:mm}"
+                        + (x.EndTime.HasValue ? $"–{x.EndTime:HH:mm}" : "–Đang mở")
             })
-            .ToListAsync(cancellationToken) : [];
+            .ToList();
         var carryTargets = canManage ? await _context.IceAllocations.AsNoTracking()
             .Where(x => x.IceAllocationId != allocation.IceAllocationId
                         && x.OperationalShift.StoreId == allocation.OperationalShift.StoreId
@@ -409,7 +415,9 @@ public sealed class AdminOperationalIceController : AdminBaseController
             Name = request.Name,
             StartAtUtc = NormalizeLocalToUtc(request.StartAtUtc),
             EndAtUtc = NormalizeLocalToUtc(request.EndAtUtc),
-            ShiftLeadId = request.ShiftLeadId
+            ShiftLeadId = request.ShiftLeadId,
+            CreationSource = request.CreationSource,
+            SourceScheduleShiftId = request.SourceScheduleShiftId
         };
         return RedirectWithResult(await _service.CreateShiftAsync(normalized, _actorAccessor.Get(User), cancellationToken), nameof(Index), new { storeId = request.StoreId, businessDate = request.BusinessDate.ToString("yyyy-MM-dd") });
     }
@@ -444,6 +452,17 @@ public sealed class AdminOperationalIceController : AdminBaseController
         var storeId = await StoreIdForShiftAsync(request.OperationalShiftId, cancellationToken);
         if (!await HasPermissionAsync(OperationalIcePermissions.Manage, storeId)) return Forbid();
         return RedirectWithResult(await _service.LinkWorkShiftAsync(request, _actorAccessor.Get(User), cancellationToken), nameof(Details), new { id = allocationId });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> LinkWorkShifts(LinkOperationalWorkShiftsRequest request, int allocationId, CancellationToken cancellationToken)
+    {
+        var storeId = await StoreIdForShiftAsync(request.OperationalShiftId, cancellationToken);
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, storeId)) return Forbid();
+        return RedirectWithResult(
+            await _service.LinkWorkShiftsAsync(request, _actorAccessor.Get(User), cancellationToken),
+            nameof(Details),
+            new { id = allocationId });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -642,6 +661,30 @@ public sealed class AdminOperationalIceController : AdminBaseController
             .OrderBy(x => x.FullName)
             .Select(x => new OperationalIceOptionVM { Id = x.StaffId, Label = x.FullName })
             .ToListAsync(cancellationToken);
+
+    private async Task<IReadOnlyList<OperationalIceScheduleOptionVM>> GetScheduleOptionsAsync(
+        int storeId,
+        DateTime businessDate,
+        CafeChain.Application.DTOs.Admin.Actor.AdminActorContext actor,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.GetScheduleOptionsAsync(storeId, businessDate, actor, cancellationToken);
+        return result.Data?.Select(option =>
+        {
+            var startLocal = option.StartAtUtc.ToLocalTime();
+            var endLocal = option.EndAtUtc.ToLocalTime();
+            return new OperationalIceScheduleOptionVM
+            {
+                ScheduleShiftId = option.ScheduleShiftId,
+                Name = option.Name,
+                Label = $"{option.Name} · {startLocal:HH:mm}–{endLocal:HH:mm} · {option.StaffCount} nhân viên",
+                StartLocalValue = startLocal.ToString("yyyy-MM-ddTHH:mm"),
+                EndLocalValue = endLocal.ToString("yyyy-MM-ddTHH:mm"),
+                StaffCount = option.StaffCount,
+                SuggestedShiftLeadId = option.SuggestedShiftLeadId
+            };
+        }).ToList() ?? [];
+    }
 
     private static DateTime NormalizeLocalToUtc(DateTime value) =>
         value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime();

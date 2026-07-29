@@ -46,6 +46,27 @@ public sealed class CreateOperationalShiftRequest
     public DateTime StartAtUtc { get; init; }
     public DateTime EndAtUtc { get; init; }
     public int? ShiftLeadId { get; init; }
+    public string CreationSource { get; init; } = "Manual";
+    public int? SourceScheduleShiftId { get; init; }
+}
+
+public sealed class OperationalIceScheduleOptionDto
+{
+    public int ScheduleShiftId { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public DateTime BusinessDate { get; init; }
+    public DateTime StartAtUtc { get; init; }
+    public DateTime EndAtUtc { get; init; }
+    public int StaffCount { get; init; }
+    public int? SuggestedShiftLeadId { get; init; }
+}
+
+public sealed class OperationalIceWorkShiftSuggestionDto
+{
+    public int WorkShiftId { get; init; }
+    public string StaffName { get; init; } = string.Empty;
+    public DateTime StartTime { get; init; }
+    public DateTime? EndTime { get; init; }
 }
 
 public sealed class OpenIceAllocationRequest
@@ -59,6 +80,12 @@ public sealed class LinkOperationalWorkShiftRequest
 {
     public int OperationalShiftId { get; init; }
     public int WorkShiftId { get; init; }
+}
+
+public sealed class LinkOperationalWorkShiftsRequest
+{
+    public int OperationalShiftId { get; init; }
+    public IReadOnlyList<int> WorkShiftIds { get; init; } = [];
 }
 
 public sealed class RequestSupplementalIceRequest

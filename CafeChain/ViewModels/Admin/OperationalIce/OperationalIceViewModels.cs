@@ -13,6 +13,7 @@ public sealed class OperationalIceIndexVM
     public IReadOnlyList<OperationalIceOptionVM> Ingredients { get; init; } = [];
     public IReadOnlyList<OperationalIceOptionVM> Units { get; init; } = [];
     public IReadOnlyList<OperationalIceOptionVM> ShiftLeads { get; init; } = [];
+    public IReadOnlyList<OperationalIceScheduleOptionVM> ScheduleOptions { get; init; } = [];
     public OperationalIceInventoryVM? Inventory { get; init; }
     public bool HasValidPolicy { get; init; }
     public string PolicyStatusMessage { get; init; } = string.Empty;
@@ -34,6 +35,19 @@ public sealed class OperationalIceListRowVM
     public decimal? VarianceQuantity { get; init; }
     public string Status { get; init; } = string.Empty;
     public bool HasShiftLead { get; init; }
+    public string CreationSource { get; init; } = string.Empty;
+    public int LinkedWorkShiftCount { get; init; }
+}
+
+public sealed class OperationalIceScheduleOptionVM
+{
+    public int ScheduleShiftId { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Label { get; init; } = string.Empty;
+    public string StartLocalValue { get; init; } = string.Empty;
+    public string EndLocalValue { get; init; } = string.Empty;
+    public int StaffCount { get; init; }
+    public int? SuggestedShiftLeadId { get; init; }
 }
 
 public sealed class OperationalIceInventoryVM

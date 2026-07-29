@@ -15,18 +15,29 @@ public sealed class OperationalShiftConfiguration : IEntityTypeConfiguration<Ope
             table.HasCheckConstraint(
                 "CK_OperationalShifts_Status",
                 "[Status] IN ('Draft','Open','PendingApproval','ReconciliationRequired','Closed','Cancelled')");
+            table.HasCheckConstraint(
+                "CK_OperationalShifts_CreationSource",
+                "([CreationSource] = 'Manual' AND [SourceScheduleShiftId] IS NULL) OR ([CreationSource] = 'StaffSchedule' AND [SourceScheduleShiftId] IS NOT NULL)");
         });
         entity.HasKey(x => x.OperationalShiftId);
         entity.Property(x => x.BusinessDate).HasColumnType("date");
         entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        entity.Property(x => x.CreationSource).HasMaxLength(20).HasDefaultValue(OperationalIceCreationSources.Manual).IsRequired();
         entity.Property(x => x.Status).HasMaxLength(30).HasDefaultValue(OperationalIceStatuses.Draft).IsRequired();
         entity.Property(x => x.CreatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
         entity.Property(x => x.RowVersion).IsRowVersion();
-        entity.HasIndex(x => new { x.StoreId, x.BusinessDate, x.Name }).IsUnique();
+        entity.HasIndex(x => new { x.StoreId, x.BusinessDate, x.Name })
+            .IsUnique()
+            .HasFilter("[CreationSource] = 'Manual' AND [Status] <> 'Cancelled'");
         entity.HasIndex(x => new { x.StoreId, x.BusinessDate, x.Status });
+        entity.HasIndex(x => new { x.StoreId, x.BusinessDate, x.CreationSource });
+        entity.HasIndex(x => new { x.StoreId, x.BusinessDate, x.SourceScheduleShiftId })
+            .IsUnique()
+            .HasFilter("[SourceScheduleShiftId] IS NOT NULL AND [Status] <> 'Cancelled'");
         entity.HasIndex(x => x.ShiftLeadId);
 
         entity.HasOne(x => x.Store).WithMany().HasForeignKey(x => x.StoreId).OnDelete(DeleteBehavior.Restrict);
+        entity.HasOne(x => x.SourceScheduleShift).WithMany().HasForeignKey(x => x.SourceScheduleShiftId).OnDelete(DeleteBehavior.Restrict);
         entity.HasOne(x => x.ShiftLead).WithMany().HasForeignKey(x => x.ShiftLeadId).OnDelete(DeleteBehavior.Restrict);
         entity.HasOne(x => x.CreatedByStaff).WithMany().HasForeignKey(x => x.CreatedByStaffId).OnDelete(DeleteBehavior.Restrict);
         entity.HasOne(x => x.OpenedByStaff).WithMany().HasForeignKey(x => x.OpenedByStaffId).OnDelete(DeleteBehavior.Restrict);
