@@ -34,6 +34,46 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Batch_Create_SnapshotsTrackedAdvicesBeforeRecomputingStatuses()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(db);
+        var fulfillment = new Mock<IPurchaseAdviceFulfillmentService>();
+        var attachedDuringRecompute = false;
+        fulfillment
+            .Setup(x => x.RecomputeHeaderStatusAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
+            .Callback(() =>
+            {
+                if (attachedDuringRecompute) return;
+
+                db.Attach(new PurchaseAdvice
+                {
+                    PurchaseAdviceId = int.MaxValue,
+                    AdviceNumber = "PA-TRACKER-SNAPSHOT",
+                    RequestKey = "TRACKER-SNAPSHOT",
+                    StoreId = seed.Store1Id,
+                    RequestedByStaffId = seed.ManagerId,
+                    Status = PurchaseAdviceStatuses.Submitted,
+                    NeededByDate = DateTime.UtcNow.Date.AddDays(1),
+                    Priority = PurchaseAdvicePriorities.Normal,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    UpdatedAtUtc = DateTime.UtcNow
+                });
+                attachedDuringRecompute = true;
+            })
+            .Returns(Task.CompletedTask);
+
+        var result = await BatchService(db, fulfillment.Object)
+            .CreateAsync(Request(seed), Warehouse(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(attachedDuringRecompute);
+        fulfillment.Verify(
+            x => x.RecomputeHeaderStatusAsync(It.IsAny<int>(), seed.WarehouseId, It.IsAny<string>()),
+            Times.Exactly(2));
+    }
+
+    [Fact]
     public async Task Batch_CreatesOneChildPoPerStore()
     {
         using var db = CreateDbContext();
@@ -445,7 +485,9 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
         Assert.Equal(PurchaseOrderBatchErrorCodes.Forbidden, result.ErrorCode);
     }
 
-    private static PurchaseOrderBatchService BatchService(AppDbContext db)
+    private static PurchaseOrderBatchService BatchService(
+        AppDbContext db,
+        IPurchaseAdviceFulfillmentService? fulfillment = null)
     {
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(true);
@@ -453,7 +495,7 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
         physical.Setup(x => x.ConvertAsync(It.IsAny<decimal>(), It.IsAny<int>(), It.IsAny<int>()))
             .ReturnsAsync((decimal quantity, int _, int _) => ServiceResult<decimal>.Success(quantity));
         var consolidation = new PurchaseAdviceConsolidationService(db, scope.Object, physical.Object);
-        return new PurchaseOrderBatchService(db, consolidation, scope.Object);
+        return new PurchaseOrderBatchService(db, consolidation, scope.Object, fulfillment);
     }
 
     private static CreatePurchaseOrderBatchRequest Request(Seed seed) => new()

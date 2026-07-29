@@ -299,7 +299,11 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                 }
             }
 
-            foreach (var advice in _context.ChangeTracker.Entries<PurchaseAdvice>().Select(x => x.Entity).DistinctBy(x => x.PurchaseAdviceId))
+            var trackedAdvices = _context.ChangeTracker.Entries<PurchaseAdvice>()
+                .Select(x => x.Entity)
+                .DistinctBy(x => x.PurchaseAdviceId)
+                .ToArray();
+            foreach (var advice in trackedAdvices)
             {
                 await _context.Entry(advice).Collection(x => x.Lines).LoadAsync();
                 await _purchaseAdviceFulfillment.RecomputeHeaderStatusAsync(
