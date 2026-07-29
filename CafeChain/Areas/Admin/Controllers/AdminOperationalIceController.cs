@@ -21,6 +21,8 @@ public sealed class AdminOperationalIceController : AdminBaseController
     private readonly IAdminStoreScopeResolver _storeScopeResolver;
     private readonly IAdminPermissionService _permissionService;
     private readonly IUnitConversionService _unitConversionService;
+    private readonly IOperationalIceReportService _reportService;
+    private readonly IOperationalIceReportPdfRenderer _reportPdfRenderer;
 
     public AdminOperationalIceController(
         AppDbContext context,
@@ -28,7 +30,9 @@ public sealed class AdminOperationalIceController : AdminBaseController
         IAdminActorContextAccessor actorAccessor,
         IAdminStoreScopeResolver storeScopeResolver,
         IAdminPermissionService permissionService,
-        IUnitConversionService unitConversionService)
+        IUnitConversionService unitConversionService,
+        IOperationalIceReportService reportService,
+        IOperationalIceReportPdfRenderer reportPdfRenderer)
     {
         _context = context;
         _service = service;
@@ -36,6 +40,8 @@ public sealed class AdminOperationalIceController : AdminBaseController
         _storeScopeResolver = storeScopeResolver;
         _permissionService = permissionService;
         _unitConversionService = unitConversionService;
+        _reportService = reportService;
+        _reportPdfRenderer = reportPdfRenderer;
     }
 
     [HttpGet]
@@ -298,6 +304,46 @@ public sealed class AdminOperationalIceController : AdminBaseController
             CanManage = canManage,
             CanApprove = canApprove
         });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Report(int id, CancellationToken cancellationToken = default)
+    {
+        var storeId = await StoreIdForAllocationAsync(id, cancellationToken);
+        if (storeId == 0)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.View, storeId))
+            return Forbid();
+
+        var result = await _reportService.BuildAsync(id, cancellationToken);
+        if (!result.IsSuccess || result.Data == null)
+        {
+            TempData["ErrorMessage"] = result.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        return View(result.Data);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadReport(int id, CancellationToken cancellationToken = default)
+    {
+        var storeId = await StoreIdForAllocationAsync(id, cancellationToken);
+        if (storeId == 0)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.View, storeId))
+            return Forbid();
+
+        var result = await _reportService.BuildAsync(id, cancellationToken);
+        if (!result.IsSuccess || result.Data == null)
+        {
+            TempData["ErrorMessage"] = result.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var content = _reportPdfRenderer.Render(result.Data, DateTime.UtcNow);
+        var fileName = $"bao-cao-da-{result.Data.BusinessDate:yyyyMMdd}-ca-{result.Data.OperationalShiftId}.pdf";
+        return File(content, "application/pdf", fileName);
     }
 
     [HttpPost, ValidateAntiForgeryToken]

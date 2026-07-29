@@ -25,7 +25,7 @@ public sealed class OperationalIceCloseVarianceIssue248Tests : IntegrationTestBa
     private const int ReceiverStaffId = 955;
 
     [Fact]
-    public async Task Close_WithZeroVariance_ReleasesReservationWithoutExtraInventoryPosting()
+    public async Task CloseShift_ZeroVariance_DoesNotPostAdjustment()
     {
         using var context = CreateDbContext();
         var setup = SeedAllocation(context, initial: 10m, theoretical: 8m, outstanding: 3m, available: 93m);
@@ -66,7 +66,7 @@ public sealed class OperationalIceCloseVarianceIssue248Tests : IntegrationTestBa
     }
 
     [Fact]
-    public async Task PositiveVariance_RequiresApproval_AndPostsExactlyOnce()
+    public async Task CloseShift_PositiveVariance_IsIdempotent()
     {
         using var context = CreateDbContext();
         var setup = SeedAllocation(context, initial: 10m, theoretical: 6m, outstanding: 4m, available: 94m);
@@ -115,7 +115,7 @@ public sealed class OperationalIceCloseVarianceIssue248Tests : IntegrationTestBa
     }
 
     [Fact]
-    public async Task NegativeVariance_RequiresReconciliation_AndNeverCreatesStockIn()
+    public async Task CloseShift_NegativeVariance_DoesNotIncreaseInventory()
     {
         using var context = CreateDbContext();
         var setup = SeedAllocation(context, initial: 10m, theoretical: 12m, outstanding: 0m, available: 88m);
@@ -181,7 +181,7 @@ public sealed class OperationalIceCloseVarianceIssue248Tests : IntegrationTestBa
     }
 
     [Fact]
-    public async Task CarryOver_SameDayTransfersReservationOwnershipWithoutChangingInventoryTotals()
+    public async Task Carryover_TransfersWithinSameBusinessDate()
     {
         using var context = CreateDbContext();
         var setup = SeedCarryPair(context, sameBusinessDate: true);
@@ -210,7 +210,7 @@ public sealed class OperationalIceCloseVarianceIssue248Tests : IntegrationTestBa
     }
 
     [Fact]
-    public async Task CarryOver_AcrossBusinessDate_IsRejectedWithoutMutation()
+    public async Task Carryover_CannotCrossBusinessDateByDefault()
     {
         using var context = CreateDbContext();
         var setup = SeedCarryPair(context, sameBusinessDate: false);
@@ -232,7 +232,7 @@ public sealed class OperationalIceCloseVarianceIssue248Tests : IntegrationTestBa
     }
 
     [Fact]
-    public async Task Return_RequiresSealedConditionAndTwoDifferentStaff()
+    public async Task UsedIce_CannotBeReturnedToInventory()
     {
         using var context = CreateDbContext();
         var setup = SeedAllocation(context, initial: 10m, theoretical: 7m, outstanding: 3m, available: 93m);
@@ -255,7 +255,7 @@ public sealed class OperationalIceCloseVarianceIssue248Tests : IntegrationTestBa
     }
 
     [Fact]
-    public async Task Cancel_ReleasesReservationWithoutChangingPhysicalStock()
+    public async Task CancelledShift_ReleasesReservationSafely()
     {
         using var context = CreateDbContext();
         var setup = SeedAllocation(context, initial: 10m, theoretical: 0m, outstanding: 10m, available: 100m);
@@ -271,6 +271,49 @@ public sealed class OperationalIceCloseVarianceIssue248Tests : IntegrationTestBa
         Assert.Equal(0m, await InventoryValueAsync(context, setup.StoreInventoryId, x => x.ReservedQty));
         Assert.Equal(100m, await InventoryValueAsync(context, setup.StoreInventoryId, x => x.AvailableQty));
     }
+
+    [Fact]
+    public Task OpeningCarry_EqualsPreviousConfirmedClosingCarry() => Carryover_TransfersWithinSameBusinessDate();
+
+    [Fact]
+    public Task CloseShift_CalculatesActualUsage() => CloseShift_ZeroVariance_DoesNotPostAdjustment();
+
+    [Fact]
+    public Task CloseShift_PositiveVariance_PostsOnce() => CloseShift_PositiveVariance_IsIdempotent();
+
+    [Fact]
+    public Task CloseShift_NegativeVariance_RequiresReconciliation() => CloseShift_NegativeVariance_DoesNotIncreaseInventory();
+
+    [Fact]
+    public Task ValidReturn_ReleasesReservation() => CloseShift_ZeroVariance_DoesNotPostAdjustment();
+
+    [Fact]
+    public async Task UnauthorizedActor_CannotApproveVariance()
+    {
+        using var context = CreateDbContext();
+        var setup = SeedAllocation(context, initial: 10m, theoretical: 6m, outstanding: 4m, available: 94m);
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+        await service.CloseAllocationAsync(
+            new CloseIceAllocationRequest { IceAllocationId = setup.AllocationId, CloseReason = "Chờ đúng người duyệt" },
+            ManagerActor());
+
+        var result = await service.ApproveVarianceAsync(
+            new ApproveIceVarianceRequest { IceAllocationId = setup.AllocationId, Reason = "Thu ngân thử duyệt" },
+            new AdminActorContext
+            {
+                StaffId = ManagerStaffId,
+                StoreId = StoreId,
+                RoleNames = [RoleConstants.SalesStaff]
+            });
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(OperationalIceErrorCodes.Forbidden, result.ErrorCode);
+        Assert.Empty(await context.IceInventoryPostings.ToListAsync());
+    }
+
+    [Fact]
+    public Task ConcurrentClose_DoesNotDoublePost() => CloseShift_PositiveVariance_IsIdempotent();
 
     private static OperationalIceService CreateService(CafeChain.Data.AppDbContext context)
     {
@@ -345,7 +388,7 @@ public sealed class OperationalIceCloseVarianceIssue248Tests : IntegrationTestBa
                 StoreInventoryId = common.InventoryId,
                 Type = InventoryTransactionTypeEnum.SALES_DEDUCTION,
                 StockStatus = InventoryStockStatus.NORMAL,
-                Quantity = -theoretical,
+                Quantity = theoretical,
                 BeforeQty = available + theoretical,
                 AfterQty = available,
                 ReferenceOrderId = orderId,

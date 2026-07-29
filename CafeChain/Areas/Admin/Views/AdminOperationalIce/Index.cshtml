@@ -262,9 +262,14 @@
                                 <td>
                                     @if (row.IceAllocationId.HasValue)
                                     {
-                                        <a class="ice-btn ice-btn-compact" asp-action="Details" asp-route-id="@row.IceAllocationId">
-                                            Chi tiết <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                                        </a>
+                                        <div class="ice-row-actions">
+                                            <a class="ice-btn ice-btn-compact" asp-action="Details" asp-route-id="@row.IceAllocationId">
+                                                Chi tiết <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                                            </a>
+                                            <a class="ice-icon-btn" asp-action="Report" asp-route-id="@row.IceAllocationId" title="Xem báo cáo ca" aria-label="Xem báo cáo ca">
+                                                <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+                                            </a>
+                                        </div>
                                     }
                                     else if (Model.CanManage && Model.Policy != null)
                                     {

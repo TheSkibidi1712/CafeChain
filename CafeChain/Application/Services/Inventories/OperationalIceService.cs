@@ -747,7 +747,12 @@ public sealed class OperationalIceService : IOperationalIceService
             select new { movement.Type, movement.Quantity })
             .ToListAsync(cancellationToken);
 
-        var total = movements.Sum(x => -x.Quantity);
+        var total = movements
+            .Where(x => x.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION)
+            .Sum(x => x.Quantity)
+            - movements
+                .Where(x => x.Type == InventoryTransactionTypeEnum.SALES_RETURN)
+                .Sum(x => x.Quantity);
         return Math.Max(0m, total);
     }
 

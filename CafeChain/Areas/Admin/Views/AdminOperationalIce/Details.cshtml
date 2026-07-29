@@ -56,7 +56,12 @@
             <h1>@Model.ShiftName</h1>
             <p>@Model.IngredientName · @Model.StartAtUtc.ToLocalTime().ToString("HH:mm")–@Model.EndAtUtc.ToLocalTime().ToString("HH:mm")</p>
         </div>
-        <span class="ice-badge ice-badge-large @StatusClass(Model.Status)">@StatusLabel(Model.Status)</span>
+        <div class="ice-header-actions">
+            <a class="ice-btn ice-btn-secondary" asp-action="Report" asp-route-id="@Model.IceAllocationId">
+                <i class="fa-solid fa-chart-column" aria-hidden="true"></i> Báo cáo ca
+            </a>
+            <span class="ice-badge ice-badge-large @StatusClass(Model.Status)">@StatusLabel(Model.Status)</span>
+        </div>
     </header>
 
     @if (TempData["SuccessMessage"] is string success && !string.IsNullOrWhiteSpace(success))
