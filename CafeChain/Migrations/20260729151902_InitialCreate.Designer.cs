@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260729074450_InitialCreate")]
+    [Migration("20260729151902_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
