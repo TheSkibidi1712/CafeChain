@@ -24,6 +24,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     private readonly IUnitConversionService _unitConversionService;
     private readonly IOperationalIceReportService _reportService;
     private readonly IOperationalIceReportPdfRenderer _reportPdfRenderer;
+    private readonly ILogger<AdminOperationalIceController> _logger;
 
     public AdminOperationalIceController(
         AppDbContext context,
@@ -33,7 +34,8 @@ public sealed class AdminOperationalIceController : AdminBaseController
         IAdminPermissionService permissionService,
         IUnitConversionService unitConversionService,
         IOperationalIceReportService reportService,
-        IOperationalIceReportPdfRenderer reportPdfRenderer)
+        IOperationalIceReportPdfRenderer reportPdfRenderer,
+        ILogger<AdminOperationalIceController> logger)
     {
         _context = context;
         _service = service;
@@ -43,6 +45,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
         _unitConversionService = unitConversionService;
         _reportService = reportService;
         _reportPdfRenderer = reportPdfRenderer;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -153,9 +156,6 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 Label = x.Label
             }).ToList() : [],
             ShiftLeads = canManage ? await GetShiftLeadOptionsAsync(selectedStoreId, cancellationToken) : [],
-            ScheduleOptions = canManage
-                ? await GetScheduleOptionsAsync(selectedStoreId, date, actor, cancellationToken)
-                : [],
             Inventory = setup.Inventory == null ? null : new OperationalIceInventoryVM
             {
                 PhysicalQuantity = setup.Inventory.PhysicalQuantity / displayToBaseFactor,
@@ -454,6 +454,75 @@ public sealed class AdminOperationalIceController : AdminBaseController
         return RedirectWithResult(await _service.LinkWorkShiftAsync(request, _actorAccessor.Get(User), cancellationToken), nameof(Details), new { id = allocationId });
     }
 
+    [HttpGet]
+    public async Task<IActionResult> ScheduleOptions(
+        int storeId,
+        DateTime businessDate,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = _actorAccessor.Get(User);
+        var scope = await _storeScopeResolver.ResolveAsync(actor, storeId, cancellationToken);
+        if (!scope.IsResolved || scope.StoreId != storeId)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                success = false,
+                message = "Bạn không có quyền xem lịch làm việc của chi nhánh này."
+            });
+        }
+
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, storeId))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                success = false,
+                message = "Bạn không có quyền tạo ca vận hành tại chi nhánh này."
+            });
+        }
+
+        try
+        {
+            var result = await _service.GetScheduleOptionsAsync(
+                storeId,
+                businessDate.Date,
+                actor,
+                cancellationToken);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = string.IsNullOrWhiteSpace(result.Message)
+                        ? "Không thể tải lịch làm việc. Vui lòng thử lại."
+                        : result.Message
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                data = MapScheduleOptions(result.Data ?? [])
+            });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                exception,
+                "Cannot load operational ice schedule options for StoreId={StoreId}, BusinessDate={BusinessDate}",
+                storeId,
+                businessDate.Date);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                success = false,
+                message = "Không thể tải lịch làm việc. Vui lòng thử lại."
+            });
+        }
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> LinkWorkShifts(LinkOperationalWorkShiftsRequest request, int allocationId, CancellationToken cancellationToken)
     {
@@ -662,14 +731,9 @@ public sealed class AdminOperationalIceController : AdminBaseController
             .Select(x => new OperationalIceOptionVM { Id = x.StaffId, Label = x.FullName })
             .ToListAsync(cancellationToken);
 
-    private async Task<IReadOnlyList<OperationalIceScheduleOptionVM>> GetScheduleOptionsAsync(
-        int storeId,
-        DateTime businessDate,
-        CafeChain.Application.DTOs.Admin.Actor.AdminActorContext actor,
-        CancellationToken cancellationToken)
-    {
-        var result = await _service.GetScheduleOptionsAsync(storeId, businessDate, actor, cancellationToken);
-        return result.Data?.Select(option =>
+    private static IReadOnlyList<OperationalIceScheduleOptionVM> MapScheduleOptions(
+        IReadOnlyList<OperationalIceScheduleOptionDto> options) =>
+        options.Select(option =>
         {
             var startLocal = option.StartAtUtc.ToLocalTime();
             var endLocal = option.EndAtUtc.ToLocalTime();
@@ -683,8 +747,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 StaffCount = option.StaffCount,
                 SuggestedShiftLeadId = option.SuggestedShiftLeadId
             };
-        }).ToList() ?? [];
-    }
+        }).ToList();
 
     private static DateTime NormalizeLocalToUtc(DateTime value) =>
         value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime();

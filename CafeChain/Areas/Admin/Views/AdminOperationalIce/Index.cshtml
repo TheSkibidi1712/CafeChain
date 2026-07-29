@@ -40,6 +40,18 @@
     var unitLabel = string.IsNullOrWhiteSpace(Model.Policy?.UnitName) ? "kg" : Model.Policy.UnitName;
     var startLocal = Model.BusinessDate.AddHours(6);
     var endLocal = Model.BusinessDate.AddHours(14);
+    var selectedStoreName = Model.Stores.FirstOrDefault(x => x.StoreId == Model.StoreId)?.StoreName
+                            ?? $"Chi nhánh #{Model.StoreId}";
+    var scheduleOptionsUrl = Url.Action("ScheduleOptions", "AdminOperationalIce", new { area = "Admin" }) ?? string.Empty;
+    var staffScheduleUrl = Url.Action(
+        "Index",
+        "AdminStaffShift",
+        new
+        {
+            area = "Admin",
+            targetStoreId = Model.StoreId,
+            startDate = Model.BusinessDate.ToString("yyyy-MM-dd")
+        }) ?? string.Empty;
 }
 <link rel="stylesheet" href="~/css/Admin/OperationalIce/operational-ice.css" />
 
@@ -242,47 +254,101 @@
             {
                 <div class="ice-notice ice-notice-warning" role="status">Chi nhánh chưa có Ca trưởng hoặc Cửa hàng trưởng đang hoạt động để phụ trách ca.</div>
             }
-            <form asp-action="CreateShift" method="post" class="ice-form-grid" data-ice-submit>
+            <form asp-action="CreateShift"
+                  method="post"
+                  class="ice-form-grid"
+                  data-ice-submit
+                  data-schedule-options-url="@scheduleOptionsUrl"
+                  data-store-name="@selectedStoreName"
+                  data-business-date="@Model.BusinessDate.ToString("yyyy-MM-dd")"
+                  data-create-enabled="@((Model.HasValidPolicy && Model.ShiftLeads.Count > 0).ToString().ToLowerInvariant())">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="StoreId" value="@Model.StoreId" />
                 <input type="hidden" name="BusinessDate" value="@Model.BusinessDate.ToString("yyyy-MM-dd")" />
-                <input id="creationSource" type="hidden" name="CreationSource" value="@(Model.ScheduleOptions.Count > 0 ? OperationalIceCreationSources.StaffSchedule : OperationalIceCreationSources.Manual)" />
-                <input id="sourceScheduleShiftId" type="hidden" name="SourceScheduleShiftId" />
+                <input id="creationSource" type="hidden" name="CreationSource" value="@OperationalIceCreationSources.StaffSchedule" />
+                <input id="sourceScheduleShiftId" type="hidden" name="SourceScheduleShiftId" disabled />
+                <input id="scheduleShiftLeadId" type="hidden" name="ShiftLeadId" disabled />
                 <fieldset class="ice-mode-switch ice-span-2">
                     <legend>Cách tạo ca</legend>
                     <label>
-                        <input type="radio" name="createMode" value="schedule" checked="@(Model.ScheduleOptions.Count > 0)" />
+                        <input type="radio" name="createMode" value="schedule" checked />
                         Tạo từ lịch làm việc
                     </label>
                     <label>
-                        <input type="radio" name="createMode" value="manual" checked="@(Model.ScheduleOptions.Count == 0)" />
+                        <input type="radio" name="createMode" value="manual" />
                         Tạo thủ công
                     </label>
                 </fieldset>
-                <div id="scheduleSourceField" class="ice-field ice-span-2" hidden="@(Model.ScheduleOptions.Count == 0)">
-                    <label for="scheduleSource">Ca theo lịch</label>
-                    @if (Model.ScheduleOptions.Count > 0)
-                    {
-                        <select id="scheduleSource">
-                            @foreach (var option in Model.ScheduleOptions)
-                            {
-                                <option value="@option.ScheduleShiftId"
-                                        data-name="@option.Name"
-                                        data-start="@option.StartLocalValue"
-                                        data-end="@option.EndLocalValue"
-                                        data-lead-id="@option.SuggestedShiftLeadId">
-                                    @option.Label
-                                </option>
-                            }
-                        </select>
-                        <small>Mỗi ca mẫu trong ngày chỉ tạo một ca vận hành đá đang hiệu lực.</small>
-                    }
-                    else
-                    {
-                        <div class="ice-notice ice-notice-warning">
-                            Không tìm thấy lịch làm việc phù hợp trong ngày này. Hãy chuyển sang tạo thủ công.
+                <div id="scheduleSourceField" class="ice-schedule-source ice-span-2" aria-live="polite">
+                    <div id="scheduleLoadingState" class="ice-schedule-state">
+                        <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+                        <div>
+                            <strong>Đang tải lịch làm việc…</strong>
+                            <span>Đang kiểm tra lịch tại @selectedStoreName ngày @Model.BusinessDate.ToString("dd/MM/yyyy").</span>
                         </div>
-                    }
+                    </div>
+
+                    <div id="scheduleHasDataState" class="ice-schedule-state" hidden>
+                        <div class="ice-field">
+                            <label for="scheduleSource">Ca theo lịch</label>
+                            <select id="scheduleSource" aria-describedby="scheduleSourceHelp"></select>
+                            <small id="scheduleSourceHelp">Các phân công cùng ca được gom thành một ca vận hành.</small>
+                        </div>
+                        <div class="ice-schedule-summary">
+                            <div>
+                                <span>Nguồn tạo</span>
+                                <strong>Lịch làm việc</strong>
+                            </div>
+                            <div>
+                                <span>Nhân viên dự kiến</span>
+                                <strong id="scheduleStaffCount">—</strong>
+                            </div>
+                            <div>
+                                <span>Ca trưởng dự kiến</span>
+                                <strong id="scheduleLeadName">—</strong>
+                            </div>
+                            <div>
+                                <span>Định mức đá đề xuất</span>
+                                <strong>@(Model.Policy == null ? "—" : DisplayQuantity(Model.Policy.SuggestedShiftQuantity, unitLabel))</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="scheduleEmptyState" class="ice-schedule-state ice-schedule-state-empty" hidden>
+                        <i class="fa-regular fa-calendar-xmark" aria-hidden="true"></i>
+                        <div>
+                            <strong>Không có lịch làm việc phù hợp.</strong>
+                            <span>
+                                Chưa tìm thấy ca làm việc tại @selectedStoreName trong ngày
+                                @Model.BusinessDate.ToString("dd/MM/yyyy").
+                            </span>
+                            <span>Bạn có thể tạo lịch nhân sự trước hoặc chuyển sang tạo ca thủ công.</span>
+                            <div class="ice-state-actions">
+                                <a class="ice-btn ice-btn-secondary" href="@staffScheduleUrl">
+                                    <i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Xem lịch làm việc
+                                </a>
+                                <button id="switchToManualButton" class="ice-btn ice-btn-secondary" type="button">
+                                    Chuyển sang tạo thủ công
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="scheduleErrorState" class="ice-schedule-state ice-schedule-state-error" hidden>
+                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                        <div>
+                            <strong>Không thể tải lịch làm việc. Vui lòng thử lại.</strong>
+                            <span>Kết nối hoặc dữ liệu lịch đang tạm thời không khả dụng.</span>
+                            <div class="ice-state-actions">
+                                <button id="retryScheduleButton" class="ice-btn ice-btn-secondary" type="button">
+                                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Thử lại
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="schedulePrefillNotice" class="ice-notice ice-notice-info ice-span-2">
+                    Các trường bên dưới được lấy từ ca lịch đã chọn và không thể sửa trong chế độ này.
                 </div>
                 <div class="ice-field ice-span-2">
                     <label for="shiftName">Tên ca</label>
@@ -328,7 +394,7 @@
                     <small>Chỉ Ca trưởng hoặc Cửa hàng trưởng đang hoạt động tại chi nhánh.</small>
                 </div>
                 <div class="ice-form-actions">
-                    <button class="ice-btn ice-btn-primary" type="submit" disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)">
+                    <button id="createShiftButton" class="ice-btn ice-btn-primary" type="submit" disabled>
                         <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Tạo ca
                     </button>
                 </div>
@@ -456,47 +522,221 @@
             unitSelect?.addEventListener('change', updateUnitLabels);
             updateUnitLabels();
 
+            const createShiftForm = document.querySelector('form[data-schedule-options-url]');
             const scheduleSelect = document.getElementById('scheduleSource');
             const scheduleField = document.getElementById('scheduleSourceField');
+            const scheduleLoadingState = document.getElementById('scheduleLoadingState');
+            const scheduleHasDataState = document.getElementById('scheduleHasDataState');
+            const scheduleEmptyState = document.getElementById('scheduleEmptyState');
+            const scheduleErrorState = document.getElementById('scheduleErrorState');
+            const schedulePrefillNotice = document.getElementById('schedulePrefillNotice');
+            const scheduleStaffCount = document.getElementById('scheduleStaffCount');
+            const scheduleLeadName = document.getElementById('scheduleLeadName');
+            const retryScheduleButton = document.getElementById('retryScheduleButton');
+            const switchToManualButton = document.getElementById('switchToManualButton');
+            const createShiftButton = document.getElementById('createShiftButton');
             const creationSource = document.getElementById('creationSource');
             const sourceScheduleShiftId = document.getElementById('sourceScheduleShiftId');
+            const scheduleShiftLeadId = document.getElementById('scheduleShiftLeadId');
             const shiftName = document.getElementById('shiftName');
             const shiftStartDisplay = document.getElementById('shiftStartDisplay');
             const shiftEndDisplay = document.getElementById('shiftEndDisplay');
+            const shiftStart = document.getElementById('shiftStart');
+            const shiftEnd = document.getElementById('shiftEnd');
             const shiftLead = document.getElementById('shiftLead');
+            const createEnabled = createShiftForm?.dataset.createEnabled === 'true';
+            let scheduleState = 'idle';
+            let currentCreateMode = null;
+            let scheduleRequest = null;
+            let manualDraft = {
+                name: shiftName?.value || '',
+                startDisplay: shiftStartDisplay?.value || '',
+                endDisplay: shiftEndDisplay?.value || '',
+                start: shiftStart?.value || '',
+                end: shiftEnd?.value || '',
+                leadId: shiftLead?.value || ''
+            };
 
             const displayDateTime = value => {
                 const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value || '');
                 return match ? `${match[3]}/${match[2]}/${match[1]} ${match[4]}:${match[5]}` : '';
             };
 
+            const setScheduleState = state => {
+                scheduleState = state;
+                scheduleLoadingState.hidden = state !== 'loading';
+                scheduleHasDataState.hidden = state !== 'has-data';
+                scheduleEmptyState.hidden = state !== 'empty';
+                scheduleErrorState.hidden = state !== 'error';
+                if (currentCreateMode === 'schedule')
+                    createShiftButton.disabled = !createEnabled
+                        || state !== 'has-data'
+                        || !sourceScheduleShiftId.value
+                        || !scheduleShiftLeadId.value;
+            };
+
+            const clearScheduleAuthority = () => {
+                sourceScheduleShiftId.value = '';
+                scheduleShiftLeadId.value = '';
+                scheduleStaffCount.textContent = '—';
+                scheduleLeadName.textContent = '—';
+            };
+
+            const setScheduleFieldsReadonly = readonly => {
+                [shiftName, shiftStartDisplay, shiftEndDisplay].forEach(input => {
+                    if (!input) return;
+                    input.readOnly = readonly;
+                    input.classList.toggle('ice-readonly-field', readonly);
+                    input.setAttribute('aria-readonly', readonly ? 'true' : 'false');
+                });
+                if (shiftLead) {
+                    shiftLead.disabled = readonly || !createEnabled;
+                    shiftLead.classList.toggle('ice-readonly-field', readonly);
+                    shiftLead.setAttribute('aria-readonly', readonly ? 'true' : 'false');
+                }
+                scheduleShiftLeadId.disabled = !readonly;
+            };
+
+            const clearSchedulePrefill = () => {
+                shiftName.value = '';
+                shiftStartDisplay.value = '';
+                shiftEndDisplay.value = '';
+                shiftStart.value = '';
+                shiftEnd.value = '';
+                shiftLead.value = '';
+                clearScheduleAuthority();
+            };
+
+            const captureManualDraft = () => {
+                manualDraft = {
+                    name: shiftName.value,
+                    startDisplay: shiftStartDisplay.value,
+                    endDisplay: shiftEndDisplay.value,
+                    start: shiftStart.value,
+                    end: shiftEnd.value,
+                    leadId: shiftLead.value
+                };
+            };
+
+            const restoreManualDraft = () => {
+                shiftName.value = manualDraft.name;
+                shiftStartDisplay.value = manualDraft.startDisplay;
+                shiftEndDisplay.value = manualDraft.endDisplay;
+                shiftStart.value = manualDraft.start;
+                shiftEnd.value = manualDraft.end;
+                shiftLead.value = manualDraft.leadId;
+            };
+
             const applySchedule = () => {
                 const option = scheduleSelect?.selectedOptions?.[0];
-                if (!option) return;
+                if (!option) {
+                    clearScheduleAuthority();
+                    setScheduleState('empty');
+                    return;
+                }
                 sourceScheduleShiftId.value = option.value;
                 shiftName.value = option.dataset.name || '';
                 shiftStartDisplay.value = displayDateTime(option.dataset.start);
                 shiftEndDisplay.value = displayDateTime(option.dataset.end);
-                if (option.dataset.leadId && shiftLead)
-                    shiftLead.value = option.dataset.leadId;
+                shiftStart.value = option.dataset.start || '';
+                shiftEnd.value = option.dataset.end || '';
+                scheduleShiftLeadId.value = option.dataset.leadId || '';
+                shiftLead.value = option.dataset.leadId || '';
+                scheduleStaffCount.textContent = option.dataset.staffCount
+                    ? `${option.dataset.staffCount} nhân viên`
+                    : '—';
+                scheduleLeadName.textContent = shiftLead.selectedOptions?.[0]?.textContent?.trim()
+                    || 'Chưa xác định';
+                setScheduleState('has-data');
+            };
+
+            const loadSchedules = async () => {
+                if (!createShiftForm || currentCreateMode !== 'schedule') return;
+                scheduleRequest?.abort();
+                scheduleRequest = new AbortController();
+                clearSchedulePrefill();
+                scheduleSelect.replaceChildren();
+                setScheduleState('loading');
+
+                try {
+                    const url = new URL(createShiftForm.dataset.scheduleOptionsUrl, window.location.origin);
+                    url.searchParams.set('storeId', createShiftForm.querySelector('[name="StoreId"]').value);
+                    url.searchParams.set('businessDate', createShiftForm.dataset.businessDate);
+                    const response = await fetch(url, {
+                        credentials: 'same-origin',
+                        headers: { Accept: 'application/json' },
+                        signal: scheduleRequest.signal
+                    });
+                    const payload = await response.json().catch(() => null);
+                    if (!response.ok || payload?.success !== true || !Array.isArray(payload.data))
+                        throw new Error('Schedule options request failed.');
+                    if (currentCreateMode !== 'schedule') return;
+
+                    payload.data.forEach(schedule => {
+                        const option = document.createElement('option');
+                        option.value = schedule.scheduleShiftId;
+                        option.textContent = schedule.label;
+                        option.dataset.name = schedule.name;
+                        option.dataset.start = schedule.startLocalValue;
+                        option.dataset.end = schedule.endLocalValue;
+                        option.dataset.leadId = schedule.suggestedShiftLeadId ?? '';
+                        option.dataset.staffCount = schedule.staffCount;
+                        scheduleSelect.append(option);
+                    });
+
+                    if (payload.data.length === 0) {
+                        clearSchedulePrefill();
+                        setScheduleState('empty');
+                        return;
+                    }
+
+                    setScheduleState('has-data');
+                    applySchedule();
+                } catch (error) {
+                    if (error?.name === 'AbortError') return;
+                    clearSchedulePrefill();
+                    setScheduleState('error');
+                    console.error('[OperationalIce] Schedule options request failed.');
+                }
             };
 
             const setCreateMode = mode => {
-                const fromSchedule = mode === 'schedule' && Boolean(scheduleSelect);
+                if (currentCreateMode === 'manual')
+                    captureManualDraft();
+                currentCreateMode = mode;
+                const fromSchedule = mode === 'schedule';
                 creationSource.value = fromSchedule ? 'StaffSchedule' : 'Manual';
                 sourceScheduleShiftId.disabled = !fromSchedule;
                 scheduleField.hidden = !fromSchedule;
-                if (fromSchedule)
-                    applySchedule();
-                else
-                    sourceScheduleShiftId.value = '';
+                schedulePrefillNotice.hidden = !fromSchedule;
+                setScheduleFieldsReadonly(fromSchedule);
+
+                if (fromSchedule) {
+                    clearScheduleAuthority();
+                    loadSchedules();
+                    return;
+                }
+
+                scheduleRequest?.abort();
+                clearScheduleAuthority();
+                sourceScheduleShiftId.disabled = true;
+                scheduleShiftLeadId.disabled = true;
+                restoreManualDraft();
+                createShiftButton.disabled = !createEnabled;
             };
 
             document.querySelectorAll('input[name="createMode"]').forEach(input => {
                 input.addEventListener('change', () => setCreateMode(input.value));
             });
             scheduleSelect?.addEventListener('change', applySchedule);
-            setCreateMode(document.querySelector('input[name="createMode"]:checked')?.value || 'manual');
+            retryScheduleButton?.addEventListener('click', loadSchedules);
+            switchToManualButton?.addEventListener('click', () => {
+                const manualMode = document.querySelector('input[name="createMode"][value="manual"]');
+                manualMode.checked = true;
+                manualMode.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+            if (createShiftForm)
+                setCreateMode(document.querySelector('input[name="createMode"]:checked')?.value || 'manual');
 
             const parseVietnameseDate = value => {
                 const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());

@@ -62,6 +62,21 @@ public sealed class OperationalIceScheduleSourceIssue256Tests : IntegrationTestB
     }
 
     [Fact]
+    public async Task CreateFromSchedule_RejectsMissingSource()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).CreateShiftAsync(
+            NewRequest(OperationalIceCreationSources.StaffSchedule, null),
+            Actor());
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("không nhất quán", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task CreateFromSchedule_PreventsDuplicateActiveShift()
     {
         using var context = CreateDbContext();
@@ -160,6 +175,25 @@ public sealed class OperationalIceScheduleSourceIssue256Tests : IntegrationTestB
     }
 
     [Fact]
+    public async Task CreateFromSchedule_RejectsOutOfScopeSource()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStore(context, OtherStoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        SeedPolicy(context);
+        SeedSchedule(context, OtherStoreId, 25620, BusinessDate, SupervisorStaffId);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).CreateShiftAsync(
+            NewRequest(OperationalIceCreationSources.StaffSchedule, 25620),
+            Actor());
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("không thuộc chi nhánh", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task ScheduleSource_MustMatchBusinessDateContract()
     {
         using var context = CreateDbContext();
@@ -199,6 +233,26 @@ public sealed class OperationalIceScheduleSourceIssue256Tests : IntegrationTestB
     }
 
     [Fact]
+    public async Task ScheduleMode_GroupsEmployeeAssignmentsIntoOneShiftOption()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        SeedStaff(context, 25612, StoreId, RoleConstants.SalesStaff);
+        SeedStaff(context, 25613, StoreId, RoleConstants.SalesStaff);
+        SeedSchedule(context, StoreId, 25620, BusinessDate, SupervisorStaffId, 25612, 25613);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).GetScheduleOptionsAsync(StoreId, BusinessDate, Actor());
+
+        Assert.True(result.IsSuccess, result.Message);
+        var option = Assert.Single(result.Data);
+        Assert.Equal(25620, option.ScheduleShiftId);
+        Assert.Equal(3, option.StaffCount);
+        Assert.Equal(SupervisorStaffId, option.SuggestedShiftLeadId);
+    }
+
+    [Fact]
     public async Task ManualShiftCreation_RemainsSupported()
     {
         using var context = CreateDbContext();
@@ -213,6 +267,55 @@ public sealed class OperationalIceScheduleSourceIssue256Tests : IntegrationTestB
 
         Assert.True(result.IsSuccess, result.Message);
         var shift = await context.OperationalShifts.SingleAsync();
+        Assert.Equal(OperationalIceCreationSources.Manual, shift.CreationSource);
+        Assert.Null(shift.SourceScheduleShiftId);
+    }
+
+    [Fact]
+    public async Task ManualMode_RemainsSupported()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        SeedPolicy(context);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).CreateShiftAsync(
+            NewRequest(OperationalIceCreationSources.Manual, null),
+            Actor());
+
+        Assert.True(result.IsSuccess, result.Message);
+        var shift = await context.OperationalShifts.SingleAsync();
+        Assert.Equal(OperationalIceCreationSources.Manual, shift.CreationSource);
+        Assert.Null(shift.SourceScheduleShiftId);
+    }
+
+    [Fact]
+    public async Task ExistingManualShift_RemainsManual()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        SeedPolicy(context);
+        context.OperationalShifts.Add(new OperationalShift
+        {
+            StoreId = StoreId,
+            BusinessDate = BusinessDate,
+            Name = "Ca thủ công hiện có",
+            StartAtUtc = LocalUtc(BusinessDate.AddHours(6)),
+            EndAtUtc = LocalUtc(BusinessDate.AddHours(14)),
+            CreationSource = OperationalIceCreationSources.Manual,
+            SourceScheduleShiftId = null,
+            ShiftLeadId = SupervisorStaffId,
+            Status = OperationalIceStatuses.Draft,
+            CreatedByStaffId = ManagerStaffId,
+            CreatedAtUtc = DateTime.UtcNow,
+            RowVersion = [0]
+        });
+        await context.SaveChangesAsync();
+
+        var shift = await context.OperationalShifts.AsNoTracking().SingleAsync();
+
         Assert.Equal(OperationalIceCreationSources.Manual, shift.CreationSource);
         Assert.Null(shift.SourceScheduleShiftId);
     }
@@ -315,7 +418,7 @@ public sealed class OperationalIceScheduleSourceIssue256Tests : IntegrationTestB
         Assert.Contains("Tạo từ lịch làm việc", index);
         Assert.Contains("Tạo thủ công", index);
         Assert.Contains("SourceScheduleShiftId", index);
-        Assert.Contains("Không tìm thấy lịch làm việc phù hợp", index);
+        Assert.Contains("Không có lịch làm việc phù hợp.", index);
         Assert.Contains("LinkedWorkShiftCount", index);
         Assert.Contains("name=\"WorkShiftIds\"", details);
         Assert.Contains("Xác nhận liên kết", details);
