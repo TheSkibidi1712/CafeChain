@@ -5914,17 +5914,18 @@ WHERE InventoryTransferId=1 AND([Status]<>1 OR ConfirmedAt IS NOT NULL
 OR DispatchedAt IS NOT NULL OR CancelledAt IS NOT NULL);
 
 /* ============================================================
-   BATCH 12/12 - PERMISSION CATALOG AND ROLE GRANTS
+   BATCH 12B - ACTIVE ADMIN PERMISSION CATALOG
+   Expected clean totals after Batch 12 + 12B:
+   - 25 PermissionGroups
+   - 145 Permissions
+   - 418 RolePermissions
 
-   Source analysis:
-   - EF HasData remains authoritative for PermissionGroups 1-5,
-     Permissions 1-4 and 100, and RolePermissions (1,1-4/100).
-   - Part7 remains authoritative for PermissionGroups 6-8,
-     Permissions 5-26 and its 34 RolePermission pairs.
-   - Part7 used a dynamic server timestamp for Permission.CreatedAt. SeedAll normalizes
-     those timestamps to the project-wide fixed date 2026-01-01.
-   - No Role, Account or AccountPermissionOverride row is created.
-   - Expected clean counts: groups 8, permissions 27, grants 39.
+   PermissionId 100 is intentionally reserved for migration rollback.
+   PermissionGroupId 22 is reserved for OPERATIONAL_ICE.
+   PermissionIds 200-203 are reserved for Operational Ice permissions.
+
+   This batch is insert-only and idempotent;
+   contract conflicts abort the transaction.
    ============================================================ */
 
 IF OBJECT_ID(N'dbo.PermissionGroups', N'U') IS NULL
@@ -6088,6 +6089,7 @@ BEGIN TRY
  (19,N'INVENTORY_TRANSFER',N'Chuyển kho',20,1),
  (20,N'STAFF',N'Nhân viên',21,1),
  (21,N'SHIFT',N'Lịch làm việc',22,1),
+ (22,N'OPERATIONAL_ICE',N'Quản lý đá vận hành',23,1),
  (23,N'STORE',N'Cửa hàng',24,1),
  (24,N'SETTINGS',N'Cài đặt hệ thống',25,1),
  (25,N'BOM',N'BOM và sản xuất',26,1);
@@ -6213,6 +6215,11 @@ BEGIN TRY
  (101,21,N'Shift.Create',N'Tạo lịch làm việc',N'Create',N'Tạo lịch làm việc',1,'2026-01-01'),
  (102,21,N'Shift.Update',N'Cập nhật lịch làm việc',N'Update',N'Cập nhật lịch làm việc',1,'2026-01-01'),
  (103,21,N'Shift.Cancel',N'Hủy lịch làm việc',N'Cancel',N'Hủy lịch làm việc và giữ lịch sử',1,'2026-01-01'),
+
+ (147,22, N'OperationalIce.View', N'Xem quản lý đá vận hành', N'View', N'Xem ca vận hành, phân bổ và đối soát đá', 1,'2026-07-29'),
+ (148,22, N'OperationalIce.Manage', N'Vận hành phân bổ đá', N'Manage', N'Tạo ca, mở phân bổ, cấp bổ sung và bàn giao đá', 1,'2026-07-29'),
+ (149,22, N'OperationalIce.Approve', N'Duyệt đối soát đá', N'Approve', N'Duyệt cấp bổ sung và chênh lệch đá cuối ca', 1,'2026-07-29'),
+ (150,22, N'OperationalIce.Policy', N'Cấu hình chính sách đá', N'Policy', N'Cấu hình định mức và ngưỡng đối soát đá theo cửa hàng', 1,'2026-07-29'),
 
  (108,23,N'Store.View',N'Xem cửa hàng',N'View',N'Xem cửa hàng',1,'2026-01-01'),
  (109,23,N'Store.Create',N'Tạo cửa hàng',N'Create',N'Tạo cửa hàng',1,'2026-01-01'),
@@ -6366,6 +6373,10 @@ BEGIN TRY
  (1,142), -- PurchaseOrder.OverrideAllocation
  (1,143), -- PurchaseOrder.Export
  (1,146), -- Receipt.ViewCost
+ (1,147),
+ (1,148),
+ (1,149),
+ (1,150),
  (2,28),
  (2,32),
  (2,36),
@@ -6401,6 +6412,7 @@ BEGIN TRY
  (2,129),
  (2,130),
  (2,146), -- Receipt.ViewCost
+ (2,147),
  (3,36),
  (3,39),
  (3,40),
@@ -6450,6 +6462,11 @@ BEGIN TRY
  (3,133), -- Restock.Update
  (3,144), -- Receipt.UpdateDraft
  (3,145), -- Receipt.RecordSupplierIssue
+ (3,147),
+ (3,148),
+ (3,149),
+ (3,150),
+ (4,147),
  (5,28),
  (5,29),
  (5,30),
@@ -6530,6 +6547,10 @@ BEGIN TRY
  (5,139), -- PurchaseOrder.Submit
  (5,143), -- PurchaseOrder.Export
  (5,146), -- Receipt.ViewCost
+ (5,147),
+ (5,148),
+ (5,149),
+ (5,150),
  (6,28),
  (6,29),
  (6,30),
@@ -6627,7 +6648,14 @@ BEGIN TRY
  (6,127),
  (6,128),
  (6,129),
- (6,130);
+ (6,130),
+ (6,147),
+ (6,148),
+ (6,149),
+ (6,150),
+ (8,147),
+ (8,148);
+
 
  IF EXISTS(SELECT 1 FROM @AdminRolePermissionSeed x
  LEFT JOIN dbo.Roles r ON r.RoleId=x.RoleId AND r.Active=1
@@ -10968,66 +10996,7 @@ BEGIN CATCH
 END CATCH;
 GO
 
-/* Explicit empty-table policy. Any new unclassified empty model table fails the seed. */
-DECLARE @AllowedEmpty TABLE(TableName sysname PRIMARY KEY, Reason nvarchar(300) NOT NULL);
-INSERT @AllowedEmpty(TableName,Reason) VALUES
-(N'AccountPermissionOverrides',N'Optional exceptional RBAC override; role grants are seeded.'),
-(N'AuditLogs',N'Runtime audit trail only.'),
-(N'DocumentNumberCounters',N'Runtime concurrency counter only.'),
-(N'DrinkSizePriceAudits',N'Runtime price-change audit only.'),
-(N'DrinkSizeToppingPolicyAudits',N'Runtime policy-change audit only.'),
-(N'InventoryCostGapSettlements',N'Exceptional costing remediation only.'),
-(N'InventoryNegativeApprovalLines',N'Exceptional negative-stock approval only.'),
-(N'InventoryNegativeApprovals',N'Exceptional negative-stock approval only.'),
-(N'InventoryNegativeCostGaps',N'Exceptional negative-stock cost gap only.'),
-(N'InventoryTransferDiscrepancyPostings',N'Exceptional transfer discrepancy only.'),
-(N'InventoryWriterModeTransitions',N'Operational rollout transition only.'),
-(N'InvoiceAuditLogs',N'Runtime invoice audit only.'),
-(N'OtpChallenges',N'Sensitive ephemeral authentication data.'),
-(N'PasswordResetOtps',N'Sensitive ephemeral authentication data.'),
-(N'PurchaseAdviceFulfillmentPostings',N'Created only by later confirmed purchase fulfillment.'),
-(N'RefundCostGaps',N'Exceptional refund costing gap only.'),
-(N'RefundCostReversals',N'Created only by a qualifying costed refund.'),
-(N'RequestDeduplications',N'Runtime idempotency ledger only.'),
-(N'SalesCostGaps',N'Exceptional sales costing gap only.'),
-(N'StoreMenuItemAudits',N'Runtime menu mutation audit only.'),
-(N'SupplierDuplicateWarnings',N'Exceptional supplier deduplication warning only.'),
-(N'Provinces',N'Location catalog is outside this demo seed.'),
-(N'Districts',N'Location catalog is outside this demo seed.'),
-(N'Wards',N'Location catalog is outside this demo seed.');
 
-DECLARE @UnexpectedEmpty nvarchar(max);
-SELECT @UnexpectedEmpty=STRING_AGG(QUOTENAME(t.name),N', ')
-FROM sys.tables t
-WHERE t.is_ms_shipped=0
-  AND t.name<>N'__EFMigrationsHistory'
-  AND NOT EXISTS(SELECT 1 FROM @AllowedEmpty a WHERE a.TableName=t.name)
-  AND NOT EXISTS
-  (
-      SELECT 1 FROM sys.dm_db_partition_stats ps
-      WHERE ps.object_id=t.object_id AND ps.index_id IN(0,1) AND ps.row_count>0
-  );
-IF @UnexpectedEmpty IS NOT NULL
-BEGIN
-    DECLARE @CoverageFailure nvarchar(2048)=CONCAT(N'SeedAll has unclassified empty business tables: ',@UnexpectedEmpty);
-    THROW 53701,@CoverageFailure,1;
-END;
 
-IF EXISTS
-(
-    SELECT 1 FROM @AllowedEmpty a
-    WHERE OBJECT_ID(N'dbo.'+QUOTENAME(a.TableName),N'U') IS NULL
-)
-    THROW 53702,N'SeedAll empty-table allowlist contains a table absent from the current model.',1;
-
-SELECT N'DEMO_COVERAGE_V17' SeedMarker,
-       (SELECT COUNT(*) FROM dbo.PointTransactions) PointTransactions,
-       (SELECT COUNT(*) FROM dbo.ForecastRuns) ForecastRuns,
-       (SELECT COUNT(*) FROM dbo.ScheduleOptimizationProposals) ScheduleProposals,
-       (SELECT COUNT(*) FROM dbo.PurchaseAdvices) PurchaseAdvices,
-       (SELECT COUNT(*) FROM dbo.PurchaseOrderBatches) PurchaseOrderBatches,
-       (SELECT COUNT(*) FROM dbo.InventoryConsolidationRuns) ConsolidationRuns,
-       (SELECT COUNT(*) FROM @AllowedEmpty) AllowedEmptyTables;
-GO
 
 

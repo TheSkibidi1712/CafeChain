@@ -6277,8 +6277,7 @@ namespace CafeChain.Migrations
                     { 2, true, "TOPPING", 2, "Quản lý Topping" },
                     { 3, true, "ORDER", 3, "Quản lý đơn hàng" },
                     { 4, true, "CUSTOMER", 4, "Quản lý khách hàng" },
-                    { 5, true, "SYSTEM", 999, "Hệ thống" },
-                    { 20, true, "OPERATIONAL_ICE", 20, "Quản lý đá vận hành" }
+                    { 5, true, "SYSTEM", 999, "Hệ thống" }
                 });
 
             migrationBuilder.InsertData(
@@ -6490,11 +6489,7 @@ namespace CafeChain.Migrations
                     { 2, "Create", true, "Drink.Create", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Tạo mới đồ uống", "Thêm đồ uống", 1 },
                     { 3, "Update", true, "Drink.Update", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cập nhật thông tin đồ uống", "Cập nhật đồ uống", 1 },
                     { 4, "Delete", true, "Drink.Delete", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Xóa hoặc vô hiệu đồ uống", "Xóa đồ uống", 1 },
-                    { 27, "Manage", true, "System.Permission.Manage", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Xem danh sách bảng phân quyền", "Quản lý phân quyền", 5 },
-                    { 200, "View", true, "OperationalIce.View", new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "Xem ca vận hành, phân bổ và đối soát đá", "Xem quản lý đá vận hành", 20 },
-                    { 201, "Manage", true, "OperationalIce.Manage", new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "Tạo ca, mở phân bổ, cấp bổ sung và bàn giao đá", "Vận hành phân bổ đá", 20 },
-                    { 202, "Approve", true, "OperationalIce.Approve", new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "Duyệt cấp bổ sung và chênh lệch đá cuối ca", "Duyệt đối soát đá", 20 },
-                    { 203, "Policy", true, "OperationalIce.Policy", new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cấu hình định mức và ngưỡng đối soát đá theo cửa hàng", "Cấu hình chính sách đá", 20 }
+                    { 27, "Manage", true, "System.Permission.Manage", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Xem danh sách bảng phân quyền", "Quản lý phân quyền", 5 }
                 });
 
             migrationBuilder.InsertData(
@@ -6806,27 +6801,7 @@ namespace CafeChain.Migrations
                     { 2, 1 },
                     { 3, 1 },
                     { 4, 1 },
-                    { 27, 1 },
-                    { 200, 1 },
-                    { 201, 1 },
-                    { 202, 1 },
-                    { 203, 1 },
-                    { 200, 2 },
-                    { 200, 3 },
-                    { 201, 3 },
-                    { 202, 3 },
-                    { 203, 3 },
-                    { 200, 4 },
-                    { 200, 5 },
-                    { 201, 5 },
-                    { 202, 5 },
-                    { 203, 5 },
-                    { 200, 6 },
-                    { 201, 6 },
-                    { 202, 6 },
-                    { 203, 6 },
-                    { 200, 8 },
-                    { 201, 8 }
+                    { 27, 1 }
                 });
 
             migrationBuilder.InsertData(

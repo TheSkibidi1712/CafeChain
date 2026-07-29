@@ -10343,50 +10343,6 @@ namespace CafeChain.Migrations
                             Description = "Xem danh sách bảng phân quyền",
                             Name = "Quản lý phân quyền",
                             PermissionGroupId = 5
-                        },
-                        new
-                        {
-                            PermissionId = 200,
-                            Action = "View",
-                            Active = true,
-                            Code = "OperationalIce.View",
-                            CreatedAt = new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Xem ca vận hành, phân bổ và đối soát đá",
-                            Name = "Xem quản lý đá vận hành",
-                            PermissionGroupId = 20
-                        },
-                        new
-                        {
-                            PermissionId = 201,
-                            Action = "Manage",
-                            Active = true,
-                            Code = "OperationalIce.Manage",
-                            CreatedAt = new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Tạo ca, mở phân bổ, cấp bổ sung và bàn giao đá",
-                            Name = "Vận hành phân bổ đá",
-                            PermissionGroupId = 20
-                        },
-                        new
-                        {
-                            PermissionId = 202,
-                            Action = "Approve",
-                            Active = true,
-                            Code = "OperationalIce.Approve",
-                            CreatedAt = new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Duyệt cấp bổ sung và chênh lệch đá cuối ca",
-                            Name = "Duyệt đối soát đá",
-                            PermissionGroupId = 20
-                        },
-                        new
-                        {
-                            PermissionId = 203,
-                            Action = "Policy",
-                            Active = true,
-                            Code = "OperationalIce.Policy",
-                            CreatedAt = new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Cấu hình định mức và ngưỡng đối soát đá theo cửa hàng",
-                            Name = "Cấu hình chính sách đá",
-                            PermissionGroupId = 20
                         });
                 });
 
@@ -10468,14 +10424,6 @@ namespace CafeChain.Migrations
                             Code = "SYSTEM",
                             DisplayOrder = 999,
                             Name = "Hệ thống"
-                        },
-                        new
-                        {
-                            PermissionGroupId = 20,
-                            Active = true,
-                            Code = "OPERATIONAL_ICE",
-                            DisplayOrder = 20,
-                            Name = "Quản lý đá vận hành"
                         });
                 });
 
@@ -10618,106 +10566,6 @@ namespace CafeChain.Migrations
                         {
                             RoleId = 1,
                             PermissionId = 27
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 200
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 201
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 202
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 203
-                        },
-                        new
-                        {
-                            RoleId = 2,
-                            PermissionId = 200
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            PermissionId = 200
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            PermissionId = 201
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            PermissionId = 202
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            PermissionId = 203
-                        },
-                        new
-                        {
-                            RoleId = 4,
-                            PermissionId = 200
-                        },
-                        new
-                        {
-                            RoleId = 5,
-                            PermissionId = 200
-                        },
-                        new
-                        {
-                            RoleId = 5,
-                            PermissionId = 201
-                        },
-                        new
-                        {
-                            RoleId = 5,
-                            PermissionId = 202
-                        },
-                        new
-                        {
-                            RoleId = 5,
-                            PermissionId = 203
-                        },
-                        new
-                        {
-                            RoleId = 6,
-                            PermissionId = 200
-                        },
-                        new
-                        {
-                            RoleId = 6,
-                            PermissionId = 201
-                        },
-                        new
-                        {
-                            RoleId = 6,
-                            PermissionId = 202
-                        },
-                        new
-                        {
-                            RoleId = 6,
-                            PermissionId = 203
-                        },
-                        new
-                        {
-                            RoleId = 8,
-                            PermissionId = 200
-                        },
-                        new
-                        {
-                            RoleId = 8,
-                            PermissionId = 201
                         });
                 });
 

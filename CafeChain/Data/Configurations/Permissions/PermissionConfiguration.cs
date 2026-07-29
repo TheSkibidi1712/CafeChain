@@ -123,50 +123,6 @@ namespace CafeChain.Data.Configurations.Permissions
                     Description = "Xem danh sách bảng phân quyền",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
-                },
-                new Permission
-                {
-                    PermissionId = 200,
-                    PermissionGroupId = 20,
-                    Code = "OperationalIce.View",
-                    Name = "Xem quản lý đá vận hành",
-                    Action = "View",
-                    Description = "Xem ca vận hành, phân bổ và đối soát đá",
-                    Active = true,
-                    CreatedAt = new DateTime(2026, 7, 29)
-                },
-                new Permission
-                {
-                    PermissionId = 201,
-                    PermissionGroupId = 20,
-                    Code = "OperationalIce.Manage",
-                    Name = "Vận hành phân bổ đá",
-                    Action = "Manage",
-                    Description = "Tạo ca, mở phân bổ, cấp bổ sung và bàn giao đá",
-                    Active = true,
-                    CreatedAt = new DateTime(2026, 7, 29)
-                },
-                new Permission
-                {
-                    PermissionId = 202,
-                    PermissionGroupId = 20,
-                    Code = "OperationalIce.Approve",
-                    Name = "Duyệt đối soát đá",
-                    Action = "Approve",
-                    Description = "Duyệt cấp bổ sung và chênh lệch đá cuối ca",
-                    Active = true,
-                    CreatedAt = new DateTime(2026, 7, 29)
-                },
-                new Permission
-                {
-                    PermissionId = 203,
-                    PermissionGroupId = 20,
-                    Code = "OperationalIce.Policy",
-                    Name = "Cấu hình chính sách đá",
-                    Action = "Policy",
-                    Description = "Cấu hình định mức và ngưỡng đối soát đá theo cửa hàng",
-                    Active = true,
-                    CreatedAt = new DateTime(2026, 7, 29)
                 }
             );
         }
