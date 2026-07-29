@@ -63,7 +63,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                 return await GetDetailAsync(replay.PurchaseOrderBatchId, actor);
             }
 
-            var preview = await _consolidation.PreviewAsync(request, actor);
+            var preview = await _consolidation.PreviewAsync(request.ToPreviewRequest(), actor);
             if (!preview.IsSuccess)
             {
                 await transaction.RollbackAsync();

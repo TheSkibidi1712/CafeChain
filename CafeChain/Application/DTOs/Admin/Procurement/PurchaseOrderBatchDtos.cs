@@ -2,12 +2,40 @@ using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Application.DTOs.Admin.Procurement;
 
-public sealed class CreatePurchaseOrderBatchRequest : PurchaseAdviceConsolidationPreviewRequest
+public sealed class CreatePurchaseOrderBatchRequest
 {
+    public int SupplierId { get; set; }
+    public List<CreatePurchaseOrderBatchLineRequest> Lines { get; set; } = new();
     public string RequestKey { get; set; } = string.Empty;
     public DateTime? ExpectedDeliveryFrom { get; set; }
     public DateTime? ExpectedDeliveryTo { get; set; }
     public string? Note { get; set; }
+
+    public PurchaseAdviceConsolidationPreviewRequest ToPreviewRequest() => new()
+    {
+        SupplierId = SupplierId,
+        Lines = Lines.Select(line => line.ToPreviewSelection()).ToList()
+    };
+}
+
+public sealed class CreatePurchaseOrderBatchLineRequest
+{
+    public int PurchaseAdviceLineId { get; set; }
+    public int IngredientSupplierId { get; set; }
+    public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
+    public int? PackageCount { get; set; }
+    public decimal? OrderedProcurementQuantity { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
+
+    public PurchaseAdviceConsolidationSelectionRequest ToPreviewSelection() => new()
+    {
+        PurchaseAdviceLineId = PurchaseAdviceLineId,
+        IngredientSupplierId = IngredientSupplierId,
+        PurchaseMode = PurchaseMode,
+        PackageCount = PackageCount,
+        OrderedProcurementQuantity = OrderedProcurementQuantity,
+        RowVersion = RowVersion
+    };
 }
 
 public sealed class PurchaseOrderBatchTransitionRequest

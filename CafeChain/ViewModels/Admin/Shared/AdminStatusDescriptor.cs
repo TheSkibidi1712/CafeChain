@@ -301,6 +301,20 @@ namespace CafeChain.ViewModels.Admin.Shared
 
         public static string Quantity(decimal value) => value.ToString("0.###", VietnameseCulture);
 
+        public static string Unit(string? value)
+        {
+            var label = value?.Trim() ?? string.Empty;
+            return label.ToLowerInvariant() switch
+            {
+                "gram" or "g" => "g",
+                "kilogram" or "kg" => "kg",
+                "milliliter" or "ml" => "ml",
+                "liter" or "litre" or "l" => "L",
+                "piece" or "pieces" or "pcs" => "cái",
+                _ => label
+            };
+        }
+
         public static string Currency(decimal value) => $"{value.ToString("N0", VietnameseCulture)} ₫";
 
         public static string Date(DateTime value) => value.ToString("dd/MM/yyyy", VietnameseCulture);
