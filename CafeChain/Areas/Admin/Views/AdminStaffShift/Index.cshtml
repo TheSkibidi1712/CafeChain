@@ -288,7 +288,7 @@
                                             @if (Model.CanCancel)
                                             {
                                                 <button type="button" class="cancel-schedule" title="Hủy lịch của @staff.StaffName" aria-label="Hủy lịch @schedule.ShiftName của @staff.StaffName"
-                                                        data-id="@schedule.StaffShiftId" data-version="@schedule.RowVersion"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>Hủy</span></button>
+                                                        data-id="@schedule.StaffShiftId" data-version="@schedule.RowVersion" data-name="@staff.StaffName"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>Hủy</span></button>
                                             }
                                         </div>
                                     }
@@ -384,6 +384,80 @@
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button><button type="submit" class="btn btn-primary">Lưu mẫu ca</button></div>
             </form>
+        </div>
+    </div>
+</div>
+
+@* ═══════════════════════════════════════════════════════════
+    Premium Cancel Schedule Modal — 3D Glassmorphism Design
+    ═══════════════════════════════════════════════════════════ *@
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalHeading" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered cancel-modal-dialog">
+        <div class="modal-content cancel-modal-content" role="document">
+
+        @* Animated ambient orbs *@
+            <div class="cancel-orbs" aria-hidden="true">
+                <span class="cancel-orb cancel-orb-1"></span>
+                <span class="cancel-orb cancel-orb-2"></span>
+                <span class="cancel-orb cancel-orb-3"></span>
+            </div>
+
+        @* Floating icon with pulsing rings *@
+            <div class="cancel-icon-stage" aria-hidden="true">
+                <div class="cancel-icon-rings">
+                    <span class="ring ring-1"></span>
+                    <span class="ring ring-2"></span>
+                    <span class="ring ring-3"></span>
+                </div>
+                <div class="cancel-icon-core">
+                    <i class="fa-solid fa-calendar-xmark"></i>
+                </div>
+            </div>
+
+        @* Header *@
+            <div class="cancel-modal-header">
+                <span class="cancel-modal-eyebrow">XÁC NHẬN THAO TÁC</span>
+                <h5 class="cancel-modal-title" id="cancelModalHeading">Hủy lịch làm việc</h5>
+                <p class="cancel-modal-subtitle" id="cancelModalSubtitle">
+                    Thao tác này sẽ hủy ca làm việc và không thể hoàn tác.
+                </p>
+            </div>
+
+        @* Body — reason textarea *@
+            <div class="cancel-modal-body">
+                <div class="cancel-reason-field">
+                    <label class="cancel-reason-label" for="cancelReasonInput">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        Lý do hủy <span class="cancel-required">*</span>
+                    </label>
+                    <div class="cancel-textarea-wrap">
+                        <textarea id="cancelReasonInput"
+                                  class="cancel-textarea"
+                                  rows="3"
+                                  maxlength="500"
+                                  placeholder="Nhập lý do để lưu vào lịch sử thay đổi..."></textarea>
+                        <span class="cancel-char-count" id="cancelCharCount">0 / 500</span>
+                    </div>
+                    <p class="cancel-reason-error" id="cancelReasonError" hidden>
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        Vui lòng nhập lý do trước khi xác nhận.
+                    </p>
+                </div>
+            </div>
+
+        @* Footer *@
+            <div class="cancel-modal-footer">
+                <button type="button" class="cancel-btn-keep" data-bs-dismiss="modal">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Không, giữ lại</span>
+                </button>
+                <button type="button" class="cancel-btn-confirm" id="cancelConfirmBtn">
+                    <span class="cancel-btn-shimmer"></span>
+                    <i class="fa-solid fa-calendar-xmark"></i>
+                    <span>Xác nhận hủy</span>
+                </button>
+            </div>
+
         </div>
     </div>
 </div>

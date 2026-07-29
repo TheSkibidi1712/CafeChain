@@ -2,7 +2,7 @@
 @using CafeChain.Application.Constants.Cloudinaries
 @{
     var provinces = ViewBag.Provinces as List<CafeChain.Models.Locations.Province> ?? new();
-    ViewData["Title"] = "Cập nhật nhân viên";
+    ViewData["Title"] = "Cap nhat nhan vien";
     Layout = "_AdminLayout";
 }
 
@@ -12,11 +12,24 @@
 }
 
 <div class="admin-wo-page">
+
+    @* Page Header *@
     <div class="page-header">
-        <div><h3 class="fw-bold mb-0">Cập nhật nhân viên</h3><p class="mb-0">Chỉnh sửa thông tin cá nhân; vai trò và phạm vi được quản lý ở màn hình phân quyền.</p></div>
-        <a asp-action="Index" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Quay lại</a>
+        <div class="d-flex align-items-center gap-3">
+            <div class="staff-edit-header-icon">
+                <i class="fas fa-user-edit"></i>
+            </div>
+            <div>
+                <h3 class="mb-0">C&#7853;p nh&#7853;t nh&acirc;n vi&ecirc;n</h3>
+                <p class="mb-0">Ch&#7881;nh s&#7917;a th&ocirc;ng tin c&aacute; nh&acirc;n, vai tr&ograve; v&agrave; ph&#7841;m vi qu&#7843;n l&yacute;.</p>
+            </div>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+            <i class="fas fa-arrow-left"></i> Quay l&#7841;i danh s&aacute;ch
+        </a>
     </div>
-    <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editStaffForm" class="card admin-wo-card">
+
+    <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editStaffForm">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="StaffId" />
         <input type="hidden" asp-for="AccountId" />
@@ -26,30 +39,191 @@
         <input type="hidden" asp-for="StoreId" />
         <input type="hidden" asp-for="CurrentAvatarUrl" />
         <input type="hidden" asp-for="Active" />
-        <div class="card-body p-4">
-            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-            <div class="row g-3">
-                <div class="col-md-6"><label asp-for="FullName" class="form-label">Họ và tên *</label><input asp-for="FullName" class="form-control" /><span asp-validation-for="FullName" class="text-danger"></span></div>
-                <div class="col-md-6"><label asp-for="Email" class="form-label">Email *</label><input asp-for="Email" class="form-control" /><span asp-validation-for="Email" class="text-danger"></span></div>
-                <div class="col-md-4"><label asp-for="CCCD" class="form-label">CCCD</label><input asp-for="CCCD" class="form-control" /></div>
-                <div class="col-md-4"><label asp-for="Gender" class="form-label">Giới tính</label><select asp-for="Gender" class="form-select"><option value="0">Nữ</option><option value="1">Nam</option><option value="2">Khác</option></select></div>
-                <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label">Ngày sinh</label><input asp-for="DateOfBirth" type="date" class="form-control" /></div>
-                <div class="col-md-4"><label asp-for="StartDate" class="form-label">Ngày bắt đầu</label><input asp-for="StartDate" type="date" class="form-control" /></div>
-                <div class="col-md-4"><label asp-for="EmployeeStatus" class="form-label">Trạng thái nhân sự</label><select asp-for="EmployeeStatus" class="form-select"><option value="1">Thử việc</option><option value="2">Chính thức</option><option value="3">Nghỉ việc</option></select></div>
-                <div class="col-md-4"><label class="form-label">Số điện thoại</label><input name="Phones[0]" value="@(Model.Phones.FirstOrDefault())" class="form-control" /></div>
-                <div class="col-md-6"><label asp-for="AvatarFile" class="form-label">Ảnh đại diện</label><div class="d-flex gap-3 align-items-center"><img id="staffAvatarPreview" src="@(string.IsNullOrWhiteSpace(Model.CurrentAvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.CurrentAvatarUrl)" width="56" height="56" class="rounded-circle" style="object-fit:cover" onerror="this.src='@DefaultImages.StaffAvatarUrl'" /><input asp-for="AvatarFile" type="file" accept=".jpg,.jpeg,.png,.webp" class="form-control" /></div></div>
+
+        <div asp-validation-summary="ModelOnly" class="staff-edit-alert mb-3"></div>
+
+        <div class="card admin-wo-card staff-edit-card">
+
+            @* SECTION 1: THONG TIN CA NHAN *@
+            <div class="staff-edit-section-header">
+                <span class="staff-edit-section-icon"><i class="fas fa-user"></i></span>
+                <div>
+                    <div class="staff-edit-section-title">Th&ocirc;ng tin c&aacute; nh&acirc;n</div>
+                    <div class="staff-edit-section-sub">H&#7885; t&ecirc;n, email, CCCD v&agrave; c&aacute;c th&ocirc;ng tin nh&#7853;n d&#7841;ng</div>
+                </div>
             </div>
 
-            <hr class="my-4" />
-            <h6 class="text-uppercase text-muted mb-3">Địa chỉ thường trú</h6>
-            <div class="row g-3">
-                <div class="col-md-4"><label asp-for="ProvinceId" class="form-label">Tỉnh/Thành phố *</label><select asp-for="ProvinceId" id="editProvince" class="form-select"><option value="">-- Chọn Tỉnh/Thành phố --</option>@foreach (var p in provinces) { <option value="@p.ProvinceId">@p.Name</option> }</select></div>
-                <div class="col-md-4"><label asp-for="DistrictId" class="form-label">Quận/Huyện *</label><select asp-for="DistrictId" id="editDistrict" class="form-select"><option value="">-- Chọn Quận/Huyện --</option></select></div>
-                <div class="col-md-4"><label asp-for="WardId" class="form-label">Phường/Xã *</label><select asp-for="WardId" id="editWard" class="form-select"><option value="">-- Chọn Phường/Xã --</option></select></div>
-                <div class="col-12"><label asp-for="Address" class="form-label">Địa chỉ chi tiết *</label><input asp-for="Address" class="form-control" placeholder="Số nhà, tên đường..." /><span asp-validation-for="Address" class="text-danger"></span></div>
+            <div class="staff-edit-body">
+                <div class="staff-edit-layout">
+
+                    @* Avatar Column *@
+                    <div class="staff-edit-avatar-col">
+                        <div class="staff-edit-avatar-label">&#7842;nh &#273;&#7841;i di&#7879;n</div>
+                        <label for="AvatarFile" class="staff-edit-avatar-box" id="avatarDropZone">
+                            <img id="staffAvatarPreview"
+                                 src="@(string.IsNullOrWhiteSpace(Model.CurrentAvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.CurrentAvatarUrl)"
+                                 alt="Avatar"
+                                 onerror="this.src='@DefaultImages.StaffAvatarUrl'" />
+                            <div class="staff-edit-avatar-overlay">
+                                <i class="fas fa-camera"></i>
+                                <span>Thay &#273;&#7893;i &#7843;nh</span>
+                            </div>
+                        </label>
+                        <input asp-for="AvatarFile" id="AvatarFile" type="file"
+                               accept=".jpg,.jpeg,.png,.webp"
+                               class="d-none" />
+                        <div class="staff-edit-avatar-hint">JPG, PNG, WEBP &middot; T&#7889;i &#273;a 2MB</div>
+                    </div>
+
+                    @* Fields Column *@
+                    <div class="staff-edit-fields-col">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="staff-edit-form-group">
+                                    <label asp-for="FullName" class="staff-edit-label">
+                                        H&#7885; v&agrave; t&ecirc;n <span class="text-danger">*</span>
+                                    </label>
+                                    <input asp-for="FullName" class="form-control staff-edit-input"
+                                           placeholder="Nguyen Van A" />
+                                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="staff-edit-form-group">
+                                    <label asp-for="Email" class="staff-edit-label">
+                                        Email &#273;&#259;ng nh&#7853;p <span class="text-danger">*</span>
+                                    </label>
+                                    <input asp-for="Email" class="form-control staff-edit-input"
+                                           placeholder="email@domain.com" />
+                                    <span asp-validation-for="Email" class="text-danger small"></span>
+                                    <div class="staff-edit-hint">Email d&ugrave;ng &#273;&#7875; &#273;&#259;ng nh&#7853;p v&agrave; nh&#7853;n OTP ca tr&#432;&#7903;ng.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="staff-edit-form-group">
+                                    <label asp-for="CCCD" class="staff-edit-label">C&#259;n c&#432;&#7899;c c&ocirc;ng d&acirc;n</label>
+                                    <input asp-for="CCCD" class="form-control staff-edit-input"
+                                           placeholder="012 345 678 901" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="staff-edit-form-group">
+                                    <label asp-for="Gender" class="staff-edit-label">Gi&#7899;i t&iacute;nh</label>
+                                    <select asp-for="Gender" class="form-select staff-edit-input">
+                                        <option value="0">N&#7919;</option>
+                                        <option value="1">Nam</option>
+                                        <option value="2">Kh&aacute;c</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="staff-edit-form-group">
+                                    <label asp-for="DateOfBirth" class="staff-edit-label">Ng&agrave;y sinh</label>
+                                    <input asp-for="DateOfBirth" type="date"
+                                           class="form-control staff-edit-input" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="staff-edit-form-group">
+                                    <label asp-for="StartDate" class="staff-edit-label">Ng&agrave;y b&#7855;t &#273;&#7847;u</label>
+                                    <input asp-for="StartDate" type="date"
+                                           class="form-control staff-edit-input" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="staff-edit-form-group">
+                                    <label asp-for="EmployeeStatus" class="staff-edit-label">Tr&#7841;ng th&aacute;i nh&acirc;n s&#7921;</label>
+                                    <select asp-for="EmployeeStatus" class="form-select staff-edit-input">
+                                        <option value="1">Th&#7917; vi&#7879;c</option>
+                                        <option value="2">Ch&iacute;nh th&#7913;c</option>
+                                        <option value="3">Ngh&#7881; vi&#7879;c</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="staff-edit-form-group">
+                                    <label class="staff-edit-label">S&#7889; &#273;i&#7879;n tho&#7841;i</label>
+                                    <input name="Phones[0]"
+                                           value="@(Model.Phones.FirstOrDefault())"
+                                           class="form-control staff-edit-input"
+                                           placeholder="+84 9..." />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
+
+            @* SECTION 2: DIA CHI THUONG TRU *@
+            <div class="staff-edit-section-header">
+                <span class="staff-edit-section-icon staff-edit-section-icon--green"><i class="fas fa-map-marker-alt"></i></span>
+                <div>
+                    <div class="staff-edit-section-title">&#272;&#7883;a ch&#7881; th&#432;&#7901;ng tr&uacute;</div>
+                    <div class="staff-edit-section-sub">T&#7881;nh/Th&agrave;nh, Qu&#7853;n/Huy&#7879;n, Ph&#432;&#7901;ng/X&atilde; v&agrave; &#273;&#7883;a ch&#7881; c&#7909; th&#7875;</div>
+                </div>
+            </div>
+
+            <div class="staff-edit-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="staff-edit-form-group">
+                            <label asp-for="ProvinceId" class="staff-edit-label">
+                                T&#7881;nh / Th&agrave;nh ph&#7889; <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="ProvinceId" id="editProvince" class="form-select staff-edit-input">
+                                <option value="">-- Ch&#7885;n T&#7881;nh/Th&agrave;nh ph&#7889; --</option>
+                                @foreach (var p in provinces)
+                                {
+                                    <option value="@p.ProvinceId">@p.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="staff-edit-form-group">
+                            <label asp-for="DistrictId" class="staff-edit-label">
+                                Qu&#7853;n / Huy&#7879;n <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="DistrictId" id="editDistrict" class="form-select staff-edit-input">
+                                <option value="">-- Ch&#7885;n Qu&#7853;n/Huy&#7879;n --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="staff-edit-form-group">
+                            <label asp-for="WardId" class="staff-edit-label">
+                                Ph&#432;&#7901;ng / X&atilde; <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="WardId" id="editWard" class="form-select staff-edit-input">
+                                <option value="">-- Ch&#7885;n Ph&#432;&#7901;ng/X&atilde; --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="staff-edit-form-group">
+                            <label asp-for="Address" class="staff-edit-label">
+                                &#272;&#7883;a ch&#7881; chi ti&#7871;t <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Address" class="form-control staff-edit-input"
+                                   placeholder="S&#7889; nh&agrave;, t&ecirc;n &#273;&#432;&#7901;ng..." />
+                            <span asp-validation-for="Address" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Card Footer *@
+            <div class="staff-edit-footer">
+                <a asp-action="Index" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+                    <i class="fas fa-times"></i> H&#7911;y
+                </a>
+                <button type="submit" class="btn btn-primary d-flex align-items-center gap-2">
+                    <i class="fas fa-save"></i> L&#432;u thay &#273;&#7893;i
+                </button>
+            </div>
+
         </div>
-        <div class="card-footer bg-white d-flex justify-content-end gap-2 p-3"><a asp-action="Index" class="btn btn-outline-secondary">Hủy</a><button type="submit" class="btn btn-primary">Lưu thay đổi</button></div>
     </form>
 </div>
 
@@ -66,7 +240,7 @@
         select.disabled = true; select.innerHTML = `<option value="">${placeholder}</option>`;
     };
     const load = async (select, url, parameter, parent, placeholder, selected, isCurrent) => {
-        reset(select, 'Đang tải...');
+        reset(select, 'Dang tai...');
         if (!parent) { reset(select, placeholder); return []; }
         try {
             const response = await fetch(`${url}?${parameter}=${encodeURIComponent(parent)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -78,7 +252,7 @@
             select.disabled = rows.length === 0;
             return rows;
         } catch {
-            if (isCurrent()) reset(select, 'Không tải được dữ liệu');
+            if (isCurrent()) reset(select, 'Khong tai duoc du lieu');
             return [];
         }
     };
@@ -86,29 +260,36 @@
         const parentProvinceId = province.value;
         const version = ++districtRequestVersion;
         ++wardRequestVersion;
-        reset(district, '-- Chọn Quận/Huyện --');
-        reset(ward, '-- Chọn Phường/Xã --');
-        if (parentProvinceId) await load(district, districtsEndpoint, 'provinceId', parentProvinceId, '-- Chọn Quận/Huyện --', '', () => version === districtRequestVersion && province.value === parentProvinceId);
+        reset(district, '-- Chon Quan/Huyen --');
+        reset(ward, '-- Chon Phuong/Xa --');
+        if (parentProvinceId) await load(district, districtsEndpoint, 'provinceId', parentProvinceId, '-- Chon Quan/Huyen --', '', () => version === districtRequestVersion && province.value === parentProvinceId);
     });
     district.addEventListener('change', async () => {
         const parentDistrictId = district.value;
         const version = ++wardRequestVersion;
-        reset(ward, '-- Chọn Phường/Xã --');
-        if (parentDistrictId) await load(ward, wardsEndpoint, 'districtId', parentDistrictId, '-- Chọn Phường/Xã --', '', () => version === wardRequestVersion && district.value === parentDistrictId);
+        reset(ward, '-- Chon Phuong/Xa --');
+        if (parentDistrictId) await load(ward, wardsEndpoint, 'districtId', parentDistrictId, '-- Chon Phuong/Xa --', '', () => version === wardRequestVersion && district.value === parentDistrictId);
     });
     (async () => {
         const provinceId = province.value;
         const districtVersion = ++districtRequestVersion;
-        const districts = await load(district, districtsEndpoint, 'provinceId', provinceId, '-- Chọn Quận/Huyện --', initialDistrict, () => districtVersion === districtRequestVersion && province.value === provinceId);
+        const districts = await load(district, districtsEndpoint, 'provinceId', provinceId, '-- Chon Quan/Huyen --', initialDistrict, () => districtVersion === districtRequestVersion && province.value === provinceId);
         if (!districts.some(x => String(x.id) === String(initialDistrict))) {
-            reset(ward, '-- Chọn Phường/Xã --');
+            reset(ward, '-- Chon Phuong/Xa --');
             return;
         }
         const wardVersion = ++wardRequestVersion;
-        await load(ward, wardsEndpoint, 'districtId', initialDistrict, '-- Chọn Phường/Xã --', initialWard, () => wardVersion === wardRequestVersion && district.value === initialDistrict);
+        await load(ward, wardsEndpoint, 'districtId', initialDistrict, '-- Chon Phuong/Xa --', initialWard, () => wardVersion === wardRequestVersion && district.value === initialDistrict);
     })();
-    const avatar = document.getElementById('AvatarFile');
-    avatar?.addEventListener('change', () => { const file = avatar.files?.[0]; if (!file) return; document.getElementById('staffAvatarPreview').src = URL.createObjectURL(file); });
+
+    // Avatar preview
+    const avatarInput = document.getElementById('AvatarFile');
+    const avatarPreview = document.getElementById('staffAvatarPreview');
+    avatarInput?.addEventListener('change', () => {
+        const file = avatarInput.files?.[0];
+        if (!file) return;
+        avatarPreview.src = URL.createObjectURL(file);
+    });
 })();
 </script>
 }

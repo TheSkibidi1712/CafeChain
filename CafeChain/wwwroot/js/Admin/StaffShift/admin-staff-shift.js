@@ -286,34 +286,21 @@
             if (!cancelButton) return;
             if (cancelButton.dataset.confirming === "true") return;
             cancelButton.dataset.confirming = "true";
+
+            // ── Resolve via custom premium modal ──────────────────────────
             let answer;
             try {
-                if (window.Swal) {
-                    answer = await Swal.fire({
-                        title: "Hủy lịch làm việc",
-                        input: "textarea",
-                        inputLabel: "Lý do hủy",
-                        inputPlaceholder: "Nhập lý do để lưu lịch sử...",
-                        showCancelButton: true,
-                        confirmButtonText: "Hủy lịch",
-                        cancelButtonText: "Đóng",
-                        confirmButtonColor: "#dc2626",
-                        inputValidator: value => !value?.trim() ? "Vui lòng nhập lý do hủy." : undefined
-                    });
-                } else {
-                    const value = window.prompt("Lý do hủy lịch:");
-                    answer = { isConfirmed: Boolean(value?.trim()), value };
-                }
+                answer = await openCancelModal(cancelButton.dataset.name);
             } finally {
                 delete cancelButton.dataset.confirming;
             }
-            if (!answer.isConfirmed || !answer.value?.trim()) return;
+            if (!answer) return;
 
             await mutationGuard.run(`cancel-staff-shift-${cancelButton.dataset.id}`, cancelButton, async () => {
                 const data = new FormData();
                 data.set("StaffShiftId", cancelButton.dataset.id);
-                data.set("RowVersion", cancelButton.dataset.version);
-                data.set("Reason", answer.value.trim());
+                data.set("RowVersion",   cancelButton.dataset.version);
+                data.set("Reason",       answer.trim());
                 try {
                     await completeMutation(await post(root.dataset.cancelScheduleUrl, data));
                 } catch (error) {
@@ -321,6 +308,84 @@
                 }
             });
         });
+
+        // ── Premium cancel modal controller ──────────────────────────────
+        function openCancelModal(staffName) {
+            return new Promise(resolve => {
+                const modalEl    = document.getElementById("cancelModal");
+                const textarea   = document.getElementById("cancelReasonInput");
+                const errorEl    = document.getElementById("cancelReasonError");
+                const charCount  = document.getElementById("cancelCharCount");
+                const confirmBtn = document.getElementById("cancelConfirmBtn");
+                const subtitleEl = document.getElementById("cancelModalSubtitle");
+                if (!modalEl) { resolve(null); return; }
+
+                const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: "static" });
+
+                // Reset state
+                textarea.value = "";
+                if (charCount) charCount.textContent = "0 / 500";
+                if (charCount) charCount.classList.remove("near-limit");
+                textarea.classList.remove("is-invalid");
+                if (errorEl) errorEl.hidden = true;
+                confirmBtn.classList.remove("is-loading");
+                if (subtitleEl && staffName) {
+                    subtitleEl.textContent =
+                        `Ca làm việc của ${staffName} sẽ bị hủy và không thể hoàn tác.`;
+                }
+
+                // Char counter
+                function onInput() {
+                    const len = textarea.value.length;
+                    if (charCount) {
+                        charCount.textContent = `${len} / 500`;
+                        charCount.classList.toggle("near-limit", len > 440);
+                    }
+                    if (len > 0) {
+                        textarea.classList.remove("is-invalid");
+                        if (errorEl) errorEl.hidden = true;
+                    }
+                }
+                textarea.addEventListener("input", onInput);
+
+                // Confirm click
+                function onConfirm() {
+                    if (!textarea.value.trim()) {
+                        textarea.classList.add("is-invalid");
+                        // re-trigger shake by removing then re-adding
+                        textarea.classList.remove("is-invalid");
+                        void textarea.offsetWidth; // reflow
+                        textarea.classList.add("is-invalid");
+                        if (errorEl) errorEl.hidden = false;
+                        textarea.focus();
+                        return;
+                    }
+                    confirmBtn.classList.add("is-loading");
+                    const value = textarea.value.trim();
+                    cleanup();
+                    bsModal.hide();
+                    resolve(value);
+                }
+                confirmBtn.addEventListener("click", onConfirm);
+
+                // Dismissed without confirming
+                function onHidden() {
+                    cleanup();
+                    resolve(null);
+                }
+                modalEl.addEventListener("hidden.bs.modal", onHidden, { once: true });
+
+                function cleanup() {
+                    textarea.removeEventListener("input", onInput);
+                    confirmBtn.removeEventListener("click", onConfirm);
+                    modalEl.removeEventListener("hidden.bs.modal", onHidden);
+                }
+
+                bsModal.show();
+                modalEl.addEventListener("shown.bs.modal", () => textarea.focus(), { once: true });
+            });
+        }
+
 
         templateForm?.addEventListener("submit", async event => {
             event.preventDefault();
