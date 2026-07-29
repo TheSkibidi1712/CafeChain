@@ -424,6 +424,149 @@ public sealed class OperationalIceScheduleSourceIssue256Tests : IntegrationTestB
         Assert.Contains("Xác nhận liên kết", details);
     }
 
+    [Fact]
+    public async Task DraftShift_CanReviewAndExplicitlySyncScheduleChanges()
+    {
+        using var context = CreateDbContext();
+        await SeedValidScheduleScenarioAsync(context);
+        var operational = DirectScheduleShift("Ca sáng cũ");
+        context.OperationalShifts.Add(operational);
+        await context.SaveChangesAsync();
+
+        var schedule = await context.Shifts.SingleAsync(x => x.ShiftId == 25620);
+        schedule.Name = "Ca sáng cập nhật";
+        schedule.StartTime = TimeSpan.FromHours(7);
+        schedule.EndTime = TimeSpan.FromHours(15);
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context);
+        var reviewResult = await service.GetScheduleReviewsAsync(
+            StoreId,
+            BusinessDate,
+            Actor());
+
+        Assert.True(reviewResult.IsSuccess, reviewResult.Message);
+        var review = Assert.Single(reviewResult.Data);
+        Assert.True(review.IsScheduleAvailable);
+        Assert.True(review.HasChanges);
+        Assert.True(review.CanSync);
+        Assert.Equal("Ca sáng cũ", review.SavedName);
+        Assert.Equal("Ca sáng cập nhật", review.CurrentName);
+        Assert.Equal(LocalUtc(BusinessDate.AddHours(7)), review.CurrentStartAtUtc);
+        Assert.Equal(LocalUtc(BusinessDate.AddHours(15)), review.CurrentEndAtUtc);
+
+        var syncResult = await service.SyncDraftWithScheduleAsync(
+            new SyncOperationalShiftScheduleRequest
+            {
+                OperationalShiftId = operational.OperationalShiftId
+            },
+            Actor());
+
+        Assert.True(syncResult.IsSuccess, syncResult.Message);
+        var synchronized = await context.OperationalShifts
+            .AsNoTracking()
+            .SingleAsync(x => x.OperationalShiftId == operational.OperationalShiftId);
+        Assert.Equal("Ca sáng cập nhật", synchronized.Name);
+        Assert.Equal(LocalUtc(BusinessDate.AddHours(7)), synchronized.StartAtUtc);
+        Assert.Equal(LocalUtc(BusinessDate.AddHours(15)), synchronized.EndAtUtc);
+        Assert.Equal(SupervisorStaffId, synchronized.ShiftLeadId);
+    }
+
+    [Fact]
+    public async Task OpenShift_ReportsScheduleChangeButCannotBeSilentlySynchronized()
+    {
+        using var context = CreateDbContext();
+        await SeedValidScheduleScenarioAsync(context);
+        var operational = DirectScheduleShift("Ca sáng đang mở");
+        operational.Status = OperationalIceStatuses.Open;
+        context.OperationalShifts.Add(operational);
+        await context.SaveChangesAsync();
+        var savedStart = operational.StartAtUtc;
+        var savedEnd = operational.EndAtUtc;
+
+        var schedule = await context.Shifts.SingleAsync(x => x.ShiftId == 25620);
+        schedule.Name = "Ca sáng thay đổi";
+        schedule.StartTime = TimeSpan.FromHours(8);
+        schedule.EndTime = TimeSpan.FromHours(16);
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context);
+        var reviewResult = await service.GetScheduleReviewsAsync(
+            StoreId,
+            BusinessDate,
+            Actor());
+
+        Assert.True(reviewResult.IsSuccess, reviewResult.Message);
+        var review = Assert.Single(reviewResult.Data);
+        Assert.True(review.IsScheduleAvailable);
+        Assert.True(review.HasChanges);
+        Assert.False(review.CanSync);
+
+        var syncResult = await service.SyncDraftWithScheduleAsync(
+            new SyncOperationalShiftScheduleRequest
+            {
+                OperationalShiftId = operational.OperationalShiftId
+            },
+            Actor());
+
+        Assert.False(syncResult.IsSuccess);
+        Assert.Contains("Ca đã mở không được tự động thay đổi", syncResult.Message);
+        var unchanged = await context.OperationalShifts
+            .AsNoTracking()
+            .SingleAsync(x => x.OperationalShiftId == operational.OperationalShiftId);
+        Assert.Equal("Ca sáng đang mở", unchanged.Name);
+        Assert.Equal(savedStart, unchanged.StartAtUtc);
+        Assert.Equal(savedEnd, unchanged.EndAtUtc);
+    }
+
+    [Fact]
+    public async Task MissingScheduleSource_IsReportedAndCannotBeSynchronized()
+    {
+        using var context = CreateDbContext();
+        await SeedValidScheduleScenarioAsync(context);
+        var operational = DirectScheduleShift("Ca sáng từ lịch");
+        context.OperationalShifts.Add(operational);
+        await context.SaveChangesAsync();
+
+        var schedule = await context.Shifts.SingleAsync(x => x.ShiftId == 25620);
+        schedule.Active = false;
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context);
+        var reviewResult = await service.GetScheduleReviewsAsync(
+            StoreId,
+            BusinessDate,
+            Actor());
+
+        Assert.True(reviewResult.IsSuccess, reviewResult.Message);
+        var review = Assert.Single(reviewResult.Data);
+        Assert.False(review.IsScheduleAvailable);
+        Assert.True(review.HasChanges);
+        Assert.False(review.CanSync);
+
+        var syncResult = await service.SyncDraftWithScheduleAsync(
+            new SyncOperationalShiftScheduleRequest
+            {
+                OperationalShiftId = operational.OperationalShiftId
+            },
+            Actor());
+
+        Assert.False(syncResult.IsSuccess);
+        Assert.Contains("Lịch nguồn không còn hoạt động", syncResult.Message);
+    }
+
+    [Fact]
+    public void OperationalIceUi_ShowsScheduleDiffAndExplicitDraftSyncAction()
+    {
+        var index = ReadRepoFile(
+            "CafeChain", "Areas", "Admin", "Views", "AdminOperationalIce", "Index.cshtml");
+
+        Assert.Contains("Lịch làm việc đã thay đổi", index);
+        Assert.Contains("asp-action=\"SyncSchedule\"", index);
+        Assert.Contains("Đồng bộ lịch", index);
+        Assert.Contains("Ca đã mở nên không tự động thay đổi", index);
+    }
+
     private static OperationalShift DirectScheduleShift(string name) => new()
     {
         StoreId = StoreId,

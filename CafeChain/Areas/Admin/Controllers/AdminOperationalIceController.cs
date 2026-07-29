@@ -120,6 +120,41 @@ public sealed class AdminOperationalIceController : AdminBaseController
         var canManage = await HasPermissionAsync(OperationalIcePermissions.Manage, selectedStoreId);
         var canApprove = await HasPermissionAsync(OperationalIcePermissions.Approve, selectedStoreId);
         var canPolicy = await HasPermissionAsync(OperationalIcePermissions.Policy, selectedStoreId);
+        if (canManage && shifts.Count > 0)
+        {
+            var reviews = await _service.GetScheduleReviewsAsync(
+                selectedStoreId,
+                date,
+                _actorAccessor.Get(User),
+                cancellationToken);
+            if (reviews.IsSuccess)
+            {
+                var reviewRows = reviews.Data ?? [];
+                var reviewByShiftId = reviewRows
+                    .ToDictionary(x => x.OperationalShiftId);
+                var leadIds = reviewRows
+                    .SelectMany(x => new[] { x.SavedShiftLeadId, x.CurrentShiftLeadId })
+                    .Where(x => x.HasValue)
+                    .Select(x => x!.Value)
+                    .Distinct()
+                    .ToArray();
+                var leadNames = await _context.Staffs.AsNoTracking()
+                    .Where(x => leadIds.Contains(x.StaffId))
+                    .ToDictionaryAsync(x => x.StaffId, x => x.FullName, cancellationToken);
+                foreach (var row in shifts)
+                {
+                    if (!reviewByShiftId.TryGetValue(row.OperationalShiftId, out var review))
+                        continue;
+                    row.ScheduleReview = MapScheduleReview(review, leadNames);
+                }
+            }
+            else
+            {
+                TempData["ErrorMessage"] = string.IsNullOrWhiteSpace(reviews.Message)
+                    ? "Không thể kiểm tra thay đổi lịch làm việc. Vui lòng tải lại."
+                    : reviews.Message;
+            }
+        }
         SetStoreScopeViewData(scope);
         return View(new OperationalIceIndexVM
         {
@@ -454,6 +489,29 @@ public sealed class AdminOperationalIceController : AdminBaseController
         return RedirectWithResult(await _service.LinkWorkShiftAsync(request, _actorAccessor.Get(User), cancellationToken), nameof(Details), new { id = allocationId });
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SyncSchedule(
+        SyncOperationalShiftScheduleRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var shiftScope = await _context.OperationalShifts.AsNoTracking()
+            .Where(x => x.OperationalShiftId == request.OperationalShiftId)
+            .Select(x => new { x.StoreId, x.BusinessDate })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (shiftScope == null)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+            return Forbid();
+
+        return RedirectWithResult(
+            await _service.SyncDraftWithScheduleAsync(
+                request,
+                _actorAccessor.Get(User),
+                cancellationToken),
+            nameof(Index),
+            new { storeId = shiftScope.StoreId, businessDate = shiftScope.BusinessDate });
+    }
+
     [HttpGet]
     public async Task<IActionResult> ScheduleOptions(
         int storeId,
@@ -748,6 +806,36 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 SuggestedShiftLeadId = option.SuggestedShiftLeadId
             };
         }).ToList();
+
+    private static OperationalIceScheduleReviewVM MapScheduleReview(
+        OperationalIceScheduleReviewDto review,
+        IReadOnlyDictionary<int, string> leadNames)
+    {
+        static string LeadName(int? staffId, IReadOnlyDictionary<int, string> names) =>
+            staffId.HasValue && names.TryGetValue(staffId.Value, out var name)
+                ? name
+                : "Chưa xác định";
+
+        var savedStart = review.SavedStartAtUtc.ToLocalTime();
+        var savedEnd = review.SavedEndAtUtc.ToLocalTime();
+        var currentLabel = review.IsScheduleAvailable
+                           && review.CurrentStartAtUtc.HasValue
+                           && review.CurrentEndAtUtc.HasValue
+            ? $"{review.CurrentName} · {review.CurrentStartAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
+              + $"–{review.CurrentEndAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
+            : "Lịch nguồn không còn hoạt động";
+        return new OperationalIceScheduleReviewVM
+        {
+            IsScheduleAvailable = review.IsScheduleAvailable,
+            HasChanges = review.HasChanges,
+            CanSync = review.CanSync,
+            SavedLabel = $"{review.SavedName} · {savedStart:dd/MM/yyyy HH:mm}–{savedEnd:dd/MM/yyyy HH:mm}",
+            CurrentLabel = currentLabel,
+            SavedLeadName = LeadName(review.SavedShiftLeadId, leadNames),
+            CurrentLeadName = LeadName(review.CurrentShiftLeadId, leadNames),
+            StaffCount = review.StaffCount
+        };
+    }
 
     private static DateTime NormalizeLocalToUtc(DateTime value) =>
         value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime();

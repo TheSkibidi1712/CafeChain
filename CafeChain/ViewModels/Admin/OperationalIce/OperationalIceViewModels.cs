@@ -37,6 +37,19 @@ public sealed class OperationalIceListRowVM
     public bool HasShiftLead { get; init; }
     public string CreationSource { get; init; } = string.Empty;
     public int LinkedWorkShiftCount { get; init; }
+    public OperationalIceScheduleReviewVM? ScheduleReview { get; set; }
+}
+
+public sealed class OperationalIceScheduleReviewVM
+{
+    public bool IsScheduleAvailable { get; init; }
+    public bool HasChanges { get; init; }
+    public bool CanSync { get; init; }
+    public string SavedLabel { get; init; } = string.Empty;
+    public string CurrentLabel { get; init; } = string.Empty;
+    public string SavedLeadName { get; init; } = string.Empty;
+    public string CurrentLeadName { get; init; } = string.Empty;
+    public int StaffCount { get; init; }
 }
 
 public sealed class OperationalIceScheduleOptionVM

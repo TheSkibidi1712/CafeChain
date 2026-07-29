@@ -1103,6 +1103,38 @@
     flex-wrap: wrap;
 }
 
+.ice-schedule-change {
+    display: grid;
+    gap: 5px;
+    min-width: 280px;
+    margin-top: 10px;
+    padding: 10px;
+    border-left: 3px solid var(--ice-warning);
+    background: #fff7ed;
+    color: var(--ice-text);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.ice-schedule-change strong,
+.ice-schedule-change span,
+.ice-schedule-change em {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.ice-schedule-change strong {
+    color: var(--ice-warning);
+}
+
+.ice-schedule-change em {
+    color: var(--ice-muted);
+}
+
+.ice-schedule-change .ice-inline-form {
+    margin-top: 3px;
+}
+
 .ice-icon-btn {
     width: 36px;
     height: 36px;

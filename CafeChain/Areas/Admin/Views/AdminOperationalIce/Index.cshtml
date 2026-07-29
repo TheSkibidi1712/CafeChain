@@ -446,6 +446,28 @@
                                         @(row.CreationSource == OperationalIceCreationSources.StaffSchedule ? "Lịch làm việc" : "Thủ công") ·
                                         Đã liên kết @row.LinkedWorkShiftCount ca POS
                                     </small>
+                                    @if (row.ScheduleReview is { HasChanges: true } scheduleReview)
+                                    {
+                                        <div class="ice-schedule-change" role="status">
+                                            <strong><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Lịch làm việc đã thay đổi</strong>
+                                            <span><b>Ca đang lưu:</b> @scheduleReview.SavedLabel · @scheduleReview.SavedLeadName</span>
+                                            <span><b>Lịch hiện tại:</b> @scheduleReview.CurrentLabel@(scheduleReview.IsScheduleAvailable ? $" · {scheduleReview.StaffCount} nhân viên · {scheduleReview.CurrentLeadName}" : "")</span>
+                                            @if (scheduleReview.CanSync)
+                                            {
+                                                <form asp-action="SyncSchedule" method="post" class="ice-inline-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
+                                                    <button class="ice-btn ice-btn-secondary ice-btn-compact" type="submit">
+                                                        <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Đồng bộ lịch
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (row.Status != OperationalIceStatuses.Draft)
+                                            {
+                                                <em>Ca đã mở nên không tự động thay đổi. Quản lý xử lý thủ công nếu cần.</em>
+                                            }
+                                        </div>
+                                    }
                                 </td>
                                 <td>@row.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") – @row.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                                 <td class="ice-number">@DisplayQuantity(row.SuggestedQuantity, unitLabel)</td>

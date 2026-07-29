@@ -61,6 +61,28 @@ public sealed class OperationalIceScheduleOptionDto
     public int? SuggestedShiftLeadId { get; init; }
 }
 
+public sealed class OperationalIceScheduleReviewDto
+{
+    public int OperationalShiftId { get; init; }
+    public bool IsScheduleAvailable { get; init; }
+    public bool HasChanges { get; init; }
+    public bool CanSync { get; init; }
+    public string SavedName { get; init; } = string.Empty;
+    public DateTime SavedStartAtUtc { get; init; }
+    public DateTime SavedEndAtUtc { get; init; }
+    public int? SavedShiftLeadId { get; init; }
+    public string? CurrentName { get; init; }
+    public DateTime? CurrentStartAtUtc { get; init; }
+    public DateTime? CurrentEndAtUtc { get; init; }
+    public int? CurrentShiftLeadId { get; init; }
+    public int StaffCount { get; init; }
+}
+
+public sealed class SyncOperationalShiftScheduleRequest
+{
+    public int OperationalShiftId { get; init; }
+}
+
 public sealed class OperationalIceWorkShiftSuggestionDto
 {
     public int WorkShiftId { get; init; }
