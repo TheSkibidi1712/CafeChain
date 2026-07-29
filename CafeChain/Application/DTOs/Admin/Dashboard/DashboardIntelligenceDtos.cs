@@ -138,6 +138,9 @@ public sealed class DashboardInsightExplanationContextDto
     public DashboardComparisonResultDto Comparison { get; set; } = new();
     public IReadOnlyList<DashboardInsightDto> Insights { get; set; } = [];
     public DashboardBusinessIntent BusinessIntent { get; set; }
+    public string DataStatus { get; set; } = "NO_DATA";
+    public decimal Confidence { get; set; }
+    public string TimeZone { get; set; } = "Asia/Ho_Chi_Minh";
     public IReadOnlyList<DashboardEvidenceDto> Evidence { get; set; } = [];
     public DashboardAnalysisContextDto? Context { get; set; }
     public IReadOnlyList<DashboardChartAnalysisDto> ChartAnalyses { get; set; } = [];
@@ -184,7 +187,7 @@ public sealed class DashboardEvidenceDto
     public decimal? DeviationPercent { get; set; }
     public long SampleSize { get; set; }
     public string Unit { get; set; } = string.Empty;
-    public string DataStatus { get; set; } = "Complete";
+    public string DataStatus { get; set; } = "NO_DATA";
     public string? EntityType { get; set; }
     public string? EntityId { get; set; }
     public string? EntityCode { get; set; }
@@ -222,7 +225,7 @@ public sealed class DashboardStructuredAnalysisResultDto
     public IReadOnlyList<int> StoreIds { get; set; } = [];
     public IReadOnlyList<DashboardStoreOptionDto> Stores { get; set; } = [];
     public string FilterFingerprint { get; set; } = string.Empty;
-    public string DataStatus { get; set; } = "Insufficient";
+    public string DataStatus { get; set; } = "NO_DATA";
     public string Summary { get; set; } = string.Empty;
     public List<DashboardEvidenceDto> Facts { get; set; } = [];
     public List<DashboardNarrativeItemDto> Inferences { get; set; } = [];

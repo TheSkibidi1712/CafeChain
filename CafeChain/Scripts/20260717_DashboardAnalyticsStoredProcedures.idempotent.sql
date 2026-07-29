@@ -99,6 +99,8 @@ BEGIN
     BEGIN
         ;THROW 50001, 'Invalid date range.', 1;
     END;
+    IF @FromDate = @ToDate
+        RETURN;
     IF DATEDIFF(day,@FromDate,@ToDate)>3660
     BEGIN
         ;THROW 50003, 'Date range cannot exceed 3660 days.', 1;
@@ -277,11 +279,19 @@ CREATE OR ALTER PROCEDURE dbo.usp_Procurement_OverduePurchaseOrders
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT TOP (ISNULL(NULLIF(@Top,0),10)) po.PurchaseOrderId,po.Code,po.StoreId,po.SupplierId,s.Name AS SupplierName,
+    SELECT TOP (ISNULL(NULLIF(@Top,0),10)) po.PurchaseOrderId,po.Code,po.StoreId,st.Name AS StoreName,po.SupplierId,s.Name AS SupplierName,
            po.Status,po.OrderDate,po.ExpectedDeliveryAtUtc,DATEDIFF(day,po.ExpectedDeliveryAtUtc,SYSUTCDATETIME()) AS OverdueDays,
+           COALESCE(line.OrderedValue,0) AS OrderedValue,
            'OVERDUE' AS DataStatus
     FROM dbo.PurchaseOrders AS po INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=po.StoreId
     INNER JOIN dbo.Suppliers AS s ON s.SupplierId=po.SupplierId
+    INNER JOIN dbo.Stores AS st ON st.StoreId=po.StoreId
+    OUTER APPLY
+    (
+        SELECT SUM(pol.PackagePriceSnapshot*pol.PackageCount) AS OrderedValue
+        FROM dbo.PurchaseOrderLines AS pol
+        WHERE pol.PurchaseOrderId=po.PurchaseOrderId
+    ) AS line
     WHERE po.ExpectedDeliveryAtUtc<SYSUTCDATETIME() AND po.Status NOT IN('COMPLETED','CANCELLED')
     ORDER BY OverdueDays DESC,po.PurchaseOrderId;
 END;
@@ -366,6 +376,9 @@ BEGIN
            COALESCE(SUM(f.CountedOrder),0) AS TotalOrders,
            COALESCE(SUM(f.NetSales),0) AS NetSales,
            CONVERT(decimal(19,2),COALESCE(SUM(f.NetSales)/NULLIF(SUM(f.CountedOrder),0),0)) AS AverageOrderValue,
+           CONVERT(int,DENSE_RANK() OVER (ORDER BY COALESCE(SUM(f.NetSales),0) DESC)) AS [Rank],
+           CONVERT(decimal(9,4),COALESCE(
+               COALESCE(SUM(f.NetSales),0) / NULLIF(SUM(COALESCE(SUM(f.NetSales),0)) OVER (),0) * 100,0)) AS ContributionPercent,
            CASE WHEN COALESCE(SUM(f.CountedOrder),0) = 0 THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope
     INNER JOIN dbo.Stores AS s ON s.StoreId = scope.StoreId
@@ -403,7 +416,8 @@ BEGIN
     )
     SELECT pm.PaymentMethodId, pm.Code AS PaymentMethodCode, pm.Name AS PaymentMethodName,
            t.TotalTransactions,t.Amount,
-           CONVERT(decimal(9,4), COALESCE(t.Amount / NULLIF(SUM(t.Amount) OVER (), 0), 0)) AS Share,
+           CONVERT(decimal(9,4), COALESCE(t.TotalTransactions * 1.0 / NULLIF(SUM(t.TotalTransactions) OVER (), 0) * 100, 0)) AS TransactionShare,
+           CONVERT(decimal(9,4), COALESCE(t.Amount / NULLIF(SUM(t.Amount) OVER (), 0) * 100, 0)) AS RevenueShare,
            'AVAILABLE' AS DataStatus
     FROM Totals AS t INNER JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId=t.PaymentMethodId
     WHERE t.Amount<>0 OR t.TotalTransactions<>0
@@ -638,6 +652,9 @@ BEGIN
            CONVERT(decimal(9,4),COALESCE(
                SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity-COALESCE(od.TotalCogs,0) ELSE 0 END)
                / NULLIF(SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity ELSE 0 END),0),0)) AS ConfirmedMarginRate,
+           CONVERT(decimal(9,4),COALESCE(
+               SUM((od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity)
+               / NULLIF(SUM(SUM((od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity)) OVER (),0) * 100,0)) AS ContributionPercent,
            CASE WHEN SUM(CASE WHEN od.CostStatus<>1 THEN 1 ELSE 0 END)>0 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.OrderDetails AS od
     INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=od.OrderId AND f.CountedOrder=1
@@ -1108,6 +1125,9 @@ BEGIN
                    ELSE 0 END)
                / NULLIF(SUM(CASE WHEN od.CostStatus = 1
                    THEN (od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity ELSE 0 END), 0), 0)) AS ConfirmedMarginRate,
+           CONVERT(decimal(9,4), COALESCE(
+               SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity)
+               / NULLIF(SUM(SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity)) OVER (), 0) * 100, 0)) AS ContributionPercent,
            CASE WHEN SUM(CASE WHEN od.CostStatus <> 1 THEN 1 ELSE 0 END) > 0
                 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.OrderDetails AS od
@@ -1142,6 +1162,9 @@ BEGIN
                    ELSE 0 END)
                / NULLIF(SUM(CASE WHEN od.CostStatus = 1
                    THEN (od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity ELSE 0 END), 0), 0)) AS ConfirmedMarginRate,
+           CONVERT(decimal(9,4), COALESCE(
+               SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity)
+               / NULLIF(SUM(SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity)) OVER (), 0) * 100, 0)) AS ContributionPercent,
            CASE WHEN SUM(CASE WHEN od.CostStatus <> 1 THEN 1 ELSE 0 END) > 0
                 THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.OrderDetails AS od

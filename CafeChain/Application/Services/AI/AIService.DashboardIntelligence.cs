@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using CafeChain.Application.DTOs.Admin.Dashboard;
 
 namespace CafeChain.Application.Services.AI;
@@ -70,6 +72,8 @@ public sealed partial class AIService
         CancellationToken cancellationToken = default)
     {
         var fallback = BuildDashboardFallback(context);
+        if (context.DataStatus is "NO_DATA" or "ERROR")
+            return DashboardFallback(fallback, "Không gọi Ollama vì dữ liệu không đủ điều kiện để giải thích.");
         if (!_options.Enabled || !string.Equals(_options.Provider, "Ollama", StringComparison.OrdinalIgnoreCase))
             return DashboardFallback(fallback, "Ollama đang tắt; sử dụng giải thích từ rule.");
         try
@@ -77,7 +81,9 @@ public sealed partial class AIService
             var skill = await _skillCatalog.GetNamedSkillAsync(DashboardExplanationSkill, cancellationToken);
             var response = await _ollama.ChatAsync(
                 $"{skill.Content}\n\nJSON Schema bắt buộc:\n{skill.JsonSchema}",
-                JsonSerializer.Serialize(context, DashboardJsonOptions), DashboardExplanationSkill, cancellationToken);
+                JsonSerializer.Serialize(BuildGroundedPayload(context), DashboardJsonOptions),
+                DashboardExplanationSkill,
+                cancellationToken);
             if (!response.Success || string.IsNullOrWhiteSpace(response.Content))
                 return DashboardFallback(fallback, "Ollama không khả dụng; sử dụng giải thích từ rule.");
             var parsed = JsonSerializer.Deserialize<DashboardExplanationAiDto>(
@@ -102,6 +108,9 @@ public sealed partial class AIService
                     item.EvidenceIds.Count == 0
                     || item.EvidenceIds.Any(id => !allowedEvidenceIds.Contains(id))
                     || (item.Priority != null && !priorities.Contains(item.Priority)))
+                || parsed.Recommendations.Any(item =>
+                    string.IsNullOrWhiteSpace(item.Priority)
+                    || string.IsNullOrWhiteSpace(item.VerifyCondition))
                 || parsed.ChartAnalyses.Any(item =>
                     item.EvidenceIds.Count == 0
                     || item.EvidenceIds.Any(id => !allowedEvidenceIds.Contains(id))))
@@ -110,8 +119,25 @@ public sealed partial class AIService
                     fallback,
                     "Phản hồi AI tham chiếu EvidenceId hoặc priority không hợp lệ và đã bị từ chối.");
             }
-            if (summary.Length is < 1 or > 1200)
+            if (summary.Length is < 1 or > 1200
+                || parsed.SummaryEvidenceIds.Count > 8
+                || parsed.Inferences.Count > 8
+                || parsed.Recommendations.Count > 8
+                || parsed.Overview.Count > 8
+                || parsed.NotablePoints.Count > 8
+                || parsed.Conclusions.Count > 8
+                || parsed.ChartAnalyses.Count > 20
+                || narratives.Any(item => item.Text.Length is < 1 or > 600 || item.EvidenceIds.Count > 5)
+                || parsed.ChartAnalyses.Any(item => item.Summary.Length is < 1 or > 800 || item.EvidenceIds.Count > 5))
                 return DashboardFallback(fallback, "Giải thích AI vượt giới hạn nội dung.");
+            var expectedWidgets = context.ChartAnalyses.Select(item => item.Widget).Distinct().ToHashSet();
+            var actualWidgets = parsed.ChartAnalyses.Select(item => item.Widget).ToList();
+            if (actualWidgets.Count != actualWidgets.Distinct().Count()
+                || actualWidgets.Any(widget => !expectedWidgets.Contains(widget))
+                || expectedWidgets.Any(widget => !actualWidgets.Contains(widget)))
+                return DashboardFallback(fallback, "Phản hồi AI không bao phủ đúng các widget đã cung cấp.");
+            if (!NumericClaimsAreGrounded(parsed, context))
+                return DashboardFallback(fallback, "Phản hồi AI chứa số không tồn tại trong evidence backend.");
             return new DashboardExplanationResultDto
             {
                 Success = true,
@@ -167,6 +193,116 @@ public sealed partial class AIService
         UsedFallback = true,
         Warnings = [warning]
     };
+
+    private static object BuildGroundedPayload(DashboardInsightExplanationContextDto context)
+    {
+        var selectedEvidence = context.Evidence
+            .OrderBy(item => string.IsNullOrWhiteSpace(item.EntityName) ? 0 : 1)
+            .GroupBy(item => string.IsNullOrWhiteSpace(item.EntityType) ? item.WidgetKey : item.EntityType)
+            .SelectMany(group => group.Take(8))
+            .Take(60)
+            .ToList();
+        return new
+        {
+            context.AnalysisId,
+            context.Widget,
+            context.BusinessIntent,
+            CURRENT_PERIOD = new { From = context.FromDate, To = context.ToDate },
+            BASELINE_PERIOD = context.Context == null
+                ? null
+                : new { From = context.Context.ComparisonStart, To = context.Context.ComparisonEnd },
+            context.TimeZone,
+            DATA_STATUS = context.DataStatus,
+            CONFIDENCE = context.Confidence,
+            FACTS = selectedEvidence.Where(item => item.Kind.Equals("FACT", StringComparison.OrdinalIgnoreCase)),
+            STATISTICS = selectedEvidence.Where(item => item.Kind.Equals("STATISTIC", StringComparison.OrdinalIgnoreCase)),
+            ANOMALIES = context.Insights.Take(10),
+            ENTITY_EVIDENCE = selectedEvidence.Where(item => !string.IsNullOrWhiteSpace(item.EntityName)),
+            CHART_ANALYSES = context.ChartAnalyses.Take(20).Select(item => new
+            {
+                item.Widget,
+                item.Title,
+                item.DataStatus,
+                item.Summary,
+                item.Trend,
+                item.CurrentValue,
+                item.BaselineValue,
+                item.PercentageDifference,
+                item.HighestPoint,
+                item.LowestPoint,
+                item.Highlights,
+                EvidenceIds = item.Evidence.Select(evidence => evidence.EvidenceId)
+            })
+        };
+    }
+
+    private static bool NumericClaimsAreGrounded(
+        DashboardExplanationAiDto parsed,
+        DashboardInsightExplanationContextDto context)
+    {
+        var allowed = new List<decimal>();
+        foreach (var evidence in context.Evidence)
+        {
+            allowed.Add(evidence.CurrentValue);
+            if (evidence.BaselineValue.HasValue) allowed.Add(evidence.BaselineValue.Value);
+            if (evidence.Delta.HasValue) allowed.Add(evidence.Delta.Value);
+            if (evidence.DeviationPercent.HasValue) allowed.Add(evidence.DeviationPercent.Value);
+            allowed.Add(evidence.SampleSize);
+            foreach (var value in evidence.Metadata.Values)
+                if (TryDecimal(value, out var number))
+                    allowed.Add(number);
+        }
+        allowed.AddRange([
+            context.FromDate.Year, context.FromDate.Month, context.FromDate.Day,
+            context.ToDate.Year, context.ToDate.Month, context.ToDate.Day
+        ]);
+
+        var texts = new List<string> { parsed.Summary };
+        texts.AddRange(parsed.Inferences.Select(item => item.Text));
+        texts.AddRange(parsed.Recommendations.Select(item => item.Text));
+        texts.AddRange(parsed.Overview.Select(item => item.Text));
+        texts.AddRange(parsed.NotablePoints.Select(item => item.Text));
+        texts.AddRange(parsed.Conclusions.Select(item => item.Text));
+        texts.AddRange(parsed.ChartAnalyses.Select(item => item.Summary));
+        foreach (var text in texts)
+        {
+            foreach (Match match in Regex.Matches(text, @"(?<![\p{L}\p{N}])[-+]?\d+(?:[.,]\d+)?\s*%?"))
+            {
+                var token = match.Value.Trim();
+                var isPercent = token.EndsWith('%');
+                var numericToken = token.TrimEnd('%').Trim().Replace(',', '.');
+                if (!decimal.TryParse(
+                        numericToken,
+                        NumberStyles.Number | NumberStyles.AllowLeadingSign,
+                        CultureInfo.InvariantCulture,
+                        out var claim))
+                    continue;
+                if (!isPercent && Math.Abs(claim) <= 10)
+                    continue;
+                if (!allowed.Any(value => WithinNumericTolerance(value, claim)
+                        || WithinNumericTolerance(value * 100m, claim)))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool TryDecimal(object? value, out decimal number)
+    {
+        if (value is JsonElement json && json.ValueKind == JsonValueKind.Number)
+            return json.TryGetDecimal(out number);
+        return decimal.TryParse(
+            Convert.ToString(value, CultureInfo.InvariantCulture),
+            NumberStyles.Number | NumberStyles.AllowLeadingSign,
+            CultureInfo.InvariantCulture,
+            out number);
+    }
+
+    private static bool WithinNumericTolerance(decimal evidence, decimal claim)
+    {
+        var tolerance = Math.Max(0.05m, Math.Abs(evidence) * 0.005m);
+        return Math.Abs(evidence - claim) <= tolerance;
+    }
 
     private sealed class DashboardExplanationAiDto
     {

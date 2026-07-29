@@ -172,7 +172,13 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         {
             AnalysisId = result.AnalysisId, Widget = result.Intent.Widget,
             FromDate = result.FromDate, ToDate = result.ToDate,
-            Comparison = result.Comparison, Insights = result.Insights
+            Comparison = result.Comparison, Insights = result.Insights,
+            DataStatus = string.Equals(result.DataStatus, "AVAILABLE", StringComparison.OrdinalIgnoreCase)
+                ? "OK"
+                : result.DataStatus,
+            Confidence = string.Equals(result.DataStatus, "AVAILABLE", StringComparison.OrdinalIgnoreCase)
+                ? 0.85m
+                : 0.60m
         };
         if (!_options.ExplanationEnabled)
             return DeterministicExplanation(context, "Giải thích AI đang tắt; sử dụng kết quả rule/statistics.");
@@ -341,76 +347,63 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
 
     private static MetricValue Metric(DashboardAnalyticsWidget widget, object rows)
     {
+        var definition = DashboardWidgetCatalog.Get(widget).Metric
+            ?? throw new InvalidOperationException($"Widget {widget} has no metric contract.");
         var json = JsonSerializer.SerializeToElement(rows, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        decimal value = 0;
-        decimal numerator = 0;
-        decimal denominator = 0;
-        long sample = 0;
-        foreach (var row in json.ValueKind == JsonValueKind.Array ? json.EnumerateArray() : [])
+        if (json.ValueKind != JsonValueKind.Array)
+            throw new InvalidOperationException($"Rows for widget {widget} must be a JSON array.");
+
+        var rowList = json.EnumerateArray().ToList();
+        decimal value;
+        switch (definition.Aggregation)
         {
-            value += widget switch
+            case DashboardMetricAggregation.Sum:
+                value = rowList.Sum(row => MetricNumber(row, definition.ValueField) ?? 0);
+                break;
+            case DashboardMetricAggregation.Max:
             {
-                DashboardAnalyticsWidget.NetSalesTrend or DashboardAnalyticsWidget.StoreRanking => Decimal(row, "netSales"),
-                DashboardAnalyticsWidget.HourlyOrders => Decimal(row, "totalOrders"),
-                DashboardAnalyticsWidget.TopProducts or DashboardAnalyticsWidget.ProductPeriodPerformance
-                    or DashboardAnalyticsWidget.CategoryPerformance => Decimal(row, "productRevenue") + Decimal(row, "revenue"),
-                DashboardAnalyticsWidget.VolumeMarginMatrix => Decimal(row, "revenue"),
-                DashboardAnalyticsWidget.InventoryWasteByStoreIngredient => Decimal(row, "wasteValue"),
-                DashboardAnalyticsWidget.IngredientConsumptionTrend => Decimal(row, "confirmedCost"),
-                DashboardAnalyticsWidget.PaymentMethodMix => Decimal(row, "amount"),
-                DashboardAnalyticsWidget.PurchasePriceTrend =>
-                    Decimal(row, "averageBaseUnitCost") * Decimal(row, "receivedBaseQuantity"),
-                DashboardAnalyticsWidget.ProcurementSpendBreakdown => Decimal(row, "spend"),
-                DashboardAnalyticsWidget.InventoryShortageRisk => Decimal(row, "shortageQuantity"),
-                DashboardAnalyticsWidget.InventoryReorderSuggestions =>
-                    Decimal(row, "suggestedQuantity") != 0
-                        ? Decimal(row, "suggestedQuantity")
-                        : Decimal(row, "requestedQuantity"),
-                DashboardAnalyticsWidget.SupplierIssueMix => Decimal(row, "issueCount"),
-                DashboardAnalyticsWidget.OverduePurchaseOrders => Decimal(row, "overdueDays"),
-                DashboardAnalyticsWidget.WorkforceHourlyDemand => Decimal(row, "totalOrders"),
-                _ => 1
-            };
-            if (widget == DashboardAnalyticsWidget.SupplierQuality)
-            {
-                numerator += Decimal(row, "rejectedBaseQuantity");
-                denominator += Decimal(row, "acceptedBaseQuantity") + Decimal(row, "rejectedBaseQuantity");
+                var values = rowList.Select(row => MetricNumber(row, definition.ValueField))
+                    .Where(item => item.HasValue)
+                    .Select(item => item!.Value)
+                    .ToList();
+                value = values.Count == 0 ? 0 : values.Max();
+                break;
             }
-            else if (widget == DashboardAnalyticsWidget.OrderStatusSummary)
+            case DashboardMetricAggregation.CountRows:
+                foreach (var row in rowList)
+                    _ = MetricNumber(row, definition.ValueField);
+                value = rowList.Count;
+                break;
+            case DashboardMetricAggregation.WeightedAverage:
             {
-                numerator += Decimal(row, "cancelledOrders");
-                denominator += Decimal(row, "totalOrders");
+                var weightedTotal = rowList.Sum(row =>
+                    (MetricNumber(row, definition.ValueField) ?? 0) * (MetricNumber(row, definition.WeightField) ?? 0));
+                var totalWeight = rowList.Sum(row => MetricNumber(row, definition.WeightField) ?? 0);
+                value = totalWeight == 0 ? 0 : weightedTotal / totalWeight;
+                break;
             }
-            else if (widget == DashboardAnalyticsWidget.VolumeMarginMatrix)
+            case DashboardMetricAggregation.RatioOfSums:
             {
-                numerator += Decimal(row, "revenue") * Decimal(row, "confirmedMarginRate");
-                denominator += Decimal(row, "revenue");
+                var numerator = rowList.Sum(row => MetricNumber(row, definition.NumeratorField) ?? 0);
+                var denominator = rowList.Sum(row => MetricNumber(row, definition.DenominatorField) ?? 0);
+                if (!string.IsNullOrWhiteSpace(definition.AdditionalDenominatorField))
+                    denominator += rowList.Sum(row => MetricNumber(row, definition.AdditionalDenominatorField) ?? 0);
+                value = denominator == 0 ? 0 : numerator / denominator;
+                break;
             }
-            else if (widget == DashboardAnalyticsWidget.PurchasePriceTrend)
-                denominator += Decimal(row, "receivedBaseQuantity");
-            sample += widget switch
-            {
-                DashboardAnalyticsWidget.NetSalesTrend or DashboardAnalyticsWidget.StoreRanking or DashboardAnalyticsWidget.HourlyOrders => Long(row, "totalOrders"),
-                DashboardAnalyticsWidget.TopProducts => Long(row, "totalSold"),
-                DashboardAnalyticsWidget.ProductPeriodPerformance or DashboardAnalyticsWidget.CategoryPerformance
-                    => Long(row, "totalSold"),
-                DashboardAnalyticsWidget.VolumeMarginMatrix => Long(row, "volume"),
-                DashboardAnalyticsWidget.InventoryWasteByStoreIngredient => Long(row, "transactionCount"),
-                DashboardAnalyticsWidget.SupplierQuality => Long(row, "receiptCount"),
-                DashboardAnalyticsWidget.OrderStatusSummary => Long(row, "totalOrders"),
-                DashboardAnalyticsWidget.IngredientConsumptionTrend => Long(row, "transactionCount"),
-                DashboardAnalyticsWidget.PaymentMethodMix => Long(row, "totalTransactions"),
-                DashboardAnalyticsWidget.SupplierIssueMix => Long(row, "issueCount"),
-                DashboardAnalyticsWidget.WorkforceHourlyDemand => Long(row, "totalOrders"),
-                _ => 1
-            };
+            default:
+                throw new InvalidOperationException(
+                    $"Aggregation {definition.Aggregation} is not supported for widget {widget}.");
         }
-        if (widget is DashboardAnalyticsWidget.SupplierQuality
-            or DashboardAnalyticsWidget.OrderStatusSummary
-            or DashboardAnalyticsWidget.VolumeMarginMatrix)
-            value = denominator == 0 ? 0 : numerator / denominator;
-        else if (widget == DashboardAnalyticsWidget.PurchasePriceTrend)
-            value = denominator == 0 ? 0 : value / denominator;
+
+        var sampleDecimal = string.IsNullOrWhiteSpace(definition.SampleField)
+            ? rowList.Count
+            : rowList.Sum(row => MetricNumber(row, definition.SampleField) ?? 0);
+        var sample = sampleDecimal >= long.MaxValue
+            ? long.MaxValue
+            : sampleDecimal <= 0
+                ? 0
+                : decimal.ToInt64(decimal.Truncate(sampleDecimal));
         return new MetricValue(value, sample);
     }
 
@@ -479,8 +472,28 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
     }
 
     private static DateTime StartOfWeek(DateTime date) => date.AddDays(-((7 + date.DayOfWeek - DayOfWeek.Monday) % 7));
-    private static decimal Decimal(JsonElement row, string name) => row.TryGetProperty(name, out var x) && x.TryGetDecimal(out var value) ? value : 0;
-    private static long Long(JsonElement row, string name) => row.TryGetProperty(name, out var x) && x.TryGetInt64(out var value) ? value : 0;
+    private static decimal? MetricNumber(JsonElement row, string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidOperationException("Metric contract contains an empty numeric field.");
+        if (!row.TryGetProperty(name, out var property))
+            throw new InvalidOperationException($"Metric field '{name}' does not exist in the widget row contract.");
+        if (property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            return null;
+        if (property.TryGetDecimal(out var value))
+            return value;
+        throw new InvalidOperationException($"Metric field '{name}' is not numeric.");
+    }
+
+    private static long Long(JsonElement row, string name)
+    {
+        var value = MetricNumber(row, name) ?? 0;
+        return value >= long.MaxValue
+            ? long.MaxValue
+            : value <= long.MinValue
+                ? long.MinValue
+                : decimal.ToInt64(decimal.Truncate(value));
+    }
     private static string CacheKey(int staffId, Guid analysisId) => $"dashboard-intelligence:{staffId}:{analysisId:N}";
     private static void RequireActor(AdminActorContext actor) { if (actor.StaffId <= 0) throw new UnauthorizedAccessException("Staff context is required."); }
     private static DashboardIntentParseResultDto Unsupported() => new()
