@@ -195,7 +195,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 return Json(new
                 {
                     success = false,
-                    message = "ProductionRunId không hợp lệ.",
+                    message = "Mã lệnh sơ chế không hợp lệ.",
                     errorCode = "INVALID_REQUEST"
                 });
             }

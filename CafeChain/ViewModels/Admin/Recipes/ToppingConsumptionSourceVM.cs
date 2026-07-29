@@ -22,7 +22,7 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public string SourceCode { get; set; } = ToppingConsumptionSourceCodes.NoActiveRecipe;
         public string SourceLabel { get; set; } = "Chưa cấu hình nguồn tiêu hao";
         public bool MappingValid { get; set; }
-        public string Reason { get; set; } = "Topping chưa có công thức Active.";
+        public string Reason { get; set; } = "Topping chưa có công thức đang hoạt động.";
         public decimal? EstimatedCostPerPortion { get; set; }
         public bool CostComplete { get; set; }
         public string CostStatus { get; set; } = "Chưa xác định giá vốn BOM";
@@ -47,7 +47,7 @@ namespace CafeChain.ViewModels.Admin.Recipes
 
         public string IdentityDisplay => SourceKind == ToppingConsumptionSourceCodes.DirectIngredient
             ? $"[{IngredientCode ?? $"ING_{IngredientId}"}] {IngredientName ?? "Nguyên liệu không tồn tại"}"
-            : $"[{PreparedItemCode ?? $"PI_{PreparedItemId}"}] {PreparedItemName ?? "BTP chưa mapping"}";
+            : $"[{PreparedItemCode ?? $"PI_{PreparedItemId}"}] {PreparedItemName ?? "BTP chưa được liên kết"}";
 
         public string QuantityDisplay => $"{Quantity:0.####} {UnitCode}".Trim();
     }

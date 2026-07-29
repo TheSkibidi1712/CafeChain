@@ -217,7 +217,7 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> EstimateBomCost(int recipeId)
         {
             if (recipeId <= 0)
-                return Json(new { success = false, message = "RecipeId không hợp lệ." });
+                return Json(new { success = false, message = "Mã công thức không hợp lệ." });
 
             var result = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(recipeId);
             return Json(new
