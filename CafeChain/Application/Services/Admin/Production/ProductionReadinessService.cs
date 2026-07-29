@@ -149,7 +149,7 @@ namespace CafeChain.Application.Services.Admin.Production
                 || !recipe.OutputUnitId.HasValue)
             {
                 return ServiceResult<ProductionReadinessPreviewDto>.Failure(
-                    "Chỉ công thức BTP Active có PreparedItem và output contract hợp lệ mới được preview.",
+                    "Chỉ công thức BTP đang hoạt động, có bán thành phẩm và cấu hình đầu ra hợp lệ mới có thể xem trước.",
                     errorCode: ProductionReadinessCodes.InvalidRecipe);
             }
 
@@ -188,7 +188,7 @@ namespace CafeChain.Application.Services.Admin.Production
             var normalizedInputs = await NormalizeInputsAsync(recipe, runCount, preview.Reasons);
             if (normalizedInputs.Count == 0)
             {
-                AddReason(preview, ProductionReadinessCodes.InvalidOutput, "Công thức chưa có input BOM hợp lệ.");
+                AddReason(preview, ProductionReadinessCodes.InvalidOutput, "Công thức chưa có đầu vào BOM hợp lệ.");
                 FinalizePreview(preview);
                 return ServiceResult<ProductionReadinessPreviewDto>.Success(preview);
             }

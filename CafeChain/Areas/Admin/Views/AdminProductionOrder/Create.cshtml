@@ -53,7 +53,7 @@
                                     </option>
                                 }
                             </select>
-                            <div class="form-text">Chỉ hiển thị công thức BTP Active; món POS và topping không dùng cho lệnh sơ chế.</div>
+                            <div class="form-text">Chỉ hiển thị công thức BTP đang hoạt động; món bán tại quầy và topping không dùng cho lệnh sơ chế.</div>
                         </div>
 
                         <div class="col-12">
@@ -96,7 +96,7 @@
                     </div>
 
                     <div id="readinessSummary" class="po-readiness-summary" aria-live="polite">
-                        <span class="po-readiness-state is-neutral">Chưa có preview</span>
+                        <span class="po-readiness-state is-neutral">Chưa xem trước</span>
                         <span class="small text-muted">Chọn cửa hàng, BTP và số mẻ để kiểm tra.</span>
                     </div>
 
@@ -178,7 +178,7 @@
                             <tr>
                                 <td class="text-muted fw-bold">#PR-@hist.ProductionRunId</td>
                                 <td>@(hist.StoreName ?? hist.StoreId.ToString())</td>
-                                <td class="fw-bold">@(hist.RecipeName ?? $"Recipe #{hist.RecipeId}")</td>
+                                <td class="fw-bold">@(hist.RecipeName ?? $"Công thức #{hist.RecipeId}")</td>
                                 <td>@hist.RequestedRunCount.ToString("0.#####") mẻ</td>
                                 <td>@(hist.ActorName ?? "—")</td>
                                 <td class="small">@hist.ConfirmedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
@@ -277,6 +277,33 @@
                 return Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' đ';
             }
 
+            function translateReadinessStatus(value, isReady) {
+                const labels = {
+                    READY: 'Sẵn sàng',
+                    BLOCKED: 'Chưa sẵn sàng',
+                    INCOMPLETE: 'Chưa đầy đủ',
+                    ERROR: 'Có lỗi'
+                };
+                return labels[String(value || '').toUpperCase()] || (isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng');
+            }
+
+            function translateWriterMode(value) {
+                const labels = {
+                    PreparedItem: 'Bán thành phẩm',
+                    LegacyRecipe: 'Công thức cũ'
+                };
+                return labels[value] || value || 'Chưa xác định';
+            }
+
+            function translateSourceType(value) {
+                const labels = {
+                    Ingredient: 'Nguyên liệu',
+                    PreparedItem: 'Bán thành phẩm',
+                    ChildRecipe: 'Công thức thành phần'
+                };
+                return labels[value] || value || 'Chưa xác định';
+            }
+
             function debounce(func, wait) {
                 let timeout;
                 return function () {
@@ -309,12 +336,12 @@
 
                 if (!storeId || !recipeId || batches <= 0) {
                     tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-boxes fa-2x mb-2 text-light"></i><br/>Vui lòng chọn cửa hàng, BTP và nhập số mẻ</td></tr>');
-                    readiness.html('<span class="po-readiness-state is-neutral">Chưa có preview</span><span class="small text-muted">Thiếu dữ liệu đầu vào.</span>');
+                    readiness.html('<span class="po-readiness-state is-neutral">Chưa xem trước</span><span class="small text-muted">Thiếu dữ liệu đầu vào.</span>');
                     btnComplete.prop('disabled', true);
                     return;
                 }
 
-                tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x mb-2 text-primary"></i><br/>Đang kiểm tra readiness...</td></tr>');
+                tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x mb-2 text-primary"></i><br/>Đang kiểm tra mức độ sẵn sàng...</td></tr>');
                 readiness.html('<span class="po-readiness-state is-neutral">Đang kiểm tra</span>');
 
                 $.getJSON('@Url.Action("CalculateIngredients", "AdminProductionOrder", new { area = "Admin" })',
@@ -322,7 +349,7 @@
                     function (response) {
                         if (!response.success) {
                             tbody.html(`<tr><td colspan="7" class="text-center text-danger py-4">${escapeHtml(response.message)}</td></tr>`);
-                            readiness.html(`<span class="po-readiness-state is-error">Không thể preview</span><span class="small text-danger">${escapeHtml(response.message)}</span>`);
+                            readiness.html(`<span class="po-readiness-state is-error">Không thể xem trước</span><span class="small text-danger">${escapeHtml(response.message)}</span>`);
                             btnComplete.prop('disabled', true);
                             return;
                         }
@@ -330,19 +357,19 @@
                         const preview = response.data;
                         tbody.empty();
                         if (!preview.inputs || preview.inputs.length === 0) {
-                            tbody.append('<tr><td colspan="7" class="text-center text-muted py-4">Công thức chưa có input BOM hợp lệ</td></tr>');
+                            tbody.append('<tr><td colspan="7" class="text-center text-muted py-4">Công thức chưa có đầu vào BOM hợp lệ</td></tr>');
                             btnComplete.prop('disabled', true);
                         } else {
                             preview.inputs.forEach(function (item) {
                                 const shortageClass = item.shortageQuantity > 0 ? 'text-danger fw-bold' : 'text-success';
                                 const costText = item.costEvidenceComplete
                                     ? formatMoney(item.projectedFifoCost)
-                                    : `Thiếu layer ${formatQty(item.costEvidenceShortage)} ${escapeHtml(item.baseUnitCode)}`;
+                                    : `Thiếu lớp giá ${formatQty(item.costEvidenceShortage)} ${escapeHtml(item.baseUnitCode)}`;
                                 tbody.append(`
                                     <tr>
                                         <td>
                                             <div class="item-name">[${escapeHtml(item.itemCode)}] ${escapeHtml(item.itemName)}</div>
-                                            <div class="small text-muted">${escapeHtml(item.sourceType)}${item.childRecipeId ? ' · pin Recipe #' + item.childRecipeId : ''}</div>
+                                            <div class="small text-muted">${escapeHtml(translateSourceType(item.sourceType))}${item.childRecipeId ? ' · cố định Công thức #' + item.childRecipeId : ''}</div>
                                         </td>
                                         <td class="text-end fw-semibold">${formatQty(item.requiredTotal)} ${escapeHtml(item.baseUnitCode)}</td>
                                         <td class="text-end">${formatQty(item.currentQuantity)}</td>
@@ -359,22 +386,22 @@
                             return `<li class="${reason.blocking ? 'text-danger' : 'text-warning'}"><code>${escapeHtml(reason.code)}</code> ${escapeHtml(reason.message)}</li>`;
                         }).join('');
                         readiness.html(`
-                            <span class="po-readiness-state ${preview.isReady ? 'is-ready' : 'is-error'}">${escapeHtml(preview.overallStatus)}</span>
-                            <span class="small">Writer: <strong>${escapeHtml(preview.writerMode)}</strong> · Tối đa ${formatQty(preview.maxSupportedRunCount)} mẻ</span>
+                            <span class="po-readiness-state ${preview.isReady ? 'is-ready' : 'is-error'}">${escapeHtml(translateReadinessStatus(preview.overallStatus, preview.isReady))}</span>
+                            <span class="small">Chế độ ghi kho: <strong>${escapeHtml(translateWriterMode(preview.writerMode))}</strong> · Tối đa ${formatQty(preview.maxSupportedRunCount)} mẻ</span>
                             ${reasonHtml ? '<ul class="po-readiness-reasons">' + reasonHtml + '</ul>' : ''}
                         `);
                         output.removeClass('d-none').html(`
                             <div><span>Đầu ra/mẻ</span><strong>${formatQty(preview.outputQuantityPerRun)} ${escapeHtml(preview.outputUnitCode)}</strong></div>
-                            <div><span>Đầu ra tổng raw</span><strong>${formatQty(preview.rawTotalOutput)} ${escapeHtml(preview.outputUnitCode)}</strong></div>
+                            <div><span>Tổng đầu ra chưa chuẩn hóa</span><strong>${formatQty(preview.rawTotalOutput)} ${escapeHtml(preview.outputUnitCode)}</strong></div>
                             <div><span>Đầu ra tổng chuẩn hóa</span><strong>${formatQty(preview.normalizedTotalOutput)} ${escapeHtml(preview.outputBaseUnitCode)}</strong></div>
                             <div><span>Giá vốn BOM ước tính</span><strong>${preview.estimatedBomCostComplete ? formatMoney(preview.estimatedBomCostTotal) : 'Chưa đầy đủ'}</strong></div>
-                            <div><span>FIFO dự kiến trước Complete</span><strong>${preview.costEvidenceComplete ? formatMoney(preview.projectedFifoInputCost) : 'Thiếu bằng chứng'}</strong></div>
+                            <div><span>FIFO dự kiến trước khi hoàn tất</span><strong>${preview.costEvidenceComplete ? formatMoney(preview.projectedFifoInputCost) : 'Thiếu bằng chứng'}</strong></div>
                         `);
                         previewReady = preview.isReady === true;
                         btnComplete.prop('disabled', !previewReady);
                     }
                 ).fail(function () {
-                    tbody.html('<tr><td colspan="7" class="text-center text-danger py-4">Lỗi kết nối Server. Không thể tải readiness.</td></tr>');
+                    tbody.html('<tr><td colspan="7" class="text-center text-danger py-4">Lỗi kết nối máy chủ. Không thể tải mức độ sẵn sàng.</td></tr>');
                     readiness.html('<span class="po-readiness-state is-error">Lỗi kết nối</span>');
                     btnComplete.prop('disabled', true);
                 });
@@ -395,7 +422,7 @@
                 Swal.fire({
                     icon: 'question',
                     title: 'Áp dụng vào kho?',
-                    html: '<p>Hệ thống sẽ <b>trừ nguyên liệu / BTP đầu vào</b> và <b>cộng PreparedItem đầu ra</b> theo công thức đã ghi nhận.</p>',
+                    html: '<p>Hệ thống sẽ <b>trừ nguyên liệu / BTP đầu vào</b> và <b>cộng bán thành phẩm đầu ra</b> theo công thức đã ghi nhận.</p>',
                     showCancelButton: true,
                     confirmButtonText: 'Áp dụng',
                     cancelButtonText: 'Hủy',
@@ -433,7 +460,7 @@
                                         html += '<ul style="text-align:left">';
                                         res.costEvidenceGaps.forEach(function (g) {
                                             html += '<li><b>' + (g.inputCode || '') + ' ' + (g.inputName || '') + '</b>: cần '
-                                                + g.requiredQuantity + ', layer có ' + g.availableLayerQuantity
+                                                + g.requiredQuantity + ', lớp giá hiện có ' + g.availableLayerQuantity
                                                 + ', thiếu ' + g.missingQuantity + '</li>';
                                         });
                                         html += '</ul>';
@@ -449,7 +476,7 @@
                         },
                         error: function () {
                             btn.prop('disabled', false).text('Áp dụng vào kho');
-                            Swal.fire({ icon: 'error', title: 'Lỗi mạng', text: 'Không kết nối server.', confirmButtonColor: '#ef4444' });
+                            Swal.fire({ icon: 'error', title: 'Lỗi mạng', text: 'Không kết nối được với máy chủ.', confirmButtonColor: '#ef4444' });
                         }
                     });
                 });
@@ -473,7 +500,7 @@
                     Swal.fire({
                         icon: 'warning',
                         title: 'Chưa sẵn sàng',
-                        text: 'Vui lòng xử lý các lý do readiness trước khi ghi nhận lệnh.',
+                        text: 'Vui lòng xử lý các nguyên nhân chưa sẵn sàng trước khi ghi nhận lệnh.',
                         confirmButtonColor: '#ea580c'
                     });
                     return;
@@ -552,7 +579,7 @@
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Lỗi mạng',
-                                text: 'Không kết nối được với server. Bạn có thể thử lại với cùng RequestKey.',
+                                text: 'Không kết nối được với máy chủ. Bạn có thể thử lại với cùng mã yêu cầu.',
                                 confirmButtonColor: '#ef4444'
                             });
                         }

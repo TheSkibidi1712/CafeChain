@@ -63,7 +63,7 @@
         return $(
             '<div class="rb-pi-option">' +
             '<div class="fw-semibold">[' + code + '] ' + name + '</div>' +
-            '<div class="small text-muted">ĐVT tồn kho: ' + unit + ' · Công thức active: ' + activeLabel + '</div>' +
+            '<div class="small text-muted">ĐVT tồn kho: ' + unit + ' · Công thức đang hoạt động: ' + activeLabel + '</div>' +
             '</div>'
         );
     }
@@ -149,7 +149,7 @@
         function setPreviewLoading() {
             $('#normalizedOutputPreview').html(
                 '<div class="rb-preview-main text-muted">Đang tính…</div>' +
-                '<div class="rb-preview-sub">Gọi PreviewNormalizedOutput</div>'
+                '<div class="rb-preview-sub">Đang chuẩn hóa sản lượng đầu ra</div>'
             );
         }
 
@@ -186,8 +186,8 @@
                 },
                 error: function () {
                     $('#normalizedOutputPreview').html(
-                        '<div class="rb-preview-main text-danger">Lỗi preview</div>' +
-                        '<div class="rb-preview-sub">Antiforgery hoặc kết nối</div>'
+                        '<div class="rb-preview-main text-danger">Lỗi xem trước</div>' +
+                        '<div class="rb-preview-sub">Phiên làm việc không hợp lệ hoặc mất kết nối</div>'
                     );
                 }
             });
@@ -222,8 +222,8 @@
                 '<div class="small"><strong>Tên:</strong> ' + name + '</div>' +
                 '<div class="small"><strong>Đơn vị tồn kho:</strong> ' + unitCode + (unitName ? ' (' + unitName + ')' : '') + '</div>' +
                 '<div class="small"><strong>Trạng thái:</strong> Hoạt động</div>' +
-                '<div class="small"><strong>Công thức active hiện tại:</strong> ' +
-                (hasActive ? ('Có — Recipe #' + activeId + (activeCode ? ' (' + activeCode + ')' : '')) : 'Chưa có') +
+                '<div class="small"><strong>Công thức đang hoạt động hiện tại:</strong> ' +
+                (hasActive ? ('Có — Công thức #' + activeId + (activeCode ? ' (' + activeCode + ')' : '')) : 'Chưa có') +
                 '</div>' +
                 '<div class="small"><strong>Số phiên bản:</strong> ' + versionCount + '</div>';
             $('#piSummary').html(html).show();
@@ -232,9 +232,9 @@
                 createBlockedByActiveRecipe = true;
                 var editHref = (cfg.editUrlTemplate || '').replace('{id}', activeId);
                 $('#piActiveConflict').html(
-                    '<strong>Đã có công thức Active</strong> (#' + activeId + '). ' +
-                    'Tạo mới sẽ bị chặn theo rule domain (mỗi BTP một phiên bản Active). ' +
-                    'Hãy dùng Edit để archive + tạo phiên bản mới.<br class="mb-1"/>' +
+                    '<strong>Đã có công thức đang hoạt động</strong> (#' + activeId + '). ' +
+                    'Không thể tạo mới vì mỗi BTP chỉ có một phiên bản đang hoạt động. ' +
+                    'Hãy mở màn hình sửa để lưu trữ phiên bản cũ và tạo phiên bản mới.<br class="mb-1"/>' +
                     '<a class="btn btn-sm btn-outline-secondary mt-1 me-1" href="' + editHref + '">Xem công thức</a>' +
                     '<a class="btn btn-sm btn-outline-primary mt-1" href="' + editHref + '">Tạo phiên bản mới</a>'
                 ).show();
@@ -360,7 +360,7 @@
                 var unitA = parseInt(tr.find('.item-unitid').val(), 10) || 0;
                 var unitB = parseInt(first.find('.item-unitid').val(), 10) || 0;
                 if (unitA !== unitB) {
-                    alert('Không gộp được: đơn vị khác nhau (UnitId ' + unitA + ' vs ' + unitB + '). Backend sẽ từ chối trùng ItemCode.');
+                    alert('Không gộp được: đơn vị khác nhau (mã đơn vị ' + unitA + ' và ' + unitB + '). Máy chủ sẽ từ chối mã thành phần trùng nhau.');
                     return;
                 }
                 var q1 = parseFloat(tr.find('.item-qty').val()) || 0;
@@ -450,7 +450,7 @@
                 $ctas.append('<a class="btn btn-sm btn-outline-secondary" href="/Admin/AdminIngredient">Xem nguyên liệu</a>');
                 $ctas.append('<a class="btn btn-sm btn-outline-secondary" href="/Admin/AdminSupplier">Xem nhà cung cấp</a>');
                 $ctas.append('<a class="btn btn-sm btn-outline-secondary" href="/Admin/AdminUnitConversion">Xem quy đổi đơn vị</a>');
-                $('#footerTotalCost').text('INCOMPLETE');
+                $('#footerTotalCost').text('CHƯA ĐẦY ĐỦ');
                 $('#hiddenTotalCost').val(0);
                 $('#footerFoodCostPct').text('—');
             } else {
@@ -603,7 +603,7 @@
             if (saveInFlight) return;
 
             if (createBlockedByActiveRecipe) {
-                showFormError('BTP đã có công thức Active. Hãy tạo phiên bản mới từ màn Edit.');
+                showFormError('BTP đã có công thức đang hoạt động. Hãy tạo phiên bản mới từ màn hình sửa.');
                 return;
             }
             var recipeType = $('input[name="RecipeType"]:checked').val();
@@ -642,7 +642,7 @@
                 return;
             }
             if (hasDup) {
-                showFormError('Có thành phần trùng ItemCode. Hãy gộp dòng hoặc chọn khác trước khi lưu.');
+                showFormError('Có thành phần trùng mã. Hãy gộp dòng hoặc chọn thành phần khác trước khi lưu.');
                 return;
             }
 

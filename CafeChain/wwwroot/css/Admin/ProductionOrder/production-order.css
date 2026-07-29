@@ -458,3 +458,209 @@
     .po-actions > div { display: grid !important; grid-template-columns: 1fr; }
     .history-header { align-items: flex-start; flex-direction: column; gap: 4px; }
 }
+
+/* Căn chỉnh cột và nội dung của các bảng lệnh sơ chế. */
+.po-table {
+    table-layout: fixed;
+}
+.po-table th,
+.po-table td {
+    vertical-align: middle;
+    text-align: center;
+}
+.po-table-wrapper .po-table th:first-child,
+.po-table-wrapper .po-table td:first-child {
+    width: 25%;
+    text-align: left;
+}
+.po-table-wrapper .po-table th:nth-child(2),
+.po-table-wrapper .po-table td:nth-child(2),
+.po-table-wrapper .po-table th:nth-child(3),
+.po-table-wrapper .po-table td:nth-child(3),
+.po-table-wrapper .po-table th:nth-child(4),
+.po-table-wrapper .po-table td:nth-child(4),
+.po-table-wrapper .po-table th:nth-child(5),
+.po-table-wrapper .po-table td:nth-child(5),
+.po-table-wrapper .po-table th:nth-child(6),
+.po-table-wrapper .po-table td:nth-child(6) {
+    width: 10%;
+    text-align: center !important;
+}
+.po-table-wrapper .po-table th:nth-child(7),
+.po-table-wrapper .po-table td:nth-child(7) {
+    width: 15%;
+    text-align: center;
+}
+.history-card .po-table {
+    min-width: 1180px;
+    table-layout: fixed;
+}
+.history-card .po-table th,
+.history-card .po-table td { text-align: center; }
+.history-card .po-table th:nth-child(2),
+.history-card .po-table td:nth-child(2),
+.history-card .po-table th:nth-child(3),
+.history-card .po-table td:nth-child(3),
+.history-card .po-table th:nth-child(5),
+.history-card .po-table td:nth-child(5) { text-align: left; }
+
+/* Tên cột của bảng nguyên liệu và lịch sử lệnh luôn căn giữa. */
+.po-page .po-table > thead > tr > th {
+    text-align: center !important;
+    vertical-align: middle;
+}
+
+/* ===== Hoàn thiện giao diện lệnh sơ chế ===== */
+.po-main-card,
+.history-card {
+    border-radius: 12px;
+    border-color: #e2d5ca;
+    box-shadow: 0 4px 16px rgba(92, 63, 43, .08);
+}
+.po-main-card {
+    position: relative;
+}
+.po-section-title,
+.po-bom-title {
+    color: #68452f;
+}
+.po-readiness-summary {
+    border-color: #e2d5ca;
+    background: linear-gradient(180deg, #fffdfb 0%, #faf5f0 100%);
+    box-shadow: inset 3px 0 0 #795236;
+}
+.po-page .po-table > thead > tr > th {
+    height: 42px;
+    padding: 10px 12px;
+    background: #f8f2ec;
+    color: #8a4f29;
+    border-bottom: 1px solid #dfd0c4;
+    font-size: .71rem;
+    font-weight: 800;
+    letter-spacing: .025em;
+}
+.po-page .po-table > tbody > tr {
+    transition: background-color .16s ease, box-shadow .16s ease;
+}
+.po-page .po-table > tbody > tr:nth-child(even) {
+    background: #fffdfb;
+}
+.po-page .po-table > tbody > tr:hover {
+    background: #fbf4ed;
+    box-shadow: inset 3px 0 0 #795236;
+}
+.po-page .po-table > tbody > tr > td {
+    border-bottom-color: #eee4db;
+}
+.po-table-wrapper .po-table > thead > tr > th:first-child,
+.history-card .po-table > thead > tr > th:nth-child(2),
+.history-card .po-table > thead > tr > th:nth-child(3),
+.history-card .po-table > thead > tr > th:nth-child(5) {
+    text-align: left !important;
+}
+.po-page .form-control:hover,
+.po-page .form-select:hover,
+.po-page .select2-container--bootstrap-5 .select2-selection:hover {
+    border-color: #aa8a73;
+}
+.po-page .form-control:focus,
+.po-page .form-select:focus,
+.po-page .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+    border-color: #795236;
+    box-shadow: 0 0 0 3px rgba(121, 82, 54, .13);
+}
+.po-page .btn {
+    transition: color .16s ease, background-color .16s ease,
+                border-color .16s ease, box-shadow .16s ease,
+                transform .16s ease;
+}
+.po-page .btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(92, 63, 43, .16);
+}
+.po-page .btn-ghost:hover,
+.po-page .btn-outline-dark:hover {
+    background: #795236;
+    border-color: #795236;
+    color: #fff;
+}
+.po-output-summary > div {
+    transition: background-color .16s ease;
+}
+.po-output-summary > div:hover {
+    background: #fbf4ed;
+}
+
+.po-title-section {
+    position: relative;
+    margin-bottom: 22px;
+    padding: 20px 22px;
+    border: 1px solid #e2d5ca;
+    border-radius: 14px;
+    background:
+        radial-gradient(circle at 92% 18%, rgba(198, 122, 69, .13), transparent 26%),
+        linear-gradient(135deg, #fff 0%, #fbf6f1 72%, #f4e9df 100%);
+    box-shadow: 0 5px 18px rgba(92, 63, 43, .08);
+    overflow: hidden;
+}
+.po-title-section::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: linear-gradient(180deg, #6f4e37, #c67a45);
+}
+.po-title {
+    color: #3f2b20;
+    letter-spacing: -.025em;
+}
+.po-main-card {
+    padding: 26px;
+}
+.po-bom-header {
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eadfd6;
+}
+.po-bom-badge {
+    border: 1px solid #e5d5c8;
+    box-shadow: inset 0 0 0 1px rgba(111, 78, 55, .03);
+}
+.po-table-wrapper {
+    box-shadow: 0 2px 8px rgba(92, 63, 43, .05);
+}
+.btn-primary-action {
+    background: linear-gradient(135deg, #795236, #5c3f2b);
+    border-color: #5c3f2b;
+    box-shadow: 0 5px 12px rgba(92, 63, 43, .24);
+}
+.btn-primary-action:hover:not(:disabled) {
+    background: linear-gradient(135deg, #68462f, #493122);
+    box-shadow: 0 7px 16px rgba(92, 63, 43, .3);
+}
+.history-header {
+    padding: 0 4px;
+}
+.history-title {
+    position: relative;
+    padding-left: 13px;
+}
+.history-title::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 2px;
+    bottom: 2px;
+    width: 4px;
+    border-radius: 999px;
+    background: #795236;
+}
+
+@media (max-width: 767.98px) {
+    .po-title-section {
+        padding: 16px;
+        border-radius: 11px;
+    }
+    .po-main-card {
+        padding: 16px;
+    }
+}
