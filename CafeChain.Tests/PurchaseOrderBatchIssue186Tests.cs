@@ -7,6 +7,7 @@ using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
@@ -30,6 +31,46 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
         Assert.True(result.IsSuccess, result.Message);
         Assert.StartsWith("POB-", result.Data!.BatchNumber);
         Assert.Equal(PurchaseOrderBatchStatuses.PendingApproval, result.Data.Status);
+    }
+
+    [Fact]
+    public async Task Batch_Create_SnapshotsTrackedAdvicesBeforeRecomputingStatuses()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(db);
+        var fulfillment = new Mock<IPurchaseAdviceFulfillmentService>();
+        var attachedDuringRecompute = false;
+        fulfillment
+            .Setup(x => x.RecomputeHeaderStatusAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>()))
+            .Callback(() =>
+            {
+                if (attachedDuringRecompute) return;
+
+                db.Attach(new PurchaseAdvice
+                {
+                    PurchaseAdviceId = int.MaxValue,
+                    AdviceNumber = "PA-TRACKER-SNAPSHOT",
+                    RequestKey = "TRACKER-SNAPSHOT",
+                    StoreId = seed.Store1Id,
+                    RequestedByStaffId = seed.ManagerId,
+                    Status = PurchaseAdviceStatuses.Submitted,
+                    NeededByDate = DateTime.UtcNow.Date.AddDays(1),
+                    Priority = PurchaseAdvicePriorities.Normal,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    UpdatedAtUtc = DateTime.UtcNow
+                });
+                attachedDuringRecompute = true;
+            })
+            .Returns(Task.CompletedTask);
+
+        var result = await BatchService(db, fulfillment.Object)
+            .CreateAsync(Request(seed), Warehouse(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.True(attachedDuringRecompute);
+        fulfillment.Verify(
+            x => x.RecomputeHeaderStatusAsync(It.IsAny<int>(), seed.WarehouseId, It.IsAny<string>()),
+            Times.Exactly(2));
     }
 
     [Fact]
@@ -178,6 +219,97 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
         Assert.Equal(9m, firstChild.OrderedProcurementQuantity);
         Assert.Equal(0.25m, firstChild.OrderedProcurementQuantity - 8.75m);
         Assert.Equal("kg", firstChild.ProcurementUnitName);
+    }
+
+    [Fact]
+    public async Task Packaged10Kg_With1KgPackage_Creates10Packages()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(
+            db,
+            firstRequestedBaseQuantity: 10m,
+            secondRequestedBaseQuantity: 5m,
+            packageBaseQuantity: 1m,
+            baseUnitName: "kg");
+        await EnableProcurementContractAsync(db, seed, first: 10m, second: 5m, unitName: "kg");
+        var first = seed.Lines[0];
+        var request = new CreatePurchaseOrderBatchRequest
+        {
+            SupplierId = seed.SupplierId,
+            RequestKey = "BATCH-254-" + Guid.NewGuid().ToString("N"),
+            Lines =
+            {
+                new()
+                {
+                    PurchaseAdviceLineId = first.LineId,
+                    IngredientSupplierId = seed.OfferId,
+                    PurchaseMode = PurchaseMode.Packaged,
+                    PackageCount = 10,
+                    RowVersion = first.RowVersion
+                }
+            }
+        };
+
+        var result = await BatchService(db).CreateAsync(request, Warehouse(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        var batchLine = Assert.Single(result.Data!.Lines);
+        Assert.Equal(10m, batchLine.TotalPackageCount);
+        Assert.Equal(10m, batchLine.TotalProcurementQuantity);
+        Assert.Equal(10m, batchLine.DemandCoveredProcurementQuantity);
+        Assert.Equal(0m, batchLine.RoundingSurplusProcurementQuantity);
+        var child = Assert.Single(result.Data.ChildPurchaseOrders);
+        Assert.Equal(10m, child.OrderedProcurementQuantity);
+    }
+
+    [Fact]
+    public async Task PackagedPayload_WithBothFields_IsRejected()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(db);
+        var request = Request(seed);
+        request.Lines[0].OrderedProcurementQuantity = 5m;
+
+        var result = await BatchService(db).CreateAsync(request, Warehouse(seed));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(PurchaseAdviceErrorCodes.ConsolidationInvalid, result.ErrorCode);
+        Assert.Contains($"#{request.Lines[0].PurchaseAdviceLineId}", result.Message);
+        Assert.Contains("đồng thời số gói và số lượng mua rời", result.Message);
+        Assert.Empty(await db.PurchaseOrderBatches.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task PackagedPayload_WithoutPackageCount_IsRejected()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(db);
+        var request = Request(seed);
+        request.Lines[0].PackageCount = null;
+
+        var result = await BatchService(db).CreateAsync(request, Warehouse(seed));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(PurchaseAdviceErrorCodes.ConsolidationInvalid, result.ErrorCode);
+        Assert.Contains("số gói nguyên lớn hơn 0", result.Message);
+        Assert.Empty(await db.PurchaseOrderBatches.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task LoosePayload_WithPackageCount_IsRejected()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(db);
+        var request = Request(seed);
+        request.Lines[0].PurchaseMode = PurchaseMode.Loose;
+        request.Lines[0].OrderedProcurementQuantity = 5m;
+
+        var result = await BatchService(db).CreateAsync(request, Warehouse(seed));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(PurchaseAdviceErrorCodes.ConsolidationInvalid, result.ErrorCode);
+        Assert.Contains("mua rời nên không được gửi số gói", result.Message);
+        Assert.Empty(await db.PurchaseOrderBatches.AsNoTracking().ToListAsync());
     }
 
     [Fact]
@@ -353,7 +485,9 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
         Assert.Equal(PurchaseOrderBatchErrorCodes.Forbidden, result.ErrorCode);
     }
 
-    private static PurchaseOrderBatchService BatchService(AppDbContext db)
+    private static PurchaseOrderBatchService BatchService(
+        AppDbContext db,
+        IPurchaseAdviceFulfillmentService? fulfillment = null)
     {
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(true);
@@ -361,14 +495,14 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
         physical.Setup(x => x.ConvertAsync(It.IsAny<decimal>(), It.IsAny<int>(), It.IsAny<int>()))
             .ReturnsAsync((decimal quantity, int _, int _) => ServiceResult<decimal>.Success(quantity));
         var consolidation = new PurchaseAdviceConsolidationService(db, scope.Object, physical.Object);
-        return new PurchaseOrderBatchService(db, consolidation, scope.Object);
+        return new PurchaseOrderBatchService(db, consolidation, scope.Object, fulfillment);
     }
 
     private static CreatePurchaseOrderBatchRequest Request(Seed seed) => new()
     {
         SupplierId = seed.SupplierId,
         RequestKey = "BATCH-186-" + Guid.NewGuid().ToString("N"),
-        Lines = seed.Lines.Select(x => new PurchaseAdviceConsolidationSelectionRequest
+        Lines = seed.Lines.Select(x => new CreatePurchaseOrderBatchLineRequest
         {
             PurchaseAdviceLineId = x.LineId,
             IngredientSupplierId = seed.OfferId,

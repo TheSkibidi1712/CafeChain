@@ -6,11 +6,13 @@ using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Stores;
+using CafeChain.ViewModels.Admin.Shared;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -146,6 +148,31 @@ public sealed class PurchaseAdviceConsolidationIssue185Tests : IntegrationTestBa
         Assert.Equal(3000m, allocation.OrderedBaseQuantity);
         Assert.Equal(700m, allocation.RoundingSurplusBaseQuantity);
     }
+
+    [Fact]
+    public async Task Consolidation_TenKilogramsWithOneKilogramPackages_UsesTenPackages()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(db, requested: 10m, packageQuantity: 1m);
+
+        var result = await PreviewAsync(db, seed, 10);
+
+        Assert.True(result.IsSuccess, result.Message);
+        var allocation = Assert.Single(Assert.Single(result.Data!.Groups).Allocations);
+        Assert.Equal(PurchaseMode.Packaged, allocation.PurchaseMode);
+        Assert.Equal(10, allocation.PackageCount);
+        Assert.Equal(10m, allocation.OrderedBaseQuantity);
+        Assert.Null(allocation.OrderedProcurementQuantity);
+    }
+
+    [Theory]
+    [InlineData("Gram", "g")]
+    [InlineData("Kilogram", "kg")]
+    [InlineData("Milliliter", "ml")]
+    [InlineData("Liter", "L")]
+    [InlineData("Piece", "cái")]
+    public void ProcurementUnitLabels_AreCompactVietnamese(string source, string expected) =>
+        Assert.Equal(expected, AdminStatusDisplay.Unit(source));
 
     [Fact]
     public async Task Consolidation_RejectsPackageCountIndependentFromServerSuggestion()

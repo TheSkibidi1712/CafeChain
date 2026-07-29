@@ -1,0 +1,296 @@
+@model CafeChain.ViewModels.Admin.OperationalIce.OperationalIceIndexVM
+@using CafeChain.Application.Constants
+@{
+    ViewData["Title"] = "Quản lý đá theo ca";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    var statusLabels = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        [OperationalIceStatuses.Draft] = "Kế hoạch",
+        [OperationalIceStatuses.Open] = "Đang vận hành",
+        [OperationalIceStatuses.PendingApproval] = "Chờ duyệt chênh lệch",
+        [OperationalIceStatuses.ReconciliationRequired] = "Cần đối soát",
+        [OperationalIceStatuses.Closed] = "Đã đóng",
+        [OperationalIceStatuses.Cancelled] = "Đã hủy"
+    };
+    var statusClasses = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        [OperationalIceStatuses.Draft] = "ice-badge-neutral",
+        [OperationalIceStatuses.Open] = "ice-badge-success",
+        [OperationalIceStatuses.PendingApproval] = "ice-badge-warning",
+        [OperationalIceStatuses.ReconciliationRequired] = "ice-badge-danger",
+        [OperationalIceStatuses.Closed] = "ice-badge-closed",
+        [OperationalIceStatuses.Cancelled] = "ice-badge-neutral"
+    };
+    string StatusLabel(string value) => statusLabels.TryGetValue(value, out var label) ? label : value;
+    string StatusClass(string value) => statusClasses.TryGetValue(value, out var css) ? css : "ice-badge-neutral";
+
+    var selectedIngredientId = Model.Policy?.IngredientId ?? Model.Ingredients.FirstOrDefault()?.Id ?? 0;
+    var selectedUnitId = Model.Policy?.DisplayUnitId ?? Model.Units.FirstOrDefault()?.Id ?? 0;
+    var unitLabel = string.IsNullOrWhiteSpace(Model.Policy?.UnitName) ? "kg" : Model.Policy.UnitName;
+    var startLocal = Model.BusinessDate.AddHours(6);
+    var endLocal = Model.BusinessDate.AddHours(14);
+}
+<link rel="stylesheet" href="~/css/Admin/OperationalIce/operational-ice.css" />
+
+<main class="ice-shell">
+    <header class="ice-page-header">
+        <div>
+            <div class="ice-eyebrow">Kho &amp; Cung ứng / Vật tư tiêu hao</div>
+            <h1>Quản lý đá theo ca</h1>
+            <p>Cấp đá bằng giữ chỗ, theo dõi tiêu hao POS và chốt chênh lệch mà không trừ kho hai lần.</p>
+        </div>
+        @if (Model.CanManage)
+        {
+            <a class="ice-btn ice-btn-primary" href="#createShift">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo ca vận hành
+            </a>
+        }
+    </header>
+
+    @if (TempData["SuccessMessage"] is string success && !string.IsNullOrWhiteSpace(success))
+    {
+        <div class="ice-notice ice-notice-success" role="status">@success</div>
+    }
+    @if (TempData["ErrorMessage"] is string error && !string.IsNullOrWhiteSpace(error))
+    {
+        <div class="ice-notice ice-notice-danger" role="alert">@error</div>
+    }
+
+    <form method="get" class="ice-filterbar" aria-label="Lọc ca vận hành đá">
+        <div class="ice-field">
+            <label for="iceStore">Chi nhánh</label>
+            <select id="iceStore" name="storeId">
+                @foreach (var store in Model.Stores)
+                {
+                    <option value="@store.StoreId" selected="@(store.StoreId == Model.StoreId)">@store.StoreName</option>
+                }
+            </select>
+        </div>
+        <div class="ice-field">
+            <label for="iceBusinessDate">Ngày kinh doanh</label>
+            <input id="iceBusinessDate" type="date" name="businessDate" value="@Model.BusinessDate.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="ice-field">
+            <label for="iceStatus">Trạng thái</label>
+            <select id="iceStatus" name="status">
+                <option value="">Tất cả trạng thái</option>
+                @foreach (var value in OperationalIceStatuses.All)
+                {
+                    <option value="@value" selected="@(Model.Status == value)">@StatusLabel(value)</option>
+                }
+            </select>
+        </div>
+        <button class="ice-btn ice-btn-secondary" type="submit">
+            <i class="fa-solid fa-filter" aria-hidden="true"></i> Áp dụng
+        </button>
+    </form>
+
+    <section class="ice-summary-grid" aria-label="Tổng quan vận hành đá">
+        <article>
+            <span>Định mức mỗi ca</span>
+            <strong>@((Model.Policy?.SuggestedShiftQuantity ?? 0).ToString("N2")) @unitLabel</strong>
+        </article>
+        <article>
+            <span>Ca trong ngày</span>
+            <strong>@Model.Rows.Count</strong>
+        </article>
+        <article>
+            <span>Đang vận hành</span>
+            <strong>@Model.Rows.Count(x => x.Status == OperationalIceStatuses.Open)</strong>
+        </article>
+        <article>
+            <span>Cần xử lý</span>
+            <strong>@Model.Rows.Count(x => x.Status is OperationalIceStatuses.PendingApproval or OperationalIceStatuses.ReconciliationRequired)</strong>
+        </article>
+</section>
+    @if (Model.CanConfigurePolicy)
+    {
+        <details class="ice-panel ice-disclosure" open="@(Model.Policy == null)">
+            <summary>
+                <span>
+                    <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                    Chính sách đá tại chi nhánh
+                </span>
+                <small>@(Model.Policy == null ? "Chưa cấu hình" : $"{Model.Policy.IngredientName} · {Model.Policy.SuggestedShiftQuantity:N2} {unitLabel}/ca")</small>
+            </summary>
+            <form asp-action="SavePolicy" method="post" class="ice-form-grid ice-policy-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="StoreId" value="@Model.StoreId" />
+                <div class="ice-field ice-span-2">
+                    <label for="policyIngredient">Nguyên liệu đá</label>
+                    <select id="policyIngredient" name="IngredientId" required>
+                        @foreach (var option in Model.Ingredients)
+                        {
+                            <option value="@option.Id" selected="@(option.Id == selectedIngredientId)">@option.Label</option>
+                        }
+                    </select>
+                </div>
+                <div class="ice-field">
+                    <label for="policyUnit">Đơn vị hiển thị</label>
+                    <select id="policyUnit" name="DisplayUnitId" required>
+                        @foreach (var option in Model.Units)
+                        {
+                            <option value="@option.Id" selected="@(option.Id == selectedUnitId)">@option.Label</option>
+                        }
+                    </select>
+                </div>
+                <div class="ice-field">
+                    <label for="dailyQuantity">Định mức ngày</label>
+                    <input id="dailyQuantity" name="SuggestedDailyQuantity" type="number" min="0" step="0.01" value="@(Model.Policy?.SuggestedDailyQuantity ?? 0)" required />
+                </div>
+                <div class="ice-field">
+                    <label for="shiftQuantity">Định mức ca</label>
+                    <input id="shiftQuantity" name="SuggestedShiftQuantity" type="number" min="0.01" step="0.01" value="@(Model.Policy?.SuggestedShiftQuantity ?? 0)" required />
+                </div>
+                <div class="ice-field">
+                    <label for="quantityThreshold">Ngưỡng duyệt theo lượng</label>
+                    <input id="quantityThreshold" name="VarianceApprovalQuantityThreshold" type="number" min="0" step="0.01" value="@(Model.Policy?.VarianceApprovalQuantityThreshold ?? 0)" />
+                </div>
+                <div class="ice-field">
+                    <label for="percentThreshold">Ngưỡng duyệt (%)</label>
+                    <input id="percentThreshold" name="VarianceApprovalPercentThreshold" type="number" min="0" max="100" step="0.01" value="@(Model.Policy?.VarianceApprovalPercentThreshold ?? 0)" />
+                </div>
+                <div class="ice-toggle-row ice-span-full">
+                    <label><input type="checkbox" name="AllowSupplementalIssue" value="true" checked="@(Model.Policy?.AllowSupplementalIssue ?? true)" /> Cho phép cấp bổ sung</label>
+                    <label><input type="checkbox" name="AllowSameDayCarryOver" value="true" checked="@(Model.Policy?.AllowSameDayCarryOver ?? true)" /> Cho phép bàn giao cùng ngày</label>
+                    <label><input type="checkbox" name="RequireVarianceApproval" value="true" checked="@(Model.Policy?.RequireVarianceApproval ?? true)" /> Bắt buộc duyệt chênh lệch</label>
+                </div>
+                <div class="ice-form-actions ice-span-full">
+                    <button class="ice-btn ice-btn-primary" type="submit">
+                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu chính sách
+                    </button>
+                </div>
+            </form>
+        </details>
+    }
+
+    @if (Model.CanManage)
+    {
+        <section id="createShift" class="ice-panel">
+            <div class="ice-section-heading">
+                <div>
+                    <span class="ice-section-kicker">Kế hoạch</span>
+                    <h2>Tạo ca vận hành</h2>
+                </div>
+                <p>Một ca vận hành có thể liên kết nhiều WorkShift POS.</p>
+            </div>
+            <form asp-action="CreateShift" method="post" class="ice-form-grid">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="StoreId" value="@Model.StoreId" />
+                <input type="hidden" name="BusinessDate" value="@Model.BusinessDate.ToString("yyyy-MM-dd")" />
+                <div class="ice-field ice-span-2">
+                    <label for="shiftName">Tên ca</label>
+                    <input id="shiftName" name="Name" maxlength="100" placeholder="Ví dụ: Ca sáng" required />
+                </div>
+                <div class="ice-field">
+                    <label for="shiftStart">Bắt đầu</label>
+                    <input id="shiftStart" name="StartAtUtc" type="datetime-local" value="@startLocal.ToString("yyyy-MM-ddTHH:mm")" required />
+                </div>
+                <div class="ice-field">
+                    <label for="shiftEnd">Kết thúc</label>
+                    <input id="shiftEnd" name="EndAtUtc" type="datetime-local" value="@endLocal.ToString("yyyy-MM-ddTHH:mm")" required />
+                </div>
+                <div class="ice-field">
+                    <label for="shiftLead">Ca trưởng</label>
+                    <select id="shiftLead" name="ShiftLeadId">
+                        <option value="">Chưa phân công</option>
+                        @foreach (var lead in Model.ShiftLeads)
+                        {
+                            <option value="@lead.Id">@lead.Label</option>
+                        }
+                    </select>
+                </div>
+                <div class="ice-form-actions">
+                    <button class="ice-btn ice-btn-primary" type="submit">
+                        <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Tạo ca
+                    </button>
+                </div>
+            </form>
+        </section>
+    }
+
+    <section class="ice-panel ice-list-panel">
+        <div class="ice-section-heading">
+            <div>
+                <span class="ice-section-kicker">Ngày @Model.BusinessDate.ToString("dd/MM/yyyy")</span>
+                <h2>Ca vận hành đá</h2>
+            </div>
+            <p>Đã cấp là lượng giữ chỗ; tồn vật lý chỉ giảm theo POS hoặc chênh lệch đã duyệt.</p>
+        </div>
+
+        @if (Model.Rows.Count == 0)
+        {
+            <div class="ice-empty">
+                <i class="fa-solid fa-cubes-stacked" aria-hidden="true"></i>
+                <h3>Chưa có ca vận hành</h3>
+                <p>Tạo ca đầu tiên để xác nhận cấp đá và liên kết WorkShift POS.</p>
+            </div>
+        }
+        else
+        {
+            <div class="ice-table-scroll">
+                <table class="ice-table">
+                    <thead>
+                        <tr>
+                            <th>Ca vận hành</th>
+                            <th>Khung giờ</th>
+                            <th class="ice-number">Định mức</th>
+                            <th class="ice-number">Đã cấp</th>
+                            <th class="ice-number">Lý thuyết</th>
+                            <th class="ice-number">Chênh lệch</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@row.ShiftName</strong>
+                                    <small>Ca #@row.OperationalShiftId</small>
+                                </td>
+                                <td>@row.StartAtUtc.ToLocalTime().ToString("HH:mm") – @row.EndAtUtc.ToLocalTime().ToString("HH:mm")</td>
+                                <td class="ice-number">@row.SuggestedQuantity.ToString("N2") @unitLabel</td>
+                                <td class="ice-number">@row.TotalIssuedQuantity.ToString("N2") @unitLabel</td>
+                                <td class="ice-number">@row.TheoreticalUsageQuantity.ToString("N2") @unitLabel</td>
+                                <td class="ice-number @(row.VarianceQuantity is > 0 ? "ice-value-danger" : row.VarianceQuantity is < 0 ? "ice-value-warning" : "")">
+                                    @(row.VarianceQuantity?.ToString("N2") ?? "—") @(row.VarianceQuantity.HasValue ? unitLabel : "")
+                                </td>
+                                <td><span class="ice-badge @StatusClass(row.Status)">@StatusLabel(row.Status)</span></td>
+                                <td>
+                                    @if (row.IceAllocationId.HasValue)
+                                    {
+                                        <div class="ice-row-actions">
+                                            <a class="ice-btn ice-btn-compact" asp-action="Details" asp-route-id="@row.IceAllocationId">
+                                                Chi tiết <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                                            </a>
+                                            <a class="ice-icon-btn" asp-action="Report" asp-route-id="@row.IceAllocationId" title="Xem báo cáo ca" aria-label="Xem báo cáo ca">
+                                                <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+                                            </a>
+                                        </div>
+                                    }
+                                    else if (Model.CanManage && Model.Policy != null)
+                                    {
+                                        <form asp-action="OpenAllocation" method="post" class="ice-inline-form">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
+                                            <label class="visually-hidden" for="issue-@row.OperationalShiftId">Lượng cấp đầu ca</label>
+                                            <input id="issue-@row.OperationalShiftId" name="InitialIssuedQuantity" type="number" min="0.01" step="0.01" value="@row.SuggestedQuantity" required />
+                                            <button class="ice-btn ice-btn-primary ice-btn-compact" type="submit">Xác nhận cấp</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="ice-muted">Chờ cấu hình</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</main>

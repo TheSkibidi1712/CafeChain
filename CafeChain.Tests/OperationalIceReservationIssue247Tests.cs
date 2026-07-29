@@ -23,7 +23,7 @@ public sealed class OperationalIceReservationIssue247Tests : IntegrationTestBase
     private const int StaffId = 904;
 
     [Fact]
-    public async Task OpenAllocation_ReservesUsableStockWithoutReducingPhysicalOnHand()
+    public async Task OpenShift_CreatesReservationWithoutPhysicalDeduction()
     {
         using var context = CreateDbContext();
         var setup = SeedOpenSetup(context, available: 100m, reserved: 15m);
@@ -47,7 +47,7 @@ public sealed class OperationalIceReservationIssue247Tests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task OpenAllocation_WhenUsableStockIsInsufficient_FailsWithoutMutation()
+    public async Task OpenShift_RejectsInsufficientAvailableQuantity()
     {
         using var context = CreateDbContext();
         var setup = SeedOpenSetup(context, available: 20m, reserved: 15m);
@@ -71,7 +71,7 @@ public sealed class OperationalIceReservationIssue247Tests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task SupplementalIssue_RequiresApprovalAndOnlyApprovalAddsReservation()
+    public async Task Supplement_IncreasesReservation()
     {
         using var context = CreateDbContext();
         var setup = SeedOpenSetup(context, available: 100m, reserved: 0m);
@@ -110,7 +110,7 @@ public sealed class OperationalIceReservationIssue247Tests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Cashier_CannotOpenOperationalIceAllocation()
+    public async Task OutOfScopeActor_CannotAccessShift()
     {
         using var context = CreateDbContext();
         var setup = SeedOpenSetup(context, available: 100m, reserved: 0m);
@@ -126,7 +126,7 @@ public sealed class OperationalIceReservationIssue247Tests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task ReservationConsumption_UsesWorkShiftLinkAndReplayEvidencePreventsSecondConsumption()
+    public async Task PosSale_ConsumesIceReservationAndPhysicalInventory()
     {
         using var context = CreateDbContext();
         var setup = SeedOpenSetup(context, available: 100m, reserved: 10m);
@@ -209,6 +209,154 @@ public sealed class OperationalIceReservationIssue247Tests : IntegrationTestBase
         Assert.True(replay.IsSuccess);
         Assert.Equal(7m, allocation.ReservedOutstandingQuantity);
         Assert.Equal(3m, allocation.TheoreticalUsageQuantity);
+    }
+
+    [Fact]
+    public async Task PosSale_DoesNotDoubleDeductIce()
+    {
+        using var context = CreateDbContext();
+        var setup = SeedOpenSetup(context, available: 100m, reserved: 10m);
+        const int workShiftId = 921;
+        const int orderId = 931;
+        context.WorkShifts.Add(new WorkShift
+        {
+            ShiftId = workShiftId,
+            StoreId = StoreId,
+            UserId = StaffId,
+            StartTime = DateTime.UtcNow,
+            StartingCash = 0,
+            ExpectedEndingCash = 0,
+            Status = "Open"
+        });
+        context.OperationalShiftWorkShifts.Add(new OperationalShiftWorkShift
+        {
+            OperationalShiftId = setup.OperationalShiftId,
+            WorkShiftId = workShiftId,
+            LinkedByStaffId = StaffId,
+            LinkedAtUtc = DateTime.UtcNow
+        });
+        context.IceAllocations.Add(new IceAllocation
+        {
+            PublicId = Guid.NewGuid(),
+            OperationalShiftId = setup.OperationalShiftId,
+            IcePolicyId = setup.IcePolicyId,
+            StoreInventoryId = setup.StoreInventoryId,
+            IngredientId = IngredientId,
+            InitialIssuedQuantity = 10m,
+            ReservedOutstandingQuantity = 10m,
+            ReservationReference = "ICE:TEST-REPLAY",
+            Status = OperationalIceStatuses.Open,
+            CreatedByStaffId = StaffId,
+            OpenedByStaffId = StaffId,
+            CreatedAtUtc = DateTime.UtcNow,
+            OpenedAtUtc = DateTime.UtcNow,
+            Revision = 1
+        });
+        var order = new Order
+        {
+            OrderId = orderId,
+            StoreId = StoreId,
+            WorkShiftId = workShiftId,
+            OrderStatusId = SystemConstants.OrderStatuses.Completed,
+            PaymentStatusId = SystemConstants.PaymentStatuses.Paid,
+            OrderTypeId = SystemConstants.OrderTypes.DineIn,
+            Total = 10000,
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Orders.Add(order);
+        await context.SaveChangesAsync();
+        var service = new OperationalIceReservationConsumptionService(context);
+
+        await service.ConsumeForCommittedOrderAsync(order, new Dictionary<int, decimal> { [IngredientId] = 3m });
+        context.InventoryTransactions.Add(new InventoryTransaction
+        {
+            StoreInventoryId = setup.StoreInventoryId,
+            Type = InventoryTransactionTypeEnum.SALES_DEDUCTION,
+            StockStatus = InventoryStockStatus.NORMAL,
+            Quantity = 3m,
+            BeforeQty = 100m,
+            AfterQty = 97m,
+            ReferenceOrderId = orderId,
+            CreatedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        await service.ConsumeForCommittedOrderAsync(order, new Dictionary<int, decimal> { [IngredientId] = 3m });
+        await context.SaveChangesAsync();
+
+        var allocation = await context.IceAllocations.SingleAsync();
+        Assert.Equal(7m, allocation.ReservedOutstandingQuantity);
+        Assert.Equal(3m, allocation.TheoreticalUsageQuantity);
+        Assert.Equal(7m, await ReservedQtyAsync(context, setup.StoreInventoryId));
+    }
+
+    [Fact]
+    public async Task OperationalShift_CanLinkMultipleWorkShifts()
+    {
+        using var context = CreateDbContext();
+        var setup = SeedOpenSetup(context, available: 100m, reserved: 0m);
+        var workShiftIds = new[] { 922, 923 };
+        foreach (var id in workShiftIds)
+        {
+            context.WorkShifts.Add(new WorkShift
+            {
+                ShiftId = id,
+                StoreId = StoreId,
+                UserId = StaffId,
+                StartTime = DateTime.UtcNow,
+                StartingCash = 0,
+                ExpectedEndingCash = 0,
+                Status = "Open"
+            });
+        }
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).OpenAllocationAsync(
+            new OpenIceAllocationRequest
+            {
+                OperationalShiftId = setup.OperationalShiftId,
+                InitialIssuedQuantity = 10m,
+                WorkShiftIds = workShiftIds
+            },
+            ManagerActor());
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(workShiftIds, await context.OperationalShiftWorkShifts
+            .OrderBy(x => x.WorkShiftId)
+            .Select(x => x.WorkShiftId)
+            .ToArrayAsync());
+    }
+
+    [Fact]
+    public async Task ConcurrentSupplement_DoesNotLoseUpdate()
+    {
+        using var context = CreateDbContext();
+        var setup = SeedOpenSetup(context, available: 100m, reserved: 0m);
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+        var opened = await service.OpenAllocationAsync(
+            new OpenIceAllocationRequest { OperationalShiftId = setup.OperationalShiftId, InitialIssuedQuantity = 20m },
+            ManagerActor());
+        var first = await service.RequestSupplementalAsync(
+            new RequestSupplementalIceRequest { IceAllocationId = opened.Data.IceAllocationId, Quantity = 4m, Reason = "Tăng lượt khách" },
+            ShiftLeadActor());
+        var second = await service.RequestSupplementalAsync(
+            new RequestSupplementalIceRequest { IceAllocationId = opened.Data.IceAllocationId, Quantity = 6m, Reason = "Sự kiện tại quán" },
+            ShiftLeadActor());
+
+        var approvedFirst = await service.DecideSupplementalAsync(
+            new DecideSupplementalIceRequest { SupplementalIssuePublicId = first.Data.PublicId, Approve = true },
+            ManagerActor());
+        var approvedSecond = await service.DecideSupplementalAsync(
+            new DecideSupplementalIceRequest { SupplementalIssuePublicId = second.Data.PublicId, Approve = true },
+            ManagerActor());
+
+        Assert.True(approvedFirst.IsSuccess, approvedFirst.Message);
+        Assert.True(approvedSecond.IsSuccess, approvedSecond.Message);
+        var allocation = await context.IceAllocations.SingleAsync();
+        Assert.Equal(10m, allocation.SupplementalIssuedQuantity);
+        Assert.Equal(30m, allocation.ReservedOutstandingQuantity);
+        Assert.Equal(30m, await ReservedQtyAsync(context, setup.StoreInventoryId));
     }
 
     private static OperationalIceService CreateService(CafeChain.Data.AppDbContext context)
