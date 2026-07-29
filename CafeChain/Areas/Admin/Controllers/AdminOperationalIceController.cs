@@ -5,6 +5,7 @@ using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Results;
+using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.ViewModels.Admin.OperationalIce;
 using Microsoft.AspNetCore.Mvc;
@@ -58,6 +59,11 @@ public sealed class AdminOperationalIceController : AdminBaseController
         var selectedStoreId = scope.StoreId!.Value;
         if (!await HasPermissionAsync(OperationalIcePermissions.View, selectedStoreId))
             return Forbid();
+        var setupResult = await _service.GetPolicySetupAsync(selectedStoreId, cancellationToken);
+        var setup = setupResult.Data ?? new OperationalIcePolicySetupDto
+        {
+            StatusMessage = setupResult.Message
+        };
 
         var date = (businessDate ?? DateTime.Today).Date;
         var policy = await _context.IcePolicies.AsNoTracking()
@@ -65,7 +71,10 @@ public sealed class AdminOperationalIceController : AdminBaseController
             .Include(x => x.DisplayUnit)
             .SingleOrDefaultAsync(x => x.StoreId == selectedStoreId && x.Active, cancellationToken);
         var displayToBaseFactor = 1m;
-        var displayUnitName = policy?.DisplayUnit.Name ?? "đơn vị tồn kho";
+        var displayUnitName = policy == null
+            ? "đơn vị tồn kho"
+            : DisplayUnitSymbol(policy.DisplayUnit.UnitCode);
+        var policyConversionValid = true;
         if (policy != null)
         {
             var conversion = await _unitConversionService.ConvertAsync(
@@ -78,6 +87,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
             }
             else
             {
+                policyConversionValid = false;
                 displayUnitName = "đơn vị tồn kho";
                 TempData["ErrorMessage"] = "Chính sách đá đang thiếu quy đổi đơn vị. Vui lòng cập nhật cấu hình trước khi cấp đá.";
             }
@@ -97,7 +107,8 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 TotalIssuedQuantity = x.IceAllocations.Select(a => (a.InitialIssuedQuantity + a.SupplementalIssuedQuantity) / displayToBaseFactor).FirstOrDefault(),
                 TheoreticalUsageQuantity = x.IceAllocations.Select(a => a.TheoreticalUsageQuantity / displayToBaseFactor).FirstOrDefault(),
                 VarianceQuantity = x.IceAllocations.Select(a => a.VarianceQuantity / displayToBaseFactor).FirstOrDefault(),
-                Status = x.Status
+                Status = x.Status,
+                HasShiftLead = x.ShiftLeadId.HasValue
             })
             .ToListAsync(cancellationToken);
 
@@ -127,17 +138,32 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 VarianceApprovalQuantityThreshold = policy.VarianceApprovalQuantityThreshold / displayToBaseFactor,
                 VarianceApprovalPercentThreshold = policy.VarianceApprovalPercentThreshold
             },
-            Ingredients = canPolicy ? await _context.Ingredients.AsNoTracking()
-                .Where(x => x.Active)
-                .OrderBy(x => x.Name)
-                .Select(x => new OperationalIceOptionVM { Id = x.IngredientId, Label = x.Code + " · " + x.Name })
-                .ToListAsync(cancellationToken) : [],
-            Units = canPolicy ? await _context.Units.AsNoTracking()
-                .Where(x => x.Active)
-                .OrderBy(x => x.Name)
-                .Select(x => new OperationalIceOptionVM { Id = x.UnitId, Label = x.Name })
-                .ToListAsync(cancellationToken) : [],
+            Ingredients = canPolicy ? setup.Ingredients.Select(x => new OperationalIceOptionVM
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Label = x.Label
+            }).ToList() : [],
+            Units = canPolicy ? setup.Units.Select(x => new OperationalIceOptionVM
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Label = x.Label
+            }).ToList() : [],
             ShiftLeads = canManage ? await GetShiftLeadOptionsAsync(selectedStoreId, cancellationToken) : [],
+            Inventory = setup.Inventory == null ? null : new OperationalIceInventoryVM
+            {
+                PhysicalQuantity = setup.Inventory.PhysicalQuantity / displayToBaseFactor,
+                ReservedQuantity = setup.Inventory.ReservedQuantity / displayToBaseFactor,
+                AvailableQuantity = setup.Inventory.AvailableQuantity / displayToBaseFactor,
+                AvailableAfterSuggestedShiftQuantity = (setup.Inventory.AvailableQuantity
+                    - (policy?.SuggestedShiftQuantity ?? 0)) / displayToBaseFactor,
+                UnitName = displayUnitName
+            },
+            HasValidPolicy = setup.IsValid && policyConversionValid,
+            PolicyStatusMessage = policyConversionValid
+                ? setup.StatusMessage
+                : "Chính sách đá thiếu quy đổi đơn vị hợp lệ.",
             CanManage = canManage,
             CanApprove = canApprove,
             CanConfigurePolicy = canPolicy
@@ -182,7 +208,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
             ? displayToBaseFactorResult.Data
             : 1m;
         var detailUnitName = displayToBaseFactorResult.IsSuccess
-            ? allocation.IcePolicy.DisplayUnit.Name
+            ? DisplayUnitSymbol(allocation.IcePolicy.DisplayUnit.UnitCode)
             : "đơn vị tồn kho";
         if (!displayToBaseFactorResult.IsSuccess)
             TempData["ErrorMessage"] = "Không thể quy đổi đơn vị đá. Dữ liệu đang hiển thị theo đơn vị tồn kho.";
@@ -224,6 +250,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
             Status = allocation.Status,
             IngredientName = allocation.Ingredient.Name,
             UnitName = detailUnitName,
+            PhysicalQuantity = allocation.StoreInventory.AvailableQty / detailDisplayToBaseFactor,
             AvailableQuantity = (allocation.StoreInventory.AvailableQty - allocation.StoreInventory.ReservedQty) / detailDisplayToBaseFactor,
             ReservedStoreQuantity = allocation.StoreInventory.ReservedQty / detailDisplayToBaseFactor,
             ReservedOutstandingQuantity = allocation.ReservedOutstandingQuantity / detailDisplayToBaseFactor,
@@ -618,6 +645,12 @@ public sealed class AdminOperationalIceController : AdminBaseController
 
     private static DateTime NormalizeLocalToUtc(DateTime value) =>
         value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime();
+
+    private static string DisplayUnitSymbol(string? unitCode)
+    {
+        var normalized = PhysicalUnitConversionRegistry.NormalizeUnitCode(unitCode);
+        return string.IsNullOrWhiteSpace(normalized) ? "đơn vị tồn kho" : normalized;
+    }
 
     private sealed record IceUnitContext(int StoreId, int IngredientId, int DisplayUnitId);
 }

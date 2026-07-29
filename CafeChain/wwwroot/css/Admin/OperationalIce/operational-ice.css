@@ -132,6 +132,15 @@
     color: #FFFFFF;
 }
 
+.ice-btn:disabled,
+.ice-icon-btn:disabled {
+    border-color: #D8D2CB;
+    background: #ECE8E3;
+    color: #7C746D;
+    cursor: not-allowed;
+    opacity: 0.76;
+}
+
 .ice-btn-compact {
     min-height: 34px;
     padding: 6px 10px;
@@ -181,6 +190,26 @@
     border-color: #E7B7B7;
     background: #FFF1F1;
     color: var(--ice-danger);
+}
+
+.ice-notice-warning {
+    border-color: #D7B69C;
+    background: #FFF7F0;
+    color: var(--ice-warning);
+}
+
+.ice-toast-stack {
+    position: fixed;
+    z-index: 1100;
+    top: 88px;
+    right: 24px;
+    width: min(420px, calc(100vw - 32px));
+    pointer-events: none;
+}
+
+.ice-toast-stack .ice-toast {
+    box-shadow: 0 12px 28px rgba(31, 41, 55, 0.16);
+    pointer-events: auto;
 }
 
 .ice-filterbar {
@@ -408,6 +437,64 @@
 
 .ice-policy-form {
     padding: 18px;
+}
+
+.ice-policy-status {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 14px;
+    padding: 11px 12px;
+    border: 1px solid;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.ice-policy-status.is-valid {
+    border-color: #A7C9BF;
+    background: #EDF7F3;
+    color: var(--ice-success);
+}
+
+.ice-policy-status.is-invalid {
+    border-color: #D7B69C;
+    background: #FFF7F0;
+    color: var(--ice-warning);
+}
+
+.ice-policy-group {
+    min-width: 0;
+    margin: 0 0 14px;
+    padding: 14px;
+    border: 1px solid var(--ice-border);
+    border-radius: 7px;
+}
+
+.ice-policy-group legend {
+    padding: 0 6px;
+    color: var(--ice-text);
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.ice-policy-group > p {
+    margin: 0 0 12px;
+    color: var(--ice-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.ice-form-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ice-field small {
+    display: block;
+    margin-top: 6px;
+    color: var(--ice-muted);
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .ice-table-scroll {
@@ -803,6 +890,11 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .ice-toast-stack {
+        top: 72px;
+        right: 16px;
+    }
+
     .ice-summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -835,6 +927,7 @@
     }
 
     .ice-form-grid,
+    .ice-form-grid-2,
     .ice-summary-grid,
     .ice-summary-six {
         grid-template-columns: minmax(0, 1fr);
@@ -867,8 +960,14 @@
         border-bottom: 0;
     }
 
-.ice-detail-header {
+    .ice-detail-header {
         align-items: flex-start;
+    }
+
+    .ice-toast-stack {
+        top: 64px;
+        right: 14px;
+        width: calc(100vw - 28px);
     }
 
     .ice-badge-large {

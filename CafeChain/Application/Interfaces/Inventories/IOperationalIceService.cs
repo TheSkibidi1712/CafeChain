@@ -7,6 +7,7 @@ namespace CafeChain.Application.Interfaces.Inventories;
 
 public interface IOperationalIceService
 {
+    Task<ServiceResult<OperationalIcePolicySetupDto>> GetPolicySetupAsync(int storeId, CancellationToken cancellationToken = default);
     Task<ServiceResult> SavePolicyAsync(SaveIcePolicyRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<OperationalShiftSummaryDto>> CreateShiftAsync(CreateOperationalShiftRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<IceAllocationDto>> OpenAllocationAsync(OpenIceAllocationRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);

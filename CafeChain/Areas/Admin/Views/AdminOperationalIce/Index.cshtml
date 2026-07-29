@@ -1,5 +1,6 @@
 @model CafeChain.ViewModels.Admin.OperationalIce.OperationalIceIndexVM
 @using CafeChain.Application.Constants
+@using System.Globalization
 @{
     ViewData["Title"] = "Quản lý đá theo ca";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -24,9 +25,18 @@
     };
     string StatusLabel(string value) => statusLabels.TryGetValue(value, out var label) ? label : value;
     string StatusClass(string value) => statusClasses.TryGetValue(value, out var css) ? css : "ice-badge-neutral";
+    string InputNumber(decimal value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    var viCulture = CultureInfo.GetCultureInfo("vi-VN");
+    string DisplayNumber(decimal value) => value.ToString("0.##", viCulture);
+    string DisplayQuantity(decimal value, string unit) => $"{DisplayNumber(value)} {unit}";
+    string DisplayNullableQuantity(decimal? value, string unit) =>
+        value.HasValue ? DisplayQuantity(value.Value, unit) : "—";
 
     var selectedIngredientId = Model.Policy?.IngredientId ?? Model.Ingredients.FirstOrDefault()?.Id ?? 0;
-    var selectedUnitId = Model.Policy?.DisplayUnitId ?? Model.Units.FirstOrDefault()?.Id ?? 0;
+    var selectedUnitId = Model.Policy?.DisplayUnitId
+                         ?? Model.Units.FirstOrDefault(x => x.Code == "kg")?.Id
+                         ?? Model.Units.FirstOrDefault()?.Id
+                         ?? 0;
     var unitLabel = string.IsNullOrWhiteSpace(Model.Policy?.UnitName) ? "kg" : Model.Policy.UnitName;
     var startLocal = Model.BusinessDate.AddHours(6);
     var endLocal = Model.BusinessDate.AddHours(14);
@@ -40,24 +50,20 @@
             <h1>Quản lý đá theo ca</h1>
             <p>Cấp đá bằng giữ chỗ, theo dõi tiêu hao POS và chốt chênh lệch mà không trừ kho hai lần.</p>
         </div>
-        @if (Model.CanManage)
-        {
-            <a class="ice-btn ice-btn-primary" href="#createShift">
-                <i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo ca vận hành
-            </a>
-        }
     </header>
 
-    @if (TempData["SuccessMessage"] is string success && !string.IsNullOrWhiteSpace(success))
-    {
-        <div class="ice-notice ice-notice-success" role="status">@success</div>
-    }
-    @if (TempData["ErrorMessage"] is string error && !string.IsNullOrWhiteSpace(error))
-    {
-        <div class="ice-notice ice-notice-danger" role="alert">@error</div>
-    }
+    <div class="ice-toast-stack" aria-live="polite">
+        @if (TempData["SuccessMessage"] is string success && !string.IsNullOrWhiteSpace(success))
+        {
+            <div class="ice-notice ice-notice-success ice-toast" role="status">@success</div>
+        }
+        @if (TempData["ErrorMessage"] is string error && !string.IsNullOrWhiteSpace(error))
+        {
+            <div class="ice-notice ice-notice-danger ice-toast" role="alert">@error</div>
+        }
+    </div>
 
-    <form method="get" class="ice-filterbar" aria-label="Lọc ca vận hành đá">
+    <form method="get" class="ice-filterbar" aria-label="Lọc ca vận hành đá" data-ice-date-form>
         <div class="ice-field">
             <label for="iceStore">Chi nhánh</label>
             <select id="iceStore" name="storeId">
@@ -68,8 +74,17 @@
             </select>
         </div>
         <div class="ice-field">
-            <label for="iceBusinessDate">Ngày kinh doanh</label>
-            <input id="iceBusinessDate" type="date" name="businessDate" value="@Model.BusinessDate.ToString("yyyy-MM-dd")" />
+            <label for="iceBusinessDateDisplay">Ngày kinh doanh</label>
+            <input id="iceBusinessDateDisplay"
+                   type="text"
+                   inputmode="numeric"
+                   placeholder="dd/MM/yyyy"
+                   value="@Model.BusinessDate.ToString("dd/MM/yyyy")"
+                   data-ice-date-display
+                   data-target="iceBusinessDate"
+                   required />
+            <input id="iceBusinessDate" type="hidden" name="businessDate" value="@Model.BusinessDate.ToString("yyyy-MM-dd")" />
+            <small>Định dạng dd/MM/yyyy.</small>
         </div>
         <div class="ice-field">
             <label for="iceStatus">Trạng thái</label>
@@ -86,24 +101,31 @@
         </button>
     </form>
 
-    <section class="ice-summary-grid" aria-label="Tổng quan vận hành đá">
+    <section class="ice-summary-grid" aria-label="Tồn kho nguyên liệu đá">
         <article>
-            <span>Định mức mỗi ca</span>
-            <strong>@((Model.Policy?.SuggestedShiftQuantity ?? 0).ToString("N2")) @unitLabel</strong>
+            <span>Tồn vật lý</span>
+            <strong>@(Model.Inventory == null ? "—" : DisplayQuantity(Model.Inventory.PhysicalQuantity, Model.Inventory.UnitName))</strong>
         </article>
         <article>
-            <span>Ca trong ngày</span>
-            <strong>@Model.Rows.Count</strong>
+            <span>Đang giữ chỗ</span>
+            <strong>@(Model.Inventory == null ? "—" : DisplayQuantity(Model.Inventory.ReservedQuantity, Model.Inventory.UnitName))</strong>
         </article>
         <article>
-            <span>Đang vận hành</span>
-            <strong>@Model.Rows.Count(x => x.Status == OperationalIceStatuses.Open)</strong>
+            <span>Tồn khả dụng</span>
+            <strong>@(Model.Inventory == null ? "—" : DisplayQuantity(Model.Inventory.AvailableQuantity, Model.Inventory.UnitName))</strong>
         </article>
-        <article>
-            <span>Cần xử lý</span>
-            <strong>@Model.Rows.Count(x => x.Status is OperationalIceStatuses.PendingApproval or OperationalIceStatuses.ReconciliationRequired)</strong>
+        <article class="@(Model.Inventory?.AvailableAfterSuggestedShiftQuantity < 0 ? "ice-summary-danger" : "")">
+            <span>Khả dụng sau khi mở theo định mức</span>
+            <strong>@(Model.Inventory == null ? "—" : DisplayQuantity(Model.Inventory.AvailableAfterSuggestedShiftQuantity, Model.Inventory.UnitName))</strong>
         </article>
-</section>
+    </section>
+
+    <section class="ice-summary-grid" aria-label="Tổng quan ca vận hành đá">
+        <article><span>Định mức mỗi ca</span><strong>@DisplayQuantity(Model.Policy?.SuggestedShiftQuantity ?? 0, unitLabel)</strong></article>
+        <article><span>Ca trong ngày</span><strong>@Model.Rows.Count</strong></article>
+        <article><span>Đang vận hành</span><strong>@Model.Rows.Count(x => x.Status == OperationalIceStatuses.Open)</strong></article>
+        <article><span>Cần xử lý</span><strong>@Model.Rows.Count(x => x.Status is OperationalIceStatuses.PendingApproval or OperationalIceStatuses.ReconciliationRequired)</strong></article>
+    </section>
     @if (Model.CanConfigurePolicy)
     {
         <details class="ice-panel ice-disclosure" open="@(Model.Policy == null)">
@@ -112,52 +134,89 @@
                     <i class="fa-solid fa-sliders" aria-hidden="true"></i>
                     Chính sách đá tại chi nhánh
                 </span>
-                <small>@(Model.Policy == null ? "Chưa cấu hình" : $"{Model.Policy.IngredientName} · {Model.Policy.SuggestedShiftQuantity:N2} {unitLabel}/ca")</small>
+                <span class="ice-badge @(Model.HasValidPolicy ? "ice-badge-success" : "ice-badge-warning")">
+                    @(Model.HasValidPolicy ? "Đã cấu hình" : "Chưa cấu hình")
+                </span>
             </summary>
-            <form asp-action="SavePolicy" method="post" class="ice-form-grid ice-policy-form">
+            <form asp-action="SavePolicy" method="post" class="ice-policy-form" data-ice-submit>
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="StoreId" value="@Model.StoreId" />
-                <div class="ice-field ice-span-2">
-                    <label for="policyIngredient">Nguyên liệu đá</label>
-                    <select id="policyIngredient" name="IngredientId" required>
-                        @foreach (var option in Model.Ingredients)
-                        {
-                            <option value="@option.Id" selected="@(option.Id == selectedIngredientId)">@option.Label</option>
-                        }
-                    </select>
+                <div class="ice-policy-status @(Model.HasValidPolicy ? "is-valid" : "is-invalid")" role="status">
+                    <i class="fa-solid @(Model.HasValidPolicy ? "fa-circle-check" : "fa-triangle-exclamation")" aria-hidden="true"></i>
+                    <span>@Model.PolicyStatusMessage</span>
                 </div>
-                <div class="ice-field">
-                    <label for="policyUnit">Đơn vị hiển thị</label>
-                    <select id="policyUnit" name="DisplayUnitId" required>
-                        @foreach (var option in Model.Units)
-                        {
-                            <option value="@option.Id" selected="@(option.Id == selectedUnitId)">@option.Label</option>
-                        }
-                    </select>
-                </div>
-                <div class="ice-field">
-                    <label for="dailyQuantity">Định mức ngày</label>
-                    <input id="dailyQuantity" name="SuggestedDailyQuantity" type="number" min="0" step="0.01" value="@(Model.Policy?.SuggestedDailyQuantity ?? 0)" required />
-                </div>
-                <div class="ice-field">
-                    <label for="shiftQuantity">Định mức ca</label>
-                    <input id="shiftQuantity" name="SuggestedShiftQuantity" type="number" min="0.01" step="0.01" value="@(Model.Policy?.SuggestedShiftQuantity ?? 0)" required />
-                </div>
-                <div class="ice-field">
-                    <label for="quantityThreshold">Ngưỡng duyệt theo lượng</label>
-                    <input id="quantityThreshold" name="VarianceApprovalQuantityThreshold" type="number" min="0" step="0.01" value="@(Model.Policy?.VarianceApprovalQuantityThreshold ?? 0)" />
-                </div>
-                <div class="ice-field">
-                    <label for="percentThreshold">Ngưỡng duyệt (%)</label>
-                    <input id="percentThreshold" name="VarianceApprovalPercentThreshold" type="number" min="0" max="100" step="0.01" value="@(Model.Policy?.VarianceApprovalPercentThreshold ?? 0)" />
-                </div>
-                <div class="ice-toggle-row ice-span-full">
-                    <label><input type="checkbox" name="AllowSupplementalIssue" value="true" checked="@(Model.Policy?.AllowSupplementalIssue ?? true)" /> Cho phép cấp bổ sung</label>
-                    <label><input type="checkbox" name="AllowSameDayCarryOver" value="true" checked="@(Model.Policy?.AllowSameDayCarryOver ?? true)" /> Cho phép bàn giao cùng ngày</label>
-                    <label><input type="checkbox" name="RequireVarianceApproval" value="true" checked="@(Model.Policy?.RequireVarianceApproval ?? true)" /> Bắt buộc duyệt chênh lệch</label>
-                </div>
-                <div class="ice-form-actions ice-span-full">
-                    <button class="ice-btn ice-btn-primary" type="submit">
+
+                <fieldset class="ice-policy-group">
+                    <legend>Nguyên liệu và đơn vị</legend>
+                    <p>Chỉ nguyên liệu được định danh cho nghiệp vụ quản lý đá, đang hoạt động, có tồn tại chi nhánh, base gram và đổi được g ↔ kg mới xuất hiện.</p>
+                    <div class="ice-form-grid ice-form-grid-2">
+                        <div class="ice-field">
+                            <label for="policyIngredient">Nguyên liệu đá</label>
+                            <select id="policyIngredient" name="IngredientId" required disabled="@(Model.Ingredients.Count == 0)">
+                                @if (Model.Ingredients.Count == 0)
+                                {
+                                    <option value="">Không có nguyên liệu phù hợp</option>
+                                }
+                                @foreach (var option in Model.Ingredients)
+                                {
+                                    <option value="@option.Id" selected="@(option.Id == selectedIngredientId)">@option.Label</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="ice-field">
+                            <label for="policyUnit">Đơn vị hiển thị</label>
+                            <select id="policyUnit" name="DisplayUnitId" required disabled="@(Model.Units.Count != 2)">
+                                @if (Model.Units.Count == 0)
+                                {
+                                    <option value="">Thiếu cặp đơn vị g/kg</option>
+                                }
+                                @foreach (var option in Model.Units)
+                                {
+                                    <option value="@option.Id" data-unit-code="@option.Code" selected="@(option.Id == selectedUnitId)">@option.Label</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="ice-policy-group">
+                    <legend>Định mức</legend>
+                    <p>Định mức ca phải lớn hơn 0 và không vượt định mức ngày.</p>
+                    <div class="ice-form-grid ice-form-grid-2">
+                        <div class="ice-field">
+                            <label for="dailyQuantity">Định mức ngày (<span data-unit-label>@unitLabel</span>)</label>
+                            <input id="dailyQuantity" name="SuggestedDailyQuantity" type="number" min="0.01" step="0.01" value="@(Model.Policy == null ? null : InputNumber(Model.Policy.SuggestedDailyQuantity))" required />
+                        </div>
+                        <div class="ice-field">
+                            <label for="shiftQuantity">Định mức mỗi ca (<span data-unit-label>@unitLabel</span>)</label>
+                            <input id="shiftQuantity" name="SuggestedShiftQuantity" type="number" min="0.01" step="0.01" value="@(Model.Policy == null ? null : InputNumber(Model.Policy.SuggestedShiftQuantity))" required />
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="ice-policy-group">
+                    <legend>Quy tắc duyệt và bàn giao</legend>
+                    <p>Mọi chênh lệch dương đều cần duyệt. Hai ngưỡng dưới đây xác định khi nào phải nâng cấp người duyệt.</p>
+                    <div class="ice-form-grid ice-form-grid-2">
+                        <div class="ice-field">
+                            <label for="quantityThreshold">Chênh lệch cần duyệt từ (<span data-unit-label>@unitLabel</span>)</label>
+                            <input id="quantityThreshold" name="VarianceApprovalQuantityThreshold" type="number" min="0" step="0.01" value="@InputNumber(Model.Policy?.VarianceApprovalQuantityThreshold ?? 0)" />
+                        </div>
+                        <div class="ice-field">
+                            <label for="percentThreshold">Chênh lệch cần duyệt từ (%)</label>
+                            <input id="percentThreshold" name="VarianceApprovalPercentThreshold" type="number" min="0" max="100" step="0.01" value="@InputNumber(Model.Policy?.VarianceApprovalPercentThreshold ?? 0)" />
+                        </div>
+                    </div>
+                    <div class="ice-toggle-row">
+                        <label><input type="checkbox" name="AllowSupplementalIssue" value="true" checked="@(Model.Policy?.AllowSupplementalIssue ?? true)" /> Cho phép cấp bổ sung trong ca</label>
+                        <label><input type="checkbox" name="AllowSameDayCarryOver" value="true" checked="@(Model.Policy?.AllowSameDayCarryOver ?? true)" /> Cho phép bàn giao giữa các ca trong cùng ngày</label>
+                        <input type="hidden" name="RequireVarianceApproval" value="true" />
+                        <label title="Quy tắc an toàn cố định"><input type="checkbox" checked disabled /> Bắt buộc duyệt mọi chênh lệch dương</label>
+                    </div>
+                </fieldset>
+
+                <div class="ice-form-actions">
+                    <button class="ice-btn ice-btn-primary" type="submit" disabled="@(Model.Ingredients.Count == 0 || Model.Units.Count != 2)">
                         <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu chính sách
                     </button>
                 </div>
@@ -175,34 +234,63 @@
                 </div>
                 <p>Một ca vận hành có thể liên kết nhiều WorkShift POS.</p>
             </div>
-            <form asp-action="CreateShift" method="post" class="ice-form-grid">
+            @if (!Model.HasValidPolicy)
+            {
+                <div class="ice-notice ice-notice-warning" role="status">@Model.PolicyStatusMessage</div>
+            }
+            else if (Model.ShiftLeads.Count == 0)
+            {
+                <div class="ice-notice ice-notice-warning" role="status">Chi nhánh chưa có Ca trưởng hoặc Cửa hàng trưởng đang hoạt động để phụ trách ca.</div>
+            }
+            <form asp-action="CreateShift" method="post" class="ice-form-grid" data-ice-submit>
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="StoreId" value="@Model.StoreId" />
                 <input type="hidden" name="BusinessDate" value="@Model.BusinessDate.ToString("yyyy-MM-dd")" />
                 <div class="ice-field ice-span-2">
                     <label for="shiftName">Tên ca</label>
-                    <input id="shiftName" name="Name" maxlength="100" placeholder="Ví dụ: Ca sáng" required />
+                    <input id="shiftName" name="Name" maxlength="100" placeholder="Ví dụ: Ca sáng" required disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)" />
                 </div>
                 <div class="ice-field">
-                    <label for="shiftStart">Bắt đầu</label>
-                    <input id="shiftStart" name="StartAtUtc" type="datetime-local" value="@startLocal.ToString("yyyy-MM-ddTHH:mm")" required />
+                    <label for="shiftStartDisplay">Bắt đầu</label>
+                    <input id="shiftStartDisplay"
+                           type="text"
+                           inputmode="numeric"
+                           placeholder="dd/MM/yyyy HH:mm"
+                           value="@startLocal.ToString("dd/MM/yyyy HH:mm")"
+                           data-ice-datetime-display
+                           data-target="shiftStart"
+                           required
+                           disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)" />
+                    <input id="shiftStart" name="StartAtUtc" type="hidden" value="@startLocal.ToString("yyyy-MM-ddTHH:mm")" disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)" />
+                    <small>Định dạng 24 giờ: dd/MM/yyyy HH:mm.</small>
                 </div>
                 <div class="ice-field">
-                    <label for="shiftEnd">Kết thúc</label>
-                    <input id="shiftEnd" name="EndAtUtc" type="datetime-local" value="@endLocal.ToString("yyyy-MM-ddTHH:mm")" required />
+                    <label for="shiftEndDisplay">Kết thúc</label>
+                    <input id="shiftEndDisplay"
+                           type="text"
+                           inputmode="numeric"
+                           placeholder="dd/MM/yyyy HH:mm"
+                           value="@endLocal.ToString("dd/MM/yyyy HH:mm")"
+                           data-ice-datetime-display
+                           data-target="shiftEnd"
+                           required
+                           disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)" />
+                    <input id="shiftEnd" name="EndAtUtc" type="hidden" value="@endLocal.ToString("yyyy-MM-ddTHH:mm")" disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)" />
+                    <small>Định dạng 24 giờ: dd/MM/yyyy HH:mm.</small>
                 </div>
                 <div class="ice-field">
                     <label for="shiftLead">Ca trưởng</label>
-                    <select id="shiftLead" name="ShiftLeadId">
-                        <option value="">Chưa phân công</option>
+                    <select id="shiftLead" name="ShiftLeadId" required disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)">
+                        <option value="" selected disabled>Chọn người phụ trách</option>
                         @foreach (var lead in Model.ShiftLeads)
                         {
                             <option value="@lead.Id">@lead.Label</option>
                         }
                     </select>
+                    <small>Chỉ Ca trưởng hoặc Cửa hàng trưởng đang hoạt động tại chi nhánh.</small>
                 </div>
                 <div class="ice-form-actions">
-                    <button class="ice-btn ice-btn-primary" type="submit">
+                    <button class="ice-btn ice-btn-primary" type="submit" disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)">
                         <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Tạo ca
                     </button>
                 </div>
@@ -251,12 +339,12 @@
                                     <strong>@row.ShiftName</strong>
                                     <small>Ca #@row.OperationalShiftId</small>
                                 </td>
-                                <td>@row.StartAtUtc.ToLocalTime().ToString("HH:mm") – @row.EndAtUtc.ToLocalTime().ToString("HH:mm")</td>
-                                <td class="ice-number">@row.SuggestedQuantity.ToString("N2") @unitLabel</td>
-                                <td class="ice-number">@row.TotalIssuedQuantity.ToString("N2") @unitLabel</td>
-                                <td class="ice-number">@row.TheoreticalUsageQuantity.ToString("N2") @unitLabel</td>
+                                <td>@row.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") – @row.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="ice-number">@DisplayQuantity(row.SuggestedQuantity, unitLabel)</td>
+                                <td class="ice-number">@DisplayQuantity(row.TotalIssuedQuantity, unitLabel)</td>
+                                <td class="ice-number">@DisplayQuantity(row.TheoreticalUsageQuantity, unitLabel)</td>
                                 <td class="ice-number @(row.VarianceQuantity is > 0 ? "ice-value-danger" : row.VarianceQuantity is < 0 ? "ice-value-warning" : "")">
-                                    @(row.VarianceQuantity?.ToString("N2") ?? "—") @(row.VarianceQuantity.HasValue ? unitLabel : "")
+                                    @DisplayNullableQuantity(row.VarianceQuantity, unitLabel)
                                 </td>
                                 <td><span class="ice-badge @StatusClass(row.Status)">@StatusLabel(row.Status)</span></td>
                                 <td>
@@ -271,9 +359,9 @@
                                             </a>
                                         </div>
                                     }
-                                    else if (Model.CanManage && Model.Policy != null)
+                                    else if (Model.CanManage && Model.HasValidPolicy && row.HasShiftLead)
                                     {
-                                        <form asp-action="OpenAllocation" method="post" class="ice-inline-form">
+                                        <form asp-action="OpenAllocation" method="post" class="ice-inline-form" data-ice-submit>
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
                                             <label class="visually-hidden" for="issue-@row.OperationalShiftId">Lượng cấp đầu ca</label>
@@ -283,7 +371,7 @@
                                     }
                                     else
                                     {
-                                        <span class="ice-muted">Chờ cấu hình</span>
+                                        <span class="ice-muted">@(row.HasShiftLead ? "Chờ cấu hình hợp lệ" : "Thiếu ca trưởng")</span>
                                     }
                                 </td>
                             </tr>
@@ -294,3 +382,109 @@
         }
     </section>
 </main>
+
+@section Scripts {
+    <script>
+        (() => {
+            const dailyInput = document.getElementById('dailyQuantity');
+            const shiftInput = document.getElementById('shiftQuantity');
+            const unitSelect = document.getElementById('policyUnit');
+
+            const validateQuantities = () => {
+                if (!dailyInput || !shiftInput) return;
+                const daily = Number(dailyInput.value);
+                const shift = Number(shiftInput.value);
+                shiftInput.setCustomValidity(
+                    Number.isFinite(daily) && Number.isFinite(shift) && shift > daily
+                        ? 'Định mức mỗi ca không được vượt định mức ngày.'
+                        : '');
+            };
+
+            dailyInput?.addEventListener('input', validateQuantities);
+            shiftInput?.addEventListener('input', validateQuantities);
+
+            const updateUnitLabels = () => {
+                const option = unitSelect?.selectedOptions?.[0];
+                const unit = option?.dataset.unitCode || option?.textContent?.trim() || 'kg';
+                document.querySelectorAll('[data-unit-label]').forEach(element => {
+                    element.textContent = unit;
+                });
+            };
+
+            unitSelect?.addEventListener('change', updateUnitLabels);
+            updateUnitLabels();
+
+            const parseVietnameseDate = value => {
+                const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
+                if (!match) return null;
+                const [, dayText, monthText, yearText] = match;
+                const day = Number(dayText);
+                const month = Number(monthText);
+                const year = Number(yearText);
+                const parsed = new Date(year, month - 1, day);
+                if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day)
+                    return null;
+                return `${yearText}-${monthText}-${dayText}`;
+            };
+
+            const parseVietnameseDateTime = value => {
+                const match = /^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}):(\d{2})$/.exec(value.trim());
+                if (!match) return null;
+                const date = parseVietnameseDate(match[1]);
+                const hour = Number(match[2]);
+                const minute = Number(match[3]);
+                if (!date || hour < 0 || hour > 23 || minute < 0 || minute > 59)
+                    return null;
+                return `${date}T${match[2]}:${match[3]}`;
+            };
+
+            const normalizeDateFields = form => {
+                let valid = true;
+                form.querySelectorAll('[data-ice-date-display], [data-ice-datetime-display]').forEach(input => {
+                    const target = document.getElementById(input.dataset.target);
+                    const normalized = input.hasAttribute('data-ice-datetime-display')
+                        ? parseVietnameseDateTime(input.value)
+                        : parseVietnameseDate(input.value);
+                    input.setCustomValidity(normalized
+                        ? ''
+                        : input.hasAttribute('data-ice-datetime-display')
+                            ? 'Vui lòng nhập ngày giờ theo định dạng dd/MM/yyyy HH:mm (24 giờ).'
+                            : 'Vui lòng nhập ngày theo định dạng dd/MM/yyyy.');
+                    if (normalized && target)
+                        target.value = normalized;
+                    else
+                        valid = false;
+                });
+                return valid;
+            };
+
+            document.querySelectorAll('[data-ice-date-display], [data-ice-datetime-display]').forEach(input => {
+                input.addEventListener('input', () => normalizeDateFields(input.form));
+            });
+
+            document.querySelectorAll('form[data-ice-date-form]').forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!normalizeDateFields(form)) {
+                        event.preventDefault();
+                        form.reportValidity();
+                    }
+                });
+            });
+
+            document.querySelectorAll('form[data-ice-submit]').forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!normalizeDateFields(form) || !form.checkValidity()) {
+                        event.preventDefault();
+                        form.reportValidity();
+                        return;
+                    }
+
+                    form.querySelectorAll('button[type="submit"]').forEach(button => {
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Đang xử lý...';
+                    });
+                });
+            });
+        })();
+    </script>
+}

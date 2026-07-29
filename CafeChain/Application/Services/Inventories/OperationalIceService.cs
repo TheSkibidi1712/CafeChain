@@ -8,12 +8,17 @@ using CafeChain.Data;
 using CafeChain.Models.Inventories.Ice;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Enums.Unit;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Application.Services.Inventories;
 
 public sealed class OperationalIceService : IOperationalIceService
 {
+    // Ingredient.Code is the stable catalog identity. Do not infer ice eligibility from display names.
+    private const string OperationalIceIngredientCode = "ING00007";
+
+    // Quy tắc đá được dùng chung cho UI và backend validation.
     private static readonly string[] ManageRoles =
     [
         RoleConstants.BusinessOwner,
@@ -55,6 +60,11 @@ public sealed class OperationalIceService : IOperationalIceService
         _unitConversionService = unitConversionService;
     }
 
+    public Task<ServiceResult<OperationalIcePolicySetupDto>> GetPolicySetupAsync(
+        int storeId,
+        CancellationToken cancellationToken = default) =>
+        BuildPolicySetupAsync(storeId, cancellationToken);
+
     public async Task<ServiceResult> SavePolicyAsync(
         SaveIcePolicyRequest request,
         AdminActorContext actor,
@@ -63,19 +73,23 @@ public sealed class OperationalIceService : IOperationalIceService
         var authorization = await AuthorizeAsync(actor, request.StoreId, ApproveRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return authorization;
-        if (request.IngredientId <= 0 || request.DisplayUnitId <= 0
-            || request.SuggestedDailyQuantity < 0 || request.SuggestedShiftQuantity < 0
-            || request.VarianceApprovalQuantityThreshold < 0 || request.VarianceApprovalPercentThreshold < 0)
-        {
-            return Invalid("Dữ liệu chính sách đá không hợp lệ.");
-        }
+        var quantityError = ValidatePolicyQuantities(
+            request.SuggestedDailyQuantity,
+            request.SuggestedShiftQuantity,
+            request.VarianceApprovalQuantityThreshold,
+            request.VarianceApprovalPercentThreshold,
+            request.RequireVarianceApproval);
+        if (request.IngredientId <= 0 || request.DisplayUnitId <= 0 || quantityError != null)
+            return Invalid(quantityError ?? "Nguyên liệu đá và đơn vị hiển thị là bắt buộc.");
 
-        var ingredientValid = await _context.Ingredients.AsNoTracking()
-            .AnyAsync(x => x.IngredientId == request.IngredientId && x.Active, cancellationToken);
-        var unitValid = await _context.Units.AsNoTracking()
-            .AnyAsync(x => x.UnitId == request.DisplayUnitId && x.Active, cancellationToken);
-        if (!ingredientValid || !unitValid)
-            return Invalid("Nguyên liệu đá hoặc đơn vị hiển thị không còn hoạt động.");
+        var setup = await GetPolicySetupAsync(request.StoreId, cancellationToken);
+        if (!setup.IsSuccess || setup.Data == null)
+            return ServiceResult.Failure(setup.Message, setup.Errors, setup.ErrorCode);
+        if (!setup.Data.Ingredients.Any(x => x.Id == request.IngredientId))
+            return Invalid("Chỉ được chọn nguyên liệu đã được định danh cho nghiệp vụ quản lý đá, đang hoạt động, có tồn tại chi nhánh và dùng gram làm đơn vị cơ sở.");
+        if (!setup.Data.Units.Any(x => x.Id == request.DisplayUnitId))
+            return Invalid("Đơn vị hiển thị của đá chỉ được là g hoặc kg đang hoạt động.");
+
         if (_unitConversionService == null)
             return Invalid("Không thể kiểm tra quy đổi đơn vị đá lúc này.");
         var conversion = await _unitConversionService.ConvertAsync(
@@ -128,18 +142,33 @@ public sealed class OperationalIceService : IOperationalIceService
         var authorization = await AuthorizeAsync(actor, request.StoreId, ManageRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<OperationalShiftSummaryDto>(authorization);
-        if (string.IsNullOrWhiteSpace(request.Name) || request.EndAtUtc <= request.StartAtUtc)
+        if (string.IsNullOrWhiteSpace(request.Name)
+            || request.EndAtUtc <= request.StartAtUtc
+            || request.EndAtUtc - request.StartAtUtc > TimeSpan.FromHours(24))
             return Invalid<OperationalShiftSummaryDto>("Tên ca và khoảng thời gian vận hành không hợp lệ.");
 
-        if (request.ShiftLeadId.HasValue)
-        {
-            var leadValid = await _context.Staffs.AsNoTracking()
-                .AnyAsync(x => x.StaffId == request.ShiftLeadId && x.StoreId == request.StoreId && x.Active, cancellationToken);
-            if (!leadValid)
-                return Invalid<OperationalShiftSummaryDto>("Ca trưởng không hoạt động tại cửa hàng đã chọn.");
-        }
-
         var businessDate = request.BusinessDate.Date;
+        if (request.StartAtUtc.ToLocalTime().Date != businessDate)
+            return Invalid<OperationalShiftSummaryDto>("Thời gian bắt đầu phải thuộc đúng ngày kinh doanh đã chọn.");
+
+        var setup = await GetPolicySetupAsync(request.StoreId, cancellationToken);
+        if (!setup.IsSuccess || setup.Data == null || !setup.Data.IsValid)
+            return InvalidState<OperationalShiftSummaryDto>(setup.Data?.StatusMessage ?? setup.Message);
+
+        if (!request.ShiftLeadId.HasValue)
+            return Invalid<OperationalShiftSummaryDto>("Phải phân công ca trưởng trước khi tạo ca vận hành đá.");
+        var leadValid = await _context.Staffs.AsNoTracking()
+            .AnyAsync(x => x.StaffId == request.ShiftLeadId
+                           && x.StoreId == request.StoreId
+                           && x.Active
+                           && x.Account.Active
+                           && x.Account.AccountRoles.Any(role => role.Role.Active
+                               && (role.Role.Name == RoleConstants.ShiftSupervisor
+                                   || role.Role.Name == RoleConstants.StoreManager)),
+                cancellationToken);
+        if (!leadValid)
+            return Invalid<OperationalShiftSummaryDto>("Ca trưởng phải đang hoạt động, đúng chi nhánh và có vai trò Ca trưởng hoặc Cửa hàng trưởng.");
+
         var duplicate = await _context.OperationalShifts.AsNoTracking()
             .AnyAsync(x => x.StoreId == request.StoreId && x.BusinessDate == businessDate && x.Name == request.Name.Trim(), cancellationToken);
         if (duplicate)
@@ -193,6 +222,12 @@ public sealed class OperationalIceService : IOperationalIceService
             .SingleOrDefaultAsync(x => x.StoreId == shift.StoreId && x.IngredientId == policy.IngredientId && x.SupersededByStoreInventoryId == null, cancellationToken);
         if (inventory == null)
             return NotFound<IceAllocationDto>("Cửa hàng chưa có tồn kho cho nguyên liệu đá.");
+
+        var setup = await GetPolicySetupAsync(shift.StoreId, cancellationToken);
+        if (!setup.IsSuccess || setup.Data == null || !setup.Data.IsValid)
+            return InvalidState<IceAllocationDto>(setup.Data?.StatusMessage ?? setup.Message);
+        if (!shift.ShiftLeadId.HasValue)
+            return InvalidState<IceAllocationDto>("Ca vận hành chưa có ca trưởng nên chưa thể mở cấp đá.");
         if (inventory.AvailableQty - inventory.ReservedQty < request.InitialIssuedQuantity)
             return Insufficient<IceAllocationDto>(inventory.AvailableQty - inventory.ReservedQty);
 
@@ -789,6 +824,137 @@ public sealed class OperationalIceService : IOperationalIceService
         return InventoryStockStatus.NORMAL;
     }
 
+    private async Task<ServiceResult<OperationalIcePolicySetupDto>> BuildPolicySetupAsync(
+        int storeId,
+        CancellationToken cancellationToken)
+    {
+        if (storeId <= 0)
+            return Invalid<OperationalIcePolicySetupDto>("Cửa hàng không hợp lệ.");
+        var units = await GetCompatibleIceUnitsAsync(cancellationToken);
+        var ingredients = units.Count == 2
+            ? await GetEligibleIceIngredientsAsync(storeId, cancellationToken)
+            : [];
+        var policy = await _context.IcePolicies.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.StoreId == storeId && x.Active, cancellationToken);
+        var inventory = policy == null
+            ? null
+            : await GetInventorySnapshotAsync(storeId, policy.IngredientId, cancellationToken);
+        return ServiceResult<OperationalIcePolicySetupDto>.Success(
+            CreatePolicySetup(policy, ingredients, units, inventory));
+    }
+
+    private async Task<IReadOnlyList<OperationalIcePolicyOptionDto>> GetCompatibleIceUnitsAsync(
+        CancellationToken cancellationToken)
+    {
+        var massUnits = await _context.Units.AsNoTracking()
+            .Where(x => x.Active && x.Type == UnitType.KhoiLuong)
+            .OrderBy(x => x.UnitId)
+            .ToListAsync(cancellationToken);
+        var gram = massUnits.FirstOrDefault(x =>
+            PhysicalUnitConversionRegistry.NormalizeUnitCode(x.UnitCode) == PhysicalUnitConversionRegistry.CodeGram);
+        var kilogram = massUnits.FirstOrDefault(x =>
+            PhysicalUnitConversionRegistry.NormalizeUnitCode(x.UnitCode) == PhysicalUnitConversionRegistry.CodeKilogram);
+        if (gram == null || kilogram == null
+            || !PhysicalUnitConversionRegistry.TryGetPairFactor(
+                gram.UnitCode, kilogram.UnitCode, gram.Type, kilogram.Type, out _)
+            || !PhysicalUnitConversionRegistry.TryGetPairFactor(
+                kilogram.UnitCode, gram.UnitCode, kilogram.Type, gram.Type, out _))
+        {
+            return [];
+        }
+
+        return [MapPolicyOption(kilogram), MapPolicyOption(gram)];
+    }
+
+    private async Task<IReadOnlyList<OperationalIcePolicyOptionDto>> GetEligibleIceIngredientsAsync(
+        int storeId,
+        CancellationToken cancellationToken)
+    {
+        var candidates = await _context.Ingredients.AsNoTracking()
+            .Include(x => x.BaseUnit)
+            .Where(x => x.Active
+                        && x.Code == OperationalIceIngredientCode
+                        && x.BaseUnit.Active
+                        && x.BaseUnit.Type == UnitType.KhoiLuong
+                        && x.StoreInventories.Any(inventory =>
+                            inventory.StoreId == storeId
+                            && inventory.SupersededByStoreInventoryId == null))
+            .OrderBy(x => x.Name)
+            .ToListAsync(cancellationToken);
+        return candidates
+            .Where(x => PhysicalUnitConversionRegistry.NormalizeUnitCode(x.BaseUnit.UnitCode)
+                        == PhysicalUnitConversionRegistry.CodeGram)
+            .Select(x => new OperationalIcePolicyOptionDto
+            {
+                Id = x.IngredientId,
+                Code = x.Code,
+                Label = $"{x.Code} · {x.Name}"
+            })
+            .ToArray();
+    }
+
+    private Task<OperationalIceInventorySnapshotDto?> GetInventorySnapshotAsync(
+        int storeId,
+        int ingredientId,
+        CancellationToken cancellationToken) =>
+        _context.StoreInventories.AsNoTracking()
+            .Where(x => x.StoreId == storeId
+                        && x.IngredientId == ingredientId
+                        && x.SupersededByStoreInventoryId == null)
+            .Select(x => new OperationalIceInventorySnapshotDto
+            {
+                PhysicalQuantity = x.AvailableQty,
+                ReservedQuantity = x.ReservedQty,
+                AvailableQuantity = x.AvailableQty - x.ReservedQty
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+    private static OperationalIcePolicySetupDto CreatePolicySetup(
+        IcePolicy? policy,
+        IReadOnlyList<OperationalIcePolicyOptionDto> ingredients,
+        IReadOnlyList<OperationalIcePolicyOptionDto> units,
+        OperationalIceInventorySnapshotDto? inventory)
+    {
+        var quantityError = policy == null ? null : ValidatePolicyQuantities(policy);
+        var selectionValid = policy != null
+                             && ingredients.Any(x => x.Id == policy.IngredientId)
+                             && units.Any(x => x.Id == policy.DisplayUnitId);
+        var isValid = policy != null && units.Count == 2 && selectionValid
+                      && inventory != null && quantityError == null;
+        return new OperationalIcePolicySetupDto
+        {
+            IsConfigured = policy != null,
+            IsValid = isValid,
+            StatusMessage = PolicyStatusMessage(policy != null, units.Count == 2,
+                selectionValid, inventory != null, quantityError, isValid),
+            Ingredients = ingredients,
+            Units = units,
+            Inventory = inventory
+        };
+    }
+
+    private static OperationalIcePolicyOptionDto MapPolicyOption(CafeChain.Models.Inventories.Ingredients.Unit unit)
+    {
+        var code = PhysicalUnitConversionRegistry.NormalizeUnitCode(unit.UnitCode);
+        return new OperationalIcePolicyOptionDto { Id = unit.UnitId, Code = code, Label = $"{unit.Name} ({code})" };
+    }
+
+    private static string PolicyStatusMessage(
+        bool configured,
+        bool hasUnits,
+        bool selectionValid,
+        bool hasInventory,
+        string? quantityError,
+        bool isValid)
+    {
+        if (!configured) return "Chi nhánh chưa cấu hình chính sách đá.";
+        if (!hasUnits) return "Thiếu cặp đơn vị khối lượng g và kg đang hoạt động.";
+        if (!selectionValid) return "Nguyên liệu phải được định danh cho nghiệp vụ quản lý đá, đang hoạt động, có tồn tại chi nhánh, base gram và hiển thị theo g hoặc kg.";
+        if (!hasInventory) return "Nguyên liệu đá chưa có tồn kho tại chi nhánh.";
+        if (quantityError != null) return quantityError;
+        return isValid ? "Chính sách đá đã cấu hình hợp lệ." : "Chính sách đá chưa hợp lệ.";
+    }
+
     private async Task<ServiceResult> ValidateWorkShiftsAsync(
         OperationalShift operationalShift,
         IReadOnlyList<int> workShiftIds,
@@ -908,6 +1074,31 @@ public sealed class OperationalIceService : IOperationalIceService
     private static ServiceResult<T> Insufficient<T>(decimal usable) => ServiceResult<T>.Failure($"Tồn khả dụng của đá chỉ còn {usable:N3} đơn vị gốc.", errorCode: OperationalIceErrorCodes.InsufficientUsableStock);
     private static ServiceResult<T> Conflict<T>() => ServiceResult<T>.Failure("Dữ liệu tồn kho vừa thay đổi. Vui lòng tải lại.", errorCode: OperationalIceErrorCodes.ConcurrencyConflict);
     private static ServiceResult<T> Fail<T>(ServiceResult result) => ServiceResult<T>.Failure(result.Message, result.Errors, result.ErrorCode);
+
+    private static string? ValidatePolicyQuantities(IcePolicy policy) =>
+        ValidatePolicyQuantities(
+            policy.SuggestedDailyQuantity,
+            policy.SuggestedShiftQuantity,
+            policy.VarianceApprovalQuantityThreshold,
+            policy.VarianceApprovalPercentThreshold,
+            policy.RequireVarianceApproval);
+
+    private static string? ValidatePolicyQuantities(
+        decimal dailyQuantity,
+        decimal shiftQuantity,
+        decimal quantityThreshold,
+        decimal percentThreshold,
+        bool requireVarianceApproval)
+    {
+        if (dailyQuantity <= 0) return "Định mức ngày phải lớn hơn 0.";
+        if (shiftQuantity <= 0) return "Định mức mỗi ca phải lớn hơn 0.";
+        if (shiftQuantity > dailyQuantity) return "Định mức mỗi ca không được vượt định mức ngày.";
+        if (quantityThreshold < 0) return "Ngưỡng duyệt theo lượng không được âm.";
+        if (percentThreshold is < 0 or > 100) return "Ngưỡng duyệt theo phần trăm phải từ 0 đến 100%.";
+        if (!requireVarianceApproval)
+            return "Quy trình hiện tại bắt buộc duyệt mọi chênh lệch dương; các ngưỡng chỉ xác định cấp phê duyệt.";
+        return null;
+    }
 }
 
 public sealed class OperationalIceReservationConsumptionService : IOperationalIceReservationConsumptionService

@@ -1,5 +1,29 @@
 namespace CafeChain.Application.DTOs.Inventories;
 
+public sealed class OperationalIcePolicySetupDto
+{
+    public bool IsConfigured { get; init; }
+    public bool IsValid { get; init; }
+    public string StatusMessage { get; init; } = string.Empty;
+    public IReadOnlyList<OperationalIcePolicyOptionDto> Ingredients { get; init; } = [];
+    public IReadOnlyList<OperationalIcePolicyOptionDto> Units { get; init; } = [];
+    public OperationalIceInventorySnapshotDto? Inventory { get; init; }
+}
+
+public sealed class OperationalIcePolicyOptionDto
+{
+    public int Id { get; init; }
+    public string Code { get; init; } = string.Empty;
+    public string Label { get; init; } = string.Empty;
+}
+
+public sealed class OperationalIceInventorySnapshotDto
+{
+    public decimal PhysicalQuantity { get; init; }
+    public decimal ReservedQuantity { get; init; }
+    public decimal AvailableQuantity { get; init; }
+}
+
 public sealed class SaveIcePolicyRequest
 {
     public int StoreId { get; init; }
