@@ -41,15 +41,18 @@ public sealed class OperationalIceService : IOperationalIceService
     private readonly AppDbContext _context;
     private readonly IScopeAuthorizationService _scopeAuthorization;
     private readonly IInventoryCostLayerConsumptionService? _costLayerConsumption;
+    private readonly IUnitConversionService? _unitConversionService;
 
     public OperationalIceService(
         AppDbContext context,
         IScopeAuthorizationService scopeAuthorization,
-        IInventoryCostLayerConsumptionService? costLayerConsumption = null)
+        IInventoryCostLayerConsumptionService? costLayerConsumption = null,
+        IUnitConversionService? unitConversionService = null)
     {
         _context = context;
         _scopeAuthorization = scopeAuthorization;
         _costLayerConsumption = costLayerConsumption;
+        _unitConversionService = unitConversionService;
     }
 
     public async Task<ServiceResult> SavePolicyAsync(
@@ -73,6 +76,18 @@ public sealed class OperationalIceService : IOperationalIceService
             .AnyAsync(x => x.UnitId == request.DisplayUnitId && x.Active, cancellationToken);
         if (!ingredientValid || !unitValid)
             return Invalid("Nguyên liệu đá hoặc đơn vị hiển thị không còn hoạt động.");
+        if (_unitConversionService == null)
+            return Invalid("Không thể kiểm tra quy đổi đơn vị đá lúc này.");
+        var conversion = await _unitConversionService.ConvertAsync(
+            request.IngredientId,
+            1m,
+            request.DisplayUnitId);
+        if (!conversion.IsSuccess || conversion.Data <= 0)
+        {
+            return ServiceResult.Failure(
+                "Chưa cấu hình quy đổi từ đơn vị hiển thị sang đơn vị tồn kho của nguyên liệu đá.",
+                errorCode: OperationalIceErrorCodes.InvalidRequest);
+        }
 
         var policy = await _context.IcePolicies
             .SingleOrDefaultAsync(x => x.StoreId == request.StoreId, cancellationToken);
