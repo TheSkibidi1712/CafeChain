@@ -130,7 +130,7 @@
                     else
                     {
                         <div class="ops-table-scroll">
-                            <table class="ops-table" style="min-width:680px">
+<table class="ops-table ops-table-min-680">
                                 <thead><tr><th>Thời gian</th><th>Loại biến động</th><th class="number">Thay đổi</th><th class="number">Trước</th><th class="number">Sau</th><th>Chứng từ</th></tr></thead>
                                 <tbody>
                                 @foreach (var movement in Model.RecentMovements)
@@ -165,31 +165,36 @@
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
                             <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <div class="ops-form-group">
-                                <label class="ops-form-label" for="managerNote">Ghi chú xác nhận <span class="text-danger">*</span></label>
+                                <label class="ops-form-label" for="managerNote">Ghi chú xác nhận <span class="ops-required">*</span></label>
                                 <textarea id="managerNote" name="managerNote" class="ops-textarea" maxlength="500" required placeholder="Nêu kết quả kiểm tra và hướng xử lý..."></textarea>
                             </div>
                             <button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-check" aria-hidden="true"></i> Xác nhận cảnh báo</button>
                         </form>
-                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Reject" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.StockAlertId" />
-                            <input type="hidden" name="storeId" value="@Model.StoreId" />
-                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                            <div class="ops-form-group">
-                                <label class="ops-form-label" for="rejectReason">Lý do báo sai <span class="text-danger">*</span></label>
-                                <textarea id="rejectReason" name="rejectReason" class="ops-textarea" maxlength="500" required placeholder="Nêu lý do số liệu hoặc báo cáo không chính xác..."></textarea>
+                        <details class="ops-danger-disclosure">
+                            <summary>Đánh dấu báo sai hoặc đóng cảnh báo</summary>
+                            <div class="ops-danger-content">
+                                <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Reject" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@Model.StockAlertId" />
+                                    <input type="hidden" name="storeId" value="@Model.StoreId" />
+                                    <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                                    <div class="ops-form-group">
+                                        <label class="ops-form-label" for="rejectReason">Lý do báo sai <span class="ops-required">*</span></label>
+                                        <textarea id="rejectReason" name="rejectReason" class="ops-textarea" maxlength="500" required placeholder="Nêu lý do số liệu hoặc báo cáo không chính xác..."></textarea>
+                                    </div>
+                                    <button type="submit" class="ops-btn ops-btn-danger w-100"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Đánh dấu báo sai</button>
+                                </form>
+                                <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post" class="mt-4">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@Model.StockAlertId" />
+                                    <input type="hidden" name="storeId" value="@Model.StoreId" />
+                                    <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                                    <label class="ops-form-label" for="closeReason">Lý do đóng thủ công <span class="ops-required">*</span></label>
+                                    <textarea id="closeReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
+                                    <button type="submit" class="ops-btn w-100 mt-2">Đóng cảnh báo</button>
+                                </form>
                             </div>
-                            <button type="submit" class="ops-btn ops-btn-danger w-100"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Đánh dấu báo sai</button>
-                        </form>
-                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post" class="mt-4">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.StockAlertId" />
-                            <input type="hidden" name="storeId" value="@Model.StoreId" />
-                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                            <label class="ops-form-label" for="closeReason">Đóng thủ công</label>
-                            <textarea id="closeReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
-                            <button type="submit" class="ops-btn w-100 mt-2">Đóng cảnh báo</button>
-                        </form>
+                        </details>
                     </div>
                 </section>
             }
@@ -249,15 +254,20 @@
                             </div>
                             <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button>
                         </form>
-                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post" class="mt-4">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.StockAlertId" />
-                            <input type="hidden" name="storeId" value="@Model.StoreId" />
-                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                            <label class="ops-form-label" for="confirmedCloseReason">Đóng cảnh báo không tạo yêu cầu</label>
-                            <textarea id="confirmedCloseReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
-                            <button type="submit" class="ops-btn w-100 mt-2">Đóng cảnh báo</button>
-                        </form>
+                        <details class="ops-danger-disclosure">
+                            <summary>Đóng cảnh báo mà không tạo yêu cầu</summary>
+                            <div class="ops-danger-content">
+                                <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@Model.StockAlertId" />
+                                    <input type="hidden" name="storeId" value="@Model.StoreId" />
+                                    <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                                    <label class="ops-form-label" for="confirmedCloseReason">Lý do đóng <span class="ops-required">*</span></label>
+                                    <textarea id="confirmedCloseReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
+                                    <button type="submit" class="ops-btn w-100 mt-2">Xác nhận đóng</button>
+                                </form>
+                            </div>
+                        </details>
                     </div>
                 </section>
             }

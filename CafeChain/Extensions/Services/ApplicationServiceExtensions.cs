@@ -118,6 +118,8 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IInventoryWriterModeService, InventoryWriterModeService>();
             services.AddScoped<IStoreInventoryWriteResolver, StoreInventoryWriteResolver>();
             services.AddScoped<IInventoryDeductionService, InventoryDeductionService>();
+            services.AddScoped<IOperationalIceService, OperationalIceService>();
+            services.AddScoped<IOperationalIceReservationConsumptionService, OperationalIceReservationConsumptionService>();
             services.AddScoped<IInventoryIssueSettingsProvider, InventoryIssueSettingsProvider>();
             services.AddScoped<IInventoryIssuePolicy, InventoryIssuePolicy>();
             // Issue #132 — shared FIFO cost-layer consumption (production; POS later)

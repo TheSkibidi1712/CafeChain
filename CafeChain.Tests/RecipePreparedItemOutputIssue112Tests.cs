@@ -809,7 +809,7 @@ namespace CafeChain.Tests.POS
             var result = await svc.CreateRecipeAsync(new RecipeCreateVM
             {
                 RecipeType = "TOPPING",
-                ToppingId = 1,
+                ToppingId = 3,
                 Active = true,
                 EffectiveDate = DateTime.Today,
                 Details = OneIngredientDetail()

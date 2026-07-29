@@ -23,7 +23,7 @@
 
     <form method="post" id="recipeForm" novalidate>
         @Html.AntiForgeryToken()
-        <div id="formErrorSummary" class="alert alert-danger" style="display:none;" role="alert" tabindex="-1"></div>
+        <div id="formErrorSummary" class="alert alert-danger" style="display:none;" role="alert" aria-live="assertive" tabindex="-1"></div>
 
         <div class="row g-4 rb-builder-grid">
             <div class="col-xl-8">
@@ -136,7 +136,7 @@
                                     <option value="">-- ĐVT --</option>
                                     @foreach (var unit in options.Units)
                                     {
-                                        <option value="@unit.UnitId">@unit.Name (@unit.UnitCode)</option>
+                                        <option value="@unit.UnitId">@unit.Name</option>
                                     }
                                 </select>
                             </div>
@@ -222,7 +222,7 @@
     </div>
     <div class="d-flex gap-2">
         <a class="btn btn-rb-ghost" href="@indexUrl">Hủy</a>
-        <button type="button" class="btn btn-rb-save" id="btnSaveRecipe">Lưu công thức</button>
+        <button type="button" class="btn btn-rb-save" id="btnSaveRecipe" aria-busy="false">Lưu công thức</button>
     </div>
 </div>
 

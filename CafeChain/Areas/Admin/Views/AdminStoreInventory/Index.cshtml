@@ -6,19 +6,22 @@
     var isPreparedItems = Model.ActiveTab == CafeChain.Application.DTOs.Admin.StoreInventories.InventoryCatalogTypes.PreparedItems;
 }
 
-<div class="inventory-container">
+<main class="inventory-container cc-page">
 
-    <div class="inventory-header">
+    <header class="inventory-header cc-page-header">
         <div>
-            <h2><i class="fas fa-boxes-stacked" aria-hidden="true"></i> Tồn kho cửa hàng</h2>
-            <p class="inventory-subtitle">
+            <p class="cc-page-kicker">Kho &amp; Cung ứng</p>
+            <h1 class="cc-page-title"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> Tồn kho cửa hàng</h1>
+            <p class="inventory-subtitle cc-page-description">
                 Danh sách kho đang được lọc theo phạm vi được cấp cho nhân viên.
             </p>
         </div>
 
         <div class="header-actions">
             <form method="get" class="search-form">
+                <label class="visually-hidden" for="inventorySearch">Tìm mặt hàng trong kho</label>
                 <input type="text"
+                       id="inventorySearch"
                        name="search"
                        value="@Model.Search"
                        placeholder="@(isPreparedItems ? "Tìm mã hoặc tên bán thành phẩm..." : "Tìm mã hoặc tên nguyên liệu...")" />
@@ -31,16 +34,16 @@
                        name="inventoryType"
                        value="@Model.ActiveTab" />
 
-                <button type="submit">Tìm</button>
+                <button type="submit" class="cc-button cc-button-primary">Tìm</button>
             </form>
 
-            <button class="btn-view-all"
+            <button class="btn-view-all cc-button"
                     type="button"
                     onclick="openTransactionModal(@Model.StoreId)">
                 <i class="fas fa-clock-rotate-left" aria-hidden="true"></i> Xem lịch sử
             </button>
         </div>
-    </div>
+    </header>
 
     @await Html.PartialAsync("Partials/_StoreTabsPartial", Model)
 
@@ -63,7 +66,7 @@
 
     @await Html.PartialAsync("Partials/_PaginationPartial", Model)
 
-</div>
+</main>
 
 @await Html.PartialAsync("Partials/_TransactionModalPartial")
 

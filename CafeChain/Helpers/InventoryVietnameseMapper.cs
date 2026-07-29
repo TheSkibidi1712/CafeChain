@@ -77,6 +77,7 @@ namespace CafeChain.Helpers
                 InventoryTransactionTypeEnum.CONSOLIDATION_IN => "Nhập hợp nhất tồn BTP",
                 InventoryTransactionTypeEnum.BRANCH_RECEIPT_IN => "Nhập kho chi nhánh (phiếu nhận)",
                 InventoryTransactionTypeEnum.TRANSFER_RETURN_IN => "Nhập hoàn chuyển kho",
+                InventoryTransactionTypeEnum.ICE_VARIANCE_OUT => "Xuất chênh lệch đá cuối ca",
                 _ => "Không xác định"
             };
         }

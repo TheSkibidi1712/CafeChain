@@ -7,6 +7,7 @@ using CafeChain.Models.Inventories.Configuration;
 using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.Ice;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Production;
 using CafeChain.Models.Inventories.Procurement;
@@ -122,6 +123,15 @@ namespace CafeChain.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<InventoryWriterModeTransition> InventoryWriterModeTransitions { get; set; }
         public DbSet<StoreInventoryWriterConfiguration> StoreInventoryWriterConfigurations { get; set; }
+
+        // Operational ice shift management
+        public DbSet<OperationalShift> OperationalShifts { get; set; }
+        public DbSet<OperationalShiftWorkShift> OperationalShiftWorkShifts { get; set; }
+        public DbSet<IcePolicy> IcePolicies { get; set; }
+        public DbSet<IceAllocation> IceAllocations { get; set; }
+        public DbSet<IceSupplementalIssue> IceSupplementalIssues { get; set; }
+        public DbSet<IceCarryOver> IceCarryOvers { get; set; }
+        public DbSet<IceInventoryPosting> IceInventoryPostings { get; set; }
 
         // Costing
         public DbSet<InventoryCostLayer> InventoryCostLayers { get; set; }

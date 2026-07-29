@@ -26,30 +26,30 @@
     <link rel="stylesheet" href="~/css/Admin/Procurement/reorder-suggestions.css" asp-append-version="true" />
 }
 
-<main class="reorder-page">
+<main class="reorder-page cc-page">
     <div class="d-none" aria-hidden="true">@Html.AntiForgeryToken()</div>
-    <header class="reorder-header">
+    <header class="reorder-header cc-page-header">
         <div>
-            <p class="reorder-eyebrow">Nhà cung cấp / Lập kế hoạch</p>
-            <h1>Gợi ý nhập hàng</h1>
-            <p>Phân tích tiêu thụ, tồn khả dụng, ngưỡng an toàn và quy cách mua theo cửa hàng.</p>
+            <p class="reorder-eyebrow cc-page-kicker">Kho &amp; Cung ứng / Lập kế hoạch</p>
+            <h1 class="cc-page-title">Gợi ý nhập hàng</h1>
+            <p class="cc-page-description">Phân tích tiêu thụ, tồn khả dụng, ngưỡng an toàn và quy cách mua theo cửa hàng.</p>
         </div>
-        <a asp-controller="AdminRestockRequests" asp-action="Index" class="btn btn-outline-secondary">
+        <a asp-controller="AdminRestockRequests" asp-action="Index" class="cc-button">
             <i class="fas fa-list-check" aria-hidden="true"></i> Xem yêu cầu nhập
         </a>
     </header>
 
     @if (TempData["SuccessMessage"] is string success)
     {
-        <div class="alert alert-success" role="status">@success</div>
+        <div class="ops-notice ops-notice-success" role="status">@success</div>
     }
     @if (TempData["ErrorMessage"] is string error)
     {
-        <div class="alert alert-danger" role="alert">@error</div>
+        <div class="ops-notice ops-notice-error" role="alert">@error</div>
     }
     @if (ViewBag.ErrorMessage is string loadError)
     {
-        <div class="alert alert-danger" role="alert">@loadError</div>
+        <div class="ops-notice ops-notice-error" role="alert">@loadError</div>
     }
 
     <form method="get" class="reorder-filters">
@@ -81,10 +81,11 @@
     <section class="reorder-table-shell" aria-label="Danh sách gợi ý nhập hàng">
         @if (!Model.Items.Any())
         {
-            <div class="reorder-empty">
+            <div class="reorder-empty cc-empty-state">
                 <i class="fas fa-box-open" aria-hidden="true"></i>
                 <h2>Chưa có dữ liệu gợi ý</h2>
-                <p>Chọn cửa hàng có tồn kho nguyên liệu để bắt đầu phân tích.</p>
+                <p>Chọn cửa hàng có tồn kho nguyên liệu để bắt đầu phân tích, hoặc mở danh sách yêu cầu bổ sung để kiểm tra nhu cầu hiện tại.</p>
+                <a asp-controller="AdminRestockRequests" asp-action="Index" class="cc-button mt-3">Xem yêu cầu bổ sung</a>
             </div>
         }
         else
@@ -144,14 +145,14 @@
                             </td>
                             <td class="text-end">
                                 <button type="button"
-                                        class="btn btn-sm btn-outline-info js-reorder-explain"
+                                        class="cc-button js-reorder-explain"
                                         data-store-id="@item.StoreId"
                                         data-ingredient-id="@item.IngredientId">
                                     Xem giải thích AI
                                 </button>
                                 @if (item.ActiveRestockRequestId.HasValue)
                                 {
-                                    <a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@item.ActiveRestockRequestId" class="btn btn-sm btn-outline-secondary">Xem yêu cầu</a>
+                                    <a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@item.ActiveRestockRequestId" class="cc-button">Xem yêu cầu</a>
                                 }
                                 else
                                 {
@@ -159,7 +160,7 @@
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="storeId" value="@item.StoreId" />
                                         <input type="hidden" name="ingredientId" value="@item.IngredientId" />
-                                        <button type="submit" class="btn btn-sm btn-primary" disabled="@(!ready || !canCreateDraft)">Tạo/mở cảnh báo</button>
+                                        <button type="submit" class="cc-button cc-button-primary" disabled="@(!ready || !canCreateDraft)">Tạo/mở cảnh báo</button>
                                     </form>
                                 }
                             </td>

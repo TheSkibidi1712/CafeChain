@@ -30,6 +30,24 @@
     var fulfilled = usesProcurement
         ? Model.FulfilledProcurementQuantity.GetValueOrDefault()
         : Model.ReceivedQuantity;
+    var transferAllocated = usesProcurement
+        ? Model.TransferAllocatedProcurementQuantity.GetValueOrDefault()
+        : Model.TransferAllocatedQuantity;
+    var purchaseAllocated = usesProcurement
+        ? Model.PurchaseAllocatedProcurementQuantity.GetValueOrDefault()
+        : Model.PurchaseAllocatedQuantity;
+    var productionAllocated = Model.ProductionAllocatedProcurementQuantity.GetValueOrDefault();
+    var rejectedAllocated = Model.RejectedProcurementQuantity.GetValueOrDefault();
+    var remainingSource = usesProcurement
+        ? Model.RemainingUnallocatedProcurementQuantity.GetValueOrDefault()
+        : Model.RemainingUnallocatedQuantity;
+    var remainingToReceive = usesProcurement
+        ? Model.RemainingToReceiveProcurementQuantity.GetValueOrDefault()
+        : Model.RemainingToReceiveQuantity;
+    var hasAllocationDetail = transferAllocated > 0
+        || purchaseAllocated > 0
+        || productionAllocated > 0
+        || rejectedAllocated > 0;
     var progress = target <= 0 ? 0m : Math.Min(100m, Math.Max(0m, fulfilled / target * 100m));
 }
 
@@ -67,11 +85,13 @@
     <section class="ops-panel" aria-label="Tiến trình mua hàng">
         <div class="ops-panel-header"><h2 class="ops-panel-title">Tiến trình xử lý</h2></div>
         <div class="ops-panel-body">
-            <div style="display:grid;grid-template-columns:repeat(7,minmax(110px,1fr));gap:.5rem;overflow-x:auto">
-                @foreach (var step in Model.WorkflowSteps)
+            <div class="ops-workflow" role="list" aria-label="Các bước xử lý yêu cầu">
+                @for (var stepIndex = 0; stepIndex < Model.WorkflowSteps.Count; stepIndex++)
                 {
-                    var stepClass = step.Status switch { "COMPLETED" => "ops-notice-success", "ACTIVE" => "ops-notice-warning", "REJECTED" => "ops-notice-error", _ => "" };
-                    <div class="ops-notice @stepClass mb-0" style="min-width:110px">
+                    var step = Model.WorkflowSteps[stepIndex];
+                    var stepClass = step.Status switch { "COMPLETED" => "is-completed", "ACTIVE" => "is-active", "REJECTED" => "is-rejected", _ => "is-pending" };
+                    <div class="ops-workflow-step @stepClass" role="listitem" aria-current="@(step.Status == "ACTIVE" ? "step" : null)">
+                        <span class="ops-workflow-index" aria-hidden="true">@(step.Status == "COMPLETED" ? "✓" : (stepIndex + 1).ToString())</span>
                         <strong>@step.Label</strong><div class="ops-secondary">@step.Description</div>
                     </div>
                 }
@@ -79,17 +99,37 @@
         </div>
     </section>
 
-    <section class="ops-metrics" aria-label="Tiến độ yêu cầu">
+    <section class="ops-metrics ops-summary-metrics" aria-label="Tóm tắt tiến độ yêu cầu">
         <div class="ops-metric"><span class="ops-metric-label">Số lượng yêu cầu</span><strong class="ops-metric-value">@AdminStatusDisplay.Quantity(target) @requestUnitName</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Phân bổ điều chuyển</span><strong class="ops-metric-value">@AdminStatusDisplay.Quantity(usesProcurement ? Model.TransferAllocatedProcurementQuantity.GetValueOrDefault() : Model.TransferAllocatedQuantity) @requestUnitName</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Phân bổ mua ngoài</span><strong class="ops-metric-value">@AdminStatusDisplay.Quantity(usesProcurement ? Model.PurchaseAllocatedProcurementQuantity.GetValueOrDefault() : Model.PurchaseAllocatedQuantity) @requestUnitName</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Phân bổ sản xuất</span><strong class="ops-metric-value">@AdminStatusDisplay.Quantity(Model.ProductionAllocatedProcurementQuantity.GetValueOrDefault()) @(usesProcurement ? requestUnitName : string.Empty)</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Đã từ chối</span><strong class="ops-metric-value">@AdminStatusDisplay.Quantity(Model.RejectedProcurementQuantity.GetValueOrDefault()) @(usesProcurement ? requestUnitName : string.Empty)</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Chưa xác định nguồn cung</span><strong class="ops-metric-value @(remainingSource > 0 ? "warning" : "success")">@AdminStatusDisplay.Quantity(remainingSource) @requestUnitName</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Còn thiếu theo nhu cầu</span><strong class="ops-metric-value @(remainingToReceive > 0 ? "warning" : "success")">@AdminStatusDisplay.Quantity(remainingToReceive) @requestUnitName</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Đã nhận thực tế</span><strong class="ops-metric-value success">@AdminStatusDisplay.Quantity(fulfilled) @requestUnitName</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Chưa xác định nguồn cung</span><strong class="ops-metric-value @((usesProcurement ? Model.RemainingUnallocatedProcurementQuantity.GetValueOrDefault() : Model.RemainingUnallocatedQuantity) > 0 ? "warning" : "success")">@AdminStatusDisplay.Quantity(usesProcurement ? Model.RemainingUnallocatedProcurementQuantity.GetValueOrDefault() : Model.RemainingUnallocatedQuantity) @requestUnitName</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Còn thiếu theo nhu cầu</span><strong class="ops-metric-value @((usesProcurement ? Model.RemainingToReceiveProcurementQuantity.GetValueOrDefault() : Model.RemainingToReceiveQuantity) > 0 ? "warning" : "success")">@AdminStatusDisplay.Quantity(usesProcurement ? Model.RemainingToReceiveProcurementQuantity.GetValueOrDefault() : Model.RemainingToReceiveQuantity) @requestUnitName</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Tiến độ</span><strong class="ops-metric-value">@progress.ToString("N0")%</strong><div class="ops-progress mt-2"><div class="ops-progress-bar" style="width:@progress.ToString(System.Globalization.CultureInfo.InvariantCulture)%"></div></div></div>
+        <div class="ops-metric"><span class="ops-metric-label">Tiến độ</span><strong class="ops-metric-value">@progress.ToString("N0")%</strong><progress class="ops-progress-native" value="@progress" max="100" aria-label="Tiến độ đáp ứng @progress.ToString("N0") phần trăm">@progress.ToString("N0")%</progress></div>
     </section>
+
+    @if (hasAllocationDetail)
+    {
+        <section class="ops-panel ops-allocation-panel" aria-labelledby="allocationSummaryTitle">
+            <div class="ops-panel-header"><h2 id="allocationSummaryTitle" class="ops-panel-title">Nguồn đã phân bổ</h2></div>
+            <div class="ops-panel-body">
+                <div class="ops-allocation-summary">
+                    @if (transferAllocated > 0) { <div class="ops-allocation-item"><span>Điều chuyển nội bộ</span><strong>@AdminStatusDisplay.Quantity(transferAllocated) @requestUnitName</strong></div> }
+                    @if (purchaseAllocated > 0) { <div class="ops-allocation-item"><span>Mua ngoài</span><strong>@AdminStatusDisplay.Quantity(purchaseAllocated) @requestUnitName</strong></div> }
+                    @if (productionAllocated > 0) { <div class="ops-allocation-item"><span>Sản xuất nội bộ</span><strong>@AdminStatusDisplay.Quantity(productionAllocated) @requestUnitName</strong></div> }
+                    @if (rejectedAllocated > 0) { <div class="ops-allocation-item"><span>Đã từ chối</span><strong>@AdminStatusDisplay.Quantity(rejectedAllocated) @requestUnitName</strong></div> }
+                </div>
+                <details class="ops-disclosure">
+                    <summary>Xem chi tiết phân bổ</summary>
+                    <div class="ops-allocation-summary mt-3">
+                        <div class="ops-allocation-item"><span>Điều chuyển nội bộ</span><strong>@AdminStatusDisplay.Quantity(transferAllocated) @requestUnitName</strong></div>
+                        <div class="ops-allocation-item"><span>Mua ngoài</span><strong>@AdminStatusDisplay.Quantity(purchaseAllocated) @requestUnitName</strong></div>
+                        <div class="ops-allocation-item"><span>Sản xuất nội bộ</span><strong>@AdminStatusDisplay.Quantity(productionAllocated) @requestUnitName</strong></div>
+                        <div class="ops-allocation-item"><span>Đã từ chối</span><strong>@AdminStatusDisplay.Quantity(rejectedAllocated) @requestUnitName</strong></div>
+                    </div>
+                </details>
+            </div>
+        </section>
+    }
 
     <div class="ops-detail-grid">
         <div>
@@ -122,10 +162,9 @@
                 <div class="ops-panel-body">
                     @if (Model.Status is "SUBMITTED" or "PROCESSING" or "PARTIALLY_RECEIVED")
                     {
-                        var remainingSource = Model.RemainingUnallocatedProcurementQuantity.GetValueOrDefault();
                         @if (remainingSource <= 0)
                         {
-                            <div class="ops-notice ops-notice-success mb-0">Toàn bộ nhu cầu đã được xác định nguồn cung.</div>
+                            <div class="ops-notice ops-notice-success mb-0"><strong>Đã xác định nguồn cung.</strong><br />Toàn bộ nhu cầu đã được phân bổ. Nếu một nguồn bị hủy hoặc giải phóng, các lựa chọn nguồn sẽ tự xuất hiện lại.</div>
                         }
                         else if (!canWarehouse)
                         {
@@ -137,17 +176,46 @@
                         }
                         else
                         {
-                            <p class="ops-secondary">Còn chưa xác định nguồn cung: <strong>@AdminStatusDisplay.Quantity(remainingSource) @requestUnitName</strong></p>
-                            <form method="post" asp-action="SetSourcingDecision" class="ops-data-grid">
+                            <div class="ops-notice ops-notice-info"><strong>Còn @AdminStatusDisplay.Quantity(remainingSource) @requestUnitName chưa xác định nguồn.</strong><br />Chọn một cách thực hiện để mở đúng biểu mẫu. Bạn vẫn có thể chia nhu cầu cho nhiều nguồn.</div>
+                            <div class="ops-source-options" role="group" aria-label="Chọn nguồn thực hiện">
+                                <button type="button" class="ops-source-option" data-source-option="TRANSFER" aria-pressed="false">
+                                    <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i><strong>Điều chuyển nội bộ</strong><span>Nhận hàng từ một chi nhánh khác trong chuỗi.</span>
+                                </button>
+                                <button type="button" class="ops-source-option" data-source-option="PURCHASE" aria-pressed="false">
+                                    <i class="fa-solid fa-basket-shopping" aria-hidden="true"></i><strong>Mua ngoài</strong><span>Đưa số lượng vào đề nghị mua và chọn Nhà cung cấp ở bước tổng hợp.</span>
+                                </button>
+                                <button type="button" class="ops-source-option" data-source-option="PRODUCTION" aria-pressed="false">
+                                    <i class="fa-solid fa-flask" aria-hidden="true"></i><strong>Sản xuất nội bộ</strong><span>Tạo nhu cầu sản xuất bán thành phẩm trong chuỗi.</span>
+                                </button>
+                            </div>
+                            <form method="post" asp-action="SetSourcingDecision" class="ops-source-form" data-source-form hidden>
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="RestockRequestId" value="@Model.RestockRequestId" />
                                 <input type="hidden" name="ProcurementUnitId" value="@Model.ProcurementUnitId" />
                                 <input type="hidden" name="RowVersion" value="@Model.RowVersion" />
-                                <div><label class="ops-form-label" for="sourceDecision">Nguồn cung</label><select id="sourceDecision" name="DecisionType" class="ops-select" required><option value="TRANSFER">Điều chuyển nội bộ</option><option value="PURCHASE">Mua ngoài</option><option value="PRODUCTION">Sản xuất nội bộ</option><option value="REJECT">Từ chối</option></select></div>
-                                <div><label class="ops-form-label" for="sourceQuantity">Số lượng phân bổ</label><input id="sourceQuantity" name="ProcurementQuantity" type="number" class="ops-input" min="0.001" max="@remainingSource.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" required /></div>
-                                <div><label class="ops-form-label" for="sourceReason">Lý do / ghi chú</label><input id="sourceReason" name="Reason" class="ops-input" maxlength="500" placeholder="Bắt buộc khi từ chối" /></div>
-                                <div style="align-self:end"><button type="submit" class="ops-btn ops-btn-primary w-100">Ghi nhận nguồn cung</button></div>
+                                <input id="sourceDecision" name="DecisionType" type="hidden" required />
+                                <div class="ops-inline-actions ops-source-change"><strong data-source-title></strong><button type="button" class="ops-btn" data-change-source>Đổi nguồn</button></div>
+                                <div class="ops-source-form-grid">
+                                    <div><label class="ops-form-label" for="sourceQuantity">Số lượng phân bổ (@requestUnitName)</label><input id="sourceQuantity" name="ProcurementQuantity" type="number" class="ops-input w-100" min="0.001" max="@remainingSource.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" required /></div>
+                                    <div><label class="ops-form-label" for="sourceReason">Ghi chú</label><input id="sourceReason" name="Reason" class="ops-input w-100" maxlength="500" placeholder="Thông tin hỗ trợ quyết định nguồn" /></div>
+                                    <button type="submit" class="ops-btn ops-btn-primary">Ghi nhận nguồn cung</button>
+                                </div>
                             </form>
+                            <details class="ops-danger-disclosure">
+                                <summary>Từ chối phần nhu cầu còn lại</summary>
+                                <div class="ops-danger-content">
+                                    <form method="post" asp-action="SetSourcingDecision" class="ops-source-form-grid">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="RestockRequestId" value="@Model.RestockRequestId" />
+                                        <input type="hidden" name="ProcurementUnitId" value="@Model.ProcurementUnitId" />
+                                        <input type="hidden" name="RowVersion" value="@Model.RowVersion" />
+                                        <input type="hidden" name="DecisionType" value="REJECT" />
+                                        <div><label class="ops-form-label" for="rejectSourceQuantity">Số lượng từ chối (@requestUnitName)</label><input id="rejectSourceQuantity" name="ProcurementQuantity" type="number" class="ops-input w-100" min="0.001" max="@remainingSource.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" required /></div>
+                                        <div><label class="ops-form-label" for="rejectSourceReason">Lý do từ chối</label><input id="rejectSourceReason" name="Reason" class="ops-input w-100" maxlength="500" required /></div>
+                                        <button type="submit" class="ops-btn ops-btn-danger">Xác nhận từ chối</button>
+                                    </form>
+                                </div>
+                            </details>
                         }
                     }
                     else
@@ -248,7 +316,7 @@
                     @if (Model.FulfillmentPostings.Count == 0) { <div class="p-3 ops-secondary">Chưa có lượng thực nhận từ chứng từ đã hoàn tất.</div> }
                     else
                     {
-                        <div class="ops-table-scroll"><table class="ops-table" style="min-width:620px"><thead><tr><th>Nguồn</th><th>Dòng chứng từ</th><th class="number">Số lượng</th><th>Thời gian</th></tr></thead><tbody>
+                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-620"><thead><tr><th>Nguồn</th><th>Dòng chứng từ</th><th class="number">Số lượng</th><th>Thời gian</th></tr></thead><tbody>
                         @foreach (var posting in Model.FulfillmentPostings)
                         {
                             <tr><td><strong>@AdminStatusDisplay.RestockFulfillmentDocumentType(posting.SourceDocumentType)</strong> #@posting.SourceDocumentId</td><td>#@posting.SourceDocumentLineId</td><td class="number">@AdminStatusDisplay.Quantity(posting.Quantity) @(posting.BaseUnitName ?? $"Đơn vị #{posting.BaseUnitId}")</td><td>@AdminStatusDisplay.DateTime(posting.CreatedAtUtc.ToLocalTime())</td></tr>
@@ -264,7 +332,7 @@
                     @if (Model.PurchaseOrders.Count == 0) { <div class="p-3 ops-secondary">Chưa có đơn đặt hàng liên kết. Đơn đặt hàng sẽ xuất hiện sau khi PA được gửi, xét duyệt và tổng hợp.</div> }
                     else
                     {
-                        <div class="ops-table-scroll"><table class="ops-table" style="min-width:680px"><thead><tr><th>Đơn đặt hàng</th><th>Nhà cung cấp</th><th>Trạng thái đơn</th><th>Ngày đặt</th><th class="number">Giá trị</th><th></th></tr></thead><tbody>
+                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-680"><thead><tr><th>Đơn đặt hàng</th><th>Nhà cung cấp</th><th>Trạng thái đơn</th><th>Ngày đặt</th><th class="number">Giá trị</th><th></th></tr></thead><tbody>
                         @foreach (var order in Model.PurchaseOrders)
                         {
                             <tr>
@@ -287,7 +355,7 @@
                     @if (Model.SupplierIssues.Count == 0) { <div class="p-3 ops-secondary">Chưa có sự cố nhà cung cấp liên quan.</div> }
                     else
                     {
-                        <div class="ops-table-scroll"><table class="ops-table" style="min-width:720px"><thead><tr><th>Nhà cung cấp</th><th>Sự cố</th><th>Trạng thái</th><th class="number">Ảnh hưởng</th><th>Chứng từ</th></tr></thead><tbody>
+                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-720"><thead><tr><th>Nhà cung cấp</th><th>Sự cố</th><th>Trạng thái</th><th class="number">Ảnh hưởng</th><th>Chứng từ</th></tr></thead><tbody>
                         @foreach (var issue in Model.SupplierIssues)
                         {
                             <tr><td>@issue.SupplierName</td><td><strong>@AdminStatusDisplay.SupplierReceiptIssueType(issue.IssueType)</strong><div class="ops-secondary">@issue.Description</div></td><td><span class="ops-badge @AdminStatusDisplay.SupplierReceiptIssue(issue.Status).CssClass">@AdminStatusDisplay.SupplierReceiptIssue(issue.Status).Label</span></td><td class="number">@AdminStatusDisplay.Quantity(issue.AffectedBaseQuantity)</td><td><a asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Index" asp-route-storeId="@issue.StoreId" asp-route-supplierId="@issue.SupplierId">@issue.BranchReceiptCode</a></td></tr>
@@ -303,7 +371,7 @@
                     @if (Model.Receipts.Count == 0) { <div class="p-3 ops-secondary">Chưa có chứng từ nhận hàng. Chỉ tạo phiếu nhận từ đơn đặt hàng đã duyệt và gửi nhà cung cấp.</div> }
                     else
                     {
-                        <div class="ops-table-scroll"><table class="ops-table" style="min-width:620px"><thead><tr><th>Phiếu</th><th>Trạng thái</th><th class="number">Lượng nhận</th><th class="number">Giá trị</th><th></th></tr></thead><tbody>
+                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-620"><thead><tr><th>Phiếu</th><th>Trạng thái</th><th class="number">Lượng nhận</th><th class="number">Giá trị</th><th></th></tr></thead><tbody>
                         @foreach (var receipt in Model.Receipts)
                         {
                             <tr><td><strong>@receipt.ReceiptCode</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(receipt.ReceivedAt.ToLocalTime())</div></td><td><span class="ops-badge @AdminStatusDisplay.BranchReceipt(receipt.Status).CssClass">@AdminStatusDisplay.BranchReceipt(receipt.Status).Label</span></td><td class="number">@AdminStatusDisplay.Quantity(receipt.TotalBaseQuantity)</td><td class="number">@AdminStatusDisplay.Currency(receipt.TotalLineCost)</td><td><a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Details" asp-route-id="@receipt.BranchReceiptId">Xem phiếu</a></td></tr>
@@ -315,32 +383,44 @@
         </div>
 
         <aside>
-            <section class="ops-panel">
+            <section class="ops-panel ops-next-action">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Thao tác tiếp theo</h2></div>
                 <div class="ops-panel-body">
                     @if (canWarehouse && Model.Status == "SUBMITTED")
                     {
                         <form method="post" asp-action="StartProcessing" asp-route-id="@Model.RestockRequestId" class="mb-3">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-play" aria-hidden="true"></i> Tiếp nhận xử lý</button></form>
                     }
-                    @if (canWarehouse && Model.Status == "SUBMITTED")
+                    @if (canAddDemand && usesProcurement)
                     {
-                        <form method="post" asp-action="Reject" asp-route-id="@Model.RestockRequestId" class="mb-3">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                            <label class="ops-form-label" for="rejectReason">Từ chối yêu cầu</label>
-                            <textarea id="rejectReason" name="reason" class="ops-textarea" required placeholder="Lý do từ chối..."></textarea>
-                            <button type="submit" class="ops-btn ops-btn-danger w-100 mt-2">Từ chối yêu cầu</button>
-                        </form>
+                        <a class="ops-btn w-100 mb-3 text-center" href="#add-demand"><i class="fa-solid fa-plus" aria-hidden="true"></i> Bổ sung nhu cầu</a>
                     }
-                    @if (canCancel && Model.Status is "DRAFT" or "SUBMITTED")
+                    @if ((canWarehouse && Model.Status == "SUBMITTED") || (canCancel && Model.Status is ("DRAFT" or "SUBMITTED")))
                     {
-                        <form method="post" asp-action="Cancel" asp-route-id="@Model.RestockRequestId">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                            <label class="ops-form-label" for="cancelReason">Hủy yêu cầu</label>
-                            <input id="cancelReason" name="reason" class="ops-input w-100" placeholder="Lý do hủy" />
-                            <button type="submit" class="ops-btn w-100 mt-2">Hủy yêu cầu</button>
-                        </form>
+                        <details class="ops-danger-disclosure">
+                            <summary>Hủy hoặc từ chối yêu cầu</summary>
+                            <div class="ops-danger-content">
+                                @if (canWarehouse && Model.Status == "SUBMITTED")
+                                {
+                                    <form method="post" asp-action="Reject" asp-route-id="@Model.RestockRequestId" class="mb-3">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                                        <label class="ops-form-label" for="rejectReason">Lý do từ chối</label>
+                                        <textarea id="rejectReason" name="reason" class="ops-textarea" required placeholder="Nêu rõ lý do từ chối yêu cầu"></textarea>
+                                        <button type="submit" class="ops-btn ops-btn-danger w-100 mt-2">Từ chối yêu cầu</button>
+                                    </form>
+                                }
+                                @if (canCancel && Model.Status is "DRAFT" or "SUBMITTED")
+                                {
+                                    <form method="post" asp-action="Cancel" asp-route-id="@Model.RestockRequestId">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                                        <label class="ops-form-label" for="cancelReason">Lý do hủy</label>
+                                        <input id="cancelReason" name="reason" class="ops-input w-100" required placeholder="Nêu rõ lý do hủy yêu cầu" />
+                                        <button type="submit" class="ops-btn ops-btn-danger w-100 mt-2">Hủy yêu cầu</button>
+                                    </form>
+                                }
+                            </div>
+                        </details>
                     }
                     @if (canWarehouse
                         && Model.Status is ("PROCESSING" or "PARTIALLY_RECEIVED")
@@ -383,6 +463,46 @@
 </main>
 
 <script>
+const sourceOptions = [...document.querySelectorAll('[data-source-option]')];
+const sourceForm = document.querySelector('[data-source-form]');
+const sourceDecision = document.getElementById('sourceDecision');
+const sourceTitle = document.querySelector('[data-source-title]');
+const sourceOptionGroup = document.querySelector('.ops-source-options');
+const sourceLabels = {
+    TRANSFER: 'Điều chuyển nội bộ',
+    PURCHASE: 'Mua ngoài',
+    PRODUCTION: 'Sản xuất nội bộ'
+};
+
+const resetSourceSelection = () => {
+    sourceOptions.forEach(option => {
+        option.classList.remove('is-active');
+        option.setAttribute('aria-pressed', 'false');
+    });
+    sourceOptionGroup?.classList.remove('has-selection');
+    if (sourceForm) sourceForm.hidden = true;
+    if (sourceDecision) sourceDecision.value = '';
+};
+
+sourceOptions.forEach(option => {
+    option.addEventListener('click', () => {
+        const decision = option.dataset.sourceOption;
+        if (!decision || !sourceForm || !sourceDecision || !sourceTitle) return;
+        sourceOptions.forEach(candidate => {
+            const active = candidate === option;
+            candidate.classList.toggle('is-active', active);
+            candidate.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        sourceOptionGroup?.classList.add('has-selection');
+        sourceDecision.value = decision;
+        sourceTitle.textContent = sourceLabels[decision] ?? '';
+        sourceForm.hidden = false;
+        sourceForm.querySelector('input:not([type="hidden"])')?.focus();
+    });
+});
+
+document.querySelector('[data-change-source]')?.addEventListener('click', resetSourceSelection);
+
 document.querySelectorAll('[data-single-submit]').forEach(form => {
     form.addEventListener('submit', () => {
         const button = form.querySelector('[data-submit-button]');

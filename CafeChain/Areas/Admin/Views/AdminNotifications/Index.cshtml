@@ -9,61 +9,61 @@
     int totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
 }
 
-<div class="container-fluid py-3">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+<main class="notification-page cc-page">
+    <header class="notification-header cc-page-header">
         <div>
-            <h4 class="mb-0">Thông báo</h4>
-            <small class="text-muted">
+            <p class="cc-page-kicker">Kho &amp; Cung ứng</p>
+            <h1 class="cc-page-title">Thông báo kho</h1>
+            <p class="notification-meta cc-page-description">
                 Thông báo kho chi nhánh gửi đến bạn
                 @if (unread > 0)
                 {
-                    <span class="badge bg-danger ms-1">@unread chưa đọc</span>
+                    <span class="cc-status-badge cc-status-warning ms-1">@unread chưa đọc</span>
                 }
-            </small>
+            </p>
         </div>
         <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="MarkAllRead" method="post" class="m-0">
             @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-outline-primary btn-sm" @(unread == 0 ? "disabled" : null)>
+            <button type="submit" class="cc-button" @(unread == 0 ? "disabled" : null)>
                 Đánh dấu tất cả đã đọc
             </button>
         </form>
-    </div>
+    </header>
 
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+        <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div>
     }
     @if (TempData["ErrorMessage"] != null)
     {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div>
     }
 
     <div data-admin-notification-list>
         @if (Model.Items == null || Model.Items.Count == 0)
         {
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center text-muted py-5">
-                    Chưa có thông báo
-                </div>
+            <div class="cc-empty-state">
+                <h2>Chưa có thông báo kho</h2>
+                <p>Các cảnh báo tồn kho và cập nhật vận hành phù hợp với phạm vi của bạn sẽ xuất hiện tại đây.</p>
             </div>
         }
         else
         {
-            <div class="list-group shadow-sm">
+            <section class="notification-list" aria-label="Danh sách thông báo kho">
                 @foreach (var item in Model.Items)
                 {
-                    <div class="list-group-item @(item.IsRead ? "" : "list-group-item-warning")">
+                    <article class="notification-item @(item.IsRead ? "" : "is-unread")">
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <div class="flex-grow-1">
                                 <div class="d-flex align-items-center gap-2 mb-1">
-                                    <strong>@item.Title</strong>
+                                    <strong class="notification-title">@item.Title</strong>
                                     @if (!item.IsRead)
                                     {
-                                        <span class="badge bg-danger">Chưa đọc</span>
+                                        <span class="cc-status-badge cc-status-warning">Chưa đọc</span>
                                     }
                                 </div>
-                                <div class="small text-muted mb-2" style="white-space: pre-wrap;">@item.Body</div>
-                                <div class="small text-secondary">
+                                <div class="notification-body small mb-2">@item.Body</div>
+                                <div class="notification-meta small">
                                     @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                                     @if (item.EmailAttempted && !item.EmailSent)
                                     {
@@ -82,27 +82,26 @@
                                 <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="MarkRead" method="post" class="m-0">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@item.NotificationId" />
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Đánh dấu đã đọc</button>
+                                    <button type="submit" class="cc-button">Đánh dấu đã đọc</button>
                                 </form>
                             }
                         }
-                    </div>
-                </div>
+                    </article>
                 }
-            </div>
+            </section>
 
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <small class="text-muted">Trang @(page) / @totalPages · Tổng @total</small>
                 <div class="btn-group">
                     @if (page > 1)
                     {
-                        <a class="btn btn-sm btn-outline-secondary"
+                        <a class="cc-button"
                            asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index"
                            asp-route-page="@(page - 1)">Trước</a>
                     }
                     @if (page < totalPages)
                     {
-                        <a class="btn btn-sm btn-outline-secondary"
+                        <a class="cc-button"
                            asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index"
                            asp-route-page="@(page + 1)">Sau</a>
                     }
@@ -110,7 +109,7 @@
             </div>
         }
     </div>
-</div>
+</main>
 
 @section Scripts {
     <script src="~/js/Admin/Notifications/admin-notification-list.js" asp-append-version="true"></script>

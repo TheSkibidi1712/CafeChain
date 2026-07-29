@@ -3935,6 +3935,624 @@ namespace CafeChain.Migrations
                     b.ToTable("InventoryDocumentSnapshotDetails", (string)null);
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IceAllocation", b =>
+                {
+                    b.Property<int>("IceAllocationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IceAllocationId"));
+
+                    b.Property<decimal?>("ActualUsageQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("CloseReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ClosedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ClosedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ClosingCarryQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("CostSnapshotStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Missing");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("CreatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IcePolicyId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IngredientId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("InitialIssuedQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<DateTime?>("OpenedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("OpenedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("OpeningCarryQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("OperationalShiftId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<string>("ReconciliationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ReservationReference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("ReservedOutstandingQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("ReturnCondition")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("ReturnReceivedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReturnedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReturnedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ReturnedQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("Revision")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<int>("StoreInventoryId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SupplementalIssuedQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("TheoreticalUsageQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("UnitCostSnapshot")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal?>("VarianceQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.HasKey("IceAllocationId");
+
+                    b.HasIndex("ClosedByStaffId");
+
+                    b.HasIndex("CreatedByStaffId");
+
+                    b.HasIndex("IcePolicyId");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("OpenedByStaffId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("ReservationReference")
+                        .IsUnique();
+
+                    b.HasIndex("ReturnReceivedByStaffId");
+
+                    b.HasIndex("ReturnedByStaffId");
+
+                    b.HasIndex("OperationalShiftId", "IngredientId")
+                        .IsUnique();
+
+                    b.HasIndex("StoreInventoryId", "Status");
+
+                    b.ToTable("IceAllocations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_IceAllocations_CostStatus", "[CostSnapshotStatus] IN ('Available','Missing')");
+
+                            t.HasCheckConstraint("CK_IceAllocations_NonNegativeQuantities", "[OpeningCarryQuantity] >= 0 AND [InitialIssuedQuantity] >= 0 AND [SupplementalIssuedQuantity] >= 0 AND [ReturnedQuantity] >= 0 AND [ClosingCarryQuantity] >= 0 AND [TheoreticalUsageQuantity] >= 0 AND [ReservedOutstandingQuantity] >= 0");
+
+                            t.HasCheckConstraint("CK_IceAllocations_ReturnAudit", "([ReturnedQuantity] = 0) OR ([ReturnedByStaffId] IS NOT NULL AND [ReturnReceivedByStaffId] IS NOT NULL AND [ReturnedAtUtc] IS NOT NULL AND LEN(LTRIM(RTRIM([ReturnCondition]))) > 0)");
+
+                            t.HasCheckConstraint("CK_IceAllocations_Status", "[Status] IN ('Draft','Open','PendingApproval','ReconciliationRequired','Closed','Cancelled')");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IceCarryOver", b =>
+                {
+                    b.Property<int>("IceCarryOverId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IceCarryOverId"));
+
+                    b.Property<DateTime?>("ConfirmedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("FromIceAllocationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FromOperationalShiftId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("HandedOverByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int?>("ReceivedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<int>("ToIceAllocationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ToOperationalShiftId")
+                        .HasColumnType("int");
+
+                    b.HasKey("IceCarryOverId");
+
+                    b.HasIndex("FromOperationalShiftId");
+
+                    b.HasIndex("HandedOverByStaffId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("ReceivedByStaffId");
+
+                    b.HasIndex("ToIceAllocationId");
+
+                    b.HasIndex("ToOperationalShiftId");
+
+                    b.HasIndex("FromIceAllocationId", "ToIceAllocationId")
+                        .IsUnique();
+
+                    b.ToTable("IceCarryOvers", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_IceCarryOvers_DifferentShifts", "[FromOperationalShiftId] <> [ToOperationalShiftId]");
+
+                            t.HasCheckConstraint("CK_IceCarryOvers_Quantity", "[Quantity] > 0");
+
+                            t.HasCheckConstraint("CK_IceCarryOvers_Status", "[Status] IN ('Pending','Confirmed','Cancelled')");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IceInventoryPosting", b =>
+                {
+                    b.Property<int>("IceInventoryPostingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IceInventoryPostingId"));
+
+                    b.Property<int>("ApprovedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("IceAllocationId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int?>("InventoryTransactionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PostingType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("TotalCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("UnitCost")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.HasKey("IceInventoryPostingId");
+
+                    b.HasIndex("ApprovedByStaffId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("InventoryTransactionId")
+                        .IsUnique()
+                        .HasFilter("[InventoryTransactionId] IS NOT NULL");
+
+                    b.HasIndex("IceAllocationId", "Revision", "PostingType")
+                        .IsUnique();
+
+                    b.ToTable("IceInventoryPostings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_IceInventoryPostings_Quantity", "[Quantity] > 0");
+
+                            t.HasCheckConstraint("CK_IceInventoryPostings_Type", "[PostingType] IN ('VarianceOut')");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IcePolicy", b =>
+                {
+                    b.Property<int>("IcePolicyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IcePolicyId"));
+
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("AllowSameDayCarryOver")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("AllowSupplementalIssue")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("DisplayUnitId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IngredientId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequireVarianceApproval")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SuggestedDailyQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("SuggestedShiftQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("UpdatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("VarianceApprovalPercentThreshold")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<decimal>("VarianceApprovalQuantityThreshold")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.HasKey("IcePolicyId");
+
+                    b.HasIndex("DisplayUnitId");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("StoreId")
+                        .IsUnique();
+
+                    b.HasIndex("UpdatedByStaffId");
+
+                    b.HasIndex("StoreId", "IngredientId")
+                        .IsUnique();
+
+                    b.ToTable("IcePolicies", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_IcePolicies_SuggestedQuantity", "[SuggestedDailyQuantity] >= 0 AND [SuggestedShiftQuantity] >= 0");
+
+                            t.HasCheckConstraint("CK_IcePolicies_VarianceThreshold", "[VarianceApprovalQuantityThreshold] >= 0 AND [VarianceApprovalPercentThreshold] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IceSupplementalIssue", b =>
+                {
+                    b.Property<int>("IceSupplementalIssueId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IceSupplementalIssueId"));
+
+                    b.Property<DateTime?>("ApprovedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ApprovedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IceAllocationId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PublicId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("RejectedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RejectedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("RequestedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("RequestedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("ReservationApplied")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.HasKey("IceSupplementalIssueId");
+
+                    b.HasIndex("ApprovedByStaffId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("RejectedByStaffId");
+
+                    b.HasIndex("RequestedByStaffId");
+
+                    b.HasIndex("IceAllocationId", "Status");
+
+                    b.ToTable("IceSupplementalIssues", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_IceSupplementalIssues_Quantity", "[Quantity] > 0");
+
+                            t.HasCheckConstraint("CK_IceSupplementalIssues_Status", "[Status] IN ('Pending','Approved','Rejected','Cancelled')");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.OperationalShift", b =>
+                {
+                    b.Property<int>("OperationalShiftId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OperationalShiftId"));
+
+                    b.Property<DateTime>("BusinessDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("ClosedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ClosedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("CreatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EndAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("OpenedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("OpenedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int?>("ShiftLeadId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("OperationalShiftId");
+
+                    b.HasIndex("ClosedByStaffId");
+
+                    b.HasIndex("CreatedByStaffId");
+
+                    b.HasIndex("OpenedByStaffId");
+
+                    b.HasIndex("ShiftLeadId");
+
+                    b.HasIndex("StoreId", "BusinessDate", "Name")
+                        .IsUnique();
+
+                    b.HasIndex("StoreId", "BusinessDate", "Status");
+
+                    b.ToTable("OperationalShifts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OperationalShifts_Status", "[Status] IN ('Draft','Open','PendingApproval','ReconciliationRequired','Closed','Cancelled')");
+
+                            t.HasCheckConstraint("CK_OperationalShifts_TimeRange", "[EndAtUtc] > [StartAtUtc]");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.OperationalShiftWorkShift", b =>
+                {
+                    b.Property<int>("OperationalShiftId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WorkShiftId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LinkedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("LinkedByStaffId")
+                        .HasColumnType("int");
+
+                    b.HasKey("OperationalShiftId", "WorkShiftId");
+
+                    b.HasIndex("LinkedByStaffId");
+
+                    b.HasIndex("WorkShiftId")
+                        .IsUnique();
+
+                    b.ToTable("OperationalShiftWorkShifts", (string)null);
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Ingredients.Ingredient", b =>
                 {
                     b.Property<int>("IngredientId")
@@ -6822,7 +7440,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("ProductionRunId");
 
                     b.HasIndex("PurchaseAdviceLineId")
-                        .IsUnique()
                         .HasFilter("[PurchaseAdviceLineId] IS NOT NULL AND [Status] = 'ACTIVE'");
 
                     b.HasIndex("PurchaseOrderLineId")
@@ -9726,6 +10343,50 @@ namespace CafeChain.Migrations
                             Description = "Xem danh sách bảng phân quyền",
                             Name = "Quản lý phân quyền",
                             PermissionGroupId = 5
+                        },
+                        new
+                        {
+                            PermissionId = 200,
+                            Action = "View",
+                            Active = true,
+                            Code = "OperationalIce.View",
+                            CreatedAt = new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Xem ca vận hành, phân bổ và đối soát đá",
+                            Name = "Xem quản lý đá vận hành",
+                            PermissionGroupId = 20
+                        },
+                        new
+                        {
+                            PermissionId = 201,
+                            Action = "Manage",
+                            Active = true,
+                            Code = "OperationalIce.Manage",
+                            CreatedAt = new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Tạo ca, mở phân bổ, cấp bổ sung và bàn giao đá",
+                            Name = "Vận hành phân bổ đá",
+                            PermissionGroupId = 20
+                        },
+                        new
+                        {
+                            PermissionId = 202,
+                            Action = "Approve",
+                            Active = true,
+                            Code = "OperationalIce.Approve",
+                            CreatedAt = new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Duyệt cấp bổ sung và chênh lệch đá cuối ca",
+                            Name = "Duyệt đối soát đá",
+                            PermissionGroupId = 20
+                        },
+                        new
+                        {
+                            PermissionId = 203,
+                            Action = "Policy",
+                            Active = true,
+                            Code = "OperationalIce.Policy",
+                            CreatedAt = new DateTime(2026, 7, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Cấu hình định mức và ngưỡng đối soát đá theo cửa hàng",
+                            Name = "Cấu hình chính sách đá",
+                            PermissionGroupId = 20
                         });
                 });
 
@@ -9807,6 +10468,14 @@ namespace CafeChain.Migrations
                             Code = "SYSTEM",
                             DisplayOrder = 999,
                             Name = "Hệ thống"
+                        },
+                        new
+                        {
+                            PermissionGroupId = 20,
+                            Active = true,
+                            Code = "OPERATIONAL_ICE",
+                            DisplayOrder = 20,
+                            Name = "Quản lý đá vận hành"
                         });
                 });
 
@@ -9949,6 +10618,106 @@ namespace CafeChain.Migrations
                         {
                             RoleId = 1,
                             PermissionId = 27
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 200
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 201
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 202
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 203
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 200
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 200
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 201
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 202
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 203
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 200
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 200
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 201
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 202
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 203
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 200
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 201
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 202
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 203
+                        },
+                        new
+                        {
+                            RoleId = 8,
+                            PermissionId = 200
+                        },
+                        new
+                        {
+                            RoleId = 8,
+                            PermissionId = 201
                         });
                 });
 
@@ -13115,6 +13884,288 @@ namespace CafeChain.Migrations
                     b.Navigation("InventoryDocumentSnapshot");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IceAllocation", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ClosedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ClosedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "CreatedByStaff")
+                        .WithMany()
+                        .HasForeignKey("CreatedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Ice.IcePolicy", "IcePolicy")
+                        .WithMany("Allocations")
+                        .HasForeignKey("IcePolicyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Ingredient", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "OpenedByStaff")
+                        .WithMany()
+                        .HasForeignKey("OpenedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Ice.OperationalShift", "OperationalShift")
+                        .WithMany("IceAllocations")
+                        .HasForeignKey("OperationalShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ReturnReceivedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ReturnReceivedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ReturnedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ReturnedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.StoreInventory", "StoreInventory")
+                        .WithMany()
+                        .HasForeignKey("StoreInventoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClosedByStaff");
+
+                    b.Navigation("CreatedByStaff");
+
+                    b.Navigation("IcePolicy");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("OpenedByStaff");
+
+                    b.Navigation("OperationalShift");
+
+                    b.Navigation("ReturnReceivedByStaff");
+
+                    b.Navigation("ReturnedByStaff");
+
+                    b.Navigation("StoreInventory");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IceCarryOver", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Ice.IceAllocation", "FromIceAllocation")
+                        .WithMany("OutgoingCarryOvers")
+                        .HasForeignKey("FromIceAllocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Ice.OperationalShift", "FromOperationalShift")
+                        .WithMany("OutgoingCarryOvers")
+                        .HasForeignKey("FromOperationalShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "HandedOverByStaff")
+                        .WithMany()
+                        .HasForeignKey("HandedOverByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ReceivedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ReceivedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Ice.IceAllocation", "ToIceAllocation")
+                        .WithMany("IncomingCarryOvers")
+                        .HasForeignKey("ToIceAllocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Ice.OperationalShift", "ToOperationalShift")
+                        .WithMany("IncomingCarryOvers")
+                        .HasForeignKey("ToOperationalShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FromIceAllocation");
+
+                    b.Navigation("FromOperationalShift");
+
+                    b.Navigation("HandedOverByStaff");
+
+                    b.Navigation("ReceivedByStaff");
+
+                    b.Navigation("ToIceAllocation");
+
+                    b.Navigation("ToOperationalShift");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IceInventoryPosting", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ApprovedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Ice.IceAllocation", "IceAllocation")
+                        .WithMany("InventoryPostings")
+                        .HasForeignKey("IceAllocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Transactions.InventoryTransaction", "InventoryTransaction")
+                        .WithMany()
+                        .HasForeignKey("InventoryTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ApprovedByStaff");
+
+                    b.Navigation("IceAllocation");
+
+                    b.Navigation("InventoryTransaction");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IcePolicy", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "DisplayUnit")
+                        .WithMany()
+                        .HasForeignKey("DisplayUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Ingredient", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "UpdatedByStaff")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DisplayUnit");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("Store");
+
+                    b.Navigation("UpdatedByStaff");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IceSupplementalIssue", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ApprovedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Ice.IceAllocation", "IceAllocation")
+                        .WithMany("SupplementalIssues")
+                        .HasForeignKey("IceAllocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "RejectedByStaff")
+                        .WithMany()
+                        .HasForeignKey("RejectedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "RequestedByStaff")
+                        .WithMany()
+                        .HasForeignKey("RequestedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByStaff");
+
+                    b.Navigation("IceAllocation");
+
+                    b.Navigation("RejectedByStaff");
+
+                    b.Navigation("RequestedByStaff");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.OperationalShift", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ClosedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ClosedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "CreatedByStaff")
+                        .WithMany()
+                        .HasForeignKey("CreatedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "OpenedByStaff")
+                        .WithMany()
+                        .HasForeignKey("OpenedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ShiftLead")
+                        .WithMany()
+                        .HasForeignKey("ShiftLeadId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClosedByStaff");
+
+                    b.Navigation("CreatedByStaff");
+
+                    b.Navigation("OpenedByStaff");
+
+                    b.Navigation("ShiftLead");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.OperationalShiftWorkShift", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "LinkedByStaff")
+                        .WithMany()
+                        .HasForeignKey("LinkedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Ice.OperationalShift", "OperationalShift")
+                        .WithMany("WorkShiftLinks")
+                        .HasForeignKey("OperationalShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.WorkShift", "WorkShift")
+                        .WithMany()
+                        .HasForeignKey("WorkShiftId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LinkedByStaff");
+
+                    b.Navigation("OperationalShift");
+
+                    b.Navigation("WorkShift");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Ingredients.Ingredient", b =>
                 {
                     b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "BaseUnit")
@@ -15784,6 +16835,33 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Inventories.Documents.InventoryDocumentSnapshot", b =>
                 {
                     b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IceAllocation", b =>
+                {
+                    b.Navigation("IncomingCarryOvers");
+
+                    b.Navigation("InventoryPostings");
+
+                    b.Navigation("OutgoingCarryOvers");
+
+                    b.Navigation("SupplementalIssues");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.IcePolicy", b =>
+                {
+                    b.Navigation("Allocations");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Ice.OperationalShift", b =>
+                {
+                    b.Navigation("IceAllocations");
+
+                    b.Navigation("IncomingCarryOvers");
+
+                    b.Navigation("OutgoingCarryOvers");
+
+                    b.Navigation("WorkShiftLinks");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Ingredients.Ingredient", b =>
