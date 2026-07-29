@@ -462,3 +462,105 @@ textarea.pf-control { resize: vertical; }
     transform: rotate(-5deg) scale(1.06);
     background: #E7D9CD;
 }
+
+/* Centered and balanced profitability result table */
+.pf-table {
+    table-layout: fixed;
+    min-width: 1280px;
+}
+
+.pf-table .pf-col-size { width: 17%; }
+.pf-table .pf-col-status { width: 18%; }
+.pf-table .pf-col-cost { width: 10%; }
+.pf-table .pf-col-price { width: 10%; }
+.pf-table .pf-col-profit { width: 11%; }
+.pf-table .pf-col-margin { width: 7%; }
+.pf-table .pf-col-markup { width: 7%; }
+.pf-table .pf-col-actions { width: 300px; }
+
+.pf-table th:last-child,
+.pf-table td:last-child {
+    min-width: 300px;
+}
+
+.pf-table th,
+.pf-table td,
+.pf-table .pf-number {
+    text-align: center !important;
+}
+
+.pf-table th {
+    height: 48px;
+    padding: 12px 10px;
+    vertical-align: middle;
+}
+
+.pf-table td {
+    height: 72px;
+    padding: 13px 10px;
+    vertical-align: middle;
+}
+
+.pf-table tbody tr:not(.pf-detail-row) > td {
+    background-clip: padding-box;
+}
+
+.pf-table .pf-size-name,
+.pf-table .pf-subtext {
+    margin-right: auto;
+    margin-left: auto;
+    text-align: center;
+}
+
+.pf-table .pf-subtext {
+    max-width: 230px;
+    line-height: 1.45;
+}
+
+.pf-table .pf-status {
+    justify-content: center;
+    max-width: 100%;
+    text-align: center;
+}
+
+.pf-table .pf-row-actions {
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 7px;
+    width: 100%;
+}
+
+.pf-table .pf-row-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    white-space: nowrap;
+    box-shadow: 0 3px 9px rgba(71, 50, 35, .05);
+}
+
+.pf-table tbody tr:not(.pf-detail-row):hover > td {
+    box-shadow: inset 0 1px rgba(139, 107, 85, .08), inset 0 -1px rgba(139, 107, 85, .08);
+}
+
+.pf-table .pf-detail-row > td {
+    height: auto;
+    text-align: left !important;
+}
+
+.pf-table .pf-detail-row .pf-mini-table th,
+.pf-table .pf-detail-row .pf-mini-table td {
+    height: auto;
+    text-align: center !important;
+}
+
+@media (max-width: 1200px) {
+    .pf-table {
+        min-width: 1280px;
+    }
+
+    .pf-table .pf-col-actions {
+        width: 300px;
+    }
+}
