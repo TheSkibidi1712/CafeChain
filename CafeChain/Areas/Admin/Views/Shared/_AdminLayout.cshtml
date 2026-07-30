@@ -249,9 +249,9 @@
             min-width: 0;
             color: #64748b;
             padding: 5px 10px 5px 6px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #cdb7a6;
             border-radius: 999px;
-            background: #fff;
+            background: #fffdfb;
             text-decoration: none;
             transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
         }
@@ -297,7 +297,7 @@
             height: 32px;
             flex-shrink: 0;
             border-radius: 50%;
-            border: 1px solid #f2b6a9;
+            border: 2px solid #8b6b55;
             object-fit: cover;
             background: #f8fafc;
         }
@@ -328,13 +328,14 @@
         }
     </style>
     @await RenderSectionAsync("Styles", required: false)
+    <link rel="stylesheet" href="~/css/Admin/Procurement/procurement-design-system.css" asp-append-version="true" />
 </head>
 
 <body>
     <div class="sidebar d-flex flex-column">
         <!-- ===== LOGO ===== -->
         <div class="logo-wrap">
-            <div class="logo-icon">C</div>
+            <div class="logo-icon" aria-hidden="true"><i class="fas fa-mug-hot"></i></div>
             <div>
                 <div class="logo-text">CafeChain</div>
                 <div class="logo-sub">Admin Dashboard</div>

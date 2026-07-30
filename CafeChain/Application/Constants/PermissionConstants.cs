@@ -56,5 +56,10 @@ namespace CafeChain.Application.Constants
 
         public const string SettingsView = "Settings.View";
         public const string SettingsUpdate = "Settings.Update";
+
+        public const string OperationalIceView = "OperationalIce.View";
+        public const string OperationalIceManage = "OperationalIce.Manage";
+        public const string OperationalIceApprove = "OperationalIce.Approve";
+        public const string OperationalIcePolicy = "OperationalIce.Policy";
     }
 }

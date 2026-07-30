@@ -1,50 +1,86 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.CreateProcurementDemandRequest
 @{
     ViewData["Title"] = "Tạo kế hoạch bổ sung trung tâm";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var ingredients = ViewBag.Ingredients;
     var units = ViewBag.Units;
 }
-<div class="ops-page">
-    <header class="ops-page-header">
+
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
+
+<main class="ops-shell ops-shell-compact">
+    <header class="ops-header">
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng / Kế hoạch trung tâm</div>
-            <h1>Tạo kế hoạch bổ sung trung tâm</h1>
-            <p class="ops-subtitle">Kế hoạch chỉ áp dụng trong StoreScope của người lập và vẫn phải qua quyết định nguồn cung.</p>
+            <h1 class="ops-title">Tạo kế hoạch bổ sung trung tâm</h1>
+            <p class="ops-subtitle">Ghi nhận nhu cầu kế hoạch trong phạm vi cửa hàng được cấp. Bộ phận phụ trách vẫn phải đánh giá và quyết định nguồn cung sau khi tạo.</p>
         </div>
-        <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Quay lại</a>
+        <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách yêu cầu</a>
     </header>
-    <section class="ops-card">
-        <form asp-action="CreateCentralPlanner" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="StoreId" />
-            <input type="hidden" asp-for="SourceType" />
-            <div class="ops-form-grid">
-                <label>Nguyên liệu
-                    <select asp-for="IngredientId" required>
-                        <option value="">Chọn nguyên liệu</option>
-                        @foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }
-                    </select>
-                </label>
-                <label>Đơn vị procurement
-                    <select asp-for="ProcurementUnitId" required>
-                        <option value="">Chọn đơn vị</option>
-                        @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }
-                    </select>
-                </label>
-                <label>Số lượng mục tiêu
-                    <input asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required />
-                </label>
-                <label>Cần trước ngày
-                    <input asp-for="NeedByDate" type="date" />
-                </label>
-                <label class="ops-form-wide">Bằng chứng dự báo / kế hoạch
-                    <textarea asp-for="ForecastEvidence" maxlength="1000" rows="3" required></textarea>
-                </label>
-                <label class="ops-form-wide">Ghi chú
-                    <textarea asp-for="Note" maxlength="500" rows="3"></textarea>
-                </label>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="ops-notice ops-notice-error" role="alert"></div>
+    }
+
+    <form asp-action="CreateCentralPlanner" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="StoreId" />
+        <input type="hidden" asp-for="SourceType" />
+
+        <section class="ops-panel">
+            <div class="ops-panel-header">
+                <div>
+                    <h2 class="ops-panel-title">Thông tin kế hoạch</h2>
+                    <div class="ops-secondary">Các trường có dấu <span class="ops-required">*</span> là bắt buộc.</div>
+                </div>
             </div>
-            <button class="ops-btn ops-btn-primary" type="submit">Tạo kế hoạch bổ sung</button>
-        </form>
-    </section>
-</div>
+            <div class="ops-panel-body">
+                <div class="ops-form-grid">
+                    <div class="ops-form-field">
+                        <label class="ops-form-label" asp-for="IngredientId">Nguyên liệu <span class="ops-required">*</span></label>
+                        <select class="ops-select w-100" asp-for="IngredientId" required>
+                            <option value="">Chọn nguyên liệu</option>
+                            @foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }
+                        </select>
+                        <span asp-validation-for="IngredientId" class="ops-text-danger"></span>
+                    </div>
+                    <div class="ops-form-field">
+                        <label class="ops-form-label" asp-for="ProcurementUnitId">Đơn vị mua hàng <span class="ops-required">*</span></label>
+                        <select class="ops-select w-100" asp-for="ProcurementUnitId" required>
+                            <option value="">Chọn đơn vị</option>
+                            @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }
+                        </select>
+                        <span asp-validation-for="ProcurementUnitId" class="ops-text-danger"></span>
+                    </div>
+                    <div class="ops-form-field">
+                        <label class="ops-form-label" asp-for="RequestedProcurementQuantity">Số lượng mục tiêu <span class="ops-required">*</span></label>
+                        <input class="ops-input w-100" asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required />
+                        <span asp-validation-for="RequestedProcurementQuantity" class="ops-text-danger"></span>
+                    </div>
+                    <div class="ops-form-field">
+                        <label class="ops-form-label" asp-for="NeedByDate">Cần trước ngày</label>
+                        <input class="ops-input w-100" asp-for="NeedByDate" type="date" lang="vi" />
+                        <div class="ops-help">Ngày/tháng/năm</div>
+                        <span asp-validation-for="NeedByDate" class="ops-text-danger"></span>
+                    </div>
+                    <div class="ops-form-field ops-form-field-wide">
+                        <label class="ops-form-label" asp-for="ForecastEvidence">Bằng chứng dự báo / kế hoạch <span class="ops-required">*</span></label>
+                        <textarea class="ops-textarea" asp-for="ForecastEvidence" maxlength="1000" rows="3" required placeholder="Nêu số liệu dự báo, sự kiện hoặc kế hoạch vận hành làm phát sinh nhu cầu..."></textarea>
+                        <span asp-validation-for="ForecastEvidence" class="ops-text-danger"></span>
+                    </div>
+                    <div class="ops-form-field ops-form-field-wide">
+                        <label class="ops-form-label" asp-for="Note">Ghi chú</label>
+                        <textarea class="ops-textarea" asp-for="Note" maxlength="500" rows="3" placeholder="Thông tin cần lưu ý cho người xét nguồn cung..."></textarea>
+                        <span asp-validation-for="Note" class="ops-text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="ops-form-actions">
+            <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Hủy</a>
+            <button class="ops-btn ops-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Tạo kế hoạch bổ sung</button>
+        </div>
+    </form>
+</main>

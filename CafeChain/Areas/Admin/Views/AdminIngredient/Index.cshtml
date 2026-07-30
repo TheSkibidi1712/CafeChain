@@ -16,38 +16,16 @@
 @section Styles {
     <link rel="stylesheet" href="~/css/admin-white-orange-forms.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Ingredient/ingredient.css" asp-append-version="true" />
-    <style>
-        /* Ensure coffee-brown theme inside ingredient modal (modal is outside .admin-wo-page scope) */
-        #ingredientModal .btn-primary {
-            background: #6F4E37 !important;
-            border-color: #6F4E37 !important;
-            color: #fff !important;
-            font-weight: 800;
-            box-shadow: 0 8px 20px rgba(111,78,55,.22);
-        }
-        #ingredientModal .btn-primary:hover {
-            background: #5C3F2B !important;
-            border-color: #5C3F2B !important;
-        }
-        #ingredientModal .form-control:focus,
-        #ingredientModal .form-select:focus {
-            border-color: #6F4E37;
-            box-shadow: 0 0 0 3px rgba(111,78,55,.13);
-        }
-        #ingredientModal label, #ingredientModal .form-label {
-            font-weight: 800; font-size: 13px; color: #334155;
-        }
-    </style>
 }
 
-<div class="admin-wo-page">
+<div class="admin-wo-page cc-page">
     <form id="ingredientAntiForgeryForm" class="d-none">@Html.AntiForgeryToken()</form>
 
     
     <div class="page-header">
         <div class="d-flex align-items-center gap-3">
-            <div style="width:46px;height:46px;border-radius:12px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="fas fa-flask" style="font-size:20px;color:#C67A45;"></i>
+            <div class="ingredient-page-icon">
+                <i class="fas fa-flask" aria-hidden="true"></i>
             </div>
             <div>
                 <h2 class="mb-0">Quản lý nguyên liệu</h2>
@@ -72,7 +50,7 @@
                     <label class="form-label mb-1">Tìm kiếm</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0 text-muted">
-                            <i class="fas fa-search" style="font-size:13px;"></i>
+                            <i class="fas fa-search ingredient-small-icon" aria-hidden="true"></i>
                         </span>
                         <input id="searchBox"
                                class="form-control border-start-0 ps-0"
@@ -102,7 +80,7 @@
 
             
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-muted" style="font-size:13px;">
+                <span class="text-muted ingredient-meta">
                     <i class="fas fa-list-ul me-1"></i>
                     Hiển thị <strong>@Model.Count</strong> nguyên liệu
                     @if (!string.IsNullOrEmpty(ViewBag.Search?.ToString()))
@@ -117,11 +95,11 @@
                 <table class="table table-custom">
                     <thead>
                         <tr>
-                            <th style="width:120px;">Mã NL</th>
+                            <th class="ingredient-col-code">Mã NL</th>
                             <th>Tên nguyên liệu</th>
                             <th>Đơn vị gốc</th>
-                            <th style="width:130px;">Trạng thái</th>
-                            <th style="width:110px;" class="text-center">Thao tác</th>
+                            <th class="ingredient-col-status">Trạng thái</th>
+                            <th class="ingredient-col-actions text-center">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="ingredientTable">
@@ -133,8 +111,8 @@
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
-                                        <div style="width:34px;height:34px;border-radius:9px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="fas fa-leaf" style="color:#C67A45;font-size:13px;"></i>
+                                        <div class="ingredient-row-icon">
+                                            <i class="fas fa-leaf" aria-hidden="true"></i>
                                         </div>
                                         <span class="fw-bold text-dark">@item.Name</span>
                                     </div>
@@ -146,13 +124,13 @@
                                     @if (item.Active)
                                     {
                                         <span class="badge bg-success">
-                                            <i class="fas fa-circle me-1" style="font-size:7px;"></i> Hoạt động
+                                            <i class="fas fa-circle me-1 ingredient-status-dot" aria-hidden="true"></i> Hoạt động
                                         </span>
                                     }
                                     else
                                     {
                                         <span class="badge bg-danger">
-                                            <i class="fas fa-circle me-1" style="font-size:7px;"></i> Ngưng
+                                            <i class="fas fa-circle me-1 ingredient-status-dot" aria-hidden="true"></i> Ngưng
                                         </span>
                                     }
                                 </td>
@@ -180,8 +158,11 @@
                         {
                             <tr>
                                 <td colspan="5" class="admin-wo-empty py-5">
-                                    <i class="fas fa-box-open d-block mb-2" style="font-size:2rem;color:#DBC4A9;"></i>
-                                    Chưa có nguyên liệu nào. Hãy thêm mới!
+                                    <div class="cc-empty-state">
+                                        <i class="fas fa-box-open ingredient-empty-icon" aria-hidden="true"></i>
+                                        <h2>Chưa có nguyên liệu</h2>
+                                        <p>Thêm nguyên liệu đầu tiên để cấu hình đơn vị, nguồn cung và công thức.</p>
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -197,7 +178,7 @@
                         @if (ViewBag.Page > 1)
                         {
                             <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page - 1)" title="Trang trước">
-                                <i class="fas fa-chevron-left" style="font-size:11px;"></i>
+                                <i class="fas fa-chevron-left ingredient-small-icon" aria-hidden="true"></i>
                             </a>
                         }
                         @for (int i = 1; i <= ViewBag.TotalPages; i++)
@@ -208,7 +189,7 @@
                         @if (ViewBag.Page < ViewBag.TotalPages)
                         {
                             <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page + 1)" title="Trang sau">
-                                <i class="fas fa-chevron-right" style="font-size:11px;"></i>
+                                <i class="fas fa-chevron-right ingredient-small-icon" aria-hidden="true"></i>
                             </a>
                         }
                     </div>
@@ -224,8 +205,8 @@
 
         <div class="modal-header">
             <div class="d-flex align-items-center gap-2">
-                <div style="width:36px;height:36px;border-radius:9px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-flask" style="color:#C67A45;"></i>
+                <div class="ingredient-row-icon">
+                    <i class="fas fa-flask" aria-hidden="true"></i>
                 </div>
                 <h5 id="modalTitle">Nguyên liệu</h5>
             </div>

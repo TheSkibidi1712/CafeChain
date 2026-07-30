@@ -414,7 +414,7 @@ namespace CafeChain.Application.Services.Inventories
                 openAlert.Status = StockAlertStatuses.Resolved;
                 openAlert.UpdatedAt = DateTime.UtcNow;
                 openAlert.ResolvedAt = DateTime.UtcNow;
-                openAlert.ResolvedReason = "Stock reached the verified manual demand target";
+                openAlert.ResolvedReason = "Tồn kho đã đạt mục tiêu bổ sung thủ công đã xác nhận.";
                 openAlert.CurrentQtySnapshot = qty;
                 openAlert.Source = source;
                 AddTransition(
@@ -445,11 +445,11 @@ namespace CafeChain.Application.Services.Inventories
                     openAlert.Status = StockAlertStatuses.Resolved;
                     openAlert.UpdatedAt = DateTime.UtcNow;
                     openAlert.ResolvedAt = DateTime.UtcNow;
-                    openAlert.ResolvedReason = "Stock replenished above MinStockLevel";
+                    openAlert.ResolvedReason = "Tồn khả dụng đã cao hơn ngưỡng tối thiểu.";
                     openAlert.CurrentQtySnapshot = qty;
                     openAlert.ThresholdSnapshot = min;
                     openAlert.Source = source;
-                    openAlert.Note = AppendNote(openAlert.Note, $"Resolved via {source}");
+                    openAlert.Note = AppendNote(openAlert.Note, $"Đã tự động đóng cảnh báo từ nguồn {source}.");
                     AddTransition(
                         openAlert,
                         item,

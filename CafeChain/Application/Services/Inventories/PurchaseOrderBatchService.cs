@@ -124,7 +124,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                     await transaction.RollbackAsync();
                     return Failure<PurchaseOrderBatchDetailDto>(
                         PurchaseOrderBatchErrorCodes.Invalid,
-                        $"Các đề nghị mua {group.IngredientName} không cùng đơn vị procurement.");
+                        $"Các đề nghị mua {group.IngredientName} không cùng đơn vị mua hàng.");
                 }
                 var procurementUnitId = procurementUnitIds.Length == 1
                     ? procurementUnitIds[0]

@@ -81,10 +81,14 @@
 
     @if (Model.Items.Count == 0)
     {
-        <section class="ops-empty">
-            <i class="fa-regular fa-circle-check fa-xl mb-3" aria-hidden="true"></i>
-            <div class="fw-bold text-dark">Không có cảnh báo phù hợp</div>
-            <div class="mt-1">Thử chọn trạng thái khác hoặc kiểm tra lại sau khi có biến động kho.</div>
+        <section class="ops-empty" aria-labelledby="stockAlertEmptyTitle">
+            <span class="ops-empty-icon"><i class="fa-regular fa-circle-check" aria-hidden="true"></i></span>
+            <h2 id="stockAlertEmptyTitle" class="ops-empty-title">Không có cảnh báo kho phù hợp</h2>
+            <p class="ops-empty-copy">Kho trong phạm vi hiện tại không có cảnh báo theo bộ lọc này. Bạn có thể xem tồn kho hoặc đổi trạng thái để kiểm tra lại.</p>
+            <div class="ops-empty-actions">
+                <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" asp-route-storeId="@Model.StoreId">Xem tồn kho</a>
+                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@Model.StoreId">Xem yêu cầu bổ sung</a>
+            </div>
         </section>
     }
     else

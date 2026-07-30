@@ -1,3 +1,4 @@
+@using CafeChain.Application.Constants
 @using CafeChain.Application.DTOs.Admin.Procurement
 @using CafeChain.ViewModels.Admin.Shared
 @model CreatePurchaseAdviceRequest
@@ -6,70 +7,215 @@
     var sources = (IReadOnlyList<PurchaseAdviceSourceDto>)(ViewBag.Sources ?? Array.Empty<PurchaseAdviceSourceDto>());
     var selected = ViewBag.SelectedRestockIds as int[] ?? Array.Empty<int>();
     var preselected = ViewBag.SelectedRestockRequestId as int?;
+    var selectedIds = selected.ToHashSet();
+    if (preselected.HasValue)
+    {
+        selectedIds.Add(preselected.Value);
+    }
+
+    decimal EligibleQuantity(PurchaseAdviceSourceDto source)
+    {
+        var usesProcurement = source.RestockRequestedProcurementQuantity.HasValue
+            && source.RemainingToPurchaseProcurementQuantity.HasValue;
+        var remaining = usesProcurement
+            ? source.RemainingToPurchaseProcurementQuantity!.Value
+            : source.RemainingToPurchaseQuantity;
+        var pendingPurchase = usesProcurement
+            ? source.PendingPurchaseAllocationProcurementQuantity.GetValueOrDefault()
+            : source.PendingPurchaseAllocationBaseQuantity;
+        var isLegacy = string.Equals(
+            source.SourceType,
+            RestockRequestSourceTypes.Legacy,
+            StringComparison.OrdinalIgnoreCase);
+        return isLegacy ? remaining : Math.Min(remaining, pendingPurchase);
+    }
+
+    var hasInitialValidSelection = sources.Any(source =>
+        selectedIds.Contains(source.RestockRequestId)
+        && EligibleQuantity(source) > 0);
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
-<div class="pa-page">
-    <header class="pa-header"><div><div class="pa-eyebrow">Đề nghị mua hàng</div><h1>Tạo từ yêu cầu nhập hàng</h1><p class="pa-subtitle">Hệ thống kiểm tra lại số lượng còn có thể mua khi lưu.</p></div><a class="pa-action" asp-action="Index"><i class="fas fa-arrow-left"></i> Quay lại</a></header>
-    <div asp-validation-summary="All" class="pa-alert"></div>
-    <form method="post">
+
+<main class="pa-page pa-create-page">
+    <header class="pa-header">
+        <div>
+            <div class="pa-eyebrow">ĐỀ NGHỊ MUA HÀNG</div>
+            <h1>Tạo từ yêu cầu bổ sung</h1>
+            <p class="pa-subtitle">Chỉ các yêu cầu đã được chọn nguồn “Mua ngoài” mới xuất hiện. Số lượng được kiểm tra lại khi lưu để tránh đặt vượt nhu cầu.</p>
+        </div>
+        <a class="pa-action" asp-action="Index"><i class="fas fa-arrow-left" aria-hidden="true"></i> Danh sách đề nghị</a>
+    </header>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="pa-alert" role="alert"></div>
+    }
+
+    <form id="purchaseAdviceForm" method="post">
         @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="StoreId" /><input type="hidden" asp-for="RequestKey" />
-        <section class="pa-band">
-            <h2 class="pa-section-title">Thông tin đề nghị</h2>
-            <div class="pa-filter-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));">
+        <input type="hidden" asp-for="StoreId" />
+        <input type="hidden" asp-for="RequestKey" />
+
+        <section class="pa-band" aria-labelledby="adviceInfoTitle">
+            <div class="pa-section-heading">
+                <div><h2 id="adviceInfoTitle">Thông tin đề nghị</h2><span class="pa-muted">Thông tin áp dụng chung cho các dòng được chọn.</span></div>
+            </div>
+            <div class="pa-create-info-grid">
                 <div class="pa-field"><label asp-for="NeededByDate">Ngày cần hàng</label><input asp-for="NeededByDate" type="date" lang="vi" required /><span class="pa-muted">Ngày/tháng/năm</span></div>
-                <div class="pa-field"><label asp-for="Priority">Ưu tiên</label><select asp-for="Priority"><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="URGENT">Khẩn cấp</option></select></div>
-                <div class="pa-field"><label asp-for="Note">Ghi chú</label><input asp-for="Note" maxlength="1000" placeholder="Bằng chứng hoặc lưu ý vận hành" /></div>
+                <div class="pa-field"><label asp-for="Priority">Mức ưu tiên</label><select asp-for="Priority"><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="URGENT">Khẩn cấp</option></select></div>
+                <div class="pa-field pa-create-note"><label asp-for="Note">Ghi chú</label><input asp-for="Note" maxlength="1000" placeholder="Bằng chứng hoặc lưu ý vận hành" /></div>
             </div>
         </section>
-        <section class="pa-table-wrap">
-            <table class="pa-table">
-                <thead><tr><th>Chọn</th><th>Nguồn / nguyên liệu</th><th>Phân bổ hiện tại</th><th>Còn có thể mua</th><th>Số lượng đề nghị</th><th>Ngày cần / ghi chú</th></tr></thead>
-                <tbody>
-                @for (var i = 0; i < sources.Count; i++)
-                {
-                    var source = sources[i];
-                    var isSelected = selected.Contains(source.RestockRequestId) || preselected == source.RestockRequestId;
-                    var usesProcurement = source.RestockRequestedProcurementQuantity.HasValue
-                        && source.RemainingToPurchaseProcurementQuantity.HasValue;
-                    var requested = usesProcurement
-                        ? source.RestockRequestedProcurementQuantity!.Value
-                        : source.RestockRequestedQuantity;
-                    var remaining = usesProcurement
-                        ? source.RemainingToPurchaseProcurementQuantity!.Value
-                        : source.RemainingToPurchaseQuantity;
-                    var unitName = usesProcurement ? source.ProcurementUnitName : source.BaseUnitName;
-                    <tr data-source-row>
-                        <td><input class="pa-check" type="checkbox" name="selectedRestockIds" value="@source.RestockRequestId" checked="@isSelected" /></td>
-                        <td><strong>@source.IngredientName</strong><div class="pa-muted">Yêu cầu nhập hàng #@source.RestockRequestId · @AdminStatusDisplay.Quantity(requested) @unitName</div>
-                            <input type="hidden" name="Lines[@i].RestockRequestId" value="@source.RestockRequestId" /><input type="hidden" name="Lines[@i].RestockRowVersion" value="@source.RestockRowVersion" /></td>
-                        <td><div class="pa-quantity-grid" style="grid-template-columns:repeat(3,minmax(100px,1fr));"><div><span>Điều chuyển</span><strong>@AdminStatusDisplay.Quantity(usesProcurement ? source.TransferAllocatedProcurementQuantity.GetValueOrDefault() : source.TransferAllocatedQuantity) @unitName</strong></div><div><span>Đề nghị khác</span><strong>@AdminStatusDisplay.Quantity(usesProcurement ? source.ExistingPurchaseAdviceProcurementQuantity.GetValueOrDefault() : source.ExistingPurchaseAdviceQuantity) @unitName</strong></div><div><span>Đã đặt hàng</span><strong>@AdminStatusDisplay.Quantity(usesProcurement ? source.ExistingPurchaseOrderProcurementQuantity.GetValueOrDefault() : source.ExistingPurchaseOrderQuantity) @unitName</strong></div></div></td>
-                        <td><strong>@AdminStatusDisplay.Quantity(remaining) @unitName</strong></td>
-                        <td class="pa-field">
-                            @if (usesProcurement)
-                            {
-                                <input type="hidden" name="Lines[@i].RequestedPurchaseBaseQuantity" value="0" />
-                                <input name="Lines[@i].RequestedPurchaseProcurementQuantity" type="number" min="0.001" max="@remaining" step="0.001" value="@(isSelected ? remaining : 0)" data-quantity />
-                            }
-                            else
-                            {
-                                <input name="Lines[@i].RequestedPurchaseBaseQuantity" type="number" min="0.001" max="@remaining" step="0.001" value="@(isSelected ? remaining : 0)" data-quantity />
-                            }
-                        </td>
-                        <td><div class="pa-field"><input name="Lines[@i].NeededByDate" type="date" lang="vi" value="@Model.NeededByDate.ToString("yyyy-MM-dd")" /><span class="pa-muted">Ngày/tháng/năm</span></div><div class="pa-field" style="margin-top:.35rem"><input name="Lines[@i].Note" maxlength="500" placeholder="Ghi chú dòng" /></div></td>
-                    </tr>
-                }
-                @if (sources.Count == 0) { <tr><td colspan="6" class="pa-empty">Không có yêu cầu nhập nguyên liệu đang xử lý hoặc đã nhận một phần còn số lượng cần mua.</td></tr> }
-                </tbody>
-            </table>
-        </section>
-        <div class="pa-actions" style="margin-top:1rem"><button class="pa-action pa-action-primary" type="submit" @(sources.Count == 0 ? "disabled" : null)><i class="fas fa-save"></i> Lưu nháp</button><a class="pa-action" asp-action="Index">Hủy</a></div>
+
+        @if (sources.Count == 0)
+        {
+            <section class="pa-band pa-create-empty" aria-label="Không có nguồn đề nghị mua">
+                <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+                <h2>Chưa có yêu cầu nào sẵn sàng để lập đề nghị mua</h2>
+                <p>Hãy mở yêu cầu bổ sung, tiếp nhận xử lý và phân bổ một phần nhu cầu sang nguồn “Mua ngoài”.</p>
+                <div class="pa-actions">
+                    <a class="pa-action pa-action-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@Model.StoreId">Xem danh sách yêu cầu bổ sung</a>
+                    <a class="pa-action" asp-action="Create" asp-route-storeId="@Model.StoreId"><i class="fas fa-rotate" aria-hidden="true"></i> Làm mới</a>
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="pa-table-wrap" aria-label="Yêu cầu đã chọn mua ngoài">
+                <table class="pa-table pa-create-source-table">
+                    <thead>
+                        <tr>
+                            <th>Chọn</th><th>Yêu cầu / chi nhánh</th><th>Nguyên liệu</th><th class="pa-number">Tổng nhu cầu</th><th class="pa-number">Đã chọn mua / đang chờ PA</th><th class="pa-number">Còn có thể đề nghị</th><th>Ngày cần</th><th>Ưu tiên</th><th>Nguồn cung</th><th class="pa-number">Số lượng đề nghị</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @for (var i = 0; i < sources.Count; i++)
+                    {
+                        var source = sources[i];
+                        var isSelected = selectedIds.Contains(source.RestockRequestId);
+                        var usesProcurement = source.RestockRequestedProcurementQuantity.HasValue
+                            && source.RemainingToPurchaseProcurementQuantity.HasValue;
+                        var requested = usesProcurement ? source.RestockRequestedProcurementQuantity!.Value : source.RestockRequestedQuantity;
+                        var remaining = usesProcurement ? source.RemainingToPurchaseProcurementQuantity!.Value : source.RemainingToPurchaseQuantity;
+                        var pendingPurchase = usesProcurement
+                            ? source.PendingPurchaseAllocationProcurementQuantity.GetValueOrDefault()
+                            : source.PendingPurchaseAllocationBaseQuantity;
+                        var eligible = EligibleQuantity(source);
+                        var unitName = usesProcurement ? source.ProcurementUnitName : source.BaseUnitName;
+                        var sourcingLabel = source.SourcingStatus switch { "FULLY_ALLOCATED" => "Đã phân bổ đủ", "PARTIALLY_ALLOCATED" => "Đã phân bổ một phần", _ => "Chưa phân bổ đủ" };
+                        var modelLine = Model.Lines.FirstOrDefault(x => x.RestockRequestId == source.RestockRequestId);
+                        var modelQuantity = usesProcurement
+                            ? modelLine?.RequestedPurchaseProcurementQuantity.GetValueOrDefault() ?? 0m
+                            : modelLine?.RequestedPurchaseBaseQuantity ?? 0m;
+                        var initialQuantity = isSelected && modelQuantity > 0 ? Math.Min(modelQuantity, eligible) : isSelected ? eligible : 0m;
+                        <tr data-source-row>
+                            <td><input class="pa-check" type="checkbox" name="selectedRestockIds" value="@source.RestockRequestId" checked="@isSelected" @(eligible <= 0 ? "disabled" : null) aria-label="Chọn yêu cầu #@source.RestockRequestId" /></td>
+                            <td><a class="pa-code" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@source.RestockRequestId">#@source.RestockRequestId</a><div class="pa-muted">@source.StoreName</div><input type="hidden" name="Lines[@i].RestockRequestId" value="@source.RestockRequestId" /><input type="hidden" name="Lines[@i].RestockRowVersion" value="@source.RestockRowVersion" /></td>
+                            <td><strong>@source.IngredientName</strong><div class="pa-muted">@unitName</div></td>
+                            <td class="pa-number">@AdminStatusDisplay.Quantity(requested) @unitName</td>
+                            <td class="pa-number">@AdminStatusDisplay.Quantity(pendingPurchase) @unitName</td>
+                            <td class="pa-number"><strong>@AdminStatusDisplay.Quantity(eligible) @unitName</strong></td>
+                            <td>@(source.NeedByDate?.ToLocalTime().ToString("dd/MM/yyyy") ?? "Chưa đặt")<input type="hidden" name="Lines[@i].NeededByDate" value="@(source.NeedByDate?.ToString("yyyy-MM-dd") ?? Model.NeededByDate.ToString("yyyy-MM-dd"))" /></td>
+                            <td><span class="pa-badge pa-priority-@source.Priority.ToLowerInvariant()">@AdminStatusDisplay.RestockRequestPriority(source.Priority).Label</span></td>
+                            <td><span class="pa-badge">@sourcingLabel</span></td>
+                            <td class="pa-field pa-quantity-cell">
+                                @if (usesProcurement)
+                                {
+                                    <input type="hidden" name="Lines[@i].RequestedPurchaseBaseQuantity" value="0" />
+                                    <input name="Lines[@i].RequestedPurchaseProcurementQuantity" type="number" min="0.001" max="@eligible.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" value="@initialQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-quantity data-max-quantity="@eligible.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+                                }
+                                else
+                                {
+                                    <input name="Lines[@i].RequestedPurchaseBaseQuantity" type="number" min="0.001" max="@eligible.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" value="@initialQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-quantity data-max-quantity="@eligible.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+                                }
+                                <input type="hidden" name="Lines[@i].Note" value="" />
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </section>
+        }
+
+        <div class="pa-actions pa-create-actions">
+            <span id="purchaseAdviceSubmitStatus" class="pa-muted pa-submit-status" role="status" aria-live="polite"></span>
+            <button id="savePurchaseAdvice" class="pa-action pa-action-primary" type="submit" disabled="@(!hasInitialValidSelection)"><i class="fas fa-save" aria-hidden="true"></i> Lưu đề nghị mua nháp</button>
+            <a class="pa-action" asp-action="Index">Hủy</a>
+        </div>
     </form>
-</div>
+</main>
+
 <script>
-document.querySelectorAll('[data-source-row]').forEach(row => {
-  const check = row.querySelector('input[type="checkbox"]'); const qty = row.querySelector('[data-quantity]');
-  const sync = () => { row.classList.toggle('pa-source-disabled', !check.checked); qty.disabled = !check.checked; };
-  check.addEventListener('change', sync); sync();
-});
+(() => {
+    const form = document.getElementById('purchaseAdviceForm');
+    const save = document.getElementById('savePurchaseAdvice');
+    const status = document.getElementById('purchaseAdviceSubmitStatus');
+    const rows = [...document.querySelectorAll('[data-source-row]')];
+    const originalButtonContent = save.innerHTML;
+    let submitting = false;
+    let submitWatchdog = null;
+
+    const rowIsValid = row => {
+        const check = row.querySelector('.pa-check');
+        const qty = row.querySelector('[data-quantity]');
+        if (!check || !qty || !check.checked || qty.disabled) return false;
+        const value = qty.valueAsNumber;
+        const max = Number(qty.dataset.maxQuantity);
+        return Number.isFinite(value) && Number.isFinite(max) && value > 0 && value <= max;
+    };
+
+    const syncSave = () => {
+        if (submitting) return;
+        save.disabled = !rows.some(rowIsValid);
+    };
+    rows.forEach(row => {
+        const check = row.querySelector('.pa-check');
+        const qty = row.querySelector('[data-quantity]');
+        if (!check || !qty) return;
+        const syncRow = () => {
+            row.classList.toggle('pa-source-disabled', !check.checked);
+            qty.disabled = !check.checked;
+            syncSave();
+        };
+        check.addEventListener('change', syncRow);
+        qty.addEventListener('input', syncSave);
+        syncRow();
+    });
+    form.addEventListener('submit', event => {
+        if (submitting || !rows.some(rowIsValid)) {
+            event.preventDefault();
+            status.textContent = 'Hãy chọn ít nhất một yêu cầu và nhập số lượng hợp lệ.';
+            syncSave();
+            return;
+        }
+
+        submitting = true;
+        save.setAttribute('aria-disabled', 'true');
+        save.setAttribute('aria-busy', 'true');
+        save.style.pointerEvents = 'none';
+        save.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Đang lưu...';
+        status.textContent = 'Đang gửi yêu cầu tạo đề nghị mua...';
+
+        submitWatchdog = window.setTimeout(() => {
+            submitting = false;
+            save.removeAttribute('aria-disabled');
+            save.removeAttribute('aria-busy');
+            save.style.pointerEvents = '';
+            save.innerHTML = originalButtonContent;
+            status.textContent = 'Yêu cầu chưa hoàn tất. Bạn có thể thử lại; hệ thống sẽ không tạo trùng đề nghị.';
+            syncSave();
+        }, 15000);
+    });
+
+    window.addEventListener('pageshow', () => {
+        if (submitWatchdog) window.clearTimeout(submitWatchdog);
+        submitting = false;
+        save.removeAttribute('aria-disabled');
+        save.removeAttribute('aria-busy');
+        save.style.pointerEvents = '';
+        save.innerHTML = originalButtonContent;
+        syncSave();
+    });
+    syncSave();
+})();
 </script>

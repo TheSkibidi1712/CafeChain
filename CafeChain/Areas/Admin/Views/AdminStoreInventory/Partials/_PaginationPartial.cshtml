@@ -7,19 +7,22 @@
 
 @if (totalPages > 1)
 {
-    <div class="pagination">
+    <nav class="pagination" aria-label="Phân trang tồn kho">
 
         @if (currentPage > 1)
         {
             <a class="page-btn"
+               aria-label="Trang trước"
                href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, inventoryType = Model.ActiveTab, search = Model.Search, page = currentPage - 1 })">
-                ←
+                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
             </a>
         }
 
         @for (int i = 1; i <= totalPages; i++)
         {
             <a class="page-btn @(i == currentPage ? "active" : "")"
+               aria-label="Trang @i"
+               aria-current="@(i == currentPage ? "page" : null)"
                href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, inventoryType = Model.ActiveTab, search = Model.Search, page = i })">
                 @i
             </a>
@@ -28,10 +31,11 @@
         @if (currentPage < totalPages)
         {
             <a class="page-btn"
+               aria-label="Trang sau"
                href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, inventoryType = Model.ActiveTab, search = Model.Search, page = currentPage + 1 })">
-                →
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
             </a>
         }
 
-    </div>
+    </nav>
 }

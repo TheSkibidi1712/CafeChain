@@ -113,6 +113,13 @@ namespace CafeChain.Application.Services.Inventories
             foreach (var g in byRequest)
             {
                 var req = g.First().Request;
+                if (string.Equals(req.SourcingDecision, RestockSourcingDecisionTypes.Purchase, StringComparison.OrdinalIgnoreCase)
+                    && g.Any(x => !x.Input.PurchaseOrderLineId.HasValue))
+                {
+                    return FailDetail(
+                        $"Yêu cầu mua ngoài #{req.RestockRequestId} chỉ được nhận hàng từ dòng đơn đặt hàng đã liên kết.",
+                        BranchReceiptErrorCodes.RequestStateInvalid);
+                }
                 if (!IsReceivableStatus(req.Status))
                 {
                     return FailDetail(

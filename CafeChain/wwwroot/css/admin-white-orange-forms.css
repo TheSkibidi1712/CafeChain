@@ -1,16 +1,16 @@
 /* Shared coffee-brown admin UI polish for frontend-only form/list redesigns. */
 :root {
-    --admin-wo-bg: #F7F3EE;
-    --admin-wo-card: #ffffff;
-    --admin-wo-text: #1F2937;
-    --admin-wo-muted: #475569;
-    --admin-wo-border: #E5E0D8;
-    --admin-wo-soft: #F5EDE3;
-    --admin-wo-soft-strong: #EDE0D0;
-    --admin-wo-primary: #6F4E37;
-    --admin-wo-primary-dark: #5C3F2B;
-    --admin-wo-success: #2F6F5E;
-    --admin-wo-danger: #991B1B;
+    --admin-wo-bg: var(--cc-app-bg);
+    --admin-wo-card: var(--cc-surface);
+    --admin-wo-text: var(--cc-text-primary);
+    --admin-wo-muted: var(--cc-text-secondary);
+    --admin-wo-border: var(--cc-border);
+    --admin-wo-soft: var(--cc-warning-bg);
+    --admin-wo-soft-strong: var(--cc-border-soft);
+    --admin-wo-primary: var(--cc-primary);
+    --admin-wo-primary-dark: var(--cc-primary-hover);
+    --admin-wo-success: var(--cc-success);
+    --admin-wo-danger: var(--cc-danger);
     --admin-wo-radius: 8px;
     --admin-wo-shadow: 0 18px 42px rgba(111, 78, 55, .07);
 }
@@ -77,7 +77,7 @@
 .admin-wo-page .bom-header,
 .admin-wo-page .rb-card-header,
 .admin-wo-page .po-bom-header {
-    background: #fff !important;
+    background: var(--cc-surface) !important;
     border-bottom: 1px solid var(--admin-wo-border);
     color: var(--admin-wo-text) !important;
 }
@@ -100,7 +100,7 @@
 .admin-wo-page .admin-wo-primary {
     background: var(--admin-wo-primary) !important;
     border-color: var(--admin-wo-primary) !important;
-    color: #fff !important;
+    color: var(--cc-surface) !important;
     font-weight: 800;
     box-shadow: 0 10px 22px rgba(111, 78, 55, .20);
 }
@@ -115,13 +115,13 @@
 .admin-wo-page .admin-wo-primary:hover {
     background: var(--admin-wo-primary-dark) !important;
     border-color: var(--admin-wo-primary-dark) !important;
-    color: #fff !important;
+    color: var(--cc-surface) !important;
 }
 
 .admin-wo-page .btn-outline-primary,
 .admin-wo-page .btn-outline-info,
 .admin-wo-page .admin-wo-outline {
-    border-color: #DBC4A9 !important;
+    border-color: var(--cc-border) !important;
     color: var(--admin-wo-primary-dark) !important;
     font-weight: 800;
 }
@@ -137,7 +137,7 @@
 .admin-wo-page .form-control,
 .admin-wo-page .form-select,
 .admin-wo-page .select2-container--bootstrap-5 .select2-selection {
-    border: 1px solid #DDD6CE;
+    border: 1px solid var(--cc-border);
     border-radius: var(--admin-wo-radius) !important;
     min-height: 42px;
 }
@@ -151,7 +151,7 @@
 
 .admin-wo-page label,
 .admin-wo-page .form-label {
-    color: #334155;
+    color: var(--cc-text-secondary);
     font-size: 13px;
     font-weight: 800;
 }
@@ -164,7 +164,7 @@
 .admin-wo-page .table thead th,
 .admin-wo-page .perm-table thead th,
 .admin-wo-page .table-custom thead th {
-    background: #FAF7F4 !important;
+    background: var(--cc-surface-muted) !important;
     border-bottom: 1px solid var(--admin-wo-border) !important;
     color: var(--admin-wo-muted) !important;
     font-size: 12px !important;
@@ -177,7 +177,7 @@
 .admin-wo-page .table tbody td,
 .admin-wo-page .perm-table tbody td,
 .admin-wo-page .table-custom tbody td {
-    border-bottom: 1px solid #EEE8E1 !important;
+    border-bottom: 1px solid var(--cc-border-soft) !important;
     padding: 14px 16px !important;
     vertical-align: middle;
 }
@@ -190,28 +190,28 @@
 
 .admin-wo-page .badge.bg-success,
 .admin-wo-page .badge-status-done {
-    background: #D1FAE5 !important;
-    border: 1px solid #A7F3D0;
+    background: var(--cc-success-bg) !important;
+    border: 1px solid var(--cc-success-bg);
     color: var(--admin-wo-success) !important;
 }
 
 .admin-wo-page .badge.bg-danger {
-    background: #FEE2E2 !important;
-    border: 1px solid #FECACA;
+    background: var(--cc-danger-bg) !important;
+    border: 1px solid var(--cc-danger-bg);
     color: var(--admin-wo-danger) !important;
 }
 
 .admin-wo-page .badge.bg-info,
 .admin-wo-page .badge.bg-primary {
     background: var(--admin-wo-soft-strong) !important;
-    border: 1px solid #DBC4A9;
+    border: 1px solid var(--cc-border);
     color: var(--admin-wo-primary-dark) !important;
 }
 
 .admin-wo-empty,
 .admin-wo-page .perm-empty,
 .admin-wo-page .transfer-empty-row td {
-    background: #fff;
+    background: var(--cc-surface);
     color: var(--admin-wo-muted);
     font-weight: 700;
     text-align: center;
@@ -230,13 +230,13 @@
 
 .admin-store-form-page .alert-info {
     background: var(--admin-wo-soft);
-    border-color: #DBC4A9;
-    color: #5C3F2B;
+    border-color: var(--cc-border);
+    color: var(--cc-primary-hover);
 }
 
 .admin-ip-page code {
     background: var(--admin-wo-soft) !important;
-    border: 1px solid #DBC4A9;
+    border: 1px solid var(--cc-border);
     color: var(--admin-wo-primary-dark) !important;
 }
 
@@ -245,20 +245,20 @@
 }
 
 .admin-unit-page .uc-badge-from {
-    background: #eef2ff;
-    border: 1px solid #c7d2fe;
-    color: #3730a3;
+    background: var(--cc-warning-bg);
+    border: 1px solid var(--cc-border);
+    color: var(--cc-warning);
 }
 
 .admin-unit-page .uc-badge-to {
     background: var(--admin-wo-soft-strong);
-    border: 1px solid #DBC4A9;
+    border: 1px solid var(--cc-border);
     color: var(--admin-wo-primary-dark);
 }
 
 .admin-unit-page .conv-formula-box {
-    background: #FAF7F4;
-    border-color: #DBC4A9;
+    background: var(--cc-surface-muted);
+    border-color: var(--cc-border);
 }
 
 .admin-unit-page .conv-equals {
@@ -268,7 +268,7 @@
 .admin-bom-index .badge-pos,
 .admin-bom-index .badge-sub {
     background: var(--admin-wo-soft-strong);
-    border: 1px solid #DBC4A9;
+    border: 1px solid var(--cc-border);
     color: var(--admin-wo-primary-dark);
 }
 
@@ -280,7 +280,7 @@
 .admin-bom-visualize .node-content.bg-primary,
 .admin-bom-visualize .node-content.bg-primary.bg-opacity-10 {
     background: var(--admin-wo-soft) !important;
-    border-color: #DBC4A9 !important;
+    border-color: var(--cc-border) !important;
 }
 
 .admin-bom-visualize .text-primary {
@@ -292,7 +292,7 @@
 }
 
 .admin-production-page .po-title-section {
-    background: #fff;
+    background: var(--cc-surface);
     border: 1px solid var(--admin-wo-border);
     border-radius: var(--admin-wo-radius);
     box-shadow: var(--admin-wo-shadow);

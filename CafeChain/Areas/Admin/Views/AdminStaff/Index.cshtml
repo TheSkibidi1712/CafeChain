@@ -27,10 +27,10 @@
 <div class="admin-wo-page">
 
     
-    <div class="page-header">
+    <div class="page-header staff-page-header">
         <div class="d-flex align-items-center gap-3">
-            <div style="width:46px;height:46px;border-radius:12px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="fas fa-users" style="font-size:20px;color:#C67A45;"></i>
+            <div class="staff-page-heading-icon">
+                <i class="fas fa-users"></i>
             </div>
             <div>
                 <h2 class="mb-0">Quản lý nhân sự</h2>
@@ -76,12 +76,12 @@
         <div class="card-body p-4">
 
             
-            <form asp-action="Index" method="get" class="row g-2 mb-4 align-items-end">
+            <form asp-action="Index" method="get" class="staff-filter-panel row g-3 mb-4 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label mb-1">Tìm kiếm nhân viên</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0 text-muted">
-                            <i class="fas fa-search" style="font-size:13px;"></i>
+                            <i class="fas fa-search"></i>
                         </span>
                         <input type="text" name="search"
                                value="@Model.SearchTerm"
@@ -118,8 +118,8 @@
             </form>
 
             
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-muted" style="font-size:13px;">
+            <div class="staff-result-summary d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted">
                     <i class="fas fa-list-ul me-1"></i>
                     Tìm thấy <strong>@Model.StaffList.TotalCount</strong> nhân viên
                     @if (!string.IsNullOrEmpty(Model.SearchTerm))
@@ -130,7 +130,7 @@
             </div>
 
             
-            <div class="table-responsive">
+            <div class="staff-table-shell table-responsive">
                 <table class="table table-custom">
                     <thead>
                         <tr>
@@ -225,8 +225,8 @@
             </div>
 
             
-            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                <span class="text-muted" style="font-size:13px;">
+            <div class="staff-table-footer d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                <span class="text-muted">
                     Hiển thị @Model.StaffList.Items.Count / @Model.StaffList.TotalCount nhân viên
                 </span>
                 <div class="page-btns">

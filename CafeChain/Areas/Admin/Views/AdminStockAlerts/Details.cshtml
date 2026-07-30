@@ -7,11 +7,15 @@
     var isOpen = Model.Status == "OPEN";
     var isConfirmed = Model.Status == "CONFIRMED";
     var openRestock = ViewBag.OpenRestockRequest as RestockRequestListItemDto;
-    var suggested = Model.ThresholdSnapshot.HasValue
+    var suggestedBase = Model.ThresholdSnapshot.HasValue
         ? Math.Max(0m, Model.ThresholdSnapshot.Value - Model.CurrentQtySnapshot)
         : (decimal?)null;
+    var suggestedProcurement = Model.SuggestedProcurementQuantity;
     var defaultPriority = Model.AlertType == "OUT_OF_STOCK" ? "URGENT" : "HIGH";
     var unitSuffix = string.IsNullOrWhiteSpace(Model.BaseUnitName) ? "" : $" {Model.BaseUnitName}";
+    var procurementUnitSuffix = string.IsNullOrWhiteSpace(Model.ProcurementUnitName)
+        ? ""
+        : $" {Model.ProcurementUnitName}";
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -101,7 +105,7 @@
                                 <strong>@AdminStatusDisplay.StockAlert(transition.NewStatus).Label · @AdminStatusDisplay.StockAlertType(transition.NewAlertType)</strong>
                                 <div class="ops-secondary">@transition.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @(transition.ActorName ?? (transition.ActorStaffId.HasValue ? $"Nhân viên #{transition.ActorStaffId}" : "Hệ thống"))</div>
                                 <div>Tồn vật lý @AdminStatusDisplay.Quantity(transition.OnHandSnapshot) · Giữ chỗ @AdminStatusDisplay.Quantity(transition.ReservedSnapshot) · Khả dụng @AdminStatusDisplay.Quantity(transition.AvailableSnapshot)</div>
-                                @if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@transition.Reason</div> }
+                                @if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@AdminStatusDisplay.SystemGeneratedMessage(transition.Reason)</div> }
                             </li>
                         }
                         @if (openRestock != null)
@@ -110,7 +114,7 @@
                         }
                         @if (Model.ResolvedAt.HasValue)
                         {
-                            <li><strong>Tồn kho đã phục hồi</strong><div class="ops-secondary">@Model.ResolvedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div><div>@Model.ResolvedReason</div></li>
+                            <li><strong>Tồn kho đã phục hồi</strong><div class="ops-secondary">@Model.ResolvedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div><div>@AdminStatusDisplay.SystemGeneratedMessage(Model.ResolvedReason)</div></li>
                         }
                     </ol>
                 </div>
@@ -126,7 +130,7 @@
                     else
                     {
                         <div class="ops-table-scroll">
-                            <table class="ops-table" style="min-width:680px">
+<table class="ops-table ops-table-min-680">
                                 <thead><tr><th>Thời gian</th><th>Loại biến động</th><th class="number">Thay đổi</th><th class="number">Trước</th><th class="number">Sau</th><th>Chứng từ</th></tr></thead>
                                 <tbody>
                                 @foreach (var movement in Model.RecentMovements)
@@ -161,31 +165,36 @@
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
                             <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <div class="ops-form-group">
-                                <label class="ops-form-label" for="managerNote">Ghi chú xác nhận <span class="text-danger">*</span></label>
+                                <label class="ops-form-label" for="managerNote">Ghi chú xác nhận <span class="ops-required">*</span></label>
                                 <textarea id="managerNote" name="managerNote" class="ops-textarea" maxlength="500" required placeholder="Nêu kết quả kiểm tra và hướng xử lý..."></textarea>
                             </div>
                             <button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-check" aria-hidden="true"></i> Xác nhận cảnh báo</button>
                         </form>
-                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Reject" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.StockAlertId" />
-                            <input type="hidden" name="storeId" value="@Model.StoreId" />
-                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                            <div class="ops-form-group">
-                                <label class="ops-form-label" for="rejectReason">Lý do báo sai <span class="text-danger">*</span></label>
-                                <textarea id="rejectReason" name="rejectReason" class="ops-textarea" maxlength="500" required placeholder="Nêu lý do số liệu hoặc báo cáo không chính xác..."></textarea>
+                        <details class="ops-danger-disclosure">
+                            <summary>Đánh dấu báo sai hoặc đóng cảnh báo</summary>
+                            <div class="ops-danger-content">
+                                <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Reject" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@Model.StockAlertId" />
+                                    <input type="hidden" name="storeId" value="@Model.StoreId" />
+                                    <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                                    <div class="ops-form-group">
+                                        <label class="ops-form-label" for="rejectReason">Lý do báo sai <span class="ops-required">*</span></label>
+                                        <textarea id="rejectReason" name="rejectReason" class="ops-textarea" maxlength="500" required placeholder="Nêu lý do số liệu hoặc báo cáo không chính xác..."></textarea>
+                                    </div>
+                                    <button type="submit" class="ops-btn ops-btn-danger w-100"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Đánh dấu báo sai</button>
+                                </form>
+                                <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post" class="mt-4">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@Model.StockAlertId" />
+                                    <input type="hidden" name="storeId" value="@Model.StoreId" />
+                                    <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                                    <label class="ops-form-label" for="closeReason">Lý do đóng thủ công <span class="ops-required">*</span></label>
+                                    <textarea id="closeReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
+                                    <button type="submit" class="ops-btn w-100 mt-2">Đóng cảnh báo</button>
+                                </form>
                             </div>
-                            <button type="submit" class="ops-btn ops-btn-danger w-100"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Đánh dấu báo sai</button>
-                        </form>
-                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post" class="mt-4">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.StockAlertId" />
-                            <input type="hidden" name="storeId" value="@Model.StoreId" />
-                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                            <label class="ops-form-label" for="closeReason">Đóng thủ công</label>
-                            <textarea id="closeReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
-                            <button type="submit" class="ops-btn w-100 mt-2">Đóng cảnh báo</button>
-                        </form>
+                        </details>
                     </div>
                 </section>
             }
@@ -215,18 +224,20 @@
                             <input type="hidden" name="id" value="@Model.StockAlertId" />
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
                             <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                            <input type="hidden" name="procurementUnitId" value="@Model.ProcurementUnitId" />
                             <div class="ops-form-group">
-                                <label class="ops-form-label" for="requestedQuantity">Số lượng yêu cầu theo đơn vị tồn kho@(string.IsNullOrWhiteSpace(Model.BaseUnitName) ? "" : $" ({Model.BaseUnitName})") <span class="text-danger">*</span></label>
-                                <input id="requestedQuantity" type="number" name="requestedQuantity" class="ops-input w-100" step="0.001" min="0.001" max="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" required disabled="@(suggested is not > 0 ? "disabled" : null)" value="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
+                                <label class="ops-form-label" for="requestedProcurementQuantity">Số lượng yêu cầu theo đơn vị mua hàng@(string.IsNullOrWhiteSpace(Model.ProcurementUnitName) ? "" : $" ({Model.ProcurementUnitName})") <span class="text-danger">*</span></label>
+                                <input id="requestedProcurementQuantity" type="number" name="requestedProcurementQuantity" class="ops-input w-100" step="0.001" min="0.001" max="@(suggestedProcurement is > 0 ? suggestedProcurement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" required disabled="@(suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)" value="@(suggestedProcurement is > 0 ? suggestedProcurement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
                                 <div class="ops-help">
                                     @if (Model.IsOutOfThresholdManualDemand)
                                     {
-                                        <span>Nhu cầu đã xác minh: mục tiêu thủ công − khả dụng = @(suggested.HasValue ? $"{AdminStatusDisplay.Quantity(suggested.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
+                                        <span>Nhu cầu đã xác minh: mục tiêu thủ công − khả dụng = @(suggestedProcurement.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedProcurement.Value)}{procurementUnitSuffix}" : "chưa đủ dữ liệu đơn vị mua hàng").</span>
                                     }
                                     else
                                     {
-                                        <span>Bù đến ngưỡng tối thiểu: max(0, ngưỡng − khả dụng) = @(suggested.HasValue ? $"{AdminStatusDisplay.Quantity(suggested.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
+                                        <span>Bù đến ngưỡng tối thiểu: max(0, ngưỡng − khả dụng) = @(suggestedProcurement.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedProcurement.Value)}{procurementUnitSuffix}" : "chưa đủ dữ liệu đơn vị mua hàng").</span>
                                     }
+                                    <span class="d-block mt-1">Snapshot tồn kho tương ứng: @(suggestedBase.HasValue ? $"{AdminStatusDisplay.Quantity(suggestedBase.Value)}{unitSuffix}" : "chưa đủ dữ liệu").</span>
                                 </div>
                             </div>
                             <div class="ops-form-group">
@@ -241,17 +252,22 @@
                                 <label class="ops-form-label" for="note">Ghi chú</label>
                                 <textarea id="note" name="note" class="ops-textarea" maxlength="500" placeholder="Thông tin cần lưu ý cho bộ phận kho..."></textarea>
                             </div>
-                            <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(suggested is not > 0 ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button>
+                            <button type="submit" class="ops-btn ops-btn-primary w-100" disabled="@(suggestedProcurement is not > 0 || !Model.ProcurementUnitId.HasValue ? "disabled" : null)"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button>
                         </form>
-                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post" class="mt-4">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.StockAlertId" />
-                            <input type="hidden" name="storeId" value="@Model.StoreId" />
-                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                            <label class="ops-form-label" for="confirmedCloseReason">Đóng cảnh báo không tạo yêu cầu</label>
-                            <textarea id="confirmedCloseReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
-                            <button type="submit" class="ops-btn w-100 mt-2">Đóng cảnh báo</button>
-                        </form>
+                        <details class="ops-danger-disclosure">
+                            <summary>Đóng cảnh báo mà không tạo yêu cầu</summary>
+                            <div class="ops-danger-content">
+                                <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@Model.StockAlertId" />
+                                    <input type="hidden" name="storeId" value="@Model.StoreId" />
+                                    <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                                    <label class="ops-form-label" for="confirmedCloseReason">Lý do đóng <span class="ops-required">*</span></label>
+                                    <textarea id="confirmedCloseReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
+                                    <button type="submit" class="ops-btn w-100 mt-2">Xác nhận đóng</button>
+                                </form>
+                            </div>
+                        </details>
                     </div>
                 </section>
             }

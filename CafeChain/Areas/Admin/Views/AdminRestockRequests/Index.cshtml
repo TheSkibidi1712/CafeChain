@@ -72,7 +72,15 @@
 
     @if (Model.Items.Count == 0)
     {
-        <section class="ops-empty"><div class="fw-bold text-dark">Không có yêu cầu phù hợp</div><div class="mt-1">Chọn trạng thái khác hoặc mở một cảnh báo đã xác nhận để tạo yêu cầu mới.</div></section>
+        <section class="ops-empty" aria-labelledby="restockEmptyTitle">
+            <span class="ops-empty-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
+            <h2 id="restockEmptyTitle" class="ops-empty-title">Không có yêu cầu bổ sung phù hợp</h2>
+            <p class="ops-empty-copy">Đổi trạng thái lọc, tạo yêu cầu thủ công hoặc mở một cảnh báo đã xác nhận để ghi nhận nhu cầu mới.</p>
+            <div class="ops-empty-actions">
+                <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId">Xem cảnh báo kho</a>
+                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="CreateManual" asp-route-storeId="@Model.StoreId">Tạo yêu cầu thủ công</a>
+            </div>
+        </section>
     }
     else
     {
@@ -89,7 +97,7 @@
                             <td class="number">
                                 @if (item.RequestedProcurementQuantity.HasValue)
                                 {
-                                    <strong>@AdminStatusDisplay.Quantity(item.RequestedProcurementQuantity.Value) @(item.ProcurementUnitName ?? "đơn vị procurement")</strong>
+                                    <strong>@AdminStatusDisplay.Quantity(item.RequestedProcurementQuantity.Value) @(item.ProcurementUnitName ?? "đơn vị mua hàng")</strong>
                                     <div class="ops-secondary">@AdminStatusDisplay.SourcingDecision(item.SourcingDecision)</div>
                                 }
                                 else

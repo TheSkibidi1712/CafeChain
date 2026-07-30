@@ -19,6 +19,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public decimal? QuantityBefore { get; set; }
         public decimal? QuantityAfter { get; set; }
         public string? RequestKey { get; set; }
+        public bool IsDemandAdjustment { get; set; }
     }
 
     public class RestockRequestWorkflowDetailDto : RestockRequestDetailDto
@@ -26,6 +27,14 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public decimal ReceivedQuantity { get; set; }
         public decimal RemainingQuantity { get; set; }
         public decimal TargetQuantity { get; set; }
+        public decimal? FulfilledProcurementQuantity { get; set; }
+        public decimal? TransferAllocatedProcurementQuantity { get; set; }
+        public decimal? PurchaseAllocatedProcurementQuantity { get; set; }
+        public decimal? ProductionAllocatedProcurementQuantity { get; set; }
+        public decimal? RejectedProcurementQuantity { get; set; }
+        public decimal? RemainingUnallocatedProcurementQuantity { get; set; }
+        public decimal? RemainingToReceiveProcurementQuantity { get; set; }
+        public decimal? ClosedProcurementQuantity { get; set; }
         public decimal FulfilledQuantity { get; set; }
         public decimal TransferAllocatedQuantity { get; set; }
         public decimal PurchaseAllocatedQuantity { get; set; }
@@ -45,6 +54,37 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public List<BranchReceiptListItemDto> Receipts { get; set; } = new();
         public List<RestockFulfillmentDto> Fulfillments { get; set; } = new();
         public List<RestockFulfillmentPostingDto> FulfillmentPostings { get; set; } = new();
+        public List<RestockWorkflowStepDto> WorkflowSteps { get; set; } = new();
+        public List<LinkedPurchaseAdviceDto> PurchaseAdvices { get; set; } = new();
+        public List<DraftPurchaseAdviceOptionDto> DraftPurchaseAdvices { get; set; } = new();
+        public bool HasOrphanPurchaseAllocation { get; set; }
+    }
+
+    public sealed class RestockWorkflowStepDto
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public sealed class LinkedPurchaseAdviceDto
+    {
+        public int PurchaseAdviceId { get; set; }
+        public int PurchaseAdviceLineId { get; set; }
+        public string AdviceNumber { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public decimal ProcurementQuantity { get; set; }
+        public string? ProcurementUnitName { get; set; }
+        public string? SupplierName { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public sealed class DraftPurchaseAdviceOptionDto
+    {
+        public int PurchaseAdviceId { get; set; }
+        public string AdviceNumber { get; set; } = string.Empty;
+        public DateTime NeededByDate { get; set; }
+        public string RowVersion { get; set; } = string.Empty;
     }
 
     public class RestockFulfillmentPostingDto

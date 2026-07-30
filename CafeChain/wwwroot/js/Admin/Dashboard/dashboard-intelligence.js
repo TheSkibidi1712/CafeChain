@@ -28,13 +28,16 @@
         confirmedCogs: "Giá vốn hàng bán (COGS)", confirmedGrossProfit: "Lợi nhuận gộp",
         confirmedMarginRate: "Biên lợi nhuận", cancellationRate: "Tỷ lệ hủy",
         completedOrders: "Đơn hoàn tất", cancelledOrders: "Đơn hủy", dataStatus: "Chất lượng dữ liệu",
-        alertValue: "Giá trị cảnh báo", issueCount: "Số sự cố", spend: "Chi phí mua",
+        alertValue: "Giá trị cảnh báo", alertCount: "Số cảnh báo", shiftCount: "Số ca",
+        riskIngredientCount: "Số nguyên liệu rủi ro", bomIssueCount: "Số lỗi BOM",
+        effectiveSuggestedQuantity: "Số lượng đề xuất hiệu lực", issueCount: "Số sự cố", spend: "Chi phí mua",
         averageBaseUnitCost: "Giá mua bình quân", wasteValue: "Giá trị hao hụt",
         quantity: "Số lượng", volume: "Số lượng bán", fullName: "Nhân viên"
     };
     const statusLabels = {
-        Complete: "Đầy đủ", Partial: "Một phần", Insufficient: "Chưa đủ dữ liệu",
-        AVAILABLE: "Có dữ liệu", NO_DATA: "Không có dữ liệu", PARTIAL_COGS: "Thiếu dữ liệu giá vốn",
+        OK: "Đầy đủ", NO_DATA: "Không có dữ liệu", PARTIAL: "Một phần",
+        PARTIAL_COGS: "Thiếu dữ liệu giá vốn", MISSING_CONFIG: "Thiếu cấu hình", ERROR: "Lỗi dữ liệu",
+        Complete: "Đầy đủ", Partial: "Một phần", Insufficient: "Chưa đủ dữ liệu", AVAILABLE: "Có dữ liệu",
         Fallback: "Chế độ dự phòng", Available: "Sẵn sàng"
     };
     const aiStatusLabels = { Available: "AI khả dụng", Fallback: "Chế độ dự phòng" };
@@ -520,7 +523,7 @@
             evidence, "dashboard-intelligence__inference"));
 
         const warnings = [...(data.warnings || [])];
-        if (data.dataStatus !== "Complete")
+        if (data.dataStatus !== "OK")
             warnings.unshift(`Chất lượng dữ liệu: ${localizedLabel(data.dataStatus, statusLabels, "Không xác định")}. Hãy xem giới hạn trước khi sử dụng khuyến nghị.`);
         if (data.aiStatus === "Fallback")
             warnings.unshift(`Ollama fallback: ${data.fallbackReason || "facts và biểu đồ backend vẫn được giữ nguyên."}`);

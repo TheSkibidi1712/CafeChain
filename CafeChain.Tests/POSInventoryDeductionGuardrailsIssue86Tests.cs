@@ -4,6 +4,7 @@ using CafeChain.Application.Services.Inventories;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.Ice;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
@@ -241,7 +242,99 @@ namespace CafeChain.Tests.POS
                 || (cogs.Message ?? "").Length > 0);
         }
 
-        private static InventoryDeductionService CreateService(CafeChain.Data.AppDbContext context)
+        [Fact]
+        public async Task DeductStockForCommittedOrder_LinkedIceAllocation_ConsumesPhysicalAndReservationOnce()
+        {
+            using var context = CreateDbContext();
+            SeedInventoryCatalog(context);
+            SeedCompletedPaidOrder(context, orderId: 9201);
+            var order = context.Orders.Local.Single(x => x.OrderId == 9201);
+            order.WorkShiftId = 9202;
+            context.WorkShifts.Add(new WorkShift
+            {
+                ShiftId = 9202,
+                StoreId = StoreId,
+                UserId = 1,
+                StartTime = System.DateTime.UtcNow,
+                StartingCash = 0,
+                ExpectedEndingCash = 0,
+                Status = "Open"
+            });
+            var operationalShift = new OperationalShift
+            {
+                StoreId = StoreId,
+                BusinessDate = System.DateTime.UtcNow.Date,
+                Name = "POS ice test",
+                StartAtUtc = System.DateTime.UtcNow.AddHours(-1),
+                EndAtUtc = System.DateTime.UtcNow.AddHours(7),
+                Status = OperationalIceStatuses.Open,
+                CreatedByStaffId = 1,
+                CreatedAtUtc = System.DateTime.UtcNow,
+                RowVersion = new byte[] { 0 }
+            };
+            context.OperationalShifts.Add(operationalShift);
+            await context.SaveChangesAsync();
+            var milkInventory = await context.StoreInventories.SingleAsync(x => x.StoreId == StoreId && x.IngredientId == MilkIngredientId);
+            milkInventory.ReservedQty = 10m;
+            var policy = new IcePolicy
+            {
+                StoreId = StoreId,
+                IngredientId = MilkIngredientId,
+                DisplayUnitId = UnitId,
+                Active = true,
+                AllowSupplementalIssue = true,
+                AllowSameDayCarryOver = true,
+                RequireVarianceApproval = true,
+                UpdatedByStaffId = 1,
+                UpdatedAtUtc = System.DateTime.UtcNow,
+                RowVersion = new byte[] { 0 }
+            };
+            context.IcePolicies.Add(policy);
+            await context.SaveChangesAsync();
+            context.OperationalShiftWorkShifts.Add(new OperationalShiftWorkShift
+            {
+                OperationalShiftId = operationalShift.OperationalShiftId,
+                WorkShiftId = 9202,
+                LinkedByStaffId = 1,
+                LinkedAtUtc = System.DateTime.UtcNow
+            });
+            context.IceAllocations.Add(new IceAllocation
+            {
+                PublicId = System.Guid.NewGuid(),
+                OperationalShiftId = operationalShift.OperationalShiftId,
+                IcePolicyId = policy.IcePolicyId,
+                StoreInventoryId = milkInventory.StoreInventoryId,
+                IngredientId = MilkIngredientId,
+                InitialIssuedQuantity = 10m,
+                ReservedOutstandingQuantity = 10m,
+                ReservationReference = "ICE:POS-9201",
+                Status = OperationalIceStatuses.Open,
+                CreatedByStaffId = 1,
+                OpenedByStaffId = 1,
+                CreatedAtUtc = System.DateTime.UtcNow,
+                OpenedAtUtc = System.DateTime.UtcNow,
+                Revision = 1,
+                RowVersion = new byte[] { 0 }
+            });
+            await context.SaveChangesAsync();
+            var reservationService = new OperationalIceReservationConsumptionService(context);
+            var service = CreateService(context, reservationService);
+
+            var first = await service.DeductStockForCommittedOrderAsync(CreateSoldItems(), StoreId, 9201);
+            var replay = await service.DeductStockForCommittedOrderAsync(CreateSoldItems(), StoreId, 9201);
+
+            Assert.True(first.IsSuccess, first.Message);
+            Assert.True(replay.IsSuccess, replay.Message);
+            var allocation = await context.IceAllocations.SingleAsync();
+            Assert.Equal(5m, allocation.ReservedOutstandingQuantity);
+            Assert.Equal(5m, allocation.TheoreticalUsageQuantity);
+            Assert.Equal(5m, milkInventory.ReservedQty);
+            Assert.Equal(95m, milkInventory.AvailableQty);
+        }
+
+        private static InventoryDeductionService CreateService(
+            CafeChain.Data.AppDbContext context,
+            CafeChain.Application.Interfaces.Inventories.IOperationalIceReservationConsumptionService? reservationService = null)
         {
             var physical = new PhysicalUnitConversionService(
                 context,
@@ -262,7 +355,8 @@ namespace CafeChain.Tests.POS
                 new Mock<ILogger<InventoryDeductionService>>().Object,
                 unitConversion,
                 estimated,
-                physical);
+                physical,
+                iceReservationConsumption: reservationService);
         }
 
         private static List<POSSoldItemDto> CreateSoldItems(int quantity = 1)

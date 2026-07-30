@@ -29,6 +29,7 @@ namespace CafeChain.Data.Configurations.Drinks.Recipes
                 .HasMaxLength(200);
 
             entity.Property(x => x.YieldPercentage)
+                .HasPrecision(18, 2)
                 .HasDefaultValue(100);
 
             entity.Property(x => x.Active)

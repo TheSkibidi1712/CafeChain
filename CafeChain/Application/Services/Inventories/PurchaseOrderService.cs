@@ -171,7 +171,7 @@ namespace CafeChain.Application.Services.Inventories
                     {
                         var remainingProcurement = Math.Max(0m, requestedProcurement);
                         if (orderedProcurement > remainingProcurement)
-                            return Fail($"Số lượng mua rời vượt {remainingProcurement:N3} đơn vị procurement còn lại.");
+                            return Fail($"Số lượng mua rời vượt {remainingProcurement:N3} đơn vị mua hàng còn lại.");
                     }
 
                     if (requested.RestockRequestId.HasValue)

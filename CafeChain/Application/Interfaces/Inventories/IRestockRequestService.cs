@@ -15,6 +15,15 @@ namespace CafeChain.Application.Interfaces.Inventories
             string? note,
             string? priority);
 
+        Task<ServiceResult<CreateRestockRequestResultDto>> CreateFromConfirmedAlertProcurementAsync(
+            int alertId,
+            int managerStaffId,
+            int managerStoreId,
+            decimal requestedProcurementQuantity,
+            int procurementUnitId,
+            string? note,
+            string? priority);
+
         Task<ServiceResult<RestockRequestListResultDto>> ListForStoreAsync(
             int storeId,
             string? statusFilter,
@@ -29,12 +38,21 @@ namespace CafeChain.Application.Interfaces.Inventories
             int stockAlertId,
             int storeId);
 
+        Task<ServiceResult<ActiveRestockRequestDto?>> GetActiveForStoreIngredientAsync(
+            int storeId,
+            int ingredientId,
+            int actorStaffId);
+
         Task<ServiceResult<CreateRestockRequestResultDto>> CreateManualAsync(
             CreateProcurementDemandRequest request,
             int actorStaffId);
 
         Task<ServiceResult<CreateRestockRequestResultDto>> CreateCentralPlannerAsync(
             CreateProcurementDemandRequest request,
+            int actorStaffId);
+
+        Task<ServiceResult<RestockDemandAdjustmentResultDto>> AddDemandAdjustmentAsync(
+            AddRestockDemandAdjustmentRequest request,
             int actorStaffId);
 
         Task<ServiceResult<SourcingAllocationDto>> SetSourcingDecisionAsync(

@@ -45,9 +45,11 @@ public sealed class DashboardIntelligenceP0P1ContractTests
     }
 
     [Theory]
-    [InlineData("NO_DATA", "Insufficient")]
-    [InlineData("PARTIAL_COGS", "Partial")]
-    [InlineData("AVAILABLE", "Complete")]
+    [InlineData("NO_DATA", "NO_DATA")]
+    [InlineData("PARTIAL_COGS", "PARTIAL_COGS")]
+    [InlineData("THRESHOLD_NOT_CONFIGURED", "MISSING_CONFIG")]
+    [InlineData("ERROR", "ERROR")]
+    [InlineData("AVAILABLE", "OK")]
     public void DataStatus_UsesRowQuality_NotOnlyRowCount(string rowStatus, string expected)
     {
         var rows = new[]
@@ -220,7 +222,7 @@ public sealed class DashboardIntelligenceP0P1ContractTests
             widget,
             rows,
             new DashboardComparisonResultDto { CurrentValue = InvokeMetric(widget, rows).Value, CurrentSampleSize = 1 },
-            "Complete",
+            "OK",
             10
         ])!;
     }

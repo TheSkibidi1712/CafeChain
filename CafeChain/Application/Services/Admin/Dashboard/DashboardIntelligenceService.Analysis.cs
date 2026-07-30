@@ -91,7 +91,7 @@ public sealed partial class DashboardIntelligenceService
             widgetStatuses.Add(widgetStatus);
             if (baselineWindow.HasValue
                 && DashboardWidgetCatalog.Get(widget).SupportsComparison
-                && (baseline == null || EvaluateRowsStatus(baseline.Rows, baseline.DataStatus) == "Insufficient"))
+                && (baseline == null || EvaluateRowsStatus(baseline.Rows, baseline.DataStatus) != "OK"))
                 missingBaseline = true;
 
             var comparison = Compare(
@@ -121,7 +121,15 @@ public sealed partial class DashboardIntelligenceService
         }
 
         var dataStatus = AggregateDataStatus(widgetStatuses);
-        var deterministicSummary = dataStatus == "Insufficient"
+        var totalFailedWidgetCount = currentBatch.Telemetry.Sum(x => x.FailedWidgetCount)
+            + (baselineBatch?.Telemetry.Sum(x => x.FailedWidgetCount) ?? 0);
+        var confidence = CalculateConfidence(
+            dataStatus,
+            facts.Concat(statistics).Sum(x => x.SampleSize),
+            missingBaseline,
+            entityEvidenceExpected && !entityEvidenceFound,
+            totalFailedWidgetCount);
+        var deterministicSummary = dataStatus is "NO_DATA" or "ERROR"
             ? "Không đủ dữ liệu trong giai đoạn đã chọn để kết luận."
             : anomalies.Count == 0
                 ? "Dữ liệu hiện tại chưa cho thấy bất thường theo các quy tắc backend đã kiểm tra."
@@ -137,7 +145,7 @@ public sealed partial class DashboardIntelligenceService
             UsedFallback = true
         };
         var primary = allEvidence.FirstOrDefault();
-        if (_options.ExplanationEnabled && primary != null)
+        if (_options.ExplanationEnabled && primary != null && dataStatus is not ("NO_DATA" or "ERROR"))
         {
             explanation = await _ai.ExplainDashboardInsightAsync(
                 new DashboardInsightExplanationContextDto
@@ -145,6 +153,8 @@ public sealed partial class DashboardIntelligenceService
                     AnalysisId = analysisId,
                     Widget = primary.SourceWidget,
                     BusinessIntent = intent.BusinessIntent,
+                    DataStatus = dataStatus,
+                    Confidence = confidence,
                     FromDate = currentWindow.From,
                     ToDate = currentWindow.To,
                     Comparison = new DashboardComparisonResultDto
@@ -203,13 +213,7 @@ public sealed partial class DashboardIntelligenceService
             Inferences = inferences,
             Anomalies = anomalies,
             Recommendations = recommendations,
-            Confidence = CalculateConfidence(
-                dataStatus,
-                allEvidence.Sum(x => x.SampleSize),
-                missingBaseline,
-                entityEvidenceExpected && !entityEvidenceFound,
-                currentBatch.Telemetry.Sum(x => x.FailedWidgetCount)
-                    + (baselineBatch?.Telemetry.Sum(x => x.FailedWidgetCount) ?? 0)),
+            Confidence = confidence,
             Charts = charts,
             ChartAnalyses = MergeChartAnalyses(chartAnalyses, explanation.ChartAnalyses, evidenceIds),
             Overview = explanation.Overview.Count > 0
@@ -322,7 +326,7 @@ public sealed partial class DashboardIntelligenceService
         var lowest = points.OrderBy(point => point.Value).FirstOrDefault();
         var facts = new List<string>();
         var chartAnomalies = new List<string>();
-        if (EvaluateRowsStatus(current.Rows, current.DataStatus) == "Insufficient" || points.Count == 0)
+        if (EvaluateRowsStatus(current.Rows, current.DataStatus) is "NO_DATA" or "ERROR" || points.Count == 0)
             facts.Add("Chưa có đủ dữ liệu để kết luận cho chỉ số này.");
         else
         {
@@ -398,7 +402,7 @@ public sealed partial class DashboardIntelligenceService
         IReadOnlyList<DashboardChartAnalysisDto> charts,
         string fallback)
     {
-        var result = charts.Where(chart => chart.DataStatus != "Insufficient")
+        var result = charts.Where(chart => chart.DataStatus is not ("NO_DATA" or "ERROR"))
             .Take(5)
             .Select(chart => new DashboardNarrativeItemDto
             {
@@ -587,8 +591,8 @@ public sealed partial class DashboardIntelligenceService
             SectionKey = definition.Section.ToString(),
             Title = definition.Title,
             Description = $"Chỉ số backend của widget {widget}.",
-            MetricName = definition.ValueField,
-            Statement = dataStatus == "Insufficient"
+            MetricName = definition.Metric!.Name,
+            Statement = dataStatus is "NO_DATA" or "ERROR"
                 ? $"{definition.Title}: không đủ dữ liệu trong kỳ."
                 : comparison.BaselineValue.HasValue
                     ? $"{definition.Title}: kỳ hiện tại {comparison.CurrentValue:N2}, kỳ so sánh {comparison.BaselineValue:N2}."
@@ -598,7 +602,7 @@ public sealed partial class DashboardIntelligenceService
             Delta = comparison.AbsoluteDifference,
             DeviationPercent = comparison.PercentageDifference,
             SampleSize = comparison.CurrentSampleSize,
-            Unit = definition.Unit,
+            Unit = definition.Metric.Unit,
             DataStatus = dataStatus,
             Baseline = comparison.BaselineValue.HasValue ? "PreviousPeriod" : null
         };
@@ -688,6 +692,15 @@ public sealed partial class DashboardIntelligenceService
             case DashboardAnalyticsWidget.CategoryPerformance:
                 entityType = "CATEGORY"; entityId = Text(row, "categoryId"); entityName = Text(row, "categoryName");
                 value = Number(row, "revenue") ?? 0; break;
+            case DashboardAnalyticsWidget.SizeMargin:
+                entityType = "SIZE"; entityId = Text(row, "sizeId"); entityName = Text(row, "sizeName");
+                value = Number(row, "confirmedGrossProfit") ?? 0; break;
+            case DashboardAnalyticsWidget.TopToppings:
+                entityType = "TOPPING"; entityId = Text(row, "toppingId"); entityName = Text(row, "toppingName");
+                value = Number(row, "revenue") ?? 0; break;
+            case DashboardAnalyticsWidget.BomHealth:
+                entityType = "PRODUCT"; entityId = Text(row, "drinkId"); entityCode = Text(row, "drinkCode");
+                entityName = Text(row, "drinkName"); value = Number(row, "bomIssueCount") ?? 0; break;
             case DashboardAnalyticsWidget.PaymentMethodMix:
                 entityType = "PAYMENT_METHOD"; entityId = Text(row, "paymentMethodId");
                 entityCode = Text(row, "paymentMethodCode"); entityName = Text(row, "paymentMethodName");
@@ -723,7 +736,8 @@ public sealed partial class DashboardIntelligenceService
             case DashboardAnalyticsWidget.OverduePurchaseOrders:
                 entityType = "PURCHASE_ORDER"; entityId = Text(row, "purchaseOrderId");
                 entityCode = Text(row, "code"); entityName = Text(row, "code");
-                storeId = NullableInt(row, "storeId"); value = Number(row, "overdueDays") ?? 0;
+                storeId = NullableInt(row, "storeId"); storeName = Text(row, "storeName");
+                value = Number(row, "overdueDays") ?? 0;
                 priority = value >= 7 ? "High" : "Medium"; break;
             default:
                 return null;
@@ -740,7 +754,7 @@ public sealed partial class DashboardIntelligenceService
             SectionKey = definition.Section.ToString(),
             Title = $"{definition.Title}: {entityName}",
             Description = "Evidence cấp thực thể từ backend.",
-            MetricName = definition.ValueField,
+            MetricName = definition.Metric!.Name,
             Statement = $"{entityName}: {value:N2} {unit}.",
             CurrentValue = value,
             SampleSize = EntitySample(widget, row),
@@ -763,8 +777,24 @@ public sealed partial class DashboardIntelligenceService
 
     private static IEnumerable<string> EntityMetadataFields(DashboardAnalyticsWidget widget) => widget switch
     {
+        DashboardAnalyticsWidget.StoreRanking =>
+            ["totalOrders", "averageOrderValue", "rank", "contributionPercent", "dataStatus"],
         DashboardAnalyticsWidget.TopProducts =>
-            ["categoryName", "totalSold", "productRevenue", "confirmedCogs", "confirmedGrossProfit", "confirmedMarginRate", "dataStatus"],
+            ["categoryName", "totalSold", "productRevenue", "confirmedCogs", "confirmedGrossProfit", "confirmedMarginRate", "contributionPercent", "dataStatus"],
+        DashboardAnalyticsWidget.ProductPeriodPerformance =>
+            ["totalSold", "revenue", "confirmedCogs", "confirmedGrossProfit", "confirmedMarginRate", "contributionPercent", "dataStatus"],
+        DashboardAnalyticsWidget.CategoryPerformance =>
+            ["totalSold", "revenue", "confirmedCogs", "confirmedGrossProfit", "confirmedMarginRate", "contributionPercent", "dataStatus"],
+        DashboardAnalyticsWidget.VolumeMarginMatrix =>
+            ["volume", "revenue", "confirmedCogs", "confirmedMarginRate", "dataStatus"],
+        DashboardAnalyticsWidget.SizeMargin =>
+            ["totalSold", "revenue", "confirmedCogs", "confirmedGrossProfit", "dataStatus"],
+        DashboardAnalyticsWidget.TopToppings =>
+            ["totalUsed", "revenue", "confirmedCogs", "dataStatus"],
+        DashboardAnalyticsWidget.BomHealth =>
+            ["recipeCount", "recipeLineCount", "invalidLineCount", "bomIssueCount", "dataStatus"],
+        DashboardAnalyticsWidget.PaymentMethodMix =>
+            ["totalTransactions", "amount", "transactionShare", "revenueShare", "dataStatus"],
         DashboardAnalyticsWidget.InventoryShortageRisk =>
             ["onHandQuantity", "reservedQuantity", "availableQuantity", "minimumStock", "shortageQuantity", "suggestedReorderQuantity", "dataStatus"],
         DashboardAnalyticsWidget.InventoryReorderSuggestions =>
@@ -775,6 +805,8 @@ public sealed partial class DashboardIntelligenceService
             ["issueType", "status", "issueCount", "affectedBaseQuantity", "dataStatus"],
         DashboardAnalyticsWidget.OperationalAlerts =>
             ["alertType", "severity", "message", "dataStatus"],
+        DashboardAnalyticsWidget.OverduePurchaseOrders =>
+            ["supplierId", "supplierName", "expectedDeliveryAtUtc", "overdueDays", "orderedValue", "status", "dataStatus"],
         _ => ["dataStatus"]
     };
 
@@ -826,10 +858,13 @@ public sealed partial class DashboardIntelligenceService
                 });
             }
         }
-        if (widget is DashboardAnalyticsWidget.TopProducts
+        if ((widget is DashboardAnalyticsWidget.TopProducts
                 or DashboardAnalyticsWidget.VolumeMarginMatrix
                 or DashboardAnalyticsWidget.ProductPeriodPerformance
-            && bundle.Facts.Concat(bundle.Statistics).Any(item => item.DataStatus == "Partial"))
+                or DashboardAnalyticsWidget.CategoryPerformance
+                or DashboardAnalyticsWidget.SizeMargin
+                or DashboardAnalyticsWidget.TopToppings)
+            && bundle.Facts.Concat(bundle.Statistics).Any(item => item.DataStatus == "PARTIAL_COGS"))
         {
             var cited = bundle.Facts.Concat(bundle.Statistics).First().EvidenceId;
             anomalies.Add(new DashboardAnomalyResultDto
@@ -848,38 +883,64 @@ public sealed partial class DashboardIntelligenceService
         bool comparisonRequested)
     {
         var currentStatus = EvaluateRowsStatus(current.Rows, current.DataStatus);
-        if (currentStatus == "Insufficient")
-            return "Insufficient";
-        if (currentStatus == "Partial")
-            return "Partial";
+        if (currentStatus is "NO_DATA" or "ERROR")
+            return currentStatus;
         if (comparisonRequested
             && DashboardWidgetCatalog.Get(current.Widget).SupportsComparison
-            && (baseline == null || EvaluateRowsStatus(baseline.Rows, baseline.DataStatus) != "Complete"))
-            return "Partial";
-        return "Complete";
+            && (baseline == null || EvaluateRowsStatus(baseline.Rows, baseline.DataStatus) != "OK"))
+            return currentStatus == "OK" ? "PARTIAL" : currentStatus;
+        return currentStatus;
     }
 
     private static string EvaluateRowsStatus(object rows, string responseStatus)
     {
         if (responseStatus.Equals("ERROR", StringComparison.OrdinalIgnoreCase))
-            return "Insufficient";
+            return "ERROR";
         var data = JsonRows(rows);
         if (data.Count == 0)
-            return "Insufficient";
-        var statuses = data.Select(row => Text(row, "dataStatus").ToUpperInvariant()).ToList();
+            return "NO_DATA";
+        var statuses = data
+            .Select(row => Text(row, "dataStatus").Trim().ToUpperInvariant())
+            .Select(status => status switch
+            {
+                "" or "NO_DATA" => "NO_DATA",
+                "AVAILABLE" or "OK" => "OK",
+                "PARTIAL" => "PARTIAL",
+                "PARTIAL_COGS" => "PARTIAL_COGS",
+                "THRESHOLD_NOT_CONFIGURED" or "UNCONFIGURED" or "MISSING_BOM" or "MISSING_CONFIG"
+                    => "MISSING_CONFIG",
+                "ERROR" => "ERROR",
+                _ => "PARTIAL"
+            })
+            .ToList();
         if (statuses.All(status => status is "" or "NO_DATA"))
-            return "Insufficient";
-        if (statuses.Any(status => status is "PARTIAL" or "PARTIAL_COGS" or "ERROR"
-                or "THRESHOLD_NOT_CONFIGURED" or "UNCONFIGURED" or "NO_DATA"))
-            return "Partial";
-        return "Complete";
+            return "NO_DATA";
+        if (statuses.All(status => status == "ERROR"))
+            return "ERROR";
+        if (statuses.Any(status => status == "PARTIAL_COGS"))
+            return "PARTIAL_COGS";
+        if (statuses.Any(status => status == "MISSING_CONFIG"))
+            return "MISSING_CONFIG";
+        if (statuses.Any(status => status is "PARTIAL" or "ERROR" or "NO_DATA"))
+            return "PARTIAL";
+        return "OK";
     }
 
     private static string AggregateDataStatus(IReadOnlyCollection<string> statuses)
     {
-        if (statuses.Count == 0 || statuses.All(status => status == "Insufficient"))
-            return "Insufficient";
-        return statuses.All(status => status == "Complete") ? "Complete" : "Partial";
+        if (statuses.Count == 0 || statuses.All(status => status == "NO_DATA"))
+            return "NO_DATA";
+        if (statuses.All(status => status is "NO_DATA" or "ERROR")
+            && statuses.Any(status => status == "ERROR"))
+            return "ERROR";
+        if (statuses.All(status => status == "OK"))
+            return "OK";
+        var degraded = statuses.Where(status => status != "OK").Distinct().ToList();
+        if (degraded.Count == 1 && degraded[0] == "PARTIAL_COGS")
+            return "PARTIAL_COGS";
+        if (degraded.Count == 1 && degraded[0] == "MISSING_CONFIG")
+            return "MISSING_CONFIG";
+        return "PARTIAL";
     }
 
     private static decimal CalculateConfidence(
@@ -889,9 +950,9 @@ public sealed partial class DashboardIntelligenceService
         bool missingEntityEvidence,
         int failedWidgets)
     {
-        if (dataStatus == "Insufficient")
+        if (dataStatus is "NO_DATA" or "ERROR")
             return 0m;
-        var confidence = dataStatus == "Complete" ? 0.85m : 0.60m;
+        var confidence = dataStatus == "OK" ? 0.85m : 0.60m;
         if (sampleSize < 10) confidence -= 0.08m;
         if (missingBaseline) confidence -= 0.07m;
         if (missingEntityEvidence) confidence -= 0.08m;
@@ -909,6 +970,9 @@ public sealed partial class DashboardIntelligenceService
             or DashboardAnalyticsWidget.TopProducts
             or DashboardAnalyticsWidget.ProductPeriodPerformance
             or DashboardAnalyticsWidget.CategoryPerformance
+            or DashboardAnalyticsWidget.SizeMargin
+            or DashboardAnalyticsWidget.TopToppings
+            or DashboardAnalyticsWidget.BomHealth
             or DashboardAnalyticsWidget.InventoryShortageRisk
             or DashboardAnalyticsWidget.InventoryReorderSuggestions
             or DashboardAnalyticsWidget.SupplierQuality
@@ -925,7 +989,11 @@ public sealed partial class DashboardIntelligenceService
         DashboardAnalyticsWidget.SupplierQuality => Long(row, "receiptCount"),
         DashboardAnalyticsWidget.PaymentMethodMix => Long(row, "totalTransactions"),
         DashboardAnalyticsWidget.SupplierIssueMix => Long(row, "issueCount"),
-        _ => 1
+        DashboardAnalyticsWidget.SizeMargin => Long(row, "totalSold"),
+        DashboardAnalyticsWidget.TopToppings => Long(row, "totalUsed"),
+        DashboardAnalyticsWidget.OperationalAlerts => Long(row, "alertCount"),
+        DashboardAnalyticsWidget.OverduePurchaseOrders => 1,
+        _ => 0
     };
 
     private static string NormalizePriority(string value) => value.Trim().ToUpperInvariant() switch

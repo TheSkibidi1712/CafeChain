@@ -26,6 +26,44 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public string? Reason { get; set; }
     }
 
+    public sealed class ActiveRestockRequestDto
+    {
+        public int RestockRequestId { get; set; }
+        public int StoreId { get; set; }
+        public int IngredientId { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public decimal RequestedProcurementQuantity { get; set; }
+        public decimal AllocatedProcurementQuantity { get; set; }
+        public decimal RemainingUnallocatedProcurementQuantity { get; set; }
+        public int ProcurementUnitId { get; set; }
+        public string ProcurementUnitName { get; set; } = string.Empty;
+        public DateTime? NeedByDate { get; set; }
+        public string RowVersion { get; set; } = string.Empty;
+    }
+
+    public sealed class AddRestockDemandAdjustmentRequest
+    {
+        public int RestockRequestId { get; set; }
+        public decimal AdjustmentProcurementQuantity { get; set; }
+        public int ProcurementUnitId { get; set; }
+        public DateTime? NeedByDate { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public string RowVersion { get; set; } = string.Empty;
+        public string RequestKey { get; set; } = string.Empty;
+    }
+
+    public sealed class RestockDemandAdjustmentResultDto
+    {
+        public int RestockRequestId { get; set; }
+        public decimal QuantityBefore { get; set; }
+        public decimal AdjustmentQuantity { get; set; }
+        public decimal QuantityAfter { get; set; }
+        public decimal RemainingUnallocatedProcurementQuantity { get; set; }
+        public string ProcurementUnitName { get; set; } = string.Empty;
+        public string RowVersion { get; set; } = string.Empty;
+        public bool WasReplay { get; set; }
+    }
+
     public sealed class SourcingAllocationDto
     {
         public int RestockSourcingAllocationId { get; set; }
@@ -55,7 +93,10 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public string? Note { get; set; }
         public string? CreatedByName { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? NeedByDate { get; set; }
         public string SourceType { get; set; } = string.Empty;
+        public string? SourceReferenceId { get; set; }
+        public int? CreatedForStoreId { get; set; }
         public string SourcingStatus { get; set; } = string.Empty;
         public string? SourcingDecision { get; set; }
         public decimal? RequestedProcurementQuantity { get; set; }
@@ -103,5 +144,6 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public bool AlreadyExisted { get; set; }
         public bool NotifiedAccountantWarehouse { get; set; }
         public int RecipientCount { get; set; }
+        public ActiveRestockRequestDto? ExistingActiveRequest { get; set; }
     }
 }

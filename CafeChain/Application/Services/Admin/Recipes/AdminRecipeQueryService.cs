@@ -735,12 +735,12 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     PackagePrice = cost.PackagePrice,
                     PackageQuantity = cost.PackageQuantity,
                     PackageUnitCode = cost.PackageUnitCode,
-                    BaseUnitCode = cost.BaseUnitCode ?? x.BaseUnit?.UnitCode,
+                    BaseUnitCode = FormatUnitLabel(cost.BaseUnitCode ?? x.BaseUnit?.UnitCode),
                     CostMessage = cost.IsComplete
                         ? null
                         : (cost.Issues.FirstOrDefault()?.Message ?? "Chưa đủ dữ liệu giá vốn"),
                     UnitId = x.BaseUnitId,
-                    UnitName = x.BaseUnit?.Name ?? ""
+                    UnitName = FormatUnitLabel(x.BaseUnit?.UnitCode)
                 });
             }
 
@@ -748,7 +748,16 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 .AsNoTracking()
                 .Include(x => x.PreparedItem)
                 .Include(x => x.OutputUnit)
-                .Where(x => x.Active && x.Status == "Active")
+                .Where(x => x.Active
+                    && x.Status == "Active"
+                    && x.PreparedItemId.HasValue
+                    && x.PreparedItem != null
+                    && x.PreparedItem.Active
+                    && x.OutputQuantity.HasValue
+                    && x.OutputQuantity > 0
+                    && x.OutputUnitId.HasValue
+                    && x.OutputUnit != null
+                    && x.OutputUnit.Active)
                 .OrderBy(x => x.Name)
                 .Select(x => new RecipeBomChildRecipeOptionVM
                 {
@@ -763,7 +772,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     BaseCost = 0m,
                     CostComplete = false,
                     UnitId = x.OutputUnitId ?? 0,
-                    UnitName = x.OutputUnit != null ? x.OutputUnit.Name : "Phần",
+                    UnitName = x.OutputUnit != null ? x.OutputUnit.UnitCode : "",
                     CostMessage = "BTP con: pin phiên bản Recipe — EstimateBomCost trên server"
                 })
                 .ToListAsync();
@@ -799,12 +808,30 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 .Select(u => new RecipeFormUnitOption
                 {
                     UnitId = u.UnitId,
-                    Name = u.Name ?? "",
-                    UnitCode = u.UnitCode ?? ""
+                    Name = FormatUnitLabel(u.UnitCode),
+                    UnitCode = FormatUnitLabel(u.UnitCode)
                 })
                 .ToList();
 
             return options;
+        }
+
+        private static string FormatUnitLabel(string? unitCode)
+        {
+            return PhysicalUnitConversionRegistry.NormalizeUnitCode(unitCode) switch
+            {
+                "g" => "g",
+                "gram" => "g",
+                "kg" => "kg",
+                "kilogram" => "kg",
+                "ml" => "ml",
+                "milliliter" => "ml",
+                "l" => "L",
+                "liter" => "L",
+                "pcs" => "cái",
+                "piece" => "cái",
+                _ => string.IsNullOrWhiteSpace(unitCode) ? "ĐVT" : unitCode.Trim()
+            };
         }
 
         public async Task<List<RecipeSizeOptionVM>> GetSizesByDrinkAsync(int drinkId)

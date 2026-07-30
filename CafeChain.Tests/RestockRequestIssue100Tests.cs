@@ -7,6 +7,7 @@ using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
+using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Stock;
@@ -63,6 +64,38 @@ namespace CafeChain.Tests.POS
             Assert.Equal(StockAlertStatuses.Confirmed, alert.Status);
 
             Assert.Empty(ctx.StaffNotifications);
+        }
+
+        [Fact]
+        public async Task StockAlert_RequestUsesProcurementQuantityAndKeepsBaseSnapshot()
+        {
+            using var ctx = CreateDbContext();
+            var alertId = await SeedAlertAsync(
+                ctx,
+                StockAlertStatuses.Confirmed,
+                ingredient: true,
+                withAw: false);
+            var kilogram = await ctx.Units.SingleAsync(x => x.UnitCode == ProcurementUnitCodes.Kilogram);
+            var service = CreateService(ctx);
+
+            var result = await service.CreateFromConfirmedAlertProcurementAsync(
+                alertId,
+                ManagerStaffId,
+                StoreId,
+                0.008m,
+                kilogram.UnitId,
+                "Bổ sung theo cảnh báo",
+                "HIGH");
+
+            Assert.True(result.IsSuccess, result.Message);
+            var request = await ctx.RestockRequests.SingleAsync();
+            Assert.Equal(RestockRequestSourceTypes.StockAlert, request.SourceType);
+            Assert.Equal(alertId.ToString(), request.SourceReferenceId);
+            Assert.Equal(StoreId, request.CreatedForStoreId);
+            Assert.Equal(0.008m, request.RequestedProcurementQuantity);
+            Assert.Equal(kilogram.UnitId, request.ProcurementUnitId);
+            Assert.Equal(8m, request.RequestedQuantity);
+            Assert.Equal(0.010m, request.TargetStockProcurementQuantity);
         }
 
         [Fact]
@@ -296,6 +329,14 @@ namespace CafeChain.Tests.POS
                 .Select(x => (int?)x.StaffId)
                 .MaxAsync() ?? 90000) + 1000;
             EnsureStaffWithRole(ctx, manualStaffId, RoleConstants.StoreManager, "manual-procurement@test.local");
+            var sourcingStaffId = manualStaffId + 1;
+            EnsureStaffWithRole(ctx, sourcingStaffId, RoleConstants.AccountantWarehouse, "manual-sourcing@test.local");
+            ctx.StaffScopes.Add(new StaffScope
+            {
+                StaffId = sourcingStaffId,
+                ScopeTypeId = (int)CafeChain.Application.Interfaces.Security.ScopeLevel.Store,
+                ScopeRefId = StoreId
+            });
             await ctx.SaveChangesAsync();
             var kg = await ctx.Units.FirstOrDefaultAsync(x => x.UnitCode == "kg");
             if (kg == null)
@@ -356,7 +397,7 @@ namespace CafeChain.Tests.POS
                     ProcurementUnitId = kg.UnitId,
                     Reason = "Mua theo kế hoạch bổ sung"
                 },
-                manualStaffId);
+                sourcingStaffId);
 
             Assert.True(sourcing.IsSuccess, sourcing.Message);
             Assert.Equal(RestockSourcingAllocationStatuses.PendingPurchaseAdvice, sourcing.Data!.Status);
@@ -513,6 +554,24 @@ namespace CafeChain.Tests.POS
                     UnitId = UnitId,
                     UnitCode = "g",
                     Name = "Gram",
+                    Type = UnitType.KhoiLuong,
+                    Active = true
+                });
+            }
+            else
+            {
+                ctx.Units.Single(u => u.UnitId == UnitId).Type = UnitType.KhoiLuong;
+            }
+
+            if (!ctx.Units.Any(u => u.UnitCode == ProcurementUnitCodes.Kilogram)
+                && !ctx.Units.Local.Any(u => u.UnitCode == ProcurementUnitCodes.Kilogram))
+            {
+                ctx.Units.Add(new Unit
+                {
+                    UnitId = 9100,
+                    UnitCode = ProcurementUnitCodes.Kilogram,
+                    Name = "Kilogram",
+                    Type = UnitType.KhoiLuong,
                     Active = true
                 });
             }

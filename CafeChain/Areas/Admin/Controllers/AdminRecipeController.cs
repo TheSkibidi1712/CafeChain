@@ -3,6 +3,7 @@ using CafeChain.Application.Interfaces.Admin.Production;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.DTOs.Admin.StoreInventories;
+using CafeChain.Application.Constants;
 using CafeChain.ViewModels.Admin.Recipes;
 using CafeChain.Helpers;
 using Microsoft.AspNetCore.Authorization;
@@ -147,14 +148,34 @@ namespace CafeChain.Areas.Admin.Controllers
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-                return Json(new { success = false, message = "Dữ liệu không hợp lệ.", errors = errors });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Dữ liệu công thức chưa hợp lệ.",
+                    errorCode = BomRecipeErrorCodes.InvalidPayload,
+                    errors
+                });
             }
 
             var result = await _recipeService.CreateRecipeAsync(model);
             if (result.IsSuccess)
-                return Json(new { success = true, message = result.Message });
+                return Ok(new { success = true, message = result.Message });
 
-            return Json(new { success = false, message = result.Message });
+            var response = new
+            {
+                success = false,
+                message = result.Message,
+                errorCode = result.ErrorCode,
+                errors = result.Errors
+            };
+
+            if (result.ErrorCode == BomRecipeErrorCodes.RecipeOverlap)
+                return Conflict(response);
+
+            if (result.ErrorCode == BomRecipeErrorCodes.TechnicalError)
+                return StatusCode(500, response);
+
+            return BadRequest(response);
         }
 
         [HttpPost]

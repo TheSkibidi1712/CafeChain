@@ -1,50 +1,163 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.CreateProcurementDemandRequest
 @{
-    ViewData["Title"] = "Tạo nhu cầu bổ sung thủ công";
+    ViewData["Title"] = "Tạo yêu cầu bổ sung";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var ingredients = ViewBag.Ingredients;
     var units = ViewBag.Units;
 }
-<div class="ops-page">
-    <header class="ops-page-header">
+
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
+
+<main class="ops-shell">
+    <header class="ops-header">
         <div>
-            <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
-            <h1>Tạo nhu cầu bổ sung thủ công</h1>
-            <p class="ops-subtitle">Ghi nhận nhu cầu theo đơn vị procurement; chưa tạo đề nghị mua cho đến khi có quyết định nguồn cung.</p>
+            <div class="ops-eyebrow">KHO &amp; CUNG ỨNG / YÊU CẦU BỔ SUNG</div>
+            <h1 class="ops-title">Tạo yêu cầu bổ sung</h1>
+            <p class="ops-subtitle">Ghi nhận một nhu cầu vận hành mới theo đơn vị mua hàng. Yêu cầu này chưa tạo đề nghị mua cho đến khi bộ phận phụ trách chọn nguồn “Mua ngoài”.</p>
         </div>
-        <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Quay lại</a>
+        <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách yêu cầu</a>
     </header>
-    <section class="ops-card">
-        <form asp-action="CreateManual" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="StoreId" />
-            <input type="hidden" asp-for="SourceType" />
-            <div class="ops-form-grid">
-                <label>Nguyên liệu
-                    <select asp-for="IngredientId" required>
-                        <option value="">Chọn nguyên liệu</option>
-                        @foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }
-                    </select>
-                </label>
-                <label>Đơn vị procurement
-                    <select asp-for="ProcurementUnitId" required>
-                        <option value="">Chọn đơn vị</option>
-                        @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }
-                    </select>
-                </label>
-                <label>Số lượng yêu cầu
-                    <input asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required />
-                </label>
-                <label>Cần trước ngày
-                    <input asp-for="NeedByDate" type="date" />
-                </label>
-                <label class="ops-form-wide">Mã tham chiếu
-                    <input asp-for="SourceReferenceId" maxlength="100" placeholder="Ví dụ: COUNT-20260726-01" />
-                </label>
-                <label class="ops-form-wide">Lý do / ghi chú
-                    <textarea asp-for="Note" maxlength="500" rows="3"></textarea>
-                </label>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="ops-notice ops-notice-error" role="alert"></div>
+    }
+
+    <section id="activeDemandCard" class="ops-panel" hidden aria-live="polite">
+        <div class="ops-panel-header"><h2 class="ops-panel-title">Nguyên liệu đã có yêu cầu đang xử lý</h2></div>
+        <div class="ops-panel-body">
+            <div class="ops-notice ops-notice-warning">
+                <strong>Không tạo thêm yêu cầu trùng.</strong>
+                <div id="activeDemandMessage" class="ops-secondary mt-1"></div>
             </div>
-            <button class="ops-btn ops-btn-primary" type="submit">Tạo nhu cầu bổ sung</button>
-        </form>
+            <div class="ops-data-grid mt-3">
+                <div><span class="ops-data-label">Yêu cầu hiện tại</span><span id="activeDemandCode" class="ops-data-value"></span></div>
+                <div><span class="ops-data-label">Trạng thái</span><span id="activeDemandStatus" class="ops-data-value"></span></div>
+                <div><span class="ops-data-label">Tổng nhu cầu</span><span id="activeDemandRequested" class="ops-data-value"></span></div>
+                <div><span class="ops-data-label">Đã phân bổ</span><span id="activeDemandAllocated" class="ops-data-value"></span></div>
+                <div><span class="ops-data-label">Chưa xác định nguồn</span><span id="activeDemandRemaining" class="ops-data-value"></span></div>
+                <div><span class="ops-data-label">Cần trước ngày</span><span id="activeDemandNeedBy" class="ops-data-value"></span></div>
+            </div>
+            <div class="ops-inline-actions mt-3">
+                <a id="activeDemandDetails" class="ops-btn ops-btn-primary" href="#">Xem yêu cầu hiện tại</a>
+                <a id="activeDemandAdd" class="ops-btn" href="#">Bổ sung nhu cầu</a>
+                <button id="chooseAnotherIngredient" class="ops-btn" type="button">Chọn nguyên liệu khác</button>
+            </div>
+        </div>
     </section>
-</div>
+
+    <section class="ops-panel">
+        <div class="ops-panel-header"><h2 class="ops-panel-title">Thông tin nhu cầu</h2></div>
+        <div class="ops-panel-body">
+            <form id="createDemandForm" asp-action="CreateManual" method="post" data-check-url="@Url.Action("CheckActive", "AdminRestockRequests", new { area = "Admin" })">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="StoreId" />
+                <input type="hidden" asp-for="SourceType" />
+                <div class="ops-data-grid">
+                    <div>
+                        <label class="ops-form-label" asp-for="IngredientId">Nguyên liệu</label>
+                        <select class="ops-select" asp-for="IngredientId" required>
+                            <option value="">Chọn nguyên liệu</option>
+                            @foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="ops-form-label" asp-for="ProcurementUnitId">Đơn vị mua hàng</label>
+                        <select class="ops-select" asp-for="ProcurementUnitId" required>
+                            <option value="">Chọn đơn vị</option>
+                            @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }
+                        </select>
+                    </div>
+                    <div><label class="ops-form-label" asp-for="RequestedProcurementQuantity">Số lượng yêu cầu</label><input class="ops-input" asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required /></div>
+                    <div><label class="ops-form-label" asp-for="NeedByDate">Cần trước ngày</label><input class="ops-input" asp-for="NeedByDate" type="date" /></div>
+                    <div>
+                        <label class="ops-form-label" asp-for="Priority">Mức ưu tiên</label>
+                        <select class="ops-select" asp-for="Priority"><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="URGENT">Khẩn cấp</option></select>
+                    </div>
+                    <div><label class="ops-form-label" asp-for="SourceReferenceId">Mã tham chiếu</label><input class="ops-input" asp-for="SourceReferenceId" maxlength="100" placeholder="Ví dụ: COUNT-20260726-01" /></div>
+                </div>
+                <div class="mt-3"><label class="ops-form-label" asp-for="Note">Lý do / ghi chú</label><textarea class="ops-textarea" asp-for="Note" maxlength="500" rows="3" placeholder="Nêu nguyên nhân phát sinh nhu cầu..."></textarea></div>
+                <div class="ops-help mt-3"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Mỗi chi nhánh chỉ có một yêu cầu đang hoạt động cho cùng nguyên liệu. Khi đã có yêu cầu, hãy bổ sung nhu cầu vào yêu cầu đó để không tách lịch sử và phân bổ nguồn cung.</div>
+                <div class="ops-inline-actions mt-3">
+                    <button id="createDemandSubmit" class="ops-btn ops-btn-primary" type="submit">Tạo yêu cầu bổ sung</button>
+                    <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </section>
+</main>
+
+<script>
+(() => {
+    const form = document.getElementById('createDemandForm');
+    const ingredient = document.getElementById('IngredientId');
+    const submit = document.getElementById('createDemandSubmit');
+    const card = document.getElementById('activeDemandCard');
+    const storeId = document.getElementById('StoreId').value;
+    let activeExists = false;
+    let requestVersion = 0;
+
+    const setText = (id, value) => { document.getElementById(id).textContent = value ?? '—'; };
+    const quantity = value => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 3 }).format(Number(value || 0));
+    const resetConflict = () => {
+        activeExists = false;
+        card.hidden = true;
+        submit.disabled = false;
+    };
+
+    async function checkActive() {
+        const ingredientId = ingredient.value;
+        const version = ++requestVersion;
+        resetConflict();
+        if (!ingredientId) return;
+        submit.disabled = true;
+        try {
+            const url = new URL(form.dataset.checkUrl, window.location.origin);
+            url.searchParams.set('storeId', storeId);
+            url.searchParams.set('ingredientId', ingredientId);
+            const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (version !== requestVersion) return;
+            if (response.status !== 409) {
+                if (!response.ok) throw new Error('Không thể kiểm tra yêu cầu hiện tại.');
+                resetConflict();
+                return;
+            }
+            const data = await response.json();
+            activeExists = true;
+            card.hidden = false;
+            submit.disabled = true;
+            setText('activeDemandMessage', data.message);
+            setText('activeDemandCode', data.existingRequestCode);
+            setText('activeDemandStatus', data.existingStatus);
+            setText('activeDemandRequested', `${quantity(data.existingRequestedQty)} ${data.procurementUnit}`);
+            setText('activeDemandAllocated', `${quantity(data.existingAllocatedQty)} ${data.procurementUnit}`);
+            setText('activeDemandRemaining', `${quantity(data.existingRemainingQty)} ${data.procurementUnit}`);
+            setText('activeDemandNeedBy', data.needByDate ? new Date(data.needByDate).toLocaleDateString('vi-VN') : 'Chưa đặt');
+            document.getElementById('activeDemandDetails').href = data.detailUrl;
+            document.getElementById('activeDemandAdd').href = `${data.detailUrl}#add-demand`;
+        } catch (error) {
+            if (version === requestVersion) {
+                resetConflict();
+                console.error('[RestockRequest] Active request check failed.', error);
+            }
+        }
+    }
+
+    ingredient.addEventListener('change', checkActive);
+    document.getElementById('chooseAnotherIngredient').addEventListener('click', () => {
+        ingredient.value = '';
+        resetConflict();
+        ingredient.focus();
+    });
+    form.addEventListener('submit', event => {
+        if (activeExists) {
+            event.preventDefault();
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        submit.disabled = true;
+        submit.textContent = 'Đang tạo yêu cầu...';
+    });
+    if (ingredient.value) checkActive();
+})();
+</script>

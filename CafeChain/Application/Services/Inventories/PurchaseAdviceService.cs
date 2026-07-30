@@ -8,6 +8,7 @@ using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Repositories;
 using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
 using Microsoft.EntityFrameworkCore;
@@ -85,7 +86,7 @@ namespace CafeChain.Application.Services.Inventories
 
             IReadOnlyList<PurchaseAdviceSourceDto> sources = Array.Empty<PurchaseAdviceSourceDto>();
             var sourceStoreId = filter.StoreId ?? (CanCreate(actor) ? actor.StoreIdOrNull : null);
-            if (sourceStoreId.HasValue && CanCreateForStore(actor, sourceStoreId.Value))
+            if (sourceStoreId.HasValue && await CanCreateForStoreAsync(actor, sourceStoreId.Value))
             {
                 var sourceResult = await GetAvailableSourcesAsync(sourceStoreId.Value, actor);
                 if (sourceResult.IsSuccess) sources = sourceResult.Data!;
@@ -105,8 +106,8 @@ namespace CafeChain.Application.Services.Inventories
             int storeId,
             AdminActorContext actor)
         {
-            if (!CanCreateForStore(actor, storeId))
-                return Failure<IReadOnlyList<PurchaseAdviceSourceDto>>(PurchaseAdviceErrorCodes.Forbidden, "Chỉ Quản lý chi nhánh được tạo đề nghị mua cho chi nhánh của mình.");
+            if (!await CanCreateForStoreAsync(actor, storeId))
+                return Failure<IReadOnlyList<PurchaseAdviceSourceDto>>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền tạo đề nghị mua cho cửa hàng này.");
 
             var requestIds = await _context.RestockRequests.AsNoTracking()
                 .Where(x => x.StoreId == storeId
@@ -122,7 +123,12 @@ namespace CafeChain.Application.Services.Inventories
                 var source = await BuildSourceAsync(requestId, null, false);
                 if (source != null
                     && HasRemainingToPurchase(source)
-                    && source.ExistingPurchaseAdviceQuantity == 0)
+                    && source.ExistingPurchaseAdviceQuantity == 0
+                    && (string.Equals(
+                            source.SourceType,
+                            RestockRequestSourceTypes.Legacy,
+                            StringComparison.OrdinalIgnoreCase)
+                        || source.PendingPurchaseAllocationBaseQuantity > 0))
                     result.Add(source);
             }
 
@@ -145,8 +151,8 @@ namespace CafeChain.Application.Services.Inventories
             CreatePurchaseAdviceRequest request,
             AdminActorContext actor)
         {
-            if (!CanCreateForStore(actor, request.StoreId))
-                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Chỉ Quản lý chi nhánh được tạo đề nghị mua cho chi nhánh của mình.");
+            if (!await CanCreateForStoreAsync(actor, request.StoreId))
+                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền tạo đề nghị mua cho cửa hàng này.");
             if (request.Lines.Count == 0)
                 return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Empty, "Đề nghị mua phải có ít nhất một dòng.");
             if (request.Lines.Any(x => !x.RestockRequestId.HasValue))
@@ -167,7 +173,9 @@ namespace CafeChain.Application.Services.Inventories
                 return await GetDetailAsync(replay.PurchaseAdviceId, actor);
             }
 
-            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await using var ownedTransaction = _context.Database.CurrentTransaction == null
+                ? await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable)
+                : null;
             try
             {
                 var validated = new List<(CreatePurchaseAdviceLineRequest Input, RestockRequest Source)>();
@@ -183,7 +191,8 @@ namespace CafeChain.Application.Services.Inventories
                         true);
                     if (!validation.IsSuccess)
                     {
-                        await transaction.RollbackAsync();
+                        if (ownedTransaction != null)
+                            await ownedTransaction.RollbackAsync();
                         return Failure<PurchaseAdviceDetailDto>(validation.ErrorCode, validation.Message);
                     }
                     validated.Add((line, validation.Source!));
@@ -238,30 +247,75 @@ namespace CafeChain.Application.Services.Inventories
                 _context.PurchaseAdvices.Add(advice);
                 await _context.SaveChangesAsync();
                 foreach (var line in advice.Lines)
-                {
-                    var pendingAllocation = await _context.RestockSourcingAllocations
-                        .SingleOrDefaultAsync(x =>
-                            x.RestockRequestId == line.RestockRequestId
-                            && x.DecisionType == RestockSourcingDecisionTypes.Purchase
-                            && x.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice
-                            && x.PurchaseAdviceLineId == null);
-                    if (pendingAllocation == null) continue;
-                    pendingAllocation.PurchaseAdviceLineId = line.PurchaseAdviceLineId;
-                    pendingAllocation.Status = RestockSourcingAllocationStatuses.Active;
-                    line.RestockSourcingAllocationId = pendingAllocation.RestockSourcingAllocationId;
-                }
+                    await LinkPendingPurchaseAllocationsAsync(line);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownedTransaction != null)
+                    await ownedTransaction.CommitAsync();
                 return await GetDetailAsync(advice.PurchaseAdviceId, actor);
             }
             catch (DbUpdateException)
             {
-                await transaction.RollbackAsync();
+                if (ownedTransaction != null)
+                    await ownedTransaction.RollbackAsync();
                 var existing = await _context.PurchaseAdvices.AsNoTracking()
                     .SingleOrDefaultAsync(x => x.RequestKey == request.RequestKey);
                 if (existing != null) return await GetDetailAsync(existing.PurchaseAdviceId, actor);
                 return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.AlreadyExists, "Yêu cầu nhập đã có đề nghị mua đang hiệu lực hoặc dữ liệu vừa được cập nhật.");
             }
+        }
+
+        public async Task<ServiceResult<PurchaseAdviceDetailDto>> AddRestockRequestToDraftAsync(
+            AddRestockRequestToDraftPurchaseAdviceRequest request,
+            AdminActorContext actor)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var advice = await LoadAdviceAsync(request.PurchaseAdviceId, true);
+            if (advice == null)
+                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotFound, "Không tìm thấy đề nghị mua nháp.");
+            if (!await CanManageStoreAdviceAsync(actor, advice.StoreId))
+                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền cập nhật đề nghị mua này.");
+            if (advice.Status != PurchaseAdviceStatuses.Draft)
+                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotEditable, "Chỉ có thể thêm yêu cầu vào đề nghị mua ở trạng thái Bản nháp.");
+            if (!VersionMatches(advice.RowVersion, request.PurchaseAdviceRowVersion))
+                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.StaleVersion, "Đề nghị mua đã thay đổi. Vui lòng tải lại.");
+            if (advice.Lines.Any(x => x.RestockRequestId == request.RestockRequestId))
+                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.AlreadyExists, "Yêu cầu này đã có trong đề nghị mua đã chọn.");
+
+            var source = await BuildSourceAsync(request.RestockRequestId, null, true);
+            if (source == null || source.StoreId != advice.StoreId)
+                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.StoreScopeMismatch, "Yêu cầu không thuộc cùng cửa hàng với đề nghị mua.");
+            var procurementQuantity = source.PendingPurchaseAllocationProcurementQuantity;
+            var baseQuantity = source.PendingPurchaseAllocationBaseQuantity;
+            var validation = await ValidateSourceAsync(
+                request.RestockRequestId,
+                advice.StoreId,
+                baseQuantity,
+                procurementQuantity,
+                request.RestockRowVersion,
+                null,
+                true);
+            if (!validation.IsSuccess)
+                return Failure<PurchaseAdviceDetailDto>(validation.ErrorCode, validation.Message);
+
+            var restock = validation.Source!;
+            var line = new PurchaseAdviceLine
+            {
+                RestockRequestId = restock.RestockRequestId,
+                IngredientId = restock.IngredientId!.Value,
+                RequestedPurchaseBaseQuantity = baseQuantity,
+                RequestedProcurementQuantity = procurementQuantity,
+                ProcurementUnitId = restock.ProcurementUnitId,
+                BaseUnitId = restock.Ingredient!.BaseUnitId,
+                NeededByDate = advice.NeededByDate,
+                IsActiveReservation = true
+            };
+            advice.Lines.Add(line);
+            advice.UpdatedAtUtc = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            await LinkPendingPurchaseAllocationsAsync(line);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return await GetDetailAsync(advice.PurchaseAdviceId, actor);
         }
 
         public async Task<ServiceResult<PurchaseAdviceDetailDto>> CreateDirectAsync(
@@ -270,17 +324,28 @@ namespace CafeChain.Application.Services.Inventories
         {
             if (!request.IsDirectProposal)
                 return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.SourceInvalid, "Yêu cầu không phải đề nghị mua trực tiếp.");
-            if (!CanCreateForStore(actor, request.StoreId))
+            if (!await CanCreateForStoreAsync(actor, request.StoreId))
                 return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền tạo đề nghị mua trực tiếp cho cửa hàng này.");
             if (request.Lines.Count == 0)
                 return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Empty, "Đề nghị mua phải có ít nhất một dòng.");
+            if (string.IsNullOrWhiteSpace(request.RequestKey))
+                request.RequestKey = Guid.NewGuid().ToString("N");
 
-            var sourceLines = new List<CreatePurchaseAdviceLineRequest>();
+            var replay = await _context.PurchaseAdvices.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.RequestKey == request.RequestKey);
+            if (replay != null)
+            {
+                if (replay.StoreId != request.StoreId || replay.RequestedByStaffId != actor.StaffId)
+                    return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.AlreadyExists, "Mã yêu cầu đã được sử dụng cho thao tác khác.");
+                return await GetDetailAsync(replay.PurchaseAdviceId, actor);
+            }
+
+            var validated = new List<(CreatePurchaseAdviceLineRequest Input, Ingredient Ingredient, decimal BaseQuantity)>();
             foreach (var input in request.Lines)
             {
                 if (!input.IngredientId.HasValue || !input.RequestedProcurementQuantity.HasValue
                     || !input.ProcurementUnitId.HasValue || input.RequestedProcurementQuantity <= 0)
-                    return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.QuantityInvalid, "Dòng mua trực tiếp thiếu nguyên liệu, số lượng hoặc đơn vị procurement.");
+                    return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.QuantityInvalid, "Dòng mua trực tiếp thiếu nguyên liệu, số lượng hoặc đơn vị mua hàng.");
 
                 var ingredient = await _context.Ingredients.AsNoTracking()
                     .SingleOrDefaultAsync(x => x.IngredientId == input.IngredientId.Value && x.Active);
@@ -295,61 +360,87 @@ namespace CafeChain.Application.Services.Inventories
                 if (!converted.IsSuccess || converted.Data <= 0)
                     return Failure<PurchaseAdviceDetailDto>(
                         PurchaseAdviceErrorCodes.QuantityInvalid,
-                        converted.Message ?? "Không quy đổi được đơn vị procurement sang đơn vị tồn kho.");
+                        converted.Message ?? "Không quy đổi được đơn vị mua hàng sang đơn vị tồn kho.");
 
-                var demand = new RestockRequest
-                {
-                    StoreId = request.StoreId,
-                    CreatedForStoreId = request.StoreId,
-                    SourceType = RestockRequestSourceTypes.DirectPurchaseProposal,
-                    SourceReferenceId = string.IsNullOrWhiteSpace(request.RequestKey)
-                        ? Guid.NewGuid().ToString("N")
-                        : request.RequestKey.Trim(),
-                    NeedByDate = request.NeededByDate.ToUniversalTime(),
-                    RequestedProcurementQuantity = input.RequestedProcurementQuantity.Value,
-                    ProcurementUnitId = input.ProcurementUnitId.Value,
-                    RequestedQuantity = converted.Data,
-                    SuggestedQuantity = converted.Data,
-                    IngredientId = ingredient.IngredientId,
-                    Status = RestockRequestStatuses.Processing,
-                    SourcingDecision = RestockSourcingDecisionTypes.Purchase,
-                    SourcingStatus = RestockSourcingStatuses.PartiallyAllocated,
-                    Priority = PurchaseAdvicePriorities.All.Contains(request.Priority)
-                        ? request.Priority.ToUpperInvariant()
-                        : PurchaseAdvicePriorities.Normal,
-                    CreatedByStaffId = actor.StaffId,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    Note = Clean(request.Note, 1000)
-                };
-                _context.RestockRequests.Add(demand);
-                await _context.SaveChangesAsync();
-                _context.RestockSourcingAllocations.Add(new RestockSourcingAllocation
-                {
-                    RestockRequestId = demand.RestockRequestId,
-                    DecisionType = RestockSourcingDecisionTypes.Purchase,
-                    ProcurementQuantity = input.RequestedProcurementQuantity.Value,
-                    ProcurementUnitId = input.ProcurementUnitId.Value,
-                    Status = RestockSourcingAllocationStatuses.PendingPurchaseAdvice,
-                    SourceDocumentType = RestockRequestSourceTypes.DirectPurchaseProposal,
-                    Reason = "Đề nghị mua trực tiếp tạo audit nhu cầu bổ sung.",
-                    CreatedByStaffId = actor.StaffId,
-                    CreatedAtUtc = DateTime.UtcNow
-                });
-                await _context.SaveChangesAsync();
-                sourceLines.Add(new CreatePurchaseAdviceLineRequest
-                {
-                    RestockRequestId = demand.RestockRequestId,
-                    RequestedPurchaseBaseQuantity = converted.Data,
-                    RequestedPurchaseProcurementQuantity = input.RequestedProcurementQuantity.Value,
-                    NeededByDate = input.NeededByDate,
-                    Note = input.Note
-                });
+                validated.Add((input, ingredient, converted.Data));
             }
 
-            request.IsDirectProposal = false;
-            request.Lines = sourceLines;
-            return await CreateAsync(request, actor);
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            try
+            {
+                var sourceLines = new List<CreatePurchaseAdviceLineRequest>();
+                foreach (var item in validated)
+                {
+                    var input = item.Input;
+                    var ingredient = item.Ingredient;
+                    var baseQuantity = item.BaseQuantity;
+                    var demand = new RestockRequest
+                    {
+                        StoreId = request.StoreId,
+                        CreatedForStoreId = request.StoreId,
+                        SourceType = RestockRequestSourceTypes.DirectPurchaseProposal,
+                        SourceReferenceId = string.IsNullOrWhiteSpace(request.RequestKey)
+                            ? Guid.NewGuid().ToString("N")
+                            : request.RequestKey.Trim(),
+                        NeedByDate = request.NeededByDate.ToUniversalTime(),
+                        RequestedProcurementQuantity = input.RequestedProcurementQuantity.Value,
+                        ProcurementUnitId = input.ProcurementUnitId.Value,
+                        RequestedQuantity = baseQuantity,
+                        SuggestedQuantity = baseQuantity,
+                        IngredientId = ingredient.IngredientId,
+                        Status = RestockRequestStatuses.Processing,
+                        SourcingDecision = RestockSourcingDecisionTypes.Purchase,
+                        SourcingStatus = RestockSourcingStatuses.PartiallyAllocated,
+                        Priority = PurchaseAdvicePriorities.All.Contains(request.Priority)
+                            ? request.Priority.ToUpperInvariant()
+                            : PurchaseAdvicePriorities.Normal,
+                        CreatedByStaffId = actor.StaffId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        Note = Clean(request.Note, 1000)
+                    };
+                    demand.SourcingAllocations.Add(new RestockSourcingAllocation
+                    {
+                        DecisionType = RestockSourcingDecisionTypes.Purchase,
+                        ProcurementQuantity = input.RequestedProcurementQuantity.Value,
+                        ProcurementUnitId = input.ProcurementUnitId.Value,
+                        Status = RestockSourcingAllocationStatuses.PendingPurchaseAdvice,
+                        SourceDocumentType = RestockRequestSourceTypes.DirectPurchaseProposal,
+                        Reason = "Đề nghị mua trực tiếp tạo audit nhu cầu bổ sung.",
+                        CreatedByStaffId = actor.StaffId,
+                        CreatedAtUtc = DateTime.UtcNow
+                    });
+                    _context.RestockRequests.Add(demand);
+                    await _context.SaveChangesAsync();
+                    sourceLines.Add(new CreatePurchaseAdviceLineRequest
+                    {
+                        RestockRequestId = demand.RestockRequestId,
+                        RequestedPurchaseBaseQuantity = baseQuantity,
+                        RequestedPurchaseProcurementQuantity = input.RequestedProcurementQuantity.Value,
+                        NeededByDate = input.NeededByDate,
+                        Note = input.Note
+                    });
+                }
+
+                request.IsDirectProposal = false;
+                request.Lines = sourceLines;
+                var result = await CreateAsync(request, actor);
+                if (!result.IsSuccess)
+                {
+                    await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
+                    return result;
+                }
+
+                await transaction.CommitAsync();
+                return result;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                _context.ChangeTracker.Clear();
+                throw;
+            }
         }
 
         public async Task<ServiceResult<PurchaseAdviceDetailDto>> UpdateAsync(
@@ -359,7 +450,7 @@ namespace CafeChain.Application.Services.Inventories
             await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             var advice = await LoadAdviceAsync(request.PurchaseAdviceId, true);
             if (advice == null) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotFound, "Không tìm thấy đề nghị mua hàng.");
-            if (!CanManageStoreAdvice(actor, advice.StoreId)) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền sửa đề nghị mua này.");
+            if (!await CanManageStoreAdviceAsync(actor, advice.StoreId)) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền sửa đề nghị mua này.");
             if (advice.Status != PurchaseAdviceStatuses.Draft) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotEditable, "Chỉ đề nghị mua ở trạng thái Nháp được sửa.");
             if (!VersionMatches(advice.RowVersion, request.RowVersion)) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.StaleVersion, "Đề nghị mua đã được người khác cập nhật. Vui lòng tải lại.");
             if (request.Lines.Count == 0 || request.Lines.Count != advice.Lines.Count)
@@ -428,7 +519,7 @@ namespace CafeChain.Application.Services.Inventories
         {
             var advice = await LoadAdviceAsync(id, false);
             if (advice == null) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotFound, "Không tìm thấy đề nghị mua hàng.");
-            if (!CanManageStoreAdvice(actor, advice.StoreId)) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền hủy đề nghị mua này.");
+            if (!await CanManageStoreAdviceAsync(actor, advice.StoreId)) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền hủy đề nghị mua này.");
             if (advice.Status is not (PurchaseAdviceStatuses.Draft or PurchaseAdviceStatuses.Submitted))
                 return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotEditable, "Không thể hủy đề nghị mua sau khi đã bắt đầu duyệt.");
             return await TransitionAsync(id, request, actor, advice.Status, PurchaseAdviceStatuses.Cancelled, false);
@@ -445,7 +536,9 @@ namespace CafeChain.Application.Services.Inventories
             await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             var advice = await LoadAdviceAsync(id, true);
             if (advice == null) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotFound, "Không tìm thấy đề nghị mua hàng.");
-            var allowed = reviewerAction ? CanReview(actor) : CanManageStoreAdvice(actor, advice.StoreId);
+            var allowed = reviewerAction
+                ? await CanReviewStoreAsync(actor, advice.StoreId)
+                : await CanManageStoreAdviceAsync(actor, advice.StoreId);
             if (!allowed) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền thực hiện thao tác này.");
             if (advice.Status == target)
             {
@@ -480,6 +573,23 @@ namespace CafeChain.Application.Services.Inventories
             if (target == PurchaseAdviceStatuses.Cancelled) { advice.CancelledAtUtc = now; advice.CancelledByStaffId = actor.StaffId; }
             if (!PurchaseAdviceStatuses.ActiveReservationStatuses.Contains(target))
                 foreach (var line in advice.Lines) line.IsActiveReservation = false;
+            if (target == PurchaseAdviceStatuses.Cancelled)
+            {
+                var lineIds = advice.Lines.Select(x => x.PurchaseAdviceLineId).ToArray();
+                var allocations = await _context.RestockSourcingAllocations
+                    .Where(x => x.PurchaseAdviceLineId.HasValue
+                        && lineIds.Contains(x.PurchaseAdviceLineId.Value)
+                        && x.Status == RestockSourcingAllocationStatuses.Active
+                        && x.PurchaseOrderLineId == null)
+                    .ToListAsync();
+                foreach (var allocation in allocations)
+                {
+                    allocation.Status = RestockSourcingAllocationStatuses.Released;
+                    allocation.ReleasedAtUtc = now;
+                    allocation.ReleasedByStaffId = actor.StaffId;
+                    allocation.ReleaseReason = "Đề nghị mua bị hủy trước khi tạo đơn đặt hàng.";
+                }
+            }
             advice.Transitions.Add(new PurchaseAdviceTransition
             {
                 PreviousStatus = expected,
@@ -498,6 +608,26 @@ namespace CafeChain.Application.Services.Inventories
             {
                 return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.StaleVersion, "Trạng thái đề nghị mua đã được cập nhật đồng thời.");
             }
+        }
+
+        private async Task LinkPendingPurchaseAllocationsAsync(PurchaseAdviceLine line)
+        {
+            var pending = await _context.RestockSourcingAllocations
+                .Where(x => x.RestockRequestId == line.RestockRequestId
+                    && x.DecisionType == RestockSourcingDecisionTypes.Purchase
+                    && x.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice
+                    && x.PurchaseAdviceLineId == null
+                    && x.PurchaseOrderLineId == null)
+                .OrderBy(x => x.RestockSourcingAllocationId)
+                .ToListAsync();
+            if (pending.Count == 0) return;
+
+            foreach (var allocation in pending)
+            {
+                allocation.PurchaseAdviceLineId = line.PurchaseAdviceLineId;
+                allocation.Status = RestockSourcingAllocationStatuses.Active;
+            }
+            line.RestockSourcingAllocationId = pending[0].RestockSourcingAllocationId;
         }
 
         private async Task<(bool IsSuccess, string ErrorCode, string Message, RestockRequest? Source)> ValidateSourceAsync(
@@ -529,6 +659,12 @@ namespace CafeChain.Application.Services.Inventories
             {
                 var requested = procurementQuantity ?? source.RequestedProcurementQuantity.Value;
                 var remaining = breakdown.RemainingToPurchaseProcurementQuantity.GetValueOrDefault();
+                var allocatedForPurchase = breakdown.PendingPurchaseAllocationProcurementQuantity.GetValueOrDefault();
+                if (!string.Equals(source.SourceType, RestockRequestSourceTypes.Legacy, StringComparison.OrdinalIgnoreCase)
+                    && allocatedForPurchase > 0
+                    && requested > allocatedForPurchase)
+                    return (false, PurchaseAdviceErrorCodes.ExceedsRestockRemaining,
+                        $"Số lượng {requested:N3} vượt phần đã chọn mua ngoài {allocatedForPurchase:N3} {breakdown.ProcurementUnitName}.", null);
                 if (requested > remaining)
                     return (false, PurchaseAdviceErrorCodes.ExceedsRestockRemaining,
                         $"Số lượng {requested:N3} vượt phần còn có thể đề nghị mua {remaining:N3} {breakdown.ProcurementUnitName}.", null);
@@ -553,6 +689,14 @@ namespace CafeChain.Application.Services.Inventories
                 .Where(x => x.RestockRequestId == restockRequestId && x.IsActiveReservation
                     && (!excludeAdviceLineId.HasValue || x.PurchaseAdviceLineId != excludeAdviceLineId.Value))
                 .Select(x => x.RequestedPurchaseBaseQuantity - x.ClosedBaseQuantity).ToListAsync()).Sum(x => Math.Max(0m, x));
+            var pendingPurchaseProcurement = (await _context.RestockSourcingAllocations.AsNoTracking()
+                .Where(x => x.RestockRequestId == restockRequestId
+                    && x.DecisionType == RestockSourcingDecisionTypes.Purchase
+                    && x.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice
+                    && x.PurchaseAdviceLineId == null
+                    && x.PurchaseOrderLineId == null)
+                .Select(x => x.ProcurementQuantity)
+                .ToListAsync()).Sum();
             var remaining = Math.Max(0m, request.RequestedQuantity - transfer - pa - po - request.ClosedRemainingQuantity);
             decimal? transferProcurement = null;
             decimal? purchaseAdviceProcurement = null;
@@ -614,6 +758,7 @@ namespace CafeChain.Application.Services.Inventories
                             - closedProcurement.Value);
                 }
             }
+            var procurementToBaseFactor = await GetProcurementToBaseFactorAsync(request);
             return new PurchaseAdviceSourceDto
             {
                 RestockRequestId = request.RestockRequestId,
@@ -624,6 +769,9 @@ namespace CafeChain.Application.Services.Inventories
                 BaseUnitId = request.Ingredient.BaseUnitId,
                 BaseUnitName = request.Ingredient.BaseUnit.Name,
                 Priority = request.Priority,
+                SourceType = request.SourceType,
+                SourcingStatus = request.SourcingStatus,
+                NeedByDate = request.NeedByDate,
                 RestockRequestedQuantity = request.RequestedQuantity,
                 RestockRequestedProcurementQuantity = request.RequestedProcurementQuantity,
                 ProcurementUnitId = request.ProcurementUnitId,
@@ -638,12 +786,20 @@ namespace CafeChain.Application.Services.Inventories
                 ExistingPurchaseOrderProcurementQuantity = purchaseOrderProcurement,
                 ExplicitlyClosedProcurementQuantity = closedProcurement,
                 RemainingToPurchaseProcurementQuantity = remainingProcurement,
+                PendingPurchaseAllocationProcurementQuantity = request.RequestedProcurementQuantity.HasValue
+                    ? pendingPurchaseProcurement
+                    : null,
+                PendingPurchaseAllocationBaseQuantity = request.RequestedProcurementQuantity.HasValue
+                    ? pendingPurchaseProcurement * procurementToBaseFactor
+                    : pendingPurchaseProcurement,
                 RestockRowVersion = Convert.ToBase64String(request.RowVersion)
             };
         }
 
         private async Task<PurchaseAdviceDetailDto> MapDetailAsync(PurchaseAdvice advice, AdminActorContext actor)
         {
+            var canManage = await CanManageStoreAdviceAsync(actor, advice.StoreId);
+            var canReview = await CanReviewStoreAsync(actor, advice.StoreId);
             var dto = new PurchaseAdviceDetailDto
             {
                 PurchaseAdviceId = advice.PurchaseAdviceId,
@@ -660,11 +816,11 @@ namespace CafeChain.Application.Services.Inventories
                 SubmittedAtUtc = advice.SubmittedAtUtc,
                 CreatedAtUtc = advice.CreatedAtUtc,
                 RowVersion = Convert.ToBase64String(advice.RowVersion),
-                CanEdit = advice.Status == PurchaseAdviceStatuses.Draft && CanManageStoreAdvice(actor, advice.StoreId),
-                CanSubmit = advice.Status == PurchaseAdviceStatuses.Draft && CanManageStoreAdvice(actor, advice.StoreId),
-                CanCancel = advice.Status is PurchaseAdviceStatuses.Draft or PurchaseAdviceStatuses.Submitted && CanManageStoreAdvice(actor, advice.StoreId),
-                CanReview = advice.Status == PurchaseAdviceStatuses.Submitted && CanReview(actor),
-                CanReject = advice.Status == PurchaseAdviceStatuses.UnderReview && CanReview(actor)
+                CanEdit = advice.Status == PurchaseAdviceStatuses.Draft && canManage,
+                CanSubmit = advice.Status == PurchaseAdviceStatuses.Draft && canManage,
+                CanCancel = advice.Status is PurchaseAdviceStatuses.Draft or PurchaseAdviceStatuses.Submitted && canManage,
+                CanReview = advice.Status == PurchaseAdviceStatuses.Submitted && canReview,
+                CanReject = advice.Status == PurchaseAdviceStatuses.UnderReview && canReview
             };
             foreach (var line in advice.Lines.OrderBy(x => x.PurchaseAdviceLineId))
             {
@@ -770,15 +926,19 @@ namespace CafeChain.Application.Services.Inventories
         {
             var stores = await _context.Stores.AsNoTracking().Where(x => x.Active)
                 .OrderBy(x => x.Name).Select(x => new { x.StoreId, x.Name }).ToListAsync();
-            if (HasRole(actor, RoleConstants.BusinessOwner) || HasRole(actor, RoleConstants.AccountantWarehouse))
+            if (HasRole(actor, RoleConstants.BusinessOwner))
                 return stores.Select(x => (x.StoreId, x.Name)).ToList();
             if (HasRole(actor, RoleConstants.StoreManager) && actor.StoreId > 0)
                 return stores.Where(x => x.StoreId == actor.StoreId).Select(x => (x.StoreId, x.Name)).ToList();
-            if (HasRole(actor, RoleConstants.AreaManager))
+            if (HasRole(actor, RoleConstants.AccountantWarehouse)
+                || HasRole(actor, RoleConstants.AreaManager))
             {
-                var accessible = new List<(int, string)>();
+                var accessible = new List<(int StoreId, string Name)>();
                 foreach (var store in stores)
-                    if (await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, store.StoreId)) accessible.Add((store.StoreId, store.Name));
+                {
+                    if (await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, store.StoreId))
+                        accessible.Add((store.StoreId, store.Name));
+                }
                 return accessible;
             }
             return new();
@@ -786,21 +946,34 @@ namespace CafeChain.Application.Services.Inventories
 
         private async Task<bool> CanReadStoreAsync(AdminActorContext actor, int storeId)
         {
-            if (HasRole(actor, RoleConstants.BusinessOwner) || HasRole(actor, RoleConstants.AccountantWarehouse)) return true;
+            if (HasRole(actor, RoleConstants.BusinessOwner)) return true;
             if (HasRole(actor, RoleConstants.StoreManager)) return actor.StoreId == storeId;
-            return HasRole(actor, RoleConstants.AreaManager) && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
+            return (HasRole(actor, RoleConstants.AccountantWarehouse)
+                    || HasRole(actor, RoleConstants.AreaManager))
+                && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
         }
 
         private static bool CanCreate(AdminActorContext actor) =>
             HasRole(actor, RoleConstants.StoreManager)
             || HasRole(actor, RoleConstants.AccountantWarehouse)
             || HasRole(actor, RoleConstants.BusinessOwner);
-        private static bool CanCreateForStore(AdminActorContext actor, int storeId) =>
-            (HasRole(actor, RoleConstants.AccountantWarehouse)
-                || HasRole(actor, RoleConstants.BusinessOwner)
-                || (HasRole(actor, RoleConstants.StoreManager) && actor.StoreId == storeId));
-        private static bool CanManageStoreAdvice(AdminActorContext actor, int storeId) => CanCreateForStore(actor, storeId);
-        private static bool CanReview(AdminActorContext actor) => HasRole(actor, RoleConstants.AccountantWarehouse) || HasRole(actor, RoleConstants.BusinessOwner);
+        private async Task<bool> CanCreateForStoreAsync(AdminActorContext actor, int storeId)
+        {
+            if (HasRole(actor, RoleConstants.BusinessOwner)) return true;
+            if (HasRole(actor, RoleConstants.StoreManager)) return actor.StoreId == storeId;
+            return HasRole(actor, RoleConstants.AccountantWarehouse)
+                && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
+        }
+
+        private Task<bool> CanManageStoreAdviceAsync(AdminActorContext actor, int storeId) =>
+            CanCreateForStoreAsync(actor, storeId);
+
+        private async Task<bool> CanReviewStoreAsync(AdminActorContext actor, int storeId)
+        {
+            if (HasRole(actor, RoleConstants.BusinessOwner)) return true;
+            return HasRole(actor, RoleConstants.AccountantWarehouse)
+                && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
+        }
         private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
 
         private static bool HasRemainingToPurchase(PurchaseAdviceSourceDto source) =>

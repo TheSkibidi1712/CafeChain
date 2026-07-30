@@ -68,7 +68,6 @@ public sealed class RestockSourcingAllocationConfiguration
         entity.HasIndex(x => new { x.RestockRequestId, x.Status });
         entity.HasIndex(x => new { x.RestockRequestId, x.DecisionType, x.Status });
         entity.HasIndex(x => x.PurchaseAdviceLineId)
-            .IsUnique()
             .HasFilter("[PurchaseAdviceLineId] IS NOT NULL AND [Status] = 'ACTIVE'");
         entity.HasIndex(x => x.PurchaseOrderLineId)
             .IsUnique()

@@ -264,3 +264,126 @@ body {
     -webkit-mask-size: contain;
     vertical-align: -0.125em;
 }
+/* Shared CafeChain identity */
+.cafechain-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #6f4e37 !important;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -.025em;
+    text-decoration: none;
+}
+
+.cafechain-brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    color: #fff;
+    background: linear-gradient(135deg, #6f4e37, #8b6b55);
+    box-shadow: 0 6px 14px rgba(111, 78, 55, .2);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.cafechain-brand:hover {
+    color: #5c3f2b !important;
+}
+
+.cafechain-brand:hover .cafechain-brand-mark {
+    transform: translateY(-2px) rotate(-4deg);
+    box-shadow: 0 9px 18px rgba(111, 78, 55, .27);
+}
+
+.cafechain-brand-name {
+    line-height: 1;
+}
+
+.cafechain-brand-footer {
+    color: #f1e7df !important;
+}
+
+.cafechain-brand-footer:hover {
+    color: #fff !important;
+}
+
+.footer-social-links a {
+    color: #b8957d !important;
+    transition: color .18s ease, transform .18s ease;
+}
+
+.footer-social-links a:hover,
+.footer-social-links a:focus-visible {
+    color: #d7b99f !important;
+    transform: translateY(-2px);
+}
+
+.footer-contact .bi {
+    color: #b8957d !important;
+}
+
+.account-role-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    border: 1px solid #9f8069;
+    border-radius: 999px;
+    background: #fffdfb;
+    padding: 4px 11px 4px 5px;
+    color: #1f2937;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(71, 50, 35, .09);
+    transition: transform .18s ease, border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
+}
+
+.account-role-pill:hover,
+.account-role-pill:focus-visible {
+    border-color: #6f4e37;
+    background: #f7f3ee;
+    color: #5c3f2b;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(71, 50, 35, .15);
+}
+
+.account-role-pill:focus-visible {
+    outline: 3px solid rgba(111, 78, 55, .13);
+    outline-offset: 2px;
+}
+
+.account-role-avatar {
+    width: 29px;
+    height: 29px;
+    margin-right: 8px;
+    border: 2px solid #8b6b55;
+    border-radius: 50%;
+    background: #f2eae3;
+    object-fit: cover;
+}
+
+.account-role-name {
+    max-width: 180px;
+    overflow: hidden;
+    color: inherit;
+    font-size: .78rem;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 575.98px) {
+    .cafechain-brand {
+        font-size: 1.15rem;
+    }
+
+    .cafechain-brand-mark {
+        width: 32px;
+        height: 32px;
+    }
+
+    .account-role-name {
+        max-width: 110px;
+    }
+}

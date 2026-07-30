@@ -24,7 +24,7 @@ namespace CafeChain.Data.Configurations.Loyalties
                 .HasDefaultValueSql("GETDATE()");
 
             entity.HasOne(x => x.Customer)
-                .WithMany()
+                .WithMany(x => x.PointTransactions)
                 .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
 

@@ -6,63 +6,153 @@
     Layout = "_Layout";
     var canAccessPos = ViewBag.CanAccessPos is true;
     var days = Enumerable.Range(0, 7).Select(i => Model.WeekStart.AddDays(i)).ToList();
+    var activeSchedules = Model.Schedules
+        .Where(x => !string.Equals(x.StatusCode, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+    var workingDayCount = activeSchedules
+        .Select(x => x.WorkDate.Date)
+        .Distinct()
+        .Count();
+    var cancelledScheduleCount = Model.Schedules.Count(
+        x => string.Equals(x.StatusCode, "CANCELLED", StringComparison.OrdinalIgnoreCase));
 }
 
-<style>
-    .staffhub-shell { max-width: 1180px; margin: 0 auto; }
-    .staffhub-profile { background: linear-gradient(135deg,#7c2d12,#ea580c); color:#fff; border-radius:18px; }
-    .staffhub-avatar { width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,.75); }
-    .schedule-day { border:1px solid #e2e8f0; border-radius:14px; background:#fff; min-height:170px; }
-    .schedule-day.today { border-color:#fb923c; box-shadow:0 0 0 2px rgba(251,146,60,.14); }
-    .schedule-item { border-left:4px solid #f97316; background:#fff7ed; border-radius:8px; padding:10px; margin-top:8px; }
-    .schedule-item.cancelled { border-color:#94a3b8; background:#f8fafc; color:#64748b; }
-</style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/StaffHub/staffhub.css" asp-append-version="true" />
+}
 
 <div id="staffHubApp"
-     class="container-fluid py-4"
+     class="staffhub-page"
      data-issue-pos-url="@Url.Action("IssuePosToken", "StaffHub")">
     @Html.AntiForgeryToken()
     <div class="staffhub-shell">
-        <section class="staffhub-profile p-4 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <img class="staffhub-avatar" src="@(string.IsNullOrWhiteSpace(Model.AvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.AvatarUrl)" onerror="this.src='@DefaultImages.StaffAvatarUrl'" />
-                <div><h2 class="fw-bold mb-1">@Model.StaffName</h2><div>@Model.StoreName · Lịch làm việc dự kiến</div></div>
+        <section class="staffhub-profile">
+            <div class="staffhub-profile-main">
+                <div class="staffhub-avatar-wrap">
+                    <img class="staffhub-avatar"
+                         src="@(string.IsNullOrWhiteSpace(Model.AvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.AvatarUrl)"
+                         alt="Ảnh đại diện của @Model.StaffName"
+                         onerror="this.src='@DefaultImages.StaffAvatarUrl'" />
+                    <span class="staffhub-online-dot" title="Tài khoản đang hoạt động"></span>
+                </div>
+                <div class="staffhub-profile-copy">
+                    <span class="staffhub-eyebrow"><i class="bi bi-person-badge"></i> Không gian nhân viên</span>
+                    <h1>@Model.StaffName</h1>
+                    <div class="staffhub-profile-meta">
+                        <span><i class="bi bi-shop"></i>@Model.StoreName</span>
+                        <span><i class="bi bi-calendar3"></i>Lịch làm việc dự kiến</span>
+                    </div>
+                </div>
             </div>
             @if (canAccessPos)
             {
-                <button id="openPosButton" type="button" class="btn btn-light btn-lg fw-bold"><i class="bi bi-cash-register me-2"></i>Mở POS</button>
+                <button id="openPosButton" type="button" class="staffhub-pos-button">
+                    <span><i class="bi bi-cash-register"></i></span>
+                    <span><strong>Mở POS</strong><small>Bắt đầu bán hàng</small></span>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
             }
         </section>
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <a class="btn btn-outline-secondary" asp-action="Index" asp-route-date="@Model.WeekStart.AddDays(-7).ToString("yyyy-MM-dd")"><i class="bi bi-chevron-left"></i> Tuần trước</a>
-            <h4 class="fw-bold mb-0">@Model.WeekStart.ToString("dd/MM") – @Model.WeekStart.AddDays(6).ToString("dd/MM/yyyy")</h4>
-            <a class="btn btn-outline-secondary" asp-action="Index" asp-route-date="@Model.WeekStart.AddDays(7).ToString("yyyy-MM-dd")">Tuần sau <i class="bi bi-chevron-right"></i></a>
-        </div>
+        <section class="staffhub-summary" aria-label="Tổng quan lịch làm việc">
+            <div class="staffhub-summary-card">
+                <span class="staffhub-summary-icon"><i class="bi bi-calendar2-check"></i></span>
+                <span><strong>@activeSchedules.Count</strong><small>Ca được xếp</small></span>
+            </div>
+            <div class="staffhub-summary-card">
+                <span class="staffhub-summary-icon is-days"><i class="bi bi-calendar-week"></i></span>
+                <span><strong>@workingDayCount</strong><small>Ngày có lịch</small></span>
+            </div>
+            <div class="staffhub-summary-card">
+                <span class="staffhub-summary-icon is-cancelled"><i class="bi bi-calendar2-x"></i></span>
+                <span><strong>@cancelledScheduleCount</strong><small>Ca đã hủy</small></span>
+            </div>
+        </section>
 
-        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
-            @foreach (var day in days)
-            {
-                var schedules = Model.Schedules.Where(x => x.WorkDate.Date == day.Date).ToList();
-                <div class="col">
-                    <div class="schedule-day p-3 @(day.Date == DateTime.Today ? "today" : "")">
-                        <div class="fw-bold text-capitalize">@day.ToString("dddd", new CultureInfo("vi-VN"))</div>
-                        <small class="text-muted">@day.ToString("dd/MM/yyyy")</small>
-                        @foreach (var item in schedules)
-                        {
-                            <div class="schedule-item @(item.StatusCode == "CANCELLED" ? "cancelled" : "")">
-                                <div class="fw-semibold">@item.ShiftName</div>
-                                <div>@item.StartTime.ToString(@"hh\:mm") – @item.EndTime.ToString(@"hh\:mm") @(item.IsOvernight ? "(+1 ngày)" : "")</div>
-                                @if (item.StatusCode == "CANCELLED") { <small>Đã hủy</small> }
-                            </div>
-                        }
-                        @if (!schedules.Any()) { <div class="text-muted small mt-4">Chưa có lịch.</div> }
+        <section class="staffhub-schedule-panel">
+            <header class="staffhub-schedule-header">
+                <div class="staffhub-section-heading">
+                    <span class="staffhub-section-icon"><i class="bi bi-calendar3"></i></span>
+                    <div>
+                        <span>Lịch cá nhân</span>
+                        <h2>@Model.WeekStart.ToString("dd/MM") – @Model.WeekStart.AddDays(6).ToString("dd/MM/yyyy")</h2>
                     </div>
                 </div>
-            }
+                <nav class="staffhub-week-nav" aria-label="Điều hướng tuần">
+                    <a asp-action="Index"
+                       asp-route-date="@Model.WeekStart.AddDays(-7).ToString("yyyy-MM-dd")"
+                       aria-label="Xem tuần trước">
+                        <i class="bi bi-chevron-left"></i><span>Tuần trước</span>
+                    </a>
+                    <a asp-action="Index"
+                       asp-route-date="@Model.WeekStart.AddDays(7).ToString("yyyy-MM-dd")"
+                       aria-label="Xem tuần sau">
+                        <span>Tuần sau</span><i class="bi bi-chevron-right"></i>
+                    </a>
+                </nav>
+            </header>
+
+            <div class="staffhub-calendar-grid">
+                @foreach (var day in days)
+                {
+                    var schedules = Model.Schedules.Where(x => x.WorkDate.Date == day.Date).ToList();
+                    var isToday = day.Date == DateTime.Today;
+                    <article class="schedule-day @(isToday ? "today" : "")">
+                        <header class="schedule-day-header">
+                            <div>
+                                <span class="schedule-weekday">@day.ToString("dddd", new CultureInfo("vi-VN"))</span>
+                                <time datetime="@day.ToString("yyyy-MM-dd")">@day.ToString("dd/MM/yyyy")</time>
+                            </div>
+                            @if (isToday)
+                            {
+                                <span class="schedule-today-badge">Hôm nay</span>
+                            }
+                        </header>
+
+                        <div class="schedule-day-body">
+                            @foreach (var item in schedules)
+                            {
+                                <div class="schedule-item @(item.StatusCode == "CANCELLED" ? "cancelled" : "")">
+                                    <div class="schedule-item-top">
+                                        <strong>@item.ShiftName</strong>
+                                        @if (item.StatusCode == "CANCELLED")
+                                        {
+                                            <span>Đã hủy</span>
+                                        }
+                                    </div>
+                                    <div class="schedule-time">
+                                        <i class="bi bi-clock"></i>
+                                        <span>@item.StartTime.ToString(@"hh\:mm") – @item.EndTime.ToString(@"hh\:mm")</span>
+                                        @if (item.IsOvernight)
+                                        {
+                                            <small>+1 ngày</small>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (!schedules.Any())
+                            {
+                                <div class="schedule-empty">
+                                    <span><i class="bi bi-cup-hot"></i></span>
+                                    <strong>Chưa có lịch</strong>
+                                    <small>Thời gian nghỉ hoặc chưa được phân ca.</small>
+                                </div>
+                            }
+                        </div>
+                    </article>
+                }
+            </div>
+        </section>
+
+        <aside class="staffhub-note">
+            <span class="staffhub-note-icon"><i class="bi bi-info-circle"></i></span>
+            <div>
+                <strong>Lịch làm việc dự kiến</strong>
+                <p>Đây không phải dữ liệu chấm công. Việc chưa được xếp lịch không ngăn bạn mở POS nếu tài khoản đã được cấp quyền.</p>
+            </div>
+        </aside>
         </div>
-        <div class="alert alert-info mt-4"><i class="bi bi-info-circle me-2"></i>Đây là lịch dự kiến, không phải dữ liệu chấm công. Việc chưa được xếp lịch không ngăn bạn mở POS nếu tài khoản có quyền.</div>
-    </div>
 </div>
 
 @section Scripts {

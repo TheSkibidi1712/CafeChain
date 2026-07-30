@@ -464,3 +464,158 @@
 .spinner-border.text-primary {
     color: #6F4E37 !important;
 }
+
+/* =======================================================
+   CREATE TOPPING — synced with Create Size
+======================================================= */
+.topping-create-dialog {
+    max-width: 620px;
+}
+
+.topping-create-modal {
+    overflow: hidden;
+    border: 1px solid #d7c3b3;
+    border-radius: 20px;
+    padding: 0;
+    background: #fffdfb;
+    box-shadow: 0 28px 75px rgba(45, 29, 20, .28);
+}
+
+.topping-create-modal .modal-header {
+    align-items: center;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #e9dfd7;
+    background: linear-gradient(135deg, #fff, #f7f3ee);
+}
+
+.topping-create-modal .modal-header small {
+    font-size: 11px;
+    letter-spacing: .06em;
+}
+
+.topping-create-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border: 1px solid #d7c3b3;
+    border-radius: 12px;
+    color: #fff;
+    background: linear-gradient(145deg, #6f4e37, #8b6b55);
+    box-shadow: 0 7px 16px rgba(111, 78, 55, .2);
+}
+
+.topping-create-modal .modal-body {
+    padding: 20px 24px 14px;
+    background: #fffdfb;
+}
+
+.topping-create-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px 16px;
+}
+
+.topping-create-fields > .mb-3 {
+    min-width: 0;
+    margin-bottom: 0 !important;
+}
+
+.topping-price-field,
+.topping-image-field,
+.topping-ai-section {
+    grid-column: 1 / -1;
+}
+
+.topping-create-modal .form-label {
+    margin-bottom: 7px;
+    color: #3b312b;
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.topping-create-modal .form-control,
+.topping-create-modal .form-select {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid #ded2c8;
+    border-radius: 10px;
+    color: #1f2937;
+    background-color: #fff !important;
+}
+
+.topping-create-modal .form-control:hover,
+.topping-create-modal .form-select:hover {
+    border-color: #b8957d;
+}
+
+.topping-create-modal .form-control:focus,
+.topping-create-modal .form-select:focus {
+    border-color: #6f4e37;
+    box-shadow: 0 0 0 3px rgba(111, 78, 55, .12);
+}
+
+.topping-create-modal .topping-image-field {
+    padding: 16px;
+    border: 1px dashed #d7c3b3;
+    border-radius: 13px;
+    background: #faf7f4;
+}
+
+.topping-create-modal .preview-img {
+    width: 150px;
+    height: 150px;
+    border: 2px solid #cdb7a6;
+    border-radius: 12px;
+    box-shadow: 0 8px 18px rgba(71, 50, 35, .12);
+}
+
+.topping-create-modal .modal-footer {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 15px 24px 20px;
+    border-top: 1px solid #e9dfd7 !important;
+    background: #faf7f4;
+    box-shadow: 0 -7px 18px rgba(71, 50, 35, .04);
+}
+
+.topping-create-modal .modal-footer .btn {
+    min-height: 42px;
+    flex-shrink: 0;
+    border-radius: 10px;
+}
+
+.topping-create-modal #btnCreateTopping {
+    border: 1px solid #6f4e37;
+    background: #6f4e37;
+    box-shadow: 0 7px 16px rgba(111, 78, 55, .2);
+}
+
+.topping-create-modal #btnCreateTopping:hover {
+    border-color: #5c3f2b;
+    background: #5c3f2b;
+    box-shadow: 0 10px 21px rgba(92, 63, 43, .26);
+    transform: translateY(-1px);
+}
+
+@media (max-width: 575.98px) {
+    .topping-create-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .topping-price-field,
+    .topping-image-field,
+    .topping-ai-section {
+        grid-column: auto;
+    }
+
+    .topping-create-modal .modal-footer {
+        flex-wrap: wrap;
+    }
+
+    .topping-create-modal .modal-footer .btn {
+        width: 100%;
+    }
+}
