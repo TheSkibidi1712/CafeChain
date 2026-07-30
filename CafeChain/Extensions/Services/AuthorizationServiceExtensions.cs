@@ -19,10 +19,18 @@ public static class AuthorizationServiceExtensions
                     RoleConstants.AccountantWarehouse,
                     RoleConstants.SystemAdmin);
             });
-            AddPermissionPolicy(
-                options,
-                AuthorizationPolicyConstants.AdminDashboardApp,
-                PermissionConstants.AppAdminDashboard);
+            options.AddPolicy(AuthorizationPolicyConstants.AdminDashboardApp, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.RequireRole(
+                    RoleConstants.BusinessOwner,
+                    RoleConstants.AreaManager,
+                    RoleConstants.StoreManager,
+                    RoleConstants.AccountantWarehouse,
+                    RoleConstants.SystemAdmin);
+                policy.AddRequirements(
+                    new PermissionRequirement(PermissionConstants.AppAdminDashboard));
+            });
             AddPermissionPolicy(
                 options,
                 AuthorizationPolicyConstants.StaffHubApp,

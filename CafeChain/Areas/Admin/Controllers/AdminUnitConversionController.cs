@@ -1,5 +1,7 @@
 using CafeChain.Application.DTOs.Admin.UnitConversions;
 using CafeChain.Application.Interfaces.Admin.UnitConversions;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
 using CafeChain.ViewModels.Admin.UnitConversions;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -11,6 +13,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// Authorization: RequireAdminPanelAccess via AdminBaseController (unchanged).
     /// </summary>
     [Area("Admin")]
+    [RequirePermission(PermissionConstants.UnitConversionView)]
     public class AdminUnitConversionController : AdminBaseController
     {
         private readonly IAdminUnitConversionService _service;
@@ -34,6 +37,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.UnitConversionCreate)]
         public async Task<IActionResult> Create()
         {
             return View(await BuildFormPageAsync(new UnitConversionVM(), isEdit: false));
@@ -41,6 +45,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.UnitConversionCreate)]
         public async Task<IActionResult> Create(UnitConversionVM model)
         {
             if (!ModelState.IsValid)
@@ -62,6 +67,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.UnitConversionUpdate)]
         public async Task<IActionResult> Edit(int id)
         {
             var data = await _service.GetForEditAsync(id);
@@ -83,6 +89,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.UnitConversionUpdate)]
         public async Task<IActionResult> Edit(UnitConversionVM model)
         {
             if (!ModelState.IsValid)
@@ -105,11 +112,12 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
+        [RequirePermission(PermissionConstants.UnitConversionToggleStatus)]
+        public async Task<IActionResult> ToggleStatus(int id, bool active)
         {
-            var result = await _service.DeleteAsync(id);
+            var result = await _service.SetActiveAsync(id, active);
             TempData[result.IsSuccess ? "SuccessMsg" : "ErrorMsg"] =
-                result.Message ?? (result.IsSuccess ? "Đã xóa." : "Không xóa được.");
+                result.Message ?? (result.IsSuccess ? "Đã cập nhật trạng thái." : "Không cập nhật được.");
             return RedirectToAction(nameof(Index));
         }
 

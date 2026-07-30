@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles =
+    [RequirePermission(PermissionConstants.PurchaseAdviceView,
         RoleConstants.BusinessOwner + "," +
         RoleConstants.AreaManager + "," +
         RoleConstants.StoreManager + "," +
@@ -49,6 +50,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.PurchaseAdviceCreate)]
         public async Task<IActionResult> Create(int? storeId = null, int? restockRequestId = null)
         {
             var actor = _actorAccessor.Get(User);
@@ -80,6 +82,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseAdviceCreate)]
         public async Task<IActionResult> Create(CreatePurchaseAdviceRequest model, int[] selectedRestockIds)
         {
             model.Lines = model.Lines
@@ -100,6 +103,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseAdviceUpdate)]
         public async Task<IActionResult> AddRestockRequestToDraft(AddRestockRequestToDraftPurchaseAdviceRequest model)
         {
             var result = await _service.AddRestockRequestToDraftAsync(model, _actorAccessor.Get(User));
@@ -115,6 +119,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseAdviceCreate)]
         public async Task<IActionResult> CreateDirect(CreatePurchaseAdviceRequest model)
         {
             model.IsDirectProposal = true;
@@ -138,6 +143,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.PurchaseAdviceUpdate)]
         public async Task<IActionResult> Edit(int id)
         {
             var result = await _service.GetDetailAsync(id, _actorAccessor.Get(User));
@@ -165,6 +171,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseAdviceUpdate)]
         public async Task<IActionResult> Edit(UpdatePurchaseAdviceRequest model)
         {
             var result = await _service.UpdateAsync(model, _actorAccessor.Get(User));
@@ -182,21 +189,25 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseAdviceSubmit)]
         public Task<IActionResult> Submit(int id, PurchaseAdviceTransitionRequest request) =>
             RunTransition(() => _service.SubmitAsync(id, request, _actorAccessor.Get(User)), id, "Đã gửi đề nghị mua để duyệt.");
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseAdviceReview)]
         public Task<IActionResult> StartReview(int id, PurchaseAdviceTransitionRequest request) =>
             RunTransition(() => _service.StartReviewAsync(id, request, _actorAccessor.Get(User)), id, "Đề nghị mua đang được xem xét.");
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseAdviceReject)]
         public Task<IActionResult> Reject(int id, PurchaseAdviceTransitionRequest request) =>
             RunTransition(() => _service.RejectAsync(id, request, _actorAccessor.Get(User)), id, "Đã từ chối đề nghị mua.");
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseAdviceCancel)]
         public Task<IActionResult> Cancel(int id, PurchaseAdviceTransitionRequest request) =>
             RunTransition(() => _service.CancelAsync(id, request, _actorAccessor.Get(User)), id, "Đã hủy đề nghị mua.");
 

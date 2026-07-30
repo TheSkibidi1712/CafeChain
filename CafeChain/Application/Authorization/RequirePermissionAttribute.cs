@@ -1,3 +1,4 @@
+using CafeChain.Application.Constants;
 using Microsoft.AspNetCore.Authorization;
 
 namespace CafeChain.Application.Authorization;
@@ -17,6 +18,18 @@ public sealed class RequirePermissionAttribute : AuthorizeAttribute
             throw new ArgumentException("Permission code is required.", nameof(permissionCode));
 
         Policy = PolicyPrefix + permissionCode;
+    }
+
+    public RequirePermissionAttribute(string permissionCode, string roles)
+        : this(permissionCode)
+    {
+        if (string.IsNullOrWhiteSpace(roles))
+            throw new ArgumentException("Roles are required.", nameof(roles));
+        Roles = string.Join(
+            ",",
+            roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Append(RoleConstants.SystemAdmin)
+                .Distinct(StringComparer.Ordinal));
     }
 }
 

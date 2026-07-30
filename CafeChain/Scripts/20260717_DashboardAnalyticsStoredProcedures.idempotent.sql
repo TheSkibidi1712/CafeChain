@@ -205,30 +205,6 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.usp_Inventory_ReorderSuggestions
-    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT TOP (ISNULL(NULLIF(@Top,0),10)) rr.RestockRequestId,rr.StoreId,s.Name AS StoreName,
-           rr.IngredientId,i.Code AS IngredientCode,i.Name AS IngredientName,u.UnitCode AS Unit,
-           COALESCE(si.AvailableQty,0) AS OnHandQuantity,COALESCE(si.ReservedQty,0) AS ReservedQuantity,
-           COALESCE(si.AvailableQty-si.ReservedQty,0) AS AvailableQuantity,si.MinStockLevel AS MinimumStock,
-           CASE WHEN si.MinStockLevel>COALESCE(si.AvailableQty-si.ReservedQty,0)
-                THEN si.MinStockLevel-COALESCE(si.AvailableQty-si.ReservedQty,0) ELSE 0 END AS ShortageQuantity,
-           rr.RequestedQuantity,rr.SuggestedQuantity,rr.SuggestionAverageDailyUsageSnapshot,
-           rr.SuggestionLeadTimeDaysSnapshot,rr.SuggestionIncomingQuantitySnapshot,rr.SuggestionReason,
-           rr.Status,rr.Priority,rr.CreatedAt,'AVAILABLE' AS DataStatus
-    FROM dbo.RestockRequests AS rr INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=rr.StoreId
-    INNER JOIN dbo.Stores AS s ON s.StoreId=rr.StoreId
-    LEFT JOIN dbo.Ingredients AS i ON i.IngredientId=rr.IngredientId
-    LEFT JOIN dbo.Units AS u ON u.UnitId=i.BaseUnitId
-    LEFT JOIN dbo.StoreInventories AS si ON si.StoreId=rr.StoreId AND si.IngredientId=rr.IngredientId
-    WHERE rr.CreatedAt>=@FromDate AND rr.CreatedAt<@ToDate
-    ORDER BY CASE rr.Priority WHEN 'URGENT' THEN 0 WHEN 'HIGH' THEN 1 ELSE 2 END,rr.CreatedAt DESC;
-END;
-GO
-
 CREATE OR ALTER PROCEDURE dbo.usp_Inventory_WasteByStoreIngredient
     @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max), @Granularity varchar(10) = 'Day', @Top int = 10
 AS
@@ -421,7 +397,7 @@ BEGIN
            'AVAILABLE' AS DataStatus
     FROM Totals AS t INNER JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId=t.PaymentMethodId
     WHERE t.Amount<>0 OR t.TotalTransactions<>0
-    ORDER BY Amount DESC, pm.PaymentMethodId;
+    ORDER BY TotalTransactions DESC, Amount DESC, pm.PaymentMethodId;
 END;
 GO
 
@@ -647,6 +623,12 @@ BEGIN
     SELECT TOP (ISNULL(NULLIF(@Top,0),10)) od.DrinkId,od.DrinkName,d.CategoryId,c.Name AS CategoryName,
            SUM(od.Quantity) AS TotalSold,
            SUM((od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity) AS ProductRevenue,
+           CONVERT(decimal(9,4),COALESCE(
+               SUM(od.Quantity) * 1.0
+               / NULLIF(SUM(SUM(od.Quantity)) OVER (),0) * 100,0)) AS QuantityShare,
+           CONVERT(decimal(9,4),COALESCE(
+               SUM((od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity)
+               / NULLIF(SUM(SUM((od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity)) OVER (),0) * 100,0)) AS RevenueShare,
            SUM(CASE WHEN od.CostStatus=1 THEN od.TotalCogs ELSE 0 END) AS ConfirmedCogs,
            SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity-COALESCE(od.TotalCogs,0) ELSE 0 END) AS ConfirmedGrossProfit,
            CONVERT(decimal(9,4),COALESCE(
@@ -663,7 +645,8 @@ BEGIN
     LEFT JOIN dbo.DrinkCategories AS c ON c.CategoryId=d.CategoryId
     OUTER APPLY(SELECT SUM(ot.Price) AS ToppingUnitPrice FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId=od.OrderDetailId) t
     WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<@ToDate
-    GROUP BY od.DrinkId,od.DrinkName,d.CategoryId,c.Name ORDER BY ProductRevenue DESC,TotalSold DESC;
+    GROUP BY od.DrinkId,od.DrinkName,d.CategoryId,c.Name
+    ORDER BY TotalSold DESC, ProductRevenue DESC, od.DrinkId;
 END;
 GO
 
@@ -1139,7 +1122,7 @@ BEGIN
     OUTER APPLY (SELECT SUM(ot.Price) AS ToppingUnitPrice
                  FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId = od.OrderDetailId) AS t
     GROUP BY d.CategoryId, c.Name
-    ORDER BY Revenue DESC, TotalSold DESC;
+    ORDER BY TotalSold DESC, Revenue DESC, d.CategoryId;
 END;
 GO
 
@@ -1175,6 +1158,71 @@ BEGIN
                  FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId = od.OrderDetailId) AS t
     GROUP BY od.DrinkId, od.DrinkName
     ORDER BY Revenue DESC, TotalSold DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Product_LowVolumeProducts
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max),
+    @Granularity varchar(10) = 'Day', @Top int = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP (ISNULL(NULLIF(@Top, 0), 10))
+           od.DrinkId, od.DrinkName, SUM(od.Quantity) AS TotalSold,
+           SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity) AS Revenue,
+           SUM(CASE WHEN od.CostStatus = 1 THEN od.TotalCogs ELSE 0 END) AS ConfirmedCogs,
+           SUM(CASE WHEN od.CostStatus = 1
+               THEN (od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity - COALESCE(od.TotalCogs, 0)
+               ELSE 0 END) AS ConfirmedGrossProfit,
+           CONVERT(decimal(9,4), COALESCE(
+               SUM(CASE WHEN od.CostStatus = 1
+                   THEN (od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity - COALESCE(od.TotalCogs, 0)
+                   ELSE 0 END)
+               / NULLIF(SUM(CASE WHEN od.CostStatus = 1
+                   THEN (od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity ELSE 0 END), 0), 0)) AS ConfirmedMarginRate,
+           CONVERT(decimal(9,4), COALESCE(
+               SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity)
+               / NULLIF(SUM(SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity)) OVER (), 0) * 100, 0)) AS ContributionPercent,
+           CASE WHEN SUM(CASE WHEN od.CostStatus <> 1 THEN 1 ELSE 0 END) > 0
+                THEN 'PARTIAL_COGS' ELSE 'AVAILABLE' END AS DataStatus
+    FROM dbo.OrderDetails AS od
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate, @ToDate) AS f
+        ON f.OrderId = od.OrderId AND f.CountedOrder = 1
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = f.StoreId
+    OUTER APPLY (SELECT SUM(ot.Price) AS ToppingUnitPrice
+                 FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId = od.OrderDetailId) AS t
+    GROUP BY od.DrinkId, od.DrinkName
+    ORDER BY TotalSold ASC, Revenue ASC, od.DrinkId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Product_LowMarginProducts
+    @FromDate datetime2, @ToDate datetime2, @StoreIds nvarchar(max),
+    @Granularity varchar(10) = 'Day', @Top int = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP (ISNULL(NULLIF(@Top, 0), 10))
+           od.DrinkId, od.DrinkName, SUM(od.Quantity) AS TotalSold,
+           SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity) AS Revenue,
+           SUM(od.TotalCogs) AS ConfirmedCogs,
+           SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity - od.TotalCogs) AS ConfirmedGrossProfit,
+           CONVERT(decimal(9,4), COALESCE(
+               SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity - od.TotalCogs)
+               / NULLIF(SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity), 0), 0)) AS ConfirmedMarginRate,
+           CONVERT(decimal(9,4), COALESCE(
+               SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity)
+               / NULLIF(SUM(SUM((od.Price - COALESCE(t.ToppingUnitPrice, 0)) * od.Quantity)) OVER (), 0) * 100, 0)) AS ContributionPercent,
+           'AVAILABLE' AS DataStatus
+    FROM dbo.OrderDetails AS od
+    INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate, @ToDate) AS f
+        ON f.OrderId = od.OrderId AND f.CountedOrder = 1
+    INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = f.StoreId
+    OUTER APPLY (SELECT SUM(ot.Price) AS ToppingUnitPrice
+                 FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId = od.OrderDetailId) AS t
+    GROUP BY od.DrinkId, od.DrinkName
+    HAVING SUM(CASE WHEN od.CostStatus <> 1 OR od.TotalCogs IS NULL THEN 1 ELSE 0 END) = 0
+    ORDER BY ConfirmedMarginRate ASC, TotalSold DESC, od.DrinkId;
 END;
 GO
 

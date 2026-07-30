@@ -277,13 +277,12 @@
 
 //             return new AdminRecipeQueryService(
 //                 context,
-//                 normalizer,
+//                 normalizer,3
 //                 cost,
 //                 new AdminPreparedItemService(context),
 //                 new RecipeBomTreeQueryService(context),
 //                 new BomDataHealthEvaluator());
 //         }
-
 //         private static string FindRepoRoot()
 //         {
 //             var dir = new DirectoryInfo(AppContext.BaseDirectory);

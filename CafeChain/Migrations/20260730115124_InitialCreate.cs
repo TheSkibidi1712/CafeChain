@@ -2705,6 +2705,7 @@ namespace CafeChain.Migrations
                     Body = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
                     Severity = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false, defaultValue: "INFO"),
                     DeduplicationKey = table.Column<string>(type: "nvarchar(240)", maxLength: 240, nullable: true),
+                    MeaningfulVersion = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ResolvedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     EntityType = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
@@ -5278,7 +5279,9 @@ namespace CafeChain.Migrations
                     InventoryTransactionId = table.Column<int>(type: "int", nullable: true),
                     QuantityBefore = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
                     QuantityAfter = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
-                    RequestKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                    RequestKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    SuggestionSnapshotVersion = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: true),
+                    SuggestionSnapshotJson = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {

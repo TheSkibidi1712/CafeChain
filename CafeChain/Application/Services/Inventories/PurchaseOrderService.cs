@@ -755,15 +755,21 @@ namespace CafeChain.Application.Services.Inventories
 
         private static bool CanRead(IReadOnlyCollection<string> roles) =>
             roles.Any(x => x is RoleConstants.AccountantWarehouse or RoleConstants.BusinessOwner
-                or RoleConstants.AreaManager or RoleConstants.StoreManager or RoleConstants.ShiftSupervisor);
+                or RoleConstants.AreaManager or RoleConstants.StoreManager or RoleConstants.ShiftSupervisor
+                or RoleConstants.SystemAdmin);
 
         private static bool CanCreate(IReadOnlyCollection<string> roles) =>
-            roles.Any(x => x is RoleConstants.AccountantWarehouse or RoleConstants.BusinessOwner);
+            roles.Any(x => x is RoleConstants.AccountantWarehouse or RoleConstants.BusinessOwner
+                or RoleConstants.SystemAdmin);
 
-        private static bool CanApprove(IReadOnlyCollection<string> roles) => roles.Contains(RoleConstants.BusinessOwner);
-        private static bool CanSend(IReadOnlyCollection<string> roles) => roles.Contains(RoleConstants.AccountantWarehouse);
-        private static bool CanCancel(IReadOnlyCollection<string> roles) => roles.Contains(RoleConstants.BusinessOwner);
-        private static bool CanCloseRemaining(IReadOnlyCollection<string> roles) => roles.Contains(RoleConstants.BusinessOwner);
+        private static bool CanApprove(IReadOnlyCollection<string> roles) =>
+            roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
+        private static bool CanSend(IReadOnlyCollection<string> roles) =>
+            roles.Contains(RoleConstants.AccountantWarehouse) || roles.Contains(RoleConstants.SystemAdmin);
+        private static bool CanCancel(IReadOnlyCollection<string> roles) =>
+            roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
+        private static bool CanCloseRemaining(IReadOnlyCollection<string> roles) =>
+            roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
 
         private async Task RecalculateOrderStatusAsync(PurchaseOrder order)
         {

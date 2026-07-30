@@ -17,7 +17,7 @@ AI không truy vấn database, không sinh SQL và không được tự tạo s�
 
 Người dùng phải có policy `AdminDashboardApp`.
 
-Phạm vi dữ liệu được xác định từ `StaffScope` ở backend:
+Phạm vi dữ liệu được xác định từ `StaffScope` ở backend; riêng Quản trị hệ thống có global scope trên toàn bộ cửa hàng active:
 
 - Có scope một cửa hàng: chỉ xem được cửa hàng đó.
 - Có nhiều scope: dữ liệu được giới hạn trong tập cửa hàng được cấp quyền.
@@ -30,19 +30,23 @@ Không dùng bộ lọc trên giao diện làm nguồn tin cậy duy nhất.
 
 1. Mở Dashboard quản trị và chọn cửa hàng hoặc tập cửa hàng được phép.
 2. Chọn khoảng thời gian. Khoảng ngày được xử lý theo quy ước backend; không tự cộng thêm ngày ở giao diện.
-3. Nhập câu hỏi phân tích, ví dụ:
-   - `Tại sao doanh thu giảm?`
-   - `Cửa hàng nào có doanh thu cao nhất?`
-   - `Nguyên liệu nào đang có nguy cơ thiếu?`
-   - `Đơn mua nào đang quá hạn?`
-4. Chọn phân tích hoặc xem kết quả KPI.
-5. Đọc các phần:
+3. Nhấn **Áp dụng**, sau đó mở tab **Hỏi AI**. Sáu tab còn lại là các nhóm dữ liệu nghiệp vụ; tab AI không tải lại một section Dashboard.
+4. Nhập một câu hỏi chỉ có một mục tiêu phân tích, ví dụ:
+   - `So sánh doanh thu kỳ này với kỳ trước.`
+   - `Top 10 sản phẩm bán chạy nhất trong kỳ là gì?`
+   - `Sản phẩm nào có biên lợi nhuận thấp nhất trong kỳ?`
+   - `Nguyên liệu nào nên được đặt lại trước?`
+5. Chọn phân tích hoặc xem kết quả KPI.
+6. Đọc các phần:
    - Fact: số liệu backend.
    - Statistic: tổng hợp, tỷ lệ, xếp hạng hoặc baseline.
    - Anomaly: cảnh báo có ngưỡng hoặc quy tắc backend hỗ trợ.
    - Entity Evidence: cửa hàng, sản phẩm, nguyên liệu, nhà cung cấp hoặc đơn mua liên quan.
    - Recommendation: hành động kiểm tra an toàn, không phải lệnh tự động.
-6. Nếu đổi bộ lọc liên tục, chỉ kết quả của request mới nhất được giữ lại.
+7. Nếu đổi bộ lọc liên tục, chỉ kết quả của request mới nhất được giữ lại.
+
+Liên kết hướng dẫn có tham số `aiQuestion` sẽ mở đúng tab, điền câu hỏi và focus ô nhập nhưng không tự gửi. Nội dung câu trả lời AI được giữ nguyên trong đợt tách tab này.
+Khi focus nằm trên thanh tab, có thể dùng phím mũi tên, `Home` và `End` để chuyển tab.
 
 Các API MVC tương ứng:
 
@@ -54,6 +58,21 @@ POST /Admin/AdminDashboardIntelligence/Explain
 ```
 
 Các request cần antiforgery token và phải truyền `CancellationToken` từ request HTTP.
+
+### Bộ 16 câu hỏi canonical trong trang Hướng dẫn
+
+Trang **Hướng dẫn Dashboard & AI** dùng cùng catalog typed với backend. Mỗi câu chỉ
+có một `ExpectedAnswerFocus`, một widget chính và một answer style:
+
+- Tổng quan/doanh thu: ưu tiên vận hành, so sánh doanh thu, chi nhánh hoạt động
+  kém, yếu tố tác động doanh thu và thống kê doanh thu theo ngày.
+- Đơn hàng/sản phẩm: hủy đơn theo chi nhánh, phương thức thanh toán, top sản
+  phẩm, top danh mục, sản phẩm bán chậm và sản phẩm biên lợi nhuận thấp.
+- Kho/reorder: nguy cơ thiếu, ưu tiên đặt lại và xu hướng tiêu thụ nguyên liệu.
+- Nhà cung cấp/bất thường: rủi ro nhà cung cấp/PO quá hạn và bất thường vận hành.
+
+Nút **Dùng câu hỏi này** chỉ truyền `aiQuestion`, mở tab **Hỏi AI**, điền và focus
+ô nhập; không tự gửi yêu cầu phân tích.
 
 ## 4. Ý nghĩa Metric
 
@@ -125,6 +144,8 @@ Khi đổi filter:
 
 - Request cũ bị hủy bằng `AbortController` khi có thể.
 - Request sequence và filter fingerprint ngăn kết quả cũ ghi đè kết quả mới.
+- ECharts chỉ được khởi tạo khi container có kích thước và được resize sau khi tab/container hiện.
+- `ResizeObserver`, deferred `requestAnimationFrame` và cleanup khi thay widget giúp chart hiển thị ngay mà không cần zoom trình duyệt.
 
 ## 9. Xử lý tình huống thường gặp
 
@@ -140,9 +161,13 @@ Chỉ sử dụng Revenue/Quantity; không kết luận chắc chắn về margi
 
 Kiểm tra `ExplanationEnabled`, trạng thái Ollama và log fallback. Dashboard vẫn phải hiển thị Fact/chart deterministic.
 
+### Biểu đồ trắng cho tới khi zoom
+
+Tải lại phiên bản frontend mới và mở lại tab chứa biểu đồ. Chart thường và chart kết quả AI phải tự tính lại kích thước khi tab hiện; người dùng không còn phải phóng to/thu nhỏ trình duyệt. Nếu vẫn trắng, kiểm tra console và table fallback để phân biệt lỗi layout với dữ liệu `NO_DATA`.
+
 ### Bị 403
 
-Tài khoản thiếu policy hoặc request chứa cửa hàng ngoài StaffScope. Không thử vượt qua bằng cách đổi StoreId trên frontend.
+Tài khoản thiếu policy, bị account override `Deny` hoặc request chứa cửa hàng ngoài StaffScope. SystemAdmin có global store scope nhưng vẫn bị chặn khi account inactive hoặc permission bị `Deny`.
 
 ## 10. Cấu hình feature flag
 
@@ -186,3 +211,9 @@ Invoke-RestMethod http://localhost:11434/api/tags
 ## 12. Giới hạn nghiệm thu hiện tại
 
 Các contract/unit/SQL/Ollama validation của AI Dashboard đã được triển khai. Full solution test vẫn có thể chứa lỗi module ngoài phạm vi. Browser E2E chỉ được ghi nhận PASS khi browser backend khả dụng và đã kiểm tra DOM/network thực tế.
+
+Câu trả lời Dashboard AI hiện được giới hạn theo `AnswerFocus`, data plan và
+`EvidencePack`; renderer hiển thị AnalysisContext, KeyConclusion,
+chart/evidence và limitation. Recommendation là tùy chọn và không xuất hiện
+khi câu hỏi không yêu cầu hành động hoặc evidence chưa đủ. Tại thời điểm cập
+nhật tài liệu, browser E2E được ghi nhận `NOT RUN`, không phải `PASS`.

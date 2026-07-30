@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Inventories.Cutover;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Models.Enums.Inventory;
@@ -11,6 +12,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// Issue #124 — thin admin surface for cutover reconciliation and PreparedItem activation.
     /// Does not mutate inventory quantities directly.
     /// </summary>
+    [RequirePermission(PermissionConstants.SystemCutoverView)]
     public sealed class AdminCutoverController : AdminBaseController
     {
         private static readonly string[] ReadRoles =
@@ -71,6 +73,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [RequirePermission(PermissionConstants.SystemCutoverManage)]
         public async Task<IActionResult> Activate(
             [FromBody] CutoverActivationRequest request,
             CancellationToken cancellationToken)
@@ -101,6 +104,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [RequirePermission(PermissionConstants.SystemCutoverManage)]
         public async Task<IActionResult> Block(
             int storeId,
             [FromBody] BlockRequest body,

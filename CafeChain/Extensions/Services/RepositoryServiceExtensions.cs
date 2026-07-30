@@ -107,6 +107,9 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Infrastructure.Interfaces.Admin.Procurement.IReorderSuggestionRepository,
                 CafeChain.Infrastructure.Repositories.Admin.Procurement.ReorderSuggestionRepository>();
             services.AddScoped<
+                CafeChain.Infrastructure.Interfaces.Admin.Procurement.IReorderSuggestionConfirmationRepository,
+                CafeChain.Infrastructure.Repositories.Admin.Procurement.ReorderSuggestionConfirmationRepository>();
+            services.AddScoped<
                 CafeChain.Infrastructure.Interfaces.Operations.IStaffNotificationRepository,
                 CafeChain.Infrastructure.Repositories.Operations.StaffNotificationRepository>();
             services.AddScoped<

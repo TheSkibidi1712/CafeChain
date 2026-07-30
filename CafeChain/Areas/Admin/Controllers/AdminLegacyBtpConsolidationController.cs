@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Inventories.Consolidation;
 using CafeChain.Application.Interfaces.Inventories;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// Issue #123 — thin admin surface for legacy BTP consolidation tooling.
     /// No direct inventory mutation; all writes go through ILegacyBtpConsolidationService.
     /// </summary>
+    [RequirePermission(PermissionConstants.SystemLegacyConsolidationView)]
     public sealed class AdminLegacyBtpConsolidationController : AdminBaseController
     {
         private static readonly string[] AuditRoles =
@@ -47,6 +49,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [RequirePermission(PermissionConstants.SystemLegacyConsolidationManage)]
         public async Task<IActionResult> CreateNoOpEvidence(
             [FromBody] ConsolidationNoOpRequest request,
             CancellationToken cancellationToken)
@@ -62,6 +65,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [RequirePermission(PermissionConstants.SystemLegacyConsolidationManage)]
         public async Task<IActionResult> DryRun(
             [FromBody] ConsolidationDryRunRequest request,
             CancellationToken cancellationToken)
@@ -77,6 +81,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [RequirePermission(PermissionConstants.SystemLegacyConsolidationManage)]
         public async Task<IActionResult> Execute(
             [FromBody] ConsolidationExecuteRequest request,
             CancellationToken cancellationToken)

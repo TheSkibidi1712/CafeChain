@@ -918,7 +918,8 @@ namespace CafeChain.Application.Services.Inventories
                 .Where(ar => ar.Role != null && ar.Role.Active)
                 .Select(ar => ar.Role.Name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            if (roles.Contains(RoleConstants.BusinessOwner))
+            if (roles.Contains(RoleConstants.SystemAdmin)
+                || roles.Contains(RoleConstants.BusinessOwner))
                 return true;
             if (roles.Contains(RoleConstants.AreaManager))
                 return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
@@ -944,7 +945,8 @@ namespace CafeChain.Application.Services.Inventories
                 .Where(ar => ar.Role != null && ar.Role.Active)
                 .Select(ar => ar.Role.Name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            if (roles.Contains(RoleConstants.BusinessOwner))
+            if (roles.Contains(RoleConstants.SystemAdmin)
+                || roles.Contains(RoleConstants.BusinessOwner))
                 return true;
             return roles.Contains(RoleConstants.AccountantWarehouse)
                 && await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);

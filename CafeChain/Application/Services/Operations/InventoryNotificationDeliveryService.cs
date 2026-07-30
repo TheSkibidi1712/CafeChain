@@ -13,27 +13,36 @@ public sealed class InventoryNotificationDeliveryService : IInventoryNotificatio
     private readonly IStaffNotificationRepository _repository;
     private readonly IInventoryNotificationPublisher _publisher;
     private readonly InventoryNotificationOptions _options;
+    private readonly TimeProvider _timeProvider;
 
     public InventoryNotificationDeliveryService(
         IInventoryNotificationAudienceResolver audience,
         IStaffNotificationRepository repository,
         IInventoryNotificationPublisher publisher,
-        IOptions<InventoryNotificationOptions> options)
+        IOptions<InventoryNotificationOptions> options,
+        TimeProvider? timeProvider = null)
     {
         _audience = audience;
         _repository = repository;
         _publisher = publisher;
         _options = options.Value;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public async Task<InventoryNotificationDeliveryResult> DeliverAsync(
         InventoryNotificationDeliveryRequest request,
         CancellationToken cancellationToken = default)
     {
-        var now = DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
         var cooldownMinutes = request.CooldownMinutes ?? _options.InventoryCooldownMinutes;
         var cooldown = TimeSpan.FromMinutes(Math.Clamp(cooldownMinutes, 1, 7 * 24 * 60));
-        var recipients = await _audience.ResolveAsync(request.StoreId, cancellationToken);
+        var meaningfulVersion = NormalizeMeaningfulVersion(request.MeaningfulVersion);
+        var recipients = request.RequiredPermissionCodes is { Count: > 0 }
+            ? await _audience.ResolveForPermissionsAsync(
+                request.StoreId,
+                request.RequiredPermissionCodes,
+                cancellationToken)
+            : await _audience.ResolveAsync(request.StoreId, cancellationToken);
         if (request.RecipientStaffIds is { Count: > 0 })
         {
             var allowedRecipientIds = request.RecipientStaffIds.ToHashSet();
@@ -50,7 +59,7 @@ public sealed class InventoryNotificationDeliveryService : IInventoryNotificatio
         {
             cancellationToken.ThrowIfCancellationRequested();
             var key = BuildKey(recipient.StaffId, request);
-            var existing = await _repository.GetActiveByDeduplicationKeyAsync(key, cancellationToken);
+            var existing = await _repository.GetByDeduplicationKeyAsync(key, cancellationToken);
             if (existing == null)
             {
                 var notification = new StaffNotification
@@ -62,6 +71,7 @@ public sealed class InventoryNotificationDeliveryService : IInventoryNotificatio
                     Body = Truncate(request.Body, 2000),
                     Severity = request.Severity,
                     DeduplicationKey = key,
+                    MeaningfulVersion = meaningfulVersion,
                     EntityType = request.EntityType,
                     EntityId = request.EntityId,
                     IsRead = false,
@@ -74,6 +84,7 @@ public sealed class InventoryNotificationDeliveryService : IInventoryNotificatio
                 continue;
             }
 
+            var wasResolved = existing.ResolvedAt.HasValue;
             var severityEscalated = SeverityRank(request.Severity) > SeverityRank(existing.Severity);
             var lastChangedAt = existing.UpdatedAt ?? existing.CreatedAt;
             var cooldownElapsed = now - lastChangedAt >= cooldown;
@@ -82,18 +93,38 @@ public sealed class InventoryNotificationDeliveryService : IInventoryNotificatio
             var contentChanged = !string.Equals(existing.Title, title, StringComparison.Ordinal)
                 || !string.Equals(existing.Body, body, StringComparison.Ordinal);
             var severityChanged = !string.Equals(existing.Severity, request.Severity, StringComparison.OrdinalIgnoreCase);
+            var versionChanged = meaningfulVersion != null
+                && !string.Equals(existing.MeaningfulVersion, meaningfulVersion, StringComparison.Ordinal);
 
-            // Repeated POS signals during the cooldown are intentionally a no-op.
-            // Do not rewrite UpdatedAt, unread state, or publish another toast.
-            if (!contentChanged && !severityChanged && !cooldownElapsed)
-                continue;
+            if (meaningfulVersion != null)
+            {
+                // A stable version suppresses raw content noise. An elapsed cooldown is
+                // the only reason to remind for the same version.
+                if (!wasResolved && !versionChanged && !cooldownElapsed)
+                    continue;
+            }
+            else
+            {
+                // Preserve the existing generic notification behavior for callers that
+                // do not opt into version-aware delivery.
+                if (!wasResolved && !contentChanged && !severityChanged && !cooldownElapsed)
+                    continue;
+            }
 
             existing.Title = title;
             existing.Body = body;
             existing.Severity = request.Severity;
+            existing.ResolvedAt = null;
             existing.UpdatedAt = now;
 
-            if (severityEscalated || cooldownElapsed)
+            if (meaningfulVersion != null)
+                existing.MeaningfulVersion = meaningfulVersion;
+
+            var shouldNotify = wasResolved
+                || severityEscalated
+                || cooldownElapsed
+                || versionChanged;
+            if (shouldNotify)
             {
                 existing.IsRead = false;
                 existing.ReadAt = null;
@@ -141,7 +172,7 @@ public sealed class InventoryNotificationDeliveryService : IInventoryNotificatio
         string severity,
         CancellationToken cancellationToken = default)
     {
-        var now = DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
         var active = await _repository.GetActiveByEntityAsync(
             storeId,
             type,
@@ -184,7 +215,7 @@ public sealed class InventoryNotificationDeliveryService : IInventoryNotificatio
         if (notification == null)
             return new InventoryNotificationDeliveryResult(0, 0, 0, false, []);
 
-        notification.ResolvedAt = DateTime.UtcNow;
+        notification.ResolvedAt = _timeProvider.GetUtcNow().UtcDateTime;
         notification.UpdatedAt = notification.ResolvedAt;
         await _repository.SaveChangesAsync(cancellationToken);
         await _publisher.PublishAsync(new InventoryNotificationChangedDto(
@@ -215,4 +246,13 @@ public sealed class InventoryNotificationDeliveryService : IInventoryNotificatio
 
     private static string Truncate(string value, int max) =>
         value.Length <= max ? value : value[..max];
+
+    private static string? NormalizeMeaningfulVersion(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var normalized = value.Trim();
+        return Truncate(normalized, 64);
+    }
 }

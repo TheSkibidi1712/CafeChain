@@ -49,6 +49,13 @@ public sealed class StaffNotificationRepository : IStaffNotificationRepository
             .Where(x => !x.IsRead)
             .ToListAsync();
 
+    public Task<StaffNotification?> GetByDeduplicationKeyAsync(
+        string key,
+        CancellationToken cancellationToken = default) =>
+        _context.StaffNotifications.FirstOrDefaultAsync(
+            x => x.DeduplicationKey == key,
+            cancellationToken);
+
     public Task<StaffNotification?> GetActiveByDeduplicationKeyAsync(
         string key,
         CancellationToken cancellationToken = default) =>

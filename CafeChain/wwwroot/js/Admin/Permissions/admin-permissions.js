@@ -34,6 +34,7 @@
         scopeData: null,
         selectedScopes: [],
         scopeReferenceCache: new Map(),
+        mutationRequestKeys: new Map(),
         collapsedGroups: { role: new Set(), override: new Set() }
     };
 
@@ -86,6 +87,21 @@
 
     function endpoint(path) {
         return `${baseUrl}/${path}`;
+    }
+
+    function mutationRequest(action, targetId, payload) {
+        const signature = `${action}:${targetId}:${JSON.stringify(payload)}`;
+        let requestKey = state.mutationRequestKeys.get(signature);
+        if (!requestKey) {
+            requestKey = window.crypto?.randomUUID?.()
+                || `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+            state.mutationRequestKeys.set(signature, requestKey);
+        }
+
+        return {
+            body: { requestKey, ...payload },
+            complete: () => state.mutationRequestKeys.delete(signature)
+        };
     }
 
     function get(obj, key, fallback) {
@@ -456,8 +472,10 @@
         if (!state.selectedRoleId) return;
         const permissionIds = [...document.querySelectorAll(".role-permission-check:checked")]
             .map(input => Number(input.value))
-            .filter(Boolean);
+            .filter(Boolean)
+            .sort((a, b) => a - b);
         const button = el.saveRolePermissions;
+        const request = mutationRequest("role-permissions", state.selectedRoleId, { permissionIds });
 
         setButtonBusy(button, true, "Đang lưu...");
         try {
@@ -465,8 +483,9 @@
                 fetchJson(endpoint(`SaveRolePermissions?roleId=${state.selectedRoleId}`),
                 {
                     method: "POST",
-                    body: JSON.stringify({ permissionIds })
+                    body: JSON.stringify(request.body)
                 }));
+            request.complete();
             notifySuccess("Đã lưu phân quyền vai trò");
             roleModal.hide();
             loadRoles();
@@ -504,16 +523,19 @@
         if (!state.selectedStaffRoleId) return;
         const roleIds = [...document.querySelectorAll(".staff-role-check:checked")]
             .map(input => Number(input.value))
-            .filter(Boolean);
+            .filter(Boolean)
+            .sort((a, b) => a - b);
         const button = el.saveStaffRoles;
+        const request = mutationRequest("staff-roles", state.selectedStaffRoleId, { roleIds });
 
         setButtonBusy(button, true, "Đang lưu...");
         try {
             await AdminMutationGuard.run(`staff-roles-${state.selectedStaffRoleId}`, button, () =>
                 fetchJson(endpoint(`SaveStaffRoles?staffId=${state.selectedStaffRoleId}`), {
                     method: "POST",
-                    body: JSON.stringify({ roleIds })
+                    body: JSON.stringify(request.body)
                 }));
+            request.complete();
             notifySuccess("Đã lưu vai trò nhân viên");
             staffRoleModal.hide();
             loadStaff("assign");
@@ -600,16 +622,21 @@
                 permissionId,
                 effect: value === "Inherit" ? null : value
             };
-        });
+        }).sort((a, b) => a.permissionId - b.permissionId);
         const button = el.saveOverrideBtn;
+        const request = mutationRequest(
+            "staff-overrides",
+            state.selectedOverrideStaffId,
+            { overrides });
 
         setButtonBusy(button, true, "Đang lưu...");
         try {
             await AdminMutationGuard.run(`staff-overrides-${state.selectedOverrideStaffId}`, button, () =>
                 fetchJson(endpoint(`SaveStaffOverrides?staffId=${state.selectedOverrideStaffId}`), {
                     method: "POST",
-                    body: JSON.stringify({ overrides })
+                    body: JSON.stringify(request.body)
                 }));
+            request.complete();
             notifySuccess("Đã lưu quyền ghi đè");
             await selectOverrideStaff(state.selectedOverrideStaffId);
         } catch (error) {
@@ -798,16 +825,18 @@
         const scopes = state.selectedScopes.map(scope => ({
             scopeTypeId: scope.scopeTypeId,
             scopeRefId: scope.scopeRefId
-        }));
+        })).sort((a, b) => a.scopeTypeId - b.scopeTypeId || a.scopeRefId - b.scopeRefId);
         const button = el.saveScopeBtn;
+        const request = mutationRequest("staff-scopes", state.selectedScopeStaffId, { scopes });
 
         setButtonBusy(button, true, "Đang lưu...");
         try {
             await AdminMutationGuard.run(`staff-scopes-${state.selectedScopeStaffId}`, button, () =>
                 fetchJson(endpoint(`SaveStaffScopes?staffId=${state.selectedScopeStaffId}`), {
                     method: "POST",
-                    body: JSON.stringify({ scopes })
+                    body: JSON.stringify(request.body)
                 }));
+            request.complete();
             notifySuccess("Đã lưu phạm vi cửa hàng");
             await selectScopeStaff(state.selectedScopeStaffId);
         } catch (error) {

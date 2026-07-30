@@ -6,6 +6,88 @@ namespace CafeChain.Tests;
 
 public sealed class DashboardIntelligenceP0P1ContractTests
 {
+    [Theory]
+    [InlineData("Top 5 sản phẩm bán chạy", DashboardAnswerFocus.TopSellingProducts, DashboardAnalyticsWidget.TopProducts, "TRANSACTION_RANKING_ANALYSIS")]
+    [InlineData("Phương thức thanh toán nào được dùng nhiều nhất?", DashboardAnswerFocus.PaymentUsage, DashboardAnalyticsWidget.PaymentMethodMix, "TRANSACTION_RANKING_ANALYSIS")]
+    [InlineData("Nguyên liệu nào cần đặt lại?", DashboardAnswerFocus.ReorderPriority, DashboardAnalyticsWidget.InventoryReorderSuggestions, "OPERATIONAL_ACTION_ANALYSIS")]
+    [InlineData("Nhà cung cấp nào giao trễ?", DashboardAnswerFocus.SupplierAndOverdueRisk, DashboardAnalyticsWidget.SupplierQuality, "RISK_INVESTIGATION_ANALYSIS")]
+    [InlineData("So sánh doanh thu với kỳ trước", DashboardAnswerFocus.RevenueComparison, DashboardAnalyticsWidget.NetSalesTrend, "EXECUTIVE_DIAGNOSTIC")]
+    public void QuestionCatalog_MapsFocusPlanAndAnswerStyle(
+        string question,
+        DashboardAnswerFocus expectedFocus,
+        DashboardAnalyticsWidget expectedWidget,
+        string expectedStyle)
+    {
+        var catalog = typeof(DashboardIntelligenceService).Assembly.GetType(
+            "CafeChain.Application.Services.Admin.Dashboard.DashboardQuestionCatalog",
+            throwOnError: true)!;
+        var understand = catalog.GetMethod("Understand", BindingFlags.Static | BindingFlags.Public)!;
+        var understanding = Assert.IsType<DashboardQuestionUnderstandingDto>(understand.Invoke(null,
+        [
+            question,
+            new DashboardPeriodDto { Type = DashboardPeriodType.LastNDays, Value = 30 },
+            DashboardComparison.PreviousPeriod,
+            "Day",
+            5
+        ]));
+        var createPlan = catalog.GetMethod("CreateDataPlan", BindingFlags.Static | BindingFlags.Public)!;
+        var plan = Assert.IsType<DashboardDataPlanDto>(createPlan.Invoke(null,
+        [
+            understanding,
+            new[] { 1, 3 },
+            new DateTime(2026, 7, 1),
+            new DateTime(2026, 7, 30)
+        ]));
+
+        Assert.Equal(expectedFocus, understanding.AnswerFocus);
+        Assert.Equal(expectedStyle, understanding.AnswerStyleId);
+        Assert.Equal(expectedWidget, plan.PrimaryWidget);
+        Assert.Equal(new[] { 1, 3 }, plan.EffectiveStoreIds);
+    }
+
+    [Fact]
+    public void DashboardGuide_ContainsSixteenSingleFocusCanonicalQuestions()
+    {
+        var catalog = typeof(DashboardIntelligenceService).Assembly.GetType(
+            "CafeChain.Application.Services.Admin.Dashboard.DashboardQuestionCatalog",
+            throwOnError: true)!;
+        var groups = Assert.IsAssignableFrom<IReadOnlyList<DashboardGuideQuestionGroupDto>>(
+            catalog.GetMethod("GetGuideQuestionGroups", BindingFlags.Static | BindingFlags.Public)!
+                .Invoke(null, null));
+        var questions = groups.SelectMany(x => x.Questions).ToList();
+
+        Assert.Equal(4, groups.Count);
+        Assert.Equal(16, questions.Count);
+        Assert.Equal(16, questions.Select(x => x.ExpectedAnswerFocus).Distinct().Count());
+        Assert.DoesNotContain(questions, x => x.ExpectedAnswerFocus == DashboardAnswerFocus.Dynamic);
+
+        var understand = catalog.GetMethod("Understand", BindingFlags.Static | BindingFlags.Public)!;
+        var createPlan = catalog.GetMethod("CreateDataPlan", BindingFlags.Static | BindingFlags.Public)!;
+        foreach (var question in questions)
+        {
+            var understanding = Assert.IsType<DashboardQuestionUnderstandingDto>(understand.Invoke(null,
+            [
+                question.Question,
+                new DashboardPeriodDto { Type = DashboardPeriodType.LastNDays, Value = 30 },
+                DashboardComparison.PreviousPeriod,
+                "Day",
+                10
+            ]));
+            var plan = Assert.IsType<DashboardDataPlanDto>(createPlan.Invoke(null,
+            [
+                understanding,
+                new[] { 1 },
+                new DateTime(2026, 7, 1),
+                new DateTime(2026, 7, 30)
+            ]));
+
+            Assert.Equal(question.ExpectedAnswerFocus, understanding.AnswerFocus);
+            Assert.False(understanding.IsAmbiguous);
+            Assert.Equal(question.AnswerStyleId, understanding.AnswerStyleId);
+            Assert.Equal(question.PrimaryWidget, plan.PrimaryWidget);
+        }
+    }
+
     [Fact]
     public void CancellationRate_IsWeightedByTotalOrders()
     {
@@ -93,6 +175,41 @@ public sealed class DashboardIntelligenceP0P1ContractTests
     }
 
     [Fact]
+    public void DashboardFrontend_UsesAccessibleAiTabAndVisibleContainerChartLifecycle()
+    {
+        var root = FindRepoRoot();
+        var view = File.ReadAllText(Path.Combine(
+            root, "CafeChain", "Areas", "Admin", "Views", "Dashboard", "Index.cshtml"));
+        var dashboardScript = File.ReadAllText(Path.Combine(
+            root, "CafeChain", "wwwroot", "js", "Admin", "Dashboard", "dashboard.js"));
+        var intelligenceScript = File.ReadAllText(Path.Combine(
+            root, "CafeChain", "wwwroot", "js", "Admin", "Dashboard", "dashboard-intelligence.js"));
+
+        Assert.Contains("id=\"dashboardAiTab\"", view, StringComparison.Ordinal);
+        Assert.Contains("data-ai-tab=\"true\"", view, StringComparison.Ordinal);
+        Assert.Contains("id=\"dashboardAiPanel\"", view, StringComparison.Ordinal);
+        Assert.Contains("aria-controls=\"dashboardAiPanel\"", view, StringComparison.Ordinal);
+        Assert.Contains("aria-labelledby=\"dashboardAiTab\"", view, StringComparison.Ordinal);
+        Assert.Contains("button.hasAttribute(\"data-ai-tab\")", dashboardScript, StringComparison.Ordinal);
+        Assert.Contains("\"cafechain:dashboard-ai-visible\"", dashboardScript, StringComparison.Ordinal);
+        Assert.Contains("\"cafechain:dashboard-ai-visible\"", intelligenceScript, StringComparison.Ordinal);
+        Assert.Contains("getBoundingClientRect()", dashboardScript, StringComparison.Ordinal);
+        Assert.Contains("getBoundingClientRect()", intelligenceScript, StringComparison.Ordinal);
+        Assert.Contains("ResizeObserver", dashboardScript, StringComparison.Ordinal);
+        Assert.Contains("ResizeObserver", intelligenceScript, StringComparison.Ordinal);
+        Assert.Contains("unobserve", dashboardScript, StringComparison.Ordinal);
+        Assert.Contains("unobserve", intelligenceScript, StringComparison.Ordinal);
+        Assert.True(
+            dashboardScript.Split("window.requestAnimationFrame", StringSplitOptions.None).Length > 2,
+            "Dashboard charts must wait for two animation frames before measuring.");
+        Assert.True(
+            intelligenceScript.Split("window.requestAnimationFrame", StringSplitOptions.None).Length > 2,
+            "AI charts must wait for two animation frames before measuring.");
+        Assert.Contains("aiTab.click()", intelligenceScript, StringComparison.Ordinal);
+        Assert.Contains("prompt.focus()", intelligenceScript, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SqlContracts_ExposeEntityFieldsAndRatioScale()
     {
         var script = File.ReadAllText(Path.Combine(
@@ -104,6 +221,12 @@ public sealed class DashboardIntelligenceP0P1ContractTests
         Assert.Contains("d.CategoryId,c.Name AS CategoryName", script, StringComparison.Ordinal);
         Assert.Contains("SUM(CASE WHEN o.OrderStatusId = 6 THEN 1 ELSE 0 END) * 1.0", script, StringComparison.Ordinal);
         Assert.DoesNotContain("SUM(CASE WHEN o.OrderStatusId = 6 THEN 1 ELSE 0 END) * 100.0", script, StringComparison.Ordinal);
+        Assert.Contains("ORDER BY TotalSold DESC, ProductRevenue DESC, od.DrinkId", script, StringComparison.Ordinal);
+        Assert.Contains("ORDER BY TotalTransactions DESC, Amount DESC", script, StringComparison.Ordinal);
+        Assert.Contains("ORDER BY TotalSold DESC, Revenue DESC, d.CategoryId", script, StringComparison.Ordinal);
+        Assert.Contains("usp_Product_LowVolumeProducts", script, StringComparison.Ordinal);
+        Assert.Contains("usp_Product_LowMarginProducts", script, StringComparison.Ordinal);
+        Assert.Contains("HAVING SUM(CASE WHEN od.CostStatus <> 1 OR od.TotalCogs IS NULL THEN 1 ELSE 0 END) = 0", script, StringComparison.Ordinal);
     }
 
     [Fact]

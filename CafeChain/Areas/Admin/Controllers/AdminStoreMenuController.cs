@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.StoreMenu;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreMenu;
@@ -10,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
+    [RequirePermission(PermissionConstants.StoreMenuView)]
     public sealed class AdminStoreMenuController : AdminBaseController
     {
         private readonly AppDbContext _context;
@@ -40,10 +42,13 @@ namespace CafeChain.Areas.Admin.Controllers
             return View(new StoreMenuPageVM
             {
                 Stores = await ResolveAllowedStoresAsync(actor.StaffId, actor.StoreId, cancellationToken),
-                CanPublish = User.IsInRole(RoleConstants.BusinessOwner),
+                CanPublish = User.IsInRole(RoleConstants.BusinessOwner)
+                    || User.IsInRole(RoleConstants.SystemAdmin),
                 CanOperate = User.IsInRole(RoleConstants.BusinessOwner)
-                    || User.IsInRole(RoleConstants.StoreManager),
+                    || User.IsInRole(RoleConstants.StoreManager)
+                    || User.IsInRole(RoleConstants.SystemAdmin),
                 CanOverridePrice = User.IsInRole(RoleConstants.BusinessOwner)
+                    || User.IsInRole(RoleConstants.SystemAdmin)
             });
         }
 
@@ -58,6 +63,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.StoreMenuUpdate)]
         public async Task<IActionResult> UpdateLifecycle(
             [FromBody] UpdateStoreMenuLifecycleRequest request,
             CancellationToken cancellationToken)
@@ -68,6 +74,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.StoreMenuOverridePrice)]
         public async Task<IActionResult> UpdatePriceOverride(
             [FromBody] UpdateStoreMenuPriceOverrideRequest request,
             CancellationToken cancellationToken)

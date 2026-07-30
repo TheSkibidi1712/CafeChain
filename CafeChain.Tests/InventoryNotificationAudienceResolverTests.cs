@@ -18,7 +18,7 @@ namespace CafeChain.Tests;
 public sealed class InventoryNotificationAudienceResolverTests
 {
     [Fact]
-    public async Task Resolve_includes_mandatory_roles_without_email_or_permission_and_keeps_permission_recipient()
+    public async Task Resolve_requires_notification_permission_and_keeps_permission_recipient()
     {
         var repository = new Mock<IInventoryReorderNotificationRepository>();
         repository.Setup(x => x.GetRecipientCandidatesAsync()).ReturnsAsync(
@@ -41,14 +41,13 @@ public sealed class InventoryNotificationAudienceResolverTests
 
         var recipients = await resolver.ResolveAsync(7);
 
-        Assert.Equal([1, 2, 3], recipients.Select(x => x.StaffId).OrderBy(x => x));
-        Assert.All(recipients.Where(x => x.StaffId is 1 or 2), x => Assert.Null(x.Email));
+        Assert.Equal([3], recipients.Select(x => x.StaffId).OrderBy(x => x));
         permissions.Verify(
             x => x.HasPermissionAsync(101, PermissionConstants.NotificationView, 7),
-            Times.Never);
+            Times.Once);
         permissions.Verify(
             x => x.HasPermissionAsync(102, PermissionConstants.NotificationView, 7),
-            Times.Never);
+            Times.Once);
     }
 
     [Fact]
@@ -74,7 +73,7 @@ public sealed class InventoryNotificationAudienceResolverTests
 
         var storeIds = await resolver.ResolveStoreIdsAsync(2);
 
-        Assert.Equal([3, 8], storeIds.OrderBy(x => x));
+        Assert.Empty(storeIds);
     }
 
     private static ReorderNotificationRecipientRow Candidate(

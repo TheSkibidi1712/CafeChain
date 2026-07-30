@@ -643,7 +643,9 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             .Select(x => new { x.StoreId, x.Name, x.ProvinceId, AreaName = x.Province != null ? x.Province.Name : null })
             .ToListAsync();
         var stores = storeRows.Select(x => new ReadableStore(x.StoreId, x.Name, x.ProvinceId, x.AreaName)).ToList();
-        if (HasRole(actor, RoleConstants.BusinessOwner) || HasRole(actor, RoleConstants.AccountantWarehouse)) return stores;
+        if (HasRole(actor, RoleConstants.SystemAdmin)
+            || HasRole(actor, RoleConstants.BusinessOwner)
+            || HasRole(actor, RoleConstants.AccountantWarehouse)) return stores;
         if (HasRole(actor, RoleConstants.StoreManager)) return stores.Where(x => x.Id == actor.StoreId).ToList();
         if (!HasRole(actor, RoleConstants.AreaManager)) return new();
         var allowed = new List<ReadableStore>();
@@ -653,7 +655,10 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
     }
 
     private static decimal Remaining(decimal requested, decimal allocated, decimal closed) => Math.Max(0m, requested - allocated - closed);
-    private static bool CanConsolidate(AdminActorContext actor) => HasRole(actor, RoleConstants.AccountantWarehouse) || HasRole(actor, RoleConstants.BusinessOwner);
+    private static bool CanConsolidate(AdminActorContext actor) =>
+        HasRole(actor, RoleConstants.AccountantWarehouse)
+        || HasRole(actor, RoleConstants.BusinessOwner)
+        || HasRole(actor, RoleConstants.SystemAdmin);
     private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
     private static bool VersionMatches(byte[] current, string? provided)
     {

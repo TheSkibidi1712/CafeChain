@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
@@ -12,6 +13,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// <summary>
     /// Issue #100 list/detail + Issue #128 workflow actions (intent-only; no inventory mutation).
     /// </summary>
+    [RequirePermission(PermissionConstants.RestockView)]
     public class AdminRestockRequestsController : AdminBaseController
     {
         private readonly IRestockRequestService _service;
@@ -69,6 +71,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.RestockCreate)]
         public async Task<IActionResult> CreateManual(int? storeId = null)
         {
             if (!CanCreateDemand()) return Forbid();
@@ -85,6 +88,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.RestockCreate)]
         public async Task<IActionResult> CreateCentralPlanner(int? storeId = null)
         {
             if (!CanCentralPlan()) return Forbid();
@@ -160,6 +164,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.RestockSubmit)]
         public async Task<IActionResult> Submit(int id, string? rowVersion)
         {
             if (!CanSubmit())
@@ -178,6 +183,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.RestockApprove)]
         public async Task<IActionResult> StartProcessing(int id, string? reason, string? rowVersion)
         {
             if (!CanWarehouseActions())
@@ -196,6 +202,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.RestockReject)]
         public async Task<IActionResult> Reject(int id, string reason, string? rowVersion)
         {
             if (!CanWarehouseActions())
@@ -214,6 +221,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.RestockCancel)]
         public async Task<IActionResult> Cancel(int id, string? reason, string? rowVersion)
         {
             if (!CanCancel())
@@ -232,6 +240,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.RestockCloseRemaining)]
         public async Task<IActionResult> CloseRemaining(int id, string reason, string? rowVersion)
         {
             if (!CanWarehouseActions())
@@ -250,6 +259,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.RestockUpdate)]
         public async Task<IActionResult> LinkFulfillment(int id, LinkRestockFulfillmentRequest model, string? rowVersion)
         {
             if (!CanWarehouseActions())
@@ -268,6 +278,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.RestockCreate)]
         public async Task<IActionResult> CreateManual(CreateProcurementDemandRequest model)
         {
             if (!CanCreateDemand())
@@ -308,6 +319,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.RestockUpdate)]
         public async Task<IActionResult> AddDemand(AddRestockDemandAdjustmentRequest model)
         {
             if (!CanCreateDemand()) return Forbid();
@@ -322,6 +334,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.RestockCreate)]
         public async Task<IActionResult> CreateCentralPlanner(CreateProcurementDemandRequest model)
         {
             if (!CanCentralPlan())
@@ -338,6 +351,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.RestockUpdate)]
         public async Task<IActionResult> SetSourcingDecision(SourcingDecisionRequest model)
         {
             if (!CanWarehouseActions())
@@ -354,34 +368,40 @@ namespace CafeChain.Areas.Admin.Controllers
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager);
+            || User.IsInRole(RoleConstants.AreaManager)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private bool CanWarehouseActions() =>
             User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner);
+            || User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private bool CanCreateReceipt() =>
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner);
+            || User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private bool CanCancel() =>
             CanWarehouseActions() || User.IsInRole(RoleConstants.StoreManager);
 
         private bool CanSubmit() =>
             User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.BusinessOwner);
+            || User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private bool CanCreateDemand() =>
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.BusinessOwner);
+            || User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private bool CanCentralPlan() =>
             User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.BusinessOwner);
+            || User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private async Task PopulateDemandOptionsAsync(int storeId)
         {

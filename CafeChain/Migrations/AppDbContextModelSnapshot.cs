@@ -7334,6 +7334,13 @@ namespace CafeChain.Migrations
                     b.Property<int>("RestockRequestId")
                         .HasColumnType("int");
 
+                    b.Property<string>("SuggestionSnapshotJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SuggestionSnapshotVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.HasKey("RestockRequestTransitionId");
 
                     b.HasIndex("ActorStaffId");
@@ -9477,6 +9484,10 @@ namespace CafeChain.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
+
+                    b.Property<string>("MeaningfulVersion")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("datetime2");
