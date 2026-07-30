@@ -211,6 +211,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     }
 
     [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> Details(int id, CancellationToken cancellationToken = default)
     {
         var allocation = await _context.IceAllocations.AsNoTracking()
@@ -253,12 +254,24 @@ public sealed class AdminOperationalIceController : AdminBaseController
         if (!displayToBaseFactorResult.IsSuccess)
             TempData["ErrorMessage"] = "Không thể quy đổi đơn vị đá. Dữ liệu đang hiển thị theo đơn vị tồn kho.";
 
-        var availableWorkShiftRows = canManage
-            ? (await _service.GetWorkShiftSuggestionsAsync(
+        IReadOnlyList<OperationalIceWorkShiftSuggestionDto> availableWorkShiftRows = [];
+        if (canManage)
+        {
+            var suggestionResult = await _service.GetWorkShiftSuggestionsAsync(
                 allocation.OperationalShiftId,
                 actor,
-                cancellationToken)).Data ?? []
-            : [];
+                cancellationToken);
+            if (suggestionResult.IsSuccess)
+            {
+                availableWorkShiftRows = suggestionResult.Data ?? [];
+            }
+            else
+            {
+                TempData["ErrorMessage"] = string.IsNullOrWhiteSpace(suggestionResult.Message)
+                    ? "Không thể tải danh sách ca POS phù hợp. Vui lòng tải lại."
+                    : suggestionResult.Message;
+            }
+        }
         var availableWorkShifts = availableWorkShiftRows
             .Select(x => new OperationalIceOptionVM
             {
@@ -512,6 +525,66 @@ public sealed class AdminOperationalIceController : AdminBaseController
             new { storeId = shiftScope.StoreId, businessDate = shiftScope.BusinessDate });
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConvertToManual(
+        ConvertOperationalShiftToManualRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var shiftScope = await ShiftScopeAsync(request.OperationalShiftId, cancellationToken);
+        if (shiftScope == null)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+            return Forbid();
+
+        return RedirectWithResult(
+            await _service.ConvertDraftToManualAsync(
+                request,
+                _actorAccessor.Get(User),
+                cancellationToken),
+            nameof(Index),
+            new { storeId = shiftScope.StoreId, businessDate = shiftScope.BusinessDate });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateShiftLead(
+        UpdateOperationalShiftLeadRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var shiftScope = await ShiftScopeAsync(request.OperationalShiftId, cancellationToken);
+        if (shiftScope == null)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+            return Forbid();
+
+        return RedirectWithResult(
+            await _service.UpdateDraftShiftLeadAsync(
+                request,
+                _actorAccessor.Get(User),
+                cancellationToken),
+            nameof(Index),
+            new { storeId = shiftScope.StoreId, businessDate = shiftScope.BusinessDate });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelDraftShift(
+        CancelDraftOperationalShiftRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var shiftScope = await ShiftScopeAsync(request.OperationalShiftId, cancellationToken);
+        if (shiftScope == null)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+            return Forbid();
+
+        return RedirectWithResult(
+            await _service.CancelDraftShiftAsync(
+                request,
+                _actorAccessor.Get(User),
+                cancellationToken),
+            nameof(Index),
+            new { storeId = shiftScope.StoreId, businessDate = shiftScope.BusinessDate });
+    }
+
     [HttpGet]
     public async Task<IActionResult> ScheduleOptions(
         int storeId,
@@ -743,6 +816,14 @@ public sealed class AdminOperationalIceController : AdminBaseController
         _context.OperationalShifts.AsNoTracking().Where(x => x.OperationalShiftId == shiftId)
             .Select(x => x.StoreId).SingleOrDefaultAsync(cancellationToken);
 
+    private Task<OperationalShiftScope?> ShiftScopeAsync(
+        int shiftId,
+        CancellationToken cancellationToken) =>
+        _context.OperationalShifts.AsNoTracking()
+            .Where(x => x.OperationalShiftId == shiftId)
+            .Select(x => new OperationalShiftScope(x.StoreId, x.BusinessDate))
+            .SingleOrDefaultAsync(cancellationToken);
+
     private Task<int> StoreIdForAllocationAsync(int allocationId, CancellationToken cancellationToken) =>
         _context.IceAllocations.AsNoTracking().Where(x => x.IceAllocationId == allocationId)
             .Select(x => x.OperationalShift.StoreId).SingleOrDefaultAsync(cancellationToken);
@@ -829,11 +910,15 @@ public sealed class AdminOperationalIceController : AdminBaseController
             IsScheduleAvailable = review.IsScheduleAvailable,
             HasChanges = review.HasChanges,
             CanSync = review.CanSync,
+            HasCancelledAssignments = review.HasCancelledAssignments,
+            RequiresLeadReplacement = review.RequiresLeadReplacement,
+            BlocksOpening = review.BlocksOpening,
             SavedLabel = $"{review.SavedName} · {savedStart:dd/MM/yyyy HH:mm}–{savedEnd:dd/MM/yyyy HH:mm}",
             CurrentLabel = currentLabel,
             SavedLeadName = LeadName(review.SavedShiftLeadId, leadNames),
             CurrentLeadName = LeadName(review.CurrentShiftLeadId, leadNames),
-            StaffCount = review.StaffCount
+            StaffCount = review.StaffCount,
+            CancelledStaffCount = review.CancelledStaffCount
         };
     }
 
@@ -847,4 +932,5 @@ public sealed class AdminOperationalIceController : AdminBaseController
     }
 
     private sealed record IceUnitContext(int StoreId, int IngredientId, int DisplayUnitId);
+    private sealed record OperationalShiftScope(int StoreId, DateTime BusinessDate);
 }

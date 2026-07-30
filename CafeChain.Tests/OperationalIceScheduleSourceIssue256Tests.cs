@@ -370,6 +370,184 @@ public sealed class OperationalIceScheduleSourceIssue256Tests : IntegrationTestB
     }
 
     [Fact]
+    public async Task WorkShiftSuggestions_ExcludeDifferentBusinessDateAndStaleOpenShift()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        var operational = DirectScheduleShift("Ca sáng");
+        operational.Status = OperationalIceStatuses.Open;
+        var staleJanuary = WorkShift(
+            25630,
+            StoreId,
+            SupervisorStaffId,
+            new DateTime(2026, 1, 18, 6, 0, 0),
+            new DateTime(2026, 1, 18, 14, 0, 0));
+        staleJanuary.Status = "Open";
+        staleJanuary.EndTime = null;
+        context.OperationalShifts.Add(operational);
+        context.WorkShifts.AddRange(
+            staleJanuary,
+            WorkShift(25631, StoreId, SupervisorStaffId, BusinessDate.AddDays(-1).AddHours(7), BusinessDate.AddDays(-1).AddHours(12)),
+            WorkShift(25632, StoreId, SupervisorStaffId, BusinessDate.AddHours(7), BusinessDate.AddHours(12)));
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).GetWorkShiftSuggestionsAsync(
+            operational.OperationalShiftId,
+            Actor());
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(25632, Assert.Single(result.Data).WorkShiftId);
+    }
+
+    [Fact]
+    public async Task WorkShiftSuggestions_ExcludeCancelledStatus()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        var operational = DirectScheduleShift("Ca sáng");
+        operational.Status = OperationalIceStatuses.Open;
+        var cancelled = WorkShift(
+            25630,
+            StoreId,
+            SupervisorStaffId,
+            BusinessDate.AddHours(7),
+            BusinessDate.AddHours(12));
+        cancelled.Status = "Cancelled";
+        context.OperationalShifts.Add(operational);
+        context.WorkShifts.Add(cancelled);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).GetWorkShiftSuggestionsAsync(
+            operational.OperationalShiftId,
+            Actor());
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Empty(result.Data);
+    }
+
+    [Fact]
+    public async Task WorkShiftLink_BackendRevalidatesStoreDateAndOverlap()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStore(context, OtherStoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        SeedStaff(context, 25612, OtherStoreId, RoleConstants.SalesStaff);
+        var operational = DirectScheduleShift("Ca sáng");
+        operational.Status = OperationalIceStatuses.Open;
+        context.OperationalShifts.Add(operational);
+        context.WorkShifts.AddRange(
+            WorkShift(25630, OtherStoreId, 25612, BusinessDate.AddHours(7), BusinessDate.AddHours(12)),
+            WorkShift(25631, StoreId, SupervisorStaffId, BusinessDate.AddDays(-1).AddHours(7), BusinessDate.AddDays(-1).AddHours(12)),
+            WorkShift(25632, StoreId, SupervisorStaffId, BusinessDate.AddHours(15), BusinessDate.AddHours(16)));
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+
+        var wrongStore = await service.LinkWorkShiftsAsync(new LinkOperationalWorkShiftsRequest
+        {
+            OperationalShiftId = operational.OperationalShiftId,
+            WorkShiftIds = [25630]
+        }, Actor());
+        var wrongDate = await service.LinkWorkShiftsAsync(new LinkOperationalWorkShiftsRequest
+        {
+            OperationalShiftId = operational.OperationalShiftId,
+            WorkShiftIds = [25631]
+        }, Actor());
+        var noOverlap = await service.LinkWorkShiftsAsync(new LinkOperationalWorkShiftsRequest
+        {
+            OperationalShiftId = operational.OperationalShiftId,
+            WorkShiftIds = [25632]
+        }, Actor());
+
+        Assert.False(wrongStore.IsSuccess);
+        Assert.False(wrongDate.IsSuccess);
+        Assert.False(noOverlap.IsSuccess);
+        Assert.Empty(await context.OperationalShiftWorkShifts.ToListAsync());
+    }
+
+    [Fact]
+    public async Task ChangingOperationalShift_ReturnsOnlyCurrentCandidates()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        var morning = DirectScheduleShift("Ca sáng");
+        morning.Status = OperationalIceStatuses.Open;
+        var afternoon = DirectScheduleShift("Ca chiều");
+        afternoon.SourceScheduleShiftId = 25621;
+        afternoon.StartAtUtc = LocalUtc(BusinessDate.AddHours(14));
+        afternoon.EndAtUtc = LocalUtc(BusinessDate.AddHours(22));
+        afternoon.Status = OperationalIceStatuses.Open;
+        context.OperationalShifts.AddRange(morning, afternoon);
+        context.WorkShifts.AddRange(
+            WorkShift(25630, StoreId, SupervisorStaffId, BusinessDate.AddHours(7), BusinessDate.AddHours(12)),
+            WorkShift(25631, StoreId, SupervisorStaffId, BusinessDate.AddHours(15), BusinessDate.AddHours(20)));
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+
+        var morningResult = await service.GetWorkShiftSuggestionsAsync(
+            morning.OperationalShiftId,
+            Actor());
+        var afternoonResult = await service.GetWorkShiftSuggestionsAsync(
+            afternoon.OperationalShiftId,
+            Actor());
+
+        Assert.Equal(25630, Assert.Single(morningResult.Data).WorkShiftId);
+        Assert.Equal(25631, Assert.Single(afternoonResult.Data).WorkShiftId);
+    }
+
+    [Fact]
+    public async Task ChangingStore_ReturnsOnlyCurrentStoreCandidates()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStore(context, OtherStoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        SeedStaff(context, 25612, OtherStoreId, RoleConstants.ShiftSupervisor);
+        var firstStoreShift = DirectScheduleShift("Ca cửa hàng 1");
+        firstStoreShift.Status = OperationalIceStatuses.Open;
+        var secondStoreShift = DirectScheduleShift("Ca cửa hàng 2");
+        secondStoreShift.StoreId = OtherStoreId;
+        secondStoreShift.SourceScheduleShiftId = 25621;
+        secondStoreShift.ShiftLeadId = 25612;
+        secondStoreShift.CreatedByStaffId = 25612;
+        secondStoreShift.Status = OperationalIceStatuses.Open;
+        context.OperationalShifts.AddRange(firstStoreShift, secondStoreShift);
+        context.WorkShifts.AddRange(
+            WorkShift(25630, StoreId, SupervisorStaffId, BusinessDate.AddHours(7), BusinessDate.AddHours(12)),
+            WorkShift(25631, OtherStoreId, 25612, BusinessDate.AddHours(7), BusinessDate.AddHours(12)));
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+
+        var firstResult = await service.GetWorkShiftSuggestionsAsync(
+            firstStoreShift.OperationalShiftId,
+            Actor());
+        var secondResult = await service.GetWorkShiftSuggestionsAsync(
+            secondStoreShift.OperationalShiftId,
+            Actor());
+
+        Assert.Equal(25630, Assert.Single(firstResult.Data).WorkShiftId);
+        Assert.Equal(25631, Assert.Single(secondResult.Data).WorkShiftId);
+    }
+
+    [Fact]
+    public void WorkShiftSuggestionUi_IsServerRenderedPerAllocationAndNotClientCached()
+    {
+        var controller = ReadRepoFile(
+            "CafeChain", "Areas", "Admin", "Controllers", "AdminOperationalIceController.cs");
+        var details = ReadRepoFile(
+            "CafeChain", "Areas", "Admin", "Views", "AdminOperationalIce", "Details.cshtml");
+
+        Assert.Contains("[ResponseCache(NoStore = true", controller);
+        Assert.Contains("GetWorkShiftSuggestionsAsync(", controller);
+        Assert.Contains("allocation.OperationalShiftId", controller);
+        Assert.Contains("name=\"OperationalShiftId\" value=\"@Model.OperationalShiftId\"", details);
+        Assert.DoesNotContain("fetch(", details);
+    }
+
+    [Fact]
     public async Task BulkLink_IsIdempotentAndPreventsCrossShiftDoubleCount()
     {
         using var context = CreateDbContext();
@@ -405,6 +583,18 @@ public sealed class OperationalIceScheduleSourceIssue256Tests : IntegrationTestB
         Assert.Equal(2, await context.OperationalShiftWorkShifts.CountAsync());
         Assert.False(conflicting.IsSuccess);
         Assert.Equal(OperationalIceErrorCodes.WorkShiftAlreadyLinked, conflicting.ErrorCode);
+    }
+
+    [Fact]
+    public void ConcurrentWorkShiftLink_IsProtectedByUniqueDatabaseIndex()
+    {
+        using var context = CreateDbContext();
+        var entity = context.Model.FindEntityType(typeof(OperationalShiftWorkShift))!;
+        var index = entity.GetIndexes()
+            .Single(x => x.Properties.Select(property => property.Name)
+                .SequenceEqual([nameof(OperationalShiftWorkShift.WorkShiftId)]));
+
+        Assert.True(index.IsUnique);
     }
 
     [Fact]
@@ -556,6 +746,215 @@ public sealed class OperationalIceScheduleSourceIssue256Tests : IntegrationTestB
     }
 
     [Fact]
+    public async Task ScheduleAssignmentCancellation_DoesNotCancelOperationalShift()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        SeedStaff(context, 25612, StoreId, RoleConstants.SalesStaff);
+        SeedPolicy(context);
+        SeedSchedule(context, StoreId, 25620, BusinessDate, SupervisorStaffId, 25612);
+        var operational = DirectScheduleShift("Ca sáng");
+        context.OperationalShifts.Add(operational);
+        await context.SaveChangesAsync();
+        await CancelScheduleAssignmentAsync(context, 25612);
+
+        var reviewResult = await CreateService(context).GetScheduleReviewsAsync(
+            StoreId,
+            BusinessDate,
+            Actor());
+
+        var review = Assert.Single(reviewResult.Data);
+        Assert.True(review.HasCancelledAssignments);
+        Assert.False(review.RequiresLeadReplacement);
+        Assert.False(review.BlocksOpening);
+        Assert.Equal(1, review.CancelledStaffCount);
+        Assert.Equal(
+            OperationalIceStatuses.Draft,
+            (await context.OperationalShifts.AsNoTracking()
+                .SingleAsync(x => x.OperationalShiftId == operational.OperationalShiftId)).Status);
+    }
+
+    [Fact]
+    public async Task CancelledShiftLead_BlocksDraftOpeningUntilReplacement()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        SeedStaff(context, 25612, StoreId, RoleConstants.SalesStaff);
+        SeedStaff(context, 25613, StoreId, RoleConstants.ShiftSupervisor);
+        SeedPolicy(context);
+        SeedSchedule(context, StoreId, 25620, BusinessDate, SupervisorStaffId, 25612);
+        var operational = DirectScheduleShift("Ca sáng");
+        context.OperationalShifts.Add(operational);
+        await context.SaveChangesAsync();
+        await CancelScheduleAssignmentAsync(context, SupervisorStaffId);
+        var service = CreateService(context);
+
+        var reviewResult = await service.GetScheduleReviewsAsync(StoreId, BusinessDate, Actor());
+        var blockedReview = Assert.Single(reviewResult.Data);
+        var blockedOpen = await service.OpenAllocationAsync(new OpenIceAllocationRequest
+        {
+            OperationalShiftId = operational.OperationalShiftId,
+            InitialIssuedQuantity = 15m
+        }, Actor());
+
+        Assert.True(blockedReview.RequiresLeadReplacement);
+        Assert.True(blockedReview.BlocksOpening);
+        Assert.False(blockedOpen.IsSuccess);
+        Assert.Contains("hủy phân công", blockedOpen.Message, StringComparison.OrdinalIgnoreCase);
+
+        var replacement = await service.UpdateDraftShiftLeadAsync(
+            new UpdateOperationalShiftLeadRequest
+            {
+                OperationalShiftId = operational.OperationalShiftId,
+                ShiftLeadId = 25613,
+                Reason = "Thay ca trưởng đã hủy lịch"
+            },
+            Actor());
+
+        Assert.True(replacement.IsSuccess, replacement.Message);
+        Assert.Equal(
+            25613,
+            (await context.OperationalShifts.AsNoTracking()
+                .SingleAsync(x => x.OperationalShiftId == operational.OperationalShiftId)).ShiftLeadId);
+        Assert.Contains(await context.AuditLogs.AsNoTracking().ToListAsync(), x =>
+            x.RecordId == operational.OperationalShiftId
+            && x.Action == "UPDATE_SHIFT_LEAD");
+    }
+
+    [Fact]
+    public async Task CancelledShiftLead_DoesNotAutoCloseOpenShift()
+    {
+        using var context = CreateDbContext();
+        SeedStore(context, StoreId);
+        SeedStaff(context, SupervisorStaffId, StoreId, RoleConstants.ShiftSupervisor);
+        SeedStaff(context, 25612, StoreId, RoleConstants.SalesStaff);
+        SeedPolicy(context);
+        SeedSchedule(context, StoreId, 25620, BusinessDate, SupervisorStaffId, 25612);
+        var operational = DirectScheduleShift("Ca sáng");
+        operational.Status = OperationalIceStatuses.Open;
+        context.OperationalShifts.Add(operational);
+        await context.SaveChangesAsync();
+        await CancelScheduleAssignmentAsync(context, SupervisorStaffId);
+
+        var reviewResult = await CreateService(context).GetScheduleReviewsAsync(
+            StoreId,
+            BusinessDate,
+            Actor());
+
+        var review = Assert.Single(reviewResult.Data);
+        Assert.True(review.RequiresLeadReplacement);
+        Assert.False(review.CanSync);
+        Assert.Equal(
+            OperationalIceStatuses.Open,
+            (await context.OperationalShifts.AsNoTracking()
+                .SingleAsync(x => x.OperationalShiftId == operational.OperationalShiftId)).Status);
+    }
+
+    [Fact]
+    public async Task CancelledScheduleSource_DoesNotMutateOpenShift()
+    {
+        using var context = CreateDbContext();
+        await SeedValidScheduleScenarioAsync(context);
+        var operational = DirectScheduleShift("Ca sáng đang mở");
+        operational.Status = OperationalIceStatuses.Open;
+        context.OperationalShifts.Add(operational);
+        await context.SaveChangesAsync();
+        var savedName = operational.Name;
+        var savedStart = operational.StartAtUtc;
+        var savedEnd = operational.EndAtUtc;
+        await CancelScheduleAssignmentAsync(context, SupervisorStaffId);
+
+        var reviewResult = await CreateService(context).GetScheduleReviewsAsync(
+            StoreId,
+            BusinessDate,
+            Actor());
+
+        var review = Assert.Single(reviewResult.Data);
+        Assert.False(review.IsScheduleAvailable);
+        Assert.True(review.BlocksOpening);
+        Assert.False(review.CanSync);
+        var persisted = await context.OperationalShifts.AsNoTracking()
+            .SingleAsync(x => x.OperationalShiftId == operational.OperationalShiftId);
+        Assert.Equal(OperationalIceStatuses.Open, persisted.Status);
+        Assert.Equal(savedName, persisted.Name);
+        Assert.Equal(savedStart, persisted.StartAtUtc);
+        Assert.Equal(savedEnd, persisted.EndAtUtc);
+        Assert.Equal(OperationalIceCreationSources.StaffSchedule, persisted.CreationSource);
+        Assert.Equal(25620, persisted.SourceScheduleShiftId);
+    }
+
+    [Fact]
+    public async Task CancelledScheduleSource_BlocksDraftOpeningAndCanConvertToManual()
+    {
+        using var context = CreateDbContext();
+        await SeedValidScheduleScenarioAsync(context);
+        var operational = DirectScheduleShift("Ca sáng");
+        context.OperationalShifts.Add(operational);
+        await context.SaveChangesAsync();
+        await CancelScheduleAssignmentAsync(context, SupervisorStaffId);
+        var service = CreateService(context);
+
+        var blockedOpen = await service.OpenAllocationAsync(new OpenIceAllocationRequest
+        {
+            OperationalShiftId = operational.OperationalShiftId,
+            InitialIssuedQuantity = 15m
+        }, Actor());
+        var converted = await service.ConvertDraftToManualAsync(
+            new ConvertOperationalShiftToManualRequest
+            {
+                OperationalShiftId = operational.OperationalShiftId,
+                Reason = "Toàn bộ lịch nguồn đã bị hủy"
+            },
+            Actor());
+
+        Assert.False(blockedOpen.IsSuccess);
+        Assert.Contains("lịch nguồn đã bị hủy", blockedOpen.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(converted.IsSuccess, converted.Message);
+        var persisted = await context.OperationalShifts.AsNoTracking()
+            .SingleAsync(x => x.OperationalShiftId == operational.OperationalShiftId);
+        Assert.Equal(OperationalIceCreationSources.Manual, persisted.CreationSource);
+        Assert.Null(persisted.SourceScheduleShiftId);
+        Assert.Equal("Ca sáng", persisted.Name);
+        Assert.Equal(LocalUtc(BusinessDate.AddHours(6)), persisted.StartAtUtc);
+        Assert.Contains(await context.AuditLogs.AsNoTracking().ToListAsync(), x =>
+            x.RecordId == operational.OperationalShiftId
+            && x.Action == "CONVERT_TO_MANUAL"
+            && x.OldData!.Contains("\"Reason\""));
+    }
+
+    [Fact]
+    public async Task MissingScheduleSource_DraftCanBeCancelledWithAudit()
+    {
+        using var context = CreateDbContext();
+        await SeedValidScheduleScenarioAsync(context);
+        var operational = DirectScheduleShift("Ca sáng");
+        context.OperationalShifts.Add(operational);
+        await context.SaveChangesAsync();
+        var schedule = await context.Shifts.SingleAsync(x => x.ShiftId == 25620);
+        schedule.Active = false;
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).CancelDraftShiftAsync(
+            new CancelDraftOperationalShiftRequest
+            {
+                OperationalShiftId = operational.OperationalShiftId,
+                Reason = "Không còn nhu cầu vận hành"
+            },
+            Actor());
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(
+            OperationalIceStatuses.Cancelled,
+            (await context.OperationalShifts.AsNoTracking()
+                .SingleAsync(x => x.OperationalShiftId == operational.OperationalShiftId)).Status);
+        Assert.Contains(await context.AuditLogs.AsNoTracking().ToListAsync(), x =>
+            x.RecordId == operational.OperationalShiftId
+            && x.Action == "CANCEL_DRAFT");
+    }
+
+    [Fact]
     public void OperationalIceUi_ShowsScheduleDiffAndExplicitDraftSyncAction()
     {
         var index = ReadRepoFile(
@@ -564,7 +963,25 @@ public sealed class OperationalIceScheduleSourceIssue256Tests : IntegrationTestB
         Assert.Contains("Lịch làm việc đã thay đổi", index);
         Assert.Contains("asp-action=\"SyncSchedule\"", index);
         Assert.Contains("Đồng bộ lịch", index);
-        Assert.Contains("Ca đã mở nên không tự động thay đổi", index);
+        Assert.Contains("Ca lịch nguồn đã bị hủy", index);
+        Assert.Contains("Ca trưởng trong lịch đã bị hủy phân công", index);
+        Assert.Contains("asp-action=\"ConvertToManual\"", index);
+        Assert.Contains("asp-action=\"UpdateShiftLead\"", index);
+        Assert.Contains("asp-action=\"CancelDraftShift\"", index);
+        Assert.Contains("không tự động thay đổi dữ liệu vận hành", index);
+        Assert.Contains("BlocksOpening", index);
+    }
+
+    [Fact]
+    public void StaffScheduleCancellation_PersistsStatusAndAudit()
+    {
+        var service = ReadRepoFile(
+            "CafeChain", "Application", "Services", "Admin", "Staffs", "AdminStaffShiftService.cs");
+
+        Assert.Contains("private const string Cancelled = \"CANCELLED\"", service);
+        Assert.Contains("schedule.StatusId = (await RequireStatusAsync(Cancelled", service);
+        Assert.Contains("AddAudit(\"StaffShifts\", schedule.StaffShiftId, \"CANCEL\"", service);
+        Assert.Contains("Đã hủy lịch và giữ lại lịch sử.", service);
     }
 
     private static OperationalShift DirectScheduleShift(string name) => new()
@@ -737,6 +1154,33 @@ public sealed class OperationalIceScheduleSourceIssue256Tests : IntegrationTestB
                 RowVersion = [0]
             });
         }
+    }
+
+    private static async Task CancelScheduleAssignmentAsync(
+        CafeChain.Data.AppDbContext context,
+        int staffId)
+    {
+        var cancelled = await context.StaffShiftStatuses
+            .SingleOrDefaultAsync(x => x.Code == "CANCELLED");
+        if (cancelled == null)
+        {
+            cancelled = new StaffShiftStatus
+            {
+                StaffShiftStatusId = 25651,
+                Code = "CANCELLED",
+                Name = "Đã hủy",
+                IsSystem = true
+            };
+            context.StaffShiftStatuses.Add(cancelled);
+        }
+
+        var assignment = await context.StaffShifts
+            .SingleAsync(x => x.ShiftId == 25620
+                              && x.WorkDate == BusinessDate
+                              && x.StaffId == staffId);
+        assignment.StatusId = cancelled.StaffShiftStatusId;
+        assignment.Status = cancelled;
+        await context.SaveChangesAsync();
     }
 
     private static OperationalIceService CreateService(CafeChain.Data.AppDbContext context)

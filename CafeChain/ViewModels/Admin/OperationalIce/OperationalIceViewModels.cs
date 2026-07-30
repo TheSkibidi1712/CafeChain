@@ -45,11 +45,15 @@ public sealed class OperationalIceScheduleReviewVM
     public bool IsScheduleAvailable { get; init; }
     public bool HasChanges { get; init; }
     public bool CanSync { get; init; }
+    public bool HasCancelledAssignments { get; init; }
+    public bool RequiresLeadReplacement { get; init; }
+    public bool BlocksOpening { get; init; }
     public string SavedLabel { get; init; } = string.Empty;
     public string CurrentLabel { get; init; } = string.Empty;
     public string SavedLeadName { get; init; } = string.Empty;
     public string CurrentLeadName { get; init; } = string.Empty;
     public int StaffCount { get; init; }
+    public int CancelledStaffCount { get; init; }
 }
 
 public sealed class OperationalIceScheduleOptionVM

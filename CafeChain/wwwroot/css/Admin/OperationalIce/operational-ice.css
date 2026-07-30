@@ -1135,6 +1135,45 @@
     margin-top: 3px;
 }
 
+.ice-schedule-resolution {
+    display: grid;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.ice-resolution-form {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) auto;
+    gap: 7px;
+    min-width: 0;
+    padding-top: 8px;
+    border-top: 1px solid #FED7AA;
+}
+
+.ice-resolution-form label {
+    grid-column: 1 / -1;
+    color: var(--ice-text);
+    font-weight: 700;
+}
+
+.ice-resolution-form input,
+.ice-resolution-form select {
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    border: 1px solid var(--ice-border);
+    border-radius: 6px;
+    padding: 6px 9px;
+    background: var(--ice-surface);
+    color: var(--ice-text);
+}
+
+@media (max-width: 760px) {
+    .ice-resolution-form {
+        grid-template-columns: 1fr;
+    }
+}
+
 .ice-icon-btn {
     width: 36px;
     height: 36px;

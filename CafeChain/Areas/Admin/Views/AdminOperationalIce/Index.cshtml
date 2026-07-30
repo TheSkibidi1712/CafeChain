@@ -449,9 +449,30 @@
                                     @if (row.ScheduleReview is { HasChanges: true } scheduleReview)
                                     {
                                         <div class="ice-schedule-change" role="status">
-                                            <strong><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Lịch làm việc đã thay đổi</strong>
+                                            <strong>
+                                                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                                                @if (!scheduleReview.IsScheduleAvailable)
+                                                {
+                                                    <text>Ca lịch nguồn đã bị hủy</text>
+                                                }
+                                                else if (scheduleReview.RequiresLeadReplacement)
+                                                {
+                                                    <text>Ca trưởng trong lịch đã bị hủy phân công</text>
+                                                }
+                                                else
+                                                {
+                                                    <text>Lịch làm việc đã thay đổi</text>
+                                                }
+                                            </strong>
                                             <span><b>Ca đang lưu:</b> @scheduleReview.SavedLabel · @scheduleReview.SavedLeadName</span>
                                             <span><b>Lịch hiện tại:</b> @scheduleReview.CurrentLabel@(scheduleReview.IsScheduleAvailable ? $" · {scheduleReview.StaffCount} nhân viên · {scheduleReview.CurrentLeadName}" : "")</span>
+                                            @if (scheduleReview.HasCancelledAssignments)
+                                            {
+                                                <span>
+                                                    Có @scheduleReview.CancelledStaffCount phân công đã bị hủy.
+                                                    Hệ thống không tự hủy hoặc thay đổi ca vận hành.
+                                                </span>
+                                            }
                                             @if (scheduleReview.CanSync)
                                             {
                                                 <form asp-action="SyncSchedule" method="post" class="ice-inline-form">
@@ -462,9 +483,71 @@
                                                     </button>
                                                 </form>
                                             }
+                                            @if (row.Status == OperationalIceStatuses.Draft
+                                                 && !scheduleReview.IsScheduleAvailable)
+                                            {
+                                                <div class="ice-schedule-resolution">
+                                                    <form asp-action="ConvertToManual" method="post" class="ice-resolution-form">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
+                                                        <label for="manual-reason-@row.OperationalShiftId">Lý do chuyển sang ca thủ công</label>
+                                                        <input id="manual-reason-@row.OperationalShiftId"
+                                                               name="Reason"
+                                                               maxlength="500"
+                                                               placeholder="Ví dụ: Lịch nguồn đã hủy, tiếp tục vận hành thủ công"
+                                                               required />
+                                                        <button class="ice-btn ice-btn-secondary ice-btn-compact" type="submit">
+                                                            Chuyển sang thủ công
+                                                        </button>
+                                                    </form>
+                                                    <form asp-action="CancelDraftShift"
+                                                          method="post"
+                                                          class="ice-resolution-form"
+                                                          onsubmit="return confirm('Hủy ca vận hành nháp này? Lịch sử vẫn được giữ lại.');">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
+                                                        <label for="cancel-reason-@row.OperationalShiftId">Lý do hủy ca nháp</label>
+                                                        <input id="cancel-reason-@row.OperationalShiftId"
+                                                               name="Reason"
+                                                               maxlength="500"
+                                                               placeholder="Nhập lý do hủy ca"
+                                                               required />
+                                                        <button class="ice-btn ice-btn-danger ice-btn-compact" type="submit">
+                                                            Hủy ca nháp
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            }
+                                            else if (row.Status == OperationalIceStatuses.Draft
+                                                     && scheduleReview.RequiresLeadReplacement)
+                                            {
+                                                <form asp-action="UpdateShiftLead" method="post" class="ice-resolution-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
+                                                    <label for="replacement-lead-@row.OperationalShiftId">Chọn ca trưởng thay thế</label>
+                                                    <select id="replacement-lead-@row.OperationalShiftId"
+                                                            name="ShiftLeadId"
+                                                            required>
+                                                        <option value="">Chọn ca trưởng</option>
+                                                        @foreach (var lead in Model.ShiftLeads)
+                                                        {
+                                                            <option value="@lead.Id">@lead.Label</option>
+                                                        }
+                                                    </select>
+                                                    <label for="replacement-reason-@row.OperationalShiftId">Lý do thay ca trưởng</label>
+                                                    <input id="replacement-reason-@row.OperationalShiftId"
+                                                           name="Reason"
+                                                           maxlength="500"
+                                                           placeholder="Nhập lý do thay ca trưởng"
+                                                           required />
+                                                    <button class="ice-btn ice-btn-secondary ice-btn-compact" type="submit">
+                                                        Cập nhật ca trưởng
+                                                    </button>
+                                                </form>
+                                            }
                                             else if (row.Status != OperationalIceStatuses.Draft)
                                             {
-                                                <em>Ca đã mở nên không tự động thay đổi. Quản lý xử lý thủ công nếu cần.</em>
+                                                <em>Ca đã mở hoặc đã kết thúc nên hệ thống chỉ cảnh báo, không tự động thay đổi dữ liệu vận hành.</em>
                                             }
                                         </div>
                                     }
@@ -489,7 +572,8 @@
                                             </a>
                                         </div>
                                     }
-                                    else if (Model.CanManage && Model.HasValidPolicy && row.HasShiftLead)
+                                    else if (Model.CanManage && Model.HasValidPolicy && row.HasShiftLead
+                                             && row.ScheduleReview is not { BlocksOpening: true })
                                     {
                                         <form asp-action="OpenAllocation" method="post" class="ice-inline-form" data-ice-submit>
                                             @Html.AntiForgeryToken()
@@ -501,7 +585,13 @@
                                     }
                                     else
                                     {
-                                        <span class="ice-muted">@(row.HasShiftLead ? "Chờ cấu hình hợp lệ" : "Thiếu ca trưởng")</span>
+                                        <span class="ice-muted">
+                                            @(row.ScheduleReview is { BlocksOpening: true }
+                                                ? "Cần xử lý thay đổi lịch trước khi cấp đá"
+                                                : row.HasShiftLead
+                                                    ? "Chờ cấu hình hợp lệ"
+                                                    : "Thiếu ca trưởng")
+                                        </span>
                                     }
                                 </td>
                             </tr>

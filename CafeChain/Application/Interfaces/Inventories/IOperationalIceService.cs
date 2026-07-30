@@ -14,6 +14,9 @@ public interface IOperationalIceService
     Task<ServiceResult> SavePolicyAsync(SaveIcePolicyRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<OperationalShiftSummaryDto>> CreateShiftAsync(CreateOperationalShiftRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<OperationalShiftSummaryDto>> SyncDraftWithScheduleAsync(SyncOperationalShiftScheduleRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
+    Task<ServiceResult<OperationalShiftSummaryDto>> ConvertDraftToManualAsync(ConvertOperationalShiftToManualRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
+    Task<ServiceResult<OperationalShiftSummaryDto>> UpdateDraftShiftLeadAsync(UpdateOperationalShiftLeadRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
+    Task<ServiceResult<OperationalShiftSummaryDto>> CancelDraftShiftAsync(CancelDraftOperationalShiftRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<IceAllocationDto>> OpenAllocationAsync(OpenIceAllocationRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult> LinkWorkShiftAsync(LinkOperationalWorkShiftRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult> LinkWorkShiftsAsync(LinkOperationalWorkShiftsRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
