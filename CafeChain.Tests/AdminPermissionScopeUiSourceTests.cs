@@ -1,5 +1,5 @@
 //namespace CafeChain.Tests;
-
+//
 //public sealed class AdminPermissionScopeUiSourceTests
 //{
 //    [Fact]
