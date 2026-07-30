@@ -1,13 +1,14 @@
 :root {
-    --store-accent: #f97316;
-    --store-accent-dark: #ea580c;
-    --store-accent-soft: #fff7ed;
+    --store-accent: #6F4E37;
+    --store-accent-dark: #5C3F2B;
+    --store-accent-soft: #F7F3EE;
     --store-border: #e5e7eb;
-    --store-muted: #64748b;
-    --store-text: #111827;
-    --store-bg: #f8fafc;
-    --store-success: #16a34a;
-    --store-danger: #dc2626;
+    --store-muted: #475569;
+    --store-text: #1F2937;
+    --store-bg: #F7F3EE;
+    --store-success: #2F6F5E;
+    --store-danger: #991B1B;
+    --store-accent-icon: #C67A45;
 }
 
 .store-admin-page {
@@ -99,7 +100,7 @@
     height: 44px;
     place-items: center;
     border-radius: 8px;
-    color: var(--store-accent);
+    color: var(--store-accent-icon);
     background: var(--store-accent-soft);
 }
 
@@ -114,7 +115,7 @@
 }
 
 .store-admin-table thead {
-    background: #f8fafc;
+    background: #F7F3EE;
 }
 
 .store-admin-table th {
@@ -135,7 +136,7 @@
 }
 
 .store-admin-table tbody tr:hover {
-    background: #fff7ed;
+    background: #f0ebe4;
 }
 
 .store-admin-code {
@@ -143,10 +144,10 @@
     align-items: center;
     min-height: 28px;
     padding: 4px 10px;
-    border: 1px solid #fed7aa;
+    border: 1px solid #d4b8a3;
     border-radius: 7px;
-    color: #c2410c;
-    background: #fff7ed;
+    color: #5C3F2B;
+    background: #F7F3EE;
     font-size: 13px;
     font-weight: 800;
 }
@@ -163,15 +164,15 @@
 }
 
 .store-admin-badge.is-active {
-    border: 1px solid #bbf7d0;
+    border: 1px solid #a3d4c8;
     color: var(--store-success);
-    background: #dcfce7;
+    background: #d1ece7;
 }
 
 .store-admin-badge.is-inactive {
-    border: 1px solid #fecaca;
+    border: 1px solid #f5a3a3;
     color: var(--store-danger);
-    background: #fee2e2;
+    background: #fde8e8;
 }
 
 .store-admin-badge.is-muted {
@@ -219,7 +220,7 @@
     border-color: var(--store-accent);
     color: #fff;
     background: var(--store-accent);
-    box-shadow: 0 10px 22px rgba(249, 115, 22, .18);
+    box-shadow: 0 10px 22px rgba(111, 78, 55, .22);
 }
 
 .store-admin-btn-primary:hover,
@@ -237,24 +238,24 @@
 }
 
 .store-admin-btn-outline {
-    border-color: #fed7aa;
-    color: #c2410c;
-    background: #fff7ed;
+    border-color: #d4b8a3;
+    color: #5C3F2B;
+    background: #F7F3EE;
 }
 
 .store-admin-btn-ghost:hover,
 .store-admin-btn-outline:hover,
 .store-admin-icon-btn:hover {
-    border-color: #fdba74;
-    color: #c2410c;
-    background: #fff7ed;
+    border-color: #C67A45;
+    color: #5C3F2B;
+    background: #F7F3EE;
 }
 
 .store-admin-btn-danger:hover,
 .store-admin-btn-danger:focus {
-    border-color: #fecaca;
+    border-color: #f5a3a3;
     color: var(--store-danger);
-    background: #fef2f2;
+    background: #fde8e8;
 }
 
 .store-admin-form-grid {
@@ -288,15 +289,15 @@
     min-height: 42px;
     border-color: var(--store-border);
     border-radius: 8px;
-    color: #0f172a;
-    background-color: #f8fafc;
+    color: #1F2937;
+    background-color: #F7F3EE;
     font-size: 14px;
 }
 
 .store-admin-form-card .form-control:focus,
 .store-admin-form-card .form-select:focus {
     border-color: var(--store-accent);
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, .12);
+    box-shadow: 0 0 0 3px rgba(111, 78, 55, .14);
     background: #fff;
 }
 
@@ -305,14 +306,14 @@
     gap: 12px;
     margin-bottom: 18px;
     padding: 14px;
-    border: 1px solid #fed7aa;
+    border: 1px solid #d4b8a3;
     border-radius: 8px;
-    background: #fff7ed;
+    background: #F7F3EE;
 }
 
 .store-admin-setting-title {
     display: block;
-    color: #9a3412;
+    color: #5C3F2B;
     font-size: 12px;
     font-weight: 900;
     letter-spacing: .04em;
@@ -321,7 +322,7 @@
 
 .store-admin-setting-panel p {
     margin: 4px 0 0;
-    color: #92400e;
+    color: #6F4E37;
     font-size: 13px;
     font-weight: 650;
 }
@@ -356,11 +357,11 @@
 
 .store-admin-map-hint {
     margin-bottom: 12px;
-    border: 1px solid #fed7aa;
+    border: 1px solid #d4b8a3;
     border-radius: 8px;
     padding: 10px 12px;
-    color: #92400e;
-    background: #fffbeb;
+    color: #5C3F2B;
+    background: #F7F3EE;
     font-size: 13px;
     font-weight: 700;
 }
@@ -390,11 +391,11 @@
 }
 
 .store-admin-page .text-warning {
-    color: var(--store-accent) !important;
+    color: var(--store-accent-icon) !important;
 }
 
 .store-admin-page .text-info {
-    color: var(--store-accent) !important;
+    color: var(--store-accent-icon) !important;
 }
 
 @media (max-width: 1100px) {
