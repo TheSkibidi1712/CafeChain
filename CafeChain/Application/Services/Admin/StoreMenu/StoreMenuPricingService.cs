@@ -135,7 +135,9 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
             await _context.Staffs.AsNoTracking().AnyAsync(x => x.StaffId == staffId
                 && x.Active
                 && x.Account.Active
-                && x.Account.AccountRoles.Any(r => r.Role.Active && r.Role.Name == RoleConstants.BusinessOwner),
+                && x.Account.AccountRoles.Any(r => r.Role.Active
+                    && (r.Role.Name == RoleConstants.BusinessOwner
+                        || r.Role.Name == RoleConstants.SystemAdmin)),
                 cancellationToken);
 
         private async Task<bool> CanReadStoreAsync(int staffId, int storeId, CancellationToken cancellationToken) =>
@@ -143,7 +145,9 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                 && x.Active
                 && x.Account.Active
                 && (x.StoreId == storeId
-                    || x.Account.AccountRoles.Any(r => r.Role.Active && r.Role.Name == RoleConstants.BusinessOwner)),
+                    || x.Account.AccountRoles.Any(r => r.Role.Active
+                        && (r.Role.Name == RoleConstants.BusinessOwner
+                            || r.Role.Name == RoleConstants.SystemAdmin))),
                 cancellationToken);
 
         private static StoreMenuPriceDto Map(StoreMenuItem item, long catalogVersion) => new()

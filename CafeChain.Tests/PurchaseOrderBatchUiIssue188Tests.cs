@@ -4,8 +4,10 @@ using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Services.Inventories;
+using CafeChain.Areas.Admin.Controllers;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Staffs;
@@ -160,9 +162,138 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
         Assert.Contains("giao trong", view);
         Assert.Contains("PackagePriceSnapshot", view);
         Assert.Contains("group.Allocations", view);
+        Assert.Contains("normalizeSelectionPayload", view);
+        var controller = ReadRepoFile("CafeChain/Areas/Admin/Controllers/AdminPurchaseAdviceConsolidationController.cs");
+        Assert.Contains("NormalizePurchaseModeFields(request.Lines)", controller);
+        Assert.Contains("line.PackageCount = null", controller);
+        Assert.Contains("line.OrderedProcurementQuantity = null", controller);
+        Assert.Contains("1 gói =", view);
+        Assert.Contains("AdminStatusDisplay.Unit", view);
+        Assert.DoesNotContain("1 kiện =", view);
         Assert.Contains("preview?.LineCount > 1", view);
         Assert.Contains("? \"Tạo đơn đặt hàng gộp\"", view);
         Assert.Contains(": \"Tạo đơn đặt hàng\"", view);
+    }
+
+    [Fact]
+    public void PurchaseAdvicePreview_NormalizesMutuallyExclusiveQuantityFields()
+    {
+        var lines = new List<PurchaseAdviceConsolidationSelectionRequest>
+        {
+            new()
+            {
+                PurchaseMode = PurchaseMode.Packaged,
+                PackageCount = 10,
+                OrderedProcurementQuantity = 10m
+            },
+            new()
+            {
+                PurchaseMode = PurchaseMode.Loose,
+                PackageCount = 10,
+                OrderedProcurementQuantity = 7.5m
+            }
+        };
+        var normalize = typeof(AdminPurchaseAdviceConsolidationController).GetMethod(
+            "NormalizePurchaseModeFields",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+        Assert.NotNull(normalize);
+        normalize!.Invoke(null, new object[] { lines });
+
+        Assert.Equal(10, lines[0].PackageCount);
+        Assert.Null(lines[0].OrderedProcurementQuantity);
+        Assert.Null(lines[1].PackageCount);
+        Assert.Equal(7.5m, lines[1].OrderedProcurementQuantity);
+    }
+
+    [Fact]
+    public void PackagedPreview_ToCreateForm_PostsOnlyPackageCount()
+    {
+        var createForm = ReadCreateForm();
+        var packagedBranch = Slice(
+            createForm,
+            "@if (allocation.PurchaseMode == PurchaseMode.Packaged)",
+            "else");
+
+        Assert.Contains("Lines[@selectionIndex].PackageCount", packagedBranch);
+        Assert.DoesNotContain("Lines[@selectionIndex].OrderedProcurementQuantity", packagedBranch);
+    }
+
+    [Fact]
+    public void LoosePayload_PostsOnlyOrderedProcurementQuantity()
+    {
+        var createForm = ReadCreateForm();
+        var looseBranch = Slice(
+            createForm,
+            "else",
+            "Lines[@selectionIndex].RowVersion");
+
+        Assert.Contains("Lines[@selectionIndex].OrderedProcurementQuantity", looseBranch);
+        Assert.DoesNotContain("Lines[@selectionIndex].PackageCount", looseBranch);
+    }
+
+    [Fact]
+    public void CreateForm_ModelBinding_DoesNotRoundTripDerivedFields()
+    {
+        Assert.Equal(typeof(object), typeof(CreatePurchaseOrderBatchRequest).BaseType);
+        Assert.Equal(
+            typeof(List<CreatePurchaseOrderBatchLineRequest>),
+            typeof(CreatePurchaseOrderBatchRequest).GetProperty(nameof(CreatePurchaseOrderBatchRequest.Lines))!.PropertyType);
+
+        var request = new CreatePurchaseOrderBatchRequest
+        {
+            SupplierId = 7,
+            Lines =
+            {
+                new()
+                {
+                    PurchaseAdviceLineId = 11,
+                    IngredientSupplierId = 13,
+                    PurchaseMode = PurchaseMode.Packaged,
+                    PackageCount = 10
+                }
+            }
+        };
+
+        var line = Assert.Single(request.ToPreviewRequest().Lines);
+        Assert.Equal(10, line.PackageCount);
+        Assert.Null(line.OrderedProcurementQuantity);
+    }
+
+    [Fact]
+    public void MultipleLines_PreserveEachLinePurchaseMode()
+    {
+        var request = new CreatePurchaseOrderBatchRequest
+        {
+            SupplierId = 7,
+            Lines =
+            {
+                new() { PurchaseAdviceLineId = 1, PurchaseMode = PurchaseMode.Packaged, PackageCount = 2 },
+                new() { PurchaseAdviceLineId = 2, PurchaseMode = PurchaseMode.Loose, OrderedProcurementQuantity = 3.5m }
+            }
+        };
+
+        var mapped = request.ToPreviewRequest();
+
+        Assert.Equal(PurchaseMode.Packaged, mapped.Lines[0].PurchaseMode);
+        Assert.Equal(2, mapped.Lines[0].PackageCount);
+        Assert.Null(mapped.Lines[0].OrderedProcurementQuantity);
+        Assert.Equal(PurchaseMode.Loose, mapped.Lines[1].PurchaseMode);
+        Assert.Null(mapped.Lines[1].PackageCount);
+        Assert.Equal(3.5m, mapped.Lines[1].OrderedProcurementQuantity);
+    }
+
+    [Fact]
+    public void ModeAndSupplierChanges_ClearStaleQuantityContracts()
+    {
+        var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPurchaseAdviceConsolidation/Index.cshtml");
+
+        Assert.Contains("if (packInput) packInput.value = '';", view);
+        Assert.Contains("if (looseInput) looseInput.value = '';", view);
+        Assert.Contains("const updatePackMath = (row, resetQuantity = false)", view);
+        Assert.Contains("supplier.addEventListener('change', () => syncOffers(true))", view);
+        Assert.Contains("updatePackMath(row, resetQuantity)", view);
+        Assert.Contains("updatePackMath(select.closest('[data-line]'), true)", view);
     }
 
     private PurchaseOrderBatchDocumentService Service() => new(_db, _renderer.Object, _storage.Object, _scope.Object);
@@ -224,6 +355,24 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
     {
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
         return File.ReadAllText(Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+    }
+
+    private static string ReadCreateForm()
+    {
+        var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPurchaseAdviceConsolidation/Index.cshtml");
+        return Slice(
+            view,
+            "<form asp-controller=\"AdminPurchaseOrderBatches\"",
+            "</form>");
+    }
+
+    private static string Slice(string source, string start, string end)
+    {
+        var startIndex = source.IndexOf(start, StringComparison.Ordinal);
+        Assert.True(startIndex >= 0, $"Không tìm thấy mốc bắt đầu: {start}");
+        var endIndex = source.IndexOf(end, startIndex + start.Length, StringComparison.Ordinal);
+        Assert.True(endIndex >= 0, $"Không tìm thấy mốc kết thúc: {end}");
+        return source[startIndex..endIndex];
     }
 
     public void Dispose()

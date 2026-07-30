@@ -511,11 +511,13 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public void AdminUnitConversion_DestructiveAction_HasAccessibleName()
+        public void AdminUnitConversion_StatusToggle_ReplacesHardDelete()
         {
             var index = System.IO.File.ReadAllText(System.IO.Path.Combine(
                 FindRepoRoot(), "CafeChain", "Areas", "Admin", "Views", "AdminUnitConversion", "Index.cshtml"));
-            Assert.Contains("Xóa quy đổi", index);
+            Assert.Contains("Kích hoạt", index);
+            Assert.Contains("Ngưng hoạt động", index);
+            Assert.DoesNotContain("Xóa quy đổi", index);
         }
 
         [Fact]

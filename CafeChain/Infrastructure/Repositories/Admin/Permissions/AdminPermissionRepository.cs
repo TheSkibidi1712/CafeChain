@@ -244,7 +244,10 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
         {
             var distinctPermissionIds = permissionIds.Distinct().ToList();
 
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var ownsTransaction = _context.Database.CurrentTransaction == null;
+            await using var transaction = ownsTransaction
+                ? await _context.Database.BeginTransactionAsync()
+                : null;
             try
             {
                 var oldPermissions = await _context.RolePermissions
@@ -261,11 +264,13 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
 
                 await _context.RolePermissions.AddRangeAsync(newPermissions);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownsTransaction)
+                    await transaction!.CommitAsync();
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync();
                 throw;
             }
         }
@@ -332,7 +337,10 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
         {
             var distinctRoleIds = roleIds.Distinct().ToList();
 
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var ownsTransaction = _context.Database.CurrentTransaction == null;
+            await using var transaction = ownsTransaction
+                ? await _context.Database.BeginTransactionAsync()
+                : null;
             try
             {
                 var oldRoles = await _context.AccountRoles
@@ -349,11 +357,13 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
 
                 await _context.AccountRoles.AddRangeAsync(newRoles);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownsTransaction)
+                    await transaction!.CommitAsync();
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync();
                 throw;
             }
         }
@@ -485,7 +495,10 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
         {
             var normalized = NormalizeScopes(scopes);
 
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var ownsTransaction = _context.Database.CurrentTransaction == null;
+            await using var transaction = ownsTransaction
+                ? await _context.Database.BeginTransactionAsync()
+                : null;
             try
             {
                 var oldScopes = await _context.StaffScopes
@@ -503,11 +516,13 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
 
                 await _context.StaffScopes.AddRangeAsync(newScopes);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownsTransaction)
+                    await transaction!.CommitAsync();
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync();
                 throw;
             }
         }
@@ -552,7 +567,10 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
 
             var permissionIds = normalized.Select(x => x.PermissionId).Distinct().ToList();
 
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var ownsTransaction = _context.Database.CurrentTransaction == null;
+            await using var transaction = ownsTransaction
+                ? await _context.Database.BeginTransactionAsync()
+                : null;
             try
             {
                 var oldOverrides = await _context.AccountPermissionOverrides
@@ -591,11 +609,13 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
                 }
 
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownsTransaction)
+                    await transaction!.CommitAsync();
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (ownsTransaction)
+                    await transaction!.RollbackAsync();
                 throw;
             }
         }

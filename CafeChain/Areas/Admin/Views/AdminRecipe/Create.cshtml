@@ -16,10 +16,13 @@
 
 <div class="rb-page rb-create-theme" data-theme="light">
 <div class="container-fluid px-4 pt-4">
-    <nav class="rb-breadcrumb" aria-label="breadcrumb">
-        <a asp-action="Index" class="btn-rb-back">Công thức BOM</a> &gt; <span>Tạo công thức</span>
-    </nav>
-    <h1 class="rb-page-title">Tạo công thức</h1>
+    <header class="rb-builder-heading mb-4">
+        <nav class="rb-breadcrumb" aria-label="breadcrumb">
+            <a asp-action="Index" class="btn-rb-back">Công thức BOM</a> &gt; <span>Tạo công thức</span>
+        </nav>
+        <h1 class="rb-page-title mb-1">Tạo công thức</h1>
+        <p class="text-muted mb-0">Thiết lập đối tượng áp dụng, thành phần định mức và giá vốn dự kiến.</p>
+    </header>
 
     <form method="post" id="recipeForm" novalidate>
         @Html.AntiForgeryToken()
@@ -95,7 +98,7 @@
                                     <button type="button" class="btn btn-rb-ghost btn-sm" id="btnRefreshPreparedItems" title="Làm mới danh sách BTP">Làm mới danh sách</button>
                                 </div>
                                 <div id="piHelp" class="form-text">
-                                    Danh tính ổn định từ master BTP (không dùng tên tự do, không dùng RecipeId làm đầu ra).
+                                    Danh tính ổn định từ danh mục BTP (không dùng tên tự do, không dùng mã công thức làm đầu ra).
                                     <a href="@preparedCreateUrl" target="_blank" rel="noopener" id="linkCreatePreparedItem">Không tìm thấy BTP? Tạo bán thành phẩm</a>
                                 </div>
                                 <div id="piSummary" class="rb-summary-card" style="display:none;" aria-live="polite"></div>
@@ -128,7 +131,7 @@
                                 <input name="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001"
                                        value="@(form.ExpectedYield?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                        aria-describedby="yieldHelp normalizedOutputPreview" />
-                                <div id="yieldHelp" class="form-text">Đây là lượng BTP thực nhận sau chế biến. Hệ thống không nhân thêm Yield %.</div>
+                                <div id="yieldHelp" class="form-text">Đây là lượng BTP thực nhận sau chế biến. Hệ thống không nhân thêm tỷ lệ thu hồi.</div>
                             </div>
                             <div class="col-md-4" id="sectionSub_Unit">
                                 <label class="form-label fw-semibold" for="outputUnitSelect">Đơn vị đầu ra <span class="text-danger">*</span></label>
@@ -141,7 +144,7 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold">Preview chuẩn hóa</label>
+                                <label class="form-label fw-semibold">Xem trước kết quả chuẩn hóa</label>
                                 <div id="normalizedOutputPreview" class="rb-preview-box" aria-live="polite">
                                     <div class="rb-preview-main text-muted">—</div>
                                     <div class="rb-preview-sub">Nhập số lượng và đơn vị để xem quy đổi tồn kho.</div>
@@ -199,7 +202,7 @@
                         </div>
                         <input type="hidden" name="TotalCost" id="hiddenTotalCost" value="0" />
                         <p class="small text-muted mt-3 mb-0">
-                            Giá vốn incomplete không chặn lưu nếu backend cho phép. Không hiển thị 0 giả.
+                            Giá vốn chưa đầy đủ không chặn lưu nếu máy chủ cho phép. Hệ thống không hiển thị giá trị 0 không chính xác.
                         </p>
                     </div>
                 </section>
@@ -216,7 +219,7 @@
             <span class="rb-footer-metric-value" id="footerTotalCost">—</span>
         </div>
         <div class="rb-footer-metric">
-            <span class="rb-footer-metric-label">Food cost %</span>
+            <span class="rb-footer-metric-label">Tỷ lệ giá vốn</span>
             <span class="rb-footer-pct" id="footerFoodCostPct">—</span>
         </div>
     </div>
@@ -245,7 +248,7 @@
                     data-unitname="@(item.UnitName)">[@(item.Id)] @(item.Name)</option>
         }
     </optgroup>
-    <optgroup label="Bán thành phẩm con (pin Recipe)">
+    <optgroup label="Bán thành phẩm con (cố định phiên bản công thức)">
         @foreach (var item in options.SubRecipes)
         {
             var piPart = item.PreparedItemCode != null

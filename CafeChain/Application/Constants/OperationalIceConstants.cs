@@ -20,6 +20,13 @@ public static class OperationalIceStatuses
     public static readonly string[] All = [Draft, Open, PendingApproval, ReconciliationRequired, Closed, Cancelled];
 }
 
+public static class OperationalIceCreationSources
+{
+    public const string Manual = "Manual";
+    public const string StaffSchedule = "StaffSchedule";
+    public static readonly string[] All = [Manual, StaffSchedule];
+}
+
 public static class IceSupplementalIssueStatuses
 {
     public const string Pending = "Pending";
@@ -61,4 +68,5 @@ public static class OperationalIceErrorCodes
     public const string InsufficientUsableStock = "OPERATIONAL_ICE_INSUFFICIENT_USABLE_STOCK";
     public const string WorkShiftAlreadyLinked = "OPERATIONAL_ICE_WORKSHIFT_ALREADY_LINKED";
     public const string ConcurrencyConflict = "OPERATIONAL_ICE_CONCURRENCY_CONFLICT";
+    public const string ScheduleShiftAlreadyUsed = "OPERATIONAL_ICE_SCHEDULE_SHIFT_ALREADY_USED";
 }

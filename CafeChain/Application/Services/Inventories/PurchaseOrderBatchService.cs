@@ -63,7 +63,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                 return await GetDetailAsync(replay.PurchaseOrderBatchId, actor);
             }
 
-            var preview = await _consolidation.PreviewAsync(request, actor);
+            var preview = await _consolidation.PreviewAsync(request.ToPreviewRequest(), actor);
             if (!preview.IsSuccess)
             {
                 await transaction.RollbackAsync();
@@ -299,7 +299,11 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                 }
             }
 
-            foreach (var advice in _context.ChangeTracker.Entries<PurchaseAdvice>().Select(x => x.Entity).DistinctBy(x => x.PurchaseAdviceId))
+            var trackedAdvices = _context.ChangeTracker.Entries<PurchaseAdvice>()
+                .Select(x => x.Entity)
+                .DistinctBy(x => x.PurchaseAdviceId)
+                .ToArray();
+            foreach (var advice in trackedAdvices)
             {
                 await _context.Entry(advice).Collection(x => x.Lines).LoadAsync();
                 await _purchaseAdviceFulfillment.RecomputeHeaderStatusAsync(
@@ -342,7 +346,9 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
         var query = _context.PurchaseOrderBatches.AsNoTracking().AsQueryable();
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(x => x.Status == status);
         if (supplierId.HasValue) query = query.Where(x => x.SupplierId == supplierId.Value);
-        if (!HasRole(actor, RoleConstants.AccountantWarehouse) && !HasRole(actor, RoleConstants.BusinessOwner))
+        if (!HasRole(actor, RoleConstants.AccountantWarehouse)
+            && !HasRole(actor, RoleConstants.BusinessOwner)
+            && !HasRole(actor, RoleConstants.SystemAdmin))
         {
             var allowed = await ResolveAllowedStoreIdsAsync(actor);
             if (allowed.Count == 0) return Failure<IReadOnlyList<PurchaseOrderBatchListItemDto>>(PurchaseOrderBatchErrorCodes.Forbidden, "Bạn không có quyền xem đơn đặt hàng gộp.");
@@ -366,7 +372,9 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
 
     public async Task<ServiceResult<PurchaseOrderBatchDetailDto>> ApproveAsync(int id, PurchaseOrderBatchTransitionRequest request, AdminActorContext actor)
     {
-        if (!HasRole(actor, RoleConstants.BusinessOwner)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Chủ doanh nghiệp được duyệt đơn đặt hàng gộp.");
+        if (!HasRole(actor, RoleConstants.BusinessOwner)
+            && !HasRole(actor, RoleConstants.SystemAdmin))
+            return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Chủ doanh nghiệp hoặc Quản trị hệ thống được duyệt đơn đặt hàng gộp.");
         var batch = await _context.PurchaseOrderBatches.Include(x => x.ChildPurchaseOrders).SingleOrDefaultAsync(x => x.PurchaseOrderBatchId == id);
         if (batch == null) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.NotFound, "Không tìm thấy đơn đặt hàng gộp.");
         if (batch.Status == PurchaseOrderBatchStatuses.Approved) return await GetDetailAsync(id, actor);
@@ -391,7 +399,9 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
 
     public async Task<ServiceResult<PurchaseOrderBatchDetailDto>> CancelAsync(int id, PurchaseOrderBatchTransitionRequest request, AdminActorContext actor)
     {
-        if (!HasRole(actor, RoleConstants.BusinessOwner)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Chủ doanh nghiệp được hủy đơn đặt hàng gộp.");
+        if (!HasRole(actor, RoleConstants.BusinessOwner)
+            && !HasRole(actor, RoleConstants.SystemAdmin))
+            return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Chủ doanh nghiệp hoặc Quản trị hệ thống được hủy đơn đặt hàng gộp.");
         if (string.IsNullOrWhiteSpace(request.Reason)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Invalid, "Bắt buộc nhập lý do hủy đơn đặt hàng gộp.");
         await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var batch = await _context.PurchaseOrderBatches
@@ -628,7 +638,9 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
 
     private async Task<bool> CanReadAsync(AdminActorContext actor, int[] stores)
     {
-        if (HasRole(actor, RoleConstants.AccountantWarehouse) || HasRole(actor, RoleConstants.BusinessOwner)) return true;
+        if (HasRole(actor, RoleConstants.AccountantWarehouse)
+            || HasRole(actor, RoleConstants.BusinessOwner)
+            || HasRole(actor, RoleConstants.SystemAdmin)) return true;
         var allowed = await ResolveAllowedStoreIdsAsync(actor);
         return stores.Any(allowed.Contains);
     }
@@ -644,7 +656,10 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
         return allowed;
     }
 
-    private static bool CanCreate(AdminActorContext actor) => HasRole(actor, RoleConstants.AccountantWarehouse) || HasRole(actor, RoleConstants.BusinessOwner);
+    private static bool CanCreate(AdminActorContext actor) =>
+        HasRole(actor, RoleConstants.AccountantWarehouse)
+        || HasRole(actor, RoleConstants.BusinessOwner)
+        || HasRole(actor, RoleConstants.SystemAdmin);
     private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
     private static string? Clean(string? value, int max) => string.IsNullOrWhiteSpace(value) ? null : value.Trim()[..Math.Min(value.Trim().Length, max)];
     private static bool VersionMatches(byte[] current, string? provided)

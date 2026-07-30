@@ -64,6 +64,8 @@ public sealed class DashboardIntentDto
     [Range(1, 100)] public int Top { get; set; } = 10;
     public DashboardStoreSelectorDto StoreSelector { get; set; } = new();
     public DashboardChartType Chart { get; set; } = DashboardChartType.Table;
+    public DashboardQuestionUnderstandingDto Understanding { get; set; } = new();
+    public DashboardDataPlanDto? DataPlan { get; set; }
 }
 
 public sealed class DashboardIntentParseResultDto
@@ -144,6 +146,9 @@ public sealed class DashboardInsightExplanationContextDto
     public IReadOnlyList<DashboardEvidenceDto> Evidence { get; set; } = [];
     public DashboardAnalysisContextDto? Context { get; set; }
     public IReadOnlyList<DashboardChartAnalysisDto> ChartAnalyses { get; set; } = [];
+    public DashboardQuestionUnderstandingDto? Understanding { get; set; }
+    public DashboardDataPlanDto? DataPlan { get; set; }
+    public DashboardEvidencePackDto? EvidencePack { get; set; }
 }
 
 public sealed class DashboardExplanationResultDto
@@ -244,6 +249,23 @@ public sealed class DashboardStructuredAnalysisResultDto
     public List<DashboardNarrativeItemDto> Overview { get; set; } = [];
     public List<DashboardNarrativeItemDto> NotablePoints { get; set; } = [];
     public List<DashboardNarrativeItemDto> Conclusions { get; set; } = [];
+    public string OriginalQuestion { get; set; } = string.Empty;
+    public string TabCode { get; set; } = string.Empty;
+    public string AnswerStyleId { get; set; } = string.Empty;
+    public DashboardAnswerFocus AnswerFocus { get; set; }
+    public DashboardFocusType FocusType { get; set; }
+    public decimal FocusConfidence { get; set; }
+    public DashboardQuestionUnderstandingDto? QuestionUnderstanding { get; set; }
+    public DashboardDataPlanDto? DataPlan { get; set; }
+    public DashboardEvidencePackDto? EvidencePack { get; set; }
+    public string AnalysisContext { get; set; } = string.Empty;
+    public string KeyConclusion { get; set; } = string.Empty;
+    public DashboardChartDto? PrimaryChart { get; set; }
+    public List<DashboardChartDto> SupportingCharts { get; set; } = [];
+    public List<DashboardEvidenceDto> EvidenceTable { get; set; } = [];
+    public List<string> Limitations { get; set; } = [];
+    public DashboardNarrativeItemDto? Recommendation { get; set; }
+    public string GeneratedBy { get; set; } = "DeterministicFallback";
 }
 
 public sealed class DashboardChartAnalysisDto

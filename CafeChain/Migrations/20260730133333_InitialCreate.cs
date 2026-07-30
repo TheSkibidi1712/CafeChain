@@ -2323,6 +2323,8 @@ namespace CafeChain.Migrations
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     StartAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EndAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreationSource = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Manual"),
+                    SourceScheduleShiftId = table.Column<int>(type: "int", nullable: true),
                     ShiftLeadId = table.Column<int>(type: "int", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false, defaultValue: "Draft"),
                     CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
@@ -2336,8 +2338,15 @@ namespace CafeChain.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OperationalShifts", x => x.OperationalShiftId);
+                    table.CheckConstraint("CK_OperationalShifts_CreationSource", "([CreationSource] = 'Manual' AND [SourceScheduleShiftId] IS NULL) OR ([CreationSource] = 'StaffSchedule' AND [SourceScheduleShiftId] IS NOT NULL)");
                     table.CheckConstraint("CK_OperationalShifts_Status", "[Status] IN ('Draft','Open','PendingApproval','ReconciliationRequired','Closed','Cancelled')");
                     table.CheckConstraint("CK_OperationalShifts_TimeRange", "[EndAtUtc] > [StartAtUtc]");
+                    table.ForeignKey(
+                        name: "FK_OperationalShifts_Shifts_SourceScheduleShiftId",
+                        column: x => x.SourceScheduleShiftId,
+                        principalTable: "Shifts",
+                        principalColumn: "ShiftId",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_OperationalShifts_Staffs_ClosedByStaffId",
                         column: x => x.ClosedByStaffId,
@@ -2705,6 +2714,7 @@ namespace CafeChain.Migrations
                     Body = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
                     Severity = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false, defaultValue: "INFO"),
                     DeduplicationKey = table.Column<string>(type: "nvarchar(240)", maxLength: 240, nullable: true),
+                    MeaningfulVersion = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ResolvedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     EntityType = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
@@ -5278,7 +5288,9 @@ namespace CafeChain.Migrations
                     InventoryTransactionId = table.Column<int>(type: "int", nullable: true),
                     QuantityBefore = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
                     QuantityAfter = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
-                    RequestKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                    RequestKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    SuggestionSnapshotVersion = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: true),
+                    SuggestionSnapshotJson = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -8272,10 +8284,28 @@ namespace CafeChain.Migrations
                 column: "ShiftLeadId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OperationalShifts_SourceScheduleShiftId",
+                table: "OperationalShifts",
+                column: "SourceScheduleShiftId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OperationalShifts_StoreId_BusinessDate_CreationSource",
+                table: "OperationalShifts",
+                columns: new[] { "StoreId", "BusinessDate", "CreationSource" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OperationalShifts_StoreId_BusinessDate_Name",
                 table: "OperationalShifts",
                 columns: new[] { "StoreId", "BusinessDate", "Name" },
-                unique: true);
+                unique: true,
+                filter: "[CreationSource] = 'Manual' AND [Status] <> 'Cancelled'");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OperationalShifts_StoreId_BusinessDate_SourceScheduleShiftId",
+                table: "OperationalShifts",
+                columns: new[] { "StoreId", "BusinessDate", "SourceScheduleShiftId" },
+                unique: true,
+                filter: "[SourceScheduleShiftId] IS NOT NULL AND [Status] <> 'Cancelled'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OperationalShifts_StoreId_BusinessDate_Status",
@@ -10846,9 +10876,6 @@ namespace CafeChain.Migrations
                 name: "Roles");
 
             migrationBuilder.DropTable(
-                name: "Shifts");
-
-            migrationBuilder.DropTable(
                 name: "SupplierReceiptIssues");
 
             migrationBuilder.DropTable(
@@ -10880,6 +10907,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "WheelConfigs");
+
+            migrationBuilder.DropTable(
+                name: "Shifts");
 
             migrationBuilder.DropTable(
                 name: "OrderToppings");

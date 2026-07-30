@@ -1,5 +1,6 @@
 using CafeChain.Application.Interfaces.Admin;
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Data;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
@@ -20,6 +21,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// [Skill.md §1] Controller chỉ điều hướng + gọi Service. Tối đa 3-5 dòng/action.
     /// [REFACTOR] Đã xóa: AppDbContext, IHubContext, IInventoryService — toàn bộ nằm trong AdminOrderService.
     /// </summary>
+    [RequirePermission(PermissionConstants.OrderView)]
     public class AdminOrderController : AdminBaseController
     {
         private readonly IAdminOrderService _adminOrderService;
@@ -92,6 +94,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost("/api/AdminOrder/AcceptOrder/{orderId}")]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.OrderUpdateStatus)]
         [LegacyEntryPointGone]
         public async Task<IActionResult> AcceptOrder(int orderId)
         {
@@ -110,6 +113,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost("/api/AdminOrder/ReadyForPickup/{orderId}")]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.OrderUpdateStatus)]
         [LegacyEntryPointGone]
         public async Task<IActionResult> ReadyForPickup(int orderId)
         {
@@ -139,6 +143,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost("/api/AdminOrder/Dispatched")]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.OrderUpdateStatus)]
         [LegacyEntryPointGone]
         public async Task<IActionResult> Dispatched([FromBody] CafeChain.Application.DTOs.Admin.DispatchOrderRequest request)
         {
@@ -159,6 +164,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost("/api/AdminOrder/CompleteOrder/{orderId}")]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.OrderUpdateStatus)]
         [LegacyEntryPointGone]
         public async Task<IActionResult> CompleteOrder(int orderId)
         {
@@ -177,6 +183,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost("/api/AdminOrder/FailDelivery/{orderId}")]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.OrderCancel)]
         [LegacyEntryPointGone]
         public async Task<IActionResult> FailDelivery(int orderId, [FromQuery] string reason)
         {
@@ -284,6 +291,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet("/api/AdminOrder/ExportCSV")]
+        [RequirePermission(PermissionConstants.OrderExport)]
         public async Task<IActionResult> ExportCSV(
             string keyword,
             string fromDate,

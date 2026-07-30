@@ -13,7 +13,9 @@ public sealed record InventoryNotificationDeliveryRequest(
     string ChangeKind,
     string? DeduplicationKey = null,
     int? CooldownMinutes = null,
-    IReadOnlyCollection<int>? RecipientStaffIds = null);
+    IReadOnlyCollection<int>? RecipientStaffIds = null,
+    string? MeaningfulVersion = null,
+    IReadOnlyCollection<string>? RequiredPermissionCodes = null);
 
 public sealed record InventoryNotificationDeliveryResult(
     int CreatedCount,

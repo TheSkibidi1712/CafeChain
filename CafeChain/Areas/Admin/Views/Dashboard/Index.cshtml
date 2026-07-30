@@ -74,7 +74,42 @@
         </label>
     </section>
 
-    <section class="dashboard-intelligence" aria-labelledby="dashboardIntelligenceTitle">
+    <nav class="analytics-tabs" role="tablist" aria-label="Nhóm analytics">
+        @foreach (var tab in tabs)
+        {
+            <button type="button" role="tab" class="analytics-tab @(tab.Item1 == "Executive" ? "is-active" : "")"
+                    id="dashboardTab@tab.Item1"
+                    data-section="@tab.Item1"
+                    aria-controls="dashboardPanel"
+                    aria-selected="@(tab.Item1 == "Executive" ? "true" : "false")"
+                    tabindex="@(tab.Item1 == "Executive" ? "0" : "-1")">
+                <i class="bi @tab.Item3"></i><span>@tab.Item2</span>
+            </button>
+        }
+        <button type="button"
+                role="tab"
+                class="analytics-tab"
+                id="dashboardAiTab"
+                data-ai-tab="true"
+                aria-controls="dashboardAiPanel"
+                aria-selected="false"
+                tabindex="-1">
+            <i class="bi bi-stars"></i><span>Hỏi AI</span>
+        </button>
+    </nav>
+
+    <div id="dashboardNotice" class="analytics-notice" role="status" hidden></div>
+    <section id="dashboardPanel"
+             class="analytics-panel"
+             role="tabpanel"
+             aria-labelledby="dashboardTabExecutive"
+             aria-live="polite"></section>
+
+    <section id="dashboardAiPanel"
+             class="dashboard-intelligence dashboard-ai-panel"
+             role="tabpanel"
+             aria-labelledby="dashboardAiTab"
+             hidden>
         <div class="dashboard-intelligence__heading">
             <div>
                 <span class="analytics-eyebrow">AI Analyst dựa trên evidence</span>
@@ -102,19 +137,6 @@
         <div id="dashboardAiPreview" class="dashboard-intelligence__preview" hidden></div>
         <div id="dashboardAiResult" class="dashboard-intelligence__result" hidden></div>
     </section>
-
-    <nav class="analytics-tabs" role="tablist" aria-label="Nhóm analytics">
-        @foreach (var tab in tabs)
-        {
-            <button type="button" role="tab" class="analytics-tab @(tab.Item1 == "Executive" ? "is-active" : "")"
-                    data-section="@tab.Item1" aria-selected="@(tab.Item1 == "Executive" ? "true" : "false")">
-                <i class="bi @tab.Item3"></i><span>@tab.Item2</span>
-            </button>
-        }
-    </nav>
-
-    <div id="dashboardNotice" class="analytics-notice" role="status" hidden></div>
-    <section id="dashboardPanel" class="analytics-panel" aria-live="polite"></section>
 </main>
 
 <script id="dashboardStores" type="application/json">@Html.Raw(storesJson)</script>

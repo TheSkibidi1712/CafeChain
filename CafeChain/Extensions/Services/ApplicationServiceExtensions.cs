@@ -71,6 +71,7 @@ using CafeChain.Application.Services.AI;
 using CafeChain.Application.Services.Admin.StoreScope;
 using CafeChain.Application.Services.AppLauncher;
 using CafeChain.Application.Options;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace CafeChain.Extensions.Services
 {
@@ -78,6 +79,7 @@ namespace CafeChain.Extensions.Services
     {
         public static IServiceCollection AddCafeChainApplicationServices(this IServiceCollection services)
         {
+            services.AddDataProtection();
             services.AddSingleton(TimeProvider.System);
             services.AddScoped<IUserContext, UserContext>();
             services.AddScoped<IAIService, AIService>();
@@ -120,6 +122,8 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IInventoryDeductionService, InventoryDeductionService>();
             services.AddScoped<IOperationalIceService, OperationalIceService>();
             services.AddScoped<IOperationalIceReservationConsumptionService, OperationalIceReservationConsumptionService>();
+            services.AddScoped<IOperationalIceReportService, OperationalIceReportService>();
+            services.AddScoped<IOperationalIceReportPdfRenderer, OperationalIceReportPdfRenderer>();
             services.AddScoped<IInventoryIssueSettingsProvider, InventoryIssueSettingsProvider>();
             services.AddScoped<IInventoryIssuePolicy, InventoryIssuePolicy>();
             // Issue #132 — shared FIFO cost-layer consumption (production; POS later)
@@ -332,6 +336,9 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IStockAlertManagerService, StockAlertManagerService>();
             services.AddScoped<IRestockRequestService, RestockRequestService>();
             services.AddScoped<IReorderSuggestionService, ReorderSuggestionService>();
+            services.AddScoped<IReorderSuggestionTokenService, ReorderSuggestionTokenService>();
+            services.AddScoped<IReorderSuggestionAuthorizationService, ReorderSuggestionAuthorizationService>();
+            services.AddScoped<IReorderSuggestionConfirmationService, ReorderSuggestionConfirmationService>();
             services.AddScoped<IInventoryReorderNotificationService, InventoryReorderNotificationService>();
             services.AddOptions<InventoryReorderNotificationOptions>()
                 .BindConfiguration(InventoryReorderNotificationOptions.SectionName);

@@ -25,6 +25,7 @@ public enum DashboardAnalyticsWidget
     ProcurementSpendBreakdown, SupplierIssueMix,
     TopProducts, VolumeMarginMatrix, SizeMargin, TopToppings, BomHealth,
     HighConsumptionLowEfficiency, CategoryPerformance, ProductPeriodPerformance,
+    LowVolumeProducts, LowMarginProducts,
     WorkforceShiftStatus, WorkforceHourlyDemand, WorkforceStaffPerformance
 }
 
@@ -221,6 +222,8 @@ public sealed class ProductDashboardData
     public DashboardWidgetResult<LowEfficiencyProductRow> LowEfficiency { get; set; } = new();
     public DashboardWidgetResult<CategoryPerformanceRow> CategoryPerformance { get; set; } = new();
     public DashboardWidgetResult<ProductPeriodPerformanceRow> ProductPeriodPerformance { get; set; } = new();
+    public DashboardWidgetResult<ProductPeriodPerformanceRow> LowVolumeProducts { get; set; } = new();
+    public DashboardWidgetResult<ProductPeriodPerformanceRow> LowMarginProducts { get; set; } = new();
 }
 
 public sealed class WorkforceDashboardData
@@ -296,7 +299,40 @@ public sealed class WorkShiftKpiRow : DashboardRow { public long TotalWorkShifts
 public sealed class InventoryShortageRiskRow : DashboardRow { public int StoreInventoryId { get; set; } public int StoreId { get; set; } public string StoreName { get; set; } = string.Empty; public int IngredientId { get; set; } public string IngredientCode { get; set; } = string.Empty; public string IngredientName { get; set; } = string.Empty; public string Unit { get; set; } = string.Empty; public decimal OnHandQuantity { get; set; } public decimal ReservedQuantity { get; set; } public decimal AvailableQuantity { get; set; } public decimal? MinimumStock { get; set; } public decimal ShortageQuantity { get; set; } public decimal SuggestedReorderQuantity { get; set; } public string RiskLevel { get; set; } = string.Empty; }
 public sealed class InventoryMovementRow : DashboardRow { public DateTime MovementDate { get; set; } public int TransactionType { get; set; } public long TransactionCount { get; set; } public decimal Quantity { get; set; } public decimal TotalCost { get; set; } }
 public sealed class InventoryThresholdRiskRow : DashboardRow { public int StoreInventoryId { get; set; } public int StoreId { get; set; } public int IngredientId { get; set; } public string IngredientName { get; set; } = string.Empty; public decimal AvailableQty { get; set; } public decimal ReservedQty { get; set; } public decimal? MinStockLevel { get; set; } public decimal MaxNegativeQty { get; set; } public decimal QuantityAboveMinimum { get; set; } public int RiskIngredientCount { get; set; } }
-public sealed class InventoryReorderRow : DashboardRow { public int RestockRequestId { get; set; } public int StoreId { get; set; } public string StoreName { get; set; } = string.Empty; public int IngredientId { get; set; } public string IngredientCode { get; set; } = string.Empty; public string IngredientName { get; set; } = string.Empty; public string Unit { get; set; } = string.Empty; public decimal OnHandQuantity { get; set; } public decimal ReservedQuantity { get; set; } public decimal AvailableQuantity { get; set; } public decimal? MinimumStock { get; set; } public decimal ShortageQuantity { get; set; } public decimal RequestedQuantity { get; set; } public decimal? SuggestedQuantity { get; set; } public decimal EffectiveSuggestedQuantity { get; set; } public decimal? SuggestionAverageDailyUsageSnapshot { get; set; } public int? SuggestionLeadTimeDaysSnapshot { get; set; } public decimal? SuggestionIncomingQuantitySnapshot { get; set; } public string? SuggestionReason { get; set; } public string Status { get; set; } = string.Empty; public string Priority { get; set; } = string.Empty; public DateTime CreatedAt { get; set; } }
+public sealed class InventoryReorderRow : DashboardRow
+{
+    public int RestockRequestId { get; set; }
+    public int StoreId { get; set; }
+    public string StoreName { get; set; } = string.Empty;
+    public int IngredientId { get; set; }
+    public string IngredientCode { get; set; } = string.Empty;
+    public string IngredientName { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
+    public decimal OnHandQuantity { get; set; }
+    public decimal ReservedQuantity { get; set; }
+    public decimal AvailableQuantity { get; set; }
+    public decimal? MinimumStock { get; set; }
+    public decimal ShortageQuantity { get; set; }
+    public decimal RequestedQuantity { get; set; }
+    public decimal? SuggestedQuantity { get; set; }
+    public decimal EffectiveSuggestedQuantity { get; set; }
+    public decimal? SuggestionAverageDailyUsageSnapshot { get; set; }
+    public int? SuggestionLeadTimeDaysSnapshot { get; set; }
+    public decimal? SuggestionIncomingQuantitySnapshot { get; set; }
+    public string? SuggestionReason { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string Priority { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+
+    // Canonical deterministic reorder fields.
+    public decimal? RawDemand { get; set; }
+    public decimal ProcurementCoveredQuantity { get; set; }
+    public decimal? RemainingDemand { get; set; }
+    public decimal IncomingQuantity { get; set; }
+    public decimal? FinalSuggestedQuantity { get; set; }
+    public string SuggestionStatus { get; set; } = string.Empty;
+    public string MeaningfulSuggestionVersion { get; set; } = string.Empty;
+}
 public sealed class InventoryWasteRow : DashboardRow { public int StoreId { get; set; } public string StoreName { get; set; } = string.Empty; public int IngredientId { get; set; } public string IngredientName { get; set; } = string.Empty; public decimal WasteQuantity { get; set; } public decimal WasteValue { get; set; } public long TransactionCount { get; set; } }
 public sealed class InventoryFifoAgeRow : DashboardRow { public long InventoryCostLayerId { get; set; } public int StoreId { get; set; } public int? IngredientId { get; set; } public int? PreparedItemId { get; set; } public decimal RemainingQuantity { get; set; } public decimal UnitCost { get; set; } public DateTime CreatedAt { get; set; } public int AgeDays { get; set; } public decimal RemainingValue { get; set; } }
 public sealed class IngredientConsumptionTrendRow : DashboardRow { public DateTime BucketDate { get; set; } public int StoreId { get; set; } public int IngredientId { get; set; } public string IngredientName { get; set; } = string.Empty; public decimal ConsumedQuantity { get; set; } public decimal ConfirmedCost { get; set; } public long TransactionCount { get; set; } }
@@ -308,7 +344,7 @@ public sealed class PurchasePriceTrendRow : DashboardRow { public DateTime Recei
 public sealed class ProcurementSpendRow : DashboardRow { public int SupplierId { get; set; } public string SupplierName { get; set; } = string.Empty; public int StoreId { get; set; } public decimal Spend { get; set; } public long ReceiptCount { get; set; } }
 public sealed class SupplierIssueMixRow : DashboardRow { public int SupplierId { get; set; } public string SupplierName { get; set; } = string.Empty; public int StoreId { get; set; } public string StoreName { get; set; } = string.Empty; public string IssueType { get; set; } = string.Empty; public string Status { get; set; } = string.Empty; public long IssueCount { get; set; } public decimal AffectedBaseQuantity { get; set; } }
 
-public sealed class TopProductRow : DashboardRow { public int DrinkId { get; set; } public string DrinkName { get; set; } = string.Empty; public int? CategoryId { get; set; } public string CategoryName { get; set; } = string.Empty; public int TotalSold { get; set; } public decimal ProductRevenue { get; set; } public decimal ConfirmedCogs { get; set; } public decimal ConfirmedGrossProfit { get; set; } public decimal ConfirmedMarginRate { get; set; } public decimal ContributionPercent { get; set; } }
+public sealed class TopProductRow : DashboardRow { public int DrinkId { get; set; } public string DrinkName { get; set; } = string.Empty; public int? CategoryId { get; set; } public string CategoryName { get; set; } = string.Empty; public int TotalSold { get; set; } public decimal ProductRevenue { get; set; } public decimal QuantityShare { get; set; } public decimal RevenueShare { get; set; } public decimal ConfirmedCogs { get; set; } public decimal ConfirmedGrossProfit { get; set; } public decimal ConfirmedMarginRate { get; set; } public decimal ContributionPercent { get; set; } }
 public sealed class VolumeMarginRow : DashboardRow { public int DrinkId { get; set; } public string DrinkName { get; set; } = string.Empty; public int Volume { get; set; } public decimal Revenue { get; set; } public decimal ConfirmedCogs { get; set; } public decimal ConfirmedMarginRate { get; set; } }
 public sealed class SizeMarginRow : DashboardRow { public int? SizeId { get; set; } public string SizeName { get; set; } = string.Empty; public int TotalSold { get; set; } public decimal Revenue { get; set; } public decimal ConfirmedCogs { get; set; } public decimal ConfirmedGrossProfit { get; set; } }
 public sealed class TopToppingAnalyticsRow : DashboardRow { public int ToppingId { get; set; } public string ToppingName { get; set; } = string.Empty; public int TotalUsed { get; set; } public decimal Revenue { get; set; } public decimal ConfirmedCogs { get; set; } }

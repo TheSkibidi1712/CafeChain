@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers;
 
 [Area("Admin")]
-[Authorize(Roles =
+[RequirePermission(PermissionConstants.PurchaseAdviceConsolidate,
     RoleConstants.BusinessOwner + "," +
     RoleConstants.AreaManager + "," +
     RoleConstants.StoreManager + "," +
@@ -56,13 +57,13 @@ public sealed class AdminPurchaseAdviceConsolidationController : Controller
         PurchaseAdviceConsolidationPreviewRequest request,
         int[] selectedLineIds)
     {
-        var submittedSelections = request.Lines
-            .Where(x => selectedLineIds.Contains(x.PurchaseAdviceLineId))
-            .GroupBy(x => x.PurchaseAdviceLineId)
-            .ToDictionary(x => x.Key, x => x.First());
         request.Lines = request.Lines
             .Where(x => selectedLineIds.Contains(x.PurchaseAdviceLineId))
             .ToList();
+        NormalizePurchaseModeFields(request.Lines);
+        var submittedSelections = request.Lines
+            .GroupBy(x => x.PurchaseAdviceLineId)
+            .ToDictionary(x => x.Key, x => x.First());
         var preview = await _service.PreviewAsync(request, _actorAccessor.Get(User));
         var page = await _service.GetQueueAsync(new PurchaseAdviceConsolidationFilterDto
         {
@@ -75,6 +76,18 @@ public sealed class AdminPurchaseAdviceConsolidationController : Controller
         ViewBag.SelectedSupplierId = request.SupplierId;
         ViewBag.SubmittedSelections = submittedSelections;
         return View("Index", page.Data);
+    }
+
+    private static void NormalizePurchaseModeFields(
+        IEnumerable<PurchaseAdviceConsolidationSelectionRequest> lines)
+    {
+        foreach (var line in lines)
+        {
+            if (line.PurchaseMode == Models.Enums.Inventory.PurchaseMode.Loose)
+                line.PackageCount = null;
+            else
+                line.OrderedProcurementQuantity = null;
+        }
     }
 
     private IActionResult Failure(string code, string message)

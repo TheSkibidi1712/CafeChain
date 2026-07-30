@@ -161,16 +161,26 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, "Hãy chọn Nhà cung cấp và ít nhất một dòng đề nghị mua.");
         if (request.Lines.Select(x => x.PurchaseAdviceLineId).Distinct().Count() != request.Lines.Count)
             return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, "Mỗi dòng đề nghị mua chỉ được chọn một lần.");
-        if (request.Lines.Any(x =>
-                (x.PurchaseMode == PurchaseMode.Packaged
-                    && (!ProcurementPurchaseMath.IsWholePackageCount(x.PackageCount)
-                        || x.OrderedProcurementQuantity.HasValue))
-                || (x.PurchaseMode == PurchaseMode.Loose
-                    && (x.PackageCount.HasValue || x.OrderedProcurementQuantity <= 0m))))
+        var invalidInput = request.Lines.FirstOrDefault(x =>
+            (x.PurchaseMode == PurchaseMode.Packaged
+                && (!ProcurementPurchaseMath.IsWholePackageCount(x.PackageCount)
+                    || x.OrderedProcurementQuantity.HasValue))
+            || (x.PurchaseMode == PurchaseMode.Loose
+                && (x.PackageCount.HasValue || x.OrderedProcurementQuantity <= 0m)));
+        if (invalidInput != null)
         {
+            var message = invalidInput.PurchaseMode == PurchaseMode.Packaged
+                && invalidInput.PackageCount.HasValue
+                && invalidInput.OrderedProcurementQuantity.HasValue
+                    ? $"Dòng đề nghị mua #{invalidInput.PurchaseAdviceLineId} đang gửi đồng thời số gói và số lượng mua rời. Vui lòng chọn đúng một phương thức mua."
+                    : invalidInput.PurchaseMode == PurchaseMode.Packaged
+                        ? $"Dòng đề nghị mua #{invalidInput.PurchaseAdviceLineId} phải có số gói nguyên lớn hơn 0 và không được gửi số lượng mua rời."
+                        : invalidInput.PackageCount.HasValue
+                            ? $"Dòng đề nghị mua #{invalidInput.PurchaseAdviceLineId} đang mua rời nên không được gửi số gói."
+                            : $"Dòng đề nghị mua #{invalidInput.PurchaseAdviceLineId} phải có số lượng mua rời lớn hơn 0.";
             return Failure<PurchaseAdviceConsolidationPreviewDto>(
                 PurchaseAdviceErrorCodes.ConsolidationInvalid,
-                "Mua đóng gói phải dùng số kiện nguyên; mua rời phải dùng trực tiếp số lượng theo kg/L và không được gửi số kiện.");
+                message);
         }
 
         var ownsTransaction = _context.Database.CurrentTransaction == null;
@@ -374,7 +384,7 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                     : line.BaseUnit.Name;
                 return Failure<PurchaseAdviceConsolidationPreviewDto>(
                     PurchaseAdviceErrorCodes.PackageCountMismatch,
-                    $"{line.Ingredient.Name} chỉ cần tối đa {packPlan.PackageCount} kiện để phủ {remainingForPlan:N3} {planningUnit}; mua vượt đề xuất cần luồng override riêng.");
+                    $"{line.Ingredient.Name} chỉ cần tối đa {packPlan.PackageCount} gói để phủ {remainingForPlan:N3} {planningUnit}; mua vượt đề xuất cần luồng override riêng.");
             }
 
             decimal? orderedProcurementQuantity = null;
@@ -535,7 +545,7 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
         if (moqFailure != null)
         {
             var moq = allocations.First(x => x.Offer.IngredientSupplierId == moqFailure.IngredientSupplierId).Offer.MinimumOrderPackageCount;
-            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.MoqViolation, $"{moqFailure.IngredientName} yêu cầu tối thiểu {moq} kiện.");
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.MoqViolation, $"{moqFailure.IngredientName} yêu cầu tối thiểu {moq} gói.");
         }
 
         var warnings = allocations
@@ -633,7 +643,9 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             .Select(x => new { x.StoreId, x.Name, x.ProvinceId, AreaName = x.Province != null ? x.Province.Name : null })
             .ToListAsync();
         var stores = storeRows.Select(x => new ReadableStore(x.StoreId, x.Name, x.ProvinceId, x.AreaName)).ToList();
-        if (HasRole(actor, RoleConstants.BusinessOwner) || HasRole(actor, RoleConstants.AccountantWarehouse)) return stores;
+        if (HasRole(actor, RoleConstants.SystemAdmin)
+            || HasRole(actor, RoleConstants.BusinessOwner)
+            || HasRole(actor, RoleConstants.AccountantWarehouse)) return stores;
         if (HasRole(actor, RoleConstants.StoreManager)) return stores.Where(x => x.Id == actor.StoreId).ToList();
         if (!HasRole(actor, RoleConstants.AreaManager)) return new();
         var allowed = new List<ReadableStore>();
@@ -643,7 +655,10 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
     }
 
     private static decimal Remaining(decimal requested, decimal allocated, decimal closed) => Math.Max(0m, requested - allocated - closed);
-    private static bool CanConsolidate(AdminActorContext actor) => HasRole(actor, RoleConstants.AccountantWarehouse) || HasRole(actor, RoleConstants.BusinessOwner);
+    private static bool CanConsolidate(AdminActorContext actor) =>
+        HasRole(actor, RoleConstants.AccountantWarehouse)
+        || HasRole(actor, RoleConstants.BusinessOwner)
+        || HasRole(actor, RoleConstants.SystemAdmin);
     private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
     private static bool VersionMatches(byte[] current, string? provided)
     {

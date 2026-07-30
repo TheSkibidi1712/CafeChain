@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
@@ -10,7 +11,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers;
 
-[Authorize(Roles = RoleConstants.BusinessOwner + "," + RoleConstants.AccountantWarehouse + ","
+[RequirePermission(PermissionConstants.SupplierQualityView,
+    RoleConstants.BusinessOwner + "," + RoleConstants.AccountantWarehouse + ","
     + RoleConstants.AreaManager + "," + RoleConstants.StoreManager)]
 public sealed class AdminSupplierQualityController : AdminBaseController
 {
@@ -90,6 +92,7 @@ public sealed class AdminSupplierQualityController : AdminBaseController
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequirePermission(PermissionConstants.SupplierQualityCreate)]
     public async Task<IActionResult> Create(CreateSupplierReceiptIssueRequest input)
     {
         var actor = _actor.Get(User);
@@ -117,6 +120,7 @@ public sealed class AdminSupplierQualityController : AdminBaseController
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequirePermission(PermissionConstants.SupplierQualityTransition)]
     public async Task<IActionResult> Transition(int id, SupplierReceiptIssueTransitionRequest input)
     {
         var actor = _actor.Get(User);

@@ -98,6 +98,7 @@ namespace CafeChain.Application.DTOs.Admin.Permissions
 
     public class SaveRolePermissionsRequest
     {
+        public string RequestKey { get; set; } = string.Empty;
         public List<int> PermissionIds { get; set; } = new();
     }
 
@@ -125,6 +126,7 @@ namespace CafeChain.Application.DTOs.Admin.Permissions
 
     public class SaveStaffRolesRequest
     {
+        public string RequestKey { get; set; } = string.Empty;
         public List<int> RoleIds { get; set; } = new();
     }
 
@@ -158,6 +160,7 @@ namespace CafeChain.Application.DTOs.Admin.Permissions
 
     public class SaveStaffScopesRequest
     {
+        public string RequestKey { get; set; } = string.Empty;
         public List<StaffScopeInputDto> Scopes { get; set; } = new();
     }
 
@@ -202,6 +205,7 @@ namespace CafeChain.Application.DTOs.Admin.Permissions
 
     public class SaveAccountPermissionOverridesRequest
     {
+        public string RequestKey { get; set; } = string.Empty;
         public List<AccountPermissionOverrideInputDto> Overrides { get; set; } = new();
     }
 

@@ -1,4 +1,6 @@
 using CafeChain.Application.DTOs.Admin.PreparedItems;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.PreparedItems;
 using CafeChain.Helpers;
 using CafeChain.ViewModels.Admin.PreparedItems;
@@ -14,6 +16,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// View: RequireAdminPanelAccess (base).
     /// Write: SystemAdmin, BusinessOwner, AccountantWarehouse only.
     /// </summary>
+    [RequirePermission(PermissionConstants.PreparedItemView)]
     public class AdminPreparedItemController : AdminBaseController
     {
         private readonly IAdminPreparedItemService _service;
@@ -78,7 +81,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = RoleHelper.PreparedItemWriteRoles)]
+        [RequirePermission(PermissionConstants.PreparedItemCreate, RoleHelper.PreparedItemWriteRoles)]
         public async Task<IActionResult> Create([FromBody] AdminPreparedItemSaveDTO dto)
         {
             if (!ModelState.IsValid)
@@ -97,7 +100,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = RoleHelper.PreparedItemWriteRoles)]
+        [RequirePermission(PermissionConstants.PreparedItemUpdate, RoleHelper.PreparedItemWriteRoles)]
         public async Task<IActionResult> Update([FromBody] AdminPreparedItemSaveDTO dto)
         {
             if (!ModelState.IsValid)
@@ -116,7 +119,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = RoleHelper.PreparedItemWriteRoles)]
+        [RequirePermission(PermissionConstants.PreparedItemToggleStatus, RoleHelper.PreparedItemWriteRoles)]
         public async Task<IActionResult> SetActive([FromBody] AdminPreparedItemToggleDTO dto)
         {
             try

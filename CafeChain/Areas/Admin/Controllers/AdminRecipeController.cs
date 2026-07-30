@@ -4,6 +4,7 @@ using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.DTOs.Admin.StoreInventories;
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.ViewModels.Admin.Recipes;
 using CafeChain.Helpers;
 using Microsoft.AspNetCore.Authorization;
@@ -15,6 +16,7 @@ using System.Threading.Tasks;
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [RequirePermission(PermissionConstants.RecipeView)]
     public class AdminRecipeController : AdminBaseController
     {
         private readonly IAdminRecipeService _recipeService;
@@ -133,7 +135,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
+        [RequirePermission(PermissionConstants.RecipeCreate, RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Create()
         {
             var page = await _queryService.GetCreatePageAsync();
@@ -142,7 +144,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
+        [RequirePermission(PermissionConstants.RecipeCreate, RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Create([FromBody] RecipeCreateVM model)
         {
             if (!ModelState.IsValid)
@@ -217,7 +219,7 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> EstimateBomCost(int recipeId)
         {
             if (recipeId <= 0)
-                return Json(new { success = false, message = "RecipeId không hợp lệ." });
+                return Json(new { success = false, message = "Mã công thức không hợp lệ." });
 
             var result = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(recipeId);
             return Json(new
@@ -254,7 +256,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
+        [RequirePermission(PermissionConstants.RecipeUpdate, RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Edit(int id)
         {
             var page = await _queryService.GetEditPageAsync(id);
@@ -269,7 +271,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
+        [RequirePermission(PermissionConstants.RecipeUpdate, RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Edit(int id, RecipeCreateVM model)
         {
             if (!ModelState.IsValid)
@@ -306,7 +308,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
+        [RequirePermission(PermissionConstants.RecipeDelete, RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _recipeService.DeleteRecipeAsync(id);

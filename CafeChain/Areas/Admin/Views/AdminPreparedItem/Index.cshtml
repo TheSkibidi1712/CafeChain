@@ -16,7 +16,7 @@
 
 <div class="rb-page">
 <div class="container-fluid px-4 pt-4 pb-5">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div class="rb-page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <nav class="rb-breadcrumb" aria-label="breadcrumb">
                 <span>Sản xuất / BOM</span> &gt; <span>Danh mục bán thành phẩm</span>
@@ -363,7 +363,7 @@
                 if (res.success) location.reload();
                 else showError(res.message || 'Lỗi lưu');
             })
-            .catch(() => showError('Lỗi kết nối hoặc antiforgery.'));
+            .catch(() => showError('Lỗi kết nối hoặc phiên làm việc không hợp lệ.'));
     });
 
     document.querySelectorAll('.toggle-btn').forEach(btn => {

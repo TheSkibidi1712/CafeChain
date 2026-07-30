@@ -5,21 +5,27 @@
     var stores = ViewBag.Stores as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>
         ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
     var selectedStoreId = (int?)ViewBag.SelectedStoreId ?? Model.StoreId;
-    var canCreateDraft = (bool?)ViewBag.CanCreateDraft == true;
     var labels = new Dictionary<string, string>
     {
-        [ReorderSuggestionStatuses.Ready] = "Sẵn sàng",
-        [ReorderSuggestionStatuses.NoReorderNeeded] = "Chưa cần nhập",
-        [ReorderSuggestionStatuses.InsufficientHistory] = "Thiếu lịch sử",
-        [ReorderSuggestionStatuses.MissingThreshold] = "Thiếu ngưỡng tồn",
-        [ReorderSuggestionStatuses.NoActiveSupplier] = "Thiếu nguồn cung",
-        [ReorderSuggestionStatuses.InvalidConversion] = "Sai quy cách gói",
-        [ReorderSuggestionStatuses.MissingLeadTime] = "Thiếu thời gian giao",
-        [ReorderSuggestionStatuses.MissingCost] = "Thiếu giá mua",
-        [ReorderSuggestionStatuses.IncomingCoversDemand] = "Hàng về đã đủ",
-        [ReorderSuggestionStatuses.ProcurementInProgress] = "Đang mua hàng",
-        [ReorderSuggestionStatuses.Unknown] = "Chưa xác định"
+        [ReorderRecommendationLevels.Urgent] = "Cần nhập gấp",
+        [ReorderRecommendationLevels.NearReorder] = "Gần điểm đặt hàng",
+        [ReorderRecommendationLevels.Normal] = "Chưa cần nhập",
+        [ReorderRecommendationLevels.IncomingCoversDemand] = "Hàng về đã đủ",
+        [ReorderRecommendationLevels.ProcurementInProgress] = "Đang xử lý mua hàng",
+        [ReorderRecommendationLevels.DataIncomplete] = "Thiếu dữ liệu"
     };
+    var actionableItems = Model.Items
+        .Where(item =>
+            item.CanConfirm
+            && item.FinalSuggestedQuantity.GetValueOrDefault() > 0m
+            && item.SuggestionStatus is
+                ReorderRecommendationLevels.Urgent
+                or ReorderRecommendationLevels.NearReorder
+                or ReorderRecommendationLevels.ProcurementInProgress)
+        .ToList();
+    var dataIncompleteItems = Model.Items
+        .Where(item => item.SuggestionStatus == ReorderRecommendationLevels.DataIncomplete)
+        .ToList();
 }
 
 @section Styles {
@@ -32,21 +38,29 @@
         <div>
             <p class="reorder-eyebrow cc-page-kicker">Kho &amp; Cung ứng / Lập kế hoạch</p>
             <h1 class="cc-page-title">Gợi ý nhập hàng</h1>
-            <p class="cc-page-description">Phân tích tiêu thụ, tồn khả dụng, ngưỡng an toàn và quy cách mua theo cửa hàng.</p>
+            <p class="cc-page-description">
+                Một nguồn tính toán chung cho tồn kho, nhu cầu, pipeline mua hàng và quy cách nhà cung cấp.
+            </p>
         </div>
-        <a asp-controller="AdminRestockRequests" asp-action="Index" class="cc-button">
-            <i class="fas fa-list-check" aria-hidden="true"></i> Xem yêu cầu nhập
-        </a>
+        <div class="reorder-header-actions">
+            <button type="button"
+                    id="openReorderBulkModal"
+                    class="cc-button cc-button-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#reorderBulkModal"
+                    disabled="@((actionableItems.Any() || dataIncompleteItems.Any()) ? null : "disabled")">
+                <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
+                Xem nguyên liệu sắp hết
+                <span class="reorder-count-badge" aria-label="@actionableItems.Count nguyên liệu cần xử lý">
+                    @actionableItems.Count
+                </span>
+            </button>
+            <a asp-controller="AdminRestockRequests" asp-action="Index" class="cc-button">
+                <i class="fas fa-list-check" aria-hidden="true"></i> Xem yêu cầu nhập
+            </a>
+        </div>
     </header>
 
-    @if (TempData["SuccessMessage"] is string success)
-    {
-        <div class="ops-notice ops-notice-success" role="status">@success</div>
-    }
-    @if (TempData["ErrorMessage"] is string error)
-    {
-        <div class="ops-notice ops-notice-error" role="alert">@error</div>
-    }
     @if (ViewBag.ErrorMessage is string loadError)
     {
         <div class="ops-notice ops-notice-error" role="alert">@loadError</div>
@@ -70,12 +84,15 @@
                 <option value="90" selected="@(Model.AnalysisWindowDays == 90)">90 ngày</option>
             </select>
         </div>
-        <button type="submit" class="btn btn-primary"><i class="fas fa-rotate" aria-hidden="true"></i> Tính lại</button>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-rotate" aria-hidden="true"></i> Tính lại
+        </button>
     </form>
 
     <div class="reorder-note" role="note">
         <i class="fas fa-circle-info" aria-hidden="true"></i>
-        Đây là gợi ý đọc dữ liệu, không tự đặt hàng. “Tạo/mở cảnh báo” đưa nguyên liệu vào bước xác nhận trước khi lập yêu cầu nhập nháp.
+        Xác nhận sẽ tạo yêu cầu nhập nháp hoặc bổ sung nhu cầu vào yêu cầu đang mở.
+        Hệ thống luôn tính lại dữ liệu và từ chối nếu gợi ý đã thay đổi.
     </div>
 
     <section class="reorder-table-shell" aria-label="Danh sách gợi ý nhập hàng">
@@ -84,8 +101,7 @@
             <div class="reorder-empty cc-empty-state">
                 <i class="fas fa-box-open" aria-hidden="true"></i>
                 <h2>Chưa có dữ liệu gợi ý</h2>
-                <p>Chọn cửa hàng có tồn kho nguyên liệu để bắt đầu phân tích, hoặc mở danh sách yêu cầu bổ sung để kiểm tra nhu cầu hiện tại.</p>
-                <a asp-controller="AdminRestockRequests" asp-action="Index" class="cc-button mt-3">Xem yêu cầu bổ sung</a>
+                <p>Chọn cửa hàng có tồn kho nguyên liệu để bắt đầu phân tích.</p>
             </div>
         }
         else
@@ -95,13 +111,10 @@
                     <thead>
                         <tr>
                             <th>Nguyên liệu</th>
-                            <th>Tồn / giữ chỗ / khả dụng</th>
-                            <th>Ngưỡng tối thiểu</th>
-                            <th>Dùng/ngày</th>
-                            <th>Lead time</th>
-                            <th>Đang về</th>
-                            <th>Tồn dự kiến</th>
-                            <th>Đề xuất</th>
+                            <th>Tồn kho</th>
+                            <th>Nhu cầu</th>
+                            <th>Pipeline</th>
+                            <th>Đề xuất cuối</th>
                             <th>Nhà cung cấp</th>
                             <th>Trạng thái</th>
                             <th class="text-end">Thao tác</th>
@@ -110,59 +123,74 @@
                     <tbody>
                     @foreach (var item in Model.Items)
                     {
-                        var ready = item.Status == ReorderSuggestionStatuses.Ready;
                         <tr id="ingredient-@item.IngredientId">
                             <td>
                                 <strong>@item.IngredientName</strong>
-                                <span>@item.IngredientCode</span>
+                                <span>@item.IngredientCode · @item.BaseUnitCode</span>
                             </td>
                             <td>
-                                <strong>@item.UsableQuantity.ToString("N3") @item.BaseUnitCode</strong>
-                                <span>Tồn @item.AvailableQuantity.ToString("N3") · giữ @item.ReservedQuantity.ToString("N3")</span>
+                                <strong>@item.AvailableStock.ToString("N3") @item.BaseUnitCode khả dụng</strong>
+                                <span>Tồn @item.OnHandQuantity.ToString("N3") · giữ @item.ReservedQuantity.ToString("N3")</span>
+                                <span>Tối thiểu @(item.MinimumStock?.ToString("N3") ?? "-")</span>
                             </td>
-                            <td>@(item.MinLevel?.ToString("N3") ?? "-")</td>
-                            <td>@(item.AverageDailyUsage?.ToString("N3") ?? "-")</td>
-                            <td>@(item.LeadTimeDays.HasValue ? $"{item.LeadTimeDays} ngày" : "-")</td>
-                            <td>@item.IncomingApprovedPoQuantity.ToString("N3")</td>
-                            <td>@item.ProjectedQuantity.ToString("N3") @item.BaseUnitCode</td>
                             <td>
-                                <strong>@(item.SuggestedBaseQuantity?.ToString("N3") ?? "-") @item.BaseUnitCode</strong>
+                                <strong>ROP @(item.ReorderPoint?.ToString("N3") ?? "-")</strong>
+                                <span>Dùng/ngày @(item.AverageDailyConsumption?.ToString("N3") ?? "-") · lead @(item.LeadTimeDays?.ToString() ?? "-") ngày</span>
+                                <span>Nhu cầu thô @(item.RawDemand?.ToString("N3") ?? "-")</span>
+                            </td>
+                            <td>
+                                <strong>Đang về @item.IncomingQuantity.ToString("N3")</strong>
+                                <span>Tồn dự kiến @(item.ProjectedStock?.ToString("N3") ?? "-")</span>
+                                <span>Pipeline bao phủ @item.ProcurementCoveredQuantity.ToString("N3")</span>
+                            </td>
+                            <td>
+                                <strong>@(item.FinalSuggestedQuantity?.ToString("N3") ?? "-") @item.BaseUnitCode</strong>
+                                <span>Còn thiếu @(item.RemainingDemand?.ToString("N3") ?? "-")</span>
                                 @if (item.SuggestedPackageCount.HasValue)
                                 {
-                                    <span>@item.SuggestedPackageCount gói · @((item.EstimatedAmount ?? 0).ToString("N0"))đ</span>
+                                    <span>@item.SuggestedPackageCount.Value.ToString("N0") gói · @((item.EstimatedCost ?? 0m).ToString("N0"))đ</span>
                                 }
                             </td>
                             <td>
                                 <strong>@(item.SupplierName ?? "-")</strong>
+                                @if (item.PackageBaseQuantity.HasValue)
+                                {
+                                    <span>@item.PackageBaseQuantity.Value.ToString("N3") @item.BaseUnitCode/gói</span>
+                                }
                                 @if (item.PackagePrice.HasValue)
                                 {
                                     <span>@item.PackagePrice.Value.ToString("N0")đ/gói</span>
                                 }
                             </td>
                             <td>
-                                <span class="reorder-status reorder-status--@item.Status.ToLowerInvariant()">@(labels.GetValueOrDefault(item.Status, item.Status))</span>
+                                <span class="reorder-status reorder-status--@item.SuggestionStatus.ToLowerInvariant()">
+                                    @labels.GetValueOrDefault(item.SuggestionStatus, item.SuggestionStatus)
+                                </span>
                                 <small>@item.Reason</small>
                             </td>
                             <td class="text-end">
                                 <button type="button"
                                         class="cc-button js-reorder-explain"
                                         data-store-id="@item.StoreId"
-                                        data-ingredient-id="@item.IngredientId">
-                                    Xem giải thích AI
+                                        data-ingredient-id="@item.IngredientId"
+                                        data-suggestion-token="@item.SuggestionToken">
+                                    Giải thích
                                 </button>
                                 @if (item.ActiveRestockRequestId.HasValue)
                                 {
-                                    <a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@item.ActiveRestockRequestId" class="cc-button">Xem yêu cầu</a>
+                                    <a asp-controller="AdminRestockRequests"
+                                       asp-action="Details"
+                                       asp-route-id="@item.ActiveRestockRequestId"
+                                       class="cc-button">Xem yêu cầu</a>
                                 }
-                                else
-                                {
-                                    <form asp-action="CreateDraft" method="post" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="storeId" value="@item.StoreId" />
-                                        <input type="hidden" name="ingredientId" value="@item.IngredientId" />
-                                        <button type="submit" class="cc-button cc-button-primary" disabled="@(!ready || !canCreateDraft)">Tạo/mở cảnh báo</button>
-                                    </form>
-                                }
+                                <button type="button"
+                                        class="cc-button cc-button-primary js-reorder-confirm"
+                                        data-store-id="@item.StoreId"
+                                        data-ingredient-id="@item.IngredientId"
+                                        data-suggestion-token="@item.SuggestionToken"
+                                        disabled="@(item.CanConfirm ? null : "disabled")">
+                                    @(item.ActiveRestockRequestId.HasValue ? "Bổ sung yêu cầu" : "Xác nhận nhập")
+                                </button>
                             </td>
                         </tr>
                     }
@@ -171,44 +199,533 @@
             </div>
         }
     </section>
+
+    <div class="modal fade reorder-bulk-modal"
+         id="reorderBulkModal"
+         tabindex="-1"
+         aria-labelledby="reorderBulkModalLabel"
+         aria-hidden="true"
+         data-auto-open="@(actionableItems.Any() ? "true" : "false")">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <p class="reorder-modal-eyebrow">Kiểm tra tự động theo rule</p>
+                        <h2 class="modal-title fs-5" id="reorderBulkModalLabel">
+                            Nguyên liệu cần xử lý tại @Model.StoreName
+                        </h2>
+                        <p class="reorder-modal-subtitle">
+                            Kỳ phân tích @Model.AnalysisWindowDays ngày · hệ thống sẽ tính lại trước mỗi lần xác nhận.
+                        </p>
+                    </div>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    @if (actionableItems.Any())
+                    {
+                        <div class="reorder-bulk-notice" role="note">
+                            <i class="fas fa-circle-info" aria-hidden="true"></i>
+                            <span>
+                                Danh sách do hệ thống tính theo tồn kho, nhu cầu và pipeline.
+                                AI không tự tạo chứng từ; bạn vẫn phải xác nhận danh sách đã chọn.
+                            </span>
+                        </div>
+
+                        <div class="reorder-bulk-toolbar">
+                            <label class="reorder-select-all" for="reorderSelectAll">
+                                <input type="checkbox"
+                                       id="reorderSelectAll"
+                                       class="form-check-input"
+                                       checked />
+                                Chọn tất cả
+                            </label>
+                            <span id="reorderBulkSelectedCount"
+                                  class="reorder-selected-count"
+                                  role="status"
+                                  aria-live="polite">
+                                Đã chọn @actionableItems.Count/@actionableItems.Count nguyên liệu
+                            </span>
+                        </div>
+
+                        <div class="table-responsive reorder-bulk-table-shell">
+                            <table class="table reorder-bulk-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th class="reorder-checkbox-column">
+                                            <span class="visually-hidden">Chọn</span>
+                                        </th>
+                                        <th>Nguyên liệu</th>
+                                        <th>Tồn / ngưỡng</th>
+                                        <th>Pipeline</th>
+                                        <th>Đề xuất mua</th>
+                                        <th>Nhà cung cấp</th>
+                                        <th>Kết quả</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var item in actionableItems)
+                                {
+                                    <tr class="js-reorder-bulk-row"
+                                        data-store-id="@item.StoreId"
+                                        data-ingredient-id="@item.IngredientId"
+                                        data-ingredient-name="@item.IngredientName"
+                                        data-suggestion-token="@item.SuggestionToken"
+                                        data-state="pending">
+                                        <td>
+                                            <input type="checkbox"
+                                                   id="bulk-ingredient-@item.IngredientId"
+                                                   class="form-check-input js-reorder-bulk-select"
+                                                   aria-label="Chọn @item.IngredientName"
+                                                   checked />
+                                        </td>
+                                        <td>
+                                            <label for="bulk-ingredient-@item.IngredientId">
+                                                <strong>@item.IngredientName</strong>
+                                                <span>@item.IngredientCode · @item.BaseUnitCode</span>
+                                            </label>
+                                            <span class="reorder-status reorder-status--@item.SuggestionStatus.ToLowerInvariant()">
+                                                @labels.GetValueOrDefault(item.SuggestionStatus, item.SuggestionStatus)
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <strong>@item.AvailableStock.ToString("N3") @item.BaseUnitCode khả dụng</strong>
+                                            <span>ROP @(item.ReorderPoint?.ToString("N3") ?? "-")</span>
+                                        </td>
+                                        <td>
+                                            <strong>Đang về @item.IncomingQuantity.ToString("N3")</strong>
+                                            <span>Bao phủ @item.ProcurementCoveredQuantity.ToString("N3")</span>
+                                            <span>Còn thiếu @(item.RemainingDemand?.ToString("N3") ?? "-")</span>
+                                        </td>
+                                        <td>
+                                            <strong>@item.FinalSuggestedQuantity!.Value.ToString("N3") @item.BaseUnitCode</strong>
+                                            @if (item.SuggestedPackageCount.HasValue)
+                                            {
+                                                <span>@item.SuggestedPackageCount.Value.ToString("N0") gói</span>
+                                            }
+                                            @if (item.PackageBaseQuantity.HasValue)
+                                            {
+                                                <span>Quy cách @item.PackageBaseQuantity.Value.ToString("N3") @item.BaseUnitCode/gói</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <strong>@(item.SupplierName ?? "-")</strong>
+                                            @if (item.EstimatedCost.HasValue)
+                                            {
+                                                <span>Dự kiến @item.EstimatedCost.Value.ToString("N0")đ</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="reorder-bulk-result reorder-bulk-result--pending js-reorder-bulk-result"
+                                                 role="status">
+                                                Sẵn sàng
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="reorder-empty reorder-empty--compact">
+                            <i class="fas fa-circle-check" aria-hidden="true"></i>
+                            <h3>Không có nguyên liệu cần tạo yêu cầu nhập</h3>
+                            <p>Tồn kho và pipeline hiện đang đáp ứng nhu cầu tại cửa hàng này.</p>
+                        </div>
+                    }
+
+                    @if (dataIncompleteItems.Any())
+                    {
+                        <section class="reorder-incomplete"
+                                 aria-labelledby="reorderIncompleteHeading">
+                            <h3 id="reorderIncompleteHeading">
+                                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                                @dataIncompleteItems.Count nguyên liệu thiếu dữ liệu
+                            </h3>
+                            <p>Các dòng này chỉ để kiểm tra và không thể chọn xác nhận.</p>
+                            <ul>
+                            @foreach (var item in dataIncompleteItems)
+                            {
+                                <li>
+                                    <strong>@item.IngredientName</strong>
+                                    <span>@item.IngredientCode · @item.Reason</span>
+                                </li>
+                            }
+                            </ul>
+                        </section>
+                    }
+                </div>
+                <div class="modal-footer reorder-bulk-footer">
+                    <div id="reorderBulkProgress"
+                         class="reorder-bulk-progress"
+                         role="status"
+                         aria-live="polite"></div>
+                    <button type="button"
+                            id="reloadReorderSuggestions"
+                            class="cc-button"
+                            hidden>
+                        <i class="fas fa-rotate" aria-hidden="true"></i>
+                        Tải lại dữ liệu
+                    </button>
+                    <button type="button"
+                            class="cc-button"
+                            data-bs-dismiss="modal">
+                        Đóng
+                    </button>
+                    <button type="button"
+                            id="confirmSelectedReorders"
+                            class="cc-button cc-button-primary"
+                            disabled="@(actionableItems.Any() ? null : "disabled")">
+                        Tạo yêu cầu nhập đã chọn
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 
 @section Scripts {
     <script>
         (() => {
-            const endpoint = '@Url.Action("Explain", "AdminReorderSuggestions")';
-            const windowDays = @Model.AnalysisWindowDays;
+            const explainEndpoint = '@Url.Action("Explain", "AdminReorderSuggestions")';
+            const confirmEndpoint = '@Url.Action("Confirm", "AdminReorderSuggestions")';
+            const antiForgery = () =>
+                document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            const postForm = async (endpoint, values) => {
+                const body = new URLSearchParams({
+                    ...values,
+                    __RequestVerificationToken: antiForgery()
+                });
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body
+                });
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch {
+                    // Preserve the HTTP status and expose a deterministic
+                    // message when a proxy returns a non-JSON error page.
+                }
+                if (!response.ok || !data.success) {
+                    const error = new Error(data.message || 'Không thể xử lý yêu cầu.');
+                    error.status = response.status;
+                    error.code = data.code;
+                    throw error;
+                }
+                return data;
+            };
+
             document.querySelectorAll('.js-reorder-explain').forEach(button => {
                 button.addEventListener('click', async () => {
-                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-                    const body = new URLSearchParams({
-                        storeId: button.dataset.storeId,
-                        ingredientId: button.dataset.ingredientId,
-                        analysisWindowDays: String(windowDays),
-                        __RequestVerificationToken: token || ''
-                    });
                     button.disabled = true;
                     try {
-                        const response = await fetch(endpoint, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
-                            body
+                        const data = await postForm(explainEndpoint, {
+                            storeId: button.dataset.storeId,
+                            ingredientId: button.dataset.ingredientId,
+                            suggestionToken: button.dataset.suggestionToken
                         });
-                        const data = await response.json();
-                        if (!response.ok || !data.success) throw new Error(data.message || 'Không tạo được giải thích.');
+                        const panel = document.createElement('div');
+                        [
+                            ['Tóm tắt', data.summary],
+                            ['Giải thích', data.explanation],
+                            ['Rủi ro', data.risk],
+                            ['Hành động đề xuất', data.recommendedActionText]
+                        ].forEach(([title, value]) => {
+                            const heading = document.createElement('strong');
+                            heading.textContent = title;
+                            const paragraph = document.createElement('p');
+                            paragraph.textContent = value || 'Không có.';
+                            panel.append(heading, paragraph);
+                        });
                         await Swal.fire({
                             icon: data.usedOllama ? 'info' : 'warning',
                             title: data.usedOllama ? 'Giải thích AI' : 'Giải thích theo rule',
-                            text: data.explanation,
+                            html: panel,
                             confirmButtonText: 'Đóng'
                         });
                     } catch (error) {
-                        await Swal.fire({ icon: 'error', title: 'Không thể giải thích', text: error.message });
+                        const result = await Swal.fire({
+                            icon: 'error',
+                            title: 'Không thể giải thích',
+                            text: error.message,
+                            showCancelButton: error.status === 409,
+                            confirmButtonText: error.status === 409 ? 'Tải lại' : 'Đóng',
+                            cancelButtonText: 'Để sau'
+                        });
+                        if (error.status === 409 && result.isConfirmed)
+                            window.location.reload();
                     } finally {
                         button.disabled = false;
                     }
                 });
             });
+
+            document.querySelectorAll('.js-reorder-confirm').forEach(button => {
+                button.addEventListener('click', async () => {
+                    button.dataset.requestKey ||= crypto.randomUUID();
+                    const originalText = button.textContent;
+                    button.disabled = true;
+                    button.textContent = 'Đang xác nhận...';
+                    try {
+                        const data = await postForm(confirmEndpoint, {
+                            storeId: button.dataset.storeId,
+                            ingredientId: button.dataset.ingredientId,
+                            suggestionToken: button.dataset.suggestionToken,
+                            requestKey: button.dataset.requestKey
+                        });
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Đã xác nhận',
+                            text: data.data.message,
+                            confirmButtonText: 'Mở yêu cầu'
+                        });
+                        window.location.href =
+                            `/Admin/AdminRestockRequests/Details/${data.data.restockRequestId}`;
+                    } catch (error) {
+                        const stale = error.code === 'REORDER_SUGGESTION_CHANGED'
+                            || error.code === 'REORDER_SUGGESTION_EXPIRED';
+                        const result = await Swal.fire({
+                            icon: 'error',
+                            title: 'Chưa thể xác nhận',
+                            text: error.message,
+                            showCancelButton: stale,
+                            confirmButtonText: stale ? 'Tải lại dữ liệu' : 'Đóng',
+                            cancelButtonText: 'Để sau'
+                        });
+                        if (stale && result.isConfirmed) {
+                            window.location.reload();
+                            return;
+                        }
+                        // Keep the same RequestKey for a safe retry after a
+                        // network failure or an in-progress response.
+                        button.disabled = false;
+                        button.textContent = originalText;
+                    }
+                });
+            });
+
+            const bulkModalElement = document.getElementById('reorderBulkModal');
+            const bulkRows = Array.from(
+                document.querySelectorAll('.js-reorder-bulk-row'));
+            const selectAll = document.getElementById('reorderSelectAll');
+            const selectedCount = document.getElementById('reorderBulkSelectedCount');
+            const bulkProgress = document.getElementById('reorderBulkProgress');
+            const bulkConfirm = document.getElementById('confirmSelectedReorders');
+            const reloadButton = document.getElementById('reloadReorderSuggestions');
+            let bulkProcessing = false;
+
+            const reloadRequiredCodes = new Set([
+                'REORDER_SUGGESTION_CHANGED',
+                'REORDER_SUGGESTION_EXPIRED',
+                'REORDER_CONFIRM_CONCURRENT_UPDATE',
+                'REORDER_DATA_INCOMPLETE',
+                'REORDER_NO_REMAINING_DEMAND'
+            ]);
+
+            const setBulkResult = (row, state, message, restockRequestId) => {
+                const result = row.querySelector('.js-reorder-bulk-result');
+                if (!result)
+                    return;
+
+                row.dataset.state = state;
+                result.className =
+                    `reorder-bulk-result reorder-bulk-result--${state} js-reorder-bulk-result`;
+                result.replaceChildren();
+
+                const messageNode = document.createElement('span');
+                messageNode.textContent = message;
+                result.append(messageNode);
+
+                if (restockRequestId) {
+                    const separator = document.createTextNode(' · ');
+                    const link = document.createElement('a');
+                    link.href =
+                        `/Admin/AdminRestockRequests/Details/${encodeURIComponent(restockRequestId)}`;
+                    link.textContent = 'Mở yêu cầu';
+                    result.append(separator, link);
+                }
+            };
+
+            const getSelectableRows = () =>
+                bulkRows.filter(row => {
+                    const checkbox = row.querySelector('.js-reorder-bulk-select');
+                    return checkbox && !checkbox.disabled && row.dataset.state !== 'success';
+                });
+
+            const updateBulkSelection = () => {
+                const selectableRows = getSelectableRows();
+                const checkedRows = selectableRows.filter(row =>
+                    row.querySelector('.js-reorder-bulk-select')?.checked);
+
+                if (selectedCount) {
+                    selectedCount.textContent =
+                        `Đã chọn ${checkedRows.length}/${bulkRows.length} nguyên liệu`;
+                }
+                if (selectAll) {
+                    selectAll.disabled = bulkProcessing || selectableRows.length === 0;
+                    selectAll.checked =
+                        selectableRows.length > 0
+                        && checkedRows.length === selectableRows.length;
+                    selectAll.indeterminate =
+                        checkedRows.length > 0
+                        && checkedRows.length < selectableRows.length;
+                }
+                if (bulkConfirm) {
+                    bulkConfirm.disabled = bulkProcessing || checkedRows.length === 0;
+                    bulkConfirm.textContent = bulkRows.some(row =>
+                        row.dataset.state !== 'pending')
+                        ? 'Thử lại các dòng đã chọn'
+                        : 'Tạo yêu cầu nhập đã chọn';
+                }
+            };
+
+            selectAll?.addEventListener('change', () => {
+                getSelectableRows().forEach(row => {
+                    const checkbox = row.querySelector('.js-reorder-bulk-select');
+                    checkbox.checked = selectAll.checked;
+                });
+                updateBulkSelection();
+            });
+
+            bulkRows.forEach(row => {
+                row.querySelector('.js-reorder-bulk-select')
+                    ?.addEventListener('change', updateBulkSelection);
+            });
+
+            reloadButton?.addEventListener('click', () => window.location.reload());
+
+            bulkConfirm?.addEventListener('click', async () => {
+                const selectedRows = getSelectableRows().filter(row =>
+                    row.querySelector('.js-reorder-bulk-select')?.checked);
+                if (selectedRows.length === 0)
+                    return;
+
+                const confirmation = await Swal.fire({
+                    icon: 'question',
+                    title: 'Xác nhận tạo yêu cầu nhập',
+                    text: `Hệ thống sẽ lần lượt xác nhận ${selectedRows.length} nguyên liệu. Tiếp tục?`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Xác nhận tạo',
+                    cancelButtonText: 'Kiểm tra lại',
+                    reverseButtons: true
+                });
+                if (!confirmation.isConfirmed)
+                    return;
+
+                bulkProcessing = true;
+                bulkRows.forEach(row => {
+                    const checkbox = row.querySelector('.js-reorder-bulk-select');
+                    if (checkbox)
+                        checkbox.disabled = true;
+                });
+                if (bulkProgress) {
+                    bulkProgress.textContent =
+                        `Đang xử lý 0/${selectedRows.length} nguyên liệu...`;
+                }
+                updateBulkSelection();
+
+                let completed = 0;
+                for (const row of selectedRows) {
+                    const ingredientName =
+                        row.dataset.ingredientName || 'Nguyên liệu';
+                    row.dataset.requestKey ||= crypto.randomUUID();
+                    setBulkResult(row, 'processing', 'Đang xác nhận...');
+
+                    try {
+                        const data = await postForm(confirmEndpoint, {
+                            storeId: row.dataset.storeId,
+                            ingredientId: row.dataset.ingredientId,
+                            suggestionToken: row.dataset.suggestionToken,
+                            requestKey: row.dataset.requestKey
+                        });
+                        const requestId = data.data?.restockRequestId;
+                        setBulkResult(
+                            row,
+                            'success',
+                            data.data?.message || 'Đã tạo yêu cầu nhập.',
+                            requestId);
+                        const checkbox = row.querySelector('.js-reorder-bulk-select');
+                        if (checkbox)
+                            checkbox.checked = false;
+                    } catch (error) {
+                        const requiresReload =
+                            reloadRequiredCodes.has(error.code);
+                        const forbidden =
+                            error.status === 403
+                            || error.code === 'REORDER_CONFIRM_UNAUTHORIZED';
+                        const state = requiresReload
+                            ? 'reload'
+                            : forbidden
+                                ? 'blocked'
+                                : 'retry';
+                        const prefix = requiresReload
+                            ? 'Cần tải lại dữ liệu: '
+                            : forbidden
+                                ? 'Không có quyền: '
+                                : 'Có thể thử lại: ';
+                        setBulkResult(
+                            row,
+                            state,
+                            `${prefix}${error.message}`);
+                    } finally {
+                        completed += 1;
+                        if (bulkProgress) {
+                            bulkProgress.textContent =
+                                `Đang xử lý ${completed}/${selectedRows.length}: ${ingredientName}`;
+                        }
+                    }
+                }
+
+                bulkProcessing = false;
+                bulkRows.forEach(row => {
+                    const checkbox = row.querySelector('.js-reorder-bulk-select');
+                    if (!checkbox)
+                        return;
+
+                    const retryable =
+                        row.dataset.state === 'pending'
+                        || row.dataset.state === 'retry';
+                    checkbox.disabled = !retryable;
+                    if (row.dataset.state === 'retry')
+                        checkbox.checked = true;
+                });
+
+                const succeeded = bulkRows.filter(row =>
+                    row.dataset.state === 'success').length;
+                const retryable = bulkRows.filter(row =>
+                    row.dataset.state === 'retry').length;
+                const needsReload = bulkRows.filter(row =>
+                    row.dataset.state === 'reload').length;
+                if (bulkProgress) {
+                    bulkProgress.textContent =
+                        `Hoàn tất: ${succeeded} thành công`
+                        + (retryable ? ` · ${retryable} có thể thử lại` : '')
+                        + (needsReload ? ` · ${needsReload} cần tải lại` : '');
+                }
+                if (reloadButton)
+                    reloadButton.hidden = false;
+                updateBulkSelection();
+            });
+
+            updateBulkSelection();
+
+            if (bulkRows.length > 0
+                && bulkModalElement?.dataset.autoOpen === 'true'
+                && window.bootstrap?.Modal) {
+                requestAnimationFrame(() => {
+                    bootstrap.Modal.getOrCreateInstance(bulkModalElement).show();
+                });
+            }
         })();
     </script>
 }

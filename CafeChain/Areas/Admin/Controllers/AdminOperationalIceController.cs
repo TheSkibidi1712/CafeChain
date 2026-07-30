@@ -5,6 +5,7 @@ using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Results;
+using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.ViewModels.Admin.OperationalIce;
 using Microsoft.AspNetCore.Mvc;
@@ -20,19 +21,31 @@ public sealed class AdminOperationalIceController : AdminBaseController
     private readonly IAdminActorContextAccessor _actorAccessor;
     private readonly IAdminStoreScopeResolver _storeScopeResolver;
     private readonly IAdminPermissionService _permissionService;
+    private readonly IUnitConversionService _unitConversionService;
+    private readonly IOperationalIceReportService _reportService;
+    private readonly IOperationalIceReportPdfRenderer _reportPdfRenderer;
+    private readonly ILogger<AdminOperationalIceController> _logger;
 
     public AdminOperationalIceController(
         AppDbContext context,
         IOperationalIceService service,
         IAdminActorContextAccessor actorAccessor,
         IAdminStoreScopeResolver storeScopeResolver,
-        IAdminPermissionService permissionService)
+        IAdminPermissionService permissionService,
+        IUnitConversionService unitConversionService,
+        IOperationalIceReportService reportService,
+        IOperationalIceReportPdfRenderer reportPdfRenderer,
+        ILogger<AdminOperationalIceController> logger)
     {
         _context = context;
         _service = service;
         _actorAccessor = actorAccessor;
         _storeScopeResolver = storeScopeResolver;
         _permissionService = permissionService;
+        _unitConversionService = unitConversionService;
+        _reportService = reportService;
+        _reportPdfRenderer = reportPdfRenderer;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -49,12 +62,39 @@ public sealed class AdminOperationalIceController : AdminBaseController
         var selectedStoreId = scope.StoreId!.Value;
         if (!await HasPermissionAsync(OperationalIcePermissions.View, selectedStoreId))
             return Forbid();
+        var setupResult = await _service.GetPolicySetupAsync(selectedStoreId, cancellationToken);
+        var setup = setupResult.Data ?? new OperationalIcePolicySetupDto
+        {
+            StatusMessage = setupResult.Message
+        };
 
         var date = (businessDate ?? DateTime.Today).Date;
         var policy = await _context.IcePolicies.AsNoTracking()
             .Include(x => x.Ingredient)
             .Include(x => x.DisplayUnit)
             .SingleOrDefaultAsync(x => x.StoreId == selectedStoreId && x.Active, cancellationToken);
+        var displayToBaseFactor = 1m;
+        var displayUnitName = policy == null
+            ? "đơn vị tồn kho"
+            : DisplayUnitSymbol(policy.DisplayUnit.UnitCode);
+        var policyConversionValid = true;
+        if (policy != null)
+        {
+            var conversion = await _unitConversionService.ConvertAsync(
+                policy.IngredientId,
+                1m,
+                policy.DisplayUnitId);
+            if (conversion.IsSuccess && conversion.Data > 0)
+            {
+                displayToBaseFactor = conversion.Data;
+            }
+            else
+            {
+                policyConversionValid = false;
+                displayUnitName = "đơn vị tồn kho";
+                TempData["ErrorMessage"] = "Chính sách đá đang thiếu quy đổi đơn vị. Vui lòng cập nhật cấu hình trước khi cấp đá.";
+            }
+        }
         var shifts = await _context.OperationalShifts.AsNoTracking()
             .Where(x => x.StoreId == selectedStoreId && x.BusinessDate == date)
             .Where(x => string.IsNullOrWhiteSpace(status) || x.Status == status)
@@ -66,17 +106,55 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 ShiftName = x.Name,
                 StartAtUtc = x.StartAtUtc,
                 EndAtUtc = x.EndAtUtc,
-                SuggestedQuantity = policy == null ? 0 : policy.SuggestedShiftQuantity,
-                TotalIssuedQuantity = x.IceAllocations.Select(a => a.InitialIssuedQuantity + a.SupplementalIssuedQuantity).FirstOrDefault(),
-                TheoreticalUsageQuantity = x.IceAllocations.Select(a => a.TheoreticalUsageQuantity).FirstOrDefault(),
-                VarianceQuantity = x.IceAllocations.Select(a => a.VarianceQuantity).FirstOrDefault(),
-                Status = x.Status
+                SuggestedQuantity = policy == null ? 0 : policy.SuggestedShiftQuantity / displayToBaseFactor,
+                TotalIssuedQuantity = x.IceAllocations.Select(a => (a.InitialIssuedQuantity + a.SupplementalIssuedQuantity) / displayToBaseFactor).FirstOrDefault(),
+                TheoreticalUsageQuantity = x.IceAllocations.Select(a => a.TheoreticalUsageQuantity / displayToBaseFactor).FirstOrDefault(),
+                VarianceQuantity = x.IceAllocations.Select(a => a.VarianceQuantity / displayToBaseFactor).FirstOrDefault(),
+                Status = x.Status,
+                HasShiftLead = x.ShiftLeadId.HasValue,
+                CreationSource = x.CreationSource,
+                LinkedWorkShiftCount = x.WorkShiftLinks.Count
             })
             .ToListAsync(cancellationToken);
 
         var canManage = await HasPermissionAsync(OperationalIcePermissions.Manage, selectedStoreId);
         var canApprove = await HasPermissionAsync(OperationalIcePermissions.Approve, selectedStoreId);
         var canPolicy = await HasPermissionAsync(OperationalIcePermissions.Policy, selectedStoreId);
+        if (canManage && shifts.Count > 0)
+        {
+            var reviews = await _service.GetScheduleReviewsAsync(
+                selectedStoreId,
+                date,
+                _actorAccessor.Get(User),
+                cancellationToken);
+            if (reviews.IsSuccess)
+            {
+                var reviewRows = reviews.Data ?? [];
+                var reviewByShiftId = reviewRows
+                    .ToDictionary(x => x.OperationalShiftId);
+                var leadIds = reviewRows
+                    .SelectMany(x => new[] { x.SavedShiftLeadId, x.CurrentShiftLeadId })
+                    .Where(x => x.HasValue)
+                    .Select(x => x!.Value)
+                    .Distinct()
+                    .ToArray();
+                var leadNames = await _context.Staffs.AsNoTracking()
+                    .Where(x => leadIds.Contains(x.StaffId))
+                    .ToDictionaryAsync(x => x.StaffId, x => x.FullName, cancellationToken);
+                foreach (var row in shifts)
+                {
+                    if (!reviewByShiftId.TryGetValue(row.OperationalShiftId, out var review))
+                        continue;
+                    row.ScheduleReview = MapScheduleReview(review, leadNames);
+                }
+            }
+            else
+            {
+                TempData["ErrorMessage"] = string.IsNullOrWhiteSpace(reviews.Message)
+                    ? "Không thể kiểm tra thay đổi lịch làm việc. Vui lòng tải lại."
+                    : reviews.Message;
+            }
+        }
         SetStoreScopeViewData(scope);
         return View(new OperationalIceIndexVM
         {
@@ -91,26 +169,41 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 IngredientId = policy.IngredientId,
                 DisplayUnitId = policy.DisplayUnitId,
                 IngredientName = policy.Ingredient.Name,
-                UnitName = policy.DisplayUnit.Name,
-                SuggestedDailyQuantity = policy.SuggestedDailyQuantity,
-                SuggestedShiftQuantity = policy.SuggestedShiftQuantity,
+                UnitName = displayUnitName,
+                SuggestedDailyQuantity = policy.SuggestedDailyQuantity / displayToBaseFactor,
+                SuggestedShiftQuantity = policy.SuggestedShiftQuantity / displayToBaseFactor,
                 AllowSupplementalIssue = policy.AllowSupplementalIssue,
                 AllowSameDayCarryOver = policy.AllowSameDayCarryOver,
                 RequireVarianceApproval = policy.RequireVarianceApproval,
-                VarianceApprovalQuantityThreshold = policy.VarianceApprovalQuantityThreshold,
+                VarianceApprovalQuantityThreshold = policy.VarianceApprovalQuantityThreshold / displayToBaseFactor,
                 VarianceApprovalPercentThreshold = policy.VarianceApprovalPercentThreshold
             },
-            Ingredients = canPolicy ? await _context.Ingredients.AsNoTracking()
-                .Where(x => x.Active)
-                .OrderBy(x => x.Name)
-                .Select(x => new OperationalIceOptionVM { Id = x.IngredientId, Label = x.Code + " · " + x.Name })
-                .ToListAsync(cancellationToken) : [],
-            Units = canPolicy ? await _context.Units.AsNoTracking()
-                .Where(x => x.Active)
-                .OrderBy(x => x.Name)
-                .Select(x => new OperationalIceOptionVM { Id = x.UnitId, Label = x.Name })
-                .ToListAsync(cancellationToken) : [],
+            Ingredients = canPolicy ? setup.Ingredients.Select(x => new OperationalIceOptionVM
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Label = x.Label
+            }).ToList() : [],
+            Units = canPolicy ? setup.Units.Select(x => new OperationalIceOptionVM
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Label = x.Label
+            }).ToList() : [],
             ShiftLeads = canManage ? await GetShiftLeadOptionsAsync(selectedStoreId, cancellationToken) : [],
+            Inventory = setup.Inventory == null ? null : new OperationalIceInventoryVM
+            {
+                PhysicalQuantity = setup.Inventory.PhysicalQuantity / displayToBaseFactor,
+                ReservedQuantity = setup.Inventory.ReservedQuantity / displayToBaseFactor,
+                AvailableQuantity = setup.Inventory.AvailableQuantity / displayToBaseFactor,
+                AvailableAfterSuggestedShiftQuantity = (setup.Inventory.AvailableQuantity
+                    - (policy?.SuggestedShiftQuantity ?? 0)) / displayToBaseFactor,
+                UnitName = displayUnitName
+            },
+            HasValidPolicy = setup.IsValid && policyConversionValid,
+            PolicyStatusMessage = policyConversionValid
+                ? setup.StatusMessage
+                : "Chính sách đá thiếu quy đổi đơn vị hợp lệ.",
             CanManage = canManage,
             CanApprove = canApprove,
             CanConfigurePolicy = canPolicy
@@ -118,6 +211,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     }
 
     [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> Details(int id, CancellationToken cancellationToken = default)
     {
         var allocation = await _context.IceAllocations.AsNoTracking()
@@ -147,20 +241,45 @@ public sealed class AdminOperationalIceController : AdminBaseController
             return Forbid();
         var canManage = await HasPermissionAsync(OperationalIcePermissions.Manage, allocation.OperationalShift.StoreId);
         var canApprove = await HasPermissionAsync(OperationalIcePermissions.Approve, allocation.OperationalShift.StoreId);
+        var displayToBaseFactorResult = await _unitConversionService.ConvertAsync(
+            allocation.IngredientId,
+            1m,
+            allocation.IcePolicy.DisplayUnitId);
+        var detailDisplayToBaseFactor = displayToBaseFactorResult.IsSuccess && displayToBaseFactorResult.Data > 0
+            ? displayToBaseFactorResult.Data
+            : 1m;
+        var detailUnitName = displayToBaseFactorResult.IsSuccess
+            ? DisplayUnitSymbol(allocation.IcePolicy.DisplayUnit.UnitCode)
+            : "đơn vị tồn kho";
+        if (!displayToBaseFactorResult.IsSuccess)
+            TempData["ErrorMessage"] = "Không thể quy đổi đơn vị đá. Dữ liệu đang hiển thị theo đơn vị tồn kho.";
 
-        var linkedIds = allocation.OperationalShift.WorkShiftLinks.Select(x => x.WorkShiftId).ToArray();
-        var availableWorkShifts = canManage ? await _context.WorkShifts.AsNoTracking()
-            .Where(x => x.StoreId == allocation.OperationalShift.StoreId
-                        && !linkedIds.Contains(x.ShiftId)
-                        && !_context.OperationalShiftWorkShifts.Any(link => link.WorkShiftId == x.ShiftId))
-            .OrderByDescending(x => x.StartTime)
-            .Take(30)
+        IReadOnlyList<OperationalIceWorkShiftSuggestionDto> availableWorkShiftRows = [];
+        if (canManage)
+        {
+            var suggestionResult = await _service.GetWorkShiftSuggestionsAsync(
+                allocation.OperationalShiftId,
+                actor,
+                cancellationToken);
+            if (suggestionResult.IsSuccess)
+            {
+                availableWorkShiftRows = suggestionResult.Data ?? [];
+            }
+            else
+            {
+                TempData["ErrorMessage"] = string.IsNullOrWhiteSpace(suggestionResult.Message)
+                    ? "Không thể tải danh sách ca POS phù hợp. Vui lòng tải lại."
+                    : suggestionResult.Message;
+            }
+        }
+        var availableWorkShifts = availableWorkShiftRows
             .Select(x => new OperationalIceOptionVM
             {
-                Id = x.ShiftId,
-                Label = "POS #" + x.ShiftId + " · " + x.User.FullName + " · " + x.Status
+                Id = x.WorkShiftId,
+                Label = $"POS #{x.WorkShiftId} · {x.StaffName} · {x.StartTime:dd/MM/yyyy HH:mm}"
+                        + (x.EndTime.HasValue ? $"–{x.EndTime:HH:mm}" : "–Đang mở")
             })
-            .ToListAsync(cancellationToken) : [];
+            .ToList();
         var carryTargets = canManage ? await _context.IceAllocations.AsNoTracking()
             .Where(x => x.IceAllocationId != allocation.IceAllocationId
                         && x.OperationalShift.StoreId == allocation.OperationalShift.StoreId
@@ -184,22 +303,23 @@ public sealed class AdminOperationalIceController : AdminBaseController
             EndAtUtc = allocation.OperationalShift.EndAtUtc,
             Status = allocation.Status,
             IngredientName = allocation.Ingredient.Name,
-            UnitName = allocation.IcePolicy.DisplayUnit.Name,
-            AvailableQuantity = allocation.StoreInventory.AvailableQty - allocation.StoreInventory.ReservedQty,
-            ReservedStoreQuantity = allocation.StoreInventory.ReservedQty,
-            ReservedOutstandingQuantity = allocation.ReservedOutstandingQuantity,
-            OpeningCarryQuantity = allocation.OpeningCarryQuantity,
-            InitialIssuedQuantity = allocation.InitialIssuedQuantity,
-            SupplementalIssuedQuantity = allocation.SupplementalIssuedQuantity,
-            ReturnedQuantity = allocation.ReturnedQuantity,
-            ClosingCarryQuantity = allocation.ClosingCarryQuantity,
-            TheoreticalUsageQuantity = allocation.TheoreticalUsageQuantity,
-            ActualUsageQuantity = allocation.ActualUsageQuantity,
-            VarianceQuantity = allocation.VarianceQuantity,
+            UnitName = detailUnitName,
+            PhysicalQuantity = allocation.StoreInventory.AvailableQty / detailDisplayToBaseFactor,
+            AvailableQuantity = (allocation.StoreInventory.AvailableQty - allocation.StoreInventory.ReservedQty) / detailDisplayToBaseFactor,
+            ReservedStoreQuantity = allocation.StoreInventory.ReservedQty / detailDisplayToBaseFactor,
+            ReservedOutstandingQuantity = allocation.ReservedOutstandingQuantity / detailDisplayToBaseFactor,
+            OpeningCarryQuantity = allocation.OpeningCarryQuantity / detailDisplayToBaseFactor,
+            InitialIssuedQuantity = allocation.InitialIssuedQuantity / detailDisplayToBaseFactor,
+            SupplementalIssuedQuantity = allocation.SupplementalIssuedQuantity / detailDisplayToBaseFactor,
+            ReturnedQuantity = allocation.ReturnedQuantity / detailDisplayToBaseFactor,
+            ClosingCarryQuantity = allocation.ClosingCarryQuantity / detailDisplayToBaseFactor,
+            TheoreticalUsageQuantity = allocation.TheoreticalUsageQuantity / detailDisplayToBaseFactor,
+            ActualUsageQuantity = allocation.ActualUsageQuantity / detailDisplayToBaseFactor,
+            VarianceQuantity = allocation.VarianceQuantity / detailDisplayToBaseFactor,
             CloseReason = allocation.CloseReason,
             ReconciliationReason = allocation.ReconciliationReason,
             CostSnapshotStatus = allocation.CostSnapshotStatus,
-            UnitCostSnapshot = allocation.UnitCostSnapshot,
+            UnitCostSnapshot = allocation.UnitCostSnapshot * detailDisplayToBaseFactor,
             WorkShifts = allocation.OperationalShift.WorkShiftLinks.OrderBy(x => x.WorkShift.StartTime)
                 .Select(x => new OperationalIceWorkShiftVM
                 {
@@ -213,7 +333,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 .Select(x => new OperationalIceSupplementVM
                 {
                     PublicId = x.PublicId,
-                    Quantity = x.Quantity,
+                    Quantity = x.Quantity / detailDisplayToBaseFactor,
                     Reason = x.Reason,
                     Status = x.Status,
                     RequestedBy = x.RequestedByStaff.FullName,
@@ -224,7 +344,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
                     PublicId = x.PublicId,
                     Direction = "Giao",
                     OtherShiftName = x.ToOperationalShift.Name,
-                    Quantity = x.Quantity,
+                    Quantity = x.Quantity / detailDisplayToBaseFactor,
                     Status = x.Status,
                     HandedOverBy = x.HandedOverByStaff.FullName,
                     ReceivedBy = x.ReceivedByStaff == null ? null : x.ReceivedByStaff.FullName,
@@ -235,7 +355,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
                     PublicId = x.PublicId,
                     Direction = "Nhận",
                     OtherShiftName = x.FromOperationalShift.Name,
-                    Quantity = x.Quantity,
+                    Quantity = x.Quantity / detailDisplayToBaseFactor,
                     Status = x.Status,
                     HandedOverBy = x.HandedOverByStaff.FullName,
                     ReceivedBy = x.ReceivedByStaff == null ? null : x.ReceivedByStaff.FullName,
@@ -247,8 +367,8 @@ public sealed class AdminOperationalIceController : AdminBaseController
                     IceInventoryPostingId = x.IceInventoryPostingId,
                     PostingType = x.PostingType,
                     IdempotencyKey = x.IdempotencyKey,
-                    Quantity = x.Quantity,
-                    UnitCost = x.UnitCost,
+                    Quantity = x.Quantity / detailDisplayToBaseFactor,
+                    UnitCost = x.UnitCost * detailDisplayToBaseFactor,
                     TotalCost = x.TotalCost,
                     InventoryTransactionId = x.InventoryTransactionId,
                     ApprovedBy = x.ApprovedByStaff.FullName,
@@ -267,12 +387,68 @@ public sealed class AdminOperationalIceController : AdminBaseController
         });
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Report(int id, CancellationToken cancellationToken = default)
+    {
+        var storeId = await StoreIdForAllocationAsync(id, cancellationToken);
+        if (storeId == 0)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.View, storeId))
+            return Forbid();
+
+        var result = await _reportService.BuildAsync(id, cancellationToken);
+        if (!result.IsSuccess || result.Data == null)
+        {
+            TempData["ErrorMessage"] = result.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        return View(result.Data);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadReport(int id, CancellationToken cancellationToken = default)
+    {
+        var storeId = await StoreIdForAllocationAsync(id, cancellationToken);
+        if (storeId == 0)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.View, storeId))
+            return Forbid();
+
+        var result = await _reportService.BuildAsync(id, cancellationToken);
+        if (!result.IsSuccess || result.Data == null)
+        {
+            TempData["ErrorMessage"] = result.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var content = _reportPdfRenderer.Render(result.Data, DateTime.UtcNow);
+        var fileName = $"bao-cao-da-{result.Data.BusinessDate:yyyyMMdd}-ca-{result.Data.OperationalShiftId}.pdf";
+        return File(content, "application/pdf", fileName);
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SavePolicy(SaveIcePolicyRequest request, CancellationToken cancellationToken)
     {
         if (!await HasPermissionAsync(OperationalIcePermissions.Policy, request.StoreId))
             return Forbid();
-        return RedirectWithResult(await _service.SavePolicyAsync(request, _actorAccessor.Get(User), cancellationToken), nameof(Index), new { storeId = request.StoreId });
+        var factor = await _unitConversionService.ConvertAsync(request.IngredientId, 1m, request.DisplayUnitId);
+        if (!factor.IsSuccess || factor.Data <= 0)
+            return RedirectConversionFailure(factor, nameof(Index), new { storeId = request.StoreId });
+        var normalized = new SaveIcePolicyRequest
+        {
+            StoreId = request.StoreId,
+            IngredientId = request.IngredientId,
+            DisplayUnitId = request.DisplayUnitId,
+            SuggestedDailyQuantity = request.SuggestedDailyQuantity * factor.Data,
+            SuggestedShiftQuantity = request.SuggestedShiftQuantity * factor.Data,
+            AllowSupplementalIssue = request.AllowSupplementalIssue,
+            AllowSameDayCarryOver = request.AllowSameDayCarryOver,
+            RequireVarianceApproval = request.RequireVarianceApproval,
+            VarianceApprovalQuantityThreshold = request.VarianceApprovalQuantityThreshold * factor.Data,
+            VarianceApprovalPercentThreshold = request.VarianceApprovalPercentThreshold
+        };
+        return RedirectWithResult(await _service.SavePolicyAsync(normalized, _actorAccessor.Get(User), cancellationToken), nameof(Index), new { storeId = request.StoreId });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -287,7 +463,9 @@ public sealed class AdminOperationalIceController : AdminBaseController
             Name = request.Name,
             StartAtUtc = NormalizeLocalToUtc(request.StartAtUtc),
             EndAtUtc = NormalizeLocalToUtc(request.EndAtUtc),
-            ShiftLeadId = request.ShiftLeadId
+            ShiftLeadId = request.ShiftLeadId,
+            CreationSource = request.CreationSource,
+            SourceScheduleShiftId = request.SourceScheduleShiftId
         };
         return RedirectWithResult(await _service.CreateShiftAsync(normalized, _actorAccessor.Get(User), cancellationToken), nameof(Index), new { storeId = request.StoreId, businessDate = request.BusinessDate.ToString("yyyy-MM-dd") });
     }
@@ -295,13 +473,25 @@ public sealed class AdminOperationalIceController : AdminBaseController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> OpenAllocation(OpenIceAllocationRequest request, CancellationToken cancellationToken)
     {
-        var storeId = await StoreIdForShiftAsync(request.OperationalShiftId, cancellationToken);
-        if (storeId == 0) return NotFound();
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, storeId)) return Forbid();
-        var result = await _service.OpenAllocationAsync(request, _actorAccessor.Get(User), cancellationToken);
+        var unitContext = await UnitContextForShiftAsync(request.OperationalShiftId, cancellationToken);
+        if (unitContext == null) return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, unitContext.StoreId)) return Forbid();
+        var converted = await _unitConversionService.ConvertAsync(
+            unitContext.IngredientId,
+            request.InitialIssuedQuantity,
+            unitContext.DisplayUnitId);
+        if (!converted.IsSuccess)
+            return RedirectConversionFailure(converted, nameof(Index), new { storeId = unitContext.StoreId });
+        var normalized = new OpenIceAllocationRequest
+        {
+            OperationalShiftId = request.OperationalShiftId,
+            InitialIssuedQuantity = converted.Data,
+            WorkShiftIds = request.WorkShiftIds
+        };
+        var result = await _service.OpenAllocationAsync(normalized, _actorAccessor.Get(User), cancellationToken);
         if (result.IsSuccess && result.Data != null)
             return RedirectWithResult(result, nameof(Details), new { id = result.Data.IceAllocationId });
-        return RedirectWithResult(result, nameof(Index), new { storeId });
+        return RedirectWithResult(result, nameof(Index), new { storeId = unitContext.StoreId });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -313,9 +503,191 @@ public sealed class AdminOperationalIceController : AdminBaseController
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> RequestSupplemental(RequestSupplementalIceRequest request, CancellationToken cancellationToken) =>
-        await RunAllocationActionAsync(request.IceAllocationId, OperationalIcePermissions.Manage,
-            () => _service.RequestSupplementalAsync(request, _actorAccessor.Get(User), cancellationToken));
+    public async Task<IActionResult> SyncSchedule(
+        SyncOperationalShiftScheduleRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var shiftScope = await _context.OperationalShifts.AsNoTracking()
+            .Where(x => x.OperationalShiftId == request.OperationalShiftId)
+            .Select(x => new { x.StoreId, x.BusinessDate })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (shiftScope == null)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+            return Forbid();
+
+        return RedirectWithResult(
+            await _service.SyncDraftWithScheduleAsync(
+                request,
+                _actorAccessor.Get(User),
+                cancellationToken),
+            nameof(Index),
+            new { storeId = shiftScope.StoreId, businessDate = shiftScope.BusinessDate });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConvertToManual(
+        ConvertOperationalShiftToManualRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var shiftScope = await ShiftScopeAsync(request.OperationalShiftId, cancellationToken);
+        if (shiftScope == null)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+            return Forbid();
+
+        return RedirectWithResult(
+            await _service.ConvertDraftToManualAsync(
+                request,
+                _actorAccessor.Get(User),
+                cancellationToken),
+            nameof(Index),
+            new { storeId = shiftScope.StoreId, businessDate = shiftScope.BusinessDate });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateShiftLead(
+        UpdateOperationalShiftLeadRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var shiftScope = await ShiftScopeAsync(request.OperationalShiftId, cancellationToken);
+        if (shiftScope == null)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+            return Forbid();
+
+        return RedirectWithResult(
+            await _service.UpdateDraftShiftLeadAsync(
+                request,
+                _actorAccessor.Get(User),
+                cancellationToken),
+            nameof(Index),
+            new { storeId = shiftScope.StoreId, businessDate = shiftScope.BusinessDate });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelDraftShift(
+        CancelDraftOperationalShiftRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var shiftScope = await ShiftScopeAsync(request.OperationalShiftId, cancellationToken);
+        if (shiftScope == null)
+            return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+            return Forbid();
+
+        return RedirectWithResult(
+            await _service.CancelDraftShiftAsync(
+                request,
+                _actorAccessor.Get(User),
+                cancellationToken),
+            nameof(Index),
+            new { storeId = shiftScope.StoreId, businessDate = shiftScope.BusinessDate });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ScheduleOptions(
+        int storeId,
+        DateTime businessDate,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = _actorAccessor.Get(User);
+        var scope = await _storeScopeResolver.ResolveAsync(actor, storeId, cancellationToken);
+        if (!scope.IsResolved || scope.StoreId != storeId)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                success = false,
+                message = "Bạn không có quyền xem lịch làm việc của chi nhánh này."
+            });
+        }
+
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, storeId))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                success = false,
+                message = "Bạn không có quyền tạo ca vận hành tại chi nhánh này."
+            });
+        }
+
+        try
+        {
+            var result = await _service.GetScheduleOptionsAsync(
+                storeId,
+                businessDate.Date,
+                actor,
+                cancellationToken);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = string.IsNullOrWhiteSpace(result.Message)
+                        ? "Không thể tải lịch làm việc. Vui lòng thử lại."
+                        : result.Message
+                });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                data = MapScheduleOptions(result.Data ?? [])
+            });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                exception,
+                "Cannot load operational ice schedule options for StoreId={StoreId}, BusinessDate={BusinessDate}",
+                storeId,
+                businessDate.Date);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                success = false,
+                message = "Không thể tải lịch làm việc. Vui lòng thử lại."
+            });
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> LinkWorkShifts(LinkOperationalWorkShiftsRequest request, int allocationId, CancellationToken cancellationToken)
+    {
+        var storeId = await StoreIdForShiftAsync(request.OperationalShiftId, cancellationToken);
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, storeId)) return Forbid();
+        return RedirectWithResult(
+            await _service.LinkWorkShiftsAsync(request, _actorAccessor.Get(User), cancellationToken),
+            nameof(Details),
+            new { id = allocationId });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RequestSupplemental(RequestSupplementalIceRequest request, CancellationToken cancellationToken)
+    {
+        var unitContext = await UnitContextForAllocationAsync(request.IceAllocationId, cancellationToken);
+        if (unitContext == null) return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, unitContext.StoreId)) return Forbid();
+        var converted = await _unitConversionService.ConvertAsync(
+            unitContext.IngredientId,
+            request.Quantity,
+            unitContext.DisplayUnitId);
+        if (!converted.IsSuccess)
+            return RedirectConversionFailure(converted, nameof(Details), new { id = request.IceAllocationId });
+        var normalized = new RequestSupplementalIceRequest
+        {
+            IceAllocationId = request.IceAllocationId,
+            Quantity = converted.Data,
+            Reason = request.Reason
+        };
+        return RedirectWithResult(
+            await _service.RequestSupplementalAsync(normalized, _actorAccessor.Get(User), cancellationToken),
+            nameof(Details),
+            new { id = request.IceAllocationId });
+    }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> DecideSupplemental(DecideSupplementalIceRequest request, int allocationId, CancellationToken cancellationToken) =>
@@ -323,14 +695,55 @@ public sealed class AdminOperationalIceController : AdminBaseController
             () => _service.DecideSupplementalAsync(request, _actorAccessor.Get(User), cancellationToken));
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> ConfirmCarryOver(ConfirmIceCarryOverRequest request, CancellationToken cancellationToken) =>
-        await RunAllocationActionAsync(request.FromIceAllocationId, OperationalIcePermissions.Manage,
-            () => _service.ConfirmCarryOverAsync(request, _actorAccessor.Get(User), cancellationToken));
+    public async Task<IActionResult> ConfirmCarryOver(ConfirmIceCarryOverRequest request, CancellationToken cancellationToken)
+    {
+        var unitContext = await UnitContextForAllocationAsync(request.FromIceAllocationId, cancellationToken);
+        if (unitContext == null) return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, unitContext.StoreId)) return Forbid();
+        var converted = await _unitConversionService.ConvertAsync(
+            unitContext.IngredientId,
+            request.Quantity,
+            unitContext.DisplayUnitId);
+        if (!converted.IsSuccess)
+            return RedirectConversionFailure(converted, nameof(Details), new { id = request.FromIceAllocationId });
+        var normalized = new ConfirmIceCarryOverRequest
+        {
+            FromIceAllocationId = request.FromIceAllocationId,
+            ToIceAllocationId = request.ToIceAllocationId,
+            Quantity = converted.Data,
+            ReceivedByStaffId = request.ReceivedByStaffId
+        };
+        return RedirectWithResult(
+            await _service.ConfirmCarryOverAsync(normalized, _actorAccessor.Get(User), cancellationToken),
+            nameof(Details),
+            new { id = request.FromIceAllocationId });
+    }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> CloseAllocation(CloseIceAllocationRequest request, CancellationToken cancellationToken) =>
-        await RunAllocationActionAsync(request.IceAllocationId, OperationalIcePermissions.Manage,
-            () => _service.CloseAllocationAsync(request, _actorAccessor.Get(User), cancellationToken));
+    public async Task<IActionResult> CloseAllocation(CloseIceAllocationRequest request, CancellationToken cancellationToken)
+    {
+        var unitContext = await UnitContextForAllocationAsync(request.IceAllocationId, cancellationToken);
+        if (unitContext == null) return NotFound();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, unitContext.StoreId)) return Forbid();
+        var converted = await _unitConversionService.ConvertAsync(
+            unitContext.IngredientId,
+            request.ReturnedQuantity,
+            unitContext.DisplayUnitId);
+        if (!converted.IsSuccess)
+            return RedirectConversionFailure(converted, nameof(Details), new { id = request.IceAllocationId });
+        var normalized = new CloseIceAllocationRequest
+        {
+            IceAllocationId = request.IceAllocationId,
+            ReturnedQuantity = converted.Data,
+            ReturnCondition = request.ReturnCondition,
+            ReturnReceivedByStaffId = request.ReturnReceivedByStaffId,
+            CloseReason = request.CloseReason
+        };
+        return RedirectWithResult(
+            await _service.CloseAllocationAsync(normalized, _actorAccessor.Get(User), cancellationToken),
+            nameof(Details),
+            new { id = request.IceAllocationId });
+    }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveVariance(ApproveIceVarianceRequest request, CancellationToken cancellationToken) =>
@@ -375,6 +788,14 @@ public sealed class AdminOperationalIceController : AdminBaseController
         return RedirectToAction(action, routeValues);
     }
 
+    private IActionResult RedirectConversionFailure(ServiceResult<decimal> result, string action, object routeValues)
+    {
+        TempData["ErrorMessage"] = result.IsSuccess
+            ? "Số lượng đá không hợp lệ."
+            : "Không thể quy đổi đơn vị đá. Vui lòng kiểm tra cấu hình kg và g.";
+        return RedirectToAction(action, routeValues);
+    }
+
     private async Task<bool> HasPermissionAsync(string permissionCode, int storeId)
     {
         var accountId = GetAccountId();
@@ -395,9 +816,50 @@ public sealed class AdminOperationalIceController : AdminBaseController
         _context.OperationalShifts.AsNoTracking().Where(x => x.OperationalShiftId == shiftId)
             .Select(x => x.StoreId).SingleOrDefaultAsync(cancellationToken);
 
+    private Task<OperationalShiftScope?> ShiftScopeAsync(
+        int shiftId,
+        CancellationToken cancellationToken) =>
+        _context.OperationalShifts.AsNoTracking()
+            .Where(x => x.OperationalShiftId == shiftId)
+            .Select(x => new OperationalShiftScope(x.StoreId, x.BusinessDate))
+            .SingleOrDefaultAsync(cancellationToken);
+
     private Task<int> StoreIdForAllocationAsync(int allocationId, CancellationToken cancellationToken) =>
         _context.IceAllocations.AsNoTracking().Where(x => x.IceAllocationId == allocationId)
             .Select(x => x.OperationalShift.StoreId).SingleOrDefaultAsync(cancellationToken);
+
+    private async Task<IceUnitContext?> UnitContextForShiftAsync(int shiftId, CancellationToken cancellationToken)
+    {
+        var storeId = await _context.OperationalShifts.AsNoTracking()
+            .Where(x => x.OperationalShiftId == shiftId)
+            .Select(x => x.StoreId)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (storeId <= 0)
+            return null;
+        var policy = await _context.IcePolicies.AsNoTracking()
+            .Where(x => x.StoreId == storeId && x.Active)
+            .Select(x => new { x.IngredientId, x.DisplayUnitId })
+            .SingleOrDefaultAsync(cancellationToken);
+        return policy == null
+            ? null
+            : new IceUnitContext(storeId, policy.IngredientId, policy.DisplayUnitId);
+    }
+
+    private async Task<IceUnitContext?> UnitContextForAllocationAsync(int allocationId, CancellationToken cancellationToken)
+    {
+        var data = await _context.IceAllocations.AsNoTracking()
+            .Where(x => x.IceAllocationId == allocationId)
+            .Select(x => new
+            {
+                x.OperationalShift.StoreId,
+                x.IngredientId,
+                x.IcePolicy.DisplayUnitId
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+        return data == null
+            ? null
+            : new IceUnitContext(data.StoreId, data.IngredientId, data.DisplayUnitId);
+    }
 
     private async Task<IReadOnlyList<OperationalIceOptionVM>> GetShiftLeadOptionsAsync(int storeId, CancellationToken cancellationToken) =>
         await _context.Staffs.AsNoTracking()
@@ -408,6 +870,67 @@ public sealed class AdminOperationalIceController : AdminBaseController
             .Select(x => new OperationalIceOptionVM { Id = x.StaffId, Label = x.FullName })
             .ToListAsync(cancellationToken);
 
+    private static IReadOnlyList<OperationalIceScheduleOptionVM> MapScheduleOptions(
+        IReadOnlyList<OperationalIceScheduleOptionDto> options) =>
+        options.Select(option =>
+        {
+            var startLocal = option.StartAtUtc.ToLocalTime();
+            var endLocal = option.EndAtUtc.ToLocalTime();
+            return new OperationalIceScheduleOptionVM
+            {
+                ScheduleShiftId = option.ScheduleShiftId,
+                Name = option.Name,
+                Label = $"{option.Name} · {startLocal:HH:mm}–{endLocal:HH:mm} · {option.StaffCount} nhân viên",
+                StartLocalValue = startLocal.ToString("yyyy-MM-ddTHH:mm"),
+                EndLocalValue = endLocal.ToString("yyyy-MM-ddTHH:mm"),
+                StaffCount = option.StaffCount,
+                SuggestedShiftLeadId = option.SuggestedShiftLeadId
+            };
+        }).ToList();
+
+    private static OperationalIceScheduleReviewVM MapScheduleReview(
+        OperationalIceScheduleReviewDto review,
+        IReadOnlyDictionary<int, string> leadNames)
+    {
+        static string LeadName(int? staffId, IReadOnlyDictionary<int, string> names) =>
+            staffId.HasValue && names.TryGetValue(staffId.Value, out var name)
+                ? name
+                : "Chưa xác định";
+
+        var savedStart = review.SavedStartAtUtc.ToLocalTime();
+        var savedEnd = review.SavedEndAtUtc.ToLocalTime();
+        var currentLabel = review.IsScheduleAvailable
+                           && review.CurrentStartAtUtc.HasValue
+                           && review.CurrentEndAtUtc.HasValue
+            ? $"{review.CurrentName} · {review.CurrentStartAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
+              + $"–{review.CurrentEndAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
+            : "Lịch nguồn không còn hoạt động";
+        return new OperationalIceScheduleReviewVM
+        {
+            IsScheduleAvailable = review.IsScheduleAvailable,
+            HasChanges = review.HasChanges,
+            CanSync = review.CanSync,
+            HasCancelledAssignments = review.HasCancelledAssignments,
+            RequiresLeadReplacement = review.RequiresLeadReplacement,
+            BlocksOpening = review.BlocksOpening,
+            SavedLabel = $"{review.SavedName} · {savedStart:dd/MM/yyyy HH:mm}–{savedEnd:dd/MM/yyyy HH:mm}",
+            CurrentLabel = currentLabel,
+            SavedLeadName = LeadName(review.SavedShiftLeadId, leadNames),
+            CurrentLeadName = LeadName(review.CurrentShiftLeadId, leadNames),
+            StaffCount = review.StaffCount,
+            CancelledStaffCount = review.CancelledStaffCount
+        };
+    }
+
     private static DateTime NormalizeLocalToUtc(DateTime value) =>
         value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime();
+
+    private static string DisplayUnitSymbol(string? unitCode)
+    {
+        var normalized = PhysicalUnitConversionRegistry.NormalizeUnitCode(unitCode);
+        return string.IsNullOrWhiteSpace(normalized) ? "đơn vị tồn kho" : normalized;
+    }
+
+    private sealed record IceUnitContext(int StoreId, int IngredientId, int DisplayUnitId);
+    private sealed record OperationalShiftScope(int StoreId, DateTime BusinessDate);
 }

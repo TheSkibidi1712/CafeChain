@@ -16,7 +16,7 @@ namespace CafeChain.Application.Interfaces.Admin.UnitConversions
 
         Task<ServiceResult> UpdateAsync(AdminUnitConversionEvaluateRequest request);
 
-        Task<ServiceResult> DeleteAsync(int unitConversionId);
+        Task<ServiceResult> SetActiveAsync(int unitConversionId, bool active);
 
         Task<AdminUnitConversionEvaluateRequest?> GetForEditAsync(int unitConversionId);
 

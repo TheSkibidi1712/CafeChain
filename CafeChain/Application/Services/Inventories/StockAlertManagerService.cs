@@ -321,7 +321,8 @@ namespace CafeChain.Application.Services.Inventories
                 .FirstOrDefaultAsync();
             if (staff == null)
                 return false;
-            if (staff.Roles.Contains(RoleConstants.BusinessOwner))
+            if (staff.Roles.Contains(RoleConstants.SystemAdmin)
+                || staff.Roles.Contains(RoleConstants.BusinessOwner))
                 return true;
             if (staff.Roles.Contains(RoleConstants.AreaManager))
                 return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);

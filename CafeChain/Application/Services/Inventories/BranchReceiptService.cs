@@ -2173,6 +2173,9 @@ namespace CafeChain.Application.Services.Inventories
             IReadOnlyCollection<string> roleNames,
             bool mutation)
         {
+            if (roleNames.Contains(RoleConstants.SystemAdmin))
+                return ServiceResult.Success();
+
             if (roleNames.Contains(RoleConstants.BusinessOwner))
                 return ServiceResult.Success();
 
@@ -2216,7 +2219,8 @@ namespace CafeChain.Application.Services.Inventories
         }
 
         private static bool CanCreateOrConfirmReceipt(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.BusinessOwner)
+            roles.Contains(RoleConstants.SystemAdmin)
+            || roles.Contains(RoleConstants.BusinessOwner)
             || roles.Contains(RoleConstants.StoreManager)
             || roles.Contains(RoleConstants.ShiftSupervisor);
 

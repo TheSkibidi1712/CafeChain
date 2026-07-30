@@ -1,0 +1,517 @@
+@model CafeChain.ViewModels.Admin.OperationalIce.OperationalIceDetailVM
+@using CafeChain.Application.Constants
+@using System.Globalization
+@{
+    ViewData["Title"] = $"Ca đá {Model.ShiftName}";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    var statusLabels = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        [OperationalIceStatuses.Open] = "Đang vận hành",
+        [OperationalIceStatuses.PendingApproval] = "Chờ duyệt chênh lệch",
+        [OperationalIceStatuses.ReconciliationRequired] = "Cần đối soát",
+        [OperationalIceStatuses.Closed] = "Đã đóng",
+        [OperationalIceStatuses.Cancelled] = "Đã hủy"
+    };
+    var statusClasses = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        [OperationalIceStatuses.Open] = "ice-badge-success",
+        [OperationalIceStatuses.PendingApproval] = "ice-badge-warning",
+        [OperationalIceStatuses.ReconciliationRequired] = "ice-badge-danger",
+        [OperationalIceStatuses.Closed] = "ice-badge-closed",
+        [OperationalIceStatuses.Cancelled] = "ice-badge-neutral"
+    };
+    string StatusLabel(string value) => statusLabels.TryGetValue(value, out var label) ? label : value;
+    string StatusClass(string value) => statusClasses.TryGetValue(value, out var css) ? css : "ice-badge-neutral";
+    string SupplementLabel(string value) => value switch
+    {
+        IceSupplementalIssueStatuses.Pending => "Chờ duyệt",
+        IceSupplementalIssueStatuses.Approved => "Đã duyệt",
+        IceSupplementalIssueStatuses.Rejected => "Từ chối",
+        IceSupplementalIssueStatuses.Cancelled => "Đã hủy",
+        _ => value
+    };
+    string SupplementClass(string value) => value switch
+    {
+        IceSupplementalIssueStatuses.Approved => "ice-badge-success",
+        IceSupplementalIssueStatuses.Pending => "ice-badge-warning",
+        IceSupplementalIssueStatuses.Rejected => "ice-badge-danger",
+        _ => "ice-badge-neutral"
+    };
+    var unit = string.IsNullOrWhiteSpace(Model.UnitName) ? "kg" : Model.UnitName;
+    var viCulture = CultureInfo.GetCultureInfo("vi-VN");
+    string DisplayNumber(decimal value) => value.ToString("0.##", viCulture);
+    string DisplayQuantity(decimal value) => $"{DisplayNumber(value)} {unit}";
+    string DisplayNullableQuantity(decimal? value) =>
+        value.HasValue ? DisplayQuantity(value.Value) : "—";
+    string DisplayMoney(decimal? value) =>
+        value.HasValue ? $"{value.Value.ToString("N0", viCulture)} đ" : "Chưa có giá";
+    var totalIssued = Model.InitialIssuedQuantity + Model.SupplementalIssuedQuantity;
+    var isOpen = Model.Status == OperationalIceStatuses.Open;
+    var isPendingApproval = Model.Status == OperationalIceStatuses.PendingApproval;
+    var needsReconciliation = Model.Status == OperationalIceStatuses.ReconciliationRequired;
+    var isFinished = Model.Status is OperationalIceStatuses.Closed or OperationalIceStatuses.Cancelled;
+}
+<link rel="stylesheet" href="~/css/Admin/OperationalIce/operational-ice.css" />
+
+<main class="ice-shell">
+    <header class="ice-page-header ice-detail-header">
+        <div>
+            <a class="ice-back-link" asp-action="Index" asp-route-storeId="@Model.StoreId" asp-route-businessDate="@Model.BusinessDate.ToString("yyyy-MM-dd")">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách ca đá
+            </a>
+            <div class="ice-eyebrow">@Model.StoreName · @Model.BusinessDate.ToString("dd/MM/yyyy")</div>
+            <h1>@Model.ShiftName</h1>
+            <p>@Model.IngredientName · @Model.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") – @Model.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+        </div>
+        <div class="ice-header-actions">
+            <a class="ice-btn ice-btn-secondary" asp-action="Report" asp-route-id="@Model.IceAllocationId">
+                <i class="fa-solid fa-chart-column" aria-hidden="true"></i> Báo cáo ca
+            </a>
+            <span class="ice-badge ice-badge-large @StatusClass(Model.Status)">@StatusLabel(Model.Status)</span>
+        </div>
+    </header>
+
+    @if (TempData["SuccessMessage"] is string success && !string.IsNullOrWhiteSpace(success))
+    {
+        <div class="ice-notice ice-notice-success" role="status">@success</div>
+    }
+    @if (TempData["ErrorMessage"] is string error && !string.IsNullOrWhiteSpace(error))
+    {
+        <div class="ice-notice ice-notice-danger" role="alert">@error</div>
+    }
+
+    <nav class="ice-workflow" aria-label="Tiến trình ca vận hành đá">
+        <span class="is-complete"><i class="fa-solid fa-check" aria-hidden="true"></i> Kế hoạch</span>
+        <span class="is-complete"><i class="fa-solid fa-check" aria-hidden="true"></i> Xác nhận cấp</span>
+        <span class="@(isOpen ? "is-current" : "is-complete")"><i class="fa-solid fa-play" aria-hidden="true"></i> Vận hành</span>
+        <span class="@(isPendingApproval || needsReconciliation ? "is-current" : isFinished ? "is-complete" : "")"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Chốt ca</span>
+        <span class="@(isPendingApproval || needsReconciliation ? "is-current" : isFinished ? "is-complete" : "")"><i class="fa-solid fa-user-check" aria-hidden="true"></i> Duyệt</span>
+        <span class="@(Model.Status == OperationalIceStatuses.Closed ? "is-current" : "")"><i class="fa-solid fa-lock" aria-hidden="true"></i> Đóng</span>
+    </nav>
+
+    <section class="ice-summary-grid ice-summary-six" aria-label="Số liệu ca đá">
+        <article>
+            <span>Tồn khả dụng</span>
+            <strong>@DisplayQuantity(Model.AvailableQuantity)</strong>
+            <small>Tồn vật lý: @DisplayQuantity(Model.PhysicalQuantity)</small>
+        </article>
+        <article>
+            <span>Đang giữ chỗ</span>
+            <strong>@DisplayQuantity(Model.ReservedOutstandingQuantity)</strong>
+            <small>Toàn kho: @DisplayQuantity(Model.ReservedStoreQuantity)</small>
+        </article>
+        <article>
+            <span>Tổng đã cấp</span>
+            <strong>@DisplayQuantity(totalIssued)</strong>
+            <small>Đầu ca @DisplayQuantity(Model.InitialIssuedQuantity) · Bổ sung @DisplayQuantity(Model.SupplementalIssuedQuantity)</small>
+        </article>
+        <article>
+            <span>Lý thuyết POS</span>
+            <strong>@DisplayQuantity(Model.TheoreticalUsageQuantity)</strong>
+        </article>
+        <article>
+            <span>Thực tế</span>
+            <strong>@DisplayNullableQuantity(Model.ActualUsageQuantity)</strong>
+        </article>
+        <article class="@(Model.VarianceQuantity is > 0 ? "ice-summary-danger" : Model.VarianceQuantity is < 0 ? "ice-summary-warning" : "")">
+            <span>Chênh lệch</span>
+            <strong>@DisplayNullableQuantity(Model.VarianceQuantity)</strong>
+        </article>
+</section>
+    <div class="ice-detail-layout">
+        <div class="ice-main-column">
+            <section class="ice-panel">
+                <div class="ice-section-heading">
+                    <div>
+                        <span class="ice-section-kicker">Liên kết bán hàng</span>
+                        <h2>WorkShift POS</h2>
+                    </div>
+                    <p>
+                        @(Model.WorkShifts.Count == 0 ? "Chưa liên kết" : $"Đã liên kết {Model.WorkShifts.Count} ca")
+                        · Nguồn tính tiêu hao lý thuyết
+                    </p>
+                </div>
+
+                @if (Model.WorkShifts.Count == 0)
+                {
+                    <div class="ice-empty ice-empty-compact"><p>Chưa liên kết WorkShift POS.</p></div>
+                }
+                else
+                {
+                    <div class="ice-table-scroll">
+                        <table class="ice-table">
+                            <thead><tr><th>WorkShift</th><th>Nhân viên</th><th>Bắt đầu</th><th>Kết thúc</th><th>Trạng thái</th></tr></thead>
+                            <tbody>
+                            @foreach (var shift in Model.WorkShifts)
+                            {
+                                <tr>
+                                    <td><strong>#@shift.WorkShiftId</strong></td>
+                                    <td>@shift.StaffName</td>
+                                    <td>@shift.StartTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@(shift.EndTime?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Đang mở")</td>
+                                    <td><span class="ice-badge ice-badge-neutral">@shift.Status</span></td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                @if (isOpen && Model.CanManage && Model.AvailableWorkShifts.Count > 0)
+                {
+                    <form asp-action="LinkWorkShifts" method="post" class="ice-link-workshifts" data-ice-submit>
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="OperationalShiftId" value="@Model.OperationalShiftId" />
+                        <input type="hidden" name="allocationId" value="@Model.IceAllocationId" />
+                        <fieldset class="ice-workshift-options">
+                            <legend>Đã tìm thấy @Model.AvailableWorkShifts.Count WorkShift POS phù hợp</legend>
+                            @foreach (var option in Model.AvailableWorkShifts)
+                            {
+                                <label>
+                                    <input type="checkbox" name="WorkShiftIds" value="@option.Id" />
+                                    <span>@option.Label</span>
+                                </label>
+                            }
+                        </fieldset>
+                        <div class="ice-form-actions">
+                            <button class="ice-btn ice-btn-secondary" type="submit">
+                                <i class="fa-solid fa-link" aria-hidden="true"></i> Xác nhận liên kết
+                            </button>
+                        </div>
+                    </form>
+                }
+            </section>
+
+            <section class="ice-panel">
+                <div class="ice-section-heading">
+                    <div>
+                        <span class="ice-section-kicker">Trong ca</span>
+                        <h2>Cấp bổ sung</h2>
+                    </div>
+                    <p>Chỉ lượng đã duyệt mới tăng giữ chỗ của ca.</p>
+                </div>
+
+                @if (Model.Supplements.Count == 0)
+                {
+                    <div class="ice-empty ice-empty-compact"><p>Chưa có yêu cầu cấp bổ sung.</p></div>
+                }
+                else
+                {
+                    <div class="ice-table-scroll">
+                        <table class="ice-table">
+                            <thead><tr><th>Thời điểm</th><th>Người yêu cầu</th><th class="ice-number">Số lượng</th><th>Lý do</th><th>Trạng thái / duyệt</th></tr></thead>
+                            <tbody>
+                            @foreach (var item in Model.Supplements)
+                            {
+                                <tr>
+                                    <td>@item.RequestedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@item.RequestedBy</td>
+                                    <td class="ice-number">@DisplayQuantity(item.Quantity)</td>
+                                    <td>@item.Reason</td>
+                                    <td>
+                                        <span class="ice-badge @SupplementClass(item.Status)">@SupplementLabel(item.Status)</span>
+                                        @if (item.Status == IceSupplementalIssueStatuses.Pending && Model.CanApprove)
+                                        {
+                                            <div class="ice-decision-row">
+                                                <form asp-action="DecideSupplemental" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="SupplementalIssuePublicId" value="@item.PublicId" />
+                                                    <input type="hidden" name="allocationId" value="@Model.IceAllocationId" />
+                                                    <input type="hidden" name="Approve" value="true" />
+                                                    <button class="ice-icon-btn ice-icon-success" type="submit" title="Duyệt cấp bổ sung" aria-label="Duyệt cấp bổ sung">
+                                                        <i class="fa-solid fa-check" aria-hidden="true"></i>
+                                                    </button>
+                                                </form>
+                                                <form asp-action="DecideSupplemental" method="post" class="ice-reject-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="SupplementalIssuePublicId" value="@item.PublicId" />
+                                                    <input type="hidden" name="allocationId" value="@Model.IceAllocationId" />
+                                                    <input type="hidden" name="Approve" value="false" />
+                                                    <input name="RejectionReason" maxlength="500" placeholder="Lý do từ chối" aria-label="Lý do từ chối" required />
+                                                    <button class="ice-icon-btn ice-icon-danger" type="submit" title="Từ chối cấp bổ sung" aria-label="Từ chối cấp bổ sung">
+                                                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                @if (isOpen && Model.CanManage)
+                {
+                    <form asp-action="RequestSupplemental" method="post" class="ice-inline-action">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="IceAllocationId" value="@Model.IceAllocationId" />
+                        <div class="ice-field">
+                            <label for="supplementQuantity">Lượng bổ sung (@unit)</label>
+                            <input id="supplementQuantity" name="Quantity" type="number" min="0.01" step="0.01" required />
+                        </div>
+                        <div class="ice-field ice-grow">
+                            <label for="supplementReason">Lý do</label>
+                            <input id="supplementReason" name="Reason" maxlength="500" required />
+                        </div>
+                        <button class="ice-btn ice-btn-primary" type="submit"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu</button>
+                    </form>
+                }
+            </section>
+
+            <section class="ice-panel">
+                <div class="ice-section-heading">
+                    <div>
+                        <span class="ice-section-kicker">Giao nhận</span>
+                        <h2>Bàn giao cùng ngày</h2>
+                    </div>
+                    <p>Lượng ca sau nhận luôn bằng lượng ca trước đã xác nhận giao.</p>
+                </div>
+                @if (Model.CarryOvers.Count == 0)
+                {
+                    <div class="ice-empty ice-empty-compact"><p>Chưa có giao nhận giữa các ca.</p></div>
+                }
+                else
+                {
+                    <div class="ice-table-scroll">
+                        <table class="ice-table">
+                            <thead><tr><th>Hướng</th><th>Ca liên quan</th><th class="ice-number">Số lượng</th><th>Người giao</th><th>Người nhận</th><th>Trạng thái</th></tr></thead>
+                            <tbody>
+                            @foreach (var carry in Model.CarryOvers)
+                            {
+                                <tr>
+                                    <td><strong>@carry.Direction</strong></td>
+                                    <td>@carry.OtherShiftName</td>
+                                    <td class="ice-number">@DisplayQuantity(carry.Quantity)</td>
+                                    <td>@carry.HandedOverBy</td>
+                                    <td>@(carry.ReceivedBy ?? "Chưa xác nhận")</td>
+                                    <td><span class="ice-badge @(carry.Status == IceCarryOverStatuses.Confirmed ? "ice-badge-success" : "ice-badge-warning")">@(carry.Status == IceCarryOverStatuses.Confirmed ? "Đã xác nhận" : "Chờ xác nhận")</span></td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                @if (isOpen && Model.CanManage && Model.CarryTargets.Count > 0)
+                {
+                    <form asp-action="ConfirmCarryOver" method="post" class="ice-inline-action">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="FromIceAllocationId" value="@Model.IceAllocationId" />
+                        <div class="ice-field ice-grow">
+                            <label for="carryTarget">Ca nhận</label>
+                            <select id="carryTarget" name="ToIceAllocationId" required>
+                                @foreach (var option in Model.CarryTargets)
+                                {
+                                    <option value="@option.Id">@option.Label</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="ice-field">
+                            <label for="carryQuantity">Số lượng (@unit)</label>
+                            <input id="carryQuantity" name="Quantity" type="number" min="0.01" step="0.01" max="@Model.ReservedOutstandingQuantity" required />
+                        </div>
+                        <div class="ice-field">
+                            <label for="carryReceiver">Người nhận</label>
+                            <select id="carryReceiver" name="ReceivedByStaffId" required>
+                                @foreach (var option in Model.StaffOptions)
+                                {
+                                    <option value="@option.Id">@option.Label</option>
+                                }
+                            </select>
+                        </div>
+                        <button class="ice-btn ice-btn-secondary" type="submit"><i class="fa-solid fa-people-arrows" aria-hidden="true"></i> Xác nhận giao</button>
+                    </form>
+                }
+            </section>
+
+            <section class="ice-panel">
+                <div class="ice-section-heading">
+                    <div>
+                        <span class="ice-section-kicker">Kiểm toán</span>
+                        <h2>Bút toán điều chỉnh tồn kho</h2>
+                    </div>
+                    <p>Mỗi chênh lệch dương chỉ có một bút toán giảm kho idempotent.</p>
+                </div>
+                @if (Model.Postings.Count == 0)
+                {
+                    <div class="ice-empty ice-empty-compact"><p>Chưa phát sinh bút toán điều chỉnh.</p></div>
+                }
+                else
+                {
+                    <div class="ice-table-scroll">
+                        <table class="ice-table">
+                            <thead><tr><th>Thời điểm</th><th>Loại</th><th class="ice-number">Số lượng</th><th>Chi phí</th><th>Người duyệt</th><th>Tham chiếu</th></tr></thead>
+                            <tbody>
+                            @foreach (var posting in Model.Postings)
+                            {
+                                <tr>
+                                    <td>@posting.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>Hao hụt vượt lý thuyết</td>
+                                    <td class="ice-number">@DisplayQuantity(posting.Quantity)</td>
+                                    <td>@DisplayMoney(posting.TotalCost)</td>
+                                    <td>@posting.ApprovedBy</td>
+                                    <td><code>@posting.IdempotencyKey</code></td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+        </div>
+
+        <aside class="ice-action-column" aria-label="Thao tác ca đá">
+            @if (isOpen && Model.CanManage)
+            {
+                <section class="ice-action-panel">
+                    <span class="ice-section-kicker">Bước tiếp theo</span>
+                    <h2>Chốt ca</h2>
+                    <p>Hệ thống tự tính lý thuyết từ ledger POS. Đá đã đưa ra sử dụng không được trả lại kho.</p>
+                    <form asp-action="CloseAllocation" method="post" class="ice-stacked-form" id="closeIceForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="IceAllocationId" value="@Model.IceAllocationId" />
+                        <div class="ice-field">
+                            <label for="returnQuantity">Đá nguyên bao trả kho (@unit)</label>
+                            <input id="returnQuantity" name="ReturnedQuantity" type="number" min="0" step="0.01" max="@Model.ReservedOutstandingQuantity" value="0" />
+                        </div>
+                        <div id="returnEvidence" class="ice-return-evidence" hidden>
+                            <div class="ice-field">
+                                <label for="returnCondition">Tình trạng</label>
+                                <select id="returnCondition" name="ReturnCondition">
+                                    <option value="">Chọn tình trạng</option>
+                                    <option value="@IceReturnConditions.SealedIntact">Nguyên bao, chưa đưa ra sử dụng</option>
+                                </select>
+                            </div>
+                            <div class="ice-field">
+                                <label for="returnReceiver">Người nhận trả kho</label>
+                                <select id="returnReceiver" name="ReturnReceivedByStaffId">
+                                    <option value="">Chọn người nhận</option>
+                                    @foreach (var option in Model.StaffOptions)
+                                    {
+                                        <option value="@option.Id">@option.Label</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="ice-field">
+                            <label for="closeReason">Lý do chênh lệch (nếu có)</label>
+                            <textarea id="closeReason" name="CloseReason" maxlength="500" rows="3" placeholder="Giải trình khi thực tế khác lý thuyết POS"></textarea>
+                        </div>
+                        <button class="ice-btn ice-btn-primary ice-btn-block" type="submit">
+                            <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Gửi chốt ca
+                        </button>
+                    </form>
+                </section>
+            }
+            else if (isPendingApproval && Model.CanApprove)
+            {
+                <section class="ice-action-panel ice-action-warning">
+                    <span class="ice-section-kicker">Chờ phê duyệt</span>
+                    <h2>Duyệt hao hụt</h2>
+                    <p>Chênh lệch dương sẽ tạo đúng một bút toán giảm kho bổ sung.</p>
+                    <form asp-action="ApproveVariance" method="post" class="ice-stacked-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="IceAllocationId" value="@Model.IceAllocationId" />
+                        <div class="ice-field">
+                            <label for="approvalReason">Lý do phê duyệt</label>
+                            <textarea id="approvalReason" name="Reason" maxlength="500" rows="4" required></textarea>
+                        </div>
+                        <button class="ice-btn ice-btn-primary ice-btn-block" type="submit">
+                            <i class="fa-solid fa-check-double" aria-hidden="true"></i> Duyệt và ghi giảm
+                        </button>
+                    </form>
+                </section>
+            }
+            else if (needsReconciliation && Model.CanApprove)
+            {
+                <section class="ice-action-panel ice-action-warning">
+                    <span class="ice-section-kicker">Cần đối soát</span>
+                    <h2>Hoàn tất đối soát</h2>
+                    <p>Chênh lệch âm không tự tăng tồn. Kiểm tra BOM, POS, hoàn tiền và giao nhận trước khi đóng.</p>
+                    <form asp-action="ReconcileVariance" method="post" class="ice-stacked-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="IceAllocationId" value="@Model.IceAllocationId" />
+                        <div class="ice-field">
+                            <label for="reconciliationReason">Kết quả đối soát</label>
+                            <textarea id="reconciliationReason" name="Reason" maxlength="500" rows="4" required></textarea>
+                        </div>
+                        <button class="ice-btn ice-btn-primary ice-btn-block" type="submit">
+                            <i class="fa-solid fa-magnifying-glass-check" aria-hidden="true"></i> Xác nhận đối soát
+                        </button>
+                    </form>
+                </section>
+            }
+            else
+            {
+                <section class="ice-action-panel">
+                    <span class="ice-section-kicker">Trạng thái</span>
+                    <h2>@StatusLabel(Model.Status)</h2>
+                    <p>@(Model.Status == OperationalIceStatuses.Closed ? "Ca đã hoàn tất. Dữ liệu và bút toán được giữ để truy vết." : "Bạn không có thao tác cần xử lý ở trạng thái này.")</p>
+                </section>
+            }
+
+            <section class="ice-facts">
+                <h2>Thông tin kiểm toán</h2>
+                <dl>
+                    <div><dt>Mã phân bổ</dt><dd>#@Model.IceAllocationId</dd></div>
+                    <div><dt>Tồn chuyển đầu ca</dt><dd>@DisplayQuantity(Model.OpeningCarryQuantity)</dd></div>
+                    <div><dt>Tồn chuyển cuối ca</dt><dd>@DisplayQuantity(Model.ClosingCarryQuantity)</dd></div>
+                    <div><dt>Đá trả hợp lệ</dt><dd>@DisplayQuantity(Model.ReturnedQuantity)</dd></div>
+                    <div><dt>Giá vốn snapshot</dt><dd>@DisplayMoney(Model.UnitCostSnapshot)</dd></div>
+                    <div><dt>Tình trạng giá vốn</dt><dd>@(Model.CostSnapshotStatus == IceCostSnapshotStatuses.Available ? "Đã có" : "Thiếu dữ liệu")</dd></div>
+                </dl>
+                @if (!string.IsNullOrWhiteSpace(Model.CloseReason))
+                {
+                    <div class="ice-audit-note"><strong>Giải trình chốt ca</strong><p>@Model.CloseReason</p></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.ReconciliationReason))
+                {
+                    <div class="ice-audit-note"><strong>Kết quả đối soát</strong><p>@Model.ReconciliationReason</p></div>
+                }
+            </section>
+
+            @if (!isFinished && Model.CanApprove)
+            {
+                <details class="ice-danger-zone">
+                    <summary><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Hủy phân bổ</summary>
+                    <form asp-action="CancelAllocation" method="post" class="ice-stacked-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="IceAllocationId" value="@Model.IceAllocationId" />
+                        <div class="ice-field">
+                            <label for="cancelReason">Lý do hủy</label>
+                            <textarea id="cancelReason" name="Reason" maxlength="500" rows="3" required></textarea>
+                        </div>
+                        <button class="ice-btn ice-btn-danger ice-btn-block" type="submit">Hủy và giải phóng giữ chỗ</button>
+                    </form>
+                </details>
+            }
+        </aside>
+    </div>
+</main>
+
+<script>
+(() => {
+    const quantity = document.getElementById("returnQuantity");
+    const evidence = document.getElementById("returnEvidence");
+    const condition = document.getElementById("returnCondition");
+    const receiver = document.getElementById("returnReceiver");
+    if (!quantity || !evidence || !condition || !receiver) return;
+
+    const updateReturnEvidence = () => {
+        const hasReturn = Number(quantity.value || 0) > 0;
+        evidence.hidden = !hasReturn;
+        condition.required = hasReturn;
+        receiver.required = hasReturn;
+        if (!hasReturn) {
+            condition.value = "";
+            receiver.value = "";
+        }
+    };
+
+    quantity.addEventListener("input", updateReturnEvidence);
+    updateReturnEvidence();
+})();
+</script>

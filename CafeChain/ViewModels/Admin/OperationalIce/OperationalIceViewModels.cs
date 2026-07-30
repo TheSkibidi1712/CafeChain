@@ -13,6 +13,10 @@ public sealed class OperationalIceIndexVM
     public IReadOnlyList<OperationalIceOptionVM> Ingredients { get; init; } = [];
     public IReadOnlyList<OperationalIceOptionVM> Units { get; init; } = [];
     public IReadOnlyList<OperationalIceOptionVM> ShiftLeads { get; init; } = [];
+    public IReadOnlyList<OperationalIceScheduleOptionVM> ScheduleOptions { get; init; } = [];
+    public OperationalIceInventoryVM? Inventory { get; init; }
+    public bool HasValidPolicy { get; init; }
+    public string PolicyStatusMessage { get; init; } = string.Empty;
     public bool CanManage { get; init; }
     public bool CanApprove { get; init; }
     public bool CanConfigurePolicy { get; init; }
@@ -30,6 +34,46 @@ public sealed class OperationalIceListRowVM
     public decimal TheoreticalUsageQuantity { get; init; }
     public decimal? VarianceQuantity { get; init; }
     public string Status { get; init; } = string.Empty;
+    public bool HasShiftLead { get; init; }
+    public string CreationSource { get; init; } = string.Empty;
+    public int LinkedWorkShiftCount { get; init; }
+    public OperationalIceScheduleReviewVM? ScheduleReview { get; set; }
+}
+
+public sealed class OperationalIceScheduleReviewVM
+{
+    public bool IsScheduleAvailable { get; init; }
+    public bool HasChanges { get; init; }
+    public bool CanSync { get; init; }
+    public bool HasCancelledAssignments { get; init; }
+    public bool RequiresLeadReplacement { get; init; }
+    public bool BlocksOpening { get; init; }
+    public string SavedLabel { get; init; } = string.Empty;
+    public string CurrentLabel { get; init; } = string.Empty;
+    public string SavedLeadName { get; init; } = string.Empty;
+    public string CurrentLeadName { get; init; } = string.Empty;
+    public int StaffCount { get; init; }
+    public int CancelledStaffCount { get; init; }
+}
+
+public sealed class OperationalIceScheduleOptionVM
+{
+    public int ScheduleShiftId { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Label { get; init; } = string.Empty;
+    public string StartLocalValue { get; init; } = string.Empty;
+    public string EndLocalValue { get; init; } = string.Empty;
+    public int StaffCount { get; init; }
+    public int? SuggestedShiftLeadId { get; init; }
+}
+
+public sealed class OperationalIceInventoryVM
+{
+    public decimal PhysicalQuantity { get; init; }
+    public decimal ReservedQuantity { get; init; }
+    public decimal AvailableQuantity { get; init; }
+    public decimal AvailableAfterSuggestedShiftQuantity { get; init; }
+    public string UnitName { get; init; } = string.Empty;
 }
 
 public sealed class IcePolicyVM
@@ -61,6 +105,7 @@ public sealed class OperationalIceDetailVM
     public string Status { get; init; } = string.Empty;
     public string IngredientName { get; init; } = string.Empty;
     public string UnitName { get; init; } = string.Empty;
+    public decimal PhysicalQuantity { get; init; }
     public decimal AvailableQuantity { get; init; }
     public decimal ReservedStoreQuantity { get; init; }
     public decimal ReservedOutstandingQuantity { get; init; }
@@ -135,5 +180,6 @@ public sealed class OperationalIcePostingVM
 public sealed class OperationalIceOptionVM
 {
     public int Id { get; init; }
+    public string Code { get; init; } = string.Empty;
     public string Label { get; init; } = string.Empty;
 }

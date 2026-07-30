@@ -102,7 +102,8 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                 return ServiceResult<StoreMenuWorkspaceRowDto>.Failure("Không tìm thấy SKU trong menu cửa hàng.");
 
             var roles = await GetRolesAsync(actorStaffId, cancellationToken);
-            var canPublish = roles.Contains(RoleConstants.BusinessOwner);
+            var canPublish = roles.Contains(RoleConstants.BusinessOwner)
+                || roles.Contains(RoleConstants.SystemAdmin);
             var canOperate = canPublish || (roles.Contains(RoleConstants.StoreManager)
                 && await CanAccessManagedStoreAsync(actorStaffId, item.StoreId, cancellationToken));
             if (request.Action == StoreMenuLifecycleActions.Publish && !canPublish)

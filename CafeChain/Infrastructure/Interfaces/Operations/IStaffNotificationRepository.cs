@@ -18,6 +18,9 @@ public interface IStaffNotificationRepository
     Task<List<StaffNotification>> GetUnreadAsync(
         int recipientStaffId,
         IReadOnlyCollection<int>? allowedStoreIds);
+    Task<StaffNotification?> GetByDeduplicationKeyAsync(
+        string key,
+        CancellationToken cancellationToken = default);
     Task<StaffNotification?> GetActiveByDeduplicationKeyAsync(
         string key,
         CancellationToken cancellationToken = default);

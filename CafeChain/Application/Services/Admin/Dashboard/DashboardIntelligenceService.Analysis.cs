@@ -34,7 +34,16 @@ public sealed partial class DashboardIntelligenceService
         var baselineWindow = context.ComparisonStart.HasValue && context.ComparisonEnd.HasValue
             ? (context.ComparisonStart.Value.DateTime, context.ComparisonEnd.Value.DateTime)
             : ((DateTime From, DateTime To)?)null;
-        var widgets = DataPlan(intent.BusinessIntent, intent.FocusMetrics).Distinct().ToList();
+        intent.Understanding.EffectiveStoreIds = context.StoreIds.Distinct().OrderBy(x => x).ToList();
+        intent.DataPlan = DashboardQuestionCatalog.CreateDataPlan(
+            intent.Understanding,
+            intent.Understanding.EffectiveStoreIds,
+            currentWindow.From,
+            currentWindow.To);
+        var widgets = new[] { intent.DataPlan.PrimaryWidget }
+            .Concat(intent.DataPlan.SupportingWidgets)
+            .Distinct()
+            .ToList();
         var warnings = new List<string>(parsed.Warnings);
         if (ContainsTimeExpression(request.Prompt))
             warnings.Add("Câu hỏi có phạm vi thời gian riêng; phân tích vẫn sử dụng bộ lọc Dashboard hiện tại.");
@@ -135,8 +144,31 @@ public sealed partial class DashboardIntelligenceService
                 ? "Dữ liệu hiện tại chưa cho thấy bất thường theo các quy tắc backend đã kiểm tra."
                 : string.Join(" ", anomalies.Select(x => x.Message).Distinct().Take(5));
         var allEvidence = facts.Concat(statistics).ToList();
+        var limitations = BuildLimitations(
+            intent.Understanding,
+            intent.DataPlan,
+            dataStatus,
+            missingBaseline,
+            allEvidence);
+        var evidencePack = BuildEvidencePack(
+            intent.Understanding,
+            intent.DataPlan,
+            dataStatus,
+            allEvidence,
+            limitations);
         var overview = BuildOverview(chartAnalyses, deterministicSummary);
         var conclusions = BuildConclusions(chartAnalyses, deterministicSummary);
+        var analysisContext = BuildAnalysisContext(
+            intent.Understanding,
+            intent.DataPlan,
+            context,
+            dataStatus);
+        var keyConclusion = BuildKeyConclusion(
+            intent.Understanding,
+            chartAnalyses,
+            allEvidence,
+            deterministicSummary,
+            dataStatus);
         var explanation = new DashboardExplanationResultDto
         {
             Success = true,
@@ -167,6 +199,9 @@ public sealed partial class DashboardIntelligenceService
                     Evidence = allEvidence,
                     Context = context,
                     ChartAnalyses = chartAnalyses,
+                    Understanding = intent.Understanding,
+                    DataPlan = intent.DataPlan,
+                    EvidencePack = evidencePack,
                     Insights = anomalies.Select(x => new DashboardInsightDto
                     {
                         Code = x.Code,
@@ -181,8 +216,11 @@ public sealed partial class DashboardIntelligenceService
         var evidenceIds = allEvidence.Select(x => x.EvidenceId).ToHashSet(StringComparer.Ordinal);
         var inferences = ValidateNarratives(explanation.Inferences, evidenceIds);
         var recommendations = ValidateNarratives(explanation.Recommendations, evidenceIds);
-        if (recommendations.Count == 0)
+        var canRecommend = CanRecommend(intent.Understanding, dataStatus, allEvidence);
+        if (canRecommend && recommendations.Count == 0)
             recommendations = BuildRecommendations(chartAnalyses, allEvidence, anomalies);
+        if (!canRecommend)
+            recommendations = [];
         if (inferences.Count != explanation.Inferences.Count
             || (explanation.Recommendations.Count > 0 && recommendations.Count != explanation.Recommendations.Count))
         {
@@ -193,6 +231,17 @@ public sealed partial class DashboardIntelligenceService
         {
             AnalysisId = analysisId,
             Intent = intent.BusinessIntent,
+            OriginalQuestion = intent.Understanding.OriginalQuestion,
+            TabCode = intent.Understanding.TabCode,
+            AnswerStyleId = intent.Understanding.AnswerStyleId,
+            AnswerFocus = intent.Understanding.AnswerFocus,
+            FocusType = intent.Understanding.FocusType,
+            FocusConfidence = intent.Understanding.FocusConfidence,
+            QuestionUnderstanding = intent.Understanding,
+            DataPlan = intent.DataPlan,
+            EvidencePack = evidencePack,
+            AnalysisContext = analysisContext,
+            KeyConclusion = keyConclusion,
             DataPeriod = new DashboardDataPeriodResultDto
             {
                 From = currentWindow.From,
@@ -215,6 +264,16 @@ public sealed partial class DashboardIntelligenceService
             Recommendations = recommendations,
             Confidence = confidence,
             Charts = charts,
+            PrimaryChart = charts.FirstOrDefault(x =>
+                string.Equals(
+                    x.WidgetKey,
+                    intent.DataPlan.PrimaryWidget.ToString(),
+                    StringComparison.OrdinalIgnoreCase)) ?? charts.FirstOrDefault(),
+            SupportingCharts = charts.Skip(1).ToList(),
+            EvidenceTable = evidencePack.TableEvidence,
+            Limitations = limitations,
+            Recommendation = recommendations.FirstOrDefault(),
+            GeneratedBy = explanation.UsedOllama ? "OllamaGrounded" : "DeterministicFallback",
             ChartAnalyses = MergeChartAnalyses(chartAnalyses, explanation.ChartAnalyses, evidenceIds),
             Overview = explanation.Overview.Count > 0
                 ? ValidateNarratives(explanation.Overview, evidenceIds)
@@ -396,6 +455,126 @@ public sealed partial class DashboardIntelligenceService
             FieldLabels = DashboardWidgetCatalog.FieldLabels,
             Rows = rows
         };
+    }
+
+    private static DashboardEvidencePackDto BuildEvidencePack(
+        DashboardQuestionUnderstandingDto understanding,
+        DashboardDataPlanDto plan,
+        string dataStatus,
+        IReadOnlyList<DashboardEvidenceDto> evidence,
+        IReadOnlyList<string> limitations)
+    {
+        var primary = evidence
+            .Where(x => x.SourceWidget == plan.PrimaryWidget)
+            .ToList();
+        var supporting = evidence
+            .Where(x => x.SourceWidget != plan.PrimaryWidget)
+            .ToList();
+        var table = evidence
+            .Where(x => !string.IsNullOrWhiteSpace(x.EntityName))
+            .Take(Math.Max(1, plan.Limit))
+            .ToList();
+        return new DashboardEvidencePackDto
+        {
+            OriginalQuestion = understanding.OriginalQuestion,
+            AnalysisGoal = plan.AnalysisGoal,
+            AppliedFilters = new Dictionary<string, string>(
+                plan.Filters,
+                StringComparer.OrdinalIgnoreCase),
+            PrimaryFacts = primary,
+            SupportingFacts = supporting,
+            ChartEvidence = evidence
+                .Where(x => x.Kind.Equals("STATISTIC", StringComparison.OrdinalIgnoreCase))
+                .ToList(),
+            TableEvidence = table.Count > 0 ? table : primary.Take(plan.Limit).ToList(),
+            DataStatus = dataStatus,
+            MissingFields = dataStatus is "NO_DATA" or "ERROR"
+                ? plan.RequiredFields.ToList()
+                : [],
+            Limitations = limitations.ToList()
+        };
+    }
+
+    private static List<string> BuildLimitations(
+        DashboardQuestionUnderstandingDto understanding,
+        DashboardDataPlanDto plan,
+        string dataStatus,
+        bool missingBaseline,
+        IReadOnlyList<DashboardEvidenceDto> evidence)
+    {
+        var result = new List<string>();
+        if (dataStatus is "NO_DATA" or "ERROR")
+            result.Add("Không có đủ dữ liệu trong phạm vi bộ lọc để kết luận.");
+        else if (!dataStatus.Equals("OK", StringComparison.OrdinalIgnoreCase))
+            result.Add($"Chất lượng dữ liệu hiện tại là {dataStatus}; chỉ nên dùng kết quả để tham khảo.");
+        if (understanding.RequiresComparison && missingBaseline)
+            result.Add("Thiếu hoặc không đầy đủ dữ liệu kỳ so sánh.");
+        if (understanding.AnswerFocus == DashboardAnswerFocus.LowMarginProducts
+            && evidence.Any(x => !x.DataStatus.Equals("OK", StringComparison.OrdinalIgnoreCase)))
+            result.Add("Không kết luận sản phẩm biên lợi nhuận thấp khi COGS chưa đầy đủ.");
+        if (understanding.AnswerFocus == DashboardAnswerFocus.ReorderPriority
+            && evidence.Any(x => x.DataStatus is not "OK"))
+            result.Add("Không đưa ra hành động nhập hàng khi supplier, quy cách, giá, conversion hoặc lead time chưa hợp lệ.");
+        if (understanding.FocusType == DashboardFocusType.Dynamic)
+            result.Add($"Trọng tâm động được ánh xạ vào widget {plan.PrimaryWidget}; hệ thống không sinh SQL động.");
+        return result.Distinct(StringComparer.Ordinal).ToList();
+    }
+
+    private static string BuildAnalysisContext(
+        DashboardQuestionUnderstandingDto understanding,
+        DashboardDataPlanDto plan,
+        DashboardAnalysisContextDto context,
+        string dataStatus)
+    {
+        var stores = context.Stores.Count == 0
+            ? "không có cửa hàng"
+            : string.Join(", ", context.Stores.Select(x => x.StoreName));
+        return $"Phân tích trọng tâm {understanding.AnswerFocus} bằng {plan.PrimaryWidget}"
+            + (plan.SupportingWidgets.Count == 0
+                ? string.Empty
+                : $" và dữ liệu hỗ trợ {string.Join(", ", plan.SupportingWidgets)}")
+            + $", trong kỳ {plan.FromDate:dd/MM/yyyy}–{plan.ToDate:dd/MM/yyyy}, phạm vi {stores}. "
+            + $"Trạng thái dữ liệu: {dataStatus}.";
+    }
+
+    private static string BuildKeyConclusion(
+        DashboardQuestionUnderstandingDto understanding,
+        IReadOnlyList<DashboardChartAnalysisDto> charts,
+        IReadOnlyList<DashboardEvidenceDto> evidence,
+        string fallback,
+        string dataStatus)
+    {
+        if (dataStatus is "NO_DATA" or "ERROR")
+            return fallback;
+        var entity = evidence.FirstOrDefault(x =>
+            x.SourceWidget == charts.FirstOrDefault()?.Widget
+            && !string.IsNullOrWhiteSpace(x.EntityName));
+        if (entity != null)
+        {
+            var direction = understanding.RankingDirection.Equals("ASC", StringComparison.OrdinalIgnoreCase)
+                ? "cần chú ý đầu tiên"
+                : "đứng đầu";
+            return $"{entity.EntityName} {direction} theo {entity.MetricName}, "
+                + $"giá trị {entity.CurrentValue:N2} {entity.Unit} (EvidenceId: {entity.EvidenceId}).";
+        }
+        var primary = charts.FirstOrDefault();
+        if (primary != null && !string.IsNullOrWhiteSpace(primary.Summary))
+            return primary.Summary;
+        return fallback;
+    }
+
+    private static bool CanRecommend(
+        DashboardQuestionUnderstandingDto understanding,
+        string dataStatus,
+        IReadOnlyList<DashboardEvidenceDto> evidence)
+    {
+        if (!understanding.RequiresRecommendation
+            || dataStatus is "NO_DATA" or "ERROR")
+            return false;
+        if (understanding.AnswerFocus != DashboardAnswerFocus.ReorderPriority)
+            return true;
+        return evidence.Count > 0
+            && evidence.All(x => x.DataStatus.Equals("OK", StringComparison.OrdinalIgnoreCase));
     }
 
     private static List<DashboardNarrativeItemDto> BuildOverview(
@@ -686,12 +865,14 @@ public sealed partial class DashboardIntelligenceService
                 storeId = NullableInt(row, "storeId"); storeName = entityName; value = Number(row, "netSales") ?? 0; break;
             case DashboardAnalyticsWidget.TopProducts:
             case DashboardAnalyticsWidget.ProductPeriodPerformance:
+            case DashboardAnalyticsWidget.LowVolumeProducts:
+            case DashboardAnalyticsWidget.LowMarginProducts:
             case DashboardAnalyticsWidget.VolumeMarginMatrix:
                 entityType = "PRODUCT"; entityId = Text(row, "drinkId"); entityName = Text(row, "drinkName");
                 value = Number(row, definition.ValueField) ?? 0; break;
             case DashboardAnalyticsWidget.CategoryPerformance:
                 entityType = "CATEGORY"; entityId = Text(row, "categoryId"); entityName = Text(row, "categoryName");
-                value = Number(row, "revenue") ?? 0; break;
+                value = Number(row, "totalSold") ?? 0; break;
             case DashboardAnalyticsWidget.SizeMargin:
                 entityType = "SIZE"; entityId = Text(row, "sizeId"); entityName = Text(row, "sizeName");
                 value = Number(row, "confirmedGrossProfit") ?? 0; break;
@@ -704,7 +885,7 @@ public sealed partial class DashboardIntelligenceService
             case DashboardAnalyticsWidget.PaymentMethodMix:
                 entityType = "PAYMENT_METHOD"; entityId = Text(row, "paymentMethodId");
                 entityCode = Text(row, "paymentMethodCode"); entityName = Text(row, "paymentMethodName");
-                value = Number(row, "amount") ?? 0; break;
+                value = Number(row, "totalTransactions") ?? 0; break;
             case DashboardAnalyticsWidget.InventoryShortageRisk:
                 value = Number(row, "shortageQuantity") ?? 0;
                 if (value <= 0) return null;
@@ -718,7 +899,10 @@ public sealed partial class DashboardIntelligenceService
                 entityType = "INGREDIENT"; entityId = Text(row, "ingredientId");
                 entityCode = Text(row, "ingredientCode"); entityName = Text(row, "ingredientName");
                 storeId = NullableInt(row, "storeId"); storeName = Text(row, "storeName");
-                value = Number(row, "suggestedQuantity") ?? Number(row, "requestedQuantity") ?? 0;
+                value = Number(row, "finalSuggestedQuantity")
+                    ?? Number(row, "suggestedQuantity")
+                    ?? Number(row, "requestedQuantity")
+                    ?? 0;
                 unit = Text(row, "unit"); priority = NormalizePriority(Text(row, "priority")); break;
             case DashboardAnalyticsWidget.SupplierQuality:
                 entityType = "SUPPLIER"; entityId = Text(row, "supplierId"); entityName = Text(row, "supplierName");
@@ -782,6 +966,8 @@ public sealed partial class DashboardIntelligenceService
         DashboardAnalyticsWidget.TopProducts =>
             ["categoryName", "totalSold", "productRevenue", "confirmedCogs", "confirmedGrossProfit", "confirmedMarginRate", "contributionPercent", "dataStatus"],
         DashboardAnalyticsWidget.ProductPeriodPerformance =>
+            ["totalSold", "revenue", "confirmedCogs", "confirmedGrossProfit", "confirmedMarginRate", "contributionPercent", "dataStatus"],
+        DashboardAnalyticsWidget.LowVolumeProducts or DashboardAnalyticsWidget.LowMarginProducts =>
             ["totalSold", "revenue", "confirmedCogs", "confirmedGrossProfit", "confirmedMarginRate", "contributionPercent", "dataStatus"],
         DashboardAnalyticsWidget.CategoryPerformance =>
             ["totalSold", "revenue", "confirmedCogs", "confirmedGrossProfit", "confirmedMarginRate", "contributionPercent", "dataStatus"],
@@ -969,6 +1155,8 @@ public sealed partial class DashboardIntelligenceService
         widget is DashboardAnalyticsWidget.StoreRanking
             or DashboardAnalyticsWidget.TopProducts
             or DashboardAnalyticsWidget.ProductPeriodPerformance
+            or DashboardAnalyticsWidget.LowVolumeProducts
+            or DashboardAnalyticsWidget.LowMarginProducts
             or DashboardAnalyticsWidget.CategoryPerformance
             or DashboardAnalyticsWidget.SizeMargin
             or DashboardAnalyticsWidget.TopToppings
@@ -985,6 +1173,7 @@ public sealed partial class DashboardIntelligenceService
     {
         DashboardAnalyticsWidget.StoreRanking => Long(row, "totalOrders"),
         DashboardAnalyticsWidget.TopProducts or DashboardAnalyticsWidget.ProductPeriodPerformance
+            or DashboardAnalyticsWidget.LowVolumeProducts or DashboardAnalyticsWidget.LowMarginProducts
             or DashboardAnalyticsWidget.CategoryPerformance => Long(row, "totalSold"),
         DashboardAnalyticsWidget.SupplierQuality => Long(row, "receiptCount"),
         DashboardAnalyticsWidget.PaymentMethodMix => Long(row, "totalTransactions"),

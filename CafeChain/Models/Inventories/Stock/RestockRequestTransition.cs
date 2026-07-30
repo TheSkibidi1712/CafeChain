@@ -34,6 +34,14 @@ namespace CafeChain.Models.Inventories.Stock
 
         public string? RequestKey { get; set; }
 
+        /// <summary>
+        /// Versioned, immutable business snapshot written when a deterministic
+        /// reorder suggestion creates or adjusts this request.
+        /// </summary>
+        public string? SuggestionSnapshotVersion { get; set; }
+
+        public string? SuggestionSnapshotJson { get; set; }
+
         public virtual RestockRequest RestockRequest { get; set; } = null!;
         public virtual Staff ActorStaff { get; set; } = null!;
         public virtual BranchReceipt? BranchReceipt { get; set; }

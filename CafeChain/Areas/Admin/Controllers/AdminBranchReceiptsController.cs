@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
@@ -14,7 +15,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// Issue #128 — Branch receipt draft / confirm with server-side business scope enforcement.
     /// Controller does not mutate inventory; BranchReceiptService owns posting.
     /// </summary>
-    [Authorize(Roles =
+    [RequirePermission(PermissionConstants.ReceiptView,
         RoleConstants.BusinessOwner + "," +
         RoleConstants.AreaManager + "," +
         RoleConstants.StoreManager + "," +
@@ -90,6 +91,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.ReceiptCreate)]
         public async Task<IActionResult> ReceivePurchaseOrder(int purchaseOrderId)
         {
             if (!CanConfirmReceipts())
@@ -112,6 +114,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.ReceiptUpdateDraft)]
         public async Task<IActionResult> EditPurchaseOrderDraft(int id)
         {
             if (!CanConfirmReceipts())
@@ -131,6 +134,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ReceiptUpdateDraft)]
         public async Task<IActionResult> SavePurchaseOrderDraft(SavePurchaseOrderReceiptDraftRequest model)
         {
             if (!CanConfirmReceipts())
@@ -166,6 +170,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.ReceiptCreate)]
         public async Task<IActionResult> Create(int? restockRequestId = null, int? storeId = null, int? purchaseOrderLineId = null)
         {
             if (!CanConfirmReceipts())
@@ -214,6 +219,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ReceiptCreate)]
         public async Task<IActionResult> Create(CreateBranchReceiptRequest model)
         {
             if (!CanConfirmReceipts())
@@ -244,6 +250,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ReceiptConfirm)]
         public async Task<IActionResult> Confirm(int id, string? rowVersion)
         {
             if (!CanConfirmReceipts())
@@ -327,12 +334,14 @@ namespace CafeChain.Areas.Admin.Controllers
             || User.IsInRole(RoleConstants.ShiftSupervisor)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager);
+            || User.IsInRole(RoleConstants.AreaManager)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private bool CanConfirmReceipts() =>
             User.IsInRole(RoleConstants.BusinessOwner)
             || User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.ShiftSupervisor);
+            || User.IsInRole(RoleConstants.ShiftSupervisor)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private IActionResult StoreScopeApiFailure(
             CafeChain.Application.DTOs.Admin.StoreScope.AdminStoreScopeResolution resolution)

@@ -250,15 +250,16 @@
 .rb-health-metric span { display: block; color: var(--rb-muted); font-size: 0.78rem; font-weight: 600; }
 .rb-health-metric strong { display: block; margin-top: 2px; color: var(--rb-warning); font-size: 1.3rem; }
 .rb-health-metric.rb-health-ok strong { color: var(--rb-success); }
-.rb-health-table th:nth-child(1) { min-width: 240px; }
-.rb-health-table th:nth-child(2), .rb-health-table th:nth-child(3) { min-width: 150px; }
-.rb-health-table th:nth-child(4) { min-width: 430px; }
-.rb-health-reasons { min-width: 430px; }
+.rb-health-table th:nth-child(1) { min-width: 300px; }
+.rb-health-table th:nth-child(2), .rb-health-table th:nth-child(3) { min-width: 145px; }
+.rb-health-table th:nth-child(4) { min-width: 280px; }
+.rb-health-table th:nth-child(5) { min-width: 130px; }
+.rb-health-reasons {
+    min-width: 280px;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+}
 .rb-health-reason {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 12px;
     padding: 8px 0;
     border-bottom: 1px solid #f5ede6;
 }
@@ -266,6 +267,16 @@
 .rb-health-reason:last-child { padding-bottom: 0; border-bottom: 0; }
 .rb-health-reason code { display: block; width: fit-content; margin-bottom: 3px; color: var(--rb-warning); }
 .rb-health-reason span { display: block; color: var(--rb-muted); line-height: 1.35; overflow-wrap: anywhere; }
+.rb-health-actions {
+    text-align: center !important;
+}
+.rb-health-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 112px;
+    margin: 2px;
+}
 
 /* ── Recipe Tabs ── */
 .rb-recipe-tabs { display: flex; gap: 24px; margin-bottom: 14px; border-bottom: 1px solid var(--rb-border); }
@@ -691,4 +702,501 @@
 /* FIX 10: SỐ LƯỢNG input trong bảng — giữ nguyên right-align cho số */
 #bomTable .item-qty {
     text-align: right;
+}
+
+/* Căn chỉnh thống nhất các bảng và biểu mẫu trong Sản xuất / BOM. */
+.rb-recipe-table {
+    min-width: 1180px;
+    table-layout: fixed;
+}
+.rb-recipe-table th,
+.rb-recipe-table td { vertical-align: middle; }
+.rb-recipe-table th:first-child,
+.rb-recipe-table td:first-child { width: 19%; text-align: left; }
+.rb-recipe-table th:nth-child(2),
+.rb-recipe-table td:nth-child(2) { width: 13%; }
+.rb-recipe-table th:nth-child(3),
+.rb-recipe-table td:nth-child(3) { width: 12%; }
+.rb-recipe-table th:nth-child(4),
+.rb-recipe-table td:nth-child(4) { width: 11%; }
+.rb-recipe-table th:nth-child(5),
+.rb-recipe-table td:nth-child(5) { width: 14%; }
+.rb-recipe-table th:nth-child(6),
+.rb-recipe-table td:nth-child(6) { width: 11%; }
+.rb-recipe-table th:last-child,
+.rb-recipe-table td:last-child { width: 20%; }
+.rb-recipe-table th:not(:first-child),
+.rb-recipe-table td:not(:first-child),
+.rb-recipe-table .rb-actions-cell { text-align: center !important; }
+.rb-actions-cell {
+    min-width: 230px;
+}
+.rb-actions-cell .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rb-prepareditem-table {
+    min-width: 1320px;
+    table-layout: fixed;
+}
+.rb-prepareditem-table th,
+.rb-prepareditem-table td { vertical-align: middle; }
+.rb-prepareditem-table th:nth-child(1),
+.rb-prepareditem-table td:nth-child(1) { width: 14%; text-align: left; }
+.rb-prepareditem-table th:nth-child(2),
+.rb-prepareditem-table td:nth-child(2) { width: 10%; text-align: left; }
+.rb-prepareditem-table th:nth-child(3),
+.rb-prepareditem-table td:nth-child(3) { width: 10%; text-align: center; }
+.rb-prepareditem-table th:nth-child(4),
+.rb-prepareditem-table td:nth-child(4) { width: 9%; text-align: center; }
+.rb-prepareditem-table th:nth-child(5),
+.rb-prepareditem-table td:nth-child(5) { width: 16%; text-align: center; }
+.rb-prepareditem-table th:nth-child(6),
+.rb-prepareditem-table td:nth-child(6) { width: 7%; text-align: center; }
+.rb-prepareditem-table th:nth-child(7),
+.rb-prepareditem-table td:nth-child(7) {
+    width: 13%;
+    padding-left: 6px;
+    padding-right: 6px;
+    text-align: center;
+}
+.rb-prepareditem-table th:nth-child(8),
+.rb-prepareditem-table td:nth-child(8) { width: 21%; text-align: center; }
+.rb-prepareditem-table td:nth-child(1) code {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+.rb-prepareditem-table td:nth-child(2) { overflow-wrap: anywhere; }
+.rb-prepareditem-actions-cell {
+    min-width: 300px;
+    text-align: center !important;
+}
+.rb-prepareditem-actions-cell > .d-flex {
+    display: grid !important;
+    grid-template-columns: 110px 42px 128px;
+    gap: 4px !important;
+    align-items: center;
+    justify-content: center;
+}
+.rb-prepareditem-actions-cell .btn {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding-left: 6px;
+    padding-right: 6px;
+    justify-content: center;
+}
+.rb-prepareditem-table td:nth-child(4) .rb-status-badge {
+    width: 100px;
+    min-width: 100px;
+}
+.rb-prepareditem-table td:nth-child(7) .rb-status-badge {
+    width: 160px;
+    min-width: 160px;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.rb-health-table {
+    min-width: 1120px;
+    table-layout: fixed;
+}
+.rb-health-table th:nth-child(1),
+.rb-health-table td:nth-child(1) { width: 31%; text-align: left; }
+.rb-health-table th:nth-child(2),
+.rb-health-table td:nth-child(2) { width: 16%; text-align: center; }
+.rb-health-table th:nth-child(3),
+.rb-health-table td:nth-child(3) { width: 16%; text-align: center; }
+.rb-health-table th:nth-child(4),
+.rb-health-table td:nth-child(4) { width: 26%; text-align: left; }
+.rb-health-table th:nth-child(5),
+.rb-health-table td:nth-child(5) { width: 11%; text-align: center; }
+
+#bomTable {
+    width: 100%;
+    min-width: 760px;
+    table-layout: fixed;
+}
+#bomTable th,
+#bomTable td {
+    vertical-align: middle;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+#bomTable th:nth-child(1),
+#bomTable td:nth-child(1) { width: 4%; text-align: center; }
+#bomTable th:nth-child(2),
+#bomTable td:nth-child(2) { width: 8%; text-align: center; }
+#bomTable th:nth-child(3),
+#bomTable td:nth-child(3) { width: 28%; text-align: left; }
+#bomTable th:nth-child(4),
+#bomTable td:nth-child(4) { width: 11%; text-align: center; }
+#bomTable th:nth-child(5),
+#bomTable td:nth-child(5) { width: 11%; text-align: center; }
+#bomTable th:nth-child(6),
+#bomTable td:nth-child(6) { width: 14%; text-align: center; }
+#bomTable th:nth-child(7),
+#bomTable td:nth-child(7) { width: 13%; text-align: center; }
+#bomTable th:nth-child(8),
+#bomTable td:nth-child(8) { width: 11%; text-align: center; }
+#bomTable .item-qty,
+#bomTable .item-unitname { width: 100%; text-align: center; }
+#bomTable .btn-remove-row {
+    width: 100%;
+    max-width: 92px;
+    min-width: 72px;
+}
+#bomTable .select2-container {
+    max-width: 100%;
+}
+
+/* Form tạo mới cần thêm không gian cho bảng; bảng kiểm tra giá vốn vẫn đủ rộng. */
+@media (min-width: 1200px) {
+    .rb-create-theme .rb-builder-grid > .col-xl-8 {
+        width: 75%;
+    }
+    .rb-create-theme .rb-builder-grid > .col-xl-4 {
+        width: 25%;
+    }
+}
+
+@media (max-width: 991.98px) {
+    #bomTable {
+        min-width: 720px;
+    }
+}
+
+/*
+ * Tiêu đề cột của toàn bộ phân hệ Sản xuất / BOM luôn nằm chính giữa cột.
+ * Chỉ tác động THEAD; nội dung tên, mã và mô tả trong TBODY vẫn căn trái.
+ */
+.rb-recipe-table > thead > tr > th,
+.rb-prepareditem-table > thead > tr > th,
+.rb-health-table > thead > tr > th,
+#bomTable > thead > tr > th,
+.rb-detail-table > thead > tr > th {
+    text-align: center !important;
+    vertical-align: middle;
+}
+
+/* ===== Hoàn thiện giao diện Sản xuất / BOM ===== */
+.rb-page .rb-card {
+    border: 1px solid #e4d8cd;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(92, 63, 43, 0.07);
+    overflow: hidden;
+}
+.rb-page .rb-card-header {
+    background: linear-gradient(180deg, #fffdfb 0%, #faf5f0 100%);
+    border-bottom: 1px solid #e6dbd1;
+}
+.rb-page .table-responsive {
+    scrollbar-color: #a98a73 #f3ece6;
+    scrollbar-width: thin;
+}
+.rb-page .table-responsive::-webkit-scrollbar { height: 8px; }
+.rb-page .table-responsive::-webkit-scrollbar-track { background: #f3ece6; }
+.rb-page .table-responsive::-webkit-scrollbar-thumb {
+    background: #a98a73;
+    border-radius: 999px;
+}
+
+.rb-page .rb-table > thead > tr > th {
+    height: 42px;
+    padding: 10px 12px;
+    background: #f8f2ec;
+    color: #8a4f29;
+    border-bottom: 1px solid #dfd0c4;
+    font-size: 0.71rem;
+    font-weight: 800;
+    letter-spacing: .025em;
+    vertical-align: middle;
+}
+.rb-page .rb-table > tbody > tr {
+    transition: background-color .16s ease, box-shadow .16s ease;
+}
+.rb-page .rb-table > tbody > tr:nth-child(even) {
+    background: #fffdfb;
+}
+.rb-page .rb-table > tbody > tr:hover {
+    background: #fbf4ed;
+    box-shadow: inset 3px 0 0 #795236;
+}
+.rb-page .rb-table > tbody > tr > td {
+    height: 62px;
+    border-bottom-color: #eee4db;
+}
+
+/* Tiêu đề cột chữ đi cùng trục với dữ liệu; số liệu và thao tác ở giữa. */
+.rb-prepareditem-table > thead > tr > th:nth-child(1),
+.rb-prepareditem-table > thead > tr > th:nth-child(2),
+.rb-recipe-table > thead > tr > th:first-child,
+.rb-health-table > thead > tr > th:first-child,
+.rb-health-table > thead > tr > th:nth-child(4),
+.rb-detail-table > thead > tr > th:first-child,
+#bomTable > thead > tr > th:nth-child(3) {
+    text-align: left !important;
+}
+.rb-prepareditem-table > thead > tr > th:nth-child(n+3),
+.rb-recipe-table > thead > tr > th:not(:first-child),
+.rb-health-table > thead > tr > th:nth-child(2),
+.rb-health-table > thead > tr > th:nth-child(3),
+.rb-health-table > thead > tr > th:nth-child(5),
+.rb-detail-table > thead > tr > th:not(:first-child),
+#bomTable > thead > tr > th:not(:nth-child(3)) {
+    text-align: center !important;
+}
+
+.rb-page .rb-code,
+.rb-page code.rb-code {
+    padding: 5px 8px;
+    border: 1px solid #eee3da;
+    border-radius: 6px;
+    background: #faf6f2;
+    color: #334155;
+}
+.rb-page .rb-status-badge {
+    box-shadow: inset 0 0 0 1px rgba(111, 78, 55, .05);
+}
+.rb-page .rb-table .btn {
+    border-radius: 7px;
+    transition: color .16s ease, background-color .16s ease,
+                border-color .16s ease, box-shadow .16s ease;
+}
+.rb-page .rb-table .btn:hover {
+    border-color: #795236;
+    background: #795236;
+    color: #fff;
+    box-shadow: 0 3px 8px rgba(92, 63, 43, .18);
+}
+.rb-page .rb-table .btn-outline-danger:hover {
+    border-color: #b42318;
+    background: #b42318;
+}
+
+.rb-page .form-control,
+.rb-page .form-select,
+.rb-page .select2-container--bootstrap-5 .select2-selection {
+    border-color: #dfd4ca;
+    border-radius: 9px;
+    transition: border-color .16s ease, box-shadow .16s ease,
+                background-color .16s ease;
+}
+.rb-page .form-control:hover,
+.rb-page .form-select:hover,
+.rb-page .select2-container--bootstrap-5 .select2-selection:hover {
+    border-color: #aa8a73;
+}
+.rb-page .form-control:focus,
+.rb-page .form-select:focus,
+.rb-page .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+    border-color: #795236;
+    box-shadow: 0 0 0 3px rgba(121, 82, 54, .13);
+}
+.rb-list-filters {
+    padding: 12px;
+    border: 1px solid #e4d8cd;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, .76);
+    box-shadow: 0 2px 8px rgba(92, 63, 43, .05);
+}
+.rb-recipe-tabs {
+    gap: 10px;
+}
+.rb-recipe-tab {
+    padding: 9px 14px;
+    border: 1px solid transparent;
+    border-radius: 8px 8px 0 0;
+}
+.rb-recipe-tab:hover {
+    background: #f8f1eb;
+}
+.rb-recipe-tab.active {
+    background: #fff;
+    border-color: #e2d5ca;
+    border-bottom-color: #795236;
+}
+.rb-add-row {
+    background: #fffdfb;
+}
+.rb-add-row:hover {
+    background: #f7ede5;
+    box-shadow: inset 0 0 0 1px #795236;
+}
+
+.rb-page-header,
+.rb-builder-heading,
+.rb-detail-header {
+    position: relative;
+    padding: 20px 22px;
+    border: 1px solid #e2d5ca;
+    border-radius: 14px;
+    background:
+        radial-gradient(circle at 92% 18%, rgba(198, 122, 69, .13), transparent 26%),
+        linear-gradient(135deg, #fff 0%, #fbf6f1 72%, #f4e9df 100%);
+    box-shadow: 0 5px 18px rgba(92, 63, 43, .08);
+    overflow: hidden;
+}
+.rb-page-header::before,
+.rb-builder-heading::before,
+.rb-detail-header::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: linear-gradient(180deg, #6f4e37, #c67a45);
+}
+.rb-page-header .rb-page-title,
+.rb-builder-heading .rb-page-title,
+.rb-detail-header .rb-page-title {
+    color: #3f2b20;
+    letter-spacing: -.025em;
+}
+.rb-page-header .rb-breadcrumb,
+.rb-builder-heading .rb-breadcrumb,
+.rb-detail-header .rb-breadcrumb {
+    margin-bottom: 8px;
+}
+.rb-page-header .btn-rb-save,
+.rb-builder-heading .btn-rb-save,
+.rb-detail-header .btn-rb-save,
+.rb-footer-bar .btn-rb-save {
+    background: linear-gradient(135deg, #795236, #5c3f2b);
+    border-color: #5c3f2b;
+    box-shadow: 0 5px 12px rgba(92, 63, 43, .24);
+}
+.rb-page-header .btn-rb-save:hover,
+.rb-builder-heading .btn-rb-save:hover,
+.rb-detail-header .btn-rb-save:hover,
+.rb-footer-bar .btn-rb-save:hover {
+    background: linear-gradient(135deg, #68462f, #493122);
+    transform: translateY(-1px);
+    box-shadow: 0 7px 16px rgba(92, 63, 43, .3);
+}
+
+.rb-health-summary {
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid #e2d5ca;
+    border-radius: 12px;
+    background: #f8f2ec;
+    box-shadow: 0 3px 12px rgba(92, 63, 43, .06);
+}
+.rb-health-metric {
+    position: relative;
+    border: 1px solid #eadfd6 !important;
+    border-radius: 9px;
+    background: #fff;
+    transition: transform .16s ease, box-shadow .16s ease,
+                border-color .16s ease;
+}
+.rb-health-metric:hover {
+    transform: translateY(-2px);
+    border-color: #b89982 !important;
+    box-shadow: 0 5px 12px rgba(92, 63, 43, .1);
+}
+.rb-health-metric::after {
+    content: "";
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 0;
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: #b9784d;
+    opacity: .65;
+}
+.rb-health-metric.rb-health-ok::after {
+    background: #2f6f5e;
+}
+
+.rb-create-theme .rb-card-header,
+.rb-edit-theme .rb-card-header {
+    min-height: 54px;
+    box-shadow: inset 4px 0 0 #795236;
+}
+.rb-create-theme .rb-section-title,
+.rb-edit-theme .rb-section-title {
+    color: #493122;
+    letter-spacing: -.01em;
+}
+.rb-cost-panel {
+    position: relative;
+    box-shadow: inset 4px 0 0 #c67a45;
+}
+.rb-cost-panel.complete {
+    box-shadow: inset 4px 0 0 #2f6f5e;
+}
+
+@media (max-width: 767.98px) {
+    .rb-page-header,
+    .rb-builder-heading,
+    .rb-detail-header {
+        padding: 16px;
+        border-radius: 11px;
+    }
+    .rb-health-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Tinh chỉnh theo trục cột của các bảng danh mục và tình trạng dữ liệu. */
+.rb-prepareditem-table > thead > tr > th:nth-child(1),
+.rb-prepareditem-table > thead > tr > th:nth-child(2),
+.rb-prepareditem-table > tbody > tr > td:nth-child(1),
+.rb-prepareditem-table > tbody > tr > td:nth-child(2) {
+    text-align: center !important;
+}
+.rb-prepareditem-table > tbody > tr > td:nth-child(1) .rb-code {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.rb-recipe-table > thead > tr > th:first-child,
+.rb-recipe-table > tbody > tr > td:first-child {
+    text-align: center !important;
+}
+.rb-recipe-table > tbody > tr > td:first-child .fw-semibold,
+.rb-recipe-table > tbody > tr > td:first-child .font-monospace {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.rb-health-table > thead > tr > th:first-child,
+.rb-health-table > tbody > tr > td:first-child {
+    text-align: center !important;
+}
+.rb-health-table .rb-health-identity > .d-flex {
+    justify-content: center;
+}
+.rb-health-table .rb-health-identity > .fw-semibold,
+.rb-health-table .rb-health-identity > .font-monospace {
+    text-align: center;
+}
+.rb-health-table > thead > tr > th:nth-child(4) {
+    text-align: center !important;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+.rb-health-table > tbody > tr > td:nth-child(4) {
+    text-align: center !important;
+}
+.rb-health-table .rb-health-reason code {
+    margin-left: auto;
+    margin-right: auto;
+}
+.rb-health-table .rb-health-reason span {
+    text-align: center;
+}
+.rb-health-table > thead > tr > th:last-child,
+.rb-health-table > tbody > tr > td:last-child {
+    text-align: center !important;
 }

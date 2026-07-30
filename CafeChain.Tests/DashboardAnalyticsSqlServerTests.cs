@@ -118,12 +118,46 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
             .Replace("use CafeChain", $"use [{Database}]", StringComparison.OrdinalIgnoreCase);
 
         await ExecuteBatchesAsync(seed);
+        await using (var overrideConnection = new SqlConnection(ConnectionString))
+        {
+            await overrideConnection.OpenAsync();
+            await using var overrideCommand = overrideConnection.CreateCommand();
+            overrideCommand.CommandText = """
+                IF NOT EXISTS(SELECT 1 FROM dbo.AccountPermissionOverrides WHERE Reason=N'RBAC_PRESERVE_TEST')
+                INSERT dbo.AccountPermissionOverrides(AccountId,PermissionId,Effect,Reason)
+                SELECT TOP(1) a.AccountId,p.PermissionId,2,N'RBAC_PRESERVE_TEST'
+                FROM dbo.Accounts a CROSS JOIN dbo.Permissions p
+                WHERE p.Code=N'App.AdminDashboard'
+                ORDER BY a.AccountId;
+                """;
+            await overrideCommand.ExecuteNonQueryAsync();
+        }
         await ExecuteBatchesAsync(seed);
         await ExecuteBatchesAsync(analytics);
         await ExecuteBatchesAsync(analytics);
 
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync();
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Permissions WHERE Code IN (N'StoreMenu.OverridePrice',N'Profitability.UpdatePrice',N'Profitability.UpdateToppingPolicy',N'PreparedItem.ToggleStatus',N'Recipe.Delete',N'PurchaseAdvice.Update',N'PurchaseAdvice.Cancel',N'PurchaseOrder.CloseRemaining',N'SupplierQuality.Create',N'SupplierQuality.Transition',N'InventoryTransfer.RequestReturn',N'InventoryTransfer.ConfirmReturn',N'InventoryTransfer.ResolveDiscrepancy',N'Order.RefundRequest',N'Order.RefundConfirm',N'System.Diagnostics.View',N'System.Cutover.View',N'System.Cutover.Manage',N'System.LegacyConsolidation.View',N'System.LegacyConsolidation.Manage') AND Active=1;", 20L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId WHERE p.Code IN(N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete');", 0L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Permissions WHERE Code IN(N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete') AND Active=0;", 4L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.AccountPermissionOverrides WHERE Reason=N'RBAC_PRESERVE_TEST' AND Effect=2;", 1L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Code=N'App.AdminDashboard' AND r.Name IN(N'Chủ doanh nghiệp',N'Quản lý vùng',N'Quản lý chi nhánh',N'Kế toán/kho');", 4L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Code=N'App.AdminDashboard' AND r.Name=N'Quản trị hệ thống';", 1L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Permissions p WHERE p.Active=1 AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions rp JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE rp.PermissionId=p.PermissionId AND r.Name=N'Quản trị hệ thống');", 0L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Active=1 AND r.Name=N'Quản trị hệ thống';", 161L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Code=N'ReorderSuggestion.View' AND r.Name IN(N'Chủ doanh nghiệp',N'Quản lý vùng',N'Quản lý chi nhánh',N'Kế toán/kho');", 4L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Code=N'Restock.Create' AND r.Name IN(N'Quản lý chi nhánh',N'Kế toán/kho');", 2L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.Orders WHERE Source=N'DEMO_DASHBOARD_V13';", 6L);
         await AssertScalarAsync(connection,
@@ -311,11 +345,12 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         "usp_Operations_OfflineReconciliationExceptions", "usp_Operations_HourlyOrders",
         "usp_Operations_WorkShiftTopDiscrepancies", "usp_Operations_WorkShiftKpis",
         "usp_Inventory_ShortageRisk", "usp_Inventory_MovementByType", "usp_Inventory_ThresholdRisk",
-        "usp_Inventory_ReorderSuggestions", "usp_Inventory_WasteByStoreIngredient", "usp_Inventory_FifoLayerAge",
+        "usp_Inventory_WasteByStoreIngredient", "usp_Inventory_FifoLayerAge",
         "usp_Procurement_PurchaseOrderPipeline", "usp_Procurement_OverduePurchaseOrders", "usp_Procurement_SupplierQuality",
         "usp_Procurement_PurchasePriceTrend", "usp_Procurement_SpendBreakdown", "usp_Procurement_SupplierIssueMix",
         "usp_Product_TopProducts", "usp_Product_VolumeMarginMatrix", "usp_Product_SizeMargin",
         "usp_Product_TopToppings", "usp_Product_BomHealth", "usp_Product_HighConsumptionLowEfficiency",
+        "usp_Product_LowVolumeProducts", "usp_Product_LowMarginProducts",
         "usp_Workforce_ShiftStatus", "usp_Workforce_HourlyDemand", "usp_Workforce_StaffPerformance"
     ];
 
