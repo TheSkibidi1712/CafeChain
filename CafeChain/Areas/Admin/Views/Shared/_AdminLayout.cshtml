@@ -230,7 +230,18 @@
         /* ========== MAIN CONTENT ========== */
         .main-content {
             margin-left: 260px;
+            min-height: 100dvh;
             padding: 30px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .admin-page-body {
+            display: flex;
+            flex: 1 1 auto;
+            min-width: 0;
+            flex-direction: column;
         }
 
         .topbar {
@@ -589,7 +600,9 @@
                 <span class="topbar-user-name">@currentStaffName</span>
             </a>
         </div>
-        @RenderBody()
+        <div class="admin-page-body">
+            @RenderBody()
+        </div>
     </div>
 
     <!-- Toast Container -->
