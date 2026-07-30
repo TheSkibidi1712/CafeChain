@@ -13,6 +13,8 @@ public class OperationalShift
     public string Name { get; set; } = string.Empty;
     public DateTime StartAtUtc { get; set; }
     public DateTime EndAtUtc { get; set; }
+    public string CreationSource { get; set; } = OperationalIceCreationSources.Manual;
+    public int? SourceScheduleShiftId { get; set; }
     public int? ShiftLeadId { get; set; }
     public string Status { get; set; } = OperationalIceStatuses.Draft;
     public int CreatedByStaffId { get; set; }
@@ -26,6 +28,7 @@ public class OperationalShift
     public byte[] RowVersion { get; set; } = [];
 
     public virtual Store Store { get; set; } = null!;
+    public virtual Shift? SourceScheduleShift { get; set; }
     public virtual Staff? ShiftLead { get; set; }
     public virtual Staff CreatedByStaff { get; set; } = null!;
     public virtual Staff? OpenedByStaff { get; set; }

@@ -90,23 +90,21 @@ public sealed class OperationalIceUiIssue249Tests : IntegrationTestBase
     {
         using var context = CreateDbContext();
         context.Stores.Add(new Store { StoreId = 9201, Name = "Cửa hàng test đá", Active = true, CreatedAt = DateTime.UtcNow });
-        context.Units.AddRange(
-            new Unit { UnitId = 9202, UnitCode = "G_ICE", Name = "Gram", Active = true },
-            new Unit { UnitId = 9203, UnitCode = "KG_ICE", Name = "Kilogram", Active = true });
-        context.Ingredients.Add(new Ingredient
+        context.StoreInventories.Add(new StoreInventory
         {
-            IngredientId = 9204,
-            Code = "ICE_CONVERSION_TEST",
-            Name = "Đá viên test quy đổi",
-            BaseUnitId = 9202,
-            Active = true
+            StoreId = 9201,
+            IngredientId = 7,
+            AvailableQty = 50_000m,
+            ReservedQty = 0m,
+            LastUpdated = DateTime.UtcNow,
+            RowVersion = [0]
         });
         await context.SaveChangesAsync();
 
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(9205, 9201)).ReturnsAsync(true);
         var conversion = new Mock<IUnitConversionService>();
-        conversion.Setup(x => x.ConvertAsync(9204, 1m, 9203, null))
+        conversion.Setup(x => x.ConvertAsync(7, 1m, 2, null))
             .ReturnsAsync(ServiceResult<decimal>.Failure("Thiếu quy đổi."));
         var service = new OperationalIceService(context, scope.Object, unitConversionService: conversion.Object);
 
@@ -114,8 +112,8 @@ public sealed class OperationalIceUiIssue249Tests : IntegrationTestBase
             new SaveIcePolicyRequest
             {
                 StoreId = 9201,
-                IngredientId = 9204,
-                DisplayUnitId = 9203,
+                IngredientId = 7,
+                DisplayUnitId = 2,
                 SuggestedDailyQuantity = 30_000m,
                 SuggestedShiftQuantity = 10_000m
             },

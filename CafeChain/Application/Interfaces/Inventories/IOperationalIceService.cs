@@ -7,10 +7,19 @@ namespace CafeChain.Application.Interfaces.Inventories;
 
 public interface IOperationalIceService
 {
+    Task<ServiceResult<OperationalIcePolicySetupDto>> GetPolicySetupAsync(int storeId, CancellationToken cancellationToken = default);
+    Task<ServiceResult<IReadOnlyList<OperationalIceScheduleOptionDto>>> GetScheduleOptionsAsync(int storeId, DateTime businessDate, AdminActorContext actor, CancellationToken cancellationToken = default);
+    Task<ServiceResult<IReadOnlyList<OperationalIceScheduleReviewDto>>> GetScheduleReviewsAsync(int storeId, DateTime businessDate, AdminActorContext actor, CancellationToken cancellationToken = default);
+    Task<ServiceResult<IReadOnlyList<OperationalIceWorkShiftSuggestionDto>>> GetWorkShiftSuggestionsAsync(int operationalShiftId, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult> SavePolicyAsync(SaveIcePolicyRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<OperationalShiftSummaryDto>> CreateShiftAsync(CreateOperationalShiftRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
+    Task<ServiceResult<OperationalShiftSummaryDto>> SyncDraftWithScheduleAsync(SyncOperationalShiftScheduleRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
+    Task<ServiceResult<OperationalShiftSummaryDto>> ConvertDraftToManualAsync(ConvertOperationalShiftToManualRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
+    Task<ServiceResult<OperationalShiftSummaryDto>> UpdateDraftShiftLeadAsync(UpdateOperationalShiftLeadRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
+    Task<ServiceResult<OperationalShiftSummaryDto>> CancelDraftShiftAsync(CancelDraftOperationalShiftRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<IceAllocationDto>> OpenAllocationAsync(OpenIceAllocationRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult> LinkWorkShiftAsync(LinkOperationalWorkShiftRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
+    Task<ServiceResult> LinkWorkShiftsAsync(LinkOperationalWorkShiftsRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<IceSupplementalIssueDto>> RequestSupplementalAsync(RequestSupplementalIceRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<IceSupplementalIssueDto>> DecideSupplementalAsync(DecideSupplementalIceRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<IceCarryOverDto>> ConfirmCarryOverAsync(ConfirmIceCarryOverRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);

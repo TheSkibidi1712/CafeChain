@@ -18,8 +18,8 @@ namespace CafeChain.Tests;
 public sealed class OperationalIceReservationIssue247Tests : IntegrationTestBase
 {
     private const int StoreId = 901;
-    private const int IngredientId = 902;
-    private const int UnitId = 903;
+    private const int IngredientId = 7;
+    private const int UnitId = 1;
     private const int StaffId = 904;
 
     [Fact]
@@ -392,15 +392,6 @@ public sealed class OperationalIceReservationIssue247Tests : IntegrationTestBase
             Active = true,
             CreatedAt = DateTime.UtcNow
         });
-        context.Units.Add(new Unit { UnitId = UnitId, UnitCode = "ICE_U", Name = "Gram", Active = true });
-        context.Ingredients.Add(new Ingredient
-        {
-            IngredientId = IngredientId,
-            Code = "ICE_TEST",
-            Name = "Đá viên test",
-            BaseUnitId = UnitId,
-            Active = true
-        });
         var inventory = new StoreInventory
         {
             StoreId = StoreId,
@@ -434,6 +425,7 @@ public sealed class OperationalIceReservationIssue247Tests : IntegrationTestBase
             Name = $"Ca test {Guid.NewGuid():N}",
             StartAtUtc = DateTime.UtcNow.AddHours(-1),
             EndAtUtc = DateTime.UtcNow.AddHours(7),
+            ShiftLeadId = StaffId,
             Status = OperationalIceStatuses.Draft,
             CreatedByStaffId = StaffId,
             CreatedAtUtc = DateTime.UtcNow,

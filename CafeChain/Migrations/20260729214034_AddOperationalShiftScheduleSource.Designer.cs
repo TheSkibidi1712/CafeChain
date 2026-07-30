@@ -4,6 +4,7 @@ using CafeChain.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260729214034_AddOperationalShiftScheduleSource")]
+    partial class AddOperationalShiftScheduleSource
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -7355,13 +7358,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("RestockRequestId")
                         .HasColumnType("int");
 
-                    b.Property<string>("SuggestionSnapshotJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SuggestionSnapshotVersion")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
                     b.HasKey("RestockRequestTransitionId");
 
                     b.HasIndex("ActorStaffId");
@@ -9505,10 +9501,6 @@ namespace CafeChain.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
-
-                    b.Property<string>("MeaningfulVersion")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
 
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("datetime2");
