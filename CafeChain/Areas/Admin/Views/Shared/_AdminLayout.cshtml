@@ -158,19 +158,26 @@
         .sidebar-sub {
             background-color: #fafbfc;
             border-left: 2px solid #e9ecef;
-            margin-left: 28px;
+            margin-left: 18px !important;
         }
         .sidebar-sub a {
-            padding: 8px 15px;
-            font-size: 13px;
-            font-weight: 400;
+            padding: 7px 8px !important;
+            font-size: 12.5px !important;
+            font-weight: 400 !important;
             color: #64748b;
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            display: flex !important;
+            align-items: center !important;
         }
         .sidebar-sub a i {
-            font-size: 8px;
-            width: 14px;
-            margin-right: 8px;
+            font-size: 8px !important;
+            width: 14px !important;
+            margin-right: 6px !important;
             color: #94a3b8;
+            flex-shrink: 0 !important;
         }
         .sidebar-sub a:hover,
         .sidebar-sub a.active {

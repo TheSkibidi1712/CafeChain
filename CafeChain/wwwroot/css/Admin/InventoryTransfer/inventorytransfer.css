@@ -519,13 +519,14 @@
     color: #64748b;
     font-size: 12px;
     font-weight: 900;
-    padding: 12px 10px;
+    padding: 12px 14px;
     text-transform: uppercase;
+    vertical-align: middle;
 }
 
 .transfer-table td {
     border-top: 1px solid var(--transfer-border);
-    padding: 10px;
+    padding: 12px 14px;
     vertical-align: middle;
 }
 
@@ -535,6 +536,10 @@
 
 .transfer-table .text-end {
     text-align: right;
+}
+
+.transfer-table .text-center {
+    text-align: center;
 }
 
 .transfer-index-page {
@@ -547,58 +552,59 @@
 }
 
 .transfer-index-table {
-    min-width: 1180px;
+    min-width: 1380px;
     table-layout: fixed;
 }
 
 .transfer-index-table th,
 .transfer-index-table td {
     white-space: nowrap;
+    text-align: center;
 }
 
 .transfer-index-table th:nth-child(1),
 .transfer-index-table td:nth-child(1) {
-    width: 170px;
+    width: 250px;
 }
 
 .transfer-index-table th:nth-child(2),
 .transfer-index-table td:nth-child(2) {
-    width: 96px;
+    width: 110px;
 }
 
 .transfer-index-table th:nth-child(3),
 .transfer-index-table td:nth-child(3) {
-    width: 112px;
+    width: 140px;
 }
 
 .transfer-index-table th:nth-child(4),
 .transfer-index-table td:nth-child(4) {
-    width: 165px;
+    width: 200px;
 }
 
 .transfer-index-table th:nth-child(5),
 .transfer-index-table td:nth-child(5) {
-    width: 185px;
+    width: 200px;
 }
 
 .transfer-index-table th:nth-child(6),
 .transfer-index-table td:nth-child(6) {
-    width: 142px;
+    width: 160px;
 }
 
 .transfer-index-table th:nth-child(7),
 .transfer-index-table td:nth-child(7) {
-    width: 124px;
+    width: 130px;
 }
 
 .transfer-index-table th:nth-child(8),
 .transfer-index-table td:nth-child(8) {
-    width: 72px;
+    width: 85px;
 }
 
 .transfer-index-table th:nth-child(9),
 .transfer-index-table td:nth-child(9) {
-    width: 114px;
+    width: 110px;
 }
 
 .transfer-index-date {
@@ -760,7 +766,7 @@
     font-size: 14px;
     font-weight: 700;
     gap: 12px;
-    justify-content: flex-end;
+    justify-content: center;
     margin-top: 16px;
 }
 

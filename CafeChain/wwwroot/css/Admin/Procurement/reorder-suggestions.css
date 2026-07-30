@@ -1,27 +1,302 @@
-.reorder-page { color: var(--cc-text-primary); padding: 28px 32px 40px; }
-.reorder-header { align-items: flex-start; display: flex; gap: 24px; justify-content: space-between; margin-bottom: 20px; }
-.reorder-header h1 { font-size: 28px; font-weight: 750; margin: 2px 0 4px; }
-.reorder-header p { color: var(--cc-text-secondary); margin: 0; }
-.reorder-eyebrow { color: var(--cc-accent) !important; font-size: 13px; font-weight: 700; }
-.reorder-filters { align-items: end; background: var(--cc-surface); border: 1px solid var(--cc-border); border-radius: 8px; display: grid; gap: 14px; grid-template-columns: minmax(220px, 1fr) 180px auto; padding: 16px; }
-.reorder-filters label { color: var(--cc-text-secondary); display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
-.reorder-note { align-items: center; background: var(--cc-warning-bg); border-left: 3px solid var(--cc-accent); display: flex; gap: 10px; margin: 12px 0; padding: 12px 14px; }
-.reorder-table-shell { background: var(--cc-surface); border: 1px solid var(--cc-border); border-radius: 8px; min-height: 260px; overflow: hidden; }
-.reorder-table { margin: 0; min-width: 1260px; }
-.reorder-table th { background: var(--cc-surface-muted); color: var(--cc-text-secondary); font-size: 12px; padding: 12px; white-space: nowrap; }
-.reorder-table td { font-size: 13px; padding: 14px 12px; vertical-align: top; }
-.reorder-table td > span, .reorder-table td > small { color: var(--cc-text-secondary); display: block; margin-top: 3px; }
-.reorder-status { border: 1px solid var(--cc-border); border-radius: 999px; color: var(--cc-text-secondary) !important; display: inline-block !important; font-size: 11px; font-weight: 700; padding: 3px 8px; }
-.reorder-status--ready { background: var(--cc-success-bg); border-color: var(--cc-success-bg); color: var(--cc-success) !important; }
-.reorder-status--missing_threshold, .reorder-status--insufficient_history, .reorder-status--no_active_supplier, .reorder-status--invalid_conversion, .reorder-status--missing_lead_time, .reorder-status--missing_cost { background: var(--cc-warning-bg); border-color: var(--cc-warning-bg); color: var(--cc-accent) !important; }
-.reorder-empty { color: var(--cc-text-secondary); padding: 68px 24px; text-align: center; }
-.reorder-empty i { color: var(--cc-warning); font-size: 28px; }
-.reorder-empty h2 { color: var(--cc-text-secondary); font-size: 18px; margin: 12px 0 4px; }
-.btn-primary { background: var(--cc-primary); border-color: var(--cc-primary); }
-.btn-primary:hover, .btn-primary:focus { background: var(--cc-primary-hover); border-color: var(--cc-primary-hover); }
+.reorder-page {
+    color: var(--cc-text-primary);
+    padding: 28px 32px 40px;
+}
+
+.reorder-header {
+    align-items: flex-start;
+    display: flex;
+    gap: 24px;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.reorder-header h1 {
+    font-size: 28px;
+    font-weight: 750;
+    margin: 2px 0 4px;
+}
+
+.reorder-header p {
+    color: var(--cc-text-secondary);
+    margin: 0;
+}
+
+.reorder-eyebrow {
+    color: var(--cc-accent) !important;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.reorder-filters {
+    align-items: end;
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-border);
+    border-radius: 8px;
+    display: grid;
+    gap: 14px;
+    grid-template-columns: minmax(220px, 1fr) 180px auto;
+    padding: 16px;
+}
+
+.reorder-filters label {
+    color: var(--cc-text-secondary);
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.reorder-note {
+    align-items: center;
+    background: var(--cc-warning-bg);
+    border-left: 3px solid var(--cc-accent);
+    display: flex;
+    gap: 10px;
+    margin: 12px 0;
+    padding: 12px 14px;
+}
+
+.reorder-table-shell {
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-border);
+    border-radius: 8px;
+    min-height: 260px;
+    overflow: hidden;
+}
+
+.reorder-table {
+    margin: 0;
+    min-width: 1420px;
+    width: 100%;
+}
+
+.reorder-table th {
+    background: var(--cc-surface-muted);
+    color: var(--cc-text-secondary);
+    font-size: 12px;
+    padding: 13px 14px;
+    white-space: nowrap;
+    font-weight: 750;
+}
+
+.reorder-table td {
+    font-size: 13px;
+    padding: 14px;
+    vertical-align: middle;
+}
+
+.reorder-table td>strong {
+    white-space: nowrap;
+}
+
+.reorder-table td>span {
+    color: var(--cc-text-secondary);
+    display: block;
+    margin-top: 3px;
+    white-space: nowrap;
+}
+
+.reorder-table td>small {
+    color: var(--cc-text-secondary);
+    display: block;
+    margin-top: 4px;
+    max-width: 170px;
+    font-size: 0.76rem;
+    line-height: 1.35;
+    white-space: normal;
+}
+
+/* Status Badge - Fixed No-Wrap & Clean Pill Layout */
+.reorder-status {
+    border: 1px solid var(--cc-border);
+    border-radius: 20px;
+    color: var(--cc-text-secondary) !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    font-size: 0.78rem;
+    font-weight: 750;
+    line-height: 1.2;
+    padding: 4px 12px;
+}
+
+.reorder-status--ready {
+    background: var(--cc-success-bg);
+    border-color: color-mix(in srgb, var(--cc-success) 30%, white);
+    color: var(--cc-success) !important;
+}
+
+.reorder-status--no_reorder_needed {
+    background: var(--cc-surface-muted);
+    border-color: var(--cc-border);
+    color: var(--cc-text-secondary) !important;
+}
+
+.reorder-status--missing_threshold,
+.reorder-status--insufficient_history,
+.reorder-status--no_active_supplier,
+.reorder-status--invalid_conversion,
+.reorder-status--missing_lead_time,
+.reorder-status--missing_cost {
+    background: var(--cc-warning-bg);
+    border-color: color-mix(in srgb, var(--cc-warning) 30%, white);
+    color: var(--cc-accent) !important;
+}
+
+/* Master Reorder Button System - No Wrapping */
+.cc-button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 8px 16px;
+    border-radius: 9px;
+    font-size: 0.84rem;
+    font-weight: 750;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    border: 1px solid var(--cc-border, #ded7cf);
+    background: #ffffff;
+    color: var(--cc-text-primary, #1f2937);
+    box-shadow: 0 2px 6px rgba(111, 78, 55, 0.05);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+}
+
+.cc-button:hover {
+    border-color: #6f4e37;
+    color: #5c3f2b;
+    background: #fbf9f6;
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 12px rgba(111, 78, 55, 0.12);
+}
+
+.cc-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(111, 78, 55, 0.08);
+}
+
+/* Primary Button (Tạo/mở cảnh báo, Tính lại) */
+.cc-button-primary,
+.reorder-page .btn-primary {
+    background: linear-gradient(135deg, #6F4E37 0%, #5C3F2B 100%) !important;
+    border: 1px solid #5C3F2B !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(111, 78, 55, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+.cc-button-primary:hover,
+.reorder-page .btn-primary:hover {
+    background: linear-gradient(135deg, #5C3F2B 0%, #4A3222 100%) !important;
+    border-color: #4A3222 !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(111, 78, 55, 0.38) !important;
+}
+
+.cc-button-primary:disabled {
+    opacity: 0.55 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+    background: #9f8a7c !important;
+    border-color: #9f8a7c !important;
+}
+
+/* AI Feature Button (Xem giải thích AI) */
+.cc-button-ai {
+    background: linear-gradient(135deg, #ffffff 0%, #fbf3ea 100%) !important;
+    border: 1.5px solid #c67a45 !important;
+    color: #8b4e22 !important;
+    box-shadow: 0 2px 8px rgba(198, 122, 69, 0.12) !important;
+}
+
+.cc-button-ai:hover {
+    background: linear-gradient(135deg, #c67a45 0%, #a85e2b 100%) !important;
+    border-color: #a85e2b !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(198, 122, 69, 0.3) !important;
+}
+
+.cc-button-ai i {
+    color: #c67a45;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.cc-button-ai:hover i {
+    color: #ffffff;
+    transform: rotate(15deg) scale(1.15);
+}
+
+/* Secondary Button (Xem yêu cầu nhập, Xem yêu cầu) */
+.cc-button-secondary {
+    background: #f7f3ee !important;
+    border: 1px solid #ded7cf !important;
+    color: #5c3f2b !important;
+}
+
+.cc-button-secondary:hover {
+    background: #efe8e0 !important;
+    border-color: #6f4e37 !important;
+    color: #4a3222 !important;
+}
+
+/* Table Actions Cell Layout - Clean Alignment & Width */
+.reorder-actions-cell {
+    white-space: nowrap !important;
+    text-align: right;
+    vertical-align: middle !important;
+    min-width: 170px;
+}
+
+.reorder-actions-cell .cc-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    padding: 8px 15px !important;
+    font-size: 0.82rem !important;
+    font-weight: 750 !important;
+    margin-bottom: 6px;
+    width: 100%;
+    min-width: 155px;
+}
+
+.reorder-actions-cell form {
+    display: block;
+    margin: 0;
+    width: 100%;
+}
+
+.reorder-actions-cell form .cc-button {
+    width: 100%;
+    margin-bottom: 0;
+}
+
 @media (max-width: 1024px) {
-    .reorder-page { padding: 22px 20px 36px; }
-    .reorder-header { align-items: stretch; flex-direction: column; }
-    .reorder-filters { grid-template-columns: 1fr 1fr; }
-    .reorder-filters .btn { grid-column: 1 / -1; }
+    .reorder-page {
+        padding: 22px 20px 36px;
+    }
+
+    .reorder-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .reorder-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .reorder-filters .btn {
+        grid-column: 1 / -1;
+    }
 }

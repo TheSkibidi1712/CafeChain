@@ -43,11 +43,11 @@
         <div class="pa-field"><label>Chi nhánh</label><select name="storeId"><option value="">Tất cả</option>@foreach (var item in Model.Stores) { <option value="@item.Id" selected="@(Model.Filter.StoreId == item.Id)">@item.Label</option> }</select></div>
         <div class="pa-field"><label>Khu vực</label><select name="areaId"><option value="">Tất cả</option>@foreach (var item in Model.Areas) { <option value="@item.Id" selected="@(Model.Filter.AreaId == item.Id)">@item.Label</option> }</select></div>
         <div class="pa-field"><label>Trạng thái</label><select name="status"><option value="">Đã gửi + Đang xem xét</option><option value="@PurchaseAdviceStatuses.Submitted" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.Submitted)">Đã gửi</option><option value="@PurchaseAdviceStatuses.UnderReview" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.UnderReview)">Đang xem xét</option></select></div>
-        <div class="pa-field"><label>Cần trước ngày</label><input type="date" name="neededByDate" lang="vi" value="@Model.Filter.NeededByDate?.ToString("yyyy-MM-dd")" /><span class="pa-muted">Ngày/tháng/năm</span></div>
+        <div class="pa-field"><label>Cần trước ngày</label><input type="date" name="neededByDate" lang="vi" value="@Model.Filter.NeededByDate?.ToString("yyyy-MM-dd")" /></div>
         <div class="pa-field"><label>Nguyên liệu</label><select name="ingredientId"><option value="">Tất cả</option>@foreach (var item in Model.Ingredients) { <option value="@item.Id" selected="@(Model.Filter.IngredientId == item.Id)">@item.Label</option> }</select></div>
         <div class="pa-field"><label>Ưu tiên</label><select name="priority"><option value="">Tất cả</option>@foreach (var value in PurchaseAdvicePriorities.All) { <option value="@value" selected="@(Model.Filter.Priority == value)">@AdminStatusDisplay.PurchaseAdvicePriority(value).Label</option> }</select></div>
         <div class="pa-field"><label>Nhà cung cấp phù hợp</label><select name="supplierId"><option value="">Tất cả</option>@foreach (var item in Model.Suppliers) { <option value="@item.Id" selected="@(Model.Filter.SupplierId == item.Id)">@item.Label</option> }</select></div>
-        <button class="pa-action" type="submit"><i class="fas fa-filter"></i> Lọc</button>
+        <div class="pa-field pa-field-button"><label class="pa-field-spacer">&nbsp;</label><button class="pa-action" type="submit"><i class="fas fa-filter"></i> Lọc</button></div>
     </form>
 
     <div class="pa-workspace">
