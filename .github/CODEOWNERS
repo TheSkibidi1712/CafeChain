@@ -1,0 +1,5 @@
+# Mọi thay đổi trong repository cần bạn review
+* @TheSkibidi1712
+
+# Bảo vệ chính file CODEOWNERS
+/.github/CODEOWNERS @TheSkibidi1712
