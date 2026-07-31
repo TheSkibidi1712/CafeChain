@@ -17,8 +17,10 @@ namespace CafeChain.Application.Services.Admin.Actor
 
             var staffClaim = user.FindFirst("StaffId")?.Value
                              ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var accountClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var storeClaim = user.FindFirst("StoreId")?.Value;
 
+            int.TryParse(accountClaim, out var accountId);
             int.TryParse(staffClaim, out var staffId);
             int.TryParse(storeClaim, out var storeId);
 
@@ -31,6 +33,7 @@ namespace CafeChain.Application.Services.Admin.Actor
 
             return new AdminActorContext
             {
+                AccountId = accountId > 0 ? accountId : 0,
                 StaffId = staffId > 0 ? staffId : 0,
                 StoreId = storeId > 0 ? storeId : 0,
                 RoleNames = roles

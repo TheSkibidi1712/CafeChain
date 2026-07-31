@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
@@ -9,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers;
 
 [Area("Admin")]
-[Authorize(Roles =
+[RequirePermission(PermissionConstants.PurchaseOrderViewBatch,
     RoleConstants.BusinessOwner + "," +
     RoleConstants.AccountantWarehouse + "," +
     RoleConstants.AreaManager + "," +
@@ -61,6 +62,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequirePermission(PermissionConstants.PurchaseOrderCreateBatch)]
     public async Task<IActionResult> Create(CreatePurchaseOrderBatchRequest request)
     {
         var result = await _service.CreateAsync(request, _actorAccessor.Get(User));
@@ -75,6 +77,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequirePermission(PermissionConstants.PurchaseOrderApprove)]
     public async Task<IActionResult> Approve(int id, PurchaseOrderBatchTransitionRequest request)
     {
         var result = await _service.ApproveAsync(id, request, _actorAccessor.Get(User));
@@ -84,6 +87,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequirePermission(PermissionConstants.PurchaseOrderCancel)]
     public async Task<IActionResult> Cancel(int id, PurchaseOrderBatchTransitionRequest request)
     {
         var result = await _service.CancelAsync(id, request, _actorAccessor.Get(User));
@@ -93,6 +97,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequirePermission(PermissionConstants.PurchaseOrderExport)]
     public async Task<IActionResult> GeneratePdf(int id)
     {
         var result = await _documentService.GenerateAsync(id, _actorAccessor.Get(User));
@@ -103,6 +108,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
     }
 
     [HttpGet]
+    [RequirePermission(PermissionConstants.PurchaseOrderExport)]
     public async Task<IActionResult> DownloadRevision(int revisionId)
     {
         var result = await _documentService.DownloadAsync(revisionId, _actorAccessor.Get(User));
@@ -111,6 +117,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
     }
 
     [HttpGet]
+    [RequirePermission(PermissionConstants.PurchaseOrderExport)]
     public async Task<IActionResult> PrintRevision(int revisionId)
     {
         var result = await _documentService.DownloadAsync(revisionId, _actorAccessor.Get(User));
@@ -121,6 +128,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequirePermission(PermissionConstants.PurchaseOrderSend)]
     public async Task<IActionResult> MarkRevisionSent(int id, int revisionId, MarkPurchaseOrderBatchDocumentSentRequest request)
     {
         var result = await _documentService.MarkSentAsync(id, revisionId, request, _actorAccessor.Get(User));

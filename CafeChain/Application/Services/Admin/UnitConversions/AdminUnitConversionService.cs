@@ -484,15 +484,20 @@ namespace CafeChain.Application.Services.Admin.UnitConversions
             return ServiceResult.Success("Cập nhật quy đổi thành công.");
         }
 
-        public async Task<ServiceResult> DeleteAsync(int unitConversionId)
+        public async Task<ServiceResult> SetActiveAsync(int unitConversionId, bool active)
         {
             var entity = await _context.UnitConversions.FindAsync(unitConversionId);
             if (entity == null)
                 return ServiceResult.Failure("Không tìm thấy quy đổi.");
 
-            _context.UnitConversions.Remove(entity);
+            if (entity.Active == active)
+                return ServiceResult.Success(
+                    active ? "Quy đổi đã ở trạng thái hoạt động." : "Quy đổi đã ngưng hoạt động.");
+
+            entity.Active = active;
             await _context.SaveChangesAsync();
-            return ServiceResult.Success("Đã xóa quy đổi đo lường theo nguyên liệu.");
+            return ServiceResult.Success(
+                active ? "Đã kích hoạt quy đổi." : "Đã ngưng hoạt động quy đổi.");
         }
 
         public async Task<AdminUnitConversionEvaluateRequest?> GetForEditAsync(int unitConversionId)

@@ -1140,14 +1140,16 @@ namespace CafeChain.Application.Services.Inventories
 
         private static bool CanWarehouseProcess(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.AccountantWarehouse)
-            || roles.Contains(RoleConstants.BusinessOwner);
+            || roles.Contains(RoleConstants.BusinessOwner)
+            || roles.Contains(RoleConstants.SystemAdmin);
 
         private static bool CanCancel(IReadOnlyCollection<string> roles) =>
             CanWarehouseProcess(roles) || roles.Contains(RoleConstants.StoreManager);
 
         private static bool CanSubmit(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.StoreManager)
-            || roles.Contains(RoleConstants.BusinessOwner);
+            || roles.Contains(RoleConstants.BusinessOwner)
+            || roles.Contains(RoleConstants.SystemAdmin);
 
         private string? ApplyRequiredRowVersion(RestockRequest request, string? rowVersion)
         {
@@ -1172,7 +1174,8 @@ namespace CafeChain.Application.Services.Inventories
             && !CanWarehouseProcess(roles);
 
         private static bool IsGlobalAdmin(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.BusinessOwner);
+            roles.Contains(RoleConstants.BusinessOwner)
+            || roles.Contains(RoleConstants.SystemAdmin);
 
         private static string ResolveItemName(RestockRequest r)
         {

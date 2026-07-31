@@ -1939,7 +1939,8 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
         private static bool HasRole(
             CafeChain.Application.DTOs.Admin.Actor.AdminActorContext actor,
             params string[] roles) =>
-            actor.RoleNames.Any(role => roles.Contains(role, StringComparer.OrdinalIgnoreCase));
+            actor.RoleNames.Contains(RoleConstants.SystemAdmin, StringComparer.OrdinalIgnoreCase)
+            || actor.RoleNames.Any(role => roles.Contains(role, StringComparer.OrdinalIgnoreCase));
 
         private static bool HasOperationalRole(
             CafeChain.Application.DTOs.Admin.Actor.AdminActorContext actor) =>

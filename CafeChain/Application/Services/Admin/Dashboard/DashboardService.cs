@@ -1,6 +1,8 @@
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Dashboard;
+using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Dashboard;
+using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Infrastrusture.Interfaces.Admin.Dashboard;
 using CafeChain.ViewModels.Admin.Dashboard;
@@ -29,28 +31,23 @@ public sealed class DashboardService : IDashboardService
     private readonly IScopeAuthorizationService _scopeAuthorization;
     private readonly IMemoryCache _cache;
     private readonly TimeProvider _clock;
-
-    public DashboardService(
-        IDashboardRepository repository,
-        IScopeAuthorizationService scopeAuthorization)
-        : this(
-            repository,
-            scopeAuthorization,
-            new MemoryCache(new MemoryCacheOptions()),
-            TimeProvider.System)
-    {
-    }
+    private readonly IReorderSuggestionService? _reorderSuggestions;
+    private readonly IReorderSuggestionAuthorizationService? _reorderAuthorization;
 
     public DashboardService(
         IDashboardRepository repository,
         IScopeAuthorizationService scopeAuthorization,
-        IMemoryCache cache,
-        TimeProvider clock)
+        IMemoryCache? cache = null,
+        TimeProvider? clock = null,
+        IReorderSuggestionService? reorderSuggestions = null,
+        IReorderSuggestionAuthorizationService? reorderAuthorization = null)
     {
         _repository = repository;
         _scopeAuthorization = scopeAuthorization;
-        _cache = cache;
-        _clock = clock;
+        _cache = cache ?? new MemoryCache(new MemoryCacheOptions());
+        _clock = clock ?? TimeProvider.System;
+        _reorderSuggestions = reorderSuggestions;
+        _reorderAuthorization = reorderAuthorization;
     }
 
     public async Task<DashboardPageDto> GetPageAsync(
@@ -111,16 +108,17 @@ public sealed class DashboardService : IDashboardService
         else
             scope = await ResolveScopeAsync(actor, filter, cancellationToken);
         filter = scope.Filter;
-        var data = await LoadSectionAsync(section, scope, cancellationToken);
+        var data = await LoadSectionAsync(actor, section, scope, cancellationToken);
         return CreateSectionResponse(section, scope, data, contextId);
     }
 
     private async Task<object> LoadSectionAsync(
+        AdminActorContext actor,
         DashboardSection section,
         ScopeResolution scope,
         CancellationToken cancellationToken)
     {
-        return section switch
+        object data = section switch
         {
             DashboardSection.Executive => await _repository.GetExecutiveAsync(scope.Filter, scope.StoreIds, cancellationToken),
             DashboardSection.Operations => await _repository.GetOperationsAsync(scope.Filter, scope.StoreIds, cancellationToken),
@@ -130,6 +128,16 @@ public sealed class DashboardService : IDashboardService
             DashboardSection.Workforce => await _repository.GetWorkforceAsync(scope.Filter, scope.StoreIds, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(section))
         };
+        if (section == DashboardSection.Inventory
+            && data is InventoryDashboardData inventory)
+        {
+            inventory.ReorderSuggestions = await BuildReorderWidgetAsync(
+                actor,
+                scope.StoreIds,
+                inventory.ReorderSuggestions,
+                cancellationToken);
+        }
+        return data;
     }
 
     public async Task<DashboardVM> GetDashboardAsync(DashboardRequest request)
@@ -206,7 +214,7 @@ public sealed class DashboardService : IDashboardService
         foreach (var group in widgets.Distinct().GroupBy(widget => DashboardWidgetCatalog.Get(widget).Section))
         {
             var stopwatch = Stopwatch.StartNew();
-            var sectionData = await LoadSectionAsync(group.Key, scope, cancellationToken);
+            var sectionData = await LoadSectionAsync(actor, group.Key, scope, cancellationToken);
             var response = CreateSectionResponse(group.Key, scope, sectionData, contextId: null);
             var failed = 0;
             foreach (var widget in group)
@@ -245,6 +253,95 @@ public sealed class DashboardService : IDashboardService
         DashboardAnalysisAuditDto audit,
         CancellationToken cancellationToken = default) =>
         _repository.WriteAnalysisAuditAsync(staffId, audit, cancellationToken);
+
+    private async Task<DashboardWidgetResult<InventoryReorderRow>> BuildReorderWidgetAsync(
+        AdminActorContext actor,
+        IReadOnlyList<int> storeIds,
+        DashboardWidgetResult<InventoryReorderRow> legacy,
+        CancellationToken cancellationToken)
+    {
+        if (_reorderSuggestions == null || _reorderAuthorization == null)
+            return legacy;
+
+        var allowedStores = new List<int>();
+        foreach (var storeId in storeIds)
+        {
+            if (await _reorderAuthorization.CanViewAsync(
+                    actor,
+                    storeId,
+                    cancellationToken))
+            {
+                allowedStores.Add(storeId);
+            }
+        }
+        if (allowedStores.Count == 0)
+            return DashboardWidgetResult<InventoryReorderRow>.Failure(
+                "Không có cửa hàng trong phạm vi được phép xem gợi ý nhập hàng.");
+
+        try
+        {
+            var result = await _reorderSuggestions.CalculateForStoresAsync(
+                allowedStores,
+                analysisWindowDays: 30,
+                cancellationToken: cancellationToken);
+            if (!result.IsSuccess || result.Data == null)
+                return DashboardWidgetResult<InventoryReorderRow>.Failure(
+                    result.Message ?? "Không tải được gợi ý nhập hàng.");
+
+            var rows = result.Data
+                .SelectMany(x => x.Items)
+                .Where(x => x.SuggestionStatus is
+                    ReorderRecommendationLevels.Urgent
+                    or ReorderRecommendationLevels.NearReorder
+                    or ReorderRecommendationLevels.ProcurementInProgress)
+                .Where(x => x.FinalSuggestedQuantity > 0m)
+                .OrderByDescending(x =>
+                    x.SuggestionStatus == ReorderRecommendationLevels.Urgent)
+                .ThenByDescending(x => x.FinalSuggestedQuantity)
+                .Take(10)
+                .Select(x => new InventoryReorderRow
+                {
+                    StoreId = x.StoreId,
+                    StoreName = x.StoreName,
+                    IngredientId = x.IngredientId,
+                    IngredientCode = x.IngredientCode,
+                    IngredientName = x.IngredientName,
+                    Unit = x.BaseUnitCode,
+                    OnHandQuantity = x.OnHandQuantity,
+                    ReservedQuantity = x.ReservedQuantity,
+                    AvailableQuantity = x.AvailableStock,
+                    MinimumStock = x.MinimumStock,
+                    ShortageQuantity = x.RemainingDemand ?? 0m,
+                    RequestedQuantity = x.FinalSuggestedQuantity ?? 0m,
+                    SuggestedQuantity = x.FinalSuggestedQuantity,
+                    EffectiveSuggestedQuantity = x.FinalSuggestedQuantity ?? 0m,
+                    SuggestionAverageDailyUsageSnapshot = x.AverageDailyConsumption,
+                    SuggestionLeadTimeDaysSnapshot = x.LeadTimeDays,
+                    SuggestionIncomingQuantitySnapshot = x.IncomingQuantity,
+                    SuggestionReason = x.Reason,
+                    Status = x.SuggestionStatus,
+                    SuggestionStatus = x.SuggestionStatus,
+                    RawDemand = x.RawDemand,
+                    ProcurementCoveredQuantity = x.ProcurementCoveredQuantity,
+                    RemainingDemand = x.RemainingDemand,
+                    IncomingQuantity = x.IncomingQuantity,
+                    FinalSuggestedQuantity = x.FinalSuggestedQuantity,
+                    MeaningfulSuggestionVersion = x.MeaningfulSuggestionVersion,
+                    DataStatus = "OK"
+                })
+                .ToList();
+            return DashboardWidgetResult<InventoryReorderRow>.Success(rows);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return DashboardWidgetResult<InventoryReorderRow>.Failure(
+                "Khong tai duoc widget goi y nhap hang.");
+        }
+    }
 
     private async Task<ScopeResolution> ResolveScopeAsync(
         AdminActorContext actor,
@@ -464,6 +561,8 @@ public sealed class DashboardService : IDashboardService
         (DashboardAnalyticsWidget.HighConsumptionLowEfficiency, DashboardSectionResponse<ProductDashboardData> x) => Pack(x.Data.LowEfficiency),
         (DashboardAnalyticsWidget.CategoryPerformance, DashboardSectionResponse<ProductDashboardData> x) => Pack(x.Data.CategoryPerformance),
         (DashboardAnalyticsWidget.ProductPeriodPerformance, DashboardSectionResponse<ProductDashboardData> x) => Pack(x.Data.ProductPeriodPerformance),
+        (DashboardAnalyticsWidget.LowVolumeProducts, DashboardSectionResponse<ProductDashboardData> x) => Pack(x.Data.LowVolumeProducts),
+        (DashboardAnalyticsWidget.LowMarginProducts, DashboardSectionResponse<ProductDashboardData> x) => Pack(x.Data.LowMarginProducts),
         (DashboardAnalyticsWidget.WorkforceShiftStatus, DashboardSectionResponse<WorkforceDashboardData> x) => Pack(x.Data.ShiftStatus),
         (DashboardAnalyticsWidget.WorkforceHourlyDemand, DashboardSectionResponse<WorkforceDashboardData> x) => Pack(x.Data.HourlyDemand),
         (DashboardAnalyticsWidget.WorkforceStaffPerformance, DashboardSectionResponse<WorkforceDashboardData> x) => Pack(x.Data.StaffPerformance),

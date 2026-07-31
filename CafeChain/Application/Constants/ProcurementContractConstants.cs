@@ -2,6 +2,7 @@ namespace CafeChain.Application.Constants;
 
 public static class RestockRequestSourceTypes
 {
+    public const string ReorderSuggestion = "REORDER_SUGGESTION";
     public const string StockAlert = "StockAlert";
     public const string ManualByStore = "ManualByStore";
     public const string CentralPlanner = "CentralPlanner";

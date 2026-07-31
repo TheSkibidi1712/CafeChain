@@ -291,6 +291,39 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
             It.IsAny<int>()), Times.Never);
     }
 
+    [Fact]
+    public async Task SystemAdmin_HasGlobalActiveStoreScopeWithoutStaffScopeRows()
+    {
+        await using var db = CreateDbContext();
+        db.StaffScopes.RemoveRange(db.StaffScopes.Where(x => x.StaffId == 6));
+        await db.SaveChangesAsync();
+        var scope = new ScopeAuthorizationService(db);
+        var activeStoreIds = await db.Stores
+            .Where(x => x.Active)
+            .Select(x => x.StoreId)
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var allowed = await scope.GetAllowedStoresAsync(6);
+
+        Assert.Equal(activeStoreIds, allowed.Select(x => x.StoreId).OrderBy(x => x));
+        Assert.True(await scope.CanAccessStoreAsync(6, activeStoreIds.Last()));
+    }
+
+    [Fact]
+    public async Task InactiveSystemAdmin_DoesNotReceiveGlobalScopeByRole()
+    {
+        await using var db = CreateDbContext();
+        db.StaffScopes.RemoveRange(db.StaffScopes.Where(x => x.StaffId == 6));
+        var staff = await db.Staffs.SingleAsync(x => x.StaffId == 6);
+        staff.Active = false;
+        await db.SaveChangesAsync();
+        var scope = new ScopeAuthorizationService(db);
+
+        Assert.Empty(await scope.GetAllowedStoresAsync(6));
+        Assert.False(await scope.CanAccessStoreAsync(6, 1));
+    }
+
     private static AdminActorContext AccountantActor() => new()
     {
         StaffId = 5,

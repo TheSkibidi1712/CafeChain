@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.InventoryTransfers;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.InventoryTransfers;
@@ -10,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CafeChain.Areas.Admin.Controllers
 {
     [AutoValidateAntiforgeryToken]
+    [RequirePermission(PermissionConstants.InventoryTransferView)]
     public class AdminInventoryTransferController : AdminBaseController
     {
         private readonly IAdminInventoryTransferService _service;
@@ -42,6 +44,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.InventoryTransferCreateDraft)]
         public async Task<IActionResult> Create()
         {
             if (!CanMutateTransfers())
@@ -94,6 +97,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.InventoryTransferCreateDraft)]
         [HttpPost]
         public async Task<IActionResult> Preflight([FromBody] InventoryTransferMutationDTO dto)
         {
@@ -129,6 +133,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.InventoryTransferCreateDraft)]
         [HttpPost]
         public async Task<IActionResult> SaveDraft([FromBody] InventoryTransferMutationDTO dto)
         {
@@ -176,6 +181,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.InventoryTransferUpdateDraft)]
         [HttpPost]
         public async Task<IActionResult> UpdateDraft(
             int id,
@@ -221,6 +227,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.InventoryTransferDispatch)]
         [HttpPost]
         public async Task<IActionResult> Dispatch(int id, string? requestKey)
         {
@@ -251,6 +258,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.InventoryTransferReceive)]
         [HttpPost]
         public async Task<IActionResult> Receive(int id, [FromBody] InventoryTransferReceiveDTO dto)
         {
@@ -281,6 +289,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.InventoryTransferRequestReturn)]
         [HttpPost]
         public async Task<IActionResult> RequestReturn(int id, [FromBody] InventoryTransferResolutionDTO dto)
         {
@@ -294,6 +303,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 "Không thể tạo yêu cầu hoàn trả.");
         }
 
+        [RequirePermission(PermissionConstants.InventoryTransferConfirmReturn)]
         [HttpPost]
         public async Task<IActionResult> ConfirmReturn(int id, [FromBody] InventoryTransferResolutionDTO dto)
         {
@@ -307,16 +317,19 @@ namespace CafeChain.Areas.Admin.Controllers
                 "Không thể xác nhận hàng hoàn trả.");
         }
 
+        [RequirePermission(PermissionConstants.InventoryTransferResolveDiscrepancy)]
         [HttpPost]
         public async Task<IActionResult> ResolveShortage(int id, [FromBody] InventoryTransferResolutionDTO dto)
         {
-            if (!User.IsInRole(RoleConstants.BusinessOwner))
+            if (!User.IsInRole(RoleConstants.BusinessOwner)
+                && !User.IsInRole(RoleConstants.SystemAdmin))
                 return Forbid();
             return await ExecuteMutationAsync(
                 () => _service.ResolveShortageAsync(id, dto),
                 "Không thể đóng phần thiếu.");
         }
 
+        [RequirePermission(PermissionConstants.InventoryTransferResolveDiscrepancy)]
         [HttpPost]
         public async Task<IActionResult> CreateFollowUp(int id, [FromBody] InventoryTransferFollowUpDTO dto)
         {
@@ -340,6 +353,7 @@ namespace CafeChain.Areas.Admin.Controllers
             });
         }
 
+        [RequirePermission(PermissionConstants.InventoryTransferCancel)]
         [HttpPost]
         public async Task<IActionResult> Cancel(int id, string? requestKey)
         {
@@ -417,7 +431,8 @@ namespace CafeChain.Areas.Admin.Controllers
 
         private bool CanMutateTransfers() =>
             User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AccountantWarehouse);
+            || User.IsInRole(RoleConstants.AccountantWarehouse)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private async Task<List<int>?> ResolveReadStoreScopeAsync()
         {
@@ -477,7 +492,8 @@ namespace CafeChain.Areas.Admin.Controllers
             if (storeId <= 0)
                 return false;
             if (User.IsInRole(RoleConstants.BusinessOwner)
-                || User.IsInRole(RoleConstants.AccountantWarehouse))
+                || User.IsInRole(RoleConstants.AccountantWarehouse)
+                || User.IsInRole(RoleConstants.SystemAdmin))
                 return true;
             if (!User.IsInRole(RoleConstants.StoreManager)
                 && !User.IsInRole(RoleConstants.ShiftSupervisor))

@@ -3,6 +3,8 @@ using CafeChain.Application.DTOs.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Admin.Production;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Extensions;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
 using CafeChain.ViewModels.Admin.Productions;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -13,6 +15,7 @@ using System.Threading.Tasks;
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [RequirePermission(PermissionConstants.ProductionOrderView)]
     public class AdminProductionOrderController : AdminBaseController
     {
         private readonly IProductionRunService _productionRunService;
@@ -36,6 +39,7 @@ namespace CafeChain.Areas.Admin.Controllers
         public IActionResult Index() => RedirectToAction(nameof(Create));
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.ProductionOrderCreate)]
         public async Task<IActionResult> Create(int storeId = 0, int recipeId = 0)
         {
             var accountId = GetAccountId();
@@ -103,6 +107,7 @@ namespace CafeChain.Areas.Admin.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ProductionOrderConfirm)]
         public async Task<IActionResult> Execute([FromBody] ProductionExecuteRequest request)
         {
             if (request == null)
@@ -188,6 +193,7 @@ namespace CafeChain.Areas.Admin.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ProductionOrderConfirm)]
         public async Task<IActionResult> ExecuteStock([FromBody] ProductionExecuteStockRequest request)
         {
             if (request == null || request.ProductionRunId <= 0)

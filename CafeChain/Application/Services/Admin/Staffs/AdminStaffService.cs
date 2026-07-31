@@ -81,7 +81,8 @@ namespace CafeChain.Application.Services.Admin.Staffs
 
         private static int GetRoleRank(string roleName) => roleName switch
         {
-            RoleConstants.BusinessOwner or RoleConstants.SystemAdmin => 0,
+            RoleConstants.SystemAdmin => -10,
+            RoleConstants.BusinessOwner => 0,
             RoleConstants.AreaManager => 10,
             RoleConstants.StoreManager => 20,
             RoleConstants.AccountantWarehouse => 30,
@@ -92,7 +93,8 @@ namespace CafeChain.Application.Services.Admin.Staffs
 
         private static int GetRoleRank(int roleId) => roleId switch
         {
-            ROLE_BUSINESS_OWNER or ROLE_SYSTEM_ADMIN => 0,
+            ROLE_SYSTEM_ADMIN => -10,
+            ROLE_BUSINESS_OWNER => 0,
             ROLE_AREA_MANAGER => 10,
             ROLE_STORE_MANAGER => 20,
             ROLE_ACCOUNTANT_WAREHOUSE => 30,
@@ -438,11 +440,9 @@ namespace CafeChain.Application.Services.Admin.Staffs
             var (isAdmin, isStoreManager, currentStoreId) = ExtractUserClaims(user);
 
             var actorIsOwner = user.IsInRole(RoleConstants.BusinessOwner);
-            var actorIsSystemAdmin = user.IsInRole(RoleConstants.SystemAdmin);
             if ((actorIsOwner && model.SelectedRoleId == ROLE_SYSTEM_ADMIN)
-                || (actorIsSystemAdmin && model.SelectedRoleId == ROLE_BUSINESS_OWNER)
                 || model.SelectedRoleId == ROLE_CUSTOMER)
-                return ServiceResult.Failure("Không được gán vai trò cấp cao chéo hoặc vai trò Khách hàng cho nhân viên.");
+                return ServiceResult.Failure("Không được gán vai trò Quản trị hệ thống từ Chủ doanh nghiệp hoặc gán vai trò Khách hàng cho nhân viên.");
 
             if (GetRoleRank(model.SelectedRoleId) <= GetActorRank(user))
                 return ServiceResult.Failure("Bạn chỉ được gán vai trò thấp hơn vai trò của chính mình.");
@@ -812,9 +812,9 @@ namespace CafeChain.Application.Services.Admin.Staffs
             }
             if (targetRoles.Select(GetRoleRank).DefaultIfEmpty(int.MaxValue).Min() <= GetActorRank(actor))
                 throw new UnauthorizedAccessException("Bạn không được thao tác tài khoản ngang cấp hoặc cấp cao hơn.");
-            if ((actor.IsInRole(RoleConstants.BusinessOwner) && targetRoles.Contains(RoleConstants.SystemAdmin))
-                || (actor.IsInRole(RoleConstants.SystemAdmin) && targetRoles.Contains(RoleConstants.BusinessOwner)))
-                return ServiceResult.Failure("Không được đặt lại mật khẩu của tài khoản cấp cao chéo.");
+            if (actor.IsInRole(RoleConstants.BusinessOwner)
+                && targetRoles.Contains(RoleConstants.SystemAdmin))
+                return ServiceResult.Failure("Chủ doanh nghiệp không được đặt lại mật khẩu của Quản trị hệ thống.");
 
             var updated = await _repository.ResetPasswordAsync(
                 accountId,

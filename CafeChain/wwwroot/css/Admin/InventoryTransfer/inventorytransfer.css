@@ -1,22 +1,24 @@
 :root {
-    --transfer-accent: #f97316;
-    --transfer-accent-soft: #fff7ed;
+    --transfer-accent: #6F4E37;
+    --transfer-accent-soft: #F7F3EE;
     --transfer-border: #e5e7eb;
-    --transfer-muted: #64748b;
-    --transfer-text: #111827;
-    --transfer-danger: #dc2626;
-    --transfer-success: #16a34a;
+    --transfer-muted: #475569;
+    --transfer-text: #1F2937;
+    --transfer-danger: #991B1B;
+    --transfer-success: #2F6F5E;
+    --transfer-accent-icon: #C67A45;
+    --transfer-warning: #99623B;
 }
 
-.transfer-diff-warning { color: #b45309; }
+.transfer-diff-warning { color: var(--transfer-warning); }
 .transfer-discrepancy-status {
     display: inline-block;
     max-width: 11rem;
     padding: .28rem .5rem;
     border: 1px solid #d7dde5;
     border-radius: 4px;
-    background: #f7f8fa;
-    color: #344054;
+    background: #F7F3EE;
+    color: #1F2937;
     font-size: .72rem;
     overflow-wrap: anywhere;
 }
@@ -27,9 +29,9 @@
     align-items: flex-start;
     margin: 0 0 1rem;
     padding: .75rem .9rem;
-    border-left: 3px solid #f59e0b;
-    background: #fff8eb;
-    color: #92400e;
+    border-left: 3px solid var(--transfer-warning);
+    background: #f5ede4;
+    color: var(--transfer-warning);
 }
 .transfer-resolution-lines { display: grid; gap: .65rem; }
 .transfer-resolution-line {
@@ -62,7 +64,7 @@
 .transfer-empty-timeline { margin: 0; color: #667085; }
 .transfer-timeline { display: grid; gap: .8rem; }
 .transfer-timeline-item { display: grid; grid-template-columns: .75rem 1fr; gap: .7rem; }
-.transfer-timeline-dot { width: .55rem; height: .55rem; margin-top: .35rem; border-radius: 50%; background: #f97316; }
+.transfer-timeline-dot { width: .55rem; height: .55rem; margin-top: .35rem; border-radius: 50%; background: var(--transfer-accent-icon); }
 .transfer-timeline-item strong,
 .transfer-timeline-item span,
 .transfer-timeline-item small { display: block; }
@@ -82,7 +84,7 @@
 }
 
 .transfer-page {
-    background: #f8fafc;
+    background: #F7F3EE;
     color: var(--transfer-text);
     min-height: calc(100vh - 24px);
     padding: 24px 28px 136px;
@@ -134,10 +136,11 @@
 
 .transfer-icon {
     align-items: center;
-    background: #eaf2ff;
+    background: #F7F3EE;
     border-radius: 8px;
-    color: #2563eb;
+    color: #6F4E37;
     display: grid;
+    flex-shrink: 0;
     height: 48px;
     place-items: center;
     width: 48px;
@@ -146,10 +149,10 @@
 .transfer-status-pill,
 .auto-pill {
     align-items: center;
-    background: #fff7ed;
-    border: 1px solid #fed7aa;
+    background: #F7F3EE;
+    border: 1px solid #d4b8a3;
     border-radius: 8px;
-    color: #ea580c;
+    color: #99623B;
     display: inline-flex;
     font-size: 12px;
     font-weight: 800;
@@ -182,6 +185,7 @@
     gap: 18px;
     margin: 0 auto;
     max-width: 1180px;
+    min-width: 0;
     width: 100%;
 }
 
@@ -190,6 +194,7 @@
     border: 1px solid var(--transfer-border);
     border-radius: 8px;
     box-shadow: 0 16px 42px rgba(15, 23, 42, .04);
+    min-width: 0;
     padding: 22px;
 }
 
@@ -208,7 +213,7 @@
 
 .section-kicker {
     align-items: center;
-    color: #c2410c;
+    color: var(--transfer-accent);
     display: inline-flex;
     font-size: 13px;
     font-weight: 800;
@@ -233,7 +238,7 @@
 }
 
 .transfer-readonly-field {
-    background: #f8fafc;
+    background: #F7F3EE;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     display: flex;
@@ -244,14 +249,14 @@
 }
 
 .transfer-readonly-field span {
-    color: #64748b;
+    color: #475569;
     font-size: 12px;
     font-weight: 800;
     text-transform: uppercase;
 }
 
 .transfer-readonly-field strong {
-    color: #111827;
+    color: #1F2937;
     font-size: 15px;
     overflow-wrap: anywhere;
 }
@@ -294,7 +299,7 @@
 }
 
 .transfer-readonly-route .route-field strong {
-    color: #111827;
+    color: #1F2937;
     display: block;
     font-size: 16px;
     font-weight: 900;
@@ -335,21 +340,21 @@
 }
 
 .transfer-status-draft {
-    background: #fff7ed;
-    border-color: #fed7aa;
-    color: #ea580c;
+    background: #F7F3EE;
+    border-color: #d4b8a3;
+    color: #99623B;
 }
 
 .transfer-status-completed {
-    background: #ecfdf5;
-    border-color: #bbf7d0;
-    color: #15803d;
+    background: #d1ece7;
+    border-color: #a3d4c8;
+    color: #2F6F5E;
 }
 
 .transfer-status-cancelled {
-    background: #fef2f2;
-    border-color: #fecaca;
-    color: #dc2626;
+    background: #fde8e8;
+    border-color: #f5a3a3;
+    color: #991B1B;
 }
 
 .transfer-info-grid {
@@ -380,10 +385,10 @@
 }
 
 .transfer-input {
-    background: #f8fafc;
+    background: #F7F3EE;
     border: 1px solid #dbe3ef;
     border-radius: 8px;
-    color: #0f172a;
+    color: #1F2937;
     font-size: 14px;
     min-height: 42px;
     outline: none;
@@ -393,7 +398,7 @@
 
 .transfer-input:focus {
     border-color: var(--transfer-accent);
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, .12);
+    box-shadow: 0 0 0 3px rgba(111, 78, 55, .14);
 }
 
 .transfer-static-input {
@@ -417,11 +422,11 @@
 }
 
 .route-source label {
-    color: #be123c;
+    color: #991B1B;
 }
 
 .route-destination label {
-    color: #15803d;
+    color: #2F6F5E;
 }
 
 .route-arrow {
@@ -469,13 +474,15 @@
 .transfer-filter-grid {
     align-items: end;
     display: grid;
-    gap: 14px;
-    grid-template-columns: 1.2fr 1fr 1fr 1fr auto;
+    gap: 10px;
+    grid-template-columns: minmax(160px, 1.4fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) auto;
 }
 
 .transfer-filter-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
+    flex-shrink: 0;
+    min-width: max-content;
 }
 
 .transfer-outline-button,
@@ -497,8 +504,8 @@
 
 .transfer-outline-button {
     background: #fff;
-    border: 1px dashed #fdba74;
-    color: #ea580c;
+    border: 1px dashed #d4b8a3;
+    color: #6F4E37;
 }
 
 .transfer-table-wrap {
@@ -528,6 +535,7 @@
     border-top: 1px solid var(--transfer-border);
     padding: 12px 14px;
     vertical-align: middle;
+    white-space: nowrap;
 }
 
 .transfer-table .transfer-input {
@@ -685,10 +693,10 @@
 }
 
 .transfer-warning {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
+    background: #fde8e8;
+    border: 1px solid #f5a3a3;
     border-radius: 8px;
-    color: #991b1b;
+    color: #991B1B;
     font-weight: 700;
     margin-top: 14px;
     padding: 14px;
@@ -741,9 +749,9 @@
 }
 
 .transfer-secondary-button {
-    background: #fff7ed;
-    border: 1px solid #fdba74;
-    color: #c2410c;
+    background: #F7F3EE;
+    border: 1px solid #d4b8a3;
+    color: #6F4E37;
 }
 
 .transfer-primary-button {
@@ -763,11 +771,20 @@
     align-items: center;
     color: var(--transfer-muted);
     display: flex;
+    flex-wrap: nowrap;
     font-size: 14px;
     font-weight: 700;
     gap: 12px;
     justify-content: center;
     margin-top: 16px;
+    white-space: nowrap;
+}
+
+.transfer-pagination a,
+.transfer-pagination button,
+.transfer-pagination span {
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 @media (max-width: 900px) {

@@ -19,6 +19,7 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
     [
         DashboardAnalyticsWidget.NetSalesTrend, DashboardAnalyticsWidget.StoreRanking,
         DashboardAnalyticsWidget.TopProducts, DashboardAnalyticsWidget.HourlyOrders,
+        DashboardAnalyticsWidget.LowVolumeProducts, DashboardAnalyticsWidget.LowMarginProducts,
         DashboardAnalyticsWidget.InventoryWasteByStoreIngredient,
         DashboardAnalyticsWidget.OverduePurchaseOrders, DashboardAnalyticsWidget.SupplierQuality,
         DashboardAnalyticsWidget.WorkforceShiftStatus
@@ -42,6 +43,7 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         DashboardAnalyticsWidget.TopProducts, DashboardAnalyticsWidget.VolumeMarginMatrix,
         DashboardAnalyticsWidget.SizeMargin, DashboardAnalyticsWidget.TopToppings,
         DashboardAnalyticsWidget.BomHealth, DashboardAnalyticsWidget.HighConsumptionLowEfficiency,
+        DashboardAnalyticsWidget.LowVolumeProducts, DashboardAnalyticsWidget.LowMarginProducts,
         DashboardAnalyticsWidget.WorkforceShiftStatus, DashboardAnalyticsWidget.WorkforceHourlyDemand,
         DashboardAnalyticsWidget.WorkforceStaffPerformance
     ];
@@ -73,19 +75,24 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         if (prompt.Length > 500 || prompt.Length > _options.MaximumPromptLength)
             throw new ArgumentException("Câu hỏi tối đa 500 ký tự.");
         if (prompt.Length == 0)
+        {
+            var emptyIntent = new DashboardIntentDto
+            {
+                BusinessIntent = DashboardBusinessIntent.GeneralBusinessSummary,
+                Period = new DashboardPeriodDto { Type = DashboardPeriodType.LastNDays, Value = 7 },
+                Comparison = DashboardComparison.PreviousPeriod,
+                Granularity = "Day",
+                Top = 10
+            };
+            HydrateUnderstanding(emptyIntent, prompt);
             return new DashboardIntentParseResultDto
             {
                 Success = true,
-                Message = "Phân tích toàn bộ Dashboard theo context hiện tại.",
-                Intent = new DashboardIntentDto
-                {
-                    BusinessIntent = DashboardBusinessIntent.GeneralBusinessSummary,
-                    Widget = DashboardAnalyticsWidget.NetSalesTrend,
-                    Period = new DashboardPeriodDto { Type = DashboardPeriodType.LastNDays, Value = 7 },
-                    Comparison = DashboardComparison.PreviousPeriod
-                },
+                Message = "Phân tích các ưu tiên vận hành theo context hiện tại.",
+                Intent = emptyIntent,
                 UsedFallback = true
             };
+        }
 
         var page = await _dashboard.GetPageAsync(actor, new DashboardFilterDto(), cancellationToken);
         DashboardIntentParseResultDto? aiFailure = null;
@@ -97,6 +104,7 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
                 cancellationToken);
             if (ai.Success && ai.Intent != null)
             {
+                HydrateUnderstanding(ai.Intent, prompt);
                 ValidateIntent(ai.Intent);
                 ResolveNamedStore(ai.Intent, page.Stores);
                 return ai;
@@ -187,40 +195,7 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
 
     private static DashboardIntentDto? ParseDeterministic(string prompt, IReadOnlyList<string> storeNames)
     {
-        var text = Normalize(prompt);
-        DashboardBusinessIntent? businessIntent = null;
-        if (text.Contains("nha cung cap") || text.Contains("supplier") || text.Contains("gia nhap")
-            || text.Contains("mua hang"))
-            businessIntent = DashboardBusinessIntent.SupplierAnalysis;
-        else if (text.Contains("nhap hang") || text.Contains("reorder") || text.Contains("dat hang")
-                 || text.StartsWith("po ") || text.Contains(" po "))
-            businessIntent = DashboardBusinessIntent.ReorderAnalysis;
-        else if (text.Contains("ton kho") || text.Contains("kho") || text.Contains("nguyen lieu")
-                 || text.Contains("sap thieu") || text.Contains("thieu hang")
-                 || text.Contains("waste") || text.Contains("hao hut"))
-            businessIntent = DashboardBusinessIntent.InventoryAnalysis;
-        else if (text.Contains("huy don") || text.Contains("don huy") || text.Contains("so don")
-                 || text.Contains("don hang") || text.Contains("thanh toan"))
-            businessIntent = DashboardBusinessIntent.OrderAnalysis;
-        else if (text.Contains("san pham") || text.Contains("do uong") || text.Contains("mon ")
-                 || text.Contains("ban chay") || text.Contains("ban cham") || text.Contains("top "))
-            businessIntent = DashboardBusinessIntent.ProductPerformance;
-        else if (text.Contains("ca lam") || text.Contains("nhan su"))
-            businessIntent = DashboardBusinessIntent.GeneralBusinessSummary;
-        else if (text.Contains("chi nhanh") || text.Contains("cua hang"))
-            businessIntent = DashboardBusinessIntent.StoreComparison;
-        else if (text.Contains("bat thuong") || text.Contains("anomaly") || text.Contains("can chu y")
-                 || text.Contains("canh bao"))
-            businessIntent = DashboardBusinessIntent.AnomalyDetection;
-        else if (text.Contains("doanh thu") || text.Contains("doanh so") || text.Contains("ban hang"))
-            businessIntent = text.Contains("xu huong")
-                ? DashboardBusinessIntent.SalesTrend
-                : DashboardBusinessIntent.RevenueAnalysis;
-        else if (text.Contains("tinh hinh") || text.Contains("tong quan") || text.Contains("phan tich"))
-            businessIntent = DashboardBusinessIntent.GeneralBusinessSummary;
-        if (!businessIntent.HasValue) return null;
-        var widget = PrimaryWidget(businessIntent.Value);
-
+        var text = DashboardQuestionCatalog.Normalize(prompt);
         var period = new DashboardPeriodDto { Type = DashboardPeriodType.LastNDays, Value = 7 };
         if (text.Contains("hom nay")) period = new() { Type = DashboardPeriodType.Today };
         else if (text.Contains("hom qua")) period = new() { Type = DashboardPeriodType.Yesterday };
@@ -238,18 +213,20 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         var comparison = text.Contains("so sanh") || text.Contains("giam") || text.Contains("tang")
             ? DashboardComparison.PreviousPeriod : DashboardComparison.None;
         var named = storeNames.FirstOrDefault(x => text.Contains(Normalize(x), StringComparison.Ordinal));
-        return new DashboardIntentDto
+        var intent = new DashboardIntentDto
         {
             IntentVersion = DashboardIntentVersions.V2,
-            BusinessIntent = businessIntent.Value,
-            Widget = widget, Period = period, Comparison = comparison,
-            Granularity = widget == DashboardAnalyticsWidget.HourlyOrders ? "Hour" : "Day",
-            Top = ExtractTop(text), Chart = ChartFor(widget),
+            Period = period,
+            Comparison = comparison,
+            Granularity = text.Contains("theo gio", StringComparison.Ordinal) ? "Hour" : "Day",
+            Top = ExtractTop(text),
             StoreSelector = named == null ? new() : new()
             {
                 Mode = DashboardStoreSelectorMode.NamedStore, StoreName = named
             }
         };
+        HydrateUnderstanding(intent, prompt);
+        return intent;
     }
 
     private void ValidateIntent(DashboardIntentDto intent)
@@ -258,7 +235,15 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         {
             if (!Enum.IsDefined(intent.BusinessIntent))
                 throw new ArgumentException("UNSUPPORTED_INTENT: Business intent không thuộc catalog được cho phép.");
-            intent.Widget = PrimaryWidget(intent.BusinessIntent);
+            if (string.IsNullOrWhiteSpace(intent.Understanding.OriginalQuestion)
+                && intent.Understanding.AnswerFocus == default)
+                HydrateUnderstanding(intent, string.Empty);
+            intent.Widget = intent.DataPlan?.PrimaryWidget
+                ?? DashboardQuestionCatalog.CreateDataPlan(
+                    intent.Understanding,
+                    [],
+                    DateTime.Today.AddDays(-7),
+                    DateTime.Today).PrimaryWidget;
         }
         else if (intent.IntentVersion != DashboardIntentVersions.V1 || !AllowedWidgets.Contains(intent.Widget))
         {
@@ -272,6 +257,24 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
             throw new ArgumentException("Khoảng phân tích tối đa 366 ngày.");
         var expected = ChartFor(intent.Widget);
         if (intent.Chart != expected) intent.Chart = expected;
+    }
+
+    private static void HydrateUnderstanding(DashboardIntentDto intent, string prompt)
+    {
+        intent.Understanding = DashboardQuestionCatalog.Understand(
+            prompt,
+            intent.Period,
+            intent.Comparison,
+            intent.Granularity,
+            intent.Top);
+        intent.BusinessIntent = intent.Understanding.BusinessIntent;
+        intent.DataPlan = DashboardQuestionCatalog.CreateDataPlan(
+            intent.Understanding,
+            [],
+            DateTime.Today.AddDays(-Math.Max(1, intent.Period.Value ?? 7)),
+            DateTime.Today);
+        intent.Widget = intent.DataPlan.PrimaryWidget;
+        intent.Chart = ChartFor(intent.Widget);
     }
 
     private static DashboardAnalyticsWidget PrimaryWidget(DashboardBusinessIntent intent) => intent switch

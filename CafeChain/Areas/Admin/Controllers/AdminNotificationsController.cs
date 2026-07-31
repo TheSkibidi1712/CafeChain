@@ -2,6 +2,8 @@ using CafeChain.Application.Interfaces.Operations;
 using CafeChain.Application.Services.Operations;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -12,6 +14,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// (and other Admin panel roles that have StaffId claim).
     /// Uses cookie auth StaffId — does not grant POS sales access.
     /// </summary>
+    [RequirePermission(PermissionConstants.NotificationView)]
     public class AdminNotificationsController : AdminBaseController
     {
         private readonly IStaffNotificationQueryService _service;

@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Inventories;
@@ -10,6 +11,7 @@ using System.Security.Claims;
 namespace CafeChain.Areas.Admin.Controllers
 {
     /// <summary>Read-only diagnostics for #118. It cannot change mode or identity metadata.</summary>
+    [RequirePermission(PermissionConstants.SystemDiagnosticsView)]
     public sealed class AdminInventoryWriterDiagnosticsController : AdminBaseController
     {
         private static readonly string[] ReadRoles =

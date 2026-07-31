@@ -120,7 +120,10 @@ namespace CafeChain.Application.Services.Admin.Profitability
         }
 
         private async Task<bool> IsBusinessOwnerAsync(int staffId, CancellationToken ct) => await _context.Staffs.AsNoTracking()
-            .AnyAsync(s => s.StaffId == staffId && s.Active && s.Account.AccountRoles.Any(ar => ar.Role.Active && ar.Role.Name == RoleConstants.BusinessOwner), ct);
+            .AnyAsync(s => s.StaffId == staffId && s.Active && s.Account.Active
+                && s.Account.AccountRoles.Any(ar => ar.Role.Active
+                    && (ar.Role.Name == RoleConstants.BusinessOwner
+                        || ar.Role.Name == RoleConstants.SystemAdmin)), ct);
 
         private static bool IsValidCombination(string price, string cost)
         {

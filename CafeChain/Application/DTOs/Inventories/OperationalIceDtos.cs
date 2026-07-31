@@ -1,5 +1,29 @@
 namespace CafeChain.Application.DTOs.Inventories;
 
+public sealed class OperationalIcePolicySetupDto
+{
+    public bool IsConfigured { get; init; }
+    public bool IsValid { get; init; }
+    public string StatusMessage { get; init; } = string.Empty;
+    public IReadOnlyList<OperationalIcePolicyOptionDto> Ingredients { get; init; } = [];
+    public IReadOnlyList<OperationalIcePolicyOptionDto> Units { get; init; } = [];
+    public OperationalIceInventorySnapshotDto? Inventory { get; init; }
+}
+
+public sealed class OperationalIcePolicyOptionDto
+{
+    public int Id { get; init; }
+    public string Code { get; init; } = string.Empty;
+    public string Label { get; init; } = string.Empty;
+}
+
+public sealed class OperationalIceInventorySnapshotDto
+{
+    public decimal PhysicalQuantity { get; init; }
+    public decimal ReservedQuantity { get; init; }
+    public decimal AvailableQuantity { get; init; }
+}
+
 public sealed class SaveIcePolicyRequest
 {
     public int StoreId { get; init; }
@@ -22,6 +46,72 @@ public sealed class CreateOperationalShiftRequest
     public DateTime StartAtUtc { get; init; }
     public DateTime EndAtUtc { get; init; }
     public int? ShiftLeadId { get; init; }
+    public string CreationSource { get; init; } = "Manual";
+    public int? SourceScheduleShiftId { get; init; }
+}
+
+public sealed class OperationalIceScheduleOptionDto
+{
+    public int ScheduleShiftId { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public DateTime BusinessDate { get; init; }
+    public DateTime StartAtUtc { get; init; }
+    public DateTime EndAtUtc { get; init; }
+    public int StaffCount { get; init; }
+    public int? SuggestedShiftLeadId { get; init; }
+}
+
+public sealed class OperationalIceScheduleReviewDto
+{
+    public int OperationalShiftId { get; init; }
+    public bool IsScheduleAvailable { get; init; }
+    public bool HasChanges { get; init; }
+    public bool CanSync { get; init; }
+    public bool HasCancelledAssignments { get; init; }
+    public bool RequiresLeadReplacement { get; init; }
+    public bool BlocksOpening { get; init; }
+    public string SavedName { get; init; } = string.Empty;
+    public DateTime SavedStartAtUtc { get; init; }
+    public DateTime SavedEndAtUtc { get; init; }
+    public int? SavedShiftLeadId { get; init; }
+    public string? CurrentName { get; init; }
+    public DateTime? CurrentStartAtUtc { get; init; }
+    public DateTime? CurrentEndAtUtc { get; init; }
+    public int? CurrentShiftLeadId { get; init; }
+    public int StaffCount { get; init; }
+    public int CancelledStaffCount { get; init; }
+}
+
+public sealed class SyncOperationalShiftScheduleRequest
+{
+    public int OperationalShiftId { get; init; }
+}
+
+public sealed class ConvertOperationalShiftToManualRequest
+{
+    public int OperationalShiftId { get; init; }
+    public string Reason { get; init; } = string.Empty;
+}
+
+public sealed class UpdateOperationalShiftLeadRequest
+{
+    public int OperationalShiftId { get; init; }
+    public int ShiftLeadId { get; init; }
+    public string Reason { get; init; } = string.Empty;
+}
+
+public sealed class CancelDraftOperationalShiftRequest
+{
+    public int OperationalShiftId { get; init; }
+    public string Reason { get; init; } = string.Empty;
+}
+
+public sealed class OperationalIceWorkShiftSuggestionDto
+{
+    public int WorkShiftId { get; init; }
+    public string StaffName { get; init; } = string.Empty;
+    public DateTime StartTime { get; init; }
+    public DateTime? EndTime { get; init; }
 }
 
 public sealed class OpenIceAllocationRequest
@@ -35,6 +125,12 @@ public sealed class LinkOperationalWorkShiftRequest
 {
     public int OperationalShiftId { get; init; }
     public int WorkShiftId { get; init; }
+}
+
+public sealed class LinkOperationalWorkShiftsRequest
+{
+    public int OperationalShiftId { get; init; }
+    public IReadOnlyList<int> WorkShiftIds { get; init; } = [];
 }
 
 public sealed class RequestSupplementalIceRequest

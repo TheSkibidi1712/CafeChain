@@ -1,77 +1,432 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   shift-optimization.css  —  Premium Coffee-Brown UI
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Design Tokens ─────────────────────────────────────────────────────── */
 .shift-optimization-page {
-    color: #1f2937;
+    --so-bg:            #F7F3EE;
+    --so-surface:       #FFFFFF;
+    --so-primary:       #6F4E37;
+    --so-primary-hover: #5C3F2B;
+    --so-accent:        #C67A45;
+    --so-accent-light:  rgba(198, 122, 69, .12);
+    --so-text-main:     #1F2937;
+    --so-text-sub:      #475569;
+    --so-success:       #2F6F5E;
+    --so-warning:       #99623B;
+    --so-danger:        #991B1B;
+    --so-border:        #E5D9CC;
+    --so-border-light:  #F0E8DF;
+    --so-radius:        12px;
+    --so-radius-sm:     8px;
+    --so-shadow-sm:     0 1px 4px rgba(111,78,55,.08), 0 2px 12px rgba(111,78,55,.06);
+    --so-shadow-md:     0 4px 20px rgba(111,78,55,.12), 0 1px 4px rgba(111,78,55,.08);
+    --so-shadow-lg:     0 8px 32px rgba(111,78,55,.16), 0 2px 8px rgba(111,78,55,.1);
+
+    color: var(--so-text-main);
+    background-color: var(--so-bg);
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── Page header ────────────────────────────────────────────────────────── */
+.shift-optimization-header {
+    position: relative;
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(135deg, #FFFFFF 0%, #FDF8F4 100%);
+    border: 1px solid var(--so-border);
+    border-radius: var(--so-radius);
+    box-shadow: var(--so-shadow-sm);
+    margin-bottom: 1.25rem !important;
+}
+
+/* Decorative left accent bar */
+.shift-optimization-header::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 12px; bottom: 12px;
+    width: 4px;
+    background: linear-gradient(to bottom, var(--so-accent), var(--so-primary));
+    border-radius: 0 4px 4px 0;
+}
+
+.shift-optimization-header span.text-uppercase {
+    font-size: .72rem;
+    letter-spacing: .1em;
+    color: var(--so-accent) !important;
+    font-weight: 700;
 }
 
 .shift-optimization-header h1 {
-    letter-spacing: -.02em;
+    letter-spacing: -.025em;
+    color: var(--so-primary);
+    font-weight: 800;
+    margin-bottom: .3rem !important;
 }
 
-.shift-optimization-page .tab-content {
-    min-height: 260px;
+.shift-optimization-header p.text-muted {
+    color: var(--so-text-sub) !important;
+    font-size: .9rem;
 }
 
-.shift-optimization-page .form-label {
-    margin-bottom: .35rem;
+/* "Quay lại lịch" button */
+.shift-optimization-header .btn-outline-secondary {
+    color: var(--so-primary);
+    border: 1.5px solid var(--so-border);
+    background: var(--so-surface);
     font-weight: 600;
-    color: #334155;
+    font-size: .875rem;
+    border-radius: var(--so-radius-sm);
+    padding: .5rem 1rem;
+    box-shadow: var(--so-shadow-sm);
+    transition: all .2s ease;
+    white-space: nowrap;
+}
+.shift-optimization-header .btn-outline-secondary:hover,
+.shift-optimization-header .btn-outline-secondary:focus {
+    background: var(--so-primary);
+    border-color: var(--so-primary);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(111,78,55,.3);
+    transform: translateY(-1px);
+}
+.shift-optimization-header .btn-outline-secondary:active {
+    transform: translateY(0);
 }
 
-.shift-optimization-page .form-control,
-.shift-optimization-page .form-select {
-    min-height: 42px;
+/* ── Info banner ────────────────────────────────────────────────────────── */
+.shift-optimization-page .alert-info {
+    background: linear-gradient(135deg, #FDF6EF 0%, #FBF0E6 100%);
+    border: 1px solid #E8D5C0;
+    border-left: 4px solid var(--so-accent);
+    color: var(--so-text-main);
+    border-radius: var(--so-radius);
+    box-shadow: var(--so-shadow-sm);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+.shift-optimization-page .alert-info strong {
+    color: var(--so-primary);
+    font-weight: 700;
+}
+.shift-optimization-page .alert-info .bi-info-circle {
+    color: var(--so-accent);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+/* ── Tab navigation — pill-card style ──────────────────────────────────── */
+.shift-optimization-page .nav-tabs {
+    border: none;
+    background: var(--so-surface);
+    border-radius: var(--so-radius) var(--so-radius) 0 0;
+    padding: .6rem .6rem 0;
+    border: 1px solid var(--so-border);
+    border-bottom: none;
+    gap: .25rem;
+    display: flex;
+}
+
+.shift-optimization-page .nav-item {
+    flex: 1;
 }
 
 .shift-optimization-page .nav-link {
+    width: 100%;
     font-weight: 600;
+    font-size: .875rem;
+    color: var(--so-text-sub);
+    border: 1.5px solid transparent;
+    border-radius: var(--so-radius-sm) var(--so-radius-sm) 0 0;
+    padding: .65rem 1rem;
+    text-align: center;
+    transition: all .2s ease;
+    background: transparent;
+    position: relative;
+    letter-spacing: .01em;
 }
 
+.shift-optimization-page .nav-link:hover {
+    color: var(--so-primary);
+    background: var(--so-accent-light);
+    border-color: var(--so-border-light);
+}
+
+.shift-optimization-page .nav-link.active {
+    color: var(--so-primary);
+    background: var(--so-bg);
+    border-color: var(--so-border);
+    border-bottom-color: var(--so-bg);
+    font-weight: 700;
+}
+
+/* active underline glow */
+.shift-optimization-page .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 20%; right: 20%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--so-accent), var(--so-primary));
+    border-radius: 2px 2px 0 0;
+}
+
+/* ── Tab content panel ──────────────────────────────────────────────────── */
+.shift-optimization-page .tab-content {
+    min-height: 220px;
+    background: var(--so-bg);
+    border: 1px solid var(--so-border);
+    border-top: none;
+    border-radius: 0 0 var(--so-radius) var(--so-radius);
+    padding: 1.75rem !important;
+    box-shadow: inset 0 2px 8px rgba(111,78,55,.04);
+}
+
+/* Form fieldset inner card feel */
+.shift-optimization-page fieldset {
+    background: var(--so-surface);
+    border-radius: var(--so-radius-sm);
+    padding: 1.25rem !important;
+    border: 1px solid var(--so-border-light) !important;
+    box-shadow: var(--so-shadow-sm);
+}
+
+.shift-optimization-page .form-text {
+    color: var(--so-text-sub);
+    font-size: .83rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin-bottom: 1rem;
+    padding: .5rem .75rem;
+    background: linear-gradient(90deg, var(--so-accent-light), transparent);
+    border-radius: var(--so-radius-sm);
+    border-left: 3px solid var(--so-accent);
+}
+
+/* ── Form labels ────────────────────────────────────────────────────────── */
+.shift-optimization-page .form-label {
+    margin-bottom: .4rem;
+    font-weight: 700;
+    color: var(--so-text-main);
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+/* ── Input / Select controls ────────────────────────────────────────────── */
+.shift-optimization-page .form-control,
+.shift-optimization-page .form-select {
+    min-height: 44px;
+    border: 1.5px solid var(--so-border);
+    border-radius: var(--so-radius-sm);
+    color: var(--so-text-main);
+    background-color: #FDFAF7;
+    font-size: .9rem;
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(111,78,55,.06) inset;
+    transition: border-color .2s, box-shadow .2s, background-color .2s, transform .15s;
+}
+
+.shift-optimization-page .form-control:hover,
+.shift-optimization-page .form-select:hover {
+    border-color: var(--so-accent);
+    background-color: #FFFFFF;
+}
+
+.shift-optimization-page .form-control:focus,
+.shift-optimization-page .form-select:focus {
+    border-color: var(--so-primary);
+    background-color: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(111,78,55,.15), 0 1px 3px rgba(111,78,55,.06) inset;
+    outline: none;
+}
+
+.shift-optimization-page .form-control::placeholder {
+    color: #B0A090;
+}
+
+/* ── "Lưu" button — gradient premium ───────────────────────────────────── */
+.shift-optimization-page .btn-primary {
+    background: linear-gradient(135deg, var(--so-accent) 0%, var(--so-primary) 60%);
+    border: none;
+    color: #fff;
+    font-weight: 700;
+    font-size: .875rem;
+    border-radius: var(--so-radius-sm);
+    padding: .6rem 1.1rem;
+    min-height: 44px;
+    letter-spacing: .02em;
+    box-shadow: 0 2px 8px rgba(111,78,55,.25), 0 1px 3px rgba(111,78,55,.2);
+    transition: all .2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* shimmer sweep on hover */
+.shift-optimization-page .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -75%;
+    width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.2), transparent);
+    transition: left .4s ease;
+}
+
+.shift-optimization-page .btn-primary:hover::before {
+    left: 130%;
+}
+
+.shift-optimization-page .btn-primary:hover,
+.shift-optimization-page .btn-primary:focus {
+    background: linear-gradient(135deg, var(--so-primary) 0%, var(--so-primary-hover) 100%);
+    box-shadow: 0 6px 20px rgba(111,78,55,.35), 0 2px 6px rgba(111,78,55,.2);
+    transform: translateY(-2px);
+}
+
+.shift-optimization-page .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(111,78,55,.2);
+}
+
+/* ── "Cấu hình đã lưu" section header ──────────────────────────────────── */
+.shift-optimization-page .mt-4 > h2 {
+    color: var(--so-primary);
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: -.01em;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+.shift-optimization-page .mt-4 > h2::before {
+    content: '';
+    display: inline-block;
+    width: 4px; height: 1.1em;
+    background: linear-gradient(to bottom, var(--so-accent), var(--so-primary));
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.shift-optimization-page .mt-4 > p {
+    color: var(--so-text-sub);
+    font-size: .85rem;
+    margin-top: .2rem;
+}
+
+/* ── Config cards ───────────────────────────────────────────────────────── */
 .shift-optimization-page .config-card {
     height: 100%;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    background: #f8fafc;
-    padding: 1rem;
+    border: 1px solid var(--so-border);
+    border-top: 3px solid var(--so-accent);
+    border-radius: var(--so-radius);
+    background: var(--so-surface);
+    padding: 1rem 1.1rem;
+    box-shadow: var(--so-shadow-sm);
+    transition: box-shadow .25s, transform .2s, border-top-color .2s;
+}
+
+.shift-optimization-page .config-card:hover {
+    box-shadow: var(--so-shadow-md);
+    transform: translateY(-2px);
+    border-top-color: var(--so-primary);
 }
 
 .shift-optimization-page .config-card h3 {
-    font-size: .95rem;
+    font-size: .88rem;
+    font-weight: 700;
+    color: var(--so-primary);
     margin-bottom: .75rem;
+    padding-bottom: .5rem;
+    border-bottom: 1.5px solid var(--so-border-light);
+    letter-spacing: .02em;
+    text-transform: uppercase;
 }
 
 .shift-optimization-page .config-item {
     display: grid;
-    grid-template-columns: minmax(7rem, 1fr) minmax(0, 1.2fr);
-    margin: 0 0 .75rem;
-    padding-bottom: .5rem;
-    border-bottom: 1px solid #cbd5e1;
-    font-size: .82rem;
+    grid-template-columns: minmax(7rem, 1fr) minmax(0, 1.4fr);
+    margin: 0 0 .4rem;
+    font-size: .8rem;
 }
 
 .shift-optimization-page .config-item dt,
 .shift-optimization-page .config-item dd {
     margin: 0;
-    padding: .35rem .4rem;
-    border-bottom: 1px solid #e2e8f0;
-    vertical-align: top;
+    padding: .3rem .4rem;
+    border-bottom: 1px dashed var(--so-border-light);
     overflow-wrap: anywhere;
 }
 
 .shift-optimization-page .config-item dt {
-    color: #475569;
+    color: var(--so-text-sub);
     font-weight: 600;
 }
 
-@media (max-width: 576px) {
+.shift-optimization-page .config-item dd {
+    color: var(--so-text-main);
+    font-weight: 600;
+}
+
+.shift-optimization-page .config-card .text-muted {
+    color: #B0A090 !important;
+    font-style: italic;
+    font-size: .83rem;
+    padding: .5rem 0;
+    display: block;
+    text-align: center;
+}
+
+/* ── Status notice alert ────────────────────────────────────────────────── */
+#shiftOptimizationNotice {
+    border-radius: var(--so-radius);
+    font-weight: 600;
+    box-shadow: var(--so-shadow-sm);
+}
+#shiftOptimizationNotice.alert-success {
+    background: linear-gradient(135deg, #EDFAF5, #D9F2EA);
+    border-color: var(--so-success);
+    color: var(--so-success);
+}
+#shiftOptimizationNotice.alert-danger {
+    background: linear-gradient(135deg, #FEF2F2, #FDE8E8);
+    border-color: var(--so-danger);
+    color: var(--so-danger);
+}
+#shiftOptimizationNotice.alert-warning {
+    background: linear-gradient(135deg, #FFF8EE, #FDEEDE);
+    border-color: var(--so-warning);
+    color: var(--so-warning);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
     .shift-optimization-header {
         flex-direction: column;
+        gap: 1rem;
     }
+    .shift-optimization-header .btn-outline-secondary {
+        align-self: flex-start;
+    }
+    .shift-optimization-page .nav-link {
+        font-size: .78rem;
+        padding: .5rem .5rem;
+    }
+}
 
+@media (max-width: 576px) {
     .shift-optimization-page .nav-tabs {
         overflow-x: auto;
         flex-wrap: nowrap;
+        padding-bottom: 0;
     }
-
+    .shift-optimization-page .nav-item {
+        flex: none;
+    }
     .shift-optimization-page .nav-link {
         white-space: nowrap;
     }
+    .shift-optimization-page fieldset {
+        padding: .9rem !important;
+    }
 }
+
+

@@ -24,6 +24,15 @@ public sealed class InventoryNotificationAudienceResolver : IInventoryNotificati
 
     public async Task<IReadOnlyList<InventoryNotificationRecipient>> ResolveAsync(
         int storeId,
+        CancellationToken cancellationToken = default) =>
+        await ResolveForPermissionsAsync(
+            storeId,
+            Array.Empty<string>(),
+            cancellationToken);
+
+    public async Task<IReadOnlyList<InventoryNotificationRecipient>> ResolveForPermissionsAsync(
+        int storeId,
+        IReadOnlyCollection<string> requiredPermissionCodes,
         CancellationToken cancellationToken = default)
     {
         if (storeId <= 0)
@@ -36,7 +45,7 @@ public sealed class InventoryNotificationAudienceResolver : IInventoryNotificati
             if (!await _scopeAuthorization.CanAccessStoreAsync(candidate.StaffId, storeId))
                 continue;
 
-            if (!await IsEligibleAsync(candidate, storeId))
+            if (!await IsEligibleAsync(candidate, storeId, requiredPermissionCodes))
                 continue;
 
             recipients.Add(new InventoryNotificationRecipient(
@@ -69,7 +78,7 @@ public sealed class InventoryNotificationAudienceResolver : IInventoryNotificati
         foreach (var store in allowedStores)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (await IsEligibleAsync(candidate, store.StoreId))
+            if (await IsEligibleAsync(candidate, store.StoreId, Array.Empty<string>()))
                 storeIds.Add(store.StoreId);
         }
 
@@ -78,19 +87,28 @@ public sealed class InventoryNotificationAudienceResolver : IInventoryNotificati
 
     private async Task<bool> IsEligibleAsync(
         ReorderNotificationRecipientRow candidate,
-        int storeId)
+        int storeId,
+        IReadOnlyCollection<string> requiredPermissionCodes)
     {
-        if (candidate.RoleNames.Any(role =>
-                string.Equals(role, RoleConstants.StoreManager, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(role, RoleConstants.AccountantWarehouse, StringComparison.OrdinalIgnoreCase)))
-        {
-            return true;
-        }
-
         var permission = await _permissions.HasPermissionAsync(
             candidate.AccountId,
             PermissionConstants.NotificationView,
             storeId);
-        return permission.IsSuccess && permission.Data?.Allowed == true;
+        if (!permission.IsSuccess || permission.Data?.Allowed != true)
+            return false;
+
+        foreach (var permissionCode in requiredPermissionCodes
+                     .Where(x => !string.IsNullOrWhiteSpace(x))
+                     .Distinct(StringComparer.Ordinal))
+        {
+            var required = await _permissions.HasPermissionAsync(
+                candidate.AccountId,
+                permissionCode,
+                storeId);
+            if (!required.IsSuccess || required.Data?.Allowed != true)
+                return false;
+        }
+
+        return true;
     }
 }

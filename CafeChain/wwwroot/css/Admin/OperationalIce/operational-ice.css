@@ -132,6 +132,15 @@
     color: #FFFFFF;
 }
 
+.ice-btn:disabled,
+.ice-icon-btn:disabled {
+    border-color: #D8D2CB;
+    background: #ECE8E3;
+    color: #7C746D;
+    cursor: not-allowed;
+    opacity: 0.76;
+}
+
 .ice-btn-compact {
     min-height: 34px;
     padding: 6px 10px;
@@ -181,6 +190,26 @@
     border-color: #E7B7B7;
     background: #FFF1F1;
     color: var(--ice-danger);
+}
+
+.ice-notice-warning {
+    border-color: #D7B69C;
+    background: #FFF7F0;
+    color: var(--ice-warning);
+}
+
+.ice-toast-stack {
+    position: fixed;
+    z-index: 1100;
+    top: 88px;
+    right: 24px;
+    width: min(420px, calc(100vw - 32px));
+    pointer-events: none;
+}
+
+.ice-toast-stack .ice-toast {
+    box-shadow: 0 12px 28px rgba(31, 41, 55, 0.16);
+    pointer-events: auto;
 }
 
 .ice-filterbar {
@@ -410,6 +439,64 @@
     padding: 18px;
 }
 
+.ice-policy-status {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 14px;
+    padding: 11px 12px;
+    border: 1px solid;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.ice-policy-status.is-valid {
+    border-color: #A7C9BF;
+    background: #EDF7F3;
+    color: var(--ice-success);
+}
+
+.ice-policy-status.is-invalid {
+    border-color: #D7B69C;
+    background: #FFF7F0;
+    color: var(--ice-warning);
+}
+
+.ice-policy-group {
+    min-width: 0;
+    margin: 0 0 14px;
+    padding: 14px;
+    border: 1px solid var(--ice-border);
+    border-radius: 7px;
+}
+
+.ice-policy-group legend {
+    padding: 0 6px;
+    color: var(--ice-text);
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.ice-policy-group > p {
+    margin: 0 0 12px;
+    color: var(--ice-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.ice-form-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ice-field small {
+    display: block;
+    margin-top: 6px;
+    color: var(--ice-muted);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
 .ice-table-scroll {
     width: 100%;
     max-width: 100%;
@@ -467,6 +554,121 @@
     display: flex;
     min-width: 0;
     align-items: end;
+    gap: 10px;
+}
+
+.ice-mode-switch,
+.ice-workshift-options {
+    border: 1px solid var(--ice-border);
+    padding: 12px;
+}
+
+.ice-mode-switch {
+    display: flex;
+    gap: 20px;
+}
+
+.ice-mode-switch legend,
+.ice-workshift-options legend {
+    padding: 0 6px;
+    font-weight: 700;
+}
+
+.ice-mode-switch label,
+.ice-workshift-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ice-link-workshifts {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.ice-schedule-source {
+    min-height: 116px;
+    border: 1px solid var(--ice-border);
+    background: #fff;
+}
+
+.ice-schedule-state {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+}
+
+.ice-schedule-state[hidden] {
+    display: none;
+}
+
+.ice-schedule-state > i {
+    width: 20px;
+    margin-top: 3px;
+    color: var(--ice-accent);
+    text-align: center;
+}
+
+.ice-schedule-state > div {
+    display: grid;
+    gap: 5px;
+    width: 100%;
+}
+
+.ice-schedule-state span {
+    color: var(--ice-muted);
+    line-height: 1.5;
+}
+
+.ice-schedule-state-empty {
+    background: #fffaf5;
+}
+
+.ice-schedule-state-error {
+    background: #fff5f5;
+}
+
+.ice-schedule-state-error > i,
+.ice-schedule-state-error strong {
+    color: var(--ice-danger);
+}
+
+.ice-state-actions {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+    margin-top: 8px;
+}
+
+.ice-schedule-summary {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px !important;
+    margin-top: 8px;
+}
+
+.ice-schedule-summary > div {
+    display: grid;
+    gap: 3px;
+    padding: 10px;
+    border: 1px solid var(--ice-border);
+    background: #f8f6f3;
+}
+
+.ice-schedule-summary span {
+    font-size: 12px;
+}
+
+.ice-readonly-field {
+    background: #f3f4f6 !important;
+    color: #4b5563;
+    cursor: default;
+}
+
+.ice-workshift-options {
+    display: grid;
     gap: 10px;
 }
 
@@ -803,6 +1005,15 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .ice-schedule-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ice-toast-stack {
+        top: 72px;
+        right: 16px;
+    }
+
     .ice-summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -835,8 +1046,10 @@
     }
 
     .ice-form-grid,
+    .ice-form-grid-2,
     .ice-summary-grid,
-    .ice-summary-six {
+    .ice-summary-six,
+    .ice-schedule-summary {
         grid-template-columns: minmax(0, 1fr);
     }
 
@@ -867,8 +1080,14 @@
         border-bottom: 0;
     }
 
-.ice-detail-header {
+    .ice-detail-header {
         align-items: flex-start;
+    }
+
+    .ice-toast-stack {
+        top: 64px;
+        right: 14px;
+        width: calc(100vw - 28px);
     }
 
     .ice-badge-large {
@@ -882,6 +1101,77 @@
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+.ice-schedule-change {
+    display: grid;
+    gap: 5px;
+    min-width: 280px;
+    margin-top: 10px;
+    padding: 10px;
+    border-left: 3px solid var(--ice-warning);
+    background: #fff7ed;
+    color: var(--ice-text);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.ice-schedule-change strong,
+.ice-schedule-change span,
+.ice-schedule-change em {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.ice-schedule-change strong {
+    color: var(--ice-warning);
+}
+
+.ice-schedule-change em {
+    color: var(--ice-muted);
+}
+
+.ice-schedule-change .ice-inline-form {
+    margin-top: 3px;
+}
+
+.ice-schedule-resolution {
+    display: grid;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.ice-resolution-form {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) auto;
+    gap: 7px;
+    min-width: 0;
+    padding-top: 8px;
+    border-top: 1px solid #FED7AA;
+}
+
+.ice-resolution-form label {
+    grid-column: 1 / -1;
+    color: var(--ice-text);
+    font-weight: 700;
+}
+
+.ice-resolution-form input,
+.ice-resolution-form select {
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    border: 1px solid var(--ice-border);
+    border-radius: 6px;
+    padding: 6px 9px;
+    background: var(--ice-surface);
+    color: var(--ice-text);
+}
+
+@media (max-width: 760px) {
+    .ice-resolution-form {
+        grid-template-columns: 1fr;
+    }
 }
 
 .ice-icon-btn {

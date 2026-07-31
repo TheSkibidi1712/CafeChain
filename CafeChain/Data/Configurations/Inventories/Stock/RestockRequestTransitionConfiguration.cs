@@ -26,6 +26,12 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.Property(x => x.RequestKey)
                 .HasMaxLength(100);
 
+            entity.Property(x => x.SuggestionSnapshotVersion)
+                .HasMaxLength(32);
+
+            entity.Property(x => x.SuggestionSnapshotJson)
+                .HasColumnType("nvarchar(max)");
+
             entity.Property(x => x.QuantityBefore)
                 .HasColumnType("decimal(18,3)");
 
