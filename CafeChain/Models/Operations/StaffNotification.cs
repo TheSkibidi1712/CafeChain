@@ -26,6 +26,12 @@ namespace CafeChain.Models.Operations
 
         public string? DeduplicationKey { get; set; }
 
+        /// <summary>
+        /// Stable business fingerprint used to distinguish a meaningful state change
+        /// from repeated delivery of the same notification.
+        /// </summary>
+        public string? MeaningfulVersion { get; set; }
+
         public DateTime? UpdatedAt { get; set; }
 
         public DateTime? ResolvedAt { get; set; }

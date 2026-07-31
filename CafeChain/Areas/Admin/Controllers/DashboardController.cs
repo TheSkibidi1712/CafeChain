@@ -2,6 +2,7 @@ using CafeChain.Application.DTOs.Admin.Dashboard;
 using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.Dashboard;
+using CafeChain.Application.Services.Admin.Dashboard;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -34,7 +35,10 @@ public sealed class DashboardController : Controller
     }
 
     [HttpGet]
-    public IActionResult Guide() => View();
+    public IActionResult Guide() => View(new DashboardGuidePageDto
+    {
+        QuestionGroups = DashboardQuestionCatalog.GetGuideQuestionGroups().ToList()
+    });
 
     [HttpGet]
     public async Task<IActionResult> GetSection(

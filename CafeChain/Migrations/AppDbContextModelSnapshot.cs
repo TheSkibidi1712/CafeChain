@@ -4468,6 +4468,13 @@ namespace CafeChain.Migrations
                     b.Property<int>("CreatedByStaffId")
                         .HasColumnType("int");
 
+                    b.Property<string>("CreationSource")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Manual");
+
                     b.Property<DateTime>("EndAtUtc")
                         .HasColumnType("datetime2");
 
@@ -4489,6 +4496,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("rowversion");
 
                     b.Property<int?>("ShiftLeadId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SourceScheduleShiftId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("StartAtUtc")
@@ -4514,13 +4524,24 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("ShiftLeadId");
 
+                    b.HasIndex("SourceScheduleShiftId");
+
+                    b.HasIndex("StoreId", "BusinessDate", "CreationSource");
+
                     b.HasIndex("StoreId", "BusinessDate", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[CreationSource] = 'Manual' AND [Status] <> 'Cancelled'");
+
+                    b.HasIndex("StoreId", "BusinessDate", "SourceScheduleShiftId")
+                        .IsUnique()
+                        .HasFilter("[SourceScheduleShiftId] IS NOT NULL AND [Status] <> 'Cancelled'");
 
                     b.HasIndex("StoreId", "BusinessDate", "Status");
 
                     b.ToTable("OperationalShifts", null, t =>
                         {
+                            t.HasCheckConstraint("CK_OperationalShifts_CreationSource", "([CreationSource] = 'Manual' AND [SourceScheduleShiftId] IS NULL) OR ([CreationSource] = 'StaffSchedule' AND [SourceScheduleShiftId] IS NOT NULL)");
+
                             t.HasCheckConstraint("CK_OperationalShifts_Status", "[Status] IN ('Draft','Open','PendingApproval','ReconciliationRequired','Closed','Cancelled')");
 
                             t.HasCheckConstraint("CK_OperationalShifts_TimeRange", "[EndAtUtc] > [StartAtUtc]");
@@ -7334,6 +7355,13 @@ namespace CafeChain.Migrations
                     b.Property<int>("RestockRequestId")
                         .HasColumnType("int");
 
+                    b.Property<string>("SuggestionSnapshotJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SuggestionSnapshotVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.HasKey("RestockRequestTransitionId");
 
                     b.HasIndex("ActorStaffId");
@@ -9477,6 +9505,10 @@ namespace CafeChain.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
+
+                    b.Property<string>("MeaningfulVersion")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("datetime2");
@@ -13970,6 +14002,11 @@ namespace CafeChain.Migrations
                         .HasForeignKey("ShiftLeadId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CafeChain.Models.Staffs.Shift", "SourceScheduleShift")
+                        .WithMany()
+                        .HasForeignKey("SourceScheduleShiftId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany()
                         .HasForeignKey("StoreId")
@@ -13983,6 +14020,8 @@ namespace CafeChain.Migrations
                     b.Navigation("OpenedByStaff");
 
                     b.Navigation("ShiftLead");
+
+                    b.Navigation("SourceScheduleShift");
 
                     b.Navigation("Store");
                 });

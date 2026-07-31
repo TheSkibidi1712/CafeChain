@@ -7,7 +7,9 @@
     const stores = JSON.parse(document.getElementById("dashboardStores")?.textContent || "[]");
     const dashboardContext = JSON.parse(document.getElementById("dashboardContext")?.textContent || "null");
     const panel = document.getElementById("dashboardPanel");
+    const aiPanel = document.getElementById("dashboardAiPanel");
     const notice = document.getElementById("dashboardNotice");
+    const tablist = document.querySelector(".analytics-tabs");
     const applyButton = document.getElementById("dashboardApply");
     const fields = {
         from: document.getElementById("dashboardFromDate"), to: document.getElementById("dashboardToDate"),
@@ -19,6 +21,7 @@
     const charts = new Map();
     let activeSection = "Executive";
     let activeRequest = null;
+    let isAiActive = false;
 
     const fieldMeta = {
         bucketDate: ["Thời gian", "date"], movementDate: ["Thời gian", "date"], receiptDate: ["Thời gian", "date"],
@@ -323,7 +326,11 @@
     }
 
     const chartResizeObserver = typeof ResizeObserver === "function"
-        ? new ResizeObserver(entries => entries.forEach(entry => refreshChartLayout(entry.target)))
+        ? new ResizeObserver(entries => entries.forEach(entry => {
+            const context = [...charts.values()]
+                .find(item => item.observedElements.includes(entry.target));
+            if (context) scheduleChartLayout(context);
+        }))
         : null;
 
     function renderChart(target, rows, widget, granularity) {
@@ -331,18 +338,45 @@
         const element = document.createElement("div");
         element.className = "analytics-chart";
         target.appendChild(element);
-        const instance = window.echarts.init(element);
-        const context = { instance, element, rows, widget, granularity, capacity: categoryCapacity(element.clientWidth) };
+        const context = {
+            instance: null,
+            element,
+            rows,
+            widget,
+            granularity,
+            capacity: null,
+            resizeFrame: 0,
+            observedElements: [element, target]
+        };
         charts.set(widget.key, context);
-        chartResizeObserver?.observe(element);
-        instance.setOption(chartOption(rows, widget, granularity, context.capacity), { notMerge: true });
+        context.observedElements.forEach(observed => chartResizeObserver?.observe(observed));
+        scheduleChartLayout(context);
     }
 
-    function refreshChartLayout(element) {
-        const context = [...charts.values()].find(item => item.element === element);
-        if (!context) return;
+    function scheduleChartLayout(context) {
+        if (!context || !context.element.isConnected) return;
+        window.cancelAnimationFrame(context.resizeFrame);
+        context.resizeFrame = window.requestAnimationFrame(() => {
+            context.resizeFrame = window.requestAnimationFrame(() => refreshChartLayout(context));
+        });
+    }
+
+    function refreshChartLayout(context) {
+        if (!context?.element?.isConnected) return;
+        const bounds = context.element.getBoundingClientRect();
+        if (bounds.width <= 1 || bounds.height <= 1) return;
+        const capacity = categoryCapacity(bounds.width);
+        if (!context.instance || context.instance.isDisposed?.()) {
+            context.instance = window.echarts.init(context.element);
+            context.capacity = capacity;
+            context.instance.setOption(
+                chartOption(context.rows, context.widget, context.granularity, capacity),
+                { notMerge: true }
+            );
+            context.instance.resize();
+            return;
+        }
         context.instance.resize();
-        const capacity = categoryCapacity(element.clientWidth);
         if (capacity === context.capacity) return;
         context.capacity = capacity;
         context.instance.setOption(chartOption(context.rows, context.widget, context.granularity, capacity), { notMerge: true, lazyUpdate: true });
@@ -559,16 +593,67 @@
         panel.querySelector("button")?.addEventListener("click", () => loadSection(section, true));
     }
 
-    function showNotice(message) { notice.hidden = !message; notice.textContent = message; }
+    function showNotice(message) {
+        notice.hidden = isAiActive || !message;
+        notice.textContent = message;
+    }
+
     function disposeCharts() {
-        charts.forEach(context => { chartResizeObserver?.unobserve(context.element); context.instance.dispose(); });
+        charts.forEach(context => {
+            window.cancelAnimationFrame(context.resizeFrame);
+            context.observedElements.forEach(observed => chartResizeObserver?.unobserve(observed));
+            if (context.instance && !context.instance.isDisposed?.()) context.instance.dispose();
+        });
         charts.clear();
     }
 
+    function selectTab(button) {
+        document.querySelectorAll(".analytics-tab").forEach(item => {
+            const selected = item === button;
+            item.classList.toggle("is-active", selected);
+            item.setAttribute("aria-selected", selected ? "true" : "false");
+            item.tabIndex = selected ? 0 : -1;
+        });
+    }
+
+    function activateAiTab(button) {
+        isAiActive = true;
+        selectTab(button);
+        panel.hidden = true;
+        notice.hidden = true;
+        aiPanel.hidden = false;
+        window.dispatchEvent(new CustomEvent("cafechain:dashboard-ai-visible"));
+    }
+
+    function activateSectionTab(button) {
+        isAiActive = false;
+        selectTab(button);
+        aiPanel.hidden = true;
+        panel.hidden = false;
+        panel.setAttribute("aria-labelledby", button.id);
+        notice.hidden = !notice.textContent;
+        void loadSection(button.dataset.section).then(() => {
+            window.dispatchEvent(new CustomEvent("cafechain:dashboard-charts-visible"));
+        });
+    }
+
     document.querySelectorAll(".analytics-tab").forEach(button => button.addEventListener("click", () => {
-        document.querySelectorAll(".analytics-tab").forEach(item => { item.classList.toggle("is-active", item === button); item.setAttribute("aria-selected", item === button ? "true" : "false"); });
-        loadSection(button.dataset.section);
+        if (button.hasAttribute("data-ai-tab")) activateAiTab(button);
+        else activateSectionTab(button);
     }));
+    tablist?.addEventListener("keydown", event => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+        const tabs = [...tablist.querySelectorAll('[role="tab"]')];
+        const currentIndex = Math.max(0, tabs.indexOf(document.activeElement));
+        const nextIndex = event.key === "Home"
+            ? 0
+            : event.key === "End"
+                ? tabs.length - 1
+                : (currentIndex + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+        event.preventDefault();
+        tabs[nextIndex].focus();
+        tabs[nextIndex].click();
+    });
     fields.province.addEventListener("change", () => { fields.district.value = ""; fields.store.value = ""; populateFilters(); });
     fields.district.addEventListener("change", () => { fields.store.value = ""; populateFilters(); });
     [fields.from, fields.to].forEach(field => field.addEventListener("change", () => { if (fields.preset) fields.preset.value = ""; }));
@@ -602,7 +687,12 @@
             if (payload.data.toDate) fields.to.value = String(payload.data.toDate).slice(0, 10);
             cache.clear();
             activeRequest?.abort();
-            await loadSection(activeSection, true);
+            if (isAiActive) {
+                disposeCharts();
+                panel.replaceChildren();
+            } else {
+                await loadSection(activeSection, true);
+            }
             window.dispatchEvent(new CustomEvent("cafechain:dashboard-context-changed", {
                 detail: {
                     contextId: root.dataset.contextId,
@@ -620,7 +710,8 @@
         if (!fields.preset.value) return;
         void applyDashboardContext();
     });
-    window.addEventListener("resize", () => charts.forEach(context => refreshChartLayout(context.element)));
+    window.addEventListener("resize", () => charts.forEach(scheduleChartLayout));
+    window.addEventListener("cafechain:dashboard-charts-visible", () => charts.forEach(scheduleChartLayout));
 
     populateFilters(true);
     loadSection(activeSection);

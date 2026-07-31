@@ -25,6 +25,26 @@ namespace CafeChain.Helpers
                 || user.IsInRole(RoleConstants.SystemAdmin);
         }
 
+        public static bool IsSystemAdmin(ClaimsPrincipal user) =>
+            user.IsInRole(RoleConstants.SystemAdmin);
+
+        public static bool HasAnyRoleOrSystemAdmin(
+            ClaimsPrincipal user,
+            params string[] allowedRoles)
+        {
+            return IsSystemAdmin(user)
+                || allowedRoles.Any(user.IsInRole);
+        }
+
+        public static bool HasAnyRoleOrSystemAdmin(
+            IEnumerable<string> roleNames,
+            params string[] allowedRoles)
+        {
+            var roles = roleNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return roles.Contains(RoleConstants.SystemAdmin)
+                || allowedRoles.Any(roles.Contains);
+        }
+
         /// <summary>PreparedItem master write (create/edit/toggle) — same set as Create Authorize roles.</summary>
         public static bool CanWritePreparedItems(ClaimsPrincipal user)
         {

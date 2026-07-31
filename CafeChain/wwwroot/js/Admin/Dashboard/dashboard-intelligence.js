@@ -7,9 +7,12 @@
     const status = document.getElementById("dashboardAiStatus");
     const preview = document.getElementById("dashboardAiPreview");
     const result = document.getElementById("dashboardAiResult");
+    const aiPanel = document.getElementById("dashboardAiPanel");
+    const aiTab = document.getElementById("dashboardAiTab");
     const toggleResult = document.getElementById("dashboardAiToggleResult");
     const toggleLabel = toggleResult?.querySelector("[data-ai-toggle-label]");
-    if (!root || !prompt || !analyzeButton || !status || !preview || !result || !toggleResult || !toggleLabel) return;
+    if (!root || !prompt || !analyzeButton || !status || !preview || !result
+        || !aiPanel || !aiTab || !toggleResult || !toggleLabel) return;
 
     const token = document.querySelector(
         "#dashboardAntiForgery input[name='__RequestVerificationToken']"
@@ -50,7 +53,14 @@
     };
     let activeController = null;
     let requestSequence = 0;
-    const chartInstances = [];
+    const chartContexts = [];
+    const chartResizeObserver = typeof ResizeObserver === "function"
+        ? new ResizeObserver(entries => entries.forEach(entry => {
+            chartContexts
+                .filter(context => context.observedElements.includes(entry.target))
+                .forEach(scheduleChartLayout);
+        }))
+        : null;
 
     function element(tag, className, text) {
         const node = document.createElement(tag);
@@ -101,11 +111,14 @@
         toggleLabel.textContent = isVisible ? "Ẩn phân tích" : "Hiện phân tích";
         toggleResult.querySelector("i")?.classList.toggle("bi-eye", isVisible);
         toggleResult.querySelector("i")?.classList.toggle("bi-eye-slash", !isVisible);
+        if (isVisible) scheduleAllCharts();
     }
 
     function disposeCharts() {
-        chartInstances.splice(0).forEach(instance => {
-            if (!instance?.isDisposed?.()) instance.dispose();
+        chartContexts.splice(0).forEach(context => {
+            window.cancelAnimationFrame(context.resizeFrame);
+            context.observedElements.forEach(observed => chartResizeObserver?.unobserve(observed));
+            if (context.instance && !context.instance.isDisposed?.()) context.instance.dispose();
         });
     }
 
@@ -141,7 +154,13 @@
     }
 
     function evidenceMap(data) {
-        return new Map([...(data.facts || []), ...(data.statistics || [])]
+        return new Map([
+            ...(data.facts || []),
+            ...(data.statistics || []),
+            ...(data.evidenceTable || []),
+            ...(data.evidencePack?.primaryFacts || []),
+            ...(data.evidencePack?.supportingFacts || [])
+        ]
             .filter(item => item?.evidenceId)
             .map(item => [item.evidenceId, item]));
     }
@@ -442,31 +461,66 @@
         canvas.setAttribute("role", "img");
         canvas.setAttribute("aria-label", chart.title || "Biểu đồ phân tích");
         block.append(canvas);
-        try {
-            const instance = window.echarts.init(canvas);
-            instance.setOption(buildSeries(chart, rows), { notMerge: true });
-            chartInstances.push(instance);
-        } catch {
-            canvas.replaceWith(renderTable(chart, rows, "Không thể khởi tạo biểu đồ"));
-        }
+        const context = {
+            instance: null,
+            canvas,
+            block,
+            chart,
+            rows,
+            compact: isCompactViewport(),
+            resizeFrame: 0,
+            observedElements: [canvas, block],
+            failed: false
+        };
+        chartContexts.push(context);
+        context.observedElements.forEach(observed => chartResizeObserver?.observe(observed));
+        scheduleChartLayout(context);
         return block;
     }
 
-    let resizeFrame = 0;
-    window.addEventListener("resize", () => {
-        window.cancelAnimationFrame(resizeFrame);
-        resizeFrame = window.requestAnimationFrame(() => {
-            chartInstances.forEach(instance => {
-                if (!instance || instance.isDisposed?.()) return;
-                const canvas = instance.getDom();
-                canvas.style.height = `${chartCanvasHeight(
-                    canvas.dataset.chartType,
-                    Number(canvas.dataset.rowCount || 0)
-                )}px`;
-                instance.resize();
-            });
+    function scheduleChartLayout(context) {
+        if (!context || context.failed) return;
+        window.cancelAnimationFrame(context.resizeFrame);
+        context.resizeFrame = window.requestAnimationFrame(() => {
+            context.resizeFrame = window.requestAnimationFrame(() => refreshChartLayout(context));
         });
-    });
+    }
+
+    function scheduleAllCharts() {
+        chartContexts.forEach(scheduleChartLayout);
+    }
+
+    function refreshChartLayout(context) {
+        if (context.failed || result.hidden || aiPanel.hidden || !context.canvas.isConnected) return;
+        context.canvas.style.height = `${chartCanvasHeight(
+            context.canvas.dataset.chartType,
+            Number(context.canvas.dataset.rowCount || 0)
+        )}px`;
+        const bounds = context.canvas.getBoundingClientRect();
+        if (bounds.width <= 1 || bounds.height <= 1) return;
+        try {
+            if (!context.instance || context.instance.isDisposed?.()) {
+                context.instance = window.echarts.init(context.canvas);
+                context.instance.setOption(buildSeries(context.chart, context.rows), { notMerge: true });
+            } else if (context.compact !== isCompactViewport()) {
+                context.compact = isCompactViewport();
+                context.instance.setOption(buildSeries(context.chart, context.rows), { notMerge: true });
+            }
+            context.instance.resize();
+        } catch {
+            context.failed = true;
+            context.observedElements.forEach(observed => chartResizeObserver?.unobserve(observed));
+            if (context.instance && !context.instance.isDisposed?.()) context.instance.dispose();
+            context.canvas.replaceWith(renderTable(
+                context.chart,
+                context.rows,
+                "Không thể khởi tạo biểu đồ"
+            ));
+        }
+    }
+
+    window.addEventListener("resize", scheduleAllCharts);
+    window.addEventListener("cafechain:dashboard-ai-visible", scheduleAllCharts);
 
     function renderChartAnalyses(items, evidence) {
         return renderNarratives(
@@ -500,17 +554,39 @@
         ].filter(Boolean).forEach(text => meta.append(element("span", "", text)));
         result.append(meta);
 
+        if (data.analysisContext) {
+            const context = element("section", "dashboard-intelligence__summary");
+            context.append(element("h3", "", "Phạm vi phân tích"));
+            context.append(element("p", "", data.analysisContext));
+            result.append(context);
+        }
+
         const summary = element("section", "dashboard-intelligence__summary");
         summary.append(element("h3", "", "Tóm tắt"));
         summary.append(element("p", "", data.summary || "Không đủ dữ liệu để kết luận."));
+        if (data.keyConclusion)
+            summary.append(element("p", "dashboard-intelligence__key-conclusion", data.keyConclusion));
         result.append(summary);
-        result.append(renderEvidence("Số liệu chính", [...(data.facts || []), ...(data.statistics || [])], evidence));
+        result.append(renderEvidence(
+            "Số liệu chính",
+            (data.evidenceTable || []).length
+                ? data.evidenceTable
+                : [...(data.facts || []), ...(data.statistics || [])],
+            evidence));
         const analysisItems = Array.isArray(data.inferences) && data.inferences.length
             ? data.inferences
             : (data.overview || []);
         result.append(renderNarratives("Phân tích", analysisItems, evidence, "dashboard-intelligence__inference"));
         result.append(renderNarratives("Bất thường", data.anomalies || [], evidence, "dashboard-intelligence__anomaly"));
-        result.append(renderNarratives("Khuyến nghị", data.recommendations || [], evidence, "dashboard-intelligence__recommendation"));
+        const recommendations = data.recommendation
+            ? [data.recommendation]
+            : (data.recommendations || []);
+        if (recommendations.length)
+            result.append(renderNarratives(
+                "Khuyến nghị",
+                recommendations,
+                evidence,
+                "dashboard-intelligence__recommendation"));
 
         const charts = element("section", "dashboard-intelligence__charts");
         charts.append(element("h3", "", "Biểu đồ và dữ liệu minh họa"));
@@ -522,7 +598,7 @@
         result.append(renderNarratives("Kết luận", data.conclusions || [],
             evidence, "dashboard-intelligence__inference"));
 
-        const warnings = [...(data.warnings || [])];
+        const warnings = [...(data.limitations || []), ...(data.warnings || [])];
         if (data.dataStatus !== "OK")
             warnings.unshift(`Chất lượng dữ liệu: ${localizedLabel(data.dataStatus, statusLabels, "Không xác định")}. Hãy xem giới hạn trước khi sử dụng khuyến nghị.`);
         if (data.aiStatus === "Fallback")
@@ -607,8 +683,9 @@
     });
     window.addEventListener("cafechain:dashboard-context-changed", event => {
         root.dataset.filterFingerprint = event.detail?.filterFingerprint || "";
+        disposeCharts();
         result.replaceChildren();
-        result.hidden = true;
+        setResultVisibility(false);
         toggleResult.disabled = true;
     });
     toggleResult.addEventListener("click", () => {
@@ -626,6 +703,8 @@
     const suggestedQuestion = url.searchParams.get("aiQuestion")?.trim();
     if (suggestedQuestion) {
         prompt.value = suggestedQuestion.slice(0, Number(prompt.maxLength) || 500);
+        aiTab.click();
+        window.requestAnimationFrame(() => prompt.focus());
         url.searchParams.delete("aiQuestion");
         window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
     }

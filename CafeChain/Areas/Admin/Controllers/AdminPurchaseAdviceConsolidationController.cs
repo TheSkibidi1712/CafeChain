@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers;
 
 [Area("Admin")]
-[Authorize(Roles =
+[RequirePermission(PermissionConstants.PurchaseAdviceConsolidate,
     RoleConstants.BusinessOwner + "," +
     RoleConstants.AreaManager + "," +
     RoleConstants.StoreManager + "," +

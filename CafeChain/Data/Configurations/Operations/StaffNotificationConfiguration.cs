@@ -32,6 +32,9 @@ namespace CafeChain.Data.Configurations.Operations
             entity.Property(x => x.DeduplicationKey)
                 .HasMaxLength(240);
 
+            entity.Property(x => x.MeaningfulVersion)
+                .HasMaxLength(64);
+
             entity.Property(x => x.EntityType)
                 .IsRequired()
                 .HasMaxLength(64);

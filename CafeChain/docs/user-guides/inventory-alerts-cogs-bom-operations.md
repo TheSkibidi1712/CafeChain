@@ -43,7 +43,9 @@ Tồn phải thay đổi qua bán hàng, phiếu nhận, phiếu kho, điều ch
 | Công việc                             | Vai trò chính                                                                    |
 | ------------------------------------- | -------------------------------------------------------------------------------- |
 | Xem tồn kho theo phạm vi              | Các vai trò quản lý/vận hành được cấp phạm vi chi nhánh/khu vực                  |
-| Cập nhật ngưỡng tồn                   | Quản lý chi nhánh, Quản lý khu vực, Chủ doanh nghiệp, Quản trị hệ thống          |
+| Cập nhật ngưỡng tồn                   | Quản lý chi nhánh, Quản lý khu vực, Chủ doanh nghiệp                            |
+| Xem gợi ý nhập (`ReorderSuggestion.View`) | Chủ doanh nghiệp, Quản lý vùng, Quản lý chi nhánh, Kế toán/kho              |
+| Tạo yêu cầu từ gợi ý (`Restock.Create`) | Chỉ Quản lý chi nhánh và Kế toán/kho                                         |
 | Xác nhận/báo sai cảnh báo             | Quản lý chi nhánh hoặc Chủ doanh nghiệp                                          |
 | Xem cảnh báo                          | Có thể gồm Kế toán/Kho, Ca trưởng, Nhân viên bán hàng theo phạm vi               |
 | Sửa bán thành phẩm/Công thức BOM      | Kế toán/Kho, Chủ doanh nghiệp, Quản trị hệ thống                                 |
@@ -178,6 +180,28 @@ max(0, ngưỡng tối thiểu - khả dụng hiện tại)
 
 ## 7. Luồng nhập hàng hoàn chỉnh
 
+### Gợi ý nhập hàng tự động kiểm tra ra sao
+
+Mở **Kho & Cung ứng → Gợi ý nhập hàng**. Người dùng cần quyền `ReorderSuggestion.View`; tạo hoặc bổ sung yêu cầu cần thêm quyền `Restock.Create`.
+
+1. Chọn một cửa hàng thuộc phạm vi được cấp quyền và kỳ phân tích 30, 60 hoặc 90 ngày.
+2. Sau khi tính thành công, hệ thống deterministic quét toàn bộ nguyên liệu của cửa hàng đó.
+3. Modal tự mở nếu có nguyên liệu `URGENT`, `NEAR_REORDER` hoặc `PROCUREMENT_IN_PROGRESS` còn lượng cần bổ sung. Các dòng hợp lệ được chọn sẵn nhưng người dùng vẫn phải xác nhận lần hai.
+4. Kiểm tra tồn khả dụng, ROP, hàng đang về, phần pipeline bao phủ, nhu cầu còn lại, số gói/số lượng cuối và Nhà cung cấp.
+5. Chọn **Tạo yêu cầu nhập**. Giao diện gọi tuần tự Confirm hiện có; một dòng lỗi không làm mất kết quả của dòng khác.
+6. Dòng `DATA_INCOMPLETE` chỉ đọc và phải sửa dữ liệu nền trước khi xác nhận.
+
+Việc quét không gọi AI. `ReorderSuggestionService` quyết định số lượng; nút **Giải thích** chỉ yêu cầu AI diễn giải và có fallback deterministic khi Ollama không khả dụng.
+Không có permission AI riêng: Explain là read-only và dùng
+`ReorderSuggestion.View`. Account override `Allow` không thể đưa một role ngoài
+bốn role nghiệp vụ vào màn hình; override `Deny` luôn chặn quyền đã cấp.
+
+Phân biệt:
+
+- **StockAlert** phản ánh một tín hiệu tồn hiện tại theo ngưỡng và có vòng đời xác nhận/giải quyết riêng.
+- **ReorderSuggestion** dự báo nhu cầu tại điểm đặt hàng từ tồn khả dụng, tốc độ tiêu thụ, lead time, hàng đang về và pipeline mua hàng.
+- Một nguyên liệu `NEAR_REORDER` có thể cần nhập dù chưa có StockAlert và tồn vẫn chưa thấp hơn minimum.
+
 ```text
 Cảnh báo kho
 → Yêu cầu nhập hàng
@@ -194,7 +218,7 @@ Cảnh báo kho
 
 ### Các bước thao tác
 
-1. **Gợi ý nhập hàng** chỉ phân tích; không tự đặt hàng. Trạng thái thiếu ngưỡng, giá mua, nguồn cung, quy đổi hoặc thời gian giao phải được sửa ở dữ liệu nền.
+1. **Gợi ý nhập hàng** tự quét và hỗ trợ tạo Yêu cầu nhập sau khi người dùng chọn/xác nhận; nó không tự đặt hàng. Trạng thái thiếu ngưỡng, lịch sử tiêu thụ, giá mua, nguồn cung, quy đổi hoặc thời gian giao phải được sửa ở dữ liệu nền.
 2. **Yêu cầu nhập hàng** là nhu cầu bổ sung tồn, không phải chứng từ kho.
 3. **Đề nghị mua hàng** lấy phần còn thiếu sau khi trừ số đã điều chuyển, đã nằm trong đề nghị/đơn đặt hàng đang hoạt động và phần đã đóng.
 4. Tại **Tổng hợp đề nghị mua**, Kế toán chọn Nhà cung cấp, quy cách cung cấp và số kiện; hệ thống kiểm tra lại số lượng đặt tối thiểu, giá, quy đổi, số lượng còn cần đặt và phạm vi phục vụ chi nhánh.

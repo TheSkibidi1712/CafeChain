@@ -1,5 +1,6 @@
 @model CafeChain.ViewModels.Admin.OperationalIce.OperationalIceIndexVM
 @using CafeChain.Application.Constants
+@using System.Globalization
 @{
     ViewData["Title"] = "Quản lý đá theo ca";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -24,12 +25,33 @@
     };
     string StatusLabel(string value) => statusLabels.TryGetValue(value, out var label) ? label : value;
     string StatusClass(string value) => statusClasses.TryGetValue(value, out var css) ? css : "ice-badge-neutral";
+    string InputNumber(decimal value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    var viCulture = CultureInfo.GetCultureInfo("vi-VN");
+    string DisplayNumber(decimal value) => value.ToString("0.##", viCulture);
+    string DisplayQuantity(decimal value, string unit) => $"{DisplayNumber(value)} {unit}";
+    string DisplayNullableQuantity(decimal? value, string unit) =>
+        value.HasValue ? DisplayQuantity(value.Value, unit) : "—";
 
     var selectedIngredientId = Model.Policy?.IngredientId ?? Model.Ingredients.FirstOrDefault()?.Id ?? 0;
-    var selectedUnitId = Model.Policy?.DisplayUnitId ?? Model.Units.FirstOrDefault()?.Id ?? 0;
+    var selectedUnitId = Model.Policy?.DisplayUnitId
+                         ?? Model.Units.FirstOrDefault(x => x.Code == "kg")?.Id
+                         ?? Model.Units.FirstOrDefault()?.Id
+                         ?? 0;
     var unitLabel = string.IsNullOrWhiteSpace(Model.Policy?.UnitName) ? "kg" : Model.Policy.UnitName;
     var startLocal = Model.BusinessDate.AddHours(6);
     var endLocal = Model.BusinessDate.AddHours(14);
+    var selectedStoreName = Model.Stores.FirstOrDefault(x => x.StoreId == Model.StoreId)?.StoreName
+                            ?? $"Chi nhánh #{Model.StoreId}";
+    var scheduleOptionsUrl = Url.Action("ScheduleOptions", "AdminOperationalIce", new { area = "Admin" }) ?? string.Empty;
+    var staffScheduleUrl = Url.Action(
+        "Index",
+        "AdminStaffShift",
+        new
+        {
+            area = "Admin",
+            targetStoreId = Model.StoreId,
+            startDate = Model.BusinessDate.ToString("yyyy-MM-dd")
+        }) ?? string.Empty;
 }
 <link rel="stylesheet" href="~/css/Admin/OperationalIce/operational-ice.css" />
 
@@ -40,24 +62,20 @@
             <h1>Quản lý đá theo ca</h1>
             <p>Cấp đá bằng giữ chỗ, theo dõi tiêu hao POS và chốt chênh lệch mà không trừ kho hai lần.</p>
         </div>
-        @if (Model.CanManage)
-        {
-            <a class="ice-btn ice-btn-primary" href="#createShift">
-                <i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo ca vận hành
-            </a>
-        }
     </header>
 
-    @if (TempData["SuccessMessage"] is string success && !string.IsNullOrWhiteSpace(success))
-    {
-        <div class="ice-notice ice-notice-success" role="status">@success</div>
-    }
-    @if (TempData["ErrorMessage"] is string error && !string.IsNullOrWhiteSpace(error))
-    {
-        <div class="ice-notice ice-notice-danger" role="alert">@error</div>
-    }
+    <div class="ice-toast-stack" aria-live="polite">
+        @if (TempData["SuccessMessage"] is string success && !string.IsNullOrWhiteSpace(success))
+        {
+            <div class="ice-notice ice-notice-success ice-toast" role="status">@success</div>
+        }
+        @if (TempData["ErrorMessage"] is string error && !string.IsNullOrWhiteSpace(error))
+        {
+            <div class="ice-notice ice-notice-danger ice-toast" role="alert">@error</div>
+        }
+    </div>
 
-    <form method="get" class="ice-filterbar" aria-label="Lọc ca vận hành đá">
+    <form method="get" class="ice-filterbar" aria-label="Lọc ca vận hành đá" data-ice-date-form>
         <div class="ice-field">
             <label for="iceStore">Chi nhánh</label>
             <select id="iceStore" name="storeId">
@@ -68,8 +86,17 @@
             </select>
         </div>
         <div class="ice-field">
-            <label for="iceBusinessDate">Ngày kinh doanh</label>
-            <input id="iceBusinessDate" type="date" name="businessDate" value="@Model.BusinessDate.ToString("yyyy-MM-dd")" />
+            <label for="iceBusinessDateDisplay">Ngày kinh doanh</label>
+            <input id="iceBusinessDateDisplay"
+                   type="text"
+                   inputmode="numeric"
+                   placeholder="dd/MM/yyyy"
+                   value="@Model.BusinessDate.ToString("dd/MM/yyyy")"
+                   data-ice-date-display
+                   data-target="iceBusinessDate"
+                   required />
+            <input id="iceBusinessDate" type="hidden" name="businessDate" value="@Model.BusinessDate.ToString("yyyy-MM-dd")" />
+            <small>Định dạng dd/MM/yyyy.</small>
         </div>
         <div class="ice-field">
             <label for="iceStatus">Trạng thái</label>
@@ -86,24 +113,31 @@
         </button>
     </form>
 
-    <section class="ice-summary-grid" aria-label="Tổng quan vận hành đá">
+    <section class="ice-summary-grid" aria-label="Tồn kho nguyên liệu đá">
         <article>
-            <span>Định mức mỗi ca</span>
-            <strong>@((Model.Policy?.SuggestedShiftQuantity ?? 0).ToString("N2")) @unitLabel</strong>
+            <span>Tồn vật lý</span>
+            <strong>@(Model.Inventory == null ? "—" : DisplayQuantity(Model.Inventory.PhysicalQuantity, Model.Inventory.UnitName))</strong>
         </article>
         <article>
-            <span>Ca trong ngày</span>
-            <strong>@Model.Rows.Count</strong>
+            <span>Đang giữ chỗ</span>
+            <strong>@(Model.Inventory == null ? "—" : DisplayQuantity(Model.Inventory.ReservedQuantity, Model.Inventory.UnitName))</strong>
         </article>
         <article>
-            <span>Đang vận hành</span>
-            <strong>@Model.Rows.Count(x => x.Status == OperationalIceStatuses.Open)</strong>
+            <span>Tồn khả dụng</span>
+            <strong>@(Model.Inventory == null ? "—" : DisplayQuantity(Model.Inventory.AvailableQuantity, Model.Inventory.UnitName))</strong>
         </article>
-        <article>
-            <span>Cần xử lý</span>
-            <strong>@Model.Rows.Count(x => x.Status is OperationalIceStatuses.PendingApproval or OperationalIceStatuses.ReconciliationRequired)</strong>
+        <article class="@(Model.Inventory?.AvailableAfterSuggestedShiftQuantity < 0 ? "ice-summary-danger" : "")">
+            <span>Khả dụng sau khi mở theo định mức</span>
+            <strong>@(Model.Inventory == null ? "—" : DisplayQuantity(Model.Inventory.AvailableAfterSuggestedShiftQuantity, Model.Inventory.UnitName))</strong>
         </article>
-</section>
+    </section>
+
+    <section class="ice-summary-grid" aria-label="Tổng quan ca vận hành đá">
+        <article><span>Định mức mỗi ca</span><strong>@DisplayQuantity(Model.Policy?.SuggestedShiftQuantity ?? 0, unitLabel)</strong></article>
+        <article><span>Ca trong ngày</span><strong>@Model.Rows.Count</strong></article>
+        <article><span>Đang vận hành</span><strong>@Model.Rows.Count(x => x.Status == OperationalIceStatuses.Open)</strong></article>
+        <article><span>Cần xử lý</span><strong>@Model.Rows.Count(x => x.Status is OperationalIceStatuses.PendingApproval or OperationalIceStatuses.ReconciliationRequired)</strong></article>
+    </section>
     @if (Model.CanConfigurePolicy)
     {
         <details class="ice-panel ice-disclosure" open="@(Model.Policy == null)">
@@ -112,52 +146,89 @@
                     <i class="fa-solid fa-sliders" aria-hidden="true"></i>
                     Chính sách đá tại chi nhánh
                 </span>
-                <small>@(Model.Policy == null ? "Chưa cấu hình" : $"{Model.Policy.IngredientName} · {Model.Policy.SuggestedShiftQuantity:N2} {unitLabel}/ca")</small>
+                <span class="ice-badge @(Model.HasValidPolicy ? "ice-badge-success" : "ice-badge-warning")">
+                    @(Model.HasValidPolicy ? "Đã cấu hình" : "Chưa cấu hình")
+                </span>
             </summary>
-            <form asp-action="SavePolicy" method="post" class="ice-form-grid ice-policy-form">
+            <form asp-action="SavePolicy" method="post" class="ice-policy-form" data-ice-submit>
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="StoreId" value="@Model.StoreId" />
-                <div class="ice-field ice-span-2">
-                    <label for="policyIngredient">Nguyên liệu đá</label>
-                    <select id="policyIngredient" name="IngredientId" required>
-                        @foreach (var option in Model.Ingredients)
-                        {
-                            <option value="@option.Id" selected="@(option.Id == selectedIngredientId)">@option.Label</option>
-                        }
-                    </select>
+                <div class="ice-policy-status @(Model.HasValidPolicy ? "is-valid" : "is-invalid")" role="status">
+                    <i class="fa-solid @(Model.HasValidPolicy ? "fa-circle-check" : "fa-triangle-exclamation")" aria-hidden="true"></i>
+                    <span>@Model.PolicyStatusMessage</span>
                 </div>
-                <div class="ice-field">
-                    <label for="policyUnit">Đơn vị hiển thị</label>
-                    <select id="policyUnit" name="DisplayUnitId" required>
-                        @foreach (var option in Model.Units)
-                        {
-                            <option value="@option.Id" selected="@(option.Id == selectedUnitId)">@option.Label</option>
-                        }
-                    </select>
-                </div>
-                <div class="ice-field">
-                    <label for="dailyQuantity">Định mức ngày</label>
-                    <input id="dailyQuantity" name="SuggestedDailyQuantity" type="number" min="0" step="0.01" value="@(Model.Policy?.SuggestedDailyQuantity ?? 0)" required />
-                </div>
-                <div class="ice-field">
-                    <label for="shiftQuantity">Định mức ca</label>
-                    <input id="shiftQuantity" name="SuggestedShiftQuantity" type="number" min="0.01" step="0.01" value="@(Model.Policy?.SuggestedShiftQuantity ?? 0)" required />
-                </div>
-                <div class="ice-field">
-                    <label for="quantityThreshold">Ngưỡng duyệt theo lượng</label>
-                    <input id="quantityThreshold" name="VarianceApprovalQuantityThreshold" type="number" min="0" step="0.01" value="@(Model.Policy?.VarianceApprovalQuantityThreshold ?? 0)" />
-                </div>
-                <div class="ice-field">
-                    <label for="percentThreshold">Ngưỡng duyệt (%)</label>
-                    <input id="percentThreshold" name="VarianceApprovalPercentThreshold" type="number" min="0" max="100" step="0.01" value="@(Model.Policy?.VarianceApprovalPercentThreshold ?? 0)" />
-                </div>
-                <div class="ice-toggle-row ice-span-full">
-                    <label><input type="checkbox" name="AllowSupplementalIssue" value="true" checked="@(Model.Policy?.AllowSupplementalIssue ?? true)" /> Cho phép cấp bổ sung</label>
-                    <label><input type="checkbox" name="AllowSameDayCarryOver" value="true" checked="@(Model.Policy?.AllowSameDayCarryOver ?? true)" /> Cho phép bàn giao cùng ngày</label>
-                    <label><input type="checkbox" name="RequireVarianceApproval" value="true" checked="@(Model.Policy?.RequireVarianceApproval ?? true)" /> Bắt buộc duyệt chênh lệch</label>
-                </div>
-                <div class="ice-form-actions ice-span-full">
-                    <button class="ice-btn ice-btn-primary" type="submit">
+
+                <fieldset class="ice-policy-group">
+                    <legend>Nguyên liệu và đơn vị</legend>
+                    <p>Chỉ nguyên liệu được định danh cho nghiệp vụ quản lý đá, đang hoạt động, có tồn tại chi nhánh, base gram và đổi được g ↔ kg mới xuất hiện.</p>
+                    <div class="ice-form-grid ice-form-grid-2">
+                        <div class="ice-field">
+                            <label for="policyIngredient">Nguyên liệu đá</label>
+                            <select id="policyIngredient" name="IngredientId" required disabled="@(Model.Ingredients.Count == 0)">
+                                @if (Model.Ingredients.Count == 0)
+                                {
+                                    <option value="">Không có nguyên liệu phù hợp</option>
+                                }
+                                @foreach (var option in Model.Ingredients)
+                                {
+                                    <option value="@option.Id" selected="@(option.Id == selectedIngredientId)">@option.Label</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="ice-field">
+                            <label for="policyUnit">Đơn vị hiển thị</label>
+                            <select id="policyUnit" name="DisplayUnitId" required disabled="@(Model.Units.Count != 2)">
+                                @if (Model.Units.Count == 0)
+                                {
+                                    <option value="">Thiếu cặp đơn vị g/kg</option>
+                                }
+                                @foreach (var option in Model.Units)
+                                {
+                                    <option value="@option.Id" data-unit-code="@option.Code" selected="@(option.Id == selectedUnitId)">@option.Label</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="ice-policy-group">
+                    <legend>Định mức</legend>
+                    <p>Định mức ca phải lớn hơn 0 và không vượt định mức ngày.</p>
+                    <div class="ice-form-grid ice-form-grid-2">
+                        <div class="ice-field">
+                            <label for="dailyQuantity">Định mức ngày (<span data-unit-label>@unitLabel</span>)</label>
+                            <input id="dailyQuantity" name="SuggestedDailyQuantity" type="number" min="0.01" step="0.01" value="@(Model.Policy == null ? null : InputNumber(Model.Policy.SuggestedDailyQuantity))" required />
+                        </div>
+                        <div class="ice-field">
+                            <label for="shiftQuantity">Định mức mỗi ca (<span data-unit-label>@unitLabel</span>)</label>
+                            <input id="shiftQuantity" name="SuggestedShiftQuantity" type="number" min="0.01" step="0.01" value="@(Model.Policy == null ? null : InputNumber(Model.Policy.SuggestedShiftQuantity))" required />
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="ice-policy-group">
+                    <legend>Quy tắc duyệt và bàn giao</legend>
+                    <p>Mọi chênh lệch dương đều cần duyệt. Hai ngưỡng dưới đây xác định khi nào phải nâng cấp người duyệt.</p>
+                    <div class="ice-form-grid ice-form-grid-2">
+                        <div class="ice-field">
+                            <label for="quantityThreshold">Chênh lệch cần duyệt từ (<span data-unit-label>@unitLabel</span>)</label>
+                            <input id="quantityThreshold" name="VarianceApprovalQuantityThreshold" type="number" min="0" step="0.01" value="@InputNumber(Model.Policy?.VarianceApprovalQuantityThreshold ?? 0)" />
+                        </div>
+                        <div class="ice-field">
+                            <label for="percentThreshold">Chênh lệch cần duyệt từ (%)</label>
+                            <input id="percentThreshold" name="VarianceApprovalPercentThreshold" type="number" min="0" max="100" step="0.01" value="@InputNumber(Model.Policy?.VarianceApprovalPercentThreshold ?? 0)" />
+                        </div>
+                    </div>
+                    <div class="ice-toggle-row">
+                        <label><input type="checkbox" name="AllowSupplementalIssue" value="true" checked="@(Model.Policy?.AllowSupplementalIssue ?? true)" /> Cho phép cấp bổ sung trong ca</label>
+                        <label><input type="checkbox" name="AllowSameDayCarryOver" value="true" checked="@(Model.Policy?.AllowSameDayCarryOver ?? true)" /> Cho phép bàn giao giữa các ca trong cùng ngày</label>
+                        <input type="hidden" name="RequireVarianceApproval" value="true" />
+                        <label title="Quy tắc an toàn cố định"><input type="checkbox" checked disabled /> Bắt buộc duyệt mọi chênh lệch dương</label>
+                    </div>
+                </fieldset>
+
+                <div class="ice-form-actions">
+                    <button class="ice-btn ice-btn-primary" type="submit" disabled="@(Model.Ingredients.Count == 0 || Model.Units.Count != 2)">
                         <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu chính sách
                     </button>
                 </div>
@@ -175,34 +246,155 @@
                 </div>
                 <p>Một ca vận hành có thể liên kết nhiều WorkShift POS.</p>
             </div>
-            <form asp-action="CreateShift" method="post" class="ice-form-grid">
+            @if (!Model.HasValidPolicy)
+            {
+                <div class="ice-notice ice-notice-warning" role="status">@Model.PolicyStatusMessage</div>
+            }
+            else if (Model.ShiftLeads.Count == 0)
+            {
+                <div class="ice-notice ice-notice-warning" role="status">Chi nhánh chưa có Ca trưởng hoặc Cửa hàng trưởng đang hoạt động để phụ trách ca.</div>
+            }
+            <form asp-action="CreateShift"
+                  method="post"
+                  class="ice-form-grid"
+                  data-ice-submit
+                  data-schedule-options-url="@scheduleOptionsUrl"
+                  data-store-name="@selectedStoreName"
+                  data-business-date="@Model.BusinessDate.ToString("yyyy-MM-dd")"
+                  data-create-enabled="@((Model.HasValidPolicy && Model.ShiftLeads.Count > 0).ToString().ToLowerInvariant())">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="StoreId" value="@Model.StoreId" />
                 <input type="hidden" name="BusinessDate" value="@Model.BusinessDate.ToString("yyyy-MM-dd")" />
+                <input id="creationSource" type="hidden" name="CreationSource" value="@OperationalIceCreationSources.StaffSchedule" />
+                <input id="sourceScheduleShiftId" type="hidden" name="SourceScheduleShiftId" disabled />
+                <input id="scheduleShiftLeadId" type="hidden" name="ShiftLeadId" disabled />
+                <fieldset class="ice-mode-switch ice-span-2">
+                    <legend>Cách tạo ca</legend>
+                    <label>
+                        <input type="radio" name="createMode" value="schedule" checked />
+                        Tạo từ lịch làm việc
+                    </label>
+                    <label>
+                        <input type="radio" name="createMode" value="manual" />
+                        Tạo thủ công
+                    </label>
+                </fieldset>
+                <div id="scheduleSourceField" class="ice-schedule-source ice-span-2" aria-live="polite">
+                    <div id="scheduleLoadingState" class="ice-schedule-state">
+                        <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+                        <div>
+                            <strong>Đang tải lịch làm việc…</strong>
+                            <span>Đang kiểm tra lịch tại @selectedStoreName ngày @Model.BusinessDate.ToString("dd/MM/yyyy").</span>
+                        </div>
+                    </div>
+
+                    <div id="scheduleHasDataState" class="ice-schedule-state" hidden>
+                        <div class="ice-field">
+                            <label for="scheduleSource">Ca theo lịch</label>
+                            <select id="scheduleSource" aria-describedby="scheduleSourceHelp"></select>
+                            <small id="scheduleSourceHelp">Các phân công cùng ca được gom thành một ca vận hành.</small>
+                        </div>
+                        <div class="ice-schedule-summary">
+                            <div>
+                                <span>Nguồn tạo</span>
+                                <strong>Lịch làm việc</strong>
+                            </div>
+                            <div>
+                                <span>Nhân viên dự kiến</span>
+                                <strong id="scheduleStaffCount">—</strong>
+                            </div>
+                            <div>
+                                <span>Ca trưởng dự kiến</span>
+                                <strong id="scheduleLeadName">—</strong>
+                            </div>
+                            <div>
+                                <span>Định mức đá đề xuất</span>
+                                <strong>@(Model.Policy == null ? "—" : DisplayQuantity(Model.Policy.SuggestedShiftQuantity, unitLabel))</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="scheduleEmptyState" class="ice-schedule-state ice-schedule-state-empty" hidden>
+                        <i class="fa-regular fa-calendar-xmark" aria-hidden="true"></i>
+                        <div>
+                            <strong>Không có lịch làm việc phù hợp.</strong>
+                            <span>
+                                Chưa tìm thấy ca làm việc tại @selectedStoreName trong ngày
+                                @Model.BusinessDate.ToString("dd/MM/yyyy").
+                            </span>
+                            <span>Bạn có thể tạo lịch nhân sự trước hoặc chuyển sang tạo ca thủ công.</span>
+                            <div class="ice-state-actions">
+                                <a class="ice-btn ice-btn-secondary" href="@staffScheduleUrl">
+                                    <i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Xem lịch làm việc
+                                </a>
+                                <button id="switchToManualButton" class="ice-btn ice-btn-secondary" type="button">
+                                    Chuyển sang tạo thủ công
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="scheduleErrorState" class="ice-schedule-state ice-schedule-state-error" hidden>
+                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                        <div>
+                            <strong>Không thể tải lịch làm việc. Vui lòng thử lại.</strong>
+                            <span>Kết nối hoặc dữ liệu lịch đang tạm thời không khả dụng.</span>
+                            <div class="ice-state-actions">
+                                <button id="retryScheduleButton" class="ice-btn ice-btn-secondary" type="button">
+                                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Thử lại
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="schedulePrefillNotice" class="ice-notice ice-notice-info ice-span-2">
+                    Các trường bên dưới được lấy từ ca lịch đã chọn và không thể sửa trong chế độ này.
+                </div>
                 <div class="ice-field ice-span-2">
                     <label for="shiftName">Tên ca</label>
-                    <input id="shiftName" name="Name" maxlength="100" placeholder="Ví dụ: Ca sáng" required />
+                    <input id="shiftName" name="Name" maxlength="100" placeholder="Ví dụ: Ca sáng" required disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)" />
                 </div>
                 <div class="ice-field">
-                    <label for="shiftStart">Bắt đầu</label>
-                    <input id="shiftStart" name="StartAtUtc" type="datetime-local" value="@startLocal.ToString("yyyy-MM-ddTHH:mm")" required />
+                    <label for="shiftStartDisplay">Bắt đầu</label>
+                    <input id="shiftStartDisplay"
+                           type="text"
+                           inputmode="numeric"
+                           placeholder="dd/MM/yyyy HH:mm"
+                           value="@startLocal.ToString("dd/MM/yyyy HH:mm")"
+                           data-ice-datetime-display
+                           data-target="shiftStart"
+                           required
+                           disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)" />
+                    <input id="shiftStart" name="StartAtUtc" type="hidden" value="@startLocal.ToString("yyyy-MM-ddTHH:mm")" disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)" />
+                    <small>Định dạng 24 giờ: dd/MM/yyyy HH:mm.</small>
                 </div>
                 <div class="ice-field">
-                    <label for="shiftEnd">Kết thúc</label>
-                    <input id="shiftEnd" name="EndAtUtc" type="datetime-local" value="@endLocal.ToString("yyyy-MM-ddTHH:mm")" required />
+                    <label for="shiftEndDisplay">Kết thúc</label>
+                    <input id="shiftEndDisplay"
+                           type="text"
+                           inputmode="numeric"
+                           placeholder="dd/MM/yyyy HH:mm"
+                           value="@endLocal.ToString("dd/MM/yyyy HH:mm")"
+                           data-ice-datetime-display
+                           data-target="shiftEnd"
+                           required
+                           disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)" />
+                    <input id="shiftEnd" name="EndAtUtc" type="hidden" value="@endLocal.ToString("yyyy-MM-ddTHH:mm")" disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)" />
+                    <small>Định dạng 24 giờ: dd/MM/yyyy HH:mm.</small>
                 </div>
                 <div class="ice-field">
                     <label for="shiftLead">Ca trưởng</label>
-                    <select id="shiftLead" name="ShiftLeadId">
-                        <option value="">Chưa phân công</option>
+                    <select id="shiftLead" name="ShiftLeadId" required disabled="@(!Model.HasValidPolicy || Model.ShiftLeads.Count == 0)">
+                        <option value="" selected disabled>Chọn người phụ trách</option>
                         @foreach (var lead in Model.ShiftLeads)
                         {
                             <option value="@lead.Id">@lead.Label</option>
                         }
                     </select>
+                    <small>Chỉ Ca trưởng hoặc Cửa hàng trưởng đang hoạt động tại chi nhánh.</small>
                 </div>
                 <div class="ice-form-actions">
-                    <button class="ice-btn ice-btn-primary" type="submit">
+                    <button id="createShiftButton" class="ice-btn ice-btn-primary" type="submit" disabled>
                         <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Tạo ca
                     </button>
                 </div>
@@ -249,14 +441,123 @@
                             <tr>
                                 <td>
                                     <strong>@row.ShiftName</strong>
-                                    <small>Ca #@row.OperationalShiftId</small>
+                                    <small>
+                                        Ca #@row.OperationalShiftId ·
+                                        @(row.CreationSource == OperationalIceCreationSources.StaffSchedule ? "Lịch làm việc" : "Thủ công") ·
+                                        Đã liên kết @row.LinkedWorkShiftCount ca POS
+                                    </small>
+                                    @if (row.ScheduleReview is { HasChanges: true } scheduleReview)
+                                    {
+                                        <div class="ice-schedule-change" role="status">
+                                            <strong>
+                                                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                                                @if (!scheduleReview.IsScheduleAvailable)
+                                                {
+                                                    <text>Ca lịch nguồn đã bị hủy</text>
+                                                }
+                                                else if (scheduleReview.RequiresLeadReplacement)
+                                                {
+                                                    <text>Ca trưởng trong lịch đã bị hủy phân công</text>
+                                                }
+                                                else
+                                                {
+                                                    <text>Lịch làm việc đã thay đổi</text>
+                                                }
+                                            </strong>
+                                            <span><b>Ca đang lưu:</b> @scheduleReview.SavedLabel · @scheduleReview.SavedLeadName</span>
+                                            <span><b>Lịch hiện tại:</b> @scheduleReview.CurrentLabel@(scheduleReview.IsScheduleAvailable ? $" · {scheduleReview.StaffCount} nhân viên · {scheduleReview.CurrentLeadName}" : "")</span>
+                                            @if (scheduleReview.HasCancelledAssignments)
+                                            {
+                                                <span>
+                                                    Có @scheduleReview.CancelledStaffCount phân công đã bị hủy.
+                                                    Hệ thống không tự hủy hoặc thay đổi ca vận hành.
+                                                </span>
+                                            }
+                                            @if (scheduleReview.CanSync)
+                                            {
+                                                <form asp-action="SyncSchedule" method="post" class="ice-inline-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
+                                                    <button class="ice-btn ice-btn-secondary ice-btn-compact" type="submit">
+                                                        <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Đồng bộ lịch
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (row.Status == OperationalIceStatuses.Draft
+                                                 && !scheduleReview.IsScheduleAvailable)
+                                            {
+                                                <div class="ice-schedule-resolution">
+                                                    <form asp-action="ConvertToManual" method="post" class="ice-resolution-form">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
+                                                        <label for="manual-reason-@row.OperationalShiftId">Lý do chuyển sang ca thủ công</label>
+                                                        <input id="manual-reason-@row.OperationalShiftId"
+                                                               name="Reason"
+                                                               maxlength="500"
+                                                               placeholder="Ví dụ: Lịch nguồn đã hủy, tiếp tục vận hành thủ công"
+                                                               required />
+                                                        <button class="ice-btn ice-btn-secondary ice-btn-compact" type="submit">
+                                                            Chuyển sang thủ công
+                                                        </button>
+                                                    </form>
+                                                    <form asp-action="CancelDraftShift"
+                                                          method="post"
+                                                          class="ice-resolution-form"
+                                                          onsubmit="return confirm('Hủy ca vận hành nháp này? Lịch sử vẫn được giữ lại.');">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
+                                                        <label for="cancel-reason-@row.OperationalShiftId">Lý do hủy ca nháp</label>
+                                                        <input id="cancel-reason-@row.OperationalShiftId"
+                                                               name="Reason"
+                                                               maxlength="500"
+                                                               placeholder="Nhập lý do hủy ca"
+                                                               required />
+                                                        <button class="ice-btn ice-btn-danger ice-btn-compact" type="submit">
+                                                            Hủy ca nháp
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            }
+                                            else if (row.Status == OperationalIceStatuses.Draft
+                                                     && scheduleReview.RequiresLeadReplacement)
+                                            {
+                                                <form asp-action="UpdateShiftLead" method="post" class="ice-resolution-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
+                                                    <label for="replacement-lead-@row.OperationalShiftId">Chọn ca trưởng thay thế</label>
+                                                    <select id="replacement-lead-@row.OperationalShiftId"
+                                                            name="ShiftLeadId"
+                                                            required>
+                                                        <option value="">Chọn ca trưởng</option>
+                                                        @foreach (var lead in Model.ShiftLeads)
+                                                        {
+                                                            <option value="@lead.Id">@lead.Label</option>
+                                                        }
+                                                    </select>
+                                                    <label for="replacement-reason-@row.OperationalShiftId">Lý do thay ca trưởng</label>
+                                                    <input id="replacement-reason-@row.OperationalShiftId"
+                                                           name="Reason"
+                                                           maxlength="500"
+                                                           placeholder="Nhập lý do thay ca trưởng"
+                                                           required />
+                                                    <button class="ice-btn ice-btn-secondary ice-btn-compact" type="submit">
+                                                        Cập nhật ca trưởng
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (row.Status != OperationalIceStatuses.Draft)
+                                            {
+                                                <em>Ca đã mở hoặc đã kết thúc nên hệ thống chỉ cảnh báo, không tự động thay đổi dữ liệu vận hành.</em>
+                                            }
+                                        </div>
+                                    }
                                 </td>
-                                <td>@row.StartAtUtc.ToLocalTime().ToString("HH:mm") – @row.EndAtUtc.ToLocalTime().ToString("HH:mm")</td>
-                                <td class="ice-number">@row.SuggestedQuantity.ToString("N2") @unitLabel</td>
-                                <td class="ice-number">@row.TotalIssuedQuantity.ToString("N2") @unitLabel</td>
-                                <td class="ice-number">@row.TheoreticalUsageQuantity.ToString("N2") @unitLabel</td>
+                                <td>@row.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") – @row.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="ice-number">@DisplayQuantity(row.SuggestedQuantity, unitLabel)</td>
+                                <td class="ice-number">@DisplayQuantity(row.TotalIssuedQuantity, unitLabel)</td>
+                                <td class="ice-number">@DisplayQuantity(row.TheoreticalUsageQuantity, unitLabel)</td>
                                 <td class="ice-number @(row.VarianceQuantity is > 0 ? "ice-value-danger" : row.VarianceQuantity is < 0 ? "ice-value-warning" : "")">
-                                    @(row.VarianceQuantity?.ToString("N2") ?? "—") @(row.VarianceQuantity.HasValue ? unitLabel : "")
+                                    @DisplayNullableQuantity(row.VarianceQuantity, unitLabel)
                                 </td>
                                 <td><span class="ice-badge @StatusClass(row.Status)">@StatusLabel(row.Status)</span></td>
                                 <td>
@@ -271,9 +572,10 @@
                                             </a>
                                         </div>
                                     }
-                                    else if (Model.CanManage && Model.Policy != null)
+                                    else if (Model.CanManage && Model.HasValidPolicy && row.HasShiftLead
+                                             && row.ScheduleReview is not { BlocksOpening: true })
                                     {
-                                        <form asp-action="OpenAllocation" method="post" class="ice-inline-form">
+                                        <form asp-action="OpenAllocation" method="post" class="ice-inline-form" data-ice-submit>
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
                                             <label class="visually-hidden" for="issue-@row.OperationalShiftId">Lượng cấp đầu ca</label>
@@ -283,7 +585,13 @@
                                     }
                                     else
                                     {
-                                        <span class="ice-muted">Chờ cấu hình</span>
+                                        <span class="ice-muted">
+                                            @(row.ScheduleReview is { BlocksOpening: true }
+                                                ? "Cần xử lý thay đổi lịch trước khi cấp đá"
+                                                : row.HasShiftLead
+                                                    ? "Chờ cấu hình hợp lệ"
+                                                    : "Thiếu ca trưởng")
+                                        </span>
                                     }
                                 </td>
                             </tr>
@@ -294,3 +602,325 @@
         }
     </section>
 </main>
+
+@section Scripts {
+    <script>
+        (() => {
+            const dailyInput = document.getElementById('dailyQuantity');
+            const shiftInput = document.getElementById('shiftQuantity');
+            const unitSelect = document.getElementById('policyUnit');
+
+            const validateQuantities = () => {
+                if (!dailyInput || !shiftInput) return;
+                const daily = Number(dailyInput.value);
+                const shift = Number(shiftInput.value);
+                shiftInput.setCustomValidity(
+                    Number.isFinite(daily) && Number.isFinite(shift) && shift > daily
+                        ? 'Định mức mỗi ca không được vượt định mức ngày.'
+                        : '');
+            };
+
+            dailyInput?.addEventListener('input', validateQuantities);
+            shiftInput?.addEventListener('input', validateQuantities);
+
+            const updateUnitLabels = () => {
+                const option = unitSelect?.selectedOptions?.[0];
+                const unit = option?.dataset.unitCode || option?.textContent?.trim() || 'kg';
+                document.querySelectorAll('[data-unit-label]').forEach(element => {
+                    element.textContent = unit;
+                });
+            };
+
+            unitSelect?.addEventListener('change', updateUnitLabels);
+            updateUnitLabels();
+
+            const createShiftForm = document.querySelector('form[data-schedule-options-url]');
+            const scheduleSelect = document.getElementById('scheduleSource');
+            const scheduleField = document.getElementById('scheduleSourceField');
+            const scheduleLoadingState = document.getElementById('scheduleLoadingState');
+            const scheduleHasDataState = document.getElementById('scheduleHasDataState');
+            const scheduleEmptyState = document.getElementById('scheduleEmptyState');
+            const scheduleErrorState = document.getElementById('scheduleErrorState');
+            const schedulePrefillNotice = document.getElementById('schedulePrefillNotice');
+            const scheduleStaffCount = document.getElementById('scheduleStaffCount');
+            const scheduleLeadName = document.getElementById('scheduleLeadName');
+            const retryScheduleButton = document.getElementById('retryScheduleButton');
+            const switchToManualButton = document.getElementById('switchToManualButton');
+            const createShiftButton = document.getElementById('createShiftButton');
+            const creationSource = document.getElementById('creationSource');
+            const sourceScheduleShiftId = document.getElementById('sourceScheduleShiftId');
+            const scheduleShiftLeadId = document.getElementById('scheduleShiftLeadId');
+            const shiftName = document.getElementById('shiftName');
+            const shiftStartDisplay = document.getElementById('shiftStartDisplay');
+            const shiftEndDisplay = document.getElementById('shiftEndDisplay');
+            const shiftStart = document.getElementById('shiftStart');
+            const shiftEnd = document.getElementById('shiftEnd');
+            const shiftLead = document.getElementById('shiftLead');
+            const createEnabled = createShiftForm?.dataset.createEnabled === 'true';
+            let scheduleState = 'idle';
+            let currentCreateMode = null;
+            let scheduleRequest = null;
+            let manualDraft = {
+                name: shiftName?.value || '',
+                startDisplay: shiftStartDisplay?.value || '',
+                endDisplay: shiftEndDisplay?.value || '',
+                start: shiftStart?.value || '',
+                end: shiftEnd?.value || '',
+                leadId: shiftLead?.value || ''
+            };
+
+            const displayDateTime = value => {
+                const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value || '');
+                return match ? `${match[3]}/${match[2]}/${match[1]} ${match[4]}:${match[5]}` : '';
+            };
+
+            const setScheduleState = state => {
+                scheduleState = state;
+                scheduleLoadingState.hidden = state !== 'loading';
+                scheduleHasDataState.hidden = state !== 'has-data';
+                scheduleEmptyState.hidden = state !== 'empty';
+                scheduleErrorState.hidden = state !== 'error';
+                if (currentCreateMode === 'schedule')
+                    createShiftButton.disabled = !createEnabled
+                        || state !== 'has-data'
+                        || !sourceScheduleShiftId.value
+                        || !scheduleShiftLeadId.value;
+            };
+
+            const clearScheduleAuthority = () => {
+                sourceScheduleShiftId.value = '';
+                scheduleShiftLeadId.value = '';
+                scheduleStaffCount.textContent = '—';
+                scheduleLeadName.textContent = '—';
+            };
+
+            const setScheduleFieldsReadonly = readonly => {
+                [shiftName, shiftStartDisplay, shiftEndDisplay].forEach(input => {
+                    if (!input) return;
+                    input.readOnly = readonly;
+                    input.classList.toggle('ice-readonly-field', readonly);
+                    input.setAttribute('aria-readonly', readonly ? 'true' : 'false');
+                });
+                if (shiftLead) {
+                    shiftLead.disabled = readonly || !createEnabled;
+                    shiftLead.classList.toggle('ice-readonly-field', readonly);
+                    shiftLead.setAttribute('aria-readonly', readonly ? 'true' : 'false');
+                }
+                scheduleShiftLeadId.disabled = !readonly;
+            };
+
+            const clearSchedulePrefill = () => {
+                shiftName.value = '';
+                shiftStartDisplay.value = '';
+                shiftEndDisplay.value = '';
+                shiftStart.value = '';
+                shiftEnd.value = '';
+                shiftLead.value = '';
+                clearScheduleAuthority();
+            };
+
+            const captureManualDraft = () => {
+                manualDraft = {
+                    name: shiftName.value,
+                    startDisplay: shiftStartDisplay.value,
+                    endDisplay: shiftEndDisplay.value,
+                    start: shiftStart.value,
+                    end: shiftEnd.value,
+                    leadId: shiftLead.value
+                };
+            };
+
+            const restoreManualDraft = () => {
+                shiftName.value = manualDraft.name;
+                shiftStartDisplay.value = manualDraft.startDisplay;
+                shiftEndDisplay.value = manualDraft.endDisplay;
+                shiftStart.value = manualDraft.start;
+                shiftEnd.value = manualDraft.end;
+                shiftLead.value = manualDraft.leadId;
+            };
+
+            const applySchedule = () => {
+                const option = scheduleSelect?.selectedOptions?.[0];
+                if (!option) {
+                    clearScheduleAuthority();
+                    setScheduleState('empty');
+                    return;
+                }
+                sourceScheduleShiftId.value = option.value;
+                shiftName.value = option.dataset.name || '';
+                shiftStartDisplay.value = displayDateTime(option.dataset.start);
+                shiftEndDisplay.value = displayDateTime(option.dataset.end);
+                shiftStart.value = option.dataset.start || '';
+                shiftEnd.value = option.dataset.end || '';
+                scheduleShiftLeadId.value = option.dataset.leadId || '';
+                shiftLead.value = option.dataset.leadId || '';
+                scheduleStaffCount.textContent = option.dataset.staffCount
+                    ? `${option.dataset.staffCount} nhân viên`
+                    : '—';
+                scheduleLeadName.textContent = shiftLead.selectedOptions?.[0]?.textContent?.trim()
+                    || 'Chưa xác định';
+                setScheduleState('has-data');
+            };
+
+            const loadSchedules = async () => {
+                if (!createShiftForm || currentCreateMode !== 'schedule') return;
+                scheduleRequest?.abort();
+                scheduleRequest = new AbortController();
+                clearSchedulePrefill();
+                scheduleSelect.replaceChildren();
+                setScheduleState('loading');
+
+                try {
+                    const url = new URL(createShiftForm.dataset.scheduleOptionsUrl, window.location.origin);
+                    url.searchParams.set('storeId', createShiftForm.querySelector('[name="StoreId"]').value);
+                    url.searchParams.set('businessDate', createShiftForm.dataset.businessDate);
+                    const response = await fetch(url, {
+                        credentials: 'same-origin',
+                        headers: { Accept: 'application/json' },
+                        signal: scheduleRequest.signal
+                    });
+                    const payload = await response.json().catch(() => null);
+                    if (!response.ok || payload?.success !== true || !Array.isArray(payload.data))
+                        throw new Error('Schedule options request failed.');
+                    if (currentCreateMode !== 'schedule') return;
+
+                    payload.data.forEach(schedule => {
+                        const option = document.createElement('option');
+                        option.value = schedule.scheduleShiftId;
+                        option.textContent = schedule.label;
+                        option.dataset.name = schedule.name;
+                        option.dataset.start = schedule.startLocalValue;
+                        option.dataset.end = schedule.endLocalValue;
+                        option.dataset.leadId = schedule.suggestedShiftLeadId ?? '';
+                        option.dataset.staffCount = schedule.staffCount;
+                        scheduleSelect.append(option);
+                    });
+
+                    if (payload.data.length === 0) {
+                        clearSchedulePrefill();
+                        setScheduleState('empty');
+                        return;
+                    }
+
+                    setScheduleState('has-data');
+                    applySchedule();
+                } catch (error) {
+                    if (error?.name === 'AbortError') return;
+                    clearSchedulePrefill();
+                    setScheduleState('error');
+                    console.error('[OperationalIce] Schedule options request failed.');
+                }
+            };
+
+            const setCreateMode = mode => {
+                if (currentCreateMode === 'manual')
+                    captureManualDraft();
+                currentCreateMode = mode;
+                const fromSchedule = mode === 'schedule';
+                creationSource.value = fromSchedule ? 'StaffSchedule' : 'Manual';
+                sourceScheduleShiftId.disabled = !fromSchedule;
+                scheduleField.hidden = !fromSchedule;
+                schedulePrefillNotice.hidden = !fromSchedule;
+                setScheduleFieldsReadonly(fromSchedule);
+
+                if (fromSchedule) {
+                    clearScheduleAuthority();
+                    loadSchedules();
+                    return;
+                }
+
+                scheduleRequest?.abort();
+                clearScheduleAuthority();
+                sourceScheduleShiftId.disabled = true;
+                scheduleShiftLeadId.disabled = true;
+                restoreManualDraft();
+                createShiftButton.disabled = !createEnabled;
+            };
+
+            document.querySelectorAll('input[name="createMode"]').forEach(input => {
+                input.addEventListener('change', () => setCreateMode(input.value));
+            });
+            scheduleSelect?.addEventListener('change', applySchedule);
+            retryScheduleButton?.addEventListener('click', loadSchedules);
+            switchToManualButton?.addEventListener('click', () => {
+                const manualMode = document.querySelector('input[name="createMode"][value="manual"]');
+                manualMode.checked = true;
+                manualMode.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+            if (createShiftForm)
+                setCreateMode(document.querySelector('input[name="createMode"]:checked')?.value || 'manual');
+
+            const parseVietnameseDate = value => {
+                const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
+                if (!match) return null;
+                const [, dayText, monthText, yearText] = match;
+                const day = Number(dayText);
+                const month = Number(monthText);
+                const year = Number(yearText);
+                const parsed = new Date(year, month - 1, day);
+                if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day)
+                    return null;
+                return `${yearText}-${monthText}-${dayText}`;
+            };
+
+            const parseVietnameseDateTime = value => {
+                const match = /^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}):(\d{2})$/.exec(value.trim());
+                if (!match) return null;
+                const date = parseVietnameseDate(match[1]);
+                const hour = Number(match[2]);
+                const minute = Number(match[3]);
+                if (!date || hour < 0 || hour > 23 || minute < 0 || minute > 59)
+                    return null;
+                return `${date}T${match[2]}:${match[3]}`;
+            };
+
+            const normalizeDateFields = form => {
+                let valid = true;
+                form.querySelectorAll('[data-ice-date-display], [data-ice-datetime-display]').forEach(input => {
+                    const target = document.getElementById(input.dataset.target);
+                    const normalized = input.hasAttribute('data-ice-datetime-display')
+                        ? parseVietnameseDateTime(input.value)
+                        : parseVietnameseDate(input.value);
+                    input.setCustomValidity(normalized
+                        ? ''
+                        : input.hasAttribute('data-ice-datetime-display')
+                            ? 'Vui lòng nhập ngày giờ theo định dạng dd/MM/yyyy HH:mm (24 giờ).'
+                            : 'Vui lòng nhập ngày theo định dạng dd/MM/yyyy.');
+                    if (normalized && target)
+                        target.value = normalized;
+                    else
+                        valid = false;
+                });
+                return valid;
+            };
+
+            document.querySelectorAll('[data-ice-date-display], [data-ice-datetime-display]').forEach(input => {
+                input.addEventListener('input', () => normalizeDateFields(input.form));
+            });
+
+            document.querySelectorAll('form[data-ice-date-form]').forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!normalizeDateFields(form)) {
+                        event.preventDefault();
+                        form.reportValidity();
+                    }
+                });
+            });
+
+            document.querySelectorAll('form[data-ice-submit]').forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!normalizeDateFields(form) || !form.checkValidity()) {
+                        event.preventDefault();
+                        form.reportValidity();
+                        return;
+                    }
+
+                    form.querySelectorAll('button[type="submit"]').forEach(button => {
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Đang xử lý...';
+                    });
+                });
+            });
+        })();
+    </script>
+}

@@ -8,6 +8,7 @@ public sealed class ProcurementUiRedesignIssue239Tests
     private const string RequestDetailPath = "CafeChain/Areas/Admin/Views/AdminRestockRequests/Details.cshtml";
     private const string CreatePaPath = "CafeChain/Areas/Admin/Views/AdminPurchaseAdvices/Create.cshtml";
     private const string TokensPath = "CafeChain/wwwroot/css/Admin/Procurement/procurement-design-system.css";
+    private const string AdminLayoutPath = "CafeChain/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 
     [Fact]
     public void DesignTokens_AreCentralized()
@@ -211,6 +212,19 @@ public sealed class ProcurementUiRedesignIssue239Tests
     {
         var css = Read(TokensPath);
         Assert.Contains("@media (max-width: 1280px)", css);
+    }
+
+    [Fact]
+    public void ProcurementPages_FillRemainingAdminViewport()
+    {
+        var layout = Read(AdminLayoutPath);
+        var css = Read(TokensPath);
+
+        Assert.Contains("min-height: 100dvh", layout);
+        Assert.Contains("<div class=\"admin-page-body\">", layout);
+        Assert.Contains(".admin-page-body > .cc-page", css);
+        Assert.Contains(".admin-page-body > .pa-page", css);
+        Assert.Contains("flex: 1 1 auto", css);
     }
 
     [Fact]

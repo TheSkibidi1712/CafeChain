@@ -3,6 +3,8 @@ using CafeChain.Application.DTOs.Admin.InventoryDocuments.Index;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -11,6 +13,7 @@ namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
     [AutoValidateAntiforgeryToken]
+    [RequirePermission(PermissionConstants.InventoryDocumentView)]
     public class AdminInventoryDocumentController : AdminBaseController
     {
         private readonly IAdminInventoryDocumentService _service;
@@ -219,6 +222,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // SAVE DRAFT
         // =====================================================
 
+        [RequirePermission(PermissionConstants.InventoryDocumentCreateDraft)]
         [HttpPost]
         public async Task<IActionResult> SaveDraft([FromBody] CreateInventoryDocumentDTO dto)
         {
@@ -277,6 +281,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // SUBMIT
         // =====================================================
 
+        [RequirePermission(PermissionConstants.InventoryDocumentSubmit)]
         [HttpPost]
         public async Task<IActionResult> Submit([FromBody] CreateInventoryDocumentDTO dto)
         {
@@ -338,6 +343,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // CONFIRM DRAFT
         // =====================================================
 
+        [RequirePermission(PermissionConstants.InventoryDocumentConfirm)]
         [HttpPost]
         public async Task<IActionResult> ConfirmDraft(int documentId, string? requestKey)
         {
@@ -427,6 +433,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // CANCEL
         // =====================================================
 
+        [RequirePermission(PermissionConstants.InventoryDocumentApproveNegative)]
         [HttpPost]
         public async Task<IActionResult> ApproveNegative(int id, [FromBody] InventoryNegativeReviewDTO dto)
         {
@@ -448,6 +455,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.InventoryDocumentApproveNegative)]
         [HttpPost]
         public async Task<IActionResult> RejectNegative(int id, [FromBody] InventoryNegativeReviewDTO dto)
         {
@@ -469,6 +477,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.InventoryDocumentCancel)]
         [HttpPost]
         public async Task<IActionResult> CancelInventoryDocument(int documentId, string? requestKey)
         {
@@ -536,6 +545,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // =====================================================
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.InventoryDocumentExport)]
         public async Task<IActionResult> ExportExcel(AdminInventoryDocumentFilterDTO filter)
         {
             try
@@ -561,6 +571,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [RequirePermission(PermissionConstants.InventoryDocumentExport)]
         public async Task<IActionResult> ExportFile([FromBody] ExportInventoryDocumentDTO dto)
         {
             var file = await _service.ExportFileAsync(dto);
@@ -578,6 +589,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.InventoryDocumentExport)]
         public async Task<IActionResult> ExportFile(int id, InventoryDocumentExportType exportType)
         {
             var dto = new ExportInventoryDocumentDTO

@@ -89,7 +89,10 @@ public sealed class DashboardRepository : IDashboardRepository
             ShortageRisk = await QuerySafeAsync(connection, "dbo.usp_Inventory_ShortageRisk", filter, storeIds, MapShortageRisk, cancellationToken),
             Movement = await QuerySafeAsync(connection, "dbo.usp_Inventory_MovementByType", filter, storeIds, MapInventoryMovement, cancellationToken),
             ThresholdRisk = await QuerySafeAsync(connection, "dbo.usp_Inventory_ThresholdRisk", filter, storeIds, MapThresholdRisk, cancellationToken),
-            ReorderSuggestions = await QuerySafeAsync(connection, "dbo.usp_Inventory_ReorderSuggestions", filter, storeIds, MapReorder, cancellationToken),
+            // Reorder suggestions are calculated by IReorderSuggestionService
+            // in DashboardService. The former stored procedure was a second
+            // business pipeline and is intentionally no longer called.
+            ReorderSuggestions = new(),
             Waste = await QuerySafeAsync(connection, "dbo.usp_Inventory_WasteByStoreIngredient", filter, storeIds, MapInventoryWaste, cancellationToken),
             FifoAge = await QuerySafeAsync(connection, "dbo.usp_Inventory_FifoLayerAge", filter, storeIds, MapFifoAge, cancellationToken),
             IngredientConsumptionTrend = await QuerySafeAsync(connection, "dbo.usp_Inventory_IngredientConsumptionTrend", filter, storeIds, MapIngredientConsumptionTrend, cancellationToken)
@@ -118,7 +121,9 @@ public sealed class DashboardRepository : IDashboardRepository
             BomHealth = await QuerySafeAsync(connection, "dbo.usp_Product_BomHealth", filter, storeIds, MapBomHealth, cancellationToken),
             LowEfficiency = await QuerySafeAsync(connection, "dbo.usp_Product_HighConsumptionLowEfficiency", filter, storeIds, MapLowEfficiency, cancellationToken),
             CategoryPerformance = await QuerySafeAsync(connection, "dbo.usp_Product_CategoryPerformance", filter, storeIds, MapCategoryPerformance, cancellationToken),
-            ProductPeriodPerformance = await QuerySafeAsync(connection, "dbo.usp_Product_PeriodPerformance", filter, storeIds, MapProductPeriodPerformance, cancellationToken)
+            ProductPeriodPerformance = await QuerySafeAsync(connection, "dbo.usp_Product_PeriodPerformance", filter, storeIds, MapProductPeriodPerformance, cancellationToken),
+            LowVolumeProducts = await QuerySafeAsync(connection, "dbo.usp_Product_LowVolumeProducts", filter, storeIds, MapProductPeriodPerformance, cancellationToken),
+            LowMarginProducts = await QuerySafeAsync(connection, "dbo.usp_Product_LowMarginProducts", filter, storeIds, MapProductPeriodPerformance, cancellationToken)
         }, cancellationToken);
 
     public Task<WorkforceDashboardData> GetWorkforceAsync(
@@ -219,7 +224,7 @@ public sealed class DashboardRepository : IDashboardRepository
     private static PurchasePriceTrendRow MapPurchasePriceTrend(DbDataReader r) => new() { ReceiptDate=Date(r,"ReceiptDate"),IngredientId=Int(r,"IngredientId"),IngredientName=String(r,"IngredientName"),AverageBaseUnitCost=Decimal(r,"AverageBaseUnitCost"),MinimumBaseUnitCost=Decimal(r,"MinimumBaseUnitCost"),MaximumBaseUnitCost=Decimal(r,"MaximumBaseUnitCost"),ReceivedBaseQuantity=Decimal(r,"ReceivedBaseQuantity"),DataStatus=String(r,"DataStatus") };
     private static ProcurementSpendRow MapProcurementSpend(DbDataReader r) => new() { SupplierId=Int(r,"SupplierId"),SupplierName=String(r,"SupplierName"),StoreId=Int(r,"StoreId"),Spend=Decimal(r,"Spend"),ReceiptCount=Long(r,"ReceiptCount"),DataStatus=String(r,"DataStatus") };
     private static SupplierIssueMixRow MapSupplierIssueMix(DbDataReader r) => new() { SupplierId=Int(r,"SupplierId"),SupplierName=String(r,"SupplierName"),StoreId=Int(r,"StoreId"),StoreName=String(r,"StoreName"),IssueType=String(r,"IssueType"),Status=String(r,"Status"),IssueCount=Long(r,"IssueCount"),AffectedBaseQuantity=Decimal(r,"AffectedBaseQuantity"),DataStatus=String(r,"DataStatus") };
-    private static TopProductRow MapTopProduct(DbDataReader r) => new() { DrinkId=Int(r,"DrinkId"),DrinkName=String(r,"DrinkName"),CategoryId=NullableInt(r,"CategoryId"),CategoryName=String(r,"CategoryName"),TotalSold=Int(r,"TotalSold"),ProductRevenue=Decimal(r,"ProductRevenue"),ConfirmedCogs=Decimal(r,"ConfirmedCogs"),ConfirmedGrossProfit=Decimal(r,"ConfirmedGrossProfit"),ConfirmedMarginRate=Decimal(r,"ConfirmedMarginRate"),ContributionPercent=Decimal(r,"ContributionPercent"),DataStatus=String(r,"DataStatus") };
+    private static TopProductRow MapTopProduct(DbDataReader r) => new() { DrinkId=Int(r,"DrinkId"),DrinkName=String(r,"DrinkName"),CategoryId=NullableInt(r,"CategoryId"),CategoryName=String(r,"CategoryName"),TotalSold=Int(r,"TotalSold"),ProductRevenue=Decimal(r,"ProductRevenue"),QuantityShare=Decimal(r,"QuantityShare"),RevenueShare=Decimal(r,"RevenueShare"),ConfirmedCogs=Decimal(r,"ConfirmedCogs"),ConfirmedGrossProfit=Decimal(r,"ConfirmedGrossProfit"),ConfirmedMarginRate=Decimal(r,"ConfirmedMarginRate"),ContributionPercent=Decimal(r,"ContributionPercent"),DataStatus=String(r,"DataStatus") };
     private static VolumeMarginRow MapVolumeMargin(DbDataReader r) => new() { DrinkId=Int(r,"DrinkId"),DrinkName=String(r,"DrinkName"),Volume=Int(r,"Volume"),Revenue=Decimal(r,"Revenue"),ConfirmedCogs=Decimal(r,"ConfirmedCogs"),ConfirmedMarginRate=Decimal(r,"ConfirmedMarginRate"),DataStatus=String(r,"DataStatus") };
     private static SizeMarginRow MapSizeMargin(DbDataReader r) => new() { SizeId=NullableInt(r,"SizeId"),SizeName=String(r,"SizeName"),TotalSold=Int(r,"TotalSold"),Revenue=Decimal(r,"Revenue"),ConfirmedCogs=Decimal(r,"ConfirmedCogs"),ConfirmedGrossProfit=Decimal(r,"ConfirmedGrossProfit"),DataStatus=String(r,"DataStatus") };
     private static TopToppingAnalyticsRow MapTopTopping(DbDataReader r) => new() { ToppingId=Int(r,"ToppingId"),ToppingName=String(r,"ToppingName"),TotalUsed=Int(r,"TotalUsed"),Revenue=Decimal(r,"Revenue"),ConfirmedCogs=Decimal(r,"ConfirmedCogs"),DataStatus=String(r,"DataStatus") };

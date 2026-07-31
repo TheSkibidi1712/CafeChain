@@ -1,12 +1,14 @@
 @model CafeChain.Application.DTOs.Inventories.OperationalIceReportDto
 @using CafeChain.Application.Constants
+@using System.Globalization
 @{
     ViewData["Title"] = $"Báo cáo đá {Model.OperationalShiftName}";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var unit = string.IsNullOrWhiteSpace(Model.UnitName) ? "đơn vị tồn kho" : Model.UnitName;
-    string Quantity(decimal value) => $"{value:N3} {unit}";
+    var viCulture = CultureInfo.GetCultureInfo("vi-VN");
+    string Quantity(decimal value) => $"{value.ToString("0.##", viCulture)} {unit}";
     string NullableQuantity(decimal? value) => value.HasValue ? Quantity(value.Value) : "Chưa chốt";
-    string Money(decimal? value) => value.HasValue ? $"{value.Value:N0} đ" : "Chưa đủ dữ liệu";
+    string Money(decimal? value) => value.HasValue ? $"{value.Value.ToString("N0", viCulture)} đ" : "Chưa đủ dữ liệu";
     string StatusLabel(string status) => status switch
     {
         OperationalIceStatuses.Draft => "Kế hoạch",
@@ -52,7 +54,7 @@
         <article>
             <span>Ca vận hành</span>
             <strong>#@Model.OperationalShiftId · @Model.OperationalShiftName</strong>
-            <small>@Model.StartAtUtc.ToLocalTime().ToString("dd/MM HH:mm") – @Model.EndAtUtc.ToLocalTime().ToString("dd/MM HH:mm")</small>
+            <small>@Model.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") – @Model.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
         </article>
         <article>
             <span>Trạng thái</span>
@@ -138,7 +140,7 @@
                         <article>
                             <strong>@carry.Direction @Quantity(carry.Quantity) · @carry.OtherShiftName</strong>
                             <span>@carry.HandedOverBy → @(carry.ReceivedBy ?? "Chưa xác nhận")</span>
-                            <small>@carry.Status · @(carry.ConfirmedAtUtc?.ToLocalTime().ToString("dd/MM HH:mm") ?? "Chưa xác nhận")</small>
+                            <small>@carry.Status · @(carry.ConfirmedAtUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Chưa xác nhận")</small>
                         </article>
                     }
                 </div>
@@ -176,7 +178,7 @@
                             <td>@(posting.InventoryTransactionId.HasValue ? $"#{posting.InventoryTransactionId}" : "—")</td>
                             <td class="ice-number">@Quantity(posting.Quantity)</td>
                             <td class="ice-number">@Money(posting.TotalCost)</td>
-                            <td>@posting.ApprovedBy<small>@posting.CreatedAtUtc.ToLocalTime().ToString("dd/MM HH:mm")</small></td>
+                            <td>@posting.ApprovedBy<small>@posting.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></td>
                         </tr>
                     }
                     </tbody>

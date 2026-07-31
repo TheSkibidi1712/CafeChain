@@ -1,10 +1,15 @@
 using CafeChain.Application.DTOs.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Interfaces.Systems;
 using CafeChain.Application.Results;
+using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Admin.Permissions;
 using CafeChain.Models.Enums.Permissions;
+using CafeChain.Models.Inventories.Auditing;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text.Json;
 using CafeChain.Application.Constants;
 
 namespace CafeChain.Application.Services.Admin.Permissions
@@ -17,14 +22,20 @@ namespace CafeChain.Application.Services.Admin.Permissions
 
         private readonly IAdminPermissionRepository _repository;
         private readonly IScopeAuthorizationService _scopeAuthorizationService;
+        private readonly IRequestDeduplicationService _requestDeduplication;
+        private readonly AppDbContext _context;
         private readonly Dictionary<int, HashSet<string>> _effectivePermissionCache = new();
 
         public AdminPermissionService(
             IAdminPermissionRepository repository,
-            IScopeAuthorizationService scopeAuthorizationService)
+            IScopeAuthorizationService scopeAuthorizationService,
+            IRequestDeduplicationService requestDeduplication,
+            AppDbContext context)
         {
             _repository = repository;
             _scopeAuthorizationService = scopeAuthorizationService;
+            _requestDeduplication = requestDeduplication;
+            _context = context;
         }
 
         public async Task<ServiceResult<AdminRolePagedResultDto>> GetRolesAsync(
@@ -121,10 +132,10 @@ namespace CafeChain.Application.Services.Admin.Permissions
             var groups = await _repository.GetPermissionCatalogAsync();
             var grantedIds = (await _repository.GetRolePermissionIdsAsync(roleId)).ToHashSet();
             var actorCodes = await GetActorEffectiveCodesAsync(actor);
-            var canManageTargetRole = (actor.IsInRole(RoleConstants.BusinessOwner)
-                    || actor.IsInRole(RoleConstants.SystemAdmin))
-                && !((actor.IsInRole(RoleConstants.BusinessOwner) && role.Name == RoleConstants.SystemAdmin)
-                    || (actor.IsInRole(RoleConstants.SystemAdmin) && role.Name == RoleConstants.BusinessOwner));
+            var canManageTargetRole = role.Name != RoleConstants.SystemAdmin
+                && (actor.IsInRole(RoleConstants.SystemAdmin)
+                    || (actor.IsInRole(RoleConstants.BusinessOwner)
+                        && role.Name != RoleConstants.SystemAdmin));
 
             var matrix = new RolePermissionMatrixDto
             {
@@ -147,7 +158,9 @@ namespace CafeChain.Application.Services.Admin.Permissions
                         IsGranted = grantedIds.Contains(permission.PermissionId),
                         CanChange = canManageTargetRole && actorCodes.Contains(permission.Code),
                         ReadOnlyReason = !canManageTargetRole
-                            ? "Không được thay đổi vai trò cấp cao chéo."
+                            ? role.Name == RoleConstants.SystemAdmin
+                                ? "Quyền của Quản trị hệ thống được khóa theo RBAC_CAFECHAIN29_V2."
+                                : "Không được thay đổi vai trò cấp cao hơn."
                             : actorCodes.Contains(permission.Code) ? null : "Bạn không có quyền này nên không thể thay đổi."
                     }).ToList()
                 }).ToList()
@@ -170,10 +183,9 @@ namespace CafeChain.Application.Services.Admin.Permissions
                 return ServiceResult.Failure(
                     "Chỉ Chủ doanh nghiệp hoặc Quản trị hệ thống được thay đổi quyền vai trò.",
                     errorCode: "PRIVILEGE_ESCALATION");
-            if ((actor.IsInRole(RoleConstants.BusinessOwner) && targetRole.Name == RoleConstants.SystemAdmin)
-                || (actor.IsInRole(RoleConstants.SystemAdmin) && targetRole.Name == RoleConstants.BusinessOwner))
+            if (targetRole.Name == RoleConstants.SystemAdmin)
                 return ServiceResult.Failure(
-                    "Không được thay đổi quyền của vai trò cấp cao chéo.",
+                    "Quyền của Quản trị hệ thống được khóa theo RBAC_CAFECHAIN29_V2.",
                     errorCode: "PRIVILEGE_ESCALATION");
 
             var requestedIds = NormalizeIds(request.PermissionIds);
@@ -193,9 +205,15 @@ namespace CafeChain.Application.Services.Admin.Permissions
                     "INVALID_PERMISSION");
             }
 
-            await _repository.ReplaceRolePermissionsAsync(roleId, requestedIds);
-
-            return ServiceResult.Success("Role permissions updated.");
+            return await ExecuteIdempotentMutationAsync(
+                request.RequestKey,
+                "RBAC_UPDATE_ROLE_PERMISSIONS",
+                roleId,
+                actor,
+                new { roleId, permissionIds = requestedIds.OrderBy(x => x).ToArray() },
+                new { permissionIds = currentIds.OrderBy(x => x).ToArray() },
+                async () => await _repository.ReplaceRolePermissionsAsync(roleId, requestedIds),
+                "Role permissions updated.");
         }
 
         public async Task<ServiceResult<StaffRolesDto>> GetStaffRolesAsync(int staffId, ClaimsPrincipal actor)
@@ -264,9 +282,7 @@ namespace CafeChain.Application.Services.Admin.Permissions
             var currentNames = roleOptions.Where(x => currentIds.Contains(x.RoleId)).Select(x => x.Name).ToHashSet();
             if (requestedNames.Contains(RoleConstants.Customer)
                 || (actor.IsInRole(RoleConstants.BusinessOwner) && requestedNames.Contains(RoleConstants.SystemAdmin))
-                || (actor.IsInRole(RoleConstants.SystemAdmin) && requestedNames.Contains(RoleConstants.BusinessOwner))
                 || (actor.IsInRole(RoleConstants.BusinessOwner) && currentNames.Contains(RoleConstants.SystemAdmin))
-                || (actor.IsInRole(RoleConstants.SystemAdmin) && currentNames.Contains(RoleConstants.BusinessOwner))
                 || !CanAssignRequestedRoles(actor, requestedNames))
                 return ServiceResult.Failure(
                     "Không được gán vai trò Khách hàng hoặc vai trò cấp cao chéo.",
@@ -283,9 +299,15 @@ namespace CafeChain.Application.Services.Admin.Permissions
                     "INVALID_ROLE");
             }
 
-            await _repository.ReplaceAccountRolesAsync(staff.AccountId, requestedIds);
-
-            return ServiceResult.Success("Staff roles updated.");
+            return await ExecuteIdempotentMutationAsync(
+                request.RequestKey,
+                "RBAC_UPDATE_STAFF_ROLES",
+                staffId,
+                actor,
+                new { staffId, roleIds = requestedIds.OrderBy(x => x).ToArray() },
+                new { roleIds = currentIds.OrderBy(x => x).ToArray() },
+                async () => await _repository.ReplaceAccountRolesAsync(staff.AccountId, requestedIds),
+                "Staff roles updated.");
         }
 
         public async Task<ServiceResult<StaffScopesDto>> GetStaffScopesAsync(int staffId, ClaimsPrincipal actor)
@@ -347,9 +369,25 @@ namespace CafeChain.Application.Services.Admin.Permissions
                     "INVALID_SCOPE");
             }
 
-            await _repository.ReplaceStaffScopesAsync(staffId, scopes);
-
-            return ServiceResult.Success("Staff scopes updated.");
+            var currentScopes = await _repository.GetStaffScopesAsync(staffId);
+            return await ExecuteIdempotentMutationAsync(
+                request.RequestKey,
+                "RBAC_UPDATE_STAFF_SCOPES",
+                staffId,
+                actor,
+                new
+                {
+                    staffId,
+                    scopes = scopes.OrderBy(x => x.ScopeTypeId).ThenBy(x => x.ScopeRefId)
+                        .Select(x => new { x.ScopeTypeId, x.ScopeRefId }).ToArray()
+                },
+                new
+                {
+                    scopes = currentScopes.OrderBy(x => x.ScopeTypeId).ThenBy(x => x.ScopeRefId)
+                        .Select(x => new { x.ScopeTypeId, x.ScopeRefId }).ToArray()
+                },
+                async () => await _repository.ReplaceStaffScopesAsync(staffId, scopes),
+                "Staff scopes updated.");
         }
 
         public async Task<ServiceResult<AccountOverrideMatrixDto>> GetAccountOverridesAsync(int staffId, ClaimsPrincipal actor)
@@ -456,9 +494,33 @@ namespace CafeChain.Application.Services.Admin.Permissions
                 return ServiceResult.Failure("Invalid override effect.", errorCode: "INVALID_EFFECT");
             }
 
-            await _repository.SaveAccountOverridesAsync(staff.AccountId, normalized);
-
-            return ServiceResult.Success("Account permission overrides updated.");
+            var currentReasons = await _repository.GetAccountOverrideReasonsAsync(staff.AccountId);
+            return await ExecuteIdempotentMutationAsync(
+                request.RequestKey,
+                "RBAC_UPDATE_ACCOUNT_OVERRIDES",
+                staffId,
+                actor,
+                new
+                {
+                    staffId,
+                    overrides = normalized.OrderBy(x => x.PermissionId).Select(x => new
+                    {
+                        x.PermissionId,
+                        effect = x.Effect?.ToString(),
+                        x.Reason
+                    }).ToArray()
+                },
+                new
+                {
+                    overrides = currentEffects.OrderBy(x => x.Key).Select(x => new
+                    {
+                        permissionId = x.Key,
+                        effect = x.Value.ToString(),
+                        reason = currentReasons.GetValueOrDefault(x.Key)
+                    }).ToArray()
+                },
+                async () => await _repository.SaveAccountOverridesAsync(staff.AccountId, normalized),
+                "Account permission overrides updated.");
         }
 
         public async Task<ServiceResult<PermissionDecisionDto>> HasPermissionAsync(
@@ -600,7 +662,8 @@ namespace CafeChain.Application.Services.Admin.Permissions
 
         private static int GetRoleRank(string roleName) => roleName switch
         {
-            RoleConstants.BusinessOwner or RoleConstants.SystemAdmin => 0,
+            RoleConstants.SystemAdmin => -10,
+            RoleConstants.BusinessOwner => 0,
             RoleConstants.AreaManager => 10,
             RoleConstants.StoreManager => 20,
             RoleConstants.AccountantWarehouse => 30,
@@ -679,6 +742,78 @@ namespace CafeChain.Application.Services.Admin.Permissions
                 .GroupBy(x => x.PermissionId)
                 .Select(x => x.Last())
                 .ToList();
+        }
+
+        private async Task<ServiceResult> ExecuteIdempotentMutationAsync(
+            string? requestKey,
+            string actionName,
+            int recordId,
+            ClaimsPrincipal actor,
+            object payload,
+            object oldData,
+            Func<Task> mutation,
+            string successMessage)
+        {
+            if (string.IsNullOrWhiteSpace(requestKey) || requestKey.Trim().Length > 200)
+                return ServiceResult.Failure(
+                    "RequestKey là bắt buộc và không được dài quá 200 ký tự.",
+                    errorCode: "REQUEST_KEY_REQUIRED");
+
+            if (!int.TryParse(actor.FindFirstValue("StaffId"), out var actorStaffId)
+                || actorStaffId <= 0)
+                return ServiceResult.Failure(
+                    "Không xác định được nhân viên thực hiện thao tác.",
+                    errorCode: "ACTOR_STAFF_REQUIRED");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            CafeChain.Models.Systems.RequestDeduplication? entry = null;
+            try
+            {
+                var begin = await _requestDeduplication.BeginAsync(
+                    requestKey,
+                    actionName,
+                    actorStaffId,
+                    payload,
+                    recordId);
+                if (!begin.CanProcess)
+                {
+                    await transaction.RollbackAsync();
+                    return begin.IsDuplicate && string.Equals(begin.Status, "SUCCESS", StringComparison.Ordinal)
+                        ? ServiceResult.Success(successMessage)
+                        : ServiceResult.Failure(
+                            begin.ErrorMessage ?? "RequestKey không khả dụng.",
+                            errorCode: begin.ErrorCode ?? "REQUEST_KEY_UNAVAILABLE");
+                }
+
+                entry = begin.Entry;
+                await mutation();
+
+                _context.AuditLogs.Add(new AuditLog
+                {
+                    TableName = "RBAC",
+                    RecordId = recordId,
+                    Action = actionName,
+                    OldData = JsonSerializer.Serialize(oldData),
+                    NewData = JsonSerializer.Serialize(payload),
+                    UserId = actorStaffId,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+                await _requestDeduplication.MarkSuccessAsync(
+                    entry!,
+                    recordId,
+                    new { success = true, recordId, message = successMessage });
+                await transaction.CommitAsync();
+                _effectivePermissionCache.Clear();
+                return ServiceResult.Success(successMessage);
+            }
+            catch (Exception)
+            {
+                if (entry != null)
+                    await _requestDeduplication.MarkFailedAsync(entry, new { success = false });
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }

@@ -7,4 +7,5 @@ public sealed class InventoryReorderNotificationOptions
     public int InitialDelaySeconds { get; set; } = 30;
     public int IntervalMinutes { get; set; } = 30;
     public int AnalysisWindowDays { get; set; } = 30;
+    public int ReorderReminderCooldownMinutes { get; set; } = 240;
 }

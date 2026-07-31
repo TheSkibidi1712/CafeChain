@@ -926,7 +926,8 @@ namespace CafeChain.Application.Services.Inventories
         {
             var stores = await _context.Stores.AsNoTracking().Where(x => x.Active)
                 .OrderBy(x => x.Name).Select(x => new { x.StoreId, x.Name }).ToListAsync();
-            if (HasRole(actor, RoleConstants.BusinessOwner))
+            if (HasRole(actor, RoleConstants.SystemAdmin)
+                || HasRole(actor, RoleConstants.BusinessOwner))
                 return stores.Select(x => (x.StoreId, x.Name)).ToList();
             if (HasRole(actor, RoleConstants.StoreManager) && actor.StoreId > 0)
                 return stores.Where(x => x.StoreId == actor.StoreId).Select(x => (x.StoreId, x.Name)).ToList();
@@ -946,7 +947,8 @@ namespace CafeChain.Application.Services.Inventories
 
         private async Task<bool> CanReadStoreAsync(AdminActorContext actor, int storeId)
         {
-            if (HasRole(actor, RoleConstants.BusinessOwner)) return true;
+            if (HasRole(actor, RoleConstants.SystemAdmin)
+                || HasRole(actor, RoleConstants.BusinessOwner)) return true;
             if (HasRole(actor, RoleConstants.StoreManager)) return actor.StoreId == storeId;
             return (HasRole(actor, RoleConstants.AccountantWarehouse)
                     || HasRole(actor, RoleConstants.AreaManager))
@@ -956,10 +958,12 @@ namespace CafeChain.Application.Services.Inventories
         private static bool CanCreate(AdminActorContext actor) =>
             HasRole(actor, RoleConstants.StoreManager)
             || HasRole(actor, RoleConstants.AccountantWarehouse)
-            || HasRole(actor, RoleConstants.BusinessOwner);
+            || HasRole(actor, RoleConstants.BusinessOwner)
+            || HasRole(actor, RoleConstants.SystemAdmin);
         private async Task<bool> CanCreateForStoreAsync(AdminActorContext actor, int storeId)
         {
-            if (HasRole(actor, RoleConstants.BusinessOwner)) return true;
+            if (HasRole(actor, RoleConstants.SystemAdmin)
+                || HasRole(actor, RoleConstants.BusinessOwner)) return true;
             if (HasRole(actor, RoleConstants.StoreManager)) return actor.StoreId == storeId;
             return HasRole(actor, RoleConstants.AccountantWarehouse)
                 && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
@@ -970,7 +974,8 @@ namespace CafeChain.Application.Services.Inventories
 
         private async Task<bool> CanReviewStoreAsync(AdminActorContext actor, int storeId)
         {
-            if (HasRole(actor, RoleConstants.BusinessOwner)) return true;
+            if (HasRole(actor, RoleConstants.SystemAdmin)
+                || HasRole(actor, RoleConstants.BusinessOwner)) return true;
             return HasRole(actor, RoleConstants.AccountantWarehouse)
                 && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
         }

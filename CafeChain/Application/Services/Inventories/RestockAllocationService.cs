@@ -97,7 +97,8 @@ namespace CafeChain.Application.Services.Inventories
             if (input.AllocationQuantity > summary.RemainingUnallocatedQuantity)
             {
                 var canOverride = input.AllowOverallocationOverride
-                    && input.ActorRoles.Contains(RoleConstants.BusinessOwner)
+                    && (input.ActorRoles.Contains(RoleConstants.BusinessOwner)
+                        || input.ActorRoles.Contains(RoleConstants.SystemAdmin))
                     && !string.IsNullOrWhiteSpace(input.OverrideReason);
                 if (!canOverride)
                 {

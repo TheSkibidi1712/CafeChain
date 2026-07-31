@@ -18,7 +18,13 @@ namespace CafeChain.Application.Services.AI;
 public sealed class AnomalyDetectionService : IAnomalyDetectionService
 {
     private static readonly HashSet<string> RecipientRoles = new(StringComparer.OrdinalIgnoreCase)
-    { RoleConstants.BusinessOwner, RoleConstants.AreaManager, RoleConstants.StoreManager, RoleConstants.AccountantWarehouse };
+    {
+        RoleConstants.BusinessOwner,
+        RoleConstants.AreaManager,
+        RoleConstants.StoreManager,
+        RoleConstants.AccountantWarehouse,
+        RoleConstants.SystemAdmin
+    };
     private readonly IAnomalyDetectionRepository _repository;
     private readonly IInventoryReorderNotificationRepository _notifications;
     private readonly IAdminPermissionService _permissions;

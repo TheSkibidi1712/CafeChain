@@ -18,14 +18,14 @@ public sealed class SupplierTaxCodeUiAuthorizationTests
     }
 
     [Fact]
-    public void SupplierTaxCode_UnauthorizedRolesAreNotGrantedMutation()
+    public void SupplierTaxCode_UnauthorizedBranchRolesAreNotGrantedMutation()
     {
         var roles = MutationRoles(nameof(AdminSupplierController.Create));
         Assert.DoesNotContain(RoleConstants.StoreManager, roles);
         Assert.DoesNotContain(RoleConstants.AreaManager, roles);
         Assert.DoesNotContain(RoleConstants.SalesStaff, roles);
         Assert.DoesNotContain(RoleConstants.ShiftSupervisor, roles);
-        Assert.DoesNotContain(RoleConstants.SystemAdmin, roles);
+        Assert.Contains(RoleConstants.SystemAdmin, roles);
     }
 
     [Fact]
@@ -60,7 +60,8 @@ public sealed class SupplierTaxCodeUiAuthorizationTests
         var roles = MutationRoles(action);
         Assert.Contains(RoleConstants.BusinessOwner, roles);
         Assert.Contains(RoleConstants.AccountantWarehouse, roles);
-        Assert.Equal(2, roles.Count);
+        Assert.Contains(RoleConstants.SystemAdmin, roles);
+        Assert.Equal(3, roles.Count);
     }
 
     private static List<string> MutationRoles(string action) =>

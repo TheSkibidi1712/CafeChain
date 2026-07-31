@@ -370,7 +370,8 @@ public sealed class SupplierQualityService : ISupplierQualityService
         IReadOnlyCollection<string> roles)
     {
         if (!roles.Any(x => x is RoleConstants.BusinessOwner or RoleConstants.AccountantWarehouse
-                or RoleConstants.AreaManager or RoleConstants.StoreManager))
+                or RoleConstants.AreaManager or RoleConstants.StoreManager
+                or RoleConstants.SystemAdmin))
             return false;
         return await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, storeId);
     }

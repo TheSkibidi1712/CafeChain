@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
@@ -10,6 +11,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// Issue #99 — StoreManager confirm/reject StockAlert (Admin MVC).
     /// Issue #100 — create RestockRequest from CONFIRMED alert.
     /// </summary>
+    [RequirePermission(PermissionConstants.StockAlertView)]
     public class AdminStockAlertsController : AdminBaseController
     {
         private readonly IStockAlertManagerService _service;
@@ -92,6 +94,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.StockAlertResolve)]
         public async Task<IActionResult> Confirm(int id, string managerNote, string? rowVersion, int? storeId = null)
         {
             if (!CanManage())
@@ -119,6 +122,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.StockAlertResolve)]
         public async Task<IActionResult> Reject(int id, string rejectReason, string? rowVersion, int? storeId = null)
         {
             if (!CanManage())
@@ -146,6 +150,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.StockAlertResolve)]
         public async Task<IActionResult> Close(int id, string closeReason, string? rowVersion, int? storeId = null)
         {
             if (!CanManage())
@@ -169,6 +174,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.StockAlertCreateRestockRequest)]
         public async Task<IActionResult> CreateRestockRequest(
             int id,
             decimal requestedProcurementQuantity,
@@ -213,11 +219,13 @@ namespace CafeChain.Areas.Admin.Controllers
             || User.IsInRole(RoleConstants.AreaManager)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.ShiftSupervisor)
-            || User.IsInRole(RoleConstants.SalesStaff);
+            || User.IsInRole(RoleConstants.SalesStaff)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private bool CanManage() =>
             User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.BusinessOwner);
+            || User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
     }
 }

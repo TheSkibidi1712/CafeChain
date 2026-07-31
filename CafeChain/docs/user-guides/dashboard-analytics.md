@@ -2,7 +2,7 @@
 
 ## 1. Quyền truy cập và phạm vi dữ liệu
 
-Dashboard yêu cầu permission `App.AdminDashboard`. Dữ liệu không chỉ phụ thuộc vào card App Launcher: controller vẫn kiểm tra permission, còn service tiếp tục giới hạn Province, District và Store theo `StaffScope` của nhân viên.
+Dashboard yêu cầu permission `App.AdminDashboard`. Dữ liệu không chỉ phụ thuộc vào card App Launcher: controller vẫn kiểm tra permission. Các role nghiệp vụ được giới hạn Province, District và Store theo `StaffScope`; Quản trị hệ thống có global scope trên toàn bộ cửa hàng đang hoạt động.
 
 Nếu nhận HTTP 403, hãy kiểm tra role permission, account override và phạm vi cửa hàng. Không dùng tài khoản khác hoặc sửa URL để vượt phạm vi.
 
@@ -17,7 +17,7 @@ Nếu nhận HTTP 403, hãy kiểm tra role permission, account override và ph�
 | Granularity | `Hour`, `Day`, `Week`, `Month`; tuần bắt đầu thứ Hai. |
 | Top | Số phần tử xếp hạng, từ 1 đến 100. |
 
-Sau khi thay đổi filter, nhấn **Áp dụng**. Dashboard hủy request đang chạy, xóa cache của sáu tab và tải lại tab hiện tại. Một tab chưa mở sẽ chưa gọi API; khi mở lần đầu, dữ liệu được tải và cache cho tới lần Apply kế tiếp.
+Sau khi thay đổi filter, nhấn **Áp dụng**. Dashboard hủy request đang chạy, xóa cache của sáu tab dữ liệu và tải lại tab dữ liệu hiện tại. Một tab dữ liệu chưa mở sẽ chưa gọi API; khi mở lần đầu, dữ liệu được tải và cache cho tới lần Apply kế tiếp. Tab **Hỏi AI** là tab thứ bảy và không gọi API section khi chỉ chuyển tab.
 
 Ví dụ:
 
@@ -29,11 +29,18 @@ Ví dụ:
 
 1. Chọn khoảng ngày và cửa hàng thuộc phạm vi được cấp quyền.
 2. Nhấn **Áp dụng** để Dashboard đồng bộ bộ lọc.
-3. Nhập câu hỏi tiếng Việt vào vùng **Hỏi Dashboard bằng tiếng Việt**.
-4. Nhấn **Phân tích** và chờ hệ thống lập data plan read-only.
-5. Đọc Summary, Fact, Inference, bất thường, khuyến nghị và bảng thống kê.
+3. Mở tab **Hỏi AI**.
+4. Nhập câu hỏi tiếng Việt vào vùng **Hỏi Dashboard bằng tiếng Việt**.
+5. Nhấn **Phân tích** và chờ hệ thống lập data plan read-only.
+6. Đọc `AnalysisContext`, `KeyConclusion`, biểu đồ, evidence, limitation và recommendation nếu có.
 
 Bộ lọc ngày và cửa hàng trên Dashboard là phạm vi chính thức của lần phân tích. AI không được truy vấn ngoài `StaffScope`, không tự sinh SQL và không được điền số liệu còn thiếu bằng suy đoán.
+
+Liên kết có `aiQuestion` tự mở tab AI, điền câu hỏi và focus ô nhập nhưng không tự gửi.
+Mỗi câu hỏi được backend chuẩn hóa thành `AnswerFocus`; hệ thống chỉ lấy primary
+và supporting widget liên quan, rồi tạo `EvidencePack` trong đúng bộ lọc và
+`StaffScope`.
+Thanh tab hỗ trợ phím mũi tên, `Home` và `End`; trạng thái chọn được phản ánh bằng ARIA.
 
 ## 4. Câu hỏi mẫu
 
@@ -51,8 +58,10 @@ Trên trang hướng dẫn trong MVC, nhấn **Dùng câu hỏi này** để qua
 
 - Phân tích số đơn và tỷ lệ hủy theo chi nhánh.
 - Phương thức thanh toán nào được sử dụng nhiều nhất?
-- Sản phẩm và danh mục nào bán tốt nhất?
-- Sản phẩm nào bán chậm hoặc có biên lợi nhuận thấp?
+- Top 10 sản phẩm bán chạy nhất trong kỳ là gì?
+- Danh mục nào bán chạy nhất trong kỳ?
+- Sản phẩm nào bán chậm nhất trong kỳ?
+- Sản phẩm nào có biên lợi nhuận thấp nhất trong kỳ?
 
 ### Kho và đặt hàng
 
@@ -65,17 +74,23 @@ Trên trang hướng dẫn trong MVC, nhấn **Dùng câu hỏi này** để qua
 - Nhà cung cấp nào có rủi ro chất lượng hoặc đơn mua quá hạn?
 - Có bất thường vận hành nào cần chú ý không?
 
-## 5. Đọc kết quả AI: Fact và Inference
+## 5. Đọc kết quả AI theo EvidencePack
 
 - **Fact / Statistic:** số liệu do server tạo từ stored procedure và dataset đã kiểm soát.
 - **Inference:** nhận định có khả năng giải thích dữ liệu, phải tham chiếu evidence và không phải kết luận chắc chắn.
 - **DataStatus:** `Complete` là đủ dataset, `Partial` là thiếu một phần và `Insufficient` là không đủ dữ liệu để kết luận.
 - **AI Available:** Ollama đã tạo phần diễn giải dựa trên evidence.
-- **AI Fallback:** Ollama offline hoặc output không hợp lệ; hệ thống vẫn trả structured result từ rule và evidence.
+- **AI Fallback:** Ollama offline, sai schema, chứa SQL/prompt leakage hoặc dùng
+  số liệu ngoài evidence; hệ thống vẫn trả structured result đúng focus từ rule
+  và evidence.
+- **AnalysisContext / KeyConclusion:** bối cảnh ngắn và kết luận chính của đúng
+  focus đang hỏi.
+- **Recommendation:** là tùy chọn; khối này không xuất hiện nếu câu hỏi không
+  yêu cầu hành động hoặc evidence reorder chưa đầy đủ.
 
 Dữ liệu demo phù hợp kiểm thử các khoảng 7–15 ngày tại Store 1 và Store 3. Không dùng fixture để kết luận mùa vụ dài hạn hoặc so sánh những tháng không có dữ liệu.
 
-## 6. Sáu tab nghiệp vụ
+## 6. Sáu tab dữ liệu và một tab Hỏi AI
 
 ### Điều hành
 
@@ -119,6 +134,12 @@ Dữ liệu demo phù hợp kiểm thử các khoảng 7–15 ngày tại Store 
 - Nhu cầu nhân sự theo giờ.
 - Hiệu suất nhân viên trong phạm vi cửa hàng được phép.
 
+### Hỏi AI
+
+- Chứa riêng ô câu hỏi, trạng thái phân tích và kết quả AI.
+- Không tải `GetSection` khi chỉ mở tab.
+- Giữ nguyên kết quả khi chuyển tạm sang tab dữ liệu; đổi filter làm mất hiệu lực context cũ theo quy tắc hiện hành.
+
 ## 7. Cách đọc biểu đồ
 
 - Di chuột lên điểm/cột để xem tooltip chính xác.
@@ -126,6 +147,7 @@ Dữ liệu demo phù hợp kiểm thử các khoảng 7–15 ngày tại Store 
 - Heatmap: màu đậm hơn biểu thị mật độ đơn cao hơn.
 - Scatter volume-margin: trục khối lượng và biên lợi nhuận phải được đọc cùng nhau; doanh số cao không đồng nghĩa lợi nhuận tốt.
 - Trên mobile, bảng rộng cuộn ngang; ECharts tự resize theo vùng hiển thị.
+- Khi đổi tab hoặc mở lại kết quả AI, chart được resize sau khi container hiện. Không cần phóng to/thu nhỏ trình duyệt để làm biểu đồ xuất hiện.
 
 ## 8. Công thức nghiệp vụ
 
@@ -147,9 +169,10 @@ Dữ liệu demo phù hợp kiểm thử các khoảng 7–15 ngày tại Store 
 | Hiện tượng | Cách xử lý |
 |---|---|
 | Không có dữ liệu | Mở rộng khoảng ngày, bỏ Store filter hoặc kiểm tra nghiệp vụ đã Completed. |
-| HTTP 403 | Nhờ quản trị viên kiểm tra `App.AdminDashboard`, account override và StaffScope. |
+| HTTP 403 | Kiểm tra `App.AdminDashboard`, account override và StaffScope; SystemAdmin chỉ bị giới hạn khi account inactive hoặc có override `Deny`. |
 | Một widget lỗi | Bấm Retry; widget khác vẫn có thể dùng bình thường. |
 | Filter đã đổi nhưng biểu đồ chưa đổi | Nhấn Apply để hủy request cũ và tải lại cache tab. |
+| Biểu đồ vẫn trắng sau khi mở tab | Tải lại asset frontend mới, kiểm tra console và table fallback; không dùng thao tác zoom như cách khắc phục nghiệp vụ. |
 | Số liệu chưa mới | Dashboard không auto-refresh; Apply hoặc tải lại trang. |
 | AI hiển thị Fallback | Kiểm tra Ollama và model; Fact/Statistic vẫn lấy từ dữ liệu server. |
 | DataStatus là Insufficient | Mở rộng khoảng ngày hoặc chọn store có dữ liệu; AI sẽ không tự đoán. |
@@ -157,6 +180,9 @@ Dữ liệu demo phù hợp kiểm thử các khoảng 7–15 ngày tại Store 
 ## 11. Giới hạn hiện tại
 
 - Chưa hỗ trợ export trực tiếp từ Dashboard.
-- Không hiển thị dữ liệu ngoài `StaffScope`.
+- Role nghiệp vụ không hiển thị dữ liệu ngoài `StaffScope`; SystemAdmin có global scope trên cửa hàng active.
 - Không tự refresh liên tục.
 - Không thay thế báo cáo kế toán đã khóa sổ; đây là màn hình analytics vận hành.
+- AI không sinh SQL và không tự chọn dữ liệu ngoài registry. Dynamic focus chỉ
+  ánh xạ metric–entity–dimension vào widget allowlist có sẵn.
+- Browser E2E là `NOT RUN` nếu browser runtime không khả dụng; không được ghi nhận là PASS chỉ từ source contract.

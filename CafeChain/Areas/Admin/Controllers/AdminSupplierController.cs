@@ -4,13 +4,14 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Exceptions;
+using CafeChain.Application.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = SupplierReadRoles)]
+    [RequirePermission(PermissionConstants.SupplierView, SupplierReadRoles)]
     public class AdminSupplierController : Controller
     {
         private const string SupplierReadRoles =
@@ -62,7 +63,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ===== CREATE =====
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierCreate, SupplierMutationRoles)]
         public async Task<IActionResult> Create([FromBody] AdminSupplierCreateDTO dto)
         {
             if (!ModelState.IsValid)
@@ -86,7 +87,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ===== UPDATE =====
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierUpdate, SupplierMutationRoles)]
         public async Task<IActionResult> Update([FromBody] AdminSupplierUpdateDTO dto)
         {
             if (!ModelState.IsValid)
@@ -110,7 +111,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ===== TOGGLE STATUS =====
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierToggleStatus, SupplierMutationRoles)]
         public async Task<IActionResult> ToggleStatus(int id)
         {
             try
@@ -127,7 +128,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // ===================== PHONES =====================
 
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierUpdate, SupplierMutationRoles)]
         public async Task<IActionResult> AddPhone([FromBody] AdminSupplierPhoneCreateDTO dto)
         {
             try
@@ -142,7 +143,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierUpdate, SupplierMutationRoles)]
         public async Task<IActionResult> DeletePhone(int supplierPhoneId)
         {
             try
@@ -159,7 +160,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // ===================== CONTACTS =====================
 
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierUpdate, SupplierMutationRoles)]
         public async Task<IActionResult> AddContact([FromBody] AdminSupplierContactCreateDTO dto)
         {
             try
@@ -174,7 +175,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierUpdate, SupplierMutationRoles)]
         public async Task<IActionResult> UpdateContact([FromBody] AdminSupplierContactUpdateDTO dto)
         {
             if (!ModelState.IsValid)
@@ -192,7 +193,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierUpdate, SupplierMutationRoles)]
         public async Task<IActionResult> DeleteContact(int supplierContactId)
         {
             try
@@ -207,7 +208,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierUpdate, SupplierMutationRoles)]
         public async Task<IActionResult> SetPrimaryContact(int supplierContactId)
         {
             try
@@ -244,7 +245,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierUpdate, SupplierMutationRoles)]
         public async Task<IActionResult> CreateIngredientOffer([FromBody] AdminIngredientSupplierSaveDTO dto)
         {
             try
@@ -259,7 +260,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierUpdate, SupplierMutationRoles)]
         public async Task<IActionResult> UpdateIngredientOffer([FromBody] AdminIngredientSupplierSaveDTO dto)
         {
             try
@@ -274,7 +275,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierToggleStatus, SupplierMutationRoles)]
         public async Task<IActionResult> ToggleIngredientOffer([FromBody] AdminIngredientSupplierToggleDTO dto)
         {
             try
@@ -292,7 +293,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierUpdate, SupplierMutationRoles)]
         public async Task<IActionResult> ChangeIngredientOfferPrice(
             [FromBody] AdminIngredientSupplierPriceChangeDTO dto)
         {
@@ -359,7 +360,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = SupplierMutationRoles)]
+        [RequirePermission(PermissionConstants.SupplierUpdate, SupplierMutationRoles)]
         public async Task<IActionResult> SaveSupplierStore([FromBody] AdminSupplierStoreSaveDTO dto)
         {
             if (!ModelState.IsValid)
@@ -378,7 +379,8 @@ namespace CafeChain.Areas.Admin.Controllers
 
         private bool CanMutateSupplier() =>
             User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AccountantWarehouse);
+            || User.IsInRole(RoleConstants.AccountantWarehouse)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private async Task<bool> CanReadSupplierAsync(int supplierId)
         {

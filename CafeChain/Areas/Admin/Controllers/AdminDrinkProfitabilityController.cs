@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Profitability;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.Profitability;
@@ -10,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
+    [RequirePermission(PermissionConstants.ProfitabilityView)]
     public sealed class AdminDrinkProfitabilityController : AdminBaseController
     {
         private readonly AppDbContext _context;
@@ -58,8 +60,10 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 Stores = stores,
                 Drinks = drinks,
-                CanUpdateGlobalPrice = User.IsInRole(RoleConstants.BusinessOwner),
+                CanUpdateGlobalPrice = User.IsInRole(RoleConstants.BusinessOwner)
+                    || User.IsInRole(RoleConstants.SystemAdmin),
                 CanManageToppingPolicy = User.IsInRole(RoleConstants.BusinessOwner)
+                    || User.IsInRole(RoleConstants.SystemAdmin)
             });
         }
 
@@ -121,6 +125,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ProfitabilityUpdatePrice)]
         public async Task<IActionResult> UpdatePrice(int storeId, [FromBody] UpdateDrinkSizePriceRequest request, CancellationToken cancellationToken)
         {
             var actor = _actor.Get(User);
@@ -130,6 +135,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ProfitabilityUpdateToppingPolicy)]
         public async Task<IActionResult> UpsertToppingPolicy([FromBody] UpsertDrinkSizeToppingPolicyRequest request, CancellationToken cancellationToken)
         {
             var actor = _actor.Get(User);

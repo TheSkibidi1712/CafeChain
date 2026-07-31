@@ -8,6 +8,7 @@ namespace CafeChain.Application.DTOs.Admin.Actor
     /// </summary>
     public sealed class AdminActorContext
     {
+        public int AccountId { get; init; }
         public int StaffId { get; init; }
         public int StoreId { get; init; }
         public int? StoreIdOrNull => StoreId > 0 ? StoreId : null;

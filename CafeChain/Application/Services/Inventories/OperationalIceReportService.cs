@@ -126,7 +126,8 @@ public sealed class OperationalIceReportService : IOperationalIceReportService
             EndAtUtc = allocation.OperationalShift.EndAtUtc,
             Status = allocation.Status,
             IngredientName = allocation.Ingredient.Name,
-            UnitName = allocation.IcePolicy.DisplayUnit.Name,
+            UnitName = PhysicalUnitConversionRegistry.NormalizeUnitCode(
+                allocation.IcePolicy.DisplayUnit.UnitCode),
             OpeningCarry = allocation.OpeningCarryQuantity / factor,
             InitialIssued = allocation.InitialIssuedQuantity / factor,
             SupplementalIssued = allocation.SupplementalIssuedQuantity / factor,

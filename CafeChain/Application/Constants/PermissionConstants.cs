@@ -1,6 +1,6 @@
 namespace CafeChain.Application.Constants
 {
-    public static class PermissionConstants
+    public static partial class PermissionConstants
     {
         public const string CategoryCreate = "Category.Create";
         public const string CategoryDelete = "Category.Delete";
@@ -61,5 +61,10 @@ namespace CafeChain.Application.Constants
         public const string OperationalIceManage = "OperationalIce.Manage";
         public const string OperationalIceApprove = "OperationalIce.Approve";
         public const string OperationalIcePolicy = "OperationalIce.Policy";
+
+        // Inventory replenishment permissions already present in SeedAll.sql.
+        public const string ReorderSuggestionView = "ReorderSuggestion.View";
+        public const string RestockView = "Restock.View";
+        public const string RestockCreate = "Restock.Create";
     }
 }

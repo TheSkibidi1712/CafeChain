@@ -136,6 +136,14 @@
     background: linear-gradient(135deg, rgba(111,78,55,.05) 0%, rgba(255,255,255,.97) 100%);
     box-shadow: var(--an-shadow);
 }
+.dashboard-ai-panel {
+    display: block;
+    min-width: 0;
+}
+.dashboard-ai-panel[hidden],
+.analytics-panel[hidden] {
+    display: none !important;
+}
 .dashboard-intelligence__heading {
     display: flex;
     align-items: flex-start;
@@ -250,7 +258,9 @@
     overflow-wrap: anywhere;
 }
 .dashboard-intelligence__chart-canvas {
+    display: block;
     width: 100%;
+    min-width: 1px;
     height: 380px;
     min-height: 0;
     margin-top: 6px;
@@ -403,7 +413,7 @@
 .analytics-widget__body { min-width: 0; overflow: visible; }
 .analytics-widget__meta { color: var(--an-muted); font-size: .75rem; margin-top: 8px; }
 
-.analytics-chart { width: 100%; min-width: 0; height: 330px; }
+.analytics-chart { display: block; width: 100%; min-width: 1px; height: 330px; }
 .analytics-widget.is-wide .analytics-chart { height: 380px; }
 
 /* ── KPI Cards — căn chỉnh chuẩn, không lệch ── */

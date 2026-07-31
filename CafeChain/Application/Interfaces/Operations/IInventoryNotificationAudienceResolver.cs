@@ -12,6 +12,11 @@ public interface IInventoryNotificationAudienceResolver
         int storeId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<InventoryNotificationRecipient>> ResolveForPermissionsAsync(
+        int storeId,
+        IReadOnlyCollection<string> requiredPermissionCodes,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<int>> ResolveStoreIdsAsync(
         int staffId,
         CancellationToken cancellationToken = default);

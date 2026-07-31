@@ -1,4 +1,6 @@
 using CafeChain.Application.DTOs.Admin.InventoryThresholds;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
@@ -14,6 +16,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// Read: any Admin panel role with store scope.
     /// Edit: StoreManager / AreaManager / BusinessOwner / SystemAdmin only.
     /// </summary>
+    [RequirePermission(PermissionConstants.InventoryThresholdView)]
     public class AdminInventoryThresholdsController : AdminBaseController
     {
         private readonly IInventoryThresholdService _service;
@@ -58,6 +61,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.InventoryThresholdUpdate)]
         public async Task<IActionResult> Update(
             int storeInventoryId,
             string? minStockLevel,

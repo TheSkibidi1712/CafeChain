@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
@@ -11,7 +12,7 @@ using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Authorize(Roles =
+    [RequirePermission(PermissionConstants.PurchaseOrderView,
         RoleConstants.BusinessOwner + "," +
         RoleConstants.AreaManager + "," +
         RoleConstants.StoreManager + "," +
@@ -63,11 +64,13 @@ namespace CafeChain.Areas.Admin.Controllers
             var result = await _service.GetDetailAsync(id, actor.StaffId, actor.RoleNames);
             if (!result.IsSuccess || result.Data == null) return Forbid();
             ViewBag.CanReceive = CanReceive();
-            ViewBag.CanCloseRemaining = User.IsInRole(RoleConstants.BusinessOwner);
+            ViewBag.CanCloseRemaining = User.IsInRole(RoleConstants.BusinessOwner)
+                || User.IsInRole(RoleConstants.SystemAdmin);
             return View(result.Data);
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.PurchaseOrderCreate)]
         public async Task<IActionResult> Create(int? restockRequestId = null)
         {
             if (!CanCreate()) return Forbid();
@@ -132,6 +135,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseOrderCreate)]
         public async Task<IActionResult> Create(CreatePurchaseOrderRequest model)
         {
             if (!CanCreate()) return Forbid();
@@ -150,15 +154,19 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseOrderApprove)]
         public Task<IActionResult> Approve(int id, string rowVersion) => Transition(id, rowVersion, true);
 
         [HttpPost, ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseOrderSend)]
         public Task<IActionResult> MarkSent(int id, string rowVersion) => Transition(id, rowVersion, false);
 
         [HttpPost, ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseOrderCancel)]
         public async Task<IActionResult> Cancel(int id, string rowVersion, string reason)
         {
-            if (!User.IsInRole(RoleConstants.BusinessOwner)) return Forbid();
+            if (!User.IsInRole(RoleConstants.BusinessOwner)
+                && !User.IsInRole(RoleConstants.SystemAdmin)) return Forbid();
             var actor = _actor.Get(User);
             var result = await _service.CancelAsync(id, rowVersion, actor.StaffId, actor.RoleNames, reason);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
@@ -166,9 +174,11 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseOrderCloseRemaining)]
         public async Task<IActionResult> CloseLineRemaining(int id, int lineId, string rowVersion, string reason, string requestKey)
         {
-            if (!User.IsInRole(RoleConstants.BusinessOwner)) return Forbid();
+            if (!User.IsInRole(RoleConstants.BusinessOwner)
+                && !User.IsInRole(RoleConstants.SystemAdmin)) return Forbid();
             var actor = _actor.Get(User);
             var result = await _service.CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
             {
@@ -183,8 +193,12 @@ namespace CafeChain.Areas.Admin.Controllers
 
         private async Task<IActionResult> Transition(int id, string rowVersion, bool approve)
         {
-            if (approve && !User.IsInRole(RoleConstants.BusinessOwner)) return Forbid();
-            if (!approve && !User.IsInRole(RoleConstants.AccountantWarehouse)) return Forbid();
+            if (approve
+                && !User.IsInRole(RoleConstants.BusinessOwner)
+                && !User.IsInRole(RoleConstants.SystemAdmin)) return Forbid();
+            if (!approve
+                && !User.IsInRole(RoleConstants.AccountantWarehouse)
+                && !User.IsInRole(RoleConstants.SystemAdmin)) return Forbid();
             var actor = _actor.Get(User);
             var result = approve
                 ? await _service.ApproveAsync(id, rowVersion, actor.StaffId, actor.RoleNames)
@@ -219,15 +233,18 @@ namespace CafeChain.Areas.Admin.Controllers
             || User.IsInRole(RoleConstants.BusinessOwner)
             || User.IsInRole(RoleConstants.AreaManager)
             || User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.ShiftSupervisor);
+            || User.IsInRole(RoleConstants.ShiftSupervisor)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private bool CanCreate() =>
             User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner);
+            || User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private bool CanReceive() =>
             User.IsInRole(RoleConstants.BusinessOwner)
             || User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.ShiftSupervisor);
+            || User.IsInRole(RoleConstants.ShiftSupervisor)
+            || User.IsInRole(RoleConstants.SystemAdmin);
     }
 }

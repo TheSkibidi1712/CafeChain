@@ -3,24 +3,31 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "ingredientId",
-    "recommendationLevel",
-    "usableStock",
-    "minimumStock",
-    "pendingIncoming",
-    "suggestedQuantity",
-    "explanation"
+    "Summary",
+    "Explanation",
+    "Risk",
+    "RecommendedActionText"
   ],
   "properties": {
-    "ingredientId": { "type": "integer", "minimum": 1 },
-    "recommendationLevel": {
+    "Summary": {
       "type": "string",
-      "enum": ["URGENT", "NEAR_REORDER", "NORMAL", "PROCUREMENT_IN_PROGRESS", "INCOMING_COVERS_DEMAND", "DATA_INCOMPLETE"]
+      "minLength": 1,
+      "maxLength": 600
     },
-    "usableStock": { "type": "number" },
-    "minimumStock": { "type": "number" },
-    "pendingIncoming": { "type": "number", "minimum": 0 },
-    "suggestedQuantity": { "type": "number", "minimum": 0 },
-    "explanation": { "type": "string", "minLength": 1, "maxLength": 600 }
+    "Explanation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 600
+    },
+    "Risk": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 600
+    },
+    "RecommendedActionText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 600
+    }
   }
 }
