@@ -11,8 +11,10 @@
     const aiTab = document.getElementById("dashboardAiTab");
     const toggleResult = document.getElementById("dashboardAiToggleResult");
     const toggleLabel = toggleResult?.querySelector("[data-ai-toggle-label]");
+    const analyzeIcon = analyzeButton?.querySelector("[data-ai-analyze-icon]");
+    const analyzeLabel = analyzeButton?.querySelector("[data-ai-analyze-label]");
     if (!root || !prompt || !analyzeButton || !status || !preview || !result
-        || !aiPanel || !aiTab || !toggleResult || !toggleLabel) return;
+        || !aiPanel || !aiTab || !toggleResult || !toggleLabel || !analyzeIcon || !analyzeLabel) return;
 
     const token = document.querySelector(
         "#dashboardAntiForgery input[name='__RequestVerificationToken']"
@@ -103,6 +105,27 @@
         status.hidden = !message;
         status.textContent = message;
         status.classList.toggle("is-error", isError);
+        status.setAttribute("role", isError ? "alert" : "status");
+    }
+
+    function showPromptError(message) {
+        prompt.classList.add("is-invalid");
+        prompt.setAttribute("aria-invalid", "true");
+        showStatus(message, true);
+        prompt.focus();
+    }
+
+    function clearPromptError() {
+        prompt.classList.remove("is-invalid");
+        prompt.removeAttribute("aria-invalid");
+    }
+
+    function setAnalyzeButtonLoading(isLoading) {
+        analyzeButton.disabled = isLoading;
+        analyzeButton.classList.toggle("is-loading", isLoading);
+        analyzeButton.setAttribute("aria-busy", String(isLoading));
+        analyzeIcon.className = isLoading ? "dashboard-ai-spinner" : "bi bi-stars";
+        analyzeLabel.textContent = isLoading ? "Đang phân tích dữ liệu" : "Phân tích";
     }
 
     function setResultVisibility(isVisible) {
@@ -632,17 +655,22 @@
 
     async function analyze() {
         const question = prompt.value.trim();
-        if (question.length > 0 && question.length < 3) {
-            showStatus("Vui lòng nhập câu hỏi từ 3 ký tự hoặc để trống để xem tổng quan.", true);
+        if (!question) {
+            showPromptError("Câu hỏi đang trống. Vui lòng nhập câu hỏi trước khi phân tích.");
             return;
         }
+        if (question.length < 3) {
+            showPromptError("Câu hỏi quá ngắn. Vui lòng nhập câu hỏi có ít nhất 3 ký tự.");
+            return;
+        }
+        clearPromptError();
         activeController?.abort();
         const controller = new AbortController();
         activeController = controller;
         const sequence = ++requestSequence;
         const contextId = root.dataset.contextId || "";
         const expectedFingerprint = root.dataset.filterFingerprint || "";
-        analyzeButton.disabled = true;
+        setAnalyzeButtonLoading(true);
         showStatus("Đang tải dữ liệu theo phạm vi quyền và xây dựng evidence...");
         try {
             const data = await post(root.dataset.aiAnalyze, {
@@ -668,7 +696,7 @@
                 showStatus(error instanceof Error ? error.message : String(error), true);
         } finally {
             if (sequence === requestSequence) {
-                analyzeButton.disabled = false;
+                setAnalyzeButtonLoading(false);
                 if (activeController === controller) activeController = null;
             }
         }
@@ -678,7 +706,7 @@
         requestSequence++;
         activeController?.abort();
         activeController = null;
-        analyzeButton.disabled = false;
+        setAnalyzeButtonLoading(false);
         showStatus("Phạm vi Dashboard đang thay đổi; yêu cầu AI cũ đã được hủy.");
     });
     window.addEventListener("cafechain:dashboard-context-changed", event => {
@@ -697,6 +725,12 @@
             event.preventDefault();
             void analyze();
         }
+    });
+    prompt.addEventListener("input", () => {
+        if (prompt.value.trim().length < 3) return;
+        const hadPromptError = prompt.classList.contains("is-invalid");
+        clearPromptError();
+        if (hadPromptError) showStatus("");
     });
 
     const url = new URL(window.location.href);
