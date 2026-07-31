@@ -1,5 +1,5 @@
-# Mọi thay đổi cần tôi review
-* @TheSkibidi1712
+# Mọi thay đổi cần một trong hai người review
+* @TheSkibidi1712 @PTHMezz
 
-# Bảo vệ chính file CODEOWNERS
+# Chỉ bạn quản lý file CODEOWNERS
 /.github/CODEOWNERS @TheSkibidi1712
