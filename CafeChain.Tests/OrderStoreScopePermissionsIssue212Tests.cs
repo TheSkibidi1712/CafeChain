@@ -14,6 +14,7 @@ using CafeChain.Application.Services.Security;
 using CafeChain.Controllers.Api.v1;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Infrastructure.Repositories.Admin.POS;
+using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Payments;
@@ -149,9 +150,12 @@ public sealed class OrderStoreScopePermissionsIssue212Tests : IntegrationTestBas
     }
 
     [Fact]
-    public async Task SystemAdmin_IsOnlyExplicitGlobalScopeBypass()
+    public async Task SystemAdmin_UsesDefaultStaffScopeAndFailsClosedWithoutAccess()
     {
         var scope = new Mock<IScopeAuthorizationService>(MockBehavior.Strict);
+        scope
+            .Setup(x => x.CanAccessStoreAsync(301, StoreB))
+            .ReturnsAsync(false);
         var service = new OrderAccessAuthorizationService(scope.Object);
 
         var decision = await service.AuthorizeAsync(
@@ -159,8 +163,8 @@ public sealed class OrderStoreScopePermissionsIssue212Tests : IntegrationTestBas
             OrderAccessActions.AdminExport,
             StoreB);
 
-        Assert.Equal(OrderAccessDecision.Allowed, decision);
-        scope.VerifyNoOtherCalls();
+        Assert.Equal(OrderAccessDecision.NotFound, decision);
+        scope.Verify(x => x.CanAccessStoreAsync(301, StoreB), Times.Once);
     }
 
     [Fact]
@@ -422,8 +426,38 @@ public sealed class OrderStoreScopePermissionsIssue212Tests : IntegrationTestBas
                 Active = true,
                 CreatedAt = DateTime.UtcNow
             });
+        context.Accounts.AddRange(
+            ActiveAccount(101),
+            ActiveAccount(102),
+            ActiveAccount(201),
+            ActiveAccount(202));
+        context.Staffs.AddRange(
+            ActiveStaff(101, StoreA),
+            ActiveStaff(102, StoreA),
+            ActiveStaff(201, StoreA),
+            ActiveStaff(202, StoreA));
         await context.SaveChangesAsync();
     }
+
+    private static Account ActiveAccount(int id) => new()
+    {
+        AccountId = id,
+        Email = $"scope-{id}@test.local",
+        PasswordHash = "test",
+        Active = true,
+        CreatedAt = DateTime.UtcNow
+    };
+
+    private static Staff ActiveStaff(int id, int storeId) => new()
+    {
+        StaffId = id,
+        AccountId = id,
+        StoreId = storeId,
+        FullName = $"Scope actor {id}",
+        EmployeeStatus = 2,
+        Active = true,
+        CreatedAt = DateTime.UtcNow
+    };
 
     private static POSOrderController CreatePosController(
         Mock<IPOSOrderService> orderService,

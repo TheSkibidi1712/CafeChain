@@ -1,7 +1,6 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.AI;
 using CafeChain.Application.Interfaces.Inventories;
-using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Infrastructure.Interfaces.Admin.Procurement;
@@ -361,7 +360,6 @@ public sealed class ReorderSuggestionPipelineCoverageTests
             repository.Object,
             conversion.Object,
             incoming.Object,
-            Mock.Of<IScopeAuthorizationService>(),
             Mock.Of<IAIService>(),
             clock: new FixedTimeProvider());
 

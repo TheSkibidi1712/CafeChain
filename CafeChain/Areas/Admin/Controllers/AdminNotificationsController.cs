@@ -75,6 +75,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.NotificationMarkRead)]
         public async Task<IActionResult> MarkRead(int id)
         {
             var staffId = ResolveStaffId();
@@ -92,6 +93,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.NotificationMarkRead)]
         public async Task<IActionResult> MarkAllRead()
         {
             var staffId = ResolveStaffId();
@@ -124,6 +126,8 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.NotificationMarkRead)]
         public async Task<IActionResult> MarkReadJson(int id)
         {
             var staffId = ResolveStaffId();

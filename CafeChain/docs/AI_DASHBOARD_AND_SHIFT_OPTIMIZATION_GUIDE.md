@@ -1,5 +1,11 @@
 # Hướng dẫn AI Dashboard, cấu hình lịch và cảnh báo CafeChain
 
+> **Trạng thái: hướng dẫn cũ.** Xem tài liệu chuẩn
+> [`../Doc/AI_FEATURES_BUSINESS_AND_TECHNICAL_GUIDE.md`](../Doc/AI_FEATURES_BUSINESS_AND_TECHNICAL_GUIDE.md).
+> Màn hình Shift Optimization hiện chỉ lưu cấu hình/ràng buộc, chưa có solver tự
+> sinh lịch. Dashboard dùng default StaffScope; SystemAdmin global Active Store
+> chỉ áp dụng cho `ReorderSuggestion`.
+
 Tài liệu này dành cho chủ doanh nghiệp, quản lý cửa hàng và nhóm kỹ thuật. AI Dashboard hỗ trợ ra quyết định; màn hình lịch chỉ thu thập cấu hình và cảnh báo thiếu nhân sự. AI không tự sửa dữ liệu, không tự chạy SQL và không tự phân công lịch làm việc.
 
 ## 1. AI Dashboard dùng để làm gì?

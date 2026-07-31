@@ -27,21 +27,7 @@ namespace CafeChain.Application.Interfaces.Inventories
 
         Task<ServiceResult<ReorderSuggestionListDto>> GetForStoreAsync(
             int storeId,
-            int actorStaffId,
-            IReadOnlyCollection<string> actorRoles,
-            int analysisWindowDays = 30);
-
-        Task<ServiceResult<ReorderSuggestionListDto>> GetForStoreAsync(
-            int storeId,
             AdminActorContext actor,
-            int analysisWindowDays = 30,
-            CancellationToken cancellationToken = default);
-
-        Task<ServiceResult<InventoryReorderExplanationResultDto>> ExplainAsync(
-            int storeId,
-            int ingredientId,
-            int actorStaffId,
-            IReadOnlyCollection<string> actorRoles,
             int analysisWindowDays = 30,
             CancellationToken cancellationToken = default);
 

@@ -9,11 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers;
 
 [Area("Admin")]
-[RequirePermission(PermissionConstants.PurchaseAdviceConsolidate,
-    RoleConstants.BusinessOwner + "," +
-    RoleConstants.AreaManager + "," +
-    RoleConstants.StoreManager + "," +
-    RoleConstants.AccountantWarehouse)]
+[RequirePermission(PermissionConstants.PurchaseAdviceConsolidationView)]
 public sealed class AdminPurchaseAdviceConsolidationController : Controller
 {
     private readonly IPurchaseAdviceConsolidationService _service;
@@ -53,6 +49,7 @@ public sealed class AdminPurchaseAdviceConsolidationController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequirePermission(PermissionConstants.PurchaseAdviceConsolidate)]
     public async Task<IActionResult> Preview(
         PurchaseAdviceConsolidationPreviewRequest request,
         int[] selectedLineIds)

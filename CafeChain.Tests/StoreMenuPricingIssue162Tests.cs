@@ -5,6 +5,7 @@ using CafeChain.Application.Interfaces.Admin.Profitability;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Admin.Profitability;
 using CafeChain.Application.Services.Admin.StoreMenu;
+using CafeChain.Application.Services.Security;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Staffs;
@@ -30,7 +31,10 @@ public sealed class StoreMenuPricingIssue162Tests : IntegrationTestBase
     {
         await SeedAsync();
         await using var context = CreateDbContext();
-        var service = new StoreMenuPricingService(context, new StoreCatalogVersionService(context));
+        var service = new StoreMenuPricingService(
+            context,
+            new StoreCatalogVersionService(context),
+            new ScopeAuthorizationService(context));
         var rowVersion = Convert.ToBase64String((await context.StoreMenuItems.AsNoTracking().SingleAsync(x => x.StoreMenuItemId == MenuA)).RowVersion);
 
         var set = await service.UpdateOverrideAsync(new UpdateStoreMenuPriceOverrideRequest
@@ -109,7 +113,10 @@ public sealed class StoreMenuPricingIssue162Tests : IntegrationTestBase
     {
         await SeedAsync();
         await using var context = CreateDbContext();
-        var overrideService = new StoreMenuPricingService(context, new StoreCatalogVersionService(context));
+        var overrideService = new StoreMenuPricingService(
+            context,
+            new StoreCatalogVersionService(context),
+            new ScopeAuthorizationService(context));
         var menuVersion = Convert.ToBase64String((await context.StoreMenuItems.AsNoTracking().SingleAsync(x => x.StoreMenuItemId == MenuA)).RowVersion);
 
         var deniedOverride = await overrideService.UpdateOverrideAsync(new UpdateStoreMenuPriceOverrideRequest
@@ -199,6 +206,19 @@ public sealed class StoreMenuPricingIssue162Tests : IntegrationTestBase
         context.AccountRoles.AddRange(
             new AccountRole { AccountId = OwnerId, RoleId = ownerRole.RoleId },
             new AccountRole { AccountId = ManagerId, RoleId = managerRole.RoleId });
+        context.StaffScopes.AddRange(
+            new StaffScope
+            {
+                StaffId = OwnerId,
+                ScopeTypeId = (int)CafeChain.Application.Interfaces.Security.ScopeLevel.Store,
+                ScopeRefId = StoreA
+            },
+            new StaffScope
+            {
+                StaffId = ManagerId,
+                ScopeTypeId = (int)CafeChain.Application.Interfaces.Security.ScopeLevel.Store,
+                ScopeRefId = StoreA
+            });
         await context.SaveChangesAsync();
     }
 

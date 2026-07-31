@@ -1,8 +1,12 @@
 using System.Linq;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Permissions;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Results;
 using CafeChain.Application.Services.Admin.StoreInventories;
 using CafeChain.Application.Services.Inventories;
+using CafeChain.Application.Services.Security;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories.Ingredients;
@@ -334,24 +338,58 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task AccountHasEditRole_MatchesAllowList()
+        public async Task PermissionDeny_BlocksUpdate_EvenForStoreManager()
         {
             using var ctx = CreateDbContext();
             EnsureBase(ctx);
             EnsureStaffWithRole(ctx, ManagerAccountId, ManagerStaffId, StoreId,
                 RoleConstants.StoreManager, "mgr104h@test.local");
-            EnsureStaffWithRole(ctx, AwAccountId, AwStaffId, StoreId,
-                RoleConstants.AccountantWarehouse, "aw104h@test.local");
-            var service = CreateService(ctx);
+            var invId = await SeedInventoryAsync(
+                ctx, StoreId, IngredientId, null, qty: 5m, reserved: 0m, min: null);
+            var service = CreateService(ctx, _ => false);
 
-            Assert.True(await service.AccountHasEditRoleAsync(ManagerAccountId));
-            Assert.False(await service.AccountHasEditRoleAsync(AwAccountId));
+            var result = await UpdateAsync(service, ctx, ManagerAccountId, invId, 10m);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("quyá»n", result.Message);
+            Assert.Null((await ctx.StoreInventories.SingleAsync(
+                i => i.StoreInventoryId == invId)).MinStockLevel);
         }
 
         // ---------- helpers ----------
 
-        private static InventoryThresholdService CreateService(CafeChain.Data.AppDbContext ctx) =>
-            new(ctx, new Mock<ILogger<InventoryThresholdService>>().Object);
+        private static InventoryThresholdService CreateService(
+            CafeChain.Data.AppDbContext ctx,
+            System.Func<int, bool>? permissionAllowed = null)
+        {
+            permissionAllowed ??= accountId =>
+                accountId == ManagerAccountId
+                || accountId == AmAccountId
+                || accountId == BoAccountId;
+
+            var permissionService = new Mock<IAdminPermissionService>();
+            permissionService
+                .Setup(x => x.HasPermissionAsync(
+                    It.IsAny<int>(),
+                    PermissionConstants.InventoryThresholdUpdate,
+                    It.IsAny<int?>()))
+                .ReturnsAsync((int accountId, string permissionCode, int? targetStoreId) =>
+                    ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                    {
+                        AccountId = accountId,
+                        PermissionCode = permissionCode,
+                        TargetStoreId = targetStoreId,
+                        Allowed = permissionAllowed(accountId),
+                        RoleAllowed = permissionAllowed(accountId),
+                        ScopeAllowed = true
+                    }));
+
+            return new InventoryThresholdService(
+                ctx,
+                new Mock<ILogger<InventoryThresholdService>>().Object,
+                new ScopeAuthorizationService(ctx),
+                permissionService.Object);
+        }
 
         private static void EnsureBase(CafeChain.Data.AppDbContext ctx)
         {
@@ -422,7 +460,7 @@ namespace CafeChain.Tests.POS
 
         private static void EnsureScopeTypes(CafeChain.Data.AppDbContext ctx)
         {
-            // ScopeType: 1 Country, 4 Store (matches AdminStoreInventoryRepository)
+            // ScopeType: 1 Country, 5 Store.
             if (!ctx.ScopeTypes.Any(s => s.ScopeTypeId == 1))
             {
                 ctx.ScopeTypes.Add(new ScopeType
@@ -433,11 +471,12 @@ namespace CafeChain.Tests.POS
                 });
             }
 
-            if (!ctx.ScopeTypes.Any(s => s.ScopeTypeId == 4))
+            if (!ctx.ScopeTypes.Any(s =>
+                    s.ScopeTypeId == (int)CafeChain.Application.Interfaces.Security.ScopeLevel.Store))
             {
                 ctx.ScopeTypes.Add(new ScopeType
                 {
-                    ScopeTypeId = 4,
+                    ScopeTypeId = (int)CafeChain.Application.Interfaces.Security.ScopeLevel.Store,
                     Code = "STORE",
                     Name = "Store"
                 });
@@ -481,6 +520,16 @@ namespace CafeChain.Tests.POS
                 CreatedAt = System.DateTime.UtcNow,
             });
             ctx.SaveChanges();
+
+            if (storeId > 0
+                && !ctx.StaffScopes.Any(x =>
+                    x.StaffId == staffId
+                    && x.ScopeTypeId == (int)CafeChain.Application.Interfaces.Security.ScopeLevel.Store
+                    && x.ScopeRefId == storeId))
+            {
+                AddStoreScope(ctx, staffId, storeId);
+                ctx.SaveChanges();
+            }
         }
 
         private static void EnsureRole(CafeChain.Data.AppDbContext ctx, string roleName)
@@ -518,7 +567,7 @@ namespace CafeChain.Tests.POS
             ctx.StaffScopes.Add(new StaffScope
             {
                 StaffId = staffId,
-                ScopeTypeId = 4,
+                ScopeTypeId = (int)CafeChain.Application.Interfaces.Security.ScopeLevel.Store,
                 ScopeRefId = storeId
             });
         }

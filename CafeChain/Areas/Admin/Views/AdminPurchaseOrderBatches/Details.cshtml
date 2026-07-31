@@ -1,15 +1,35 @@
 @using CafeChain.Application.Constants
 @using CafeChain.Application.DTOs.Admin.Procurement
+@using CafeChain.Application.Interfaces.Admin.Permissions
 @using CafeChain.ViewModels.Admin.Shared
+@using System.Security.Claims
+@inject IAdminPermissionService PermissionService
 @model PurchaseOrderBatchDetailPageDto
 @{
     ViewData["Title"] = $"Đơn đặt hàng gộp {Model.Batch.BatchNumber}";
     var batch = Model.Batch;
-    var isOwner = Model.Actor.RoleNames.Contains(RoleConstants.BusinessOwner);
-    var canDocument = isOwner || Model.Actor.RoleNames.Contains(RoleConstants.AccountantWarehouse);
-    var canApprove = isOwner && batch.Status == PurchaseOrderBatchStatuses.PendingApproval;
-    var canCancel = isOwner && batch.Status is not PurchaseOrderBatchStatuses.Completed and not PurchaseOrderBatchStatuses.Cancelled;
-    var canGenerate = canDocument && PurchaseOrderBatchStatuses.ApprovedOrLater.Contains(batch.Status);
+    var effectivePermissions = new HashSet<string>(StringComparer.Ordinal);
+    if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
+        && accountId > 0)
+    {
+        effectivePermissions =
+            (await PermissionService.GetEffectivePermissionCodesAsync(accountId)).Data
+            ?? new HashSet<string>(StringComparer.Ordinal);
+    }
+    var canApprove =
+        effectivePermissions.Contains(PermissionConstants.PurchaseOrderApprove)
+        && batch.Status == PurchaseOrderBatchStatuses.PendingApproval;
+    var canCancel =
+        effectivePermissions.Contains(PermissionConstants.PurchaseOrderCancel)
+        && batch.Status is not PurchaseOrderBatchStatuses.Completed
+            and not PurchaseOrderBatchStatuses.Cancelled;
+    var canGenerate =
+        effectivePermissions.Contains(PermissionConstants.PurchaseOrderExport)
+        && PurchaseOrderBatchStatuses.ApprovedOrLater.Contains(batch.Status);
+    var canDownload =
+        effectivePermissions.Contains(PermissionConstants.PurchaseOrderExport);
+    var canSend =
+        effectivePermissions.Contains(PermissionConstants.PurchaseOrderSend);
     var latestRevision = Model.DocumentRevisions.OrderByDescending(x => x.RevisionNumber).FirstOrDefault();
     var sendableRevision = Model.DocumentRevisions.FirstOrDefault(x => x.Status == PurchaseOrderBatchDocumentStatuses.Generated);
 }
@@ -72,7 +92,7 @@
                 <div class="pa-section-heading"><div><div class="pa-eyebrow">Tài liệu nhà cung cấp</div><h2>PDF &amp; gửi Nhà cung cấp</h2></div></div>
                 <div class="pa-document-actions">
                     @if (canGenerate) { <form asp-action="GeneratePdf" asp-route-id="@batch.PurchaseOrderBatchId" method="post" data-loading-form>@Html.AntiForgeryToken()<button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="Đang tạo PDF..."><i class="fas fa-file-pdf"></i> Xuất PDF</button></form> }
-                    @if (latestRevision != null)
+                    @if (latestRevision != null && canDownload)
                     {
                         <a class="pa-action pa-action-block" asp-action="DownloadRevision" asp-route-revisionId="@latestRevision.RevisionId"><i class="fas fa-download"></i> Tải PDF @latestRevision.FileName</a>
                         <a class="pa-action pa-action-block" asp-action="PrintRevision" asp-route-revisionId="@latestRevision.RevisionId" target="_blank" rel="noopener"><i class="fas fa-print"></i> Mở để in PDF</a>
@@ -85,7 +105,7 @@
                     <button class="pa-action pa-action-block" type="button" id="copy-zalo"><i class="fas fa-copy"></i> Sao chép nội dung gửi Zalo</button>
                     <div id="copy-feedback" class="pa-copy-feedback" role="status"></div>
                 }
-                @if (sendableRevision != null && canDocument)
+                @if (sendableRevision != null && canSend)
                 {
                     <form asp-action="MarkRevisionSent" asp-route-id="@batch.PurchaseOrderBatchId" asp-route-revisionId="@sendableRevision.RevisionId" method="post" class="pa-send-form" data-loading-form>
                         @Html.AntiForgeryToken()
@@ -116,8 +136,11 @@
                             <small>Tạo bởi @revision.GeneratedByName · @AdminStatusDisplay.DateTime(revision.GeneratedAtUtc.ToLocalTime())</small>
                             @if (revision.SentAtUtc.HasValue) { <small class="pa-sent-meta">Gửi qua @AdminStatusDisplay.PurchaseOrderBatchDocumentChannel(revision.SentChannel) bởi @(revision.SentByName ?? $"Nhân viên #{revision.SentByStaffId}") · @AdminStatusDisplay.DateTime(revision.SentAtUtc.Value.ToLocalTime())</small> }
                             @if (!string.IsNullOrWhiteSpace(revision.SentNote)) { <small>Ghi chú: @revision.SentNote</small> }
-                            <a asp-action="DownloadRevision" asp-route-revisionId="@revision.RevisionId">Tải phiên bản PDF này</a>
-                            <a asp-action="PrintRevision" asp-route-revisionId="@revision.RevisionId" target="_blank" rel="noopener">Mở để in phiên bản này</a>
+                            @if (canDownload)
+                            {
+                                <a asp-action="DownloadRevision" asp-route-revisionId="@revision.RevisionId">Tải phiên bản PDF này</a>
+                                <a asp-action="PrintRevision" asp-route-revisionId="@revision.RevisionId" target="_blank" rel="noopener">Mở để in phiên bản này</a>
+                            }
                         </article>
                     }
                     @if (Model.DocumentRevisions.Count == 0) { <p class="pa-muted">Lịch sử sẽ xuất hiện sau lần tạo PDF đầu tiên.</p> }

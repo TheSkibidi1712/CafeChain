@@ -1,12 +1,27 @@
 @model CafeChain.Application.DTOs.Admin.StockAlerts.StockAlertDetailDto
 @using CafeChain.Application.DTOs.Admin.RestockRequests
+@using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
 @using CafeChain.ViewModels.Admin.Shared
+@using System.Security.Claims
+@inject IAdminPermissionService PermissionService
 @{
     ViewData["Title"] = "Chi tiết cảnh báo kho";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var isOpen = Model.Status == "OPEN";
     var isConfirmed = Model.Status == "CONFIRMED";
     var openRestock = ViewBag.OpenRestockRequest as RestockRequestListItemDto;
+    var permissions = new HashSet<string>(StringComparer.Ordinal);
+    if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
+        && accountId > 0)
+    {
+        permissions = (await PermissionService.GetEffectivePermissionCodesAsync(accountId)).Data
+            ?? new HashSet<string>(StringComparer.Ordinal);
+    }
+    var canResolve = permissions.Contains(PermissionConstants.StockAlertResolve);
+    var canCreateRestock =
+        permissions.Contains(PermissionConstants.StockAlertCreateRestockRequest);
+    var canViewRestock = permissions.Contains(PermissionConstants.RestockView);
     var suggestedBase = Model.ThresholdSnapshot.HasValue
         ? Math.Max(0m, Model.ThresholdSnapshot.Value - Model.CurrentQtySnapshot)
         : (decimal?)null;
@@ -154,7 +169,7 @@
         </div>
 
         <aside>
-            @if (isOpen)
+            @if (isOpen && canResolve)
             {
                 <section class="ops-panel">
                     <div class="ops-panel-header"><h2 class="ops-panel-title">Quyết định của quản lý</h2></div>
@@ -210,11 +225,14 @@
                             <div><span class="ops-data-label">Số lượng</span><span class="ops-data-value">@AdminStatusDisplay.Quantity(openRestock.RequestedQuantity)</span></div>
                             <div><span class="ops-data-label">Ưu tiên</span><span class="ops-data-value">@AdminStatusDisplay.RestockRequestPriority(openRestock.Priority).Label</span></div>
                         </div>
-                        <a class="ops-btn ops-btn-primary w-100 text-center mt-3" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@openRestock.RestockRequestId" asp-route-storeId="@Model.StoreId">Mở yêu cầu nhập</a>
+                        @if (canViewRestock)
+                        {
+                            <a class="ops-btn ops-btn-primary w-100 text-center mt-3" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@openRestock.RestockRequestId" asp-route-storeId="@Model.StoreId">Mở yêu cầu nhập</a>
+                        }
                     </div>
                 </section>
             }
-            else if (isConfirmed)
+            else if (isConfirmed && canCreateRestock)
             {
                 <section class="ops-panel">
                     <div class="ops-panel-header"><h2 class="ops-panel-title">Tạo yêu cầu nhập hàng</h2></div>

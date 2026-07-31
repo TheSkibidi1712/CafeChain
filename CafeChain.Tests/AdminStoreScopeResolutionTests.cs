@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.DTOs.Admin.StockAlerts;
@@ -7,6 +8,7 @@ using CafeChain.Application.DTOs.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Admin.Actor;
 using CafeChain.Application.Services.Admin.StoreScope;
@@ -47,18 +49,27 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
 
         Assert.Equal(AdminStoreScopeResolutionStatus.RequestedStoreForbidden, result.Status);
         Assert.Equal(AdminStoreScopeErrorCodes.StoreScopeForbidden, result.ErrorCode);
+        Assert.Contains(
+            await db.AuditLogs.AsNoTracking().ToListAsync(),
+            x => x.Action == "CROSS_STORE_TAMPERING"
+                 && x.RecordId == 2
+                 && x.UserId == AccountantActor().StaffId);
     }
 
     [Fact]
-    public async Task StoreResolver_ExplicitMissingStoreReturnsNotFound()
+    public async Task StoreResolver_ExplicitMissingStoreDoesNotLeakExistence()
     {
         await using var db = CreateDbContext();
         var resolver = CreateResolver(db, new SelectedStoreContextStub());
 
         var result = await resolver.ResolveAsync(AccountantActor(), 999999);
 
-        Assert.Equal(AdminStoreScopeResolutionStatus.StoreNotFound, result.Status);
-        Assert.Equal(AdminStoreScopeErrorCodes.StoreNotFound, result.ErrorCode);
+        Assert.Equal(AdminStoreScopeResolutionStatus.RequestedStoreForbidden, result.Status);
+        Assert.Equal(AdminStoreScopeErrorCodes.StoreScopeForbidden, result.ErrorCode);
+        Assert.Contains(
+            await db.AuditLogs.AsNoTracking().ToListAsync(),
+            x => x.Action == "CROSS_STORE_TAMPERING"
+                 && x.RecordId == 999999);
     }
 
     [Fact]
@@ -217,26 +228,19 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task AccountantWarehouse_StockAlertMutationStillRejected()
+    public void StockAlertMutation_RequiresResolvePermissionWithoutRoleGate()
     {
-        await using var db = CreateDbContext();
-        var alerts = new Mock<IStockAlertManagerService>();
-        var controller = new AdminStockAlertsController(
-            alerts.Object,
-            Mock.Of<IRestockRequestService>(),
-            new AdminActorContextAccessor(),
-            CreateResolver(db, new SelectedStoreContextStub()));
-        AttachUser(controller, RoleConstants.AccountantWarehouse, 5, 1);
+        var confirm = typeof(AdminStockAlertsController)
+            .GetMethods()
+            .Single(x => x.Name == nameof(AdminStockAlertsController.Confirm));
+        var permission = Assert.Single(confirm
+            .GetCustomAttributes(typeof(RequirePermissionAttribute), inherit: true)
+            .Cast<RequirePermissionAttribute>());
 
-        var result = await controller.Confirm(1, "note", null, 1);
-
-        Assert.IsType<RedirectToActionResult>(result);
-        alerts.Verify(x => x.ConfirmAsync(
-            It.IsAny<int>(),
-            It.IsAny<int>(),
-            It.IsAny<int>(),
-            It.IsAny<string>(),
-            It.IsAny<string?>()), Times.Never);
+        Assert.Equal(
+            RequirePermissionAttribute.PolicyPrefix + PermissionConstants.StockAlertResolve,
+            permission.Policy);
+        Assert.Null(permission.Roles);
     }
 
     [Fact]
@@ -292,7 +296,7 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task SystemAdmin_HasGlobalActiveStoreScopeWithoutStaffScopeRows()
+    public async Task SystemAdmin_ReorderPurposeHasGlobalActiveStoreScopeWithoutStaffScopeRows()
     {
         await using var db = CreateDbContext();
         db.StaffScopes.RemoveRange(db.StaffScopes.Where(x => x.StaffId == 6));
@@ -304,10 +308,41 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
             .OrderBy(x => x)
             .ToListAsync();
 
-        var allowed = await scope.GetAllowedStoresAsync(6);
+        var allowed = await scope.GetAllowedStoresAsync(
+            6,
+            StoreScopePurpose.ReorderSuggestion);
 
         Assert.Equal(activeStoreIds, allowed.Select(x => x.StoreId).OrderBy(x => x));
-        Assert.True(await scope.CanAccessStoreAsync(6, activeStoreIds.Last()));
+        Assert.True(await scope.CanAccessStoreAsync(
+            6,
+            activeStoreIds.Last(),
+            StoreScopePurpose.ReorderSuggestion));
+    }
+
+    [Fact]
+    public async Task SystemAdmin_DefaultPurposeDoesNotReceiveGlobalBusinessScope()
+    {
+        await using var db = CreateDbContext();
+        var scope = new ScopeAuthorizationService(db);
+
+        Assert.Empty(await scope.GetAllowedStoresAsync(6));
+        Assert.False(await scope.CanAccessStoreAsync(6, 1));
+    }
+
+    [Fact]
+    public async Task BusinessOwner_DefaultPurposeStillUsesConfiguredCountryStaffScope()
+    {
+        await using var db = CreateDbContext();
+        var scope = new ScopeAuthorizationService(db);
+        var activeStoreIds = await db.Stores
+            .Where(x => x.Active)
+            .Select(x => x.StoreId)
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var allowed = await scope.GetAllowedStoresAsync(1);
+
+        Assert.Equal(activeStoreIds, allowed.Select(x => x.StoreId).OrderBy(x => x));
     }
 
     [Fact]
@@ -322,6 +357,13 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
 
         Assert.Empty(await scope.GetAllowedStoresAsync(6));
         Assert.False(await scope.CanAccessStoreAsync(6, 1));
+        Assert.Empty(await scope.GetAllowedStoresAsync(
+            6,
+            StoreScopePurpose.ReorderSuggestion));
+        Assert.False(await scope.CanAccessStoreAsync(
+            6,
+            1,
+            StoreScopePurpose.ReorderSuggestion));
     }
 
     private static AdminActorContext AccountantActor() => new()

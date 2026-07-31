@@ -45,8 +45,10 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
 
     public async Task<ServiceResult<PurchaseOrderBatchDocumentRevisionDto>> GenerateAsync(int batchId, AdminActorContext actor)
     {
-        if (!CanGenerate(actor))
-            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Kế toán/kho hoặc Chủ doanh nghiệp được tạo PDF cho đơn đặt hàng gộp.");
+        if (!await CanReadBatchAsync(batchId, actor))
+            return Failure<PurchaseOrderBatchDocumentRevisionDto>(
+                PurchaseOrderBatchErrorCodes.Forbidden,
+                "Bạn không có quyền truy cập toàn bộ cửa hàng thuộc đơn đặt hàng gộp này.");
 
         await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         string? storedReference = null;
@@ -192,8 +194,11 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
         MarkPurchaseOrderBatchDocumentSentRequest request,
         AdminActorContext actor)
     {
-        if (!CanGenerate(actor))
-            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Kế toán/kho hoặc Chủ doanh nghiệp được ghi nhận gửi PDF.");
+        if (!await CanReadBatchAsync(batchId, actor))
+            return Failure<PurchaseOrderBatchDocumentRevisionDto>(
+                PurchaseOrderBatchErrorCodes.Forbidden,
+                "Bạn không có quyền truy cập toàn bộ cửa hàng thuộc đơn đặt hàng gộp này.");
+
         var channel = request.Channel?.Trim().ToUpperInvariant() ?? string.Empty;
         if (!PurchaseOrderBatchDocumentChannels.All.Contains(channel))
             return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Kênh gửi tài liệu không hợp lệ.");
@@ -403,11 +408,6 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
             .Where(x => x.PurchaseOrderBatchId == batchId)
             .Select(x => x.StoreId).Distinct().ToListAsync();
         if (stores.Count == 0) return false;
-        if (HasRole(actor, RoleConstants.AccountantWarehouse)
-            || HasRole(actor, RoleConstants.BusinessOwner)
-            || HasRole(actor, RoleConstants.SystemAdmin)) return true;
-        if (HasRole(actor, RoleConstants.StoreManager)) return stores.Count == 1 && actor.StoreId == stores[0];
-        if (!HasRole(actor, RoleConstants.AreaManager)) return false;
         foreach (var storeId in stores)
             if (!await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId)) return false;
         return true;
@@ -419,10 +419,6 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
         catch { /* Best-effort cleanup after a failed transaction. */ }
     }
 
-    private static bool CanGenerate(AdminActorContext actor) =>
-        HasRole(actor, RoleConstants.AccountantWarehouse)
-        || HasRole(actor, RoleConstants.BusinessOwner)
-        || HasRole(actor, RoleConstants.SystemAdmin);
     private static string ChannelLabel(string channel) => channel switch
     {
         PurchaseOrderBatchDocumentChannels.ZaloManual => "Zalo",
@@ -430,7 +426,6 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
         PurchaseOrderBatchDocumentChannels.OtherManual => "kênh khác",
         _ => "kênh đã chọn"
     };
-    private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
     private static string SafeSegment(string value)
     {

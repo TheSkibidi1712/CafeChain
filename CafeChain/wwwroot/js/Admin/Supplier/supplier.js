@@ -23,6 +23,8 @@
     const detailPanel = $('#supplierDetail');
     const detailContent = $('#supplierDetailContent');
     const detailPlaceholder = $('#supplierDetailPlaceholder');
+    const antiForgeryToken = () =>
+        $('#supplierAntiForgeryForm input[name="__RequestVerificationToken"]')?.value || '';
 
     const escapeHtml = (value) => String(value ?? '')
         .replaceAll('&', '&amp;')
@@ -38,6 +40,10 @@
 
     async function api(path, options = {}) {
         const init = { ...options, headers: { Accept: 'application/json', ...(options.headers || {}) } };
+        const method = (options.method || 'GET').toUpperCase();
+        if (method !== 'GET' && method !== 'HEAD') {
+            init.headers.RequestVerificationToken = antiForgeryToken();
+        }
         if (options.body && typeof options.body !== 'string') {
             init.headers['Content-Type'] = 'application/json';
             init.body = JSON.stringify(options.body);

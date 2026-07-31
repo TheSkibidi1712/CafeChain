@@ -213,16 +213,12 @@ namespace CafeChain.Application.Services.Admin.Profitability
 
         private async Task<bool> CanViewAsync(int staffId, int storeId, CancellationToken ct)
         {
-            var roles = await _context.Staffs.AsNoTracking().Where(x => x.StaffId == staffId && x.Active)
-                .SelectMany(x => x.Account.AccountRoles.Where(ar => ar.Role.Active).Select(ar => ar.Role.Name)).ToListAsync(ct);
-            if (roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.AccountantWarehouse) || roles.Contains(RoleConstants.SystemAdmin)) return true;
-            if (roles.Contains(RoleConstants.AreaManager)) return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
-            if (roles.Contains(RoleConstants.StoreManager))
-            {
-                var ownsStore = await _context.Staffs.AsNoTracking().AnyAsync(x => x.StaffId == staffId && x.StoreId == storeId, ct);
-                return ownsStore || await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
-            }
-            return false;
+            return staffId > 0
+                && storeId > 0
+                && await _scopeAuthorization.CanAccessStoreAsync(
+                    staffId,
+                    storeId,
+                    StoreScopePurpose.Default);
         }
 
         private static FifoCostComponentDto MissingComponent(string source, string type, int id, string name, decimal required, string status, string message) => new()

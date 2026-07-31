@@ -155,8 +155,6 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
         PurchaseAdviceConsolidationPreviewRequest request,
         AdminActorContext actor)
     {
-        if (!CanConsolidate(actor))
-            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.Forbidden, "Chỉ Kế toán/kho hoặc Chủ doanh nghiệp được tổng hợp đề nghị mua.");
         if (request.SupplierId <= 0 || request.Lines.Count == 0)
             return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, "Hãy chọn Nhà cung cấp và ít nhất một dòng đề nghị mua.");
         if (request.Lines.Select(x => x.PurchaseAdviceLineId).Distinct().Count() != request.Lines.Count)
@@ -208,6 +206,14 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
         }
         if (lines.Count != ids.Length)
             return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.NotFound, "Một hoặc nhiều dòng đề nghị mua không còn tồn tại.");
+        var allowedStoreIds = (await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId))
+            .Where(x => x.Active)
+            .Select(x => x.StoreId)
+            .ToHashSet();
+        if (lines.Any(x => !allowedStoreIds.Contains(x.PurchaseAdvice.StoreId)))
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(
+                PurchaseAdviceErrorCodes.StoreScopeMismatch,
+                "Một hoặc nhiều dòng đề nghị mua nằm ngoài phạm vi cửa hàng được phép thao tác.");
 
         var offerIds = request.Lines.Select(x => x.IngredientSupplierId).Distinct().ToArray();
         var offers = await _context.IngredientSuppliers.AsNoTracking()
@@ -638,28 +644,27 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
 
     private async Task<List<ReadableStore>> ResolveReadableStoresAsync(AdminActorContext actor)
     {
-        var storeRows = await _context.Stores.AsNoTracking().Where(x => x.Active)
+        var allowedIds = (await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId))
+            .Where(x => x.Active)
+            .Select(x => x.StoreId)
+            .ToHashSet();
+        var storeRows = await _context.Stores.AsNoTracking()
+            .Where(x => x.Active && allowedIds.Contains(x.StoreId))
             .OrderBy(x => x.Name)
-            .Select(x => new { x.StoreId, x.Name, x.ProvinceId, AreaName = x.Province != null ? x.Province.Name : null })
+            .Select(x => new
+            {
+                x.StoreId,
+                x.Name,
+                x.ProvinceId,
+                AreaName = x.Province != null ? x.Province.Name : null
+            })
             .ToListAsync();
-        var stores = storeRows.Select(x => new ReadableStore(x.StoreId, x.Name, x.ProvinceId, x.AreaName)).ToList();
-        if (HasRole(actor, RoleConstants.SystemAdmin)
-            || HasRole(actor, RoleConstants.BusinessOwner)
-            || HasRole(actor, RoleConstants.AccountantWarehouse)) return stores;
-        if (HasRole(actor, RoleConstants.StoreManager)) return stores.Where(x => x.Id == actor.StoreId).ToList();
-        if (!HasRole(actor, RoleConstants.AreaManager)) return new();
-        var allowed = new List<ReadableStore>();
-        foreach (var store in stores)
-            if (await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, store.Id)) allowed.Add(store);
-        return allowed;
+        return storeRows
+            .Select(x => new ReadableStore(x.StoreId, x.Name, x.ProvinceId, x.AreaName))
+            .ToList();
     }
 
     private static decimal Remaining(decimal requested, decimal allocated, decimal closed) => Math.Max(0m, requested - allocated - closed);
-    private static bool CanConsolidate(AdminActorContext actor) =>
-        HasRole(actor, RoleConstants.AccountantWarehouse)
-        || HasRole(actor, RoleConstants.BusinessOwner)
-        || HasRole(actor, RoleConstants.SystemAdmin);
-    private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
     private static bool VersionMatches(byte[] current, string? provided)
     {
         if (current.Length == 0 && string.IsNullOrWhiteSpace(provided)) return true;

@@ -8,12 +8,14 @@
     var canCancel = ViewBag.CanCancel as bool? ?? false;
     var canSubmit = ViewBag.CanSubmit as bool? ?? false;
     var canAddDemand = ViewBag.CanAddDemand as bool? ?? false;
+    var hasCreatePurchaseAdvicePermission =
+        ViewBag.CanCreatePurchaseAdvice as bool? ?? false;
     var hasPendingPurchaseAllocation = Model.SourcingAllocations.Any(x =>
         x.DecisionType == RestockSourcingDecisionTypes.Purchase
         && x.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice
         && !x.PurchaseAdviceLineId.HasValue
         && !x.PurchaseOrderLineId.HasValue);
-    var canCreatePurchaseAdvice = canWarehouse
+    var canCreatePurchaseAdvice = hasCreatePurchaseAdvicePermission
         && Model.IngredientId.HasValue
         && Model.Status is ("PROCESSING" or "PARTIALLY_RECEIVED")
         && (string.Equals(Model.SourceType, RestockRequestSourceTypes.Legacy, StringComparison.OrdinalIgnoreCase)

@@ -1,5 +1,12 @@
 # Báo cáo nghiệp vụ Gợi ý nhập hàng và Dashboard AI
 
+> **Trạng thái: tài liệu lịch sử.** Tài liệu chuẩn hiện tại là
+> [AI_FEATURES_BUSINESS_AND_TECHNICAL_GUIDE.md](AI_FEATURES_BUSINESS_AND_TECHNICAL_GUIDE.md).
+> Hiệu chỉnh bắt buộc: SystemAdmin chỉ có global scope trên các Store Active
+> trong module `ReorderSuggestion` và luồng xác nhận từ gợi ý. Dashboard, doanh
+> thu, PO, phiếu kho, chuyển kho và các module khác dùng default StaffScope.
+> Các tổng permission cố định như “161” chỉ phản ánh một snapshot seed cũ.
+
 Tài liệu này là báo cáo triển khai theo mục 94 của `FIX.md`, đồng thời là hướng dẫn vận hành nhanh cho Chủ doanh nghiệp, Quản lý cửa hàng và Kế toán/Kho.
 
 Nguyên tắc xuyên suốt:
@@ -26,7 +33,10 @@ AI không tự đặt hàng, tự duyệt chứng từ hoặc tự thay đổi t
 - Route: `GET /Admin/AdminReorderSuggestions/Index`.
 - Quyền xem: `ReorderSuggestion.View`.
 - Quyền tạo hoặc bổ sung yêu cầu nhập: `Restock.Create`.
-- Backend giới hạn role nghiệp vụ theo `StaffScope`; SystemAdmin có global scope trên cửa hàng active. Việc sửa `storeId` trên URL hoặc request không mở rộng phạm vi của các role khác.
+- Backend giới hạn dữ liệu theo `StaffScope`; ngoại lệ SystemAdmin global trên
+  Store active chỉ áp dụng cho `ReorderSuggestion` và action xác nhận từ gợi ý.
+  Dashboard và module khác dùng default StaffScope. Việc sửa `storeId` trên URL
+  hoặc request không mở rộng phạm vi.
 
 ### Cách sử dụng
 
@@ -348,7 +358,7 @@ Trạng thái phải được cập nhật bằng kết quả thực tế; `NOT 
 | Procurement minimalism | Giao diện/luồng mua hàng không tự bỏ qua các stage kiểm soát | PASS — nằm trong nhóm modal + procurement 27/27 |
 | Dashboard intelligence contract | Tab AI, ARIA, `aiQuestion`, schema/fallback liên quan | PASS — 13/13 |
 | Dashboard Guide catalog | 16 câu, 16 focus canonical duy nhất, đúng widget/style, không `Dynamic` | PASS |
-| SystemAdmin RBAC V2 | Exact 161 active grant, global store scope, `Deny` và account inactive vẫn chặn | PASS |
+| SystemAdmin RBAC V2 | Snapshot cũ có 161 active grant; claim global chung đã bị thay thế: global Active Store chỉ cho Reorder, `Deny` và account inactive vẫn chặn | HISTORICAL |
 | Phase 3/4 source contract | Guide deep-link, ID/label và hành vi tương thích | PASS — 4/4 |
 | AI Dashboard UI contract | Tab/panel và UI contract | PASS — 5/5 |
 | JavaScript syntax | `node --check` cho hai file Dashboard | PASS — 2/2 |
@@ -468,10 +478,11 @@ không có role grant: `Drink.Delete`, `Category.Delete`, `Size.Delete`,
 | Ca trưởng | 29 |
 
 Quyền reorder của các role nghiệp vụ vẫn giữ nguyên: CDN/QLV/QLCN/KTK được
-`ReorderSuggestion.View`; QLCN/KTK có `Restock.Create`. SystemAdmin nhận toàn bộ
-161 permission active, được đi qua role gate Dashboard/reorder và có global scope
-trên cửa hàng active. Override `Deny`, account inactive, CSRF, trạng thái chứng từ,
-idempotency và audit vẫn được thực thi.
+`ReorderSuggestion.View`; QLCN/KTK có `Restock.Create`. Con số 161 của
+SystemAdmin là snapshot seed tại thời điểm báo cáo cũ, không phải invariant.
+SystemAdmin chỉ có global Active Store trong ReorderSuggestion; Dashboard và
+module kinh doanh khác dùng default StaffScope. Override `Deny`, account
+inactive, CSRF, trạng thái chứng từ, idempotency và audit vẫn được thực thi.
 
 Role SystemAdmin đứng trên BusinessOwner trong quản trị nhân sự/RBAC. SystemAdmin
 có thể quản lý BusinessOwner; chiều ngược lại bị từ chối. Ma trận quyền role

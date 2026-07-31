@@ -1,7 +1,6 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
-using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Application.Interfaces.AI;
@@ -40,8 +39,7 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
         var before = await context.StoreInventories.SingleAsync(x => x.StoreId == StoreId);
         var service = CreateSuggestionService(context, incoming: 5m);
 
-        var result = await service.GetForStoreAsync(
-            StoreId, ManagerStaffId, new[] { RoleConstants.BusinessOwner });
+        var result = await service.CalculateForStoreAsync(StoreId);
 
         Assert.True(result.IsSuccess, result.Message);
         var item = Assert.Single(result.Data!.Items);
@@ -75,7 +73,7 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
         await SeedAsync(context, available: 5m, minLevel: 10m, consumption: 300m);
 
         var result = await CreateSuggestionService(context, incoming: 25m)
-            .GetForStoreAsync(StoreId, ManagerStaffId, new[] { RoleConstants.BusinessOwner });
+            .CalculateForStoreAsync(StoreId);
 
         var item = Assert.Single(result.Data!.Items);
         Assert.Equal(ReorderSuggestionStatuses.IncomingCoversDemand, item.Status);
@@ -90,7 +88,7 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
         await SeedAsync(context, available: 5m, minLevel: null, consumption: null);
 
         var result = await CreateSuggestionService(context)
-            .GetForStoreAsync(StoreId, ManagerStaffId, new[] { RoleConstants.BusinessOwner });
+            .CalculateForStoreAsync(StoreId);
 
         var item = Assert.Single(result.Data!.Items);
         Assert.Equal(ReorderSuggestionStatuses.MissingThreshold, item.Status);
@@ -99,39 +97,15 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
         Assert.Null(item.SuggestedBaseQuantity);
     }
 
-    [Fact]
-    public async Task StoreManager_CannotReadSuggestionForAnotherStore()
-    {
-        using var context = CreateDbContext();
-        await SeedAsync(context, available: 5m, minLevel: 10m, consumption: 300m, seedManager: true);
-        context.Stores.Add(new Store
-        {
-            StoreId = OtherStoreId,
-            Name = "Store other #176",
-            Address = "Test",
-            Phone = "0900176100",
-            Active = true,
-            CreatedAt = DateTime.UtcNow
-        });
-        await context.SaveChangesAsync();
-
-        var read = await CreateSuggestionService(context)
-            .GetForStoreAsync(OtherStoreId, ManagerStaffId, new[] { RoleConstants.StoreManager });
-        Assert.False(read.IsSuccess);
-    }
-
     private static ReorderSuggestionService CreateSuggestionService(AppDbContext context, decimal incoming = 0)
     {
         var conversion = new Mock<IPhysicalUnitConversionService>();
         conversion.Setup(x => x.ConvertAsync(It.IsAny<decimal>(), UnitId, UnitId))
             .ReturnsAsync((decimal quantity, int _, int _) => ServiceResult<decimal>.Success(quantity));
-        var scope = new Mock<IScopeAuthorizationService>();
-        scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(true);
         return new ReorderSuggestionService(
             new ReorderSuggestionRepository(context),
             conversion.Object,
             new FixedIncomingProvider(IngredientId, incoming),
-            scope.Object,
             Mock.Of<IAIService>());
     }
 

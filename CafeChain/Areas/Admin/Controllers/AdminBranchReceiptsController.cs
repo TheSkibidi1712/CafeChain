@@ -3,6 +3,7 @@ using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Inventories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,40 +16,32 @@ namespace CafeChain.Areas.Admin.Controllers
     /// Issue #128 — Branch receipt draft / confirm with server-side business scope enforcement.
     /// Controller does not mutate inventory; BranchReceiptService owns posting.
     /// </summary>
-    [RequirePermission(PermissionConstants.ReceiptView,
-        RoleConstants.BusinessOwner + "," +
-        RoleConstants.AreaManager + "," +
-        RoleConstants.StoreManager + "," +
-        RoleConstants.ShiftSupervisor + "," +
-        RoleConstants.AccountantWarehouse)]
+    [RequirePermission(PermissionConstants.ReceiptView)]
     public class AdminBranchReceiptsController : AdminStoreScopedController
     {
         private readonly IBranchReceiptService _receiptService;
         private readonly IAdminActorContextAccessor _actor;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
         private readonly AppDbContext _context;
+        private readonly IAdminPermissionService? _permissions;
 
         public AdminBranchReceiptsController(
             IBranchReceiptService receiptService,
             IAdminActorContextAccessor actor,
             IAdminStoreScopeResolver storeScopeResolver,
-            AppDbContext context)
+            AppDbContext context,
+            IAdminPermissionService? permissions = null)
         {
             _receiptService = receiptService;
             _actor = actor;
             _storeScopeResolver = storeScopeResolver;
             _context = context;
+            _permissions = permissions;
         }
 
         [HttpGet]
         public async Task<IActionResult> Index(string? status = null, int? storeId = null)
         {
-            if (!CanViewReceipts())
-            {
-                TempData["ErrorMessage"] = "Bạn không có quyền xem phiếu nhận hàng.";
-                return RedirectToAction("Index", "AdminRestockRequests");
-            }
-
             var ctx = _actor.Get(User);
             if (ctx.StaffId <= 0)
                 return Unauthorized();
@@ -64,19 +57,15 @@ namespace CafeChain.Areas.Admin.Controllers
             SetStoreScopeViewData(storeScope);
             ViewBag.StatusFilter = status;
             ViewBag.StoreId = targetStoreId;
-            ViewBag.CanCreate = CanConfirmReceipts();
+            ViewBag.CanCreate = await HasPermissionAsync(
+                ctx.AccountId,
+                PermissionConstants.ReceiptCreate);
             return View(result.Data ?? new List<BranchReceiptListItemDto>());
         }
 
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            if (!CanViewReceipts())
-            {
-                TempData["ErrorMessage"] = "Bạn không có quyền xem phiếu nhận hàng.";
-                return RedirectToAction(nameof(Index));
-            }
-
             var ctx = _actor.Get(User);
             var result = await _receiptService.GetDetailAsync(
                 id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
@@ -86,7 +75,10 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewBag.CanConfirm = CanConfirmReceipts() && result.Data.Status == BranchReceiptStatuses.Draft;
+            ViewBag.CanConfirm = await HasPermissionAsync(
+                ctx.AccountId,
+                PermissionConstants.ReceiptConfirm)
+                && result.Data.Status == BranchReceiptStatuses.Draft;
             return View(result.Data);
         }
 
@@ -94,12 +86,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.ReceiptCreate)]
         public async Task<IActionResult> ReceivePurchaseOrder(int purchaseOrderId)
         {
-            if (!CanConfirmReceipts())
-            {
-                TempData["ErrorMessage"] = "Bạn không có quyền nhận hàng tại cửa hàng.";
-                return RedirectToAction(nameof(Index));
-            }
-
             var ctx = _actor.Get(User);
             var result = await _receiptService.CreateOrOpenPurchaseOrderDraftAsync(
                 purchaseOrderId, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
@@ -117,9 +103,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.ReceiptUpdateDraft)]
         public async Task<IActionResult> EditPurchaseOrderDraft(int id)
         {
-            if (!CanConfirmReceipts())
-                return Forbid();
-
             var ctx = _actor.Get(User);
             var result = await _receiptService.GetPurchaseOrderDraftAsync(
                 id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
@@ -137,9 +120,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.ReceiptUpdateDraft)]
         public async Task<IActionResult> SavePurchaseOrderDraft(SavePurchaseOrderReceiptDraftRequest model)
         {
-            if (!CanConfirmReceipts())
-                return Forbid();
-
             var ctx = _actor.Get(User);
             var result = await _receiptService.SavePurchaseOrderDraftAsync(
                 model, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
@@ -173,27 +153,34 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.ReceiptCreate)]
         public async Task<IActionResult> Create(int? restockRequestId = null, int? storeId = null, int? purchaseOrderLineId = null)
         {
-            if (!CanConfirmReceipts())
-            {
-                TempData["ErrorMessage"] = "Bạn không có quyền tạo phiếu nhận.";
-                return RedirectToAction(nameof(Index));
-            }
-
             var ctx = _actor.Get(User);
             CafeChain.Models.Inventories.Procurement.PurchaseOrderLine? poLine = null;
             if (purchaseOrderLineId.HasValue)
             {
-                poLine = await _context.PurchaseOrderLines.AsNoTracking()
-                    .Include(x => x.PurchaseOrder)
-                    .SingleOrDefaultAsync(x => x.PurchaseOrderLineId == purchaseOrderLineId.Value);
-                if (poLine == null) return NotFound();
-                restockRequestId = poLine.RestockRequestId;
-                storeId = poLine.PurchaseOrder.StoreId;
+                storeId = await _context.PurchaseOrderLines
+                    .AsNoTracking()
+                    .Where(x => x.PurchaseOrderLineId == purchaseOrderLineId.Value)
+                    .Select(x => (int?)x.PurchaseOrder.StoreId)
+                    .SingleOrDefaultAsync();
+                if (!storeId.HasValue)
+                    return NotFound();
             }
             var storeScope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
             if (!storeScope.IsResolved)
                 return StoreScopeFailure(storeScope);
             var targetStoreId = storeScope.StoreId!.Value;
+            if (purchaseOrderLineId.HasValue)
+            {
+                poLine = await _context.PurchaseOrderLines
+                    .AsNoTracking()
+                    .Include(x => x.PurchaseOrder)
+                    .SingleOrDefaultAsync(x =>
+                        x.PurchaseOrderLineId == purchaseOrderLineId.Value
+                        && x.PurchaseOrder.StoreId == targetStoreId);
+                if (poLine == null)
+                    return NotFound();
+                restockRequestId = poLine.RestockRequestId;
+            }
             ViewBag.RestockRequestId = restockRequestId;
             ViewBag.StoreId = targetStoreId;
             SetStoreScopeViewData(storeScope);
@@ -222,12 +209,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.ReceiptCreate)]
         public async Task<IActionResult> Create(CreateBranchReceiptRequest model)
         {
-            if (!CanConfirmReceipts())
-            {
-                TempData["ErrorMessage"] = "Bạn không có quyền tạo phiếu nhận.";
-                return RedirectToAction(nameof(Index));
-            }
-
             var ctx = _actor.Get(User);
             var storeScope = await _storeScopeResolver.ResolveAsync(ctx, model.StoreId);
             if (!storeScope.IsResolved)
@@ -253,12 +234,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.ReceiptConfirm)]
         public async Task<IActionResult> Confirm(int id, string? rowVersion)
         {
-            if (!CanConfirmReceipts())
-            {
-                TempData["ErrorMessage"] = "Bạn không có quyền xác nhận phiếu nhận.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
             var ctx = _actor.Get(User);
             var result = await _receiptService.ConfirmAsync(
                 id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, rowVersion);
@@ -278,11 +253,9 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.ReceiptCreate)]
         public async Task<IActionResult> SupplierOptions(int storeId)
         {
-            if (!CanConfirmReceipts())
-                return Forbid();
-
             var ctx = _actor.Get(User);
             var storeScope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
             if (!storeScope.IsResolved)
@@ -296,11 +269,9 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.ReceiptCreate)]
         public async Task<IActionResult> OfferOptions(int storeId, int supplierId, int? restockRequestId)
         {
-            if (!CanConfirmReceipts())
-                return Forbid();
-
             var ctx = _actor.Get(User);
             var storeScope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
             if (!storeScope.IsResolved)
@@ -329,19 +300,13 @@ namespace CafeChain.Areas.Admin.Controllers
                 : new List<BranchReceiptSupplierOptionDto>();
         }
 
-        private bool CanViewReceipts() =>
-            User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.ShiftSupervisor)
-            || User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
-        private bool CanConfirmReceipts() =>
-            User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.ShiftSupervisor)
-            || User.IsInRole(RoleConstants.SystemAdmin);
+        private async Task<bool> HasPermissionAsync(int accountId, string permissionCode)
+        {
+            if (_permissions == null || accountId <= 0)
+                return false;
+            var result = await _permissions.HasPermissionAsync(accountId, permissionCode);
+            return result.IsSuccess && result.Data?.Allowed == true;
+        }
 
         private IActionResult StoreScopeApiFailure(
             CafeChain.Application.DTOs.Admin.StoreScope.AdminStoreScopeResolution resolution)

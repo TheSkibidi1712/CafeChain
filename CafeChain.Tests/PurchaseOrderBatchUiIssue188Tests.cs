@@ -32,6 +32,8 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
         _connection.Open();
         _db = new TestDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(_connection).Options);
         _db.Database.EnsureCreated();
+        _scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(true);
     }
 
     [Fact]
@@ -319,6 +321,21 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
             ApprovedAtUtc = now, CreatedAtUtc = now, UpdatedAtUtc = now
         };
         _db.Add(batch);
+        await _db.SaveChangesAsync();
+        _db.PurchaseOrders.Add(new PurchaseOrder
+        {
+            Code = "PO-188-" + Guid.NewGuid().ToString("N")[..6],
+            StoreId = store.StoreId,
+            SupplierId = supplier.SupplierId,
+            PurchaseOrderBatchId = batch.PurchaseOrderBatchId,
+            Status = PurchaseOrderStatuses.Approved,
+            OrderDate = now,
+            CreatedByStaffId = staff.StaffId,
+            ApprovedByStaffId = staff.StaffId,
+            ApprovedAtUtc = now,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
+        });
         await _db.SaveChangesAsync();
         var revision = new PurchaseOrderBatchDocumentRevision
         {

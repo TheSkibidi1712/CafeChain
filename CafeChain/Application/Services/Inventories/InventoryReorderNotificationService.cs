@@ -153,11 +153,10 @@ public sealed class InventoryReorderNotificationService
             var actor = recipients.FirstOrDefault();
             if (actor == null)
                 return new(0, 0, 0);
-            calculated = await _suggestions.GetForStoreAsync(
+            calculated = await _suggestions.CalculateForStoreAsync(
                 storeId,
-                actor.StaffId,
-                actor.RoleNames,
-                analysisWindowDays);
+                analysisWindowDays,
+                cancellationToken: cancellationToken);
         }
         if (calculated == null || !calculated.IsSuccess || calculated.Data == null)
             return new(0, 0, 0);

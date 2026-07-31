@@ -908,48 +908,24 @@ namespace CafeChain.Application.Services.Inventories
         {
             var staff = await _context.Staffs
                 .AsNoTracking()
-                .Include(s => s.Account)
-                    .ThenInclude(a => a.AccountRoles)
-                        .ThenInclude(ar => ar.Role)
                 .FirstOrDefaultAsync(s => s.StaffId == staffId && s.Active);
-            if (staff == null)
+            if (staff == null || !staff.Account.Active)
                 return false;
-            var roles = staff.Account.AccountRoles
-                .Where(ar => ar.Role != null && ar.Role.Active)
-                .Select(ar => ar.Role.Name)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            if (roles.Contains(RoleConstants.SystemAdmin)
-                || roles.Contains(RoleConstants.BusinessOwner))
-                return true;
-            if (roles.Contains(RoleConstants.AreaManager))
-                return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
-            if (allowWarehouseRole && roles.Contains(RoleConstants.AccountantWarehouse))
-                return requireWarehouseScope
-                    ? await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId)
-                    : staff.StoreId == storeId
-                        || await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
-            return roles.Contains(RoleConstants.StoreManager) && staff.StoreId == storeId;
+
+            // Permission is enforced by the controller/application boundary. Data access is
+            // always constrained by the default StaffScope; role names never widen it.
+            return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
         }
 
         private async Task<bool> IsAuthorizedSourcingActorAsync(int staffId, int storeId)
         {
             var staff = await _context.Staffs
                 .AsNoTracking()
-                .Include(s => s.Account)
-                    .ThenInclude(a => a.AccountRoles)
-                        .ThenInclude(ar => ar.Role)
                 .FirstOrDefaultAsync(s => s.StaffId == staffId && s.Active);
             if (staff == null || !staff.Account.Active)
                 return false;
-            var roles = staff.Account.AccountRoles
-                .Where(ar => ar.Role != null && ar.Role.Active)
-                .Select(ar => ar.Role.Name)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            if (roles.Contains(RoleConstants.SystemAdmin)
-                || roles.Contains(RoleConstants.BusinessOwner))
-                return true;
-            return roles.Contains(RoleConstants.AccountantWarehouse)
-                && await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
+
+            return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
         }
 
         private static readonly string[] AllowedProcurementUnitCodes =

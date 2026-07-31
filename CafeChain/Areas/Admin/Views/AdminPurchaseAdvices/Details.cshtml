@@ -1,12 +1,35 @@
 @using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
 @using CafeChain.ViewModels.Admin.Shared
+@using System.Security.Claims
+@inject IAdminPermissionService PermissionService
 @model CafeChain.Application.DTOs.Admin.Procurement.PurchaseAdviceDetailDto
 @{
     ViewData["Title"] = Model.AdviceNumber;
+    var effectivePermissions = new HashSet<string>(StringComparer.Ordinal);
+    if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
+        && accountId > 0)
+    {
+        effectivePermissions =
+            (await PermissionService.GetEffectivePermissionCodesAsync(accountId)).Data
+            ?? new HashSet<string>(StringComparer.Ordinal);
+    }
+    var canEdit = Model.CanEdit
+        && effectivePermissions.Contains(PermissionConstants.PurchaseAdviceUpdate);
+    var canSubmit = Model.CanSubmit
+        && effectivePermissions.Contains(PermissionConstants.PurchaseAdviceSubmit);
+    var canReview = Model.CanReview
+        && effectivePermissions.Contains(PermissionConstants.PurchaseAdviceReview);
+    var canReject = Model.CanReject
+        && effectivePermissions.Contains(PermissionConstants.PurchaseAdviceReject);
+    var canCancel = Model.CanCancel
+        && effectivePermissions.Contains(PermissionConstants.PurchaseAdviceCancel);
+    var canViewConsolidation =
+        effectivePermissions.Contains(PermissionConstants.PurchaseAdviceConsolidationView);
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 <div class="pa-page">
-    <header class="pa-header"><div><div class="pa-eyebrow">Đề nghị mua hàng</div><h1>@Model.AdviceNumber</h1><p class="pa-subtitle">@Model.StoreName · tạo bởi @Model.RequestedByName</p></div><div class="pa-actions"><a class="pa-action" asp-action="Index"><i class="fas fa-arrow-left"></i> Danh sách</a>@if (Model.CanEdit) { <a class="pa-action" asp-action="Edit" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-pen"></i> Sửa</a> }</div></header>
+    <header class="pa-header"><div><div class="pa-eyebrow">Đề nghị mua hàng</div><h1>@Model.AdviceNumber</h1><p class="pa-subtitle">@Model.StoreName · tạo bởi @Model.RequestedByName</p></div><div class="pa-actions"><a class="pa-action" asp-action="Index"><i class="fas fa-arrow-left"></i> Danh sách</a>@if (canEdit) { <a class="pa-action" asp-action="Edit" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-pen"></i> Sửa</a> }</div></header>
     @if (TempData["Success"] is string success) { <div class="pa-alert pa-alert-success">@success</div> }
     @if (TempData["Error"] is string error) { <div class="pa-alert">@error</div> }
     @{ var adviceStatus = AdminStatusDisplay.PurchaseAdvice(Model.Status); var advicePriority = AdminStatusDisplay.PurchaseAdvicePriority(Model.Priority); }
@@ -22,7 +45,8 @@
     <section class="pa-band pa-section-spaced">
         <h2 class="pa-section-title">Nhà cung cấp và hình thức mua</h2>
         <p class="pa-muted">Nhà cung cấp, mã SKU của nhà cung cấp và phương thức mua theo quy cách hoặc mua lẻ được chọn tại bước tổng hợp đề nghị mua. Bản nháp chưa khóa nhà cung cấp.</p>
-        @if (Model.Status is PurchaseAdviceStatuses.Submitted or PurchaseAdviceStatuses.UnderReview)
+        @if (canViewConsolidation
+            && Model.Status is PurchaseAdviceStatuses.Submitted or PurchaseAdviceStatuses.UnderReview)
         {
             <a class="pa-action pa-action-primary" asp-area="Admin" asp-controller="AdminPurchaseAdviceConsolidation" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fas fa-layer-group"></i> Chọn nhà cung cấp và tổng hợp</a>
         }
@@ -32,11 +56,11 @@
         }
     </section>
     <section class="pa-band pa-section-spaced"><h2 class="pa-section-title">Thao tác</h2><div class="pa-actions">
-        @if (Model.CanSubmit) { <form asp-action="Submit" asp-route-id="@Model.PurchaseAdviceId" method="post">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-paper-plane"></i> Gửi Kế toán</button></form> }
-        @if (Model.CanReview) { <form asp-action="StartReview" asp-route-id="@Model.PurchaseAdviceId" method="post">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-search"></i> Bắt đầu xem xét</button></form> }
-        @if (Model.CanReject) { <form asp-action="Reject" asp-route-id="@Model.PurchaseAdviceId" method="post" class="pa-actions">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><div class="pa-field"><label>Lý do từ chối</label><input name="Reason" maxlength="500" required /></div><button class="pa-action pa-action-danger" type="submit"><i class="fas fa-times"></i> Từ chối</button></form> }
-        @if (Model.CanCancel) { <form asp-action="Cancel" asp-route-id="@Model.PurchaseAdviceId" method="post">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><button class="pa-action pa-action-danger" type="submit"><i class="fas fa-ban"></i> Hủy đề nghị</button></form> }
-        @if (!Model.CanSubmit && !Model.CanReview && !Model.CanReject && !Model.CanCancel) { <span class="pa-muted">Không có thao tác phù hợp với quyền và trạng thái hiện tại.</span> }
+        @if (canSubmit) { <form asp-action="Submit" asp-route-id="@Model.PurchaseAdviceId" method="post">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-paper-plane"></i> Gửi Kế toán</button></form> }
+        @if (canReview) { <form asp-action="StartReview" asp-route-id="@Model.PurchaseAdviceId" method="post">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-search"></i> Bắt đầu xem xét</button></form> }
+        @if (canReject) { <form asp-action="Reject" asp-route-id="@Model.PurchaseAdviceId" method="post" class="pa-actions">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><div class="pa-field"><label>Lý do từ chối</label><input name="Reason" maxlength="500" required /></div><button class="pa-action pa-action-danger" type="submit"><i class="fas fa-times"></i> Từ chối</button></form> }
+        @if (canCancel) { <form asp-action="Cancel" asp-route-id="@Model.PurchaseAdviceId" method="post">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><button class="pa-action pa-action-danger" type="submit"><i class="fas fa-ban"></i> Hủy đề nghị</button></form> }
+        @if (!canSubmit && !canReview && !canReject && !canCancel) { <span class="pa-muted">Không có thao tác phù hợp với quyền và trạng thái hiện tại.</span> }
     </div></section>
     <section class="pa-band"><h2 class="pa-section-title">Lịch sử trạng thái</h2><div class="pa-timeline">@foreach (var transition in Model.Transitions) { <div class="pa-timeline-item"><strong>@AdminStatusDisplay.PurchaseAdvice(transition.NewStatus).Label</strong><div class="pa-muted">@transition.ActorName · @AdminStatusDisplay.DateTime(transition.OccurredAtUtc.ToLocalTime())</div>@if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@transition.Reason</div> }</div> }</div></section>
 </div>

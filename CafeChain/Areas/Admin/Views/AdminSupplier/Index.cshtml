@@ -12,6 +12,9 @@
 }
 
 <main class="supplier-page" data-can-mutate="@canMutate.ToString().ToLowerInvariant()">
+    <form id="supplierAntiForgeryForm" class="d-none" aria-hidden="true">
+        @Html.AntiForgeryToken()
+    </form>
     <header class="supplier-page-header">
         <div>
             <p class="supplier-eyebrow">Mua hàng / Nguồn cung</p>

@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.Models.Inventories.Ingredients;
@@ -48,6 +49,7 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
             context,
             Mock.Of<IUnitConversionService>(),
             Mock.Of<IRestockAllocationService>(),
+            scopeAuthorization: AllowAllScope(),
             purchaseAdviceFulfillment: fulfillment);
         var receiptLine = await context.BranchReceiptLines
             .Include(x => x.BranchReceipt)
@@ -176,6 +178,7 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
             context,
             Mock.Of<IUnitConversionService>(),
             Mock.Of<IRestockAllocationService>(),
+            scopeAuthorization: AllowAllScope(),
             purchaseAdviceFulfillment: fulfillment);
         var line = await context.PurchaseOrderLines.SingleAsync(x => x.PurchaseOrderLineId == 20);
 
@@ -272,6 +275,7 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
             context,
             Mock.Of<IUnitConversionService>(),
             Mock.Of<IRestockAllocationService>(),
+            scopeAuthorization: AllowAllScope(),
             purchaseAdviceFulfillment: new PurchaseAdviceFulfillmentService(context))
             .RegisterReceiptPostingAsync(receiptLine.BranchReceipt, receiptLine, 99);
 
@@ -303,6 +307,7 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
             context,
             Mock.Of<IUnitConversionService>(),
             Mock.Of<IRestockAllocationService>(),
+            scopeAuthorization: AllowAllScope(),
             purchaseAdviceFulfillment: new PurchaseAdviceFulfillmentService(context))
             .CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
             {
@@ -367,6 +372,14 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
         Assert.Equal(1, report.ManualReviewCount);
         Assert.Contains(report.Items, x => x.Status == PurchaseAdviceBackfillStatuses.ManualReviewRequired);
         Assert.Empty(context.PurchaseAdviceFulfillmentPostings);
+    }
+
+    private static IScopeAuthorizationService AllowAllScope()
+    {
+        var scope = new Mock<IScopeAuthorizationService>();
+        scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(true);
+        return scope.Object;
     }
 
     private static async Task SeedScenarioAsync(

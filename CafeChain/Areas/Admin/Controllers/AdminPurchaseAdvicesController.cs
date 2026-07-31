@@ -9,11 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [RequirePermission(PermissionConstants.PurchaseAdviceView,
-        RoleConstants.BusinessOwner + "," +
-        RoleConstants.AreaManager + "," +
-        RoleConstants.StoreManager + "," +
-        RoleConstants.AccountantWarehouse)]
+    [RequirePermission(PermissionConstants.PurchaseAdviceView)]
     public sealed class AdminPurchaseAdvicesController : Controller
     {
         private readonly IPurchaseAdviceService _service;

@@ -34,12 +34,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(string? status = "OPEN", int page = 1, int? storeId = null)
         {
-            if (!CanView())
-            {
-                TempData["ErrorMessage"] = "Chỉ Quản lý chi nhánh được xem/xử lý cảnh báo kho.";
-                return RedirectToAction("Index", "AdminNotifications");
-            }
-
             var actor = _actor.Get(User);
             if (actor.StaffId <= 0)
                 return Unauthorized();
@@ -57,19 +51,12 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.StatusFilter = status;
-            ViewBag.IsStoreManager = CanManage();
             return View(result.Data);
         }
 
         [HttpGet]
         public async Task<IActionResult> Details(int id, int? storeId = null)
         {
-            if (!CanView())
-            {
-                TempData["ErrorMessage"] = "Chỉ Quản lý chi nhánh được xem/xử lý cảnh báo kho.";
-                return RedirectToAction(nameof(Index));
-            }
-
             var actor = _actor.Get(User);
             if (actor.StaffId <= 0)
                 return Unauthorized();
@@ -88,7 +75,6 @@ namespace CafeChain.Areas.Admin.Controllers
             var openRestock = await _restockService.GetOpenByAlertAsync(id, targetStoreId);
             ViewBag.OpenRestockRequest = openRestock.IsSuccess ? openRestock.Data : null;
             SetStoreScopeViewData(storeScope);
-            ViewBag.IsStoreManager = CanManage();
             return View(result.Data);
         }
 
@@ -97,12 +83,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.StockAlertResolve)]
         public async Task<IActionResult> Confirm(int id, string managerNote, string? rowVersion, int? storeId = null)
         {
-            if (!CanManage())
-            {
-                TempData["ErrorMessage"] = "Chỉ Quản lý chi nhánh được xác nhận cảnh báo.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
             var actor = _actor.Get(User);
             if (actor.StaffId <= 0)
                 return Unauthorized();
@@ -125,12 +105,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.StockAlertResolve)]
         public async Task<IActionResult> Reject(int id, string rejectReason, string? rowVersion, int? storeId = null)
         {
-            if (!CanManage())
-            {
-                TempData["ErrorMessage"] = "Chỉ Quản lý chi nhánh được báo sai cảnh báo.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
             var actor = _actor.Get(User);
             if (actor.StaffId <= 0)
                 return Unauthorized();
@@ -153,8 +127,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.StockAlertResolve)]
         public async Task<IActionResult> Close(int id, string closeReason, string? rowVersion, int? storeId = null)
         {
-            if (!CanManage())
-                return Forbid();
             var actor = _actor.Get(User);
             if (actor.StaffId <= 0)
                 return Unauthorized();
@@ -183,12 +155,6 @@ namespace CafeChain.Areas.Admin.Controllers
             string? note,
             int? storeId = null)
         {
-            if (!CanManage())
-            {
-                TempData["ErrorMessage"] = "Chỉ Quản lý chi nhánh được tạo yêu cầu nhập hàng.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
             var actor = _actor.Get(User);
             if (actor.StaffId <= 0)
                 return Unauthorized();
@@ -213,19 +179,6 @@ namespace CafeChain.Areas.Admin.Controllers
 
             return RedirectToAction(nameof(Details), new { id, storeId = targetStoreId });
         }
-
-        private bool CanView() =>
-            CanManage()
-            || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.ShiftSupervisor)
-            || User.IsInRole(RoleConstants.SalesStaff)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
-        private bool CanManage() =>
-            User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin);
 
     }
 }

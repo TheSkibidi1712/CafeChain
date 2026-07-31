@@ -47,10 +47,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.InventoryTransferCreateDraft)]
         public async Task<IActionResult> Create()
         {
-            if (!CanMutateTransfers())
-                return Forbid();
             var allowedStoreIds = await ResolveMutationStoreScopeAsync();
-            if (allowedStoreIds is { Count: 0 })
+            if (allowedStoreIds.Count == 0)
                 return Forbid();
 
             var vm = await _service.GetCreateDataAsync(allowedStoreIds);
@@ -75,6 +73,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.InventoryTransferCreateDraft)]
         public async Task<IActionResult> Items(int fromStoreId)
         {
             try
@@ -321,8 +320,10 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> ResolveShortage(int id, [FromBody] InventoryTransferResolutionDTO dto)
         {
-            if (!User.IsInRole(RoleConstants.BusinessOwner)
-                && !User.IsInRole(RoleConstants.SystemAdmin))
+            var current = await _service.GetDetailAsync(id);
+            if (current == null)
+                return NotFound();
+            if (!await CanMutateTransferAsync(current.FromStoreId, current.ToStoreId))
                 return Forbid();
             return await ExecuteMutationAsync(
                 () => _service.ResolveShortageAsync(id, dto),
@@ -333,7 +334,10 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateFollowUp(int id, [FromBody] InventoryTransferFollowUpDTO dto)
         {
-            if (!CanMutateTransfers())
+            var current = await _service.GetDetailAsync(id);
+            if (current == null)
+                return NotFound();
+            if (!await CanMutateTransferAsync(current.FromStoreId, current.ToStoreId))
                 return Forbid();
             return await ExecuteMutationAsync(
                 () => _service.CreateFollowUpAsync(id, dto),
@@ -341,15 +345,17 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(PermissionConstants.InventoryTransferResolveDiscrepancy)]
         public async Task<IActionResult> DiscrepancyDryRun()
         {
-            if (!CanMutateTransfers())
+            var allowedStoreIds = await ResolveReadStoreScopeAsync();
+            if (allowedStoreIds.Count == 0)
                 return Forbid();
             return Json(new
             {
                 success = true,
                 dryRun = true,
-                rows = await _service.GetDiscrepancyDryRunAsync()
+                rows = await _service.GetDiscrepancyDryRunAsync(allowedStoreIds)
             });
         }
 
@@ -424,82 +430,54 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
-        private bool IsGlobalDocumentRole() =>
-            User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
-        private bool CanMutateTransfers() =>
-            User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
-        private async Task<List<int>?> ResolveReadStoreScopeAsync()
+        private async Task<List<int>> ResolveReadStoreScopeAsync()
         {
-            if (IsGlobalDocumentRole())
-                return null;
-
             var context = _actor.Get(User);
-            if (User.IsInRole(RoleConstants.AreaManager))
-                return (await _scopeAuthorization.GetAllowedStoresAsync(context.StaffId))
-                    .Select(x => x.StoreId)
-                    .Distinct()
-                    .ToList();
-
-            if (User.IsInRole(RoleConstants.StoreManager)
-                || User.IsInRole(RoleConstants.ShiftSupervisor)
-                || User.IsInRole(RoleConstants.SalesStaff))
-                return context.StoreId > 0 ? new List<int> { context.StoreId } : [];
-
-            return [];
-        }
-
-        private async Task<List<int>?> ResolveMutationStoreScopeAsync()
-        {
-            if (IsGlobalDocumentRole())
-                return null;
-            if (!User.IsInRole(RoleConstants.AreaManager))
+            if (context.StaffId <= 0)
                 return [];
 
-            var context = _actor.Get(User);
-            return (await _scopeAuthorization.GetAllowedStoresAsync(context.StaffId))
+            return (await _scopeAuthorization.GetAllowedStoresAsync(
+                    context.StaffId,
+                    StoreScopePurpose.Default))
                 .Select(x => x.StoreId)
                 .Distinct()
                 .ToList();
         }
 
+        private Task<List<int>> ResolveMutationStoreScopeAsync() =>
+            ResolveReadStoreScopeAsync();
+
         private async Task<bool> CanReadTransferAsync(int fromStoreId, int toStoreId)
         {
             var allowedStoreIds = await ResolveReadStoreScopeAsync();
-            return allowedStoreIds == null
-                   || allowedStoreIds.Contains(fromStoreId)
-                   || allowedStoreIds.Contains(toStoreId);
+            return allowedStoreIds.Contains(fromStoreId)
+                   && allowedStoreIds.Contains(toStoreId);
         }
 
         private async Task<bool> CanMutateStoreAsync(int storeId)
         {
-            if (!CanMutateTransfers() || storeId <= 0)
+            if (storeId <= 0)
                 return false;
-            if (IsGlobalDocumentRole())
-                return true;
 
             var context = _actor.Get(User);
-            return await _scopeAuthorization.CanAccessStoreAsync(context.StaffId, storeId);
+            return context.StaffId > 0
+                && await _scopeAuthorization.CanAccessStoreAsync(
+                    context.StaffId,
+                    storeId,
+                    StoreScopePurpose.Default);
         }
 
         private async Task<bool> CanOperateStoreAsync(int storeId)
         {
             if (storeId <= 0)
                 return false;
-            if (User.IsInRole(RoleConstants.BusinessOwner)
-                || User.IsInRole(RoleConstants.AccountantWarehouse)
-                || User.IsInRole(RoleConstants.SystemAdmin))
-                return true;
-            if (!User.IsInRole(RoleConstants.StoreManager)
-                && !User.IsInRole(RoleConstants.ShiftSupervisor))
-                return false;
+
             var context = _actor.Get(User);
-            return await _scopeAuthorization.CanAccessStoreAsync(context.StaffId, storeId);
+            return context.StaffId > 0
+                && await _scopeAuthorization.CanAccessStoreAsync(
+                    context.StaffId,
+                    storeId,
+                    StoreScopePurpose.Default);
         }
 
         private async Task<bool> CanMutateTransferAsync(int fromStoreId, int toStoreId) =>

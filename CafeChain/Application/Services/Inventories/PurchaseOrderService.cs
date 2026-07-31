@@ -17,20 +17,21 @@ namespace CafeChain.Application.Services.Inventories
         private readonly AppDbContext _context;
         private readonly IUnitConversionService _conversion;
         private readonly IRestockAllocationService _allocations;
-        private readonly IScopeAuthorizationService? _scopeAuthorization;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly IPurchaseAdviceFulfillmentService _purchaseAdviceFulfillment;
 
         public PurchaseOrderService(
             AppDbContext context,
             IUnitConversionService conversion,
             IRestockAllocationService allocations,
-            IScopeAuthorizationService? scopeAuthorization = null,
+            IScopeAuthorizationService scopeAuthorization,
             IPurchaseAdviceFulfillmentService? purchaseAdviceFulfillment = null)
         {
             _context = context;
             _conversion = conversion;
             _allocations = allocations;
-            _scopeAuthorization = scopeAuthorization;
+            _scopeAuthorization = scopeAuthorization
+                ?? throw new ArgumentNullException(nameof(scopeAuthorization));
             _purchaseAdviceFulfillment = purchaseAdviceFulfillment
                 ?? new PurchaseAdviceFulfillmentService(context);
         }
@@ -40,7 +41,6 @@ namespace CafeChain.Application.Services.Inventories
             int actorStaffId,
             IReadOnlyCollection<string> roles)
         {
-            if (!CanCreate(roles)) return Fail("Bạn không có quyền tạo đơn mua hàng.");
             if (input.StoreId <= 0 || input.SupplierId <= 0 || input.Lines.Count == 0)
                 return Fail("Cửa hàng, nhà cung cấp và ít nhất một dòng hàng là bắt buộc.");
             if (input.Lines.Any(x =>
@@ -210,6 +210,8 @@ namespace CafeChain.Application.Services.Inventories
                             ActorRoles = roles,
                             AllowOverallocationOverride = input.AllowOverallocationOverride,
                             OverrideReason = input.OverallocationOverrideReason,
+                            OverridePermissionCode =
+                                PermissionConstants.PurchaseOrderOverrideAllocation,
                             RequestKey = order.Code
                         });
                         if (!allocation.IsSuccess) return Fail(allocation.Message ?? "Phân bổ đơn mua không hợp lệ.");
@@ -255,16 +257,15 @@ namespace CafeChain.Application.Services.Inventories
 
         public Task<ServiceResult<PurchaseOrderDetailDto>> ApproveAsync(
             int id, string rowVersion, int actorStaffId, IReadOnlyCollection<string> roles) =>
-            TransitionAsync(id, rowVersion, PurchaseOrderStatuses.Draft, PurchaseOrderStatuses.Approved, actorStaffId, roles, CanApprove);
+            TransitionAsync(id, rowVersion, PurchaseOrderStatuses.Draft, PurchaseOrderStatuses.Approved, actorStaffId);
 
         public Task<ServiceResult<PurchaseOrderDetailDto>> MarkSentAsync(
             int id, string rowVersion, int actorStaffId, IReadOnlyCollection<string> roles) =>
-            TransitionAsync(id, rowVersion, PurchaseOrderStatuses.Approved, PurchaseOrderStatuses.MarkedAsSent, actorStaffId, roles, CanSend);
+            TransitionAsync(id, rowVersion, PurchaseOrderStatuses.Approved, PurchaseOrderStatuses.MarkedAsSent, actorStaffId);
 
         public async Task<ServiceResult<PurchaseOrderDetailDto>> CancelAsync(
             int id, string rowVersion, int actorStaffId, IReadOnlyCollection<string> roles, string reason)
         {
-            if (!CanCancel(roles)) return Fail("Bạn không có quyền hủy đơn mua hàng.");
             if (string.IsNullOrWhiteSpace(reason)) return Fail("Lý do hủy là bắt buộc.");
             if (!TryParseRowVersion(rowVersion, out var expectedVersion))
                 return Fail("Thiếu hoặc sai phiên bản dữ liệu.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
@@ -299,8 +300,6 @@ namespace CafeChain.Application.Services.Inventories
             int actorStaffId,
             IReadOnlyCollection<string> roles)
         {
-            if (!CanCloseRemaining(roles))
-                return Fail("Chỉ Chủ doanh nghiệp được đóng phần còn lại của đơn mua hàng.");
             if (input.PurchaseOrderLineId <= 0)
                 return Fail("Dòng đơn mua hàng không hợp lệ.");
             if (string.IsNullOrWhiteSpace(input.Reason))
@@ -465,7 +464,7 @@ namespace CafeChain.Application.Services.Inventories
         {
             var dto = await MapAsync(id);
             if (dto.PurchaseOrderId == 0) return Fail("Không tìm thấy đơn mua hàng.");
-            if (!CanRead(roles) || !await CanAccessStoreAsync(actorStaffId, dto.StoreId))
+            if (!await CanAccessStoreAsync(actorStaffId, dto.StoreId))
                 return Fail("Bạn không có quyền xem đơn mua hàng của cửa hàng này.");
             return ServiceResult<PurchaseOrderDetailDto>.Success(dto);
         }
@@ -473,10 +472,9 @@ namespace CafeChain.Application.Services.Inventories
         public async Task<IReadOnlyList<PurchaseOrderListItemDto>> ListAsync(
             int? storeId, string? status, int actorStaffId, IReadOnlyCollection<string> roles)
         {
-            if (!CanRead(roles)) return Array.Empty<PurchaseOrderListItemDto>();
-            var allowedStoreIds = _scopeAuthorization == null
-                ? await _context.Stores.AsNoTracking().Select(x => x.StoreId).ToListAsync()
-                : (await _scopeAuthorization.GetAllowedStoresAsync(actorStaffId)).Select(x => x.StoreId).ToList();
+            var allowedStoreIds = (await _scopeAuthorization.GetAllowedStoresAsync(actorStaffId))
+                .Select(x => x.StoreId)
+                .ToList();
             var query = _context.PurchaseOrders.AsNoTracking()
                 .Include(x => x.Store)
                 .Include(x => x.Supplier)
@@ -620,10 +618,8 @@ namespace CafeChain.Application.Services.Inventories
         }
 
         private async Task<ServiceResult<PurchaseOrderDetailDto>> TransitionAsync(
-            int id, string rowVersion, string expected, string next, int actorStaffId, IReadOnlyCollection<string> roles,
-            Func<IReadOnlyCollection<string>, bool> permission)
+            int id, string rowVersion, string expected, string next, int actorStaffId)
         {
-            if (!permission(roles)) return Fail("Bạn không có quyền cập nhật đơn mua hàng.");
             if (!TryParseRowVersion(rowVersion, out var expectedVersion))
                 return Fail("Thiếu hoặc sai phiên bản dữ liệu.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
             var order = await _context.PurchaseOrders.SingleOrDefaultAsync(x => x.PurchaseOrderId == id);
@@ -751,25 +747,7 @@ namespace CafeChain.Application.Services.Inventories
         }
 
         private Task<bool> CanAccessStoreAsync(int actorStaffId, int storeId) =>
-            _scopeAuthorization?.CanAccessStoreAsync(actorStaffId, storeId) ?? Task.FromResult(true);
-
-        private static bool CanRead(IReadOnlyCollection<string> roles) =>
-            roles.Any(x => x is RoleConstants.AccountantWarehouse or RoleConstants.BusinessOwner
-                or RoleConstants.AreaManager or RoleConstants.StoreManager or RoleConstants.ShiftSupervisor
-                or RoleConstants.SystemAdmin);
-
-        private static bool CanCreate(IReadOnlyCollection<string> roles) =>
-            roles.Any(x => x is RoleConstants.AccountantWarehouse or RoleConstants.BusinessOwner
-                or RoleConstants.SystemAdmin);
-
-        private static bool CanApprove(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
-        private static bool CanSend(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.AccountantWarehouse) || roles.Contains(RoleConstants.SystemAdmin);
-        private static bool CanCancel(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
-        private static bool CanCloseRemaining(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
+            _scopeAuthorization.CanAccessStoreAsync(actorStaffId, storeId);
 
         private async Task RecalculateOrderStatusAsync(PurchaseOrder order)
         {

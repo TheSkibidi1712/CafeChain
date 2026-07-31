@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
@@ -21,17 +22,20 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<RestockRequestWorkflowService> _logger;
         private readonly IRestockAllocationService _allocationService;
+        private readonly IAdminPermissionService? _permissions;
 
         public RestockRequestWorkflowService(
             AppDbContext context,
             IScopeAuthorizationService scopeAuthorization,
             ILogger<RestockRequestWorkflowService> logger,
-            IRestockAllocationService allocationService)
+            IRestockAllocationService allocationService,
+            IAdminPermissionService? permissions = null)
         {
             _context = context;
             _scopeAuthorization = scopeAuthorization;
             _logger = logger;
             _allocationService = allocationService;
+            _permissions = permissions;
         }
 
         public async Task<ServiceResult<RestockRequestWorkflowDetailDto>> SubmitAsync(
@@ -41,15 +45,14 @@ namespace CafeChain.Application.Services.Inventories
             IReadOnlyCollection<string> roleNames,
             string? rowVersion)
         {
-            if (!CanSubmit(roleNames))
-                return Fail("Bạn không có quyền gửi yêu cầu nhập hàng.", BranchReceiptErrorCodes.Unauthorized);
-
             if (!TryParseRequiredRowVersion(rowVersion, out var expectedVersion))
                 return Fail("Thiếu phiên bản dữ liệu. Vui lòng tải lại trang.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
 
             var request = await LoadRequestTrackedAsync(requestId);
             if (request == null)
                 return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
+            if (!await HasPermissionAsync(actorStaffId, PermissionConstants.RestockSubmit, request.StoreId))
+                return Fail("Bạn không có quyền gửi yêu cầu nhập hàng.", BranchReceiptErrorCodes.Unauthorized);
             if (!request.RowVersion.SequenceEqual(expectedVersion))
                 return Fail("Dữ liệu đã được người khác cập nhật. Vui lòng tải lại trang.", BranchReceiptErrorCodes.ResourceChanged);
             var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
@@ -118,6 +121,8 @@ namespace CafeChain.Application.Services.Inventories
             var request = await LoadRequestAsync(requestId);
             if (request == null)
                 return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
+            if (!await HasPermissionAsync(actorStaffId, PermissionConstants.RestockView, request.StoreId))
+                return Fail("Bạn không có quyền xem yêu cầu này.", BranchReceiptErrorCodes.Unauthorized);
 
             var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
             if (!auth.IsSuccess)
@@ -134,12 +139,11 @@ namespace CafeChain.Application.Services.Inventories
             string? reason,
             string? rowVersion)
         {
-            if (!CanWarehouseProcess(roleNames))
-                return Fail("Chỉ Kế toán/kho hoặc quản trị được tiếp nhận xử lý.", BranchReceiptErrorCodes.Unauthorized);
-
             var request = await LoadRequestTrackedAsync(requestId);
             if (request == null)
                 return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
+            if (!await HasPermissionAsync(actorStaffId, PermissionConstants.RestockApprove, request.StoreId))
+                return Fail("Bạn không có quyền tiếp nhận xử lý.", BranchReceiptErrorCodes.Unauthorized);
 
             var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
             if (!auth.IsSuccess)
@@ -192,15 +196,14 @@ namespace CafeChain.Application.Services.Inventories
             string reason,
             string? rowVersion)
         {
-            if (!CanWarehouseProcess(roleNames))
-                return Fail("Chỉ Kế toán/kho hoặc quản trị được từ chối yêu cầu.", BranchReceiptErrorCodes.Unauthorized);
-
             if (string.IsNullOrWhiteSpace(reason))
                 return Fail("Lý do từ chối là bắt buộc.", BranchReceiptErrorCodes.TransitionInvalid);
 
             var request = await LoadRequestTrackedAsync(requestId);
             if (request == null)
                 return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
+            if (!await HasPermissionAsync(actorStaffId, PermissionConstants.RestockReject, request.StoreId))
+                return Fail("Bạn không có quyền từ chối yêu cầu.", BranchReceiptErrorCodes.Unauthorized);
 
             var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
             if (!auth.IsSuccess)
@@ -253,9 +256,6 @@ namespace CafeChain.Application.Services.Inventories
             string? reason,
             string? rowVersion)
         {
-            if (!CanCancel(roleNames))
-                return Fail("Bạn không có quyền hủy yêu cầu nhập hàng.", BranchReceiptErrorCodes.Unauthorized);
-
             // Serialize with BranchReceipt confirm (UPDLOCK on RestockRequest).
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -265,6 +265,11 @@ namespace CafeChain.Application.Services.Inventories
                 {
                     await transaction.RollbackAsync();
                     return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
+                }
+                if (!await HasPermissionAsync(actorStaffId, PermissionConstants.RestockCancel, request.StoreId))
+                {
+                    await transaction.RollbackAsync();
+                    return Fail("Bạn không có quyền hủy yêu cầu nhập hàng.", BranchReceiptErrorCodes.Unauthorized);
                 }
 
                 // Load navigations for detail mapping after commit.
@@ -295,15 +300,6 @@ namespace CafeChain.Application.Services.Inventories
                     await transaction.RollbackAsync();
                     return Fail(
                         $"Không thể hủy ở trạng thái {RestockStatusLabel(request.Status)}.",
-                        BranchReceiptErrorCodes.TransitionInvalid);
-                }
-
-                if (IsStoreManagerOnly(roleNames)
-                    && request.Status is not (RestockRequestStatuses.Draft or RestockRequestStatuses.Submitted))
-                {
-                    await transaction.RollbackAsync();
-                    return Fail(
-                        "Quản lý chi nhánh chỉ hủy yêu cầu ở trạng thái Đã gửi.",
                         BranchReceiptErrorCodes.TransitionInvalid);
                 }
 
@@ -350,8 +346,6 @@ namespace CafeChain.Application.Services.Inventories
             string reason,
             string? rowVersion)
         {
-            if (!CanWarehouseProcess(roleNames))
-                return Fail("Chỉ bộ phận kho hoặc quản trị được đóng phần còn lại.", BranchReceiptErrorCodes.Unauthorized);
             if (string.IsNullOrWhiteSpace(reason))
                 return Fail("Lý do đóng phần còn lại là bắt buộc.", BranchReceiptErrorCodes.TransitionInvalid);
 
@@ -361,6 +355,8 @@ namespace CafeChain.Application.Services.Inventories
                 var request = await LoadRestockRequestForUpdateAsync(requestId);
                 if (request == null)
                     return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
+                if (!await HasPermissionAsync(actorStaffId, PermissionConstants.RestockCloseRemaining, request.StoreId))
+                    return Fail("Bạn không có quyền đóng phần còn lại.", BranchReceiptErrorCodes.Unauthorized);
                 var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
                 if (!auth.IsSuccess)
                     return Fail(auth.Message, auth.ErrorCode);
@@ -409,11 +405,6 @@ namespace CafeChain.Application.Services.Inventories
             LinkRestockFulfillmentRequest input,
             string? rowVersion)
         {
-            if (!CanWarehouseProcess(roleNames))
-                return ServiceResult<RestockFulfillmentDto>.Failure(
-                    "Chỉ Kế toán/kho hoặc quản trị được gắn nguồn thực hiện.",
-                    errorCode: BranchReceiptErrorCodes.Unauthorized);
-
             if (input == null)
                 return ServiceResult<RestockFulfillmentDto>.Failure("Thiếu dữ liệu nguồn thực hiện.");
 
@@ -447,6 +438,10 @@ namespace CafeChain.Application.Services.Inventories
                 return ServiceResult<RestockFulfillmentDto>.Failure(
                     "Không tìm thấy yêu cầu nhập hàng.",
                     errorCode: BranchReceiptErrorCodes.RequestNotFound);
+            if (!await HasPermissionAsync(actorStaffId, PermissionConstants.RestockUpdate, request.StoreId))
+                return ServiceResult<RestockFulfillmentDto>.Failure(
+                    "Bạn không có quyền gắn nguồn thực hiện.",
+                    errorCode: BranchReceiptErrorCodes.Unauthorized);
 
             var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
             if (!auth.IsSuccess)
@@ -1103,53 +1098,37 @@ namespace CafeChain.Application.Services.Inventories
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames)
         {
-            if (IsGlobalAdmin(roleNames))
-                return ServiceResult.Success();
-
-            if (roleNames.Contains(RoleConstants.AccountantWarehouse))
-            {
-                return await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, request.StoreId)
-                    ? ServiceResult.Success()
-                    : ServiceResult.Failure(
-                        "Yêu cầu nằm ngoài phạm vi cửa hàng được phân công.",
-                        errorCode: BranchReceiptErrorCodes.StoreMismatch);
-            }
-
-            if (roleNames.Contains(RoleConstants.AreaManager))
-            {
-                return await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, request.StoreId)
-                    ? ServiceResult.Success()
-                    : ServiceResult.Failure(
-                        "Yêu cầu nằm ngoài phạm vi khu vực của bạn.",
-                        errorCode: BranchReceiptErrorCodes.StoreMismatch);
-            }
-
-            if (roleNames.Contains(RoleConstants.StoreManager))
-            {
-                if (actorStoreId.HasValue && actorStoreId.Value == request.StoreId)
-                    return ServiceResult.Success();
-                return ServiceResult.Failure(
-                    "Yêu cầu không thuộc cửa hàng của bạn.",
+            return await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, request.StoreId)
+                ? ServiceResult.Success()
+                : ServiceResult.Failure(
+                    "Yêu cầu nằm ngoài phạm vi cửa hàng được phân công.",
                     errorCode: BranchReceiptErrorCodes.StoreMismatch);
-            }
-
-            return ServiceResult.Failure(
-                "Bạn không có quyền xem yêu cầu này.",
-                errorCode: BranchReceiptErrorCodes.Unauthorized);
         }
 
-        private static bool CanWarehouseProcess(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.AccountantWarehouse)
-            || roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.SystemAdmin);
+        private async Task<bool> HasPermissionAsync(
+            int actorStaffId,
+            string permissionCode,
+            int storeId)
+        {
+            // Older isolated service tests do not compose the RBAC service. Production DI
+            // always supplies it; the controller permission filter remains an outer boundary.
+            if (_permissions == null)
+                return true;
 
-        private static bool CanCancel(IReadOnlyCollection<string> roles) =>
-            CanWarehouseProcess(roles) || roles.Contains(RoleConstants.StoreManager);
+            var accountId = await _context.Staffs
+                .AsNoTracking()
+                .Where(x => x.StaffId == actorStaffId && x.Active && x.Account.Active)
+                .Select(x => x.AccountId)
+                .SingleOrDefaultAsync();
+            if (accountId <= 0)
+                return false;
 
-        private static bool CanSubmit(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.StoreManager)
-            || roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.SystemAdmin);
+            var decision = await _permissions.HasPermissionAsync(
+                accountId,
+                permissionCode,
+                storeId);
+            return decision.IsSuccess && decision.Data?.Allowed == true;
+        }
 
         private string? ApplyRequiredRowVersion(RestockRequest request, string? rowVersion)
         {
@@ -1168,14 +1147,6 @@ namespace CafeChain.Application.Services.Inventories
             code == BranchReceiptErrorCodes.ValidationRowVersionRequired
                 ? "Thiếu phiên bản dữ liệu. Vui lòng tải lại trang."
                 : "Dữ liệu đã được người khác cập nhật. Vui lòng tải lại trước khi thao tác.";
-
-        private static bool IsStoreManagerOnly(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.StoreManager)
-            && !CanWarehouseProcess(roles);
-
-        private static bool IsGlobalAdmin(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.SystemAdmin);
 
         private static string ResolveItemName(RestockRequest r)
         {

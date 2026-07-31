@@ -6005,14 +6005,13 @@ BEGIN TRY
 
  IF EXISTS(SELECT 1 FROM @PermissionSeed x JOIN dbo.Permissions p
  ON p.PermissionId=x.PermissionId OR p.Code=x.Code
- OR(p.PermissionGroupId=x.PermissionGroupId AND p.Action=x.Action)
  WHERE p.PermissionId<>x.PermissionId OR p.PermissionGroupId<>x.PermissionGroupId
  OR p.Code<>x.Code OR p.Name<>x.Name OR p.Action<>x.Action
  OR ISNULL(p.Description,N'')<>ISNULL(x.Description,N'')
  OR (p.Active<>x.Active AND x.Code NOT IN
     (N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete'))
  OR p.CreatedAt<>x.CreatedAt)
-  THROW 53305,N'Permission Part7 xung đột ID, Code, Group/Action hoặc contract.',1;
+  THROW 53305,N'Permission Part7 xung đột ID, Code hoặc contract.',1;
 
  SET IDENTITY_INSERT dbo.Permissions ON;
  INSERT dbo.Permissions(PermissionId,PermissionGroupId,Code,Name,Action,Description,Active,CreatedAt)
@@ -6046,8 +6045,6 @@ BEGIN TRY
  IF EXISTS(SELECT Code FROM dbo.PermissionGroups GROUP BY Code HAVING COUNT(*)>1)
  OR EXISTS(SELECT Name FROM dbo.PermissionGroups GROUP BY Name HAVING COUNT(*)>1)
  OR EXISTS(SELECT Code FROM dbo.Permissions GROUP BY Code HAVING COUNT(*)>1)
- OR EXISTS(SELECT PermissionGroupId,Action FROM dbo.Permissions
- GROUP BY PermissionGroupId,Action HAVING COUNT(*)>1)
  OR EXISTS(SELECT 1 FROM dbo.Permissions p LEFT JOIN dbo.PermissionGroups g
  ON g.PermissionGroupId=p.PermissionGroupId WHERE g.PermissionGroupId IS NULL)
  OR EXISTS(SELECT 1 FROM dbo.RolePermissions rp LEFT JOIN dbo.Roles r ON r.RoleId=rp.RoleId
@@ -6068,7 +6065,7 @@ END CATCH;
 GO
 
 /* ============================================================
-   BATCH 12B - ACTIVE ADMIN PERMISSION CATALOG (24 groups / 125 permissions / 345 role grants)
+   BATCH 12B - ACTIVE ADMIN PERMISSION CATALOG
    PermissionId 100 is intentionally reserved for migration rollback.
    This batch is insert-only and idempotent; contract conflicts abort.
    ============================================================ */
@@ -6134,7 +6131,6 @@ BEGIN TRY
  (132,12,N'StockAlert.CreateRestockRequest',N'Tạo yêu cầu nhập từ cảnh báo',N'CreateRestockRequest',N'Tạo yêu cầu nhập hàng từ cảnh báo kho đã được xác nhận',1,'2026-01-01'),
 
  (43,13,N'Restock.View',N'Xem yêu cầu nhập',N'View',N'Xem yêu cầu nhập',1,'2026-01-01'),
- (44,13,N'Restock.Create',N'Tạo yêu cầu nhập',N'Create',N'Tạo yêu cầu nhập',1,'2026-01-01'),
  (45,13,N'Restock.Submit',N'Gửi yêu cầu nhập',N'Submit',N'Gửi yêu cầu nhập',1,'2026-01-01'),
  (46,13,N'Restock.Approve',N'Duyệt yêu cầu nhập',N'Approve',N'Duyệt yêu cầu nhập',1,'2026-01-01'),
  (47,13,N'Restock.Reject',N'Từ chối yêu cầu nhập',N'Reject',N'Từ chối yêu cầu nhập',1,'2026-01-01'),
@@ -6253,7 +6249,6 @@ BEGIN TRY
 
  (128,12,N'Notification.View',N'Xem thông báo kho',N'NotificationView',N'Xem thông báo kho',1,'2026-01-01'),
 
- (129,13,N'ReorderSuggestion.View',N'Xem gợi ý nhập hàng',N'ReorderSuggestionView',N'Xem gợi ý nhập hàng',1,'2026-01-01'),
 
  (130,17,N'SupplierQuality.View',N'Xem báo cáo chất lượng NCC',N'SupplierQualityView',N'Xem báo cáo chất lượng NCC',1,'2026-01-01');
 
@@ -6263,12 +6258,11 @@ BEGIN TRY
 
  IF EXISTS(SELECT 1 FROM @AdminPermissionSeed x JOIN dbo.Permissions p
  ON p.PermissionId=x.PermissionId OR p.Code=x.Code
- OR(p.PermissionGroupId=x.PermissionGroupId AND p.Action=x.Action)
  WHERE p.PermissionId<>x.PermissionId OR p.PermissionGroupId<>x.PermissionGroupId
  OR p.Code<>x.Code OR p.Name<>x.Name OR p.Action<>x.Action
  OR ISNULL(p.Description,N'')<>ISNULL(x.Description,N'') OR p.Active<>x.Active
  OR p.CreatedAt<>x.CreatedAt)
-  THROW 53322,N'Permission active-admin xung đột ID, Code hoặc Group/Action.',1;
+  THROW 53322,N'Permission active-admin xung đột ID hoặc Code.',1;
 
  SET IDENTITY_INSERT dbo.Permissions ON;
  INSERT dbo.Permissions(PermissionId,PermissionGroupId,Code,Name,Action,Description,Active,CreatedAt)
@@ -6294,7 +6288,6 @@ BEGIN TRY
  (1,41),
  (1,42),
  (1,43),
- (1,44),
  (1,45),
  (1,46),
  (1,47),
@@ -6368,7 +6361,6 @@ BEGIN TRY
  (1,126),
  (1,127),
  (1,128),
- (1,129),
  (1,130),
  (1,140), -- PurchaseOrder.Approve
  (1,141), -- PurchaseOrder.RejectApproval
@@ -6411,7 +6403,6 @@ BEGIN TRY
  (2,125),
  (2,126),
  (2,128),
- (2,129),
  (2,130),
  (2,146), -- Receipt.ViewCost
  (2,147),
@@ -6419,7 +6410,6 @@ BEGIN TRY
  (3,39),
  (3,40),
  (3,43),
- (3,44),
  (3,45),
  (3,48),
  (3,49),
@@ -6485,7 +6475,6 @@ BEGIN TRY
  (5,41),
  (5,42),
  (5,43),
- (5,44),
  (5,45),
  (5,46),
  (5,47),
@@ -6539,7 +6528,6 @@ BEGIN TRY
  (5,126),
  (5,127),
  (5,128),
- (5,129),
  (5,131), -- StockAlert.Create
  (5,134), -- Restock.CloseRemaining
  (5,135), -- Restock.CreatePurchaseOrder
@@ -6569,7 +6557,6 @@ BEGIN TRY
  (6,41),
  (6,42),
  (6,43),
- (6,44),
  (6,45),
  (6,46),
  (6,47),
@@ -6649,7 +6636,6 @@ BEGIN TRY
  (6,126),
  (6,127),
  (6,128),
- (6,129),
  (6,130),
  (6,147),
  (6,148),
@@ -6677,8 +6663,6 @@ BEGIN TRY
  OR EXISTS(SELECT 1 FROM @AdminRolePermissionSeed x WHERE NOT EXISTS(
  SELECT 1 FROM dbo.RolePermissions rp WHERE rp.RoleId=x.RoleId AND rp.PermissionId=x.PermissionId))
  OR EXISTS(SELECT Code FROM dbo.Permissions GROUP BY Code HAVING COUNT(*)>1)
- OR EXISTS(SELECT PermissionGroupId,Action FROM dbo.Permissions
- GROUP BY PermissionGroupId,Action HAVING COUNT(*)>1)
   THROW 53324,N'Catalog RBAC active-admin thiếu dữ liệu hoặc trùng khóa nghiệp vụ.',1;
 
  COMMIT;
@@ -6706,6 +6690,16 @@ BEGIN TRY
  OR OBJECT_ID(N'dbo.RolePermissions',N'U') IS NULL
  OR OBJECT_ID(N'dbo.AccountPermissionOverrides',N'U') IS NULL
   THROW 53340,N'RBAC_CAFECHAIN29_V2: thiếu bảng RBAC bắt buộc.',1;
+
+ IF EXISTS
+ (
+  SELECT 1
+  FROM sys.indexes
+  WHERE object_id=OBJECT_ID(N'dbo.Permissions')
+    AND name=N'IX_Permissions_PermissionGroupId_Action'
+    AND is_unique=1
+ )
+  THROW 53339,N'RBAC_CAFECHAIN29_V2: cần áp dụng migration PermissionCodeBusinessKey trước khi seed.',1;
 
  SELECT AccountPermissionOverrideId,AccountId,PermissionId,Effect,Reason
  INTO #OverrideBefore
@@ -6749,6 +6743,11 @@ BEGIN TRY
   Description nvarchar(500) NOT NULL
  );
  INSERT #NewPermissionCatalog VALUES
+ (N'ReorderSuggestion.View',N'RESTOCK',N'Xem gợi ý nhập hàng',N'View',N'Xem danh sách gợi ý nhập hàng trong phạm vi cửa hàng được phép truy cập'),
+ (N'Restock.Create',N'RESTOCK',N'Tạo yêu cầu nhập hàng',N'Create',N'Tạo mới, tạo nháp hoặc bổ sung yêu cầu nhập hàng từ gợi ý nhập hàng trong phạm vi cửa hàng được phép thao tác'),
+ (N'Restock.CreateCentralPlan',N'RESTOCK',N'Tạo kế hoạch nhập hàng trung tâm',N'CreateCentralPlan',N'Tạo yêu cầu nhập hàng từ biểu mẫu lập kế hoạch trung tâm trong phạm vi cửa hàng được phép thao tác'),
+ (N'PurchaseAdviceConsolidation.View',N'PURCHASE_ADVICE',N'Xem tổng hợp đề nghị mua',N'View',N'Xem màn hình và dữ liệu tổng hợp đề nghị mua trong phạm vi cửa hàng được phép truy cập'),
+ (N'Notification.MarkRead',N'STOCK_ALERT',N'Đánh dấu thông báo kho đã đọc',N'MarkRead',N'Đánh dấu một hoặc nhiều thông báo kho thuộc phạm vi được phép là đã đọc'),
  (N'StoreMenu.OverridePrice',N'DRINK',N'Ghi đè giá menu cửa hàng',N'OverridePrice',N'Ghi đè giá bán tại menu cửa hàng'),
  (N'Profitability.UpdatePrice',N'DRINK',N'Cập nhật giá bán',N'UpdatePrice',N'Cập nhật giá bán toàn hệ thống'),
  (N'Profitability.UpdateToppingPolicy',N'DRINK',N'Cập nhật chính sách topping',N'UpdateToppingPolicy',N'Cập nhật chính sách topping theo món và size'),
@@ -6854,10 +6853,12 @@ BEGIN TRY
 (N'StockAlert.Configure',1,1,1,0,0,0,0,0),
 (N'StockAlert.Export',1,1,1,0,1,0,0,0),
 (N'Notification.View',1,1,1,1,1,0,0,1),
+(N'Notification.MarkRead',1,1,1,1,1,0,0,1),
 (N'StockAlert.Create',0,0,1,1,0,0,0,1),
 (N'StockAlert.CreateRestockRequest',0,0,1,0,0,0,0,0),
 (N'Restock.View',1,1,1,0,1,0,0,0),
-(N'Restock.Create',0,0,1,0,1,0,0,0),
+(N'Restock.Create',1,0,1,0,1,0,0,0),
+(N'Restock.CreateCentralPlan',1,0,0,0,1,0,0,0),
 (N'Restock.Submit',0,0,1,0,1,0,0,0),
 (N'Restock.Approve',1,0,0,0,1,0,0,0),
 (N'Restock.Reject',1,0,0,0,1,0,0,0),
@@ -6874,6 +6875,7 @@ BEGIN TRY
 (N'PurchaseAdvice.Approve',1,0,0,0,1,0,0,0),
 (N'PurchaseAdvice.Reject',1,0,0,0,1,0,0,0),
 (N'PurchaseAdvice.Consolidate',1,0,0,0,1,0,0,0),
+(N'PurchaseAdviceConsolidation.View',1,0,0,0,1,0,0,0),
 (N'PurchaseAdvice.SelectSupplier',1,0,0,0,1,0,0,0),
 (N'PurchaseAdvice.CreatePurchaseOrder',1,0,0,0,1,0,0,0),
 (N'PurchaseOrder.View',1,1,1,0,1,0,0,1),
@@ -7009,15 +7011,17 @@ BEGIN TRY
  JOIN dbo.Permissions p ON p.Code=m.PermissionCode
  WHERE grantMatrix.IsGranted=1 AND p.Active=1;
 
+ -- The matrix is a minimum-grant contract. Existing grants are preserved;
+ -- only the four intentionally retired Delete permissions are revoked.
  DELETE rp
  FROM dbo.RolePermissions rp
- JOIN #RoleMap rm ON rm.RoleId=rp.RoleId
  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
- JOIN #PermissionMatrix m ON m.PermissionCode=p.Code
- WHERE NOT EXISTS
+ WHERE p.Code IN
  (
-  SELECT 1 FROM #ExpectedRolePermissions e
-  WHERE e.RoleId=rp.RoleId AND e.PermissionId=rp.PermissionId
+  N'Drink.Delete',
+  N'Category.Delete',
+  N'Size.Delete',
+  N'Topping.Delete'
  );
 
  INSERT dbo.RolePermissions(RoleId,PermissionId)
@@ -7034,22 +7038,12 @@ BEGIN TRY
   SELECT RoleId,PermissionId FROM #ExpectedRolePermissions
   EXCEPT
   SELECT rp.RoleId,rp.PermissionId
-  FROM dbo.RolePermissions rp
-  JOIN #RoleMap rm ON rm.RoleId=rp.RoleId
-  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
-  JOIN #PermissionMatrix m ON m.PermissionCode=p.Code
+ FROM dbo.RolePermissions rp
+ JOIN #RoleMap rm ON rm.RoleId=rp.RoleId
+ JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
+ JOIN #PermissionMatrix m ON m.PermissionCode=p.Code
  )
- OR EXISTS
- (
-  SELECT rp.RoleId,rp.PermissionId
-  FROM dbo.RolePermissions rp
-  JOIN #RoleMap rm ON rm.RoleId=rp.RoleId
-  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
-  JOIN #PermissionMatrix m ON m.PermissionCode=p.Code
-  EXCEPT
-  SELECT RoleId,PermissionId FROM #ExpectedRolePermissions
- )
-  THROW 53344,N'RBAC_CAFECHAIN29_V2: RolePermission khác ma trận expected.',1;
+  THROW 53344,N'RBAC_CAFECHAIN29_V2: thiếu RolePermission tối thiểu theo ma trận expected.',1;
 
  IF EXISTS
  (
@@ -7092,15 +7086,131 @@ IF
  )
  THROW 53347,N'RBAC_CAFECHAIN29_V2: SystemAdmin chưa có toàn bộ permission active.',1;
 
-IF
-(
- SELECT COUNT(*)
- FROM #ExpectedRolePermissions e
- WHERE e.RoleId=(SELECT RoleId FROM #RoleMap WHERE RoleKey=N'QTHT')
-)<>161
- THROW 53348,N'RBAC_CAFECHAIN29_V2: SystemAdmin phải có đúng 161 permission active.',1;
+ IF EXISTS
+ (
+  SELECT p.Code
+  FROM dbo.Permissions p
+  WHERE p.Code IN
+  (
+   N'ReorderSuggestion.View',
+   N'Restock.Create',
+   N'Restock.CreateCentralPlan',
+   N'PurchaseAdviceConsolidation.View',
+   N'Notification.MarkRead'
+  )
+  GROUP BY p.Code
+  HAVING COUNT(*)<>1
+ )
+ OR
+ (
+  SELECT COUNT(*)
+  FROM dbo.Permissions p
+  WHERE p.Code IN
+  (
+   N'ReorderSuggestion.View',
+   N'Restock.Create',
+   N'Restock.CreateCentralPlan',
+   N'PurchaseAdviceConsolidation.View',
+   N'Notification.MarkRead'
+  )
+ )<>5
+  THROW 53348,N'RBAC_CAFECHAIN29_V2: permission mới/chuẩn hóa phải tồn tại đúng một dòng theo Code.',1;
+
+ IF EXISTS
+ (
+  SELECT 1
+  FROM #NewPermissionCatalog c
+  JOIN dbo.PermissionGroups g ON g.Code=c.GroupCode
+  LEFT JOIN dbo.Permissions p ON p.Code=c.Code
+  WHERE p.PermissionId IS NULL
+     OR p.PermissionGroupId<>g.PermissionGroupId
+     OR p.Name<>c.Name
+     OR p.Action<>c.Action
+     OR ISNULL(p.Description,N'')<>c.Description
+     OR p.Active<>1
+ )
+  THROW 53349,N'RBAC_CAFECHAIN29_V2: metadata hoặc PermissionGroup của permission không đúng contract.',1;
+
+ IF
+ (
+  SELECT COUNT(*)
+  FROM dbo.RolePermissions rp
+  JOIN #RoleMap rm ON rm.RoleId=rp.RoleId
+  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
+  WHERE rm.RoleKey IN(N'CDN',N'QTHT',N'QLCN')
+    AND p.Code IN(N'ReorderSuggestion.View',N'Restock.Create')
+ )<>6
+  THROW 53350,N'RBAC_CAFECHAIN29_V2: thiếu một trong sáu grant bắt buộc cho Reorder/Restock.',1;
+
+ IF
+ (
+  SELECT COUNT(*)
+  FROM dbo.RolePermissions rp
+  JOIN #RoleMap rm ON rm.RoleId=rp.RoleId
+  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
+  WHERE rm.RoleKey IN(N'CDN',N'QTHT',N'KTK')
+    AND p.Code=N'Restock.CreateCentralPlan'
+ )<>3
+  THROW 53351,N'RBAC_CAFECHAIN29_V2: Restock.CreateCentralPlan chưa cấp đủ role đã chốt.',1;
+
+ IF EXISTS
+ (
+  SELECT Code FROM dbo.Permissions GROUP BY Code HAVING COUNT(*)>1
+ )
+  THROW 53352,N'RBAC_CAFECHAIN29_V2: Permission.Code bị trùng.',1;
+
+ IF EXISTS
+ (
+  SELECT RoleId,PermissionId
+  FROM dbo.RolePermissions
+  GROUP BY RoleId,PermissionId
+  HAVING COUNT(*)>1
+ )
+  THROW 53353,N'RBAC_CAFECHAIN29_V2: RolePermission bị trùng business key.',1;
+
+ IF EXISTS
+ (
+  SELECT 1
+  FROM dbo.RolePermissions rp
+  LEFT JOIN dbo.Roles r ON r.RoleId=rp.RoleId
+  LEFT JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
+  WHERE r.RoleId IS NULL OR p.PermissionId IS NULL
+ )
+ OR EXISTS
+ (
+  SELECT 1
+  FROM dbo.Permissions p
+  LEFT JOIN dbo.PermissionGroups g ON g.PermissionGroupId=p.PermissionGroupId
+  WHERE g.PermissionGroupId IS NULL
+ )
+  THROW 53354,N'RBAC_CAFECHAIN29_V2: phát hiện foreign key RBAC mồ côi.',1;
 
 COMMIT;
+
+ SELECT rm.RoleKey AS RoleCode,
+        rm.RoleName,
+        p.Code AS PermissionCode,
+        CAST(CASE WHEN rp.RoleId IS NULL THEN 0 ELSE 1 END AS bit) AS Granted
+ FROM #RoleMap rm
+ CROSS JOIN
+ (
+  SELECT Code
+  FROM dbo.Permissions
+  WHERE Code IN
+  (
+   N'ReorderSuggestion.View',
+   N'Restock.Create',
+   N'Restock.CreateCentralPlan',
+   N'PurchaseAdviceConsolidation.View',
+   N'Notification.MarkRead'
+  )
+ ) p
+ LEFT JOIN dbo.Permissions permissionRow ON permissionRow.Code=p.Code
+ LEFT JOIN dbo.RolePermissions rp
+   ON rp.RoleId=rm.RoleId
+  AND rp.PermissionId=permissionRow.PermissionId
+ WHERE rm.RoleKey IN(N'CDN',N'QLV',N'QLCN',N'KTK',N'QTHT')
+ ORDER BY rm.RoleKey,p.Code;
 
  SELECT N'RBAC_CAFECHAIN29_V2' AS RbacVersion,rm.RoleName,
         COUNT(rp.PermissionId) AS PermissionCount
@@ -7126,8 +7236,9 @@ SELECT N'Duplicate PermissionGroup Code/Name' Issue,COUNT(*) IssueCount FROM(
  UNION ALL SELECT Name FROM dbo.PermissionGroups GROUP BY Name HAVING COUNT(*)>1)x
 UNION ALL SELECT N'Duplicate Permission Code',COUNT(*) FROM(
  SELECT Code FROM dbo.Permissions GROUP BY Code HAVING COUNT(*)>1)x
-UNION ALL SELECT N'Duplicate Permission Group/Action',COUNT(*) FROM(
- SELECT PermissionGroupId,Action FROM dbo.Permissions GROUP BY PermissionGroupId,Action HAVING COUNT(*)>1)x
+UNION ALL SELECT N'Duplicate RolePermission',COUNT(*) FROM(
+ SELECT RoleId,PermissionId FROM dbo.RolePermissions
+ GROUP BY RoleId,PermissionId HAVING COUNT(*)>1)x
 UNION ALL SELECT N'Orphan Permission',COUNT(*) FROM dbo.Permissions p LEFT JOIN dbo.PermissionGroups g
  ON g.PermissionGroupId=p.PermissionGroupId WHERE g.PermissionGroupId IS NULL
 UNION ALL SELECT N'Orphan RolePermission',COUNT(*) FROM dbo.RolePermissions rp

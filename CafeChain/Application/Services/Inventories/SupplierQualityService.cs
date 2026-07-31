@@ -368,13 +368,7 @@ public sealed class SupplierQualityService : ISupplierQualityService
         int actorStaffId,
         int storeId,
         IReadOnlyCollection<string> roles)
-    {
-        if (!roles.Any(x => x is RoleConstants.BusinessOwner or RoleConstants.AccountantWarehouse
-                or RoleConstants.AreaManager or RoleConstants.StoreManager
-                or RoleConstants.SystemAdmin))
-            return false;
-        return await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, storeId);
-    }
+        => await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, storeId);
 
     private static bool CanTransition(string current, string target) => (current, target) switch
     {

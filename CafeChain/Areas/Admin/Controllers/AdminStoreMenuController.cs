@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.StoreMenu;
 using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.StoreMenu;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Data;
@@ -16,6 +17,7 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IAdminActorContextAccessor _actor;
+        private readonly IAdminPermissionService _permissions;
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly IStoreMenuWorkspaceService _workspace;
         private readonly IStoreMenuPricingService _pricing;
@@ -23,12 +25,14 @@ namespace CafeChain.Areas.Admin.Controllers
         public AdminStoreMenuController(
             AppDbContext context,
             IAdminActorContextAccessor actor,
+            IAdminPermissionService permissions,
             IScopeAuthorizationService scopeAuthorization,
             IStoreMenuWorkspaceService workspace,
             IStoreMenuPricingService pricing)
         {
             _context = context;
             _actor = actor;
+            _permissions = permissions;
             _scopeAuthorization = scopeAuthorization;
             _workspace = workspace;
             _pricing = pricing;
@@ -37,25 +41,25 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(CancellationToken cancellationToken)
         {
-            if (!CanView()) return Forbid();
             var actor = _actor.Get(User);
+            var permissions = await _permissions.GetEffectivePermissionCodesAsync(actor.AccountId);
+            HashSet<string> effective = permissions.IsSuccess && permissions.Data != null
+                ? permissions.Data
+                : [];
             return View(new StoreMenuPageVM
             {
                 Stores = await ResolveAllowedStoresAsync(actor.StaffId, actor.StoreId, cancellationToken),
-                CanPublish = User.IsInRole(RoleConstants.BusinessOwner)
-                    || User.IsInRole(RoleConstants.SystemAdmin),
-                CanOperate = User.IsInRole(RoleConstants.BusinessOwner)
-                    || User.IsInRole(RoleConstants.StoreManager)
-                    || User.IsInRole(RoleConstants.SystemAdmin),
-                CanOverridePrice = User.IsInRole(RoleConstants.BusinessOwner)
-                    || User.IsInRole(RoleConstants.SystemAdmin)
+                CanPublish = effective.Contains(PermissionConstants.StoreMenuUpdate)
+                    && (User.IsInRole(RoleConstants.BusinessOwner)
+                        || User.IsInRole(RoleConstants.SystemAdmin)),
+                CanOperate = effective.Contains(PermissionConstants.StoreMenuUpdate),
+                CanOverridePrice = effective.Contains(PermissionConstants.StoreMenuOverridePrice)
             });
         }
 
         [HttpGet]
         public async Task<IActionResult> Rows(int storeId, CancellationToken cancellationToken)
         {
-            if (!CanView()) return ApiFailure("Bạn không có quyền xem menu cửa hàng.", StatusCodes.Status403Forbidden);
             var actor = _actor.Get(User);
             return ServiceJson(await _workspace.GetRowsAsync(
                 storeId, actor.StaffId, DateTime.UtcNow, cancellationToken));
@@ -83,38 +87,17 @@ namespace CafeChain.Areas.Admin.Controllers
             return ServiceJson(await _pricing.UpdateOverrideAsync(request, actor.StaffId, cancellationToken));
         }
 
-        private bool CanView() =>
-            User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
         private async Task<IReadOnlyList<StoreMenuStoreOptionVM>> ResolveAllowedStoresAsync(
             int staffId,
             int ownStoreId,
             CancellationToken cancellationToken)
         {
-            if (User.IsInRole(RoleConstants.BusinessOwner)
-                || User.IsInRole(RoleConstants.AccountantWarehouse)
-                || User.IsInRole(RoleConstants.SystemAdmin))
-            {
-                return await _context.Stores.AsNoTracking()
-                    .Where(x => x.Active)
-                    .OrderBy(x => x.Name)
-                    .Select(x => new StoreMenuStoreOptionVM { Id = x.StoreId, Name = x.Name })
-                    .ToListAsync(cancellationToken);
-            }
+            if (staffId <= 0)
+                return [];
 
-            var allowed = await _scopeAuthorization.GetAllowedStoresAsync(staffId);
-            if (User.IsInRole(RoleConstants.StoreManager)
-                && ownStoreId > 0
-                && allowed.All(x => x.StoreId != ownStoreId))
-            {
-                var ownStore = await _context.Stores.AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.StoreId == ownStoreId && x.Active, cancellationToken);
-                if (ownStore != null) allowed.Add(ownStore);
-            }
+            var allowed = await _scopeAuthorization.GetAllowedStoresAsync(
+                staffId,
+                StoreScopePurpose.Default);
             return allowed.OrderBy(x => x.Name)
                 .Select(x => new StoreMenuStoreOptionVM { Id = x.StoreId, Name = x.Name })
                 .ToList();

@@ -1,5 +1,10 @@
 # PHÂN TÍCH NGHIỆP VỤ ỨNG DỤNG AI CHO CAFECHAIN
 
+> **Trạng thái: tài liệu phân tích/đề xuất, không phải bằng chứng runtime.**
+> Đối chiếu trạng thái đã triển khai, đang tắt, prototype và legacy tại
+> [`../Doc/AI_FEATURES_BUSINESS_AND_TECHNICAL_GUIDE.md`](../Doc/AI_FEATURES_BUSINESS_AND_TECHNICAL_GUIDE.md).
+> Hướng phát triển trong tài liệu này không được trình bày như chức năng đã chạy.
+
 ## 1. Executive Summary
 
 CafeChain chỉ nên sử dụng AI tại những điểm cần hiểu ngôn ngữ tự nhiên, giải thích dữ liệu hoặc tối ưu bài toán có nhiều ràng buộc. Các cảnh báo có điều kiện rõ ràng phải dùng rule hoặc thống kê; dự báo số liệu phải dùng mô hình forecasting, không để LLM tự đoán.

@@ -10315,8 +10315,7 @@ namespace CafeChain.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.HasIndex("PermissionGroupId", "Action")
-                        .IsUnique();
+                    b.HasIndex("PermissionGroupId", "Action");
 
                     b.ToTable("Permissions", (string)null);
 

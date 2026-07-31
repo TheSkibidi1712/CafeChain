@@ -4,6 +4,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Services.Admin.StoreInventories;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
@@ -22,15 +23,18 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IInventoryThresholdService _service;
         private readonly IAdminActorContextAccessor _actor;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
+        private readonly IAdminPermissionService? _permissions;
 
         public AdminInventoryThresholdsController(
             IInventoryThresholdService service,
             IAdminActorContextAccessor actor,
-            IAdminStoreScopeResolver storeScopeResolver)
+            IAdminStoreScopeResolver storeScopeResolver,
+            IAdminPermissionService? permissions = null)
         {
             _service = service;
             _actor = actor;
             _storeScopeResolver = storeScopeResolver;
+            _permissions = permissions;
         }
 
         [HttpGet]
@@ -55,7 +59,14 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.Search = search;
-            ViewBag.CanEditThreshold = UserCanEditThreshold();
+            var permission = _permissions == null
+                ? null
+                : await _permissions.HasPermissionAsync(
+                    accountId,
+                    PermissionConstants.InventoryThresholdUpdate,
+                    storeId);
+            ViewBag.CanEditThreshold =
+                permission?.IsSuccess == true && permission.Data?.Allowed == true;
             return View(result.Data);
         }
 
@@ -79,12 +90,6 @@ namespace CafeChain.Areas.Admin.Controllers
             if (!storeScope.IsResolved)
                 return StoreScopeFailure(storeScope);
             storeId = storeScope.StoreId!.Value;
-
-            if (!UserCanEditThreshold())
-            {
-                TempData["ErrorMessage"] = "Bạn không có quyền cập nhật ngưỡng tồn kho.";
-                return RedirectToAction(nameof(Index), new { storeId, search, page });
-            }
 
             decimal? value = null;
             if (!string.IsNullOrWhiteSpace(minStockLevel))
@@ -118,18 +123,6 @@ namespace CafeChain.Areas.Admin.Controllers
                 TempData["SuccessMessage"] = result.Message ?? "Cập nhật ngưỡng tồn kho thành công.";
 
             return RedirectToAction(nameof(Index), new { storeId, search, page });
-        }
-
-        /// <summary>Uses RoleConstants (Vietnamese names) — not English hard-codes.</summary>
-        private bool UserCanEditThreshold()
-        {
-            foreach (var role in InventoryThresholdService.EditRoleNames)
-            {
-                if (User.IsInRole(role))
-                    return true;
-            }
-
-            return false;
         }
 
         private int GetAccountId()

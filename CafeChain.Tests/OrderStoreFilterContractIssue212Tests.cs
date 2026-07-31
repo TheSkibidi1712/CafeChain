@@ -360,7 +360,7 @@ public sealed class OrderStoreFilterContractIssue212Tests
 public sealed class OrderStoreFilterQueryIssue212Tests : IntegrationTestBase
 {
     [Fact]
-    public async Task SystemAdmin_GlobalAccess_IsExplicitWithoutStaffScope()
+    public async Task SystemAdmin_DefaultResolverDoesNotBypassStaffScope()
     {
         await using var context = CreateDbContext();
         context.Stores.AddRange(
@@ -383,17 +383,12 @@ public sealed class OrderStoreFilterQueryIssue212Tests : IntegrationTestBase
                 CreatedAt = DateTime.UtcNow
             });
         await context.SaveChangesAsync();
-        var expectedStoreIds = await context.Stores
-            .Where(x => x.Active)
-            .OrderBy(x => x.Name)
-            .ThenBy(x => x.StoreId)
-            .Select(x => x.StoreId)
-            .ToListAsync();
-
         var scopeAuthorization = new Mock<IScopeAuthorizationService>(MockBehavior.Strict);
+        scopeAuthorization
+            .Setup(x => x.GetAllowedStoresAsync(99, StoreScopePurpose.Default))
+            .ReturnsAsync(new List<Store>());
         var selectedStore = new Mock<IAdminSelectedStoreContext>(MockBehavior.Strict);
         selectedStore.Setup(x => x.GetSelectedStoreId()).Returns((int?)null);
-        selectedStore.Setup(x => x.SetSelectedStoreId(It.IsAny<int>()));
         var resolver = new AdminStoreScopeResolver(
             context,
             scopeAuthorization.Object,
@@ -406,11 +401,10 @@ public sealed class OrderStoreFilterQueryIssue212Tests : IntegrationTestBase
             RoleNames = new[] { RoleConstants.SystemAdmin }
         });
 
-        Assert.True(result.IsResolved);
-        Assert.Equal(
-            expectedStoreIds.Order(),
-            result.AccessibleStores.Select(x => x.StoreId).Order());
-        scopeAuthorization.VerifyNoOtherCalls();
+        Assert.Equal(AdminStoreScopeResolutionStatus.NoAccessibleStore, result.Status);
+        scopeAuthorization.Verify(
+            x => x.GetAllowedStoresAsync(99, StoreScopePurpose.Default),
+            Times.Once);
     }
 
     [Fact]

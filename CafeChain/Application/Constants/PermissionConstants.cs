@@ -32,6 +32,7 @@ namespace CafeChain.Application.Constants
         public const string AppStaffHub = "App.StaffHub";
         public const string AppPos = "App.POS";
         public const string NotificationView = "Notification.View";
+        public const string NotificationMarkRead = "Notification.MarkRead";
 
         public const string IngredientView = "Ingredient.View";
         public const string IngredientCreate = "Ingredient.Create";
@@ -66,5 +67,6 @@ namespace CafeChain.Application.Constants
         public const string ReorderSuggestionView = "ReorderSuggestion.View";
         public const string RestockView = "Restock.View";
         public const string RestockCreate = "Restock.Create";
+        public const string RestockCreateCentralPlan = "Restock.CreateCentralPlan";
     }
 }

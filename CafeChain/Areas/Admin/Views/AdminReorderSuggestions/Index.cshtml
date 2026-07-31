@@ -1,10 +1,25 @@
 @model CafeChain.Application.DTOs.Admin.Procurement.ReorderSuggestionListDto
 @using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
+@using System.Security.Claims
+@inject IAdminPermissionService PermissionService
 @{
     ViewData["Title"] = "Gợi ý nhập hàng";
     var stores = ViewBag.Stores as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>
         ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
     var selectedStoreId = (int?)ViewBag.SelectedStoreId ?? Model.StoreId;
+    var effectivePermissions = new HashSet<string>(StringComparer.Ordinal);
+    var accountIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (int.TryParse(accountIdValue, out var accountId) && accountId > 0)
+    {
+        effectivePermissions =
+            (await PermissionService.GetEffectivePermissionCodesAsync(accountId)).Data
+            ?? new HashSet<string>(StringComparer.Ordinal);
+    }
+    var canCreateRestock =
+        effectivePermissions.Contains(PermissionConstants.RestockCreate);
+    var canViewRestock =
+        effectivePermissions.Contains(PermissionConstants.RestockView);
     var labels = new Dictionary<string, string>
     {
         [ReorderRecommendationLevels.Urgent] = "Cần nhập gấp",
@@ -43,6 +58,8 @@
             </p>
         </div>
         <div class="reorder-header-actions">
+            @if (canCreateRestock)
+            {
             <button type="button"
                     id="openReorderBulkModal"
                     class="cc-button cc-button-primary"
@@ -55,9 +72,13 @@
                     @actionableItems.Count
                 </span>
             </button>
+            }
+            @if (canViewRestock)
+            {
             <a asp-controller="AdminRestockRequests" asp-action="Index" class="cc-button">
                 <i class="fas fa-list-check" aria-hidden="true"></i> Xem yêu cầu nhập
             </a>
+            }
         </div>
     </header>
 
@@ -176,21 +197,23 @@
                                         data-suggestion-token="@item.SuggestionToken">
                                     Giải thích
                                 </button>
-                                @if (item.ActiveRestockRequestId.HasValue)
+                                @if (canViewRestock && item.ActiveRestockRequestId.HasValue)
                                 {
                                     <a asp-controller="AdminRestockRequests"
                                        asp-action="Details"
                                        asp-route-id="@item.ActiveRestockRequestId"
                                        class="cc-button">Xem yêu cầu</a>
                                 }
-                                <button type="button"
-                                        class="cc-button cc-button-primary js-reorder-confirm"
-                                        data-store-id="@item.StoreId"
-                                        data-ingredient-id="@item.IngredientId"
-                                        data-suggestion-token="@item.SuggestionToken"
-                                        disabled="@(item.CanConfirm ? null : "disabled")">
-                                    @(item.ActiveRestockRequestId.HasValue ? "Bổ sung yêu cầu" : "Xác nhận nhập")
-                                </button>
+                                @if (canCreateRestock && item.CanConfirm)
+                                {
+                                    <button type="button"
+                                            class="cc-button cc-button-primary js-reorder-confirm"
+                                            data-store-id="@item.StoreId"
+                                            data-ingredient-id="@item.IngredientId"
+                                            data-suggestion-token="@item.SuggestionToken">
+                                        @(item.ActiveRestockRequestId.HasValue ? "Bổ sung yêu cầu" : "Xác nhận nhập")
+                                    </button>
+                                }
                             </td>
                         </tr>
                     }
@@ -200,6 +223,8 @@
         }
     </section>
 
+    @if (canCreateRestock)
+    {
     <div class="modal fade reorder-bulk-modal"
          id="reorderBulkModal"
          tabindex="-1"
@@ -386,6 +411,7 @@
             </div>
         </div>
     </div>
+    }
 </main>
 
 @section Scripts {

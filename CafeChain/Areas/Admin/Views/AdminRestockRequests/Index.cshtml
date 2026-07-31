@@ -11,6 +11,10 @@
     var high = Model.Items.Count(x => x.Priority == "HIGH");
     var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
         ?? Array.Empty<AdminStoreOptionDto>();
+    var canCreateDemand = ViewBag.CanCreateDemand as bool? ?? false;
+    var canCentralPlan = ViewBag.CanCentralPlan as bool? ?? false;
+    var canViewStockAlerts = ViewBag.CanViewStockAlerts as bool? ?? false;
+    var canViewReceipts = ViewBag.CanViewReceipts as bool? ?? false;
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -23,15 +27,22 @@
             <p class="ops-subtitle">Theo dõi yêu cầu bổ sung hàng cho chi nhánh #@Model.StoreId. Yêu cầu chỉ ghi nhận nhu cầu; tồn kho chỉ thay đổi từ phiếu nhận hoặc điều chuyển đã xác nhận.</p>
         </div>
         <div class="ops-actions">
-            <a class="ops-btn" asp-action="CreateManual" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo thủ công</a>
-            @if (User.IsInRole(CafeChain.Application.Constants.RoleConstants.AccountantWarehouse)
-                || User.IsInRole(CafeChain.Application.Constants.RoleConstants.AreaManager)
-                || User.IsInRole(CafeChain.Application.Constants.RoleConstants.BusinessOwner))
+            @if (canCreateDemand)
+            {
+                <a class="ops-btn" asp-action="CreateManual" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo thủ công</a>
+            }
+            @if (canCentralPlan)
             {
                 <a class="ops-btn" asp-action="CreateCentralPlanner" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Kế hoạch trung tâm</a>
             }
-            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</a>
-            <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Phiếu nhận hàng</a>
+            @if (canViewStockAlerts)
+            {
+                <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</a>
+            }
+            @if (canViewReceipts)
+            {
+                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Phiếu nhận hàng</a>
+            }
         </div>
     </header>
 
@@ -77,8 +88,14 @@
             <h2 id="restockEmptyTitle" class="ops-empty-title">Không có yêu cầu bổ sung phù hợp</h2>
             <p class="ops-empty-copy">Đổi trạng thái lọc, tạo yêu cầu thủ công hoặc mở một cảnh báo đã xác nhận để ghi nhận nhu cầu mới.</p>
             <div class="ops-empty-actions">
-                <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId">Xem cảnh báo kho</a>
-                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="CreateManual" asp-route-storeId="@Model.StoreId">Tạo yêu cầu thủ công</a>
+                @if (canViewStockAlerts)
+                {
+                    <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId">Xem cảnh báo kho</a>
+                }
+                @if (canCreateDemand)
+                {
+                    <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="CreateManual" asp-route-storeId="@Model.StoreId">Tạo yêu cầu thủ công</a>
+                }
             </div>
         </section>
     }

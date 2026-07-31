@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
@@ -13,6 +14,7 @@ using CafeChain.Models.Stores;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Xunit;
 
 namespace CafeChain.Tests;
@@ -287,10 +289,14 @@ public sealed class PurchaseOrderSqlServerIssue178Tests : IAsyncLifetime
             context,
             NullLogger<UnitConversionService>.Instance,
             physical);
+        var scope = new Mock<IScopeAuthorizationService>();
+        scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(true);
         return new PurchaseOrderService(
             context,
             conversion,
-            new RestockAllocationService(context, new NoPurchaseOrderAllocationProvider()));
+            new RestockAllocationService(context, new NoPurchaseOrderAllocationProvider()),
+            scope.Object);
     }
 
     private static AppDbContext CreateContext()

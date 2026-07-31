@@ -44,7 +44,7 @@ namespace CafeChain.Data.Configurations.Permissions
             {
                 x.PermissionGroupId,
                 x.Action
-            }).IsUnique();
+            });
 
             // ================= RELATIONSHIP =================
 

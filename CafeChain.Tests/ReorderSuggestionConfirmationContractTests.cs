@@ -43,6 +43,7 @@ public sealed class ReorderSuggestionConfirmationContractTests
             controller,
             StringComparison.Ordinal);
         Assert.Contains("_storeScopeResolver.ResolveAsync", controller, StringComparison.Ordinal);
+        Assert.Contains("StoreScopePurpose.ReorderSuggestion", controller, StringComparison.Ordinal);
         Assert.Contains("REORDER_SUGGESTION_CONFIRM", service, StringComparison.Ordinal);
         Assert.Contains("_deduplication.BeginAsync", service, StringComparison.Ordinal);
         Assert.Contains("_authorization.CanConfirmAsync", service, StringComparison.Ordinal);

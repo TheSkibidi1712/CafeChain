@@ -1,6 +1,6 @@
+using System.Text.Json;
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.StoreScope;
-using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Data;
@@ -24,22 +24,27 @@ namespace CafeChain.Application.Services.Admin.StoreScope
             _selectedStoreContext = selectedStoreContext;
         }
 
+        public Task<AdminStoreScopeResolution> ResolveAsync(
+            AdminActorContext actor,
+            int? requestedStoreId = null,
+            CancellationToken cancellationToken = default) =>
+            ResolveAsync(
+                actor,
+                StoreScopePurpose.Default,
+                requestedStoreId,
+                cancellationToken);
+
         public async Task<AdminStoreScopeResolution> ResolveAsync(
             AdminActorContext actor,
+            StoreScopePurpose purpose,
             int? requestedStoreId = null,
             CancellationToken cancellationToken = default)
         {
-            var isSystemAdmin = actor.RoleNames.Contains(
-                RoleConstants.SystemAdmin,
-                StringComparer.OrdinalIgnoreCase);
-            var allowedStores = isSystemAdmin
-                ? await _context.Stores
-                    .AsNoTracking()
-                    .Where(x => x.Active)
-                    .ToListAsync(cancellationToken)
-                : actor.StaffId > 0
-                    ? await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId)
-                    : new List<Models.Stores.Store>();
+            var allowedStores = actor.StaffId > 0
+                ? await _scopeAuthorization.GetAllowedStoresAsync(
+                    actor.StaffId,
+                    purpose)
+                : new List<Models.Stores.Store>();
             var options = allowedStores
                 .Where(x => x.Active)
                 .OrderBy(x => x.Name)
@@ -55,20 +60,14 @@ namespace CafeChain.Application.Services.Admin.StoreScope
             if (requestedStoreId.HasValue)
             {
                 var requestedId = requestedStoreId.Value;
-                var exists = await _context.Stores
-                    .AsNoTracking()
-                    .AnyAsync(x => x.StoreId == requestedId, cancellationToken);
-                if (!exists)
-                {
-                    return Failure(
-                        AdminStoreScopeResolutionStatus.StoreNotFound,
-                        AdminStoreScopeErrorCodes.StoreNotFound,
-                        "Không tìm thấy cửa hàng được yêu cầu.",
-                        options);
-                }
-
                 if (!allowedIds.Contains(requestedId))
                 {
+                    await WriteTamperingAuditAsync(
+                        actor,
+                        requestedId,
+                        purpose,
+                        allowedIds,
+                        cancellationToken);
                     return Failure(
                         AdminStoreScopeResolutionStatus.RequestedStoreForbidden,
                         AdminStoreScopeErrorCodes.StoreScopeForbidden,
@@ -132,6 +131,31 @@ namespace CafeChain.Application.Services.Admin.StoreScope
                 "Tài khoản chưa được cấu hình phạm vi cửa hàng. Vui lòng liên hệ quản trị viên.",
                 options,
                 warningCode);
+        }
+
+        private async Task WriteTamperingAuditAsync(
+            AdminActorContext actor,
+            int requestedStoreId,
+            StoreScopePurpose purpose,
+            IReadOnlyCollection<int> effectiveStoreIds,
+            CancellationToken cancellationToken)
+        {
+            var auditData = JsonSerializer.Serialize(new
+            {
+                requestedStoreId,
+                purpose = purpose.ToString(),
+                effectiveStoreIds = effectiveStoreIds.OrderBy(x => x).ToArray()
+            });
+            var createdAt = DateTime.UtcNow;
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                 INSERT INTO AuditLogs
+                     (TableName, RecordId, Action, OldData, NewData, UserId, CreatedAt)
+                 VALUES
+                     ({"StoreScope"}, {requestedStoreId}, {"CROSS_STORE_TAMPERING"},
+                      {(string?)null}, {auditData}, {actor.StaffId}, {createdAt})
+                 """,
+                cancellationToken);
         }
 
         private AdminStoreScopeResolution Resolved(

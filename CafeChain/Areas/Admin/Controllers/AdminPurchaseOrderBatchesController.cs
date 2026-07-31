@@ -10,12 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers;
 
 [Area("Admin")]
-[RequirePermission(PermissionConstants.PurchaseOrderViewBatch,
-    RoleConstants.BusinessOwner + "," +
-    RoleConstants.AccountantWarehouse + "," +
-    RoleConstants.AreaManager + "," +
-    RoleConstants.StoreManager + "," +
-    RoleConstants.ShiftSupervisor)]
+[RequirePermission(PermissionConstants.PurchaseOrderViewBatch)]
 public sealed class AdminPurchaseOrderBatchesController : Controller
 {
     private readonly IPurchaseOrderBatchService _service;

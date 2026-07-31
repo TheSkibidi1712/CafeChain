@@ -1,5 +1,10 @@
 # AI Phase 2–4 Implementation
 
+> **Historical implementation note.** Trạng thái feature flag, UI visibility,
+> StaffScope và giới hạn runtime hiện hành được tổng hợp tại
+> [`../Doc/AI_FEATURES_BUSINESS_AND_TECHNICAL_GUIDE.md`](../Doc/AI_FEATURES_BUSINESS_AND_TECHNICAL_GUIDE.md).
+> Không dùng bảng phase trong tài liệu này để khẳng định một feature đang bật.
+
 Ngày cập nhật: 22/07/2026
 
 Tài liệu này là phần triển khai tiếp theo của `AI_BUSINESS_ANALYSIS.md`. Mục tiêu là ghi lại contract đã đưa vào code, điều kiện bật tính năng và các giới hạn dữ liệu cần tôn trọng khi pilot.

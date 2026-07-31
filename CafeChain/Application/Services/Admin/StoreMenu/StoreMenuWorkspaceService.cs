@@ -94,18 +94,30 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
             if (string.IsNullOrWhiteSpace(request.Reason))
                 return ServiceResult<StoreMenuWorkspaceRowDto>.Failure("Bắt buộc nhập lý do thay đổi menu cửa hàng.");
 
+            var allowedStoreIds = (await _scopeAuthorization.GetAllowedStoresAsync(
+                    actorStaffId,
+                    StoreScopePurpose.Default))
+                .Select(x => x.StoreId)
+                .ToHashSet();
+            if (allowedStoreIds.Count == 0)
+                return ServiceResult<StoreMenuWorkspaceRowDto>.Failure(
+                    "Bạn không có quyền vận hành menu của cửa hàng này.",
+                    errorCode: "STORE_MENU_OPERATION_FORBIDDEN");
+
             var item = await _context.StoreMenuItems
                 .Include(x => x.DrinkSize).ThenInclude(x => x.Drink).ThenInclude(x => x.Category)
                 .Include(x => x.DrinkSize).ThenInclude(x => x.Size)
-                .SingleOrDefaultAsync(x => x.StoreMenuItemId == request.StoreMenuItemId, cancellationToken);
+                .SingleOrDefaultAsync(
+                    x => x.StoreMenuItemId == request.StoreMenuItemId
+                         && allowedStoreIds.Contains(x.StoreId),
+                    cancellationToken);
             if (item == null)
                 return ServiceResult<StoreMenuWorkspaceRowDto>.Failure("Không tìm thấy SKU trong menu cửa hàng.");
 
             var roles = await GetRolesAsync(actorStaffId, cancellationToken);
             var canPublish = roles.Contains(RoleConstants.BusinessOwner)
                 || roles.Contains(RoleConstants.SystemAdmin);
-            var canOperate = canPublish || (roles.Contains(RoleConstants.StoreManager)
-                && await CanAccessManagedStoreAsync(actorStaffId, item.StoreId, cancellationToken));
+            var canOperate = canPublish || roles.Contains(RoleConstants.StoreManager);
             if (request.Action == StoreMenuLifecycleActions.Publish && !canPublish)
                 return ServiceResult<StoreMenuWorkspaceRowDto>.Failure(
                     "Chỉ Chủ doanh nghiệp được publish SKU lên menu cửa hàng.",
@@ -224,22 +236,13 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
 
         private async Task<bool> CanReadStoreAsync(int staffId, int storeId, CancellationToken cancellationToken)
         {
-            var roles = await GetRolesAsync(staffId, cancellationToken);
-            if (roles.Contains(RoleConstants.BusinessOwner)
-                || roles.Contains(RoleConstants.AccountantWarehouse)
-                || roles.Contains(RoleConstants.SystemAdmin))
-                return true;
-            if (roles.Contains(RoleConstants.AreaManager))
-                return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
-            return roles.Contains(RoleConstants.StoreManager)
-                && await CanAccessManagedStoreAsync(staffId, storeId, cancellationToken);
+            return staffId > 0
+                && storeId > 0
+                && await _scopeAuthorization.CanAccessStoreAsync(
+                    staffId,
+                    storeId,
+                    StoreScopePurpose.Default);
         }
-
-        private async Task<bool> CanAccessManagedStoreAsync(int staffId, int storeId, CancellationToken cancellationToken) =>
-            await _context.Staffs.AsNoTracking().AnyAsync(
-                x => x.StaffId == staffId && x.Active && x.StoreId == storeId,
-                cancellationToken)
-            || await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
 
         private Task<List<string>> GetRolesAsync(int staffId, CancellationToken cancellationToken) =>
             _context.Staffs.AsNoTracking()

@@ -52,6 +52,7 @@ namespace CafeChain.Application.Constants
         public const string PurchaseAdviceApprove = "PurchaseAdvice.Approve";
         public const string PurchaseAdviceCancel = "PurchaseAdvice.Cancel";
         public const string PurchaseAdviceConsolidate = "PurchaseAdvice.Consolidate";
+        public const string PurchaseAdviceConsolidationView = "PurchaseAdviceConsolidation.View";
         public const string PurchaseAdviceCreate = "PurchaseAdvice.Create";
         public const string PurchaseAdviceCreatePurchaseOrder = "PurchaseAdvice.CreatePurchaseOrder";
         public const string PurchaseAdviceReject = "PurchaseAdvice.Reject";

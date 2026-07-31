@@ -1,18 +1,28 @@
 @using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
 @using CafeChain.ViewModels.Admin.Shared
+@using System.Security.Claims
+@inject IAdminPermissionService PermissionService
 @model CafeChain.Application.DTOs.Admin.Procurement.PurchaseAdvicePageDto
 @{
     ViewData["Title"] = "Đề nghị mua hàng";
-    var hasCreateRole = Model.Actor.RoleNames.Contains(RoleConstants.StoreManager)
-        || Model.Actor.RoleNames.Contains(RoleConstants.AccountantWarehouse)
-        || Model.Actor.RoleNames.Contains(RoleConstants.BusinessOwner);
     var createStoreId = Model.Filter.StoreId.HasValue
         && Model.Stores.Any(x => x.StoreId == Model.Filter.StoreId.Value)
             ? Model.Filter.StoreId
             : Model.Stores.Any(x => x.StoreId == Model.Actor.StoreId)
                 ? Model.Actor.StoreId
                 : Model.Stores.FirstOrDefault().StoreId;
-    var canCreate = hasCreateRole && createStoreId > 0;
+    var canCreate = false;
+    if (createStoreId > 0
+        && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
+        && accountId > 0)
+    {
+        canCreate =
+            (await PermissionService.HasPermissionAsync(
+                accountId,
+                PermissionConstants.PurchaseAdviceCreate,
+                createStoreId)).Data?.Allowed == true;
+    }
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 

@@ -87,10 +87,6 @@ public sealed class OrderAccessAuthorizationService : IOrderAccessAuthorizationS
         if (targetStoreId <= 0)
             return OrderAccessDecision.NotFound;
 
-        // SystemAdmin is the only explicit global scope bypass.
-        if (actor.RoleNames.Contains(RoleConstants.SystemAdmin, StringComparer.OrdinalIgnoreCase))
-            return OrderAccessDecision.Allowed;
-
         return await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, targetStoreId)
             ? OrderAccessDecision.Allowed
             : OrderAccessDecision.NotFound;

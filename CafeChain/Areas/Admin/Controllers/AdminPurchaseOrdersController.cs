@@ -3,6 +3,7 @@ using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -12,12 +13,7 @@ using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [RequirePermission(PermissionConstants.PurchaseOrderView,
-        RoleConstants.BusinessOwner + "," +
-        RoleConstants.AreaManager + "," +
-        RoleConstants.StoreManager + "," +
-        RoleConstants.ShiftSupervisor + "," +
-        RoleConstants.AccountantWarehouse)]
+    [RequirePermission(PermissionConstants.PurchaseOrderView)]
     public sealed class AdminPurchaseOrdersController : AdminStoreScopedController
     {
         private readonly IPurchaseOrderService _service;
@@ -26,6 +22,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminActorContextAccessor _actor;
         private readonly AppDbContext _context;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
+        private readonly IAdminPermissionService? _permissions;
 
         public AdminPurchaseOrdersController(
             IPurchaseOrderService service,
@@ -33,7 +30,8 @@ namespace CafeChain.Areas.Admin.Controllers
             IUnitConversionService conversion,
             IAdminActorContextAccessor actor,
             AppDbContext context,
-            IAdminStoreScopeResolver storeScopeResolver)
+            IAdminStoreScopeResolver storeScopeResolver,
+            IAdminPermissionService? permissions = null)
         {
             _service = service;
             _allocations = allocations;
@@ -41,12 +39,12 @@ namespace CafeChain.Areas.Admin.Controllers
             _actor = actor;
             _context = context;
             _storeScopeResolver = storeScopeResolver;
+            _permissions = permissions;
         }
 
         [HttpGet]
         public async Task<IActionResult> Index(int? storeId = null, string? status = null)
         {
-            if (!CanRead()) return Forbid();
             var actor = _actor.Get(User);
             if (actor.StaffId <= 0) return Unauthorized();
             var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
@@ -59,13 +57,13 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            if (!CanRead()) return Forbid();
             var actor = _actor.Get(User);
             var result = await _service.GetDetailAsync(id, actor.StaffId, actor.RoleNames);
             if (!result.IsSuccess || result.Data == null) return Forbid();
-            ViewBag.CanReceive = CanReceive();
-            ViewBag.CanCloseRemaining = User.IsInRole(RoleConstants.BusinessOwner)
-                || User.IsInRole(RoleConstants.SystemAdmin);
+            var permissions = await GetEffectivePermissionsAsync(actor.AccountId);
+            ViewBag.CanReceive = permissions.Contains(PermissionConstants.PurchaseOrderReceive);
+            ViewBag.CanCloseRemaining =
+                permissions.Contains(PermissionConstants.PurchaseOrderCloseRemaining);
             return View(result.Data);
         }
 
@@ -73,13 +71,30 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.PurchaseOrderCreate)]
         public async Task<IActionResult> Create(int? restockRequestId = null)
         {
-            if (!CanCreate()) return Forbid();
+            var actor = _actor.Get(User);
+            int? requestedStoreId = null;
+            if (restockRequestId.HasValue)
+            {
+                requestedStoreId = await _context.RestockRequests
+                    .AsNoTracking()
+                    .Where(x => x.RestockRequestId == restockRequestId.Value)
+                    .Select(x => (int?)x.StoreId)
+                    .SingleOrDefaultAsync();
+                if (!requestedStoreId.HasValue)
+                    return NotFound();
+            }
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, requestedStoreId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+
             var model = new CreatePurchaseOrderRequest { Lines = new() { new() } };
             if (restockRequestId.HasValue)
             {
                 var request = await _context.RestockRequests.AsNoTracking()
                     .Include(x => x.Ingredient)
-                    .SingleOrDefaultAsync(x => x.RestockRequestId == restockRequestId.Value);
+                    .SingleOrDefaultAsync(x =>
+                        x.RestockRequestId == restockRequestId.Value
+                        && x.StoreId == storeScope.StoreId!.Value);
                 if (request?.IngredientId == null) return BadRequest("Chỉ tạo đơn đặt hàng cho yêu cầu nhập nguyên liệu.");
                 var allocation = await _allocations.GetSummaryAsync(request.RestockRequestId);
                 var remaining = allocation?.RemainingUnallocatedQuantity ?? request.RequestedQuantity;
@@ -92,7 +107,12 @@ namespace CafeChain.Areas.Admin.Controllers
                 model.Lines[0].RestockRequestId = request.RestockRequestId;
                 model.Lines[0].IngredientId = request.IngredientId.Value;
                 var offer = await _context.IngredientSuppliers.AsNoTracking()
-                    .Where(x => x.IngredientId == request.IngredientId && x.Active)
+                    .Where(x =>
+                        x.IngredientId == request.IngredientId
+                        && x.Active
+                        && x.Supplier.SupplierStores.Any(s =>
+                            s.StoreId == storeScope.StoreId.Value
+                            && s.Active))
                     .OrderByDescending(x => x.IsPrimary).ThenBy(x => x.IngredientSupplierId)
                     .FirstOrDefaultAsync();
                 if (offer != null)
@@ -123,11 +143,6 @@ namespace CafeChain.Areas.Admin.Controllers
                     }
                 }
             }
-            var actor = _actor.Get(User);
-            var storeScope = await _storeScopeResolver.ResolveAsync(
-                actor,
-                model.StoreId > 0 ? model.StoreId : null);
-            if (!storeScope.IsResolved) return StoreScopeFailure(storeScope);
             model.StoreId = storeScope.StoreId!.Value;
             await PopulateAsync(model.StoreId);
             return View(model);
@@ -138,7 +153,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.PurchaseOrderCreate)]
         public async Task<IActionResult> Create(CreatePurchaseOrderRequest model)
         {
-            if (!CanCreate()) return Forbid();
             var actor = _actor.Get(User);
             var storeScope = await _storeScopeResolver.ResolveAsync(actor, model.StoreId);
             if (!storeScope.IsResolved) return StoreScopeFailure(storeScope);
@@ -165,8 +179,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.PurchaseOrderCancel)]
         public async Task<IActionResult> Cancel(int id, string rowVersion, string reason)
         {
-            if (!User.IsInRole(RoleConstants.BusinessOwner)
-                && !User.IsInRole(RoleConstants.SystemAdmin)) return Forbid();
             var actor = _actor.Get(User);
             var result = await _service.CancelAsync(id, rowVersion, actor.StaffId, actor.RoleNames, reason);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
@@ -177,8 +189,6 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.PurchaseOrderCloseRemaining)]
         public async Task<IActionResult> CloseLineRemaining(int id, int lineId, string rowVersion, string reason, string requestKey)
         {
-            if (!User.IsInRole(RoleConstants.BusinessOwner)
-                && !User.IsInRole(RoleConstants.SystemAdmin)) return Forbid();
             var actor = _actor.Get(User);
             var result = await _service.CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
             {
@@ -193,12 +203,6 @@ namespace CafeChain.Areas.Admin.Controllers
 
         private async Task<IActionResult> Transition(int id, string rowVersion, bool approve)
         {
-            if (approve
-                && !User.IsInRole(RoleConstants.BusinessOwner)
-                && !User.IsInRole(RoleConstants.SystemAdmin)) return Forbid();
-            if (!approve
-                && !User.IsInRole(RoleConstants.AccountantWarehouse)
-                && !User.IsInRole(RoleConstants.SystemAdmin)) return Forbid();
             var actor = _actor.Get(User);
             var result = approve
                 ? await _service.ApproveAsync(id, rowVersion, actor.StaffId, actor.RoleNames)
@@ -228,23 +232,12 @@ namespace CafeChain.Areas.Admin.Controllers
                 .OrderBy(x => x.Ingredient.Name).ToListAsync();
         }
 
-        private bool CanRead() =>
-            User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.ShiftSupervisor)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
-        private bool CanCreate() =>
-            User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
-        private bool CanReceive() =>
-            User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.ShiftSupervisor)
-            || User.IsInRole(RoleConstants.SystemAdmin);
+        private async Task<HashSet<string>> GetEffectivePermissionsAsync(int accountId)
+        {
+            if (_permissions == null || accountId <= 0)
+                return new HashSet<string>(StringComparer.Ordinal);
+            var result = await _permissions.GetEffectivePermissionCodesAsync(accountId);
+            return result.Data ?? new HashSet<string>(StringComparer.Ordinal);
+        }
     }
 }

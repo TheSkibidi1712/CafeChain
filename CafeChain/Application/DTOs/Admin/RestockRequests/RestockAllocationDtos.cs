@@ -22,6 +22,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public int? ExcludeInventoryTransferId { get; set; }
         public bool AllowOverallocationOverride { get; set; }
         public string? OverrideReason { get; set; }
+        public string? OverridePermissionCode { get; set; }
         public int ActorStaffId { get; set; }
         public IReadOnlyCollection<string> ActorRoles { get; set; } = Array.Empty<string>();
         public string? RequestKey { get; set; }

@@ -1,5 +1,12 @@
 # Hướng dẫn sử dụng AI Dashboard CafeChain
 
+> **Trạng thái: được thay thế về kiến trúc và scope.** Xem
+> [AI_FEATURES_BUSINESS_AND_TECHNICAL_GUIDE.md](AI_FEATURES_BUSINESS_AND_TECHNICAL_GUIDE.md).
+> SystemAdmin **không** có global Dashboard scope mặc định; ngoại lệ global
+> Active Store chỉ thuộc module `ReorderSuggestion`. Mọi hướng dẫn bên dưới nói
+> SystemAdmin global trên Dashboard phải được hiểu là claim cũ và không còn áp
+> dụng.
+
 Tài liệu này dành cho quản trị viên, quản lý cửa hàng và nhóm vận hành hệ thống AI Dashboard.
 
 ## 1. Mục đích
@@ -17,7 +24,9 @@ AI không truy vấn database, không sinh SQL và không được tự tạo s�
 
 Người dùng phải có policy `AdminDashboardApp`.
 
-Phạm vi dữ liệu được xác định từ `StaffScope` ở backend; riêng Quản trị hệ thống có global scope trên toàn bộ cửa hàng active:
+Phạm vi Dashboard được xác định từ default `StaffScope` ở backend. Quản trị hệ
+thống không có global Dashboard scope; ngoại lệ global Active Store chỉ thuộc
+module `ReorderSuggestion`:
 
 - Có scope một cửa hàng: chỉ xem được cửa hàng đó.
 - Có nhiều scope: dữ liệu được giới hạn trong tập cửa hàng được cấp quyền.
@@ -167,7 +176,9 @@ Tải lại phiên bản frontend mới và mở lại tab chứa biểu đồ. 
 
 ### Bị 403
 
-Tài khoản thiếu policy, bị account override `Deny` hoặc request chứa cửa hàng ngoài StaffScope. SystemAdmin có global store scope nhưng vẫn bị chặn khi account inactive hoặc permission bị `Deny`.
+Tài khoản thiếu policy, bị account override `Deny` hoặc request chứa cửa hàng
+ngoài StaffScope. SystemAdmin trên Dashboard cũng dùng default StaffScope và vẫn
+bị chặn khi account inactive hoặc permission bị `Deny`.
 
 ## 10. Cấu hình feature flag
 

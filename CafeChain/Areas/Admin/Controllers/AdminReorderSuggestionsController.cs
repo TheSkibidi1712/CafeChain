@@ -4,6 +4,7 @@ using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -47,6 +48,7 @@ public sealed class AdminReorderSuggestionsController : AdminBaseController
 
         var storeScope = await _storeScopeResolver.ResolveAsync(
             actor,
+            StoreScopePurpose.ReorderSuggestion,
             storeId,
             cancellationToken);
         if (!storeScope.IsResolved)
@@ -115,6 +117,7 @@ public sealed class AdminReorderSuggestionsController : AdminBaseController
         var actor = _actorAccessor.Get(User);
         var scope = await _storeScopeResolver.ResolveAsync(
             actor,
+            StoreScopePurpose.ReorderSuggestion,
             request.StoreId,
             cancellationToken);
         if (!scope.IsResolved
@@ -221,6 +224,7 @@ public sealed class AdminReorderSuggestionsController : AdminBaseController
         var actor = _actorAccessor.Get(User);
         var scope = await _storeScopeResolver.ResolveAsync(
             actor,
+            StoreScopePurpose.ReorderSuggestion,
             request.StoreId,
             cancellationToken);
         if (!scope.IsResolved)

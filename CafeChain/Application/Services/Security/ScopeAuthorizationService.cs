@@ -16,9 +16,21 @@ namespace CafeChain.Application.Services.Security
             _context = context;
         }
 
-        public async Task<List<Store>> GetAllowedStoresAsync(int currentStaffId)
+        public Task<List<Store>> GetAllowedStoresAsync(int currentStaffId) =>
+            GetAllowedStoresAsync(currentStaffId, StoreScopePurpose.Default);
+
+        public async Task<List<Store>> GetAllowedStoresAsync(
+            int currentStaffId,
+            StoreScopePurpose purpose)
         {
-            if (await IsActiveSystemAdminAsync(currentStaffId))
+            if (currentStaffId <= 0)
+            {
+                return new List<Store>();
+            }
+
+            var isActiveSystemAdmin = await IsActiveSystemAdminAsync(currentStaffId);
+            if (purpose == StoreScopePurpose.ReorderSuggestion
+                && isActiveSystemAdmin)
             {
                 return await _context.Stores
                     .AsNoTracking()
@@ -28,6 +40,17 @@ namespace CafeChain.Application.Services.Security
             }
 
             var scopes = await GetStaffScopesAsync(currentStaffId);
+            if (purpose == StoreScopePurpose.Default
+                && isActiveSystemAdmin)
+            {
+                // The seeded Country scope is an administrative configuration
+                // scope, not a global business-data bypass. Narrow scopes remain
+                // usable when they have been configured explicitly.
+                scopes = scopes
+                    .Where(x => x.ScopeTypeId != (int)ScopeLevel.Country)
+                    .ToList();
+            }
+
             if (!scopes.Any())
             {
                 return new List<Store>();
@@ -59,64 +82,40 @@ namespace CafeChain.Application.Services.Security
 
         public Task<bool> CheckIfStoreIsWithinManagerScopeAsync(int currentStaffId, int targetStoreId)
         {
-            return CanAccessStoreAsync(currentStaffId, targetStoreId);
+            return CanAccessStoreAsync(
+                currentStaffId,
+                targetStoreId,
+                StoreScopePurpose.Default);
         }
 
-        public async Task<bool> CanAccessStoreAsync(int currentStaffId, int targetStoreId)
+        public Task<bool> CanAccessStoreAsync(int currentStaffId, int targetStoreId) =>
+            CanAccessStoreAsync(
+                currentStaffId,
+                targetStoreId,
+                StoreScopePurpose.Default);
+
+        public async Task<bool> CanAccessStoreAsync(
+            int currentStaffId,
+            int targetStoreId,
+            StoreScopePurpose purpose)
         {
             if (currentStaffId <= 0 || targetStoreId <= 0)
             {
                 return false;
             }
 
-            var store = await _context.Stores
-                .AsNoTracking()
-                .Where(x => x.StoreId == targetStoreId && x.Active)
-                .Select(x => new
-                {
-                    x.StoreId,
-                    x.ProvinceId,
-                    x.DistrictId,
-                    x.WardId
-                })
-                .FirstOrDefaultAsync();
-
-            if (store == null)
-            {
-                return false;
-            }
-
-            if (await IsActiveSystemAdminAsync(currentStaffId))
-            {
-                return true;
-            }
-
-            var scopes = await GetStaffScopesAsync(currentStaffId);
-            if (!scopes.Any())
-            {
-                return false;
-            }
-
-            if (scopes.Any(x => x.ScopeTypeId == (int)ScopeLevel.Country))
-            {
-                return true;
-            }
-
-            return scopes.Any(scope => scope.ScopeTypeId switch
-            {
-                (int)ScopeLevel.Province => store.ProvinceId == scope.ScopeRefId,
-                (int)ScopeLevel.District => store.DistrictId == scope.ScopeRefId,
-                (int)ScopeLevel.Ward => store.WardId == scope.ScopeRefId,
-                (int)ScopeLevel.Store => store.StoreId == scope.ScopeRefId,
-                _ => false
-            });
+            var allowedStores = await GetAllowedStoresAsync(currentStaffId, purpose);
+            return allowedStores.Any(x => x.StoreId == targetStoreId);
         }
 
         private Task<List<StaffScope>> GetStaffScopesAsync(int staffId)
         {
             return _context.StaffScopes
                 .AsNoTracking()
-                .Where(x => x.StaffId == staffId)
+                .Where(x =>
+                    x.StaffId == staffId
+                    && x.Staff.Active
+                    && x.Staff.Account.Active)
                 .ToListAsync();
         }
 

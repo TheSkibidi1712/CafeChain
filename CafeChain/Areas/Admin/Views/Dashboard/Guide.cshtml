@@ -8,7 +8,7 @@
         <div>
             <span class="text-uppercase text-muted small fw-bold">CafeChain Analytics</span>
             <h1 class="h2 fw-bold mt-2">Hướng dẫn sử dụng Dashboard và AI Analyst</h1>
-            <p class="text-muted mb-0">Dữ liệu được giới hạn theo StaffScope; Quản trị hệ thống có phạm vi toàn bộ cửa hàng đang hoạt động.</p>
+            <p class="text-muted mb-0">Dữ liệu Dashboard luôn được giới hạn theo StaffScope; phạm vi toàn bộ cửa hàng đang hoạt động của Quản trị hệ thống chỉ áp dụng riêng cho Gợi ý nhập hàng.</p>
         </div>
         <a class="btn btn-outline-secondary" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
             <i class="bi bi-arrow-left"></i> Quay lại Dashboard
@@ -150,7 +150,7 @@
             <section class="card border-0 shadow-sm"><div class="card-body p-4">
                 <h2 id="troubleshooting" class="h4">8. Xử lý sự cố và giới hạn</h2>
                 <ul class="mb-0">
-                    <li><strong>403:</strong> tài khoản thiếu App.AdminDashboard, bị account override Deny hoặc cửa hàng nằm ngoài StaffScope; SystemAdmin dùng global scope.</li>
+                    <li><strong>403:</strong> tài khoản thiếu App.AdminDashboard, bị account override Deny hoặc cửa hàng nằm ngoài StaffScope; SystemAdmin không tự động có global scope trên Dashboard.</li>
                     <li><strong>Không có dữ liệu:</strong> kiểm tra khoảng ngày, store và trạng thái nghiệp vụ đã hoàn tất.</li>
                     <li><strong>AI Fallback:</strong> kiểm tra Ollama/model; phần fact và statistic vẫn lấy từ dữ liệu server.</li>
                     <li><strong>Insufficient:</strong> mở rộng khoảng ngày hoặc chọn store có dữ liệu; AI sẽ không tự đoán.</li>

@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.DTOs.Inventories;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
@@ -32,6 +33,7 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<BranchReceiptService> _logger;
         private readonly IPurchaseOrderService? _purchaseOrders;
+        private readonly IAdminPermissionService? _permissions;
 
         public BranchReceiptService(
             AppDbContext context,
@@ -43,7 +45,8 @@ namespace CafeChain.Application.Services.Inventories
             IStockAlertService stockAlertService,
             IScopeAuthorizationService scopeAuthorization,
             ILogger<BranchReceiptService> logger,
-            IPurchaseOrderService? purchaseOrders = null)
+            IPurchaseOrderService? purchaseOrders = null,
+            IAdminPermissionService? permissions = null)
         {
             _context = context;
             _unitConversion = unitConversion;
@@ -55,6 +58,7 @@ namespace CafeChain.Application.Services.Inventories
             _scopeAuthorization = scopeAuthorization;
             _logger = logger;
             _purchaseOrders = purchaseOrders;
+            _permissions = permissions;
         }
 
         public async Task<ServiceResult<BranchReceiptDetailDto>> CreateDraftAsync(
@@ -65,11 +69,14 @@ namespace CafeChain.Application.Services.Inventories
             if (request == null)
                 return FailDetail("Thiếu dữ liệu phiếu nhận.");
 
-            if (!CanCreateOrConfirmReceipt(roleNames))
-                return FailDetail("Bạn không có quyền tạo phiếu nhận hàng.", BranchReceiptErrorCodes.Unauthorized);
-
             if (request.StoreId <= 0)
                 return FailDetail("Mã chi nhánh không hợp lệ.", BranchReceiptErrorCodes.StoreMismatch);
+
+            if (!await HasPermissionAsync(
+                    actorStaffId,
+                    PermissionConstants.ReceiptCreate,
+                    request.StoreId))
+                return FailDetail("Bạn không có quyền tạo phiếu nhận hàng.", BranchReceiptErrorCodes.Unauthorized);
 
             var createAuth = await AuthorizeReceiptAccessAsync(
                 request.StoreId,
@@ -311,10 +318,33 @@ namespace CafeChain.Application.Services.Inventories
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames)
         {
-            if (!CanCreateOrConfirmReceipt(roleNames))
-                return FailPurchaseOrderDraft("Bạn không có quyền nhận hàng tại cửa hàng.", BranchReceiptErrorCodes.Unauthorized);
             if (purchaseOrderId <= 0)
                 return FailPurchaseOrderDraft("Mã đơn đặt hàng không hợp lệ.");
+
+            var orderStoreId = await _context.PurchaseOrders
+                .AsNoTracking()
+                .Where(x => x.PurchaseOrderId == purchaseOrderId)
+                .Select(x => (int?)x.StoreId)
+                .SingleOrDefaultAsync();
+            if (!orderStoreId.HasValue)
+                return FailPurchaseOrderDraft("Không tìm thấy đơn mua hàng.");
+
+            var initialAuth = await AuthorizeReceiptAccessAsync(
+                orderStoreId.Value,
+                actorStaffId,
+                actorStoreId,
+                roleNames,
+                mutation: true);
+            if (!initialAuth.IsSuccess
+                || !await HasPermissionAsync(
+                    actorStaffId,
+                    PermissionConstants.ReceiptCreate,
+                    orderStoreId.Value))
+            {
+                return FailPurchaseOrderDraft(
+                    "Bạn không có quyền nhận hàng tại cửa hàng.",
+                    BranchReceiptErrorCodes.Unauthorized);
+            }
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -332,6 +362,10 @@ namespace CafeChain.Application.Services.Inventories
                     .SingleOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId);
                 if (order == null)
                     return FailPurchaseOrderDraft("Không tìm thấy đơn mua hàng.");
+                if (order.StoreId != orderStoreId.Value)
+                    return FailPurchaseOrderDraft(
+                        "Phạm vi cửa hàng của đơn đặt hàng đã thay đổi. Vui lòng tải lại.",
+                        BranchReceiptErrorCodes.ResourceChanged);
 
                 var auth = await AuthorizeReceiptAccessAsync(
                     order.StoreId, actorStaffId, actorStoreId, roleNames, mutation: true);
@@ -415,6 +449,15 @@ namespace CafeChain.Application.Services.Inventories
                 receipt.StoreId, actorStaffId, actorStoreId, roleNames, mutation: true);
             if (!auth.IsSuccess)
                 return FailPurchaseOrderDraft(auth.Message, auth.ErrorCode);
+            if (!await HasPermissionAsync(
+                    actorStaffId,
+                    PermissionConstants.ReceiptUpdateDraft,
+                    receipt.StoreId))
+            {
+                return FailPurchaseOrderDraft(
+                    "Bạn không có quyền mở phiếu kiểm đếm.",
+                    BranchReceiptErrorCodes.Unauthorized);
+            }
             return ServiceResult<PurchaseOrderReceiptDraftDto>.Success(
                 await MapPurchaseOrderDraftAsync(branchReceiptId));
         }
@@ -425,10 +468,32 @@ namespace CafeChain.Application.Services.Inventories
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames)
         {
-            if (!CanCreateOrConfirmReceipt(roleNames))
-                return FailPurchaseOrderDraft("Bạn không có quyền lưu phiếu kiểm đếm.", BranchReceiptErrorCodes.Unauthorized);
             if (!TryParseRequiredRowVersion(request.RowVersion, out var expectedVersion))
                 return FailPurchaseOrderDraft("Thiếu phiên bản dữ liệu. Vui lòng tải lại.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
+
+            var scopedStoreId = await _context.BranchReceipts
+                .AsNoTracking()
+                .Where(x => x.BranchReceiptId == request.BranchReceiptId)
+                .Select(x => (int?)x.StoreId)
+                .SingleOrDefaultAsync();
+            if (!scopedStoreId.HasValue)
+                return FailPurchaseOrderDraft("Không tìm thấy phiếu kiểm đếm đơn đặt hàng.");
+            var initialAuth = await AuthorizeReceiptAccessAsync(
+                scopedStoreId.Value,
+                actorStaffId,
+                actorStoreId,
+                roleNames,
+                mutation: true);
+            if (!initialAuth.IsSuccess
+                || !await HasPermissionAsync(
+                    actorStaffId,
+                    PermissionConstants.ReceiptUpdateDraft,
+                    scopedStoreId.Value))
+            {
+                return FailPurchaseOrderDraft(
+                    "Bạn không có quyền lưu phiếu kiểm đếm.",
+                    BranchReceiptErrorCodes.Unauthorized);
+            }
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -436,6 +501,10 @@ namespace CafeChain.Application.Services.Inventories
                 var receipt = await LoadReceiptForUpdateAsync(request.BranchReceiptId);
                 if (receipt?.PurchaseOrderId == null)
                     return FailPurchaseOrderDraft("Không tìm thấy phiếu kiểm đếm đơn đặt hàng.");
+                if (receipt.StoreId != scopedStoreId.Value)
+                    return FailPurchaseOrderDraft(
+                        "Phạm vi cửa hàng của phiếu nhận đã thay đổi. Vui lòng tải lại.",
+                        BranchReceiptErrorCodes.ResourceChanged);
                 var auth = await AuthorizeReceiptAccessAsync(
                     receipt.StoreId, actorStaffId, actorStoreId, roleNames, mutation: true);
                 if (!auth.IsSuccess)
@@ -504,13 +573,40 @@ namespace CafeChain.Application.Services.Inventories
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames)
         {
+            var scopedStoreId = await _context.BranchReceipts
+                .AsNoTracking()
+                .Where(x => x.BranchReceiptId == branchReceiptId)
+                .Select(x => (int?)x.StoreId)
+                .SingleOrDefaultAsync();
+            if (!scopedStoreId.HasValue)
+                return FailDetail("Không tìm thấy phiếu nhận.", BranchReceiptErrorCodes.ReceiptNotFound);
+
+            var initialAuth = await AuthorizeReceiptAccessAsync(
+                scopedStoreId.Value,
+                actorStaffId,
+                actorStoreId,
+                roleNames,
+                mutation: false);
+            if (!initialAuth.IsSuccess
+                || !await HasPermissionAsync(
+                    actorStaffId,
+                    PermissionConstants.ReceiptView,
+                    scopedStoreId.Value))
+            {
+                return FailDetail(
+                    "Không có quyền truy cập phiếu nhận của cửa hàng này.",
+                    BranchReceiptErrorCodes.Unauthorized);
+            }
+
             var receipt = await _context.BranchReceipts
                 .AsNoTracking()
                 .Include(r => r.Supplier)
                 .Include(r => r.Lines).ThenInclude(l => l.InputUnit)
                 .Include(r => r.Lines).ThenInclude(l => l.BaseUnit)
                 .Include(r => r.Lines).ThenInclude(l => l.ProcurementUnit)
-                .FirstOrDefaultAsync(r => r.BranchReceiptId == branchReceiptId);
+                .FirstOrDefaultAsync(r =>
+                    r.BranchReceiptId == branchReceiptId
+                    && r.StoreId == scopedStoreId.Value);
 
             if (receipt == null)
                 return FailDetail("Không tìm thấy phiếu nhận.", BranchReceiptErrorCodes.ReceiptNotFound);
@@ -534,6 +630,15 @@ namespace CafeChain.Application.Services.Inventories
                 storeId, actorStaffId, actorStoreId, roleNames, mutation: false);
             if (!auth.IsSuccess)
                 return ServiceResult<List<BranchReceiptListItemDto>>.Failure(auth.Message, errorCode: auth.ErrorCode);
+            if (!await HasPermissionAsync(
+                    actorStaffId,
+                    PermissionConstants.ReceiptView,
+                    storeId))
+            {
+                return ServiceResult<List<BranchReceiptListItemDto>>.Failure(
+                    "Bạn không có quyền xem phiếu nhận của cửa hàng này.",
+                    errorCode: BranchReceiptErrorCodes.Unauthorized);
+            }
 
             var q = _context.BranchReceipts
                 .AsNoTracking()
@@ -563,18 +668,39 @@ namespace CafeChain.Application.Services.Inventories
             IReadOnlyCollection<string> roleNames,
             string? rowVersion)
         {
-            if (!CanCreateOrConfirmReceipt(roleNames))
-            {
-                return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
-                    "Bạn không có quyền xác nhận phiếu nhận.",
-                    errorCode: BranchReceiptErrorCodes.Unauthorized);
-            }
-
             if (!TryParseRequiredRowVersion(rowVersion, out var expectedVersion))
             {
                 return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
                     "Thiếu phiên bản dữ liệu. Vui lòng tải lại trang.",
                     errorCode: BranchReceiptErrorCodes.ValidationRowVersionRequired);
+            }
+
+            var scopedStoreId = await _context.BranchReceipts
+                .AsNoTracking()
+                .Where(x => x.BranchReceiptId == branchReceiptId)
+                .Select(x => (int?)x.StoreId)
+                .SingleOrDefaultAsync();
+            if (!scopedStoreId.HasValue)
+            {
+                return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                    "Không tìm thấy phiếu nhận.",
+                    errorCode: BranchReceiptErrorCodes.ReceiptNotFound);
+            }
+            var initialAuth = await AuthorizeReceiptAccessAsync(
+                scopedStoreId.Value,
+                actorStaffId,
+                actorStoreId,
+                roleNames,
+                mutation: true);
+            if (!initialAuth.IsSuccess
+                || !await HasPermissionAsync(
+                    actorStaffId,
+                    PermissionConstants.ReceiptConfirm,
+                    scopedStoreId.Value))
+            {
+                return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                    "Bạn không có quyền xác nhận phiếu nhận.",
+                    errorCode: BranchReceiptErrorCodes.Unauthorized);
             }
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -587,6 +713,13 @@ namespace CafeChain.Application.Services.Inventories
                     return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
                         "Không tìm thấy phiếu nhận.",
                         errorCode: BranchReceiptErrorCodes.ReceiptNotFound);
+                }
+                if (receipt.StoreId != scopedStoreId.Value)
+                {
+                    await transaction.RollbackAsync();
+                    return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                        "Phạm vi cửa hàng của phiếu nhận đã thay đổi. Vui lòng tải lại.",
+                        errorCode: BranchReceiptErrorCodes.ResourceChanged);
                 }
 
                 var auth = await AuthorizeReceiptAccessAsync(
@@ -1068,6 +1201,15 @@ namespace CafeChain.Application.Services.Inventories
                     auth.Message,
                     errorCode: auth.ErrorCode);
             }
+            if (!await HasPermissionAsync(
+                    actorStaffId,
+                    PermissionConstants.ReceiptCreate,
+                    storeId))
+            {
+                return ServiceResult<List<BranchReceiptSupplierOptionDto>>.Failure(
+                    "Bạn không có quyền tải nhà cung cấp cho phiếu nhận.",
+                    errorCode: BranchReceiptErrorCodes.Unauthorized);
+            }
 
             var rows = await _context.SupplierStores
                 .AsNoTracking()
@@ -1101,6 +1243,15 @@ namespace CafeChain.Application.Services.Inventories
                 return ServiceResult<List<BranchReceiptOfferOptionDto>>.Failure(
                     auth.Message,
                     errorCode: auth.ErrorCode);
+            }
+            if (!await HasPermissionAsync(
+                    actorStaffId,
+                    PermissionConstants.ReceiptCreate,
+                    storeId))
+            {
+                return ServiceResult<List<BranchReceiptOfferOptionDto>>.Failure(
+                    "Bạn không có quyền tải báo giá cho phiếu nhận.",
+                    errorCode: BranchReceiptErrorCodes.Unauthorized);
             }
 
             if (!await IsSupplierAssignedToStoreAsync(supplierId, storeId))
@@ -2173,56 +2324,45 @@ namespace CafeChain.Application.Services.Inventories
             IReadOnlyCollection<string> roleNames,
             bool mutation)
         {
-            if (roleNames.Contains(RoleConstants.SystemAdmin))
-                return ServiceResult.Success();
-
-            if (roleNames.Contains(RoleConstants.BusinessOwner))
-                return ServiceResult.Success();
-
-            if (!mutation && roleNames.Contains(RoleConstants.AccountantWarehouse))
-                return ServiceResult.Success();
-
-            if (roleNames.Contains(RoleConstants.AreaManager))
+            if (storeId <= 0
+                || actorStaffId <= 0
+                || !await _scopeAuthorization.CanAccessStoreAsync(
+                    actorStaffId,
+                    storeId,
+                    StoreScopePurpose.Default))
             {
-                if (mutation)
-                {
-                    return ServiceResult.Failure(
-                        "Quản lý vùng chỉ có quyền xem phiếu nhận.",
-                        errorCode: BranchReceiptErrorCodes.Unauthorized);
-                }
-                return actorStaffId > 0
-                       && await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, storeId)
-                    ? ServiceResult.Success()
-                    : ServiceResult.Failure(
-                        "Cửa hàng nằm ngoài phạm vi quản lý vùng.",
-                        errorCode: BranchReceiptErrorCodes.Unauthorized);
+                return ServiceResult.Failure(
+                    "Không có quyền truy cập phiếu nhận cửa hàng này.",
+                    errorCode: BranchReceiptErrorCodes.Unauthorized);
             }
 
-            var allowedBranchRole = roleNames.Contains(RoleConstants.StoreManager)
-                                   || roleNames.Contains(RoleConstants.ShiftSupervisor);
-            if (allowedBranchRole)
-            {
-                var staffStoreId = await _context.Staffs
-                    .AsNoTracking()
-                    .Where(s => s.StaffId == actorStaffId && s.Active)
-                    .Select(s => (int?)s.StoreId)
-                    .FirstOrDefaultAsync();
-                if (!staffStoreId.HasValue)
-                    staffStoreId = actorStoreId;
-                if (staffStoreId.HasValue && staffStoreId.Value == storeId)
-                    return ServiceResult.Success();
-            }
-
-            return ServiceResult.Failure(
-                "Không có quyền truy cập phiếu nhận cửa hàng này.",
-                errorCode: BranchReceiptErrorCodes.Unauthorized);
+            return ServiceResult.Success();
         }
 
-        private static bool CanCreateOrConfirmReceipt(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.SystemAdmin)
-            || roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.StoreManager)
-            || roles.Contains(RoleConstants.ShiftSupervisor);
+        private async Task<bool> HasPermissionAsync(
+            int actorStaffId,
+            string permissionCode,
+            int storeId)
+        {
+            // Optional only for legacy isolated tests that construct the service directly.
+            // Production DI always supplies the permission service.
+            if (_permissions == null)
+                return true;
+
+            var accountId = await _context.Staffs
+                .AsNoTracking()
+                .Where(x => x.StaffId == actorStaffId && x.Active && x.Account.Active)
+                .Select(x => (int?)x.AccountId)
+                .SingleOrDefaultAsync();
+            if (!accountId.HasValue)
+                return false;
+
+            var decision = await _permissions.HasPermissionAsync(
+                accountId.Value,
+                permissionCode,
+                storeId);
+            return decision.IsSuccess && decision.Data?.Allowed == true;
+        }
 
         private static bool IsUniqueViolation(DbUpdateException ex)
         {

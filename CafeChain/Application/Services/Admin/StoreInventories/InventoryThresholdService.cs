@@ -1,6 +1,8 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.InventoryThresholds;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Staffs;
@@ -19,24 +21,21 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
     {
         private const int MaxPageSize = 100;
 
-        /// <summary>Roles allowed to change MinStockLevel (not AccountantWarehouse / sales / supervisor).</summary>
-        public static readonly string[] EditRoleNames =
-        {
-            RoleConstants.StoreManager,
-            RoleConstants.AreaManager,
-            RoleConstants.BusinessOwner,
-            RoleConstants.SystemAdmin
-        };
-
         private readonly AppDbContext _context;
         private readonly ILogger<InventoryThresholdService> _logger;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
+        private readonly IAdminPermissionService _permissions;
 
         public InventoryThresholdService(
             AppDbContext context,
-            ILogger<InventoryThresholdService> logger)
+            ILogger<InventoryThresholdService> logger,
+            IScopeAuthorizationService scopeAuthorization,
+            IAdminPermissionService permissions)
         {
             _context = context;
             _logger = logger;
+            _scopeAuthorization = scopeAuthorization;
+            _permissions = permissions;
         }
 
         public async Task<ServiceResult<InventoryThresholdListResultDto>> ListAsync(
@@ -115,11 +114,6 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             if (accountId <= 0)
                 return ServiceResult.Failure("Không xác định được tài khoản.");
 
-            if (!await AccountHasEditRoleAsync(accountId))
-            {
-                return ServiceResult.Failure("Bạn không có quyền cập nhật ngưỡng tồn kho.");
-            }
-
             if (storeInventoryId <= 0)
                 return ServiceResult.Failure("Mã tồn kho không hợp lệ.");
 
@@ -147,8 +141,25 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                     errorCode: "VALIDATION_ROW_VERSION_REQUIRED");
             }
 
+            var targetStoreId = await _context.StoreInventories
+                .AsNoTracking()
+                .Where(i => i.StoreInventoryId == storeInventoryId)
+                .Select(i => (int?)i.StoreId)
+                .SingleOrDefaultAsync();
+            if (!targetStoreId.HasValue)
+                return ServiceResult.Failure("Không tìm thấy dòng tồn kho.");
+
+            var permission = await _permissions.HasPermissionAsync(
+                accountId,
+                PermissionConstants.InventoryThresholdUpdate,
+                targetStoreId.Value);
+            if (!permission.IsSuccess || permission.Data?.Allowed != true)
+                return ServiceResult.Failure("Bạn không có quyền cập nhật ngưỡng tồn kho.");
+
             var row = await _context.StoreInventories
-                .FirstOrDefaultAsync(i => i.StoreInventoryId == storeInventoryId);
+                .FirstOrDefaultAsync(i =>
+                    i.StoreInventoryId == storeInventoryId
+                    && i.StoreId == targetStoreId.Value);
 
             if (row == null)
                 return ServiceResult.Failure("Không tìm thấy dòng tồn kho.");
@@ -202,42 +213,27 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             return ServiceResult.Success("Cập nhật ngưỡng tồn kho thành công.");
         }
 
-        /// <summary>True if account has an active edit role for MinStockLevel.</summary>
-        public async Task<bool> AccountHasEditRoleAsync(int accountId)
-        {
-            if (accountId <= 0)
-                return false;
-
-            return await _context.Accounts
-                .AsNoTracking()
-                .Where(a => a.AccountId == accountId && a.Active)
-                .SelectMany(a => a.AccountRoles)
-                .AnyAsync(ar =>
-                    ar.Role != null &&
-                    ar.Role.Active &&
-                    EditRoleNames.Contains(ar.Role.Name));
-        }
-
         private async Task<List<InventoryStoreTabDto>> GetAccessibleStoresAsync(int accountId)
         {
-            var staff = await _context.Staffs
+            var staffId = await _context.Staffs
                 .AsNoTracking()
-                .Include(x => x.StaffScopes)
-                    .ThenInclude(x => x.ScopeType)
-                .FirstOrDefaultAsync(x => x.AccountId == accountId && x.Active);
+                .Where(x => x.AccountId == accountId && x.Active && x.Account.Active)
+                .Select(x => x.StaffId)
+                .SingleOrDefaultAsync();
 
-            if (staff == null)
+            if (staffId <= 0)
                 return new List<InventoryStoreTabDto>();
 
-            var query = BuildStoreScopeQuery(staff);
-            return await query
+            var stores = await _scopeAuthorization.GetAllowedStoresAsync(staffId);
+            return stores
+                .Where(x => x.Active)
                 .OrderBy(x => x.Name)
                 .Select(x => new InventoryStoreTabDto
                 {
                     StoreId = x.StoreId,
                     StoreName = x.Name
                 })
-                .ToListAsync();
+                .ToList();
         }
 
         private async Task<HashSet<int>> GetAccessibleStoreIdsAsync(int accountId)
@@ -245,62 +241,6 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             var stores = await GetAccessibleStoresAsync(accountId);
             return stores.Select(s => s.StoreId).ToHashSet();
         }
-
-        private IQueryable<Store> BuildStoreScopeQuery(Staff staff)
-        {
-            var activeStores = _context.Stores
-                .AsNoTracking()
-                .Where(x => x.Active);
-
-            var scopes = staff.StaffScopes?
-                .Where(x => x.ScopeRefId > 0)
-                .ToList()
-                ?? new List<StaffScope>();
-
-            if (HasScope(scopes, "COUNTRY", 1))
-                return activeStores;
-
-            var storeScopeIds = GetScopeRefIds(scopes, "STORE", 4);
-            var provinceScopeIds = GetScopeRefIds(scopes, "PROVINCE", 2);
-            var wardScopeIds = GetScopeRefIds(scopes, "WARD", 3);
-
-            if (staff.StoreId > 0)
-                storeScopeIds.Add(staff.StoreId);
-
-            storeScopeIds = storeScopeIds.Distinct().ToList();
-            provinceScopeIds = provinceScopeIds.Distinct().ToList();
-            wardScopeIds = wardScopeIds.Distinct().ToList();
-
-            if (!storeScopeIds.Any() && !provinceScopeIds.Any() && !wardScopeIds.Any())
-                return activeStores.Where(x => false);
-
-            return activeStores.Where(x =>
-                storeScopeIds.Contains(x.StoreId) ||
-                (x.ProvinceId.HasValue && provinceScopeIds.Contains(x.ProvinceId.Value)) ||
-                (x.WardId.HasValue && wardScopeIds.Contains(x.WardId.Value)));
-        }
-
-        private static List<int> GetScopeRefIds(
-            IEnumerable<StaffScope> scopes,
-            string code,
-            int scopeTypeId)
-        {
-            return scopes
-                .Where(x => IsScope(x, code, scopeTypeId))
-                .Select(x => x.ScopeRefId)
-                .Distinct()
-                .ToList();
-        }
-
-        private static bool HasScope(
-            IEnumerable<StaffScope> scopes,
-            string code,
-            int scopeTypeId) =>
-            scopes.Any(x => IsScope(x, code, scopeTypeId));
-
-        private static bool IsScope(StaffScope scope, string code, int scopeTypeId) =>
-            scope.ScopeTypeId == scopeTypeId ||
-            string.Equals(scope.ScopeType?.Code, code, StringComparison.OrdinalIgnoreCase);
 
         private static InventoryThresholdItemDto MapItem(StoreInventory i)
         {

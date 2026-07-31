@@ -13,11 +13,15 @@ public sealed class CafeChain29RbacSourceTests
         Assert.Contains("RBAC_CAFECHAIN29_V2", seed, StringComparison.Ordinal);
         Assert.Contains("SET XACT_ABORT ON", seed, StringComparison.Ordinal);
         Assert.Contains("#ExpectedRolePermissions", seed, StringComparison.Ordinal);
+        Assert.Contains("minimum-grant contract", seed, StringComparison.Ordinal);
         Assert.Contains("JOIN dbo.Roles r ON r.Name=rm.RoleName", seed, StringComparison.Ordinal);
         Assert.Contains("#OverrideBefore", seed, StringComparison.Ordinal);
         Assert.Contains("EXCEPT", seed, StringComparison.Ordinal);
         Assert.Contains("N'ReorderSuggestion.View',1,1,1,0,1,0,0,0", seed, StringComparison.Ordinal);
-        Assert.Contains("N'Restock.Create',0,0,1,0,1,0,0,0", seed, StringComparison.Ordinal);
+        Assert.Contains("N'Restock.Create',1,0,1,0,1,0,0,0", seed, StringComparison.Ordinal);
+        Assert.Contains("N'Restock.CreateCentralPlan',1,0,0,0,1,0,0,0", seed, StringComparison.Ordinal);
+        Assert.Contains("N'PurchaseAdviceConsolidation.View',1,0,0,0,1,0,0,0", seed, StringComparison.Ordinal);
+        Assert.Contains("N'Notification.MarkRead',1,1,1,1,1,0,0,1", seed, StringComparison.Ordinal);
         Assert.Contains("N'App.AdminDashboard',1,1,1,0,1,0,0,0", seed, StringComparison.Ordinal);
         Assert.Contains("SET Active=0", seed, StringComparison.Ordinal);
         Assert.Contains("UPDATE #PermissionMatrix", seed, StringComparison.Ordinal);
@@ -27,7 +31,7 @@ public sealed class CafeChain29RbacSourceTests
     }
 
     [Fact]
-    public void SystemAdminFullAccess_IsCentralizedWithoutBypassingPermissionOrDeny()
+    public void SystemAdminGlobalStoreScope_IsLimitedToReorderPurpose()
     {
         var attribute = Read("CafeChain", "Application", "Authorization",
             "RequirePermissionAttribute.cs");
@@ -40,10 +44,34 @@ public sealed class CafeChain29RbacSourceTests
 
         Assert.Contains(".Append(RoleConstants.SystemAdmin)", attribute, StringComparison.Ordinal);
         Assert.Contains("RoleConstants.SystemAdmin", policies, StringComparison.Ordinal);
-        Assert.Contains("IsActiveSystemAdminAsync", scope, StringComparison.Ordinal);
+        Assert.Contains("purpose == StoreScopePurpose.ReorderSuggestion", scope, StringComparison.Ordinal);
+        Assert.Contains("x.ScopeTypeId != (int)ScopeLevel.Country", scope, StringComparison.Ordinal);
         Assert.Contains("Denied by account override.", permissionService, StringComparison.Ordinal);
         Assert.Contains("RBAC_CAFECHAIN29_V2", permissionService, StringComparison.Ordinal);
         Assert.Contains("RoleConstants.SystemAdmin => -10", permissionService, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReorderAuthorization_IsPermissionFirstAndPurposeScoped()
+    {
+        var authorization = Read(
+            "CafeChain",
+            "Application",
+            "Services",
+            "Inventories",
+            "ReorderSuggestionAuthorizationService.cs");
+        var controller = Read(
+            "CafeChain",
+            "Areas",
+            "Admin",
+            "Controllers",
+            "AdminReorderSuggestionsController.cs");
+
+        Assert.DoesNotContain("RoleConstants.", authorization, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.ReorderSuggestionView", authorization, StringComparison.Ordinal);
+        Assert.Contains("PermissionConstants.RestockCreate", authorization, StringComparison.Ordinal);
+        Assert.Contains("StoreScopePurpose.ReorderSuggestion", authorization, StringComparison.Ordinal);
+        Assert.Contains("StoreScopePurpose.ReorderSuggestion", controller, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -66,7 +94,11 @@ public sealed class CafeChain29RbacSourceTests
                 ("Drink.Delete" or "Category.Delete" or "Size.Delete" or "Topping.Delete"))
             .ToList();
 
-        Assert.Equal(161, codes.Count);
+        Assert.Equal(codes.Count, codes.Distinct(StringComparer.Ordinal).Count());
+        Assert.Contains(PermissionConstants.RestockCreateCentralPlan, codes);
+        Assert.Contains(PermissionConstants.PurchaseAdviceConsolidationView, codes);
+        Assert.Contains(PermissionConstants.NotificationMarkRead, codes);
+        Assert.DoesNotContain("<>161", seed, StringComparison.Ordinal);
         Assert.All(codes, code => Assert.Contains(code, constants));
     }
 

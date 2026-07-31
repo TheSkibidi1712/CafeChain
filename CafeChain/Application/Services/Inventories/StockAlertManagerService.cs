@@ -305,29 +305,11 @@ namespace CafeChain.Application.Services.Inventories
             return ServiceResult<StockAlert>.Success(alert);
         }
 
-        private async Task<bool> IsAuthorizedManagerAsync(int staffId, int storeId)
-        {
-            var staff = await _context.Staffs
-                .AsNoTracking()
-                .Where(s => s.StaffId == staffId && s.Active)
-                .Select(s => new
-                {
-                    s.StoreId,
-                    Roles = s.Account.AccountRoles
-                        .Where(ar => ar.Role != null && ar.Role.Active)
-                        .Select(ar => ar.Role.Name)
-                        .ToList()
-                })
-                .FirstOrDefaultAsync();
-            if (staff == null)
-                return false;
-            if (staff.Roles.Contains(RoleConstants.SystemAdmin)
-                || staff.Roles.Contains(RoleConstants.BusinessOwner))
-                return true;
-            if (staff.Roles.Contains(RoleConstants.AreaManager))
-                return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
-            return staff.Roles.Contains(RoleConstants.StoreManager) && staff.StoreId == storeId;
-        }
+        private Task<bool> IsAuthorizedManagerAsync(int staffId, int storeId) =>
+            _scopeAuthorization.CanAccessStoreAsync(
+                staffId,
+                storeId,
+                StoreScopePurpose.Default);
 
         private async Task RecordTransitionAsync(
             StockAlert alert,

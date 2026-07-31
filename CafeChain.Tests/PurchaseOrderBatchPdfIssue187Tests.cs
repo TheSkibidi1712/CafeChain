@@ -47,6 +47,52 @@ public sealed class PurchaseOrderBatchPdfIssue187Tests : IDisposable
     }
 
     [Fact]
+    public async Task BatchPdf_GenerateRequiresEveryChildStoreInDefaultScope()
+    {
+        var seed = await SeedAsync();
+        _scope.Setup(x => x.CanAccessStoreAsync(seed.StaffId, seed.Store2Id))
+            .ReturnsAsync(false);
+
+        var result = await Service().GenerateAsync(seed.BatchId, Owner(seed.StaffId));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(PurchaseOrderBatchErrorCodes.Forbidden, result.ErrorCode);
+        Assert.Empty(await _db.PurchaseOrderBatchDocumentRevisions.ToListAsync());
+        Assert.Empty(_renderer.Snapshots);
+        Assert.Empty(_storage.Files);
+    }
+
+    [Fact]
+    public async Task BatchPdf_MarkSentRequiresEveryChildStoreInDefaultScope()
+    {
+        var seed = await SeedAsync();
+        var generated = await Service().GenerateAsync(seed.BatchId, Owner(seed.StaffId));
+        Assert.True(generated.IsSuccess, generated.Message);
+        _scope.Setup(x => x.CanAccessStoreAsync(seed.StaffId, seed.Store2Id))
+            .ReturnsAsync(false);
+
+        var result = await Service().MarkSentAsync(
+            seed.BatchId,
+            generated.Data!.RevisionId,
+            new MarkPurchaseOrderBatchDocumentSentRequest
+            {
+                Channel = PurchaseOrderBatchDocumentChannels.ZaloManual,
+                RowVersion = generated.Data.RowVersion,
+                IdempotencyKey = Guid.NewGuid().ToString("N")
+            },
+            Owner(seed.StaffId));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(PurchaseOrderBatchErrorCodes.Forbidden, result.ErrorCode);
+        var revision = await _db.PurchaseOrderBatchDocumentRevisions
+            .AsNoTracking()
+            .SingleAsync();
+        Assert.Equal(PurchaseOrderBatchDocumentStatuses.Generated, revision.Status);
+        Assert.Null(revision.SentAtUtc);
+        Assert.Null(revision.SentByStaffId);
+    }
+
+    [Fact]
     public async Task BatchPdf_UsesSnapshotData_AndContainsSupplierTaxCodeAndStoreAllocations()
     {
         var seed = await SeedAsync();
@@ -214,7 +260,7 @@ public sealed class PurchaseOrderBatchPdfIssue187Tests : IDisposable
         };
         _db.Add(batch);
         await _db.SaveChangesAsync();
-        return new(batch.PurchaseOrderBatchId, staff.StaffId, store1.StoreId);
+        return new(batch.PurchaseOrderBatchId, staff.StaffId, store1.StoreId, store2.StoreId);
     }
 
     private static PurchaseOrder Child(int storeId, string code, decimal quantity, DateTime now, int staffId, int supplierId, int ingredientId, int offerId, int unitId) => new()
@@ -247,7 +293,7 @@ public sealed class PurchaseOrderBatchPdfIssue187Tests : IDisposable
         _connection.Dispose();
     }
 
-    private sealed record Seed(int BatchId, int StaffId, int Store1Id);
+    private sealed record Seed(int BatchId, int StaffId, int Store1Id, int Store2Id);
 
     private sealed class CapturingRenderer : IPurchaseOrderBatchPdfRenderer
     {

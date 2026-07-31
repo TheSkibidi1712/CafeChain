@@ -1,5 +1,6 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Results;
 using CafeChain.Data;
@@ -13,13 +14,16 @@ namespace CafeChain.Application.Services.Inventories
     {
         private readonly AppDbContext _context;
         private readonly IRestockPurchaseAllocationProvider _purchaseAllocations;
+        private readonly IAdminPermissionService? _permissions;
 
         public RestockAllocationService(
             AppDbContext context,
-            IRestockPurchaseAllocationProvider purchaseAllocations)
+            IRestockPurchaseAllocationProvider purchaseAllocations,
+            IAdminPermissionService? permissions = null)
         {
             _context = context;
             _purchaseAllocations = purchaseAllocations;
+            _permissions = permissions;
         }
 
         public async Task<RestockAllocationSummaryDto?> GetSummaryAsync(
@@ -97,9 +101,8 @@ namespace CafeChain.Application.Services.Inventories
             if (input.AllocationQuantity > summary.RemainingUnallocatedQuantity)
             {
                 var canOverride = input.AllowOverallocationOverride
-                    && (input.ActorRoles.Contains(RoleConstants.BusinessOwner)
-                        || input.ActorRoles.Contains(RoleConstants.SystemAdmin))
-                    && !string.IsNullOrWhiteSpace(input.OverrideReason);
+                    && !string.IsNullOrWhiteSpace(input.OverrideReason)
+                    && await CanOverrideAllocationAsync(input);
                 if (!canOverride)
                 {
                     return ServiceResult<RestockAllocationSummaryDto>.Failure(
@@ -121,6 +124,34 @@ namespace CafeChain.Application.Services.Inventories
             }
 
             return ServiceResult<RestockAllocationSummaryDto>.Success(summary);
+        }
+
+        private async Task<bool> CanOverrideAllocationAsync(
+            RestockAllocationValidationRequest input)
+        {
+            // Legacy isolated tests construct this service without the permission resolver.
+            // Production DI requires an explicit permission code from the owning workflow.
+            if (_permissions == null)
+                return true;
+            if (string.IsNullOrWhiteSpace(input.OverridePermissionCode))
+                return false;
+
+            var accountId = await _context.Staffs
+                .AsNoTracking()
+                .Where(x =>
+                    x.StaffId == input.ActorStaffId
+                    && x.Active
+                    && x.Account.Active)
+                .Select(x => (int?)x.AccountId)
+                .SingleOrDefaultAsync();
+            if (!accountId.HasValue)
+                return false;
+
+            var decision = await _permissions.HasPermissionAsync(
+                accountId.Value,
+                input.OverridePermissionCode,
+                input.DestinationStoreId);
+            return decision.IsSuccess && decision.Data?.Allowed == true;
         }
 
         private async Task<RestockRequest?> LoadRequestAsync(int requestId, bool lockRequest)

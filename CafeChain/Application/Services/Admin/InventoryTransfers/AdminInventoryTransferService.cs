@@ -1131,9 +1131,16 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             }
         }
 
-        public async Task<List<InventoryTransferDiscrepancyDryRunRowDTO>> GetDiscrepancyDryRunAsync()
+        public async Task<List<InventoryTransferDiscrepancyDryRunRowDTO>> GetDiscrepancyDryRunAsync(
+            IReadOnlyCollection<int> allowedStoreIds)
         {
-            var transfers = await _repository.GetLegacyDispatchedTransfersAsync();
+            var allowed = allowedStoreIds?.Where(x => x > 0).ToHashSet() ?? [];
+            if (allowed.Count == 0)
+                return [];
+
+            var transfers = (await _repository.GetLegacyDispatchedTransfersAsync())
+                .Where(x => allowed.Contains(x.FromStoreId) && allowed.Contains(x.ToStoreId))
+                .ToList();
             var result = new List<InventoryTransferDiscrepancyDryRunRowDTO>();
             foreach (var transfer in transfers)
             {
@@ -2127,7 +2134,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
         private async Task<bool> CanReadTransferAsync(int fromStoreId, int toStoreId)
         {
             return await CanAccessStoreAsync(fromStoreId)
-                || await CanAccessStoreAsync(toStoreId);
+                && await CanAccessStoreAsync(toStoreId);
         }
 
         private async Task EnsureStoreScopeAsync(int storeId)

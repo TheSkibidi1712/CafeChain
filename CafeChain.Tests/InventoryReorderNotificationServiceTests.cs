@@ -18,7 +18,12 @@ public sealed class InventoryReorderNotificationServiceTests
     public async Task Refresh_twice_does_not_duplicate_same_reorder_alert()
     {
         var suggestion = new Mock<IReorderSuggestionService>();
-        suggestion.Setup(x => x.GetForStoreAsync(1, 10, It.IsAny<IReadOnlyCollection<string>>(), 30))
+        suggestion.Setup(x => x.CalculateForStoreAsync(
+                1,
+                30,
+                null,
+                null,
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(ServiceResult<ReorderSuggestionListDto>.Success(new ReorderSuggestionListDto
             {
                 StoreId = 1,

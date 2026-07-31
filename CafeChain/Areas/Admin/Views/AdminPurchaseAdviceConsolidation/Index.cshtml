@@ -1,12 +1,21 @@
 @using CafeChain.Application.Constants
 @using CafeChain.Application.DTOs.Admin.Procurement
+@using CafeChain.Application.Interfaces.Admin.Permissions
 @using CafeChain.Models.Enums.Inventory
 @using CafeChain.ViewModels.Admin.Shared
+@using System.Security.Claims
+@inject IAdminPermissionService PermissionService
 @model PurchaseAdviceConsolidationPageDto
 @{
     ViewData["Title"] = "Tổng hợp đề nghị mua";
-    var canConsolidate = Model.Actor.RoleNames.Contains(RoleConstants.AccountantWarehouse)
-        || Model.Actor.RoleNames.Contains(RoleConstants.BusinessOwner);
+    var canConsolidate = false;
+    if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
+        && accountId > 0)
+    {
+        var permissions = await PermissionService.GetEffectivePermissionCodesAsync(accountId);
+        canConsolidate =
+            permissions.Data?.Contains(PermissionConstants.PurchaseAdviceConsolidate) == true;
+    }
     var preview = ViewBag.Preview as PurchaseAdviceConsolidationPreviewDto;
     var createsConsolidatedOrder = preview?.LineCount > 1;
     var createOrderLabel = createsConsolidatedOrder

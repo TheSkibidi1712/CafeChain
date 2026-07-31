@@ -2,6 +2,7 @@ using CafeChain.Areas.Admin.Controllers;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
@@ -15,6 +16,7 @@ using CafeChain.Models.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Xunit;
 
 namespace CafeChain.Tests;
@@ -48,6 +50,56 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
         Assert.Contains(RoleConstants.ShiftSupervisor, roles);
         Assert.Contains(RoleConstants.AccountantWarehouse, roles);
         Assert.DoesNotContain(RoleConstants.SalesStaff, roles);
+    }
+
+    [Fact]
+    public void PurchaseOrderService_RequiresScopeAuthorizationDependency()
+    {
+        using var context = CreateDbContext();
+
+        var exception = Assert.Throws<ArgumentNullException>(() => new PurchaseOrderService(
+            context,
+            Mock.Of<IUnitConversionService>(),
+            Mock.Of<IRestockAllocationService>(),
+            null!));
+
+        Assert.Equal("scopeAuthorization", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task PurchaseOrderList_EmptyDefaultScopeNeverFallsBackToAllStores()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 20m);
+        var offerId = await context.IngredientSuppliers
+            .Where(x => x.IngredientId == IngredientId && x.SupplierId == SupplierId)
+            .Select(x => x.IngredientSupplierId)
+            .SingleAsync();
+        var created = await CreateService(context).CreateDraftAsync(new CreatePurchaseOrderRequest
+        {
+            StoreId = StoreId,
+            SupplierId = SupplierId,
+            Lines =
+            {
+                new CreatePurchaseOrderLineRequest
+                {
+                    RestockRequestId = request.RestockRequestId,
+                    IngredientId = IngredientId,
+                    IngredientSupplierId = offerId,
+                    PackageCount = 1m
+                }
+            }
+        }, StaffId, new[] { RoleConstants.AccountantWarehouse });
+        Assert.True(created.IsSuccess, created.Message);
+
+        var emptyScope = new Mock<IScopeAuthorizationService>(MockBehavior.Strict);
+        emptyScope.Setup(x => x.GetAllowedStoresAsync(StaffId))
+            .ReturnsAsync(new List<Store>());
+
+        var rows = await CreateService(context, emptyScope.Object)
+            .ListAsync(null, null, StaffId, new[] { RoleConstants.SystemAdmin });
+
+        Assert.Empty(rows);
     }
 
     [Fact]
@@ -635,17 +687,28 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
         Assert.Null(line.ProcurementToInventoryFactor);
     }
 
-    private static PurchaseOrderService CreateService(AppDbContext context)
+    private static PurchaseOrderService CreateService(
+        AppDbContext context,
+        IScopeAuthorizationService? scopeAuthorization = null)
     {
         var physical = new PhysicalUnitConversionService(context, NullLogger<PhysicalUnitConversionService>.Instance);
         var conversion = new UnitConversionService(
             context,
             NullLogger<UnitConversionService>.Instance,
             physical);
+        if (scopeAuthorization == null)
+        {
+            var scope = new Mock<IScopeAuthorizationService>();
+            scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>()))
+                .ReturnsAsync(true);
+            scopeAuthorization = scope.Object;
+        }
+
         return new PurchaseOrderService(
             context,
             conversion,
-            new RestockAllocationService(context, new NoPurchaseOrderAllocationProvider()));
+            new RestockAllocationService(context, new NoPurchaseOrderAllocationProvider()),
+            scopeAuthorization);
     }
 
     private static string FindRepoRoot()

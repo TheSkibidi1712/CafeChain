@@ -7,7 +7,6 @@ using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.DTOs.AI;
 using CafeChain.Application.Interfaces.AI;
 using CafeChain.Application.Interfaces.Inventories;
-using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Infrastructure.Interfaces.Admin.Procurement;
 using CafeChain.Models.Inventories.Suppliers;
@@ -23,7 +22,6 @@ public sealed class ReorderSuggestionService : IReorderSuggestionService
     private readonly IReorderSuggestionRepository _repository;
     private readonly IPhysicalUnitConversionService _conversion;
     private readonly IReorderIncomingQuantityProvider _incomingProvider;
-    private readonly IScopeAuthorizationService _scopeAuthorization;
     private readonly IAIService _aiService;
     private readonly IReorderSuggestionAuthorizationService? _authorization;
     private readonly TimeProvider _clock;
@@ -32,7 +30,6 @@ public sealed class ReorderSuggestionService : IReorderSuggestionService
         IReorderSuggestionRepository repository,
         IPhysicalUnitConversionService conversion,
         IReorderIncomingQuantityProvider incomingProvider,
-        IScopeAuthorizationService scopeAuthorization,
         IAIService aiService,
         IReorderSuggestionAuthorizationService? authorization = null,
         TimeProvider? clock = null)
@@ -40,7 +37,6 @@ public sealed class ReorderSuggestionService : IReorderSuggestionService
         _repository = repository;
         _conversion = conversion;
         _incomingProvider = incomingProvider;
-        _scopeAuthorization = scopeAuthorization;
         _aiService = aiService;
         _authorization = authorization;
         _clock = clock ?? TimeProvider.System;
@@ -124,22 +120,6 @@ public sealed class ReorderSuggestionService : IReorderSuggestionService
 
     public async Task<ServiceResult<ReorderSuggestionListDto>> GetForStoreAsync(
         int storeId,
-        int actorStaffId,
-        IReadOnlyCollection<string> actorRoles,
-        int analysisWindowDays = 30)
-    {
-        var validation = ValidateCalculationRequest(storeId, analysisWindowDays);
-        if (validation != null || actorStaffId <= 0)
-            return ServiceResult<ReorderSuggestionListDto>.Failure(validation ?? "Thiếu người thao tác.");
-        if (!await CanViewStoreLegacyAsync(storeId, actorStaffId, actorRoles))
-            return ServiceResult<ReorderSuggestionListDto>.Failure(
-                "Bạn không có quyền xem gợi ý nhập hàng của cửa hàng này.");
-
-        return await CalculateForStoreAsync(storeId, analysisWindowDays);
-    }
-
-    public async Task<ServiceResult<ReorderSuggestionListDto>> GetForStoreAsync(
-        int storeId,
         AdminActorContext actor,
         int analysisWindowDays = 30,
         CancellationToken cancellationToken = default)
@@ -155,25 +135,6 @@ public sealed class ReorderSuggestionService : IReorderSuggestionService
             storeId,
             analysisWindowDays,
             cancellationToken: cancellationToken);
-    }
-
-    public async Task<ServiceResult<InventoryReorderExplanationResultDto>> ExplainAsync(
-        int storeId,
-        int ingredientId,
-        int actorStaffId,
-        IReadOnlyCollection<string> actorRoles,
-        int analysisWindowDays = 30,
-        CancellationToken cancellationToken = default)
-    {
-        var suggestions = await GetForStoreAsync(
-            storeId,
-            actorStaffId,
-            actorRoles,
-            analysisWindowDays);
-        return await ExplainCalculatedAsync(
-            suggestions,
-            ingredientId,
-            cancellationToken);
     }
 
     public async Task<ServiceResult<InventoryReorderExplanationResultDto>> ExplainAsync(
@@ -861,22 +822,6 @@ public sealed class ReorderSuggestionService : IReorderSuggestionService
             context,
             cancellationToken);
         return ServiceResult<InventoryReorderExplanationResultDto>.Success(explanation);
-    }
-
-    private async Task<bool> CanViewStoreLegacyAsync(
-        int storeId,
-        int actorStaffId,
-        IReadOnlyCollection<string> actorRoles)
-    {
-        var roles = actorRoles.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (roles.Contains(RoleConstants.SystemAdmin)
-            || roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.AccountantWarehouse))
-            return true;
-        if (roles.Contains(RoleConstants.AreaManager))
-            return await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, storeId);
-        return roles.Contains(RoleConstants.StoreManager)
-            && await _repository.IsActiveStaffAtStoreAsync(actorStaffId, storeId);
     }
 
     private static string? ValidateCalculationRequest(

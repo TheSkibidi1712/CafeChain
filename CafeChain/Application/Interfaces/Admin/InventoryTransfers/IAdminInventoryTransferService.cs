@@ -35,7 +35,8 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryTransfers
 
         Task<InventoryTransferMutationResultDTO> CreateFollowUpAsync(int id, InventoryTransferFollowUpDTO dto);
 
-        Task<List<InventoryTransferDiscrepancyDryRunRowDTO>> GetDiscrepancyDryRunAsync();
+        Task<List<InventoryTransferDiscrepancyDryRunRowDTO>> GetDiscrepancyDryRunAsync(
+            IReadOnlyCollection<int> allowedStoreIds);
 
         Task<bool> CancelAsync(int id, string? requestKey);
 

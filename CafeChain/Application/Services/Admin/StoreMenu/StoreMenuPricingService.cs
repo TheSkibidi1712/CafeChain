@@ -2,6 +2,7 @@ using System.Text.Json;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.StoreMenu;
 using CafeChain.Application.Interfaces.Admin.StoreMenu;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Stores;
@@ -13,11 +14,16 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
     {
         private readonly AppDbContext _context;
         private readonly IStoreCatalogVersionService _catalogVersions;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
 
-        public StoreMenuPricingService(AppDbContext context, IStoreCatalogVersionService catalogVersions)
+        public StoreMenuPricingService(
+            AppDbContext context,
+            IStoreCatalogVersionService catalogVersions,
+            IScopeAuthorizationService scopeAuthorization)
         {
             _context = context;
             _catalogVersions = catalogVersions;
+            _scopeAuthorization = scopeAuthorization;
         }
 
         public async Task<ServiceResult<StoreMenuPriceDto>> GetAsync(
@@ -25,13 +31,24 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
             int actorStaffId,
             CancellationToken cancellationToken = default)
         {
+            var allowedStoreIds = (await _scopeAuthorization.GetAllowedStoresAsync(
+                    actorStaffId,
+                    StoreScopePurpose.Default))
+                .Select(x => x.StoreId)
+                .ToHashSet();
+            if (allowedStoreIds.Count == 0)
+                return ServiceResult<StoreMenuPriceDto>.Failure(
+                    "Bạn không có quyền xem giá menu của cửa hàng này.",
+                    errorCode: "STORE_MENU_READ_FORBIDDEN");
+
             var item = await _context.StoreMenuItems.AsNoTracking()
                 .Include(x => x.DrinkSize)
-                .SingleOrDefaultAsync(x => x.StoreMenuItemId == storeMenuItemId, cancellationToken);
+                .SingleOrDefaultAsync(
+                    x => x.StoreMenuItemId == storeMenuItemId
+                         && allowedStoreIds.Contains(x.StoreId),
+                    cancellationToken);
             if (item == null)
                 return ServiceResult<StoreMenuPriceDto>.Failure("Không tìm thấy SKU trong menu cửa hàng.");
-            if (!await CanReadStoreAsync(actorStaffId, item.StoreId, cancellationToken))
-                return ServiceResult<StoreMenuPriceDto>.Failure("Bạn không có quyền xem giá menu của cửa hàng này.", errorCode: "STORE_MENU_READ_FORBIDDEN");
 
             var version = await _catalogVersions.GetAsync(item.StoreId, cancellationToken);
             return ServiceResult<StoreMenuPriceDto>.Success(Map(item, version.Version));
@@ -57,8 +74,21 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                     "Chỉ Chủ doanh nghiệp được đặt hoặc xóa giá override của cửa hàng.",
                     errorCode: "STORE_PRICE_OVERRIDE_FORBIDDEN");
 
+            var allowedStoreIds = (await _scopeAuthorization.GetAllowedStoresAsync(
+                    actorStaffId,
+                    StoreScopePurpose.Default))
+                .Select(x => x.StoreId)
+                .ToHashSet();
+            if (allowedStoreIds.Count == 0)
+                return ServiceResult<StoreMenuPriceDto>.Failure(
+                    "Bạn không có quyền thay đổi giá menu của cửa hàng này.",
+                    errorCode: "STORE_PRICE_OVERRIDE_FORBIDDEN");
+
             var item = await _context.StoreMenuItems.Include(x => x.DrinkSize)
-                .SingleOrDefaultAsync(x => x.StoreMenuItemId == request.StoreMenuItemId, cancellationToken);
+                .SingleOrDefaultAsync(
+                    x => x.StoreMenuItemId == request.StoreMenuItemId
+                         && allowedStoreIds.Contains(x.StoreId),
+                    cancellationToken);
             if (item == null)
                 return ServiceResult<StoreMenuPriceDto>.Failure("Không tìm thấy SKU trong menu cửa hàng.");
 
@@ -138,16 +168,6 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                 && x.Account.AccountRoles.Any(r => r.Role.Active
                     && (r.Role.Name == RoleConstants.BusinessOwner
                         || r.Role.Name == RoleConstants.SystemAdmin)),
-                cancellationToken);
-
-        private async Task<bool> CanReadStoreAsync(int staffId, int storeId, CancellationToken cancellationToken) =>
-            await _context.Staffs.AsNoTracking().AnyAsync(x => x.StaffId == staffId
-                && x.Active
-                && x.Account.Active
-                && (x.StoreId == storeId
-                    || x.Account.AccountRoles.Any(r => r.Role.Active
-                        && (r.Role.Name == RoleConstants.BusinessOwner
-                            || r.Role.Name == RoleConstants.SystemAdmin))),
                 cancellationToken);
 
         private static StoreMenuPriceDto Map(StoreMenuItem item, long catalogVersion) => new()
