@@ -20,6 +20,7 @@ import { getPosSession } from './services/posSession'
 import { usePOSData } from './hooks/usePOSData'
 import ProductModifierModal, {
   type ModifierSelection,
+  type IceLevelPercent,
   type ToppingOption,
   type MenuItem,
 } from './components/ProductModifierModal'
@@ -29,6 +30,7 @@ import PaymentWorkspace, {
   type PaymentWorkspaceMode,
 } from './components/pos/payment/PaymentWorkspace'
 import type { CartSyncQueueItem } from './db/CafeChainPOSDB'
+import { formatIceLevel } from './utils/iceLevel'
 
 interface CartItem {
   id: number
@@ -44,7 +46,7 @@ interface CartItem {
   quantity: number
   sizeId?: number | null
   sizeName?: string
-  ice: '0%' | '50%' | '100%'
+  iceLevelPercent: IceLevelPercent | null
   sugar: '0%' | '50%' | '100%'
   customerNote: string
   note: string
@@ -143,6 +145,7 @@ const getUnavailableReason = (item: MenuItem): string =>
 const requiresProductOptions = (item: MenuItem): boolean =>
   (item.sizes?.filter((size) => size.isAvailable).length ?? 0) > 1
   || (item.availableToppings?.length ?? 0) > 0
+  || (item.sizes?.some((size) => size.isAvailable && size.supportsIceCustomization) ?? false)
 
 const applyToppingPolicy = (
   topping: ToppingOption,
@@ -527,11 +530,11 @@ export default function POSLayout() {
       .join(',')
     const sizeKey = selection.size?.sizeId ?? 'default'
     const noteKey = encodeURIComponent(selection.customerNote.trim().toLocaleLowerCase('vi-VN'))
-    const cartId = `${item.id}-${sizeKey}-${selection.ice}-${selection.sugar}-${toppingKey}-${noteKey}`
+    const cartId = `${item.id}-${sizeKey}-${selection.iceLevelPercent ?? 'no-ice-option'}-${selection.sugar}-${toppingKey}-${noteKey}`
     const toppingNames = selection.selectedToppings.map((topping) => topping.name).join(', ')
     const optionSummary = [
       selection.size ? `Size ${selection.size.sizeName}` : '',
-      `Đá ${selection.ice}`,
+      formatIceLevel(selection.iceLevelPercent),
       `Đường ${selection.sugar}`,
       toppingNames ? `+${toppingNames}` : '',
     ].filter(Boolean).join(', ')
@@ -551,7 +554,7 @@ export default function POSLayout() {
       quantity: selection.quantity,
       sizeId: selection.size?.sizeId ?? null,
       sizeName: selection.size?.sizeName,
-      ice: selection.ice,
+      iceLevelPercent: selection.iceLevelPercent,
       sugar: selection.sugar,
       customerNote: selection.customerNote,
       note: selection.note,
@@ -608,13 +611,13 @@ export default function POSLayout() {
     )
     applyModifierSelection(item, {
       size: defaultSize,
-      ice: '100%',
+      iceLevelPercent: defaultSize.supportsIceCustomization ? 100 : null,
       sugar: '100%',
       selectedToppings: defaultToppings,
       quantity: 1,
       customerNote: '',
       totalPrice: defaultSize.price + toppingTotal,
-      note: 'Đá 100%, Đường 100%',
+      note: 'Đường 100%',
     })
   }
 
@@ -664,7 +667,9 @@ export default function POSLayout() {
       editingCartId: line.cartId,
       initialSelection: {
         size,
-        ice: line.ice,
+        iceLevelPercent: size.supportsIceCustomization
+          ? (line.iceLevelPercent ?? 100)
+          : null,
         sugar: line.sugar,
         selectedToppings,
         quantity: line.quantity,
@@ -747,6 +752,9 @@ export default function POSLayout() {
         0
       )
       const toppingNames = merged.map((topping) => topping.name).join(', ')
+      const refreshedIceLevel = currentSize.supportsIceCustomization
+        ? (line.iceLevelPercent ?? 100)
+        : null
 
       return {
         ...line,
@@ -759,15 +767,18 @@ export default function POSLayout() {
         catalogVersion: currentItem.catalogVersion,
         sizeId: currentSize.sizeId,
         sizeName: currentSize.sizeName,
+        iceLevelPercent: refreshedIceLevel,
         selectedToppings: merged,
         optionSummary: [
           `Size ${currentSize.sizeName}`,
-          `Đá ${line.ice}`,
+          formatIceLevel(refreshedIceLevel),
           `Đường ${line.sugar}`,
           toppingNames ? `+${toppingNames}` : '',
         ].filter(Boolean).join(', '),
         detailText: [
-          `Size ${currentSize.sizeName}, Đá ${line.ice}, Đường ${line.sugar}`,
+          [`Size ${currentSize.sizeName}`, formatIceLevel(refreshedIceLevel), `Đường ${line.sugar}`]
+            .filter(Boolean)
+            .join(', '),
           toppingNames ? `+${toppingNames}` : '',
           line.customerNote,
         ].filter(Boolean).join('. '),
@@ -1027,6 +1038,7 @@ export default function POSLayout() {
       effectivePrice: ci.acceptedBasePrice,
       priceSource: ci.priceSource,
       catalogVersion: ci.catalogVersion,
+      iceLevelPercent: ci.iceLevelPercent,
       note: ci.note,
       toppings: ci.selectedToppings.map((topping) => ({
         toppingId: topping.id,
@@ -1050,6 +1062,7 @@ export default function POSLayout() {
       effectivePrice: ci.acceptedBasePrice,
       priceSource: ci.priceSource,
       catalogVersion: ci.catalogVersion,
+      iceLevelPercent: ci.iceLevelPercent,
       note: ci.note,
       detailText: ci.detailText,
       toppings: ci.selectedToppings.map((topping) => ({
@@ -1140,6 +1153,7 @@ export default function POSLayout() {
       priceSource: ci.priceSource,
       catalogVersion: ci.catalogVersion,
       quantity: ci.quantity,
+      iceLevelPercent: ci.iceLevelPercent,
       note: ci.note,
       toppings: ci.selectedToppings.map((topping) => ({
         toppingId: topping.id,

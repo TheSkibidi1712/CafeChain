@@ -6,6 +6,7 @@ import {
   formatHistoryMoney,
   mapLocalOrdersSafe,
 } from '../utils/orderHistoryLocalMapper'
+import { formatIceLevel, type IceLevelPercent } from '../utils/iceLevel'
 
 const LABELS = {
   paid: 'Đã thanh toán',
@@ -62,6 +63,9 @@ interface BackendOrderDetail {
   quantity: number
   price: number
   lineTotal?: number
+  iceLevelPercent?: IceLevelPercent | null
+  baseIceQuantityBaseUnit?: number | null
+  appliedIceQuantityBaseUnit?: number | null
   note?: string | null
   toppings: string[]
 }
@@ -141,6 +145,7 @@ interface HistoryDetailLine {
   quantity: number
   unitPrice: number
   lineTotal: number
+  iceLevelPercent?: IceLevelPercent | null
   note?: string | null
   toppings: string[]
 }
@@ -262,6 +267,7 @@ const mapBackendOrder = (order: OrderHistoryItem): HistoryRow => {
       quantity,
       unitPrice,
       lineTotal,
+      iceLevelPercent: detail?.iceLevelPercent,
       note: detail?.note,
       toppings: detail?.toppings ?? [],
     }
@@ -433,6 +439,7 @@ function DetailDrawer({
                         </p>
                         <p className="truncate text-[11px] text-text-muted">
                           {item.sizeName ? `Size ${item.sizeName}` : 'Không chọn size'}
+                          {formatIceLevel(item.iceLevelPercent) ? ` • ${formatIceLevel(item.iceLevelPercent)}` : ''}
                           {item.toppings.length > 0 ? ` • ${item.toppings.join(', ')}` : ''}
                         </p>
                         {item.note && (

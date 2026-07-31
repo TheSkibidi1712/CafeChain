@@ -26,6 +26,19 @@ namespace CafeChain.Models.Orders
 
         public string Note { get; set; }
 
+        /// <summary>
+        /// Structured POS ice customization snapshot. Null means a legacy order line or a recipe
+        /// that did not contain the store's canonical ice ingredient at sale time.
+        /// </summary>
+        public int? IceLevelPercent { get; set; }
+        public int? IceIngredientId { get; set; }
+
+        /// <summary>Total canonical ice quantity for this order line, in the ingredient base unit.</summary>
+        public decimal? BaseIceQuantityBaseUnit { get; set; }
+
+        /// <summary>Applied canonical ice quantity after IceLevelPercent, in the ingredient base unit.</summary>
+        public decimal? AppliedIceQuantityBaseUnit { get; set; }
+
         /// <summary>Issue #133 actual FIFO COGS for drink BOM (toppings may be separate).</summary>
         public SalesCostStatus CostStatus { get; set; } = SalesCostStatus.Pending;
         public decimal? UnitCogs { get; set; }
@@ -36,6 +49,7 @@ namespace CafeChain.Models.Orders
         public virtual Drink Drink { get; set; }
         public virtual StoreMenuItem? StoreMenuItem { get; set; }
         public virtual DrinkSize? DrinkSize { get; set; }
+        public virtual Models.Inventories.Ingredients.Ingredient? IceIngredient { get; set; }
         public virtual ICollection<OrderTopping> OrderToppings { get; set; }
     }
 }

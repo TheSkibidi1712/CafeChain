@@ -1,4 +1,5 @@
 import type { CartQueueItemSnapshot, CartSyncQueueItem } from '../db/CafeChainPOSDB'
+import { formatIceLevel } from '../utils/iceLevel'
 
 interface TemporaryDrinkLabelTemplateProps {
   order: CartSyncQueueItem
@@ -25,6 +26,8 @@ const getItemModifiers = (item: CartQueueItemSnapshot): string[] => {
   const modifiers: string[] = []
 
   if (item.sizeName) modifiers.push(`Size ${item.sizeName}`)
+  const iceLabel = formatIceLevel(item.iceLevelPercent)
+  if (iceLabel) modifiers.push(iceLabel)
   if (item.toppings?.length) {
     modifiers.push(`Topping: ${item.toppings.map((topping) => topping.name ?? `#${topping.toppingId}`).join(', ')}`)
   }

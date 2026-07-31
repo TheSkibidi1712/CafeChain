@@ -69,6 +69,12 @@ namespace CafeChain.Application.DTOs.POS
 
         public string? AvailabilityReason { get; set; }
 
+        /// <summary>True when the flattened active recipe contains the store canonical ice ingredient.</summary>
+        public bool SupportsIceCustomization { get; set; }
+
+        /// <summary>Canonical ice quantity for one drink in its base unit; catalog/version snapshot only.</summary>
+        public decimal? BaseIceQuantityBaseUnit { get; set; }
+
         public List<POSToppingPolicyDto> ToppingPolicies { get; set; } = new();
     }
 
