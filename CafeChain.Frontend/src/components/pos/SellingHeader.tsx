@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import NetworkStatusIndicator from '../NetworkStatusIndicator'
 import PrinterStatusBadge from '../PrinterStatusBadge'
 import type { PosSession } from '../../services/posSession'
+import type { PosLayoutPreference, PosResolvedLayout } from '../../hooks/usePosLayoutMode'
 
 type OrderType = 'dine-in' | 'take-away'
 
@@ -13,9 +14,13 @@ interface SellingHeaderProps {
   hasOpenShift: boolean
   shiftId?: number | null
   session: PosSession
+  layoutPreference: PosLayoutPreference
+  resolvedLayout: PosResolvedLayout
+  isLayoutSwitchLocked: boolean
   onOrderTypeChange: (orderType: OrderType) => void
   onSearchChange: (value: string) => void
   onOpenCustomerDisplay: () => void
+  onLayoutPreferenceChange: (preference: PosLayoutPreference) => void
 }
 
 export default function SellingHeader({
@@ -26,9 +31,13 @@ export default function SellingHeader({
   hasOpenShift,
   shiftId,
   session,
+  layoutPreference,
+  resolvedLayout,
+  isLayoutSwitchLocked,
   onOrderTypeChange,
   onSearchChange,
   onOpenCustomerDisplay,
+  onLayoutPreferenceChange,
 }: SellingHeaderProps) {
   const cashierInitials = session.staffName
     .split(' ')
@@ -115,6 +124,15 @@ export default function SellingHeader({
       <details className="pos-selling-more">
         <summary className="pos-selling-more-trigger">Tác vụ</summary>
         <nav className="pos-selling-more-menu" aria-label="Tác vụ POS">
+          {resolvedLayout === 'tablet' && (
+            <div className="pos-tablet-menu-context">
+              <span className="pos-selling-brand-mark" aria-hidden="true">{cashierInitials}</span>
+              <span>
+                <strong>{session.staffName}</strong>
+                <small>{session.role} · Chi nhánh #{session.storeId ?? '-'}</small>
+              </span>
+            </div>
+          )}
           <Link to="/history">Lịch sử đơn</Link>
           <Link to="/inventory">Kho chi nhánh</Link>
           <Link to="/notifications">Thông báo</Link>
@@ -129,6 +147,32 @@ export default function SellingHeader({
           <Link to="/shift">
             {hasOpenShift && shiftId ? `Két tiền · Ca #${shiftId}` : 'Mở ca và két tiền'}
           </Link>
+          <div className="pos-layout-selector" role="group" aria-label="Chọn giao diện POS">
+            <div className="pos-layout-selector-heading">
+              <strong>Giao diện</strong>
+              <span>{resolvedLayout === 'desktop' ? 'Máy tính' : 'Máy tính bảng'}</span>
+            </div>
+            <div className="pos-layout-options">
+              {([
+                ['auto', 'Tự động'],
+                ['desktop', 'Máy tính'],
+                ['tablet', 'Máy tính bảng'],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => onLayoutPreferenceChange(value)}
+                  disabled={isLayoutSwitchLocked}
+                  aria-pressed={layoutPreference === value}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {isLayoutSwitchLocked && (
+              <p>Hoàn tất hoặc hủy giao dịch hiện tại trước khi đổi giao diện.</p>
+            )}
+          </div>
         </nav>
       </details>
     </header>
