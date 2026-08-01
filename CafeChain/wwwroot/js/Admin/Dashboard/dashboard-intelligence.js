@@ -255,7 +255,14 @@
         if (!rows.length) return [];
         const preferred = [chart.xField, chart.yField, chart.valueField, chart.seriesField].filter(Boolean);
         return [...new Set([...preferred, ...Object.keys(rows[0])])]
-            .filter(key => key !== "dataStatus")
+            .filter(key => {
+                const normalized = String(key).toLowerCase();
+                return normalized !== "datastatus"
+                    && normalized !== "entitytype"
+                    && normalized !== "alerttype"
+                    && !normalized.endsWith("id")
+                    && !normalized.endsWith("code");
+            })
             .slice(0, 10);
     }
 
@@ -278,7 +285,13 @@
             const tr = document.createElement("tr");
             keys.forEach(key => {
                 const unit = key === chart.valueField || key === chart.yField ? chart.yUnit : "";
-                tr.append(element("td", "", formatUnit(row[key], unit)));
+                const normalized = String(key).toLowerCase();
+                const text = normalized === "severity" || normalized === "priority"
+                    ? localizedLabel(row[key], normalized === "severity" ? severityLabels : priorityLabels)
+                    : normalized === "unit"
+                        ? ({ DAY: "ngày", HOUR: "giờ", VND: "đ" }[String(row[key] || "").toUpperCase()] || row[key] || "")
+                        : formatUnit(row[key], unit);
+                tr.append(element("td", "", text));
             });
             tbody.append(tr);
         });
@@ -563,76 +576,82 @@
         toggleResult.disabled = false;
         setResultVisibility(true);
         preview.hidden = true;
-        const evidence = evidenceMap(data);
         const period = data.dataPeriod || {};
         const stores = (data.stores || data.context?.stores || []).map(store => store.storeName).filter(Boolean);
+        const config = data.sectionConfig || {};
         const meta = element("div", "dashboard-intelligence__meta");
         [
             `Kỳ Dashboard: ${String(period.from || "").slice(0, 10)} → ${String(period.to || "").slice(0, 10)}`,
             `Cửa hàng: ${stores.length ? stores.join(", ") : (data.storeIds || []).join(", ")}`,
             `Trạng thái dữ liệu: ${localizedLabel(data.dataStatus, statusLabels, "Không xác định")}`,
-            `AI: ${localizedLabel(data.aiStatus, aiStatusLabels, "Chế độ dự phòng")}`,
-            `Độ tin cậy: ${Math.round(Number(data.confidence || 0) * 100)}%`,
-            data.analysisId ? `AnalysisId: ${data.analysisId}` : ""
+            `Độ tin cậy: ${Math.round(Number(data.confidence || 0) * 100)}%`
         ].filter(Boolean).forEach(text => meta.append(element("span", "", text)));
         result.append(meta);
 
-        if (data.analysisContext) {
-            const context = element("section", "dashboard-intelligence__summary");
-            context.append(element("h3", "", "Phạm vi phân tích"));
-            context.append(element("p", "", data.analysisContext));
-            result.append(context);
+        if (config.showDirectAnswer !== false) {
+            const answer = element("section", "dashboard-intelligence__summary");
+            answer.append(element("h3", "", "Trả lời trực tiếp"));
+            answer.append(element("p", "", data.directAnswer || data.summary || "Không đủ dữ liệu để kết luận."));
+            result.append(answer);
         }
 
-        const summary = element("section", "dashboard-intelligence__summary");
-        summary.append(element("h3", "", "Tóm tắt"));
-        summary.append(element("p", "", data.summary || "Không đủ dữ liệu để kết luận."));
-        if (data.keyConclusion)
-            summary.append(element("p", "dashboard-intelligence__key-conclusion", data.keyConclusion));
-        result.append(summary);
-        result.append(renderEvidence(
-            "Số liệu chính",
-            (data.evidenceTable || []).length
-                ? data.evidenceTable
-                : [...(data.facts || []), ...(data.statistics || [])],
-            evidence));
-        const analysisItems = Array.isArray(data.inferences) && data.inferences.length
-            ? data.inferences
-            : (data.overview || []);
-        result.append(renderNarratives("Phân tích", analysisItems, evidence, "dashboard-intelligence__inference"));
-        result.append(renderNarratives("Bất thường", data.anomalies || [], evidence, "dashboard-intelligence__anomaly"));
-        const recommendations = data.recommendation
-            ? [data.recommendation]
-            : (data.recommendations || []);
-        if (recommendations.length)
-            result.append(renderNarratives(
-                "Khuyến nghị",
-                recommendations,
-                evidence,
-                "dashboard-intelligence__recommendation"));
+        if (config.showProofPoints !== false && Array.isArray(data.proofPoints) && data.proofPoints.length) {
+            const proof = element("section", "dashboard-intelligence__evidence");
+            proof.append(element("h3", "", "Số liệu chứng minh"));
+            const list = element("ul", "dashboard-intelligence__proof-list");
+            data.proofPoints.slice(0, 3).forEach(item => list.append(element("li", "", item.text || "")));
+            proof.append(list);
+            result.append(proof);
+        }
 
-        const charts = element("section", "dashboard-intelligence__charts");
-        charts.append(element("h3", "", "Biểu đồ và dữ liệu minh họa"));
-        (data.charts || []).forEach(chart => charts.append(renderChart(chart)));
-        result.append(charts);
-        result.append(renderChartAnalyses(data.chartAnalyses || [], evidence));
-        result.append(renderNarratives("Điểm đáng chú ý", data.notablePoints || data.anomalies || [],
-            evidence, "dashboard-intelligence__inference"));
-        result.append(renderNarratives("Kết luận", data.conclusions || [],
-            evidence, "dashboard-intelligence__inference"));
+        if (config.showActionToCheck && data.actionToCheck) {
+            const action = element("section", "dashboard-intelligence__recommendation");
+            action.append(element("h3", "", "Việc cần kiểm tra"));
+            action.append(element("p", "", data.actionToCheck.text || ""));
+            if (data.actionToCheck.verifyCondition)
+                action.append(element("p", "dashboard-intelligence__verify", data.actionToCheck.verifyCondition));
+            result.append(action);
+        }
 
-        const warnings = [...(data.limitations || []), ...(data.warnings || [])];
-        if (data.dataStatus !== "OK")
-            warnings.unshift(`Chất lượng dữ liệu: ${localizedLabel(data.dataStatus, statusLabels, "Không xác định")}. Hãy xem giới hạn trước khi sử dụng khuyến nghị.`);
-        if (data.aiStatus === "Fallback")
-            warnings.unshift(`Ollama fallback: ${data.fallbackReason || "facts và biểu đồ backend vẫn được giữ nguyên."}`);
-        if (warnings.length)
-            result.append(renderNarratives(
-                "Cảnh báo dữ liệu",
-                warnings.map(text => ({ text })),
-                evidence,
-                "analytics-notice"
-            ));
+        const selectedCharts = data.primaryChart ? [data.primaryChart] : (data.charts || []).slice(0, 1);
+        if (config.showChart !== false && selectedCharts.length) {
+            const charts = element("section", "dashboard-intelligence__charts");
+            charts.append(element("h3", "", "Biểu đồ"));
+            selectedCharts.forEach(chart => charts.append(renderChart(chart)));
+            result.append(charts);
+        }
+        if (config.showTable !== false && selectedCharts.length) {
+            const tableSection = element("section", "dashboard-intelligence__evidence");
+            tableSection.append(element("h3", "", "Bảng dữ liệu"));
+            tableSection.append(renderTable(selectedCharts[0], selectedCharts[0].rows || []));
+            result.append(tableSection);
+        }
+
+        if (config.showLimitations !== false && Array.isArray(data.limitations) && data.limitations.length) {
+            const limits = element("section", "analytics-notice");
+            limits.append(element("h3", "", "Giới hạn dữ liệu"));
+            const list = element("ul", "");
+            data.limitations.forEach(text => list.append(element("li", "", text)));
+            limits.append(list);
+            result.append(limits);
+        }
+
+        if (config.showDataSource !== false) {
+            const source = data.dataSource || {};
+            const details = element("details", "dashboard-intelligence__source dashboard-intelligence__source--single");
+            details.append(element("summary", "", "Xem nguồn dữ liệu"));
+            details.append(element("p", "", `Trạng thái: ${localizedLabel(source.dataStatus || data.dataStatus, statusLabels, "Không xác định")}`));
+            const filters = Object.entries(source.appliedFilters || {});
+            if (filters.length)
+                details.append(element("p", "", `Bộ lọc: ${filters.map(([key, value]) => `${key}=${value}`).join("; ")}`));
+            if (Array.isArray(source.widgets) && source.widgets.length)
+                details.append(element("p", "", `Nguồn truy vấn: ${source.widgets.join(", ")}`));
+            if (Array.isArray(source.evidenceIds) && source.evidenceIds.length)
+                details.append(element("p", "", `Evidence: ${source.evidenceIds.join(", ")}`));
+            if (source.usedFallback)
+                details.append(element("p", "", `Chế độ dự phòng: ${source.fallbackReason || "Deterministic fallback"}`));
+            result.append(details);
+        }
     }
 
     async function post(url, body, signal) {

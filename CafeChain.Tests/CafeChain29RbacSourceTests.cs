@@ -17,7 +17,9 @@ public sealed class CafeChain29RbacSourceTests
         Assert.Contains("#OverrideBefore", seed, StringComparison.Ordinal);
         Assert.Contains("EXCEPT", seed, StringComparison.Ordinal);
         Assert.Contains("N'ReorderSuggestion.View',1,1,1,0,1,0,0,0", seed, StringComparison.Ordinal);
-        Assert.Contains("N'Restock.Create',0,0,1,0,1,0,0,0", seed, StringComparison.Ordinal);
+        Assert.Contains("N'Restock.Create',1,0,1,0,1,0,0,0", seed, StringComparison.Ordinal);
+        Assert.Contains("N'REORDER_SUGGESTION'", seed, StringComparison.Ordinal);
+        Assert.Contains("N'ReorderSuggestion.View',N'REORDER_SUGGESTION'", seed, StringComparison.Ordinal);
         Assert.Contains("N'App.AdminDashboard',1,1,1,0,1,0,0,0", seed, StringComparison.Ordinal);
         Assert.Contains("SET Active=0", seed, StringComparison.Ordinal);
         Assert.Contains("UPDATE #PermissionMatrix", seed, StringComparison.Ordinal);
@@ -35,12 +37,17 @@ public sealed class CafeChain29RbacSourceTests
             "AuthorizationServiceExtensions.cs");
         var scope = Read("CafeChain", "Application", "Services", "Security",
             "ScopeAuthorizationService.cs");
+        var resolver = Read("CafeChain", "Application", "Services", "Admin", "StoreScope",
+            "AdminStoreScopeResolver.cs");
         var permissionService = Read("CafeChain", "Application", "Services", "Admin",
             "Permissions", "AdminPermissionService.cs");
 
         Assert.Contains(".Append(RoleConstants.SystemAdmin)", attribute, StringComparison.Ordinal);
         Assert.Contains("RoleConstants.SystemAdmin", policies, StringComparison.Ordinal);
-        Assert.Contains("IsActiveSystemAdminAsync", scope, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsActiveSystemAdminAsync", scope, StringComparison.Ordinal);
+        Assert.Contains("AdminStoreScopeMode.ReorderSuggestion", resolver, StringComparison.Ordinal);
+        Assert.Contains("RoleConstants.SystemAdmin", resolver, StringComparison.Ordinal);
+        Assert.Contains("STORE_SCOPE_DENIED", resolver, StringComparison.Ordinal);
         Assert.Contains("Denied by account override.", permissionService, StringComparison.Ordinal);
         Assert.Contains("RBAC_CAFECHAIN29_V2", permissionService, StringComparison.Ordinal);
         Assert.Contains("RoleConstants.SystemAdmin => -10", permissionService, StringComparison.Ordinal);

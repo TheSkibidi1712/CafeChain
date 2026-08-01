@@ -2,12 +2,28 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CafeChain.Application.DTOs.Admin.StoreScope;
 using CafeChain.ViewModels.Admin.StoreScope;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using Microsoft.Extensions.DependencyInjection;
+using System.Security.Claims;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
     public abstract class AdminStoreScopedController : Controller
     {
+        protected async Task<bool> HasEffectivePermissionAsync(string permissionCode)
+        {
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
+                || accountId <= 0)
+            {
+                return false;
+            }
+
+            var service = HttpContext.RequestServices.GetRequiredService<IAdminPermissionService>();
+            var decision = await service.HasPermissionAsync(accountId, permissionCode);
+            return decision.IsSuccess && decision.Data?.Allowed == true;
+        }
+
         protected IActionResult StoreScopeFailure(AdminStoreScopeResolution resolution)
         {
             Response.StatusCode = resolution.Status == AdminStoreScopeResolutionStatus.StoreNotFound

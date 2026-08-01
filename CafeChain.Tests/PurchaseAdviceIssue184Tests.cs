@@ -447,7 +447,9 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
             StoreId = seed.StoreId + 99,
             RoleNames = new[] { RoleConstants.StoreManager }
         };
-        var denied = await service.CreateAsync(CreateRequest(seed, 2m), other);
+        var otherStoreRequest = CreateRequest(seed, 2m);
+        otherStoreRequest.StoreId = seed.StoreId + 99;
+        var denied = await service.CreateAsync(otherStoreRequest, other);
         Assert.False(denied.IsSuccess);
         Assert.Equal(PurchaseAdviceErrorCodes.Forbidden, denied.ErrorCode);
     }
@@ -502,6 +504,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         using var context = CreateDbContext();
         var seed = await SeedAsync(context, 10m);
         var scope = new Mock<IScopeAuthorizationService>();
+        scope.Setup(x => x.CanAccessStoreAsync(seed.ManagerId, seed.StoreId)).ReturnsAsync(true);
         scope.Setup(x => x.CanAccessStoreAsync(seed.AreaManagerId, seed.StoreId)).ReturnsAsync(true);
         var service = new PurchaseAdviceService(context, scope.Object);
         var created = (await service.CreateAsync(CreateRequest(seed, 5m), Manager(seed))).Data!;
@@ -617,7 +620,12 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         IUnitConversionService? unitConversion = null)
     {
         var scope = new Mock<IScopeAuthorizationService>();
-        scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(false);
+        scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync((int staffId, int storeId) =>
+                context.Staffs.AsNoTracking().Any(x =>
+                    x.StaffId == staffId
+                    && x.StoreId == storeId
+                    && x.Active));
         return new PurchaseAdviceService(context, scope.Object, unitConversion);
     }
 
@@ -627,6 +635,8 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         IUnitConversionService? unitConversion = null)
     {
         var scope = new Mock<IScopeAuthorizationService>();
+        scope.Setup(x => x.CanAccessStoreAsync(seed.ManagerId, seed.StoreId))
+            .ReturnsAsync(true);
         scope.Setup(x => x.CanAccessStoreAsync(seed.WarehouseId, seed.StoreId))
             .ReturnsAsync(true);
         return new PurchaseAdviceService(context, scope.Object, unitConversion);

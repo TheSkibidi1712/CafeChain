@@ -26,6 +26,12 @@ namespace CafeChain.ViewModels.Admin.InventoryDocuments.Create
 
         public string StaffName { get; set; } = string.Empty;
 
+        public bool NegativeInventoryPolicyValid { get; set; }
+
+        public bool NegativeInventoryPolicyEnabled { get; set; }
+
+        public bool NegativeInventoryApprovalRequired { get; set; }
+
         // =====================================================
         // PARTNER
         // =====================================================

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
+using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Application.Interfaces.Inventories;
@@ -23,6 +24,44 @@ namespace CafeChain.Tests;
 
 public sealed class InventoryDocumentStoreInventorySourceTests
 {
+    [Theory]
+    [InlineData(true, true, true, true, true, true)]
+    [InlineData(true, false, true, true, false, true)]
+    [InlineData(false, false, true, false, false, true)]
+    public async Task CreateData_ExposesExistingNegativeInventoryPolicyForExportUi(
+        bool isValid,
+        bool enabled,
+        bool approvalRequired,
+        bool expectedValid,
+        bool expectedEnabled,
+        bool expectedApprovalRequired)
+    {
+        var repository = new Mock<IAdminInventoryDocumentRepository>();
+        var settingsProvider = new Mock<IInventoryIssueSettingsProvider>();
+        repository.Setup(x => x.GetStoreDropdownAsync()).ReturnsAsync([]);
+        repository
+            .Setup(x => x.GenerateDocumentCodeAsync(
+                InventoryDocumentType.EXPORT,
+                It.IsAny<InventoryDocumentPurpose?>()))
+            .ReturnsAsync("PX-TEST");
+        settingsProvider
+            .Setup(x => x.GetManualExternalExportSettingsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InventoryManualNegativeSettings(
+                isValid,
+                enabled,
+                approvalRequired,
+                10,
+                "policy-test"));
+
+        var service = CreateService(repository, settingsProvider.Object);
+
+        var result = await service.GetCreateDataAsync(InventoryDocumentType.EXPORT);
+
+        Assert.Equal(expectedValid, result.NegativeInventoryPolicyValid);
+        Assert.Equal(expectedEnabled, result.NegativeInventoryPolicyEnabled);
+        Assert.Equal(expectedApprovalRequired, result.NegativeInventoryApprovalRequired);
+    }
+
     [Theory]
     [InlineData(InventoryDocumentType.IMPORT)]
     [InlineData(InventoryDocumentType.ADJUSTMENT_IN)]
@@ -289,7 +328,8 @@ public sealed class InventoryDocumentStoreInventorySourceTests
     }
 
     private static AdminInventoryDocumentCreateService CreateService(
-        Mock<IAdminInventoryDocumentRepository> repository)
+        Mock<IAdminInventoryDocumentRepository> repository,
+        IInventoryIssueSettingsProvider? settingsProvider = null)
     {
         var actorAccessor = new Mock<IAdminActorContextAccessor>();
         actorAccessor
@@ -297,6 +337,7 @@ public sealed class InventoryDocumentStoreInventorySourceTests
             .Returns(new AdminActorContext { StaffId = 42, StoreId = 3 });
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(42, 3)).ReturnsAsync(true);
+        scope.Setup(x => x.GetAllowedStoresAsync(42)).ReturnsAsync([]);
 
         return new AdminInventoryDocumentCreateService(
             repository.Object,
@@ -305,6 +346,7 @@ public sealed class InventoryDocumentStoreInventorySourceTests
             new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
             Mock.Of<IRequestDeduplicationService>(),
             Mock.Of<IInventoryIssuePolicy>(),
+            settingsProvider ?? Mock.Of<IInventoryIssueSettingsProvider>(),
             actorAccessor.Object,
             scope.Object);
     }

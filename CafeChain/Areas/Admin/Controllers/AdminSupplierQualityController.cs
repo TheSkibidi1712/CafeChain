@@ -11,9 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers;
 
-[RequirePermission(PermissionConstants.SupplierQualityView,
-    RoleConstants.BusinessOwner + "," + RoleConstants.AccountantWarehouse + ","
-    + RoleConstants.AreaManager + "," + RoleConstants.StoreManager)]
+    [RequirePermission(PermissionConstants.SupplierQualityView)]
 public sealed class AdminSupplierQualityController : AdminBaseController
 {
     private readonly ISupplierQualityService _service;

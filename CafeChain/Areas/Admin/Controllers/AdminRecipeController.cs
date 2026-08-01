@@ -53,7 +53,9 @@ namespace CafeChain.Areas.Admin.Controllers
             int page = 1)
         {
             var model = await _queryService.GetIndexPageAsync(type, search, status, page);
-            model.CanWrite = RoleHelper.CanWriteRecipes(User);
+            model.CanWrite = await HasEffectivePermissionAsync(PermissionConstants.RecipeCreate)
+                || await HasEffectivePermissionAsync(PermissionConstants.RecipeUpdate)
+                || await HasEffectivePermissionAsync(PermissionConstants.RecipeDelete);
             return View(model);
         }
 
@@ -83,7 +85,9 @@ namespace CafeChain.Areas.Admin.Controllers
             if (page == null)
                 return NotFound("Không tìm thấy công thức.");
 
-            page.CanWrite = RoleHelper.CanWriteRecipes(User);
+            page.CanWrite = await HasEffectivePermissionAsync(PermissionConstants.RecipeCreate)
+                || await HasEffectivePermissionAsync(PermissionConstants.RecipeUpdate)
+                || await HasEffectivePermissionAsync(PermissionConstants.RecipeDelete);
             page.BackUrl = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
                 ? returnUrl
                 : Url.Action(nameof(Index), "AdminRecipe", new { area = "Admin" }) ?? "/Admin/AdminRecipe";
@@ -135,7 +139,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        [RequirePermission(PermissionConstants.RecipeCreate, RoleHelper.RecipeWriteRoles)]
+        [RequirePermission(PermissionConstants.RecipeCreate)]
         public async Task<IActionResult> Create()
         {
             var page = await _queryService.GetCreatePageAsync();
@@ -144,7 +148,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequirePermission(PermissionConstants.RecipeCreate, RoleHelper.RecipeWriteRoles)]
+        [RequirePermission(PermissionConstants.RecipeCreate)]
         public async Task<IActionResult> Create([FromBody] RecipeCreateVM model)
         {
             if (!ModelState.IsValid)
@@ -256,7 +260,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        [RequirePermission(PermissionConstants.RecipeUpdate, RoleHelper.RecipeWriteRoles)]
+        [RequirePermission(PermissionConstants.RecipeUpdate)]
         public async Task<IActionResult> Edit(int id)
         {
             var page = await _queryService.GetEditPageAsync(id);
@@ -271,7 +275,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequirePermission(PermissionConstants.RecipeUpdate, RoleHelper.RecipeWriteRoles)]
+        [RequirePermission(PermissionConstants.RecipeUpdate)]
         public async Task<IActionResult> Edit(int id, RecipeCreateVM model)
         {
             if (!ModelState.IsValid)
@@ -308,7 +312,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequirePermission(PermissionConstants.RecipeDelete, RoleHelper.RecipeWriteRoles)]
+        [RequirePermission(PermissionConstants.RecipeDelete)]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _recipeService.DeleteRecipeAsync(id);

@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Data;
 using Microsoft.EntityFrameworkCore;
@@ -12,29 +13,25 @@ public sealed class ReorderSuggestionAuthorizationService
 {
     private readonly AppDbContext _context;
     private readonly IAdminPermissionService _permissions;
+    private readonly IAdminStoreScopeResolver _storeScopeResolver;
 
     public ReorderSuggestionAuthorizationService(
         AppDbContext context,
-        IAdminPermissionService permissions)
+        IAdminPermissionService permissions,
+        IAdminStoreScopeResolver storeScopeResolver)
     {
         _context = context;
         _permissions = permissions;
+        _storeScopeResolver = storeScopeResolver;
     }
 
     public Task<bool> CanViewAsync(
         AdminActorContext actor,
         int storeId,
         CancellationToken cancellationToken = default) =>
-        HasRoleAndPermissionsAsync(
+        HasPermissionsAsync(
             actor,
             storeId,
-            [
-                RoleConstants.BusinessOwner,
-                RoleConstants.AreaManager,
-                RoleConstants.StoreManager,
-                RoleConstants.AccountantWarehouse,
-                RoleConstants.SystemAdmin
-            ],
             [PermissionConstants.ReorderSuggestionView],
             cancellationToken);
 
@@ -42,32 +39,30 @@ public sealed class ReorderSuggestionAuthorizationService
         AdminActorContext actor,
         int storeId,
         CancellationToken cancellationToken = default) =>
-        HasRoleAndPermissionsAsync(
+        HasPermissionsAsync(
             actor,
             storeId,
-            [
-                RoleConstants.StoreManager,
-                RoleConstants.AccountantWarehouse,
-                RoleConstants.SystemAdmin
-            ],
             [
                 PermissionConstants.ReorderSuggestionView,
                 PermissionConstants.RestockCreate
             ],
             cancellationToken);
 
-    private async Task<bool> HasRoleAndPermissionsAsync(
+    private async Task<bool> HasPermissionsAsync(
         AdminActorContext actor,
         int storeId,
-        IReadOnlyCollection<string> allowedRoles,
         IReadOnlyCollection<string> permissionCodes,
         CancellationToken cancellationToken)
     {
         if (actor.StaffId <= 0 || storeId <= 0)
             return false;
-        if (!actor.RoleNames.Any(role => allowedRoles.Contains(
-                role,
-                StringComparer.OrdinalIgnoreCase)))
+
+        var scope = await _storeScopeResolver.ResolveAsync(
+            actor,
+            storeId,
+            AdminStoreScopeMode.ReorderSuggestion,
+            cancellationToken);
+        if (!scope.IsResolved)
             return false;
 
         var accountId = actor.AccountId;
@@ -91,8 +86,7 @@ public sealed class ReorderSuggestionAuthorizationService
             cancellationToken.ThrowIfCancellationRequested();
             var result = await _permissions.HasPermissionAsync(
                 accountId,
-                permissionCode,
-                storeId);
+                permissionCode);
             if (!result.IsSuccess
                 || result.Data?.Allowed != true
                 || result.Data.StaffId != actor.StaffId)

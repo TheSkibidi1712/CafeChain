@@ -362,6 +362,16 @@ public sealed class DashboardService : IDashboardService
         var allowed = await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId);
         var allowedIds = allowed.Select(x => x.StoreId).Distinct().ToArray();
         if (allowedIds.Length == 0) throw new UnauthorizedAccessException("Không có cửa hàng trong phạm vi được cấp.");
+        if (normalized.StoreIdsOverride is { Count: > 0 })
+        {
+            var requestedIds = normalized.StoreIdsOverride.Where(x => x > 0).Distinct().ToArray();
+            if (requestedIds.Length != normalized.StoreIdsOverride.Distinct().Count()
+                || requestedIds.Except(allowedIds).Any())
+            {
+                throw new UnauthorizedAccessException(
+                    "Danh sách cửa hàng yêu cầu có phần nằm ngoài phạm vi được cấp.");
+            }
+        }
         var options = await _repository.GetStoreOptionsAsync(allowedIds, cancellationToken);
 
         IEnumerable<DashboardStoreOptionDto> selected = options;

@@ -88,7 +88,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public void RecipeWriteActions_RequireServerSideRoleMatrix()
+        public void RecipeWriteActions_RequireServerSidePermissionsWithoutRoleMatrix()
         {
             var writeMethods = typeof(AdminRecipeController)
                 .GetMethods(BindingFlags.Instance | BindingFlags.Public)
@@ -98,16 +98,19 @@ namespace CafeChain.Tests.POS
             Assert.NotEmpty(writeMethods);
             foreach (var method in writeMethods)
             {
-                var authorize = method.GetCustomAttribute<AuthorizeAttribute>();
+                var authorize = method.GetCustomAttribute<CafeChain.Application.Authorization.RequirePermissionAttribute>();
                 Assert.NotNull(authorize);
-                Assert.Equal(RoleHelper.RecipeWriteRoles, authorize!.Roles);
+                var permission = method.Name switch
+                {
+                    "Create" => PermissionConstants.RecipeCreate,
+                    "Edit" => PermissionConstants.RecipeUpdate,
+                    _ => PermissionConstants.RecipeDelete
+                };
+                Assert.Equal(
+                    CafeChain.Application.Authorization.RequirePermissionAttribute.PolicyPrefix + permission,
+                    authorize!.Policy);
+                Assert.Null(authorize.Roles);
             }
-
-            Assert.True(RoleHelper.CanWriteRecipes(UserWithRole(RoleConstants.SystemAdmin)));
-            Assert.True(RoleHelper.CanWriteRecipes(UserWithRole(RoleConstants.BusinessOwner)));
-            Assert.True(RoleHelper.CanWriteRecipes(UserWithRole(RoleConstants.AccountantWarehouse)));
-            Assert.False(RoleHelper.CanWriteRecipes(UserWithRole(RoleConstants.StoreManager)));
-            Assert.False(RoleHelper.CanWriteRecipes(UserWithRole(RoleConstants.AreaManager)));
         }
 
         [Fact]

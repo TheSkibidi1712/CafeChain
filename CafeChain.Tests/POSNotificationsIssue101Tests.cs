@@ -91,6 +91,42 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
+        public async Task RetiredScheduleGap_IsPreservedButHiddenFromListUnreadAndMarkAll()
+        {
+            using var ctx = CreateDbContext();
+            SeedTwoStaffNotifications(ctx);
+            ctx.StaffNotifications.Add(new StaffNotification
+            {
+                StoreId = StoreId,
+                RecipientStaffId = StaffA,
+                Type = "STAFF_SCHEDULE_GAP",
+                Title = "Legacy schedule gap",
+                Body = "Historical row retained for audit",
+                EntityType = "StaffScheduleGap",
+                EntityId = 51,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            });
+            await ctx.SaveChangesAsync();
+
+            var service = CreateService(ctx);
+            var list = await service.GetListAsync(
+                StaffA, 1, 20, StaffNotificationQueryService.ChannelAdmin);
+            var unread = await service.GetUnreadCountAsync(StaffA);
+            var markAll = await service.MarkAllReadAsync(StaffA);
+
+            Assert.True(list.IsSuccess);
+            Assert.True(unread.IsSuccess);
+            Assert.True(markAll.IsSuccess);
+            Assert.DoesNotContain(list.Data!.Items, x => x.Type == "STAFF_SCHEDULE_GAP");
+            Assert.Equal(3, list.Data.Total);
+            Assert.Equal(2, unread.Data!.UnreadCount);
+            Assert.Equal(2, markAll.Data!.MarkedCount);
+            Assert.True(await ctx.StaffNotifications.AnyAsync(x =>
+                x.Type == "STAFF_SCHEDULE_GAP" && !x.IsRead && x.ResolvedAt == null));
+        }
+
+        [Fact]
         public async Task List_OnlyCurrentStaff_AndPagination()
         {
             using var ctx = CreateDbContext();

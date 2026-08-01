@@ -257,7 +257,8 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
             Actor(seed.Manager2Id, seed.Store2Id, RoleConstants.SalesStaff));
         var systemAdmin = await adviceService.CreateAsync(CreateAdviceRequest(seed.Restock2Id, seed.Store2Id, seed.Restock2RowVersion),
             Actor(seed.Manager2Id, seed.Store2Id, RoleConstants.SystemAdmin));
-        Assert.All(new[] { otherStore, cashier, systemAdmin }, x => Assert.False(x.IsSuccess));
+        Assert.All(new[] { otherStore, cashier }, x => Assert.False(x.IsSuccess));
+        Assert.True(systemAdmin.IsSuccess, systemAdmin.Message);
 
         var submitted = await adviceService.SubmitAsync(own.Data!.PurchaseAdviceId,
             new() { RowVersion = own.Data.RowVersion }, Manager1(seed));
@@ -396,6 +397,18 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
         db.StaffScopes.AddRange(
             new StaffScope
             {
+                StaffId = manager1.StaffId,
+                ScopeTypeId = (int)ScopeLevel.Store,
+                ScopeRefId = store1.StoreId
+            },
+            new StaffScope
+            {
+                StaffId = manager2.StaffId,
+                ScopeTypeId = (int)ScopeLevel.Store,
+                ScopeRefId = store2.StoreId
+            },
+            new StaffScope
+            {
                 StaffId = warehouse.StaffId,
                 ScopeTypeId = (int)ScopeLevel.Store,
                 ScopeRefId = store1.StoreId
@@ -403,6 +416,18 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
             new StaffScope
             {
                 StaffId = warehouse.StaffId,
+                ScopeTypeId = (int)ScopeLevel.Store,
+                ScopeRefId = store2.StoreId
+            },
+            new StaffScope
+            {
+                StaffId = owner.StaffId,
+                ScopeTypeId = (int)ScopeLevel.Store,
+                ScopeRefId = store1.StoreId
+            },
+            new StaffScope
+            {
+                StaffId = owner.StaffId,
                 ScopeTypeId = (int)ScopeLevel.Store,
                 ScopeRefId = store2.StoreId
             });

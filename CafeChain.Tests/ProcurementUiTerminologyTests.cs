@@ -214,13 +214,13 @@ public sealed class ProcurementUiTerminologyTests
     }
 
     [Fact]
-    public void PurchaseAdviceCreateAction_UsesScopedStoresForAuthorizedRoles()
+    public void PurchaseAdviceCreateAction_UsesPermissionCapabilityAndScopedStores()
     {
         var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPurchaseAdvices/Index.cshtml");
 
-        Assert.Contains("RoleConstants.StoreManager", view);
-        Assert.Contains("RoleConstants.AccountantWarehouse", view);
-        Assert.Contains("RoleConstants.BusinessOwner", view);
+        Assert.Contains("ViewBag.CanCreate", view);
+        Assert.DoesNotContain("RoleConstants", view);
+        Assert.DoesNotContain("User.IsInRole", view);
         Assert.Contains("Model.Stores.Any", view);
         Assert.Contains("asp-route-storeId=\"@createStoreId\"", view);
         Assert.DoesNotContain("asp-route-storeId=\"@Model.Actor.StoreId\"", view);

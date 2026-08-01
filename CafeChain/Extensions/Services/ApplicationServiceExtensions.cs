@@ -193,10 +193,6 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IAdminStaffService, AdminStaffService>();
             services.AddScoped<IAdminStaffShiftService, AdminStaffShiftService>();
             services.AddScoped<IShiftOptimizationService, ShiftOptimizationService>();
-            services.AddScoped<IStaffScheduleGapNotificationService,
-                StaffScheduleGapNotificationService>();
-            services.AddOptions<StaffScheduleGapNotificationOptions>()
-                .BindConfiguration(StaffScheduleGapNotificationOptions.SectionName);
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Profiles.IAdminProfileService,
                 CafeChain.Application.Services.Admin.Profiles.AdminProfileService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Stores.IAdminStoreService,

@@ -10,13 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers;
 
 [Area("Admin")]
-[RequirePermission(PermissionConstants.PurchaseOrderViewBatch,
-    RoleConstants.BusinessOwner + "," +
-    RoleConstants.AccountantWarehouse + "," +
-    RoleConstants.AreaManager + "," +
-    RoleConstants.StoreManager + "," +
-    RoleConstants.ShiftSupervisor)]
-public sealed class AdminPurchaseOrderBatchesController : Controller
+    [RequirePermission(PermissionConstants.PurchaseOrderViewBatch)]
+public sealed class AdminPurchaseOrderBatchesController : AdminStoreScopedController
 {
     private readonly IPurchaseOrderBatchService _service;
     private readonly IPurchaseOrderBatchDocumentService _documentService;
@@ -51,6 +46,9 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
         if (!result.IsSuccess) return Failure(result.ErrorCode, result.Message);
         var revisions = await _documentService.ListAsync(id, actor);
         if (!revisions.IsSuccess) return Failure(revisions.ErrorCode, revisions.Message);
+        ViewBag.CanApprove = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderApprove);
+        ViewBag.CanCancel = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCancel);
+        ViewBag.CanDocument = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderExport);
         return View(new PurchaseOrderBatchDetailPageDto
         {
             Batch = result.Data!,

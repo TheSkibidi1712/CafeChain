@@ -113,7 +113,6 @@ DashboardIntelligence:ExplanationEnabled
 Forecasting:RevenueEnabled
 Forecasting:ProductEnabled
 SupplierIntelligence:ScoringEnabled
-StaffScheduleNotifications:Enabled
 PosRecommendation:Enabled
 AnomalyDetection:Enabled
 ```

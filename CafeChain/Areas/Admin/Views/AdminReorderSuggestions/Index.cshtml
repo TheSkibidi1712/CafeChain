@@ -183,14 +183,16 @@
                                        asp-route-id="@item.ActiveRestockRequestId"
                                        class="cc-button">Xem yêu cầu</a>
                                 }
-                                <button type="button"
-                                        class="cc-button cc-button-primary js-reorder-confirm"
-                                        data-store-id="@item.StoreId"
-                                        data-ingredient-id="@item.IngredientId"
-                                        data-suggestion-token="@item.SuggestionToken"
-                                        disabled="@(item.CanConfirm ? null : "disabled")">
+                                @if (item.CanConfirm)
+                                {
+                                    <button type="button"
+                                            class="cc-button cc-button-primary js-reorder-confirm"
+                                            data-store-id="@item.StoreId"
+                                            data-ingredient-id="@item.IngredientId"
+                                            data-suggestion-token="@item.SuggestionToken">
                                     @(item.ActiveRestockRequestId.HasValue ? "Bổ sung yêu cầu" : "Xác nhận nhập")
-                                </button>
+                                    </button>
+                                }
                             </td>
                         </tr>
                     }

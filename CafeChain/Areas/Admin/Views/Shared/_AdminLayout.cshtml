@@ -11,13 +11,6 @@
 
     var canManagePermissions = false;
     var canAccessDashboard = false;
-    var hasDashboardBusinessRole =
-        User.IsInRole(RoleConstants.BusinessOwner)
-        || User.IsInRole(RoleConstants.AreaManager)
-        || User.IsInRole(RoleConstants.StoreManager)
-        || User.IsInRole(RoleConstants.AccountantWarehouse)
-        || User.IsInRole(RoleConstants.SystemAdmin);
-    var hasReorderBusinessRole = hasDashboardBusinessRole;
     var effectivePermissions = new HashSet<string>(StringComparer.Ordinal);
 
     var currentAccountIdValue =
@@ -39,9 +32,36 @@
         var snapshot = await PermissionService.GetEffectivePermissionCodesAsync(currentAccountId);
         effectivePermissions = snapshot.Data ?? new HashSet<string>(StringComparer.Ordinal);
         canManagePermissions = effectivePermissions.Contains(PermissionConstants.SystemPermissionManage);
-        canAccessDashboard = hasDashboardBusinessRole
-            && effectivePermissions.Contains(PermissionConstants.AppAdminDashboard);
+        canAccessDashboard = effectivePermissions.Contains(PermissionConstants.AppAdminDashboard);
     }
+
+    var canAccessProduction = effectivePermissions.Overlaps(new[]
+    {
+        PermissionConstants.PreparedItemView,
+        PermissionConstants.RecipeView,
+        PermissionConstants.ProductionOrderView
+    });
+    var canAccessInventory = effectivePermissions.Overlaps(new[]
+    {
+        PermissionConstants.InventoryView,
+        PermissionConstants.InventoryThresholdView,
+        PermissionConstants.StockAlertView,
+        PermissionConstants.OperationalIceView,
+        PermissionConstants.RestockView,
+        PermissionConstants.ReorderSuggestionView,
+        PermissionConstants.PurchaseAdviceView,
+        PermissionConstants.PurchaseAdviceConsolidate,
+        PermissionConstants.PurchaseOrderViewBatch,
+        PermissionConstants.PurchaseOrderView,
+        PermissionConstants.SupplierQualityView,
+        PermissionConstants.NotificationView,
+        PermissionConstants.IngredientView,
+        PermissionConstants.UnitConversionView,
+        PermissionConstants.SupplierView,
+        PermissionConstants.ReceiptView
+    });
+    var canAccessInventoryDocuments = effectivePermissions.Contains(PermissionConstants.InventoryDocumentView)
+        || effectivePermissions.Contains(PermissionConstants.InventoryTransferView);
 }
 
 <!DOCTYPE html>
@@ -412,6 +432,8 @@
                 </div>
 
                 <!-- ━━━ 🧪 SẢN XUẤT / BOM ━━━ -->
+                @if (canAccessProduction)
+                {
                 <a href="#collapseProduction" data-bs-toggle="collapse"
                    aria-expanded="@(Html.IsActive("AdminRecipe,AdminProductionOrder,AdminPreparedItem") != "" ? "true" : "false")"
                    class="sidebar-section-header @Html.IsActive("AdminRecipe,AdminProductionOrder,AdminPreparedItem")">
@@ -420,14 +442,27 @@
                 </a>
                 <div class="collapse @Html.IsActive("AdminRecipe,AdminProductionOrder,AdminPreparedItem", cssClass: "show")" id="collapseProduction">
                     <div class="sidebar-sub">
-                        <a asp-area="Admin" asp-controller="AdminPreparedItem" asp-action="Index" class="@Html.IsActive("AdminPreparedItem")"><i class="fas fa-circle"></i> Danh mục bán thành phẩm</a>
-                        <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index" class="@Html.IsActive("AdminRecipe", "Index,Create,Edit,Visualize")"><i class="fas fa-circle"></i> Công thức BOM</a>
-                        <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="DataHealth" class="@Html.IsActive("AdminRecipe", "DataHealth")"><i class="fas fa-circle"></i> Tình trạng dữ liệu BOM</a>
-                        <a asp-area="Admin" asp-controller="AdminProductionOrder" asp-action="Create" class="@Html.IsActive("AdminProductionOrder")"><i class="fas fa-circle"></i> Lệnh sơ chế</a>
+                        @if (effectivePermissions.Contains(PermissionConstants.PreparedItemView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminPreparedItem" asp-action="Index" class="@Html.IsActive("AdminPreparedItem")"><i class="fas fa-circle"></i> Danh mục bán thành phẩm</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.RecipeView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index" class="@Html.IsActive("AdminRecipe", "Index,Create,Edit,Visualize")"><i class="fas fa-circle"></i> Công thức BOM</a>
+                            <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="DataHealth" class="@Html.IsActive("AdminRecipe", "DataHealth")"><i class="fas fa-circle"></i> Tình trạng dữ liệu BOM</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.ProductionOrderView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminProductionOrder" asp-action="Create" class="@Html.IsActive("AdminProductionOrder")"><i class="fas fa-circle"></i> Lệnh sơ chế</a>
+                        }
                     </div>
                 </div>
 
                 <!-- ━━━ 📦 KHO & CUNG ỨNG ━━━ -->
+                }
+
+                @if (canAccessInventory)
+                {
                 <a href="#collapseInventory" data-bs-toggle="collapse"
                    aria-expanded="@(Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce") != "" ? "true" : "false")"
                    class="sidebar-section-header @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce")">
@@ -436,25 +471,58 @@
                 </a>
                 <div class="collapse @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce", cssClass: "show")" id="collapseInventory">
                     <div class="sidebar-sub">
-                        <a asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" class="@Html.IsActive("AdminStoreInventory")"><i class="fas fa-circle"></i> Tồn kho cửa hàng</a>
-                        <a asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" class="@Html.IsActive("AdminInventoryThresholds")"><i class="fas fa-circle"></i> Ngưỡng tồn kho</a>
-                        <a asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" class="@Html.IsActive("AdminStockAlerts")"><i class="fas fa-circle"></i> Cảnh báo kho</a>
+                        @if (effectivePermissions.Contains(PermissionConstants.InventoryView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" class="@Html.IsActive("AdminStoreInventory")"><i class="fas fa-circle"></i> Tồn kho cửa hàng</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.InventoryThresholdView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" class="@Html.IsActive("AdminInventoryThresholds")"><i class="fas fa-circle"></i> Ngưỡng tồn kho</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.StockAlertView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" class="@Html.IsActive("AdminStockAlerts")"><i class="fas fa-circle"></i> Cảnh báo kho</a>
+                        }
                         @if (effectivePermissions.Contains(PermissionConstants.OperationalIceView))
                         {
                             <a asp-area="Admin" asp-controller="AdminOperationalIce" asp-action="Index" class="@Html.IsActive("AdminOperationalIce")"><i class="fas fa-circle"></i> Quản lý đá theo ca</a>
                         }
-                        <a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" class="@Html.IsActive("AdminRestockRequests")"><i class="fas fa-circle"></i> Yêu cầu nhập hàng</a>
-                        @if (hasReorderBusinessRole
-                            && effectivePermissions.Contains(PermissionConstants.ReorderSuggestionView))
+                        @if (effectivePermissions.Contains(PermissionConstants.RestockView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" class="@Html.IsActive("AdminRestockRequests")"><i class="fas fa-circle"></i> Yêu cầu nhập hàng</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.ReorderSuggestionView))
                         {
                             <a asp-area="Admin" asp-controller="AdminReorderSuggestions" asp-action="Index" class="@Html.IsActive("AdminReorderSuggestions")"><i class="fas fa-circle"></i> Gợi ý nhập hàng</a>
                         }
-                        <a asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Index" class="@Html.IsActive("AdminPurchaseAdvices")"><i class="fas fa-circle"></i> Đề nghị mua hàng</a>
-                        <a asp-area="Admin" asp-controller="AdminPurchaseAdviceConsolidation" asp-action="Index" class="@Html.IsActive("AdminPurchaseAdviceConsolidation")"><i class="fas fa-circle"></i> Tổng hợp đề nghị mua</a>
-                        <a asp-area="Admin" asp-controller="AdminPurchaseOrderBatches" asp-action="Index" class="@Html.IsActive("AdminPurchaseOrderBatches")"><i class="fas fa-circle"></i> Đơn đặt hàng gộp</a>
-                        <a asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Index" class="@Html.IsActive("AdminPurchaseOrders")"><i class="fas fa-circle"></i> Đơn đặt hàng</a>
-                        <a asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Index" class="@Html.IsActive("AdminSupplierQuality")"><i class="fas fa-circle"></i> Chất lượng nhà cung cấp</a>
-                        <a asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index" class="@Html.IsActive("AdminNotifications")"><i class="fas fa-circle"></i> Thông báo kho</a>
+                        @if (effectivePermissions.Contains(PermissionConstants.PurchaseAdviceView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Index" class="@Html.IsActive("AdminPurchaseAdvices")"><i class="fas fa-circle"></i> Đề nghị mua hàng</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.PurchaseAdviceConsolidate))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminPurchaseAdviceConsolidation" asp-action="Index" class="@Html.IsActive("AdminPurchaseAdviceConsolidation")"><i class="fas fa-circle"></i> Tổng hợp đề nghị mua</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.PurchaseOrderViewBatch))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminPurchaseOrderBatches" asp-action="Index" class="@Html.IsActive("AdminPurchaseOrderBatches")"><i class="fas fa-circle"></i> Đơn đặt hàng gộp</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.PurchaseOrderView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Index" class="@Html.IsActive("AdminPurchaseOrders")"><i class="fas fa-circle"></i> Đơn đặt hàng</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.ReceiptView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index" class="@Html.IsActive("AdminBranchReceipts")"><i class="fas fa-circle"></i> Phiếu nhận hàng</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.SupplierQualityView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Index" class="@Html.IsActive("AdminSupplierQuality")"><i class="fas fa-circle"></i> Chất lượng nhà cung cấp</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.NotificationView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index" class="@Html.IsActive("AdminNotifications")"><i class="fas fa-circle"></i> Thông báo kho</a>
+                        }
                         @if (effectivePermissions.Contains(PermissionConstants.IngredientView))
                         {
                             <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-circle"></i> Nguyên liệu</a>
@@ -463,11 +531,18 @@
                         {
                             <a asp-area="Admin" asp-controller="AdminUnitConversion" asp-action="Index" class="@Html.IsActive("AdminUnitConversion")"><i class="fas fa-circle"></i> Đơn vị và quy đổi</a>
                         }
-                        <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-circle"></i> Nhà cung cấp</a>
+                        @if (effectivePermissions.Contains(PermissionConstants.SupplierView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-circle"></i> Nhà cung cấp</a>
+                        }
                     </div>
                 </div>
 
                 <!-- ━━━ 📦 Phiếu Kho ━━━ -->
+                }
+
+                @if (canAccessInventoryDocuments)
+                {
                 <a href="#collapseInventoryDocument" data-bs-toggle="collapse"
                    aria-expanded="@(Html.IsActive("AdminInventorydocument,AdminInventoryTransfer") != "" ? "true" : "false")"
                    class="sidebar-section-header @Html.IsActive("AdminInventorydocument,AdminInventoryTransfer")">
@@ -476,12 +551,20 @@
                 </a>
                 <div class="collapse @Html.IsActive("AdminInventorydocument,AdminInventoryTransfer", cssClass: "show")" id="collapseInventoryDocument">
                     <div class="sidebar-sub">
-                        <a asp-area="Admin" asp-controller="AdminInventorydocument" asp-action="Index" class="@Html.IsActive("AdminInventorydocument")"><i class="fas fa-circle"></i> Phiếu kho</a>
-                        <a asp-area="Admin" asp-controller="AdminInventoryTransfer" asp-action="Index" class="@Html.IsActive("AdminInventoryTransfer")"><i class="fas fa-circle"></i> Phiếu chuyển kho</a>
+                        @if (effectivePermissions.Contains(PermissionConstants.InventoryDocumentView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminInventorydocument" asp-action="Index" class="@Html.IsActive("AdminInventorydocument")"><i class="fas fa-circle"></i> Phiếu kho</a>
+                        }
+                        @if (effectivePermissions.Contains(PermissionConstants.InventoryTransferView))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminInventoryTransfer" asp-action="Index" class="@Html.IsActive("AdminInventoryTransfer")"><i class="fas fa-circle"></i> Phiếu chuyển kho</a>
+                        }
                     </div>
                 </div>
 
                 <!-- ━━━ 🛒 ĐƠN HÀNG & BÁN HÀNG ━━━ -->
+                }
+
                 <a href="#collapseOrders" data-bs-toggle="collapse"
                    aria-expanded="@(Html.IsActive("AdminOrder") != "" ? "true" : "false")"
                    class="sidebar-section-header @Html.IsActive("AdminOrder")">

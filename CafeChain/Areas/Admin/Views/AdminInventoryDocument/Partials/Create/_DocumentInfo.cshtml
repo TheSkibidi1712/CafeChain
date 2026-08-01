@@ -5,6 +5,9 @@
     var documentDate = Model.DocumentDate == default ? DateTime.Today : Model.DocumentDate;
     var isImport = Model.Type == InventoryDocumentType.IMPORT;
     var isExport = Model.Type == InventoryDocumentType.EXPORT;
+    var negativeInventoryAvailable =
+        Model.NegativeInventoryPolicyValid
+        && Model.NegativeInventoryPolicyEnabled;
     var purposeTitle = Model.Type switch
     {
         InventoryDocumentType.IMPORT => "Mục đích nhập kho",
@@ -200,29 +203,91 @@
 
         @if (isExport)
         {
-            <div class="create-field create-field-wide" id="allowNegativeStockField">
-                <div class="form-check form-switch">
-                    <input id="AllowNegativeStock"
-                           name="AllowNegativeStock"
-                           class="form-check-input"
-                           type="checkbox"
-                           value="true"
-                           role="switch" />
-                    <label class="form-check-label fw-semibold" for="AllowNegativeStock">
-                        Cho phép xuất âm kho
+            <div class="create-field create-field-wide negative-stock-mode-field"
+                 id="negativeStockModeField"
+                 data-policy-valid="@Model.NegativeInventoryPolicyValid.ToString().ToLowerInvariant()"
+                 data-policy-enabled="@Model.NegativeInventoryPolicyEnabled.ToString().ToLowerInvariant()">
+                <div class="create-section-subtitle negative-stock-mode-title">
+                    <i class="fas fa-scale-balanced"></i>
+                    Cách xử lý khi không đủ tồn
+                </div>
+
+                <div class="negative-stock-mode-list" role="radiogroup" aria-label="Cách xử lý khi không đủ tồn">
+                    <label class="negative-stock-mode-card" for="negativeStockModeNormal">
+                        <input id="negativeStockModeNormal"
+                               class="negative-stock-mode-input"
+                               type="radio"
+                               name="NegativeStockMode"
+                               value="normal"
+                               checked />
+                        <span class="negative-stock-mode-dot"></span>
+                        <span>
+                            <strong>Xuất trong tồn khả dụng</strong>
+                            <small>Mặc định. Không dòng nào được làm tồn sau xuất nhỏ hơn 0.</small>
+                        </span>
+                    </label>
+
+                    <label class="negative-stock-mode-card @(negativeInventoryAvailable ? null : "is-disabled")"
+                           for="negativeStockModeRequest">
+                        <input id="negativeStockModeRequest"
+                               class="negative-stock-mode-input"
+                               type="radio"
+                               name="NegativeStockMode"
+                               value="request-negative"
+                               disabled="@(!negativeInventoryAvailable)" />
+                        <span class="negative-stock-mode-dot"></span>
+                        <span>
+                            <strong>Yêu cầu xuất vượt tồn</strong>
+                            <small>Chỉ áp dụng khi số lượng xuất lớn hơn tồn khả dụng; cần lý do và phê duyệt.</small>
+                        </span>
                     </label>
                 </div>
-                <small class="text-muted">
-                    Mặc định tắt. Khi bật, phiếu vẫn phải tuân theo giới hạn và quy trình phê duyệt xuất âm.
-                </small>
+
+                @if (!Model.NegativeInventoryPolicyValid)
+                {
+                    <div class="negative-stock-policy-note is-error" role="status">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        Cấu hình xuất vượt tồn chưa hợp lệ. Vui lòng liên hệ quản trị hệ thống.
+                    </div>
+                }
+                else if (!Model.NegativeInventoryPolicyEnabled)
+                {
+                    <div class="negative-stock-policy-note" role="status">
+                        <i class="fas fa-lock"></i>
+                        Cài đặt hệ thống đang tắt xuất vượt tồn.
+                    </div>
+                }
+                else
+                {
+                    <div class="negative-stock-policy-note is-enabled" role="status">
+                        <i class="fas fa-shield-halved"></i>
+                        Chính sách xuất vượt tồn đang bật@(Model.NegativeInventoryApprovalRequired ? " và bắt buộc phê duyệt" : null).
+                    </div>
+                }
+
+                <div class="negative-stock-projection is-pending"
+                     id="negativeStockProjection"
+                     aria-live="polite">
+                    <div class="negative-stock-projection-head">
+                        <span>Trạng thái dự kiến</span>
+                        <strong class="negative-stock-projection-badge" id="negativeStockProjectionBadge">
+                            Chưa thể xác định
+                        </strong>
+                    </div>
+                    <p id="negativeStockProjectionMessage">
+                        Chọn cửa hàng, nguyên liệu và nhập số lượng để hệ thống xác định cách xuất.
+                    </p>
+                    <ul class="negative-stock-projection-lines d-none" id="negativeStockProjectionLines"></ul>
+                </div>
             </div>
             <div class="create-field create-field-wide d-none" id="negativeReasonField">
-                <label for="NegativeReason">Lý do xuất âm</label>
+                <label for="NegativeReason">Lý do cần xuất vượt tồn</label>
                 <textarea id="NegativeReason"
                           name="NegativeReason"
                           rows="2"
                           class="form-control create-control"
-                          placeholder="Mô tả giao dịch thực tế và lý do cần xuất vượt tồn kho"></textarea>
+                          placeholder="Mô tả giao dịch thực tế và lý do cần xuất nhiều hơn tồn khả dụng"></textarea>
+                <small>Lý do phục vụ kiểm soát và phê duyệt; trạng thái xuất được xác định từ tồn khả dụng và số lượng xuất.</small>
             </div>
             <div class="create-field create-field-wide d-none" id="negativePreflightPanel" aria-live="polite"></div>
         }

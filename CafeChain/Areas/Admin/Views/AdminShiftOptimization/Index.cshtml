@@ -1,7 +1,7 @@
 @model CafeChain.Application.DTOs.Admin.Staffs.ShiftOptimizationSetupDto
 @using System.Text.Json
 @{
-    ViewData["Title"] = "Cấu hình lịch & cảnh báo";
+    ViewData["Title"] = "Cấu hình dữ liệu lịch";
     var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     var setupJson = JsonSerializer.Serialize(new
     {
@@ -29,8 +29,8 @@
     <header class="shift-optimization-header d-flex justify-content-between align-items-start gap-3 mb-3">
         <div>
             <span class="text-uppercase text-muted small fw-semibold">Nhân sự &amp; vận hành</span>
-            <h1 class="h3 mb-1">Cấu hình lịch &amp; cảnh báo — @ViewBag.StoreName</h1>
-            <p class="text-muted mb-0">Khai báo dữ liệu nền để hệ thống phát hiện ca thiếu người. Quản lý vẫn phân lịch thủ công.</p>
+            <h1 class="h3 mb-1">Cấu hình dữ liệu lịch — @ViewBag.StoreName</h1>
+            <p class="text-muted mb-0">Khai báo dữ liệu tham khảo cho quản lý khi phân lịch thủ công.</p>
         </div>
         <a class="btn btn-outline-secondary" asp-controller="AdminStaffShift" asp-action="Index" asp-route-targetStoreId="@Model.StoreId">
             <i class="bi bi-arrow-left"></i> Quay lại lịch
@@ -42,7 +42,7 @@
         <div>
             <strong>Cách sử dụng:</strong>
             nhập dữ liệu nền theo thứ tự <strong>Khả dụng → Giới hạn giờ → Định mức → Nghỉ phép</strong>.
-            Hệ thống dùng các cấu hình này để cảnh báo ca thiếu người trong hai ngày tới; hệ thống không tự xếp hoặc áp dụng lịch.
+            Các cấu hình này không tự kiểm tra, tự xếp hoặc áp dụng lịch.
         </div>
     </section>
 
@@ -127,7 +127,7 @@
         <section class="tab-pane fade" id="requirement" role="tabpanel">
             <fieldset class="border-0 p-0 m-0">
             <legend class="visually-hidden">Khai báo định mức nhân sự</legend>
-            <p class="form-text mb-3" id="requirementHelp">Định mức là căn cứ để phát hiện ca thiếu người và xác định số người còn thiếu.</p>
+            <p class="form-text mb-3" id="requirementHelp">Định mức giúp quản lý tham chiếu số nhân sự mong muốn cho từng ca.</p>
             <form data-kind="requirement" class="row g-3" aria-describedby="requirementHelp">
                 <input type="hidden" name="storeId" value="@Model.StoreId" />
                 <div class="col-md-3"><label class="form-label" for="requirementShift">Ca làm</label><select id="requirementShift" class="form-select" name="shiftId" required>@foreach (var shift in Model.Shifts) { <option value="@shift.Id">@shift.Name</option> }</select></div>
@@ -166,7 +166,7 @@
 
     <section class="mt-4">
         <h2 class="h5">Cấu hình đã lưu</h2>
-        <p class="text-muted small">Kiểm tra dữ liệu nền đang được dùng để phát hiện và giải thích cảnh báo thiếu lịch.</p>
+        <p class="text-muted small">Kiểm tra dữ liệu tham khảo đang được lưu cho việc phân lịch thủ công.</p>
         <div id="shiftOptimizationConfig" class="row g-3"></div>
     </section>
     <div id="shiftOptimizationNotice" class="alert mt-3" hidden role="status"></div>

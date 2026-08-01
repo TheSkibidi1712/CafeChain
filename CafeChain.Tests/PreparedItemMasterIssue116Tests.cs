@@ -360,22 +360,24 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public void WriteEndpoints_RequireWriteRoles_NotStoreManagerOrAreaManager()
+        public void WriteEndpoints_RequireBusinessPermissions_WithoutRoleAllowLists()
         {
-            foreach (var name in new[] { "Create", "Update", "SetActive" })
+            var expected = new Dictionary<string, string>
+            {
+                ["Create"] = PermissionConstants.PreparedItemCreate,
+                ["Update"] = PermissionConstants.PreparedItemUpdate,
+                ["SetActive"] = PermissionConstants.PreparedItemToggleStatus
+            };
+            foreach (var (name, permissionCode) in expected)
             {
                 var method = typeof(AdminPreparedItemController).GetMethod(name);
                 Assert.NotNull(method);
-                var auth = method!.GetCustomAttribute<AuthorizeAttribute>();
+                var auth = method!.GetCustomAttribute<CafeChain.Application.Authorization.RequirePermissionAttribute>();
                 Assert.NotNull(auth);
-                Assert.NotNull(auth!.Roles);
-                Assert.Contains(RoleConstants.SystemAdmin, auth.Roles);
-                Assert.Contains(RoleConstants.BusinessOwner, auth.Roles);
-                Assert.Contains(RoleConstants.AccountantWarehouse, auth.Roles);
-                Assert.DoesNotContain(RoleConstants.StoreManager, auth.Roles);
-                Assert.DoesNotContain(RoleConstants.AreaManager, auth.Roles);
-                Assert.DoesNotContain(RoleConstants.SalesStaff, auth.Roles);
-                Assert.DoesNotContain(RoleConstants.ShiftSupervisor, auth.Roles);
+                Assert.Equal(
+                    CafeChain.Application.Authorization.RequirePermissionAttribute.PolicyPrefix + permissionCode,
+                    auth!.Policy);
+                Assert.Null(auth.Roles);
             }
         }
 

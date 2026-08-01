@@ -42,7 +42,7 @@ namespace CafeChain.Areas.Admin.Controllers
             int page = 1,
             int? storeId = null)
         {
-            if (!CanViewRestockRequests())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockView))
             {
                 TempData["ErrorMessage"] = "Bạn không có quyền xem yêu cầu nhập hàng.";
                 return RedirectToAction("Index", "AdminNotifications");
@@ -65,8 +65,9 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.StatusFilter = status;
-            ViewBag.CanWarehouse = CanWarehouseActions();
-            ViewBag.CanCreateReceipt = CanCreateReceipt();
+            ViewBag.CanWarehouse = await HasEffectivePermissionAsync(PermissionConstants.RestockUpdate);
+            ViewBag.CanCreateReceipt = await HasEffectivePermissionAsync(PermissionConstants.ReceiptCreate);
+            ViewBag.CanCreateDemand = await HasEffectivePermissionAsync(PermissionConstants.RestockCreate);
             return View(result.Data);
         }
 
@@ -74,7 +75,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockCreate)]
         public async Task<IActionResult> CreateManual(int? storeId = null)
         {
-            if (!CanCreateDemand()) return Forbid();
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockCreate)) return Forbid();
             var ctx = _actor.Get(User);
             var scope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
             if (!scope.IsResolved) return StoreScopeFailure(scope);
@@ -91,7 +92,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockCreate)]
         public async Task<IActionResult> CreateCentralPlanner(int? storeId = null)
         {
-            if (!CanCentralPlan()) return Forbid();
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockCreate)) return Forbid();
             var ctx = _actor.Get(User);
             var scope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
             if (!scope.IsResolved) return StoreScopeFailure(scope);
@@ -107,7 +108,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            if (!CanViewRestockRequests())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockView))
             {
                 TempData["ErrorMessage"] = "Bạn không có quyền xem yêu cầu nhập hàng.";
                 return RedirectToAction(nameof(Index));
@@ -126,11 +127,11 @@ namespace CafeChain.Areas.Admin.Controllers
                 return NotFound(result.Message ?? "Không tìm thấy yêu cầu.");
             }
 
-            ViewBag.CanWarehouse = CanWarehouseActions();
-            ViewBag.CanCreateReceipt = CanCreateReceipt();
-            ViewBag.CanCancel = CanCancel();
-            ViewBag.CanSubmit = CanSubmit();
-            ViewBag.CanAddDemand = CanCreateDemand()
+            ViewBag.CanWarehouse = await HasEffectivePermissionAsync(PermissionConstants.RestockUpdate);
+            ViewBag.CanCreateReceipt = await HasEffectivePermissionAsync(PermissionConstants.ReceiptCreate);
+            ViewBag.CanCancel = await HasEffectivePermissionAsync(PermissionConstants.RestockCancel);
+            ViewBag.CanSubmit = await HasEffectivePermissionAsync(PermissionConstants.RestockSubmit);
+            ViewBag.CanAddDemand = await HasEffectivePermissionAsync(PermissionConstants.RestockCreate)
                 && RestockRequestStatuses.ActiveValues.Contains(result.Data.Status);
             return View(result.Data);
         }
@@ -138,7 +139,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> CheckActive(int storeId, int ingredientId)
         {
-            if (!CanCreateDemand()) return Forbid();
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockCreate)) return Forbid();
             var ctx = _actor.Get(User);
             var result = await _service.GetActiveForStoreIngredientAsync(
                 storeId,
@@ -167,7 +168,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockSubmit)]
         public async Task<IActionResult> Submit(int id, string? rowVersion)
         {
-            if (!CanSubmit())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockSubmit))
             {
                 TempData["ErrorMessage"] = "Không có quyền gửi yêu cầu nhập hàng.";
                 return RedirectToAction(nameof(Details), new { id });
@@ -186,7 +187,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockApprove)]
         public async Task<IActionResult> StartProcessing(int id, string? reason, string? rowVersion)
         {
-            if (!CanWarehouseActions())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockApprove))
             {
                 TempData["ErrorMessage"] = "Bạn không có quyền tiếp nhận xử lý yêu cầu.";
                 return RedirectToAction(nameof(Details), new { id });
@@ -205,7 +206,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockReject)]
         public async Task<IActionResult> Reject(int id, string reason, string? rowVersion)
         {
-            if (!CanWarehouseActions())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockReject))
             {
                 TempData["ErrorMessage"] = "Không có quyền từ chối.";
                 return RedirectToAction(nameof(Details), new { id });
@@ -224,7 +225,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockCancel)]
         public async Task<IActionResult> Cancel(int id, string? reason, string? rowVersion)
         {
-            if (!CanCancel())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockCancel))
             {
                 TempData["ErrorMessage"] = "Không có quyền hủy.";
                 return RedirectToAction(nameof(Details), new { id });
@@ -243,7 +244,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockCloseRemaining)]
         public async Task<IActionResult> CloseRemaining(int id, string reason, string? rowVersion)
         {
-            if (!CanWarehouseActions())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockCloseRemaining))
             {
                 TempData["ErrorMessage"] = "Không có quyền đóng phần còn lại.";
                 return RedirectToAction(nameof(Details), new { id });
@@ -262,7 +263,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockUpdate)]
         public async Task<IActionResult> LinkFulfillment(int id, LinkRestockFulfillmentRequest model, string? rowVersion)
         {
-            if (!CanWarehouseActions())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockUpdate))
             {
                 TempData["ErrorMessage"] = "Bạn không có quyền gắn nguồn thực hiện.";
                 return RedirectToAction(nameof(Details), new { id });
@@ -281,7 +282,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockCreate)]
         public async Task<IActionResult> CreateManual(CreateProcurementDemandRequest model)
         {
-            if (!CanCreateDemand())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockCreate))
                 return Forbid();
 
             if (!ModelState.IsValid)
@@ -322,7 +323,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockUpdate)]
         public async Task<IActionResult> AddDemand(AddRestockDemandAdjustmentRequest model)
         {
-            if (!CanCreateDemand()) return Forbid();
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockUpdate)) return Forbid();
             var ctx = _actor.Get(User);
             var result = await _service.AddDemandAdjustmentAsync(model, ctx.StaffId);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
@@ -337,7 +338,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockCreate)]
         public async Task<IActionResult> CreateCentralPlanner(CreateProcurementDemandRequest model)
         {
-            if (!CanCentralPlan())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockCreate))
                 return Forbid();
 
             var ctx = _actor.Get(User);
@@ -354,7 +355,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [RequirePermission(PermissionConstants.RestockUpdate)]
         public async Task<IActionResult> SetSourcingDecision(SourcingDecisionRequest model)
         {
-            if (!CanWarehouseActions())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockUpdate))
                 return Forbid();
 
             var ctx = _actor.Get(User);
@@ -363,45 +364,6 @@ namespace CafeChain.Areas.Admin.Controllers
                 result.Message ?? (result.IsSuccess ? "Đã ghi nhận quyết định nguồn cung." : "Không thể ghi nhận quyết định nguồn cung.");
             return RedirectToAction(nameof(Details), new { id = model.RestockRequestId });
         }
-
-        private bool CanViewRestockRequests() =>
-            User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
-        private bool CanWarehouseActions() =>
-            User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
-        private bool CanCreateReceipt() =>
-            User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
-        private bool CanCancel() =>
-            CanWarehouseActions() || User.IsInRole(RoleConstants.StoreManager);
-
-        private bool CanSubmit() =>
-            User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
-        private bool CanCreateDemand() =>
-            User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin);
-
-        private bool CanCentralPlan() =>
-            User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private async Task PopulateDemandOptionsAsync(int storeId)
         {

@@ -55,7 +55,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.Search = search;
-            ViewBag.CanEditThreshold = UserCanEditThreshold();
+            ViewBag.CanEditThreshold = await HasEffectivePermissionAsync(PermissionConstants.InventoryThresholdUpdate);
             return View(result.Data);
         }
 
@@ -80,7 +80,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 return StoreScopeFailure(storeScope);
             storeId = storeScope.StoreId!.Value;
 
-            if (!UserCanEditThreshold())
+            if (!await HasEffectivePermissionAsync(PermissionConstants.InventoryThresholdUpdate))
             {
                 TempData["ErrorMessage"] = "Bạn không có quyền cập nhật ngưỡng tồn kho.";
                 return RedirectToAction(nameof(Index), new { storeId, search, page });
@@ -118,18 +118,6 @@ namespace CafeChain.Areas.Admin.Controllers
                 TempData["SuccessMessage"] = result.Message ?? "Cập nhật ngưỡng tồn kho thành công.";
 
             return RedirectToAction(nameof(Index), new { storeId, search, page });
-        }
-
-        /// <summary>Uses RoleConstants (Vietnamese names) — not English hard-codes.</summary>
-        private bool UserCanEditThreshold()
-        {
-            foreach (var role in InventoryThresholdService.EditRoleNames)
-            {
-                if (User.IsInRole(role))
-                    return true;
-            }
-
-            return false;
         }
 
         private int GetAccountId()

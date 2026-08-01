@@ -59,7 +59,6 @@
 
     function showRealtimeToast(message) {
         if (!message?.shouldToast || message.changeKind === "Resolved") return;
-        const isScheduleGap = message.type === "STAFF_SCHEDULE_GAP";
         if (window.Swal) {
             void window.Swal.fire({
                 toast: true,
@@ -70,14 +69,10 @@
                 icon: message.severity === "URGENT" || message.severity === "CRITICAL"
                     ? "error"
                     : "warning",
-                title: isScheduleGap
-                    ? "Thiếu lịch nhân sự"
-                    : message.changeKind === "Escalated"
-                        ? "Cảnh báo kho đã tăng mức độ"
-                        : "Có thông báo kho mới",
-                text: isScheduleGap
-                    ? "Mở mục Thông báo để xem ca còn thiếu người và nhân viên phù hợp."
-                    : "Mở mục Thông báo để xem chi tiết."
+                title: message.changeKind === "Escalated"
+                    ? "Cảnh báo kho đã tăng mức độ"
+                    : "Có thông báo kho mới",
+                text: "Mở mục Thông báo để xem chi tiết."
             });
         }
     }

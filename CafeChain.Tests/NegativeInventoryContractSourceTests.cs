@@ -120,6 +120,35 @@ public sealed class NegativeInventoryContractSourceTests
     }
 
     [Fact]
+    public void InventoryDocumentUiSeparatesNegativePolicyIntentFromActualStockProjection()
+    {
+        var root = FindRepoRoot();
+        var tabs = Read(root, "CafeChain", "Areas", "Admin", "Views", "AdminInventoryDocument", "Partials", "Detail", "_DocumentTabs.cshtml");
+        var filter = Read(root, "CafeChain", "Areas", "Admin", "Views", "AdminInventoryDocument", "Partials", "Detail", "_FilterSection.cshtml");
+        var create = Read(root, "CafeChain", "Areas", "Admin", "Views", "AdminInventoryDocument", "Partials", "Create", "_DocumentInfo.cshtml");
+        var detail = Read(root, "CafeChain", "Areas", "Admin", "Views", "AdminInventoryDocument", "Partials", "Detail", "_DetailDocument.cshtml");
+        var client = Read(root, "CafeChain", "wwwroot", "js", "Admin", "InventoryDocument", "inventorydocumentcreate.js");
+        var viewModel = Read(root, "CafeChain", "ViewModels", "Admin", "InventoryDocuments", "Create", "AdminInventoryDocumentCreateVM.cs");
+
+        Assert.DoesNotContain("asp-route-Type=\"IMPORT\"", tabs, StringComparison.Ordinal);
+        var typeFilterStart = filter.IndexOf("id=\"inventoryFilterType\"", StringComparison.Ordinal);
+        var typeFilterEnd = filter.IndexOf("</select>", typeFilterStart, StringComparison.Ordinal);
+        var typeFilter = filter[typeFilterStart..typeFilterEnd];
+        Assert.DoesNotContain("InventoryDocumentType.IMPORT", typeFilter, StringComparison.Ordinal);
+        Assert.Contains("InventoryDocumentType.EXPORT", typeFilter, StringComparison.Ordinal);
+        Assert.Contains("Xuất trong tồn khả dụng", create, StringComparison.Ordinal);
+        Assert.Contains("Yêu cầu xuất vượt tồn", create, StringComparison.Ordinal);
+        Assert.Contains("Cài đặt hệ thống đang tắt xuất vượt tồn", create, StringComparison.Ordinal);
+        Assert.DoesNotContain("form-check form-switch", create, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"AllowNegativeStock\"", create, StringComparison.Ordinal);
+        Assert.Contains("NegativeInventoryPolicyValid", viewModel, StringComparison.Ordinal);
+        Assert.Contains("collectStockProjection().negativeLines.length > 0", client, StringComparison.Ordinal);
+        Assert.Contains("dto.allowNegativeStock = false", client, StringComparison.Ordinal);
+        Assert.Contains("Đã gửi yêu cầu phê duyệt xuất vượt tồn", client, StringComparison.Ordinal);
+        Assert.Contains("Cách xử lý tồn", detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ActiveSeedContainsOnlyFailClosedManualNegativeSettings()
     {
         var source = Read(FindRepoRoot(), "CafeChain", "Data", "Configurations", "Systems", "SystemSettingConfiguration.cs");
