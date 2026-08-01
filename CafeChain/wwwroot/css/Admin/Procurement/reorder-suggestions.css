@@ -162,18 +162,18 @@
     cursor: pointer;
     white-space: nowrap !important;
     word-break: keep-all !important;
-    border: 1px solid var(--cc-border, #ded7cf);
-    background: #ffffff;
-    color: var(--cc-text-primary, #1f2937);
-    box-shadow: 0 2px 6px rgba(111, 78, 55, 0.05);
+    border: 1px solid var(--cc-border);
+    background: var(--cc-surface);
+    color: var(--cc-text-primary);
+    box-shadow: var(--cc-shadow-soft);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
 }
 
 .cc-button:hover {
-    border-color: #6f4e37;
-    color: #5c3f2b;
-    background: #fbf9f6;
+    border-color: var(--cc-primary);
+    color: var(--cc-primary-hover);
+    background: var(--cc-surface-muted);
     transform: translateY(-1.5px);
     box-shadow: 0 4px 12px rgba(111, 78, 55, 0.12);
 }
@@ -186,19 +186,19 @@
 /* Primary Button (Tạo/mở cảnh báo, Tính lại) */
 .cc-button-primary,
 .reorder-page .btn-primary {
-    background: linear-gradient(135deg, #6F4E37 0%, #5C3F2B 100%) !important;
-    border: 1px solid #5C3F2B !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 14px rgba(111, 78, 55, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    background: var(--cc-primary) !important;
+    border: 1px solid var(--cc-primary) !important;
+    color: var(--cc-surface) !important;
+    box-shadow: none !important;
 }
 
 .cc-button-primary:hover,
 .reorder-page .btn-primary:hover {
-    background: linear-gradient(135deg, #5C3F2B 0%, #4A3222 100%) !important;
-    border-color: #4A3222 !important;
-    color: #ffffff !important;
-    transform: translateY(-2px);
-    box-shadow: 0 7px 20px rgba(111, 78, 55, 0.38) !important;
+    background: var(--cc-primary-hover) !important;
+    border-color: var(--cc-primary-hover) !important;
+    color: var(--cc-surface) !important;
+    transform: translateY(-1px);
+    box-shadow: none !important;
 }
 
 .cc-button-primary:disabled {
@@ -212,27 +212,27 @@
 
 /* AI Feature Button (Xem giải thích AI) */
 .cc-button-ai {
-    background: linear-gradient(135deg, #ffffff 0%, #fbf3ea 100%) !important;
-    border: 1.5px solid #c67a45 !important;
-    color: #8b4e22 !important;
-    box-shadow: 0 2px 8px rgba(198, 122, 69, 0.12) !important;
+    background: var(--cc-surface) !important;
+    border: 1px solid var(--cc-accent) !important;
+    color: var(--cc-warning) !important;
+    box-shadow: none !important;
 }
 
 .cc-button-ai:hover {
-    background: linear-gradient(135deg, #c67a45 0%, #a85e2b 100%) !important;
-    border-color: #a85e2b !important;
-    color: #ffffff !important;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(198, 122, 69, 0.3) !important;
+    background: var(--cc-warning-bg) !important;
+    border-color: var(--cc-accent) !important;
+    color: var(--cc-warning) !important;
+    transform: translateY(-1px);
+    box-shadow: none !important;
 }
 
 .cc-button-ai i {
-    color: #c67a45;
+    color: var(--cc-accent);
     transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .cc-button-ai:hover i {
-    color: #ffffff;
+    color: var(--cc-warning);
     transform: rotate(15deg) scale(1.15);
 }
 

@@ -32,9 +32,9 @@
     <link rel="stylesheet" href="~/css/Admin/Procurement/reorder-suggestions.css" asp-append-version="true" />
 }
 
-<main class="reorder-page cc-page">
+<main class="reorder-page cc-page cc-warehouse-page">
     <div class="d-none" aria-hidden="true">@Html.AntiForgeryToken()</div>
-    <header class="reorder-header cc-page-header">
+    <header class="reorder-header cc-page-header cc-warehouse-header">
         <div>
             <p class="reorder-eyebrow cc-page-kicker">Kho &amp; Cung ứng / Lập kế hoạch</p>
             <h1 class="cc-page-title">Gợi ý nhập hàng</h1>
@@ -42,7 +42,7 @@
                 Một nguồn tính toán chung cho tồn kho, nhu cầu, pipeline mua hàng và quy cách nhà cung cấp.
             </p>
         </div>
-        <div class="reorder-header-actions">
+        <div class="reorder-header-actions cc-warehouse-actions">
             <button type="button"
                     id="openReorderBulkModal"
                     class="cc-button cc-button-primary"
@@ -66,7 +66,7 @@
         <div class="ops-notice ops-notice-error" role="alert">@loadError</div>
     }
 
-    <form method="get" class="reorder-filters">
+    <form method="get" class="reorder-filters cc-warehouse-filter">
         <div>
             <label for="storeId">Cửa hàng</label>
             <select id="storeId" name="storeId" class="form-select">
@@ -89,16 +89,16 @@
         </button>
     </form>
 
-    <div class="reorder-note" role="note">
+    <div class="reorder-note cc-warehouse-alert cc-warehouse-alert-warning" role="note">
         <i class="fas fa-circle-info" aria-hidden="true"></i>
         Xác nhận sẽ tạo yêu cầu nhập nháp hoặc bổ sung nhu cầu vào yêu cầu đang mở.
         Hệ thống luôn tính lại dữ liệu và từ chối nếu gợi ý đã thay đổi.
     </div>
 
-    <section class="reorder-table-shell" aria-label="Danh sách gợi ý nhập hàng">
+    <section class="reorder-table-shell cc-warehouse-table-shell" aria-label="Danh sách gợi ý nhập hàng">
         @if (!Model.Items.Any())
         {
-            <div class="reorder-empty cc-empty-state">
+            <div class="reorder-empty cc-empty-state cc-warehouse-empty" role="status">
                 <i class="fas fa-box-open" aria-hidden="true"></i>
                 <h2>Chưa có dữ liệu gợi ý</h2>
                 <p>Chọn cửa hàng có tồn kho nguyên liệu để bắt đầu phân tích.</p>

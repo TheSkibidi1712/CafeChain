@@ -6,9 +6,9 @@
     var isPreparedItems = Model.ActiveTab == CafeChain.Application.DTOs.Admin.StoreInventories.InventoryCatalogTypes.PreparedItems;
 }
 
-<main class="inventory-container cc-page">
+<main class="inventory-container cc-page cc-warehouse-page">
 
-    <header class="inventory-header cc-page-header">
+    <header class="inventory-header cc-page-header cc-warehouse-header">
         <div>
             <p class="cc-page-kicker">Kho &amp; Cung ứng</p>
             <h1 class="cc-page-title"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> Tồn kho cửa hàng</h1>
@@ -17,7 +17,7 @@
             </p>
         </div>
 
-        <div class="header-actions">
+        <div class="header-actions cc-warehouse-actions">
             <form method="get" class="search-form">
                 <label class="visually-hidden" for="inventorySearch">Tìm mặt hàng trong kho</label>
                 <input type="text"
