@@ -12,11 +12,14 @@
     --cc-border: #ded7cf;
     --cc-border-soft: #ebe5de;
     --cc-surface-muted: #fbf9f6;
+    --cc-surface-accent: #f5ede3;
+    --cc-text-muted: #64748b;
     --cc-success-bg: #edf6f2;
     --cc-warning-bg: #fbf3ea;
     --cc-danger-bg: #fdf0f0;
     --cc-focus: rgba(111, 78, 55, .22);
     --cc-shadow: 0 10px 28px rgba(77, 55, 39, .07);
+    --cc-shadow-soft: 0 2px 10px rgba(77, 55, 39, .05);
     --cc-radius-sm: 8px;
     --cc-radius-md: 12px;
     --cc-radius-lg: 16px;
@@ -26,6 +29,208 @@
     --cc-space-4: 16px;
     --cc-space-5: 24px;
     --cc-space-6: 32px;
+}
+
+/*
+ * Warehouse UI foundation
+ * DESIGN_VARIANCE: 3/10 | MOTION_INTENSITY: 1/10 | VISUAL_DENSITY: 6/10
+ * These primitives are additive so existing Razor bindings and workflow markup stay intact.
+ */
+.cc-page,
+.cc-warehouse-page {
+    width: 100%;
+    min-width: 0;
+    padding: var(--cc-space-5);
+}
+
+.cc-warehouse-page {
+    min-height: 100%;
+    background: var(--cc-app-bg);
+    color: var(--cc-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.cc-warehouse-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--cc-space-5);
+    padding: var(--cc-space-5);
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-md);
+    background: var(--cc-surface-accent);
+    box-shadow: var(--cc-shadow-soft);
+}
+
+.cc-warehouse-header-main {
+    min-width: 0;
+}
+
+.cc-warehouse-kicker {
+    margin: 0 0 var(--cc-space-1);
+    color: var(--cc-accent);
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.cc-warehouse-title {
+    margin: 0;
+    color: var(--cc-text-primary);
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+    font-weight: 800;
+    line-height: 1.2;
+    text-wrap: balance;
+}
+
+.cc-warehouse-description {
+    max-width: 68ch;
+    margin: var(--cc-space-2) 0 0;
+    color: var(--cc-text-secondary);
+    font-size: .86rem;
+    line-height: 1.5;
+}
+
+.cc-warehouse-actions,
+.cc-warehouse-action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cc-space-2);
+}
+
+.cc-warehouse-action-bar {
+    justify-content: flex-end;
+    padding-top: var(--cc-space-4);
+    border-top: 1px solid var(--cc-border-soft);
+}
+
+.cc-warehouse-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: var(--cc-space-4);
+}
+
+.cc-warehouse-kpi,
+.cc-warehouse-panel,
+.cc-warehouse-filter,
+.cc-warehouse-table-shell,
+.cc-warehouse-form-section {
+    min-width: 0;
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-md);
+    background: var(--cc-surface);
+    box-shadow: var(--cc-shadow-soft);
+}
+
+.cc-warehouse-kpi,
+.cc-warehouse-panel,
+.cc-warehouse-filter,
+.cc-warehouse-form-section {
+    padding: var(--cc-space-4);
+}
+
+.cc-warehouse-kpi-label {
+    margin: 0 0 var(--cc-space-2);
+    color: var(--cc-text-muted);
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.cc-warehouse-kpi-value {
+    margin: 0;
+    color: var(--cc-text-primary);
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.cc-warehouse-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    align-items: end;
+    gap: var(--cc-space-3);
+}
+
+.cc-warehouse-table-shell {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.cc-warehouse-table-shell table {
+    width: 100%;
+    margin: 0;
+}
+
+.cc-warehouse-table-shell th {
+    border-color: var(--cc-border-soft);
+    background: var(--cc-surface-accent);
+    color: var(--cc-text-secondary);
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.cc-warehouse-table-shell td {
+    border-color: var(--cc-border-soft);
+    color: var(--cc-text-primary);
+    vertical-align: middle;
+}
+
+.cc-warehouse-table-shell tbody tr:hover {
+    background: var(--cc-warning-bg);
+}
+
+.cc-warehouse-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--cc-space-3);
+    padding: var(--cc-space-3) var(--cc-space-4);
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-sm);
+    background: var(--cc-surface-muted);
+    color: var(--cc-text-secondary);
+}
+
+.cc-warehouse-alert-success {
+    border-color: color-mix(in srgb, var(--cc-success) 28%, white);
+    background: var(--cc-success-bg);
+    color: var(--cc-success);
+}
+
+.cc-warehouse-alert-warning {
+    border-color: color-mix(in srgb, var(--cc-warning) 28%, white);
+    background: var(--cc-warning-bg);
+    color: var(--cc-warning);
+}
+
+.cc-warehouse-alert-danger {
+    border-color: color-mix(in srgb, var(--cc-danger) 28%, white);
+    background: var(--cc-danger-bg);
+    color: var(--cc-danger);
+}
+
+.cc-warehouse-alert:empty {
+    display: none;
+}
+
+.cc-warehouse-empty {
+    display: grid;
+    min-height: 180px;
+    place-items: center;
+    gap: var(--cc-space-2);
+    padding: var(--cc-space-6);
+    border: 1px dashed var(--cc-border);
+    border-radius: var(--cc-radius-md);
+    background: var(--cc-surface);
+    color: var(--cc-text-secondary);
+    text-align: center;
+}
+
+.cc-warehouse-empty > * {
+    max-width: 60ch;
+    margin: 0;
 }
 
 html {
@@ -45,6 +250,7 @@ html {
 }
 
 .admin-page-body > .cc-page,
+.admin-page-body > .cc-warehouse-page,
 .admin-page-body > .ops-shell,
 .admin-page-body > .pa-page,
 .admin-page-body > .inventory-container,
@@ -392,6 +598,7 @@ html {
 }
 
 .cc-button:focus-visible,
+.cc-warehouse-page :is(a, button, input, select, textarea):focus-visible,
 .cc-form-section :is(input, select, textarea, button, a):focus-visible,
 .cc-filter-panel :is(input, select, textarea, button, a):focus-visible,
 .cc-data-table a:focus-visible,
@@ -1308,6 +1515,7 @@ html {
 @media (min-width: 1440px) {
 
     .cc-page,
+    .cc-warehouse-page,
     .ops-shell,
     .pa-page,
     .inventory-container,
@@ -1356,6 +1564,7 @@ html {
 @media (max-width: 1024px) {
 
     .cc-page,
+    .cc-warehouse-page,
     .inventory-container,
     .reorder-page,
     .uc-page,
@@ -1389,10 +1598,19 @@ html {
     }
 
     .cc-page-header,
+    .cc-warehouse-header,
     .inventory-header,
     .reorder-header,
     .notification-header {
         flex-direction: column;
+    }
+
+    .cc-warehouse-actions {
+        width: 100%;
+    }
+
+    .cc-warehouse-actions > * {
+        flex: 1 1 auto;
     }
 
     .cc-actions {

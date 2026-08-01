@@ -4,8 +4,10 @@
 
 .inventory-page {
     padding: 24px;
-    background: #F7F3EE;
+    background: var(--cc-app-bg);
+    color: var(--cc-text-primary);
     min-height: 100vh;
+    font-variant-numeric: tabular-nums;
 }
 
 /* =====================================================
@@ -17,22 +19,22 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    background: #F5EDE3;
-    border: 1px solid #E6DCCD;
-    border-radius: 14px;
+    background: var(--cc-surface-accent);
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-md);
     padding: 22px 26px;
-    box-shadow: 0 2px 10px rgba(111, 78, 55, 0.05);
+    box-shadow: var(--cc-shadow-soft);
 }
 
     .inventory-header h3 {
         font-weight: 800;
         font-size: 1.55rem;
-        color: #1F2937;
+        color: var(--cc-text-primary);
         margin-bottom: 4px;
     }
 
     .inventory-header p {
-        color: #5C3F2B;
+        color: var(--cc-text-secondary);
         font-size: 0.88rem;
         margin: 0;
         font-weight: 500;
@@ -58,27 +60,27 @@
 }
 
 .inventory-action-primary {
-    border: 1px solid #6F4E37;
-    background: #6F4E37;
-    color: #fff;
+    border: 1px solid var(--cc-primary);
+    background: var(--cc-primary);
+    color: var(--cc-surface);
 }
 
 .inventory-action-primary:hover {
-    border-color: #5C3F2B;
-    background: #5C3F2B;
-    color: #fff;
+    border-color: var(--cc-primary-hover);
+    background: var(--cc-primary-hover);
+    color: var(--cc-surface);
 }
 
 .inventory-action-secondary {
-    border: 1px solid #d4b8a3;
-    color: #5C3F2B;
-    background: #fff;
+    border: 1px solid var(--cc-border);
+    color: var(--cc-primary);
+    background: var(--cc-surface);
 }
 
 .inventory-action-secondary:hover {
-    border-color: #C67A45;
-    color: #5C3F2B;
-    background: #F7F3EE;
+    border-color: var(--cc-accent);
+    color: var(--cc-primary-hover);
+    background: var(--cc-surface-muted);
 }
 
 /* =====================================================

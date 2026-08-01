@@ -9,7 +9,7 @@
 <link rel="stylesheet"
       href="~/css/Admin/InventoryDocument/inventorydocumentcreate.css" />
 
-<div class="inventory-page"
+<div class="inventory-page cc-warehouse-page"
      id="inventoryDocumentPage"
      data-detail-url="@Url.Action("DetailModal", "AdminInventoryDocument", new { area = "Admin" })"
      data-create-modal-url="@Url.Action("CreateModal", "AdminInventoryDocument", new { area = "Admin" })"
@@ -28,15 +28,15 @@
 
     @Html.AntiForgeryToken()
 
-    <div class="inventory-header">
-        <div>
+    <div class="inventory-header cc-warehouse-header">
+        <div class="cc-warehouse-header-main">
             <h3>Phiếu Kho</h3>
             <p>
                 Quản lý Nhập, Xuất, Kiểm kê và Hủy kho.
             </p>
         </div>
 
-        <div class="inventory-actions">
+        <div class="inventory-actions cc-warehouse-actions">
             <button
                 class="btn btn-primary inventory-action-primary"
                 id="btnCreateInventory">
