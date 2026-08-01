@@ -638,21 +638,27 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
 
     private async Task<bool> CanReadAsync(AdminActorContext actor, int[] stores)
     {
-        if (HasRole(actor, RoleConstants.AccountantWarehouse)
-            || HasRole(actor, RoleConstants.BusinessOwner)
-            || HasRole(actor, RoleConstants.SystemAdmin)) return true;
+        if (!actor.RoleNames.Any(role => role is RoleConstants.AccountantWarehouse
+                or RoleConstants.BusinessOwner
+                or RoleConstants.SystemAdmin
+                or RoleConstants.StoreManager
+                or RoleConstants.ShiftSupervisor
+                or RoleConstants.AreaManager))
+            return false;
         var allowed = await ResolveAllowedStoreIdsAsync(actor);
         return stores.Any(allowed.Contains);
     }
 
     private async Task<List<int>> ResolveAllowedStoreIdsAsync(AdminActorContext actor)
     {
-        if ((HasRole(actor, RoleConstants.StoreManager) || HasRole(actor, RoleConstants.ShiftSupervisor)) && actor.StoreId > 0)
-            return new() { actor.StoreId };
-        if (!HasRole(actor, RoleConstants.AreaManager)) return new();
-        var ids = await _context.Stores.AsNoTracking().Where(x => x.Active).Select(x => x.StoreId).ToListAsync();
+        var activeStoreIds = await _context.Stores.AsNoTracking()
+            .Where(x => x.Active)
+            .Select(x => x.StoreId)
+            .ToListAsync();
         var allowed = new List<int>();
-        foreach (var id in ids) if (await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, id)) allowed.Add(id);
+        foreach (var storeId in activeStoreIds)
+            if (await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId))
+                allowed.Add(storeId);
         return allowed;
     }
 

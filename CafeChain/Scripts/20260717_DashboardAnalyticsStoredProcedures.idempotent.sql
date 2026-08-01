@@ -622,7 +622,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT TOP (ISNULL(NULLIF(@Top,0),10)) od.DrinkId,od.DrinkName,d.CategoryId,c.Name AS CategoryName,
            SUM(od.Quantity) AS TotalSold,
-           SUM((od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity) AS ProductRevenue,
+           SUM((od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity) AS NetSales,
            CONVERT(decimal(9,4),COALESCE(
                SUM(od.Quantity) * 1.0
                / NULLIF(SUM(SUM(od.Quantity)) OVER (),0) * 100,0)) AS QuantityShare,
@@ -646,7 +646,7 @@ BEGIN
     OUTER APPLY(SELECT SUM(ot.Price) AS ToppingUnitPrice FROM dbo.OrderToppings AS ot WHERE ot.OrderDetailId=od.OrderDetailId) t
     WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<@ToDate
     GROUP BY od.DrinkId,od.DrinkName,d.CategoryId,c.Name
-    ORDER BY TotalSold DESC, ProductRevenue DESC, od.DrinkId;
+    ORDER BY TotalSold DESC, NetSales DESC, od.DrinkId;
 END;
 GO
 

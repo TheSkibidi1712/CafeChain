@@ -6068,7 +6068,7 @@ END CATCH;
 GO
 
 /* ============================================================
-   BATCH 12B - ACTIVE ADMIN PERMISSION CATALOG (24 groups / 125 permissions / 345 role grants)
+   BATCH 12B - ACTIVE ADMIN PERMISSION CATALOG
    PermissionId 100 is intentionally reserved for migration rollback.
    This batch is insert-only and idempotent; contract conflicts abort.
    ============================================================ */
@@ -6094,7 +6094,8 @@ BEGIN TRY
  (22,N'OPERATIONAL_ICE',N'Quản lý đá vận hành',23,1),
  (23,N'STORE',N'Cửa hàng',24,1),
  (24,N'SETTINGS',N'Cài đặt hệ thống',25,1),
- (25,N'BOM',N'BOM và sản xuất',26,1);
+ (25,N'BOM',N'BOM và sản xuất',26,1),
+ (26,N'REORDER_SUGGESTION',N'Gợi ý nhập hàng',27,1);
 
  IF EXISTS(SELECT 1 FROM @AdminPermissionGroupSeed x JOIN dbo.PermissionGroups g
  ON g.PermissionGroupId=x.PermissionGroupId OR g.Code=x.Code OR g.Name=x.Name
@@ -6134,7 +6135,7 @@ BEGIN TRY
  (132,12,N'StockAlert.CreateRestockRequest',N'Tạo yêu cầu nhập từ cảnh báo',N'CreateRestockRequest',N'Tạo yêu cầu nhập hàng từ cảnh báo kho đã được xác nhận',1,'2026-01-01'),
 
  (43,13,N'Restock.View',N'Xem yêu cầu nhập',N'View',N'Xem yêu cầu nhập',1,'2026-01-01'),
- (44,13,N'Restock.Create',N'Tạo yêu cầu nhập',N'Create',N'Tạo yêu cầu nhập',1,'2026-01-01'),
+ (44,13,N'Restock.Create',N'Tạo yêu cầu nhập hàng',N'Create',N'Tạo mới, tạo nháp hoặc bổ sung yêu cầu nhập hàng từ gợi ý nhập hàng trong phạm vi cửa hàng được phép thao tác',1,'2026-01-01'),
  (45,13,N'Restock.Submit',N'Gửi yêu cầu nhập',N'Submit',N'Gửi yêu cầu nhập',1,'2026-01-01'),
  (46,13,N'Restock.Approve',N'Duyệt yêu cầu nhập',N'Approve',N'Duyệt yêu cầu nhập',1,'2026-01-01'),
  (47,13,N'Restock.Reject',N'Từ chối yêu cầu nhập',N'Reject',N'Từ chối yêu cầu nhập',1,'2026-01-01'),
@@ -6253,13 +6254,23 @@ BEGIN TRY
 
  (128,12,N'Notification.View',N'Xem thông báo kho',N'NotificationView',N'Xem thông báo kho',1,'2026-01-01'),
 
- (129,13,N'ReorderSuggestion.View',N'Xem gợi ý nhập hàng',N'ReorderSuggestionView',N'Xem gợi ý nhập hàng',1,'2026-01-01'),
+ (129,26,N'ReorderSuggestion.View',N'Xem gợi ý nhập hàng',N'View',N'Xem danh sách gợi ý nhập hàng trong phạm vi cửa hàng được phép truy cập',1,'2026-01-01'),
 
  (130,17,N'SupplierQuality.View',N'Xem báo cáo chất lượng NCC',N'SupplierQualityView',N'Xem báo cáo chất lượng NCC',1,'2026-01-01');
 
 
  IF EXISTS(SELECT 1 FROM @AdminPermissionSeed WHERE PermissionId=100)
   THROW 53321,N'PermissionId 100 được dành riêng cho rollback.',1;
+
+ UPDATE p
+ SET PermissionGroupId=x.PermissionGroupId,
+     Name=x.Name,
+     Action=x.Action,
+     Description=x.Description,
+     Active=x.Active
+ FROM dbo.Permissions p
+ JOIN @AdminPermissionSeed x ON x.Code=p.Code
+ WHERE x.Code IN(N'ReorderSuggestion.View',N'Restock.Create');
 
  IF EXISTS(SELECT 1 FROM @AdminPermissionSeed x JOIN dbo.Permissions p
  ON p.PermissionId=x.PermissionId OR p.Code=x.Code
@@ -6749,6 +6760,8 @@ BEGIN TRY
   Description nvarchar(500) NOT NULL
  );
  INSERT #NewPermissionCatalog VALUES
+ (N'ReorderSuggestion.View',N'REORDER_SUGGESTION',N'Xem gợi ý nhập hàng',N'View',N'Xem danh sách gợi ý nhập hàng trong phạm vi cửa hàng được phép truy cập'),
+ (N'Restock.Create',N'RESTOCK',N'Tạo yêu cầu nhập hàng',N'Create',N'Tạo mới, tạo nháp hoặc bổ sung yêu cầu nhập hàng từ gợi ý nhập hàng trong phạm vi cửa hàng được phép thao tác'),
  (N'StoreMenu.OverridePrice',N'DRINK',N'Ghi đè giá menu cửa hàng',N'OverridePrice',N'Ghi đè giá bán tại menu cửa hàng'),
  (N'Profitability.UpdatePrice',N'DRINK',N'Cập nhật giá bán',N'UpdatePrice',N'Cập nhật giá bán toàn hệ thống'),
  (N'Profitability.UpdateToppingPolicy',N'DRINK',N'Cập nhật chính sách topping',N'UpdateToppingPolicy',N'Cập nhật chính sách topping theo món và size'),
@@ -6857,7 +6870,7 @@ BEGIN TRY
 (N'StockAlert.Create',0,0,1,1,0,0,0,1),
 (N'StockAlert.CreateRestockRequest',0,0,1,0,0,0,0,0),
 (N'Restock.View',1,1,1,0,1,0,0,0),
-(N'Restock.Create',0,0,1,0,1,0,0,0),
+(N'Restock.Create',1,0,1,0,1,0,0,0),
 (N'Restock.Submit',0,0,1,0,1,0,0,0),
 (N'Restock.Approve',1,0,0,0,1,0,0,0),
 (N'Restock.Reject',1,0,0,0,1,0,0,0),
@@ -7108,6 +7121,23 @@ COMMIT;
  LEFT JOIN dbo.RolePermissions rp ON rp.RoleId=rm.RoleId
  GROUP BY rm.RoleName
  ORDER BY rm.RoleName;
+
+ SELECT rm.RoleName,p.Code AS PermissionCode,
+        CONVERT(bit,CASE WHEN rp.PermissionId IS NULL THEN 0 ELSE 1 END) AS Granted,
+        roleTotals.PermissionCount
+ FROM #RoleMap rm
+ CROSS JOIN dbo.Permissions p
+ LEFT JOIN dbo.RolePermissions rp
+   ON rp.RoleId=rm.RoleId AND rp.PermissionId=p.PermissionId
+ CROSS APPLY
+ (
+  SELECT COUNT(*) AS PermissionCount
+  FROM dbo.RolePermissions rolePermission
+  WHERE rolePermission.RoleId=rm.RoleId
+ ) roleTotals
+ WHERE rm.RoleKey IN(N'CDN',N'QLCN',N'QTHT')
+   AND p.Code IN(N'ReorderSuggestion.View',N'Restock.Create')
+ ORDER BY rm.RoleName,p.Code;
 END TRY
 BEGIN CATCH
  IF @@TRANCOUNT>0 ROLLBACK;
@@ -11003,6 +11033,133 @@ SELECT N'DEMO_AI_DASHBOARD_ROLLING_V1' AS SeedMarker,
        (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_AI_DASHBOARD_ROLLING_V1' AND Note=N'AI_DASHBOARD_SCENARIO_ANOMALY') AS AnomalyOrders,
        (SELECT COUNT(*) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%') AS DemoRestocks,
        (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1') AS DemoPurchaseOrders;
+GO
+
+/* ================================================================
+   BATCH 15B - AI REORDER EXPLANATION / DASHBOARD TEST FIXTURE
+   Marker: DEMO_AI_REORDER_TEST_V1
+
+   The deterministic reorder service must calculate the suggestion.
+   This batch only makes one seed-owned inventory row actionable; it
+   never inserts a suggested quantity, restock request or procurement
+   document and never changes physical stock.
+   ================================================================ */
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    DECLARE @ReorderTestNow datetime2(0)=SYSUTCDATETIME();
+    DECLARE @ReorderTestFrom datetime2(0)=DATEADD(DAY,-30,@ReorderTestNow);
+    DECLARE @ReorderTestStoreId int=(
+        SELECT StoreId FROM dbo.Stores
+        WHERE Name=N'CafeChain Thủ Dầu Một' AND Active=1);
+    DECLARE @ReorderTestIngredientId int=(
+        SELECT IngredientId FROM dbo.Ingredients
+        WHERE Code=N'DEMO_ING_CHIA_SEED' AND Active=1);
+    DECLARE @ReorderTestInventoryId int=(
+        SELECT StoreInventoryId FROM dbo.StoreInventories
+        WHERE StoreId=@ReorderTestStoreId
+          AND IngredientId=@ReorderTestIngredientId);
+
+    IF @ReorderTestStoreId IS NULL
+       OR @ReorderTestIngredientId IS NULL
+       OR @ReorderTestInventoryId IS NULL
+        THROW 53520,N'DEMO_AI_REORDER_TEST_V1: missing Store 1, chia ingredient or inventory.',1;
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.InventoryTransactions t
+        WHERE t.StoreInventoryId=@ReorderTestInventoryId
+          AND t.[Type] IN(6,7)
+          AND t.CreatedAt>=@ReorderTestFrom
+          AND t.CreatedAt<@ReorderTestNow
+          AND t.Quantity>0
+    ) THROW 53521,N'DEMO_AI_REORDER_TEST_V1: missing rolling 30-day consumption.',1;
+
+    IF
+    (
+        SELECT COUNT(*)
+        FROM dbo.IngredientSuppliers offer
+        JOIN dbo.Suppliers supplier
+          ON supplier.SupplierId=offer.SupplierId AND supplier.Active=1
+        JOIN dbo.SupplierStores scope
+          ON scope.SupplierId=supplier.SupplierId
+         AND scope.StoreId=@ReorderTestStoreId AND scope.Active=1
+        JOIN dbo.IngredientSupplierPriceHistories price
+          ON price.IngredientSupplierId=offer.IngredientSupplierId
+         AND price.IsCurrent=1 AND price.EffectiveDate<=@ReorderTestNow
+        WHERE offer.IngredientId=@ReorderTestIngredientId
+          AND offer.Active=1 AND offer.IsPrimary=1
+          AND offer.PackageQuantity>0 AND offer.CurrentPrice>0
+          AND offer.MinimumOrderPackageCount>=0
+          AND offer.LeadTimeDays IS NOT NULL AND offer.LeadTimeDays>=0
+          AND price.Price>0 AND price.PackageQuantity>0
+          AND price.PackageUnitId IS NOT NULL
+    )<>1 THROW 53522,N'DEMO_AI_REORDER_TEST_V1: primary supplier/package/price contract is invalid.',1;
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM dbo.PurchaseOrderLines line
+        JOIN dbo.PurchaseOrders po ON po.PurchaseOrderId=line.PurchaseOrderId
+        WHERE po.StoreId=@ReorderTestStoreId
+          AND line.IngredientId=@ReorderTestIngredientId
+          AND po.Status IN(N'DRAFT',N'APPROVED',N'MARKED_AS_SENT',N'PARTIALLY_RECEIVED')
+    ) OR EXISTS
+    (
+        SELECT 1
+        FROM dbo.PurchaseAdviceLines line
+        JOIN dbo.PurchaseAdvices advice ON advice.PurchaseAdviceId=line.PurchaseAdviceId
+        WHERE advice.StoreId=@ReorderTestStoreId
+          AND line.IngredientId=@ReorderTestIngredientId
+          AND line.IsActiveReservation=1
+    ) THROW 53523,N'DEMO_AI_REORDER_TEST_V1: chia fixture must not have active procurement coverage.',1;
+
+    /* Preserve stock/reservations. Only the seed-owned threshold is made urgent. */
+    UPDATE dbo.StoreInventories
+       SET MinStockLevel=AvailableQty-ReservedQty+10000
+     WHERE StoreInventoryId=@ReorderTestInventoryId;
+
+    IF NOT EXISTS
+    (
+        SELECT 1 FROM dbo.StoreInventories
+        WHERE StoreInventoryId=@ReorderTestInventoryId
+          AND AvailableQty-ReservedQty<MinStockLevel
+          AND MinStockLevel-(AvailableQty-ReservedQty)=10000
+    ) THROW 53524,N'DEMO_AI_REORDER_TEST_V1: urgent threshold was not established.',1;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+
+SELECT N'DEMO_AI_REORDER_TEST_V1' AS SeedMarker,
+       SYSUTCDATETIME() AS VerifiedAtUtc,
+       s.StoreId,
+       s.Name AS StoreName,
+       i.IngredientId,
+       i.Code AS IngredientCode,
+       i.Name AS IngredientName,
+       si.AvailableQty-si.ReservedQty AS AvailableStock,
+       si.MinStockLevel,
+       (SELECT COUNT(*) FROM dbo.InventoryTransactions t
+        WHERE t.StoreInventoryId=si.StoreInventoryId AND t.[Type] IN(6,7)
+          AND t.CreatedAt>=DATEADD(DAY,-30,SYSUTCDATETIME())
+          AND t.CreatedAt<SYSUTCDATETIME()) AS ConsumptionMovementCount,
+       (SELECT COUNT(*) FROM dbo.IngredientSuppliers offer
+        JOIN dbo.SupplierStores scope ON scope.SupplierId=offer.SupplierId
+        WHERE offer.IngredientId=i.IngredientId AND offer.Active=1 AND offer.IsPrimary=1
+          AND scope.StoreId=s.StoreId AND scope.Active=1) AS PrimarySupplierCount,
+       N'READY_FOR_DETERMINISTIC_CALCULATION' AS DataStatus
+FROM dbo.Stores s
+JOIN dbo.StoreInventories si ON si.StoreId=s.StoreId
+JOIN dbo.Ingredients i ON i.IngredientId=si.IngredientId
+WHERE s.Name=N'CafeChain Thủ Dầu Một'
+  AND i.Code=N'DEMO_ING_CHIA_SEED';
 GO
 
 EXEC dbo.SeedDemoCoverageV16;

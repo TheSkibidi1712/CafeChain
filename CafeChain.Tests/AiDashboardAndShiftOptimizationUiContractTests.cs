@@ -3,7 +3,7 @@ namespace CafeChain.Tests;
 public sealed class AiDashboardAndShiftOptimizationUiContractTests
 {
     [Fact]
-    public void DashboardFrontend_RendersExecutiveSectionsAndVietnameseStatuses()
+    public void DashboardFrontend_RendersContractSectionsWithoutDuplicatingLegacyNarrative()
     {
         var script = Read(
             "CafeChain",
@@ -13,9 +13,15 @@ public sealed class AiDashboardAndShiftOptimizationUiContractTests
             "Dashboard",
             "dashboard-intelligence.js");
 
-        Assert.Contains("Điểm đáng chú ý", script, StringComparison.Ordinal);
-        Assert.Contains("Kết luận", script, StringComparison.Ordinal);
-        Assert.Contains("data.overview || []", script, StringComparison.Ordinal);
+        Assert.Contains("Trả lời trực tiếp", script, StringComparison.Ordinal);
+        Assert.Contains("Số liệu chứng minh", script, StringComparison.Ordinal);
+        Assert.Contains("Việc cần kiểm tra", script, StringComparison.Ordinal);
+        Assert.Contains("Xem nguồn dữ liệu", script, StringComparison.Ordinal);
+        Assert.Contains("data.sectionConfig || {}", script, StringComparison.Ordinal);
+        Assert.Contains("data.directAnswer || data.summary", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("data.overview || []", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("Điểm đáng chú ý", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("Kết luận", script, StringComparison.Ordinal);
         Assert.Contains("Complete: \"Đầy đủ\"", script, StringComparison.Ordinal);
         Assert.Contains("Partial: \"Một phần\"", script, StringComparison.Ordinal);
         Assert.Contains("Insufficient: \"Chưa đủ dữ liệu\"", script, StringComparison.Ordinal);
@@ -46,7 +52,9 @@ public sealed class AiDashboardAndShiftOptimizationUiContractTests
         Assert.Contains("aria-describedby", view, StringComparison.Ordinal);
         Assert.Contains("shiftOptimizationSetup", view, StringComparison.Ordinal);
         Assert.Contains("shiftOptimizationConfig", view, StringComparison.Ordinal);
-        Assert.Contains("Cấu hình lịch &amp; cảnh báo", view, StringComparison.Ordinal);
+        Assert.Contains("Cấu hình dữ liệu lịch", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("cảnh báo thiếu lịch", view, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("cảnh báo ca thiếu", view, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Thứ 2", view, StringComparison.Ordinal);
         Assert.Contains("renderConfig", script, StringComparison.Ordinal);
         Assert.Contains("configOutput", script, StringComparison.Ordinal);
@@ -101,20 +109,8 @@ public sealed class AiDashboardAndShiftOptimizationUiContractTests
     }
 
     [Fact]
-    public void ScheduleGapNotification_IsFeatureFlaggedPersistedAndReusesSignalRHub()
+    public void ScheduleGapNotificationSubsystem_IsRemovedAndLegacyRowsAreSuppressed()
     {
-        var worker = Read(
-            "CafeChain",
-            "Application",
-            "Workers",
-            "StaffScheduleGapNotificationWorker.cs");
-        var service = Read(
-            "CafeChain",
-            "Application",
-            "Services",
-            "Admin",
-            "Staffs",
-            "StaffScheduleGapNotificationService.cs");
         var realtime = Read(
             "CafeChain",
             "wwwroot",
@@ -123,23 +119,27 @@ public sealed class AiDashboardAndShiftOptimizationUiContractTests
             "Notifications",
             "inventory-notification-realtime.js");
         var settings = Read("CafeChain", "appsettings.json");
+        var developmentSettings = Read("CafeChain", "appsettings.Development.json");
+        var workers = Read("CafeChain", "Extensions", "Services", "WorkerServiceExtensions.cs");
+        var services = Read("CafeChain", "Extensions", "Services", "ApplicationServiceExtensions.cs");
+        var repository = Read(
+            "CafeChain", "Infrastructure", "Repositories", "Operations",
+            "StaffNotificationRepository.cs");
+        var root = FindRoot();
 
-        Assert.Contains("_options.Enabled", worker, StringComparison.Ordinal);
-        Assert.Contains("GetLocalNow().Date.AddDays(1)", worker, StringComparison.Ordinal);
-        Assert.Contains("LookaheadDays", worker, StringComparison.Ordinal);
-        Assert.Contains("StaffScheduleNotificationTypes.Gap", service, StringComparison.Ordinal);
-        Assert.Contains("ResolveByDeduplicationKeyAsync", service, StringComparison.Ordinal);
-        Assert.Contains("ReminderCooldownHours", service, StringComparison.Ordinal);
-        Assert.Contains("CanAccessStoreAsync", service, StringComparison.Ordinal);
-        Assert.Contains("PermissionConstants.ShiftView", service, StringComparison.Ordinal);
-        Assert.Contains("STAFF_SCHEDULE_GAP", realtime, StringComparison.Ordinal);
-        Assert.Contains("Thiếu lịch nhân sự", realtime, StringComparison.Ordinal);
-        Assert.Contains("\"StaffScheduleNotifications\"", settings, StringComparison.Ordinal);
-        Assert.Contains("\"Enabled\": false", settings, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(root, "CafeChain", "Application", "Workers", "StaffScheduleGapNotificationWorker.cs")));
+        Assert.False(File.Exists(Path.Combine(root, "CafeChain", "Application", "Services", "Admin", "Staffs", "StaffScheduleGapNotificationService.cs")));
+        Assert.DoesNotContain("StaffScheduleGapNotificationWorker", workers, StringComparison.Ordinal);
+        Assert.DoesNotContain("IStaffScheduleGapNotificationService", services, StringComparison.Ordinal);
+        Assert.DoesNotContain("STAFF_SCHEDULE_GAP", realtime, StringComparison.Ordinal);
+        Assert.DoesNotContain("StaffScheduleNotifications", settings, StringComparison.Ordinal);
+        Assert.DoesNotContain("StaffScheduleNotifications", developmentSettings, StringComparison.Ordinal);
+        Assert.Contains("RetiredScheduleGapType", repository, StringComparison.Ordinal);
+        Assert.Contains("x.Type != RetiredScheduleGapType", repository, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void ExplanationSchema_RequiresRecommendationPriorityAndVerifyCondition()
+    public void ExplanationSchema_RequiresGroundedCompactResponseContract()
     {
         var schema = Read(
             "CafeChain",
@@ -148,8 +148,14 @@ public sealed class AiDashboardAndShiftOptimizationUiContractTests
             "schemas",
             "dashboard-insight-explanation.schema.json");
 
-        Assert.Contains("\"priority\"", schema, StringComparison.Ordinal);
+        Assert.Contains("\"directAnswer\"", schema, StringComparison.Ordinal);
+        Assert.Contains("\"proofPoints\"", schema, StringComparison.Ordinal);
+        Assert.Contains("\"actionToCheck\"", schema, StringComparison.Ordinal);
+        Assert.Contains("\"usedEvidenceIds\"", schema, StringComparison.Ordinal);
+        Assert.Contains("\"limitations\"", schema, StringComparison.Ordinal);
         Assert.Contains("\"verifyCondition\"", schema, StringComparison.Ordinal);
+        Assert.Contains("\"maxItems\": 3", schema, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"priority\"", schema, StringComparison.Ordinal);
         Assert.Contains("\"additionalProperties\": false", schema, StringComparison.Ordinal);
     }
 

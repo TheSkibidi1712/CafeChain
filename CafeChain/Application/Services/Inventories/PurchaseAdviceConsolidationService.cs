@@ -638,19 +638,20 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
 
     private async Task<List<ReadableStore>> ResolveReadableStoresAsync(AdminActorContext actor)
     {
+        if (!actor.RoleNames.Any(role => role is RoleConstants.SystemAdmin
+                or RoleConstants.BusinessOwner
+                or RoleConstants.AccountantWarehouse
+                or RoleConstants.StoreManager
+                or RoleConstants.AreaManager))
+            return new();
         var storeRows = await _context.Stores.AsNoTracking().Where(x => x.Active)
             .OrderBy(x => x.Name)
             .Select(x => new { x.StoreId, x.Name, x.ProvinceId, AreaName = x.Province != null ? x.Province.Name : null })
             .ToListAsync();
-        var stores = storeRows.Select(x => new ReadableStore(x.StoreId, x.Name, x.ProvinceId, x.AreaName)).ToList();
-        if (HasRole(actor, RoleConstants.SystemAdmin)
-            || HasRole(actor, RoleConstants.BusinessOwner)
-            || HasRole(actor, RoleConstants.AccountantWarehouse)) return stores;
-        if (HasRole(actor, RoleConstants.StoreManager)) return stores.Where(x => x.Id == actor.StoreId).ToList();
-        if (!HasRole(actor, RoleConstants.AreaManager)) return new();
         var allowed = new List<ReadableStore>();
-        foreach (var store in stores)
-            if (await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, store.Id)) allowed.Add(store);
+        foreach (var store in storeRows)
+            if (await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, store.StoreId))
+                allowed.Add(new ReadableStore(store.StoreId, store.Name, store.ProvinceId, store.AreaName));
         return allowed;
     }
 

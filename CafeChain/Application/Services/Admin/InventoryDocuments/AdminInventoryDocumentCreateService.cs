@@ -33,6 +33,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         private readonly IRequestDeduplicationService _deduplicationService;
         private readonly IInventoryIssuePolicy _inventoryIssuePolicy;
+        private readonly IInventoryIssueSettingsProvider _inventoryIssueSettingsProvider;
         private readonly IAdminActorContextAccessor _actorAccessor;
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly IUnitConversionService? _unitConversionService;
@@ -44,6 +45,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             IHttpContextAccessor httpContextAccessor,
             IRequestDeduplicationService deduplicationService,
             IInventoryIssuePolicy inventoryIssuePolicy,
+            IInventoryIssueSettingsProvider inventoryIssueSettingsProvider,
             IAdminActorContextAccessor actorAccessor,
             IScopeAuthorizationService scopeAuthorization,
             IUnitConversionService? unitConversionService = null)
@@ -54,6 +56,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             _httpContextAccessor = httpContextAccessor;
             _deduplicationService = deduplicationService;
             _inventoryIssuePolicy = inventoryIssuePolicy;
+            _inventoryIssueSettingsProvider = inventoryIssueSettingsProvider;
             _actorAccessor = actorAccessor;
             _scopeAuthorization = scopeAuthorization;
             _unitConversionService = unitConversionService;
@@ -84,6 +87,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     : effectiveType == InventoryDocumentType.IMPORT
                     ? InventoryDocumentPurpose.IMPORT_PURCHASE
                     : InventoryDocumentPurpose.NONE;
+            var negativeInventoryPolicy = effectiveType == InventoryDocumentType.EXPORT
+                ? await _inventoryIssueSettingsProvider.GetManualExternalExportSettingsAsync()
+                : null;
 
             return new AdminInventoryDocumentCreateVM
             {
@@ -93,7 +99,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 Code = await _repository.GenerateDocumentCodeAsync( effectiveType, purpose == InventoryDocumentPurpose.NONE ? null : purpose),
                 Stores = stores,
                 Suppliers = [],
-                Summary = new InventoryCreateSummaryDTO()
+                Summary = new InventoryCreateSummaryDTO(),
+                NegativeInventoryPolicyValid = negativeInventoryPolicy?.IsValid == true,
+                NegativeInventoryPolicyEnabled = negativeInventoryPolicy?.Enabled == true,
+                NegativeInventoryApprovalRequired = negativeInventoryPolicy?.ApprovalRequired == true
             };
         }
 

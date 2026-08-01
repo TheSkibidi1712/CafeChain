@@ -103,7 +103,6 @@
 //         Assert.False(root.GetProperty("Forecasting").GetProperty("RevenueEnabled").GetBoolean());
 //         Assert.False(root.GetProperty("Forecasting").GetProperty("ProductEnabled").GetBoolean());
 //         Assert.False(root.GetProperty("SupplierIntelligence").GetProperty("ScoringEnabled").GetBoolean());
-//         Assert.False(root.GetProperty("StaffScheduleNotifications").GetProperty("Enabled").GetBoolean());
 //         Assert.False(root.GetProperty("PosRecommendation").GetProperty("Enabled").GetBoolean());
 //         Assert.False(root.GetProperty("AnomalyDetection").GetProperty("Enabled").GetBoolean());
 //     }

@@ -48,6 +48,7 @@ public sealed class AdminReorderSuggestionsController : AdminBaseController
         var storeScope = await _storeScopeResolver.ResolveAsync(
             actor,
             storeId,
+            AdminStoreScopeMode.ReorderSuggestion,
             cancellationToken);
         if (!storeScope.IsResolved)
             return StoreScopeFailure(storeScope);
@@ -116,6 +117,7 @@ public sealed class AdminReorderSuggestionsController : AdminBaseController
         var scope = await _storeScopeResolver.ResolveAsync(
             actor,
             request.StoreId,
+            AdminStoreScopeMode.ReorderSuggestion,
             cancellationToken);
         if (!scope.IsResolved
             || !await _authorization.CanViewAsync(
@@ -222,6 +224,7 @@ public sealed class AdminReorderSuggestionsController : AdminBaseController
         var scope = await _storeScopeResolver.ResolveAsync(
             actor,
             request.StoreId,
+            AdminStoreScopeMode.ReorderSuggestion,
             cancellationToken);
         if (!scope.IsResolved)
         {

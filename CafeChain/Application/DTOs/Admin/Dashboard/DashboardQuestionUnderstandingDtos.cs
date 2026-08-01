@@ -37,10 +37,18 @@ public static class DashboardTabCodes
 
 public static class DashboardAnswerStyleIds
 {
-    public const string ExecutiveDiagnostic = "EXECUTIVE_DIAGNOSTIC";
-    public const string TransactionRankingAnalysis = "TRANSACTION_RANKING_ANALYSIS";
-    public const string OperationalActionAnalysis = "OPERATIONAL_ACTION_ANALYSIS";
-    public const string RiskInvestigationAnalysis = "RISK_INVESTIGATION_ANALYSIS";
+    public const string DirectComparison = "DIRECT_COMPARISON";
+    public const string Ranking = "RANKING";
+    public const string Trend = "TREND";
+    public const string RiskAlert = "RISK_ALERT";
+    public const string OperationalPriority = "OPERATIONAL_PRIORITY";
+    public const string FactualStatistics = "FACTUAL_STATISTICS";
+
+    // Compatibility aliases for v1 callers. Values now resolve to the focused v2 styles.
+    public const string ExecutiveDiagnostic = FactualStatistics;
+    public const string TransactionRankingAnalysis = Ranking;
+    public const string OperationalActionAnalysis = OperationalPriority;
+    public const string RiskInvestigationAnalysis = RiskAlert;
 }
 
 public sealed class DashboardGuidePageDto
@@ -87,6 +95,9 @@ public sealed class DashboardQuestionUnderstandingDto
     public List<int> EffectiveStoreIds { get; set; } = [];
     public List<string> RequestedOutput { get; set; } = [];
     public List<string> ExplicitExclusions { get; set; } = [];
+    public List<string> AllowedEntities { get; set; } = [];
+    public List<string> AllowedTopics { get; set; } = [];
+    public List<string> ExcludedTopics { get; set; } = [];
     public bool RequiresRanking { get; set; }
     public bool RequiresTrend { get; set; }
     public bool RequiresComparison { get; set; }
@@ -118,6 +129,10 @@ public sealed class DashboardDataPlanDto
     public List<DashboardAnalyticsWidget> SupportingWidgets { get; set; } = [];
     public List<string> DataQualityRules { get; set; } = [];
     public string FallbackPattern { get; set; } = string.Empty;
+    public string FallbackFamily { get; set; } = string.Empty;
+    public DashboardChartType ChartType { get; set; } = DashboardChartType.Table;
+    public bool IncludeTable { get; set; } = true;
+    public List<string> VisibleSections { get; set; } = [];
 }
 
 public sealed class DashboardEvidencePackDto
@@ -133,6 +148,9 @@ public sealed class DashboardEvidencePackDto
     public string DataStatus { get; set; } = "NO_DATA";
     public List<string> MissingFields { get; set; } = [];
     public List<string> Limitations { get; set; } = [];
+    public DateTime FromDate { get; set; }
+    public DateTime ToDate { get; set; }
+    public List<int> StoreIds { get; set; } = [];
 }
 
 public sealed class DashboardChartPlanDto

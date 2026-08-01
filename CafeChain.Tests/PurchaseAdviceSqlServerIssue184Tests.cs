@@ -4,6 +4,7 @@ using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Services.Inventories;
+using CafeChain.Application.Services.Security;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Enums.Inventory;
@@ -14,7 +15,6 @@ using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using Xunit;
 
 namespace CafeChain.Tests;
@@ -162,10 +162,7 @@ public sealed class PurchaseAdviceSqlServerIssue184Tests : IAsyncLifetime
     };
 
     private static PurchaseAdviceService CreateService(AppDbContext context)
-    {
-        var scope = new Mock<IScopeAuthorizationService>();
-        return new PurchaseAdviceService(context, scope.Object);
-    }
+        => new(context, new ScopeAuthorizationService(context));
 
     private static CreatePurchaseAdviceRequest CreateRequest(Seed seed, decimal quantity) => new()
     {
@@ -189,6 +186,12 @@ public sealed class PurchaseAdviceSqlServerIssue184Tests : IAsyncLifetime
         var manager = new Staff { AccountId = account.AccountId, StoreId = store.StoreId, FullName = "Manager #184 SQL", Active = true, CreatedAt = now};
         var ingredient = new Ingredient { Code = "ING-" + Guid.NewGuid().ToString("N")[..8], Name = "Coffee #184 SQL", BaseUnitId = unit.UnitId, Active = true };
         context.AddRange(manager, ingredient); await context.SaveChangesAsync();
+        context.StaffScopes.Add(new StaffScope
+        {
+            StaffId = manager.StaffId,
+            ScopeTypeId = (int)ScopeLevel.Store,
+            ScopeRefId = store.StoreId
+        });
         var request = new RestockRequest { StoreId = store.StoreId, IngredientId = ingredient.IngredientId, RequestedQuantity = requested, Status = RestockRequestStatuses.Processing, Priority = RestockRequestPriorities.Normal, CreatedByStaffId = manager.StaffId, CreatedAt = now, UpdatedAt = now };
         context.RestockRequests.Add(request); await context.SaveChangesAsync();
         return new Seed(store.StoreId, sourceStore.StoreId, manager.StaffId, unit.UnitId, ingredient.IngredientId, request.RestockRequestId, Convert.ToBase64String(request.RowVersion));

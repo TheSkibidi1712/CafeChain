@@ -29,7 +29,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
     private const int SupplierId = 17805;
 
     [Fact]
-    public void PurchaseOrderController_UsesReceiveGoodsRoleBoundary_IncludingShiftSupervisor()
+    public void PurchaseOrderController_UsesViewPermissionWithoutRoleBoundary()
     {
         Assert.Equal(
             typeof(AdminStoreScopedController),
@@ -37,17 +37,13 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
 
         var authorize = Assert.Single(
             typeof(AdminPurchaseOrdersController)
-                .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
-                .Cast<AuthorizeAttribute>());
-        var roles = (authorize.Roles ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        Assert.Contains(RoleConstants.BusinessOwner, roles);
-        Assert.Contains(RoleConstants.AreaManager, roles);
-        Assert.Contains(RoleConstants.StoreManager, roles);
-        Assert.Contains(RoleConstants.ShiftSupervisor, roles);
-        Assert.Contains(RoleConstants.AccountantWarehouse, roles);
-        Assert.DoesNotContain(RoleConstants.SalesStaff, roles);
+                .GetCustomAttributes(typeof(CafeChain.Application.Authorization.RequirePermissionAttribute), inherit: true)
+                .Cast<CafeChain.Application.Authorization.RequirePermissionAttribute>());
+        Assert.Equal(
+            CafeChain.Application.Authorization.RequirePermissionAttribute.PolicyPrefix
+            + PermissionConstants.PurchaseOrderView,
+            authorize.Policy);
+        Assert.Null(authorize.Roles);
     }
 
     [Fact]

@@ -1,4 +1,6 @@
 using CafeChain.Application.DTOs.Admin.StoreInventories;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
@@ -8,6 +10,7 @@ using System.Security.Claims;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
+    [RequirePermission(PermissionConstants.InventoryView)]
     public class AdminStoreInventoryController : AdminBaseController
     {
         private const int PageSize = 10;

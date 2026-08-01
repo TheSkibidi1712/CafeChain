@@ -213,6 +213,9 @@ public sealed partial class DashboardIntelligenceService
             warnings.AddRange(explanation.Warnings);
         }
 
+        limitations.AddRange(explanation.Limitations);
+        limitations = limitations.Distinct(StringComparer.Ordinal).Take(5).ToList();
+
         var evidenceIds = allEvidence.Select(x => x.EvidenceId).ToHashSet(StringComparer.Ordinal);
         var inferences = ValidateNarratives(explanation.Inferences, evidenceIds);
         var recommendations = ValidateNarratives(explanation.Recommendations, evidenceIds);
@@ -225,6 +228,52 @@ public sealed partial class DashboardIntelligenceService
             || (explanation.Recommendations.Count > 0 && recommendations.Count != explanation.Recommendations.Count))
         {
             warnings.Add("Một số nhận định AI bị loại vì không tham chiếu evidence hợp lệ.");
+        }
+
+        var directAnswer = string.IsNullOrWhiteSpace(explanation.DirectAnswer)
+            ? string.IsNullOrWhiteSpace(explanation.Summary)
+                ? keyConclusion
+                : explanation.Summary.Trim()
+            : explanation.DirectAnswer.Trim();
+        var proofPoints = explanation.ProofPoints
+            .Where(item => !string.IsNullOrWhiteSpace(item.Text)
+                && item.EvidenceIds.Count > 0
+                && item.EvidenceIds.All(evidenceIds.Contains))
+            .Take(3)
+            .ToList();
+        if (proofPoints.Count == 0)
+        {
+            proofPoints = allEvidence
+                .OrderBy(item => string.IsNullOrWhiteSpace(item.EntityName) ? 1 : 0)
+                .ThenBy(item => item.Priority?.Equals("Critical", StringComparison.OrdinalIgnoreCase) == true ? 0
+                    : item.Priority?.Equals("High", StringComparison.OrdinalIgnoreCase) == true ? 1 : 2)
+                .ThenByDescending(item => item.CurrentValue)
+                .Take(3)
+                .Select(item => new DashboardProofPointDto
+                {
+                    Text = item.Statement,
+                    EvidenceIds = [item.EvidenceId]
+                }).ToList();
+        }
+        var canShowAction = dataStatus is not ("NO_DATA" or "ERROR")
+            && intent.Understanding.AnswerFocus is DashboardAnswerFocus.OperationalPriorities
+                or DashboardAnswerFocus.InventoryShortage
+                or DashboardAnswerFocus.ReorderPriority
+                or DashboardAnswerFocus.SupplierAndOverdueRisk
+                or DashboardAnswerFocus.OperationalAnomaly;
+        var actionToCheck = canShowAction
+            && explanation.ActionToCheck != null
+            && explanation.ActionToCheck.EvidenceIds.All(evidenceIds.Contains)
+                ? explanation.ActionToCheck
+                : null;
+        if (canShowAction && actionToCheck == null && proofPoints.Count > 0)
+        {
+            actionToCheck = new DashboardActionToCheckDto
+            {
+                Text = "Kiểm tra số liệu nguồn và trạng thái nghiệp vụ liên quan trước khi xử lý.",
+                EvidenceIds = proofPoints[0].EvidenceIds,
+                VerifyCondition = "Đối chiếu tại đúng cửa hàng và kỳ dữ liệu đang chọn."
+            };
         }
 
         var result = new DashboardStructuredAnalysisResultDto
@@ -254,14 +303,23 @@ public sealed partial class DashboardIntelligenceService
             FilterFingerprint = context.FilterFingerprint,
             Context = context,
             DataStatus = dataStatus,
-            Summary = string.IsNullOrWhiteSpace(explanation.Summary)
-                ? deterministicSummary
-                : explanation.Summary.Trim(),
+            Summary = directAnswer,
+            DirectAnswer = directAnswer,
+            ProofPoints = proofPoints,
+            ActionToCheck = actionToCheck,
+            SectionConfig = new DashboardSectionConfigDto
+            {
+                ShowActionToCheck = actionToCheck != null,
+                ShowChart = charts.Count > 0,
+                ShowTable = evidencePack.TableEvidence.Count > 0,
+                ShowLimitations = limitations.Count > 0,
+                ShowDataSource = true
+            },
             Facts = facts,
             Statistics = statistics,
-            Inferences = inferences,
+            Inferences = [],
             Anomalies = anomalies,
-            Recommendations = recommendations,
+            Recommendations = [],
             Confidence = confidence,
             Charts = charts,
             PrimaryChart = charts.FirstOrDefault(x =>
@@ -272,29 +330,30 @@ public sealed partial class DashboardIntelligenceService
             SupportingCharts = charts.Skip(1).ToList(),
             EvidenceTable = evidencePack.TableEvidence,
             Limitations = limitations,
-            Recommendation = recommendations.FirstOrDefault(),
+            Recommendation = null,
             GeneratedBy = explanation.UsedOllama ? "OllamaGrounded" : "DeterministicFallback",
             ChartAnalyses = MergeChartAnalyses(chartAnalyses, explanation.ChartAnalyses, evidenceIds),
-            Overview = explanation.Overview.Count > 0
-                ? ValidateNarratives(explanation.Overview, evidenceIds)
-                : overview,
-            Conclusions = explanation.Conclusions.Count > 0
-                ? ValidateNarratives(explanation.Conclusions, evidenceIds)
-                : conclusions,
-            NotablePoints = explanation.NotablePoints.Count > 0
-                ? ValidateNarratives(explanation.NotablePoints, evidenceIds)
-                : anomalies.Select(x => new DashboardNarrativeItemDto
-                {
-                    Text = x.Message,
-                    EvidenceIds = x.EvidenceIds
-                }).ToList(),
+            Overview = [],
+            Conclusions = [],
+            NotablePoints = [],
             Warnings = warnings.Distinct(StringComparer.Ordinal).ToList(),
             AiStatus = explanation.UsedOllama ? "Available" : "Fallback",
             FallbackReason = explanation.UsedOllama
                 ? null
                 : explanation.Warnings.FirstOrDefault() ?? "OLLAMA_UNAVAILABLE_OR_INVALID_RESPONSE",
             UsedFallback = parsed.UsedFallback || explanation.UsedFallback,
-            SectionTelemetry = currentBatch.Telemetry.Concat(baselineBatch?.Telemetry ?? []).ToList()
+            SectionTelemetry = currentBatch.Telemetry.Concat(baselineBatch?.Telemetry ?? []).ToList(),
+            DataSource = new DashboardDataSourceDto
+            {
+                EvidenceIds = proofPoints.SelectMany(item => item.EvidenceIds).Distinct().ToList(),
+                AppliedFilters = new Dictionary<string, string>(intent.DataPlan.Filters, StringComparer.OrdinalIgnoreCase),
+                Widgets = widgets.Select(item => item.ToString()).ToList(),
+                DataStatus = dataStatus,
+                UsedFallback = parsed.UsedFallback || explanation.UsedFallback,
+                FallbackReason = explanation.UsedOllama
+                    ? null
+                    : explanation.Warnings.FirstOrDefault() ?? "DETERMINISTIC_FALLBACK"
+            }
         };
         stopwatch.Stop();
         var failedWidgetCount = result.SectionTelemetry.Sum(item => item.FailedWidgetCount);
@@ -488,6 +547,9 @@ public sealed partial class DashboardIntelligenceService
                 .ToList(),
             TableEvidence = table.Count > 0 ? table : primary.Take(plan.Limit).ToList(),
             DataStatus = dataStatus,
+            FromDate = plan.FromDate,
+            ToDate = plan.ToDate,
+            StoreIds = plan.EffectiveStoreIds.ToList(),
             MissingFields = dataStatus is "NO_DATA" or "ERROR"
                 ? plan.RequiredFields.ToList()
                 : [],
@@ -782,6 +844,9 @@ public sealed partial class DashboardIntelligenceService
             DeviationPercent = comparison.PercentageDifference,
             SampleSize = comparison.CurrentSampleSize,
             Unit = definition.Metric.Unit,
+            DisplayMetric = DisplayMetric(definition.Metric.Name),
+            DisplayValue = comparison.CurrentValue.ToString("N2"),
+            DisplayUnit = DisplayUnit(definition.Metric.Unit),
             DataStatus = dataStatus,
             Baseline = comparison.BaselineValue.HasValue ? "PreviousPeriod" : null
         };
@@ -806,6 +871,9 @@ public sealed partial class DashboardIntelligenceService
                 Delta = comparison.PercentageDifference.Value / 100m,
                 SampleSize = comparison.CurrentSampleSize,
                 Unit = "PERCENT",
+                DisplayMetric = "Mức thay đổi",
+                DisplayValue = comparison.PercentageDifference.Value.ToString("+0.##;-0.##;0"),
+                DisplayUnit = "%",
                 DataStatus = dataStatus,
                 Baseline = "PreviousPeriod"
             });
@@ -826,6 +894,9 @@ public sealed partial class DashboardIntelligenceService
                 CurrentValue = aov,
                 SampleSize = comparison.CurrentSampleSize,
                 Unit = "VND",
+                DisplayMetric = "Giá trị đơn hàng trung bình",
+                DisplayValue = aov.ToString("N0"),
+                DisplayUnit = "đ",
                 DataStatus = dataStatus
             });
         }
@@ -922,6 +993,8 @@ public sealed partial class DashboardIntelligenceService
                 entityCode = Text(row, "code"); entityName = Text(row, "code");
                 storeId = NullableInt(row, "storeId"); storeName = Text(row, "storeName");
                 value = Number(row, "overdueDays") ?? 0;
+                unit = Text(row, "unit");
+                if (string.IsNullOrWhiteSpace(unit)) unit = "DAY";
                 priority = value >= 7 ? "High" : "Medium"; break;
             default:
                 return null;
@@ -939,10 +1012,13 @@ public sealed partial class DashboardIntelligenceService
             Title = $"{definition.Title}: {entityName}",
             Description = "Evidence cấp thực thể từ backend.",
             MetricName = definition.Metric!.Name,
-            Statement = $"{entityName}: {value:N2} {unit}.",
+            Statement = $"{entityName}: {value:N2} {DisplayUnit(unit)}.".Replace("  ", " "),
             CurrentValue = value,
             SampleSize = EntitySample(widget, row),
             Unit = string.IsNullOrWhiteSpace(unit) ? definition.Unit : unit,
+            DisplayMetric = DisplayMetric(definition.Metric!.Name),
+            DisplayValue = value.ToString("N2"),
+            DisplayUnit = DisplayUnit(string.IsNullOrWhiteSpace(unit) ? definition.Unit : unit),
             DataStatus = dataStatus,
             EntityType = entityType,
             EntityId = entityId,
@@ -959,12 +1035,36 @@ public sealed partial class DashboardIntelligenceService
         return evidence;
     }
 
+    private static string DisplayMetric(string metric) => metric switch
+    {
+        "TotalSold" => "Số lượng bán",
+        "NetSales" => "Doanh thu thuần",
+        "AlertCount" => "Số cảnh báo",
+        "ShortageQuantity" => "Số lượng thiếu",
+        "FinalSuggestedQuantity" => "Số lượng đề xuất",
+        "ConsumedQuantity" => "Lượng tiêu thụ",
+        "RiskScore" => "Mức rủi ro",
+        "TotalTransactions" => "Số giao dịch",
+        "CancellationRate" => "Tỷ lệ hủy",
+        _ => metric
+    };
+
+    private static string DisplayUnit(string? unit) => (unit ?? string.Empty).Trim().ToUpperInvariant() switch
+    {
+        "DAY" or "DAYS" => "ngày",
+        "HOUR" or "HOURS" => "giờ",
+        "VND" => "đ",
+        "PERCENT" => "%",
+        "COUNT" => string.Empty,
+        var value => value.ToLowerInvariant()
+    };
+
     private static IEnumerable<string> EntityMetadataFields(DashboardAnalyticsWidget widget) => widget switch
     {
         DashboardAnalyticsWidget.StoreRanking =>
             ["totalOrders", "averageOrderValue", "rank", "contributionPercent", "dataStatus"],
         DashboardAnalyticsWidget.TopProducts =>
-            ["categoryName", "totalSold", "productRevenue", "confirmedCogs", "confirmedGrossProfit", "confirmedMarginRate", "contributionPercent", "dataStatus"],
+            ["categoryName", "totalSold", "netSales", "confirmedCogs", "confirmedGrossProfit", "confirmedMarginRate", "contributionPercent", "dataStatus"],
         DashboardAnalyticsWidget.ProductPeriodPerformance =>
             ["totalSold", "revenue", "confirmedCogs", "confirmedGrossProfit", "confirmedMarginRate", "contributionPercent", "dataStatus"],
         DashboardAnalyticsWidget.LowVolumeProducts or DashboardAnalyticsWidget.LowMarginProducts =>

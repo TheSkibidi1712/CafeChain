@@ -94,6 +94,12 @@ internal static class DashboardQuestionCatalog
             TimeGrain = granularity,
             RequestedOutput = ["ANALYSIS_CONTEXT", "CHART", "EVIDENCE_TABLE"],
             ExplicitExclusions = profile.Exclusions.ToList(),
+            AllowedEntities = [profile.Entity],
+            AllowedTopics = new[] { profile.Metric }
+                .Concat(profile.SecondaryMetrics)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            ExcludedTopics = profile.Exclusions.ToList(),
             RequiresRanking = profile.RequiresRanking,
             RequiresTrend = profile.RequiresTrend,
             RequiresComparison = profile.RequiresComparison || comparison != DashboardComparison.None,
@@ -145,7 +151,9 @@ internal static class DashboardQuestionCatalog
             FromDate = from,
             ToDate = to,
             GroupBy = understanding.GroupBy.ToList(),
-            SortBy = understanding.PrimaryMetric,
+            SortBy = understanding.AnswerFocus == DashboardAnswerFocus.TopSellingProducts
+                ? "TotalSold,NetSales"
+                : understanding.PrimaryMetric,
             SortDirection = understanding.RankingDirection,
             Limit = understanding.RequestedLimit,
             ComparisonDefinition = understanding.ComparisonPeriod,
@@ -153,7 +161,14 @@ internal static class DashboardQuestionCatalog
             PrimaryWidget = mapping.Primary,
             SupportingWidgets = mapping.Supporting.ToList(),
             DataQualityRules = QualityRules(understanding.AnswerFocus).ToList(),
-            FallbackPattern = FallbackFamily(understanding.AnswerFocus)
+            FallbackPattern = FallbackFamily(understanding.AnswerFocus),
+            FallbackFamily = FallbackFamily(understanding.AnswerFocus),
+            ChartType = definition.ChartType,
+            IncludeTable = true,
+            VisibleSections = understanding.RequiresRecommendation
+                || understanding.RequiresAnomalyDetection
+                ? ["DIRECT_ANSWER", "PROOF_POINTS", "ACTION_TO_CHECK", "CHART", "TABLE", "LIMITATIONS", "DATA_SOURCE"]
+                : ["DIRECT_ANSWER", "PROOF_POINTS", "CHART", "TABLE", "LIMITATIONS", "DATA_SOURCE"]
         };
     }
 
@@ -281,56 +296,56 @@ internal static class DashboardQuestionCatalog
     private static FocusProfile Profile(DashboardAnswerFocus focus, string normalized) => focus switch
     {
         DashboardAnswerFocus.OperationalPriorities => P(DashboardBusinessIntent.GeneralBusinessSummary,
-            DashboardTabCodes.OverviewRevenue, DashboardAnswerStyleIds.ExecutiveDiagnostic,
+            DashboardTabCodes.OverviewRevenue, DashboardAnswerStyleIds.OperationalPriority,
             "Operation", "AlertCount", ["Impact"], ["Severity"], anomaly: true, recommendation: true),
         DashboardAnswerFocus.RevenueComparison => P(DashboardBusinessIntent.RevenueAnalysis,
-            DashboardTabCodes.OverviewRevenue, DashboardAnswerStyleIds.ExecutiveDiagnostic,
+            DashboardTabCodes.OverviewRevenue, DashboardAnswerStyleIds.DirectComparison,
             "Revenue", "NetSales", ["TotalOrders", "AverageOrderValue"], ["Period"], comparison: true),
         DashboardAnswerFocus.StoreUnderperformance => P(DashboardBusinessIntent.StoreComparison,
-            DashboardTabCodes.OverviewRevenue, DashboardAnswerStyleIds.ExecutiveDiagnostic,
+            DashboardTabCodes.OverviewRevenue, DashboardAnswerStyleIds.Ranking,
             "Store", "NetSales", ["TotalOrders", "AverageOrderValue"], ["Store"], ranking: true, sort: "ASC"),
         DashboardAnswerFocus.RevenueDriver => P(DashboardBusinessIntent.RevenueAnalysis,
-            DashboardTabCodes.OverviewRevenue, DashboardAnswerStyleIds.ExecutiveDiagnostic,
+            DashboardTabCodes.OverviewRevenue, DashboardAnswerStyleIds.DirectComparison,
             "Revenue", "NetSales", ["TotalOrders", "AverageOrderValue"], ["Period"], comparison: true),
         DashboardAnswerFocus.DailyRevenueStatistics => P(DashboardBusinessIntent.StatisticsRequest,
-            DashboardTabCodes.OverviewRevenue, DashboardAnswerStyleIds.ExecutiveDiagnostic,
+            DashboardTabCodes.OverviewRevenue, DashboardAnswerStyleIds.FactualStatistics,
             "Revenue", "NetSales", ["Average", "Minimum", "Maximum"], ["Day"], trend: true),
         DashboardAnswerFocus.OrderCancellationByStore => P(DashboardBusinessIntent.OrderAnalysis,
-            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.TransactionRankingAnalysis,
+            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.Ranking,
             "Order", "CancellationRate", ["CancelledOrders", "TotalOrders"], ["Store"], ranking: true),
         DashboardAnswerFocus.PaymentUsage => P(DashboardBusinessIntent.OrderAnalysis,
-            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.TransactionRankingAnalysis,
+            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.Ranking,
             "PaymentMethod", "TotalTransactions", ["TransactionShare"], ["PaymentMethod"], ranking: true),
         DashboardAnswerFocus.TopSellingProducts => P(DashboardBusinessIntent.ProductPerformance,
-            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.TransactionRankingAnalysis,
+            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.Ranking,
             "Product", "TotalSold", ["NetSales", "QuantityShare"], ["Product"], ranking: true,
             exclusions: ["INVENTORY", "SUPPLIER", "PAYMENT", "MARGIN"]),
         DashboardAnswerFocus.TopSellingCategories => P(DashboardBusinessIntent.ProductPerformance,
-            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.TransactionRankingAnalysis,
+            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.Ranking,
             "Category", "TotalSold", ["NetSales"], ["Category"], ranking: true),
         DashboardAnswerFocus.LowVolumeProducts => P(DashboardBusinessIntent.ProductPerformance,
-            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.TransactionRankingAnalysis,
+            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.Ranking,
             "Product", "TotalSold", ["NetSales"], ["Product"], ranking: true, sort: "ASC",
             exclusions: ["MARGIN"]),
         DashboardAnswerFocus.LowMarginProducts => P(DashboardBusinessIntent.ProductPerformance,
-            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.TransactionRankingAnalysis,
+            DashboardTabCodes.OrdersProducts, DashboardAnswerStyleIds.Ranking,
             "Product", "MarginPercent", ["TotalSold", "NetSales", "COGS"], ["Product"], ranking: true, sort: "ASC"),
         DashboardAnswerFocus.InventoryShortage => P(DashboardBusinessIntent.InventoryAnalysis,
-            DashboardTabCodes.InventoryReorder, DashboardAnswerStyleIds.OperationalActionAnalysis,
+            DashboardTabCodes.InventoryReorder, DashboardAnswerStyleIds.RiskAlert,
             "Ingredient", "ShortageQuantity", ["AvailableQuantity", "MinimumStock"], ["Ingredient"], ranking: true),
         DashboardAnswerFocus.ReorderPriority => P(DashboardBusinessIntent.ReorderAnalysis,
-            DashboardTabCodes.InventoryReorder, DashboardAnswerStyleIds.OperationalActionAnalysis,
+            DashboardTabCodes.InventoryReorder, DashboardAnswerStyleIds.OperationalPriority,
             "Ingredient", "FinalSuggestedQuantity", ["AvailableQuantity", "MinimumStock", "LeadTimeDays"],
             ["Ingredient"], ranking: true, recommendation: true),
         DashboardAnswerFocus.IngredientConsumptionTrend => P(DashboardBusinessIntent.InventoryAnalysis,
-            DashboardTabCodes.InventoryReorder, DashboardAnswerStyleIds.OperationalActionAnalysis,
+            DashboardTabCodes.InventoryReorder, DashboardAnswerStyleIds.Trend,
             "Ingredient", "ConsumedQuantity", ["ConfirmedCost"], ["Day", "Ingredient"], trend: true),
         DashboardAnswerFocus.SupplierAndOverdueRisk => P(DashboardBusinessIntent.SupplierAnalysis,
-            DashboardTabCodes.SupplierAnomaly, DashboardAnswerStyleIds.RiskInvestigationAnalysis,
+            DashboardTabCodes.SupplierAnomaly, DashboardAnswerStyleIds.RiskAlert,
             "Supplier", "RiskScore", ["OverdueOrderCount", "QualityIssueCount", "RejectionRate"],
             ["Supplier"], ranking: true, anomaly: true),
         DashboardAnswerFocus.OperationalAnomaly => P(DashboardBusinessIntent.AnomalyDetection,
-            DashboardTabCodes.SupplierAnomaly, DashboardAnswerStyleIds.RiskInvestigationAnalysis,
+            DashboardTabCodes.SupplierAnomaly, DashboardAnswerStyleIds.RiskAlert,
             "Operation", "AlertCount", ["Severity", "Impact"], ["AlertType"], anomaly: true),
         _ => DynamicProfile(normalized)
     };
@@ -437,7 +452,7 @@ internal static class DashboardQuestionCatalog
     private static IEnumerable<string> RequiredFields(DashboardAnswerFocus focus) => focus switch
     {
         DashboardAnswerFocus.TopSellingProducts =>
-            ["DrinkId", "DrinkName", "TotalSold", "ProductRevenue", "QuantityShare", "RevenueShare"],
+            ["DrinkId", "DrinkName", "TotalSold", "NetSales", "QuantityShare", "RevenueShare"],
         DashboardAnswerFocus.PaymentUsage =>
             ["PaymentMethodId", "PaymentMethodName", "TotalTransactions", "TransactionShare"],
         DashboardAnswerFocus.ReorderPriority =>
@@ -469,17 +484,17 @@ internal static class DashboardQuestionCatalog
 
     private static string FallbackFamily(DashboardAnswerFocus focus) => focus switch
     {
-        DashboardAnswerFocus.OperationalPriorities => "ExecutiveDiagnosticFallback",
-        DashboardAnswerFocus.RevenueComparison or DashboardAnswerFocus.StoreUnderperformance => "ComparisonFallback",
-        DashboardAnswerFocus.DailyRevenueStatistics or DashboardAnswerFocus.IngredientConsumptionTrend => "TrendFallback",
+        DashboardAnswerFocus.OperationalPriorities => "OperationalPriority",
+        DashboardAnswerFocus.RevenueComparison or DashboardAnswerFocus.StoreUnderperformance => "Comparison",
+        DashboardAnswerFocus.DailyRevenueStatistics => "Statistics",
+        DashboardAnswerFocus.IngredientConsumptionTrend => "Trend",
         DashboardAnswerFocus.TopSellingProducts or DashboardAnswerFocus.TopSellingCategories
             or DashboardAnswerFocus.LowVolumeProducts or DashboardAnswerFocus.LowMarginProducts
-            or DashboardAnswerFocus.PaymentUsage or DashboardAnswerFocus.OrderCancellationByStore => "RankingFallback",
-        DashboardAnswerFocus.InventoryShortage => "InventoryRiskFallback",
-        DashboardAnswerFocus.ReorderPriority => "ReorderFallback",
-        DashboardAnswerFocus.SupplierAndOverdueRisk => "SupplierRiskFallback",
-        DashboardAnswerFocus.OperationalAnomaly => "AnomalyFallback",
-        _ => "NoDataFallback"
+            or DashboardAnswerFocus.PaymentUsage or DashboardAnswerFocus.OrderCancellationByStore => "Ranking",
+        DashboardAnswerFocus.InventoryShortage or DashboardAnswerFocus.SupplierAndOverdueRisk
+            or DashboardAnswerFocus.OperationalAnomaly => "Risk",
+        DashboardAnswerFocus.ReorderPriority => "OperationalPriority",
+        _ => "NoData"
     };
 
     private static string BuildDynamicFocus(string normalized)

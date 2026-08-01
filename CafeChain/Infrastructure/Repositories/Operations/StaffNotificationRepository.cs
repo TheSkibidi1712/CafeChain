@@ -7,6 +7,8 @@ namespace CafeChain.Infrastructure.Repositories.Operations;
 
 public sealed class StaffNotificationRepository : IStaffNotificationRepository
 {
+    private const string RetiredScheduleGapType = "STAFF_SCHEDULE_GAP";
+
     private readonly AppDbContext _context;
 
     public StaffNotificationRepository(AppDbContext context) => _context = context;
@@ -89,7 +91,10 @@ public sealed class StaffNotificationRepository : IStaffNotificationRepository
         int recipientStaffId,
         IReadOnlyCollection<int>? allowedStoreIds)
     {
-        query = query.Where(x => x.RecipientStaffId == recipientStaffId && x.ResolvedAt == null);
+        query = query.Where(x =>
+            x.RecipientStaffId == recipientStaffId
+            && x.ResolvedAt == null
+            && x.Type != RetiredScheduleGapType);
         if (allowedStoreIds != null)
             query = query.Where(x => allowedStoreIds.Contains(x.StoreId));
         return query;

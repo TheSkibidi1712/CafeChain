@@ -403,11 +403,12 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
             .Where(x => x.PurchaseOrderBatchId == batchId)
             .Select(x => x.StoreId).Distinct().ToListAsync();
         if (stores.Count == 0) return false;
-        if (HasRole(actor, RoleConstants.AccountantWarehouse)
-            || HasRole(actor, RoleConstants.BusinessOwner)
-            || HasRole(actor, RoleConstants.SystemAdmin)) return true;
-        if (HasRole(actor, RoleConstants.StoreManager)) return stores.Count == 1 && actor.StoreId == stores[0];
-        if (!HasRole(actor, RoleConstants.AreaManager)) return false;
+        if (!actor.RoleNames.Any(role => role is RoleConstants.AccountantWarehouse
+                or RoleConstants.BusinessOwner
+                or RoleConstants.SystemAdmin
+                or RoleConstants.StoreManager
+                or RoleConstants.AreaManager))
+            return false;
         foreach (var storeId in stores)
             if (!await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId)) return false;
         return true;

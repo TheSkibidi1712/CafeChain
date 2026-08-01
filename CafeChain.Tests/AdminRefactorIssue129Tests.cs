@@ -373,9 +373,11 @@ namespace CafeChain.Tests.POS
             var restock = File.ReadAllText(Path.Combine(FindRepoRoot(), "CafeChain", "Areas", "Admin", "Controllers", "AdminRestockRequestsController.cs"));
             Assert.Contains("IAdminActorContextAccessor", receipt, StringComparison.Ordinal);
             Assert.Contains("IAdminActorContextAccessor", restock, StringComparison.Ordinal);
-            Assert.Contains("CanConfirmReceipts", receipt, StringComparison.Ordinal);
-            Assert.Contains("RoleConstants.StoreManager", receipt, StringComparison.Ordinal);
-            Assert.Contains("RoleConstants.AccountantWarehouse", restock, StringComparison.Ordinal);
+            Assert.Contains("HasEffectivePermissionAsync", receipt, StringComparison.Ordinal);
+            Assert.Contains("PermissionConstants.ReceiptConfirm", receipt, StringComparison.Ordinal);
+            Assert.Contains("PermissionConstants.RestockUpdate", restock, StringComparison.Ordinal);
+            Assert.DoesNotContain("RoleConstants", receipt, StringComparison.Ordinal);
+            Assert.DoesNotContain("RoleConstants", restock, StringComparison.Ordinal);
             // Service still owns store scope enforcement
             var svc = File.ReadAllText(Path.Combine(FindRepoRoot(), "CafeChain", "Application", "Services", "Inventories", "BranchReceiptService.cs"));
             Assert.Contains("AuthorizeReceiptAccess", svc, StringComparison.Ordinal);

@@ -4,7 +4,9 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Data;
+using CafeChain.Models.Inventories.Auditing;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace CafeChain.Application.Services.Admin.StoreScope
 {
@@ -28,11 +30,19 @@ namespace CafeChain.Application.Services.Admin.StoreScope
             AdminActorContext actor,
             int? requestedStoreId = null,
             CancellationToken cancellationToken = default)
+            => await ResolveAsync(actor, requestedStoreId, AdminStoreScopeMode.Standard, cancellationToken);
+
+        public async Task<AdminStoreScopeResolution> ResolveAsync(
+            AdminActorContext actor,
+            int? requestedStoreId,
+            AdminStoreScopeMode mode,
+            CancellationToken cancellationToken = default)
         {
-            var isSystemAdmin = actor.RoleNames.Contains(
+            var hasReorderGlobalScope = mode == AdminStoreScopeMode.ReorderSuggestion
+                && actor.RoleNames.Contains(
                 RoleConstants.SystemAdmin,
                 StringComparer.OrdinalIgnoreCase);
-            var allowedStores = isSystemAdmin
+            var allowedStores = hasReorderGlobalScope
                 ? await _context.Stores
                     .AsNoTracking()
                     .Where(x => x.Active)
@@ -69,6 +79,25 @@ namespace CafeChain.Application.Services.Admin.StoreScope
 
                 if (!allowedIds.Contains(requestedId))
                 {
+                    if (mode == AdminStoreScopeMode.ReorderSuggestion && actor.StaffId > 0)
+                    {
+                        _context.AuditLogs.Add(new AuditLog
+                        {
+                            TableName = "ReorderSuggestion",
+                            RecordId = requestedId,
+                            Action = "STORE_SCOPE_DENIED",
+                            NewData = JsonSerializer.Serialize(new
+                            {
+                                RequestedStoreId = requestedId,
+                                ScopeMode = mode.ToString(),
+                                AllowedStoreIds = allowedIds.OrderBy(x => x).ToArray()
+                            }),
+                            UserId = actor.StaffId,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                        await _context.SaveChangesAsync(cancellationToken);
+                    }
+
                     return Failure(
                         AdminStoreScopeResolutionStatus.RequestedStoreForbidden,
                         AdminStoreScopeErrorCodes.StoreScopeForbidden,

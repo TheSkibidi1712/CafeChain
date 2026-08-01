@@ -1,5 +1,4 @@
 using CafeChain.Application.Interfaces.Security;
-using CafeChain.Application.Constants;
 using CafeChain.Data;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
@@ -18,15 +17,6 @@ namespace CafeChain.Application.Services.Security
 
         public async Task<List<Store>> GetAllowedStoresAsync(int currentStaffId)
         {
-            if (await IsActiveSystemAdminAsync(currentStaffId))
-            {
-                return await _context.Stores
-                    .AsNoTracking()
-                    .Where(x => x.Active)
-                    .OrderBy(x => x.Name)
-                    .ToListAsync();
-            }
-
             var scopes = await GetStaffScopesAsync(currentStaffId);
             if (!scopes.Any())
             {
@@ -86,11 +76,6 @@ namespace CafeChain.Application.Services.Security
                 return false;
             }
 
-            if (await IsActiveSystemAdminAsync(currentStaffId))
-            {
-                return true;
-            }
-
             var scopes = await GetStaffScopesAsync(currentStaffId);
             if (!scopes.Any())
             {
@@ -118,19 +103,6 @@ namespace CafeChain.Application.Services.Security
                 .AsNoTracking()
                 .Where(x => x.StaffId == staffId)
                 .ToListAsync();
-        }
-
-        private Task<bool> IsActiveSystemAdminAsync(int staffId)
-        {
-            return _context.Staffs
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    x.StaffId == staffId
-                    && x.Active
-                    && x.Account.Active
-                    && x.Account.AccountRoles.Any(ar =>
-                        ar.Role.Active
-                        && ar.Role.Name == RoleConstants.SystemAdmin));
         }
 
         private static List<int> GetScopeRefs(IEnumerable<StaffScope> scopes, ScopeLevel scopeLevel)

@@ -9,12 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [RequirePermission(PermissionConstants.PurchaseAdviceView,
-        RoleConstants.BusinessOwner + "," +
-        RoleConstants.AreaManager + "," +
-        RoleConstants.StoreManager + "," +
-        RoleConstants.AccountantWarehouse)]
-    public sealed class AdminPurchaseAdvicesController : Controller
+    [RequirePermission(PermissionConstants.PurchaseAdviceView)]
+    public sealed class AdminPurchaseAdvicesController : AdminStoreScopedController
     {
         private readonly IPurchaseAdviceService _service;
         private readonly IAdminActorContextAccessor _actorAccessor;
@@ -46,6 +42,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 ToDate = toDate
             }, _actorAccessor.Get(User));
             if (!result.IsSuccess) return Failure(result.ErrorCode, result.Message);
+            ViewBag.CanCreate = await HasEffectivePermissionAsync(PermissionConstants.PurchaseAdviceCreate);
             return View(result.Data);
         }
 

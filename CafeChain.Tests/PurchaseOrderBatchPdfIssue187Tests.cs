@@ -33,7 +33,8 @@ public sealed class PurchaseOrderBatchPdfIssue187Tests : IDisposable
         _connection.Open();
         _db = new TestDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(_connection).Options);
         _db.Database.EnsureCreated();
-        _scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(true);
+        _scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync((int staffId, int _) => staffId != 999);
     }
 
     [Fact]

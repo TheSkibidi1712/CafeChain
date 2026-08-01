@@ -245,7 +245,8 @@ public sealed class PurchaseAdviceConsolidationIssue185Tests : IntegrationTestBa
     private static PurchaseAdviceConsolidationService Service(AppDbContext db, bool conversionSucceeds = true)
     {
         var scope = new Mock<IScopeAuthorizationService>();
-        scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(false);
+        scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync((int staffId, int _) => staffId != 999);
         var physical = new Mock<IPhysicalUnitConversionService>();
         physical.Setup(x => x.ConvertAsync(It.IsAny<decimal>(), It.IsAny<int>(), It.IsAny<int>()))
             .ReturnsAsync((decimal quantity, int _, int _) => conversionSucceeds
