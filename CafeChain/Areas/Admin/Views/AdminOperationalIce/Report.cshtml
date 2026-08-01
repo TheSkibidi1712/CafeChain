@@ -22,8 +22,8 @@
 }
 <link rel="stylesheet" href="~/css/Admin/OperationalIce/operational-ice.css" />
 
-<main class="ice-shell ice-report-shell">
-    <header class="ice-page-header ice-detail-header">
+<main class="ice-shell ice-report-shell cc-warehouse-page">
+    <header class="ice-page-header ice-detail-header cc-warehouse-header">
         <div>
             <a class="ice-back-link" asp-action="Details" asp-route-id="@Model.IceAllocationId">
                 <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Quay lại ca đá
@@ -158,7 +158,7 @@
         </div>
         @if (Model.InventoryPostings.Count == 0)
         {
-            <div class="ice-empty ice-empty-compact">
+            <div class="ice-empty ice-empty-compact cc-warehouse-empty" role="status">
                 <i class="fa-solid fa-check-circle" aria-hidden="true"></i>
                 <h3>Không có bút toán điều chỉnh</h3>
                 <p>Ca không phát sinh chênh lệch dương đã duyệt.</p>
@@ -166,7 +166,7 @@
         }
         else
         {
-            <div class="ice-table-scroll">
+            <div class="ice-table-scroll cc-warehouse-table-shell">
                 <table class="ice-table">
                     <thead><tr><th>Posting</th><th>Idempotency key</th><th>Giao dịch kho</th><th class="ice-number">Số lượng</th><th class="ice-number">Giá trị</th><th>Người duyệt</th></tr></thead>
                     <tbody>

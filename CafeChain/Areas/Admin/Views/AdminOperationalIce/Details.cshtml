@@ -54,8 +54,8 @@
 }
 <link rel="stylesheet" href="~/css/Admin/OperationalIce/operational-ice.css" />
 
-<main class="ice-shell">
-    <header class="ice-page-header ice-detail-header">
+<main class="ice-shell cc-warehouse-page">
+    <header class="ice-page-header ice-detail-header cc-warehouse-header">
         <div>
             <a class="ice-back-link" asp-action="Index" asp-route-storeId="@Model.StoreId" asp-route-businessDate="@Model.BusinessDate.ToString("yyyy-MM-dd")">
                 <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách ca đá
@@ -90,7 +90,7 @@
         <span class="@(Model.Status == OperationalIceStatuses.Closed ? "is-current" : "")"><i class="fa-solid fa-lock" aria-hidden="true"></i> Đóng</span>
     </nav>
 
-    <section class="ice-summary-grid ice-summary-six" aria-label="Số liệu ca đá">
+    <section class="ice-summary-grid ice-summary-six cc-warehouse-summary-grid" aria-label="Số liệu ca đá">
         <article>
             <span>Tồn khả dụng</span>
             <strong>@DisplayQuantity(Model.AvailableQuantity)</strong>
@@ -135,7 +135,7 @@
 
                 @if (Model.WorkShifts.Count == 0)
                 {
-                    <div class="ice-empty ice-empty-compact"><p>Chưa liên kết WorkShift POS.</p></div>
+                    <div class="ice-empty ice-empty-compact cc-warehouse-empty" role="status"><p>Chưa liên kết WorkShift POS.</p></div>
                 }
                 else
                 {
@@ -194,7 +194,7 @@
 
                 @if (Model.Supplements.Count == 0)
                 {
-                    <div class="ice-empty ice-empty-compact"><p>Chưa có yêu cầu cấp bổ sung.</p></div>
+                    <div class="ice-empty ice-empty-compact cc-warehouse-empty" role="status"><p>Chưa có yêu cầu cấp bổ sung.</p></div>
                 }
                 else
                 {
@@ -271,7 +271,7 @@
                 </div>
                 @if (Model.CarryOvers.Count == 0)
                 {
-                    <div class="ice-empty ice-empty-compact"><p>Chưa có giao nhận giữa các ca.</p></div>
+                    <div class="ice-empty ice-empty-compact cc-warehouse-empty" role="status"><p>Chưa có giao nhận giữa các ca.</p></div>
                 }
                 else
                 {
@@ -337,7 +337,7 @@
                 </div>
                 @if (Model.Postings.Count == 0)
                 {
-                    <div class="ice-empty ice-empty-compact"><p>Chưa phát sinh bút toán điều chỉnh.</p></div>
+                    <div class="ice-empty ice-empty-compact cc-warehouse-empty" role="status"><p>Chưa phát sinh bút toán điều chỉnh.</p></div>
                 }
                 else
                 {
