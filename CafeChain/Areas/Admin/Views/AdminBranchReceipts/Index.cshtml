@@ -72,7 +72,7 @@
     {
         <section class="ops-panel">
             <div class="ops-table-scroll cc-warehouse-table-shell">
-<table class="ops-table ops-table-min-850">
+                <table class="ops-table ops-table-min-850 branch-receipt-table">
                     <caption class="visually-hidden">Danh sách phiếu nhận hàng chi nhánh</caption>
                     <thead><tr><th>Mã phiếu</th><th>Trạng thái</th><th class="number">Số dòng</th><th class="number">Số lượng quy đổi</th><th class="number">Giá trị</th><th>Thời gian nhận</th><th></th></tr></thead>
                     <tbody>
@@ -80,7 +80,7 @@
                     {
                         <tr>
                             @{ var receiptStatus = AdminStatusDisplay.BranchReceipt(item.Status); }
-                            <td><strong>@item.ReceiptCode</strong><div class="ops-secondary">Chi nhánh #@item.StoreId</div></td>
+                            <td class="ops-reference-cell"><strong>@item.ReceiptCode</strong><div class="ops-secondary">Chi nhánh #@item.StoreId</div></td>
                             <td><span class="ops-badge @(item.Status == "CONFIRMED" ? "ops-badge-success" : "ops-badge-neutral")">@receiptStatus.Label</span></td>
                             <td class="number">@item.LineCount</td>
                             <td class="number">@AdminStatusDisplay.Quantity(item.TotalBaseQuantity)</td>

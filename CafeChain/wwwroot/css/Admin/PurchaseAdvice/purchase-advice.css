@@ -1,4 +1,6 @@
 .pa-page {
+    min-height: 100%;
+    background: var(--cc-app-bg, #F7F3EE);
     color: var(--cc-text-primary);
 }
 

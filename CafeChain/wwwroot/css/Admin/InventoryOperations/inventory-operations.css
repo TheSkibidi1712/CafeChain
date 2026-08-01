@@ -1040,6 +1040,31 @@
     background-color: #FAF4ED !important;
 }
 
+/* Receipt rows paint hover per cell so the highlight cannot cover adjacent reference rows. */
+.branch-receipt-table tbody tr:hover {
+    background: transparent !important;
+}
+
+.branch-receipt-table tbody tr:hover > td {
+    background-color: #FAF4ED !important;
+}
+
+.branch-receipt-table tbody tr,
+.branch-receipt-table tbody td {
+    position: static;
+    transform: none;
+}
+
+.branch-receipt-table .ops-reference-cell {
+    min-width: 220px;
+}
+
+.branch-receipt-table .ops-reference-cell > strong {
+    display: block;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
 .ops-table a {
     color: #6F4E37 !important;
     font-weight: 750 !important;
