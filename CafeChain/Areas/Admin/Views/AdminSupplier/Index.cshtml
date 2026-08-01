@@ -54,12 +54,12 @@
                     <thead>
                         <tr>
                             <th>Nhà cung cấp</th>
-                            <th>Mã số thuế</th>
+                            <th class="text-center">Mã số thuế</th>
                             <th>Đầu mối</th>
-                            <th>Gói mua</th>
-                            <th>Cửa hàng</th>
-                            <th>Trạng thái</th>
-                            <th><span class="visually-hidden">Thao tác</span></th>
+                            <th class="text-center">Gói mua</th>
+                            <th class="text-center">Cửa hàng</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-center">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="supplierRows">
@@ -73,15 +73,15 @@
                                     <strong>@item.Name</strong>
                                     <small>@(string.IsNullOrWhiteSpace(item.Address) ? "Chưa cập nhật địa chỉ" : item.Address)</small>
                                 </td>
-                                <td><span class="supplier-tax-code">@(string.IsNullOrWhiteSpace(item.TaxCode) ? "—" : item.TaxCode)</span></td>
+                                <td class="text-center"><span class="supplier-tax-code">@(string.IsNullOrWhiteSpace(item.TaxCode) ? "—" : item.TaxCode)</span></td>
                                 <td>
                                     <span>@(item.PrimaryContactName ?? "Chưa có đầu mối")</span>
                                     <small>@(item.PrimaryContactPhone ?? item.PrimaryPhone ?? "Chưa có số điện thoại")</small>
                                 </td>
-                                <td><strong class="supplier-number">@item.ActiveOfferCount</strong><small>đang dùng</small></td>
-                                <td><strong class="supplier-number">@item.ActiveStoreCount</strong><small>được gán</small></td>
-                                <td><span class="supplier-status @(item.Active ? "is-active" : "is-inactive")">@(item.Active ? "Đang hoạt động" : "Ngừng hoạt động")</span></td>
-                                <td><button type="button" class="supplier-btn supplier-btn-light open-supplier" data-id="@item.SupplierId">Xem chi tiết</button></td>
+                                <td class="text-center"><strong class="supplier-number">@item.ActiveOfferCount</strong><small>đang dùng</small></td>
+                                <td class="text-center"><strong class="supplier-number">@item.ActiveStoreCount</strong><small>được gán</small></td>
+                                <td class="text-center"><span class="supplier-status @(item.Active ? "is-active" : "is-inactive")">@(item.Active ? "Đang hoạt động" : "Ngừng hoạt động")</span></td>
+                                <td class="text-center"><button type="button" class="supplier-btn supplier-btn-light open-supplier" data-id="@item.SupplierId">Xem chi tiết</button></td>
                             </tr>
                         }
                     </tbody>

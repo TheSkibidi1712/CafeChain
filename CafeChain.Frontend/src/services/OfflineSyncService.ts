@@ -252,7 +252,9 @@ export async function syncPendingOrders(): Promise<number> {
             unitPrice: i.unitPrice,
             priceSource: i.priceSource,
             catalogVersion: i.catalogVersion,
+            iceLevelPercent: i.iceLevelPercent ?? null,
             totalPrice: i.unitPrice * i.quantity,
+            note: i.note,
             toppings: (i.toppings ?? []).map((topping) => ({
               toppingId: topping.toppingId,
               name: topping.name,

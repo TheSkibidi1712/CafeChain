@@ -22,6 +22,7 @@ namespace CafeChain.Controllers.Api.v1
         private readonly ILogger<POSCatalogController> _logger;
         private readonly IDrinkSizePricingService? _pricingService;
         private readonly IPOSCatalogSnapshotService? _catalogSnapshotService;
+        private readonly IPOSIceCustomizationService? _iceCustomization;
 
         [ActivatorUtilitiesConstructor]
         public POSCatalogController(
@@ -29,12 +30,14 @@ namespace CafeChain.Controllers.Api.v1
             IUnitConversionService unitConversion,
             IDrinkSizePricingService pricingService,
             IPOSCatalogSnapshotService catalogSnapshotService,
+            IPOSIceCustomizationService iceCustomization,
             ILogger<POSCatalogController> logger)
         {
             _context = context;
             _unitConversion = unitConversion;
             _pricingService = pricingService;
             _catalogSnapshotService = catalogSnapshotService;
+            _iceCustomization = iceCustomization;
             _logger = logger;
         }
 
@@ -187,6 +190,22 @@ namespace CafeChain.Controllers.Api.v1
                 }
 
                 item.AvailableToppings = availableToppings;
+
+                foreach (var size in item.Sizes)
+                {
+                    if (_iceCustomization == null)
+                        continue;
+
+                    var iceResult = await _iceCustomization.GetEligibilityAsync(
+                        storeId,
+                        item.Id,
+                        size.SizeId);
+                    if (iceResult.IsSuccess && iceResult.Data != null)
+                    {
+                        size.SupportsIceCustomization = iceResult.Data.SupportsIceCustomization;
+                        size.BaseIceQuantityBaseUnit = iceResult.Data.BaseIceQuantityBaseUnit;
+                    }
+                }
 
                 var availability = await EvaluateAnySizeAvailabilityAsync(storeId, item.Id, item.Sizes);
                 item.IsAvailable = availability.IsAvailable;

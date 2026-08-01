@@ -33,45 +33,55 @@
       data-province="@Model.Filter.ProvinceId" data-district="@Model.Filter.DistrictId" data-store="@Model.Filter.StoreId">
     <form id="dashboardAntiForgery" hidden>@Html.AntiForgeryToken()</form>
     <header class="analytics-header">
-        <div>
+        <div class="analytics-header__copy">
             <span class="analytics-eyebrow">@Model.RoleName</span>
             <h1>Dashboard Analytics</h1>
             <p>Dữ liệu được giới hạn theo phạm vi cửa hàng bạn được cấp quyền.</p>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <a class="analytics-button text-decoration-none" asp-area="Admin" asp-controller="Dashboard" asp-action="Guide">
+        <div class="analytics-header__actions">
+            <a class="analytics-button analytics-button--secondary text-decoration-none" asp-area="Admin" asp-controller="Dashboard" asp-action="Guide">
                 <i class="bi bi-question-circle"></i> Hướng dẫn Dashboard &amp; AI
             </a>
             <button type="button" class="analytics-button" id="dashboardApply">
-                <i class="bi bi-arrow-clockwise"></i> Áp dụng
+                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                <span>Áp dụng</span>
             </button>
         </div>
     </header>
 
     <section class="analytics-filter" aria-label="Bộ lọc dashboard">
-        <label>Từ ngày<input id="dashboardFromDate" type="date" value="@Model.Filter.FromDate.ToString("yyyy-MM-dd")" /></label>
-        <label>Đến ngày<input id="dashboardToDate" type="date" value="@Model.Filter.ToDate.ToString("yyyy-MM-dd")" /></label>
-        <label>Tỉnh/Thành<select id="dashboardProvince"><option value="">Tất cả</option></select></label>
-        <label>Quận/Huyện<select id="dashboardDistrict"><option value="">Tất cả</option></select></label>
-        <label>Cửa hàng<select id="dashboardStore"><option value="">Tất cả</option></select></label>
-        <label>Độ chi tiết
-            <select id="dashboardGranularity">
-                @foreach (var item in new[] { "Hour", "Day", "Week", "Month" })
-                {
-                    <option value="@item" selected="@(Model.Filter.Granularity == item)">@item</option>
-                }
-            </select>
-        </label>
-        <label>Top<input id="dashboardTop" type="number" min="1" max="100" value="@Model.Filter.Top" /></label>
-        <label>Preset
-            <select id="dashboardPreset">
-                <option value="">Tùy chọn hiện tại</option>
-                <option value="Today">Hôm nay</option>
-                <option value="Last7Days">7 ngày gần nhất</option>
-                <option value="Last30Days">30 ngày gần nhất</option>
-                <option value="ThisMonth">Tháng hiện tại</option>
-            </select>
-        </label>
+        <div class="analytics-filter__header">
+            <div>
+                <span class="analytics-filter__kicker">Phạm vi dữ liệu</span>
+                <strong>Bộ lọc phân tích</strong>
+            </div>
+            <span class="analytics-filter__hint"><i class="bi bi-shield-check"></i> Theo StaffScope</span>
+        </div>
+        <div class="analytics-filter__grid">
+            <label>Từ ngày<input id="dashboardFromDate" type="date" value="@Model.Filter.FromDate.ToString("yyyy-MM-dd")" /></label>
+            <label>Đến ngày<input id="dashboardToDate" type="date" value="@Model.Filter.ToDate.ToString("yyyy-MM-dd")" /></label>
+            <label>Tỉnh/Thành<select id="dashboardProvince"><option value="">Tất cả</option></select></label>
+            <label>Quận/Huyện<select id="dashboardDistrict"><option value="">Tất cả</option></select></label>
+            <label>Cửa hàng<select id="dashboardStore"><option value="">Tất cả</option></select></label>
+            <label>Độ chi tiết
+                <select id="dashboardGranularity">
+                    @foreach (var item in new[] { "Hour", "Day", "Week", "Month" })
+                    {
+                        <option value="@item" selected="@(Model.Filter.Granularity == item)">@item</option>
+                    }
+                </select>
+            </label>
+            <label>Top<input id="dashboardTop" type="number" min="1" max="100" value="@Model.Filter.Top" /></label>
+            <label>Preset
+                <select id="dashboardPreset">
+                    <option value="">Tùy chọn hiện tại</option>
+                    <option value="Today">Hôm nay</option>
+                    <option value="Last7Days">7 ngày gần nhất</option>
+                    <option value="Last30Days">30 ngày gần nhất</option>
+                    <option value="ThisMonth">Tháng hiện tại</option>
+                </select>
+            </label>
+        </div>
     </section>
 
     <nav class="analytics-tabs" role="tablist" aria-label="Nhóm analytics">
@@ -110,28 +120,54 @@
              role="tabpanel"
              aria-labelledby="dashboardAiTab"
              hidden>
+        <span class="dashboard-intelligence__accent" aria-hidden="true"></span>
         <div class="dashboard-intelligence__heading">
-            <div>
-                <span class="analytics-eyebrow">AI Analyst dựa trên evidence</span>
-                <h2 id="dashboardIntelligenceTitle">Hỏi Dashboard bằng tiếng Việt</h2>
-                <p>AI nhận diện intent; server chọn nhiều bộ dữ liệu read-only và áp dụng quyền cửa hàng trước khi phân tích.</p>
+            <div class="dashboard-intelligence__brand">
+                <span class="dashboard-intelligence__icon" aria-hidden="true">
+                    <svg class="dashboard-ai-logo" viewBox="0 0 32 32" fill="none">
+                        <path class="dashboard-ai-logo__orbit" d="M7.1 11.2C9 6.8 13.7 4.3 18.4 5.3C23 6.2 26.3 10.5 26 15.2" />
+                        <path class="dashboard-ai-logo__orbit" d="M24.9 20.8C22.4 25 17.3 27 12.8 25.4C8.3 23.9 5.6 19.2 6.5 14.6" />
+                        <path class="dashboard-ai-logo__core" d="M16 8.2L18.1 13.6L23.6 15.8L18.1 17.9L16 23.4L13.8 17.9L8.4 15.8L13.8 13.6L16 8.2Z" />
+                        <circle cx="6.7" cy="10.5" r="1.8" />
+                        <circle cx="25.6" cy="20.7" r="1.8" />
+                        <circle cx="24.9" cy="8.7" r="1.25" />
+                    </svg>
+                </span>
+                <div>
+                    <span class="analytics-eyebrow">AI Analyst dựa trên evidence</span>
+                    <h2 id="dashboardIntelligenceTitle">Hỏi Dashboard bằng tiếng Việt</h2>
+                    <p>Đặt câu hỏi về dữ liệu trong bộ lọc hiện tại. AI chỉ đọc dữ liệu đã xác thực và luôn tuân theo StaffScope.</p>
+                </div>
             </div>
-            <button type="button"
-                    class="analytics-button dashboard-intelligence__toggle"
-                    id="dashboardAiToggleResult"
-                    aria-controls="dashboardAiResult"
-                    aria-expanded="false"
-                    disabled>
-                <i class="bi bi-eye"></i>
-                <span data-ai-toggle-label>Ẩn phân tích</span>
-            </button>
+            <div class="dashboard-intelligence__heading-actions">
+                <span class="dashboard-intelligence__safe"><i class="bi bi-lock"></i> Read-only</span>
+                <button type="button"
+                        class="analytics-button analytics-button--secondary dashboard-intelligence__toggle"
+                        id="dashboardAiToggleResult"
+                        aria-controls="dashboardAiResult"
+                        aria-expanded="false"
+                        disabled>
+                    <i class="bi bi-eye"></i>
+                    <span data-ai-toggle-label>Ẩn phân tích</span>
+                </button>
+            </div>
         </div>
         <div class="dashboard-intelligence__input">
-            <input id="dashboardAiPrompt" maxlength="500" autocomplete="off"
-                   placeholder="Ví dụ: So sánh doanh thu 7 ngày gần đây với kỳ trước" />
+            <div class="dashboard-intelligence__input-wrap">
+                <i class="bi bi-stars" aria-hidden="true"></i>
+                <input id="dashboardAiPrompt" maxlength="500" autocomplete="off" required
+                       aria-describedby="dashboardAiStatus"
+                       placeholder="Ví dụ: So sánh doanh thu 7 ngày gần đây với kỳ trước và chỉ ra cửa hàng cần chú ý" />
+            </div>
             <button type="button" class="analytics-button" id="dashboardAiParse">
-                <i class="bi bi-stars"></i> Phân tích
+                <i class="bi bi-stars" data-ai-analyze-icon aria-hidden="true"></i>
+                <span data-ai-analyze-label>Phân tích</span>
             </button>
+        </div>
+        <div class="dashboard-intelligence__scope" aria-label="Phạm vi phân tích hiện tại">
+            <span><i class="bi bi-calendar3"></i> @Model.Filter.FromDate.ToString("dd/MM/yyyy") – @Model.Filter.ToDate.ToString("dd/MM/yyyy")</span>
+            <span><i class="bi bi-shop"></i> Phạm vi cửa hàng được cấp quyền</span>
+            <span><i class="bi bi-bar-chart"></i> @Model.Filter.Granularity</span>
         </div>
         <div id="dashboardAiStatus" class="analytics-notice" role="status" hidden></div>
         <div id="dashboardAiPreview" class="dashboard-intelligence__preview" hidden></div>

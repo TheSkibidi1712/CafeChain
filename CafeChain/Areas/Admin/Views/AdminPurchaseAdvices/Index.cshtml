@@ -36,9 +36,9 @@
         <div class="pa-field"><label>Chi nhánh</label><select name="storeId"><option value="">Tất cả trong phạm vi</option>@foreach (var store in Model.Stores) { <option value="@store.StoreId" selected="@(Model.Filter.StoreId == store.StoreId)">@store.StoreName</option> }</select></div>
         <div class="pa-field"><label>Trạng thái</label><select name="status"><option value="">Tất cả</option>@foreach (var s in new[] { PurchaseAdviceStatuses.Draft, PurchaseAdviceStatuses.Submitted, PurchaseAdviceStatuses.UnderReview, PurchaseAdviceStatuses.Allocated, PurchaseAdviceStatuses.Rejected, PurchaseAdviceStatuses.Cancelled }) { <option value="@s" selected="@(Model.Filter.Status == s)">@AdminStatusDisplay.PurchaseAdvice(s).Label</option> }</select></div>
         <div class="pa-field"><label>Ưu tiên</label><select name="priority"><option value="">Tất cả</option>@foreach (var p in new[] { PurchaseAdvicePriorities.Normal, PurchaseAdvicePriorities.High, PurchaseAdvicePriorities.Urgent }) { <option value="@p" selected="@(Model.Filter.Priority == p)">@AdminStatusDisplay.PurchaseAdvicePriority(p).Label</option> }</select></div>
-        <div class="pa-field"><label>Từ ngày</label><input type="date" name="fromDate" lang="vi" value="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" /><span class="pa-muted">Ngày/tháng/năm</span></div>
-        <div class="pa-field"><label>Đến ngày</label><input type="date" name="toDate" lang="vi" value="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" /><span class="pa-muted">Ngày/tháng/năm</span></div>
-        <button class="pa-action" type="submit"><i class="fas fa-filter"></i> Lọc</button>
+        <div class="pa-field"><label>Từ ngày</label><input type="date" name="fromDate" lang="vi" value="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" /></div>
+        <div class="pa-field"><label>Đến ngày</label><input type="date" name="toDate" lang="vi" value="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" /></div>
+        <div class="pa-field pa-field-button"><label class="pa-field-spacer">&nbsp;</label><button class="pa-action" type="submit"><i class="fas fa-filter"></i> Lọc</button></div>
     </form>
 
     <div class="pa-table-wrap">

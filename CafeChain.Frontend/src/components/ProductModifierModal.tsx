@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MenuItem, MenuItemSize, ToppingOption } from '../db/CafeChainPOSDB'
+import type { IceLevelPercent } from '../utils/iceLevel'
 
 export type { MenuItem, ToppingOption }
+export type { IceLevelPercent }
 
 export interface ModifierSelection {
   size: MenuItemSize | null
-  ice: '0%' | '50%' | '100%'
+  iceLevelPercent: IceLevelPercent | null
   sugar: '0%' | '50%' | '100%'
   selectedToppings: ToppingOption[]
   quantity: number
@@ -61,7 +63,11 @@ export default function ProductModifierModal({
     ?? menuItem?.sizes?.[0]
     ?? null
   const [size, setSize] = useState<MenuItemSize | null>(initialSize)
-  const [ice, setIce] = useState<'0%' | '50%' | '100%'>(initialSelection?.ice ?? '100%')
+  const [iceLevelPercent, setIceLevelPercent] = useState<IceLevelPercent | null>(
+    initialSize?.supportsIceCustomization
+      ? (initialSelection?.iceLevelPercent ?? 100)
+      : null
+  )
   const [sugar, setSugar] = useState<'0%' | '50%' | '100%'>(initialSelection?.sugar ?? '100%')
   const [selectedToppings, setSelectedToppings] = useState<ToppingOption[]>(
     () => initialSelection?.selectedToppings ?? buildDefaultToppings(initialSize)
@@ -133,6 +139,9 @@ export default function ProductModifierModal({
   const handleSizeChange = (option: MenuItemSize) => {
     if (!option.isAvailable) return
     setSize(option)
+    setIceLevelPercent(option.supportsIceCustomization
+      ? (iceLevelPercent ?? 100)
+      : null)
     setSelectedToppings(buildDefaultToppings(option))
   }
 
@@ -144,7 +153,7 @@ export default function ProductModifierModal({
   const totalPrice = basePrice + toppingsPrice
   const normalizedCustomerNote = customerNote.trim()
   const note = [
-    `Đá ${ice}, Đường ${sugar}`,
+    `Đường ${sugar}`,
     normalizedCustomerNote,
   ].filter(Boolean).join('. ')
 
@@ -152,7 +161,7 @@ export default function ProductModifierModal({
     if (!size?.isAvailable) return
     onConfirm({
       size,
-      ice,
+      iceLevelPercent,
       sugar,
       selectedToppings,
       quantity,
@@ -228,8 +237,10 @@ export default function ProductModifierModal({
               </section>
             )}
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <OptionGroup label="Mức đá" value={ice} onChange={setIce} />
+            <div className={`grid grid-cols-1 gap-5 ${size?.supportsIceCustomization ? 'sm:grid-cols-2' : ''}`}>
+              {size?.supportsIceCustomization && iceLevelPercent !== null && (
+                <IceOptionGroup value={iceLevelPercent} onChange={setIceLevelPercent} />
+              )}
               <OptionGroup label="Mức đường" value={sugar} onChange={setSugar} />
             </div>
 
@@ -345,6 +356,42 @@ export default function ProductModifierModal({
         </div>
       </div>
     </div>
+  )
+}
+
+interface IceOptionGroupProps {
+  value: IceLevelPercent
+  onChange: (value: IceLevelPercent) => void
+}
+
+function IceOptionGroup({ value, onChange }: IceOptionGroupProps) {
+  const options: Array<{ value: IceLevelPercent; label: string }> = [
+    { value: 0, label: 'Không đá' },
+    { value: 50, label: 'Ít đá' },
+    { value: 100, label: 'Đá bình thường' },
+  ]
+
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-bold text-text-secondary">Mức đá</h3>
+      <div className="grid grid-cols-3 gap-2">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            aria-pressed={value === option.value}
+            className={`min-h-12 rounded-lg border px-2 py-2 text-sm font-bold transition-colors ${
+              value === option.value
+                ? 'border-brand-orange bg-brand-orange text-white'
+                : 'cursor-pointer border-border bg-white text-text-primary hover:bg-brand-orange-light'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </section>
   )
 }
 
