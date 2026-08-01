@@ -11,10 +11,10 @@
 
 <link rel="stylesheet" href="~/css/unit-conversion.css" asp-append-version="true" />
 
-<div class="uc-page cc-page">
+<div class="uc-page cc-page cc-warehouse-page">
 <div class="container-fluid px-4 pt-4 pb-5">
-    <header class="cc-page-header">
-        <div>
+    <header class="cc-page-header cc-warehouse-header">
+        <div class="cc-warehouse-header-main">
             <p class="cc-page-kicker">Kho &amp; Cung ứng / Đơn vị và quy đổi</p>
             <h1 class="uc-page-title cc-page-title">Sửa quy đổi đo lường #@form.UnitConversionId</h1>
             <p class="cc-page-description">Hệ thống kiểm tra lại hệ số trước khi lưu và không thay đổi cấu trúc quy cách đóng gói.</p>
@@ -30,12 +30,12 @@
         <span class="uc-status uc-status-ok">Vật lý chuẩn · chỉ đọc</span>
     </div>
 
-    <form asp-action="Edit" method="post" id="conversionForm" class="uc-card p-4">
+    <form asp-action="Edit" method="post" id="conversionForm" class="uc-card cc-warehouse-form-section p-4">
         @Html.AntiForgeryToken()
         <input type="hidden" name="UnitConversionId" value="@form.UnitConversionId" />
         @if (!ViewData.ModelState.IsValid)
         {
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger cc-warehouse-alert cc-warehouse-alert-danger" role="alert" tabindex="-1"></div>
         }
 
         @if (eval != null && eval.IsMassVolumeCross)
@@ -98,7 +98,7 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-end gap-2 mt-4">
+        <div class="d-flex justify-content-end gap-2 mt-4 cc-warehouse-action-bar">
             <a asp-action="Index" class="btn btn-uc-ghost">Hủy</a>
             <button type="submit" class="btn btn-uc-primary" id="btnSave">Lưu</button>
         </div>
