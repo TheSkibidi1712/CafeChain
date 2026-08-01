@@ -21,8 +21,8 @@
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 
-<main class="pa-page">
-    <header class="pa-header">
+<main class="pa-page cc-warehouse-page">
+    <header class="pa-header cc-warehouse-header">
         <div>
             <div class="pa-eyebrow">Kho &amp; Cung ứng / Mua hàng</div>
             <h1>Tổng hợp đề nghị mua</h1>
@@ -38,7 +38,7 @@
     @if (TempData["Success"] is string success) { <div class="pa-alert pa-alert-success" role="status">@success</div> }
     @if (ViewBag.PreviewError is string previewError) { <div class="pa-alert" role="alert">@previewError <span class="pa-alert-help">Các giá trị vừa nhập vẫn được giữ để bạn điều chỉnh.</span></div> }
 
-    <form method="get" class="pa-band pa-filter-grid pa-filter-grid-wide">
+    <form method="get" class="pa-band pa-filter-grid pa-filter-grid-wide cc-warehouse-filter">
         <div class="pa-field"><label>Chi nhánh</label><select name="storeId"><option value="">Tất cả</option>@foreach (var item in Model.Stores) { <option value="@item.Id" selected="@(Model.Filter.StoreId == item.Id)">@item.Label</option> }</select></div>
         <div class="pa-field"><label>Khu vực</label><select name="areaId"><option value="">Tất cả</option>@foreach (var item in Model.Areas) { <option value="@item.Id" selected="@(Model.Filter.AreaId == item.Id)">@item.Label</option> }</select></div>
         <div class="pa-field"><label>Trạng thái</label><select name="status"><option value="">Đã gửi + Đang xem xét</option><option value="@PurchaseAdviceStatuses.Submitted" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.Submitted)">Đã gửi</option><option value="@PurchaseAdviceStatuses.UnderReview" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.UnderReview)">Đang xem xét</option></select></div>
@@ -65,11 +65,11 @@
                     <button class="pa-action pa-action-primary" type="submit" disabled="@(!canConsolidate)" data-submit-label="Đang kiểm tra..."><i class="fas fa-layer-group"></i> Kiểm tra bản tổng hợp</button>
                 </div>
 
-                <div class="pa-table-wrap">
+                <div class="pa-table-wrap cc-warehouse-table-shell">
                     <table class="pa-table pa-consolidation-table">
                         <thead><tr><th>Chọn</th><th>Đề nghị / chi nhánh</th><th>Nguyên liệu</th><th>Số lượng còn cần đặt</th><th>Ngày cần hàng</th><th>Quy cách và giá cung cấp</th><th>Hình thức / số lượng</th></tr></thead>
                         <tbody>
-                        @if (Model.Lines.Count == 0) { <tr><td colspan="7" class="pa-empty"><i class="fas fa-inbox"></i><strong>Không có đề nghị mua sẵn sàng tổng hợp</strong><span>Hãy kiểm tra bộ lọc hoặc trạng thái đề nghị.</span></td></tr> }
+                        @if (Model.Lines.Count == 0) { <tr><td colspan="7" class="pa-empty" role="status"><i class="fas fa-inbox"></i><strong>Không có đề nghị mua sẵn sàng tổng hợp</strong><span>Hãy kiểm tra bộ lọc hoặc trạng thái đề nghị.</span></td></tr> }
                         @for (var i = 0; i < Model.Lines.Count; i++)
                         {
                             var line = Model.Lines[i];

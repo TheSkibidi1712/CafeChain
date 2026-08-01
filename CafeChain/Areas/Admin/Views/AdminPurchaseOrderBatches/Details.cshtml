@@ -14,8 +14,8 @@
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 
-<main class="pa-page">
-    <header class="pa-header">
+<main class="pa-page cc-warehouse-page">
+    <header class="pa-header cc-warehouse-header">
         <div><div class="pa-eyebrow">@batch.BatchNumber · @AdminStatusDisplay.PurchaseOrderBatch(batch.Status).Label</div><h1>@batch.SupplierName</h1><p class="pa-subtitle">Giao dự kiến @AdminStatusDisplay.Date(batch.ExpectedDeliveryFrom) - @AdminStatusDisplay.Date(batch.ExpectedDeliveryTo) · @batch.StoreCount chi nhánh.</p></div>
         <div class="pa-actions">
             <a class="pa-action" asp-action="Index"><i class="fas fa-arrow-left"></i> Danh sách đơn đặt hàng gộp</a>
@@ -37,7 +37,7 @@
         <div class="pa-detail-main">
             <section class="pa-band">
                 <div class="pa-section-heading"><div><div class="pa-eyebrow">Tiến độ giao theo chi nhánh</div><h2>Đơn đặt hàng chi nhánh</h2></div><span class="pa-muted">Số lượng đã nhận hợp lệ được tổng hợp từ phiếu nhận hàng tại chi nhánh.</span></div>
-                <div class="pa-table-wrap pa-table-flat"><table class="pa-table"><thead><tr><th>Mã đơn</th><th>Chi nhánh</th><th>Trạng thái</th><th class="pa-number">Đã đặt</th><th class="pa-number">Đã nhận hợp lệ</th><th class="pa-number">Còn phải giao</th></tr></thead><tbody>
+                <div class="pa-table-wrap pa-table-flat cc-warehouse-table-shell"><table class="pa-table"><thead><tr><th>Mã đơn</th><th>Chi nhánh</th><th>Trạng thái</th><th class="pa-number">Đã đặt</th><th class="pa-number">Đã nhận hợp lệ</th><th class="pa-number">Còn phải giao</th></tr></thead><tbody>
                 @foreach (var child in batch.ChildPurchaseOrders.OrderBy(x => x.StoreName))
                 {
                     var usesProcurement = child.OrderedProcurementQuantity.HasValue;
