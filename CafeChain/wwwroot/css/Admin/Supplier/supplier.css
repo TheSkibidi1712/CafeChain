@@ -350,13 +350,13 @@
 /* ════════════════════════════════════════════════════
    FIX 8: Modal Thêm nhà cung cấp — giao diện đẹp hơn
 ════════════════════════════════════════════════════ */
-.supplier-modal { position: fixed; inset: 0; z-index: 1040; display: none; align-items: flex-start; justify-content: center; padding: 5vh 20px 30px; background: rgba(18, 27, 42, .5); overflow-y: auto; backdrop-filter: blur(3px); }
+.supplier-modal { position: fixed; inset: 0; z-index: 1040; display: none; align-items: flex-start; justify-content: center; padding: 5vh 20px 30px; background: rgba(31, 41, 55, .52); overflow-y: auto; }
 .supplier-modal.is-open { display: flex; }
 .supplier-modal-panel {
     width: min(780px, 100%);
     border-radius: 12px;
     background: var(--cc-surface);
-    box-shadow: 0 24px 70px rgba(111,78,55,.25);
+    box-shadow: var(--cc-shadow);
     overflow: hidden;
 }
 
@@ -368,7 +368,7 @@
     gap: 16px;
     padding: 22px 24px;
     border-bottom: 1px solid var(--supplier-line);
-    background: linear-gradient(135deg, var(--cc-primary) 0%, var(--cc-primary-hover) 100%);
+    background: var(--cc-primary);
 }
 .supplier-modal-panel > header .supplier-eyebrow {
     color: rgba(255,255,255,.7);
@@ -488,6 +488,16 @@
     .supplier-history-row { grid-template-columns: 1fr; gap: 4px; }
     .supplier-modal { padding: 18px 10px; }
     .supplier-toast-region { right: 14px; bottom: 14px; width: calc(100vw - 28px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .supplier-page *,
+    .supplier-modal * {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+    }
 }
 
 

@@ -9,8 +9,8 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
-<main class="ops-shell">
-    <header class="ops-header">
+<main class="ops-shell cc-warehouse-page">
+    <header class="ops-header cc-warehouse-header">
         <div>
             <div class="ops-eyebrow">Phiếu nhận #@Model.BranchReceiptId · Chi nhánh #@Model.StoreId</div>
             <h1 class="ops-title">@Model.ReceiptCode</h1>
@@ -47,7 +47,7 @@
     <div class="ops-detail-grid">
         <section class="ops-panel">
             <div class="ops-panel-header"><h2 class="ops-panel-title">Các dòng hàng thực nhận</h2></div>
-            <div class="ops-table-scroll">
+            <div class="ops-table-scroll cc-warehouse-table-shell">
 <table class="ops-table ops-table-min-900">
                     <thead><tr><th>Nguồn yêu cầu nhập</th><th>Mặt hàng</th><th class="number">Số lượng thực giao</th><th class="number">Số lượng chấp nhận</th><th class="number">Số lượng từ chối</th><th class="number">Giá vốn cơ sở</th><th class="number">Thành tiền</th><th>Giao dịch kho</th><th></th></tr></thead>
                     <tbody>

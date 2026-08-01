@@ -13,8 +13,8 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
-<main class="ops-shell">
-    <header class="ops-header">
+<main class="ops-shell cc-warehouse-page">
+    <header class="ops-header cc-warehouse-header">
         <div>
             <div class="ops-eyebrow">Chứng từ nhập kho · Chi nhánh #@storeId</div>
             <h1 class="ops-title">Phiếu nhận hàng</h1>
@@ -39,7 +39,7 @@
 
     @if (stores.Count > 1)
     {
-        <form method="get" class="ops-filterbar" aria-label="Chọn chi nhánh">
+        <form method="get" class="ops-filterbar cc-warehouse-filter" aria-label="Chọn chi nhánh">
             <input type="hidden" name="status" value="@statusFilter" />
             <div class="ops-filter-group">
                 <label class="ops-form-label mb-0" for="receiptStoreId">Chi nhánh</label>
@@ -62,7 +62,7 @@
 
     @if (Model.Count == 0)
     {
-        <section class="ops-empty">
+        <section class="ops-empty cc-warehouse-empty" role="status">
             <i class="fa-solid fa-clipboard-check fa-2x mb-3" aria-hidden="true"></i>
             <div class="fw-bold text-dark">Chưa có phiếu nhận phù hợp</div>
             <div class="mt-1">Chọn trạng thái khác hoặc tạo phiếu từ một yêu cầu nhập đang mở.</div>
@@ -71,7 +71,7 @@
     else
     {
         <section class="ops-panel">
-            <div class="ops-table-scroll">
+            <div class="ops-table-scroll cc-warehouse-table-shell">
 <table class="ops-table ops-table-min-850">
                     <caption class="visually-hidden">Danh sách phiếu nhận hàng chi nhánh</caption>
                     <thead><tr><th>Mã phiếu</th><th>Trạng thái</th><th class="number">Số dòng</th><th class="number">Số lượng quy đổi</th><th class="number">Giá trị</th><th>Thời gian nhận</th><th></th></tr></thead>

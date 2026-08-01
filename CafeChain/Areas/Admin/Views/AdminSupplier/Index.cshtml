@@ -11,8 +11,8 @@
     <link rel="stylesheet" href="~/css/Admin/Supplier/supplier.css" asp-append-version="true" />
 }
 
-<main class="supplier-page" data-can-mutate="@canMutate.ToString().ToLowerInvariant()">
-    <header class="supplier-page-header">
+<main class="supplier-page cc-warehouse-page" data-can-mutate="@canMutate.ToString().ToLowerInvariant()">
+    <header class="supplier-page-header cc-warehouse-header">
         <div>
             <p class="supplier-eyebrow">Mua hàng / Nguồn cung</p>
             <h1>Nhà cung cấp & nguồn hàng</h1>
@@ -27,14 +27,14 @@
         }
     </header>
 
-    <section class="supplier-metrics" aria-label="Tổng quan nguồn cung">
+    <section class="supplier-metrics cc-warehouse-summary-grid" aria-label="Tổng quan nguồn cung">
         <div><strong>@Model.Count</strong><span>Tổng nhà cung cấp</span></div>
         <div><strong>@activeCount</strong><span>Đang hoạt động</span></div>
         <div><strong>@offerCount</strong><span>Gói mua đang áp dụng</span></div>
         <div><strong>@storeCount</strong><span>Lượt gán cửa hàng</span></div>
     </section>
 
-    <section class="supplier-toolbar" aria-label="Bộ lọc nhà cung cấp">
+    <section class="supplier-toolbar cc-warehouse-filter" aria-label="Bộ lọc nhà cung cấp">
         <label class="supplier-search">
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
             <input id="supplierSearch" type="search" placeholder="Tìm theo mã, tên, mã số thuế, số điện thoại" autocomplete="off" />
@@ -49,7 +49,7 @@
 
     <div class="supplier-workspace">
         <section class="supplier-list-panel" aria-label="Danh sách nhà cung cấp">
-            <div class="supplier-table-scroll">
+            <div class="supplier-table-scroll cc-warehouse-table-shell">
                 <table class="supplier-table">
                     <thead>
                         <tr>
@@ -87,7 +87,7 @@
                     </tbody>
                 </table>
             </div>
-            <div class="supplier-empty @(Model.Count == 0 ? "" : "is-hidden")" id="supplierEmptyState">
+            <div class="supplier-empty cc-warehouse-empty @(Model.Count == 0 ? "" : "is-hidden")" id="supplierEmptyState" role="status">
                 <i class="fa-solid fa-box-open" aria-hidden="true"></i>
                 <strong>Không có nhà cung cấp phù hợp</strong>
                 <span>Thay đổi từ khóa hoặc trạng thái để xem kết quả khác.</span>
@@ -250,7 +250,7 @@
 @if (canMutate)
 {
     <div class="supplier-modal" id="createSupplierModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="createSupplierTitle">
-        <div class="supplier-modal-panel">
+        <div class="supplier-modal-panel cc-modal">
             <header><div><p class="supplier-eyebrow">Hồ sơ nguồn cung</p><h2 id="createSupplierTitle">Thêm nhà cung cấp</h2></div><button type="button" class="supplier-icon-button" data-close-modal aria-label="Đóng"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></header>
             <form class="supplier-form" id="createSupplierForm">
                 <div class="supplier-form-grid">
