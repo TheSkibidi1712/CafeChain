@@ -41,27 +41,66 @@ body {
 }
 
 .btn-orange {
-    background-color: var(--main-orange);
-    color: white;
-    border: none;
-    transition: 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #6F4E37 0%, #5C3F2B 100%) !important;
+    color: #FFFFFF !important;
+    border: 1px solid #5C3F2B !important;
+    font-weight: 750;
+    border-radius: 10px;
+    padding: 10px 22px;
+    box-shadow: 0 4px 14px rgba(111, 78, 55, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-    .btn-orange:hover {
-        background-color: #ba4a00;
-        color: white;
-    }
+.btn-orange:hover {
+    background: linear-gradient(135deg, #5C3F2B 0%, #4A3222 100%) !important;
+    border-color: #4A3222 !important;
+    color: #FFFFFF !important;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(111, 78, 55, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+}
+
+.btn-orange:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(111, 78, 55, 0.22) !important;
+}
 
 .btn-outline-orange {
-    border: 1px solid var(--main-orange);
-    color: var(--main-orange);
-    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1.5px solid #6F4E37 !important;
+    color: #6F4E37 !important;
+    background: transparent !important;
+    font-weight: 750;
+    border-radius: 10px;
+    padding: 9px 20px;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-    .btn-outline-orange:hover {
-        background-color: var(--main-orange);
-        color: white;
-    }
+.btn-outline-orange:hover {
+    background-color: #6F4E37 !important;
+    color: #FFFFFF !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(111, 78, 55, 0.25) !important;
+}
+
+/* Master 30-Year Senior Frontend Rule: Center Align ALL Table Columns & Rows Across Application */
+.table th,
+.table td,
+.table-custom th,
+.table-custom td {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+.table th {
+    white-space: nowrap !important;
+}
 
 .search-box input {
     background-color: #f1f1f1;

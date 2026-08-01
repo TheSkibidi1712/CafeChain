@@ -20,7 +20,7 @@
 
     <form method="get" class="pa-band pa-actions pa-list-filter">
         <div class="pa-field pa-filter-status"><label for="status">Trạng thái</label><select id="status" name="status"><option value="">Tất cả</option>@foreach (var value in new[] { PurchaseOrderBatchStatuses.PendingApproval, PurchaseOrderBatchStatuses.Approved, PurchaseOrderBatchStatuses.PdfGenerated, PurchaseOrderBatchStatuses.SentToSupplier, PurchaseOrderBatchStatuses.PartiallyReceived, PurchaseOrderBatchStatuses.Completed, PurchaseOrderBatchStatuses.Cancelled }) { <option value="@value" selected="@(statusFilter == value)">@AdminStatusDisplay.PurchaseOrderBatch(value).Label</option> }</select></div>
-        <button class="pa-action" type="submit"><i class="fas fa-filter"></i> Áp dụng</button>
+        <div class="pa-field pa-field-button"><label class="pa-field-spacer">&nbsp;</label><button class="pa-action" type="submit"><i class="fas fa-filter"></i> Áp dụng</button></div>
     </form>
 
     <div class="pa-table-wrap">
