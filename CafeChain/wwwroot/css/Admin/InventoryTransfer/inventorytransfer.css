@@ -522,19 +522,18 @@
 }
 
 .transfer-table th {
-    background: #F7F3EE;
-    color: #475569;
-    font-size: 11px;
-    font-weight: 800;
-    padding: 11px 10px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 900;
+    padding: 12px 14px;
     text-transform: uppercase;
-    letter-spacing: .04em;
-    white-space: nowrap;
+    vertical-align: middle;
 }
 
 .transfer-table td {
     border-top: 1px solid var(--transfer-border);
-    padding: 10px;
+    padding: 12px 14px;
     vertical-align: middle;
     white-space: nowrap;
 }
@@ -547,6 +546,10 @@
     text-align: right;
 }
 
+.transfer-table .text-center {
+    text-align: center;
+}
+
 .transfer-index-page {
     padding-bottom: 40px;
 }
@@ -557,66 +560,59 @@
 }
 
 .transfer-index-table {
-    min-width: 1300px;
+    min-width: 1380px;
+    table-layout: fixed;
 }
 
 .transfer-index-table th,
 .transfer-index-table td {
     white-space: nowrap;
+    text-align: center;
 }
 
 .transfer-index-table th:nth-child(1),
 .transfer-index-table td:nth-child(1) {
-    width: 190px;
-    min-width: 190px;
+    width: 250px;
 }
 
 .transfer-index-table th:nth-child(2),
 .transfer-index-table td:nth-child(2) {
-    width: 90px;
-    min-width: 90px;
+    width: 110px;
 }
 
 .transfer-index-table th:nth-child(3),
 .transfer-index-table td:nth-child(3) {
-    width: 120px;
-    min-width: 120px;
+    width: 140px;
 }
 
 .transfer-index-table th:nth-child(4),
 .transfer-index-table td:nth-child(4) {
-    width: 170px;
-    min-width: 170px;
+    width: 200px;
 }
 
 .transfer-index-table th:nth-child(5),
 .transfer-index-table td:nth-child(5) {
-    width: 170px;
-    min-width: 170px;
+    width: 200px;
 }
 
 .transfer-index-table th:nth-child(6),
 .transfer-index-table td:nth-child(6) {
-    width: 150px;
-    min-width: 150px;
+    width: 160px;
 }
 
 .transfer-index-table th:nth-child(7),
 .transfer-index-table td:nth-child(7) {
-    width: 120px;
-    min-width: 120px;
+    width: 130px;
 }
 
 .transfer-index-table th:nth-child(8),
 .transfer-index-table td:nth-child(8) {
-    width: 80px;
-    min-width: 80px;
+    width: 85px;
 }
 
 .transfer-index-table th:nth-child(9),
 .transfer-index-table td:nth-child(9) {
     width: 110px;
-    min-width: 110px;
 }
 
 .transfer-index-date {
@@ -778,8 +774,8 @@
     flex-wrap: nowrap;
     font-size: 14px;
     font-weight: 700;
-    gap: 8px;
-    justify-content: flex-end;
+    gap: 12px;
+    justify-content: center;
     margin-top: 16px;
     white-space: nowrap;
 }

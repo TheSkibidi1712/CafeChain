@@ -126,15 +126,15 @@
                 <table class="transfer-table transfer-index-table">
                     <thead>
                         <tr>
-                            <th>Mã phiếu</th>
-                            <th>Trạng thái</th>
-                            <th>Mục đích</th>
-                            <th>Kho nguồn</th>
-                            <th>Kho đích</th>
-                            <th>Người lập</th>
-                            <th>Ngày chứng từ</th>
-                            <th class="text-end">Số dòng</th>
-                            <th class="text-end">Thao tác</th>
+                            <th class="text-center">Mã phiếu</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-center">Mục đích</th>
+                            <th class="text-center">Kho nguồn</th>
+                            <th class="text-center">Kho đích</th>
+                            <th class="text-center">Người lập</th>
+                            <th class="text-center">Ngày chứng từ</th>
+                            <th class="text-center">Số dòng</th>
+                            <th class="text-center">Thao tác</th>
                         </tr>
                     </thead>
 
@@ -142,7 +142,7 @@
                         @if (!Model.Items.Any())
                         {
                             <tr class="transfer-empty-row">
-                                <td colspan="9">Chưa có phiếu chuyển kho.</td>
+                                <td colspan="9" class="text-center">Chưa có phiếu chuyển kho.</td>
                             </tr>
                         }
                         else
@@ -150,26 +150,26 @@
                             foreach (var item in Model.Items)
                             {
                                 <tr>
-                                    <td>
+                                    <td class="text-center">
                                         <strong>@item.Code</strong>
                                         <span class="transfer-index-date">
                                             Ngày tạo @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                                         </span>
                                     </td>
 
-                                    <td>
+                                    <td class="text-center">
                                         <span class="transfer-status-pill transfer-status-@item.Status.ToString().ToLower()">
                                             @item.Status.ToVietnamese()
                                         </span>
                                     </td>
 
-                                    <td>@item.Purpose.ToVietnamese()</td>
-                                    <td>@item.FromStoreName</td>
-                                    <td>@item.ToStoreName</td>
-                                    <td>@(string.IsNullOrWhiteSpace(item.CreatedByName) ? "-" : item.CreatedByName)</td>
-                                    <td>@item.DocumentDate.ToString("dd/MM/yyyy")</td>
-                                    <td class="text-end">@item.DetailCount</td>
-                                    <td class="text-end">
+                                    <td class="text-center">@item.Purpose.ToVietnamese()</td>
+                                    <td class="text-center">@item.FromStoreName</td>
+                                    <td class="text-center">@item.ToStoreName</td>
+                                    <td class="text-center">@(string.IsNullOrWhiteSpace(item.CreatedByName) ? "-" : item.CreatedByName)</td>
+                                    <td class="text-center">@item.DocumentDate.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center">@item.DetailCount</td>
+                                    <td class="text-center">
                                         <a class="transfer-outline-button transfer-table-action"
                                            asp-area="Admin"
                                            asp-controller="AdminInventoryTransfer"
@@ -186,7 +186,7 @@
                 </table>
             </div>
 
-            <div class="transfer-pagination">
+            <div class="transfer-pagination justify-content-center">
                 <a class="transfer-ghost-button @(Model.Page <= 1 ? "disabled" : "")"
                    asp-area="Admin"
                    asp-controller="AdminInventoryTransfer"

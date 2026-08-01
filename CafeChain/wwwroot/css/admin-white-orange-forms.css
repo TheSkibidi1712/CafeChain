@@ -90,48 +90,190 @@
     font-weight: 800;
 }
 
+.admin-wo-page .btn,
+.admin-wo-page button[type="submit"],
+.admin-wo-page .ops-btn,
+.admin-wo-page .supplier-btn,
+.admin-wo-page .btn-uc-primary,
+.admin-wo-page .btn-uc-ghost,
+.admin-wo-page .btn-ni-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 22px;
+    font-weight: 750;
+    font-size: 0.92rem;
+    letter-spacing: 0.015em;
+    border-radius: 10px;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+    text-decoration: none;
+}
+
+/* Primary Form Buttons (Save / Create / Submit / Action) */
 .admin-wo-page .btn-primary,
-.admin-wo-page .btn-danger,
-.admin-wo-page .btn-warning,
+.admin-wo-page .btn-orange,
 .admin-wo-page .btn-bom-primary,
 .admin-wo-page .btn-conv-primary,
 .admin-wo-page .btn-primary-action,
 .admin-wo-page .btn-rb-save,
-.admin-wo-page .admin-wo-primary {
-    background: var(--admin-wo-primary) !important;
-    border-color: var(--admin-wo-primary) !important;
-    color: var(--cc-surface) !important;
-    font-weight: 800;
-    box-shadow: 0 10px 22px rgba(111, 78, 55, .20);
+.admin-wo-page .admin-wo-primary,
+.admin-wo-page .btn-uc-primary,
+.admin-wo-page .ops-btn-primary,
+.admin-wo-page .supplier-btn-primary,
+.admin-wo-page .btn-ni-primary {
+    background: linear-gradient(135deg, #6F4E37 0%, #5C3F2B 100%) !important;
+    border: 1px solid #5C3F2B !important;
+    color: #FFFFFF !important;
+    font-weight: 750;
+    box-shadow: 0 4px 14px rgba(111, 78, 55, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
 }
 
 .admin-wo-page .btn-primary:hover,
-.admin-wo-page .btn-danger:hover,
-.admin-wo-page .btn-warning:hover,
+.admin-wo-page .btn-orange:hover,
 .admin-wo-page .btn-bom-primary:hover,
 .admin-wo-page .btn-conv-primary:hover,
 .admin-wo-page .btn-primary-action:hover,
 .admin-wo-page .btn-rb-save:hover,
-.admin-wo-page .admin-wo-primary:hover {
-    background: var(--admin-wo-primary-dark) !important;
-    border-color: var(--admin-wo-primary-dark) !important;
-    color: var(--cc-surface) !important;
+.admin-wo-page .admin-wo-primary:hover,
+.admin-wo-page .btn-uc-primary:hover,
+.admin-wo-page .ops-btn-primary:hover,
+.admin-wo-page .supplier-btn-primary:hover,
+.admin-wo-page .btn-ni-primary:hover {
+    background: linear-gradient(135deg, #5C3F2B 0%, #4A3222 100%) !important;
+    border-color: #4A3222 !important;
+    color: #FFFFFF !important;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(111, 78, 55, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
 }
 
+.admin-wo-page .btn-primary:active,
+.admin-wo-page .btn-orange:active,
+.admin-wo-page .btn-bom-primary:active,
+.admin-wo-page .btn-conv-primary:active,
+.admin-wo-page .btn-primary-action:active,
+.admin-wo-page .btn-rb-save:active,
+.admin-wo-page .admin-wo-primary:active,
+.admin-wo-page .btn-uc-primary:active,
+.admin-wo-page .ops-btn-primary:active,
+.admin-wo-page .supplier-btn-primary:active,
+.admin-wo-page .btn-ni-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(111, 78, 55, 0.22) !important;
+}
+
+/* Secondary / Ghost / Back Buttons (Cancel, Quay lại, Reset) */
+.admin-wo-page .btn-secondary,
+.admin-wo-page .btn-light,
+.admin-wo-page .btn-uc-ghost,
+.admin-wo-page .supplier-btn-light,
+.admin-wo-page .supplier-btn-quiet {
+    background: #F7F3EE !important;
+    border: 1px solid #D7CCC8 !important;
+    color: #5C3F2B !important;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(111, 78, 55, 0.05) !important;
+}
+
+.admin-wo-page .btn-secondary:hover,
+.admin-wo-page .btn-light:hover,
+.admin-wo-page .btn-uc-ghost:hover,
+.admin-wo-page .supplier-btn-light:hover,
+.admin-wo-page .supplier-btn-quiet:hover {
+    background: #EFE8E0 !important;
+    border-color: #6F4E37 !important;
+    color: #4A3222 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(111, 78, 55, 0.12) !important;
+}
+
+/* Danger Form Buttons (Delete / Cancel shift / Remove) */
+.admin-wo-page .btn-danger {
+    background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%) !important;
+    border: 1px solid #B91C1C !important;
+    color: #FFFFFF !important;
+    font-weight: 750;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25) !important;
+}
+
+.admin-wo-page .btn-danger:hover {
+    background: linear-gradient(135deg, #B91C1C 0%, #991B1B 100%) !important;
+    border-color: #991B1B !important;
+    color: #FFFFFF !important;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(220, 38, 38, 0.35) !important;
+}
+
+/* Warning Form Buttons */
+.admin-wo-page .btn-warning {
+    background: linear-gradient(135deg, #D97706 0%, #B45309 100%) !important;
+    border: 1px solid #B45309 !important;
+    color: #FFFFFF !important;
+    font-weight: 750;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.25) !important;
+}
+
+.admin-wo-page .btn-warning:hover {
+    background: linear-gradient(135deg, #B45309 0%, #92400E 100%) !important;
+    border-color: #92400E !important;
+    color: #FFFFFF !important;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(217, 119, 6, 0.35) !important;
+}
+
+/* Outline Form Buttons */
 .admin-wo-page .btn-outline-primary,
 .admin-wo-page .btn-outline-info,
 .admin-wo-page .admin-wo-outline {
-    border-color: var(--cc-border) !important;
-    color: var(--admin-wo-primary-dark) !important;
-    font-weight: 800;
+    background: transparent !important;
+    border: 1.5px solid #6F4E37 !important;
+    color: #6F4E37 !important;
+    font-weight: 750;
 }
 
 .admin-wo-page .btn-outline-primary:hover,
 .admin-wo-page .btn-outline-info:hover,
 .admin-wo-page .admin-wo-outline:hover {
-    background: var(--admin-wo-soft) !important;
-    border-color: var(--admin-wo-primary) !important;
-    color: var(--admin-wo-primary-dark) !important;
+    background: #6F4E37 !important;
+    border-color: #6F4E37 !important;
+    color: #FFFFFF !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(111, 78, 55, 0.25) !important;
+}
+
+/* Micro-animations for icons inside form buttons */
+.admin-wo-page .btn i,
+.admin-wo-page .btn svg,
+.admin-wo-page .ops-btn i,
+.admin-wo-page .supplier-btn i {
+    transition: transform 0.2s ease;
+}
+
+.admin-wo-page .btn:hover i.fa-arrow-left,
+.admin-wo-page .btn:hover i.bi-arrow-left {
+    transform: translateX(-3px);
+}
+
+.admin-wo-page .btn:hover i.fa-floppy-disk,
+.admin-wo-page .btn:hover i.fa-save,
+.admin-wo-page .btn:hover i.fa-check,
+.admin-wo-page .btn:hover i.fa-plus {
+    transform: scale(1.15);
+}
+
+/* Standardized Form Actions Alignment Container */
+.admin-wo-page .form-actions,
+.admin-wo-page .supplier-form-actions,
+.admin-wo-page .card-footer,
+.admin-wo-page .modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px solid var(--cc-border-soft, #EFE8E0);
 }
 
 .admin-wo-page .form-control,
@@ -161,25 +303,72 @@
     margin-bottom: 0;
 }
 
+/* Master 30-Year Senior Frontend Rule: Center Align ALL Table Columns & Rows */
 .admin-wo-page .table thead th,
 .admin-wo-page .perm-table thead th,
-.admin-wo-page .table-custom thead th {
+.admin-wo-page .table-custom thead th,
+.admin-wo-page table th {
     background: var(--cc-surface-muted) !important;
     border-bottom: 1px solid var(--admin-wo-border) !important;
     color: var(--admin-wo-muted) !important;
     font-size: 12px !important;
     font-weight: 800 !important;
-    letter-spacing: 0 !important;
+    letter-spacing: 0.02em !important;
     padding: 14px 16px !important;
     text-transform: uppercase;
+    text-align: center !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
 }
 
 .admin-wo-page .table tbody td,
 .admin-wo-page .perm-table tbody td,
-.admin-wo-page .table-custom tbody td {
+.admin-wo-page .table-custom tbody td,
+.admin-wo-page table td {
     border-bottom: 1px solid var(--cc-border-soft) !important;
     padding: 14px 16px !important;
-    vertical-align: middle;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+/* Ensure inner elements in table cells center horizontally */
+.admin-wo-page .table tbody td>*,
+.admin-wo-page .table-custom tbody td>* {
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+.admin-wo-page .table tbody td .btn,
+.admin-wo-page .table-custom tbody td .btn,
+.admin-wo-page .table tbody td a.btn,
+.admin-wo-page .table tbody td a.ops-btn,
+.admin-wo-page .table tbody td a.pa-action,
+.admin-wo-page .table tbody td a {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-direction: row !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    width: auto !important;
+    min-width: max-content !important;
+    gap: 8px !important;
+    padding: 7px 16px !important;
+    margin: 0 auto !important;
+}
+
+.admin-wo-page .table tbody td form,
+.admin-wo-page .table-custom tbody td form {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    margin: 0 auto !important;
+}
+
+.admin-wo-page .table tbody td input.form-control,
+.admin-wo-page .table-custom tbody td input.form-control {
+    text-align: center !important;
 }
 
 .admin-wo-page .table tbody tr:hover,
@@ -188,23 +377,35 @@
     background: var(--admin-wo-soft);
 }
 
+.admin-wo-page .badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+    padding: 5px 12px !important;
+    border-radius: 20px !important;
+    font-weight: 750 !important;
+    font-size: 0.78rem !important;
+    text-align: center !important;
+}
+
 .admin-wo-page .badge.bg-success,
 .admin-wo-page .badge-status-done {
     background: var(--cc-success-bg) !important;
-    border: 1px solid var(--cc-success-bg);
+    border: 1px solid color-mix(in srgb, var(--cc-success) 30%, white) !important;
     color: var(--admin-wo-success) !important;
 }
 
 .admin-wo-page .badge.bg-danger {
     background: var(--cc-danger-bg) !important;
-    border: 1px solid var(--cc-danger-bg);
+    border: 1px solid color-mix(in srgb, var(--cc-danger) 30%, white) !important;
     color: var(--admin-wo-danger) !important;
 }
 
 .admin-wo-page .badge.bg-info,
 .admin-wo-page .badge.bg-primary {
     background: var(--admin-wo-soft-strong) !important;
-    border: 1px solid var(--cc-border);
+    border: 1px solid var(--cc-border) !important;
     color: var(--admin-wo-primary-dark) !important;
 }
 
@@ -214,7 +415,7 @@
     background: var(--cc-surface);
     color: var(--admin-wo-muted);
     font-weight: 700;
-    text-align: center;
+    text-align: center !important;
 }
 
 .admin-store-form-page #admin-map {
@@ -305,6 +506,7 @@
 }
 
 @media (max-width: 768px) {
+
     .admin-wo-page .admin-wo-hero,
     .admin-wo-page .page-header {
         align-items: flex-start;

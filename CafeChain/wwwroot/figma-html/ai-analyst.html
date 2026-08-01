@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CafeChain — Dashboard Analytics · Hỏi AI</title>
+  <link rel="stylesheet" href="dashboard-ai-redesign/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Điều hướng chính">
+      <a class="brand" href="#">
+        <span class="brand-mark"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 9h12v6a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V9Z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M8 5c0 1 1 1 1 2M12 4c0 1 1 1 1 2"/></svg></span>
+        <span class="brand-copy"><strong>CafeChain</strong><span>Admin Dashboard</span></span>
+      </a>
+      <nav class="nav-section">
+        <div class="nav-label">Không gian làm việc</div>
+        <a class="nav-link active" href="#" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h6V4H4v9Zm10 7h6V11h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z"/></svg><span>Tổng quan</span></a>
+        <a class="nav-link" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h18M5 12v7h14v-7M7 8h10l-1-4H8L7 8Z"/></svg><span>Sản phẩm</span></a>
+        <a class="nav-link" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h16V8L12 4 4 8v12Z"/><path d="M8 12h8M8 16h8"/></svg><span>Kho &amp; Cung ứng</span></a>
+        <a class="nav-link" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="10" r="2"/><path d="M3 20c0-4 2-6 6-6s6 2 6 6M15 15c3 0 5 2 5 5"/></svg><span>Nhân sự &amp; Vận hành</span></a>
+      </nav>
+      <div class="sidebar-bottom"><a class="nav-link" href="dashboard-guide.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 1 1 3 2.2c-.8.3-.8.8-.8 1.8M12 17h.01"/></svg><span>Trung tâm hướng dẫn</span></a></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-button" aria-label="Thông báo"><svg width="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg></button>
+        <div class="profile"><span class="avatar">CP</span><span>Chủ doanh nghiệp</span></div>
+      </header>
+
+      <div class="content dashboard-prototype">
+        <div class="page-head dashboard-page-head">
+          <div>
+            <p class="eyebrow">Chủ doanh nghiệp</p>
+            <h1>Dashboard Analytics</h1>
+            <p class="page-lead">Dữ liệu được giới hạn theo phạm vi cửa hàng bạn được cấp quyền.</p>
+          </div>
+          <div class="head-actions">
+            <a class="button secondary" href="dashboard-guide.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 1 1 3 2.2c-.8.3-.8.8-.8 1.8M12 17h.01"/></svg>Hướng dẫn Dashboard &amp; AI</a>
+            <button class="button primary" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v6h-6"/></svg>Áp dụng</button>
+          </div>
+        </div>
+
+        <section class="dashboard-filter-card" aria-label="Bộ lọc Dashboard">
+          <div class="filter-card-head">
+            <div><span class="filter-kicker">Phạm vi dữ liệu</span><strong>Bộ lọc phân tích</strong></div>
+            <span class="filter-sync"><span class="status-dot"></span>Đã đồng bộ</span>
+          </div>
+          <div class="dashboard-filter-grid">
+            <label><span>Từ ngày</span><input type="date" value="2026-07-24"></label>
+            <label><span>Đến ngày</span><input type="date" value="2026-07-31"></label>
+            <label><span>Tỉnh/Thành</span><select><option>Tất cả</option></select></label>
+            <label><span>Quận/Huyện</span><select><option>Tất cả</option></select></label>
+            <label><span>Cửa hàng</span><select><option>Tất cả</option></select></label>
+            <label><span>Độ chi tiết</span><select><option>Ngày</option><option>Tuần</option><option>Tháng</option></select></label>
+            <label><span>Top</span><input type="number" value="10"></label>
+            <label><span>Preset</span><select><option>Tùy chọn hiện tại</option><option>7 ngày gần nhất</option><option>30 ngày gần nhất</option></select></label>
+          </div>
+        </section>
+
+        <nav class="dashboard-tabs" role="tablist" aria-label="Nhóm Analytics">
+          <button type="button" role="tab"><span>Điều hành</span></button>
+          <button type="button" role="tab"><span>POS / WorkShift</span></button>
+          <button type="button" role="tab"><span>Kho</span></button>
+          <button type="button" role="tab"><span>Mua hàng</span></button>
+          <button type="button" role="tab"><span>Sản phẩm</span></button>
+          <button type="button" role="tab"><span>Nhân sự &amp; lịch dự kiến</span></button>
+          <button type="button" role="tab" class="active" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 1.5 4.2L18 9l-4.5 1.8L12 15l-1.5-4.2L6 9l4.5-1.8L12 3Z"/></svg><span>Hỏi AI</span></button>
+        </nav>
+
+        <section class="inline-ai-panel" aria-labelledby="dashboardIntelligenceTitle">
+          <div class="inline-ai-accent" aria-hidden="true"></div>
+          <header class="inline-ai-heading">
+            <div class="inline-ai-brand">
+              <span class="inline-ai-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 2 1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg></span>
+              <div>
+                <p class="eyebrow">AI Analyst dựa trên evidence</p>
+                <h2 id="dashboardIntelligenceTitle">Hỏi Dashboard bằng tiếng Việt</h2>
+                <p>Đặt câu hỏi về dữ liệu trong bộ lọc hiện tại. AI chỉ đọc dữ liệu đã xác thực và luôn tuân theo StaffScope.</p>
+              </div>
+            </div>
+            <span class="safe-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 10V8a7 7 0 0 1 14 0v2M4 10h16v11H4V10Z"/></svg>Read-only</span>
+          </header>
+
+          <form class="inline-ai-form" id="aiForm">
+            <div class="inline-ai-input-wrap">
+              <svg class="input-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 1.5 4.2L18 9l-4.5 1.8L12 15l-1.5-4.2L6 9l4.5-1.8L12 3Z"/></svg>
+              <input id="aiPrompt" maxlength="500" required autocomplete="off" aria-label="Câu hỏi dành cho AI Analyst" placeholder="Ví dụ: So sánh doanh thu 7 ngày gần đây với kỳ trước và chỉ ra cửa hàng cần chú ý">
+              <span class="input-count"><b id="charCount">0</b>/500</span>
+            </div>
+            <button id="analyzeButton" class="button primary analyze-button" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 1.5 4.2L18 9l-4.5 1.8L12 15l-1.5-4.2L6 9l4.5-1.8L12 3Z"/><path d="M18 15v5M15.5 17.5h5"/></svg><span>Phân tích</span></button>
+          </form>
+
+          <div class="inline-ai-footer">
+            <div class="inline-suggestions">
+              <span>Gợi ý:</span>
+              <button class="suggestion" type="button">Doanh thu có gì bất thường?</button>
+              <button class="suggestion" type="button">Cửa hàng nào cần chú ý?</button>
+              <button class="suggestion" type="button">Tóm tắt rủi ro tồn kho</button>
+            </div>
+            <div class="current-scope"><span class="status-dot"></span>24/07 — 31/07 · Tất cả cửa hàng · Theo ngày</div>
+          </div>
+
+          <div id="answerPanel" class="answer-panel inline-answer" aria-live="polite">
+            <div class="answer-head"><div><h3>Kết luận chính</h3><p>Dựa trên phạm vi bộ lọc hiện tại · Cập nhật vừa xong</p></div><span class="answer-status">Đủ dữ liệu</span></div>
+            <div class="answer-grid">
+              <div class="metric"><span>Doanh thu thuần</span><strong>428,6 tr₫</strong></div>
+              <div class="metric"><span>So với kỳ trước</span><strong style="color:var(--green)">+8,4%</strong></div>
+              <div class="metric"><span>Điểm cần chú ý</span><strong>02</strong></div>
+            </div>
+            <p class="insight"><strong>Phân tích:</strong> Doanh thu tăng chủ yếu nhờ Store 01. Store 03 có tỷ lệ hủy đơn cao hơn trung bình 3,2 điểm phần trăm và nên được ưu tiên kiểm tra.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="dashboard-ai-redesign/prototype.js"></script>
+</body>
+</html>

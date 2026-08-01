@@ -50,14 +50,15 @@
                 <div class="ops-form-field">
                     <label class="ops-form-label" for="qualityFrom">Từ ngày (tùy chọn)</label>
                     <input id="qualityFrom" class="ops-input w-100" name="from" type="date" lang="vi" value="@(customFrom?.ToString("yyyy-MM-dd"))" />
-                    <div class="ops-help">Ngày/tháng/năm</div>
                 </div>
                 <div class="ops-form-field">
                     <label class="ops-form-label" for="qualityTo">Đến ngày (tùy chọn)</label>
                     <input id="qualityTo" class="ops-input w-100" name="to" type="date" lang="vi" value="@(customTo?.ToString("yyyy-MM-dd"))" />
-                    <div class="ops-help">Ngày/tháng/năm</div>
                 </div>
-                <div class="ops-form-field d-flex align-items-end"><button class="ops-btn ops-btn-primary w-100" type="submit"><i class="fa-solid fa-filter" aria-hidden="true"></i> Áp dụng bộ lọc</button></div>
+                <div class="ops-form-field">
+                    <label class="ops-form-label ops-field-spacer">&nbsp;</label>
+                    <button class="ops-btn ops-btn-primary w-100" type="submit"><i class="fa-solid fa-filter" aria-hidden="true"></i> Áp dụng bộ lọc</button>
+                </div>
             </div>
         </div>
     </form>
