@@ -73,7 +73,7 @@
         <section class="ops-table-wrap">
             <div class="ops-table-scroll">
                 <table class="ops-table">
-                    <thead><tr><th>Mặt hàng</th><th>Loại</th><th class="number">Tồn vật lý</th><th class="number">Giữ chỗ</th><th class="number">Khả dụng</th><th>Trạng thái</th><th>Ngưỡng tối thiểu</th><th>Thao tác</th></tr></thead>
+                    <thead><tr><th>Mặt hàng</th><th>Loại</th><th class="number">Tồn vật lý</th><th class="number">Giữ chỗ</th><th class="number">Khả dụng</th><th>Trạng thái</th><th class="number">Ngưỡng tối thiểu</th><th class="text-end">Thao tác</th></tr></thead>
                     <tbody>
                     @foreach (var item in Model.Items)
                     {
@@ -92,7 +92,7 @@
                                 else { <span class="ops-badge ops-badge-success">Bình thường</span> }
                             </td>
                             <td class="number">@(item.MinStockLevel?.ToString("N3") ?? "—")</td>
-                            <td>
+                            <td class="text-end">
                                 @if (canEdit)
                                 {
                                     <form asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Update" method="post" class="ops-inline-actions">

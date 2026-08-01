@@ -56,20 +56,20 @@
     {
         <section class="ops-table-wrap" aria-label="Danh sách đơn đặt hàng">
             <div class="ops-table-scroll">
-                <table class="ops-table">
-                    <thead><tr><th>Mã đơn</th><th>Chi nhánh</th><th>Nhà cung cấp</th><th>Ngày đặt</th><th>Trạng thái</th><th class="number">Giá trị</th><th>Thao tác</th></tr></thead>
+                <table class="ops-table ops-po-table">
+                    <thead><tr><th class="text-center">Mã đơn</th><th class="text-center">Chi nhánh</th><th class="text-center">Nhà cung cấp</th><th class="text-center">Ngày đặt</th><th class="text-center">Trạng thái</th><th class="number text-center">Giá trị</th><th class="text-center">Thao tác</th></tr></thead>
                     <tbody>
                     @foreach (var item in Model)
                     {
                         var orderStatus = AdminStatusDisplay.PurchaseOrder(item.Status);
                         <tr>
-                            <td><strong>@item.Code</strong></td>
-                            <td>@item.StoreName</td>
-                            <td>@item.SupplierName</td>
-                            <td>@AdminStatusDisplay.Date(item.OrderDate.ToLocalTime())</td>
-                            <td><span class="ops-badge @orderStatus.CssClass">@orderStatus.Label</span></td>
-                            <td class="number">@AdminStatusDisplay.Currency(item.TotalAmount)</td>
-                            <td><a class="ops-btn" asp-action="Details" asp-route-id="@item.PurchaseOrderId">Chi tiết <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a></td>
+                            <td class="text-center"><strong>@item.Code</strong></td>
+                            <td class="text-center">@item.StoreName</td>
+                            <td class="text-center">@item.SupplierName</td>
+                            <td class="text-center">@AdminStatusDisplay.Date(item.OrderDate.ToLocalTime())</td>
+                            <td class="text-center"><span class="ops-badge @orderStatus.CssClass">@orderStatus.Label</span></td>
+                            <td class="number text-center">@AdminStatusDisplay.Currency(item.TotalAmount)</td>
+                            <td class="text-center"><a class="ops-btn" asp-action="Details" asp-route-id="@item.PurchaseOrderId">Chi tiết <i class="fa-solid fa-chevron-right" aria-hidden="true"></i></a></td>
                         </tr>
                     }
                     </tbody>
