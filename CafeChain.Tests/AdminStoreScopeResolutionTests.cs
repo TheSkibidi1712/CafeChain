@@ -1,10 +1,12 @@
 using System.Security.Claims;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Actor;
+using CafeChain.Application.DTOs.Admin.Permissions;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.DTOs.Admin.StockAlerts;
 using CafeChain.Application.DTOs.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Results;
@@ -16,6 +18,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
 namespace CafeChain.Tests;
@@ -157,7 +160,7 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
             Mock.Of<IRestockRequestWorkflowService>(),
             new AdminActorContextAccessor(),
             CreateResolver(db, new SelectedStoreContextStub()));
-        AttachUser(controller, RoleConstants.AccountantWarehouse, 5, 1);
+        AttachUser(controller, RoleConstants.AccountantWarehouse, 5, 1, PermissionConstants.RestockView);
 
         var result = await controller.Index();
 
@@ -178,7 +181,7 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
             Mock.Of<IRestockRequestService>(),
             new AdminActorContextAccessor(),
             CreateResolver(db, new SelectedStoreContextStub()));
-        AttachUser(controller, RoleConstants.AccountantWarehouse, 5, 1);
+        AttachUser(controller, RoleConstants.AccountantWarehouse, 5, 1, PermissionConstants.StockAlertView);
 
         var result = await controller.Index();
 
@@ -203,7 +206,7 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
             new AdminActorContextAccessor(),
             CreateResolver(db, new SelectedStoreContextStub()),
             db);
-        AttachUser(controller, RoleConstants.AccountantWarehouse, 5, 1);
+        AttachUser(controller, RoleConstants.AccountantWarehouse, 5, 1, PermissionConstants.ReceiptView);
 
         var result = await controller.Index();
 
@@ -226,7 +229,7 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
             Mock.Of<IRestockRequestService>(),
             new AdminActorContextAccessor(),
             CreateResolver(db, new SelectedStoreContextStub()));
-        AttachUser(controller, RoleConstants.AccountantWarehouse, 5, 1);
+        AttachUser(controller, RoleConstants.AccountantWarehouse, 5, 1, PermissionConstants.StockAlertView);
 
         var result = await controller.Confirm(1, "note", null, 1);
 
@@ -249,7 +252,7 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
             Mock.Of<IRestockRequestService>(),
             new AdminActorContextAccessor(),
             CreateResolver(db, new SelectedStoreContextStub()));
-        AttachUser(controller, RoleConstants.StoreManager, 3, 1);
+        AttachUser(controller, RoleConstants.StoreManager, 3, 1, PermissionConstants.StockAlertView);
 
         var result = await controller.Index(storeId: 2);
 
@@ -278,7 +281,7 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
             Mock.Of<IRestockRequestWorkflowService>(),
             new AdminActorContextAccessor(),
             CreateResolver(db, new SelectedStoreContextStub()));
-        AttachUser(controller, RoleConstants.AreaManager, 2, 1);
+        AttachUser(controller, RoleConstants.AreaManager, 2, 1, PermissionConstants.RestockView);
 
         var result = await controller.Index(storeId: 2);
 
@@ -292,22 +295,43 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task SystemAdmin_HasGlobalActiveStoreScopeWithoutStaffScopeRows()
+    public async Task StandardScope_SystemAdminWithoutStaffScopeHasNoStores()
     {
         await using var db = CreateDbContext();
         db.StaffScopes.RemoveRange(db.StaffScopes.Where(x => x.StaffId == 6));
         await db.SaveChangesAsync();
         var scope = new ScopeAuthorizationService(db);
+        var allowed = await scope.GetAllowedStoresAsync(6);
+
+        Assert.Empty(allowed);
+        Assert.False(await scope.CanAccessStoreAsync(6, 1));
+    }
+
+    [Fact]
+    public async Task ReorderSuggestionScope_SystemAdminGetsAllActiveStoresOnly()
+    {
+        await using var db = CreateDbContext();
+        db.StaffScopes.RemoveRange(db.StaffScopes.Where(x => x.StaffId == 6));
+        await db.SaveChangesAsync();
+        var resolver = CreateResolver(db, new SelectedStoreContextStub());
         var activeStoreIds = await db.Stores
             .Where(x => x.Active)
             .Select(x => x.StoreId)
             .OrderBy(x => x)
             .ToListAsync();
 
-        var allowed = await scope.GetAllowedStoresAsync(6);
+        var result = await resolver.ResolveAsync(
+            new AdminActorContext
+            {
+                AccountId = 6,
+                StaffId = 6,
+                RoleNames = [RoleConstants.SystemAdmin]
+            },
+            null,
+            AdminStoreScopeMode.ReorderSuggestion);
 
-        Assert.Equal(activeStoreIds, allowed.Select(x => x.StoreId).OrderBy(x => x));
-        Assert.True(await scope.CanAccessStoreAsync(6, activeStoreIds.Last()));
+        Assert.True(result.IsResolved);
+        Assert.Equal(activeStoreIds, result.AccessibleStores.Select(x => x.StoreId).OrderBy(x => x));
     }
 
     [Fact]
@@ -340,17 +364,37 @@ public sealed class AdminStoreScopeResolutionTests : IntegrationTestBase
         Controller controller,
         string role,
         int staffId,
-        int storeId)
+        int storeId,
+        params string[] allowedPermissions)
     {
+        var allowed = allowedPermissions.ToHashSet(StringComparer.Ordinal);
+        var permissionService = new Mock<IAdminPermissionService>();
+        permissionService
+            .Setup(x => x.HasPermissionAsync(staffId, It.IsAny<string>(), It.IsAny<int?>()))
+            .ReturnsAsync((int _, string code, int? _) =>
+                ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = staffId,
+                    PermissionCode = code,
+                    Allowed = allowed.Contains(code)
+                }));
         var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
+            new Claim(ClaimTypes.NameIdentifier, staffId.ToString()),
             new Claim("StaffId", staffId.ToString()),
             new Claim("StoreId", storeId.ToString()),
             new Claim(ClaimTypes.Role, role)
         }, "Test"));
-        var httpContext = new DefaultHttpContext { User = user };
+        var httpContext = new DefaultHttpContext
+        {
+            User = user,
+            RequestServices = new ServiceCollection()
+                .AddSingleton(permissionService.Object)
+                .BuildServiceProvider()
+        };
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         controller.TempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
+        controller.Url = Mock.Of<IUrlHelper>();
     }
 
     private sealed class SelectedStoreContextStub : IAdminSelectedStoreContext

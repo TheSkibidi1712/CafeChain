@@ -58,7 +58,7 @@ public sealed class DashboardAiFallbackContractTests
             .ReturnsAsync(new OllamaResultDTO
             {
                 Success = true,
-                Content = $$"""{"analysisId":"{{context.AnalysisId}}","widget":"NetSalesTrend","summary":"Doanh thu giảm 99%.","summaryEvidenceIds":["E-1"],"inferences":[],"recommendations":[],"overview":[],"notablePoints":[],"conclusions":[],"chartAnalyses":[{"widget":"NetSalesTrend","summary":"Ổn định","evidenceIds":["E-1"]}]}"""
+                Content = $$"""{"analysisId":"{{context.AnalysisId}}","widget":"NetSalesTrend","directAnswer":"Doanh thu giảm 99%. Mức giảm này cần được kiểm tra.","proofPoints":[{"text":"Doanh thu giảm 99%.","evidenceIds":["E-1"]}],"actionToCheck":null,"usedEvidenceIds":["E-1"],"limitations":[]}"""
             });
 
         var result = await CreateService(ollama).ExplainDashboardInsightAsync(context);

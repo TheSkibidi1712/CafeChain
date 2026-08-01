@@ -180,7 +180,7 @@
                 if (!Array.isArray(setup[key])) setup[key] = [];
                 setup[key].push(enrichSavedConfiguration(kind, body, form));
                 renderConfig();
-                show("Đã lưu cấu hình. Dữ liệu mới sẽ được dùng cho cảnh báo thiếu lịch.");
+                show("Đã lưu cấu hình dữ liệu lịch.");
             } catch (error) {
                 show(error.message, true);
             } finally {

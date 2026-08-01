@@ -22,12 +22,6 @@ public static class AuthorizationServiceExtensions
             options.AddPolicy(AuthorizationPolicyConstants.AdminDashboardApp, policy =>
             {
                 policy.RequireAuthenticatedUser();
-                policy.RequireRole(
-                    RoleConstants.BusinessOwner,
-                    RoleConstants.AreaManager,
-                    RoleConstants.StoreManager,
-                    RoleConstants.AccountantWarehouse,
-                    RoleConstants.SystemAdmin);
                 policy.AddRequirements(
                     new PermissionRequirement(PermissionConstants.AppAdminDashboard));
             });

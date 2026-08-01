@@ -720,11 +720,13 @@ Forecast skill phải echo model/version/point/bounds/quality. Supplier skill ph
 - Không có supplier/forecast ngoài StoreScope.
 - Không tự tạo PA/PO hoặc thay đổi supplier primary.
 
-## 17. Thiết kế chi tiết Phase 4 – Cảnh báo lịch và Recommendation nâng cao
+## 17. Thiết kế chi tiết Phase 4 – Dữ liệu lịch và Recommendation nâng cao
+
+> Cập nhật: subsystem cảnh báo thiếu lịch đã bị gỡ. Các mô tả detector/dedupe/SignalR ở 17.2–17.4 chỉ là lịch sử thiết kế, không phải trạng thái triển khai hiện tại.
 
 ### 17.1 Cấu hình lịch và phạm vi nghiệp vụ
 
-`StaffShift` và `Shift` tiếp tục là nguồn lịch chính thức. Màn hình **Cấu hình lịch & cảnh báo** chỉ quản lý:
+`StaffShift` và `Shift` tiếp tục là nguồn lịch chính thức. Màn hình **Cấu hình dữ liệu lịch** chỉ quản lý:
 
 - Availability định kỳ của nhân viên.
 - Giới hạn giờ/ngày, giờ/tuần và thời gian nghỉ tối thiểu.
@@ -866,7 +868,7 @@ Anomaly chỉ là tín hiệu cần xem xét, không phải kết luận gian l�
 
 ### 17.11 Human approval và safety
 
-- Lịch nhân viên: Manager tự review và phân ca thủ công; cảnh báo không tự ghi lịch.
+- Lịch nhân viên: Manager tự review và phân ca thủ công; không có worker cảnh báo lịch.
 - Recommendation: chỉ hiển thị, không tự thêm vào order.
 - Menu/price: không tự thay đổi.
 - Inventory/Purchase: không tự mutation.
@@ -876,7 +878,7 @@ Anomaly chỉ là tín hiệu cần xem xét, không phải kết luận gian l�
 ### 17.12 Chia lát triển khai
 
 1. **Phase 4A:** bổ sung dữ liệu availability/requirements/constraint/time-off.
-2. **Phase 4B:** cảnh báo thiếu lịch rule-based, dedupe, resolve và SignalR.
+2. **Phase 4B (retired):** cảnh báo thiếu lịch rule-based, dedupe, resolve và SignalR đã được gỡ khỏi sản phẩm.
 3. **Phase 4C:** basket association offline + POS recommendation read-only.
 4. **Phase 4D:** exposure logging và A/B testing.
 5. **Phase 4E:** robust anomaly detection.
@@ -902,7 +904,6 @@ DashboardIntelligence:ExplanationEnabled
 Forecasting:RevenueEnabled
 Forecasting:ProductEnabled
 SupplierIntelligence:ScoringEnabled
-StaffScheduleNotifications:Enabled
 PosRecommendation:Enabled
 AnomalyDetection:Enabled
 ```

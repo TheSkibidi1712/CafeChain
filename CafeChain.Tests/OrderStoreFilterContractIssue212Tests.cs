@@ -360,7 +360,7 @@ public sealed class OrderStoreFilterContractIssue212Tests
 public sealed class OrderStoreFilterQueryIssue212Tests : IntegrationTestBase
 {
     [Fact]
-    public async Task SystemAdmin_GlobalAccess_IsExplicitWithoutStaffScope()
+    public async Task SystemAdmin_StandardScope_UsesEffectiveStaffScope()
     {
         await using var context = CreateDbContext();
         context.Stores.AddRange(
@@ -383,14 +383,19 @@ public sealed class OrderStoreFilterQueryIssue212Tests : IntegrationTestBase
                 CreatedAt = DateTime.UtcNow
             });
         await context.SaveChangesAsync();
-        var expectedStoreIds = await context.Stores
-            .Where(x => x.Active)
-            .OrderBy(x => x.Name)
-            .ThenBy(x => x.StoreId)
-            .Select(x => x.StoreId)
-            .ToListAsync();
-
         var scopeAuthorization = new Mock<IScopeAuthorizationService>(MockBehavior.Strict);
+        scopeAuthorization.Setup(x => x.GetAllowedStoresAsync(99)).ReturnsAsync(
+        [
+            new Store
+            {
+                StoreId = 21201,
+                Name = "Store A",
+                Address = "A",
+                Phone = "1",
+                Active = true,
+                CreatedAt = DateTime.UtcNow
+            }
+        ]);
         var selectedStore = new Mock<IAdminSelectedStoreContext>(MockBehavior.Strict);
         selectedStore.Setup(x => x.GetSelectedStoreId()).Returns((int?)null);
         selectedStore.Setup(x => x.SetSelectedStoreId(It.IsAny<int>()));
@@ -407,10 +412,8 @@ public sealed class OrderStoreFilterQueryIssue212Tests : IntegrationTestBase
         });
 
         Assert.True(result.IsResolved);
-        Assert.Equal(
-            expectedStoreIds.Order(),
-            result.AccessibleStores.Select(x => x.StoreId).Order());
-        scopeAuthorization.VerifyNoOtherCalls();
+        Assert.Equal([21201], result.AccessibleStores.Select(x => x.StoreId));
+        scopeAuthorization.Verify(x => x.GetAllowedStoresAsync(99), Times.Once);
     }
 
     [Fact]

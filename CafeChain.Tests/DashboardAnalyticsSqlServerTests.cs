@@ -1,7 +1,20 @@
 using System.Text.RegularExpressions;
+using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Actor;
+using CafeChain.Application.DTOs.Admin.Dashboard;
+using CafeChain.Application.Interfaces.AI;
+using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Services.Admin.Dashboard;
+using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
+using CafeChain.Infrastructure.Repositories.Admin.Procurement;
+using CafeChain.Infrastrusture.Repositories.Admin.Dashboard;
+using CafeChain.Models.Stores;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace CafeChain.Tests;
 
@@ -202,6 +215,71 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
             "SELECT COUNT_BIG(1) FROM dbo.RestockRequests WHERE Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S%';", 2L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_AI_DASHBOARD_ROLLING_V1';", 2L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.StoreInventories si JOIN dbo.Ingredients i ON i.IngredientId=si.IngredientId WHERE si.StoreId=1 AND i.Code=N'DEMO_ING_CHIA_SEED' AND si.MinStockLevel-(si.AvailableQty-si.ReservedQty)=10000;", 1L);
+
+        await using (var reorderContext = CreateContext())
+        {
+            var reorder = new ReorderSuggestionService(
+                new ReorderSuggestionRepository(reorderContext),
+                new PhysicalUnitConversionService(
+                    reorderContext,
+                    NullLogger<PhysicalUnitConversionService>.Instance),
+                new PurchaseOrderQuantityProvider(reorderContext),
+                Mock.Of<IScopeAuthorizationService>(),
+                Mock.Of<IAIService>());
+
+            var calculated = await reorder.CalculateForStoreAsync(1, analysisWindowDays: 30);
+
+            Assert.True(calculated.IsSuccess, calculated.Message);
+            var chia = Assert.Single(calculated.Data!.Items.Where(x =>
+                x.IngredientCode == "DEMO_ING_CHIA_SEED"));
+            Assert.Equal(ReorderRecommendationLevels.Urgent, chia.SuggestionStatus);
+            Assert.True(chia.AverageDailyConsumption > 0m);
+            Assert.NotNull(chia.IngredientSupplierId);
+            Assert.NotNull(chia.PackageBaseQuantity);
+            Assert.True(chia.FinalSuggestedQuantity > 0m);
+            Assert.True(chia.EstimatedCost > 0m);
+            Assert.True(chia.CanConfirm);
+
+            var staffId = await reorderContext.Staffs
+                .Where(x => x.StoreId == 1 && x.Active)
+                .OrderBy(x => x.StaffId)
+                .Select(x => x.StaffId)
+                .FirstAsync();
+            var scope = new Mock<IScopeAuthorizationService>();
+            scope.Setup(x => x.GetAllowedStoresAsync(staffId))
+                .ReturnsAsync([new Store { StoreId = 1, Active = true }]);
+            var reorderAuthorization = new Mock<IReorderSuggestionAuthorizationService>();
+            reorderAuthorization.Setup(x => x.CanViewAsync(
+                    It.IsAny<AdminActorContext>(), 1, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            var dashboard = new DashboardService(
+                new DashboardRepository(
+                    reorderContext,
+                    NullLogger<DashboardRepository>.Instance),
+                scope.Object,
+                reorderSuggestions: reorder,
+                reorderAuthorization: reorderAuthorization.Object);
+
+            var widgets = await dashboard.GetAnalyticsBatchAsync(
+                new AdminActorContext { StaffId = staffId, StoreId = 1 },
+                [DashboardAnalyticsWidget.InventoryReorderSuggestions],
+                new DashboardAnalyticsFilter
+                {
+                    FromDate = DateTime.Today.AddDays(-30),
+                    ToDate = DateTime.Today,
+                    StoreId = 1,
+                    Granularity = "Day",
+                    Top = 10
+                });
+            var reorderRows = Assert.IsAssignableFrom<IReadOnlyList<InventoryReorderRow>>(
+                widgets.Widgets[DashboardAnalyticsWidget.InventoryReorderSuggestions].Rows);
+            Assert.Contains(reorderRows, x =>
+                x.IngredientCode == "DEMO_ING_CHIA_SEED"
+                && x.SuggestionStatus == ReorderRecommendationLevels.Urgent
+                && x.FinalSuggestedQuantity > 0m);
+        }
 
         await using (var command = AnalyticsCommand(connection, "dbo.usp_Workforce_ShiftStatus"))
         await using (var reader = await command.ExecuteReaderAsync())

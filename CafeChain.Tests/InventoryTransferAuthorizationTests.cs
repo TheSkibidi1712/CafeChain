@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
 using CafeChain.Application.DTOs.Admin.InventoryTransfers;
@@ -12,6 +13,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using System.Reflection;
 using Xunit;
 
 namespace CafeChain.Tests;
@@ -33,32 +35,49 @@ public sealed class InventoryTransferAuthorizationTests
     }
 
     [Fact]
-    public async Task AreaManager_InScopeForBothStores_RemainsReadOnly()
+    public async Task PermissionAuthorizedActor_InScopeForBothStores_CanPreflight()
     {
         var fixture = CreateController(RoleConstants.AreaManager, staffId: 42);
         fixture.Scope
             .Setup(x => x.CanAccessStoreAsync(42, It.IsAny<int>()))
             .ReturnsAsync(true);
-        var result = await fixture.Controller.Preflight(Transfer(1, 2));
-
-        Assert.IsType<ForbidResult>(result);
-        fixture.Service.Verify(x => x.ValidateStockAsync(It.IsAny<InventoryTransferMutationDTO>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task AccountantWarehouse_GlobalProcessing_IsAllowed()
-    {
-        var fixture = CreateController(RoleConstants.AccountantWarehouse, staffId: 43);
         fixture.Service
             .Setup(x => x.ValidateStockAsync(It.IsAny<InventoryTransferMutationDTO>()))
             .ReturnsAsync([]);
 
-        var result = await fixture.Controller.Preflight(Transfer(1, 999));
+        var result = await fixture.Controller.Preflight(Transfer(1, 2));
 
         Assert.IsType<JsonResult>(result);
+        fixture.Service.Verify(x => x.ValidateStockAsync(It.IsAny<InventoryTransferMutationDTO>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ActorWithoutStaffScope_CannotProcessGlobally()
+    {
+        var fixture = CreateController(RoleConstants.AccountantWarehouse, staffId: 43);
+        fixture.Scope.Setup(x => x.CanAccessStoreAsync(43, It.IsAny<int>())).ReturnsAsync(false);
+
+        var result = await fixture.Controller.Preflight(Transfer(1, 999));
+
+        Assert.IsType<ForbidResult>(result);
         fixture.Scope.Verify(
             x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>()),
-            Times.Never);
+            Times.AtLeastOnce);
+        fixture.Service.Verify(x => x.ValidateStockAsync(It.IsAny<InventoryTransferMutationDTO>()), Times.Never);
+    }
+
+    [Fact]
+    public void MutationEndpoint_UsesPermissionWithoutRoleAllowList()
+    {
+        var attribute = typeof(AdminInventoryTransferController)
+            .GetMethod(nameof(AdminInventoryTransferController.Preflight))!
+            .GetCustomAttribute<RequirePermissionAttribute>();
+
+        Assert.NotNull(attribute);
+        Assert.Equal(
+            RequirePermissionAttribute.PolicyPrefix + PermissionConstants.InventoryTransferCreateDraft,
+            attribute!.Policy);
+        Assert.Null(attribute.Roles);
     }
 
     [Fact]

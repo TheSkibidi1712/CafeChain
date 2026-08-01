@@ -7,11 +7,11 @@ namespace CafeChain.Tests;
 public sealed class DashboardIntelligenceP0P1ContractTests
 {
     [Theory]
-    [InlineData("Top 5 sản phẩm bán chạy", DashboardAnswerFocus.TopSellingProducts, DashboardAnalyticsWidget.TopProducts, "TRANSACTION_RANKING_ANALYSIS")]
-    [InlineData("Phương thức thanh toán nào được dùng nhiều nhất?", DashboardAnswerFocus.PaymentUsage, DashboardAnalyticsWidget.PaymentMethodMix, "TRANSACTION_RANKING_ANALYSIS")]
-    [InlineData("Nguyên liệu nào cần đặt lại?", DashboardAnswerFocus.ReorderPriority, DashboardAnalyticsWidget.InventoryReorderSuggestions, "OPERATIONAL_ACTION_ANALYSIS")]
-    [InlineData("Nhà cung cấp nào giao trễ?", DashboardAnswerFocus.SupplierAndOverdueRisk, DashboardAnalyticsWidget.SupplierQuality, "RISK_INVESTIGATION_ANALYSIS")]
-    [InlineData("So sánh doanh thu với kỳ trước", DashboardAnswerFocus.RevenueComparison, DashboardAnalyticsWidget.NetSalesTrend, "EXECUTIVE_DIAGNOSTIC")]
+    [InlineData("Top 5 sản phẩm bán chạy", DashboardAnswerFocus.TopSellingProducts, DashboardAnalyticsWidget.TopProducts, "RANKING")]
+    [InlineData("Phương thức thanh toán nào được dùng nhiều nhất?", DashboardAnswerFocus.PaymentUsage, DashboardAnalyticsWidget.PaymentMethodMix, "RANKING")]
+    [InlineData("Nguyên liệu nào cần đặt lại?", DashboardAnswerFocus.ReorderPriority, DashboardAnalyticsWidget.InventoryReorderSuggestions, "OPERATIONAL_PRIORITY")]
+    [InlineData("Nhà cung cấp nào giao trễ?", DashboardAnswerFocus.SupplierAndOverdueRisk, DashboardAnalyticsWidget.SupplierQuality, "RISK_ALERT")]
+    [InlineData("So sánh doanh thu với kỳ trước", DashboardAnswerFocus.RevenueComparison, DashboardAnalyticsWidget.NetSalesTrend, "DIRECT_COMPARISON")]
     public void QuestionCatalog_MapsFocusPlanAndAnswerStyle(
         string question,
         DashboardAnswerFocus expectedFocus,
@@ -221,7 +221,7 @@ public sealed class DashboardIntelligenceP0P1ContractTests
         Assert.Contains("d.CategoryId,c.Name AS CategoryName", script, StringComparison.Ordinal);
         Assert.Contains("SUM(CASE WHEN o.OrderStatusId = 6 THEN 1 ELSE 0 END) * 1.0", script, StringComparison.Ordinal);
         Assert.DoesNotContain("SUM(CASE WHEN o.OrderStatusId = 6 THEN 1 ELSE 0 END) * 100.0", script, StringComparison.Ordinal);
-        Assert.Contains("ORDER BY TotalSold DESC, ProductRevenue DESC, od.DrinkId", script, StringComparison.Ordinal);
+        Assert.Contains("ORDER BY TotalSold DESC, NetSales DESC, od.DrinkId", script, StringComparison.Ordinal);
         Assert.Contains("ORDER BY TotalTransactions DESC, Amount DESC", script, StringComparison.Ordinal);
         Assert.Contains("ORDER BY TotalSold DESC, Revenue DESC, d.CategoryId", script, StringComparison.Ordinal);
         Assert.Contains("usp_Product_LowVolumeProducts", script, StringComparison.Ordinal);

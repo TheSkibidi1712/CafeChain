@@ -27,10 +27,17 @@ const InventoryCreate = (() => {
         partnerName: "#PartnerName",
         store: "#storeSelect",
         note: "#Note",
-        allowNegativeStock: "#AllowNegativeStock",
+        negativeStockModeInputs: 'input[name="NegativeStockMode"]',
+        negativeStockModeRequest: "#negativeStockModeRequest",
         negativeReasonField: "#negativeReasonField",
         negativeReason: "#NegativeReason",
         negativePreflightPanel: "#negativePreflightPanel",
+        negativeStockProjection: "#negativeStockProjection",
+        negativeStockProjectionBadge: "#negativeStockProjectionBadge",
+        negativeStockProjectionMessage: "#negativeStockProjectionMessage",
+        negativeStockProjectionLines: "#negativeStockProjectionLines",
+        createDocumentActionLabel: "#createDocumentActionLabel",
+        createDocumentActionIcon: "#createDocumentActionIcon",
         notePurposeHint: "#notePurposeHint",
         title: "#inventoryCreateTitle",
         subtitle: "#inventoryCreateSubtitle",
@@ -305,16 +312,19 @@ const InventoryCreate = (() => {
             });
 
         form
-            .querySelector(selector.allowNegativeStock)
-            ?.addEventListener(
-                "change",
-                () => {
-                    updateNegativeStockFields();
-                    document
-                        .querySelectorAll(`${selector.tableBody} .ingredient-row`)
-                        .forEach(updateRowAmount);
-                    requestSummary();
-                });
+            .querySelectorAll(selector.negativeStockModeInputs)
+            .forEach(input => {
+                input.addEventListener(
+                    "change",
+                    () => {
+                        updateNegativeStockFields();
+                        document
+                            .querySelectorAll(`${selector.tableBody} .ingredient-row`)
+                            .forEach(updateRowAmount);
+                        updateNegativeStockFields();
+                        requestSummary();
+                    });
+            });
 
         addButton
             ?.addEventListener(
@@ -549,10 +559,6 @@ const InventoryCreate = (() => {
     }
 
     function updateNegativeStockFields() {
-
-        const allowNegativeInput =
-            document.querySelector(selector.allowNegativeStock);
-
         const reasonField =
             document.querySelector(selector.negativeReasonField);
 
@@ -562,23 +568,144 @@ const InventoryCreate = (() => {
         const preflightPanel =
             document.querySelector(selector.negativePreflightPanel);
 
-        const enabled =
-            isExportSale() && allowNegativeInput?.checked === true;
+        const projection =
+            collectStockProjection();
 
-        reasonField?.classList.toggle("d-none", !enabled);
+        const requestMode =
+            allowsManualNegativeExport();
+
+        const isProjectedNegative =
+            requestMode && projection.negativeLines.length > 0;
+
+        reasonField?.classList.toggle("d-none", !isProjectedNegative);
 
         if (reasonInput) {
-            reasonInput.disabled = !enabled;
-            reasonInput.required = false;
+            reasonInput.disabled = !isProjectedNegative;
+            reasonInput.required = isProjectedNegative;
 
-            if (!enabled) {
+            if (!requestMode) {
                 reasonInput.value = "";
             }
         }
 
-        if (!enabled && preflightPanel) {
+        if (!isProjectedNegative && preflightPanel) {
             preflightPanel.classList.add("d-none");
             preflightPanel.textContent = "";
+        }
+
+        renderNegativeStockProjection(projection, requestMode);
+        updateCreateDocumentAction(isProjectedNegative);
+    }
+
+    function collectStockProjection() {
+
+        if (!isExportSale()) {
+            return { lines: [], negativeLines: [] };
+        }
+
+        const lines = Array
+            .from(document.querySelectorAll(`${selector.tableBody} .ingredient-row`))
+            .map(row => {
+                const ingredient = getSelectedIngredient(row);
+                const quantityInput = row.querySelector(".quantity");
+                const quantity = readQuantity(quantityInput?.value);
+
+                if (!ingredient || !quantityInput?.value?.trim() || quantity <= 0) {
+                    return null;
+                }
+
+                const conversionFactor = readRowConversionFactor(row, ingredient);
+                if (conversionFactor <= 0) {
+                    return null;
+                }
+
+                const issueBaseQuantity = readNumber(row.querySelector(".base-quantity")?.value)
+                    || quantity * conversionFactor;
+                const availableBaseQuantity = getAvailableBaseQuantity(ingredient);
+                const projectedAfterBaseQuantity = availableBaseQuantity - issueBaseQuantity;
+                const unitLabel = getSelectedUnitLabel(row, ingredient);
+
+                return {
+                    ingredientName: ingredient.ingredientName ?? ingredient.IngredientName ?? "Nguyên liệu",
+                    unitLabel,
+                    availableQuantity: availableBaseQuantity / conversionFactor,
+                    issueQuantity: issueBaseQuantity / conversionFactor,
+                    projectedAfterQuantity: projectedAfterBaseQuantity / conversionFactor,
+                    shortageQuantity: Math.max(-projectedAfterBaseQuantity, 0) / conversionFactor
+                };
+            })
+            .filter(Boolean);
+
+        return {
+            lines,
+            negativeLines: lines.filter(line => line.projectedAfterQuantity < 0)
+        };
+    }
+
+    function renderNegativeStockProjection(projection, requestMode) {
+
+        const panel = document.querySelector(selector.negativeStockProjection);
+        const badge = document.querySelector(selector.negativeStockProjectionBadge);
+        const message = document.querySelector(selector.negativeStockProjectionMessage);
+        const list = document.querySelector(selector.negativeStockProjectionLines);
+
+        if (!panel || !badge || !message || !list) {
+            return;
+        }
+
+        panel.classList.remove("is-pending", "is-normal", "is-negative", "is-blocked");
+        list.replaceChildren();
+
+        if (projection.lines.length === 0) {
+            panel.classList.add("is-pending");
+            badge.textContent = "Chưa thể xác định";
+            message.textContent = "Chọn cửa hàng, nguyên liệu và nhập số lượng để hệ thống xác định cách xuất.";
+            list.classList.add("d-none");
+            return;
+        }
+
+        if (projection.negativeLines.length === 0) {
+            panel.classList.add("is-normal");
+            badge.textContent = "Xuất thường";
+            message.textContent = requestMode
+                ? "Chưa có dòng vượt tồn; phiếu hiện được xử lý như xuất thường."
+                : "Mọi dòng đều nằm trong tồn khả dụng và không cần phê duyệt xuất vượt tồn.";
+            list.classList.add("d-none");
+            return;
+        }
+
+        const projectedNegativeAllowed = requestMode;
+        panel.classList.add(projectedNegativeAllowed ? "is-negative" : "is-blocked");
+        badge.textContent = projectedNegativeAllowed
+            ? "Yêu cầu xuất vượt tồn"
+            : "Vượt tồn không được phép";
+        message.textContent = projectedNegativeAllowed
+            ? `Có ${projection.negativeLines.length} dòng sẽ làm tồn kho âm và cần lý do, phê duyệt.`
+            : "Phiếu đang ở chế độ xuất thường. Hãy giảm số lượng hoặc chọn yêu cầu xuất vượt tồn nếu chính sách cho phép.";
+
+        projection.negativeLines.forEach(line => {
+            const item = document.createElement("li");
+            item.textContent = `${line.ingredientName}: tồn ${formatQuantity(line.availableQuantity)} ${line.unitLabel}, xuất ${formatQuantity(line.issueQuantity)} ${line.unitLabel}, thiếu ${formatQuantity(line.shortageQuantity)} ${line.unitLabel}.`;
+            list.appendChild(item);
+        });
+        list.classList.remove("d-none");
+    }
+
+    function updateCreateDocumentAction(isProjectedNegative) {
+
+        const label = document.querySelector(selector.createDocumentActionLabel);
+        const icon = document.querySelector(selector.createDocumentActionIcon);
+
+        if (label) {
+            label.textContent = isProjectedNegative
+                ? "Gửi yêu cầu xuất vượt tồn"
+                : "Tạo & xác nhận";
+        }
+
+        if (icon) {
+            icon.className = isProjectedNegative
+                ? "fas fa-paper-plane"
+                : "fas fa-check";
         }
     }
 
@@ -1841,8 +1968,8 @@ const InventoryCreate = (() => {
 
         notify(
             available > 0
-                ? `Nguyên liệu "${item.ingredientName ?? item.IngredientName ?? "đã chọn"}" chỉ còn ${formatQuantity(available / conversionFactor)} ${getSelectedUnitLabel(row, item)}. Hệ thống đã giảm số lượng về mức còn tồn.${isExportSale() ? " Bật \"Cho phép xuất âm kho\" nếu nghiệp vụ xuất bán này được phép." : ""}`
-                : `Nguyên liệu "${item.ingredientName ?? item.IngredientName ?? "đã chọn"}" hiện không còn tồn khả dụng.${isExportSale() ? " Hãy bật \"Cho phép xuất âm kho\" nếu nghiệp vụ xuất bán này được phép." : " Hãy chọn nguyên liệu khác hoặc kiểm tra lại tồn kho."}`,
+                ? `Nguyên liệu "${item.ingredientName ?? item.IngredientName ?? "đã chọn"}" chỉ còn ${formatQuantity(available / conversionFactor)} ${getSelectedUnitLabel(row, item)}. Hệ thống đã giảm số lượng về mức còn tồn.${isExportSale() ? " Chọn \"Yêu cầu xuất vượt tồn\" nếu nghiệp vụ được phép." : ""}`
+                : `Nguyên liệu "${item.ingredientName ?? item.IngredientName ?? "đã chọn"}" hiện không còn tồn khả dụng.${isExportSale() ? " Hãy chọn \"Yêu cầu xuất vượt tồn\" nếu chính sách hệ thống cho phép." : " Hãy chọn nguyên liệu khác hoặc kiểm tra lại tồn kho."}`,
             "error"
         );
 
@@ -1981,6 +2108,8 @@ const InventoryCreate = (() => {
 
     function requestSummary() {
 
+        updateNegativeStockFields();
+
         clearTimeout(summaryTimer);
 
         summaryTimer =
@@ -2071,10 +2200,16 @@ const InventoryCreate = (() => {
                 const preflightResponse = await postJson(getEndpoint("preflightUrl"), dto);
                 const preflight = preflightResponse.preflight || preflightResponse.Preflight;
                 renderNegativePreflight(preflight);
+                const preflightLines = preflight?.lines || preflight?.Lines || [];
+                const serverHasNegativeLine = preflightLines.some(line =>
+                    Number(line.projectedAfterQty ?? line.ProjectedAfterQty ?? 0) < 0);
+                if (!serverHasNegativeLine) {
+                    dto.allowNegativeStock = false;
+                    dto.negativeReason = null;
+                }
                 const outcome = String(preflight?.outcome ?? preflight?.Outcome ?? "");
                 if (outcome === "3" || outcome.toLowerCase() === "blocked") {
-                    const lines = preflight?.lines || preflight?.Lines || [];
-                    const blockedLine = lines.find(line => {
+                    const blockedLine = preflightLines.find(line => {
                         const lineOutcome = String(line.outcome ?? line.Outcome ?? "");
                         return lineOutcome === "3" || lineOutcome.toLowerCase() === "blocked";
                     });
@@ -2086,17 +2221,21 @@ const InventoryCreate = (() => {
                 }
                 if ((outcome === "2" || outcome.toLowerCase() === "approvalrequired")
                     && !dto.negativeReason?.trim()) {
-                    throw new Error("Lý do xuất âm là bắt buộc trước khi gửi yêu cầu phê duyệt.");
+                    throw new Error("Lý do cần xuất vượt tồn là bắt buộc trước khi gửi yêu cầu phê duyệt.");
                 }
             }
 
             const result =
                 await postJson(endpoint, dto);
 
-            notify(
-                `${saveAsDraft ? "Đã lưu nháp" : "Đã tạo và xác nhận"} - Mã hệ thống: #${result.id}`,
-                "success"
-            );
+            const resultStatus = String(result.status ?? result.Status ?? "").toUpperCase();
+            const successMessage = saveAsDraft
+                ? "Đã lưu nháp"
+                : resultStatus === "PENDING"
+                    ? "Đã gửi yêu cầu phê duyệt xuất vượt tồn"
+                    : "Đã tạo và xác nhận";
+
+            notify(`${successMessage} - Mã hệ thống: #${result.id}`, "success");
 
             if (!saveAsDraft) {
                 await showStockWarnings(result.warnings || result.Warnings || []);
@@ -2173,7 +2312,8 @@ const InventoryCreate = (() => {
             effectiveSupplierId || null;
 
         const allowNegativeStock =
-            allowsManualNegativeExport();
+            allowsManualNegativeExport()
+            && collectStockProjection().negativeLines.length > 0;
 
         return {
             type:
@@ -2266,6 +2406,10 @@ const InventoryCreate = (() => {
 
         if (invalidDetail) {
             return "Chi tiết phiếu có nguyên liệu, đơn vị hoặc số lượng không hợp lệ.";
+        }
+
+        if (dto.allowNegativeStock && !dto.negativeReason?.trim()) {
+            return "Lý do cần xuất vượt tồn là bắt buộc khi số lượng xuất lớn hơn tồn khả dụng.";
         }
 
         return null;
@@ -2975,7 +3119,7 @@ const InventoryCreate = (() => {
 
     function allowsManualNegativeExport() {
         return isExportSale()
-            && document.querySelector(selector.allowNegativeStock)?.checked === true;
+            && document.querySelector(selector.negativeStockModeRequest)?.checked === true;
     }
 
     function isStockTake() {

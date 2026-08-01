@@ -176,15 +176,6 @@ namespace CafeChain.Application.Services.Operations
             if (string.Equals(type, StaffNotificationTypes.OperationalAnomaly, StringComparison.OrdinalIgnoreCase) && storeId > 0)
                 return $"/Admin/AdminOperationalAnomalies?targetStoreId={storeId}#anomaly-{entityId}";
 
-            if (string.Equals(
-                    type,
-                    StaffScheduleNotificationTypes.Gap,
-                    StringComparison.OrdinalIgnoreCase)
-                && storeId > 0)
-            {
-                return $"/Admin/AdminShiftOptimization?targetStoreId={storeId}";
-            }
-
             var isStockAlert =
                 string.Equals(entityType, StaffNotificationEntityTypes.StockAlert, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(type, StaffNotificationTypes.StockShortageReport, StringComparison.OrdinalIgnoreCase) ||

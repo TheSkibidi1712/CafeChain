@@ -6,14 +6,18 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.PreparedItems;
+using CafeChain.Application.DTOs.Admin.Permissions;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.PreparedItems;
+using CafeChain.Application.Results;
 using CafeChain.Areas.Admin.Controllers;
-using CafeChain.Helpers;
 using CafeChain.ViewModels.Admin.PreparedItems;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
 
@@ -48,13 +52,28 @@ namespace CafeChain.Tests.POS
             return File.ReadAllText(path);
         }
 
-        private static AdminPreparedItemController CreateController(string role, out Mock<IAdminPreparedItemService> mock)
+        private static AdminPreparedItemController CreateController(
+            string role,
+            IReadOnlyCollection<string> allowedPermissions,
+            out Mock<IAdminPreparedItemService> mock)
         {
             mock = new Mock<IAdminPreparedItemService>(MockBehavior.Strict);
             mock.Setup(s => s.GetPagedAsync(It.IsAny<string?>(), It.IsAny<bool?>(), It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync((new List<AdminPreparedItemDTO>(), 0));
 
             var controller = new AdminPreparedItemController(mock.Object);
+            var permissions = new Mock<IAdminPermissionService>();
+            permissions.Setup(x => x.HasPermissionAsync(1, It.IsAny<string>(), It.IsAny<int?>()))
+                .ReturnsAsync((int _, string code, int? _) =>
+                    ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                    {
+                        AccountId = 1,
+                        PermissionCode = code,
+                        Allowed = allowedPermissions.Contains(code)
+                    }));
+            var services = new ServiceCollection()
+                .AddSingleton(permissions.Object)
+                .BuildServiceProvider();
             var claims = new List<Claim>
             {
                 new(ClaimTypes.NameIdentifier, "1"),
@@ -62,19 +81,24 @@ namespace CafeChain.Tests.POS
                 new(ClaimTypes.Email, "t@test.local"),
                 new(ClaimTypes.Role, role),
             };
+            var httpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, authenticationType: "Test")),
+                RequestServices = services
+            };
             controller.ControllerContext = new ControllerContext
             {
-                HttpContext = new DefaultHttpContext
-                {
-                    User = new ClaimsPrincipal(new ClaimsIdentity(claims, authenticationType: "Test"))
-                }
+                HttpContext = httpContext
             };
+            controller.TempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>());
             return controller;
         }
 
-        private static async Task<AdminPreparedItemIndexPageVM> InvokeIndexAsync(string role)
+        private static async Task<AdminPreparedItemIndexPageVM> InvokeIndexAsync(
+            string role,
+            params string[] allowedPermissions)
         {
-            var controller = CreateController(role, out _);
+            var controller = CreateController(role, allowedPermissions, out _);
             var result = await controller.Index(null, null, 1);
             var view = Assert.IsType<ViewResult>(result);
             var vm = Assert.IsType<AdminPreparedItemIndexPageVM>(view.Model);
@@ -114,72 +138,46 @@ namespace CafeChain.Tests.POS
         {
             var html = ReadIndexView();
             // Read-only empty copy present; create CTAs still exist in markup but only under canWrite.
-            Assert.Contains("Chỉ Quản trị hệ thống, Chủ doanh nghiệp hoặc Kế toán/kho", html, StringComparison.Ordinal);
-
-            // Controller: panel-read roles must not get CanWrite.
-            foreach (var role in new[]
-                     {
-                         RoleConstants.StoreManager,
-                         RoleConstants.AreaManager,
-                         RoleConstants.SalesStaff,
-                         RoleConstants.ShiftSupervisor
-                     })
-            {
-                Assert.False(RoleHelper.CanWritePreparedItems(
-                    new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, role) }, "Test"))),
-                    role);
-            }
+            Assert.Contains("Tài khoản hiện tại chỉ có quyền xem", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("RoleConstants", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("User.IsInRole", html, StringComparison.Ordinal);
         }
 
         [Fact]
-        public void AdminPreparedItem_Create_UnauthorizedRole_IsRejected()
+        public void AdminPreparedItem_Create_RequiresPermissionWithoutRoleAllowList()
         {
             var method = typeof(AdminPreparedItemController).GetMethod(nameof(AdminPreparedItemController.Create));
             Assert.NotNull(method);
-            var auth = method!.GetCustomAttribute<AuthorizeAttribute>();
+            var auth = method!.GetCustomAttribute<RequirePermissionAttribute>();
             Assert.NotNull(auth);
-            Assert.Equal(RoleHelper.PreparedItemWriteRoles, auth!.Roles);
-
-            Assert.Contains(RoleConstants.SystemAdmin, auth.Roles, StringComparison.Ordinal);
-            Assert.Contains(RoleConstants.BusinessOwner, auth.Roles, StringComparison.Ordinal);
-            Assert.Contains(RoleConstants.AccountantWarehouse, auth.Roles, StringComparison.Ordinal);
-            Assert.DoesNotContain(RoleConstants.StoreManager, auth.Roles, StringComparison.Ordinal);
-            Assert.DoesNotContain(RoleConstants.AreaManager, auth.Roles, StringComparison.Ordinal);
-            Assert.DoesNotContain(RoleConstants.SalesStaff, auth.Roles, StringComparison.Ordinal);
-            Assert.DoesNotContain(RoleConstants.ShiftSupervisor, auth.Roles, StringComparison.Ordinal);
-            Assert.DoesNotContain(RoleConstants.Customer, auth.Roles, StringComparison.Ordinal);
-
-            // UI helper stays aligned with server Authorize surface.
-            Assert.False(RoleHelper.CanWritePreparedItems(
-                new ClaimsPrincipal(new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.Role, RoleConstants.StoreManager)
-                }, "Test"))));
+            Assert.Equal(
+                RequirePermissionAttribute.PolicyPrefix + PermissionConstants.PreparedItemCreate,
+                auth!.Policy);
+            Assert.Null(auth.Roles);
         }
 
         [Fact]
         public async Task AdminPreparedItem_Index_PageModel_CarriesCanWritePermission()
         {
-            foreach (var writeRole in new[]
+            foreach (var role in new[]
                      {
                          RoleConstants.SystemAdmin,
+                         RoleConstants.StoreManager
+                     })
+            {
+                var vm = await InvokeIndexAsync(role, PermissionConstants.PreparedItemCreate);
+                Assert.True(vm.CanWrite, $"Expected CanWrite from effective permission for {role}");
+                Assert.Empty(vm.Items);
+            }
+
+            foreach (var role in new[]
+                     {
                          RoleConstants.BusinessOwner,
                          RoleConstants.AccountantWarehouse
                      })
             {
-                var vm = await InvokeIndexAsync(writeRole);
-                Assert.True(vm.CanWrite, $"Expected CanWrite for {writeRole}");
-                Assert.Empty(vm.Items);
-            }
-
-            foreach (var readRole in new[]
-                     {
-                         RoleConstants.StoreManager,
-                         RoleConstants.AreaManager
-                     })
-            {
-                var vm = await InvokeIndexAsync(readRole);
-                Assert.False(vm.CanWrite, $"Expected !CanWrite for {readRole}");
+                var vm = await InvokeIndexAsync(role);
+                Assert.False(vm.CanWrite, $"Expected override-denied capability for {role}");
             }
         }
     }

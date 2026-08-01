@@ -103,9 +103,9 @@ Confidence phản ánh chất lượng bằng chứng. Confidence giảm khi m�
 
 Tiền được định dạng VND theo `vi-VN`; tỷ lệ hiển thị `%`; đơn hàng hiển thị “đơn”; tồn kho hiển thị số lượng kèm đơn vị thực tế. Nếu thiếu trục, thiếu dòng hoặc toàn bộ giá trị rỗng, giao diện tự chuyển sang bảng.
 
-## 7. Màn hình “Cấu hình lịch & cảnh báo”
+## 7. Màn hình “Cấu hình dữ liệu lịch”
 
-Mở màn hình lịch của cửa hàng và chọn **Cấu hình lịch & cảnh báo**. Mỗi tab có nhãn và phần hướng dẫn ngay dưới trường nhập. Bốn nhóm dữ liệu này chỉ phục vụ việc phát hiện ca thiếu người và lọc danh sách nhân viên phù hợp.
+Mở màn hình lịch của cửa hàng và chọn **Cấu hình dữ liệu lịch**. Bốn nhóm dữ liệu là thông tin tham khảo cho quản lý khi phân lịch thủ công; hệ thống không tự kiểm tra, cảnh báo hoặc áp dụng lịch.
 
 ### Khả dụng
 
@@ -131,50 +131,13 @@ Chọn nhân viên, thời gian bắt đầu, thời gian kết thúc và lý do
 ### Sau khi lưu cấu hình
 
 - Kiểm tra lại phần **Cấu hình đã lưu** để xác nhận tên nhân viên, ca, vai trò, ngày và trạng thái.
-- Theo dõi chuông thông báo để biết ca nào đang thiếu người trong hai ngày tới.
 - Mở màn hình lịch nhân viên và phân ca thủ công sau khi quản lý đã xác minh tình hình thực tế.
 
 Hệ thống không tạo phương án phân công, không cung cấp nút tự động áp dụng lịch và không thay đổi các lịch đã có.
 
-## 8. Cảnh báo thiếu lịch nhân sự
+## 8. Trạng thái cảnh báo lịch
 
-### Quy tắc phát hiện
-
-Worker backend kiểm tra hai ngày kế tiếp. Một ca bị cảnh báo khi số nhân viên đã xếp thấp hơn `TargetStaff` của định mức.
-
-Danh sách nhân viên gợi ý chỉ gồm người:
-
-- Đang hoạt động và thuộc đúng cửa hàng.
-- Có khai báo khả dụng bao phủ toàn bộ ca.
-- Không có ngoại lệ “không khả dụng”.
-- Không nghỉ phép đã duyệt.
-- Không trùng lịch.
-- Không vượt giới hạn giờ ngày/tuần.
-- Đủ thời gian nghỉ tối thiểu.
-- Đúng vai trò nếu định mức yêu cầu.
-
-AI và Ollama không quyết định ca có thiếu người hay không. Quyết định cảnh báo hoàn toàn do rule backend dựa trên định mức và lịch hiện tại.
-
-### Nội dung và người nhận
-
-Thông báo gồm cửa hàng, ngày, tên ca, số người còn thiếu, số đã xếp, mục tiêu và danh sách nhân viên phù hợp chưa có lịch.
-
-Người nhận:
-
-- Quản lý cửa hàng.
-- Quản lý vùng hoặc chủ doanh nghiệp có quyền xem thông báo, quyền xem lịch và StoreScope phù hợp.
-
-Phiên bản hiện tại không gửi cho nhân viên.
-
-### Dedupe, nhắc lại và resolve
-
-Khóa chống trùng gồm:
-
-`Người nhận + Cửa hàng + Định mức + Ngày làm việc`
-
-Nếu ca vẫn thiếu, hệ thống cập nhật cùng thông báo và chỉ nhắc lại sau cooldown 24 giờ. Khi ca đủ người hoặc không còn nằm trong phạm vi kiểm tra, thông báo đang hoạt động được resolve.
-
-Thông báo được lưu trong danh sách Thông báo hiện có và phát realtime qua `InventoryNotificationHub`. Deep-link dẫn về màn hình **Cấu hình lịch & cảnh báo** của đúng cửa hàng.
+Cơ chế worker/service tự động phát hiện và gửi cảnh báo thiếu lịch đã được gỡ. Các bản ghi notification lịch cũ được giữ trong database cho audit nhưng không hiển thị và không tính vào số chưa đọc.
 
 ## 9. Cấu hình kỹ thuật
 
@@ -182,31 +145,8 @@ Thông báo được lưu trong danh sách Thông báo hiện có và phát real
 {
   "DashboardIntelligence": {
     "ExplanationEnabled": false
-  },
-  "StaffScheduleNotifications": {
-    "Enabled": false,
-    "InitialDelaySeconds": 60,
-    "IntervalMinutes": 60,
-    "LookaheadDays": 2,
-    "MaximumCandidatesPerAlert": 10,
-    "ReminderCooldownHours": 24
   }
 }
-```
-
-Cấu hình gốc tắt hai tính năng phụ thuộc môi trường. Development có thể bật bằng `appsettings.Development.json`; Production/UAT chỉ bật sau khi kiểm tra quyền, seed và lịch thật.
-
-Luồng kỹ thuật:
-
-```text
-StaffScheduleGapNotificationWorker
-  → Staffing requirement + lịch hiện tại
-  → Availability + time-off + constraint + role
-  → StaffScheduleGapNotificationService
-  → StaffNotification (persist/dedupe/resolve)
-  → SignalRInventoryNotificationPublisher
-  → InventoryNotificationHub
-  → Chuông thông báo Admin
 ```
 
 ## 10. Giới hạn bắt buộc

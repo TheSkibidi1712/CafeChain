@@ -2,7 +2,6 @@ using CafeChain.Application.DTOs.Admin.PreparedItems;
 using CafeChain.Application.Authorization;
 using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.PreparedItems;
-using CafeChain.Helpers;
 using CafeChain.ViewModels.Admin.PreparedItems;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,8 +12,7 @@ namespace CafeChain.Areas.Admin.Controllers
 {
     /// <summary>
     /// PreparedItem master CRUD — ADR-0006 / Issue #116.
-    /// View: RequireAdminPanelAccess (base).
-    /// Write: SystemAdmin, BusinessOwner, AccountantWarehouse only.
+    /// View and mutation capabilities are resolved from effective RBAC permissions.
     /// </summary>
     [RequirePermission(PermissionConstants.PreparedItemView)]
     public class AdminPreparedItemController : AdminBaseController
@@ -32,8 +30,10 @@ namespace CafeChain.Areas.Admin.Controllers
             const int pageSize = 10;
             var (data, total) = await _service.GetPagedAsync(search, status, page, pageSize);
             var totalPages = Math.Max(1, (int)Math.Ceiling((double)total / pageSize));
-            // Single source of truth for UI CTAs — must match Create/Update/SetActive Authorize roles.
-            var canWrite = RoleHelper.CanWritePreparedItems(User);
+            // Single source of truth for UI CTAs — account overrides are respected.
+            var canWrite = await HasEffectivePermissionAsync(PermissionConstants.PreparedItemCreate)
+                || await HasEffectivePermissionAsync(PermissionConstants.PreparedItemUpdate)
+                || await HasEffectivePermissionAsync(PermissionConstants.PreparedItemToggleStatus);
 
             var vm = new AdminPreparedItemIndexPageVM
             {
@@ -81,7 +81,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequirePermission(PermissionConstants.PreparedItemCreate, RoleHelper.PreparedItemWriteRoles)]
+        [RequirePermission(PermissionConstants.PreparedItemCreate)]
         public async Task<IActionResult> Create([FromBody] AdminPreparedItemSaveDTO dto)
         {
             if (!ModelState.IsValid)
@@ -100,7 +100,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequirePermission(PermissionConstants.PreparedItemUpdate, RoleHelper.PreparedItemWriteRoles)]
+        [RequirePermission(PermissionConstants.PreparedItemUpdate)]
         public async Task<IActionResult> Update([FromBody] AdminPreparedItemSaveDTO dto)
         {
             if (!ModelState.IsValid)
@@ -119,7 +119,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequirePermission(PermissionConstants.PreparedItemToggleStatus, RoleHelper.PreparedItemWriteRoles)]
+        [RequirePermission(PermissionConstants.PreparedItemToggleStatus)]
         public async Task<IActionResult> SetActive([FromBody] AdminPreparedItemToggleDTO dto)
         {
             try

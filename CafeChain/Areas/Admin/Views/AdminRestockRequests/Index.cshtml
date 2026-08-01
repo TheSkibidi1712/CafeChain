@@ -23,11 +23,9 @@
             <p class="ops-subtitle">Theo dõi yêu cầu bổ sung hàng cho chi nhánh #@Model.StoreId. Yêu cầu chỉ ghi nhận nhu cầu; tồn kho chỉ thay đổi từ phiếu nhận hoặc điều chuyển đã xác nhận.</p>
         </div>
         <div class="ops-actions">
-            <a class="ops-btn" asp-action="CreateManual" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo thủ công</a>
-            @if (User.IsInRole(CafeChain.Application.Constants.RoleConstants.AccountantWarehouse)
-                || User.IsInRole(CafeChain.Application.Constants.RoleConstants.AreaManager)
-                || User.IsInRole(CafeChain.Application.Constants.RoleConstants.BusinessOwner))
+            @if (ViewBag.CanCreateDemand is true)
             {
+                <a class="ops-btn" asp-action="CreateManual" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo thủ công</a>
                 <a class="ops-btn" asp-action="CreateCentralPlanner" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Kế hoạch trung tâm</a>
             }
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</a>

@@ -156,6 +156,11 @@ public sealed class DashboardExplanationResultDto
     public bool Success { get; set; }
     public string Explanation { get; set; } = string.Empty;
     public string Summary { get; set; } = string.Empty;
+    public string DirectAnswer { get; set; } = string.Empty;
+    public List<DashboardProofPointDto> ProofPoints { get; set; } = [];
+    public DashboardActionToCheckDto? ActionToCheck { get; set; }
+    public List<string> UsedEvidenceIds { get; set; } = [];
+    public List<string> Limitations { get; set; } = [];
     public List<DashboardNarrativeItemDto> Inferences { get; set; } = [];
     public List<DashboardNarrativeItemDto> Recommendations { get; set; } = [];
     public List<DashboardNarrativeItemDto> Overview { get; set; } = [];
@@ -192,6 +197,9 @@ public sealed class DashboardEvidenceDto
     public decimal? DeviationPercent { get; set; }
     public long SampleSize { get; set; }
     public string Unit { get; set; } = string.Empty;
+    public string DisplayMetric { get; set; } = string.Empty;
+    public string DisplayValue { get; set; } = string.Empty;
+    public string DisplayUnit { get; set; } = string.Empty;
     public string DataStatus { get; set; } = "NO_DATA";
     public string? EntityType { get; set; }
     public string? EntityId { get; set; }
@@ -204,6 +212,40 @@ public sealed class DashboardEvidenceDto
     public string? RiskLevel { get; set; }
     public Dictionary<string, object?> Metadata { get; set; } =
         new(StringComparer.OrdinalIgnoreCase);
+}
+
+public sealed class DashboardProofPointDto
+{
+    public string Text { get; set; } = string.Empty;
+    public List<string> EvidenceIds { get; set; } = [];
+}
+
+public sealed class DashboardActionToCheckDto
+{
+    public string Text { get; set; } = string.Empty;
+    public List<string> EvidenceIds { get; set; } = [];
+    public string? VerifyCondition { get; set; }
+}
+
+public sealed class DashboardSectionConfigDto
+{
+    public bool ShowDirectAnswer { get; set; } = true;
+    public bool ShowProofPoints { get; set; } = true;
+    public bool ShowActionToCheck { get; set; }
+    public bool ShowChart { get; set; } = true;
+    public bool ShowTable { get; set; } = true;
+    public bool ShowLimitations { get; set; } = true;
+    public bool ShowDataSource { get; set; } = true;
+}
+
+public sealed class DashboardDataSourceDto
+{
+    public List<string> EvidenceIds { get; set; } = [];
+    public Dictionary<string, string> AppliedFilters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public List<string> Widgets { get; set; } = [];
+    public string DataStatus { get; set; } = "NO_DATA";
+    public bool UsedFallback { get; set; }
+    public string? FallbackReason { get; set; }
 }
 
 public sealed class DashboardNarrativeItemDto
@@ -232,6 +274,11 @@ public sealed class DashboardStructuredAnalysisResultDto
     public string FilterFingerprint { get; set; } = string.Empty;
     public string DataStatus { get; set; } = "NO_DATA";
     public string Summary { get; set; } = string.Empty;
+    public string DirectAnswer { get; set; } = string.Empty;
+    public List<DashboardProofPointDto> ProofPoints { get; set; } = [];
+    public DashboardActionToCheckDto? ActionToCheck { get; set; }
+    public DashboardSectionConfigDto SectionConfig { get; set; } = new();
+    public DashboardDataSourceDto DataSource { get; set; } = new();
     public List<DashboardEvidenceDto> Facts { get; set; } = [];
     public List<DashboardNarrativeItemDto> Inferences { get; set; } = [];
     public List<DashboardEvidenceDto> Statistics { get; set; } = [];

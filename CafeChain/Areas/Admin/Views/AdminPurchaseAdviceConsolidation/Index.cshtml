@@ -5,8 +5,7 @@
 @model PurchaseAdviceConsolidationPageDto
 @{
     ViewData["Title"] = "Tổng hợp đề nghị mua";
-    var canConsolidate = Model.Actor.RoleNames.Contains(RoleConstants.AccountantWarehouse)
-        || Model.Actor.RoleNames.Contains(RoleConstants.BusinessOwner);
+    var canConsolidate = ViewBag.CanConsolidate is true;
     var preview = ViewBag.Preview as PurchaseAdviceConsolidationPreviewDto;
     var createsConsolidatedOrder = preview?.LineCount > 1;
     var createOrderLabel = createsConsolidatedOrder

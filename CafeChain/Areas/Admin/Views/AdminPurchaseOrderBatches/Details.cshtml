@@ -5,10 +5,9 @@
 @{
     ViewData["Title"] = $"Đơn đặt hàng gộp {Model.Batch.BatchNumber}";
     var batch = Model.Batch;
-    var isOwner = Model.Actor.RoleNames.Contains(RoleConstants.BusinessOwner);
-    var canDocument = isOwner || Model.Actor.RoleNames.Contains(RoleConstants.AccountantWarehouse);
-    var canApprove = isOwner && batch.Status == PurchaseOrderBatchStatuses.PendingApproval;
-    var canCancel = isOwner && batch.Status is not PurchaseOrderBatchStatuses.Completed and not PurchaseOrderBatchStatuses.Cancelled;
+    var canDocument = ViewBag.CanDocument is true;
+    var canApprove = ViewBag.CanApprove is true && batch.Status == PurchaseOrderBatchStatuses.PendingApproval;
+    var canCancel = ViewBag.CanCancel is true && batch.Status is not PurchaseOrderBatchStatuses.Completed and not PurchaseOrderBatchStatuses.Cancelled;
     var canGenerate = canDocument && PurchaseOrderBatchStatuses.ApprovedOrLater.Contains(batch.Status);
     var latestRevision = Model.DocumentRevisions.OrderByDescending(x => x.RevisionNumber).FirstOrDefault();
     var sendableRevision = Model.DocumentRevisions.FirstOrDefault(x => x.Status == PurchaseOrderBatchDocumentStatuses.Generated);

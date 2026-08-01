@@ -1,7 +1,7 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Suppliers;
 using CafeChain.Areas.Admin.Controllers;
-using Microsoft.AspNetCore.Authorization;
 using System.Reflection;
 using Xunit;
 
@@ -10,28 +10,31 @@ namespace CafeChain.Tests;
 public sealed class SupplierTaxCodeUiAuthorizationTests
 {
     [Fact]
-    public void SupplierTaxCode_MutationEndpointsKeepExistingAuthorizedRoles()
+    public void SupplierTaxCode_MutationEndpointsUseBusinessPermissions()
     {
-        AssertMutationRoles(nameof(AdminSupplierController.Create));
-        AssertMutationRoles(nameof(AdminSupplierController.Update));
-        AssertMutationRoles(nameof(AdminSupplierController.ToggleStatus));
+        AssertMutationPermission(nameof(AdminSupplierController.Create), PermissionConstants.SupplierCreate);
+        AssertMutationPermission(nameof(AdminSupplierController.Update), PermissionConstants.SupplierUpdate);
+        AssertMutationPermission(nameof(AdminSupplierController.ToggleStatus), PermissionConstants.SupplierToggleStatus);
     }
 
     [Fact]
-    public void SupplierTaxCode_UnauthorizedBranchRolesAreNotGrantedMutation()
+    public void SupplierTaxCode_MutationEndpointsDoNotEmbedRoleAllowLists()
     {
-        var roles = MutationRoles(nameof(AdminSupplierController.Create));
-        Assert.DoesNotContain(RoleConstants.StoreManager, roles);
-        Assert.DoesNotContain(RoleConstants.AreaManager, roles);
-        Assert.DoesNotContain(RoleConstants.SalesStaff, roles);
-        Assert.DoesNotContain(RoleConstants.ShiftSupervisor, roles);
-        Assert.Contains(RoleConstants.SystemAdmin, roles);
+        foreach (var action in new[]
+                 {
+                     nameof(AdminSupplierController.Create),
+                     nameof(AdminSupplierController.Update),
+                     nameof(AdminSupplierController.ToggleStatus)
+                 })
+        {
+            Assert.Null(PermissionAttribute(action).Roles);
+        }
     }
 
     [Fact]
     public void SupplierSoftOverride_UsesProtectedCreateEndpoint_AndHasNoForceFlag()
     {
-        AssertMutationRoles(nameof(AdminSupplierController.Create));
+        AssertMutationPermission(nameof(AdminSupplierController.Create), PermissionConstants.SupplierCreate);
         Assert.Null(typeof(AdminSupplierCreateDTO).GetProperty("ForceCreate", BindingFlags.Public | BindingFlags.Instance));
         Assert.NotNull(typeof(AdminSupplierCreateDTO).GetProperty(nameof(AdminSupplierCreateDTO.DuplicateWarningId)));
         Assert.NotNull(typeof(AdminSupplierCreateDTO).GetProperty(nameof(AdminSupplierCreateDTO.DuplicateOverrideReason)));
@@ -55,22 +58,17 @@ public sealed class SupplierTaxCodeUiAuthorizationTests
         Assert.DoesNotContain("forceCreate", script, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void AssertMutationRoles(string action)
+    private static void AssertMutationPermission(string action, string permissionCode)
     {
-        var roles = MutationRoles(action);
-        Assert.Contains(RoleConstants.BusinessOwner, roles);
-        Assert.Contains(RoleConstants.AccountantWarehouse, roles);
-        Assert.Contains(RoleConstants.SystemAdmin, roles);
-        Assert.Equal(3, roles.Count);
+        var authorize = PermissionAttribute(action);
+        Assert.Equal(RequirePermissionAttribute.PolicyPrefix + permissionCode, authorize.Policy);
+        Assert.Null(authorize.Roles);
     }
 
-    private static List<string> MutationRoles(string action) =>
+    private static RequirePermissionAttribute PermissionAttribute(string action) =>
         typeof(AdminSupplierController)
             .GetMethod(action)!
-            .GetCustomAttribute<AuthorizeAttribute>()!
-            .Roles!
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToList();
+            .GetCustomAttribute<RequirePermissionAttribute>()!;
 
     private static string RepoFile(params string[] parts)
     {

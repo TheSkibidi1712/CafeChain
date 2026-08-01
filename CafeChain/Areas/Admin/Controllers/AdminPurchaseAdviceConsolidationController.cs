@@ -9,12 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers;
 
 [Area("Admin")]
-[RequirePermission(PermissionConstants.PurchaseAdviceConsolidate,
-    RoleConstants.BusinessOwner + "," +
-    RoleConstants.AreaManager + "," +
-    RoleConstants.StoreManager + "," +
-    RoleConstants.AccountantWarehouse)]
-public sealed class AdminPurchaseAdviceConsolidationController : Controller
+    [RequirePermission(PermissionConstants.PurchaseAdviceConsolidate)]
+public sealed class AdminPurchaseAdviceConsolidationController : AdminStoreScopedController
 {
     private readonly IPurchaseAdviceConsolidationService _service;
     private readonly IAdminActorContextAccessor _actorAccessor;
@@ -48,6 +44,7 @@ public sealed class AdminPurchaseAdviceConsolidationController : Controller
             SupplierId = supplierId
         }, _actorAccessor.Get(User));
         if (!result.IsSuccess) return Failure(result.ErrorCode, result.Message);
+        ViewBag.CanConsolidate = await HasEffectivePermissionAsync(PermissionConstants.PurchaseAdviceConsolidate);
         return View(result.Data);
     }
 
@@ -75,6 +72,7 @@ public sealed class AdminPurchaseAdviceConsolidationController : Controller
         ViewBag.SelectedLineIds = selectedLineIds;
         ViewBag.SelectedSupplierId = request.SupplierId;
         ViewBag.SubmittedSelections = submittedSelections;
+        ViewBag.CanConsolidate = await HasEffectivePermissionAsync(PermissionConstants.PurchaseAdviceConsolidate);
         return View("Index", page.Data);
     }
 
