@@ -14,6 +14,7 @@ import type {
   CartSyncQueueItem,
   SyncStatus,
 } from '../db/CafeChainPOSDB'
+import type { IceLevelPercent } from './iceLevel'
 
 export const ORDER_HISTORY_LABELS = {
   paid: 'Đã thanh toán',
@@ -50,6 +51,7 @@ export type HistoryDetailLineSafe = {
   quantity: number
   unitPrice: number
   lineTotal: number
+  iceLevelPercent?: IceLevelPercent | null
   note?: string | null
   toppings: string[]
 }
@@ -278,6 +280,9 @@ const mapItems = (order: LooseLocalOrder): HistoryDetailLineSafe[] => {
         quantity,
         unitPrice,
         lineTotal: unitPrice * quantity,
+        iceLevelPercent: raw.iceLevelPercent === 0 || raw.iceLevelPercent === 50 || raw.iceLevelPercent === 100
+          ? raw.iceLevelPercent
+          : null,
         note: typeof raw.note === 'string' ? raw.note : undefined,
         toppings: toppingNames,
       }
@@ -300,6 +305,9 @@ const mapItems = (order: LooseLocalOrder): HistoryDetailLineSafe[] => {
       quantity,
       unitPrice,
       lineTotal: unitPrice * quantity,
+      iceLevelPercent: raw.iceLevelPercent === 0 || raw.iceLevelPercent === 50 || raw.iceLevelPercent === 100
+        ? raw.iceLevelPercent
+        : null,
       note: typeof raw.note === 'string' ? raw.note : undefined,
       toppings: toppingNames,
     }

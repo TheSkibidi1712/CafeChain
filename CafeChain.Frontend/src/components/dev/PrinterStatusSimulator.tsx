@@ -23,28 +23,28 @@ export default function PrinterStatusSimulator() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 bg-white/95 backdrop-blur border border-border rounded-xl shadow-2xl p-4 w-72 select-none">
-      <div className="flex items-center justify-between mb-3 border-b border-border pb-2">
+    <details className="pos-printer-simulator fixed bottom-4 left-4 z-50 w-72 select-none rounded-xl border border-border bg-white shadow-[var(--pos-shadow)]">
+      <summary className="pos-printer-simulator-summary pos-touch-target flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-1.5">
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-orange opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-orange"></span>
-          </span>
+          <span className="h-2 w-2 rounded-full bg-brand-orange" aria-hidden="true" />
           <h3 className="text-xs font-extrabold text-text-primary uppercase tracking-wide">
             Printer Simulator
           </h3>
         </div>
+        <span className="text-xs font-bold text-text-secondary" aria-hidden="true">Mở</span>
+      </summary>
+
+      <div className="border-t border-border px-4 pb-4 pt-3">
         {activeMock && (
           <button
             onClick={resetMock}
-            className="text-[10px] text-brand-orange hover:underline font-semibold cursor-pointer"
+            className="mb-2 min-h-11 w-full rounded-lg border border-brand-orange-border px-3 text-left text-[11px] font-bold text-brand-orange hover:bg-brand-orange-light cursor-pointer"
           >
-            Reset Real
+            Trở về trạng thái thật
           </button>
         )}
-      </div>
 
-      <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
         <button
           onClick={() => triggerMock('ready')}
           className={`w-full py-2 px-3 rounded-lg text-xs font-semibold text-left transition-all border flex items-center justify-between cursor-pointer ${
@@ -80,12 +80,13 @@ export default function PrinterStatusSimulator() {
           <span>Mock: Đứt cáp (Offline)</span>
           <span className="w-2.5 h-2.5 rounded-full bg-gray-400"></span>
         </button>
-      </div>
+        </div>
 
-      <div className="mt-3 text-[9px] text-text-muted flex justify-between">
-        <span>Môi trường: Development</span>
-        <span>Active: {activeMock ? activeMock.toUpperCase() : 'REAL Hub'}</span>
+        <div className="mt-3 text-[9px] text-text-muted flex justify-between">
+          <span>Môi trường: Development</span>
+          <span>Active: {activeMock ? activeMock.toUpperCase() : 'REAL Hub'}</span>
+        </div>
       </div>
-    </div>
+    </details>
   )
 }

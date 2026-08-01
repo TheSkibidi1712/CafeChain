@@ -152,6 +152,8 @@ namespace CafeChain.Controllers.Api.v1
                             PriceSource = d.PriceSource,
                             CatalogVersion = d.CatalogVersion,
                             Quantity = d.Quantity,
+                            IceLevelPercent = d.IceLevelPercent,
+                            Note = d.Note,
                             Toppings = d.Toppings ?? new List<POSOrderToppingDto>()
                         }).ToList() ?? new List<POSOrderItemDto>(),
                         OrderTypeId = orderDto.OrderTypeId > 0 ? orderDto.OrderTypeId : 1,
