@@ -24,6 +24,32 @@
     const detailPanel = $('#supplierDetail');
     const detailContent = $('#supplierDetailContent');
     const detailPlaceholder = $('#supplierDetailPlaceholder');
+    let detailReturnFocus = null;
+    let modalReturnFocus = null;
+    let confirmReturnFocus = null;
+
+    function syncPageScrollLock() {
+        const overlayOpen = detailPanel?.classList.contains('is-open')
+            || $('#createSupplierModal')?.classList.contains('is-open')
+            || $('#supplierConfirmModal')?.classList.contains('is-open');
+        document.body.style.overflow = overlayOpen ? 'hidden' : '';
+    }
+
+    function trapFocus(event, container) {
+        if (event.key !== 'Tab' || !container) return;
+        const focusable = $$('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])', container)
+            .filter(item => item.offsetParent !== null);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
 
     const escapeHtml = (value) => String(value ?? '')
         .replaceAll('&', '&amp;')
@@ -135,20 +161,25 @@
     }));
 
     function openDetailShell() {
+        if (!detailPanel.classList.contains('is-open')) detailReturnFocus = document.activeElement;
         detailPanel.classList.add('is-open');
         detailPanel.setAttribute('aria-hidden', 'false');
         detailPlaceholder.classList.add('is-hidden');
         detailContent.classList.remove('is-hidden');
+        syncPageScrollLock();
     }
 
     function closeDetail() {
         detailPanel.classList.remove('is-open');
         detailPanel.setAttribute('aria-hidden', 'true');
         $$('#supplierRows tr').forEach(row => row.classList.remove('is-selected'));
+        syncPageScrollLock();
         if (window.innerWidth < 1180) {
             detailContent.classList.add('is-hidden');
             detailPlaceholder.classList.remove('is-hidden');
         }
+        detailReturnFocus?.focus();
+        detailReturnFocus = null;
     }
     $('#closeSupplierDetail')?.addEventListener('click', closeDetail);
 
@@ -222,6 +253,9 @@
         $('#detailCode').textContent = d.code;
         $('#detailName').textContent = d.name;
         $('#detailSummary').textContent = d.address || 'Chưa cập nhật địa chỉ';
+        const detailStatus = $('#detailStatus');
+        detailStatus.textContent = d.active ? 'Đang hoạt động' : 'Ngừng hoạt động';
+        detailStatus.className = `supplier-status ${d.active ? 'is-active' : 'is-inactive'}`;
         $('#overviewSupplierId').value = d.supplierId;
         $('#overviewRowVersion').value = d.rowVersion || '';
         $('#overviewName').value = d.name || '';
@@ -358,7 +392,9 @@
     });
 
     async function deletePhone(id) {
-        if (!window.confirm('Xóa số điện thoại này?')) return;
+        if (!await requestConfirmation(
+            'Xóa số điện thoại?',
+            'Số điện thoại này sẽ bị xóa khỏi hồ sơ nhà cung cấp.')) return;
         try { await api(`/DeletePhone?supplierPhoneId=${id}`, { method: 'POST' }); await refreshDetailData(); toast('Đã xóa số điện thoại.'); }
         catch (error) { toast(error.message, 'error'); }
     }
@@ -411,7 +447,9 @@
         catch (error) { toast(error.message, 'error'); }
     }
     async function deleteContact(id) {
-        if (!window.confirm('Xóa người liên hệ này?')) return;
+        if (!await requestConfirmation(
+            'Xóa người liên hệ?',
+            'Người liên hệ này sẽ bị xóa khỏi hồ sơ nhà cung cấp.')) return;
         try { await api(`/DeleteContact?supplierContactId=${id}`, { method: 'POST' }); await refreshDetailData(); toast('Đã xóa người liên hệ.'); }
         catch (error) { toast(error.message, 'error'); }
     }
@@ -673,6 +711,38 @@
 
     const modal = $('#createSupplierModal');
     const duplicatePanel = $('#supplierDuplicatePanel');
+    const confirmModal = $('#supplierConfirmModal');
+    let confirmResolver = null;
+
+    function closeConfirmation(confirmed) {
+        if (!confirmModal?.classList.contains('is-open')) return;
+        confirmModal.classList.remove('is-open');
+        confirmModal.setAttribute('aria-hidden', 'true');
+        syncPageScrollLock();
+        const resolver = confirmResolver;
+        confirmResolver = null;
+        resolver?.(confirmed);
+        confirmReturnFocus?.focus();
+        confirmReturnFocus = null;
+    }
+
+    function requestConfirmation(title, message) {
+        if (!confirmModal) return Promise.resolve(false);
+        confirmReturnFocus = document.activeElement;
+        $('#supplierConfirmTitle').textContent = title;
+        $('#supplierConfirmMessage').textContent = message;
+        confirmModal.classList.add('is-open');
+        confirmModal.setAttribute('aria-hidden', 'false');
+        syncPageScrollLock();
+        window.setTimeout(() => $('#cancelSupplierConfirm')?.focus(), 30);
+        return new Promise(resolve => { confirmResolver = resolve; });
+    }
+
+    $('#cancelSupplierConfirm')?.addEventListener('click', () => closeConfirmation(false));
+    $('#acceptSupplierConfirm')?.addEventListener('click', () => closeConfirmation(true));
+    confirmModal?.addEventListener('click', event => {
+        if (event.target === confirmModal) closeConfirmation(false);
+    });
 
     function resetDuplicateWarning() {
         state.duplicateWarningId = null;
@@ -719,11 +789,16 @@
 
     function setModalOpen(open) {
         if (!modal) return;
+        if (open) modalReturnFocus = document.activeElement;
         modal.classList.toggle('is-open', open);
         modal.setAttribute('aria-hidden', String(!open));
-        document.body.style.overflow = open ? 'hidden' : '';
+        syncPageScrollLock();
         if (open) window.setTimeout(() => $('#createName')?.focus(), 50);
-        else resetDuplicateWarning();
+        else {
+            resetDuplicateWarning();
+            modalReturnFocus?.focus();
+            modalReturnFocus = null;
+        }
     }
     $('#createSupplierButton')?.addEventListener('click', () => setModalOpen(true));
     $$('[data-close-modal]').forEach(button => button.addEventListener('click', () => setModalOpen(false)));
@@ -815,8 +890,15 @@
     });
 
     document.addEventListener('keydown', event => {
+        if (event.key === 'Tab') {
+            if (confirmModal?.classList.contains('is-open')) trapFocus(event, confirmModal);
+            else if (modal?.classList.contains('is-open')) trapFocus(event, modal);
+            else if (detailPanel?.classList.contains('is-open')) trapFocus(event, detailPanel);
+            return;
+        }
         if (event.key !== 'Escape') return;
-        if (modal?.classList.contains('is-open')) setModalOpen(false);
-        else closeDetail();
+        if (confirmModal?.classList.contains('is-open')) closeConfirmation(false);
+        else if (modal?.classList.contains('is-open')) setModalOpen(false);
+        else if (detailPanel?.classList.contains('is-open')) closeDetail();
     });
 })();

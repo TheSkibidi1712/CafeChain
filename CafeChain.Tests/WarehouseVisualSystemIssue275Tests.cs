@@ -83,7 +83,8 @@ public sealed class WarehouseVisualSystemIssue275Tests
     {
         var css = Read(TokensPath);
 
-        Assert.Contains("border-left: 5px solid var(--cc-primary)", css);
+        Assert.Contains(".cc-warehouse-header::before", css);
+        Assert.Contains("background: linear-gradient(180deg, #c08a62, var(--cc-primary))", css);
         Assert.Contains(".cc-warehouse-header--compact", css);
         Assert.Contains(".cc-warehouse-header--detail", css);
         Assert.Contains(".cc-warehouse-filter-header", css);

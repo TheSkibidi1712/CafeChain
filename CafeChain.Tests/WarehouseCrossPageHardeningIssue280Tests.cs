@@ -92,6 +92,21 @@ public sealed class WarehouseCrossPageHardeningIssue280Tests
         Assert.Contains(".cc-warehouse-table-shell tbody tr:hover > td", css);
     }
 
+    [Fact]
+    public void SharedHeaderContract_KeepsDesktopFramesStableAndMobileContentSafe()
+    {
+        var css = Read("CafeChain/wwwroot/css/Admin/Procurement/procurement-design-system.css");
+
+        Assert.Contains("--cc-warehouse-header-height: 162px", css);
+        Assert.Contains("height: var(--cc-warehouse-header-height)", css);
+        Assert.Contains("min-height: var(--cc-warehouse-header-height)", css);
+        Assert.Contains("padding: 27px 28px 27px 32px", css);
+        Assert.Contains("margin-bottom: 20px", css);
+        Assert.Contains("min-height: 44px", css);
+        Assert.Contains("height: auto", css);
+        Assert.Contains("min-height: 0", css);
+    }
+
     private static string Read(string relativePath)
     {
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));

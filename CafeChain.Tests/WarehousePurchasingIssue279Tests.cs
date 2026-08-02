@@ -115,9 +115,80 @@ public sealed class WarehousePurchasingIssue279Tests
         Assert.DoesNotContain("await Promise.all([loadOffers(), loadStores(), loadReferenceData()]);", script);
     }
 
-    private static string Read(string relativePath)
+    [Fact]
+    public void SupplierWorkspace_UsesOperationalDrawerAndStructuredCreateModal()
     {
-        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
-        return File.ReadAllText(Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+        var view = Read("CafeChain/Areas/Admin/Views/AdminSupplier/Index.cshtml");
+        var css = Read("CafeChain/wwwroot/css/Admin/Supplier/supplier.css");
+        var script = Read("CafeChain/wwwroot/js/Admin/Supplier/supplier.js");
+
+        Assert.Contains("supplier-list-heading", view);
+        Assert.Contains("role=\"dialog\" aria-modal=\"true\" aria-label=\"Chi tiết nhà cung cấp\"", view);
+        Assert.Contains("supplier-modal-body", view);
+        Assert.Contains("supplier-modal-footer", view);
+        Assert.Contains("id=\"supplierConfirmModal\"", view);
+        Assert.Contains("role=\"alertdialog\"", view);
+        Assert.Contains("supplier-form-section", view);
+        Assert.Contains("Thông tin doanh nghiệp", view);
+        Assert.Contains("Đầu mối chính", view);
+        Assert.Contains("Ghi chú vận hành", view);
+
+        Assert.Contains("inset: 0 0 0 auto", css);
+        Assert.Contains("height: 100dvh", css);
+        Assert.Contains("grid-template-rows: auto auto minmax(0, 1fr)", css);
+        Assert.Contains("max-height: calc(100dvh - 48px)", css);
+        Assert.Contains("grid-template-rows: minmax(0, 1fr) auto", css);
+
+        Assert.Contains("function trapFocus", script);
+        Assert.Contains("function syncPageScrollLock", script);
+        Assert.Contains("detailReturnFocus?.focus()", script);
+        Assert.Contains("modalReturnFocus?.focus()", script);
+        Assert.Contains("function requestConfirmation", script);
+        Assert.DoesNotContain("window.confirm", script);
+    }
+
+    [Fact]
+    public void SupplierWorkspace_FollowsDashboardHierarchyAndStableOperationalLayout()
+    {
+        var view = Read("CafeChain/Areas/Admin/Views/AdminSupplier/Index.cshtml");
+        var css = Read("CafeChain/wwwroot/css/Admin/Supplier/supplier.css");
+        var script = Read("CafeChain/wwwroot/js/Admin/Supplier/supplier.js");
+
+        Assert.Contains("Kho & Cung ứng / Đối tác", view);
+        Assert.Contains("Quản lý thông tin liên hệ, phạm vi cung ứng và trạng thái hợp tác.", view);
+        Assert.Contains("supplier-filter-heading", view);
+        Assert.Contains("supplier-filter-grid", view);
+        Assert.Contains("supplier-filter-actions", view);
+        Assert.Contains("supplier-create-grid", view);
+        Assert.Contains("supplier-col-identity", view);
+        Assert.Contains("id=\"detailStatus\"", view);
+        Assert.Contains("aria-label=\"Xem chi tiết nhà cung cấp @item.Name\"", view);
+
+        Assert.Contains("min-height: 148px", css);
+        Assert.Contains("grid-template-columns: minmax(320px, 1.55fr)", css);
+        Assert.Contains("width: min(1040px, 100%)", css);
+        Assert.Contains("grid-template-columns: repeat(2, minmax(0, 1fr))", css);
+        Assert.Contains("detailStatus.className", script);
+    }
+
+    private static string Read(
+        string relativePath,
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "")
+    {
+        var normalizedPath = relativePath.Replace('/', Path.DirectorySeparatorChar);
+        var sourceRoot = Directory.GetParent(Path.GetDirectoryName(callerFilePath)!)?.FullName;
+        foreach (var startPath in new[] { sourceRoot, Environment.CurrentDirectory, AppContext.BaseDirectory })
+        {
+            if (string.IsNullOrWhiteSpace(startPath)) continue;
+            var directory = new DirectoryInfo(startPath);
+            while (directory is not null)
+            {
+                var candidate = Path.Combine(directory.FullName, normalizedPath);
+                if (File.Exists(candidate)) return File.ReadAllText(candidate);
+                directory = directory.Parent;
+            }
+        }
+
+        throw new FileNotFoundException($"Không tìm thấy source contract: {relativePath}");
     }
 }
