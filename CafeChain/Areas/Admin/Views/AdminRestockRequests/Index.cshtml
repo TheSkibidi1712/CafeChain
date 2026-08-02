@@ -15,7 +15,7 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
-<main class="ops-shell">
+<main class="ops-shell restock-request-page">
     <header class="ops-header">
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
@@ -61,6 +61,7 @@
         <div class="ops-metric"><span class="ops-metric-label">Số yêu cầu trên trang</span><strong class="ops-metric-value">@Model.Items.Count</strong></div>
     </section>
 
+    <section class="restock-content-card">
     <nav class="ops-status-tabs" aria-label="Lọc trạng thái yêu cầu nhập">
         @foreach (var status in new[] { "SUBMITTED", "PROCESSING", "PARTIALLY_RECEIVED", "COMPLETED", "REJECTED", "CANCELLED", "" })
         {
@@ -122,4 +123,5 @@
             </div>
         </div>
     }
+    </section>
 </main>

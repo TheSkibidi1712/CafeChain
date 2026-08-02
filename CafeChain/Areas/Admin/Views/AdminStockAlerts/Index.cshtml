@@ -16,7 +16,7 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
-<main class="ops-shell">
+<main class="ops-shell stock-alert-page">
     <header class="ops-header">
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
@@ -70,6 +70,7 @@
         <div class="ops-metric"><span class="ops-metric-label">Nhân viên báo thiếu</span><strong class="ops-metric-value">@manualCount</strong></div>
     </section>
 
+    <section class="stock-alert-content-card">
     <nav class="ops-status-tabs" aria-label="Lọc theo trạng thái xử lý">
         @foreach (var status in new[] { "OPEN", "CONFIRMED", "MANAGER_REJECTED", "RESOLVED", "" })
         {
@@ -168,4 +169,5 @@
             </div>
         </div>
     }
+    </section>
 </main>

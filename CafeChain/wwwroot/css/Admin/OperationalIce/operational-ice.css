@@ -214,17 +214,25 @@
 
 .ice-filterbar {
     min-width: 0;
-    align-items: end;
+    display: grid;
+    grid-template-columns: minmax(210px, 1.2fr) minmax(190px, 0.9fr) minmax(210px, 1fr) auto;
+    align-items: start;
     gap: 12px;
     margin-bottom: 16px;
-    padding: 14px;
+    padding: 16px;
     border: 1px solid var(--ice-border);
-    border-radius: 8px;
-    background: var(--ice-surface);
+    border-radius: 14px;
+    background: linear-gradient(135deg, #FFFFFF 0%, #FFFDFB 64%, #F5E9DC 100%);
+    box-shadow: 0 10px 28px rgba(75, 48, 31, 0.09);
 }
 
 .ice-filterbar .ice-field {
-    flex: 1 1 180px;
+    width: 100%;
+}
+
+.ice-filterbar > .ice-btn {
+    align-self: start;
+    margin-top: 25px;
 }
 
 .ice-field {
@@ -1347,5 +1355,318 @@
     .ice-report-meta article {
         break-inside: avoid;
         box-shadow: none;
+    }
+}
+
+/* 2026 visual refresh: coffee depth, clearer hierarchy and module interactions */
+.ice-shell {
+    --ice-coffee: #6F4E37;
+    --ice-caramel: #C67A45;
+    --ice-deep: #342116;
+    --ice-soft: #F4E7D9;
+    position: relative;
+    background:
+        radial-gradient(circle at 4% 0%, rgba(198, 122, 69, 0.12), transparent 30rem),
+        radial-gradient(circle at 96% 5%, rgba(111, 78, 55, 0.09), transparent 25rem),
+        var(--ice-bg);
+}
+
+.ice-shell::before {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    content: "";
+    opacity: 0.3;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(111, 78, 55, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(111, 78, 55, 0.035) 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+.ice-shell > * {
+    position: relative;
+    z-index: 1;
+}
+
+.ice-page-header {
+    position: relative;
+    overflow: hidden;
+    padding: 24px 26px;
+    border: 1px solid rgba(111, 78, 55, 0.18);
+    border-radius: 16px;
+    background: linear-gradient(118deg, #FFFFFF 0%, #FFF9F3 68%, #F1DECA 100%);
+    box-shadow: 0 16px 36px rgba(64, 41, 26, 0.11), 0 2px 8px rgba(64, 41, 26, 0.06);
+}
+
+.ice-page-header::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 5px;
+    content: "";
+    background: linear-gradient(180deg, var(--ice-caramel), var(--ice-deep));
+}
+
+.ice-page-header::after {
+    position: absolute;
+    right: -42px;
+    bottom: -80px;
+    width: 210px;
+    height: 210px;
+    border: 34px solid rgba(198, 122, 69, 0.09);
+    border-radius: 50%;
+    content: "";
+    pointer-events: none;
+}
+
+.ice-page-header h1 {
+    color: var(--ice-deep);
+    font-size: clamp(26px, 3vw, 34px);
+    letter-spacing: -0.035em;
+}
+
+.ice-page-header p {
+    max-width: 760px;
+    color: #685B53;
+}
+
+.ice-eyebrow,
+.ice-section-kicker {
+    color: #9A5B31;
+    letter-spacing: 0.08em;
+}
+
+.ice-panel,
+.ice-action-panel,
+.ice-facts,
+.ice-workflow,
+.ice-danger-zone {
+    border-color: rgba(111, 78, 55, 0.16);
+    border-radius: 14px;
+    box-shadow: 0 7px 22px rgba(64, 41, 26, 0.07);
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.ice-panel:hover,
+.ice-action-panel:hover,
+.ice-facts:hover {
+    border-color: rgba(198, 122, 69, 0.4);
+    box-shadow: 0 13px 30px rgba(64, 41, 26, 0.11);
+}
+
+.ice-panel,
+.ice-action-panel,
+.ice-facts {
+    background: linear-gradient(180deg, #FFFFFF 0%, #FFFEFC 100%);
+}
+
+.ice-section-heading {
+    padding-bottom: 13px;
+    border-bottom: 1px solid #E9DED2;
+}
+
+.ice-section-heading h2,
+.ice-action-panel h2,
+.ice-facts h2 {
+    color: var(--ice-deep);
+    letter-spacing: -0.02em;
+}
+
+.ice-summary-grid article,
+.ice-report-meta article,
+.ice-report-quantity-grid article,
+.ice-report-cost-grid article {
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(111, 78, 55, 0.16);
+    border-radius: 13px;
+    background: linear-gradient(145deg, #FFFFFF 0%, #FCF7F1 100%);
+    box-shadow: 0 6px 17px rgba(64, 41, 26, 0.065);
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.ice-summary-grid article::before,
+.ice-report-meta article::before,
+.ice-report-quantity-grid article::before,
+.ice-report-cost-grid article::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    content: "";
+    background: linear-gradient(180deg, var(--ice-caramel), var(--ice-primary));
+}
+
+.ice-summary-grid article:hover,
+.ice-report-meta article:hover,
+.ice-report-quantity-grid article:hover,
+.ice-report-cost-grid article:hover {
+    transform: translateY(-3px);
+    border-color: rgba(198, 122, 69, 0.46);
+    box-shadow: 0 13px 27px rgba(64, 41, 26, 0.12);
+}
+
+.ice-summary-grid strong,
+.ice-report-meta strong,
+.ice-report-quantity-grid strong,
+.ice-report-cost-grid strong {
+    color: var(--ice-deep);
+    font-variant-numeric: tabular-nums;
+}
+
+.ice-field label {
+    color: #563A28;
+    font-weight: 800;
+    letter-spacing: 0.025em;
+}
+
+.ice-field input,
+.ice-field select,
+.ice-field textarea,
+.ice-reject-form input,
+.ice-resolution-form input,
+.ice-resolution-form select {
+    border-color: #D8C9BA;
+    box-shadow: inset 0 1px 2px rgba(64, 41, 26, 0.035);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.ice-field input:hover,
+.ice-field select:hover,
+.ice-field textarea:hover,
+.ice-reject-form input:hover,
+.ice-resolution-form input:hover,
+.ice-resolution-form select:hover {
+    border-color: #BFA58E;
+}
+
+.ice-field input:focus,
+.ice-field select:focus,
+.ice-field textarea:focus,
+.ice-reject-form input:focus,
+.ice-resolution-form input:focus,
+.ice-resolution-form select:focus {
+    border-color: var(--ice-accent);
+    background: #FFFDFA;
+    box-shadow: 0 0 0 4px rgba(198, 122, 69, 0.14);
+}
+
+.ice-btn,
+.ice-icon-btn {
+    border-radius: 9px;
+    transition: transform 150ms ease, box-shadow 170ms ease, background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.ice-btn:hover,
+.ice-icon-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 7px 15px rgba(64, 41, 26, 0.12);
+}
+
+.ice-btn-primary {
+    background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep));
+    box-shadow: 0 7px 16px rgba(64, 41, 26, 0.22);
+}
+
+.ice-btn-primary:hover {
+    background: linear-gradient(135deg, #805A3D, #2E1B11);
+    box-shadow: 0 10px 20px rgba(64, 41, 26, 0.27);
+}
+
+.ice-disclosure summary {
+    border-radius: 14px 14px 0 0;
+    background: linear-gradient(90deg, #F8EEE3, #FFFDFC);
+    transition: color 150ms ease, background-color 150ms ease;
+}
+
+.ice-disclosure summary:hover {
+    color: var(--ice-primary);
+    background: #F5E7D8;
+}
+
+.ice-policy-group,
+.ice-mode-switch,
+.ice-workshift-options,
+.ice-schedule-source,
+.ice-return-evidence {
+    border-radius: 11px;
+    background: #FFFCF8;
+}
+
+.ice-table-scroll {
+    border: 1px solid #E5D9CD;
+    border-radius: 11px;
+}
+
+.ice-table th {
+    color: #5A402F;
+    background: linear-gradient(180deg, #F6EBDF, #F1E3D3);
+    border-bottom-color: #D7C2AD;
+    letter-spacing: 0.045em;
+}
+
+.ice-table tbody tr {
+    transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.ice-table tbody tr:hover {
+    background: #FFF7ED;
+    box-shadow: inset 4px 0 0 var(--ice-accent);
+}
+
+.ice-badge {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.ice-workflow .is-current {
+    background: linear-gradient(135deg, var(--ice-primary), var(--ice-deep));
+}
+
+.ice-audit-note {
+    border-radius: 0 9px 9px 0;
+    background: linear-gradient(90deg, #F6E8D9, #FCF8F3);
+}
+
+@media (max-width: 1100px) {
+    .ice-filterbar {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .ice-filterbar > .ice-btn {
+        grid-column: 1 / -1;
+        width: 100%;
+        margin-top: 0;
+    }
+}
+
+@media (max-width: 900px) {
+    .ice-filterbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ice-filterbar > .ice-btn {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 600px) {
+    .ice-page-header {
+        padding: 20px;
+        border-radius: 13px;
+    }
+
+    .ice-filterbar {
+        padding: 13px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ice-shell *,
+    .ice-shell *::before,
+    .ice-shell *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
     }
 }
