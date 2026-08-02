@@ -10,8 +10,8 @@
 }
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
-<main class="ops-shell">
-    <header class="ops-header">
+<main class="ops-shell cc-warehouse-page">
+    <header class="ops-header cc-warehouse-header">
         <div>
             <div class="ops-eyebrow">Mua hàng từ nhà cung cấp</div>
             <h1 class="ops-title">Đơn đặt hàng</h1>
@@ -25,7 +25,7 @@
 
     @if (stores.Count > 1)
     {
-        <form method="get" class="ops-filterbar" aria-label="Lọc đơn đặt hàng theo chi nhánh">
+        <form method="get" class="ops-filterbar cc-warehouse-filter" aria-label="Lọc đơn đặt hàng theo chi nhánh">
             <input type="hidden" name="status" value="@statusFilter" />
             <div class="ops-filter-group">
                 <label class="ops-form-label mb-0" for="purchaseOrderStoreId">Chi nhánh</label>
@@ -42,7 +42,7 @@
 
     @if (Model.Count == 0)
     {
-        <section class="ops-empty" aria-labelledby="purchaseOrderEmptyTitle">
+        <section class="ops-empty cc-warehouse-empty" aria-labelledby="purchaseOrderEmptyTitle" role="status">
             <span class="ops-empty-icon"><i class="fa-solid fa-file-circle-plus" aria-hidden="true"></i></span>
             <h2 id="purchaseOrderEmptyTitle" class="ops-empty-title">Chưa có đơn đặt hàng</h2>
             <p class="ops-empty-copy">Tạo đơn từ nhu cầu mua đã được xét nguồn cung, hoặc lập đơn mua chủ động khi bạn có đủ quyền và thông tin nhà cung cấp.</p>
@@ -54,7 +54,7 @@
     }
     else
     {
-        <section class="ops-table-wrap" aria-label="Danh sách đơn đặt hàng">
+        <section class="ops-table-wrap cc-warehouse-table-shell" aria-label="Danh sách đơn đặt hàng">
             <div class="ops-table-scroll">
                 <table class="ops-table ops-po-table">
                     <thead><tr><th class="text-center">Mã đơn</th><th class="text-center">Chi nhánh</th><th class="text-center">Nhà cung cấp</th><th class="text-center">Ngày đặt</th><th class="text-center">Trạng thái</th><th class="number text-center">Giá trị</th><th class="text-center">Thao tác</th></tr></thead>

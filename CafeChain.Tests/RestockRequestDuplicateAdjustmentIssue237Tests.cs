@@ -14,6 +14,7 @@ using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Moq;
 using Xunit;
 
@@ -44,6 +45,46 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
         var created = await context.RestockRequests.SingleAsync();
         Assert.Equal(10m, created.RequestedProcurementQuantity);
         Assert.Equal(10_000m, created.RequestedQuantity);
+        Assert.Matches("^RR-S23701-[0-9]{8}-[0-9]{5}$", created.ReferenceCode);
+        Assert.Equal(created.ReferenceCode, result.Data!.ReferenceCode);
+        Assert.NotEqual("NEW-1", created.ReferenceCode);
+    }
+
+    [Fact]
+    public async Task RetryCreate_DoesNotCreateSecondRestock()
+    {
+        using var context = CreateDbContext();
+        await SeedAsync(context);
+        var service = CreateService(context);
+        var request = Request(StoreA, "same-create-request");
+
+        var first = await service.CreateManualAsync(request, ManagerA);
+        var replay = await service.CreateManualAsync(request, ManagerA);
+
+        Assert.True(first.IsSuccess, first.Message);
+        Assert.True(replay.IsSuccess, replay.Message);
+        Assert.True(replay.Data!.AlreadyExisted);
+        Assert.Equal(first.Data!.RestockRequestId, replay.Data.RestockRequestId);
+        Assert.Equal(first.Data.ReferenceCode, replay.Data.ReferenceCode);
+        Assert.Equal(1, await context.RestockRequests.CountAsync());
+    }
+
+    [Fact]
+    public void ReferenceCode_IsUniqueImmutableAndNotClientControlled()
+    {
+        using var context = CreateDbContext();
+        var entity = context.Model.FindEntityType(typeof(RestockRequest))!;
+        var referenceProperty = entity.FindProperty(nameof(RestockRequest.ReferenceCode))!;
+        var referenceIndex = entity.GetIndexes()
+            .Single(x => x.GetDatabaseName() == "UX_RestockRequests_ReferenceCode");
+        var setter = typeof(RestockRequest)
+            .GetProperty(nameof(RestockRequest.ReferenceCode))!
+            .SetMethod;
+
+        Assert.True(referenceIndex.IsUnique);
+        Assert.Equal(PropertySaveBehavior.Throw, referenceProperty.GetAfterSaveBehavior());
+        Assert.True(setter == null || !setter.IsPublic);
+        Assert.Null(typeof(CreateProcurementDemandRequest).GetProperty("ReferenceCode"));
     }
 
     [Theory]
@@ -103,6 +144,7 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
         Assert.True(first.IsSuccess, first.Message);
         Assert.True(second.IsSuccess, second.Message);
         Assert.Equal(2, await context.RestockRequests.CountAsync());
+        Assert.NotEqual(first.Data!.ReferenceCode, second.Data!.ReferenceCode);
     }
 
     [Fact]
@@ -263,6 +305,9 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
         Assert.Contains("Nguyên liệu đã có yêu cầu đang xử lý", create);
         Assert.Contains("Bổ sung nhu cầu", create);
         Assert.Contains("activeExists", create);
+        Assert.Contains("Mã yêu cầu sẽ được hệ thống tự tạo sau khi lưu.", create);
+        Assert.DoesNotContain("Mã tham chiếu</label>", create);
+        Assert.Contains("@Model.ReferenceCode", details);
         Assert.Contains("asp-action=\"AddDemand\"", details);
         Assert.Contains("Đã bổ sung nhu cầu", details);
         Assert.Contains("transition.IsDemandAdjustment ? transition.Reason", details);

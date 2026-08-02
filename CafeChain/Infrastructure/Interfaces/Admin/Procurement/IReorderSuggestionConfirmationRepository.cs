@@ -27,6 +27,10 @@ public interface IReorderSuggestionConfirmationRepository
     Task<ReorderUnitRow?> GetCanonicalProcurementUnitAsync(
         UnitType type,
         CancellationToken cancellationToken = default);
+    Task<string> AllocateRestockReferenceCodeAsync(
+        int storeId,
+        DateTime createdAtUtc,
+        CancellationToken cancellationToken = default);
     void AddRequest(RestockRequest request);
     void AddTransition(RestockRequestTransition transition);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

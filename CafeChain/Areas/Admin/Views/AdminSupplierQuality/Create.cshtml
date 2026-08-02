@@ -14,8 +14,8 @@
     };
 }
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
-<main class="ops-shell ops-shell-compact">
-    <header class="ops-header">
+<main class="ops-shell ops-shell-compact cc-warehouse-page">
+<header class="ops-header cc-warehouse-header cc-warehouse-header--compact">
         <div>
             <div class="ops-eyebrow">@Model.Context.BranchReceiptCode · @Model.Context.PurchaseOrderCode</div>
             <h1 class="ops-title">Ghi nhận sự cố nhà cung cấp</h1>
@@ -25,7 +25,7 @@
     </header>
 
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
-    @if (!ViewData.ModelState.IsValid) { <div asp-validation-summary="All" class="ops-notice ops-notice-error" role="alert"></div> }
+    @if (!ViewData.ModelState.IsValid) { <div asp-validation-summary="All" class="ops-notice ops-notice-error cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div> }
     @if (!string.IsNullOrWhiteSpace(Model.Context.SuggestedIssueType))
     {
         <div class="ops-notice ops-notice-warning" role="status"><strong>Gợi ý cần kiểm tra:</strong> hệ thống phát hiện giao trễ hoặc có lượng bị loại bỏ. Người dùng phải xác nhận trước khi lưu; đây không phải kết luận tự động.</div>

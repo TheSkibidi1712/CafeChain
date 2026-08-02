@@ -11,6 +11,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Data;
+using CafeChain.Infrastrusture.Repositories;
 
 namespace CafeChain.Application.Services.Inventories
 {
@@ -122,6 +123,7 @@ namespace CafeChain.Application.Services.Inventories
                     new CreateRestockRequestResultDto
                     {
                         RestockRequestId = existingOpen.RestockRequestId,
+                        ReferenceCode = existingOpen.ReferenceCode,
                         AlreadyExisted = true
                     },
                     "Yêu cầu nhập hàng đang mở đã tồn tại; hệ thống trả lại bản ghi hiện có.");
@@ -155,6 +157,10 @@ namespace CafeChain.Application.Services.Inventories
                     .FirstOrDefaultAsync()
                 : null;
             var now = DateTime.UtcNow;
+            var referenceCode = await RestockReferenceCodeAllocator.NextAsync(
+                _context,
+                alert.StoreId,
+                now);
             var isManualDemand = alert.AlertType == StockAlertTypes.ManualReview
                 || (alert.Source == StockAlertSources.SalesReport
                     && latestSalesReportTransition?.MinLevelSnapshot == null);
@@ -181,6 +187,7 @@ namespace CafeChain.Application.Services.Inventories
                 UpdatedAt = now,
                 Note = noteText
             };
+            request.AssignReferenceCode(referenceCode);
 
             request.RowVersion = Array.Empty<byte>();
             try
@@ -207,6 +214,7 @@ namespace CafeChain.Application.Services.Inventories
                         new CreateRestockRequestResultDto
                         {
                             RestockRequestId = existing.RestockRequestId,
+                            ReferenceCode = existing.ReferenceCode,
                             AlreadyExisted = true
                         },
                         "Yêu cầu nhập hàng đang mở đã tồn tại; hệ thống trả lại bản ghi hiện có.");
@@ -222,6 +230,7 @@ namespace CafeChain.Application.Services.Inventories
             var dto = new CreateRestockRequestResultDto
             {
                 RestockRequestId = request.RestockRequestId,
+                ReferenceCode = request.ReferenceCode,
                 NotifiedAccountantWarehouse = false,
                 RecipientCount = 0
             };
@@ -675,10 +684,6 @@ namespace CafeChain.Application.Services.Inventories
             if (!AllowedProcurementUnitCodes.Contains(unit.UnitCode, StringComparer.OrdinalIgnoreCase))
                 return ServiceResult<CreateRestockRequestResultDto>.Failure("Đơn vị mua hàng phải là kg, L hoặc cái.");
 
-            var active = await LoadActiveForStoreIngredientAsync(request.StoreId, request.IngredientId);
-            if (active != null)
-                return ActiveRequestConflict(active);
-
             var sourceReference = Clean(request.SourceReferenceId, 100);
             if (sourceReference != null)
             {
@@ -688,13 +693,22 @@ namespace CafeChain.Application.Services.Inventories
                         && x.SourceType == sourceType
                         && x.SourceReferenceId == sourceReference
                         && RestockRequestStatuses.ActiveValues.Contains(x.Status))
-                    .Select(x => x.RestockRequestId)
+                    .Select(x => new { x.RestockRequestId, x.ReferenceCode })
                     .FirstOrDefaultAsync();
-                if (duplicate > 0)
+                if (duplicate != null)
                     return ServiceResult<CreateRestockRequestResultDto>.Success(
-                        new CreateRestockRequestResultDto { RestockRequestId = duplicate, AlreadyExisted = true },
+                        new CreateRestockRequestResultDto
+                        {
+                            RestockRequestId = duplicate.RestockRequestId,
+                            ReferenceCode = duplicate.ReferenceCode,
+                            AlreadyExisted = true
+                        },
                         "Nhu cầu cùng nguồn đã tồn tại; hệ thống trả lại bản ghi hiện có.");
             }
+
+            var active = await LoadActiveForStoreIngredientAsync(request.StoreId, request.IngredientId);
+            if (active != null)
+                return ActiveRequestConflict(active);
 
             var now = DateTime.UtcNow;
             var requested = request.RequestedProcurementQuantity;
@@ -721,6 +735,10 @@ namespace CafeChain.Application.Services.Inventories
                 requestedBaseQuantity = conversion.Data;
             }
 
+            var referenceCode = await RestockReferenceCodeAllocator.NextAsync(
+                _context,
+                request.StoreId,
+                now);
             var demand = new RestockRequest
             {
                 StoreId = request.StoreId,
@@ -744,6 +762,7 @@ namespace CafeChain.Application.Services.Inventories
                 UpdatedAt = now,
                 Note = Clean(request.Note, MaxNoteLength)
             };
+            demand.AssignReferenceCode(referenceCode);
             _context.RestockRequests.Add(demand);
             try
             {
@@ -758,14 +777,33 @@ namespace CafeChain.Application.Services.Inventories
                 _context.ChangeTracker.Clear();
                 var winner = await LoadActiveForStoreIngredientAsync(request.StoreId, request.IngredientId);
                 if (winner != null)
+                {
+                    if (sourceReference != null
+                        && string.Equals(winner.SourceType, sourceType, StringComparison.Ordinal)
+                        && string.Equals(winner.SourceReferenceId, sourceReference, StringComparison.Ordinal))
+                    {
+                        return ServiceResult<CreateRestockRequestResultDto>.Success(
+                            new CreateRestockRequestResultDto
+                            {
+                                RestockRequestId = winner.RestockRequestId,
+                                ReferenceCode = winner.ReferenceCode,
+                                AlreadyExisted = true
+                            },
+                            "Nhu cầu cùng nguồn đã tồn tại; hệ thống trả lại bản ghi hiện có.");
+                    }
                     return ActiveRequestConflict(winner);
+                }
 
                 return ServiceResult<CreateRestockRequestResultDto>.Failure(
                     "Chi nhánh đã có một yêu cầu bổ sung đang xử lý cho nguyên liệu này. Hãy tải lại danh sách yêu cầu.",
                     errorCode: RestockRequestErrorCodes.ActiveRequestExists);
             }
             return ServiceResult<CreateRestockRequestResultDto>.Success(
-                new CreateRestockRequestResultDto { RestockRequestId = demand.RestockRequestId },
+                new CreateRestockRequestResultDto
+                {
+                    RestockRequestId = demand.RestockRequestId,
+                    ReferenceCode = demand.ReferenceCode
+                },
                 sourceType == RestockRequestSourceTypes.CentralPlanner
                     ? "Đã tạo nhu cầu bổ sung từ kế hoạch trung tâm."
                     : "Đã tạo nhu cầu bổ sung thủ công cho cửa hàng.");
@@ -841,6 +879,7 @@ namespace CafeChain.Application.Services.Inventories
                 Data = new CreateRestockRequestResultDto
                 {
                     RestockRequestId = active.RestockRequestId,
+                    ReferenceCode = active.ReferenceCode,
                     AlreadyExisted = true,
                     ExistingActiveRequest = MapActiveRequest(active)
                 }
@@ -853,6 +892,7 @@ namespace CafeChain.Application.Services.Inventories
             return new ActiveRestockRequestDto
             {
                 RestockRequestId = active.RestockRequestId,
+                ReferenceCode = active.ReferenceCode,
                 StoreId = active.StoreId,
                 IngredientId = active.IngredientId.GetValueOrDefault(),
                 Status = active.Status,
@@ -993,6 +1033,7 @@ namespace CafeChain.Application.Services.Inventories
         private static RestockRequestListItemDto MapListItem(RestockRequest r) => new()
         {
             RestockRequestId = r.RestockRequestId,
+            ReferenceCode = r.ReferenceCode,
             StockAlertId = r.StockAlertId,
             StoreId = r.StoreId,
             ItemName = ResolveItemName(r),
@@ -1021,6 +1062,7 @@ namespace CafeChain.Application.Services.Inventories
             var dto = new RestockRequestDetailDto
             {
                 RestockRequestId = r.RestockRequestId,
+                ReferenceCode = r.ReferenceCode,
                 StockAlertId = r.StockAlertId,
                 StoreId = r.StoreId,
                 ItemName = ResolveItemName(r),

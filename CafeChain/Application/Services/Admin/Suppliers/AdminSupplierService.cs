@@ -47,6 +47,14 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             return data.Select(MapToListDTO).ToList();
         }
 
+        public Task<AdminSupplierIndexPageDTO> GetPagedAsync(
+            string? search,
+            bool? status,
+            int page,
+            int pageSize,
+            IReadOnlyCollection<int>? storeScope = null) =>
+            _repo.GetPagedAsync(search, status, page, pageSize, storeScope);
+
         // ===== GET BY ID =====
         public async Task<AdminSupplierDetailDTO?> GetByIdAsync(
             int id,
@@ -54,10 +62,19 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         {
             var entity = await _repo.GetByIdAsync(id, storeScope);
             if (entity == null) return null;
-            var dto = MapToDetailDTO(entity);
-            dto.Audits = await _context.AuditLogs
+            return MapToDetailDTO(entity);
+        }
+
+        public async Task<List<AdminSupplierAuditDTO>> GetAuditHistoryAsync(
+            int supplierId,
+            IReadOnlyCollection<int>? storeScope = null)
+        {
+            if (!await _repo.ExistsInScopeAsync(supplierId, storeScope))
+                return new List<AdminSupplierAuditDTO>();
+
+            return await _context.AuditLogs
                 .AsNoTracking()
-                .Where(x => x.TableName == "Suppliers" && x.RecordId == id)
+                .Where(x => x.TableName == "Suppliers" && x.RecordId == supplierId)
                 .OrderByDescending(x => x.CreatedAt)
                 .Take(20)
                 .Select(x => new AdminSupplierAuditDTO
@@ -69,7 +86,6 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     CreatedAt = x.CreatedAt
                 })
                 .ToListAsync();
-            return dto;
         }
 
         // ===== GENERATE NEXT CODE =====
@@ -371,12 +387,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     Email = c.Email,
                     Position = c.Position,
                     IsPrimary = c.IsPrimary
-                }).ToList(),
-
-                Stores = x.SupplierStores
-                    .OrderBy(s => s.Store.Name)
-                    .Select(MapSupplierStore)
-                    .ToList()
+                }).ToList()
             };
         }
 

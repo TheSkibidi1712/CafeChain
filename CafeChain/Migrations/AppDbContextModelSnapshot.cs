@@ -7111,6 +7111,11 @@ namespace CafeChain.Migrations
                     b.Property<int?>("RecipeId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ReferenceCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("RemainingCloseReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -7217,6 +7222,10 @@ namespace CafeChain.Migrations
                     b.HasIndex("ProcurementUnitId");
 
                     b.HasIndex("RecipeId");
+
+                    b.HasIndex("ReferenceCode")
+                        .IsUnique()
+                        .HasDatabaseName("UX_RestockRequests_ReferenceCode");
 
                     b.HasIndex("RemainingClosedByStaffId");
 

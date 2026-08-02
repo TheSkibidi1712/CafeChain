@@ -22,10 +22,10 @@
 <link rel="stylesheet" href="~/css/unit-conversion.css" asp-append-version="true" />
 @Html.AntiForgeryToken()
 
-<div class="uc-page cc-page">
+<div class="uc-page cc-page cc-warehouse-page">
 <div class="container-fluid px-4 pt-4 pb-5">
-    <header class="cc-page-header">
-        <div>
+    <header class="cc-page-header cc-warehouse-header">
+        <div class="cc-warehouse-header-main">
             <p class="cc-page-kicker">Kho &amp; Cung ứng</p>
             <h1 class="uc-page-title cc-page-title">Đơn vị và quy đổi</h1>
             <p class="cc-page-description">
@@ -41,26 +41,27 @@
 
     @if (TempData["SuccessMsg"] != null)
     {
-        <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMsg"]</div>
+        <div class="ops-notice ops-notice-success cc-warehouse-alert cc-warehouse-alert-success" role="status">@TempData["SuccessMsg"]</div>
     }
     @if (TempData["ErrorMsg"] != null)
     {
-        <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMsg"]</div>
+        <div class="ops-notice ops-notice-error cc-warehouse-alert cc-warehouse-alert-danger" role="alert">@TempData["ErrorMsg"]</div>
     }
 
-    <div class="uc-tab-bar" role="tablist">
-        <a class="uc-tab @(tab == "physical" ? "active" : "")" href="?tab=physical">A. Quy đổi vật lý chuẩn</a>
-        <a class="uc-tab @(tab == "measuring" || tab == "" ? "active" : "")" href="?tab=measuring&search=@data.Search&status=@data.StatusFilter">B. Quy đổi đo lường theo NL</a>
-        <a class="uc-tab @(tab == "package" ? "active" : "")" href="?tab=package&search=@data.Search">C. Quy cách đóng gói NCC</a>
+    <div class="uc-tab-bar" role="tablist" aria-label="Nhóm dữ liệu đơn vị và quy đổi">
+        <a class="uc-tab @(tab == "physical" ? "active" : "")" role="tab" aria-selected="@(tab == "physical" ? "true" : "false")" href="?tab=physical">A. Quy đổi vật lý chuẩn</a>
+        <a class="uc-tab @(tab == "measuring" || tab == "" ? "active" : "")" role="tab" aria-selected="@(tab == "measuring" || tab == "" ? "true" : "false")" href="?tab=measuring&search=@data.Search&status=@data.StatusFilter">B. Quy đổi đo lường theo NL</a>
+        <a class="uc-tab @(tab == "package" ? "active" : "")" role="tab" aria-selected="@(tab == "package" ? "true" : "false")" href="?tab=package&search=@data.Search">C. Quy cách đóng gói NCC</a>
     </div>
 
     @* ── A. Physical ── *@
     @if (tab == "physical")
     {
-        <div class="uc-card mb-3">
+        <div class="uc-card cc-warehouse-panel mb-3">
             <div class="uc-card-header">Quy đổi vật lý chuẩn (chỉ đọc)</div>
             <div class="p-3">
                 <p class="small text-muted">Nguồn: hệ thống (<code>PhysicalUnitConversionRegistry</code>). Không thêm/sửa/xóa trong Admin.</p>
+                <div class="cc-warehouse-table-shell">
                 <table class="table mb-0" aria-label="Quy đổi vật lý chuẩn">
                     <thead>
                         <tr>
@@ -82,6 +83,7 @@
                     }
                     </tbody>
                 </table>
+                </div>
                 <p class="small text-muted mt-2 mb-0">oz / cup / tsp / tbsp không thuộc chuẩn vật lý, chỉ xuất hiện khi nguyên liệu có bản ghi quy đổi đo lường phù hợp.</p>
             </div>
         </div>
@@ -99,7 +101,7 @@
             <span class="uc-status uc-status-ok ms-2">Hệ thống · không sửa</span>
         </div>
 
-        <form method="get" class="uc-card mb-3 p-3">
+        <form method="get" class="uc-card cc-warehouse-filter mb-3 p-3">
             <input type="hidden" name="tab" value="measuring" />
             <div class="row g-2 align-items-end">
                 <div class="col-md-5">
@@ -122,14 +124,14 @@
             </div>
         </form>
 
-        <div class="uc-card">
+        <div class="uc-card cc-warehouse-panel">
             <div class="uc-card-header d-flex justify-content-between">
                 <span>Quy đổi đo lường theo nguyên liệu</span>
                 <span class="small text-muted">@data.TotalGroups nhóm · @data.ConflictGroupCount cần chú ý</span>
             </div>
             @if (data.Groups == null || !data.Groups.Any())
             {
-                <div class="p-4 text-center text-muted">
+                <div class="cc-warehouse-empty" role="status">
                     <p class="fw-semibold mb-1">Chưa có quy đổi đo lường theo nguyên liệu.</p>
                     <p class="small mb-0">Các quy đổi vật lý chuẩn vẫn được áp dụng.</p>
                 </div>
@@ -258,7 +260,7 @@
     @* ── C. Package only view ── *@
     @if (tab == "package")
     {
-        <div class="uc-card">
+        <div class="uc-card cc-warehouse-panel">
             <div class="uc-card-header">Quy cách đóng gói nhà cung cấp</div>
             <div class="p-3">
                 <p class="small text-muted">
@@ -267,11 +269,13 @@
                 </p>
                 @if (data.Groups == null || !data.Groups.Any(g => g.PrimaryPackage?.IngredientSupplierId != null))
                 {
-                    <p class="text-muted">Không có offer primary trong danh sách hiện tại. Thử tìm nguyên liệu hoặc mở màn Nhà cung cấp.</p>
+                    <div class="cc-warehouse-empty" role="status">
+                        <p>Không có offer primary trong danh sách hiện tại. Thử tìm nguyên liệu hoặc mở màn Nhà cung cấp.</p>
+                    </div>
                 }
                 else
                 {
-                    <div class="table-responsive">
+                    <div class="table-responsive cc-warehouse-table-shell">
                         <table class="table" aria-label="Quy cách gói">
                             <thead>
                                 <tr>

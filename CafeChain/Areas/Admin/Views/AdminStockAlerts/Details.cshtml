@@ -20,8 +20,8 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
-<main class="ops-shell">
-    <header class="ops-header">
+<main class="ops-shell cc-warehouse-page">
+<header class="ops-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail">
         <div>
             <div class="ops-eyebrow">Cảnh báo #@Model.StockAlertId · @Model.ItemTypeLabel</div>
             <h1 class="ops-title">@Model.ItemName</h1>
@@ -50,7 +50,7 @@
         <div class="ops-notice ops-notice-info"><strong>Tồn kho đã phục hồi nhưng yêu cầu nhập vẫn đang mở.</strong> Người phụ trách cần kiểm tra và quyết định tiếp tục hoặc hủy yêu cầu.</div>
     }
 
-    <section class="ops-metrics" aria-label="Số liệu tồn kho">
+    <section class="ops-metrics cc-warehouse-summary-grid" aria-label="Số liệu tồn kho">
         <div class="ops-metric"><span class="ops-metric-label">Tồn vật lý hiện tại</span><strong class="ops-metric-value">@(Model.OnHandQty.HasValue ? AdminStatusDisplay.Quantity(Model.OnHandQty.Value) : "—")</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Đang giữ chỗ</span><strong class="ops-metric-value warning">@(Model.ReservedQty.HasValue ? AdminStatusDisplay.Quantity(Model.ReservedQty.Value) : "—")</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Khả dụng hiện tại</span><strong class="ops-metric-value @(Model.AvailableQty.HasValue && Model.AvailableQty.Value <= 0 ? "danger" : "success")">@(Model.AvailableQty.HasValue ? AdminStatusDisplay.Quantity(Model.AvailableQty.Value) : "—")</strong></div>

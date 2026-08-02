@@ -1,4 +1,5 @@
 using CafeChain.Models.Inventories.Suppliers;
+using CafeChain.Application.DTOs.Admin.Suppliers;
 
 namespace CafeChain.Infrastrusture.Interfaces.Admin.Suppliers
 {
@@ -6,7 +7,14 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Suppliers
     {
         // ===== LIST & DETAIL =====
         Task<List<Supplier>> GetAllAsync(string? search, bool? status, IReadOnlyCollection<int>? storeScope = null);
+        Task<AdminSupplierIndexPageDTO> GetPagedAsync(
+            string? search,
+            bool? status,
+            int page,
+            int pageSize,
+            IReadOnlyCollection<int>? storeScope = null);
         Task<Supplier?> GetByIdAsync(int id, IReadOnlyCollection<int>? storeScope = null);
+        Task<bool> ExistsInScopeAsync(int id, IReadOnlyCollection<int>? storeScope = null);
 
         // ===== SUPPLIER =====
         Task CreateAsync(Supplier supplier);

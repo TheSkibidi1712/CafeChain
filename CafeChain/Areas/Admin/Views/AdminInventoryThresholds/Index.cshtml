@@ -12,8 +12,8 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
-<main class="ops-shell">
-    <header class="ops-header">
+<main class="ops-shell cc-warehouse-page">
+    <header class="ops-header cc-warehouse-header">
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
             <h1 class="ops-title"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Ngưỡng tồn kho</h1>
@@ -29,11 +29,11 @@
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
     @if (!canEdit) { <div class="ops-notice ops-notice-info">Bạn đang ở chế độ chỉ xem. Chỉ vai trò quản lý có phạm vi phù hợp mới được cập nhật ngưỡng.</div> }
 
-    <section class="ops-metrics" aria-label="Tóm tắt ngưỡng trên trang">
-        <div class="ops-metric"><span class="ops-metric-label">Mặt hàng theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Đã cấu hình trên trang</span><strong class="ops-metric-value success">@configured</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Chưa cấu hình trên trang</span><strong class="ops-metric-value warning">@(Model.Items.Count - configured)</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Đang dưới ngưỡng</span><strong class="ops-metric-value danger">@low</strong></div>
+    <section class="ops-metrics cc-warehouse-summary-grid" aria-label="Tóm tắt ngưỡng trên trang">
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Mặt hàng theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Đã cấu hình trên trang</span><strong class="ops-metric-value success">@configured</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Chưa cấu hình trên trang</span><strong class="ops-metric-value warning">@(Model.Items.Count - configured)</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Đang dưới ngưỡng</span><strong class="ops-metric-value danger">@low</strong></div>
     </section>
 
     @if (Model.Stores.Count > 0)
@@ -46,7 +46,7 @@
         </nav>
     }
 
-    <form method="get" class="ops-filterbar">
+    <form method="get" class="ops-filterbar cc-warehouse-filter">
         <input type="hidden" name="storeId" value="@Model.SelectedStoreId" />
         <div class="ops-filter-group">
             <label class="visually-hidden" for="thresholdSearch">Tìm mặt hàng</label>
@@ -58,7 +58,7 @@
 
     @if (Model.Items.Count == 0)
     {
-        <section class="ops-empty" aria-labelledby="thresholdEmptyTitle">
+        <section class="ops-empty cc-warehouse-empty" aria-labelledby="thresholdEmptyTitle">
             <span class="ops-empty-icon"><i class="fa-solid fa-sliders" aria-hidden="true"></i></span>
             <h2 id="thresholdEmptyTitle" class="ops-empty-title">Không tìm thấy mặt hàng cần cấu hình</h2>
             <p class="ops-empty-copy">Thử đổi từ khóa hoặc chọn cửa hàng khác. Mặt hàng chỉ xuất hiện khi tài khoản có phạm vi xem kho tương ứng.</p>
@@ -70,7 +70,7 @@
     }
     else
     {
-        <section class="ops-table-wrap">
+        <section class="ops-table-wrap cc-warehouse-table-shell">
             <div class="ops-table-scroll">
                 <table class="ops-table">
                     <thead><tr><th>Mặt hàng</th><th>Loại</th><th class="number">Tồn vật lý</th><th class="number">Giữ chỗ</th><th class="number">Khả dụng</th><th>Trạng thái</th><th class="number">Ngưỡng tối thiểu</th><th class="text-end">Thao tác</th></tr></thead>

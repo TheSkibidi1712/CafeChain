@@ -52,4 +52,46 @@ public sealed class AppLauncherServiceTests
         Assert.False(result.HasAvailableApps);
         Assert.Empty(result.Apps);
     }
+
+    [Fact]
+    public async Task Operational_ice_permission_adds_direct_card_without_admin_dashboard_access()
+    {
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.HasPermissionAsync(17, It.IsAny<string>(), null))
+            .ReturnsAsync((int _, string code, int? _) =>
+                ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = 17,
+                    PermissionCode = code,
+                    Allowed = code is PermissionConstants.OperationalIceView or PermissionConstants.AppStaffHub
+                }));
+        var service = new AppLauncherService(permissions.Object);
+
+        var result = await service.GetAppsAsync(17, "Ca trưởng");
+
+        var operationalIce = Assert.Single(result.Apps, x => x.Code == AppCode.OperationalIce);
+        Assert.Equal("/Admin/AdminOperationalIce", operationalIce.Route);
+        Assert.False(operationalIce.RequiresLaunch);
+        Assert.DoesNotContain(result.Apps, x => x.Code == AppCode.AdminDashboard);
+    }
+
+    [Fact]
+    public async Task Admin_dashboard_suppresses_operational_ice_fallback_card()
+    {
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.HasPermissionAsync(18, It.IsAny<string>(), null))
+            .ReturnsAsync((int _, string code, int? _) =>
+                ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = 18,
+                    PermissionCode = code,
+                    Allowed = code is PermissionConstants.AppAdminDashboard or PermissionConstants.OperationalIceView
+                }));
+        var service = new AppLauncherService(permissions.Object);
+
+        var result = await service.GetAppsAsync(18, "Quản lý");
+
+        Assert.Contains(result.Apps, x => x.Code == AppCode.AdminDashboard);
+        Assert.DoesNotContain(result.Apps, x => x.Code == AppCode.OperationalIce);
+    }
 }

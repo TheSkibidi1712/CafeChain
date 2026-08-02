@@ -38,6 +38,7 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public DateTime? ExpectedDeliveryAtUtc { get; set; }
         public string? Note { get; set; }
         public decimal TotalAmount { get; set; }
+        public int CreatedByStaffId { get; set; }
         public string RowVersion { get; set; } = string.Empty;
         public int? ActiveReceiptDraftId { get; set; }
         public List<PurchaseOrderLineDto> Lines { get; set; } = new();

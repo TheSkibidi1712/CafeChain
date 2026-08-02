@@ -125,6 +125,15 @@ public sealed class ReorderSuggestionConfirmationRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public Task<string> AllocateRestockReferenceCodeAsync(
+        int storeId,
+        DateTime createdAtUtc,
+        CancellationToken cancellationToken = default) =>
+        CafeChain.Infrastrusture.Repositories.RestockReferenceCodeAllocator.NextAsync(
+            _context,
+            storeId,
+            createdAtUtc);
+
     public void AddRequest(RestockRequest request) =>
         _context.RestockRequests.Add(request);
 

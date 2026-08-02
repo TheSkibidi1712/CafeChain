@@ -29,6 +29,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
     public sealed class ActiveRestockRequestDto
     {
         public int RestockRequestId { get; set; }
+        public string ReferenceCode { get; set; } = string.Empty;
         public int StoreId { get; set; }
         public int IngredientId { get; set; }
         public string Status { get; set; } = string.Empty;
@@ -81,6 +82,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
     public class RestockRequestListItemDto
     {
         public int RestockRequestId { get; set; }
+        public string ReferenceCode { get; set; } = string.Empty;
         public int? StockAlertId { get; set; }
         public int StoreId { get; set; }
         public string ItemName { get; set; } = string.Empty;
@@ -141,6 +143,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
     public class CreateRestockRequestResultDto
     {
         public int RestockRequestId { get; set; }
+        public string ReferenceCode { get; set; } = string.Empty;
         public bool AlreadyExisted { get; set; }
         public bool NotifiedAccountantWarehouse { get; set; }
         public int RecipientCount { get; set; }

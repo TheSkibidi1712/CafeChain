@@ -13,8 +13,8 @@
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 
-<div class="pa-page">
-    <header class="pa-header">
+<div class="pa-page cc-warehouse-page">
+    <header class="pa-header cc-warehouse-header">
         <div>
             <div class="pa-eyebrow">Kho & Cung ứng</div>
             <h1>Đề nghị mua hàng theo chi nhánh</h1>
@@ -29,7 +29,7 @@
     @if (TempData["Success"] is string success) { <div class="pa-alert pa-alert-success">@success</div> }
     @if (TempData["Error"] is string error) { <div class="pa-alert">@error</div> }
 
-    <form method="get" class="pa-band pa-filter-grid">
+    <form method="get" class="pa-band pa-filter-grid cc-warehouse-filter">
         <div class="pa-field"><label>Chi nhánh</label><select name="storeId"><option value="">Tất cả trong phạm vi</option>@foreach (var store in Model.Stores) { <option value="@store.StoreId" selected="@(Model.Filter.StoreId == store.StoreId)">@store.StoreName</option> }</select></div>
         <div class="pa-field"><label>Trạng thái</label><select name="status"><option value="">Tất cả</option>@foreach (var s in new[] { PurchaseAdviceStatuses.Draft, PurchaseAdviceStatuses.Submitted, PurchaseAdviceStatuses.UnderReview, PurchaseAdviceStatuses.Allocated, PurchaseAdviceStatuses.Rejected, PurchaseAdviceStatuses.Cancelled }) { <option value="@s" selected="@(Model.Filter.Status == s)">@AdminStatusDisplay.PurchaseAdvice(s).Label</option> }</select></div>
         <div class="pa-field"><label>Ưu tiên</label><select name="priority"><option value="">Tất cả</option>@foreach (var p in new[] { PurchaseAdvicePriorities.Normal, PurchaseAdvicePriorities.High, PurchaseAdvicePriorities.Urgent }) { <option value="@p" selected="@(Model.Filter.Priority == p)">@AdminStatusDisplay.PurchaseAdvicePriority(p).Label</option> }</select></div>
@@ -38,13 +38,13 @@
         <div class="pa-field pa-field-button"><label class="pa-field-spacer">&nbsp;</label><button class="pa-action" type="submit"><i class="fas fa-filter"></i> Lọc</button></div>
     </form>
 
-    <div class="pa-table-wrap">
+    <div class="pa-table-wrap cc-warehouse-table-shell">
         <table class="pa-table">
             <thead><tr><th>Mã đề nghị</th><th>Chi nhánh / nguồn yêu cầu</th><th>Người đề nghị</th><th>Ngày cần hàng</th><th>Ưu tiên</th><th>Trạng thái</th><th>Số dòng đề nghị</th></tr></thead>
             <tbody>
             @if (Model.Items.Count == 0)
             {
-                <tr><td colspan="7" class="pa-empty">Chưa có đề nghị mua phù hợp bộ lọc.</td></tr>
+                <tr><td colspan="7" class="pa-empty" role="status">Chưa có đề nghị mua phù hợp bộ lọc.</td></tr>
             }
             @foreach (var item in Model.Items)
             {

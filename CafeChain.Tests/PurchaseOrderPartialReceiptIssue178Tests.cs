@@ -24,6 +24,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
     private const int StoreId = 1780;
     private const int OtherStoreId = 1781;
     private const int StaffId = 17802;
+    private const int ApproverStaffId = 17806;
     private const int UnitId = 17803;
     private const int IngredientId = 17804;
     private const int SupplierId = 17805;
@@ -67,11 +68,11 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
         var areaManager = await service.ApproveAsync(
             created.Data!.PurchaseOrderId, created.Data.RowVersion, StaffId, new[] { RoleConstants.AreaManager });
         var missing = await service.ApproveAsync(
-            created.Data.PurchaseOrderId, string.Empty, StaffId, new[] { RoleConstants.BusinessOwner });
+            created.Data.PurchaseOrderId, string.Empty, ApproverStaffId, new[] { RoleConstants.BusinessOwner });
         var stale = await service.ApproveAsync(
             created.Data.PurchaseOrderId,
             Convert.ToBase64String(Guid.NewGuid().ToByteArray()),
-            StaffId,
+            ApproverStaffId,
             new[] { RoleConstants.BusinessOwner });
 
         Assert.False(areaManager.IsSuccess);
@@ -201,7 +202,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
             }
         }, StaffId, new[] { RoleConstants.AccountantWarehouse });
         var approved = await service.ApproveAsync(
-            created.Data!.PurchaseOrderId, created.Data.RowVersion, StaffId, new[] { RoleConstants.BusinessOwner });
+            created.Data!.PurchaseOrderId, created.Data.RowVersion, ApproverStaffId, new[] { RoleConstants.BusinessOwner });
         var sent = await service.MarkSentAsync(
             created.Data.PurchaseOrderId, approved.Data!.RowVersion, StaffId, new[] { RoleConstants.AccountantWarehouse });
 

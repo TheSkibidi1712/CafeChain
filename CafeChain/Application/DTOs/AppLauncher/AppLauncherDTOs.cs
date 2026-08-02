@@ -4,7 +4,8 @@ public enum AppCode
 {
     AdminDashboard = 1,
     StaffHub = 2,
-    Pos = 3
+    Pos = 3,
+    OperationalIce = 4
 }
 
 public sealed class AppLauncherCardDTO

@@ -377,6 +377,8 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
             return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Chủ doanh nghiệp hoặc Quản trị hệ thống được duyệt đơn đặt hàng gộp.");
         var batch = await _context.PurchaseOrderBatches.Include(x => x.ChildPurchaseOrders).SingleOrDefaultAsync(x => x.PurchaseOrderBatchId == id);
         if (batch == null) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.NotFound, "Không tìm thấy đơn đặt hàng gộp.");
+        if (batch.CreatedByStaffId == actor.StaffId)
+            return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Bạn không thể tự duyệt đơn đặt hàng gộp do chính mình tạo.");
         if (batch.Status == PurchaseOrderBatchStatuses.Approved) return await GetDetailAsync(id, actor);
         if (batch.Status != PurchaseOrderBatchStatuses.PendingApproval)
             return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Invalid, "Không thể duyệt đơn đặt hàng gộp trong trạng thái hiện tại.");

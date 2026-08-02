@@ -13,8 +13,8 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
-<main class="ops-shell">
-    <header class="ops-header">
+<main class="ops-shell cc-warehouse-page">
+    <header class="ops-header cc-warehouse-header">
         <div>
             <div class="ops-eyebrow">Chứng từ nhập kho · Chi nhánh #@storeId</div>
             <h1 class="ops-title">Phiếu nhận hàng</h1>
@@ -39,7 +39,7 @@
 
     @if (stores.Count > 1)
     {
-        <form method="get" class="ops-filterbar" aria-label="Chọn chi nhánh">
+        <form method="get" class="ops-filterbar cc-warehouse-filter" aria-label="Chọn chi nhánh">
             <input type="hidden" name="status" value="@statusFilter" />
             <div class="ops-filter-group">
                 <label class="ops-form-label mb-0" for="receiptStoreId">Chi nhánh</label>
@@ -54,7 +54,7 @@
         </form>
     }
 
-    <nav class="ops-tabs" aria-label="Lọc trạng thái phiếu nhận">
+    <nav class="ops-status-tabs" aria-label="Lọc trạng thái phiếu nhận">
         <a class="ops-tab @(string.IsNullOrEmpty(statusFilter) ? "active" : "")" asp-action="Index" asp-route-storeId="@storeId">Tất cả</a>
         <a class="ops-tab @(statusFilter == "DRAFT" ? "active" : "")" asp-action="Index" asp-route-storeId="@storeId" asp-route-status="DRAFT">Bản nháp</a>
         <a class="ops-tab @(statusFilter == "CONFIRMED" ? "active" : "")" asp-action="Index" asp-route-storeId="@storeId" asp-route-status="CONFIRMED">Đã xác nhận</a>
@@ -62,7 +62,7 @@
 
     @if (Model.Count == 0)
     {
-        <section class="ops-empty">
+        <section class="ops-empty cc-warehouse-empty" role="status">
             <i class="fa-solid fa-clipboard-check fa-2x mb-3" aria-hidden="true"></i>
             <div class="fw-bold text-dark">Chưa có phiếu nhận phù hợp</div>
             <div class="mt-1">Chọn trạng thái khác hoặc tạo phiếu từ một yêu cầu nhập đang mở.</div>
@@ -71,8 +71,8 @@
     else
     {
         <section class="ops-panel">
-            <div class="ops-table-scroll">
-<table class="ops-table ops-table-min-850">
+            <div class="ops-table-scroll cc-warehouse-table-shell">
+                <table class="ops-table ops-table-min-850 branch-receipt-table">
                     <caption class="visually-hidden">Danh sách phiếu nhận hàng chi nhánh</caption>
                     <thead><tr><th>Mã phiếu</th><th>Trạng thái</th><th class="number">Số dòng</th><th class="number">Số lượng quy đổi</th><th class="number">Giá trị</th><th>Thời gian nhận</th><th></th></tr></thead>
                     <tbody>
@@ -80,7 +80,7 @@
                     {
                         <tr>
                             @{ var receiptStatus = AdminStatusDisplay.BranchReceipt(item.Status); }
-                            <td><strong>@item.ReceiptCode</strong><div class="ops-secondary">Chi nhánh #@item.StoreId</div></td>
+                            <td class="ops-reference-cell"><strong>@item.ReceiptCode</strong><div class="ops-secondary">Chi nhánh #@item.StoreId</div></td>
                             <td><span class="ops-badge @(item.Status == "CONFIRMED" ? "ops-badge-success" : "ops-badge-neutral")">@receiptStatus.Label</span></td>
                             <td class="number">@item.LineCount</td>
                             <td class="number">@AdminStatusDisplay.Quantity(item.TotalBaseQuantity)</td>

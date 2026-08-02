@@ -374,6 +374,11 @@ namespace CafeChain.Application.Services.Inventories
                     var input = item.Input;
                     var ingredient = item.Ingredient;
                     var baseQuantity = item.BaseQuantity;
+                    var demandNow = DateTime.UtcNow;
+                    var referenceCode = await CafeChain.Infrastrusture.Repositories.RestockReferenceCodeAllocator.NextAsync(
+                        _context,
+                        request.StoreId,
+                        demandNow);
                     var demand = new RestockRequest
                     {
                         StoreId = request.StoreId,
@@ -395,10 +400,11 @@ namespace CafeChain.Application.Services.Inventories
                             ? request.Priority.ToUpperInvariant()
                             : PurchaseAdvicePriorities.Normal,
                         CreatedByStaffId = actor.StaffId,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow,
+                        CreatedAt = demandNow,
+                        UpdatedAt = demandNow,
                         Note = Clean(request.Note, 1000)
                     };
+                    demand.AssignReferenceCode(referenceCode);
                     demand.SourcingAllocations.Add(new RestockSourcingAllocation
                     {
                         DecisionType = RestockSourcingDecisionTypes.Purchase,

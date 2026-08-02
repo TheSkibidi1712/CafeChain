@@ -9,8 +9,8 @@
     int totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
 }
 
-<main class="notification-page cc-page">
-    <header class="notification-header cc-page-header">
+<main class="notification-page cc-page cc-warehouse-page">
+    <header class="notification-header cc-page-header cc-warehouse-header">
         <div>
             <p class="cc-page-kicker">Kho &amp; Cung ứng</p>
             <h1 class="cc-page-title">Thông báo kho</h1>
@@ -22,7 +22,7 @@
                 }
             </p>
         </div>
-        <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="MarkAllRead" method="post" class="m-0">
+        <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="MarkAllRead" method="post" class="m-0 cc-warehouse-actions">
             @Html.AntiForgeryToken()
             <button type="submit" class="cc-button" @(unread == 0 ? "disabled" : null)>
                 Đánh dấu tất cả đã đọc
@@ -42,14 +42,14 @@
     <div data-admin-notification-list>
         @if (Model.Items == null || Model.Items.Count == 0)
         {
-            <div class="cc-empty-state">
+            <div class="cc-empty-state cc-warehouse-empty" role="status">
                 <h2>Chưa có thông báo kho</h2>
                 <p>Các cảnh báo tồn kho và cập nhật vận hành phù hợp với phạm vi của bạn sẽ xuất hiện tại đây.</p>
             </div>
         }
         else
         {
-            <section class="notification-list" aria-label="Danh sách thông báo kho">
+            <section class="notification-list cc-warehouse-panel" aria-label="Danh sách thông báo kho">
                 @foreach (var item in Model.Items)
                 {
                     <article class="notification-item @(item.IsRead ? "" : "is-unread")">

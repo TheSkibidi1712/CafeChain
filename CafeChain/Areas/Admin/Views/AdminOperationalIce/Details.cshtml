@@ -54,8 +54,8 @@
 }
 <link rel="stylesheet" href="~/css/Admin/OperationalIce/operational-ice.css" />
 
-<main class="ice-shell">
-    <header class="ice-page-header ice-detail-header">
+<main class="ice-shell cc-warehouse-page">
+<header class="ice-page-header ice-detail-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail">
         <div>
             <a class="ice-back-link" asp-action="Index" asp-route-storeId="@Model.StoreId" asp-route-businessDate="@Model.BusinessDate.ToString("yyyy-MM-dd")">
                 <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách ca đá
@@ -65,9 +65,12 @@
             <p>@Model.IngredientName · @Model.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") – @Model.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
         </div>
         <div class="ice-header-actions">
-            <a class="ice-btn ice-btn-secondary" asp-action="Report" asp-route-id="@Model.IceAllocationId">
-                <i class="fa-solid fa-chart-column" aria-hidden="true"></i> Báo cáo ca
-            </a>
+            @if (Model.CanViewReport)
+            {
+                <a class="ice-btn ice-btn-secondary" asp-action="Report" asp-route-id="@Model.IceAllocationId">
+                    <i class="fa-solid fa-chart-column" aria-hidden="true"></i> Báo cáo ca
+                </a>
+            }
             <span class="ice-badge ice-badge-large @StatusClass(Model.Status)">@StatusLabel(Model.Status)</span>
         </div>
     </header>
@@ -90,7 +93,7 @@
         <span class="@(Model.Status == OperationalIceStatuses.Closed ? "is-current" : "")"><i class="fa-solid fa-lock" aria-hidden="true"></i> Đóng</span>
     </nav>
 
-    <section class="ice-summary-grid ice-summary-six" aria-label="Số liệu ca đá">
+    <section class="ice-summary-grid ice-summary-six cc-warehouse-summary-grid" aria-label="Số liệu ca đá">
         <article>
             <span>Tồn khả dụng</span>
             <strong>@DisplayQuantity(Model.AvailableQuantity)</strong>
@@ -135,7 +138,7 @@
 
                 @if (Model.WorkShifts.Count == 0)
                 {
-                    <div class="ice-empty ice-empty-compact"><p>Chưa liên kết WorkShift POS.</p></div>
+                    <div class="ice-empty ice-empty-compact cc-warehouse-empty" role="status"><p>Chưa liên kết WorkShift POS.</p></div>
                 }
                 else
                 {
@@ -158,7 +161,7 @@
                     </div>
                 }
 
-                @if (isOpen && Model.CanManage && Model.AvailableWorkShifts.Count > 0)
+                @if (isOpen && Model.CanLinkWorkShift && Model.AvailableWorkShifts.Count > 0)
                 {
                     <form asp-action="LinkWorkShifts" method="post" class="ice-link-workshifts" data-ice-submit>
                         @Html.AntiForgeryToken()
@@ -194,7 +197,7 @@
 
                 @if (Model.Supplements.Count == 0)
                 {
-                    <div class="ice-empty ice-empty-compact"><p>Chưa có yêu cầu cấp bổ sung.</p></div>
+                    <div class="ice-empty ice-empty-compact cc-warehouse-empty" role="status"><p>Chưa có yêu cầu cấp bổ sung.</p></div>
                 }
                 else
                 {
@@ -211,7 +214,7 @@
                                     <td>@item.Reason</td>
                                     <td>
                                         <span class="ice-badge @SupplementClass(item.Status)">@SupplementLabel(item.Status)</span>
-                                        @if (item.Status == IceSupplementalIssueStatuses.Pending && Model.CanApprove)
+                                        @if (item.Status == IceSupplementalIssueStatuses.Pending && Model.CanApproveSupplement)
                                         {
                                             <div class="ice-decision-row">
                                                 <form asp-action="DecideSupplemental" method="post">
@@ -243,7 +246,7 @@
                     </div>
                 }
 
-                @if (isOpen && Model.CanManage)
+                @if (isOpen && Model.CanRequestSupplement)
                 {
                     <form asp-action="RequestSupplemental" method="post" class="ice-inline-action">
                         @Html.AntiForgeryToken()
@@ -271,7 +274,7 @@
                 </div>
                 @if (Model.CarryOvers.Count == 0)
                 {
-                    <div class="ice-empty ice-empty-compact"><p>Chưa có giao nhận giữa các ca.</p></div>
+                    <div class="ice-empty ice-empty-compact cc-warehouse-empty" role="status"><p>Chưa có giao nhận giữa các ca.</p></div>
                 }
                 else
                 {
@@ -295,7 +298,7 @@
                     </div>
                 }
 
-                @if (isOpen && Model.CanManage && Model.CarryTargets.Count > 0)
+                @if (isOpen && Model.CanHandoff && Model.CarryTargets.Count > 0)
                 {
                     <form asp-action="ConfirmCarryOver" method="post" class="ice-inline-action">
                         @Html.AntiForgeryToken()
@@ -337,7 +340,7 @@
                 </div>
                 @if (Model.Postings.Count == 0)
                 {
-                    <div class="ice-empty ice-empty-compact"><p>Chưa phát sinh bút toán điều chỉnh.</p></div>
+                    <div class="ice-empty ice-empty-compact cc-warehouse-empty" role="status"><p>Chưa phát sinh bút toán điều chỉnh.</p></div>
                 }
                 else
                 {
@@ -364,7 +367,7 @@
         </div>
 
         <aside class="ice-action-column" aria-label="Thao tác ca đá">
-            @if (isOpen && Model.CanManage)
+            @if (isOpen && Model.CanSubmitClose)
             {
                 <section class="ice-action-panel">
                     <span class="ice-section-kicker">Bước tiếp theo</span>
@@ -406,7 +409,7 @@
                     </form>
                 </section>
             }
-            else if (isPendingApproval && Model.CanApprove)
+            else if (isPendingApproval && Model.CanApproveVariance)
             {
                 <section class="ice-action-panel ice-action-warning">
                     <span class="ice-section-kicker">Chờ phê duyệt</span>
@@ -425,7 +428,7 @@
                     </form>
                 </section>
             }
-            else if (needsReconciliation && Model.CanApprove)
+            else if (needsReconciliation && Model.CanApproveVariance)
             {
                 <section class="ice-action-panel ice-action-warning">
                     <span class="ice-section-kicker">Cần đối soát</span>
@@ -473,7 +476,7 @@
                 }
             </section>
 
-            @if (!isFinished && Model.CanApprove)
+            @if (!isFinished && Model.CanApproveVariance)
             {
                 <details class="ice-danger-zone">
                     <summary><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Hủy phân bổ</summary>
@@ -513,5 +516,22 @@
 
     quantity.addEventListener("input", updateReturnEvidence);
     updateReturnEvidence();
+})();
+
+(() => {
+    document.querySelectorAll('form[data-ice-submit]').forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                form.reportValidity();
+                return;
+            }
+
+            form.querySelectorAll('button[type="submit"]').forEach(button => {
+                button.disabled = true;
+                button.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Đang liên kết...';
+            });
+        });
+    });
 })();
 </script>

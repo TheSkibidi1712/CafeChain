@@ -29,10 +29,14 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // ===== INDEX =====
-        public async Task<IActionResult> Index(string? search, bool? status)
+        public async Task<IActionResult> Index(
+            string? search,
+            bool? status,
+            int page = 1,
+            int pageSize = 20)
         {
             var storeScope = await ResolveStoreScopeAsync();
-            var data = await _service.GetAllAsync(search, status, storeScope);
+            var data = await _service.GetPagedAsync(search, status, page, pageSize, storeScope);
             ViewBag.CanMutateSupplier = await HasEffectivePermissionAsync(PermissionConstants.SupplierUpdate)
                 || await HasEffectivePermissionAsync(PermissionConstants.SupplierCreate)
                 || await HasEffectivePermissionAsync(PermissionConstants.SupplierToggleStatus);
@@ -47,6 +51,18 @@ namespace CafeChain.Areas.Admin.Controllers
             if (data == null)
                 return Json(new { success = false, message = "Không tìm thấy nhà cung cấp" });
 
+            return Json(new { success = true, data });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAuditHistory(int supplierId)
+        {
+            if (!await CanReadSupplierAsync(supplierId))
+                return SupplierScopeDenied();
+
+            var data = await _service.GetAuditHistoryAsync(
+                supplierId,
+                await ResolveStoreScopeAsync());
             return Json(new { success = true, data });
         }
 
