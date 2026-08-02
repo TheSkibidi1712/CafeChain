@@ -54,7 +54,7 @@
         </form>
     }
 
-    <nav class="ops-tabs" aria-label="Lọc trạng thái phiếu nhận">
+    <nav class="ops-status-tabs" aria-label="Lọc trạng thái phiếu nhận">
         <a class="ops-tab @(string.IsNullOrEmpty(statusFilter) ? "active" : "")" asp-action="Index" asp-route-storeId="@storeId">Tất cả</a>
         <a class="ops-tab @(statusFilter == "DRAFT" ? "active" : "")" asp-action="Index" asp-route-storeId="@storeId" asp-route-status="DRAFT">Bản nháp</a>
         <a class="ops-tab @(statusFilter == "CONFIRMED" ? "active" : "")" asp-action="Index" asp-route-storeId="@storeId" asp-route-status="CONFIRMED">Đã xác nhận</a>

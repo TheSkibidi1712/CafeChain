@@ -20,6 +20,8 @@ public sealed class WarehouseSurfaceAndReceiptHoverRegressionTests
         var view = Read("CafeChain/Areas/Admin/Views/AdminBranchReceipts/Index.cshtml");
         var css = Read("CafeChain/wwwroot/css/Admin/InventoryOperations/inventory-operations.css");
 
+        Assert.Contains("class=\"ops-status-tabs\"", view);
+        Assert.DoesNotContain("class=\"ops-tabs\"", view);
         Assert.Contains("branch-receipt-table", view);
         Assert.Contains("ops-reference-cell", view);
         Assert.Contains(".branch-receipt-table tbody tr:hover > td", css);
