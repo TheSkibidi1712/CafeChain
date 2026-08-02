@@ -15,6 +15,9 @@
 **/appsettings.Local.json
 CafeChain/appsettings.Local.json
 
+# Temporary plaintext User Secrets handoff. Never commit this file.
+/CafeChain/docs/local-user-secrets.private.ps1
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

@@ -15,13 +15,9 @@ namespace CafeChain.Extensions.Services
 
             if (string.IsNullOrWhiteSpace(jwtKey))
             {
-                if (environment.IsProduction())
-                {
-                    throw new InvalidOperationException(
-                        "Jwt:Key is required in Production. Please configure it in appsettings or environment variables.");
-                }
-
-                jwtKey = "CafeChain-POS-JWT-Secret-Key-Change-In-Production-2026-Min32Chars!";
+                throw new InvalidOperationException(
+                    "Jwt:Key is required. Configure it with .NET User Secrets in Development " +
+                    "or a deployment secret/environment variable in other environments.");
             }
 
             var jwtIssuer = configuration["Jwt:Issuer"] ?? "CafeChain";
