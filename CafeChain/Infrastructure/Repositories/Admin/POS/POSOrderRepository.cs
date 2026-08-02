@@ -240,6 +240,9 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                         Quantity = od.Quantity,
                         Price = od.Price,
                         LineTotal = od.Price * od.Quantity,
+                        IceLevelPercent = od.IceLevelPercent,
+                        BaseIceQuantityBaseUnit = od.BaseIceQuantityBaseUnit,
+                        AppliedIceQuantityBaseUnit = od.AppliedIceQuantityBaseUnit,
                         Note = od.Note,
                         Toppings = od.OrderToppings
                             .Select(ot => ot.ToppingName)

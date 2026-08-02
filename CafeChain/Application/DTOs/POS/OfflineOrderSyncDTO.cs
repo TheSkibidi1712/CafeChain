@@ -53,6 +53,8 @@ namespace CafeChain.Application.DTOs.POS
         public string? PriceSource { get; set; }
         public long? CatalogVersion { get; set; }
         public decimal TotalPrice { get; set; }
+        public int? IceLevelPercent { get; set; }
+        public string? Note { get; set; }
         public List<POSOrderToppingDto> Toppings { get; set; } = new List<POSOrderToppingDto>();
     }
 
@@ -71,6 +73,7 @@ namespace CafeChain.Application.DTOs.POS
         public decimal? EffectivePrice { get; set; }
         public string? PriceSource { get; set; }
         public long? CatalogVersion { get; set; }
+        public int? IceLevelPercent { get; set; }
         public string? Note { get; set; }
         public string? DetailText { get; set; }
         public List<OfflineCartSnapshotToppingDTO> Toppings { get; set; } = new();

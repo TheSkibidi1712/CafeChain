@@ -77,6 +77,7 @@ namespace CafeChain.Application.DTOs.POS
         public string? PriceSource { get; set; }
         public long? CatalogVersion { get; set; }
         public int Quantity { get; set; } = 1;
+        public int? IceLevelPercent { get; set; }
         public string? Note { get; set; }
         public List<POSOrderToppingDto> Toppings { get; set; } = new List<POSOrderToppingDto>();
     }

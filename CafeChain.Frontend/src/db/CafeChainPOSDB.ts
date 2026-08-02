@@ -68,6 +68,8 @@ export interface MenuItemSize {
   isAvailable: boolean
   availabilityStatus: string
   availabilityReason?: string | null
+  supportsIceCustomization: boolean
+  baseIceQuantityBaseUnit?: number | null
   toppingPolicies?: ToppingPolicy[]
 }
 
@@ -127,6 +129,7 @@ export interface CartQueueItemSnapshot {
   effectivePrice: number
   priceSource: string
   catalogVersion: number
+  iceLevelPercent?: 0 | 50 | 100 | null
   note?: string
   detailText?: string
   toppings?: CartQueueToppingSnapshot[]
@@ -175,6 +178,7 @@ export interface CartSyncQueueItem {
     effectivePrice: number
     priceSource: string
     catalogVersion: number
+    iceLevelPercent?: 0 | 50 | 100 | null
     note?: string
     toppings?: Array<{ toppingId: number; name?: string; acceptedPrice: number }>
   }>

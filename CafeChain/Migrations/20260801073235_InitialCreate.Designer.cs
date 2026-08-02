@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260730133333_InitialCreate")]
+    [Migration("20260801073235_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -9760,6 +9760,14 @@ namespace CafeChain.Migrations
                     b.Property<long?>("AcceptedCatalogVersion")
                         .HasColumnType("bigint");
 
+                    b.Property<decimal?>("AppliedIceQuantityBaseUnit")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("BaseIceQuantityBaseUnit")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
                     b.Property<int>("CostStatus")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -9774,6 +9782,12 @@ namespace CafeChain.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<int?>("DrinkSizeId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IceIngredientId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IceLevelPercent")
                         .HasColumnType("int");
 
                     b.Property<string>("Note")
@@ -9816,13 +9830,20 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("DrinkSizeId");
 
+                    b.HasIndex("IceIngredientId");
+
                     b.HasIndex("OrderId");
 
                     b.HasIndex("SizeId");
 
                     b.HasIndex("StoreMenuItemId");
 
-                    b.ToTable("OrderDetails", (string)null);
+                    b.ToTable("OrderDetails", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderDetails_IceLevelPercent", "[IceLevelPercent] IS NULL OR [IceLevelPercent] IN (0, 50, 100)");
+
+                            t.HasCheckConstraint("CK_OrderDetails_IceSnapshot", "([IceLevelPercent] IS NULL AND [IceIngredientId] IS NULL AND [BaseIceQuantityBaseUnit] IS NULL AND [AppliedIceQuantityBaseUnit] IS NULL) OR ([IceLevelPercent] IS NOT NULL AND [IceIngredientId] IS NOT NULL AND [BaseIceQuantityBaseUnit] IS NOT NULL AND [AppliedIceQuantityBaseUnit] IS NOT NULL AND [BaseIceQuantityBaseUnit] >= 0 AND [AppliedIceQuantityBaseUnit] >= 0 AND [AppliedIceQuantityBaseUnit] <= [BaseIceQuantityBaseUnit])");
+                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderStatus", b =>
@@ -15859,6 +15880,11 @@ namespace CafeChain.Migrations
                         .HasForeignKey("DrinkSizeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Ingredient", "IceIngredient")
+                        .WithMany()
+                        .HasForeignKey("IceIngredientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Orders.Order", "Order")
                         .WithMany("OrderDetails")
                         .HasForeignKey("OrderId")
@@ -15878,6 +15904,8 @@ namespace CafeChain.Migrations
                     b.Navigation("Drink");
 
                     b.Navigation("DrinkSize");
+
+                    b.Navigation("IceIngredient");
 
                     b.Navigation("Order");
 
