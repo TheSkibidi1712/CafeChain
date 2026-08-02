@@ -115,7 +115,17 @@ namespace CafeChain.Data.Configurations.Orders
     {
         public void Configure(EntityTypeBuilder<OrderDetail> entity)
         {
-            entity.ToTable("OrderDetails");
+            entity.ToTable("OrderDetails", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_OrderDetails_IceLevelPercent",
+                    "[IceLevelPercent] IS NULL OR [IceLevelPercent] IN (0, 50, 100)");
+                table.HasCheckConstraint(
+                    "CK_OrderDetails_IceSnapshot",
+                    "([IceLevelPercent] IS NULL AND [IceIngredientId] IS NULL AND [BaseIceQuantityBaseUnit] IS NULL AND [AppliedIceQuantityBaseUnit] IS NULL) OR " +
+                    "([IceLevelPercent] IS NOT NULL AND [IceIngredientId] IS NOT NULL AND [BaseIceQuantityBaseUnit] IS NOT NULL AND [AppliedIceQuantityBaseUnit] IS NOT NULL " +
+                    "AND [BaseIceQuantityBaseUnit] >= 0 AND [AppliedIceQuantityBaseUnit] >= 0 AND [AppliedIceQuantityBaseUnit] <= [BaseIceQuantityBaseUnit])");
+            });
 
             entity.HasKey(x => x.OrderDetailId);
 
@@ -140,6 +150,12 @@ namespace CafeChain.Data.Configurations.Orders
 
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
+
+            entity.Property(x => x.BaseIceQuantityBaseUnit)
+                .HasPrecision(18, 3);
+
+            entity.Property(x => x.AppliedIceQuantityBaseUnit)
+                .HasPrecision(18, 3);
 
             entity.Property(x => x.CostStatus)
                 .HasConversion<int>()
@@ -178,12 +194,18 @@ namespace CafeChain.Data.Configurations.Orders
                 .HasForeignKey(x => x.DrinkSizeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.IceIngredient)
+                .WithMany()
+                .HasForeignKey(x => x.IceIngredientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // INDEX
             entity.HasIndex(x => x.OrderId);
             entity.HasIndex(x => x.DrinkId);
             entity.HasIndex(x => x.SizeId);
             entity.HasIndex(x => x.StoreMenuItemId);
             entity.HasIndex(x => x.DrinkSizeId);
+            entity.HasIndex(x => x.IceIngredientId);
 
            
 

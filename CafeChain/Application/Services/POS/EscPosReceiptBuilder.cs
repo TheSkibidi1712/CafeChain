@@ -154,6 +154,13 @@ namespace CafeChain.Application.Services.POS
                     buffer.AddRange(TextToBytes(FormatColumns(itemName, qty, lineTotal)));
                     buffer.AddRange(CMD_LF);
 
+                    var iceLabel = GetIceLevelLabel(detail.IceLevelPercent);
+                    if (iceLabel != null)
+                    {
+                        buffer.AddRange(TextToBytes($"  Da: {iceLabel}"));
+                        buffer.AddRange(CMD_LF);
+                    }
+
                     // Toppings (indented)
                     if (detail.OrderToppings != null)
                     {
@@ -274,6 +281,14 @@ namespace CafeChain.Application.Services.POS
         // PRIVATE HELPERS
         // ═══════════════════════════════════════════════════════════
 
+        private static string? GetIceLevelLabel(int? iceLevelPercent) => iceLevelPercent switch
+        {
+            0 => "Khong da",
+            50 => "It da",
+            100 => "Binh thuong",
+            _ => null
+        };
+
         private static void AddCupLabel(
             List<byte> buffer,
             Order order,
@@ -313,6 +328,10 @@ namespace CafeChain.Application.Services.POS
 
             buffer.AddRange(CMD_ALIGN_LEFT);
             AddTextLine(buffer, $"Size    : {StripVietnamese(detail.SizeName ?? "Mac dinh")}");
+
+            var iceLabel = GetIceLevelLabel(detail.IceLevelPercent);
+            if (iceLabel != null)
+                AddTextLine(buffer, $"Da      : {iceLabel}");
 
             var note = StripVietnamese(detail.Note ?? "").Trim();
             if (!string.IsNullOrWhiteSpace(note))

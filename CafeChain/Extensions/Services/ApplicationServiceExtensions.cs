@@ -171,6 +171,8 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Services.Admin.StoreMenu.StoreMenuWorkspaceService>();
             services.AddScoped<CafeChain.Application.Interfaces.POS.IPOSCatalogSnapshotService,
                 CafeChain.Application.Services.POS.POSCatalogSnapshotService>();
+            services.AddScoped<CafeChain.Application.Interfaces.POS.IPOSIceCustomizationService,
+                CafeChain.Application.Services.POS.POSIceCustomizationService>();
             services.AddScoped<CafeChain.Application.Interfaces.POS.IPOSStoreMenuSaleValidator,
                 CafeChain.Application.Services.POS.POSStoreMenuSaleValidator>();
 

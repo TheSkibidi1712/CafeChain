@@ -35,6 +35,7 @@ namespace CafeChain.Application.Services.POS
         private readonly ILogger<POSOrderService> _logger;
         private readonly IPOSStoreMenuSaleValidator? _storeMenuSaleValidator;
         private readonly IOrderAccessAuthorizationService? _orderAccessAuthorization;
+        private readonly IPOSIceCustomizationService? _iceCustomization;
         private readonly decimal _cashDenominationStep;
 
         public POSOrderService(
@@ -69,7 +70,8 @@ namespace CafeChain.Application.Services.POS
             ILogger<POSOrderService> logger,
             IPOSStoreMenuSaleValidator? storeMenuSaleValidator,
             IOptions<POSPaymentOptions>? paymentOptions,
-            IOrderAccessAuthorizationService? orderAccessAuthorization = null)
+            IOrderAccessAuthorizationService? orderAccessAuthorization = null,
+            IPOSIceCustomizationService? iceCustomization = null)
         {
             _repository = repository;
             _workShiftService = workShiftService;
@@ -79,6 +81,7 @@ namespace CafeChain.Application.Services.POS
             _logger = logger;
             _storeMenuSaleValidator = storeMenuSaleValidator;
             _orderAccessAuthorization = orderAccessAuthorization;
+            _iceCustomization = iceCustomization;
             _cashDenominationStep = paymentOptions?.Value.GetEffectiveCashDenominationStep()
                 ?? POSPaymentOptions.DefaultCashDenominationStep;
         }
@@ -262,6 +265,10 @@ namespace CafeChain.Application.Services.POS
             if (!acceptedLines.IsSuccess)
                 return ServiceResult<object>.Failure(acceptedLines.Message, errorCode: acceptedLines.ErrorCode);
 
+            var iceSnapshots = await ValidateIceSnapshotsAsync(dto.Items, acceptedLines.Data, storeId);
+            if (!iceSnapshots.IsSuccess || iceSnapshots.Data == null)
+                return ServiceResult<object>.Failure(iceSnapshots.Message, errorCode: iceSnapshots.ErrorCode);
+
             await _repository.BeginTransactionAsync();
             var transactionCommitted = false;
             try
@@ -277,7 +284,7 @@ namespace CafeChain.Application.Services.POS
                     {
                         var accepted = acceptedLines.Data[itemIndex];
                         subTotal += accepted.AcceptedUnitPrice * item.Quantity;
-                        orderDetails.Add(BuildAcceptedOrderDetail(item, accepted));
+                        orderDetails.Add(BuildAcceptedOrderDetail(item, accepted, iceSnapshots.Data[itemIndex]));
                         continue;
                     }
 
@@ -330,11 +337,13 @@ namespace CafeChain.Application.Services.POS
                     }
 
                     subTotal += (itemBasePrice + toppingTotal) * item.Quantity;
-                    orderDetails.Add(new OrderDetail
+                    var orderDetail = new OrderDetail
                     {
                         DrinkId = item.DrinkId, SizeId = item.SizeId, DrinkName = drink.Name, SizeName = sizeName,
                         Price = itemBasePrice + toppingTotal, Quantity = item.Quantity, Note = item.Note ?? "", OrderToppings = orderToppings
-                    });
+                    };
+                    ApplyIceSnapshot(orderDetail, iceSnapshots.Data[itemIndex]);
+                    orderDetails.Add(orderDetail);
                 }
 
                 // Soft-removal: voucher + loyalty out of product scope — reject non-empty payload (no silent ignore).
@@ -693,6 +702,10 @@ namespace CafeChain.Application.Services.POS
             if (!acceptedLines.IsSuccess)
                 return ServiceResult<object>.Failure(acceptedLines.Message, errorCode: acceptedLines.ErrorCode);
 
+            var iceSnapshots = await ValidateIceSnapshotsAsync(dto.Items, acceptedLines.Data, storeId);
+            if (!iceSnapshots.IsSuccess || iceSnapshots.Data == null)
+                return ServiceResult<object>.Failure(iceSnapshots.Message, errorCode: iceSnapshots.ErrorCode);
+
             await _repository.BeginTransactionAsync();
             var transactionCommitted = false;
 
@@ -714,7 +727,7 @@ namespace CafeChain.Application.Services.POS
                     {
                         var accepted = acceptedLines.Data[itemIndex];
                         subTotal += accepted.AcceptedUnitPrice * item.Quantity;
-                        orderDetails.Add(BuildAcceptedOrderDetail(item, accepted));
+                        orderDetails.Add(BuildAcceptedOrderDetail(item, accepted, iceSnapshots.Data[itemIndex]));
                         continue;
                     }
 
@@ -784,7 +797,7 @@ namespace CafeChain.Application.Services.POS
                     }
 
                     subTotal += (itemBasePrice + toppingTotal) * item.Quantity;
-                    orderDetails.Add(new OrderDetail
+                    var orderDetail = new OrderDetail
                     {
                         DrinkId = item.DrinkId,
                         SizeId = item.SizeId,
@@ -794,7 +807,9 @@ namespace CafeChain.Application.Services.POS
                         Quantity = item.Quantity,
                         Note = item.Note ?? "",
                         OrderToppings = orderToppings
-                    });
+                    };
+                    ApplyIceSnapshot(orderDetail, iceSnapshots.Data[itemIndex]);
+                    orderDetails.Add(orderDetail);
                 }
 
                 var total = subTotal;
@@ -985,9 +1000,10 @@ namespace CafeChain.Application.Services.POS
 
         private static OrderDetail BuildAcceptedOrderDetail(
             POSOrderItemDto item,
-            POSAcceptedSaleLineDto accepted)
+            POSAcceptedSaleLineDto accepted,
+            POSIceOrderSnapshotDto? iceSnapshot)
         {
-            return new OrderDetail
+            var detail = new OrderDetail
             {
                 DrinkId = accepted.DrinkId,
                 SizeId = accepted.SizeId,
@@ -1008,6 +1024,54 @@ namespace CafeChain.Application.Services.POS
                     Price = x.AcceptedPrice
                 }).ToList()
             };
+            ApplyIceSnapshot(detail, iceSnapshot);
+            return detail;
+        }
+
+        private async Task<ServiceResult<IReadOnlyList<POSIceOrderSnapshotDto?>>> ValidateIceSnapshotsAsync(
+            IReadOnlyList<POSOrderItemDto> items,
+            IReadOnlyList<POSAcceptedSaleLineDto>? acceptedLines,
+            int storeId)
+        {
+            var snapshots = new List<POSIceOrderSnapshotDto?>(items.Count);
+            if (_iceCustomization == null)
+            {
+                snapshots.AddRange(Enumerable.Repeat<POSIceOrderSnapshotDto?>(null, items.Count));
+                return ServiceResult<IReadOnlyList<POSIceOrderSnapshotDto?>>.Success(snapshots);
+            }
+
+            for (var index = 0; index < items.Count; index++)
+            {
+                var item = items[index];
+                var sizeId = acceptedLines != null ? acceptedLines[index].SizeId : item.SizeId;
+                var result = await _iceCustomization.CreateOrderSnapshotAsync(
+                    storeId,
+                    item.DrinkId,
+                    sizeId,
+                    item.Quantity,
+                    item.IceLevelPercent);
+                if (!result.IsSuccess)
+                {
+                    return ServiceResult<IReadOnlyList<POSIceOrderSnapshotDto?>>.Failure(
+                        $"{result.Message} (món #{item.DrinkId}).",
+                        errorCode: result.ErrorCode);
+                }
+
+                snapshots.Add(result.Data);
+            }
+
+            return ServiceResult<IReadOnlyList<POSIceOrderSnapshotDto?>>.Success(snapshots);
+        }
+
+        private static void ApplyIceSnapshot(OrderDetail detail, POSIceOrderSnapshotDto? snapshot)
+        {
+            if (snapshot == null)
+                return;
+
+            detail.IceLevelPercent = snapshot.IceLevelPercent;
+            detail.IceIngredientId = snapshot.IceIngredientId;
+            detail.BaseIceQuantityBaseUnit = snapshot.BaseIceQuantityBaseUnit;
+            detail.AppliedIceQuantityBaseUnit = snapshot.AppliedIceQuantityBaseUnit;
         }
 
         private static decimal ResolveCashReceivedAmount(decimal receivedAmount, decimal total)
@@ -1070,6 +1134,7 @@ namespace CafeChain.Application.Services.POS
                     item.DrinkId,
                     item.SizeId,
                     item.Quantity,
+                    item.IceLevelPercent,
                     Toppings = string.Join(",", item.Toppings.Select(topping => topping.ToppingId).OrderBy(id => id))
                 })
                 .OrderBy(item => item.DrinkId)
@@ -1083,6 +1148,7 @@ namespace CafeChain.Application.Services.POS
                     item.DrinkId,
                     item.SizeId,
                     item.Quantity,
+                    item.IceLevelPercent,
                     Toppings = string.Join(",", item.OrderToppings.Select(topping => topping.ToppingId).OrderBy(id => id))
                 })
                 .OrderBy(item => item.DrinkId)

@@ -847,7 +847,9 @@ namespace CafeChain.Application.Services.Inventories
                         modeSnapshot,
                         requirements,
                         detail.OrderDetailId,
-                        orderToppingId: null);
+                        orderToppingId: null,
+                        iceIngredientId: detail.IceIngredientId,
+                        iceScale: ResolveIceScale(detail));
                 }
 
                 foreach (var topping in detail.OrderToppings.OrderBy(t => t.OrderToppingId))
@@ -883,12 +885,21 @@ namespace CafeChain.Application.Services.Inventories
             InventoryWriterModeSnapshot? modeSnapshot,
             List<RequirementLine> requirements,
             int? orderDetailId,
-            int? orderToppingId)
+            int? orderToppingId,
+            int? iceIngredientId = null,
+            decimal? iceScale = null)
         {
             var details = saleRecipe.RecipeDetails?.ToList() ?? new List<RecipeDetail>();
             foreach (var detail in details)
             {
                 decimal rawRequired = detail.Quantity * soldQuantity;
+                if (detail.IngredientId.HasValue
+                    && iceIngredientId.HasValue
+                    && detail.IngredientId.Value == iceIngredientId.Value
+                    && iceScale.HasValue)
+                {
+                    rawRequired *= iceScale.Value;
+                }
 
                 if (detail.IngredientId.HasValue)
                 {
@@ -962,6 +973,122 @@ namespace CafeChain.Application.Services.Inventories
                         BaseUnitId = null
                     });
                 }
+
+                // A ChildRecipe remains a separate BTP inventory identity, but its
+                // canonical ice ingredient still participates in POS ice accounting.
+                // Add only that ingredient after flattening; never scale the whole child.
+                if (iceIngredientId.HasValue && iceScale.HasValue)
+                {
+                    await CollectCanonicalIceFromChildRecipeAsync(
+                        detail.ChildRecipeId.Value,
+                        rawRequired,
+                        detail.UnitId,
+                        storeId,
+                        requirements,
+                        orderDetailId,
+                        orderToppingId,
+                        iceIngredientId.Value,
+                        iceScale.Value,
+                        new HashSet<int>());
+                }
+            }
+        }
+
+        private async Task CollectCanonicalIceFromChildRecipeAsync(
+            int childRecipeId,
+            decimal inputQuantity,
+            int inputUnitId,
+            int storeId,
+            List<RequirementLine> requirements,
+            int? orderDetailId,
+            int? orderToppingId,
+            int canonicalIceIngredientId,
+            decimal iceScale,
+            HashSet<int> path)
+        {
+            if (!path.Add(childRecipeId))
+                throw new InvalidOperationException("BOM ChildRecipe có vòng lặp khi truy vết nguyên liệu đá.");
+
+            try
+            {
+                var recipe = await _context.Recipes
+                    .AsNoTracking()
+                    .Include(r => r.RecipeDetails)
+                    .FirstOrDefaultAsync(r => r.RecipeId == childRecipeId
+                        && r.Active
+                        && r.Status == "Active");
+
+                if (recipe == null || recipe.OutputQuantity is null or <= 0 || !recipe.OutputUnitId.HasValue)
+                    throw new InvalidOperationException(
+                        $"ChildRecipe #{childRecipeId} thiếu output contract để truy vết nguyên liệu đá.");
+
+                var outputQuantity = await _physicalConversion!.ConvertAsync(
+                    inputQuantity,
+                    inputUnitId,
+                    recipe.OutputUnitId.Value);
+                if (!outputQuantity.IsSuccess)
+                    throw new InvalidOperationException(outputQuantity.Message);
+
+                var multiplier = outputQuantity.Data / recipe.OutputQuantity.Value;
+                foreach (var detail in recipe.RecipeDetails.OrderBy(d => d.RecipeDetailId))
+                {
+                    if (detail.IngredientId.HasValue)
+                    {
+                        if (detail.IngredientId.Value != canonicalIceIngredientId)
+                            continue;
+
+                        var rawIce = detail.Quantity * multiplier * iceScale;
+                        var convertedIce = await _unitConversion.ConvertAsync(
+                            canonicalIceIngredientId,
+                            rawIce,
+                            detail.UnitId);
+                        if (!convertedIce.IsSuccess)
+                            throw new InvalidOperationException(convertedIce.Message);
+
+                        if (convertedIce.Data == 0m)
+                            continue;
+
+                        var inventory = await GetOrCreateIngredientInventoryAsync(
+                            storeId,
+                            canonicalIceIngredientId);
+                        var ingredient = await _context.Ingredients.AsNoTracking()
+                            .FirstOrDefaultAsync(i => i.IngredientId == canonicalIceIngredientId);
+
+                        requirements.Add(new RequirementLine
+                        {
+                            StoreInventoryId = inventory.StoreInventoryId,
+                            RequiredQty = convertedIce.Data,
+                            SourceRecipeId = recipe.RecipeId,
+                            DisplayName = ingredient?.Name ?? $"Ingredient #{canonicalIceIngredientId}",
+                            OrderDetailId = orderDetailId,
+                            OrderToppingId = orderToppingId,
+                            IngredientId = canonicalIceIngredientId,
+                            PreparedItemId = null,
+                            BaseUnitId = ingredient?.BaseUnitId
+                        });
+                        continue;
+                    }
+
+                    if (!detail.ChildRecipeId.HasValue)
+                        throw new InvalidOperationException(
+                            $"RecipeDetail #{detail.RecipeDetailId} phải có IngredientId hoặc ChildRecipeId.");
+
+                    await CollectCanonicalIceFromChildRecipeAsync(
+                        detail.ChildRecipeId.Value,
+                        detail.Quantity * multiplier,
+                        detail.UnitId,
+                        storeId,
+                        requirements,
+                        orderDetailId,
+                        orderToppingId,
+                        canonicalIceIngredientId,
+                        iceScale,
+                        path);
+                }
+            }
+            finally
+            {
+                path.Remove(childRecipeId);
             }
         }
 
@@ -1186,6 +1313,22 @@ namespace CafeChain.Application.Services.Inventories
             _context.StoreInventories.Add(item);
             await _context.SaveChangesAsync();
             return item;
+        }
+
+        private static decimal? ResolveIceScale(OrderDetail detail)
+        {
+            if (!detail.IceLevelPercent.HasValue
+                || !detail.IceIngredientId.HasValue
+                || !detail.BaseIceQuantityBaseUnit.HasValue
+                || !detail.AppliedIceQuantityBaseUnit.HasValue)
+            {
+                return null;
+            }
+
+            if (detail.BaseIceQuantityBaseUnit.Value == 0m)
+                return 0m;
+
+            return detail.AppliedIceQuantityBaseUnit.Value / detail.BaseIceQuantityBaseUnit.Value;
         }
 
         private async Task<StoreInventory> GetOrCreateLegacyRecipeInventoryAsync(int storeId, int recipeId)
