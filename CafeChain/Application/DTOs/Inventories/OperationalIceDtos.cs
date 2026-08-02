@@ -129,8 +129,8 @@ public sealed class LinkOperationalWorkShiftRequest
 
 public sealed class LinkOperationalWorkShiftsRequest
 {
-    public int OperationalShiftId { get; init; }
-    public IReadOnlyList<int> WorkShiftIds { get; init; } = [];
+    public int OperationalShiftId { get; set; }
+    public List<int> WorkShiftIds { get; set; } = [];
 }
 
 public sealed class RequestSupplementalIceRequest

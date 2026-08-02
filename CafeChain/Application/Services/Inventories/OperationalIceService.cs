@@ -11,6 +11,7 @@ using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Enums.Unit;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System.Text.Json;
 
 namespace CafeChain.Application.Services.Inventories;
@@ -19,6 +20,7 @@ public sealed class OperationalIceService : IOperationalIceService
 {
     // Ingredient.Code is the stable catalog identity. Do not infer ice eligibility from display names.
     private const string OperationalIceIngredientCode = "ING00007";
+    private const string LinkWorkShiftAuditAction = "LINK_WORKSHIFT";
 
     // Quy tắc đá được dùng chung cho UI và backend validation.
     private static readonly string[] ManageRoles =
@@ -717,6 +719,9 @@ public sealed class OperationalIceService : IOperationalIceService
         AdminActorContext actor,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
         var shift = await _context.OperationalShifts.SingleOrDefaultAsync(x => x.OperationalShiftId == request.OperationalShiftId, cancellationToken);
         if (shift == null)
             return NotFound("Không tìm thấy ca vận hành.");
@@ -749,13 +754,30 @@ public sealed class OperationalIceService : IOperationalIceService
             LinkedByStaffId = actor.StaffId,
             LinkedAtUtc = now
         }));
+        _context.AuditLogs.AddRange(missingIds.Select(workShiftId => new AuditLog
+        {
+            TableName = nameof(OperationalShiftWorkShift),
+            RecordId = shift.OperationalShiftId,
+            Action = LinkWorkShiftAuditAction,
+            OldData = null,
+            NewData = JsonSerializer.Serialize(new
+            {
+                shift.OperationalShiftId,
+                WorkShiftId = workShiftId
+            }),
+            UserId = actor.StaffId,
+            CreatedAt = now
+        }));
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return ServiceResult.Success($"Đã liên kết {missingIds.Length} WorkShift POS với ca vận hành.");
         }
         catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
         {
+            await transaction.RollbackAsync(cancellationToken);
+            await transaction.DisposeAsync();
             _context.ChangeTracker.Clear();
             var links = await _context.OperationalShiftWorkShifts.AsNoTracking()
                 .Where(x => requestedIds.Contains(x.WorkShiftId))
@@ -765,7 +787,21 @@ public sealed class OperationalIceService : IOperationalIceService
                 ? ServiceResult.Success("Các WorkShift POS đã được liên kết trước đó.")
                 : ServiceResult.Failure(
                     "Có WorkShift POS vừa được liên kết với ca vận hành khác. Vui lòng tải lại.",
-                    errorCode: OperationalIceErrorCodes.WorkShiftAlreadyLinked);
+                     errorCode: OperationalIceErrorCodes.WorkShiftAlreadyLinked);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return ServiceResult.Failure(
+                "Dữ liệu ca vừa được người khác cập nhật. Vui lòng tải lại.",
+                errorCode: OperationalIceErrorCodes.ConcurrencyConflict);
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return ServiceResult.Failure(
+                "Không thể lưu liên kết WorkShift POS. Vui lòng tải lại và thử lại.",
+                errorCode: OperationalIceErrorCodes.InvalidState);
         }
     }
 
@@ -1574,7 +1610,12 @@ public sealed class OperationalIceService : IOperationalIceService
         var operationalEndLocal = operationalShift.EndAtUtc.ToLocalTime();
         var (businessWindowStart, businessWindowEnd) =
             LocalBusinessWindow(operationalShift, operationalEndLocal);
-        var now = DateTime.Now;
+        // Keep null EndTime semantics identical to the candidate query: an open
+        // WorkShift extends through the operational window until it is closed.
+        var currentLocalTime = DateTime.Now;
+        var openWorkShiftEnd = currentLocalTime > operationalStartLocal
+            ? currentLocalTime
+            : operationalEndLocal;
         var workShifts = await _context.WorkShifts.AsNoTracking()
             .Where(x => distinctIds.Contains(x.ShiftId))
             .Select(x => new { x.ShiftId, x.StoreId, x.StartTime, x.EndTime, x.Status })
@@ -1590,7 +1631,7 @@ public sealed class OperationalIceService : IOperationalIceService
                 "WorkShift POS không thuộc ngày kinh doanh của ca vận hành.");
         }
         if (workShifts.Any(x => x.StartTime >= operationalEndLocal
-                                || (x.EndTime ?? now) <= operationalStartLocal))
+                                || (x.EndTime ?? openWorkShiftEnd) <= operationalStartLocal))
             return Invalid("WorkShift POS không giao thời gian với ca vận hành.");
         var links = await _context.OperationalShiftWorkShifts.AsNoTracking()
             .Where(x => distinctIds.Contains(x.WorkShiftId))

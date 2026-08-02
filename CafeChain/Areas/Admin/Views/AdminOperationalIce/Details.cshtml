@@ -514,4 +514,21 @@
     quantity.addEventListener("input", updateReturnEvidence);
     updateReturnEvidence();
 })();
+
+(() => {
+    document.querySelectorAll('form[data-ice-submit]').forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                form.reportValidity();
+                return;
+            }
+
+            form.querySelectorAll('button[type="submit"]').forEach(button => {
+                button.disabled = true;
+                button.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Đang liên kết...';
+            });
+        });
+    });
+})();
 </script>
