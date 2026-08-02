@@ -50,8 +50,10 @@ public sealed class StaffHubController : Controller
         if (string.IsNullOrWhiteSpace(staffId) || string.IsNullOrWhiteSpace(storeId))
             return Unauthorized(new { success = false, message = "Thiếu thông tin StaffId/StoreId trong phiên đăng nhập." });
 
-        var jwtKey = _configuration["Jwt:Key"]
-            ?? "CafeChain-POS-JWT-Secret-Key-Change-In-Production-2026-Min32Chars!";
+        var jwtKey = _configuration["Jwt:Key"];
+        if (string.IsNullOrWhiteSpace(jwtKey))
+            throw new InvalidOperationException(
+                "Jwt:Key is required. Configure it with User Secrets or a deployment secret.");
         var jwtIssuer = _configuration["Jwt:Issuer"] ?? "CafeChain";
         var jwtAudience = _configuration["Jwt:Audience"] ?? "CafeChain.POS";
         var expirationHours = double.TryParse(_configuration["Jwt:ExpirationHours"], out var hours) ? hours : 12;

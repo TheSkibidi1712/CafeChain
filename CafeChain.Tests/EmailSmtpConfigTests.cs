@@ -38,7 +38,7 @@ namespace CafeChain.Tests
                 OtpConstants.ErrorCodes.EmailSmtpPasswordNotConfigured,
                 ex.Message,
                 StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("gmms", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("secret-canary-value", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
