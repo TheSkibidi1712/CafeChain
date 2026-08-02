@@ -4,6 +4,22 @@
 
 <div class="inventory-table-wrapper">
 
+    <div class="inventory-table-heading">
+        <div>
+            <span class="inventory-section-kicker">Kết quả</span>
+            <h4>@Model.Documents.TotalCount phiếu kho</h4>
+            <p>Phiếu mới nhất được hiển thị trước.</p>
+        </div>
+        <span class="inventory-scroll-hint">
+            <i class="fas fa-arrows-left-right" aria-hidden="true"></i>
+            Cuộn trong vùng bảng
+        </span>
+    </div>
+
+    <div class="inventory-table-scroll"
+         tabindex="0"
+         aria-label="Danh sách phiếu kho có thể cuộn ngang">
+
     <table class="table inventory-table">
         <thead>
             <tr>
@@ -140,6 +156,8 @@
         </tbody>
     </table>
 
+    </div>
+
 </div>
 
 <div class="table-footer">
@@ -172,11 +190,15 @@
 
         <div class="modal-content">
 
-            <div class="modal-header">
+            <div class="modal-header inventory-export-header">
 
-                <h5 class="modal-title">
-                    Xuất chứng từ
-                </h5>
+                <div class="inventory-export-title">
+                    <span><i class="fas fa-file-export" aria-hidden="true"></i></span>
+                    <div>
+                        <small>Phiếu kho / Xuất chứng từ</small>
+                        <h5 class="modal-title">Chọn định dạng xuất</h5>
+                    </div>
+                </div>
 
                 <button type="button"
                         class="btn-close"
@@ -185,12 +207,15 @@
 
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body inventory-export-body">
 
                 <input type="hidden"
                        id="exportDocumentId" />
 
-                <div class="form-check mb-3">
+                <p class="inventory-export-lead">Tải chứng từ rõ ràng để lưu trữ, in hoặc gửi đối tác.</p>
+
+                <div class="inventory-export-options">
+                <label class="inventory-export-option" for="pdfExport">
 
                     <input class="form-check-input"
                            type="radio"
@@ -199,16 +224,20 @@
                            id="pdfExport"
                            checked>
 
-                    <label class="form-check-label"
-                           for="pdfExport">
+                    <span class="inventory-export-option-icon"><i class="fas fa-file-pdf"></i></span>
+                    <span class="inventory-export-option-copy">
+                        <span class="inventory-export-option-heading">
+                            <strong>PDF</strong>
+                            <em>Khuyên dùng</em>
+                        </span>
+                        <small>Tối ưu để in, ký xác nhận và lưu trữ chính thức</small>
+                    </span>
+                    <span class="inventory-export-option-check" aria-hidden="true">
+                        <i class="fas fa-check"></i>
+                    </span>
+                </label>
 
-                        PDF
-
-                    </label>
-
-                </div>
-
-                <div class="form-check">
+                <label class="inventory-export-option" for="wordExport">
 
                     <input class="form-check-input"
                            type="radio"
@@ -216,13 +245,23 @@
                            value="2"
                            id="wordExport">
 
-                    <label class="form-check-label"
-                           for="wordExport">
+                    <span class="inventory-export-option-icon"><i class="fas fa-file-word"></i></span>
+                    <span class="inventory-export-option-copy">
+                        <span class="inventory-export-option-heading">
+                            <strong>Word (.docx)</strong>
+                            <em>Có thể chỉnh sửa</em>
+                        </span>
+                        <small>Phù hợp khi cần bổ sung hoặc hiệu chỉnh nội dung</small>
+                    </span>
+                    <span class="inventory-export-option-check" aria-hidden="true">
+                        <i class="fas fa-check"></i>
+                    </span>
+                </label>
+                </div>
 
-                        Word (.docx)
-
-                    </label>
-
+                <div class="inventory-export-note" role="note">
+                    <i class="fas fa-circle-info" aria-hidden="true"></i>
+                    File xuất chỉ chứa dữ liệu chứng từ, không thay đổi tồn kho hệ thống.
                 </div>
 
             </div>
@@ -233,6 +272,7 @@
                         class="btn btn-secondary inventory-action-secondary"
                         data-bs-dismiss="modal">
 
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
                     Hủy
 
                 </button>
@@ -241,7 +281,8 @@
                         class="btn btn-primary inventory-action-primary"
                         id="btnConfirmExport">
 
-                    Xuất File
+                    <i class="fas fa-download" aria-hidden="true"></i>
+                    Xuất file
 
                 </button>
 

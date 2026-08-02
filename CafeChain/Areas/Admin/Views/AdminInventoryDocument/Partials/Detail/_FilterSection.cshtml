@@ -7,7 +7,17 @@
 
     <div class="filter-container">
 
+        <div class="inventory-section-heading">
+            <div>
+                <span class="inventory-section-kicker">Bộ lọc nhanh</span>
+                <h4>Tìm phiếu kho</h4>
+                <p>Thu hẹp dữ liệu theo nghiệp vụ, cửa hàng và thời gian chứng từ.</p>
+            </div>
+            <span class="inventory-section-pill">3 loại phiếu</span>
+        </div>
+
         <div class="search-box">
+            <i class="fas fa-search" aria-hidden="true"></i>
             <input asp-for="Filter.Search"
                    class="form-control"
                    placeholder="Tìm mã phiếu, cửa hàng, đối tác, người lập..."
@@ -108,11 +118,13 @@
 
                 <a asp-action="Index"
                    class="btn btn-light inventory-action-secondary">
+                    <i class="fas fa-rotate-left" aria-hidden="true"></i>
                     Đặt lại
                 </a>
 
                 <button type="submit"
                         class="btn btn-primary inventory-action-primary">
+                    <i class="fas fa-filter" aria-hidden="true"></i>
                     Áp dụng
                 </button>
 

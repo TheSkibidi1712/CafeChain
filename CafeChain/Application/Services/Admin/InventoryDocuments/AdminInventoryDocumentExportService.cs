@@ -37,8 +37,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         public Task<byte[]> ExportPdfAsync(InventoryDocumentSnapshotDTO snapshot)
         {
-            var printedAt =
-                DateTime.Now;
+            var printedAt = DateTime.Now;
+            var hideMoneyColumns = IsMoneylessSnapshot(snapshot);
+            var documentTitle = GetDocumentTitle(snapshot.Type);
+            var documentStatus = GetStatusText(snapshot.Status);
+            var partnerLabel = GetPartnerLabel(snapshot.Type);
 
             var pdf =
                 QuestPDF.Fluent.Document.Create(container =>
@@ -46,130 +49,117 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     container.Page(page =>
                     {
                         page.Size(PageSizes.A4);
-                        page.Margin(36);
+                        page.MarginHorizontal(34);
+                        page.MarginVertical(28);
                         page.DefaultTextStyle(x =>
-                            x.FontSize(9)
-                                .FontColor("#374151"));
+                            x.FontSize(9.2f)
+                                .FontColor("#202936"));
 
                         page.Content().Column(col =>
                         {
-                            col.Spacing(18);
-
-                            col.Item().AlignCenter().Column(header =>
-                            {
-                                header.Spacing(4);
-
-                                header.Item()
-                                    .Text("CAFECHAIN")
-                                    .FontSize(15)
-                                    .Bold()
-                                    .FontColor("#111827");
-
-                                header.Item()
-                                    .Text("Hệ thống quản lý kho chuỗi cửa hàng")
-                                    .FontSize(8)
-                                    .FontColor("#9CA3AF");
-
-                                header.Item()
-                                    .PaddingTop(8)
-                                    .Text(GetDocumentTitle(snapshot.Type))
-                                    .FontSize(20)
-                                    .Bold()
-                                    .FontColor("#F97316");
-
-                                header.Item()
-                                    .PaddingTop(4)
-                                    .Text($"Số phiếu: {snapshot.Code}")
-                                    .FontSize(9)
-                                    .FontColor("#6B7280");
-
-                                header.Item()
-                                    .PaddingTop(4)
-                                    .AlignCenter()
-                                    .Background("#F3F4F6")
-                                    .PaddingHorizontal(10)
-                                    .PaddingVertical(4)
-                                    .Text("Bản xem trước")
-                                    .FontSize(7)
-                                    .FontColor("#6B7280");
-                            });
-
-                            col.Item().PaddingTop(6).Row(row =>
-                            {
-                                row.RelativeItem().Element(PdfInfoBox).Column(info =>
-                                {
-                                    info.Item()
-                                        .Element(PdfInfoBoxHeader)
-                                        .Text("Thông tin chứng từ")
-                                        .Bold()
-                                        .FontColor("#EA580C");
-
-                                    info.Item()
-                                        .Padding(10)
-                                        .Column(body =>
-                                        {
-                                            body.Spacing(6);
-
-                                            body.Item().Text(text =>
-                                            {
-                                                text.Span("Ngày chứng từ: ");
-                                                text.Span($"{snapshot.DocumentDate:dd/MM/yyyy}").Bold();
-                                            });
-
-                                            body.Item().Text(text =>
-                                            {
-                                                text.Span("Cửa hàng: ");
-                                                text.Span(snapshot.StoreName ?? "-").Bold();
-                                            });
-
-                                            body.Item().Text(text =>
-                                            {
-                                                text.Span("Người lập: ");
-                                                text.Span(snapshot.StaffName ?? "-").Bold();
-                                            });
-                                        });
-                                });
-
-                                row.ConstantItem(16);
-
-                                row.RelativeItem().Element(PdfInfoBox).Column(info =>
-                                {
-                                    info.Item()
-                                        .Element(PdfInfoBoxHeader)
-                                        .Text("Thông tin đối tác")
-                                        .Bold()
-                                        .FontColor("#EA580C");
-
-                                    info.Item()
-                                        .Padding(10)
-                                        .Column(body =>
-                                        {
-                                            body.Spacing(6);
-
-                                            body.Item().Text(text =>
-                                            {
-                                                text.Span("Nhà cung cấp: ");
-                                                text.Span(snapshot.PartnerName ?? "-").Bold();
-                                            });
-
-                                            body.Item().Text(text =>
-                                            {
-                                                text.Span("Ngày in: ");
-                                                text.Span($"{printedAt:dd/MM/yyyy HH:mm}").Bold();
-                                            });
-                                        });
-                                });
-                            });
+                            col.Spacing(15);
 
                             col.Item()
-                                .PaddingTop(2)
-                                .Text("Chi tiết nguyên liệu")
-                                .FontSize(10)
-                                .Bold()
-                                .FontColor("#111827");
+                                .BorderBottom(2)
+                                .BorderColor("#6F4E37")
+                                .PaddingBottom(12)
+                                .Row(header =>
+                            {
+                                header.ConstantItem(46)
+                                    .Height(46)
+                                    .Background("#6F4E37")
+                                    .AlignCenter()
+                                    .AlignMiddle()
+                                    .Text("CC")
+                                    .Bold()
+                                    .FontSize(15)
+                                    .FontColor(Colors.White);
 
-                            var hideMoneyColumns =
-                                IsMoneylessSnapshot(snapshot);
+                                header.ConstantItem(12);
+
+                                header.RelativeItem().Column(brand =>
+                                {
+                                    brand.Spacing(2);
+                                    brand.Item().Text("CAFECHAIN").Bold().FontSize(14).FontColor("#3F291D");
+                                    brand.Item().Text("HỆ THỐNG QUẢN LÝ KHO CHUỖI CỬA HÀNG")
+                                        .FontSize(7.5f)
+                                        .FontColor("#7A8492");
+                                });
+
+                                header.ConstantItem(170).AlignRight().Column(meta =>
+                                {
+                                    meta.Spacing(3);
+                                    meta.Item().AlignRight().Text($"MÃ PHIẾU  {snapshot.Code}")
+                                        .Bold().FontSize(8).FontColor("#6F4E37");
+                                    meta.Item().AlignRight().Text($"Ngày in: {printedAt:dd/MM/yyyy HH:mm}")
+                                        .FontSize(7.5f).FontColor("#7A8492");
+                                });
+                            });
+
+                            col.Item().PaddingTop(2).Row(titleRow =>
+                            {
+                                titleRow.RelativeItem().Column(title =>
+                                {
+                                    title.Spacing(4);
+                                    title.Item().Text("PHIẾU KHO / CHỨNG TỪ").Bold().FontSize(7.5f).FontColor("#956D50");
+                                    title.Item().Text(documentTitle).Bold().FontSize(20).FontColor("#202936");
+                                    title.Item().Text(GetDocumentSubtitle(snapshot.Type))
+                                        .FontSize(8.5f).FontColor("#687383");
+                                });
+
+                                titleRow.ConstantItem(16);
+                                titleRow.ConstantItem(106)
+                                    .AlignRight()
+                                    .Background("#EEE4DC")
+                                    .Border(1)
+                                    .BorderColor("#DFD0C3")
+                                    .PaddingVertical(7)
+                                    .PaddingHorizontal(10)
+                                    .AlignCenter()
+                                    .Text(documentStatus.ToUpperInvariant())
+                                    .Bold().FontSize(7.5f).FontColor("#67452F");
+                            });
+
+                            col.Item().Row(row =>
+                            {
+                                row.RelativeItem().Element(PdfInfoBox).Column(info =>
+                                {
+                                    info.Item().Element(PdfInfoBoxHeader).Text("THÔNG TIN CHỨNG TỪ").Bold();
+                                    info.Item().Padding(10).Column(body =>
+                                    {
+                                        body.Spacing(6);
+                                        body.Item().Text(text => { text.Span("Ngày chứng từ  ").FontColor("#7A8492"); text.Span($"{snapshot.DocumentDate:dd/MM/yyyy}").Bold(); });
+                                        body.Item().Text(text => { text.Span("Loại phiếu  ").FontColor("#7A8492"); text.Span(snapshot.Type.ToVietnamese()).Bold(); });
+                                        body.Item().Text(text => { text.Span("Mục đích  ").FontColor("#7A8492"); text.Span(snapshot.Purpose.ToVietnamese()).Bold(); });
+                                    });
+                                });
+
+                                row.ConstantItem(12);
+
+                                row.RelativeItem().Element(PdfInfoBox).Column(info =>
+                                {
+                                    info.Item().Element(PdfInfoBoxHeader).Text("KHO VÀ ĐỐI SOÁT").Bold();
+                                    info.Item().Padding(10).Column(body =>
+                                    {
+                                        body.Spacing(6);
+                                        body.Item().Text(text => { text.Span("Cửa hàng  ").FontColor("#7A8492"); text.Span(snapshot.StoreName ?? "-").Bold(); });
+                                        body.Item().Text(text => { text.Span("Người lập  ").FontColor("#7A8492"); text.Span(snapshot.StaffName ?? "-").Bold(); });
+                                        body.Item().Text(text => { text.Span($"{partnerLabel}  ").FontColor("#7A8492"); text.Span(snapshot.PartnerName ?? "-").Bold(); });
+                                    });
+                                });
+                            });
+
+                            col.Item().PaddingTop(2).Row(section =>
+                            {
+                                section.RelativeItem().Column(copy =>
+                                {
+                                    copy.Item().Text("CHI TIẾT CHỨNG TỪ").Bold().FontSize(7.5f).FontColor("#956D50");
+                                    copy.Item().Text($"{snapshot.Details.Count} nguyên liệu").Bold().FontSize(11).FontColor("#202936");
+                                });
+                                section.ConstantItem(150).AlignRight().AlignBottom()
+                                    .Text(hideMoneyColumns ? "Không áp dụng giá trị tiền" : "Đơn vị tiền: VNĐ")
+                                    .FontSize(7.5f).FontColor("#7A8492");
+                            });
 
                             col.Item().Table(table =>
                             {
@@ -191,7 +181,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                                     header.Cell().Element(PdfHeaderCell).AlignCenter().Text("STT").Bold();
                                     header.Cell().Element(PdfHeaderCell).Text("Nguyên liệu").Bold();
                                     header.Cell().Element(PdfHeaderCell).AlignCenter().Text("ĐVT").Bold();
-                                    header.Cell().Element(PdfHeaderCell).AlignRight().Text("SL").Bold();
+                                    header.Cell().Element(PdfHeaderCell).AlignRight().Text(GetQuantityLabel(snapshot.Type)).Bold();
                                     if (!hideMoneyColumns)
                                     {
                                         header.Cell().Element(PdfHeaderCell).AlignRight().Text("Đơn giá").Bold();
@@ -204,14 +194,15 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                                 foreach (var item in snapshot.Details)
                                 {
-                                    table.Cell().Element(PdfBodyCell).AlignCenter().Text(index.ToString());
-                                    table.Cell().Element(PdfBodyCell).Text(item.ItemName ?? string.Empty);
-                                    table.Cell().Element(PdfBodyCell).AlignCenter().Text(item.UnitName ?? string.Empty);
-                                    table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatQuantity(item.Quantity));
+                                    var isAlternate = index % 2 == 0;
+                                    table.Cell().Element(c => PdfBodyCell(c, isAlternate)).AlignCenter().Text(index.ToString());
+                                    table.Cell().Element(c => PdfBodyCell(c, isAlternate)).Text(item.ItemName ?? string.Empty).SemiBold();
+                                    table.Cell().Element(c => PdfBodyCell(c, isAlternate)).AlignCenter().Text(item.UnitName ?? string.Empty);
+                                    table.Cell().Element(c => PdfBodyCell(c, isAlternate)).AlignRight().Text(FormatQuantity(item.Quantity)).SemiBold();
                                     if (!hideMoneyColumns)
                                     {
-                                        table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatMoney(item.UnitPrice));
-                                        table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatMoney(item.TotalAmount));
+                                        table.Cell().Element(c => PdfBodyCell(c, isAlternate)).AlignRight().Text(FormatMoney(item.UnitPrice));
+                                        table.Cell().Element(c => PdfBodyCell(c, isAlternate)).AlignRight().Text(FormatMoney(item.TotalAmount)).SemiBold();
                                     }
 
                                     index++;
@@ -232,11 +223,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                                     table.Cell().Element(PdfSummaryValueCell).AlignRight().Text(FormatMoney(snapshot.FinalAmount))
                                         .Bold()
                                         .FontSize(11)
-                                        .FontColor("#F97316");
+                                        .FontColor("#6F4E37");
                                 }
                             });
 
-                            col.Item().PaddingTop(24).Row(row =>
+                            col.Item().PaddingTop(14).Row(row =>
                             {
                                 row.RelativeItem().AlignCenter().Column(sign =>
                                 {
@@ -262,13 +253,30 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                                 {
                                     sign.Spacing(4);
 
-                                    sign.Item().Text("Nhà cung cấp").Bold();
+                                    sign.Item().Text(GetThirdSignatureLabel(snapshot.Type)).Bold();
                                     sign.Item().Text("(Ký, ghi rõ họ tên)").Italic().FontSize(8).FontColor("#9CA3AF");
                                     sign.Item().Height(52);
                                     sign.Item().Text("----------------").FontColor("#6B7280");
                                 });
                             });
                         });
+
+                        page.Footer()
+                            .BorderTop(1)
+                            .BorderColor("#DFD0C3")
+                            .PaddingTop(7)
+                            .Row(footer =>
+                            {
+                                footer.RelativeItem().Text($"CafeChain  |  {snapshot.Code}").FontSize(7.5f).FontColor("#7A8492");
+                                footer.RelativeItem().AlignRight().Text(text =>
+                                {
+                                    text.DefaultTextStyle(x => x.FontSize(7.5f).FontColor("#7A8492"));
+                                    text.Span("Trang ");
+                                    text.CurrentPageNumber();
+                                    text.Span(" / ");
+                                    text.TotalPages();
+                                });
+                            });
                     });
                 })
                 .GeneratePdf();
@@ -298,7 +306,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         true,
                         JustificationValues.Center,
                         "28",
-                        "111827",
+                        "3F291D",
                         0,
                         20));
 
@@ -318,7 +326,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         true,
                         JustificationValues.Center,
                         "34",
-                        "F97316",
+                        "6F4E37",
                         0,
                         80));
 
@@ -332,8 +340,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         0,
                         80));
 
-                body.Append(
-                    CreatePreviewBadgeParagraph());
+                body.Append(CreateStatusBadgeParagraph(GetStatusText(snapshot.Status)));
 
                 body.Append(
                     CreateSpacerParagraph(220));
@@ -352,7 +359,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         true,
                         JustificationValues.Left,
                         "21",
-                        "111827",
+                        "3F291D",
                         0,
                         120));
 
@@ -364,6 +371,18 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 body.Append(
                     CreateSignatureTable(snapshot));
+
+                body.Append(CreateSpacerParagraph(160));
+
+                body.Append(
+                    CreateParagraph(
+                        $"CafeChain  |  {snapshot.Code}  |  Xuất lúc {printedAt:dd/MM/yyyy HH:mm}",
+                        false,
+                        JustificationValues.Center,
+                        "14",
+                        "7A8492",
+                        0,
+                        0));
 
                 body.Append(
                     CreateSectionProperties());
@@ -904,34 +923,38 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             return container
                 .Border(1)
-                .BorderColor("#F3E4D4");
+                .BorderColor("#DFD0C3")
+                .Background(Colors.White);
         }
 
         private static IContainer PdfInfoBoxHeader(IContainer container)
         {
             return container
-                .Background("#FFF7ED")
+                .Background("#EEE4DC")
                 .BorderBottom(1)
-                .BorderColor("#F3E4D4")
+                .BorderColor("#DFD0C3")
                 .PaddingVertical(8)
-                .PaddingHorizontal(10);
+                .PaddingHorizontal(10)
+                .DefaultTextStyle(x => x.FontSize(7.5f).FontColor("#67452F"));
         }
 
         private static IContainer PdfHeaderCell(IContainer container)
         {
             return container
-                .Background("#FFF7ED")
+                .Background("#6F4E37")
                 .Border(1)
-                .BorderColor("#E5E7EB")
+                .BorderColor("#67452F")
                 .PaddingVertical(8)
-                .PaddingHorizontal(6);
+                .PaddingHorizontal(6)
+                .DefaultTextStyle(x => x.FontSize(7.5f).FontColor(Colors.White));
         }
 
-        private static IContainer PdfBodyCell(IContainer container)
+        private static IContainer PdfBodyCell(IContainer container, bool alternate = false)
         {
             return container
+                .Background(alternate ? "#FCFAF8" : Colors.White)
                 .Border(1)
-                .BorderColor("#E5E7EB")
+                .BorderColor("#E7DDD5")
                 .PaddingVertical(8)
                 .PaddingHorizontal(6);
         }
@@ -942,7 +965,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 .BorderLeft(1)
                 .BorderRight(1)
                 .BorderBottom(1)
-                .BorderColor("#E5E7EB")
+                .BorderColor("#E7DDD5")
                 .PaddingVertical(8)
                 .PaddingHorizontal(6);
         }
@@ -950,8 +973,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         private static IContainer PdfSummaryLabelCell(IContainer container)
         {
             return container
+                .Background("#F8F3EF")
                 .Border(1)
-                .BorderColor("#E5E7EB")
+                .BorderColor("#E7DDD5")
                 .PaddingVertical(8)
                 .PaddingHorizontal(6);
         }
@@ -959,8 +983,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         private static IContainer PdfSummaryValueCell(IContainer container)
         {
             return container
+                .Background("#EEE4DC")
                 .Border(1)
-                .BorderColor("#E5E7EB")
+                .BorderColor("#DFD0C3")
                 .PaddingVertical(8)
                 .PaddingHorizontal(6);
         }
@@ -987,7 +1012,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     "Mã phiếu",
                     JustificationValues.Left,
                     true,
-                    "FFF7ED",
+                    "EEE4DC",
                     "1100"),
 
                 CreateWordTableCell(
@@ -1001,7 +1026,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     "Ngày chứng từ",
                     JustificationValues.Left,
                     true,
-                    "FFF7ED",
+                    "EEE4DC",
                     "1100"),
 
                 CreateWordTableCell(
@@ -1016,10 +1041,46 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 CreateWordTableRow(
                     [
                         CreateWordTableCell(
+                    "Loại phiếu",
+                    JustificationValues.Left,
+                    true,
+                    "EEE4DC",
+                    "1100"),
+
+                CreateWordTableCell(
+                    snapshot.Type.ToVietnamese(),
+                    JustificationValues.Left,
+                    false,
+                    null,
+                    "2050"),
+
+                CreateWordTableCell(
+                    "Trạng thái",
+                    JustificationValues.Left,
+                    true,
+                    "EEE4DC",
+                    "1100"),
+
+                CreateWordTableCell(
+                    GetStatusText(snapshot.Status),
+                    JustificationValues.Left,
+                    true,
+                    null,
+                    "2050",
+                    1,
+                    true,
+                    false,
+                    "6F4E37")
+                    ]));
+
+            table.Append(
+                CreateWordTableRow(
+                    [
+                        CreateWordTableCell(
                     "Cửa hàng",
                     JustificationValues.Left,
                     true,
-                    "FFF7ED",
+                    "EEE4DC",
                     "1100"),
 
                 CreateWordTableCell(
@@ -1033,7 +1094,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     "Người lập",
                     JustificationValues.Left,
                     true,
-                    "FFF7ED",
+                    "EEE4DC",
                     "1100"),
 
                 CreateWordTableCell(
@@ -1048,10 +1109,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 CreateWordTableRow(
                     [
                         CreateWordTableCell(
-                    "Nhà cung cấp",
+                    GetPartnerLabel(snapshot.Type),
                     JustificationValues.Left,
                     true,
-                    "FFF7ED",
+                    "EEE4DC",
                     "1100"),
 
                 CreateWordTableCell(
@@ -1062,14 +1123,14 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     "2050"),
 
                 CreateWordTableCell(
-                    "Ngày in",
+                    "Mục đích",
                     JustificationValues.Left,
                     true,
-                    "FFF7ED",
+                    "EEE4DC",
                     "1100"),
 
                 CreateWordTableCell(
-                    printedAt.ToString("dd/MM/yyyy HH:mm"),
+                    snapshot.Purpose.ToVietnamese(),
                     JustificationValues.Left,
                     false,
                     null,
@@ -1079,20 +1140,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             table.Append(
                 CreateWordTableRow(
                     [
-                        CreateWordTableCell(
-                    "Ghi chú",
-                    JustificationValues.Left,
-                    true,
-                    "FFF7ED",
-                    "1100"),
-
-                CreateWordTableCell(
-                    "-",
-                    JustificationValues.Left,
-                    false,
-                    null,
-                    "5200",
-                    3)
+                        CreateWordTableCell("Ngày xuất file", JustificationValues.Left, true, "EEE4DC", "1100"),
+                        CreateWordTableCell(printedAt.ToString("dd/MM/yyyy HH:mm"), JustificationValues.Left, false, null, "5200", 3)
                     ]));
 
             return table;
@@ -1129,16 +1178,16 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             var headerCells =
                 new List<TableCell>
                 {
-                    CreateWordTableCell("STT", JustificationValues.Center, true, "FFF7ED", "420"),
-                    CreateWordTableCell("Nguyên liệu", JustificationValues.Left, true, "FFF7ED", hideMoneyColumns ? "3000" : "1800"),
-                    CreateWordTableCell("ĐVT", JustificationValues.Center, true, "FFF7ED", hideMoneyColumns ? "900" : "720"),
-                    CreateWordTableCell("SL", JustificationValues.Right, true, "FFF7ED", hideMoneyColumns ? "900" : "720")
+                    CreateWordTableCell("STT", JustificationValues.Center, true, "6F4E37", "420", 1, true, false, "FFFFFF"),
+                    CreateWordTableCell("Nguyên liệu", JustificationValues.Left, true, "6F4E37", hideMoneyColumns ? "3000" : "1800", 1, true, false, "FFFFFF"),
+                    CreateWordTableCell("ĐVT", JustificationValues.Center, true, "6F4E37", hideMoneyColumns ? "900" : "720", 1, true, false, "FFFFFF"),
+                    CreateWordTableCell(GetQuantityLabel(snapshot.Type), JustificationValues.Right, true, "6F4E37", hideMoneyColumns ? "900" : "720", 1, true, false, "FFFFFF")
                 };
 
             if (!hideMoneyColumns)
             {
-                headerCells.Add(CreateWordTableCell("Đơn giá", JustificationValues.Right, true, "FFF7ED", "1250"));
-                headerCells.Add(CreateWordTableCell("Thành tiền", JustificationValues.Right, true, "FFF7ED", "1350"));
+                headerCells.Add(CreateWordTableCell("Đơn giá", JustificationValues.Right, true, "6F4E37", "1250", 1, true, false, "FFFFFF"));
+                headerCells.Add(CreateWordTableCell("Thành tiền", JustificationValues.Right, true, "6F4E37", "1350", 1, true, false, "FFFFFF"));
             }
 
             table.Append(CreateWordTableRow(headerCells));
@@ -1147,19 +1196,20 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             foreach (var item in snapshot.Details)
             {
+                var rowFill = index % 2 == 0 ? "FCFAF8" : null;
                 var rowCells =
                     new List<TableCell>
                     {
-                        CreateWordTableCell(index.ToString(), JustificationValues.Center, false, null, "420"),
-                        CreateWordTableCell(item.ItemName ?? string.Empty, JustificationValues.Left, false, null, hideMoneyColumns ? "3000" : "1800"),
-                        CreateWordTableCell(item.UnitName ?? string.Empty, JustificationValues.Center, false, null, hideMoneyColumns ? "900" : "720"),
-                        CreateWordTableCell(FormatQuantity(item.Quantity), JustificationValues.Right, false, null, hideMoneyColumns ? "900" : "720")
+                        CreateWordTableCell(index.ToString(), JustificationValues.Center, false, rowFill, "420"),
+                        CreateWordTableCell(item.ItemName ?? string.Empty, JustificationValues.Left, true, rowFill, hideMoneyColumns ? "3000" : "1800"),
+                        CreateWordTableCell(item.UnitName ?? string.Empty, JustificationValues.Center, false, rowFill, hideMoneyColumns ? "900" : "720"),
+                        CreateWordTableCell(FormatQuantity(item.Quantity), JustificationValues.Right, true, rowFill, hideMoneyColumns ? "900" : "720")
                     };
 
                 if (!hideMoneyColumns)
                 {
-                    rowCells.Add(CreateWordTableCell(FormatMoney(item.UnitPrice), JustificationValues.Right, false, null, "1250"));
-                    rowCells.Add(CreateWordTableCell(FormatMoney(item.TotalAmount), JustificationValues.Right, false, null, "1350"));
+                    rowCells.Add(CreateWordTableCell(FormatMoney(item.UnitPrice), JustificationValues.Right, false, rowFill, "1250"));
+                    rowCells.Add(CreateWordTableCell(FormatMoney(item.TotalAmount), JustificationValues.Right, true, rowFill, "1350"));
                 }
 
                 table.Append(
@@ -1252,7 +1302,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         1,
                         true,
                         false,
-                        finalRow ? "F97316" : "111827",
+                        finalRow ? "6F4E37" : "111827",
                         finalRow ? "22" : "19")
                 ]);
         }
@@ -1290,7 +1340,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     false),
 
                 CreateWordTableCell(
-                    "Nhà cung cấp",
+                    GetThirdSignatureLabel(snapshot.Type),
                     JustificationValues.Center,
                     true,
                     null,
@@ -1624,7 +1674,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return paragraph;
         }
 
-        private static Paragraph CreatePreviewBadgeParagraph()
+        private static Paragraph CreateStatusBadgeParagraph(string status)
         {
             var paragraph =
                 new Paragraph(
@@ -1653,14 +1703,15 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         },
                         new DocumentFormat.OpenXml.Wordprocessing.Color
                         {
-                            Val = "6B7280"
+                            Val = "67452F"
                         },
+                        new Bold(),
                         new Shading
                         {
                             Val = ShadingPatternValues.Clear,
-                            Fill = "F3F4F6"
+                            Fill = "EEE4DC"
                         }),
-                    new Text("  Bản xem trước  ")
+                    new Text($"  {status.ToUpperInvariant()}  ")
                     {
                         Space = SpaceProcessingModeValues.Preserve
                     });
@@ -1710,37 +1761,37 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 {
                     Val = BorderValues.Single,
                     Size = 4,
-                    Color = "E5E7EB"
+                    Color = "E7DDD5"
                 },
                 new BottomBorder
                 {
                     Val = BorderValues.Single,
                     Size = 4,
-                    Color = "E5E7EB"
+                    Color = "E7DDD5"
                 },
                 new LeftBorder
                 {
                     Val = BorderValues.Single,
                     Size = 4,
-                    Color = "E5E7EB"
+                    Color = "E7DDD5"
                 },
                 new RightBorder
                 {
                     Val = BorderValues.Single,
                     Size = 4,
-                    Color = "E5E7EB"
+                    Color = "E7DDD5"
                 },
                 new InsideHorizontalBorder
                 {
                     Val = BorderValues.Single,
                     Size = 4,
-                    Color = "E5E7EB"
+                    Color = "E7DDD5"
                 },
                 new InsideVerticalBorder
                 {
                     Val = BorderValues.Single,
                     Size = 4,
-                    Color = "E5E7EB"
+                    Color = "E7DDD5"
                 });
         }
 
@@ -1813,6 +1864,66 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return snapshot.TotalAmount == 0
                 && snapshot.VatAmount == 0
                 && snapshot.FinalAmount == 0;
+        }
+
+        private static string GetStatusText(CafeChain.Models.Enums.Inventory.InventoryDocumentStatus status)
+        {
+            return status switch
+            {
+                CafeChain.Models.Enums.Inventory.InventoryDocumentStatus.DRAFT => "Bản nháp",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentStatus.PENDING => "Chờ xử lý",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentStatus.CONFIRMED => "Đã xác nhận",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentStatus.CANCELLED => "Đã hủy",
+                _ => "Không xác định"
+            };
+        }
+
+        private static string GetDocumentSubtitle(CafeChain.Models.Enums.Inventory.InventoryDocumentType type)
+        {
+            return type switch
+            {
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.IMPORT => "Ghi nhận nguyên liệu nhập kho và giá trị chứng từ",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.EXPORT => "Ghi nhận nguyên liệu xuất khỏi kho theo nghiệp vụ",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.STOCK_TAKE => "Đối chiếu số lượng thực tế với tồn kho hệ thống",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.WASTE => "Ghi nhận nguyên liệu loại khỏi tồn kho và lý do xử lý",
+                _ => "Chứng từ nghiệp vụ kho CafeChain"
+            };
+        }
+
+        private static string GetPartnerLabel(CafeChain.Models.Enums.Inventory.InventoryDocumentType type)
+        {
+            return type switch
+            {
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.IMPORT => "Nhà cung cấp",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.EXPORT => "Đối tác nhận",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.STOCK_TAKE => "Người kiểm kê",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.WASTE => "Người xác nhận",
+                _ => "Đối tượng liên quan"
+            };
+        }
+
+        private static string GetThirdSignatureLabel(CafeChain.Models.Enums.Inventory.InventoryDocumentType type)
+        {
+            return type switch
+            {
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.IMPORT => "Nhà cung cấp",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.EXPORT => "Người nhận hàng",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.STOCK_TAKE => "Người kiểm kê",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.WASTE => "Người xác nhận hủy",
+                _ => "Người xác nhận"
+            };
+        }
+
+        private static string GetQuantityLabel(CafeChain.Models.Enums.Inventory.InventoryDocumentType type)
+        {
+            return type switch
+            {
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.STOCK_TAKE => "SL thực tế",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.WASTE => "SL hủy",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.EXPORT => "SL xuất",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.IMPORT => "SL nhập",
+                _ => "Số lượng"
+            };
         }
 
         private static string GetDocumentTitle(CafeChain.Models.Enums.Inventory.InventoryDocumentType type)
