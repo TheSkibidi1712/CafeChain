@@ -22,28 +22,32 @@ public sealed class OperationalIceService : IOperationalIceService
     private const string OperationalIceIngredientCode = "ING00007";
     private const string LinkWorkShiftAuditAction = "LINK_WORKSHIFT";
 
-    // Quy tắc đá được dùng chung cho UI và backend validation.
-    private static readonly string[] ManageRoles =
+    // Role checks are defense-in-depth. Granular permission claims remain the controller authority.
+    private static readonly string[] PlanningRoles =
     [
         RoleConstants.BusinessOwner,
         RoleConstants.StoreManager,
-        RoleConstants.AccountantWarehouse,
+        RoleConstants.SystemAdmin
+    ];
+
+    private static readonly string[] OperationalRoles =
+    [
+        RoleConstants.BusinessOwner,
+        RoleConstants.StoreManager,
         RoleConstants.SystemAdmin,
         RoleConstants.ShiftSupervisor
     ];
 
-    private static readonly string[] ApproveRoles =
+    private static readonly string[] ApprovalRoles =
     [
         RoleConstants.BusinessOwner,
         RoleConstants.StoreManager,
-        RoleConstants.AccountantWarehouse,
         RoleConstants.SystemAdmin
     ];
 
     private static readonly string[] HighVarianceApproveRoles =
     [
         RoleConstants.BusinessOwner,
-        RoleConstants.AccountantWarehouse,
         RoleConstants.SystemAdmin
     ];
 
@@ -75,7 +79,7 @@ public sealed class OperationalIceService : IOperationalIceService
         AdminActorContext actor,
         CancellationToken cancellationToken = default)
     {
-        var authorization = await AuthorizeAsync(actor, storeId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, storeId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<IReadOnlyList<OperationalIceScheduleOptionDto>>(authorization);
 
@@ -106,7 +110,7 @@ public sealed class OperationalIceService : IOperationalIceService
         AdminActorContext actor,
         CancellationToken cancellationToken = default)
     {
-        var authorization = await AuthorizeAsync(actor, storeId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, storeId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<IReadOnlyList<OperationalIceScheduleReviewDto>>(authorization);
 
@@ -197,7 +201,7 @@ public sealed class OperationalIceService : IOperationalIceService
             .SingleOrDefaultAsync(x => x.OperationalShiftId == operationalShiftId, cancellationToken);
         if (shift == null)
             return NotFound<IReadOnlyList<OperationalIceWorkShiftSuggestionDto>>("Không tìm thấy ca vận hành.");
-        var authorization = await AuthorizeAsync(actor, shift.StoreId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, shift.StoreId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<IReadOnlyList<OperationalIceWorkShiftSuggestionDto>>(authorization);
         if (shift.Status != OperationalIceStatuses.Open)
@@ -232,7 +236,7 @@ public sealed class OperationalIceService : IOperationalIceService
         AdminActorContext actor,
         CancellationToken cancellationToken = default)
     {
-        var authorization = await AuthorizeAsync(actor, request.StoreId, ApproveRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, request.StoreId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return authorization;
         var quantityError = ValidatePolicyQuantities(
@@ -301,7 +305,7 @@ public sealed class OperationalIceService : IOperationalIceService
         AdminActorContext actor,
         CancellationToken cancellationToken = default)
     {
-        var authorization = await AuthorizeAsync(actor, request.StoreId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, request.StoreId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<OperationalShiftSummaryDto>(authorization);
         if (string.IsNullOrWhiteSpace(request.Name)
@@ -414,7 +418,7 @@ public sealed class OperationalIceService : IOperationalIceService
         if (shift == null)
             return NotFound<OperationalShiftSummaryDto>("Không tìm thấy ca vận hành.");
 
-        var authorization = await AuthorizeAsync(actor, shift.StoreId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, shift.StoreId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<OperationalShiftSummaryDto>(authorization);
         if (shift.CreationSource != OperationalIceCreationSources.StaffSchedule
@@ -491,7 +495,7 @@ public sealed class OperationalIceService : IOperationalIceService
                 cancellationToken);
         if (shift == null)
             return NotFound<OperationalShiftSummaryDto>("Không tìm thấy ca vận hành.");
-        var authorization = await AuthorizeAsync(actor, shift.StoreId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, shift.StoreId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<OperationalShiftSummaryDto>(authorization);
         if (shift.Status != OperationalIceStatuses.Draft)
@@ -532,7 +536,7 @@ public sealed class OperationalIceService : IOperationalIceService
                 cancellationToken);
         if (shift == null)
             return NotFound<OperationalShiftSummaryDto>("Không tìm thấy ca vận hành.");
-        var authorization = await AuthorizeAsync(actor, shift.StoreId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, shift.StoreId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<OperationalShiftSummaryDto>(authorization);
         if (shift.Status != OperationalIceStatuses.Draft)
@@ -575,7 +579,7 @@ public sealed class OperationalIceService : IOperationalIceService
                 cancellationToken);
         if (shift == null)
             return NotFound<OperationalShiftSummaryDto>("Không tìm thấy ca vận hành.");
-        var authorization = await AuthorizeAsync(actor, shift.StoreId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, shift.StoreId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<OperationalShiftSummaryDto>(authorization);
         if (shift.Status != OperationalIceStatuses.Draft)
@@ -614,7 +618,7 @@ public sealed class OperationalIceService : IOperationalIceService
             .SingleOrDefaultAsync(x => x.OperationalShiftId == request.OperationalShiftId, cancellationToken);
         if (shift == null)
             return NotFound<IceAllocationDto>("Không tìm thấy ca vận hành.");
-        var authorization = await AuthorizeAsync(actor, shift.StoreId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, shift.StoreId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<IceAllocationDto>(authorization);
         if (shift.Status is not (OperationalIceStatuses.Draft or OperationalIceStatuses.Open))
@@ -725,7 +729,7 @@ public sealed class OperationalIceService : IOperationalIceService
         var shift = await _context.OperationalShifts.SingleOrDefaultAsync(x => x.OperationalShiftId == request.OperationalShiftId, cancellationToken);
         if (shift == null)
             return NotFound("Không tìm thấy ca vận hành.");
-        var authorization = await AuthorizeAsync(actor, shift.StoreId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, shift.StoreId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return authorization;
         if (shift.Status != OperationalIceStatuses.Open)
@@ -818,9 +822,12 @@ public sealed class OperationalIceService : IOperationalIceService
             .SingleOrDefaultAsync(x => x.IceAllocationId == request.IceAllocationId, cancellationToken);
         if (allocation == null)
             return NotFound<IceSupplementalIssueDto>("Không tìm thấy phân bổ đá.");
-        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, OperationalRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<IceSupplementalIssueDto>(authorization);
+        var assignment = AuthorizeAssignedShift(actor, allocation.OperationalShift);
+        if (!assignment.IsSuccess)
+            return Fail<IceSupplementalIssueDto>(assignment);
         if (allocation.Status != OperationalIceStatuses.Open || !allocation.IcePolicy.AllowSupplementalIssue)
             return InvalidState<IceSupplementalIssueDto>("Phân bổ này không cho phép cấp bổ sung.");
 
@@ -852,7 +859,7 @@ public sealed class OperationalIceService : IOperationalIceService
             .SingleOrDefaultAsync(x => x.PublicId == request.SupplementalIssuePublicId, cancellationToken);
         if (issue == null)
             return NotFound<IceSupplementalIssueDto>("Không tìm thấy yêu cầu cấp bổ sung.");
-        var authorization = await AuthorizeAsync(actor, issue.IceAllocation.OperationalShift.StoreId, ApproveRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, issue.IceAllocation.OperationalShift.StoreId, ApprovalRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<IceSupplementalIssueDto>(authorization);
         if (issue.Status != IceSupplementalIssueStatuses.Pending)
@@ -917,9 +924,12 @@ public sealed class OperationalIceService : IOperationalIceService
         if (source == null || target == null)
             return NotFound<IceCarryOverDto>("Không tìm thấy phân bổ đá giao hoặc nhận.");
 
-        var authorization = await AuthorizeAsync(actor, source.OperationalShift.StoreId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, source.OperationalShift.StoreId, OperationalRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<IceCarryOverDto>(authorization);
+        var assignment = AuthorizeAssignedShift(actor, source.OperationalShift);
+        if (!assignment.IsSuccess)
+            return Fail<IceCarryOverDto>(assignment);
         if (source.Status != OperationalIceStatuses.Open || target.Status != OperationalIceStatuses.Open)
             return InvalidState<IceCarryOverDto>("Chỉ phân bổ đang mở mới được bàn giao đá.");
         if (!source.IcePolicy.AllowSameDayCarryOver || !target.IcePolicy.AllowSameDayCarryOver)
@@ -989,9 +999,12 @@ public sealed class OperationalIceService : IOperationalIceService
         var allocation = await LoadAllocationForCloseAsync(request.IceAllocationId, cancellationToken);
         if (allocation == null)
             return NotFound<IceCloseResultDto>("Không tìm thấy phân bổ đá.");
-        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ManageRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, OperationalRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<IceCloseResultDto>(authorization);
+        var assignment = AuthorizeAssignedShift(actor, allocation.OperationalShift);
+        if (!assignment.IsSuccess)
+            return Fail<IceCloseResultDto>(assignment);
         if (allocation.Status != OperationalIceStatuses.Open)
             return InvalidState<IceCloseResultDto>("Chỉ phân bổ đang mở mới được gửi chốt.");
         if (allocation.SupplementalIssues.Any(x => x.Status == IceSupplementalIssueStatuses.Pending))
@@ -1086,7 +1099,7 @@ public sealed class OperationalIceService : IOperationalIceService
         if (allocation.Status == OperationalIceStatuses.Closed && existingPosting)
             return ServiceResult<IceCloseResultDto>.Success(MapClose(allocation), "Chênh lệch này đã được ghi nhận trước đó.");
 
-        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ApproveRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ApprovalRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<IceCloseResultDto>(authorization);
         if (allocation.Status != OperationalIceStatuses.PendingApproval || allocation.VarianceQuantity is not > 0)
@@ -1103,7 +1116,7 @@ public sealed class OperationalIceService : IOperationalIceService
         if (overLimit && !actor.RoleNames.Any(role => HighVarianceApproveRoles.Contains(role, StringComparer.OrdinalIgnoreCase)))
         {
             return ServiceResult<IceCloseResultDto>.Failure(
-                "Chênh lệch vượt hạn mức của quản lý chi nhánh và cần Kế toán kho hoặc Chủ doanh nghiệp duyệt.",
+                "Chênh lệch vượt hạn mức của quản lý chi nhánh và cần Chủ doanh nghiệp duyệt.",
                 errorCode: OperationalIceErrorCodes.Forbidden);
         }
         if (allocation.StoreInventory.AvailableQty < variance)
@@ -1193,7 +1206,7 @@ public sealed class OperationalIceService : IOperationalIceService
         var allocation = await LoadAllocationForCloseAsync(request.IceAllocationId, cancellationToken);
         if (allocation == null)
             return NotFound<IceCloseResultDto>("Không tìm thấy phân bổ đá.");
-        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ApproveRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ApprovalRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<IceCloseResultDto>(authorization);
         if (allocation.Status != OperationalIceStatuses.ReconciliationRequired || allocation.VarianceQuantity is not < 0)
@@ -1217,7 +1230,7 @@ public sealed class OperationalIceService : IOperationalIceService
         var allocation = await LoadAllocationForCloseAsync(request.IceAllocationId, cancellationToken);
         if (allocation == null)
             return NotFound("Không tìm thấy phân bổ đá.");
-        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ApproveRoles, cancellationToken);
+        var authorization = await AuthorizeAsync(actor, allocation.OperationalShift.StoreId, ApprovalRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return authorization;
         if (allocation.Status is OperationalIceStatuses.Closed or OperationalIceStatuses.Cancelled)
@@ -1730,6 +1743,21 @@ public sealed class OperationalIceService : IOperationalIceService
             return ServiceResult.Failure("Bạn không có quyền thực hiện thao tác quản lý đá này.", errorCode: OperationalIceErrorCodes.Forbidden);
         if (!await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId))
             return ServiceResult.Failure("Bạn không có quyền truy cập cửa hàng đã chọn.", errorCode: OperationalIceErrorCodes.StoreScopeForbidden);
+        return ServiceResult.Success();
+    }
+
+    private static ServiceResult AuthorizeAssignedShift(AdminActorContext actor, OperationalShift shift)
+    {
+        var isShiftLead = actor.RoleNames.Contains(RoleConstants.ShiftSupervisor, StringComparer.OrdinalIgnoreCase);
+        var hasManagementRole = actor.RoleNames.Any(role =>
+            PlanningRoles.Contains(role, StringComparer.OrdinalIgnoreCase));
+        if (isShiftLead && !hasManagementRole && shift.ShiftLeadId != actor.StaffId)
+        {
+            return ServiceResult.Failure(
+                "Bạn chỉ được thao tác trên ca vận hành đá được phân công cho mình.",
+                errorCode: OperationalIceErrorCodes.Forbidden);
+        }
+
         return ServiceResult.Success();
     }
 

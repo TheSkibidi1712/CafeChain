@@ -630,6 +630,8 @@ namespace CafeChain.Application.Services.Inventories
             if (order == null) return Fail("Không tìm thấy đơn mua hàng.");
             if (next == PurchaseOrderStatuses.Approved && order.PurchaseOrderBatchId.HasValue)
                 return Fail("Đơn đặt hàng con được duyệt theo đơn gộp; không duyệt lại từng đơn.");
+            if (next == PurchaseOrderStatuses.Approved && order.CreatedByStaffId == actorStaffId)
+                return Fail("Bạn không thể tự duyệt đơn đặt hàng do chính mình tạo.");
             if (!await CanAccessStoreAsync(actorStaffId, order.StoreId))
                 return Fail("Bạn không có quyền cập nhật đơn mua hàng của cửa hàng này.");
             if (order.Status != expected)
@@ -701,6 +703,7 @@ namespace CafeChain.Application.Services.Inventories
                     x.UnitPricePerPackage ?? x.PackagePriceSnapshot,
                     x.OrderedProcurementQuantity,
                     x.UnitPricePerProcurementUnit)),
+                CreatedByStaffId = order.CreatedByStaffId,
                 RowVersion = Convert.ToBase64String(order.RowVersion ?? Array.Empty<byte>()),
                 ActiveReceiptDraftId = activeReceiptDraftId,
                 Lines = order.Lines.Select(x =>

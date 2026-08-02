@@ -236,7 +236,7 @@
         </details>
     }
 
-    @if (Model.CanManage)
+    @if (Model.CanCreateShift)
     {
         <section id="createShift" class="ice-panel cc-warehouse-panel">
             <div class="ice-section-heading">
@@ -473,7 +473,7 @@
                                                     Hệ thống không tự hủy hoặc thay đổi ca vận hành.
                                                 </span>
                                             }
-                                            @if (scheduleReview.CanSync)
+                                            @if (scheduleReview.CanSync && Model.CanCreateShift)
                                             {
                                                 <form asp-action="SyncSchedule" method="post" class="ice-inline-form">
                                                     @Html.AntiForgeryToken()
@@ -483,7 +483,8 @@
                                                     </button>
                                                 </form>
                                             }
-                                            @if (row.Status == OperationalIceStatuses.Draft
+                                            @if (Model.CanCreateShift
+                                                 && row.Status == OperationalIceStatuses.Draft
                                                  && !scheduleReview.IsScheduleAvailable)
                                             {
                                                 <div class="ice-schedule-resolution">
@@ -500,25 +501,29 @@
                                                             Chuyển sang thủ công
                                                         </button>
                                                     </form>
-                                                    <form asp-action="CancelDraftShift"
-                                                          method="post"
-                                                          class="ice-resolution-form"
-                                                          onsubmit="return confirm('Hủy ca vận hành nháp này? Lịch sử vẫn được giữ lại.');">
-                                                        @Html.AntiForgeryToken()
-                                                        <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
-                                                        <label for="cancel-reason-@row.OperationalShiftId">Lý do hủy ca nháp</label>
-                                                        <input id="cancel-reason-@row.OperationalShiftId"
-                                                               name="Reason"
-                                                               maxlength="500"
-                                                               placeholder="Nhập lý do hủy ca"
-                                                               required />
-                                                        <button class="ice-btn ice-btn-danger ice-btn-compact" type="submit">
-                                                            Hủy ca nháp
-                                                        </button>
-                                                    </form>
+                                                    @if (Model.CanCancelScheduledShift)
+                                                    {
+                                                        <form asp-action="CancelDraftShift"
+                                                              method="post"
+                                                              class="ice-resolution-form"
+                                                              onsubmit="return confirm('Hủy ca vận hành nháp này? Lịch sử vẫn được giữ lại.');">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="OperationalShiftId" value="@row.OperationalShiftId" />
+                                                            <label for="cancel-reason-@row.OperationalShiftId">Lý do hủy ca nháp</label>
+                                                            <input id="cancel-reason-@row.OperationalShiftId"
+                                                                   name="Reason"
+                                                                   maxlength="500"
+                                                                   placeholder="Nhập lý do hủy ca"
+                                                                   required />
+                                                            <button class="ice-btn ice-btn-danger ice-btn-compact" type="submit">
+                                                                Hủy ca nháp
+                                                            </button>
+                                                        </form>
+                                                    }
                                                 </div>
                                             }
-                                            else if (row.Status == OperationalIceStatuses.Draft
+                                            else if (Model.CanCreateShift
+                                                     && row.Status == OperationalIceStatuses.Draft
                                                      && scheduleReview.RequiresLeadReplacement)
                                             {
                                                 <form asp-action="UpdateShiftLead" method="post" class="ice-resolution-form">
@@ -567,12 +572,15 @@
                                             <a class="ice-btn ice-btn-compact" asp-action="Details" asp-route-id="@row.IceAllocationId">
                                                 Chi tiết <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                                             </a>
-                                            <a class="ice-icon-btn" asp-action="Report" asp-route-id="@row.IceAllocationId" title="Xem báo cáo ca" aria-label="Xem báo cáo ca">
-                                                <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
-                                            </a>
+                                            @if (Model.CanViewReport)
+                                            {
+                                                <a class="ice-icon-btn" asp-action="Report" asp-route-id="@row.IceAllocationId" title="Xem báo cáo ca" aria-label="Xem báo cáo ca">
+                                                    <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+                                                </a>
+                                            }
                                         </div>
                                     }
-                                    else if (Model.CanManage && Model.HasValidPolicy && row.HasShiftLead
+                                    else if (Model.CanOpenShift && Model.HasValidPolicy && row.HasShiftLead
                                              && row.ScheduleReview is not { BlocksOpening: true })
                                     {
                                         <form asp-action="OpenAllocation" method="post" class="ice-inline-form" data-ice-submit>
