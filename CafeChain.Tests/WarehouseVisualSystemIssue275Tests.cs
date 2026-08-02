@@ -5,14 +5,25 @@ namespace CafeChain.Tests;
 public sealed class WarehouseVisualSystemIssue275Tests
 {
     private const string TokensPath = "CafeChain/wwwroot/css/Admin/Procurement/procurement-design-system.css";
+    private const string DashboardPath = "CafeChain/wwwroot/css/Admin/Dashboard/dashboard.css";
 
     [Fact]
     public void WarehousePages_UseSharedVisualTokens()
     {
         var css = Read(TokensPath);
+        var dashboardCss = Read(DashboardPath);
         var inventoryCss = Read("CafeChain/wwwroot/css/Admin/InventoryDocument/inventorydocument.css");
         var inventoryView = Read("CafeChain/Areas/Admin/Views/AdminInventoryDocument/Index.cshtml");
 
+        Assert.Contains("--an-bg:", dashboardCss);
+        Assert.Contains("#F7F4F0", dashboardCss, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("--cc-app-bg: #f7f4f0", css);
+        Assert.Contains("--cc-surface: #fffdfb", css);
+        Assert.Contains("--cc-primary: #70482f", css);
+        Assert.Contains("--cc-primary-hover: #3d2418", css);
+        Assert.Contains("--cc-accent: #a97750", css);
+        Assert.Contains("--cc-text-primary: #201812", css);
+        Assert.Contains("--cc-border: #e9ded4", css);
         Assert.Contains("--cc-surface-accent", css);
         Assert.Contains("--cc-shadow-soft", css);
         Assert.Contains(".cc-warehouse-page", css);
@@ -65,6 +76,19 @@ public sealed class WarehouseVisualSystemIssue275Tests
 
         Assert.Contains(".cc-warehouse-alert:empty", css);
         Assert.Contains("display: none", css);
+    }
+
+    [Fact]
+    public void WarehouseHeadersAndFilters_ExposeDashboardBasedVariants()
+    {
+        var css = Read(TokensPath);
+
+        Assert.Contains("border-left: 5px solid var(--cc-primary)", css);
+        Assert.Contains(".cc-warehouse-header--compact", css);
+        Assert.Contains(".cc-warehouse-header--detail", css);
+        Assert.Contains(".cc-warehouse-filter-header", css);
+        Assert.Contains(".cc-warehouse-filter:has(.cc-warehouse-filter-header)", css);
+        Assert.Contains(".cc-warehouse-table-shell tbody tr:hover > td", css);
     }
 
     private static string Read(string relativePath)
