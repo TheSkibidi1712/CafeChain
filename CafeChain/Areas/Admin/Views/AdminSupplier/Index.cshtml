@@ -1,10 +1,7 @@
-@model List<CafeChain.Application.DTOs.Admin.Suppliers.AdminSupplierDTO>
+@model CafeChain.Application.DTOs.Admin.Suppliers.AdminSupplierIndexPageDTO
 @{
     ViewData["Title"] = "Nhà cung cấp & nguồn hàng";
     var canMutate = ViewBag.CanMutateSupplier is true;
-    var activeCount = Model.Count(x => x.Active);
-    var offerCount = Model.Sum(x => x.ActiveOfferCount);
-    var storeCount = Model.Sum(x => x.ActiveStoreCount);
 }
 
 @section Styles {
@@ -28,24 +25,31 @@
     </header>
 
     <section class="supplier-metrics cc-warehouse-summary-grid" aria-label="Tổng quan nguồn cung">
-        <div><strong>@Model.Count</strong><span>Tổng nhà cung cấp</span></div>
-        <div><strong>@activeCount</strong><span>Đang hoạt động</span></div>
-        <div><strong>@offerCount</strong><span>Gói mua đang áp dụng</span></div>
-        <div><strong>@storeCount</strong><span>Lượt gán cửa hàng</span></div>
+        <div><strong>@Model.SupplierCount</strong><span>Tổng nhà cung cấp</span></div>
+        <div><strong>@Model.ActiveSupplierCount</strong><span>Đang hoạt động</span></div>
+        <div><strong>@Model.ActiveOfferCount</strong><span>Gói mua đang áp dụng</span></div>
+        <div><strong>@Model.ActiveStoreCount</strong><span>Lượt gán cửa hàng</span></div>
     </section>
 
-    <section class="supplier-toolbar cc-warehouse-filter" aria-label="Bộ lọc nhà cung cấp">
+    <form method="get" class="supplier-toolbar cc-warehouse-filter" aria-label="Bộ lọc nhà cung cấp">
         <label class="supplier-search">
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input id="supplierSearch" type="search" placeholder="Tìm theo mã, tên, mã số thuế, số điện thoại" autocomplete="off" />
+            <input id="supplierSearch" name="search" value="@Model.Search" type="search" placeholder="Tìm theo mã, tên, mã số thuế, số điện thoại" autocomplete="off" />
         </label>
-        <select id="supplierStatusFilter" aria-label="Lọc trạng thái">
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang hoạt động</option>
-            <option value="inactive">Ngừng hoạt động</option>
+        <select id="supplierStatusFilter" name="status" aria-label="Lọc trạng thái">
+            <option value="" selected="@(!Model.Status.HasValue)">Tất cả trạng thái</option>
+            <option value="true" selected="@(Model.Status == true)">Đang hoạt động</option>
+            <option value="false" selected="@(Model.Status == false)">Ngừng hoạt động</option>
         </select>
-        <span class="supplier-result-count" id="supplierResultCount">@Model.Count kết quả</span>
-    </section>
+        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+        <button type="submit" class="supplier-btn supplier-btn-primary">
+            <i class="fa-solid fa-filter" aria-hidden="true"></i>
+            Lọc
+        </button>
+        <span class="supplier-result-count" id="supplierResultCount">
+            @Model.FirstItemNumber–@Model.LastItemNumber trên @Model.TotalCount kết quả
+        </span>
+    </form>
 
     <div class="supplier-workspace">
         <section class="supplier-list-panel" aria-label="Danh sách nhà cung cấp">
@@ -63,11 +67,9 @@
                         </tr>
                     </thead>
                     <tbody id="supplierRows">
-                        @foreach (var item in Model)
+                        @foreach (var item in Model.Items)
                         {
-                            <tr data-supplier-id="@item.SupplierId"
-                                data-status="@(item.Active ? "active" : "inactive")"
-                                data-search="@($"{item.Code} {item.Name} {item.TaxCode} {item.PrimaryPhone} {item.PrimaryContactName} {item.PrimaryContactPhone}".ToLowerInvariant())">
+                            <tr data-supplier-id="@item.SupplierId">
                                 <td>
                                     <span class="supplier-code">@item.Code</span>
                                     <strong>@item.Name</strong>
@@ -87,11 +89,29 @@
                     </tbody>
                 </table>
             </div>
-            <div class="supplier-empty cc-warehouse-empty @(Model.Count == 0 ? "" : "is-hidden")" id="supplierEmptyState" role="status">
+            <div class="supplier-empty cc-warehouse-empty @(Model.Items.Count == 0 ? "" : "is-hidden")" id="supplierEmptyState" role="status">
                 <i class="fa-solid fa-box-open" aria-hidden="true"></i>
                 <strong>Không có nhà cung cấp phù hợp</strong>
                 <span>Thay đổi từ khóa hoặc trạng thái để xem kết quả khác.</span>
             </div>
+            @if (Model.TotalCount > 0 && Model.TotalPages > 1)
+            {
+                <nav class="supplier-pagination" aria-label="Phân trang nhà cung cấp">
+                    <a class="supplier-page-link @(Model.HasPreviousPage ? "" : "is-disabled")"
+                       href="@(Model.HasPreviousPage ? Url.Action("Index", new { search = Model.Search, status = Model.Status, page = Model.PageIndex - 1, pageSize = Model.PageSize }) : null)"
+                       aria-disabled="@(!Model.HasPreviousPage)">
+                        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                        Trước
+                    </a>
+                    <span>Trang <strong>@Model.PageIndex</strong> / @Model.TotalPages</span>
+                    <a class="supplier-page-link @(Model.HasNextPage ? "" : "is-disabled")"
+                       href="@(Model.HasNextPage ? Url.Action("Index", new { search = Model.Search, status = Model.Status, page = Model.PageIndex + 1, pageSize = Model.PageSize }) : null)"
+                       aria-disabled="@(!Model.HasNextPage)">
+                        Sau
+                        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                    </a>
+                </nav>
+            }
         </section>
 
         <aside class="supplier-detail" id="supplierDetail" aria-label="Chi tiết nhà cung cấp" aria-hidden="true">

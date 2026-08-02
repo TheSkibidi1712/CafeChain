@@ -92,6 +92,29 @@ public sealed class WarehousePurchasingIssue279Tests
         Assert.DoesNotContain("backdrop-filter", css, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void SupplierWorkspace_UsesServerPagingAndLazyDetailSections()
+    {
+        var controller = Read("CafeChain/Areas/Admin/Controllers/AdminSupplierController.cs");
+        var repository = Read("CafeChain/Infrastructure/Repositories/Admin/Suppliers/AdminSupplierRepository.cs");
+        var view = Read("CafeChain/Areas/Admin/Views/AdminSupplier/Index.cshtml");
+        var script = Read("CafeChain/wwwroot/js/Admin/Supplier/supplier.js");
+
+        Assert.Contains("GetPagedAsync(search, status, page, pageSize", controller);
+        Assert.Contains(".Skip((page - 1) * pageSize)", repository);
+        Assert.Contains(".Take(pageSize)", repository);
+        Assert.Contains(".Select(x => new AdminSupplierDTO", repository);
+        Assert.Contains("name=", view);
+        Assert.Contains("supplierSearch", view);
+        Assert.Contains("supplierStatusFilter", view);
+        Assert.Contains("supplier-pagination", view);
+        Assert.Contains("GetAuditHistory", controller);
+        Assert.Contains("ensureTabData", script);
+        Assert.Contains("loadAuditHistory", script);
+        Assert.DoesNotContain("addEventListener('input', applyFilters)", script);
+        Assert.DoesNotContain("await Promise.all([loadOffers(), loadStores(), loadReferenceData()]);", script);
+    }
+
     private static string Read(string relativePath)
     {
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));

@@ -118,7 +118,7 @@
 
 .supplier-toolbar {
     display: grid;
-    grid-template-columns: minmax(280px, 1fr) 210px auto;
+    grid-template-columns: minmax(280px, 1fr) 210px auto auto;
     gap: 10px;
     align-items: center;
     padding: 12px;
@@ -131,6 +131,42 @@
 .supplier-search i { position: absolute; top: 50%; left: 12px; transform: translateY(-50%); color: var(--cc-text-secondary); }
 .supplier-search input { padding-left: 36px !important; }
 .supplier-result-count { color: var(--supplier-muted); font-size: 12px; white-space: nowrap; }
+
+.supplier-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--supplier-line);
+    color: var(--supplier-muted);
+    font-size: 13px;
+}
+
+.supplier-page-link {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    border: 1px solid var(--supplier-line);
+    border-radius: 6px;
+    background: var(--supplier-surface);
+    color: var(--supplier-primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.supplier-page-link:hover {
+    border-color: var(--supplier-accent);
+    background: var(--supplier-accent-soft);
+    color: var(--supplier-primary-hover);
+}
+
+.supplier-page-link.is-disabled {
+    pointer-events: none;
+    opacity: .45;
+}
 
 .supplier-page input, .supplier-page select, .supplier-page textarea,
 .supplier-modal input, .supplier-modal select, .supplier-modal textarea {
@@ -479,7 +515,9 @@
     .supplier-metrics > div:nth-child(2) { border-right: 0; }
     .supplier-metrics > div:nth-child(-n+2) { border-bottom: 1px solid var(--supplier-line); }
     .supplier-toolbar { grid-template-columns: 1fr; }
+    .supplier-toolbar .supplier-btn { width: 100%; }
     .supplier-result-count { padding-left: 3px; }
+    .supplier-pagination { justify-content: space-between; }
     .supplier-table { min-width: 600px; }
     .supplier-tab-body { padding: 14px; }
     .supplier-form-grid, .supplier-form-grid-three { grid-template-columns: 1fr; }

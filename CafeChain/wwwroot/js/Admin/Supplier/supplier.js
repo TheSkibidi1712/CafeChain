@@ -15,7 +15,8 @@
         units: [],
         pricingOffer: null,
         duplicateWarningId: null,
-        duplicateMatches: []
+        duplicateMatches: [],
+        loaded: { reference: false, offers: false, stores: false, audit: false }
     };
 
     const $ = (selector, root = document) => root.querySelector(selector);
@@ -106,29 +107,32 @@
         return normalized;
     }
 
-    function applyFilters() {
-        const query = ($('#supplierSearch')?.value || '').trim().toLocaleLowerCase('vi');
-        const status = $('#supplierStatusFilter')?.value || 'all';
-        let count = 0;
-        $$('#supplierRows tr').forEach(row => {
-            const matchesText = !query || (row.dataset.search || '').includes(query);
-            const matchesStatus = status === 'all' || row.dataset.status === status;
-            const visible = matchesText && matchesStatus;
-            row.classList.toggle('is-hidden', !visible);
-            if (visible) count += 1;
-        });
-        $('#supplierResultCount').textContent = `${count} kết quả`;
-        $('#supplierEmptyState').classList.toggle('is-hidden', count !== 0);
-    }
-
-    $('#supplierSearch')?.addEventListener('input', applyFilters);
-    $('#supplierStatusFilter')?.addEventListener('change', applyFilters);
-
     function selectTab(tabName) {
         $$('.supplier-tabs button').forEach(button => button.classList.toggle('is-active', button.dataset.tab === tabName));
         $$('.supplier-tab').forEach(panel => panel.classList.toggle('is-active', panel.dataset.tabPanel === tabName));
     }
-    $$('.supplier-tabs button').forEach(button => button.addEventListener('click', () => selectTab(button.dataset.tab)));
+
+    async function ensureTabData(tabName) {
+        try {
+            if (tabName === 'offers' && !state.loaded.offers) {
+                $('#offerList').innerHTML = emptyStack('Đang tải gói mua...');
+                await Promise.all([loadOffers(), loadReferenceData()]);
+            } else if (tabName === 'stores' && !state.loaded.stores) {
+                $('#storeList').innerHTML = emptyStack('Đang tải phạm vi cửa hàng...');
+                await loadStores();
+            } else if (tabName === 'audit' && !state.loaded.audit) {
+                $('#supplierAuditEvents').innerHTML = emptyStack('Đang tải dấu vết cập nhật...');
+                await loadAuditHistory();
+            }
+        } catch (error) {
+            toast(error.message, 'error');
+        }
+    }
+
+    $$('.supplier-tabs button').forEach(button => button.addEventListener('click', async () => {
+        selectTab(button.dataset.tab);
+        await ensureTabData(button.dataset.tab);
+    }));
 
     function openDetailShell() {
         detailPanel.classList.add('is-open');
@@ -149,7 +153,7 @@
     $('#closeSupplierDetail')?.addEventListener('click', closeDetail);
 
     async function loadReferenceData() {
-        if (!canMutate || (state.ingredients.length && state.units.length)) return;
+        if (!canMutate || state.loaded.reference) return;
         const [ingredientPayload, unitPayload] = await Promise.all([
             api('/GetIngredientOptions'),
             api('/GetContentUnitOptions')
@@ -164,6 +168,7 @@
             'unitId',
             item => `${item.unitCode} · ${item.name}`);
         fillSelect($('#newPackageUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`);
+        state.loaded.reference = true;
     }
 
     function fillSelect(select, items, valueKey, labelFactory, placeholder = 'Chọn dữ liệu') {
@@ -181,6 +186,10 @@
 
     async function openSupplier(id) {
         state.supplierId = Number(id);
+        state.offers = [];
+        state.stores = [];
+        state.pricingOffer = null;
+        state.loaded = { reference: state.loaded.reference, offers: false, stores: false, audit: false };
         openDetailShell();
         selectTab('overview');
         setBusy(detailContent, true);
@@ -190,7 +199,6 @@
             const detailPayload = await api(`/GetById?id=${state.supplierId}`);
             state.detail = detailPayload.data;
             renderDetail();
-            await Promise.all([loadOffers(), loadStores(), loadReferenceData()]);
         } catch (error) {
             toast(error.message, 'error');
             closeDetail();
@@ -233,6 +241,10 @@
         const root = $('#supplierAuditEvents');
         const rows = state.detail?.audits || [];
         if (!root) return;
+        if (!state.loaded.audit) {
+            root.innerHTML = emptyStack('Mở tab Theo dõi để tải dấu vết cập nhật.');
+            return;
+        }
         if (!rows.length) {
             root.innerHTML = emptyStack('Chưa có thay đổi mã số thuế hoặc xác nhận trùng được ghi nhận.');
             return;
@@ -248,6 +260,15 @@
                 <div><strong>${escapeHtml(labels[item.action] || item.action)}</strong><small>Nhân viên #${escapeHtml(item.actorStaffId)}</small></div>
                 <span>${escapeHtml(item.newData || '')}</span>
             </div>`).join('');
+    }
+
+    async function loadAuditHistory() {
+        const supplierId = state.supplierId;
+        const payload = await api(`/GetAuditHistory?supplierId=${supplierId}`);
+        if (state.supplierId !== supplierId) return;
+        state.detail.audits = payload.data || [];
+        state.loaded.audit = true;
+        renderSupplierAudits();
     }
 
     function applyReadOnlyMode() {
@@ -396,8 +417,11 @@
     }
 
     async function loadOffers() {
-        const payload = await api(`/GetIngredientOffers?supplierId=${state.supplierId}`);
+        const supplierId = state.supplierId;
+        const payload = await api(`/GetIngredientOffers?supplierId=${supplierId}`);
+        if (state.supplierId !== supplierId) return;
         state.offers = payload.data || [];
+        state.loaded.offers = true;
         renderOffers();
     }
 
@@ -576,11 +600,13 @@
     });
 
     async function loadStores() {
-        const [assignmentPayload, optionPayload] = await Promise.all([
-            api(`/GetSupplierStores?supplierId=${state.supplierId}`),
-            api('/GetStoreOptions')
-        ]);
+        const supplierId = state.supplierId;
+        const assignmentRequest = api(`/GetSupplierStores?supplierId=${supplierId}`);
+        const optionRequest = canMutate ? api('/GetStoreOptions') : Promise.resolve({ data: [] });
+        const [assignmentPayload, optionPayload] = await Promise.all([assignmentRequest, optionRequest]);
+        if (state.supplierId !== supplierId) return;
         state.stores = assignmentPayload.data || [];
+        state.loaded.stores = true;
         renderStores();
         if (canMutate) fillSelect($('#assignmentStore'), optionPayload.data || [], 'storeId', item => item.name, 'Chọn cửa hàng');
     }
