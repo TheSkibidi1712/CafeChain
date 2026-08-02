@@ -90,7 +90,7 @@
                     @foreach (var item in Model.Items)
                     {
                         <tr>
-                            <td><span class="ops-item-name">#@item.RestockRequestId</span><div class="ops-secondary">@AdminStatusDisplay.RestockSource(item.SourceType)</div></td>
+                            <td><span class="ops-item-name">@item.ReferenceCode</span><div class="ops-secondary">@AdminStatusDisplay.RestockSource(item.SourceType)</div></td>
                             <td><div class="ops-item-name">@item.ItemName</div><div class="ops-secondary">@item.ItemTypeLabel</div></td>
                             <td class="number">
                                 @if (item.RequestedProcurementQuantity.HasValue)

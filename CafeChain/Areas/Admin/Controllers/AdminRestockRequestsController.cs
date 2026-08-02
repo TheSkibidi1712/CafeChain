@@ -84,6 +84,7 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 StoreId = scope.StoreId.Value,
                 SourceType = RestockRequestSourceTypes.ManualByStore,
+                SourceReferenceId = Guid.NewGuid().ToString("N"),
                 NeedByDate = DateTime.Today.AddDays(2)
             });
         }
@@ -101,6 +102,7 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 StoreId = scope.StoreId.Value,
                 SourceType = RestockRequestSourceTypes.CentralPlanner,
+                SourceReferenceId = Guid.NewGuid().ToString("N"),
                 NeedByDate = DateTime.Today.AddDays(2)
             });
         }

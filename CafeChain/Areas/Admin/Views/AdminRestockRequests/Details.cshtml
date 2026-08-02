@@ -56,7 +56,7 @@
 <main class="ops-shell cc-warehouse-page">
 <header class="ops-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail">
         <div>
-            <div class="ops-eyebrow">Yêu cầu nhập hàng #@Model.RestockRequestId · Chi nhánh @(Model.StoreName ?? $"#{Model.StoreId}")</div>
+            <div class="ops-eyebrow">Yêu cầu nhập hàng @Model.ReferenceCode · Chi nhánh @(Model.StoreName ?? $"#{Model.StoreId}")</div>
             <h1 class="ops-title">@Model.ItemName</h1>
             <p class="ops-subtitle">@Model.ItemTypeLabel · Tạo bởi @(Model.CreatedByName ?? $"Nhân viên #{Model.CreatedByStaffId}") lúc @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
         </div>

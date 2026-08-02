@@ -25,8 +25,9 @@
 
     <form asp-action="CreateCentralPlanner" method="post">
         @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="StoreId" />
-        <input type="hidden" asp-for="SourceType" />
+                <input type="hidden" asp-for="StoreId" />
+                <input type="hidden" asp-for="SourceType" />
+                <input type="hidden" asp-for="SourceReferenceId" />
 
         <section class="ops-panel">
             <div class="ops-panel-header">

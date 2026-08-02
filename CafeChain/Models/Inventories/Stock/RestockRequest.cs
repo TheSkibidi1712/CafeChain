@@ -16,6 +16,8 @@ namespace CafeChain.Models.Inventories.Stock
     {
         public int RestockRequestId { get; set; }
 
+        public string ReferenceCode { get; private set; } = $"RR-PENDING-{Guid.NewGuid():N}";
+
         public int? StockAlertId { get; set; }
 
         public int StoreId { get; set; }
@@ -94,5 +96,15 @@ namespace CafeChain.Models.Inventories.Stock
         public virtual Staff? RemainingClosedByStaff { get; set; }
         public virtual ICollection<RestockFulfillmentPosting> FulfillmentPostings { get; set; } = new List<RestockFulfillmentPosting>();
         public virtual ICollection<RestockSourcingAllocation> SourcingAllocations { get; set; } = new List<RestockSourcingAllocation>();
+
+        internal void AssignReferenceCode(string referenceCode)
+        {
+            if (RestockRequestId != 0)
+                throw new InvalidOperationException("Mã yêu cầu không thể thay đổi sau khi đã lưu.");
+            if (string.IsNullOrWhiteSpace(referenceCode))
+                throw new ArgumentException("Mã yêu cầu không được để trống.", nameof(referenceCode));
+
+            ReferenceCode = referenceCode.Trim();
+        }
     }
 }
