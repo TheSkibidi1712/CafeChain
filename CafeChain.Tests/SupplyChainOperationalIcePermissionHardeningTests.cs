@@ -96,6 +96,46 @@ public sealed class SupplyChainOperationalIcePermissionHardeningTests
     [Fact] public void RegionManager_CannotMutateWithoutExplicitPermission() => AssertGrant("OperationalIce.CreateShift", AreaManager, false);
 
     [Fact]
+    public void ShiftLead_CanEnterAdminShellForOperationalIce()
+    {
+        var policies = Read("CafeChain", "Extensions", "Services", "AuthorizationServiceExtensions.cs");
+        var adminPanelPolicy = policies[
+            policies.IndexOf("AuthorizationPolicyConstants.AdminPanelAccess", StringComparison.Ordinal)..];
+        adminPanelPolicy = adminPanelPolicy[
+            ..adminPanelPolicy.IndexOf("AuthorizationPolicyConstants.AdminDashboardApp", StringComparison.Ordinal)];
+
+        Assert.Contains("RoleConstants.ShiftSupervisor", adminPanelPolicy, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SupplyChainRoleMigration_MatchesManagedSeedMatrix()
+    {
+        var seed = Read("CafeChain", "Scripts", "SeedAll.sql");
+        var migration = Read(
+            "CafeChain",
+            "Migrations",
+            "20260802143748_AlignSupplyChainRolePermissions.cs");
+        var migrationRows = Regex.Matches(
+            migration,
+            @"(N'(?<code>[^']+)',(?<owner>[01]),(?<area>[01]),(?<store>[01]),(?<sales>[01]),(?<accountant>[01]),(?<lead>[01]))");
+
+        Assert.True(migrationRows.Count >= 80, "Migration phải quản lý đầy đủ nhóm quyền Kho & Cung ứng.");
+        foreach (Match row in migrationRows)
+        {
+            var code = row.Groups["code"].Value;
+            var seedRow = Regex.Match(
+                seed,
+                $@"(N'{Regex.Escape(code)}',(?<owner>[01]),(?<area>[01]),(?<store>[01]),(?<sales>[01]),(?<accountant>[01]),[01],[01],(?<lead>[01]))");
+            Assert.True(seedRow.Success, $"Permission {code} không tồn tại trong #PermissionMatrix.");
+            foreach (var role in new[] { "owner", "area", "store", "sales", "accountant", "lead" })
+                Assert.Equal(seedRow.Groups[role].Value, row.Groups[role].Value);
+        }
+
+        Assert.Contains("N'Quản trị hệ thống'", migration, StringComparison.Ordinal);
+        Assert.Contains("THROW 53373", migration, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OperationalIceLink_RequiresPermissionAndStoreScope()
     {
         var controller = Read("CafeChain", "Areas", "Admin", "Controllers", "AdminOperationalIceController.cs");
