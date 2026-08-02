@@ -7,7 +7,7 @@
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 <div class="pa-page cc-warehouse-page">
-    <header class="pa-header cc-warehouse-header"><div><div class="pa-eyebrow">@detail.AdviceNumber</div><h1>Sửa đề nghị mua hàng nháp</h1><p class="pa-subtitle">Nguồn yêu cầu nhập được giữ nguyên; hệ thống kiểm tra lại số lượng còn có thể mua khi lưu.</p></div><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-arrow-left"></i> Quay lại</a></header>
+    <header class="pa-header cc-warehouse-header cc-warehouse-header--compact"><div><div class="pa-eyebrow">@detail.AdviceNumber</div><h1>Sửa đề nghị mua hàng nháp</h1><p class="pa-subtitle">Nguồn yêu cầu nhập được giữ nguyên; hệ thống kiểm tra lại số lượng còn có thể mua khi lưu.</p></div><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-arrow-left"></i> Quay lại</a></header>
     <div asp-validation-summary="All" class="pa-alert cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div>
     <form method="post">
         @Html.AntiForgeryToken()<input type="hidden" asp-for="PurchaseAdviceId" /><input type="hidden" asp-for="RowVersion" />

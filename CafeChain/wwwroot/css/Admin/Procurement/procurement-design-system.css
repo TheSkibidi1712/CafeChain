@@ -66,6 +66,7 @@
 }
 
 .cc-warehouse-header > * {
+    min-width: 0;
     position: relative;
     z-index: 1;
 }
@@ -190,6 +191,8 @@
 .cc-warehouse-table-shell {
     max-width: 100%;
     overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-gutter: stable;
 }
 
 .cc-warehouse-table-shell table {
@@ -1639,6 +1642,15 @@ html {
         flex-direction: column;
     }
 
+    .cc-warehouse-header {
+        gap: var(--cc-space-3);
+        padding: var(--cc-space-4);
+    }
+
+    .cc-warehouse-header--compact {
+        padding-block: var(--cc-space-3);
+    }
+
     .cc-warehouse-actions {
         width: 100%;
     }
@@ -1657,6 +1669,20 @@ html {
 }
 
 @media (max-width: 600px) {
+    .cc-page,
+    .cc-warehouse-page,
+    .inventory-container,
+    .reorder-page,
+    .uc-page,
+    .notification-page {
+        padding: var(--cc-space-3);
+    }
+
+    .cc-warehouse-actions > *,
+    .cc-actions > * {
+        width: 100%;
+    }
+
     .ops-summary-metrics {
         grid-template-columns: 1fr 1fr;
     }

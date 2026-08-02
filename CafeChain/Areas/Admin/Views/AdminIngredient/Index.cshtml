@@ -179,18 +179,20 @@
                     <div class="pagination gap-1">
                         @if (ViewBag.Page > 1)
                         {
-                            <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page - 1)" title="Trang trước">
+                            <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page - 1)" title="Trang trước" aria-label="Trang trước">
                                 <i class="fas fa-chevron-left ingredient-small-icon" aria-hidden="true"></i>
                             </a>
                         }
                         @for (int i = 1; i <= ViewBag.TotalPages; i++)
                         {
                             <a class="page-btn @(i == ViewBag.Page ? "active" : "")"
-                               href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@i">@i</a>
+                               href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@i"
+                               aria-current="@(i == ViewBag.Page ? "page" : null)"
+                               aria-label="Trang @i">@i</a>
                         }
                         @if (ViewBag.Page < ViewBag.TotalPages)
                         {
-                            <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page + 1)" title="Trang sau">
+                            <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page + 1)" title="Trang sau" aria-label="Trang sau">
                                 <i class="fas fa-chevron-right ingredient-small-icon" aria-hidden="true"></i>
                             </a>
                         }

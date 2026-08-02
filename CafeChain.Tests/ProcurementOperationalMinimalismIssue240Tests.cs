@@ -16,9 +16,9 @@ public sealed class ProcurementOperationalMinimalismIssue240Tests
 
         foreach (var token in new[]
         {
-            "--cc-app-bg: #f7f3ee", "--cc-surface: #ffffff", "--cc-primary: #6f4e37",
-            "--cc-primary-hover: #5c3f2b", "--cc-accent: #c67a45", "--cc-text-primary: #1f2937",
-            "--cc-text-secondary: #475569", "--cc-success: #2f6f5e", "--cc-warning: #99623b",
+            "--cc-app-bg: #f7f4f0", "--cc-surface: #fffdfb", "--cc-primary: #70482f",
+            "--cc-primary-hover: #3d2418", "--cc-accent: #a97750", "--cc-text-primary: #201812",
+            "--cc-text-secondary: #66584f", "--cc-success: #2f6f5e", "--cc-warning: #99623b",
             "--cc-danger: #991b1b"
         })
         {

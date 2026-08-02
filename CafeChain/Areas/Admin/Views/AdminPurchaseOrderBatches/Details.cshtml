@@ -15,7 +15,7 @@
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 
 <main class="pa-page cc-warehouse-page">
-    <header class="pa-header cc-warehouse-header">
+<header class="pa-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail">
         <div><div class="pa-eyebrow">@batch.BatchNumber · @AdminStatusDisplay.PurchaseOrderBatch(batch.Status).Label</div><h1>@batch.SupplierName</h1><p class="pa-subtitle">Giao dự kiến @AdminStatusDisplay.Date(batch.ExpectedDeliveryFrom) - @AdminStatusDisplay.Date(batch.ExpectedDeliveryTo) · @batch.StoreCount chi nhánh.</p></div>
         <div class="pa-actions">
             <a class="pa-action" asp-action="Index"><i class="fas fa-arrow-left"></i> Danh sách đơn đặt hàng gộp</a>
