@@ -33,6 +33,17 @@
         InventoryDocumentType.WASTE => "fa-trash-alt",
         _ => "fa-boxes"
     };
+
+    var noticeIcon = effectiveType == InventoryDocumentType.WASTE
+        ? "fa-triangle-exclamation"
+        : "fa-circle-info";
+    var notice = effectiveType switch
+    {
+        InventoryDocumentType.EXPORT => "Số lượng xuất được kiểm tra theo tồn khả dụng. Xuất vượt tồn phải có lý do và đi qua quy trình phê duyệt.",
+        InventoryDocumentType.STOCK_TAKE => "Hoàn tất kiểm đếm thực tế trước khi xác nhận. Mọi chênh lệch cần được ghi chú rõ để đối soát.",
+        InventoryDocumentType.WASTE => "Phiếu hủy làm giảm tồn kho sau khi xác nhận. Chỉ chọn nguyên liệu còn tồn và nhập số lượng không vượt tồn khả dụng.",
+        _ => "Kiểm tra thông tin phiếu và chi tiết nguyên liệu trước khi xác nhận chứng từ."
+    };
 }
 
 <form id="inventoryCreateForm"
@@ -92,6 +103,11 @@
     <div class="modal-body inventory-create-body">
 
         <div class="inventory-create-workspace">
+
+            <div class="inventory-create-notice inventory-create-notice-@typeClass" role="note">
+                <i class="fas @noticeIcon" aria-hidden="true"></i>
+                <span>@notice</span>
+            </div>
 
             <div class="inventory-create-main">
 
