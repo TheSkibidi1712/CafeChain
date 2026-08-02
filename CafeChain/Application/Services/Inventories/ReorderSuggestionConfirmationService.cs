@@ -254,6 +254,10 @@ public sealed class ReorderSuggestionConfirmationService
                     }
                 }
 
+                var referenceCode = await _repository.AllocateRestockReferenceCodeAsync(
+                    request.StoreId,
+                    now,
+                    cancellationToken);
                 restock = new RestockRequest
                 {
                     StoreId = request.StoreId,
@@ -287,6 +291,7 @@ public sealed class ReorderSuggestionConfirmationService
                     UpdatedAt = now,
                     Note = "Tạo từ gợi ý nhập hàng deterministic."
                 };
+                restock.AssignReferenceCode(referenceCode);
                 _repository.AddRequest(restock);
                 await _repository.SaveChangesAsync(cancellationToken);
             }

@@ -58,9 +58,20 @@ namespace CafeChain.Application.Constants
         public const string SettingsUpdate = "Settings.Update";
 
         public const string OperationalIceView = "OperationalIce.View";
-        public const string OperationalIceManage = "OperationalIce.Manage";
-        public const string OperationalIceApprove = "OperationalIce.Approve";
-        public const string OperationalIcePolicy = "OperationalIce.Policy";
+        public const string OperationalIceConfigurePolicy = "OperationalIce.ConfigurePolicy";
+        public const string OperationalIceCreateShift = "OperationalIce.CreateShift";
+        public const string OperationalIceOpenShift = "OperationalIce.OpenShift";
+        public const string OperationalIceLinkWorkShift = "OperationalIce.LinkWorkShift";
+        public const string OperationalIceRequestSupplement = "OperationalIce.RequestSupplement";
+        public const string OperationalIceApproveSupplement = "OperationalIce.ApproveSupplement";
+        public const string OperationalIceHandoff = "OperationalIce.Handoff";
+        public const string OperationalIceSubmitClose = "OperationalIce.SubmitClose";
+        public const string OperationalIceApproveVariance = "OperationalIce.ApproveVariance";
+        public const string OperationalIceCancelScheduledShift = "OperationalIce.CancelScheduledShift";
+        public const string OperationalIceViewReport = "OperationalIce.ViewReport";
+        public const string OperationalIceLegacyManage = "OperationalIce.Manage";
+        public const string OperationalIceLegacyApprove = "OperationalIce.Approve";
+        public const string OperationalIceLegacyPolicy = "OperationalIce.Policy";
 
         // Inventory replenishment permissions already present in SeedAll.sql.
         public const string ReorderSuggestionView = "ReorderSuggestion.View";

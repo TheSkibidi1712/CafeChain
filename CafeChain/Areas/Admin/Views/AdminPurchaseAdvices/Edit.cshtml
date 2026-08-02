@@ -6,13 +6,13 @@
     var detail = (PurchaseAdviceDetailDto)ViewBag.Detail;
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
-<div class="pa-page">
-    <header class="pa-header"><div><div class="pa-eyebrow">@detail.AdviceNumber</div><h1>Sửa đề nghị mua hàng nháp</h1><p class="pa-subtitle">Nguồn yêu cầu nhập được giữ nguyên; hệ thống kiểm tra lại số lượng còn có thể mua khi lưu.</p></div><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-arrow-left"></i> Quay lại</a></header>
-    <div asp-validation-summary="All" class="pa-alert"></div>
+<div class="pa-page cc-warehouse-page">
+    <header class="pa-header cc-warehouse-header cc-warehouse-header--compact"><div><div class="pa-eyebrow">@detail.AdviceNumber</div><h1>Sửa đề nghị mua hàng nháp</h1><p class="pa-subtitle">Nguồn yêu cầu nhập được giữ nguyên; hệ thống kiểm tra lại số lượng còn có thể mua khi lưu.</p></div><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-arrow-left"></i> Quay lại</a></header>
+    <div asp-validation-summary="All" class="pa-alert cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div>
     <form method="post">
         @Html.AntiForgeryToken()<input type="hidden" asp-for="PurchaseAdviceId" /><input type="hidden" asp-for="RowVersion" />
     <section class="pa-band"><div class="pa-filter-grid pa-filter-grid-three"><div class="pa-field"><label>Ngày cần hàng</label><input asp-for="NeededByDate" type="date" lang="vi" required /><span class="pa-muted">Ngày/tháng/năm</span></div><div class="pa-field"><label>Ưu tiên</label><select asp-for="Priority"><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="URGENT">Khẩn cấp</option></select></div><div class="pa-field"><label>Ghi chú</label><input asp-for="Note" maxlength="1000" /></div></div></section>
-        <div class="pa-table-wrap"><table class="pa-table"><thead><tr><th>Nguồn</th><th>Phân bổ</th><th>Còn khả dụng khi sửa</th><th>Số lượng</th><th>Ngày cần / ghi chú</th></tr></thead><tbody>
+        <div class="pa-table-wrap cc-warehouse-table-shell"><table class="pa-table"><thead><tr><th>Nguồn</th><th>Phân bổ</th><th>Còn khả dụng khi sửa</th><th>Số lượng</th><th>Ngày cần / ghi chú</th></tr></thead><tbody>
         @for (var i = 0; i < Model.Lines.Count; i++)
         {
             var source = detail.Lines.Single(x => x.PurchaseAdviceLineId == Model.Lines[i].PurchaseAdviceLineId);

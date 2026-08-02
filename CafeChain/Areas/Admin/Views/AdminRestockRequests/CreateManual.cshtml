@@ -8,8 +8,8 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
 
-<main class="ops-shell">
-    <header class="ops-header">
+<main class="ops-shell cc-warehouse-page">
+<header class="ops-header cc-warehouse-header cc-warehouse-header--compact">
         <div>
             <div class="ops-eyebrow">KHO &amp; CUNG ỨNG / YÊU CẦU BỔ SUNG</div>
             <h1 class="ops-title">Tạo yêu cầu bổ sung</h1>
@@ -20,7 +20,7 @@
 
     @if (!ViewData.ModelState.IsValid)
     {
-        <div asp-validation-summary="All" class="ops-notice ops-notice-error" role="alert"></div>
+        <div asp-validation-summary="All" class="ops-notice ops-notice-error cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div>
     }
 
     <section id="activeDemandCard" class="ops-panel" hidden aria-live="polite">
@@ -53,6 +53,7 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="StoreId" />
                 <input type="hidden" asp-for="SourceType" />
+                <input type="hidden" asp-for="SourceReferenceId" />
                 <div class="ops-data-grid">
                     <div>
                         <label class="ops-form-label" asp-for="IngredientId">Nguyên liệu</label>
@@ -74,7 +75,10 @@
                         <label class="ops-form-label" asp-for="Priority">Mức ưu tiên</label>
                         <select class="ops-select" asp-for="Priority"><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="URGENT">Khẩn cấp</option></select>
                     </div>
-                    <div><label class="ops-form-label" asp-for="SourceReferenceId">Mã tham chiếu</label><input class="ops-input" asp-for="SourceReferenceId" maxlength="100" placeholder="Ví dụ: COUNT-20260726-01" /></div>
+                    <div class="ops-help">
+                        <span class="ops-form-label">Mã yêu cầu</span>
+                        <span>Mã yêu cầu sẽ được hệ thống tự tạo sau khi lưu.</span>
+                    </div>
                 </div>
                 <div class="mt-3"><label class="ops-form-label" asp-for="Note">Lý do / ghi chú</label><textarea class="ops-textarea" asp-for="Note" maxlength="500" rows="3" placeholder="Nêu nguyên nhân phát sinh nhu cầu..."></textarea></div>
                 <div class="ops-help mt-3"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Mỗi chi nhánh chỉ có một yêu cầu đang hoạt động cho cùng nguyên liệu. Khi đã có yêu cầu, hãy bổ sung nhu cầu vào yêu cầu đó để không tách lịch sử và phân bổ nguồn cung.</div>

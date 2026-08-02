@@ -36,8 +36,8 @@
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 
-<main class="pa-page pa-create-page">
-    <header class="pa-header">
+<main class="pa-page pa-create-page cc-warehouse-page">
+    <header class="pa-header cc-warehouse-header cc-warehouse-header--compact">
         <div>
             <div class="pa-eyebrow">ĐỀ NGHỊ MUA HÀNG</div>
             <h1>Tạo từ yêu cầu bổ sung</h1>
@@ -48,7 +48,7 @@
 
     @if (!ViewData.ModelState.IsValid)
     {
-        <div asp-validation-summary="All" class="pa-alert" role="alert"></div>
+        <div asp-validation-summary="All" class="pa-alert cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div>
     }
 
     <form id="purchaseAdviceForm" method="post">
@@ -69,7 +69,7 @@
 
         @if (sources.Count == 0)
         {
-            <section class="pa-band pa-create-empty" aria-label="Không có nguồn đề nghị mua">
+            <section class="pa-band pa-create-empty cc-warehouse-empty" aria-label="Không có nguồn đề nghị mua" role="status">
                 <i class="fas fa-clipboard-check" aria-hidden="true"></i>
                 <h2>Chưa có yêu cầu nào sẵn sàng để lập đề nghị mua</h2>
                 <p>Hãy mở yêu cầu bổ sung, tiếp nhận xử lý và phân bổ một phần nhu cầu sang nguồn “Mua ngoài”.</p>
@@ -81,7 +81,7 @@
         }
         else
         {
-            <section class="pa-table-wrap" aria-label="Yêu cầu đã chọn mua ngoài">
+            <section class="pa-table-wrap cc-warehouse-table-shell" aria-label="Yêu cầu đã chọn mua ngoài">
                 <table class="pa-table pa-create-source-table">
                     <thead>
                         <tr>

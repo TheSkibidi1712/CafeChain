@@ -17,8 +17,8 @@
 }
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
-<main class="ops-shell">
-    <header class="ops-header">
+<main class="ops-shell cc-warehouse-page">
+    <header class="ops-header cc-warehouse-header">
         <div>
             <div class="ops-eyebrow">Mua hàng / Bằng chứng nhận hàng</div>
             <h1 class="ops-title">Chất lượng nhà cung cấp</h1>
@@ -29,7 +29,7 @@
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
 
-    <form method="get" class="ops-panel" aria-label="Bộ lọc chất lượng nhà cung cấp">
+    <form method="get" class="ops-panel cc-warehouse-filter" aria-label="Bộ lọc chất lượng nhà cung cấp">
         <div class="ops-panel-header">
             <div><h2 class="ops-panel-title">Phạm vi đánh giá</h2><div class="ops-secondary">Chọn chi nhánh, nhà cung cấp và khoảng dữ liệu cần đối chiếu.</div></div>
         </div>
@@ -85,7 +85,7 @@
         <div class="ops-panel-body p-0">
         @if (Model.Issues.Count == 0)
         {
-            <div class="ops-empty" aria-labelledby="supplierIssueEmptyTitle">
+            <div class="ops-empty cc-warehouse-empty" aria-labelledby="supplierIssueEmptyTitle" role="status">
                 <span class="ops-empty-icon"><i class="fa-regular fa-circle-check" aria-hidden="true"></i></span>
                 <h3 id="supplierIssueEmptyTitle" class="ops-empty-title">Không có sự cố trong khoảng đã chọn</h3>
                 <p class="ops-empty-copy">Các sự cố được ghi nhận từ phiếu nhận hàng sẽ xuất hiện tại đây để theo dõi và xử lý.</p>
@@ -93,7 +93,7 @@
         }
         else
         {
-            <div class="ops-table-scroll"><table class="ops-table ops-table-min-1100 ops-table-wide"><thead><tr><th>Sự cố</th><th>Nhà cung cấp</th><th>Chứng từ</th><th>Mặt hàng</th><th class="number">Ảnh hưởng</th><th>Trạng thái / xử lý</th></tr></thead><tbody>
+            <div class="ops-table-scroll cc-warehouse-table-shell"><table class="ops-table ops-table-min-1100 ops-table-wide"><thead><tr><th>Sự cố</th><th>Nhà cung cấp</th><th>Chứng từ</th><th>Mặt hàng</th><th class="number">Ảnh hưởng</th><th>Trạng thái / xử lý</th></tr></thead><tbody>
             @foreach (var issue in Model.Issues)
             {
                 var reasonId = $"issueReason{issue.SupplierReceiptIssueId}";

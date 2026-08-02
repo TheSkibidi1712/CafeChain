@@ -18,12 +18,12 @@
     <link rel="stylesheet" href="~/css/Admin/Ingredient/ingredient.css" asp-append-version="true" />
 }
 
-<div class="admin-wo-page cc-page">
+<div class="admin-wo-page cc-page cc-warehouse-page">
     <form id="ingredientAntiForgeryForm" class="d-none">@Html.AntiForgeryToken()</form>
 
     
-    <div class="page-header">
-        <div class="d-flex align-items-center gap-3">
+    <div class="page-header cc-warehouse-header">
+        <div class="d-flex align-items-center gap-3 cc-warehouse-header-main">
             <div class="ingredient-page-icon">
                 <i class="fas fa-flask" aria-hidden="true"></i>
             </div>
@@ -35,19 +35,19 @@
         @if (canCreate)
         {
             <button type="button" class="btn btn-primary d-flex align-items-center gap-2" id="btnCreate">
-                <i class="fas fa-plus"></i> Thêm nguyên liệu
+                <i class="fas fa-plus" aria-hidden="true"></i> Thêm nguyên liệu
             </button>
         }
     </div>
 
     
-    <div class="card admin-wo-card">
+    <div class="card admin-wo-card cc-warehouse-panel">
         <div class="card-body p-4">
 
             
             <div class="row g-2 mb-4 align-items-end">
                 <div class="col-md-5">
-                    <label class="form-label mb-1">Tìm kiếm</label>
+                    <label class="form-label mb-1" for="searchBox">Tìm kiếm</label>
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0 text-muted">
                             <i class="fas fa-search ingredient-small-icon" aria-hidden="true"></i>
@@ -59,7 +59,7 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label mb-1">Trạng thái</label>
+                    <label class="form-label mb-1" for="statusFilter">Trạng thái</label>
                     <select id="statusFilter" class="form-select">
                         <option value="">Tất cả trạng thái</option>
                         <option value="true"  selected="@(ViewBag.Status?.ToString() == "True")">Hoạt động</option>
@@ -67,13 +67,13 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <button class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2" id="btnFilter">
-                        <i class="fas fa-filter"></i> Lọc
+                    <button type="button" class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2" id="btnFilter">
+                        <i class="fas fa-filter" aria-hidden="true"></i> Lọc
                     </button>
                 </div>
                 <div class="col-md-2">
-                    <button class="btn btn-outline-secondary w-100" id="btnReset" title="Xóa bộ lọc">
-                        <i class="fas fa-undo me-1"></i> Đặt lại
+                    <button type="button" class="btn btn-outline-secondary w-100" id="btnReset" title="Xóa bộ lọc">
+                        <i class="fas fa-undo me-1" aria-hidden="true"></i> Đặt lại
                     </button>
                 </div>
             </div>
@@ -91,7 +91,7 @@
             </div>
 
             
-            <div class="table-responsive">
+            <div class="table-responsive cc-warehouse-table-shell">
                 <table class="table table-custom">
                     <thead>
                         <tr>
@@ -139,16 +139,18 @@
                                     {
                                     <button class="action-btn edit-btn me-1"
                                             data-id="@item.IngredientId"
-                                            title="Chỉnh sửa">
-                                        <i class="fas fa-pen"></i>
+                                            title="Chỉnh sửa"
+                                            aria-label="Chỉnh sửa @item.Name">
+                                        <i class="fas fa-pen" aria-hidden="true"></i>
                                     </button>
                                     }
                                     @if (canToggle)
                                     {
                                     <button class="action-btn @(item.Active ? "danger" : "success") toggle-btn"
                                             data-id="@item.IngredientId"
-                                            title="@(item.Active ? "Tắt hoạt động" : "Bật hoạt động")">
-                                        <i class="fas fa-power-off"></i>
+                                            title="@(item.Active ? "Tắt hoạt động" : "Bật hoạt động")"
+                                            aria-label="@(item.Active ? "Tắt hoạt động" : "Bật hoạt động") @item.Name">
+                                        <i class="fas fa-power-off" aria-hidden="true"></i>
                                     </button>
                                     }
                                 </td>
@@ -157,7 +159,7 @@
                         @if (!Model.Any())
                         {
                             <tr>
-                                <td colspan="5" class="admin-wo-empty py-5">
+                                <td colspan="5" class="admin-wo-empty py-5 cc-warehouse-empty" role="status">
                                     <div class="cc-empty-state">
                                         <i class="fas fa-box-open ingredient-empty-icon" aria-hidden="true"></i>
                                         <h2>Chưa có nguyên liệu</h2>
@@ -177,18 +179,20 @@
                     <div class="pagination gap-1">
                         @if (ViewBag.Page > 1)
                         {
-                            <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page - 1)" title="Trang trước">
+                            <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page - 1)" title="Trang trước" aria-label="Trang trước">
                                 <i class="fas fa-chevron-left ingredient-small-icon" aria-hidden="true"></i>
                             </a>
                         }
                         @for (int i = 1; i <= ViewBag.TotalPages; i++)
                         {
                             <a class="page-btn @(i == ViewBag.Page ? "active" : "")"
-                               href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@i">@i</a>
+                               href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@i"
+                               aria-current="@(i == ViewBag.Page ? "page" : null)"
+                               aria-label="Trang @i">@i</a>
                         }
                         @if (ViewBag.Page < ViewBag.TotalPages)
                         {
-                            <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page + 1)" title="Trang sau">
+                            <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page + 1)" title="Trang sau" aria-label="Trang sau">
                                 <i class="fas fa-chevron-right ingredient-small-icon" aria-hidden="true"></i>
                             </a>
                         }
@@ -210,7 +214,9 @@
                 </div>
                 <h5 id="modalTitle">Nguyên liệu</h5>
             </div>
-            <span class="close-btn" id="btnClose"><i class="fas fa-times"></i></span>
+            <button type="button" class="close-btn" id="btnClose" aria-label="Đóng hộp thoại nguyên liệu">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
         </div>
 
         <div class="modal-body admin-wo-page">

@@ -146,10 +146,10 @@ public sealed class OperationalIceUiIssue249Tests : IntegrationTestBase
     {
         var details = Read("CafeChain", "Areas", "Admin", "Views", "AdminOperationalIce", "Details.cshtml");
 
-        Assert.Contains("isOpen && Model.CanManage", details);
-        Assert.Contains("isPendingApproval && Model.CanApprove", details);
-        Assert.Contains("needsReconciliation && Model.CanApprove", details);
-        Assert.Contains("Model.CanApprove", details);
+        Assert.Contains("isOpen && Model.CanSubmitClose", details);
+        Assert.Contains("isPendingApproval && Model.CanApproveVariance", details);
+        Assert.Contains("needsReconciliation && Model.CanApproveVariance", details);
+        Assert.Contains("Model.CanApproveVariance", details);
         Assert.Contains("asp-action=\"ApproveVariance\"", details);
         Assert.Contains("asp-action=\"ReconcileVariance\"", details);
         Assert.Contains("asp-action=\"CancelAllocation\"", details);

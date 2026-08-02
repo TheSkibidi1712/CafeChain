@@ -17,8 +17,10 @@ public sealed class OperationalIceIndexVM
     public OperationalIceInventoryVM? Inventory { get; init; }
     public bool HasValidPolicy { get; init; }
     public string PolicyStatusMessage { get; init; } = string.Empty;
-    public bool CanManage { get; init; }
-    public bool CanApprove { get; init; }
+    public bool CanCreateShift { get; init; }
+    public bool CanOpenShift { get; init; }
+    public bool CanCancelScheduledShift { get; init; }
+    public bool CanViewReport { get; init; }
     public bool CanConfigurePolicy { get; init; }
 }
 
@@ -128,8 +130,13 @@ public sealed class OperationalIceDetailVM
     public IReadOnlyList<OperationalIceOptionVM> AvailableWorkShifts { get; init; } = [];
     public IReadOnlyList<OperationalIceOptionVM> CarryTargets { get; init; } = [];
     public IReadOnlyList<OperationalIceOptionVM> StaffOptions { get; init; } = [];
-    public bool CanManage { get; init; }
-    public bool CanApprove { get; init; }
+    public bool CanLinkWorkShift { get; init; }
+    public bool CanRequestSupplement { get; init; }
+    public bool CanApproveSupplement { get; init; }
+    public bool CanHandoff { get; init; }
+    public bool CanSubmitClose { get; init; }
+    public bool CanApproveVariance { get; init; }
+    public bool CanViewReport { get; init; }
 }
 
 public sealed class OperationalIceWorkShiftVM

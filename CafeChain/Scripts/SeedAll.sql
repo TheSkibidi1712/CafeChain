@@ -6220,9 +6220,9 @@ BEGIN TRY
  (103,21,N'Shift.Cancel',N'Hủy lịch làm việc',N'Cancel',N'Hủy lịch làm việc và giữ lịch sử',1,'2026-01-01'),
 
  (147,22, N'OperationalIce.View', N'Xem quản lý đá vận hành', N'View', N'Xem ca vận hành, phân bổ và đối soát đá', 1,'2026-07-29'),
- (148,22, N'OperationalIce.Manage', N'Vận hành phân bổ đá', N'Manage', N'Tạo ca, mở phân bổ, cấp bổ sung và bàn giao đá', 1,'2026-07-29'),
- (149,22, N'OperationalIce.Approve', N'Duyệt đối soát đá', N'Approve', N'Duyệt cấp bổ sung và chênh lệch đá cuối ca', 1,'2026-07-29'),
- (150,22, N'OperationalIce.Policy', N'Cấu hình chính sách đá', N'Policy', N'Cấu hình định mức và ngưỡng đối soát đá theo cửa hàng', 1,'2026-07-29'),
+ (148,22, N'OperationalIce.Manage', N'Vận hành phân bổ đá', N'Manage', N'Tạo ca, mở phân bổ, cấp bổ sung và bàn giao đá', 0,'2026-07-29'),
+ (149,22, N'OperationalIce.Approve', N'Duyệt đối soát đá', N'Approve', N'Duyệt cấp bổ sung và chênh lệch đá cuối ca', 0,'2026-07-29'),
+ (150,22, N'OperationalIce.Policy', N'Cấu hình chính sách đá', N'Policy', N'Cấu hình định mức và ngưỡng đối soát đá theo cửa hàng', 0,'2026-07-29'),
 
  (108,23,N'Store.View',N'Xem cửa hàng',N'View',N'Xem cửa hàng',1,'2026-01-01'),
  (109,23,N'Store.Create',N'Tạo cửa hàng',N'Create',N'Tạo cửa hàng',1,'2026-01-01'),
@@ -6387,9 +6387,6 @@ BEGIN TRY
  (1,143), -- PurchaseOrder.Export
  (1,146), -- Receipt.ViewCost
  (1,147),
- (1,148),
- (1,149),
- (1,150),
  (2,28),
  (2,32),
  (2,36),
@@ -6476,9 +6473,6 @@ BEGIN TRY
  (3,144), -- Receipt.UpdateDraft
  (3,145), -- Receipt.RecordSupplierIssue
  (3,147),
- (3,148),
- (3,149),
- (3,150),
  (4,147),
  (5,28),
  (5,29),
@@ -6561,9 +6555,6 @@ BEGIN TRY
  (5,143), -- PurchaseOrder.Export
  (5,146), -- Receipt.ViewCost
  (5,147),
- (5,148),
- (5,149),
- (5,150),
  (6,28),
  (6,29),
  (6,30),
@@ -6663,11 +6654,7 @@ BEGIN TRY
  (6,129),
  (6,130),
  (6,147),
- (6,148),
- (6,149),
- (6,150),
- (8,147),
- (8,148);
+ (8,147);
 
 
  IF EXISTS(SELECT 1 FROM @AdminRolePermissionSeed x
@@ -6762,6 +6749,17 @@ BEGIN TRY
  INSERT #NewPermissionCatalog VALUES
  (N'ReorderSuggestion.View',N'REORDER_SUGGESTION',N'Xem gợi ý nhập hàng',N'View',N'Xem danh sách gợi ý nhập hàng trong phạm vi cửa hàng được phép truy cập'),
  (N'Restock.Create',N'RESTOCK',N'Tạo yêu cầu nhập hàng',N'Create',N'Tạo mới, tạo nháp hoặc bổ sung yêu cầu nhập hàng từ gợi ý nhập hàng trong phạm vi cửa hàng được phép thao tác'),
+ (N'OperationalIce.ConfigurePolicy',N'OPERATIONAL_ICE',N'Cấu hình chính sách đá',N'ConfigurePolicy',N'Cấu hình định mức và ngưỡng đối soát đá trong phạm vi cửa hàng'),
+ (N'OperationalIce.CreateShift',N'OPERATIONAL_ICE',N'Tạo ca vận hành đá',N'CreateShift',N'Tạo và cập nhật kế hoạch ca vận hành đá trong phạm vi cửa hàng'),
+ (N'OperationalIce.OpenShift',N'OPERATIONAL_ICE',N'Mở ca vận hành đá',N'OpenShift',N'Xác nhận cấp đầu ca và mở phân bổ đá'),
+ (N'OperationalIce.LinkWorkShift',N'OPERATIONAL_ICE',N'Liên kết WorkShift POS',N'LinkWorkShift',N'Liên kết WorkShift POS hợp lệ vào ca vận hành đá'),
+ (N'OperationalIce.RequestSupplement',N'OPERATIONAL_ICE',N'Yêu cầu cấp bổ sung đá',N'RequestSupplement',N'Gửi yêu cầu cấp bổ sung cho ca vận hành đá được phân công'),
+ (N'OperationalIce.ApproveSupplement',N'OPERATIONAL_ICE',N'Duyệt cấp bổ sung đá',N'ApproveSupplement',N'Duyệt hoặc từ chối yêu cầu cấp bổ sung đá'),
+ (N'OperationalIce.Handoff',N'OPERATIONAL_ICE',N'Bàn giao đá giữa ca',N'Handoff',N'Xác nhận bàn giao đá giữa các ca cùng ngày'),
+ (N'OperationalIce.SubmitClose',N'OPERATIONAL_ICE',N'Gửi chốt ca đá',N'SubmitClose',N'Gửi số liệu chốt ca vận hành đá'),
+ (N'OperationalIce.ApproveVariance',N'OPERATIONAL_ICE',N'Duyệt chênh lệch đá',N'ApproveVariance',N'Duyệt hao hụt hoặc hoàn tất đối soát chênh lệch đá'),
+ (N'OperationalIce.CancelScheduledShift',N'OPERATIONAL_ICE',N'Hủy ca đá chưa mở',N'CancelScheduledShift',N'Hủy ca vận hành đá còn ở trạng thái kế hoạch'),
+ (N'OperationalIce.ViewReport',N'OPERATIONAL_ICE',N'Xem báo cáo ca đá',N'ViewReport',N'Xem và tải báo cáo vận hành đá trong phạm vi được cấp'),
  (N'StoreMenu.OverridePrice',N'DRINK',N'Ghi đè giá menu cửa hàng',N'OverridePrice',N'Ghi đè giá bán tại menu cửa hàng'),
  (N'Profitability.UpdatePrice',N'DRINK',N'Cập nhật giá bán',N'UpdatePrice',N'Cập nhật giá bán toàn hệ thống'),
  (N'Profitability.UpdateToppingPolicy',N'DRINK',N'Cập nhật chính sách topping',N'UpdateToppingPolicy',N'Cập nhật chính sách topping theo món và size'),
@@ -6810,7 +6808,9 @@ BEGIN TRY
 
  UPDATE dbo.Permissions
  SET Active=0
- WHERE Code IN(N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete');
+ WHERE Code IN(
+  N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete',
+  N'OperationalIce.Manage',N'OperationalIce.Approve',N'OperationalIce.Policy');
 
  CREATE TABLE #PermissionMatrix
  (
@@ -6869,7 +6869,7 @@ BEGIN TRY
 (N'Notification.View',1,1,1,1,1,0,0,1),
 (N'StockAlert.Create',0,0,1,1,0,0,0,1),
 (N'StockAlert.CreateRestockRequest',0,0,1,0,0,0,0,0),
-(N'Restock.View',1,1,1,0,1,0,0,0),
+(N'Restock.View',1,1,1,0,1,0,0,1),
 (N'Restock.Create',1,0,1,0,1,0,0,0),
 (N'Restock.Submit',0,0,1,0,1,0,0,0),
 (N'Restock.Approve',1,0,0,0,1,0,0,0),
@@ -6961,9 +6961,20 @@ BEGIN TRY
 (N'ProductionOrder.Create',1,0,1,0,1,0,0,1),
 (N'ProductionOrder.Confirm',1,0,1,0,1,0,0,1),
 (N'OperationalIce.View',1,1,1,0,1,0,0,1),
-(N'OperationalIce.Manage',0,0,1,0,0,0,0,1),
-(N'OperationalIce.Approve',1,0,1,0,0,0,0,0),
-(N'OperationalIce.Policy',1,0,1,0,0,0,0,0),
+(N'OperationalIce.Manage',0,0,0,0,0,0,0,0),
+(N'OperationalIce.Approve',0,0,0,0,0,0,0,0),
+(N'OperationalIce.Policy',0,0,0,0,0,0,0,0),
+(N'OperationalIce.ConfigurePolicy',1,0,1,0,0,0,0,0),
+(N'OperationalIce.CreateShift',1,0,1,0,0,0,0,0),
+(N'OperationalIce.OpenShift',1,0,1,0,0,0,0,0),
+(N'OperationalIce.LinkWorkShift',1,0,1,0,0,0,0,0),
+(N'OperationalIce.RequestSupplement',1,0,1,0,0,0,0,1),
+(N'OperationalIce.ApproveSupplement',1,0,1,0,0,0,0,0),
+(N'OperationalIce.Handoff',1,0,1,0,0,0,0,1),
+(N'OperationalIce.SubmitClose',1,0,1,0,0,0,0,1),
+(N'OperationalIce.ApproveVariance',1,0,1,0,0,0,0,0),
+(N'OperationalIce.CancelScheduledShift',1,0,1,0,0,0,0,0),
+(N'OperationalIce.ViewReport',1,1,1,0,1,0,0,1),
 (N'StoreMenu.OverridePrice',1,0,0,0,0,0,0,0),
 (N'Profitability.UpdatePrice',1,0,0,0,0,0,0,0),
 (N'Profitability.UpdateToppingPolicy',1,0,0,0,0,0,0,0),
@@ -6990,7 +7001,8 @@ BEGIN TRY
  UPDATE #PermissionMatrix
  SET QTHT=CASE
      WHEN PermissionCode IN
-          (N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete')
+          (N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete',
+           N'OperationalIce.Manage',N'OperationalIce.Approve',N'OperationalIce.Policy')
      THEN 0 ELSE 1 END;
 
  IF EXISTS
@@ -7110,8 +7122,8 @@ IF
  SELECT COUNT(*)
  FROM #ExpectedRolePermissions e
  WHERE e.RoleId=(SELECT RoleId FROM #RoleMap WHERE RoleKey=N'QTHT')
-)<>161
- THROW 53348,N'RBAC_CAFECHAIN29_V2: SystemAdmin phải có đúng 161 permission active.',1;
+)<>169
+ THROW 53348,N'RBAC_CAFECHAIN29_V2: SystemAdmin phải có đúng 169 permission active.',1;
 
 COMMIT;
 
@@ -7381,9 +7393,10 @@ BEGIN TRY
      StockAlertId,StoreId,IngredientId,RecipeId,PreparedItemId,RequestedQuantity,SuggestedQuantity,
      SuggestionAnalysisWindowDays,SuggestionAvailableSnapshot,SuggestionMinLevelSnapshot,
      SuggestionAverageDailyUsageSnapshot,SuggestionLeadTimeDaysSnapshot,SuggestionIncomingQuantitySnapshot,
-     SuggestionReason,Status,Priority,CreatedByStaffId,CreatedAt,UpdatedAt,Note,
+    ReferenceCode,SuggestionReason,Status,Priority,CreatedByStaffId,CreatedAt,UpdatedAt,Note,
      HandledByStaffId,HandledAt,AcceptedByStaffId,AcceptedAtUtc,ProcessingNote,ClosedRemainingQuantity)
-   VALUES(NULL,@DashboardStoreId,@CoffeeIngredientId,NULL,NULL,10,12,30,2,5,1,1,0,
+  VALUES(NULL,@DashboardStoreId,@CoffeeIngredientId,NULL,NULL,10,12,30,2,5,1,1,0,
+    N'RR-DEMO-DASH-V13-001',
      N'DEMO_DASHBOARD_V13 low stock',N'PARTIALLY_RECEIVED',N'HIGH',@DashboardActorStaffId,
      '2026-01-15T08:00:00','2026-01-16T10:00:00',N'DEMO_DASHBOARD_V13_RESTOCK',
      @DashboardActorStaffId,'2026-01-15T08:10:00',@DashboardActorStaffId,'2026-01-15T08:10:00',
@@ -10838,10 +10851,11 @@ BEGIN TRY
         StockAlertId,StoreId,IngredientId,RecipeId,PreparedItemId,RequestedQuantity,SuggestedQuantity,
         SuggestionAnalysisWindowDays,SuggestionAvailableSnapshot,SuggestionMinLevelSnapshot,
         SuggestionAverageDailyUsageSnapshot,SuggestionLeadTimeDaysSnapshot,SuggestionIncomingQuantitySnapshot,
-        SuggestionReason,Status,Priority,CreatedByStaffId,CreatedAt,UpdatedAt,Note,
+       ReferenceCode,SuggestionReason,Status,Priority,CreatedByStaffId,CreatedAt,UpdatedAt,Note,
         HandledByStaffId,HandledAt,AcceptedByStaffId,AcceptedAtUtc,ProcessingNote,ClosedRemainingQuantity
     )
     SELECT NULL,x.StoreId,@AiCoffeeIngredientId,NULL,NULL,10,12,30,2,5,1,2,0,
+           CONCAT(N'RR-DEMO-AI-',x.StoreId),
            N'AI rolling low-stock fixture',N'OPEN',N'HIGH',x.StaffId,x.CreatedAt,x.CreatedAt,x.Note,
            NULL,NULL,NULL,NULL,NULL,0
     FROM @AiRestock x

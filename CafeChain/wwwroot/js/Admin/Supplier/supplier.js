@@ -15,7 +15,8 @@
         units: [],
         pricingOffer: null,
         duplicateWarningId: null,
-        duplicateMatches: []
+        duplicateMatches: [],
+        loaded: { reference: false, offers: false, stores: false, audit: false }
     };
 
     const $ = (selector, root = document) => root.querySelector(selector);
@@ -23,6 +24,32 @@
     const detailPanel = $('#supplierDetail');
     const detailContent = $('#supplierDetailContent');
     const detailPlaceholder = $('#supplierDetailPlaceholder');
+    let detailReturnFocus = null;
+    let modalReturnFocus = null;
+    let confirmReturnFocus = null;
+
+    function syncPageScrollLock() {
+        const overlayOpen = detailPanel?.classList.contains('is-open')
+            || $('#createSupplierModal')?.classList.contains('is-open')
+            || $('#supplierConfirmModal')?.classList.contains('is-open');
+        document.body.style.overflow = overlayOpen ? 'hidden' : '';
+    }
+
+    function trapFocus(event, container) {
+        if (event.key !== 'Tab' || !container) return;
+        const focusable = $$('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])', container)
+            .filter(item => item.offsetParent !== null);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
 
     const escapeHtml = (value) => String(value ?? '')
         .replaceAll('&', '&amp;')
@@ -106,50 +133,58 @@
         return normalized;
     }
 
-    function applyFilters() {
-        const query = ($('#supplierSearch')?.value || '').trim().toLocaleLowerCase('vi');
-        const status = $('#supplierStatusFilter')?.value || 'all';
-        let count = 0;
-        $$('#supplierRows tr').forEach(row => {
-            const matchesText = !query || (row.dataset.search || '').includes(query);
-            const matchesStatus = status === 'all' || row.dataset.status === status;
-            const visible = matchesText && matchesStatus;
-            row.classList.toggle('is-hidden', !visible);
-            if (visible) count += 1;
-        });
-        $('#supplierResultCount').textContent = `${count} kết quả`;
-        $('#supplierEmptyState').classList.toggle('is-hidden', count !== 0);
-    }
-
-    $('#supplierSearch')?.addEventListener('input', applyFilters);
-    $('#supplierStatusFilter')?.addEventListener('change', applyFilters);
-
     function selectTab(tabName) {
         $$('.supplier-tabs button').forEach(button => button.classList.toggle('is-active', button.dataset.tab === tabName));
         $$('.supplier-tab').forEach(panel => panel.classList.toggle('is-active', panel.dataset.tabPanel === tabName));
     }
-    $$('.supplier-tabs button').forEach(button => button.addEventListener('click', () => selectTab(button.dataset.tab)));
+
+    async function ensureTabData(tabName) {
+        try {
+            if (tabName === 'offers' && !state.loaded.offers) {
+                $('#offerList').innerHTML = emptyStack('Đang tải gói mua...');
+                await Promise.all([loadOffers(), loadReferenceData()]);
+            } else if (tabName === 'stores' && !state.loaded.stores) {
+                $('#storeList').innerHTML = emptyStack('Đang tải phạm vi cửa hàng...');
+                await loadStores();
+            } else if (tabName === 'audit' && !state.loaded.audit) {
+                $('#supplierAuditEvents').innerHTML = emptyStack('Đang tải dấu vết cập nhật...');
+                await loadAuditHistory();
+            }
+        } catch (error) {
+            toast(error.message, 'error');
+        }
+    }
+
+    $$('.supplier-tabs button').forEach(button => button.addEventListener('click', async () => {
+        selectTab(button.dataset.tab);
+        await ensureTabData(button.dataset.tab);
+    }));
 
     function openDetailShell() {
+        if (!detailPanel.classList.contains('is-open')) detailReturnFocus = document.activeElement;
         detailPanel.classList.add('is-open');
         detailPanel.setAttribute('aria-hidden', 'false');
         detailPlaceholder.classList.add('is-hidden');
         detailContent.classList.remove('is-hidden');
+        syncPageScrollLock();
     }
 
     function closeDetail() {
         detailPanel.classList.remove('is-open');
         detailPanel.setAttribute('aria-hidden', 'true');
         $$('#supplierRows tr').forEach(row => row.classList.remove('is-selected'));
+        syncPageScrollLock();
         if (window.innerWidth < 1180) {
             detailContent.classList.add('is-hidden');
             detailPlaceholder.classList.remove('is-hidden');
         }
+        detailReturnFocus?.focus();
+        detailReturnFocus = null;
     }
     $('#closeSupplierDetail')?.addEventListener('click', closeDetail);
 
     async function loadReferenceData() {
-        if (!canMutate || (state.ingredients.length && state.units.length)) return;
+        if (!canMutate || state.loaded.reference) return;
         const [ingredientPayload, unitPayload] = await Promise.all([
             api('/GetIngredientOptions'),
             api('/GetContentUnitOptions')
@@ -164,6 +199,7 @@
             'unitId',
             item => `${item.unitCode} · ${item.name}`);
         fillSelect($('#newPackageUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`);
+        state.loaded.reference = true;
     }
 
     function fillSelect(select, items, valueKey, labelFactory, placeholder = 'Chọn dữ liệu') {
@@ -181,6 +217,10 @@
 
     async function openSupplier(id) {
         state.supplierId = Number(id);
+        state.offers = [];
+        state.stores = [];
+        state.pricingOffer = null;
+        state.loaded = { reference: state.loaded.reference, offers: false, stores: false, audit: false };
         openDetailShell();
         selectTab('overview');
         setBusy(detailContent, true);
@@ -190,7 +230,6 @@
             const detailPayload = await api(`/GetById?id=${state.supplierId}`);
             state.detail = detailPayload.data;
             renderDetail();
-            await Promise.all([loadOffers(), loadStores(), loadReferenceData()]);
         } catch (error) {
             toast(error.message, 'error');
             closeDetail();
@@ -214,6 +253,9 @@
         $('#detailCode').textContent = d.code;
         $('#detailName').textContent = d.name;
         $('#detailSummary').textContent = d.address || 'Chưa cập nhật địa chỉ';
+        const detailStatus = $('#detailStatus');
+        detailStatus.textContent = d.active ? 'Đang hoạt động' : 'Ngừng hoạt động';
+        detailStatus.className = `supplier-status ${d.active ? 'is-active' : 'is-inactive'}`;
         $('#overviewSupplierId').value = d.supplierId;
         $('#overviewRowVersion').value = d.rowVersion || '';
         $('#overviewName').value = d.name || '';
@@ -233,6 +275,10 @@
         const root = $('#supplierAuditEvents');
         const rows = state.detail?.audits || [];
         if (!root) return;
+        if (!state.loaded.audit) {
+            root.innerHTML = emptyStack('Mở tab Theo dõi để tải dấu vết cập nhật.');
+            return;
+        }
         if (!rows.length) {
             root.innerHTML = emptyStack('Chưa có thay đổi mã số thuế hoặc xác nhận trùng được ghi nhận.');
             return;
@@ -248,6 +294,15 @@
                 <div><strong>${escapeHtml(labels[item.action] || item.action)}</strong><small>Nhân viên #${escapeHtml(item.actorStaffId)}</small></div>
                 <span>${escapeHtml(item.newData || '')}</span>
             </div>`).join('');
+    }
+
+    async function loadAuditHistory() {
+        const supplierId = state.supplierId;
+        const payload = await api(`/GetAuditHistory?supplierId=${supplierId}`);
+        if (state.supplierId !== supplierId) return;
+        state.detail.audits = payload.data || [];
+        state.loaded.audit = true;
+        renderSupplierAudits();
     }
 
     function applyReadOnlyMode() {
@@ -337,7 +392,9 @@
     });
 
     async function deletePhone(id) {
-        if (!window.confirm('Xóa số điện thoại này?')) return;
+        if (!await requestConfirmation(
+            'Xóa số điện thoại?',
+            'Số điện thoại này sẽ bị xóa khỏi hồ sơ nhà cung cấp.')) return;
         try { await api(`/DeletePhone?supplierPhoneId=${id}`, { method: 'POST' }); await refreshDetailData(); toast('Đã xóa số điện thoại.'); }
         catch (error) { toast(error.message, 'error'); }
     }
@@ -390,14 +447,19 @@
         catch (error) { toast(error.message, 'error'); }
     }
     async function deleteContact(id) {
-        if (!window.confirm('Xóa người liên hệ này?')) return;
+        if (!await requestConfirmation(
+            'Xóa người liên hệ?',
+            'Người liên hệ này sẽ bị xóa khỏi hồ sơ nhà cung cấp.')) return;
         try { await api(`/DeleteContact?supplierContactId=${id}`, { method: 'POST' }); await refreshDetailData(); toast('Đã xóa người liên hệ.'); }
         catch (error) { toast(error.message, 'error'); }
     }
 
     async function loadOffers() {
-        const payload = await api(`/GetIngredientOffers?supplierId=${state.supplierId}`);
+        const supplierId = state.supplierId;
+        const payload = await api(`/GetIngredientOffers?supplierId=${supplierId}`);
+        if (state.supplierId !== supplierId) return;
         state.offers = payload.data || [];
+        state.loaded.offers = true;
         renderOffers();
     }
 
@@ -576,11 +638,13 @@
     });
 
     async function loadStores() {
-        const [assignmentPayload, optionPayload] = await Promise.all([
-            api(`/GetSupplierStores?supplierId=${state.supplierId}`),
-            api('/GetStoreOptions')
-        ]);
+        const supplierId = state.supplierId;
+        const assignmentRequest = api(`/GetSupplierStores?supplierId=${supplierId}`);
+        const optionRequest = canMutate ? api('/GetStoreOptions') : Promise.resolve({ data: [] });
+        const [assignmentPayload, optionPayload] = await Promise.all([assignmentRequest, optionRequest]);
+        if (state.supplierId !== supplierId) return;
         state.stores = assignmentPayload.data || [];
+        state.loaded.stores = true;
         renderStores();
         if (canMutate) fillSelect($('#assignmentStore'), optionPayload.data || [], 'storeId', item => item.name, 'Chọn cửa hàng');
     }
@@ -647,6 +711,38 @@
 
     const modal = $('#createSupplierModal');
     const duplicatePanel = $('#supplierDuplicatePanel');
+    const confirmModal = $('#supplierConfirmModal');
+    let confirmResolver = null;
+
+    function closeConfirmation(confirmed) {
+        if (!confirmModal?.classList.contains('is-open')) return;
+        confirmModal.classList.remove('is-open');
+        confirmModal.setAttribute('aria-hidden', 'true');
+        syncPageScrollLock();
+        const resolver = confirmResolver;
+        confirmResolver = null;
+        resolver?.(confirmed);
+        confirmReturnFocus?.focus();
+        confirmReturnFocus = null;
+    }
+
+    function requestConfirmation(title, message) {
+        if (!confirmModal) return Promise.resolve(false);
+        confirmReturnFocus = document.activeElement;
+        $('#supplierConfirmTitle').textContent = title;
+        $('#supplierConfirmMessage').textContent = message;
+        confirmModal.classList.add('is-open');
+        confirmModal.setAttribute('aria-hidden', 'false');
+        syncPageScrollLock();
+        window.setTimeout(() => $('#cancelSupplierConfirm')?.focus(), 30);
+        return new Promise(resolve => { confirmResolver = resolve; });
+    }
+
+    $('#cancelSupplierConfirm')?.addEventListener('click', () => closeConfirmation(false));
+    $('#acceptSupplierConfirm')?.addEventListener('click', () => closeConfirmation(true));
+    confirmModal?.addEventListener('click', event => {
+        if (event.target === confirmModal) closeConfirmation(false);
+    });
 
     function resetDuplicateWarning() {
         state.duplicateWarningId = null;
@@ -693,11 +789,16 @@
 
     function setModalOpen(open) {
         if (!modal) return;
+        if (open) modalReturnFocus = document.activeElement;
         modal.classList.toggle('is-open', open);
         modal.setAttribute('aria-hidden', String(!open));
-        document.body.style.overflow = open ? 'hidden' : '';
+        syncPageScrollLock();
         if (open) window.setTimeout(() => $('#createName')?.focus(), 50);
-        else resetDuplicateWarning();
+        else {
+            resetDuplicateWarning();
+            modalReturnFocus?.focus();
+            modalReturnFocus = null;
+        }
     }
     $('#createSupplierButton')?.addEventListener('click', () => setModalOpen(true));
     $$('[data-close-modal]').forEach(button => button.addEventListener('click', () => setModalOpen(false)));
@@ -789,8 +890,15 @@
     });
 
     document.addEventListener('keydown', event => {
+        if (event.key === 'Tab') {
+            if (confirmModal?.classList.contains('is-open')) trapFocus(event, confirmModal);
+            else if (modal?.classList.contains('is-open')) trapFocus(event, modal);
+            else if (detailPanel?.classList.contains('is-open')) trapFocus(event, detailPanel);
+            return;
+        }
         if (event.key !== 'Escape') return;
-        if (modal?.classList.contains('is-open')) setModalOpen(false);
-        else closeDetail();
+        if (confirmModal?.classList.contains('is-open')) closeConfirmation(false);
+        else if (modal?.classList.contains('is-open')) setModalOpen(false);
+        else if (detailPanel?.classList.contains('is-open')) closeDetail();
     });
 })();

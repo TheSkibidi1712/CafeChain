@@ -58,6 +58,10 @@ namespace CafeChain.Areas.Admin.Controllers
             var actor = _actor.Get(User);
             var result = await _service.GetDetailAsync(id, actor.StaffId, actor.RoleNames);
             if (!result.IsSuccess || result.Data == null) return Forbid();
+            ViewBag.CanApprove = actor.StaffId != result.Data.CreatedByStaffId
+                && await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderApprove);
+            ViewBag.CanSend = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderSend);
+            ViewBag.CanCancel = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCancel);
             ViewBag.CanReceive = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderReceive);
             ViewBag.CanCloseRemaining = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCloseRemaining);
             return View(result.Data);

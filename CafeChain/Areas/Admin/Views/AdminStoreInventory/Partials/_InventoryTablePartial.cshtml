@@ -3,7 +3,7 @@
     var isPreparedItems = Model.ActiveTab == CafeChain.Application.DTOs.Admin.StoreInventories.InventoryCatalogTypes.PreparedItems;
 }
 
-<div class="inventory-table-wrap">
+<div class="inventory-table-wrap cc-warehouse-table-shell">
     <table class="inventory-table @(isPreparedItems ? "prepared-item-table" : "ingredient-table")">
         <thead>
             <tr>
@@ -105,7 +105,7 @@
             {
                 <tr>
                     <td colspan="9" class="empty-data">
-                        <div class="cc-empty-state">
+                        <div class="cc-empty-state cc-warehouse-empty" role="status">
                             <h2>@(isPreparedItems ? "Chưa có bán thành phẩm" : "Không tìm thấy nguyên liệu")</h2>
                             <p>@(isPreparedItems
                                 ? "Bán thành phẩm chỉ xuất hiện sau khi lệnh sản xuất hoàn tất và ghi tăng tồn kho."

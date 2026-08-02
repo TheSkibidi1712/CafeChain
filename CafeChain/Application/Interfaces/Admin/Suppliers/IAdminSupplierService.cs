@@ -9,8 +9,17 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
             string? search,
             bool? status,
             IReadOnlyCollection<int>? storeScope = null);
+        Task<AdminSupplierIndexPageDTO> GetPagedAsync(
+            string? search,
+            bool? status,
+            int page,
+            int pageSize,
+            IReadOnlyCollection<int>? storeScope = null);
         Task<AdminSupplierDetailDTO?> GetByIdAsync(
             int id,
+            IReadOnlyCollection<int>? storeScope = null);
+        Task<List<AdminSupplierAuditDTO>> GetAuditHistoryAsync(
+            int supplierId,
             IReadOnlyCollection<int>? storeScope = null);
 
         // ===== CRUD MAIN =====

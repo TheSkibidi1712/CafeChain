@@ -1,16 +1,17 @@
 /* Operational Ice Management - CafeChain operational minimalism */
 .ice-shell {
-    --ice-bg: #F7F3EE;
-    --ice-surface: #FFFFFF;
-    --ice-primary: #6F4E37;
-    --ice-primary-hover: #5C3F2B;
-    --ice-accent: #C67A45;
-    --ice-text: #1F2937;
-    --ice-muted: #475569;
-    --ice-border: #DED7CF;
-    --ice-success: #2F6F5E;
-    --ice-warning: #99623B;
-    --ice-danger: #991B1B;
+    --ice-bg: var(--cc-app-bg, #F7F3EE);
+    --ice-surface: var(--cc-surface, #FFFFFF);
+    --ice-primary: var(--cc-primary, #6F4E37);
+    --ice-primary-hover: var(--cc-primary-hover, #5C3F2B);
+    --ice-accent: var(--cc-accent, #C67A45);
+    --ice-text: var(--cc-text-primary, #1F2937);
+    --ice-muted: var(--cc-text-secondary, #475569);
+    --ice-border: var(--cc-border, #DED7CF);
+    --ice-border-soft: var(--cc-border-soft, #ECE7E1);
+    --ice-success: var(--cc-success, #2F6F5E);
+    --ice-warning: var(--cc-warning, #99623B);
+    --ice-danger: var(--cc-danger, #991B1B);
     min-width: 0;
     padding: 30px;
     color: var(--ice-text);
@@ -101,6 +102,13 @@
 .ice-btn:hover {
     border-color: var(--ice-primary);
     color: var(--ice-primary);
+}
+
+.ice-btn:focus-visible,
+.ice-icon-btn:focus-visible,
+.ice-back-link:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--ice-accent) 35%, transparent);
+    outline-offset: 2px;
 }
 
 .ice-btn-primary {
@@ -513,7 +521,7 @@
 .ice-table th,
 .ice-table td {
     padding: 12px 10px;
-    border-bottom: 1px solid #ECE7E1;
+    border-bottom: 1px solid var(--ice-border-soft);
     vertical-align: top;
     text-align: left;
 }
@@ -532,6 +540,10 @@
 
 .ice-table tbody tr:last-child td {
     border-bottom: 0;
+}
+
+.ice-table tbody tr:hover {
+    background: var(--cc-surface-accent, #FBF7F2);
 }
 
 .ice-table td strong,
@@ -565,7 +577,11 @@
 
 .ice-mode-switch {
     display: flex;
-    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-radius: 8px;
+    background: var(--cc-surface-accent, #FBF7F2);
 }
 
 .ice-mode-switch legend,
@@ -581,6 +597,22 @@
     gap: 8px;
 }
 
+.ice-mode-switch label {
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid var(--ice-border);
+    border-radius: 7px;
+    background: var(--ice-surface);
+    color: var(--ice-muted);
+    cursor: pointer;
+}
+
+.ice-mode-switch label:has(input:checked) {
+    border-color: var(--ice-primary);
+    color: var(--ice-primary);
+    font-weight: 800;
+}
+
 .ice-link-workshifts {
     display: grid;
     gap: 12px;
@@ -590,7 +622,8 @@
 .ice-schedule-source {
     min-height: 116px;
     border: 1px solid var(--ice-border);
-    background: #fff;
+    border-radius: 8px;
+    background: var(--ice-surface);
 }
 
 .ice-schedule-state {
@@ -654,7 +687,8 @@
     gap: 3px;
     padding: 10px;
     border: 1px solid var(--ice-border);
-    background: #f8f6f3;
+    border-radius: 7px;
+    background: var(--cc-surface-accent, #F8F6F3);
 }
 
 .ice-schedule-summary span {
@@ -970,6 +1004,20 @@
 }
 
 @media (max-width: 1180px) {
+    .ice-filterbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ice-filterbar .ice-btn {
+        width: 100%;
+    }
+
+    .ice-summary-grid:not(.ice-summary-six),
+    .ice-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .ice-summary-six {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -1050,6 +1098,10 @@
     .ice-summary-grid,
     .ice-summary-six,
     .ice-schedule-summary {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ice-filterbar {
         grid-template-columns: minmax(0, 1fr);
     }
 
@@ -1181,14 +1233,14 @@
     place-items: center;
     border: 1px solid var(--ice-border);
     border-radius: 6px;
-    color: var(--ice-coffee);
+    color: var(--ice-primary);
     background: var(--ice-surface);
     text-decoration: none;
 }
 
 .ice-icon-btn:hover {
-    border-color: var(--ice-caramel);
-    color: var(--ice-caramel);
+    border-color: var(--ice-accent);
+    color: var(--ice-accent);
 }
 
 .ice-report-meta,
