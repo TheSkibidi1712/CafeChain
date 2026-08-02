@@ -68,9 +68,9 @@ public sealed class WarehouseOperationalIceIssue277Tests
         Assert.Contains("aria-label=\"Tiến trình ca vận hành đá\"", DetailView);
         Assert.Contains("WorkShift POS", DetailView);
         Assert.Contains("Chưa liên kết WorkShift POS.", DetailView);
-        Assert.Contains("isOpen && Model.CanManage", DetailView);
-        Assert.Contains("isPendingApproval && Model.CanApprove", DetailView);
-        Assert.Contains("needsReconciliation && Model.CanApprove", DetailView);
+        Assert.Contains("isOpen && Model.CanSubmitClose", DetailView);
+        Assert.Contains("isPendingApproval && Model.CanApproveVariance", DetailView);
+        Assert.Contains("needsReconciliation && Model.CanApproveVariance", DetailView);
         Assert.Contains("asp-action=\"CloseAllocation\"", DetailView);
         Assert.Contains("asp-action=\"ApproveVariance\"", DetailView);
         Assert.Contains("asp-action=\"ReconcileVariance\"", DetailView);

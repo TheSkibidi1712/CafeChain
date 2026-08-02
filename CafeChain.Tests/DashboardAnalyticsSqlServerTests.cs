@@ -166,7 +166,7 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.Permissions p WHERE p.Active=1 AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions rp JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE rp.PermissionId=p.PermissionId AND r.Name=N'Quản trị hệ thống');", 0L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Active=1 AND r.Name=N'Quản trị hệ thống';", 161L);
+            "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Active=1 AND r.Name=N'Quản trị hệ thống';", 169L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Code=N'ReorderSuggestion.View' AND r.Name IN(N'Chủ doanh nghiệp',N'Quản lý vùng',N'Quản lý chi nhánh',N'Kế toán/kho');", 4L);
         await AssertScalarAsync(connection,

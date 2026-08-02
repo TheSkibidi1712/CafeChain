@@ -419,6 +419,8 @@ IF DB_ID(N'{Database}') IS NULL
             // Seeded stores already have a 06:00 shift. Pin this fixture to midnight so
             // late-opening assertions do not depend on the wall-clock time of the test run.
             shift.StartTime = TimeSpan.Zero;
+            shift.EndTime = new TimeSpan(23, 59, 0);
+            shift.IsOvernight = false;
             await ctx.SaveChangesAsync();
 
             if (!await ctx.StaffShifts.AnyAsync(ss => ss.StaffId == staffId && ss.WorkDate.Date == DateTime.Today))
