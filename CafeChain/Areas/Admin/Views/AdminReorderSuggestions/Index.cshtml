@@ -32,9 +32,9 @@
     <link rel="stylesheet" href="~/css/Admin/Procurement/reorder-suggestions.css" asp-append-version="true" />
 }
 
-<main class="reorder-page cc-page cc-warehouse-page">
+<main class="reorder-page cc-page">
     <div class="d-none" aria-hidden="true">@Html.AntiForgeryToken()</div>
-    <header class="reorder-header cc-page-header cc-warehouse-header">
+    <header class="reorder-header cc-page-header">
         <div>
             <p class="reorder-eyebrow cc-page-kicker">Kho &amp; Cung ứng / Lập kế hoạch</p>
             <h1 class="cc-page-title">Gợi ý nhập hàng</h1>
@@ -42,7 +42,7 @@
                 Một nguồn tính toán chung cho tồn kho, nhu cầu, pipeline mua hàng và quy cách nhà cung cấp.
             </p>
         </div>
-        <div class="reorder-header-actions cc-warehouse-actions">
+        <div class="reorder-header-actions">
             <button type="button"
                     id="openReorderBulkModal"
                     class="cc-button cc-button-primary"
@@ -55,7 +55,7 @@
                     @actionableItems.Count
                 </span>
             </button>
-            <a asp-controller="AdminRestockRequests" asp-action="Index" class="cc-button">
+            <a asp-controller="AdminRestockRequests" asp-action="Index" class="cc-button cc-button-secondary">
                 <i class="fas fa-list-check" aria-hidden="true"></i> Xem yêu cầu nhập
             </a>
         </div>
@@ -66,7 +66,7 @@
         <div class="ops-notice ops-notice-error" role="alert">@loadError</div>
     }
 
-    <form method="get" class="reorder-filters cc-warehouse-filter">
+    <form method="get" class="reorder-filters">
         <div>
             <label for="storeId">Cửa hàng</label>
             <select id="storeId" name="storeId" class="form-select">
@@ -84,21 +84,21 @@
                 <option value="90" selected="@(Model.AnalysisWindowDays == 90)">90 ngày</option>
             </select>
         </div>
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary reorder-refresh-button">
             <i class="fas fa-rotate" aria-hidden="true"></i> Tính lại
         </button>
     </form>
 
-    <div class="reorder-note cc-warehouse-alert cc-warehouse-alert-warning" role="note">
+    <div class="reorder-note" role="note">
         <i class="fas fa-circle-info" aria-hidden="true"></i>
         Xác nhận sẽ tạo yêu cầu nhập nháp hoặc bổ sung nhu cầu vào yêu cầu đang mở.
         Hệ thống luôn tính lại dữ liệu và từ chối nếu gợi ý đã thay đổi.
     </div>
 
-    <section class="reorder-table-shell cc-warehouse-table-shell" aria-label="Danh sách gợi ý nhập hàng">
+    <section class="reorder-table-shell" aria-label="Danh sách gợi ý nhập hàng">
         @if (!Model.Items.Any())
         {
-            <div class="reorder-empty cc-empty-state cc-warehouse-empty" role="status">
+            <div class="reorder-empty cc-empty-state">
                 <i class="fas fa-box-open" aria-hidden="true"></i>
                 <h2>Chưa có dữ liệu gợi ý</h2>
                 <p>Chọn cửa hàng có tồn kho nguyên liệu để bắt đầu phân tích.</p>
@@ -106,7 +106,13 @@
         }
         else
         {
-            <div class="table-responsive">
+            <div class="reorder-table-scrollbar js-reorder-table-scrollbar"
+                 role="region"
+                 aria-label="Thanh cuộn ngang cho bảng gợi ý nhập hàng"
+                 tabindex="0">
+                <div class="reorder-table-scrollbar-spacer"></div>
+            </div>
+            <div class="table-responsive js-reorder-table-viewport">
                 <table class="table reorder-table align-middle">
                     <thead>
                         <tr>
@@ -123,8 +129,8 @@
                     <tbody>
                     @foreach (var item in Model.Items)
                     {
-                        <tr id="ingredient-@item.IngredientId">
-                            <td>
+                        <tr id="ingredient-@item.IngredientId" class="reorder-data-row">
+                            <td class="reorder-ingredient-cell">
                                 <strong>@item.IngredientName</strong>
                                 <span>@item.IngredientCode · @item.BaseUnitCode</span>
                             </td>
@@ -143,7 +149,7 @@
                                 <span>Tồn dự kiến @(item.ProjectedStock?.ToString("N3") ?? "-")</span>
                                 <span>Pipeline bao phủ @item.ProcurementCoveredQuantity.ToString("N3")</span>
                             </td>
-                            <td>
+                            <td class="reorder-suggestion-cell">
                                 <strong>@(item.FinalSuggestedQuantity?.ToString("N3") ?? "-") @item.BaseUnitCode</strong>
                                 <span>Còn thiếu @(item.RemainingDemand?.ToString("N3") ?? "-")</span>
                                 @if (item.SuggestedPackageCount.HasValue)
@@ -168,31 +174,38 @@
                                 </span>
                                 <small>@item.Reason</small>
                             </td>
-                            <td class="text-end">
-                                <button type="button"
-                                        class="cc-button js-reorder-explain"
-                                        data-store-id="@item.StoreId"
-                                        data-ingredient-id="@item.IngredientId"
-                                        data-suggestion-token="@item.SuggestionToken">
-                                    Giải thích
-                                </button>
-                                @if (item.ActiveRestockRequestId.HasValue)
-                                {
-                                    <a asp-controller="AdminRestockRequests"
-                                       asp-action="Details"
-                                       asp-route-id="@item.ActiveRestockRequestId"
-                                       class="cc-button">Xem yêu cầu</a>
-                                }
-                                @if (item.CanConfirm)
-                                {
+                            <td class="text-end reorder-actions-cell">
+                                <div class="reorder-action-group">
                                     <button type="button"
-                                            class="cc-button cc-button-primary js-reorder-confirm"
+                                            class="cc-button cc-button-ai reorder-action-button reorder-action-button--explain js-reorder-explain"
                                             data-store-id="@item.StoreId"
                                             data-ingredient-id="@item.IngredientId"
                                             data-suggestion-token="@item.SuggestionToken">
-                                    @(item.ActiveRestockRequestId.HasValue ? "Bổ sung yêu cầu" : "Xác nhận nhập")
+                                        <i class="fas fa-lightbulb" aria-hidden="true"></i>
+                                        Giải thích
                                     </button>
-                                }
+                                    @if (item.ActiveRestockRequestId.HasValue)
+                                    {
+                                        <a asp-controller="AdminRestockRequests"
+                                           asp-action="Details"
+                                           asp-route-id="@item.ActiveRestockRequestId"
+                                           class="cc-button cc-button-secondary reorder-action-button reorder-action-button--view">
+                                            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                                            Xem yêu cầu
+                                        </a>
+                                    }
+                                    @if (item.CanConfirm)
+                                    {
+                                        <button type="button"
+                                                class="cc-button cc-button-primary reorder-action-button reorder-action-button--confirm js-reorder-confirm"
+                                                data-store-id="@item.StoreId"
+                                                data-ingredient-id="@item.IngredientId"
+                                                data-suggestion-token="@item.SuggestionToken">
+                                            <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                            @(item.ActiveRestockRequestId.HasValue ? "Bổ sung yêu cầu" : "Xác nhận nhập")
+                                        </button>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }
@@ -231,8 +244,8 @@
                         <div class="reorder-bulk-notice" role="note">
                             <i class="fas fa-circle-info" aria-hidden="true"></i>
                             <span>
-                                Danh sách do hệ thống tính theo tồn kho, nhu cầu và pipeline.
-                                AI không tự tạo chứng từ; bạn vẫn phải xác nhận danh sách đã chọn.
+                                <strong>Danh sách đề xuất, chưa phải chứng từ.</strong>
+                                Hệ thống tính theo tồn kho, nhu cầu và pipeline; bạn vẫn là người xác nhận cuối cùng.
                             </span>
                         </div>
 
@@ -242,7 +255,10 @@
                                        id="reorderSelectAll"
                                        class="form-check-input"
                                        checked />
-                                Chọn tất cả
+                                <span class="reorder-select-copy">
+                                    <strong>Chọn tất cả</strong>
+                                    <small>Áp dụng cho các dòng đủ điều kiện</small>
+                                </span>
                             </label>
                             <span id="reorderBulkSelectedCount"
                                   class="reorder-selected-count"
@@ -398,6 +414,55 @@
             const antiForgery = () =>
                 document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
 
+            const setupTopTableScrollbar = () => {
+                const topScrollbar = document.querySelector('.js-reorder-table-scrollbar');
+                const tableViewport = document.querySelector('.js-reorder-table-viewport');
+                const spacer = topScrollbar?.querySelector('.reorder-table-scrollbar-spacer');
+                const table = tableViewport?.querySelector('.reorder-table');
+
+                if (!topScrollbar || !tableViewport || !spacer || !table)
+                    return;
+
+                let syncingFromTop = false;
+                let syncingFromTable = false;
+
+                const updateScrollbar = () => {
+                    spacer.style.width = `${table.scrollWidth}px`;
+                    topScrollbar.hidden = table.scrollWidth <= tableViewport.clientWidth;
+                    topScrollbar.scrollLeft = tableViewport.scrollLeft;
+                };
+
+                topScrollbar.addEventListener('scroll', () => {
+                    if (syncingFromTable)
+                        return;
+
+                    syncingFromTop = true;
+                    tableViewport.scrollLeft = topScrollbar.scrollLeft;
+                    requestAnimationFrame(() => syncingFromTop = false);
+                });
+
+                tableViewport.addEventListener('scroll', () => {
+                    if (syncingFromTop)
+                        return;
+
+                    syncingFromTable = true;
+                    topScrollbar.scrollLeft = tableViewport.scrollLeft;
+                    requestAnimationFrame(() => syncingFromTable = false);
+                });
+
+                if (window.ResizeObserver) {
+                    const resizeObserver = new ResizeObserver(updateScrollbar);
+                    resizeObserver.observe(tableViewport);
+                    resizeObserver.observe(table);
+                } else {
+                    window.addEventListener('resize', updateScrollbar);
+                }
+
+                updateScrollbar();
+            };
+
+            setupTopTableScrollbar();
+
             const postForm = async (endpoint, values) => {
                 const body = new URLSearchParams({
                     ...values,
@@ -437,22 +502,33 @@
                             suggestionToken: button.dataset.suggestionToken
                         });
                         const panel = document.createElement('div');
+                        panel.className = 'reorder-explain-grid';
                         [
                             ['Tóm tắt', data.summary],
                             ['Giải thích', data.explanation],
                             ['Rủi ro', data.risk],
                             ['Hành động đề xuất', data.recommendedActionText]
                         ].forEach(([title, value]) => {
+                            const section = document.createElement('article');
+                            section.className = 'reorder-explain-section';
                             const heading = document.createElement('strong');
                             heading.textContent = title;
                             const paragraph = document.createElement('p');
                             paragraph.textContent = value || 'Không có.';
-                            panel.append(heading, paragraph);
+                            section.append(heading, paragraph);
+                            panel.append(section);
                         });
                         await Swal.fire({
                             icon: data.usedOllama ? 'info' : 'warning',
                             title: data.usedOllama ? 'Giải thích AI' : 'Giải thích theo rule',
                             html: panel,
+                            buttonsStyling: false,
+                            customClass: {
+                                popup: 'reorder-explain-dialog',
+                                title: 'reorder-explain-title',
+                                htmlContainer: 'reorder-explain-content',
+                                confirmButton: 'cc-button cc-button-primary reorder-explain-close'
+                            },
                             confirmButtonText: 'Đóng'
                         });
                     } catch (error) {
@@ -475,9 +551,16 @@
             document.querySelectorAll('.js-reorder-confirm').forEach(button => {
                 button.addEventListener('click', async () => {
                     button.dataset.requestKey ||= crypto.randomUUID();
-                    const originalText = button.textContent;
+                    const originalContent = Array.from(
+                        button.childNodes,
+                        node => node.cloneNode(true));
+                    const loadingIcon = document.createElement('i');
+                    loadingIcon.className = 'fas fa-spinner fa-spin';
+                    loadingIcon.setAttribute('aria-hidden', 'true');
                     button.disabled = true;
-                    button.textContent = 'Đang xác nhận...';
+                    button.replaceChildren(
+                        loadingIcon,
+                        document.createTextNode(' Đang xác nhận...'));
                     try {
                         const data = await postForm(confirmEndpoint, {
                             storeId: button.dataset.storeId,
@@ -511,7 +594,7 @@
                         // Keep the same RequestKey for a safe retry after a
                         // network failure or an in-progress response.
                         button.disabled = false;
-                        button.textContent = originalText;
+                        button.replaceChildren(...originalContent);
                     }
                 });
             });

@@ -54,6 +54,9 @@ namespace CafeChain.Application.DTOs.POS
         public int Quantity { get; set; }
         public decimal Price { get; set; }
         public decimal LineTotal { get; set; }
+        public int? IceLevelPercent { get; set; }
+        public decimal? BaseIceQuantityBaseUnit { get; set; }
+        public decimal? AppliedIceQuantityBaseUnit { get; set; }
         public string? Note { get; set; }
 
         /// <summary>Tên topping dạng string[] (flatten)</summary>

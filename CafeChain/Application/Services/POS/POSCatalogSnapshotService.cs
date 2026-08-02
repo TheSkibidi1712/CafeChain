@@ -16,13 +16,16 @@ namespace CafeChain.Application.Services.POS
     {
         private readonly AppDbContext _context;
         private readonly IStoreMenuAvailabilityEvaluator _availability;
+        private readonly IPOSIceCustomizationService? _iceCustomization;
 
         public POSCatalogSnapshotService(
             AppDbContext context,
-            IStoreMenuAvailabilityEvaluator availability)
+            IStoreMenuAvailabilityEvaluator availability,
+            IPOSIceCustomizationService? iceCustomization = null)
         {
             _context = context;
             _availability = availability;
+            _iceCustomization = iceCustomization;
         }
 
         public async Task<POSCatalogSnapshotDto> BuildAsync(
@@ -80,8 +83,21 @@ namespace CafeChain.Application.Services.POS
                 .ToListAsync(cancellationToken);
 
             var availability = new Dictionary<int, StoreMenuAvailabilityDto>();
+            var iceEligibility = new Dictionary<int, POSIceEligibilityDto>();
             foreach (var row in menuRows)
+            {
                 availability[row.DrinkSizeId] = await _availability.EvaluateAsync(storeId, row.DrinkSizeId, asOfUtc, cancellationToken);
+                if (_iceCustomization != null)
+                {
+                    var iceResult = await _iceCustomization.GetEligibilityAsync(
+                        storeId,
+                        row.DrinkSize.DrinkId,
+                        row.DrinkSize.SizeId,
+                        cancellationToken);
+                    if (iceResult.IsSuccess && iceResult.Data != null)
+                        iceEligibility[row.DrinkSizeId] = iceResult.Data;
+                }
+            }
 
             var storeToppings = await (
                 from storeTopping in _context.StoreToppings.AsNoTracking()
@@ -139,6 +155,7 @@ namespace CafeChain.Application.Services.POS
                     var sizes = group.Select(row =>
                     {
                         var state = availability[row.DrinkSizeId];
+                        iceEligibility.TryGetValue(row.DrinkSizeId, out var ice);
                         return new POSMenuItemSizeDto
                         {
                             StoreMenuItemId = row.StoreMenuItemId,
@@ -152,6 +169,8 @@ namespace CafeChain.Application.Services.POS
                             IsAvailable = state.IsSellable,
                             AvailabilityStatus = state.OperationalStatus,
                             AvailabilityReason = state.Reason,
+                            SupportsIceCustomization = ice?.SupportsIceCustomization == true,
+                            BaseIceQuantityBaseUnit = ice?.BaseIceQuantityBaseUnit,
                             ToppingPolicies = toppingPolicies.GetValueOrDefault(row.DrinkSizeId)
                                 ?? new List<POSToppingPolicyDto>()
                         };

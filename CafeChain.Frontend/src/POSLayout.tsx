@@ -18,8 +18,10 @@ import {
 import { openCustomerDisplayWindow } from './services/customerDisplayWindow'
 import { getPosSession } from './services/posSession'
 import { usePOSData } from './hooks/usePOSData'
+import { usePosLayoutMode } from './hooks/usePosLayoutMode'
 import ProductModifierModal, {
   type ModifierSelection,
+  type IceLevelPercent,
   type ToppingOption,
   type MenuItem,
 } from './components/ProductModifierModal'
@@ -29,6 +31,7 @@ import PaymentWorkspace, {
   type PaymentWorkspaceMode,
 } from './components/pos/payment/PaymentWorkspace'
 import type { CartSyncQueueItem } from './db/CafeChainPOSDB'
+import { formatIceLevel } from './utils/iceLevel'
 
 interface CartItem {
   id: number
@@ -44,7 +47,7 @@ interface CartItem {
   quantity: number
   sizeId?: number | null
   sizeName?: string
-  ice: '0%' | '50%' | '100%'
+  iceLevelPercent: IceLevelPercent | null
   sugar: '0%' | '50%' | '100%'
   customerNote: string
   note: string
@@ -143,6 +146,7 @@ const getUnavailableReason = (item: MenuItem): string =>
 const requiresProductOptions = (item: MenuItem): boolean =>
   (item.sizes?.filter((size) => size.isAvailable).length ?? 0) > 1
   || (item.availableToppings?.length ?? 0) > 0
+  || (item.sizes?.some((size) => size.isAvailable && size.supportsIceCustomization) ?? false)
 
 const applyToppingPolicy = (
   topping: ToppingOption,
@@ -226,6 +230,12 @@ export default function POSLayout() {
     catalogError,
     refreshCatalog,
   } = usePOSData()
+  const {
+    preference: layoutPreference,
+    resolvedLayout,
+    orientation: layoutOrientation,
+    setPreference: setLayoutPreference,
+  } = usePosLayoutMode()
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isCartOpen, setIsCartOpen] = useState(false)
@@ -250,6 +260,8 @@ export default function POSLayout() {
   const customerDisplayTimerRef = useRef(0)
   const customerDisplayGuardRef = useRef<string | null>(null)
   const previousCustomerDisplayShiftRef = useRef<number | null>(null)
+  const cartPanelRef = useRef<HTMLElement | null>(null)
+  const cartTriggerRef = useRef<HTMLButtonElement | null>(null)
 
   const session = getPosSession()
   const customerDisplayShiftId = shift?.shiftId ?? null
@@ -498,12 +510,43 @@ export default function POSLayout() {
   }, [isCartLocked, showMessage])
 
   useEffect(() => {
-    const closeCartOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsCartOpen(false)
+    if (!isCartOpen || resolvedLayout !== 'tablet' || layoutOrientation !== 'portrait') return
+
+    const cartPanel = cartPanelRef.current
+    const focusableSelector = 'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const focusableElements = cartPanel
+      ? Array.from(cartPanel.querySelectorAll<HTMLElement>(focusableSelector))
+      : []
+
+    focusableElements[0]?.focus()
+
+    const handleCartKeyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setIsCartOpen(false)
+        return
+      }
+
+      if (event.key !== 'Tab' || focusableElements.length === 0) return
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements[focusableElements.length - 1]
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault()
+        lastElement.focus()
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault()
+        firstElement.focus()
+      }
     }
-    window.addEventListener('keydown', closeCartOnEscape)
-    return () => window.removeEventListener('keydown', closeCartOnEscape)
-  }, [])
+
+    window.addEventListener('keydown', handleCartKeyboard)
+    return () => {
+      window.removeEventListener('keydown', handleCartKeyboard)
+      previousFocus?.focus()
+    }
+  }, [isCartOpen, layoutOrientation, resolvedLayout])
 
   const applyModifierSelection = (
     item: MenuItem,
@@ -527,11 +570,11 @@ export default function POSLayout() {
       .join(',')
     const sizeKey = selection.size?.sizeId ?? 'default'
     const noteKey = encodeURIComponent(selection.customerNote.trim().toLocaleLowerCase('vi-VN'))
-    const cartId = `${item.id}-${sizeKey}-${selection.ice}-${selection.sugar}-${toppingKey}-${noteKey}`
+    const cartId = `${item.id}-${sizeKey}-${selection.iceLevelPercent ?? 'no-ice-option'}-${selection.sugar}-${toppingKey}-${noteKey}`
     const toppingNames = selection.selectedToppings.map((topping) => topping.name).join(', ')
     const optionSummary = [
       selection.size ? `Size ${selection.size.sizeName}` : '',
-      `Đá ${selection.ice}`,
+      formatIceLevel(selection.iceLevelPercent),
       `Đường ${selection.sugar}`,
       toppingNames ? `+${toppingNames}` : '',
     ].filter(Boolean).join(', ')
@@ -551,7 +594,7 @@ export default function POSLayout() {
       quantity: selection.quantity,
       sizeId: selection.size?.sizeId ?? null,
       sizeName: selection.size?.sizeName,
-      ice: selection.ice,
+      iceLevelPercent: selection.iceLevelPercent,
       sugar: selection.sugar,
       customerNote: selection.customerNote,
       note: selection.note,
@@ -608,13 +651,13 @@ export default function POSLayout() {
     )
     applyModifierSelection(item, {
       size: defaultSize,
-      ice: '100%',
+      iceLevelPercent: defaultSize.supportsIceCustomization ? 100 : null,
       sugar: '100%',
       selectedToppings: defaultToppings,
       quantity: 1,
       customerNote: '',
       totalPrice: defaultSize.price + toppingTotal,
-      note: 'Đá 100%, Đường 100%',
+      note: 'Đường 100%',
     })
   }
 
@@ -664,7 +707,9 @@ export default function POSLayout() {
       editingCartId: line.cartId,
       initialSelection: {
         size,
-        ice: line.ice,
+        iceLevelPercent: size.supportsIceCustomization
+          ? (line.iceLevelPercent ?? 100)
+          : null,
         sugar: line.sugar,
         selectedToppings,
         quantity: line.quantity,
@@ -747,6 +792,9 @@ export default function POSLayout() {
         0
       )
       const toppingNames = merged.map((topping) => topping.name).join(', ')
+      const refreshedIceLevel = currentSize.supportsIceCustomization
+        ? (line.iceLevelPercent ?? 100)
+        : null
 
       return {
         ...line,
@@ -759,15 +807,18 @@ export default function POSLayout() {
         catalogVersion: currentItem.catalogVersion,
         sizeId: currentSize.sizeId,
         sizeName: currentSize.sizeName,
+        iceLevelPercent: refreshedIceLevel,
         selectedToppings: merged,
         optionSummary: [
           `Size ${currentSize.sizeName}`,
-          `Đá ${line.ice}`,
+          formatIceLevel(refreshedIceLevel),
           `Đường ${line.sugar}`,
           toppingNames ? `+${toppingNames}` : '',
         ].filter(Boolean).join(', '),
         detailText: [
-          `Size ${currentSize.sizeName}, Đá ${line.ice}, Đường ${line.sugar}`,
+          [`Size ${currentSize.sizeName}`, formatIceLevel(refreshedIceLevel), `Đường ${line.sugar}`]
+            .filter(Boolean)
+            .join(', '),
           toppingNames ? `+${toppingNames}` : '',
           line.customerNote,
         ].filter(Boolean).join('. '),
@@ -1027,6 +1078,7 @@ export default function POSLayout() {
       effectivePrice: ci.acceptedBasePrice,
       priceSource: ci.priceSource,
       catalogVersion: ci.catalogVersion,
+      iceLevelPercent: ci.iceLevelPercent,
       note: ci.note,
       toppings: ci.selectedToppings.map((topping) => ({
         toppingId: topping.id,
@@ -1050,6 +1102,7 @@ export default function POSLayout() {
       effectivePrice: ci.acceptedBasePrice,
       priceSource: ci.priceSource,
       catalogVersion: ci.catalogVersion,
+      iceLevelPercent: ci.iceLevelPercent,
       note: ci.note,
       detailText: ci.detailText,
       toppings: ci.selectedToppings.map((topping) => ({
@@ -1140,6 +1193,7 @@ export default function POSLayout() {
       priceSource: ci.priceSource,
       catalogVersion: ci.catalogVersion,
       quantity: ci.quantity,
+      iceLevelPercent: ci.iceLevelPercent,
       note: ci.note,
       toppings: ci.selectedToppings.map((topping) => ({
         toppingId: topping.id,
@@ -1596,7 +1650,13 @@ export default function POSLayout() {
   }
 
   return (
-    <div className="pos-shell font-sans select-none" id="pos-main-content">
+    <div
+      className="pos-shell font-sans select-none"
+      id="pos-main-content"
+      data-pos-layout={resolvedLayout}
+      data-pos-layout-preference={layoutPreference}
+      data-pos-orientation={layoutOrientation}
+    >
       <SellingHeader
         orderType={orderType}
         searchQuery={searchQuery}
@@ -1605,9 +1665,13 @@ export default function POSLayout() {
         hasOpenShift={hasOpenShift}
         shiftId={shift?.shiftId}
         session={session}
+        layoutPreference={layoutPreference}
+        resolvedLayout={resolvedLayout}
+        isLayoutSwitchLocked={isCartLocked}
         onOrderTypeChange={changeOrderType}
         onSearchChange={setSearchQuery}
         onOpenCustomerDisplay={() => void handleOpenCustomerDisplay()}
+        onLayoutPreferenceChange={setLayoutPreference}
       />
 
       <aside className="pos-category-panel bg-surface-white flex flex-col border-r border-border" aria-label="Danh mục sản phẩm">
@@ -1783,7 +1847,15 @@ export default function POSLayout() {
         />
       )}
 
-      <aside id="pos-cart-panel" className="pos-cart-panel bg-surface-white flex flex-col border-l border-border" data-open={isCartOpen} aria-label="Giỏ hàng">
+      <aside
+        ref={cartPanelRef}
+        id="pos-cart-panel"
+        className="pos-cart-panel bg-surface-white flex flex-col border-l border-border"
+        data-open={isCartOpen}
+        aria-label="Giỏ hàng"
+        aria-modal={resolvedLayout === 'tablet' && layoutOrientation === 'portrait' ? true : undefined}
+        role={resolvedLayout === 'tablet' && layoutOrientation === 'portrait' ? 'dialog' : undefined}
+      >
         <div className="min-h-16 flex items-center justify-between px-4 py-2 border-b border-border">
           <div className="flex items-center gap-2">
             <span className="text-lg" aria-hidden="true">▣</span>
@@ -1974,6 +2046,7 @@ export default function POSLayout() {
           <p className="truncate text-lg font-extrabold text-brand-orange tabular-nums">{formatVND(totalAmount)}</p>
         </div>
         <button
+          ref={cartTriggerRef}
           type="button"
           onClick={() => setIsCartOpen(true)}
           className="pos-touch-target min-w-28 rounded-lg bg-brand-orange px-4 text-sm font-bold text-white shadow-[var(--shadow-button)]"

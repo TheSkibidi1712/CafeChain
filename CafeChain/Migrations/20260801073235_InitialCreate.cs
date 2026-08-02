@@ -4493,6 +4493,10 @@ namespace CafeChain.Migrations
                     AcceptedCatalogVersion = table.Column<long>(type: "bigint", nullable: true),
                     Quantity = table.Column<int>(type: "int", nullable: false),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    IceLevelPercent = table.Column<int>(type: "int", nullable: true),
+                    IceIngredientId = table.Column<int>(type: "int", nullable: true),
+                    BaseIceQuantityBaseUnit = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
+                    AppliedIceQuantityBaseUnit = table.Column<decimal>(type: "decimal(18,3)", precision: 18, scale: 3, nullable: true),
                     CostStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     UnitCogs = table.Column<decimal>(type: "decimal(18,4)", nullable: true),
                     TotalCogs = table.Column<decimal>(type: "decimal(18,2)", nullable: true)
@@ -4500,6 +4504,8 @@ namespace CafeChain.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OrderDetails", x => x.OrderDetailId);
+                    table.CheckConstraint("CK_OrderDetails_IceLevelPercent", "[IceLevelPercent] IS NULL OR [IceLevelPercent] IN (0, 50, 100)");
+                    table.CheckConstraint("CK_OrderDetails_IceSnapshot", "([IceLevelPercent] IS NULL AND [IceIngredientId] IS NULL AND [BaseIceQuantityBaseUnit] IS NULL AND [AppliedIceQuantityBaseUnit] IS NULL) OR ([IceLevelPercent] IS NOT NULL AND [IceIngredientId] IS NOT NULL AND [BaseIceQuantityBaseUnit] IS NOT NULL AND [AppliedIceQuantityBaseUnit] IS NOT NULL AND [BaseIceQuantityBaseUnit] >= 0 AND [AppliedIceQuantityBaseUnit] >= 0 AND [AppliedIceQuantityBaseUnit] <= [BaseIceQuantityBaseUnit])");
                     table.ForeignKey(
                         name: "FK_OrderDetails_DrinkSizes_DrinkSizeId",
                         column: x => x.DrinkSizeId,
@@ -4511,6 +4517,12 @@ namespace CafeChain.Migrations
                         column: x => x.DrinkId,
                         principalTable: "Drinks",
                         principalColumn: "DrinkId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrderDetails_Ingredients_IceIngredientId",
+                        column: x => x.IceIngredientId,
+                        principalTable: "Ingredients",
+                        principalColumn: "IngredientId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_OrderDetails_Orders_OrderId",
@@ -8332,6 +8344,11 @@ namespace CafeChain.Migrations
                 name: "IX_OrderDetails_DrinkSizeId",
                 table: "OrderDetails",
                 column: "DrinkSizeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderDetails_IceIngredientId",
+                table: "OrderDetails",
+                column: "IceIngredientId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OrderDetails_OrderId",
