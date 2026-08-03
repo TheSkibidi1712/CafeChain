@@ -16,47 +16,42 @@
 
 <div class="rb-page">
 <div class="container-fluid px-4 pt-4 pb-5">
-    <div class="rb-page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div>
+    <div class="rb-page-header bom-depth-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div class="admin-module-heading-copy">
             <nav class="rb-breadcrumb" aria-label="breadcrumb">
                 <span>Sản xuất / BOM</span> &gt; <span>Danh mục bán thành phẩm</span>
             </nav>
-            <h1 class="rb-page-title mb-1">Danh mục bán thành phẩm</h1>
-            <p class="text-muted mb-0" style="max-width: 42rem;">
-                Quản lý danh tính BTP ổn định dùng cho công thức và tồn kho.
-                Đây <strong>không phải</strong> số lượng tồn kho tại cửa hàng.
-            </p>
+            <div class="admin-module-title-row">
+                <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-boxes-stacked"></i></span>
+                <div>
+                    <h1 class="rb-page-title mb-1">Danh mục bán thành phẩm</h1>
+                    <p class="text-muted mb-0" style="max-width: 42rem;">
+                        Quản lý danh tính BTP ổn định dùng cho công thức và tồn kho.
+                        Đây <strong>không phải</strong> số lượng tồn kho tại cửa hàng.
+                    </p>
+                </div>
+            </div>
         </div>
         @if (canWrite)
         {
-            <button type="button" class="btn btn-rb-save" id="btnCreate">
+            <button type="button" class="btn btn-rb-save admin-module-header-action" id="btnCreate">
                 <i class="fas fa-plus me-2" aria-hidden="true"></i>Tạo bán thành phẩm
             </button>
         }
     </div>
 
-    <form method="get" class="rb-card mb-3" id="filterForm" role="search">
-        <div class="card-body p-3">
-            <div class="row g-2 align-items-end">
-                <div class="col-md-5">
-                    <label class="form-label small fw-semibold" for="searchBox">Tìm theo mã / tên</label>
-                    <input name="search" id="searchBox" class="form-control" value="@Model.Search"
-                           placeholder="VD: BTP-PEARL hoặc trân châu" autocomplete="off" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-semibold" for="statusFilter">Trạng thái</label>
-                    <select name="status" id="statusFilter" class="form-select">
-                        <option value="">Tất cả</option>
-                        <option value="true" selected="@(Model.Status == true)">Hoạt động</option>
-                        <option value="false" selected="@(Model.Status == false)">Ngừng hoạt động</option>
-                    </select>
-                </div>
-                <div class="col-md-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-rb-save">Lọc</button>
-                    <a asp-action="Index" class="btn btn-rb-ghost">Đặt lại</a>
-                </div>
-            </div>
-        </div>
+    <form method="get" class="rb-list-filters rb-module-filter rb-module-filter--four mb-3" id="filterForm" role="search">
+        <label class="visually-hidden" for="searchBox">Tìm theo mã hoặc tên</label>
+        <input name="search" id="searchBox" class="form-control" value="@Model.Search"
+               placeholder="Tìm theo mã hoặc tên bán thành phẩm..." autocomplete="off" />
+        <label class="visually-hidden" for="statusFilter">Trạng thái</label>
+        <select name="status" id="statusFilter" class="form-select">
+            <option value="">Tất cả trạng thái</option>
+            <option value="true" selected="@(Model.Status == true)">Hoạt động</option>
+            <option value="false" selected="@(Model.Status == false)">Ngừng hoạt động</option>
+        </select>
+        <button type="submit" class="btn btn-rb-save"><i class="fas fa-filter" aria-hidden="true"></i>Lọc</button>
+        <a asp-action="Index" class="btn btn-rb-ghost"><i class="fas fa-rotate-left" aria-hidden="true"></i>Đặt lại</a>
     </form>
 
     <div class="rb-card">
@@ -147,25 +142,33 @@
                                     <div class="d-flex flex-nowrap gap-1">
                                         @if (item.ActiveRecipeId.HasValue)
                                         {
-                                            <a class="btn btn-sm btn-outline-secondary"
+                                            <a class="btn btn-sm btn-outline-secondary rb-table-action"
                                                asp-area="Admin" asp-controller="AdminRecipe" asp-action="Edit"
-                                               asp-route-id="@item.ActiveRecipeId">
-                                                Xem công thức
+                                               asp-route-id="@item.ActiveRecipeId"
+                                               title="Xem công thức"
+                                               aria-label="Xem công thức của @item.Name">
+                                                <i class="fas fa-diagram-project" aria-hidden="true"></i><span>Xem công thức</span>
                                             </a>
                                         }
                                         else
                                         {
-                                            <a class="btn btn-sm btn-outline-secondary"
-                                               asp-area="Admin" asp-controller="AdminRecipe" asp-action="Create">
-                                                Tạo công thức
+                                            <a class="btn btn-sm btn-outline-secondary rb-table-action"
+                                               asp-area="Admin" asp-controller="AdminRecipe" asp-action="Create"
+                                               title="Tạo công thức"
+                                               aria-label="Tạo công thức cho @item.Name">
+                                                <i class="fas fa-plus" aria-hidden="true"></i><span>Tạo công thức</span>
                                             </a>
                                         }
-                                        <button type="button" class="btn btn-sm btn-outline-primary edit-btn"
-                                                data-id="@item.PreparedItemId">Sửa</button>
-                                        <button type="button" class="btn btn-sm btn-outline-warning toggle-btn"
+                                        <button type="button" class="btn btn-sm btn-outline-primary edit-btn rb-table-action"
                                                 data-id="@item.PreparedItemId"
-                                                data-active="@(!item.Active)">
-                                            @(item.Active ? "Ngừng hoạt động" : "Kích hoạt")
+                                                title="Sửa bán thành phẩm"
+                                                aria-label="Sửa bán thành phẩm @item.Name"><i class="fas fa-pen" aria-hidden="true"></i><span>Sửa</span></button>
+                                        <button type="button" class="btn btn-sm btn-outline-warning toggle-btn rb-table-action"
+                                                data-id="@item.PreparedItemId"
+                                                data-active="@(!item.Active)"
+                                                title="@(item.Active ? "Ngừng hoạt động" : "Kích hoạt")"
+                                                aria-label="@(item.Active ? $"Ngừng hoạt động {item.Name}" : $"Kích hoạt {item.Name}")">
+                                            <i class="fas @(item.Active ? "fa-pause" : "fa-play")" aria-hidden="true"></i><span>@(item.Active ? "Ngừng hoạt động" : "Kích hoạt")</span>
                                         </button>
                                     </div>
                                 </td>
@@ -202,15 +205,26 @@
 {
     <div class="modal fade" id="preparedItemModal" tabindex="-1" aria-labelledby="preparedItemModalTitle" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content rb-modal">
+            <div class="modal-content rb-modal rb-entity-modal">
                 <div class="modal-header">
-                    <h2 class="modal-title h5" id="preparedItemModalTitle">Tạo bán thành phẩm</h2>
+                    <div class="rb-modal-heading">
+                        <span class="rb-modal-heading-icon" aria-hidden="true"><i class="fas fa-boxes-stacked"></i></span>
+                        <div>
+                            <h2 class="modal-title" id="preparedItemModalTitle">Tạo bán thành phẩm</h2>
+                            <p class="rb-modal-subtitle mb-0">Thiết lập danh tính và đơn vị quản lý tồn kho.</p>
+                        </div>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body">
                     <div id="pi-error-summary" class="alert alert-danger py-2 small" style="display:none;" role="alert" tabindex="-1"></div>
                     <input type="hidden" id="pi-id" />
-                    <div class="row g-3">
+                    <div class="rb-modal-section">
+                        <div class="rb-modal-section-heading">
+                            <i class="fas fa-fingerprint" aria-hidden="true"></i>
+                            <div><strong>Thông tin định danh</strong><span>Mã và tên dùng xuyên suốt trong công thức BOM.</span></div>
+                        </div>
+                        <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label fw-semibold" for="pi-code">Mã BTP <span class="text-danger">*</span></label>
                             <input id="pi-code" class="form-control" maxlength="50" autocomplete="off"
@@ -222,6 +236,14 @@
                             <input id="pi-name" class="form-control" maxlength="200" autocomplete="off"
                                    aria-describedby="pi-error" />
                         </div>
+                        </div>
+                    </div>
+                    <div class="rb-modal-section">
+                        <div class="rb-modal-section-heading">
+                            <i class="fas fa-warehouse" aria-hidden="true"></i>
+                            <div><strong>Cấu hình tồn kho</strong><span>Chọn đơn vị cơ sở và bổ sung mô tả vận hành.</span></div>
+                        </div>
+                        <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold" for="pi-unit">Đơn vị tồn kho cơ sở <span class="text-danger">*</span></label>
                             <select id="pi-unit" class="form-select" aria-describedby="pi-unit-help pi-error"></select>
@@ -236,17 +258,18 @@
                                       aria-describedby="pi-error"></textarea>
                         </div>
                         <div class="col-12" id="pi-active-wrap" style="display:none">
-                            <div class="form-check">
+                            <div class="form-check form-switch rb-brown-switch">
                                 <input class="form-check-input" type="checkbox" id="pi-active" />
                                 <label class="form-check-label" for="pi-active">Hoạt động</label>
                             </div>
+                        </div>
                         </div>
                     </div>
                     <div id="pi-error" class="text-danger small mt-2" role="status" aria-live="polite"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-rb-ghost" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-rb-save" id="btnSavePreparedItem">Lưu bán thành phẩm</button>
+                    <button type="button" class="btn btn-rb-ghost" data-bs-dismiss="modal"><i class="fas fa-xmark" aria-hidden="true"></i>Hủy</button>
+                    <button type="button" class="btn btn-rb-save" id="btnSavePreparedItem"><i class="fas fa-floppy-disk" aria-hidden="true"></i>Lưu bán thành phẩm</button>
                 </div>
             </div>
         </div>
@@ -367,11 +390,24 @@
     });
 
     document.querySelectorAll('.toggle-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
+        btn.addEventListener('click', async function () {
             const id = parseInt(this.getAttribute('data-id'), 10);
             const active = this.getAttribute('data-active') === 'True' || this.getAttribute('data-active') === 'true';
             const label = active ? 'Kích hoạt' : 'Ngừng hoạt động';
-            if (!confirm(label + ' bán thành phẩm này?')) return;
+            const answer = await Swal.fire({
+                icon: active ? 'question' : 'warning',
+                title: label + ' bán thành phẩm?',
+                text: active
+                    ? 'Bán thành phẩm sẽ có thể tiếp tục được sử dụng trong cấu hình BOM.'
+                    : 'Bán thành phẩm sẽ không còn được chọn cho cấu hình mới.',
+                showCancelButton: true,
+                confirmButtonText: label,
+                cancelButtonText: 'Hủy',
+                reverseButtons: true,
+                customClass: { popup: 'rb-confirm-popup', confirmButton: 'rb-confirm-primary', cancelButton: 'rb-confirm-cancel' },
+                buttonsStyling: false
+            });
+            if (!answer.isConfirmed) return;
             fetch(base + '/SetActive', {
                 method: 'POST',
                 headers: ajaxHeaders(),
@@ -380,8 +416,9 @@
             .then(r => r.json())
             .then(res => {
                 if (res.success) location.reload();
-                else alert(res.message || 'Lỗi');
-            });
+                else Swal.fire({ icon: 'error', title: 'Không thể cập nhật', text: res.message || 'Đã xảy ra lỗi.', confirmButtonColor: '#6f4e37' });
+            })
+            .catch(() => Swal.fire({ icon: 'error', title: 'Mất kết nối', text: 'Không thể kết nối máy chủ.', confirmButtonColor: '#6f4e37' }));
         });
     });
 
