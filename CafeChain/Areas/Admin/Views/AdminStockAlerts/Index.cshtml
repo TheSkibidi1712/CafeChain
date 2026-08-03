@@ -16,8 +16,8 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
-<main class="ops-shell">
-    <header class="ops-header">
+<main class="ops-shell cc-warehouse-page">
+    <header class="ops-header cc-warehouse-header">
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
             <h1 class="ops-title"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</h1>
@@ -48,7 +48,7 @@
 
     @if (stores.Count > 1)
     {
-        <form method="get" class="ops-filterbar" aria-label="Chọn chi nhánh">
+        <form method="get" class="ops-filterbar cc-warehouse-filter" aria-label="Chọn chi nhánh">
             <input type="hidden" name="status" value="@statusFilter" />
             <div class="ops-filter-group">
                 <label class="ops-form-label mb-0" for="stockAlertStoreId">Chi nhánh</label>
@@ -63,11 +63,11 @@
         </form>
     }
 
-    <section class="ops-metrics" aria-label="Tóm tắt cảnh báo trên trang">
-        <div class="ops-metric"><span class="ops-metric-label">Kết quả theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Hết hàng trên trang</span><strong class="ops-metric-value danger">@outCount</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Sắp hết trên trang</span><strong class="ops-metric-value warning">@lowCount</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Nhân viên báo thiếu</span><strong class="ops-metric-value">@manualCount</strong></div>
+    <section class="ops-metrics cc-warehouse-summary-grid" aria-label="Tóm tắt cảnh báo trên trang">
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Kết quả theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Hết hàng trên trang</span><strong class="ops-metric-value danger">@outCount</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Sắp hết trên trang</span><strong class="ops-metric-value warning">@lowCount</strong></div>
+        <div class="ops-metric cc-warehouse-kpi"><span class="ops-metric-label">Nhân viên báo thiếu</span><strong class="ops-metric-value">@manualCount</strong></div>
     </section>
 
     <nav class="ops-status-tabs" aria-label="Lọc theo trạng thái xử lý">
@@ -81,7 +81,7 @@
 
     @if (Model.Items.Count == 0)
     {
-        <section class="ops-empty" aria-labelledby="stockAlertEmptyTitle">
+        <section class="ops-empty cc-warehouse-empty" aria-labelledby="stockAlertEmptyTitle">
             <span class="ops-empty-icon"><i class="fa-regular fa-circle-check" aria-hidden="true"></i></span>
             <h2 id="stockAlertEmptyTitle" class="ops-empty-title">Không có cảnh báo kho phù hợp</h2>
             <p class="ops-empty-copy">Kho trong phạm vi hiện tại không có cảnh báo theo bộ lọc này. Bạn có thể xem tồn kho hoặc đổi trạng thái để kiểm tra lại.</p>
@@ -93,7 +93,7 @@
     }
     else
     {
-        <section class="ops-table-wrap" aria-label="Danh sách cảnh báo kho">
+        <section class="ops-table-wrap cc-warehouse-table-shell" aria-label="Danh sách cảnh báo kho">
             <div class="ops-table-scroll">
                 <table class="ops-table">
                     <thead>

@@ -173,14 +173,8 @@ namespace CafeChain.Application.Services.Accounts
                 // ===== 🔥 RESET LOCK NẾU ĐÃ HẾT HẠN =====
                 if (account.LockoutEnd.HasValue && account.LockoutEnd <= DateTime.UtcNow)
                 {
-                    await _accountRepository.ExecuteInTransactionAsync(
-                        async () =>
-                        {
-                            account.LockoutEnd = null;
-                            account.FailedLoginAttempts = 0;
-
-                            await _accountRepository.UpdateAsync(account);
-                    });
+                    account.LockoutEnd = null;
+                    account.FailedLoginAttempts = 0;
                 }
 
                 // ===== LOCK =====
@@ -202,35 +196,17 @@ namespace CafeChain.Application.Services.Accounts
                 // ===== PASSWORD =====
                 if (!BCrypt.Net.BCrypt.Verify(dto.Password, account.PasswordHash))
                 {
-                    await _accountRepository.ExecuteInTransactionAsync(
-                    async () =>
-                    {
-                        account.FailedLoginAttempts++;
-
-                        if (account.FailedLoginAttempts >= 5)
-                        {
-                            account.LockoutEnd =
-                                DateTime.UtcNow.AddMinutes(15);
-
-                            account.FailedLoginAttempts = 0;
-                        }
-
-                        await _accountRepository.UpdateAsync(account);
-                    });
+                    await _accountRepository.RecordFailedLoginAsync(
+                        account.AccountId,
+                        DateTime.UtcNow,
+                        maxAttempts: 5,
+                        lockDuration: TimeSpan.FromMinutes(15));
 
                     return ServiceResult<LoginResponseDto>.Failure("Email hoặc mật khẩu không chính xác.");
                 }
 
                 // ===== SUCCESS =====
-                await _accountRepository.ExecuteInTransactionAsync(
-                async () =>
-                {
-                    account.FailedLoginAttempts = 0;
-
-                    account.LockoutEnd = null;
-
-                    await _accountRepository.UpdateAsync(account);
-                });
+                await _accountRepository.ResetLoginFailuresAsync(account.AccountId);
 
                 var allRoles = account.AccountRoles.Select(r => r.Role.Name).ToList();
 

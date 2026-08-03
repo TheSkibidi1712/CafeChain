@@ -27,6 +27,16 @@ namespace CafeChain.Application.Interfaces.POS
             string reason,
             string scheduledStartCanonical);
 
+        string BuildOpenShiftBoundFingerprint(
+            int storeId,
+            int actorStaffId,
+            decimal startingCash,
+            string reason,
+            string scheduledStartCanonical,
+            string actionType,
+            string? terminalId,
+            string? requestKey);
+
         /// <summary>Constant-time equality for fingerprint strings.</summary>
         bool FixedTimeEquals(string? a, string? b);
     }

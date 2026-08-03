@@ -30,6 +30,7 @@ namespace CafeChain.Controllers.Api.v1
 
         /// <summary>GET /api/v1/pos/notifications?page=1&amp;pageSize=20</summary>
         [HttpGet("notifications")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<IActionResult> GetList(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)

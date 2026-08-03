@@ -15,13 +15,13 @@ public sealed class ProcurementUiRedesignIssue239Tests
     {
         var css = Read(TokensPath);
 
-        Assert.Contains("--cc-app-bg: #f7f3ee", css);
-        Assert.Contains("--cc-surface: #ffffff", css);
-        Assert.Contains("--cc-primary: #6f4e37", css);
-        Assert.Contains("--cc-primary-hover: #5c3f2b", css);
-        Assert.Contains("--cc-accent: #c67a45", css);
-        Assert.Contains("--cc-text-primary: #1f2937", css);
-        Assert.Contains("--cc-text-secondary: #475569", css);
+        Assert.Contains("--cc-app-bg: #f7f4f0", css);
+        Assert.Contains("--cc-surface: #fffdfb", css);
+        Assert.Contains("--cc-primary: #70482f", css);
+        Assert.Contains("--cc-primary-hover: #3d2418", css);
+        Assert.Contains("--cc-accent: #a97750", css);
+        Assert.Contains("--cc-text-primary: #201812", css);
+        Assert.Contains("--cc-text-secondary: #66584f", css);
         Assert.Contains("--cc-success: #2f6f5e", css);
         Assert.Contains("--cc-warning: #99623b", css);
         Assert.Contains("--cc-danger: #991b1b", css);

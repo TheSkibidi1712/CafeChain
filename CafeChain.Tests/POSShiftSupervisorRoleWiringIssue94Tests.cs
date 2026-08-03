@@ -313,7 +313,7 @@
 //             var config = new ConfigurationBuilder()
 //                 .AddInMemoryCollection(new Dictionary<string, string?>
 //                 {
-//                     ["Jwt:Key"] = "CafeChain-POS-JWT-Secret-Key-Change-In-Production-2026-Min32Chars!",
+//                     ["Jwt:Key"] = "unit-test-signing-key-32-characters-minimum",
 //                     ["Jwt:Issuer"] = "CafeChain",
 //                     ["Jwt:Audience"] = "CafeChain.POS",
 //                     ["Jwt:ExpirationHours"] = "12",

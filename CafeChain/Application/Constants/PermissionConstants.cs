@@ -31,6 +31,14 @@ namespace CafeChain.Application.Constants
         public const string AppAdminDashboard = "App.AdminDashboard";
         public const string AppStaffHub = "App.StaffHub";
         public const string AppPos = "App.POS";
+        public const string PosWorkShiftView = "POS.WorkShift.View";
+        public const string PosWorkShiftOpen = "POS.WorkShift.Open";
+        public const string PosWorkShiftClose = "POS.WorkShift.Close";
+        public const string PosWorkShiftOpenOutsideSchedule = "POS.WorkShift.OpenOutsideSchedule";
+        public const string PosWorkShiftApproveOutsideSchedule = "POS.WorkShift.ApproveOutsideSchedule";
+        public const string PosWorkShiftCloseException = "POS.WorkShift.CloseException";
+        public const string PosWorkShiftReconcile = "POS.WorkShift.Reconcile";
+        public const string PosWorkShiftOverrideTerminal = "POS.WorkShift.OverrideTerminal";
         public const string NotificationView = "Notification.View";
 
         public const string IngredientView = "Ingredient.View";
@@ -58,9 +66,20 @@ namespace CafeChain.Application.Constants
         public const string SettingsUpdate = "Settings.Update";
 
         public const string OperationalIceView = "OperationalIce.View";
-        public const string OperationalIceManage = "OperationalIce.Manage";
-        public const string OperationalIceApprove = "OperationalIce.Approve";
-        public const string OperationalIcePolicy = "OperationalIce.Policy";
+        public const string OperationalIceConfigurePolicy = "OperationalIce.ConfigurePolicy";
+        public const string OperationalIceCreateShift = "OperationalIce.CreateShift";
+        public const string OperationalIceOpenShift = "OperationalIce.OpenShift";
+        public const string OperationalIceLinkWorkShift = "OperationalIce.LinkWorkShift";
+        public const string OperationalIceRequestSupplement = "OperationalIce.RequestSupplement";
+        public const string OperationalIceApproveSupplement = "OperationalIce.ApproveSupplement";
+        public const string OperationalIceHandoff = "OperationalIce.Handoff";
+        public const string OperationalIceSubmitClose = "OperationalIce.SubmitClose";
+        public const string OperationalIceApproveVariance = "OperationalIce.ApproveVariance";
+        public const string OperationalIceCancelScheduledShift = "OperationalIce.CancelScheduledShift";
+        public const string OperationalIceViewReport = "OperationalIce.ViewReport";
+        public const string OperationalIceLegacyManage = "OperationalIce.Manage";
+        public const string OperationalIceLegacyApprove = "OperationalIce.Approve";
+        public const string OperationalIceLegacyPolicy = "OperationalIce.Policy";
 
         // Inventory replenishment permissions already present in SeedAll.sql.
         public const string ReorderSuggestionView = "ReorderSuggestion.View";

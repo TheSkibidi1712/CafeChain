@@ -70,10 +70,11 @@ public sealed class CafeChain29RbacSourceTests
                 @"\(N'([^']+)',[01],[01],[01],[01],[01],[01],[01],[01]\)")
             .Select(match => match.Groups[1].Value)
             .Where(code => code is not
-                ("Drink.Delete" or "Category.Delete" or "Size.Delete" or "Topping.Delete"))
+                ("Drink.Delete" or "Category.Delete" or "Size.Delete" or "Topping.Delete"
+                    or "OperationalIce.Manage" or "OperationalIce.Approve" or "OperationalIce.Policy"))
             .ToList();
 
-        Assert.Equal(161, codes.Count);
+        Assert.Equal(169, codes.Count);
         Assert.All(codes, code => Assert.Contains(code, constants));
     }
 

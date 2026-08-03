@@ -13,6 +13,19 @@ namespace CafeChain.Application.DTOs.POS
 
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
+        public DateTime? StartTimeUtc { get; set; }
+        public DateTime? EndTimeUtc { get; set; }
+        public DateTime? BusinessDate { get; set; }
+        public int? SourceStaffShiftId { get; set; }
+        public string? OpenContext { get; set; }
+        public DateTime? AutoCloseAtUtc { get; set; }
+        public DateTime? ExpiredAtUtc { get; set; }
+        public DateTime? ClosingStartedAtUtc { get; set; }
+        public DateTime ServerNowUtc { get; set; }
+        public string? CloseType { get; set; }
+        public int? ClosedByStaffId { get; set; }
+        public string? CloseReason { get; set; }
+        public string? RowVersion { get; set; }
 
         public decimal StartingCash { get; set; }
         public decimal ExpectedEndingCash { get; set; }

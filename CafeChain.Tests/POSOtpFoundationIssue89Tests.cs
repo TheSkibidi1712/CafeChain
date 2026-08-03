@@ -198,7 +198,7 @@ namespace CafeChain.Tests
        /// </summary>
        private string? _capturedOtpCode;
 
-       private OtpApprovalService CreateServiceWithOtpCapture()
+       private OtpApprovalService CreateServiceWithOtpCapture(bool enableAudit = false)
        {
            _capturedOtpCode = null;
            _mockEmail
@@ -212,6 +212,7 @@ namespace CafeChain.Tests
 
            var ctx = CreateDbContext();
            var repo = new OtpChallengeRepository(ctx);
+           var audit = enableAudit ? new WorkShiftAuditService(ctx, TimeProvider.System) : null;
            var env = new Mock<IWebHostEnvironment>();
            env.Setup(e => e.EnvironmentName).Returns("Development");
            return new OtpApprovalService(
@@ -221,7 +222,8 @@ namespace CafeChain.Tests
                new OtpCodeGenerator(),
                new OtpPayloadFingerprintService(),
                _mockLogger.Object,
-               env.Object);
+               env.Object,
+               audit: audit);
        }
 
        // ================================================================
@@ -240,6 +242,106 @@ namespace CafeChain.Tests
            Assert.Equal(OtpConstants.Statuses.Pending, result.Data!.Status);
            Assert.True(result.Data.ExpiresInSeconds > 0);
            Assert.NotNull(result.Data.OtpChallengePublicId);
+       }
+
+       [Fact]
+       public async Task Request_ExceedingStaffWindow_IsRateLimited()
+       {
+           await SeedCoreDataAsync();
+           using (var ctx = CreateDbContext())
+           {
+               for (var index = 0; index < OtpConstants.MaxChallengesPerStaffWindow; index++)
+               {
+                   ctx.OtpChallenges.Add(new OtpChallenge
+                   {
+                       PublicId = Guid.NewGuid(),
+                       StoreId = TestStoreId,
+                       RequestedByStaffId = 100,
+                       ApproverStaffId = 200,
+                       ActionType = $"HISTORICAL_{index}",
+                       TargetType = OtpConstants.TargetTypes.Shifts,
+                       TargetId = index + 100,
+                       Reason = "Rate-limit test fixture",
+                       OtpHash = BCrypt.Net.BCrypt.HashPassword("ABCDEF"),
+                       PayloadFingerprint = new string('A', 64),
+                       ExpiresAt = DateTime.UtcNow.AddMinutes(-1),
+                       LastSentAt = DateTime.UtcNow.AddMinutes(-2),
+                       CreatedAt = DateTime.UtcNow.AddMinutes(-index),
+                       Status = OtpConstants.Statuses.Cancelled
+                   });
+               }
+               await ctx.SaveChangesAsync();
+           }
+
+           var result = await CreateService().RequestOtpAsync(CreateValidRequest(), 100, TestStoreId);
+
+           Assert.False(result.IsSuccess);
+           Assert.Equal(OtpConstants.ErrorCodes.RateLimited, result.ErrorCode);
+       }
+
+       [Fact]
+       public async Task Request_ExceedingIpWindow_IsRateLimitedWithoutStoringRawIp()
+       {
+           await SeedCoreDataAsync();
+           var ipHash = new string('A', 64);
+           await SeedHistoricalSecurityChallengesAsync(
+               OtpConstants.MaxChallengesPerIpWindow,
+               clientIpHash: ipHash,
+               deviceFingerprintHash: null);
+
+           var request = CreateValidRequest();
+           request.ClientIpHash = ipHash;
+           var result = await CreateService().RequestOtpAsync(request, 100, TestStoreId);
+
+           Assert.False(result.IsSuccess);
+           Assert.Equal(OtpConstants.ErrorCodes.RateLimited, result.ErrorCode);
+           using var ctx = CreateDbContext();
+           Assert.DoesNotContain(ctx.OtpChallenges, x => x.ClientIpHash == "127.0.0.1");
+       }
+
+       [Fact]
+       public async Task Request_ExceedingDeviceWindow_IsRateLimited()
+       {
+           await SeedCoreDataAsync();
+           var deviceHash = new string('B', 64);
+           await SeedHistoricalSecurityChallengesAsync(
+               OtpConstants.MaxChallengesPerDeviceWindow,
+               clientIpHash: null,
+               deviceFingerprintHash: deviceHash);
+
+           var request = CreateValidRequest();
+           request.DeviceFingerprintHash = deviceHash;
+           var result = await CreateService().RequestOtpAsync(request, 100, TestStoreId);
+
+           Assert.False(result.IsSuccess);
+           Assert.Equal(OtpConstants.ErrorCodes.RateLimited, result.ErrorCode);
+       }
+
+       [Fact]
+       public async Task Verify_ExceedingIpFailureWindow_IsRateLimited()
+       {
+           await SeedCoreDataAsync();
+           var service = CreateServiceWithOtpCapture();
+           var publicId = await RequestAndGetPublicIdAsync(service, 100);
+           var ipHash = new string('C', 64);
+           await SeedHistoricalSecurityChallengesAsync(
+               challengeCount: 1,
+               clientIpHash: ipHash,
+               deviceFingerprintHash: null,
+               failedAttempts: OtpConstants.MaxFailedAttemptsPerIpWindow);
+
+           var result = await CreateService().VerifyOtpAsync(
+               new OtpVerifyDto
+               {
+                   OtpChallengePublicId = publicId,
+                   OtpCode = "ABCDEF",
+                   ClientIpHash = ipHash
+               },
+               requestedByStaffId: 100,
+               storeId: TestStoreId);
+
+           Assert.False(result.IsSuccess);
+           Assert.Equal(OtpConstants.ErrorCodes.RateLimited, result.ErrorCode);
        }
 
        // ================================================================
@@ -519,6 +621,60 @@ namespace CafeChain.Tests
            Assert.True(verifyNew.IsSuccess, $"New OTP verify failed: {verifyNew.Message}");
        }
 
+       [Fact]
+       public async Task Resend_DoesNotResetFailedAttempts()
+       {
+           await SeedCoreDataAsync();
+           var service = CreateServiceWithOtpCapture();
+           var publicId = await RequestAndGetPublicIdAsync(service, 100);
+
+           var failed = await CreateService().VerifyOtpAsync(new OtpVerifyDto
+           {
+               OtpChallengePublicId = publicId,
+               OtpCode = "ABCDEF"
+           });
+           Assert.False(failed.IsSuccess);
+
+           using (var ctx = CreateDbContext())
+           {
+               var challenge = ctx.OtpChallenges.First(c => c.PublicId == publicId);
+               Assert.Equal(1, challenge.FailedAttempts);
+               challenge.LastSentAt = DateTime.UtcNow.AddMinutes(-5);
+               await ctx.SaveChangesAsync();
+           }
+
+           var resent = await CreateServiceWithOtpCapture().ResendOtpAsync(new OtpResendDto
+           {
+               OtpChallengePublicId = publicId
+           });
+           Assert.True(resent.IsSuccess, resent.Message);
+
+           using var verificationContext = CreateDbContext();
+           var updated = verificationContext.OtpChallenges.Single(c => c.PublicId == publicId);
+           Assert.Equal(1, updated.FailedAttempts);
+           Assert.Equal(OtpConstants.MaxFailedAttempts - 1, resent.Data!.RemainingAttempts);
+       }
+
+       [Fact]
+       public async Task Verify_WrongOtp_WritesSanitizedAuditLog()
+       {
+           await SeedCoreDataAsync();
+           var service = CreateServiceWithOtpCapture(enableAudit: true);
+           var publicId = await RequestAndGetPublicIdAsync(service, 100);
+
+           var result = await service.VerifyOtpAsync(new OtpVerifyDto
+           {
+               OtpChallengePublicId = publicId,
+               OtpCode = "ABCDEF"
+           });
+
+           Assert.False(result.IsSuccess);
+           using var ctx = CreateDbContext();
+           var audit = ctx.AuditLogs.Single(x => x.Action == "OTP_VERIFY_FAILED");
+           Assert.Equal("OtpChallenges", audit.TableName);
+           Assert.DoesNotContain("ABCDEF", audit.NewData ?? string.Empty, StringComparison.Ordinal);
+       }
+
        // ================================================================
        // TEST 11: Cashier không được chọn làm approver
        // ================================================================
@@ -585,6 +741,39 @@ namespace CafeChain.Tests
            _mockEmail.Verify(
                x => x.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()),
                Times.Once);
+       }
+
+       private async Task SeedHistoricalSecurityChallengesAsync(
+           int challengeCount,
+           string? clientIpHash,
+           string? deviceFingerprintHash,
+           int failedAttempts = 0)
+       {
+           using var ctx = CreateDbContext();
+           for (var index = 0; index < challengeCount; index++)
+           {
+               ctx.OtpChallenges.Add(new OtpChallenge
+               {
+                   PublicId = Guid.NewGuid(),
+                   StoreId = TestStoreId,
+                   RequestedByStaffId = 200,
+                   ApproverStaffId = 100,
+                   ActionType = $"SECURITY_RATE_{Guid.NewGuid():N}",
+                   TargetType = OtpConstants.TargetTypes.Shifts,
+                   TargetId = 10_000 + index,
+                   Reason = "Security rate-limit fixture",
+                   OtpHash = BCrypt.Net.BCrypt.HashPassword("ABCDEF"),
+                   PayloadFingerprint = new string('D', 64),
+                   ExpiresAt = DateTime.UtcNow.AddMinutes(-1),
+                   LastSentAt = DateTime.UtcNow.AddMinutes(-2),
+                   CreatedAt = DateTime.UtcNow.AddMinutes(-1),
+                   Status = OtpConstants.Statuses.Cancelled,
+                   FailedAttempts = failedAttempts,
+                   ClientIpHash = clientIpHash,
+                   DeviceFingerprintHash = deviceFingerprintHash
+               });
+           }
+           await ctx.SaveChangesAsync();
        }
    }
 }

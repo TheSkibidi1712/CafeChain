@@ -1,22 +1,19 @@
-@model List<CafeChain.Application.DTOs.Admin.Suppliers.AdminSupplierDTO>
+@model CafeChain.Application.DTOs.Admin.Suppliers.AdminSupplierIndexPageDTO
 @{
-    ViewData["Title"] = "Nhà cung cấp & nguồn hàng";
+    ViewData["Title"] = "Nhà cung cấp";
     var canMutate = ViewBag.CanMutateSupplier is true;
-    var activeCount = Model.Count(x => x.Active);
-    var offerCount = Model.Sum(x => x.ActiveOfferCount);
-    var storeCount = Model.Sum(x => x.ActiveStoreCount);
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/Admin/Supplier/supplier.css" asp-append-version="true" />
 }
 
-<main class="supplier-page" data-can-mutate="@canMutate.ToString().ToLowerInvariant()">
-    <header class="supplier-page-header">
-        <div>
-            <p class="supplier-eyebrow">Mua hàng / Nguồn cung</p>
-            <h1>Nhà cung cấp & nguồn hàng</h1>
-            <p class="supplier-subtitle">Quản lý đầu mối, gói mua, lịch sử giá và phạm vi phục vụ cửa hàng.</p>
+<main class="supplier-page cc-warehouse-page" data-can-mutate="@canMutate.ToString().ToLowerInvariant()">
+    <header class="supplier-page-header cc-warehouse-header">
+        <div class="supplier-page-header-copy">
+            <p class="supplier-eyebrow">Kho & Cung ứng / Đối tác</p>
+            <h1>Nhà cung cấp</h1>
+            <p class="supplier-subtitle">Quản lý thông tin liên hệ, phạm vi cung ứng và trạng thái hợp tác.</p>
         </div>
         @if (canMutate)
         {
@@ -27,30 +24,81 @@
         }
     </header>
 
-    <section class="supplier-metrics" aria-label="Tổng quan nguồn cung">
-        <div><strong>@Model.Count</strong><span>Tổng nhà cung cấp</span></div>
-        <div><strong>@activeCount</strong><span>Đang hoạt động</span></div>
-        <div><strong>@offerCount</strong><span>Gói mua đang áp dụng</span></div>
-        <div><strong>@storeCount</strong><span>Lượt gán cửa hàng</span></div>
+    <section class="supplier-metrics cc-warehouse-summary-grid" aria-label="Tổng quan nguồn cung">
+        <div><span class="supplier-metric-icon" aria-hidden="true"><i class="fa-solid fa-building"></i></span><span class="supplier-metric-copy"><strong>@Model.SupplierCount</strong><span>Tổng nhà cung cấp</span></span></div>
+        <div><span class="supplier-metric-icon is-success" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span><span class="supplier-metric-copy"><strong>@Model.ActiveSupplierCount</strong><span>Đang hoạt động</span></span></div>
+        <div><span class="supplier-metric-icon" aria-hidden="true"><i class="fa-solid fa-boxes-stacked"></i></span><span class="supplier-metric-copy"><strong>@Model.ActiveOfferCount</strong><span>Gói mua đang áp dụng</span></span></div>
+        <div><span class="supplier-metric-icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span><span class="supplier-metric-copy"><strong>@Model.ActiveStoreCount</strong><span>Lượt gán cửa hàng</span></span></div>
     </section>
 
-    <section class="supplier-toolbar" aria-label="Bộ lọc nhà cung cấp">
-        <label class="supplier-search">
-            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input id="supplierSearch" type="search" placeholder="Tìm theo mã, tên, mã số thuế, số điện thoại" autocomplete="off" />
-        </label>
-        <select id="supplierStatusFilter" aria-label="Lọc trạng thái">
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang hoạt động</option>
-            <option value="inactive">Ngừng hoạt động</option>
-        </select>
-        <span class="supplier-result-count" id="supplierResultCount">@Model.Count kết quả</span>
-    </section>
+    <form method="get" class="supplier-toolbar cc-warehouse-filter" aria-label="Bộ lọc nhà cung cấp">
+        <div class="supplier-filter-heading">
+            <div>
+                <span>Phạm vi dữ liệu</span>
+                <strong>Bộ lọc nguồn cung</strong>
+            </div>
+            <span class="supplier-filter-scope"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>Theo quyền cửa hàng</span>
+        </div>
+        <div class="supplier-filter-grid">
+            <label class="supplier-search">
+                <span>Tìm nhà cung cấp</span>
+                <span class="supplier-search-control">
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <input id="supplierSearch" name="search" value="@Model.Search" type="search" placeholder="Mã, tên, mã số thuế, số điện thoại" autocomplete="off" />
+                </span>
+            </label>
+            <label class="supplier-filter-field">
+                <span>Trạng thái hợp tác</span>
+                <select id="supplierStatusFilter" name="status">
+                    <option value="" selected="@(!Model.Status.HasValue)">Tất cả trạng thái</option>
+                    <option value="true" selected="@(Model.Status == true)">Đang hoạt động</option>
+                    <option value="false" selected="@(Model.Status == false)">Ngừng hoạt động</option>
+                </select>
+            </label>
+            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+            <div class="supplier-filter-actions">
+                <a class="supplier-btn supplier-btn-light" href="@Url.Action("Index")">Đặt lại</a>
+                <button type="submit" class="supplier-btn supplier-btn-primary">
+                    <i class="fa-solid fa-filter" aria-hidden="true"></i>
+                    Áp dụng
+                </button>
+            </div>
+        </div>
+        <div class="supplier-filter-result">
+            <span class="supplier-result-count" id="supplierResultCount">
+                Hiển thị <strong>@Model.FirstItemNumber–@Model.LastItemNumber</strong> trên <strong>@Model.TotalCount</strong> kết quả
+            </span>
+        </div>
+    </form>
 
     <div class="supplier-workspace">
         <section class="supplier-list-panel" aria-label="Danh sách nhà cung cấp">
-            <div class="supplier-table-scroll">
+            <div class="supplier-list-heading">
+                <div class="supplier-list-heading-main">
+                    <span class="supplier-list-heading-icon" aria-hidden="true">
+                        <i class="fa-solid fa-truck-field"></i>
+                    </span>
+                    <div class="supplier-list-heading-copy">
+                        <span class="supplier-list-kicker">Danh sách nguồn cung</span>
+                        <h2>Nhà cung cấp trong phạm vi quản lý</h2>
+                    </div>
+                </div>
+                <span class="supplier-list-total" aria-label="Tổng cộng @Model.TotalCount nhà cung cấp">
+                    <strong>@Model.TotalCount</strong>
+                    <span>Nhà cung cấp</span>
+                </span>
+            </div>
+            <div class="supplier-table-scroll cc-warehouse-table-shell">
                 <table class="supplier-table">
+                    <colgroup>
+                        <col class="supplier-col-identity" />
+                        <col class="supplier-col-tax" />
+                        <col class="supplier-col-contact" />
+                        <col class="supplier-col-count" />
+                        <col class="supplier-col-count" />
+                        <col class="supplier-col-status" />
+                        <col class="supplier-col-action" />
+                    </colgroup>
                     <thead>
                         <tr>
                             <th>Nhà cung cấp</th>
@@ -63,11 +111,9 @@
                         </tr>
                     </thead>
                     <tbody id="supplierRows">
-                        @foreach (var item in Model)
+                        @foreach (var item in Model.Items)
                         {
-                            <tr data-supplier-id="@item.SupplierId"
-                                data-status="@(item.Active ? "active" : "inactive")"
-                                data-search="@($"{item.Code} {item.Name} {item.TaxCode} {item.PrimaryPhone} {item.PrimaryContactName} {item.PrimaryContactPhone}".ToLowerInvariant())">
+                            <tr data-supplier-id="@item.SupplierId">
                                 <td>
                                     <span class="supplier-code">@item.Code</span>
                                     <strong>@item.Name</strong>
@@ -81,20 +127,38 @@
                                 <td class="text-center"><strong class="supplier-number">@item.ActiveOfferCount</strong><small>đang dùng</small></td>
                                 <td class="text-center"><strong class="supplier-number">@item.ActiveStoreCount</strong><small>được gán</small></td>
                                 <td class="text-center"><span class="supplier-status @(item.Active ? "is-active" : "is-inactive")">@(item.Active ? "Đang hoạt động" : "Ngừng hoạt động")</span></td>
-                                <td class="text-center"><button type="button" class="supplier-btn supplier-btn-light open-supplier" data-id="@item.SupplierId">Xem chi tiết</button></td>
+                                <td class="text-center"><button type="button" class="supplier-btn supplier-btn-light open-supplier" data-id="@item.SupplierId" aria-label="Xem chi tiết nhà cung cấp @item.Name">Chi tiết<i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button></td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
-            <div class="supplier-empty @(Model.Count == 0 ? "" : "is-hidden")" id="supplierEmptyState">
+            <div class="supplier-empty cc-warehouse-empty @(Model.Items.Count == 0 ? "" : "is-hidden")" id="supplierEmptyState" role="status">
                 <i class="fa-solid fa-box-open" aria-hidden="true"></i>
                 <strong>Không có nhà cung cấp phù hợp</strong>
                 <span>Thay đổi từ khóa hoặc trạng thái để xem kết quả khác.</span>
             </div>
+            @if (Model.TotalCount > 0 && Model.TotalPages > 1)
+            {
+                <nav class="supplier-pagination" aria-label="Phân trang nhà cung cấp">
+                    <a class="supplier-page-link @(Model.HasPreviousPage ? "" : "is-disabled")"
+                       href="@(Model.HasPreviousPage ? Url.Action("Index", new { search = Model.Search, status = Model.Status, page = Model.PageIndex - 1, pageSize = Model.PageSize }) : null)"
+                       aria-disabled="@(!Model.HasPreviousPage)">
+                        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                        Trước
+                    </a>
+                    <span>Trang <strong>@Model.PageIndex</strong> / @Model.TotalPages</span>
+                    <a class="supplier-page-link @(Model.HasNextPage ? "" : "is-disabled")"
+                       href="@(Model.HasNextPage ? Url.Action("Index", new { search = Model.Search, status = Model.Status, page = Model.PageIndex + 1, pageSize = Model.PageSize }) : null)"
+                       aria-disabled="@(!Model.HasNextPage)">
+                        Sau
+                        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                    </a>
+                </nav>
+            }
         </section>
 
-        <aside class="supplier-detail" id="supplierDetail" aria-label="Chi tiết nhà cung cấp" aria-hidden="true">
+        <aside class="supplier-detail" id="supplierDetail" role="dialog" aria-modal="true" aria-label="Chi tiết nhà cung cấp" aria-hidden="true">
             <div class="supplier-detail-placeholder" id="supplierDetailPlaceholder">
                 <i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i>
                 <strong>Chọn một nhà cung cấp</strong>
@@ -103,10 +167,11 @@
 
             <div class="supplier-detail-content is-hidden" id="supplierDetailContent">
                 <header class="supplier-detail-header">
-                    <div>
+                    <div class="supplier-detail-identity">
                         <span class="supplier-code" id="detailCode"></span>
                         <h2 id="detailName"></h2>
                         <p id="detailSummary"></p>
+                        <span class="supplier-status" id="detailStatus"></span>
                     </div>
                     <button type="button" class="supplier-icon-button" id="closeSupplierDetail" title="Đóng chi tiết" aria-label="Đóng chi tiết">
                         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -249,37 +314,93 @@
 
 @if (canMutate)
 {
-    <div class="supplier-modal" id="createSupplierModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="createSupplierTitle">
-        <div class="supplier-modal-panel">
-            <header><div><p class="supplier-eyebrow">Hồ sơ nguồn cung</p><h2 id="createSupplierTitle">Thêm nhà cung cấp</h2></div><button type="button" class="supplier-icon-button" data-close-modal aria-label="Đóng"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></header>
-            <form class="supplier-form" id="createSupplierForm">
-                <div class="supplier-form-grid">
-                    <label><span>Tên nhà cung cấp</span><input id="createName" required maxlength="200" /></label>
-                    <label><span>Mã số thuế</span><input id="createTaxCode" maxlength="32" inputmode="numeric" placeholder="Ví dụ: 0312345679 hoặc 0312345679-001" aria-describedby="createTaxCodeError" /><small class="supplier-field-error is-hidden" id="createTaxCodeError"></small></label>
-                    <label><span>Điện thoại chính</span><input id="createPhone" required maxlength="20" /></label>
-                    <label><span>Người liên hệ chính</span><input id="createContactName" required maxlength="200" /></label>
-                    <label><span>Điện thoại đầu mối</span><input id="createContactPhone" maxlength="20" /></label>
-                    <label><span>Email đầu mối</span><input id="createContactEmail" type="email" maxlength="200" /></label>
-                    <label><span>Chức vụ</span><input id="createContactPosition" maxlength="100" /></label>
-                    <label class="is-wide"><span>Địa chỉ</span><input id="createAddress" maxlength="500" /></label>
-                    <label class="is-wide"><span>Ghi chú</span><textarea id="createNote" rows="3" maxlength="1000"></textarea></label>
-                </div>
-                <section class="supplier-duplicate-panel is-hidden" id="supplierDuplicatePanel" aria-live="polite">
+    <div class="supplier-modal" id="createSupplierModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="createSupplierTitle" aria-describedby="createSupplierDescription">
+        <div class="supplier-modal-panel cc-modal">
+            <header>
+                <div class="supplier-modal-title">
+                    <span class="supplier-modal-icon" aria-hidden="true"><i class="fa-solid fa-building-circle-check"></i></span>
                     <div>
-                        <strong id="duplicatePanelTitle"></strong>
-                        <p id="duplicatePanelMessage"></p>
+                        <p class="supplier-eyebrow">Hồ sơ nguồn cung</p>
+                        <h2 id="createSupplierTitle">Thêm nhà cung cấp</h2>
+                        <p id="createSupplierDescription">Khởi tạo hồ sơ doanh nghiệp và đầu mối liên hệ chính.</p>
                     </div>
-                    <div class="supplier-duplicate-list" id="duplicateSupplierList"></div>
-                    <label class="is-hidden" id="duplicateReasonGroup"><span>Lý do vẫn tạo mới</span><textarea id="duplicateReason" maxlength="500" rows="2"></textarea><small class="supplier-field-error is-hidden" id="duplicateReasonError"></small></label>
-                    <div class="supplier-form-actions">
-                        <button type="button" class="supplier-btn supplier-btn-quiet" id="cancelDuplicateWarning">Hủy cảnh báo</button>
-                        <button type="button" class="supplier-btn supplier-btn-light is-hidden" id="openDuplicateSupplier">Mở nhà cung cấp hiện có</button>
-                        <button type="button" class="supplier-btn supplier-btn-light is-hidden" id="reactivateDuplicateSupplier">Kích hoạt lại</button>
-                        <button type="button" class="supplier-btn supplier-btn-primary is-hidden" id="confirmDuplicateCreate">Xác nhận vẫn tạo mới</button>
+                </div>
+                <button type="button" class="supplier-icon-button" data-close-modal aria-label="Đóng"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </header>
+            <form class="supplier-form" id="createSupplierForm">
+                <div class="supplier-modal-body">
+                    <div class="supplier-create-grid">
+                    <fieldset class="supplier-form-section">
+                        <legend>Thông tin doanh nghiệp</legend>
+                        <p class="supplier-form-section-note">Thông tin dùng để nhận diện và đối chiếu chứng từ mua hàng.</p>
+                        <div class="supplier-form-grid">
+                            <label><span>Tên nhà cung cấp <em>*</em></span><input id="createName" required maxlength="200" /></label>
+                            <label><span>Mã số thuế</span><input id="createTaxCode" maxlength="32" inputmode="numeric" placeholder="Ví dụ: 0312345679 hoặc 0312345679-001" aria-describedby="createTaxCodeError" /><small class="supplier-field-error is-hidden" id="createTaxCodeError"></small></label>
+                            <label><span>Điện thoại chính <em>*</em></span><input id="createPhone" required maxlength="20" /></label>
+                            <label class="is-wide"><span>Địa chỉ</span><input id="createAddress" maxlength="500" /></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="supplier-form-section">
+                        <legend>Đầu mối chính</legend>
+                        <p class="supplier-form-section-note">Người nhận báo giá và phối hợp xử lý giao hàng.</p>
+                        <div class="supplier-form-grid">
+                            <label><span>Người liên hệ chính <em>*</em></span><input id="createContactName" required maxlength="200" /></label>
+                            <label><span>Chức vụ</span><input id="createContactPosition" maxlength="100" /></label>
+                            <label><span>Điện thoại đầu mối</span><input id="createContactPhone" maxlength="20" /></label>
+                            <label><span>Email đầu mối</span><input id="createContactEmail" type="email" maxlength="200" /></label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="supplier-form-section supplier-form-section-note-field is-wide">
+                        <legend>Ghi chú vận hành</legend>
+                        <label><span>Thông tin bổ sung</span><textarea id="createNote" rows="3" maxlength="1000" placeholder="Điều kiện giao hàng, thời gian liên hệ hoặc lưu ý đối soát..."></textarea></label>
+                    </fieldset>
                     </div>
-                </section>
-                <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet" data-close-modal>Hủy</button><button class="supplier-btn supplier-btn-primary" type="submit">Tạo nhà cung cấp</button></div>
+
+                    <section class="supplier-duplicate-panel is-hidden" id="supplierDuplicatePanel" aria-live="polite">
+                        <div>
+                            <strong id="duplicatePanelTitle"></strong>
+                            <p id="duplicatePanelMessage"></p>
+                        </div>
+                        <div class="supplier-duplicate-list" id="duplicateSupplierList"></div>
+                        <label class="is-hidden" id="duplicateReasonGroup"><span>Lý do vẫn tạo mới</span><textarea id="duplicateReason" maxlength="500" rows="2"></textarea><small class="supplier-field-error is-hidden" id="duplicateReasonError"></small></label>
+                        <div class="supplier-form-actions">
+                            <button type="button" class="supplier-btn supplier-btn-quiet" id="cancelDuplicateWarning">Hủy cảnh báo</button>
+                            <button type="button" class="supplier-btn supplier-btn-light is-hidden" id="openDuplicateSupplier">Mở nhà cung cấp hiện có</button>
+                            <button type="button" class="supplier-btn supplier-btn-light is-hidden" id="reactivateDuplicateSupplier">Kích hoạt lại</button>
+                            <button type="button" class="supplier-btn supplier-btn-primary is-hidden" id="confirmDuplicateCreate">Xác nhận vẫn tạo mới</button>
+                        </div>
+                    </section>
+                </div>
+                <footer class="supplier-modal-footer">
+                    <span><em>*</em> Trường bắt buộc</span>
+                    <div class="supplier-modal-actions">
+                        <button type="button" class="supplier-btn supplier-btn-quiet" data-close-modal>Hủy</button>
+                        <button class="supplier-btn supplier-btn-primary" type="submit"><i class="fa-solid fa-plus" aria-hidden="true"></i>Tạo nhà cung cấp</button>
+                    </div>
+                </footer>
             </form>
+        </div>
+    </div>
+
+    <div class="supplier-modal supplier-confirm-modal" id="supplierConfirmModal" aria-hidden="true" role="alertdialog" aria-modal="true" aria-labelledby="supplierConfirmTitle" aria-describedby="supplierConfirmMessage">
+        <div class="supplier-confirm-panel cc-modal">
+            <header>
+                <span class="supplier-confirm-icon" aria-hidden="true"><i class="fa-solid fa-trash-can"></i></span>
+                <div>
+                    <p class="supplier-eyebrow">Xác nhận thao tác</p>
+                    <h2 id="supplierConfirmTitle">Xóa dữ liệu?</h2>
+                </div>
+            </header>
+            <div class="supplier-confirm-body">
+                <p id="supplierConfirmMessage"></p>
+                <span>Thao tác này không thể hoàn tác.</span>
+            </div>
+            <footer>
+                <button type="button" class="supplier-btn supplier-btn-quiet" id="cancelSupplierConfirm">Giữ lại</button>
+                <button type="button" class="supplier-btn supplier-btn-danger" id="acceptSupplierConfirm">Xác nhận xóa</button>
+            </footer>
         </div>
     </div>
 }

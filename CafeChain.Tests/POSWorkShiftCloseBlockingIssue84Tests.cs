@@ -6,6 +6,7 @@ using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Infrastructure.Repositories.Admin.POS;
 using CafeChain.Models.Orders;
+using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,16 @@ namespace CafeChain.Tests.POS
         public async Task CloseShiftAsync_WithBackendAwaitingPaymentPosOrder_ReturnsFailureAndKeepsShiftOpen()
         {
             using var context = CreateDbContext();
+            context.Staffs.Add(new Staff
+            {
+                StaffId = 17,
+                AccountId = 17,
+                StoreId = 3,
+                FullName = "Nhan vien POS",
+                EmployeeStatus = 2,
+                Active = true,
+                CreatedAt = DateTime.UtcNow
+            });
             context.WorkShifts.Add(CreateOpenShift());
             context.Orders.Add(new Order
             {
@@ -48,7 +59,7 @@ namespace CafeChain.Tests.POS
             Assert.Contains("Đang có giao dịch thanh toán chưa hoàn tất", result.Message);
 
             var shift = await context.WorkShifts.SingleAsync(workShift => workShift.ShiftId == 84);
-            Assert.Equal("Open", shift.Status);
+            Assert.Equal(WorkShiftStatuses.Open, shift.Status);
             Assert.Null(shift.EndTime);
             Assert.Null(shift.ActualEndingCash);
         }
@@ -78,11 +89,11 @@ namespace CafeChain.Tests.POS
             });
 
             Assert.True(result.IsSuccess, result.Message);
-            Assert.Equal("Closed", shift.Status);
+            Assert.Equal(WorkShiftStatuses.Closed, shift.Status);
             Assert.NotNull(shift.EndTime);
             Assert.Equal(500000m, shift.ActualEndingCash);
             Assert.Equal(0m, shift.CashDiscrepancy);
-            repository.Verify(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>()), Times.Once);
+            repository.Verify(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>()), Times.Exactly(2));
         }
 
         [Fact]
@@ -112,12 +123,12 @@ namespace CafeChain.Tests.POS
 
             Assert.True(result.IsSuccess, result.Message);
 
-            Assert.Equal("Closed", shift.Status);
+            Assert.Equal(WorkShiftStatuses.Closed, shift.Status);
             Assert.Equal(500000m, shift.ExpectedEndingCash);
             Assert.Equal(490000m, shift.ActualEndingCash);
             Assert.Equal(-10000m, shift.CashDiscrepancy);
             Assert.Equal("Thiếu tiền mặt khi kiểm két.", shift.DiscrepancyReason);
-            repository.Verify(repo => repo.UpdateShiftAsync(shift), Times.Once);
+            repository.Verify(repo => repo.UpdateShiftAsync(shift), Times.Exactly(2));
         }
 
         private static WorkShiftService CreateService(AppDbContext context)
@@ -142,8 +153,8 @@ namespace CafeChain.Tests.POS
                 ShiftId = 84,
                 StoreId = 3,
                 UserId = 17,
-                Status = "Open",
-                StartTime = DateTime.Now,
+                Status = WorkShiftStatuses.Open,
+                StartTimeUtc = DateTime.UtcNow,
                 StartingCash = 500000m,
                 ExpectedEndingCash = 500000m
             };

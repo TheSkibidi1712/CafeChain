@@ -4,6 +4,8 @@ using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Staffs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using CafeChain.Application.Results;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,13 +26,17 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
 
         public async Task<WorkShift?> GetActiveShiftAsync(int userId, int storeId)
         {
+            var activeStatuses = WorkShiftStatuses.ActiveResponsibility;
             return await _context.WorkShifts
-                .FirstOrDefaultAsync(ws => ws.UserId == userId && ws.StoreId == storeId && ws.Status == "Open");
+                .Include(ws => ws.User)
+                .FirstOrDefaultAsync(ws => ws.UserId == userId && ws.StoreId == storeId
+                    && (activeStatuses.Contains(ws.Status) || ws.Status == "Open"));
         }
 
         public async Task<WorkShift?> GetShiftByIdAsync(int shiftId, int userId, int storeId)
         {
             return await _context.WorkShifts
+                .Include(ws => ws.User)
                 .FirstOrDefaultAsync(ws =>
                     ws.ShiftId == shiftId &&
                     ws.UserId == userId &&
@@ -40,14 +46,55 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         public async Task<WorkShift?> GetShiftByIdAsync(int shiftId)
         {
             return await _context.WorkShifts
+                .Include(ws => ws.User)
                 .FirstOrDefaultAsync(ws => ws.ShiftId == shiftId);
         }
 
         public async Task<WorkShift> CreateShiftAsync(WorkShift shift)
         {
-            _context.WorkShifts.Add(shift);
-            await _context.SaveChangesAsync();
-            return shift;
+            IDbContextTransaction? transaction = null;
+            var ownsTransaction = _context.Database.CurrentTransaction == null && _context.Database.IsRelational();
+            if (ownsTransaction)
+                transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+
+            try
+            {
+                var activeStatuses = WorkShiftStatuses.ActiveResponsibility;
+                var staffConflict = await _context.WorkShifts.AnyAsync(x =>
+                    x.UserId == shift.UserId && (activeStatuses.Contains(x.Status) || x.Status == "Open"));
+                if (staffConflict)
+                    throw new WorkShiftBusinessException(
+                        WorkShiftErrorCodes.StaffAlreadyHasOpenShift,
+                        "Nhân viên đang chịu trách nhiệm một phiên POS khác.");
+
+                if (!string.IsNullOrWhiteSpace(shift.PosTerminalId))
+                {
+                    var terminalConflict = await _context.WorkShifts.AnyAsync(x =>
+                        x.PosTerminalId == shift.PosTerminalId
+                        && (activeStatuses.Contains(x.Status) || x.Status == "Open"));
+                    if (terminalConflict)
+                        throw new WorkShiftBusinessException(
+                            WorkShiftErrorCodes.TerminalAlreadyHasOpenShift,
+                            "Terminal đang có phiên POS chưa kết thúc.");
+                }
+
+                _context.WorkShifts.Add(shift);
+                await _context.SaveChangesAsync();
+                if (transaction != null)
+                    await transaction.CommitAsync();
+                return shift;
+            }
+            catch
+            {
+                if (transaction != null)
+                    await transaction.RollbackAsync();
+                throw;
+            }
+            finally
+            {
+                if (transaction != null)
+                    await transaction.DisposeAsync();
+            }
         }
 
         public async Task UpdateShiftAsync(WorkShift shift)
@@ -58,21 +105,52 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
 
         public async Task EnsurePosTerminalAsync(string terminalId, int storeId, string name)
         {
-            var exists = await _context.PosTerminals
-                .AnyAsync(terminal => terminal.TerminalId == terminalId);
+            var terminal = await _context.PosTerminals
+                .Include(x => x.Store)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.TerminalId == terminalId);
+            if (terminal == null)
+                throw new WorkShiftBusinessException(
+                    WorkShiftErrorCodes.TerminalNotFound,
+                    "Terminal chưa được đăng ký và phê duyệt.");
+            if (terminal.StoreId != storeId)
+                throw new WorkShiftBusinessException(
+                    WorkShiftErrorCodes.TerminalStoreMismatch,
+                    "Terminal không thuộc cửa hàng hiện tại.");
+            if (!terminal.Active)
+                throw new WorkShiftBusinessException(
+                    WorkShiftErrorCodes.TerminalInactive,
+                    "Terminal đã bị vô hiệu hóa.");
+            if (terminal.Store == null || !terminal.Store.Active)
+                throw new WorkShiftBusinessException(
+                    WorkShiftErrorCodes.TerminalInactive,
+                    "Cửa hàng của terminal đã bị vô hiệu hóa.");
+        }
 
-            if (exists) return;
+        public async Task<PosTerminal> RegisterPosTerminalAsync(string terminalId, int storeId, string name)
+        {
+            var existing = await _context.PosTerminals.FirstOrDefaultAsync(x => x.TerminalId == terminalId);
+            if (existing != null)
+            {
+                if (existing.StoreId != storeId)
+                    throw new WorkShiftBusinessException(WorkShiftErrorCodes.TerminalStoreMismatch, "Terminal đã thuộc cửa hàng khác.");
+                existing.Name = name;
+                existing.Active = true;
+                await _context.SaveChangesAsync();
+                return existing;
+            }
 
-            _context.PosTerminals.Add(new PosTerminal
+            var terminal = new PosTerminal
             {
                 TerminalId = terminalId,
                 StoreId = storeId,
                 Name = name,
                 Active = true,
-                CreatedAt = DateTime.Now
-            });
-
+                CreatedAtUtc = DateTime.UtcNow
+            };
+            _context.PosTerminals.Add(terminal);
             await _context.SaveChangesAsync();
+            return terminal;
         }
 
         public async Task<StaffShift?> GetEffectiveStaffShiftAsync(int staffId, int storeId, DateTime now)
@@ -86,7 +164,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     && ss.Shift.StoreId == storeId
                     && ss.Status.Code == "SCHEDULED"
                     && ss.WorkDate >= today.AddDays(-1)
-                    && ss.WorkDate <= today)
+                    && ss.WorkDate <= today.AddDays(1))
                 .ToListAsync();
 
             return candidates
@@ -96,8 +174,8 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     Start = schedule.WorkDate.Date.Add(schedule.CustomStartTime ?? schedule.Shift.StartTime),
                     End = ResolveEnd(schedule)
                 })
-                .Where(x => x.Start <= now && now < x.End)
-                .OrderByDescending(x => x.Start)
+                .Where(x => x.Start.AddMinutes(-30) <= now && now <= x.End.AddMinutes(30))
+                .OrderBy(x => Math.Abs((x.Start - now).TotalMinutes))
                 .Select(x => x.Schedule)
                 .FirstOrDefault();
         }

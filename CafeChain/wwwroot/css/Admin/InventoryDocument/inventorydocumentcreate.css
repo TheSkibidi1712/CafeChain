@@ -1107,3 +1107,276 @@
     background: #F7F3EE;
     font-size: 0.875rem;
 }
+
+/* =====================================================
+   PROTOTYPE ALIGNMENT - CREATE DOCUMENT WORKSPACE
+===================================================== */
+
+#inventoryCreateModal .modal-content {
+    --create-brown-950: #3f291d;
+    --create-brown-900: #503423;
+    --create-brown-800: #67452f;
+    --create-brown-700: #7b553a;
+    --create-brown-600: #956d50;
+    --create-brown-200: #dfd0c3;
+    --create-brown-100: #eee4dc;
+    --create-brown-50: #f8f3ef;
+    --create-line: #e7ddd5;
+    --create-shadow-sm: 0 5px 14px rgba(62, 39, 25, .07);
+    --create-shadow-md: 0 14px 35px rgba(62, 39, 25, .12);
+    background: #f5f2ef;
+}
+
+/* The shared procurement stylesheet limits every modal-content to 1180px.
+   This workflow is a complete document workspace, so it must own the viewport. */
+#inventoryCreateModal {
+    padding: 0 !important;
+    overflow: hidden;
+    background: #f5f2ef;
+}
+
+#inventoryCreateModal .modal-dialog {
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100dvh;
+    min-height: 100dvh;
+    margin: 0 !important;
+    transform: none !important;
+}
+
+#inventoryCreateModal .modal-content {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+#inventoryCreateModal .inventory-create-form {
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.inventory-create-header {
+    position: relative;
+    min-height: 104px;
+    padding: 20px clamp(20px, 2.5vw, 38px);
+    overflow: hidden;
+    border-bottom: 1px solid var(--create-brown-200);
+    background: linear-gradient(125deg, #fff 0%, #fbf6f1 62%, #f0e4da 100%);
+    box-shadow: 0 8px 24px rgba(62, 39, 25, .08);
+}
+
+.inventory-create-header::after {
+    position: absolute;
+    right: -48px;
+    bottom: -112px;
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: rgba(123, 85, 58, .08);
+    content: "";
+    pointer-events: none;
+}
+
+.inventory-create-title,
+.inventory-create-header-meta { position: relative; z-index: 1; }
+
+.inventory-create-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 15px;
+    background: linear-gradient(145deg, var(--create-brown-600), var(--create-brown-900));
+    color: #fff;
+    box-shadow: 0 12px 22px rgba(80, 52, 35, .25);
+}
+
+.inventory-create-header-export .inventory-create-icon,
+.inventory-create-header-stock-take .inventory-create-icon,
+.inventory-create-header-waste .inventory-create-icon {
+    color: #fff;
+    background: linear-gradient(145deg, var(--create-brown-600), var(--create-brown-900));
+}
+
+.inventory-create-breadcrumb { color: var(--create-brown-700); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.inventory-create-title h4 { font-size: clamp(22px, 2.2vw, 30px); letter-spacing: -.02em; }
+.inventory-create-title p { max-width: 720px; margin-top: 5px; color: #687383; }
+
+.inventory-create-code,
+.inventory-create-status { height: 31px; border: 1px solid var(--create-brown-200); background: rgba(255, 255, 255, .82); }
+.inventory-create-status { color: var(--create-brown-800); background: var(--create-brown-100); }
+
+.inventory-create-body {
+    min-height: 0;
+    padding: 20px clamp(16px, 2.4vw, 38px) 28px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+.inventory-create-workspace { width: 100%; max-width: none; margin: 0; }
+
+.inventory-create-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 13px 15px;
+    border: 1px solid #e7d0ae;
+    border-radius: 12px;
+    background: #fff4df;
+    color: #80501d;
+    font-size: 13px;
+    line-height: 1.45;
+    box-shadow: var(--create-shadow-sm);
+}
+
+.inventory-create-notice-waste { border-color: #efc4c6; background: #fdeced; color: #8f3438; }
+.inventory-create-notice i { margin-top: 3px; }
+
+.inventory-create-main { gap: 16px; }
+.create-section,
+.create-summary-strip {
+    border-color: var(--create-line);
+    border-radius: 16px;
+    box-shadow: var(--create-shadow-md);
+    transition: border-color .16s ease, box-shadow .16s ease;
+}
+.create-section:hover,
+.create-summary-strip:hover { border-color: var(--create-brown-200); }
+.create-section { padding: 0; overflow: hidden; }
+
+.create-section-header {
+    margin: 0;
+    padding: 17px 20px;
+    border-bottom: 1px solid var(--create-line);
+    background: linear-gradient(180deg, #fff, #fcfaf8);
+}
+
+.create-section-eyebrow { color: var(--create-brown-700); font-size: 10px; letter-spacing: .08em; }
+.create-section-header h5 { font-size: 18px; }
+.create-section-badge { color: var(--create-brown-800); background: var(--create-brown-100); }
+.create-field-grid,
+.create-purpose-block,
+.create-field-grid-secondary,
+.create-section-hint { margin-left: 20px; margin-right: 20px; }
+.create-field-grid { margin-top: 18px; }
+.create-field-grid-secondary { margin-top: 16px; margin-bottom: 20px; }
+.create-field-wide { grid-column: 1 / -1; }
+.create-purpose-block { margin-top: 18px; }
+.create-section-hint { margin-top: 14px; }
+
+.create-control {
+    min-height: 43px;
+    padding: 9px 12px;
+    border-color: #d9cec5;
+    border-radius: 10px;
+    background-color: #fff;
+    transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+.create-control:hover:not(:disabled):not([readonly]) { border-color: var(--create-brown-600); }
+.create-control:focus { border-color: var(--create-brown-700); box-shadow: 0 0 0 3px rgba(149, 109, 80, .2); }
+.create-control[readonly], .create-control:disabled, .create-control-readonly { background-color: #f7f4f1; }
+
+.create-purpose-card,
+.negative-stock-mode-card {
+    border-color: var(--create-line);
+    border-radius: 12px;
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+.create-purpose-card:hover,
+.negative-stock-mode-card:not(.is-disabled):hover {
+    transform: translateY(-2px);
+    border-color: var(--create-brown-600);
+    background: var(--create-brown-50);
+    box-shadow: var(--create-shadow-sm);
+}
+.create-purpose-card:only-child { grid-column: 1 / -1; }
+.create-purpose-card:has(.create-purpose-input:checked),
+.negative-stock-mode-card:has(.negative-stock-mode-input:checked) {
+    border-color: var(--create-brown-700);
+    background: var(--create-brown-50);
+}
+
+.create-detail-section .create-section-header { margin-bottom: 0; }
+.create-add-row-btn {
+    min-height: 40px;
+    border-radius: 10px;
+    border-color: var(--create-brown-200);
+    background: #fff;
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+.create-add-row-btn:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--create-brown-600); background: var(--create-brown-50); box-shadow: var(--create-shadow-sm); }
+
+.create-table-wrap {
+    margin: 0 20px 20px;
+    border-color: var(--create-line);
+    border-radius: 12px;
+    scrollbar-color: var(--create-brown-600) var(--create-brown-100);
+}
+.inventory-create-table thead { background: #f2ebe5; }
+.inventory-create-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 12px 10px;
+    border-bottom-color: #d9ccc2;
+    background: #f2ebe5;
+    color: #574638;
+}
+.inventory-create-table tbody tr { transition: background-color .15s ease; }
+.inventory-create-table tbody tr:hover td { background: #fdf8f4; }
+.create-remove-row-btn { transition: transform .16s ease, box-shadow .16s ease; }
+.create-remove-row-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(173, 63, 67, .16); }
+
+.create-summary-strip {
+    padding: 16px 18px;
+    background: linear-gradient(125deg, #fff, #fbf6f1);
+}
+.create-summary-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--create-brown-100); color: var(--create-brown-800); }
+.create-summary-row { border-color: var(--create-line); border-radius: 10px; background: rgba(255, 255, 255, .86); }
+.create-summary-final { border-color: var(--create-brown-200); background: var(--create-brown-100); }
+
+.inventory-create-footer {
+    padding: 14px clamp(16px, 2.4vw, 38px);
+    border-top-color: var(--create-brown-200);
+    background: rgba(255, 253, 251, .97);
+    box-shadow: 0 -10px 30px rgba(62, 39, 25, .1);
+    backdrop-filter: blur(12px);
+}
+.inventory-create-actions { width: 100%; max-width: none; }
+.create-action-btn { min-height: 42px; border-radius: 11px; transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease; }
+.create-action-btn:hover { transform: translateY(-2px); box-shadow: 0 9px 20px rgba(62, 39, 25, .14); }
+.create-action-confirm { background: linear-gradient(145deg, var(--create-brown-700), var(--create-brown-900)); }
+.create-action-draft { border-color: var(--create-brown-200); background: var(--create-brown-50); }
+
+@media (max-width: 1180px) {
+    .create-field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .create-field-grid-secondary { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 1181px) {
+    .inventory-create-form[data-document-type-name="EXPORT"] .create-field-grid:not(.create-field-grid-secondary),
+    .inventory-create-form[data-document-type-name="STOCK_TAKE"] .create-field-grid:not(.create-field-grid-secondary),
+    .inventory-create-form[data-document-type-name="WASTE"] .create-field-grid:not(.create-field-grid-secondary) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .inventory-create-header { min-height: 0; padding: 16px; }
+    .inventory-create-body { padding: 14px 10px 136px; }
+    .inventory-create-notice { margin-bottom: 12px; }
+    .create-field-grid, .create-purpose-list, .negative-stock-mode-list, .create-summary-list { grid-template-columns: 1fr; }
+    .create-field-grid, .create-purpose-block, .create-field-grid-secondary, .create-section-hint { margin-left: 14px; margin-right: 14px; }
+    .create-table-wrap { margin: 0 14px 14px; }
+    .create-section-header { align-items: flex-start; padding: 15px 14px; }
+    .create-summary-strip { border-radius: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #inventoryCreateModal *, #inventoryCreateModal *::before, #inventoryCreateModal *::after { transition: none !important; }
+}

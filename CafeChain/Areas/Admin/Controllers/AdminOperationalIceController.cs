@@ -117,10 +117,12 @@ public sealed class AdminOperationalIceController : AdminBaseController
             })
             .ToListAsync(cancellationToken);
 
-        var canManage = await HasPermissionAsync(OperationalIcePermissions.Manage, selectedStoreId);
-        var canApprove = await HasPermissionAsync(OperationalIcePermissions.Approve, selectedStoreId);
-        var canPolicy = await HasPermissionAsync(OperationalIcePermissions.Policy, selectedStoreId);
-        if (canManage && shifts.Count > 0)
+        var canCreateShift = await HasPermissionAsync(OperationalIcePermissions.CreateShift, selectedStoreId);
+        var canOpenShift = await HasPermissionAsync(OperationalIcePermissions.OpenShift, selectedStoreId);
+        var canCancelScheduledShift = await HasPermissionAsync(OperationalIcePermissions.CancelScheduledShift, selectedStoreId);
+        var canPolicy = await HasPermissionAsync(OperationalIcePermissions.ConfigurePolicy, selectedStoreId);
+        var canViewReport = await HasPermissionAsync(OperationalIcePermissions.ViewReport, selectedStoreId);
+        if ((canCreateShift || canOpenShift) && shifts.Count > 0)
         {
             var reviews = await _service.GetScheduleReviewsAsync(
                 selectedStoreId,
@@ -190,7 +192,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 Code = x.Code,
                 Label = x.Label
             }).ToList() : [],
-            ShiftLeads = canManage ? await GetShiftLeadOptionsAsync(selectedStoreId, cancellationToken) : [],
+            ShiftLeads = canCreateShift ? await GetShiftLeadOptionsAsync(selectedStoreId, cancellationToken) : [],
             Inventory = setup.Inventory == null ? null : new OperationalIceInventoryVM
             {
                 PhysicalQuantity = setup.Inventory.PhysicalQuantity / displayToBaseFactor,
@@ -204,8 +206,10 @@ public sealed class AdminOperationalIceController : AdminBaseController
             PolicyStatusMessage = policyConversionValid
                 ? setup.StatusMessage
                 : "Chính sách đá thiếu quy đổi đơn vị hợp lệ.",
-            CanManage = canManage,
-            CanApprove = canApprove,
+            CanCreateShift = canCreateShift,
+            CanOpenShift = canOpenShift,
+            CanCancelScheduledShift = canCancelScheduledShift,
+            CanViewReport = canViewReport,
             CanConfigurePolicy = canPolicy
         });
     }
@@ -239,8 +243,13 @@ public sealed class AdminOperationalIceController : AdminBaseController
             return StoreScopeFailure(scope);
         if (!await HasPermissionAsync(OperationalIcePermissions.View, allocation.OperationalShift.StoreId))
             return Forbid();
-        var canManage = await HasPermissionAsync(OperationalIcePermissions.Manage, allocation.OperationalShift.StoreId);
-        var canApprove = await HasPermissionAsync(OperationalIcePermissions.Approve, allocation.OperationalShift.StoreId);
+        var canLinkWorkShift = await HasPermissionAsync(OperationalIcePermissions.LinkWorkShift, allocation.OperationalShift.StoreId);
+        var canRequestSupplement = await HasPermissionAsync(OperationalIcePermissions.RequestSupplement, allocation.OperationalShift.StoreId);
+        var canApproveSupplement = await HasPermissionAsync(OperationalIcePermissions.ApproveSupplement, allocation.OperationalShift.StoreId);
+        var canHandoff = await HasPermissionAsync(OperationalIcePermissions.Handoff, allocation.OperationalShift.StoreId);
+        var canSubmitClose = await HasPermissionAsync(OperationalIcePermissions.SubmitClose, allocation.OperationalShift.StoreId);
+        var canApproveVariance = await HasPermissionAsync(OperationalIcePermissions.ApproveVariance, allocation.OperationalShift.StoreId);
+        var canViewReport = await HasPermissionAsync(OperationalIcePermissions.ViewReport, allocation.OperationalShift.StoreId);
         var displayToBaseFactorResult = await _unitConversionService.ConvertAsync(
             allocation.IngredientId,
             1m,
@@ -255,7 +264,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
             TempData["ErrorMessage"] = "Không thể quy đổi đơn vị đá. Dữ liệu đang hiển thị theo đơn vị tồn kho.";
 
         IReadOnlyList<OperationalIceWorkShiftSuggestionDto> availableWorkShiftRows = [];
-        if (canManage)
+        if (canLinkWorkShift)
         {
             var suggestionResult = await _service.GetWorkShiftSuggestionsAsync(
                 allocation.OperationalShiftId,
@@ -280,7 +289,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
                         + (x.EndTime.HasValue ? $"–{x.EndTime:HH:mm}" : "–Đang mở")
             })
             .ToList();
-        var carryTargets = canManage ? await _context.IceAllocations.AsNoTracking()
+        var carryTargets = canHandoff ? await _context.IceAllocations.AsNoTracking()
             .Where(x => x.IceAllocationId != allocation.IceAllocationId
                         && x.OperationalShift.StoreId == allocation.OperationalShift.StoreId
                         && x.OperationalShift.BusinessDate == allocation.OperationalShift.BusinessDate
@@ -320,14 +329,14 @@ public sealed class AdminOperationalIceController : AdminBaseController
             ReconciliationReason = allocation.ReconciliationReason,
             CostSnapshotStatus = allocation.CostSnapshotStatus,
             UnitCostSnapshot = allocation.UnitCostSnapshot * detailDisplayToBaseFactor,
-            WorkShifts = allocation.OperationalShift.WorkShiftLinks.OrderBy(x => x.WorkShift.StartTime)
+            WorkShifts = allocation.OperationalShift.WorkShiftLinks.OrderBy(x => x.WorkShift.StartTimeUtc)
                 .Select(x => new OperationalIceWorkShiftVM
                 {
                     WorkShiftId = x.WorkShiftId,
                     StaffName = x.WorkShift.User.FullName,
                     Status = x.WorkShift.Status,
-                    StartTime = x.WorkShift.StartTime,
-                    EndTime = x.WorkShift.EndTime
+                    StartTime = x.WorkShift.StartTimeUtc.ToLocalTime(),
+                    EndTime = x.WorkShift.EndTimeUtc?.ToLocalTime()
                 }).ToList(),
             Supplements = allocation.SupplementalIssues.OrderByDescending(x => x.RequestedAtUtc)
                 .Select(x => new OperationalIceSupplementVM
@@ -377,13 +386,18 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 }).ToList(),
             AvailableWorkShifts = availableWorkShifts,
             CarryTargets = carryTargets,
-            StaffOptions = canManage ? await _context.Staffs.AsNoTracking()
+            StaffOptions = canHandoff || canSubmitClose ? await _context.Staffs.AsNoTracking()
                 .Where(x => x.StoreId == allocation.OperationalShift.StoreId && x.Active)
                 .OrderBy(x => x.FullName)
                 .Select(x => new OperationalIceOptionVM { Id = x.StaffId, Label = x.FullName })
                 .ToListAsync(cancellationToken) : [],
-            CanManage = canManage,
-            CanApprove = canApprove
+            CanLinkWorkShift = canLinkWorkShift,
+            CanRequestSupplement = canRequestSupplement,
+            CanApproveSupplement = canApproveSupplement,
+            CanHandoff = canHandoff,
+            CanSubmitClose = canSubmitClose,
+            CanApproveVariance = canApproveVariance,
+            CanViewReport = canViewReport
         });
     }
 
@@ -393,7 +407,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
         var storeId = await StoreIdForAllocationAsync(id, cancellationToken);
         if (storeId == 0)
             return NotFound();
-        if (!await HasPermissionAsync(OperationalIcePermissions.View, storeId))
+        if (!await HasPermissionAsync(OperationalIcePermissions.ViewReport, storeId))
             return Forbid();
 
         var result = await _reportService.BuildAsync(id, cancellationToken);
@@ -412,7 +426,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
         var storeId = await StoreIdForAllocationAsync(id, cancellationToken);
         if (storeId == 0)
             return NotFound();
-        if (!await HasPermissionAsync(OperationalIcePermissions.View, storeId))
+        if (!await HasPermissionAsync(OperationalIcePermissions.ViewReport, storeId))
             return Forbid();
 
         var result = await _reportService.BuildAsync(id, cancellationToken);
@@ -430,7 +444,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SavePolicy(SaveIcePolicyRequest request, CancellationToken cancellationToken)
     {
-        if (!await HasPermissionAsync(OperationalIcePermissions.Policy, request.StoreId))
+        if (!await HasPermissionAsync(OperationalIcePermissions.ConfigurePolicy, request.StoreId))
             return Forbid();
         var factor = await _unitConversionService.ConvertAsync(request.IngredientId, 1m, request.DisplayUnitId);
         if (!factor.IsSuccess || factor.Data <= 0)
@@ -454,7 +468,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateShift(CreateOperationalShiftRequest request, CancellationToken cancellationToken)
     {
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, request.StoreId))
+        if (!await HasPermissionAsync(OperationalIcePermissions.CreateShift, request.StoreId))
             return Forbid();
         var normalized = new CreateOperationalShiftRequest
         {
@@ -475,7 +489,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     {
         var unitContext = await UnitContextForShiftAsync(request.OperationalShiftId, cancellationToken);
         if (unitContext == null) return NotFound();
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, unitContext.StoreId)) return Forbid();
+        if (!await HasPermissionAsync(OperationalIcePermissions.OpenShift, unitContext.StoreId)) return Forbid();
         var converted = await _unitConversionService.ConvertAsync(
             unitContext.IngredientId,
             request.InitialIssuedQuantity,
@@ -498,7 +512,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     public async Task<IActionResult> LinkWorkShift(LinkOperationalWorkShiftRequest request, int allocationId, CancellationToken cancellationToken)
     {
         var storeId = await StoreIdForShiftAsync(request.OperationalShiftId, cancellationToken);
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, storeId)) return Forbid();
+        if (!await HasPermissionAsync(OperationalIcePermissions.LinkWorkShift, storeId)) return Forbid();
         return RedirectWithResult(await _service.LinkWorkShiftAsync(request, _actorAccessor.Get(User), cancellationToken), nameof(Details), new { id = allocationId });
     }
 
@@ -513,7 +527,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
             .SingleOrDefaultAsync(cancellationToken);
         if (shiftScope == null)
             return NotFound();
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+        if (!await HasPermissionAsync(OperationalIcePermissions.CreateShift, shiftScope.StoreId))
             return Forbid();
 
         return RedirectWithResult(
@@ -533,7 +547,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
         var shiftScope = await ShiftScopeAsync(request.OperationalShiftId, cancellationToken);
         if (shiftScope == null)
             return NotFound();
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+        if (!await HasPermissionAsync(OperationalIcePermissions.CreateShift, shiftScope.StoreId))
             return Forbid();
 
         return RedirectWithResult(
@@ -553,7 +567,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
         var shiftScope = await ShiftScopeAsync(request.OperationalShiftId, cancellationToken);
         if (shiftScope == null)
             return NotFound();
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+        if (!await HasPermissionAsync(OperationalIcePermissions.CreateShift, shiftScope.StoreId))
             return Forbid();
 
         return RedirectWithResult(
@@ -573,7 +587,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
         var shiftScope = await ShiftScopeAsync(request.OperationalShiftId, cancellationToken);
         if (shiftScope == null)
             return NotFound();
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, shiftScope.StoreId))
+        if (!await HasPermissionAsync(OperationalIcePermissions.CancelScheduledShift, shiftScope.StoreId))
             return Forbid();
 
         return RedirectWithResult(
@@ -602,7 +616,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
             });
         }
 
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, storeId))
+        if (!await HasPermissionAsync(OperationalIcePermissions.CreateShift, storeId))
         {
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
@@ -658,7 +672,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     public async Task<IActionResult> LinkWorkShifts(LinkOperationalWorkShiftsRequest request, int allocationId, CancellationToken cancellationToken)
     {
         var storeId = await StoreIdForShiftAsync(request.OperationalShiftId, cancellationToken);
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, storeId)) return Forbid();
+        if (!await HasPermissionAsync(OperationalIcePermissions.LinkWorkShift, storeId)) return Forbid();
         return RedirectWithResult(
             await _service.LinkWorkShiftsAsync(request, _actorAccessor.Get(User), cancellationToken),
             nameof(Details),
@@ -670,7 +684,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     {
         var unitContext = await UnitContextForAllocationAsync(request.IceAllocationId, cancellationToken);
         if (unitContext == null) return NotFound();
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, unitContext.StoreId)) return Forbid();
+        if (!await HasPermissionAsync(OperationalIcePermissions.RequestSupplement, unitContext.StoreId)) return Forbid();
         var converted = await _unitConversionService.ConvertAsync(
             unitContext.IngredientId,
             request.Quantity,
@@ -691,7 +705,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> DecideSupplemental(DecideSupplementalIceRequest request, int allocationId, CancellationToken cancellationToken) =>
-        await RunAllocationActionAsync(allocationId, OperationalIcePermissions.Approve,
+        await RunAllocationActionAsync(allocationId, OperationalIcePermissions.ApproveSupplement,
             () => _service.DecideSupplementalAsync(request, _actorAccessor.Get(User), cancellationToken));
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -699,7 +713,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     {
         var unitContext = await UnitContextForAllocationAsync(request.FromIceAllocationId, cancellationToken);
         if (unitContext == null) return NotFound();
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, unitContext.StoreId)) return Forbid();
+        if (!await HasPermissionAsync(OperationalIcePermissions.Handoff, unitContext.StoreId)) return Forbid();
         var converted = await _unitConversionService.ConvertAsync(
             unitContext.IngredientId,
             request.Quantity,
@@ -724,7 +738,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     {
         var unitContext = await UnitContextForAllocationAsync(request.IceAllocationId, cancellationToken);
         if (unitContext == null) return NotFound();
-        if (!await HasPermissionAsync(OperationalIcePermissions.Manage, unitContext.StoreId)) return Forbid();
+        if (!await HasPermissionAsync(OperationalIcePermissions.SubmitClose, unitContext.StoreId)) return Forbid();
         var converted = await _unitConversionService.ConvertAsync(
             unitContext.IngredientId,
             request.ReturnedQuantity,
@@ -747,17 +761,17 @@ public sealed class AdminOperationalIceController : AdminBaseController
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveVariance(ApproveIceVarianceRequest request, CancellationToken cancellationToken) =>
-        await RunAllocationActionAsync(request.IceAllocationId, OperationalIcePermissions.Approve,
+        await RunAllocationActionAsync(request.IceAllocationId, OperationalIcePermissions.ApproveVariance,
             () => _service.ApproveVarianceAsync(request, _actorAccessor.Get(User), cancellationToken));
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ReconcileVariance(ReconcileIceVarianceRequest request, CancellationToken cancellationToken) =>
-        await RunAllocationActionAsync(request.IceAllocationId, OperationalIcePermissions.Approve,
+        await RunAllocationActionAsync(request.IceAllocationId, OperationalIcePermissions.ApproveVariance,
             () => _service.ReconcileVarianceAsync(request, _actorAccessor.Get(User), cancellationToken));
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CancelAllocation(CancelIceAllocationRequest request, CancellationToken cancellationToken) =>
-        await RunAllocationActionAsync(request.IceAllocationId, OperationalIcePermissions.Approve,
+        await RunAllocationActionAsync(request.IceAllocationId, OperationalIcePermissions.ApproveVariance,
             () => _service.CancelAllocationAsync(request, _actorAccessor.Get(User), cancellationToken));
 
     private async Task<IActionResult> RunAllocationActionAsync<T>(

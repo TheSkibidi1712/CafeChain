@@ -1,6 +1,7 @@
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Orders;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CafeChain.Models.Stores
 {
@@ -25,12 +26,44 @@ namespace CafeChain.Models.Stores
         /// <summary>
         /// Thời điểm mở ca
         /// </summary>
-        public DateTime StartTime { get; set; }
+        public DateTime StartTimeUtc { get; set; }
 
         /// <summary>
         /// Thời điểm đóng ca — null nếu ca đang mở
         /// </summary>
-        public DateTime? EndTime { get; set; }
+        public DateTime? EndTimeUtc { get; set; }
+
+        /// <summary>Ngày nghiệp vụ tại múi giờ cửa hàng, không đổi khi qua nửa đêm.</summary>
+        public DateTime BusinessDate { get; set; }
+
+        /// <summary>Lịch dự kiến nguồn; null cho phiên ngoài lịch/legacy.</summary>
+        public int? SourceStaffShiftId { get; set; }
+
+        [MaxLength(32)]
+        public string OpenContext { get; set; } = WorkShiftOpenContexts.Legacy;
+
+        [MaxLength(500)]
+        public string? OutsideScheduleReason { get; set; }
+
+        public int? ApprovedByStaffId { get; set; }
+        public DateTime? ApprovedAtUtc { get; set; }
+        public DateTime? AutoCloseAtUtc { get; set; }
+        public DateTime? ExpiredAtUtc { get; set; }
+        public DateTime? ClosingStartedAtUtc { get; set; }
+
+        [MaxLength(32)]
+        public string? CloseType { get; set; }
+
+        public int? ClosedByStaffId { get; set; }
+
+        [MaxLength(500)]
+        public string? CloseReason { get; set; }
+
+        /// <summary>0=chưa cảnh báo, 1=30 phút, 2=10 phút, 3=1 phút, 4=hết hạn.</summary>
+        public byte ExpiryWarningLevel { get; set; }
+
+        [Timestamp]
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
         /// <summary>
         /// Tiền lẻ đầu ca (tiền mặt được giao cho thu ngân)
@@ -57,8 +90,8 @@ namespace CafeChain.Models.Stores
         /// <summary>
         /// Trạng thái ca: Open | Closed
         /// </summary>
-        [MaxLength(20)]
-        public string Status { get; set; } = "Open";
+        [MaxLength(32)]
+        public string Status { get; set; } = WorkShiftStatuses.Open;
 
         /// <summary>
         /// Lý do chênh lệch tiền mặt khi đóng ca (nếu có)
@@ -120,7 +153,7 @@ namespace CafeChain.Models.Stores
         /// <summary>
         /// Lần gần nhất Offline Order sync vào sau khi WorkShift đã đóng.
         /// </summary>
-        public DateTime? LastLateOfflineSyncedAt { get; set; }
+        public DateTime? LastLateOfflineSyncedAtUtc { get; set; }
 
         /// <summary>
         /// Khóa ca két gắn cứng theo thiết bị POS Terminal (GUID từ browser localStorage)
@@ -132,7 +165,72 @@ namespace CafeChain.Models.Stores
         public virtual Store Store { get; set; }
         public virtual Staff User { get; set; }
         public virtual Staff? ExceptionClosedByStaff { get; set; }
+        public virtual Staff? ApprovedByStaff { get; set; }
+        public virtual Staff? ClosedByStaff { get; set; }
+        public virtual StaffShift? SourceStaffShift { get; set; }
         public virtual PosTerminal? PosTerminal { get; set; }
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+
+        // Compatibility aliases for modules that have not yet migrated their display-only code.
+        [NotMapped]
+        public DateTime StartTime
+        {
+            get => AsLocalCompatibilityTime(StartTimeUtc);
+            set => StartTimeUtc = AsUtcStorageTime(value);
+        }
+
+        [NotMapped]
+        public DateTime? EndTime
+        {
+            get => EndTimeUtc.HasValue ? AsLocalCompatibilityTime(EndTimeUtc.Value) : null;
+            set => EndTimeUtc = value.HasValue ? AsUtcStorageTime(value.Value) : null;
+        }
+
+        [NotMapped]
+        public DateTime? LastLateOfflineSyncedAt
+        {
+            get => LastLateOfflineSyncedAtUtc;
+            set => LastLateOfflineSyncedAtUtc = value;
+        }
+
+        private static DateTime AsUtcStorageTime(DateTime value) => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime()
+        };
+
+        private static DateTime AsLocalCompatibilityTime(DateTime value) =>
+            DateTime.SpecifyKind(value, DateTimeKind.Utc).ToLocalTime();
+    }
+
+    public static class WorkShiftStatuses
+    {
+        public const string Open = "OPEN";
+        public const string Closing = "CLOSING";
+        public const string ExpiredPendingClose = "EXPIRED_PENDING_CLOSE";
+        public const string Closed = "CLOSED";
+        public const string ReconciliationRequired = "RECONCILIATION_REQUIRED";
+
+        public static readonly string[] ActiveResponsibility =
+        {
+            Open, Closing, ExpiredPendingClose
+        };
+    }
+
+    public static class WorkShiftOpenContexts
+    {
+        public const string WithinSchedule = "WITHIN_SCHEDULE";
+        public const string LateForSchedule = "LATE_FOR_SCHEDULE";
+        public const string OutsideSchedule = "OUTSIDE_SCHEDULE";
+        public const string Legacy = "LEGACY";
+    }
+
+    public static class WorkShiftCloseTypes
+    {
+        public const string Normal = "NORMAL";
+        public const string Expired = "EXPIRED";
+        public const string Exception = "EXCEPTION";
+        public const string AutoEmptyShift = "AUTO_EMPTY_SHIFT";
     }
 }

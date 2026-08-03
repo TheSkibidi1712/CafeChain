@@ -1,6 +1,7 @@
 export const POS_TOKEN_KEY = 'pos_jwt_token'
 
 const POS_CONTEXT_KEY = 'pos_context'
+const POS_TERMINAL_KEY = 'CafeChain_POS_TerminalId'
 
 const CLAIMS = {
   nameIdentifier: [
@@ -108,27 +109,44 @@ export function getPosSession(): PosSession {
   }
 }
 
-export function bootstrapPosTokenFromUrl(): PosSession {
+export async function bootstrapPosTokenFromUrl(): Promise<PosSession> {
   const url = new URL(window.location.href)
   const hashParams = new URLSearchParams(url.hash.startsWith('#') ? url.hash.slice(1) : url.hash)
-  const token =
-    hashParams.get('pos_token') ??
-    hashParams.get('token') ??
-    url.searchParams.get('pos_token') ??
-    url.searchParams.get('token')
+  const exchangeCode = hashParams.get('exchange_code')
+  const exchangeUrlValue = hashParams.get('exchange_url')
 
-  if (!token) return getPosSession()
+  if (!exchangeCode || !exchangeUrlValue) return getPosSession()
 
-  const session = savePosToken(token)
+  const exchangeUrl = new URL(exchangeUrlValue, window.location.origin)
+  if (exchangeUrl.protocol !== 'https:' && exchangeUrl.protocol !== 'http:') {
+    throw new Error('Địa chỉ đổi mã POS không hợp lệ.')
+  }
 
-  url.searchParams.delete('pos_token')
-  url.searchParams.delete('token')
+  // Remove the bearer exchange code from browser history before doing network I/O.
   url.hash = ''
   window.history.replaceState({}, document.title, url.pathname + url.search)
 
-  return session
+  const response = await fetch(exchangeUrl.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ exchangeCode }),
+  })
+  const payload = await response.json().catch(() => null) as { token?: string; message?: string } | null
+  if (!response.ok || !payload?.token) {
+    throw new Error(payload?.message ?? 'Mã mở POS đã hết hạn hoặc đã được sử dụng.')
+  }
+
+  return savePosToken(payload.token)
 }
 
 export function getPosStoreId(defaultStoreId = 1): number {
   return getPosSession().storeId ?? defaultStoreId
+}
+
+export function getPosTerminalId(): string {
+  const existing = localStorage.getItem(POS_TERMINAL_KEY)
+  if (existing) return existing
+  const generated = crypto.randomUUID()
+  localStorage.setItem(POS_TERMINAL_KEY, generated)
+  return generated
 }

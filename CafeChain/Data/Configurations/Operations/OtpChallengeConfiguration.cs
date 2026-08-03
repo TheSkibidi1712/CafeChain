@@ -31,10 +31,18 @@ namespace CafeChain.Data.Configurations.Operations
                 .IsRequired()
                 .HasMaxLength(255);
 
+            entity.Property(x => x.ProtectedOtpPayload)
+                .HasMaxLength(2048);
+
             entity.Property(x => x.PayloadFingerprint)
                 .IsRequired()
                 .HasMaxLength(128)
                 .HasDefaultValue(string.Empty);
+
+            entity.Property(x => x.TerminalId).HasMaxLength(100);
+            entity.Property(x => x.RequestKey).HasMaxLength(200);
+            entity.Property(x => x.ClientIpHash).HasMaxLength(64).IsFixedLength();
+            entity.Property(x => x.DeviceFingerprintHash).HasMaxLength(64).IsFixedLength();
 
             entity.Property(x => x.Status)
                 .IsRequired()
@@ -60,6 +68,10 @@ namespace CafeChain.Data.Configurations.Operations
             entity.HasIndex(x => new { x.ActionType, x.TargetType, x.TargetId, x.StoreId });
             entity.HasIndex(x => x.RequestedByStaffId);
             entity.HasIndex(x => x.WorkShiftId);
+            entity.HasIndex(x => x.TerminalId);
+            entity.HasIndex(x => x.RequestKey);
+            entity.HasIndex(x => new { x.ClientIpHash, x.CreatedAt });
+            entity.HasIndex(x => new { x.DeviceFingerprintHash, x.CreatedAt });
             entity.HasIndex(x => x.CreatedAt);
 
             // Helps enforce one-open-challenge lookup (application still owns status transitions).

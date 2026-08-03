@@ -51,6 +51,26 @@ public sealed class StaffNotificationRepository : IStaffNotificationRepository
             .Where(x => !x.IsRead)
             .ToListAsync();
 
+    public Task<List<OtpChallenge>> GetActiveOtpChallengesAsync(
+        int recipientStaffId,
+        IReadOnlyCollection<int> challengeIds,
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        if (challengeIds.Count == 0)
+            return Task.FromResult(new List<OtpChallenge>());
+
+        return _context.OtpChallenges
+            .AsNoTracking()
+            .Where(x =>
+                challengeIds.Contains(x.OtpChallengeId)
+                && x.ApproverStaffId == recipientStaffId
+                && x.Status == CafeChain.Application.Constants.OtpConstants.Statuses.Pending
+                && x.ExpiresAt > nowUtc
+                && x.ProtectedOtpPayload != null)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<StaffNotification?> GetByDeduplicationKeyAsync(
         string key,
         CancellationToken cancellationToken = default) =>
@@ -86,7 +106,7 @@ public sealed class StaffNotificationRepository : IStaffNotificationRepository
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
         _context.SaveChangesAsync(cancellationToken);
 
-    private static IQueryable<StaffNotification> Scope(
+    private IQueryable<StaffNotification> Scope(
         IQueryable<StaffNotification> query,
         int recipientStaffId,
         IReadOnlyCollection<int>? allowedStoreIds)
@@ -94,7 +114,13 @@ public sealed class StaffNotificationRepository : IStaffNotificationRepository
         query = query.Where(x =>
             x.RecipientStaffId == recipientStaffId
             && x.ResolvedAt == null
-            && x.Type != RetiredScheduleGapType);
+            && x.Type != RetiredScheduleGapType
+            && (x.Type != CafeChain.Application.Constants.StaffNotificationTypes.OperationalOtpRequest
+                || _context.OtpChallenges.Any(challenge =>
+                    challenge.OtpChallengeId == x.EntityId
+                    && challenge.ApproverStaffId == recipientStaffId
+                    && challenge.Status == CafeChain.Application.Constants.OtpConstants.Statuses.Pending
+                    && challenge.ExpiresAt > DateTime.UtcNow)));
         if (allowedStoreIds != null)
             query = query.Where(x => allowedStoreIds.Contains(x.StoreId));
         return query;

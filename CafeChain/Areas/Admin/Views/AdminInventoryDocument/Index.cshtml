@@ -9,7 +9,7 @@
 <link rel="stylesheet"
       href="~/css/Admin/InventoryDocument/inventorydocumentcreate.css" />
 
-<div class="inventory-page"
+<div class="inventory-page cc-warehouse-page"
      id="inventoryDocumentPage"
      data-detail-url="@Url.Action("DetailModal", "AdminInventoryDocument", new { area = "Admin" })"
      data-create-modal-url="@Url.Action("CreateModal", "AdminInventoryDocument", new { area = "Admin" })"
@@ -28,12 +28,18 @@
 
     @Html.AntiForgeryToken()
 
-    <div class="inventory-header">
-        <div>
-            <h3>Phiếu Kho</h3>
+    <div class="inventory-header cc-warehouse-header">
+        <div class="inventory-heading">
+            <span class="inventory-heading-icon" aria-hidden="true">
+                <i class="fas fa-file-invoice"></i>
+            </span>
+            <div>
+                <span class="inventory-eyebrow">Kho &amp; cung ứng / Phiếu kho</span>
+                <h3>Quản lý phiếu kho</h3>
             <p>
-                Quản lý Nhập, Xuất, Kiểm kê và Hủy kho.
+                    Theo dõi xuất, kiểm kê và hủy kho trong một không gian rõ ràng, ưu tiên chứng từ cần xử lý.
             </p>
+            </div>
         </div>
 
         <div class="inventory-actions">
@@ -66,11 +72,13 @@
     <partial name="Partials/Detail/_FilterSection"
              model="Model" />
 
-    <partial name="Partials/Detail/_DocumentTabs"
-             model="Model.Filter" />
+    <section class="inventory-results-panel" aria-label="Danh sách phiếu kho">
+        <partial name="Partials/Detail/_DocumentTabs"
+                 model="Model.Filter" />
 
-    <partial name="Partials/Detail/_DocumentTable"
-             model="Model" />
+        <partial name="Partials/Detail/_DocumentTable"
+                 model="Model" />
+    </section>
 
 </div>
 

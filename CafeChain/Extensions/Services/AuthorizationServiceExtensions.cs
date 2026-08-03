@@ -16,6 +16,7 @@ public static class AuthorizationServiceExtensions
                     RoleConstants.BusinessOwner,
                     RoleConstants.AreaManager,
                     RoleConstants.StoreManager,
+                    RoleConstants.ShiftSupervisor,
                     RoleConstants.AccountantWarehouse,
                     RoleConstants.SystemAdmin);
             });

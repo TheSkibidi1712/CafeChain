@@ -13,6 +13,21 @@ namespace CafeChain.Application.Interfaces.POS
         /// </summary>
         Task<ServiceResult> OpenShiftAsync(int userId, int storeId, OpenShiftRequestDto request);
 
+        Task<ServiceResult<OpenShiftAssessmentDto>> AssessOpenShiftAsync(
+            int userId,
+            int storeId,
+            OpenShiftAssessmentRequestDto request,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Assesses the current staff schedule without requiring or mutating a POS terminal.
+        /// Used by StaffHub as a read-only preflight before issuing a one-time POS exchange code.
+        /// </summary>
+        Task<ServiceResult<OpenShiftAssessmentDto>> AssessOpenContextAsync(
+            int staffId,
+            int storeId,
+            CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Gets the currently open WorkShift for a user at a store.
         /// Returns null if no shift is open.
@@ -36,11 +51,20 @@ namespace CafeChain.Application.Interfaces.POS
         /// Calculates expected ending cash and records discrepancy.
         /// </summary>
         Task<ServiceResult> CloseShiftAsync(int userId, int storeId, CloseShiftRequestDto request);
+        Task<ServiceResult> CloseShiftAsync(int userId, int storeId, int shiftId, CloseShiftRequestDto request);
+
+        Task<ShiftSummaryDto?> GetSummaryAsync(int userId, int storeId, int? shiftId = null);
 
         /// <summary>
         /// Closes an open WorkShift by supervisor/manager exception while preserving
         /// local Offline Orders for later Sync into the original WorkShift.
         /// </summary>
         Task<ServiceResult> CloseShiftByExceptionAsync(int userId, int storeId, int shiftId, CloseShiftExceptionRequestDto request);
+
+        Task<ServiceResult> StartClosingAsync(int userId, int storeId, int shiftId, StartClosingRequestDto request);
+
+        Task<ServiceResult> ReconcileAsync(int userId, int storeId, int shiftId, ReconcileWorkShiftRequestDto request);
+
+        Task<ServiceResult> RegisterTerminalAsync(int userId, int storeId, PosTerminalRegisterDto request);
     }
 }

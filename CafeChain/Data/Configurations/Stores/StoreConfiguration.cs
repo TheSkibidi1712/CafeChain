@@ -382,8 +382,8 @@ namespace CafeChain.Data.Configurations.Stores
             entity.Property(x => x.Active)
                 .HasDefaultValue(true);
 
-            entity.Property(x => x.CreatedAt)
-                .HasDefaultValueSql("GETDATE()");
+            entity.Property(x => x.CreatedAtUtc)
+                .HasDefaultValueSql("SYSUTCDATETIME()");
 
             entity.HasOne(x => x.Store)
                 .WithMany()
@@ -397,14 +397,42 @@ namespace CafeChain.Data.Configurations.Stores
     {
         public void Configure(EntityTypeBuilder<WorkShift> entity)
         {
-            entity.ToTable("WorkShifts");
+            entity.ToTable("WorkShifts", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_WorkShifts_Status",
+                    "[Status] IN ('OPEN','CLOSING','EXPIRED_PENDING_CLOSE','CLOSED','RECONCILIATION_REQUIRED')");
+                table.HasCheckConstraint(
+                    "CK_WorkShifts_OpenContext",
+                    "[OpenContext] IN ('WITHIN_SCHEDULE','LATE_FOR_SCHEDULE','OUTSIDE_SCHEDULE','LEGACY')");
+                table.HasCheckConstraint(
+                    "CK_WorkShifts_StartingCash",
+                    "[StartingCash] >= 0 AND [StartingCash] = FLOOR([StartingCash])");
+                table.HasCheckConstraint(
+                    "CK_WorkShifts_ActualEndingCash",
+                    "[ActualEndingCash] IS NULL OR ([ActualEndingCash] >= 0 AND [ActualEndingCash] = FLOOR([ActualEndingCash]))");
+            });
 
             entity.HasKey(x => x.ShiftId);
 
             entity.Property(x => x.Status)
                 .IsRequired()
-                .HasMaxLength(20)
-                .HasDefaultValue("Open");
+                .HasMaxLength(32)
+                .HasDefaultValue(WorkShiftStatuses.Open);
+
+            entity.Property(x => x.BusinessDate)
+                .HasColumnType("date");
+
+            entity.Property(x => x.OpenContext)
+                .IsRequired()
+                .HasMaxLength(32)
+                .HasDefaultValue(WorkShiftOpenContexts.Legacy);
+
+            entity.Property(x => x.OutsideScheduleReason).HasMaxLength(500);
+            entity.Property(x => x.CloseType).HasMaxLength(32);
+            entity.Property(x => x.CloseReason).HasMaxLength(500);
+            entity.Property(x => x.ExpiryWarningLevel).HasDefaultValue((byte)0);
+            entity.Property(x => x.RowVersion).IsRowVersion();
 
             entity.Property(x => x.StartingCash)
                 .HasColumnType("decimal(18,2)")
@@ -447,6 +475,21 @@ namespace CafeChain.Data.Configurations.Stores
 
             entity.HasIndex(x => new { x.StoreId, x.RequiresReconciliation });
 
+            entity.HasIndex(x => x.PosTerminalId)
+                .IsUnique()
+                .HasFilter("[PosTerminalId] IS NOT NULL AND [Status] IN ('OPEN','CLOSING','EXPIRED_PENDING_CLOSE')")
+                .HasDatabaseName("UX_WorkShifts_ActiveTerminal");
+
+            entity.HasIndex(x => x.UserId)
+                .IsUnique()
+                .HasFilter("[Status] IN ('OPEN','CLOSING','EXPIRED_PENDING_CLOSE')")
+                .HasDatabaseName("UX_WorkShifts_ActiveStaff");
+
+            entity.HasIndex(x => new { x.OpenContext, x.Status, x.AutoCloseAtUtc });
+            entity.HasIndex(x => x.SourceStaffShiftId);
+            entity.HasIndex(x => x.ApprovedByStaffId);
+            entity.HasIndex(x => x.ClosedByStaffId);
+
             // ─── Relationships ────────────────────────────
             entity.HasOne(x => x.Store)
                 .WithMany()
@@ -461,6 +504,21 @@ namespace CafeChain.Data.Configurations.Stores
             entity.HasOne(x => x.ExceptionClosedByStaff)
                 .WithMany()
                 .HasForeignKey(x => x.ExceptionClosedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ApprovedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.ApprovedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ClosedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.ClosedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.SourceStaffShift)
+                .WithMany()
+                .HasForeignKey(x => x.SourceStaffShiftId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // WorkShift → Orders (1:N)

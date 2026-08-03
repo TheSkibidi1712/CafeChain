@@ -307,7 +307,7 @@
                         </a>
                         @if (User.Identity != null && User.Identity.IsAuthenticated && RoleHelper.IsAdminGroup(User))
                         {
-                            @if (!isAdminArea)
+                            @if (!isAdminArea && currentController != "StaffHub")
                             {
                                 <!-- 👉 ĐANG Ở ADMIN → VỀ CLIENT -->
                                 <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="position-relative text-dark hover-orange transition-color no-underline">

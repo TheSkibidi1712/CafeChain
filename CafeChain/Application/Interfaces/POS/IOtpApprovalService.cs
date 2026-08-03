@@ -12,6 +12,16 @@ namespace CafeChain.Application.Interfaces.POS
 
         Task<ServiceResult<OtpChallengeResponseDto>> VerifyOtpAsync(OtpVerifyDto request);
 
+        Task<ServiceResult<OtpChallengeResponseDto>> VerifyOtpAsync(
+            OtpVerifyDto request,
+            int requestedByStaffId,
+            int storeId);
+
         Task<ServiceResult<OtpChallengeResponseDto>> ResendOtpAsync(OtpResendDto request);
+
+        Task<ServiceResult<OtpChallengeResponseDto>> ResendOtpAsync(
+            OtpResendDto request,
+            int requestedByStaffId,
+            int storeId);
     }
 }

@@ -31,11 +31,12 @@ public sealed class InventoryNotificationHub : Hub
         var storeIds = await _audience.ResolveStoreIdsAsync(
             staffId,
             Context.ConnectionAborted);
-        if (storeIds.Count == 0)
-        {
-            Context.Abort();
-            return;
-        }
+
+        // Exact identity group. Operational OTP is never published to store groups.
+        await Groups.AddToGroupAsync(
+            Context.ConnectionId,
+            InventoryNotificationGroups.ForStaff(staffId),
+            Context.ConnectionAborted);
 
         foreach (var storeId in storeIds)
         {
@@ -53,4 +54,7 @@ public static class InventoryNotificationGroups
 {
     public static string ForStore(int storeId) =>
         $"store:{storeId}:permission:{PermissionConstants.NotificationView}";
+
+    public static string ForStaff(int staffId) =>
+        $"staff:{staffId}:operational-notifications";
 }

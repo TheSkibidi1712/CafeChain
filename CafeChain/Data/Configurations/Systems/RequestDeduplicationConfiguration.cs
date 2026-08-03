@@ -50,12 +50,16 @@ namespace CafeChain.Data.Configurations.Systems
             entity.Property(x => x.ExpiredAt)
                 .IsRequired();
 
-            entity.HasIndex(x => new { x.RequestKey, x.ActionName, x.StaffId })
+            entity.Property(x => x.RowVersion).IsRowVersion();
+
+            entity.HasIndex(x => new { x.RequestKey, x.ActionName, x.StaffId, x.StoreId })
                 .IsUnique();
 
             entity.HasIndex(x => x.ActionName);
             entity.HasIndex(x => x.ExpiredAt);
             entity.HasIndex(x => x.StaffId);
+            entity.HasIndex(x => x.AccountId);
+            entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => new { x.ActionName, x.StaffId });
             entity.HasIndex(x => new { x.Status, x.ExpiredAt });

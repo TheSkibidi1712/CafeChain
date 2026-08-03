@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CafeChain.Application.DTOs.POS
 {
     public class OtpRequestDto
@@ -23,19 +25,41 @@ namespace CafeChain.Application.DTOs.POS
         /// <summary>OPEN_SHIFT_LATE starting cash binding.</summary>
         public decimal StartingCash { get; set; }
 
+        public string? TerminalId { get; set; }
+        public string? TerminalName { get; set; }
+        public string? RequestKey { get; set; }
+
         public string? OldValueJson { get; set; }
         public string? NewValueJson { get; set; }
+
+        [JsonIgnore]
+        public string? ClientIpHash { get; set; }
+
+        [JsonIgnore]
+        public string? DeviceFingerprintHash { get; set; }
     }
 
     public class OtpVerifyDto
     {
         public Guid OtpChallengePublicId { get; set; }
         public string OtpCode { get; set; } = string.Empty;
+
+        [JsonIgnore]
+        public string? ClientIpHash { get; set; }
+
+        [JsonIgnore]
+        public string? DeviceFingerprintHash { get; set; }
     }
 
     public class OtpResendDto
     {
         public Guid OtpChallengePublicId { get; set; }
+
+        [JsonIgnore]
+        public string? ClientIpHash { get; set; }
+
+        [JsonIgnore]
+        public string? DeviceFingerprintHash { get; set; }
     }
 
     public class OtpChallengeResponseDto

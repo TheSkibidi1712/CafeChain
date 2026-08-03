@@ -6,7 +6,7 @@ go
 
 /* CafeChain dashboard analytics — SQL Server, idempotent, schema-aligned 2026-07-17. */
 SET ANSI_NULLS ON;
-SET QUOTED_IDENTIFIER ON;
+SET QUOTED_IDENTIFIER ON;   
 GO
 
 CREATE OR ALTER FUNCTION dbo.ufn_AnalyticsStoreScope(@StoreIds nvarchar(max))
@@ -458,7 +458,7 @@ BEGIN
         FROM dbo.WorkShifts AS w
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
         INNER JOIN dbo.Stores AS s ON s.StoreId=w.StoreId
-        WHERE w.EndTime >= @FromDate AND w.EndTime < @ToDate
+        WHERE w.EndTimeUtc >= @FromDate AND w.EndTimeUtc < @ToDate
           AND ABS(COALESCE(w.CashDiscrepancy, 0)) > 0
         UNION ALL
         SELECT 'OVERDUE_PO', po.StoreId, st.Name, 'PURCHASE_ORDER', po.PurchaseOrderId,
@@ -490,16 +490,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT w.ShiftId AS WorkShiftId, w.StoreId, s.Name AS StoreName, w.UserId AS StaffId, st.FullName,
-           w.StartTime, w.EndTime, w.StartingCash, w.ExpectedEndingCash, w.ActualEndingCash,
+           w.StartTimeUtc AS StartTime, w.EndTimeUtc AS EndTime, w.StartingCash, w.ExpectedEndingCash, w.ActualEndingCash,
            w.CashDiscrepancy, w.DiscrepancyReason, w.IsExceptionClosed, w.RequiresReconciliation,
-           CASE WHEN w.EndTime IS NULL THEN 'OPEN' ELSE 'CLOSED' END AS DataStatus
+           CASE WHEN w.EndTimeUtc IS NULL THEN 'OPEN' ELSE 'CLOSED' END AS DataStatus
     FROM dbo.WorkShifts AS w
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
     INNER JOIN dbo.Stores AS s ON s.StoreId = w.StoreId
     INNER JOIN dbo.Staffs AS st ON st.StaffId = w.UserId
-    WHERE w.StartTime < @ToDate
-      AND COALESCE(w.EndTime, @ToDate) >= @FromDate
-    ORDER BY w.StartTime DESC;
+    WHERE w.StartTimeUtc < @ToDate
+      AND COALESCE(w.EndTimeUtc, @ToDate) >= @FromDate
+    ORDER BY w.StartTimeUtc DESC;
 END;
 GO
 
@@ -515,7 +515,7 @@ BEGIN
     FROM dbo.WorkShifts AS w
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
     LEFT JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.WorkShiftId=w.ShiftId
-    WHERE w.StartTime >= @FromDate AND w.StartTime < @ToDate
+    WHERE w.StartTimeUtc >= @FromDate AND w.StartTimeUtc < @ToDate
     GROUP BY w.ShiftId, w.StoreId ORDER BY w.ShiftId DESC;
 END;
 GO
@@ -556,12 +556,12 @@ BEGIN
     SET NOCOUNT ON;
     SELECT w.ShiftId AS WorkShiftId, w.StoreId, w.IsExceptionClosed, w.OfflineOrderCountAtClose,
            w.OfflineEstimatedTotalAtClose, w.OfflineCashTotalAtClose, w.RequiresReconciliation,
-           w.HasLateOfflineSync, w.LateOfflineSyncCount, w.LastLateOfflineSyncedAt,
+           w.HasLateOfflineSync, w.LateOfflineSyncCount, w.LastLateOfflineSyncedAtUtc AS LastLateOfflineSyncedAt,
            CASE WHEN w.RequiresReconciliation = 1 THEN 'REQUIRES_RECONCILIATION' ELSE 'LATE_SYNC' END AS DataStatus
     FROM dbo.WorkShifts AS w INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
-    WHERE w.StartTime >= @FromDate AND w.StartTime < @ToDate
+    WHERE w.StartTimeUtc >= @FromDate AND w.StartTimeUtc < @ToDate
       AND (w.IsExceptionClosed = 1 OR w.RequiresReconciliation = 1 OR w.HasLateOfflineSync = 1)
-    ORDER BY w.StartTime DESC;
+    ORDER BY w.StartTimeUtc DESC;
 END;
 GO
 
@@ -592,9 +592,9 @@ BEGIN
     SET NOCOUNT ON;
     SELECT TOP (ISNULL(NULLIF(@Top,0),10)) w.ShiftId AS WorkShiftId, w.StoreId, w.UserId AS StaffId,
            w.CashDiscrepancy, ABS(COALESCE(w.CashDiscrepancy,0)) AS AbsoluteDiscrepancy,
-           w.DiscrepancyReason, w.EndTime, 'AVAILABLE' AS DataStatus
+           w.DiscrepancyReason, w.EndTimeUtc AS EndTime, 'AVAILABLE' AS DataStatus
     FROM dbo.WorkShifts AS w INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
-    WHERE w.EndTime >= @FromDate AND w.EndTime < @ToDate
+    WHERE w.EndTimeUtc >= @FromDate AND w.EndTimeUtc < @ToDate
       AND w.CashDiscrepancy IS NOT NULL ORDER BY ABS(w.CashDiscrepancy) DESC, w.ShiftId DESC;
 END;
 GO
@@ -605,13 +605,13 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SELECT COUNT_BIG(w.ShiftId) AS TotalWorkShifts,
-           SUM(CASE WHEN w.EndTime IS NULL THEN 1 ELSE 0 END) AS OpenWorkShifts,
+           SUM(CASE WHEN w.EndTimeUtc IS NULL THEN 1 ELSE 0 END) AS OpenWorkShifts,
            SUM(CASE WHEN w.IsExceptionClosed = 1 THEN 1 ELSE 0 END) AS ExceptionClosedCount,
            SUM(CASE WHEN w.RequiresReconciliation = 1 THEN 1 ELSE 0 END) AS ReconciliationCount,
            COALESCE(SUM(ABS(COALESCE(w.CashDiscrepancy,0))),0) AS AbsoluteCashDiscrepancy,
            CASE WHEN COUNT_BIG(w.ShiftId)=0 THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
     FROM dbo.WorkShifts AS w INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=w.StoreId
-    WHERE w.StartTime >= @FromDate AND w.StartTime < @ToDate;
+    WHERE w.StartTimeUtc >= @FromDate AND w.StartTimeUtc < @ToDate;
 END;
 GO
 
@@ -830,7 +830,7 @@ BEGIN
         SELECT COUNT_BIG(w.ShiftId) AS WorkShiftCount
         FROM dbo.WorkShifts AS w
         WHERE w.UserId=st.StaffId AND w.StoreId=st.StoreId
-          AND w.StartTime>=@FromDate AND w.StartTime<@ToDate
+          AND w.StartTimeUtc>=@FromDate AND w.StartTimeUtc<@ToDate
     ) AS shifts
     OUTER APPLY
     (
@@ -940,7 +940,7 @@ BEGIN
         INNER JOIN dbo.ufn_AnalyticsOrderFacts(@FromDate,@ToDate) AS f ON f.OrderId=r.OrderId
         WHERE r.Status=3
     )
-    SELECT w.ShiftId AS CashSessionId,w.UserId AS StaffId,w.StartTime AS OpenTime,w.EndTime AS CloseTime,w.StartingCash AS StartCash,
+    SELECT w.ShiftId AS CashSessionId,w.UserId AS StaffId,w.StartTimeUtc AS OpenTime,w.EndTimeUtc AS CloseTime,w.StartingCash AS StartCash,
            COALESCE(SUM(CASE WHEN pm.Code='CASH' THEN e.Amount ELSE 0 END),0) AS CashIn,
            COALESCE(SUM(CASE WHEN pm.Code<>'CASH' THEN e.Amount ELSE 0 END),0) AS NonCashIn,
            COALESCE(SUM(e.Amount),0) AS TotalRevenue
@@ -948,8 +948,8 @@ BEGIN
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=w.StoreId
     LEFT JOIN PaymentEvents AS e ON e.WorkShiftId=w.ShiftId
     LEFT JOIN dbo.PaymentMethods AS pm ON pm.PaymentMethodId=e.PaymentMethodId
-    WHERE w.StartTime>=@FromDate AND w.StartTime<@ToDate
-    GROUP BY w.ShiftId,w.UserId,w.StartTime,w.EndTime,w.StartingCash ORDER BY w.StartTime DESC;
+    WHERE w.StartTimeUtc>=@FromDate AND w.StartTimeUtc<@ToDate
+    GROUP BY w.ShiftId,w.UserId,w.StartTimeUtc,w.EndTimeUtc,w.StartingCash ORDER BY w.StartTimeUtc DESC;
 END;
 GO
 

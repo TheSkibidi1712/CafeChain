@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -616,7 +617,11 @@ namespace CafeChain.Tests.POS
             AppDbContext context,
             Mock<ILogger<POSPaymentController>> logger)
         {
-            var controller = new POSPaymentController(context, logger.Object);
+            var service = new POSPaymentCancellationService(
+                context,
+                NullLogger<POSPaymentCancellationService>.Instance,
+                TimeProvider.System);
+            var controller = new POSPaymentController(service);
             AttachPosClaims(controller);
             return controller;
         }

@@ -10,6 +10,10 @@
 
         public int StaffId { get; set; }
 
+        public int? AccountId { get; set; }
+
+        public int StoreId { get; set; }
+
         public int? ReferenceId { get; set; }
 
         public string Status { get; set; } = null!;
@@ -23,5 +27,9 @@
         public DateTime CreatedAt { get; set; }
 
         public DateTime ExpiredAt { get; set; }
+
+        public DateTime? ProcessingLeaseUntilUtc { get; set; }
+
+        public byte[]? RowVersion { get; set; }
     }
 }

@@ -1,6 +1,7 @@
 using CafeChain.Models.Inventories.Stock;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace CafeChain.Data.Configurations.Inventories.Stock
 {
@@ -22,6 +23,11 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             });
 
             entity.HasKey(x => x.RestockRequestId);
+
+            var referenceCode = entity.Property(x => x.ReferenceCode)
+                .HasMaxLength(64)
+                .IsRequired();
+            referenceCode.Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
 
             entity.Property(x => x.RequestedQuantity)
                 .HasColumnType("decimal(18,3)")
@@ -132,6 +138,9 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.StoreId);
+            entity.HasIndex(x => x.ReferenceCode)
+                .IsUnique()
+                .HasDatabaseName("UX_RestockRequests_ReferenceCode");
             entity.HasIndex(x => new { x.StoreId, x.SourceType, x.Status });
             entity.HasIndex(x => new { x.StoreId, x.SourcingStatus });
             entity.HasIndex(x => x.StockAlertId);

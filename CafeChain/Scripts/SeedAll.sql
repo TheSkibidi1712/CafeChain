@@ -1,4 +1,5 @@
-use CafeChain
+IF DB_NAME() IN (N'master',N'model',N'msdb',N'tempdb')
+    THROW 53000,N'SeedAll phải chạy trên database CafeChain đích, không được chạy trên system database.',1;
 go
 
 SET ANSI_NULLS ON;
@@ -1354,6 +1355,18 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Toppings WHERE ToppingId = 1 AND ToppingCode = 
     THROW 52103, N'Topping nền IDs 1-6 không đúng dữ liệu EF HasData.', 1;
 GO
 
+IF EXISTS
+(
+    SELECT 1
+    FROM dbo.SystemSettings
+    WHERE SettingKey = N'seedall_foundation_inventory_v1'
+      AND SettingValue = N'completed'
+)
+BEGIN
+    PRINT N'SeedAll Batch 02 skipped: foundation inventory v1 is already complete.';
+    GOTO SeedAllBatch02Complete;
+END;
+
 BEGIN TRY
     BEGIN TRANSACTION;
 
@@ -1827,6 +1840,7 @@ BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
     THROW;
 END CATCH;
+SeedAllBatch02Complete:
 GO
 
 /* ============================================================
@@ -1922,6 +1936,18 @@ IF (SELECT COUNT(*) FROM dbo.Ingredients WHERE IngredientId BETWEEN 1 AND 13) <>
    OR (SELECT COUNT(*) FROM dbo.UnitConversions WHERE UnitConversionId BETWEEN 1 AND 72) <> 24
     THROW 52203, N'Dữ liệu Ingredient hoặc UnitConversion EF nền không đúng contract.', 1;
 GO
+
+IF EXISTS
+(
+    SELECT 1
+    FROM dbo.SystemSettings
+    WHERE SettingKey = N'seedall_foundation_inventory_v1'
+      AND SettingValue = N'completed'
+)
+BEGIN
+    PRINT N'SeedAll Batch 03 skipped: foundation inventory v1 is already complete.';
+    GOTO SeedAllBatch03Complete;
+END;
 
 BEGIN TRY
     BEGIN TRANSACTION;
@@ -2323,6 +2349,7 @@ BEGIN CATCH
     IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
     THROW;
 END CATCH;
+SeedAllBatch03Complete:
 GO
 
 /* ============================================================
@@ -2377,6 +2404,12 @@ FROM
    - Duplicate black/white pearl headers remain Archived; EF recipes stay active.
    - Extensions: 22 M/L drink recipes and 44 topping cost recipes.
    ============================================================ */
+IF EXISTS (SELECT 1 FROM dbo.SystemSettings
+           WHERE SettingKey=N'seedall_foundation_inventory_v1' AND SettingValue=N'completed')
+BEGIN
+ PRINT N'SeedAll Batch 04 skipped: foundation inventory v1 is already complete.';
+ GOTO SeedAllBatch04Complete;
+END;
 BEGIN TRY
  BEGIN TRANSACTION;
  IF OBJECT_ID(N'dbo.Recipes',N'U') IS NULL OR OBJECT_ID(N'dbo.RecipeDetails',N'U') IS NULL
@@ -3467,6 +3500,7 @@ BEGIN CATCH
  IF @@TRANCOUNT>0 ROLLBACK;
  THROW;
 END CATCH;
+SeedAllBatch04Complete:
 GO
 
 /* BATCH 04 READ-ONLY VERIFICATION */
@@ -3503,6 +3537,12 @@ SELECT N'Toppings' [Table],a.CanonicalCode RetainedCode,a.SourceCode RemovedStor
      - IDs 11-50 add 40 suppliers in five meaningful supply groups.
      - SupplierStores 1-50 scope every supplier to Store 1.
    ============================================================ */
+IF EXISTS (SELECT 1 FROM dbo.SystemSettings
+           WHERE SettingKey=N'seedall_foundation_inventory_v1' AND SettingValue=N'completed')
+BEGIN
+ PRINT N'SeedAll Batch 05 skipped: foundation inventory v1 is already complete.';
+ GOTO SeedAllBatch05Complete;
+END;
 BEGIN TRY
  BEGIN TRANSACTION;
 
@@ -3861,6 +3901,7 @@ BEGIN CATCH
  IF @@TRANCOUNT>0 ROLLBACK;
  THROW;
 END CATCH;
+SeedAllBatch05Complete:
 GO
 
 /* BATCH 05 READ-ONLY VERIFICATION */
@@ -3904,6 +3945,12 @@ UNION ALL SELECT N'Duplicate Store Scope',COUNT(*) FROM
        exactly two active suppliers and exactly one primary supplier.
      - Histories 4-294 use fixed 2025-01, 2025-07 and 2026-01 dates.
    ============================================================ */
+IF EXISTS (SELECT 1 FROM dbo.SystemSettings
+           WHERE SettingKey=N'seedall_foundation_inventory_v1' AND SettingValue=N'completed')
+BEGIN
+ PRINT N'SeedAll Batch 06 skipped: foundation inventory v1 is already complete.';
+ GOTO SeedAllBatch06Complete;
+END;
 BEGIN TRY
  BEGIN TRANSACTION;
 
@@ -4506,6 +4553,7 @@ BEGIN CATCH
  IF @@TRANCOUNT>0 ROLLBACK;
  THROW;
 END CATCH;
+SeedAllBatch06Complete:
 GO
 
 /* BATCH 06 READ-ONLY VERIFICATION */
@@ -4549,6 +4597,12 @@ WHERE PackageQuantity<=0 OR CurrentPrice<=0 OR MinimumOrderPackageCount<=0 OR Le
        publish EF exact recipes and IDs 33-54 publish extension BOMs.
      - PriceOverride stays NULL: DrinkSizes/Part1 remains authoritative.
    ============================================================ */
+IF EXISTS (SELECT 1 FROM dbo.SystemSettings
+           WHERE SettingKey=N'seedall_foundation_inventory_v1' AND SettingValue=N'completed')
+BEGIN
+ PRINT N'SeedAll Batch 07 skipped: foundation inventory v1 is already complete.';
+ GOTO SeedAllBatch07Complete;
+END;
 BEGIN TRY
  BEGIN TRANSACTION;
 
@@ -4828,6 +4882,7 @@ BEGIN CATCH
  IF @@TRANCOUNT>0 ROLLBACK;
  THROW;
 END CATCH;
+SeedAllBatch07Complete:
 GO
 
 /* BATCH 07 READ-ONLY VERIFICATION */
@@ -4873,6 +4928,12 @@ UNION ALL SELECT N'Duplicate Menu Business Key',COUNT(*) FROM
    - One confirmed opening document has 50 lines. One confirmed adjustment-
      out document has three small test lines.
    ================================================================ */
+IF EXISTS (SELECT 1 FROM dbo.SystemSettings
+           WHERE SettingKey=N'seedall_foundation_inventory_v1' AND SettingValue=N'completed')
+BEGIN
+ PRINT N'SeedAll Batch 08 skipped: foundation inventory v1 is already complete.';
+ GOTO SeedAllBatch08Complete;
+END;
 BEGIN TRY
  BEGIN TRANSACTION;
 
@@ -5265,6 +5326,7 @@ BEGIN CATCH
  IF @@TRANCOUNT>0 ROLLBACK;
  THROW;
 END CATCH;
+SeedAllBatch08Complete:
 GO
 
 /* BATCH 08 READ-ONLY VERIFICATION */
@@ -5308,6 +5370,12 @@ UNION ALL SELECT N'Duplicate Detail Movement Type',COUNT(*) FROM(SELECT Inventor
    - Existing PRODUCTION_IN transactions 54-61 are linked once to the
      corresponding ProductionRun; no inventory quantity is changed here.
    ================================================================ */
+IF EXISTS (SELECT 1 FROM dbo.SystemSettings
+           WHERE SettingKey=N'seedall_foundation_inventory_v1' AND SettingValue=N'completed')
+BEGIN
+ PRINT N'SeedAll Batch 09 skipped: foundation inventory v1 is already complete.';
+ GOTO SeedAllBatch09Complete;
+END;
 BEGIN TRY
  BEGIN TRANSACTION;
 
@@ -5525,6 +5593,7 @@ BEGIN CATCH
  IF @@TRANCOUNT>0 ROLLBACK;
  THROW;
 END CATCH;
+SeedAllBatch09Complete:
 GO
 
 /* BATCH 09 READ-ONLY VERIFICATION */
@@ -5560,6 +5629,12 @@ WHERE t.InventoryTransactionId IS NULL OR t.Quantity*ISNULL(t.UnitCost,0)<>pr.To
    - Six detail rows cover three matching and three differing counts.
    - Stock take rows are observations only; this batch does not mutate stock.
    ================================================================ */
+IF EXISTS (SELECT 1 FROM dbo.SystemSettings
+           WHERE SettingKey=N'seedall_foundation_inventory_v1' AND SettingValue=N'completed')
+BEGIN
+ PRINT N'SeedAll Batch 10 skipped: foundation inventory v1 is already complete.';
+ GOTO SeedAllBatch10Complete;
+END;
 BEGIN TRY
  BEGIN TRANSACTION;
 
@@ -5737,6 +5812,7 @@ BEGIN CATCH
  IF @@TRANCOUNT>0 ROLLBACK;
  THROW;
 END CATCH;
+SeedAllBatch10Complete:
 GO
 
 /* BATCH 10 READ-ONLY VERIFICATION */
@@ -5772,6 +5848,12 @@ FROM dbo.StockTakeDetails GROUP BY StockTakeSessionId,IngredientId HAVING COUNT(
    - Draft lines have zero dispatched/received quantities and no stock snapshot.
    - No transfer movement or completed workflow is synthesized by seed SQL.
    ================================================================ */
+IF EXISTS (SELECT 1 FROM dbo.SystemSettings
+           WHERE SettingKey=N'seedall_foundation_inventory_v1' AND SettingValue=N'completed')
+BEGIN
+ PRINT N'SeedAll Batch 11 skipped: foundation inventory v1 is already complete.';
+ GOTO SeedAllBatch11Complete;
+END;
 BEGIN TRY
  BEGIN TRANSACTION;
 
@@ -5891,6 +5973,26 @@ BEGIN CATCH
  IF @@TRANCOUNT>0 ROLLBACK;
  THROW;
 END CATCH;
+SeedAllBatch11Complete:
+GO
+
+IF NOT EXISTS
+(
+ SELECT 1 FROM dbo.SystemSettings
+ WHERE SettingKey=N'seedall_foundation_inventory_v1'
+)
+BEGIN
+ INSERT dbo.SystemSettings(SettingKey,SettingValue,Description)
+ VALUES(N'seedall_foundation_inventory_v1',N'completed',
+        N'Dấu phiên bản giúp SeedAll không tạo lại dữ liệu nền menu, kho và FIFO.');
+END
+ELSE
+BEGIN
+ UPDATE dbo.SystemSettings
+ SET SettingValue=N'completed',
+     Description=N'Dấu phiên bản giúp SeedAll không tạo lại dữ liệu nền menu, kho và FIFO.'
+ WHERE SettingKey=N'seedall_foundation_inventory_v1';
+END;
 GO
 
 /* BATCH 11 READ-ONLY VERIFICATION */
@@ -6220,9 +6322,9 @@ BEGIN TRY
  (103,21,N'Shift.Cancel',N'Hủy lịch làm việc',N'Cancel',N'Hủy lịch làm việc và giữ lịch sử',1,'2026-01-01'),
 
  (147,22, N'OperationalIce.View', N'Xem quản lý đá vận hành', N'View', N'Xem ca vận hành, phân bổ và đối soát đá', 1,'2026-07-29'),
- (148,22, N'OperationalIce.Manage', N'Vận hành phân bổ đá', N'Manage', N'Tạo ca, mở phân bổ, cấp bổ sung và bàn giao đá', 1,'2026-07-29'),
- (149,22, N'OperationalIce.Approve', N'Duyệt đối soát đá', N'Approve', N'Duyệt cấp bổ sung và chênh lệch đá cuối ca', 1,'2026-07-29'),
- (150,22, N'OperationalIce.Policy', N'Cấu hình chính sách đá', N'Policy', N'Cấu hình định mức và ngưỡng đối soát đá theo cửa hàng', 1,'2026-07-29'),
+ (148,22, N'OperationalIce.Manage', N'Vận hành phân bổ đá', N'Manage', N'Tạo ca, mở phân bổ, cấp bổ sung và bàn giao đá', 0,'2026-07-29'),
+ (149,22, N'OperationalIce.Approve', N'Duyệt đối soát đá', N'Approve', N'Duyệt cấp bổ sung và chênh lệch đá cuối ca', 0,'2026-07-29'),
+ (150,22, N'OperationalIce.Policy', N'Cấu hình chính sách đá', N'Policy', N'Cấu hình định mức và ngưỡng đối soát đá theo cửa hàng', 0,'2026-07-29'),
 
  (108,23,N'Store.View',N'Xem cửa hàng',N'View',N'Xem cửa hàng',1,'2026-01-01'),
  (109,23,N'Store.Create',N'Tạo cửa hàng',N'Create',N'Tạo cửa hàng',1,'2026-01-01'),
@@ -6387,9 +6489,6 @@ BEGIN TRY
  (1,143), -- PurchaseOrder.Export
  (1,146), -- Receipt.ViewCost
  (1,147),
- (1,148),
- (1,149),
- (1,150),
  (2,28),
  (2,32),
  (2,36),
@@ -6476,9 +6575,6 @@ BEGIN TRY
  (3,144), -- Receipt.UpdateDraft
  (3,145), -- Receipt.RecordSupplierIssue
  (3,147),
- (3,148),
- (3,149),
- (3,150),
  (4,147),
  (5,28),
  (5,29),
@@ -6561,9 +6657,6 @@ BEGIN TRY
  (5,143), -- PurchaseOrder.Export
  (5,146), -- Receipt.ViewCost
  (5,147),
- (5,148),
- (5,149),
- (5,150),
  (6,28),
  (6,29),
  (6,30),
@@ -6663,11 +6756,7 @@ BEGIN TRY
  (6,129),
  (6,130),
  (6,147),
- (6,148),
- (6,149),
- (6,150),
- (8,147),
- (8,148);
+ (8,147);
 
 
  IF EXISTS(SELECT 1 FROM @AdminRolePermissionSeed x
@@ -6718,6 +6807,12 @@ BEGIN TRY
  OR OBJECT_ID(N'dbo.AccountPermissionOverrides',N'U') IS NULL
   THROW 53340,N'RBAC_CAFECHAIN29_V2: thiếu bảng RBAC bắt buộc.',1;
 
+ DROP TABLE IF EXISTS #ExpectedRolePermissions;
+ DROP TABLE IF EXISTS #PermissionMatrix;
+ DROP TABLE IF EXISTS #NewPermissionCatalog;
+ DROP TABLE IF EXISTS #RoleMap;
+ DROP TABLE IF EXISTS #OverrideBefore;
+
  SELECT AccountPermissionOverrideId,AccountId,PermissionId,Effect,Reason
  INTO #OverrideBefore
  FROM dbo.AccountPermissionOverrides;
@@ -6762,6 +6857,17 @@ BEGIN TRY
  INSERT #NewPermissionCatalog VALUES
  (N'ReorderSuggestion.View',N'REORDER_SUGGESTION',N'Xem gợi ý nhập hàng',N'View',N'Xem danh sách gợi ý nhập hàng trong phạm vi cửa hàng được phép truy cập'),
  (N'Restock.Create',N'RESTOCK',N'Tạo yêu cầu nhập hàng',N'Create',N'Tạo mới, tạo nháp hoặc bổ sung yêu cầu nhập hàng từ gợi ý nhập hàng trong phạm vi cửa hàng được phép thao tác'),
+ (N'OperationalIce.ConfigurePolicy',N'OPERATIONAL_ICE',N'Cấu hình chính sách đá',N'ConfigurePolicy',N'Cấu hình định mức và ngưỡng đối soát đá trong phạm vi cửa hàng'),
+ (N'OperationalIce.CreateShift',N'OPERATIONAL_ICE',N'Tạo ca vận hành đá',N'CreateShift',N'Tạo và cập nhật kế hoạch ca vận hành đá trong phạm vi cửa hàng'),
+ (N'OperationalIce.OpenShift',N'OPERATIONAL_ICE',N'Mở ca vận hành đá',N'OpenShift',N'Xác nhận cấp đầu ca và mở phân bổ đá'),
+ (N'OperationalIce.LinkWorkShift',N'OPERATIONAL_ICE',N'Liên kết WorkShift POS',N'LinkWorkShift',N'Liên kết WorkShift POS hợp lệ vào ca vận hành đá'),
+ (N'OperationalIce.RequestSupplement',N'OPERATIONAL_ICE',N'Yêu cầu cấp bổ sung đá',N'RequestSupplement',N'Gửi yêu cầu cấp bổ sung cho ca vận hành đá được phân công'),
+ (N'OperationalIce.ApproveSupplement',N'OPERATIONAL_ICE',N'Duyệt cấp bổ sung đá',N'ApproveSupplement',N'Duyệt hoặc từ chối yêu cầu cấp bổ sung đá'),
+ (N'OperationalIce.Handoff',N'OPERATIONAL_ICE',N'Bàn giao đá giữa ca',N'Handoff',N'Xác nhận bàn giao đá giữa các ca cùng ngày'),
+ (N'OperationalIce.SubmitClose',N'OPERATIONAL_ICE',N'Gửi chốt ca đá',N'SubmitClose',N'Gửi số liệu chốt ca vận hành đá'),
+ (N'OperationalIce.ApproveVariance',N'OPERATIONAL_ICE',N'Duyệt chênh lệch đá',N'ApproveVariance',N'Duyệt hao hụt hoặc hoàn tất đối soát chênh lệch đá'),
+ (N'OperationalIce.CancelScheduledShift',N'OPERATIONAL_ICE',N'Hủy ca đá chưa mở',N'CancelScheduledShift',N'Hủy ca vận hành đá còn ở trạng thái kế hoạch'),
+ (N'OperationalIce.ViewReport',N'OPERATIONAL_ICE',N'Xem báo cáo ca đá',N'ViewReport',N'Xem và tải báo cáo vận hành đá trong phạm vi được cấp'),
  (N'StoreMenu.OverridePrice',N'DRINK',N'Ghi đè giá menu cửa hàng',N'OverridePrice',N'Ghi đè giá bán tại menu cửa hàng'),
  (N'Profitability.UpdatePrice',N'DRINK',N'Cập nhật giá bán',N'UpdatePrice',N'Cập nhật giá bán toàn hệ thống'),
  (N'Profitability.UpdateToppingPolicy',N'DRINK',N'Cập nhật chính sách topping',N'UpdateToppingPolicy',N'Cập nhật chính sách topping theo món và size'),
@@ -6810,7 +6916,9 @@ BEGIN TRY
 
  UPDATE dbo.Permissions
  SET Active=0
- WHERE Code IN(N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete');
+ WHERE Code IN(
+  N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete',
+  N'OperationalIce.Manage',N'OperationalIce.Approve',N'OperationalIce.Policy');
 
  CREATE TABLE #PermissionMatrix
  (
@@ -6869,7 +6977,7 @@ BEGIN TRY
 (N'Notification.View',1,1,1,1,1,0,0,1),
 (N'StockAlert.Create',0,0,1,1,0,0,0,1),
 (N'StockAlert.CreateRestockRequest',0,0,1,0,0,0,0,0),
-(N'Restock.View',1,1,1,0,1,0,0,0),
+(N'Restock.View',1,1,1,0,1,0,0,1),
 (N'Restock.Create',1,0,1,0,1,0,0,0),
 (N'Restock.Submit',0,0,1,0,1,0,0,0),
 (N'Restock.Approve',1,0,0,0,1,0,0,0),
@@ -6961,9 +7069,20 @@ BEGIN TRY
 (N'ProductionOrder.Create',1,0,1,0,1,0,0,1),
 (N'ProductionOrder.Confirm',1,0,1,0,1,0,0,1),
 (N'OperationalIce.View',1,1,1,0,1,0,0,1),
-(N'OperationalIce.Manage',0,0,1,0,0,0,0,1),
-(N'OperationalIce.Approve',1,0,1,0,0,0,0,0),
-(N'OperationalIce.Policy',1,0,1,0,0,0,0,0),
+(N'OperationalIce.Manage',0,0,0,0,0,0,0,0),
+(N'OperationalIce.Approve',0,0,0,0,0,0,0,0),
+(N'OperationalIce.Policy',0,0,0,0,0,0,0,0),
+(N'OperationalIce.ConfigurePolicy',1,0,1,0,0,0,0,0),
+(N'OperationalIce.CreateShift',1,0,1,0,0,0,0,0),
+(N'OperationalIce.OpenShift',1,0,1,0,0,0,0,0),
+(N'OperationalIce.LinkWorkShift',1,0,1,0,0,0,0,0),
+(N'OperationalIce.RequestSupplement',1,0,1,0,0,0,0,1),
+(N'OperationalIce.ApproveSupplement',1,0,1,0,0,0,0,0),
+(N'OperationalIce.Handoff',1,0,1,0,0,0,0,1),
+(N'OperationalIce.SubmitClose',1,0,1,0,0,0,0,1),
+(N'OperationalIce.ApproveVariance',1,0,1,0,0,0,0,0),
+(N'OperationalIce.CancelScheduledShift',1,0,1,0,0,0,0,0),
+(N'OperationalIce.ViewReport',1,1,1,0,1,0,0,1),
 (N'StoreMenu.OverridePrice',1,0,0,0,0,0,0,0),
 (N'Profitability.UpdatePrice',1,0,0,0,0,0,0,0),
 (N'Profitability.UpdateToppingPolicy',1,0,0,0,0,0,0,0),
@@ -6985,12 +7104,14 @@ BEGIN TRY
 (N'System.LegacyConsolidation.View',1,1,0,0,1,1,0,0),
 (N'System.LegacyConsolidation.Manage',1,0,0,0,0,1,0,0);
 
- -- SystemAdmin owns every active permission in the managed catalog.
- -- Orphan delete permissions remain inactive and explicitly ungranted.
+ -- SystemAdmin owns every active permission in this legacy managed matrix.
+ -- Sensitive POS.WorkShift permissions are seeded in the separate batch below and
+ -- intentionally do not default to SystemAdmin. Orphan delete permissions remain inactive.
  UPDATE #PermissionMatrix
  SET QTHT=CASE
      WHEN PermissionCode IN
-          (N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete')
+          (N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete',
+           N'OperationalIce.Manage',N'OperationalIce.Approve',N'OperationalIce.Policy')
      THEN 0 ELSE 1 END;
 
  IF EXISTS
@@ -7103,15 +7224,15 @@ IF
   JOIN dbo.Permissions p ON p.Code=m.PermissionCode
  WHERE p.Active=1
  )
- THROW 53347,N'RBAC_CAFECHAIN29_V2: SystemAdmin chưa có toàn bộ permission active.',1;
+ THROW 53347,N'RBAC_CAFECHAIN29_V2: SystemAdmin chưa có toàn bộ permission active trong ma trận legacy.',1;
 
 IF
 (
  SELECT COUNT(*)
  FROM #ExpectedRolePermissions e
  WHERE e.RoleId=(SELECT RoleId FROM #RoleMap WHERE RoleKey=N'QTHT')
-)<>161
- THROW 53348,N'RBAC_CAFECHAIN29_V2: SystemAdmin phải có đúng 161 permission active.',1;
+)<>169
+ THROW 53348,N'RBAC_CAFECHAIN29_V2: SystemAdmin phải có đúng 169 permission active trong ma trận legacy.',1;
 
 COMMIT;
 
@@ -7141,6 +7262,177 @@ COMMIT;
 END TRY
 BEGIN CATCH
  IF @@TRANCOUNT>0 ROLLBACK;
+ THROW;
+END CATCH;
+GO
+
+/* ============================================================
+   BATCH 12C - POS WORKSHIFT PERMISSIONS
+   SeedAll is the only source of RBAC seed for this feature.
+   IDs are intentionally database-generated; Code is the stable identity.
+   ============================================================ */
+SET XACT_ABORT ON;
+BEGIN TRY
+ BEGIN TRANSACTION;
+
+ IF OBJECT_ID(N'dbo.PermissionGroups',N'U') IS NULL
+ OR OBJECT_ID(N'dbo.Permissions',N'U') IS NULL
+ OR OBJECT_ID(N'dbo.Roles',N'U') IS NULL
+ OR OBJECT_ID(N'dbo.RolePermissions',N'U') IS NULL
+ OR OBJECT_ID(N'dbo.AccountPermissionOverrides',N'U') IS NULL
+  THROW 53500,N'POS_WORKSHIFT_RBAC: thiếu bảng RBAC bắt buộc.',1;
+
+ IF EXISTS
+ (
+  SELECT 1 FROM dbo.PermissionGroups
+  WHERE (Code=N'POS_WORKSHIFT' AND Name<>N'Phiên POS và trách nhiệm két')
+     OR (Name=N'Phiên POS và trách nhiệm két' AND Code<>N'POS_WORKSHIFT')
+ )
+  THROW 53501,N'POS_WORKSHIFT_RBAC: PermissionGroup xung đột Code hoặc Name.',1;
+
+ IF NOT EXISTS(SELECT 1 FROM dbo.PermissionGroups WHERE Code=N'POS_WORKSHIFT')
+  INSERT dbo.PermissionGroups(Code,Name,DisplayOrder,Active)
+  VALUES(N'POS_WORKSHIFT',N'Phiên POS và trách nhiệm két',28,1);
+
+ DECLARE @WorkShiftPermissionGroupId int=(
+  SELECT PermissionGroupId FROM dbo.PermissionGroups WHERE Code=N'POS_WORKSHIFT');
+
+ DECLARE @WorkShiftPermissionCatalog TABLE
+ (
+  Code nvarchar(100) NOT NULL PRIMARY KEY,
+  Name nvarchar(200) NOT NULL,
+  [Action] nvarchar(50) NOT NULL UNIQUE,
+  Description nvarchar(500) NOT NULL
+ );
+ INSERT @WorkShiftPermissionCatalog VALUES
+ (N'POS.WorkShift.View',N'Xem phiên POS',N'View',N'Xem phiên chịu trách nhiệm POS/két trong phạm vi cửa hàng được cấp'),
+ (N'POS.WorkShift.Open',N'Mở phiên POS',N'Open',N'Mở phiên chịu trách nhiệm POS/két khi đáp ứng lịch, terminal và phạm vi cửa hàng'),
+ (N'POS.WorkShift.Close',N'Đóng phiên POS',N'Close',N'Kiểm đếm và đóng phiên chịu trách nhiệm POS/két'),
+ (N'POS.WorkShift.OpenOutsideSchedule',N'Mở POS ngoài lịch',N'OpenOutsideSchedule',N'Yêu cầu mở POS ngoài lịch; vẫn bắt buộc lý do và phê duyệt'),
+ (N'POS.WorkShift.ApproveOutsideSchedule',N'Duyệt mở POS ngoài lịch',N'ApproveOutsideSchedule',N'Phê duyệt mở POS ngoài lịch trong StaffScope'),
+ (N'POS.WorkShift.CloseException',N'Đóng phiên POS ngoại lệ',N'CloseException',N'Đóng ngoại lệ và chuyển phiên cũ sang trạng thái cần đối soát'),
+ (N'POS.WorkShift.Reconcile',N'Đối soát lại phiên POS',N'Reconcile',N'Đối soát payment hoặc đơn offline đồng bộ muộn trên phiên gốc'),
+ (N'POS.WorkShift.OverrideTerminal',N'Đăng ký terminal POS',N'OverrideTerminal',N'Phê duyệt đăng ký hoặc kích hoạt terminal POS trong StaffScope');
+
+ IF EXISTS
+ (
+  SELECT 1
+  FROM @WorkShiftPermissionCatalog c
+  JOIN dbo.Permissions p ON p.Code=c.Code
+  WHERE p.PermissionGroupId<>@WorkShiftPermissionGroupId OR p.[Action]<>c.[Action]
+ )
+ OR EXISTS
+ (
+  SELECT 1
+  FROM @WorkShiftPermissionCatalog c
+  JOIN dbo.Permissions p ON p.PermissionGroupId=@WorkShiftPermissionGroupId AND p.[Action]=c.[Action]
+  WHERE p.Code<>c.Code
+ )
+  THROW 53502,N'POS_WORKSHIFT_RBAC: Permission xung đột Code, Group hoặc Action.',1;
+
+ UPDATE p
+ SET Name=c.Name,Description=c.Description,Active=1
+ FROM dbo.Permissions p
+ JOIN @WorkShiftPermissionCatalog c ON c.Code=p.Code;
+
+ INSERT dbo.Permissions(PermissionGroupId,Code,Name,[Action],Description,Active,CreatedAt)
+ SELECT @WorkShiftPermissionGroupId,c.Code,c.Name,c.[Action],c.Description,1,SYSUTCDATETIME()
+ FROM @WorkShiftPermissionCatalog c
+ WHERE NOT EXISTS(SELECT 1 FROM dbo.Permissions p WHERE p.Code=c.Code);
+
+ DECLARE @WorkShiftRoleMatrix TABLE
+ (
+  RoleName nvarchar(100) NOT NULL PRIMARY KEY,
+  GrantAll bit NOT NULL,
+  GrantStaffOperations bit NOT NULL
+ );
+ INSERT @WorkShiftRoleMatrix VALUES
+ (N'Chủ doanh nghiệp',1,0),
+ (N'Quản lý vùng',1,0),
+ (N'Quản lý chi nhánh',1,0),
+ (N'Ca trưởng',1,0),
+ (N'Nhân viên bán hàng',0,1),
+ (N'Kế toán/kho',0,0),
+ (N'Quản trị hệ thống',0,0),
+ (N'Khách hàng',0,0);
+
+ IF EXISTS
+ (
+  SELECT m.RoleName
+  FROM @WorkShiftRoleMatrix m
+  LEFT JOIN dbo.Roles r ON r.Name=m.RoleName
+  GROUP BY m.RoleName
+  HAVING COUNT(r.RoleId)<>1
+ )
+  THROW 53503,N'POS_WORKSHIFT_RBAC: Role name không khớp duy nhất.',1;
+
+ DECLARE @ExpectedWorkShiftRolePermissions TABLE
+ (
+  RoleId int NOT NULL,
+  PermissionId int NOT NULL,
+  PRIMARY KEY(RoleId,PermissionId)
+ );
+ INSERT @ExpectedWorkShiftRolePermissions(RoleId,PermissionId)
+ SELECT r.RoleId,p.PermissionId
+ FROM @WorkShiftRoleMatrix m
+ JOIN dbo.Roles r ON r.Name=m.RoleName
+ CROSS JOIN dbo.Permissions p
+ WHERE p.PermissionGroupId=@WorkShiftPermissionGroupId
+   AND p.Active=1
+   AND
+   (
+    m.GrantAll=1
+    OR (m.GrantStaffOperations=1 AND p.Code IN
+       (N'POS.WorkShift.View',N'POS.WorkShift.Open',N'POS.WorkShift.Close',N'POS.WorkShift.OpenOutsideSchedule'))
+   );
+
+ DELETE rp
+ FROM dbo.RolePermissions rp
+ JOIN dbo.Roles r ON r.RoleId=rp.RoleId
+ JOIN @WorkShiftRoleMatrix m ON m.RoleName=r.Name
+ JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId AND p.PermissionGroupId=@WorkShiftPermissionGroupId
+ WHERE NOT EXISTS
+ (
+  SELECT 1 FROM @ExpectedWorkShiftRolePermissions e
+  WHERE e.RoleId=rp.RoleId AND e.PermissionId=rp.PermissionId
+ );
+
+ INSERT dbo.RolePermissions(RoleId,PermissionId)
+ SELECT e.RoleId,e.PermissionId
+ FROM @ExpectedWorkShiftRolePermissions e
+ WHERE NOT EXISTS
+ (
+  SELECT 1 FROM dbo.RolePermissions rp
+  WHERE rp.RoleId=e.RoleId AND rp.PermissionId=e.PermissionId
+ );
+
+ IF (SELECT COUNT(*) FROM dbo.Permissions WHERE PermissionGroupId=@WorkShiftPermissionGroupId AND Active=1)<>8
+ OR EXISTS
+ (
+  SELECT e.RoleId,e.PermissionId FROM @ExpectedWorkShiftRolePermissions e
+  EXCEPT
+  SELECT rp.RoleId,rp.PermissionId
+  FROM dbo.RolePermissions rp
+  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
+  WHERE p.PermissionGroupId=@WorkShiftPermissionGroupId
+ )
+ OR EXISTS
+ (
+  SELECT rp.RoleId,rp.PermissionId
+  FROM dbo.RolePermissions rp
+  JOIN dbo.Roles r ON r.RoleId=rp.RoleId
+  JOIN @WorkShiftRoleMatrix m ON m.RoleName=r.Name
+  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
+  WHERE p.PermissionGroupId=@WorkShiftPermissionGroupId
+  EXCEPT
+  SELECT e.RoleId,e.PermissionId FROM @ExpectedWorkShiftRolePermissions e
+ )
+  THROW 53504,N'POS_WORKSHIFT_RBAC: catalog hoặc role matrix không đúng contract.',1;
+
+ COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+ IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
  THROW;
 END CATCH;
 GO
@@ -7282,14 +7574,19 @@ BEGIN TRY
  (N'DEMO_DASHBOARD_V13_20260118_OPEN','2026-01-18T06:00:00',NULL,500000,NULL,0,0,0);
 
  INSERT dbo.WorkShifts(
-   StoreId,UserId,StartTime,EndTime,StartingCash,ExpectedEndingCash,ActualEndingCash,
+   StoreId,UserId,StartTimeUtc,EndTimeUtc,BusinessDate,OpenContext,CloseType,ClosedByStaffId,CloseReason,ExpiryWarningLevel,
+   StartingCash,ExpectedEndingCash,ActualEndingCash,
    CashDiscrepancy,Status,DiscrepancyReason,IsExceptionClosed,ExceptionCloseReason,
    ExceptionClosedByStaffId,ExceptionClosedAt,OfflineOrderCountAtClose,OfflineEstimatedTotalAtClose,
    OfflineCashTotalAtClose,RequiresReconciliation,HasLateOfflineSync,LateOfflineSyncCount,
-   LastLateOfflineSyncedAt,PosTerminalId)
- SELECT @DashboardStoreId,@DashboardSalesStaffId,x.StartAt,x.EndAt,500000,x.ExpectedCash,x.ActualCash,
+   LastLateOfflineSyncedAtUtc,PosTerminalId)
+ SELECT @DashboardStoreId,@DashboardSalesStaffId,DATEADD(HOUR,-7,x.StartAt),DATEADD(HOUR,-7,x.EndAt),CONVERT(date,x.StartAt),N'LEGACY',
+   CASE WHEN x.IsException=1 THEN N'EXCEPTION' WHEN x.EndAt IS NOT NULL THEN N'NORMAL' END,
+   CASE WHEN x.IsException=1 THEN @DashboardActorStaffId END,
+   CASE WHEN x.IsException=1 THEN N'DEMO_DASHBOARD_V13 offline exception' END,
+   0,500000,x.ExpectedCash,x.ActualCash,
    CASE WHEN x.ActualCash IS NULL THEN NULL ELSE x.ActualCash-x.ExpectedCash END,
-   CASE WHEN x.EndAt IS NULL THEN N'Open' ELSE N'Closed' END,
+   CASE WHEN x.EndAt IS NULL THEN N'OPEN' WHEN x.IsException=1 THEN N'RECONCILIATION_REQUIRED' ELSE N'CLOSED' END,
    CASE WHEN x.ActualCash<>x.ExpectedCash THEN N'DEMO_DASHBOARD_V13 cash discrepancy' END,
    x.IsException,CASE WHEN x.IsException=1 THEN N'DEMO_DASHBOARD_V13 offline exception' END,
    CASE WHEN x.IsException=1 THEN @DashboardActorStaffId END,
@@ -7301,7 +7598,7 @@ BEGIN TRY
    CASE WHEN x.LateSync=1 THEN DATEADD(minute,30,x.EndAt) END,NULL
  FROM @WorkShiftSeed x
  WHERE NOT EXISTS(SELECT 1 FROM dbo.WorkShifts w
-   WHERE w.StoreId=@DashboardStoreId AND w.UserId=@DashboardSalesStaffId AND w.StartTime=x.StartAt);
+   WHERE w.StoreId=@DashboardStoreId AND w.UserId=@DashboardSalesStaffId AND w.StartTimeUtc=DATEADD(HOUR,-7,x.StartAt));
 
  DECLARE @DashboardOrders TABLE(
    ClientOrderId uniqueidentifier PRIMARY KEY,CreatedAt datetime2,OrderStatusId int,PaymentStatusId int,
@@ -7326,7 +7623,7 @@ BEGIN TRY
    CASE WHEN x.TotalCogs IS NULL THEN NULL ELSE x.CreatedAt END,x.CreatedAt
  FROM @DashboardOrders x
  JOIN @WorkShiftSeed ws ON ws.Marker=x.ShiftMarker
- JOIN dbo.WorkShifts w ON w.StoreId=@DashboardStoreId AND w.UserId=@DashboardSalesStaffId AND w.StartTime=ws.StartAt
+ JOIN dbo.WorkShifts w ON w.StoreId=@DashboardStoreId AND w.UserId=@DashboardSalesStaffId AND w.StartTimeUtc=DATEADD(HOUR,-7,ws.StartAt)
  WHERE NOT EXISTS(SELECT 1 FROM dbo.Orders o WHERE o.ClientOrderId=x.ClientOrderId);
 
  INSERT dbo.OrderDetails(
@@ -7381,9 +7678,10 @@ BEGIN TRY
      StockAlertId,StoreId,IngredientId,RecipeId,PreparedItemId,RequestedQuantity,SuggestedQuantity,
      SuggestionAnalysisWindowDays,SuggestionAvailableSnapshot,SuggestionMinLevelSnapshot,
      SuggestionAverageDailyUsageSnapshot,SuggestionLeadTimeDaysSnapshot,SuggestionIncomingQuantitySnapshot,
-     SuggestionReason,Status,Priority,CreatedByStaffId,CreatedAt,UpdatedAt,Note,
+    ReferenceCode,SuggestionReason,Status,Priority,CreatedByStaffId,CreatedAt,UpdatedAt,Note,
      HandledByStaffId,HandledAt,AcceptedByStaffId,AcceptedAtUtc,ProcessingNote,ClosedRemainingQuantity)
-   VALUES(NULL,@DashboardStoreId,@CoffeeIngredientId,NULL,NULL,10,12,30,2,5,1,1,0,
+  VALUES(NULL,@DashboardStoreId,@CoffeeIngredientId,NULL,NULL,10,12,30,2,5,1,1,0,
+    N'RR-DEMO-DASH-V13-001',
      N'DEMO_DASHBOARD_V13 low stock',N'PARTIALLY_RECEIVED',N'HIGH',@DashboardActorStaffId,
      '2026-01-15T08:00:00','2026-01-16T10:00:00',N'DEMO_DASHBOARD_V13_RESTOCK',
      @DashboardActorStaffId,'2026-01-15T08:10:00',@DashboardActorStaffId,'2026-01-15T08:10:00',
@@ -7464,7 +7762,7 @@ BEGIN TRY
    THROW 53110,N'DEMO_DASHBOARD_V13 order count mismatch.',1;
  IF (SELECT COUNT(*) FROM dbo.WorkShifts
      WHERE StoreId=@DashboardStoreId AND UserId=@DashboardSalesStaffId
-       AND StartTime IN ('2026-01-15T06:00:00','2026-01-15T12:00:00','2026-01-16T06:00:00','2026-01-18T06:00:00'))<>4
+       AND StartTimeUtc IN ('2026-01-14T23:00:00','2026-01-15T05:00:00','2026-01-15T23:00:00','2026-01-17T23:00:00'))<>4
    THROW 53111,N'DEMO_DASHBOARD_V13 WorkShift count mismatch.',1;
  IF (SELECT COUNT(*) FROM dbo.StaffShifts ss JOIN dbo.Shifts sh ON sh.ShiftId=ss.ShiftId
      WHERE ss.StaffId=@DashboardSalesStaffId AND ss.WorkDate BETWEEN '2026-01-15' AND '2026-01-17'
@@ -7484,7 +7782,7 @@ GO
 SELECT N'DEMO_DASHBOARD_V13' AS SeedMarker,
        (SELECT COUNT(*) FROM dbo.Orders WHERE Source=N'DEMO_DASHBOARD_V13') AS DemoOrders,
        (SELECT COUNT(*) FROM dbo.WorkShifts
-        WHERE StoreId=1 AND StartTime IN ('2026-01-15T06:00:00','2026-01-15T12:00:00','2026-01-16T06:00:00','2026-01-18T06:00:00')) AS DemoWorkShifts,
+        WHERE StoreId=1 AND StartTimeUtc IN ('2026-01-14T23:00:00','2026-01-15T05:00:00','2026-01-15T23:00:00','2026-01-17T23:00:00')) AS DemoWorkShifts,
        (SELECT COUNT(*) FROM dbo.PurchaseOrders WHERE Note=N'DEMO_DASHBOARD_V13') AS DemoPurchaseOrders,
        (SELECT COUNT(*) FROM dbo.SupplierReceiptIssues WHERE Description=N'DEMO_DASHBOARD_V13 supplier issue') AS DemoSupplierIssues;
 GO
@@ -9107,7 +9405,7 @@ END;
         IF EXISTS(
             SELECT 1 FROM @ShiftSeed x
             LEFT JOIN dbo.WorkShifts ws ON ws.DiscrepancyReason=x.Marker
-            WHERE ws.ShiftId IS NULL OR ws.StoreId<>x.StoreId OR ws.UserId<>x.StaffId OR ws.Status<>N'Closed'
+            WHERE ws.ShiftId IS NULL OR ws.StoreId<>x.StoreId OR ws.UserId<>x.StaffId OR ws.Status<>N'CLOSED'
                OR ws.StartingCash<>500000 OR ws.ExpectedEndingCash<>500000 OR ws.ActualEndingCash<>500000
                OR ws.CashDiscrepancy<>0 OR ws.IsExceptionClosed<>0 OR ws.RequiresReconciliation<>0 OR ws.HasLateOfflineSync<>0
         ) THROW 53429,N'DEMO_REORDER_V14: WorkShift payload drift.',1;
@@ -9171,17 +9469,19 @@ END;
        ------------------------------------------------------------ */
     IF @IsReplay=0
     BEGIN
-        INSERT dbo.WorkShifts(StoreId,UserId,StartTime,EndTime,StartingCash,ExpectedEndingCash,ActualEndingCash,
+        INSERT dbo.WorkShifts(StoreId,UserId,StartTimeUtc,EndTimeUtc,BusinessDate,OpenContext,CloseType,ExpiryWarningLevel,StartingCash,ExpectedEndingCash,ActualEndingCash,
                               CashDiscrepancy,[Status],DiscrepancyReason,IsExceptionClosed,ExceptionCloseReason,
                               ExceptionClosedByStaffId,ExceptionClosedAt,OfflineOrderCountAtClose,OfflineEstimatedTotalAtClose,
                               OfflineCashTotalAtClose,RequiresReconciliation,HasLateOfflineSync,LateOfflineSyncCount,
-                              LastLateOfflineSyncedAt,PosTerminalId)
-        SELECT StoreId,StaffId,StartAt,EndAt,500000,500000,500000,0,N'Closed',Marker,0,NULL,NULL,NULL,0,0,0,0,0,0,NULL,NULL
+                              LastLateOfflineSyncedAtUtc,PosTerminalId)
+        SELECT StoreId,StaffId,StartAt,EndAt,CONVERT(date,DATEADD(HOUR,7,StartAt)),N'LEGACY',N'NORMAL',0,500000,500000,500000,0,N'CLOSED',Marker,0,NULL,NULL,NULL,0,0,0,0,0,0,NULL,NULL
         FROM @ShiftSeed;
     END
     ELSE
     BEGIN
-        UPDATE ws SET ws.StartTime=x.StartAt,ws.EndTime=x.EndAt
+        UPDATE ws SET ws.StartTimeUtc=x.StartAt,ws.EndTimeUtc=x.EndAt,
+                      ws.BusinessDate=CONVERT(date,DATEADD(HOUR,7,x.StartAt)),ws.OpenContext=N'LEGACY',
+                      ws.CloseType=N'NORMAL',ws.Status=N'CLOSED'
         FROM dbo.WorkShifts ws JOIN @ShiftSeed x ON x.Marker=ws.DiscrepancyReason;
     END;
 
@@ -10242,8 +10542,8 @@ END;
     OR (SELECT COUNT(*) FROM dbo.OrderToppings ot JOIN dbo.OrderDetails od ON od.OrderDetailId=ot.OrderDetailId JOIN dbo.Orders o ON o.OrderId=od.OrderId WHERE o.Source=@SeedMarker AND o.StoreId=@Store3Id)<>30
         THROW 53457,N'DEMO_REORDER_V14: phải có đúng 30 OrderToppings mỗi Store.',1;
 
-    IF (SELECT COUNT(*) FROM dbo.WorkShifts WHERE StoreId=@Store1Id AND DiscrepancyReason LIKE N'DEMO_REORDER_V14_SHIFT_S1_%' AND Status=N'Closed')<>30
-    OR (SELECT COUNT(*) FROM dbo.WorkShifts WHERE StoreId=@Store3Id AND DiscrepancyReason LIKE N'DEMO_REORDER_V14_SHIFT_S3_%' AND Status=N'Closed')<>30
+    IF (SELECT COUNT(*) FROM dbo.WorkShifts WHERE StoreId=@Store1Id AND DiscrepancyReason LIKE N'DEMO_REORDER_V14_SHIFT_S1_%' AND Status=N'CLOSED')<>30
+    OR (SELECT COUNT(*) FROM dbo.WorkShifts WHERE StoreId=@Store3Id AND DiscrepancyReason LIKE N'DEMO_REORDER_V14_SHIFT_S3_%' AND Status=N'CLOSED')<>30
         THROW 53458,N'DEMO_REORDER_V14: phải có đúng 30 closed WorkShifts mỗi Store.',1;
 
     IF (SELECT COUNT(*) FROM dbo.ProductionRuns WHERE StoreId=@Store1Id AND Notes LIKE N'DEMO_REORDER_V14_PROD_S1_%' AND Status=2)<>30
@@ -10838,10 +11138,11 @@ BEGIN TRY
         StockAlertId,StoreId,IngredientId,RecipeId,PreparedItemId,RequestedQuantity,SuggestedQuantity,
         SuggestionAnalysisWindowDays,SuggestionAvailableSnapshot,SuggestionMinLevelSnapshot,
         SuggestionAverageDailyUsageSnapshot,SuggestionLeadTimeDaysSnapshot,SuggestionIncomingQuantitySnapshot,
-        SuggestionReason,Status,Priority,CreatedByStaffId,CreatedAt,UpdatedAt,Note,
+       ReferenceCode,SuggestionReason,Status,Priority,CreatedByStaffId,CreatedAt,UpdatedAt,Note,
         HandledByStaffId,HandledAt,AcceptedByStaffId,AcceptedAtUtc,ProcessingNote,ClosedRemainingQuantity
     )
     SELECT NULL,x.StoreId,@AiCoffeeIngredientId,NULL,NULL,10,12,30,2,5,1,2,0,
+           CONCAT(N'RR-DEMO-AI-',x.StoreId),
            N'AI rolling low-stock fixture',N'OPEN',N'HIGH',x.StaffId,x.CreatedAt,x.CreatedAt,x.Note,
            NULL,NULL,NULL,NULL,NULL,0
     FROM @AiRestock x
@@ -10904,23 +11205,25 @@ BEGIN TRY
     IF NOT EXISTS(SELECT 1 FROM dbo.WorkShifts WHERE DiscrepancyReason=N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY')
       INSERT dbo.WorkShifts
       (
-        StoreId,UserId,StartTime,EndTime,StartingCash,ExpectedEndingCash,ActualEndingCash,
+        StoreId,UserId,StartTimeUtc,EndTimeUtc,BusinessDate,OpenContext,CloseType,ExpiryWarningLevel,StartingCash,ExpectedEndingCash,ActualEndingCash,
         CashDiscrepancy,[Status],DiscrepancyReason,IsExceptionClosed,ExceptionCloseReason,
         ExceptionClosedByStaffId,ExceptionClosedAt,OfflineOrderCountAtClose,OfflineEstimatedTotalAtClose,
         OfflineCashTotalAtClose,RequiresReconciliation,HasLateOfflineSync,LateOfflineSyncCount,
-        LastLateOfflineSyncedAt,PosTerminalId
+        LastLateOfflineSyncedAtUtc,PosTerminalId
       )
       VALUES
       (
         3,@AiStore3StaffId,DATEADD(HOUR,6,DATEADD(DAY,-1,@AiDay)),
-        DATEADD(HOUR,12,DATEADD(DAY,-1,@AiDay)),500000,500000,420000,-80000,
-        N'Closed',N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY',0,NULL,NULL,NULL,
+        DATEADD(HOUR,12,DATEADD(DAY,-1,@AiDay)),CONVERT(date,DATEADD(HOUR,13,DATEADD(DAY,-1,@AiDay))),N'LEGACY',N'NORMAL',0,500000,500000,420000,-80000,
+        N'CLOSED',N'DEMO_AI_DASHBOARD_ROLLING_V1_CASH_ANOMALY',0,NULL,NULL,NULL,
         0,0,0,1,0,0,NULL,NULL
       );
 
     UPDATE ws
-       SET ws.StartTime=DATEADD(HOUR,6,DATEADD(DAY,-1,@AiDay)),
-           ws.EndTime=DATEADD(HOUR,12,DATEADD(DAY,-1,@AiDay)),
+       SET ws.StartTimeUtc=DATEADD(HOUR,6,DATEADD(DAY,-1,@AiDay)),
+           ws.EndTimeUtc=DATEADD(HOUR,12,DATEADD(DAY,-1,@AiDay)),
+           ws.BusinessDate=CONVERT(date,DATEADD(HOUR,13,DATEADD(DAY,-1,@AiDay))),
+           ws.OpenContext=N'LEGACY',ws.CloseType=N'NORMAL',ws.Status=N'CLOSED',
            ws.ExpectedEndingCash=500000,ws.ActualEndingCash=420000,
            ws.CashDiscrepancy=-80000,ws.RequiresReconciliation=1
     FROM dbo.WorkShifts ws
@@ -11280,7 +11583,7 @@ BEGIN TRY
         VALUES(@Coverage17Rating,@Coverage17Customer,1,@Coverage17Now);
 
     /* POS terminals and payment webhook ledger. */
-    INSERT dbo.PosTerminals(TerminalId,StoreId,Name,Active,CreatedAt)
+    INSERT dbo.PosTerminals(TerminalId,StoreId,Name,Active,CreatedAtUtc)
     SELECT v.TerminalId,v.StoreId,v.Name,1,@Coverage17Now
     FROM (VALUES
           (N'DEMO_COVERAGE_V17_POS_S1',1,N'POS Demo Chi nhánh 1'),

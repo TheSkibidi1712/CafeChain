@@ -25,6 +25,11 @@
 .ingredient-status-dot { font-size: 7px; }
 .ingredient-empty-icon { display: block; margin-bottom: var(--cc-space-2); color: var(--cc-border); font-size: 2rem; }
 
+.admin-wo-card.cc-warehouse-panel {
+    padding: 0;
+    overflow: hidden;
+}
+
 #ingredientModal .btn-primary {
     border-color: var(--cc-primary) !important;
     background: var(--cc-primary) !important;
@@ -44,7 +49,6 @@
     position: fixed;
     inset: 0;
     background: rgba(31, 41, 55, 0.45);
-    backdrop-filter: blur(3px);
     z-index: 1055;
     align-items: center;
     justify-content: center;
@@ -55,19 +59,13 @@
 }
 
 .modal-box {
-    width: 700px;
-    max-width: 95vw;
+    width: min(700px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
     background: var(--cc-surface);
-    border-radius: 14px;
+    border-radius: var(--cc-radius-md);
     border: 1px solid var(--cc-border);
-    box-shadow: 0 24px 60px rgba(111, 78, 55, 0.16);
-    animation: ingModalIn 0.22s ease;
-    overflow: hidden;
-}
-
-@keyframes ingModalIn {
-    from { opacity: 0; transform: translateY(-16px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+    box-shadow: var(--cc-shadow);
+    overflow: auto;
 }
 
 /* Modal sections */
@@ -95,6 +93,8 @@
     padding: 4px 8px;
     border-radius: 6px;
     line-height: 1;
+    border: 0;
+    background: transparent;
 }
 
 #ingredientModal .close-btn:hover {
@@ -208,7 +208,7 @@
     background: var(--cc-primary);
     color: var(--cc-surface);
     border-color: var(--cc-primary);
-    box-shadow: 0 4px 12px rgba(111, 78, 55, 0.28);
+    box-shadow: var(--cc-shadow-soft);
 }
 
 /* ---- Unit badge ---- */
@@ -233,4 +233,55 @@
     border-radius: 6px;
     padding: 2px 8px;
     font-size: 13px;
+}
+
+#ingredientModal :is(button, a, input, select):focus-visible,
+.admin-wo-page :is(button, a, input, select):focus-visible {
+    outline: 2px solid var(--cc-primary);
+    outline-offset: 2px;
+}
+
+.admin-wo-page .cc-warehouse-table-shell table {
+    min-width: 680px;
+}
+
+@media (max-width: 800px) {
+    .admin-wo-page.cc-warehouse-page {
+        padding: var(--cc-space-3);
+    }
+
+    .admin-wo-page .cc-warehouse-header {
+        align-items: stretch;
+    }
+
+    .admin-wo-page .cc-warehouse-header > .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    #ingredientModal .modal-body,
+    #ingredientModal .modal-header,
+    #ingredientModal .modal-footer {
+        padding: var(--cc-space-4);
+    }
+}
+
+@media (max-width: 600px) {
+    #ingredientModal .modal-footer {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+
+    #ingredientModal .modal-footer .btn {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #ingredientModal *,
+    .admin-wo-page * {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+    }
 }

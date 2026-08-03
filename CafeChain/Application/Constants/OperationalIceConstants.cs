@@ -3,9 +3,22 @@ namespace CafeChain.Application.Constants;
 public static class OperationalIcePermissions
 {
     public const string View = "OperationalIce.View";
-    public const string Manage = "OperationalIce.Manage";
-    public const string Approve = "OperationalIce.Approve";
-    public const string Policy = "OperationalIce.Policy";
+    public const string ConfigurePolicy = "OperationalIce.ConfigurePolicy";
+    public const string CreateShift = "OperationalIce.CreateShift";
+    public const string OpenShift = "OperationalIce.OpenShift";
+    public const string LinkWorkShift = "OperationalIce.LinkWorkShift";
+    public const string RequestSupplement = "OperationalIce.RequestSupplement";
+    public const string ApproveSupplement = "OperationalIce.ApproveSupplement";
+    public const string Handoff = "OperationalIce.Handoff";
+    public const string SubmitClose = "OperationalIce.SubmitClose";
+    public const string ApproveVariance = "OperationalIce.ApproveVariance";
+    public const string CancelScheduledShift = "OperationalIce.CancelScheduledShift";
+    public const string ViewReport = "OperationalIce.ViewReport";
+
+    // Legacy aggregate permissions remain as constants only so old audit data can be read.
+    public const string LegacyManage = "OperationalIce.Manage";
+    public const string LegacyApprove = "OperationalIce.Approve";
+    public const string LegacyPolicy = "OperationalIce.Policy";
 }
 
 public static class OperationalIceStatuses

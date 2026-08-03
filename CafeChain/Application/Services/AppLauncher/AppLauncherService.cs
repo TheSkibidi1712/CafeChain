@@ -22,8 +22,17 @@ public sealed class AppLauncherService : IAppLauncherService
         cancellationToken.ThrowIfCancellationRequested();
         var definitions = new[]
         {
+            new AppDefinition(
+                AppCode.OperationalIce,
+                "Vận hành đá",
+                "Theo dõi cấp đá, bổ sung, bàn giao và chốt ca được phân công.",
+                "bi-snow",
+                "/Admin/AdminOperationalIce",
+                15,
+                PermissionConstants.OperationalIceView,
+                false),
             new AppDefinition(AppCode.AdminDashboard, "Admin Dashboard", "Theo dõi vận hành, doanh thu và các chỉ số quản trị.", "bi-speedometer2", "/Admin/Dashboard", 10, PermissionConstants.AppAdminDashboard, false),
-            new AppDefinition(AppCode.StaffHub, "StaffHub", "Chấm công, theo dõi ca và tác vụ hằng ngày của nhân viên.", "bi-people", "/StaffHub", 20, PermissionConstants.AppStaffHub, false),
+            new AppDefinition(AppCode.StaffHub, "StaffHub", "Xem lịch dự kiến và truy cập các tác vụ hằng ngày của nhân viên.", "bi-people", "/StaffHub", 20, PermissionConstants.AppStaffHub, false),
             new AppDefinition(AppCode.Pos, "POS", "Khởi chạy giao diện bán hàng mới.", "bi-receipt-cutoff", "#", 30, PermissionConstants.AppPos, true)
         };
 
@@ -48,6 +57,9 @@ public sealed class AppLauncherService : IAppLauncherService
                 RequiresLaunch = app.RequiresLaunch
             });
         }
+
+        if (cards.Any(x => x.Code == AppCode.AdminDashboard))
+            cards.RemoveAll(x => x.Code == AppCode.OperationalIce);
 
         return new AppLauncherVM
         {

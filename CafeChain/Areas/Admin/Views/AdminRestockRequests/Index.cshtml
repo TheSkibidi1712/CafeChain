@@ -15,8 +15,8 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
-<main class="ops-shell">
-    <header class="ops-header">
+<main class="ops-shell cc-warehouse-page">
+    <header class="ops-header cc-warehouse-header">
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
             <h1 class="ops-title"><i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i> Yêu cầu nhập hàng</h1>
@@ -39,7 +39,7 @@
 
     @if (stores.Count > 1)
     {
-        <form method="get" class="ops-filterbar" aria-label="Chọn chi nhánh">
+        <form method="get" class="ops-filterbar cc-warehouse-filter" aria-label="Chọn chi nhánh">
             <input type="hidden" name="status" value="@statusFilter" />
             <div class="ops-filter-group">
                 <label class="ops-form-label mb-0" for="restockStoreId">Chi nhánh</label>
@@ -70,7 +70,7 @@
 
     @if (Model.Items.Count == 0)
     {
-        <section class="ops-empty" aria-labelledby="restockEmptyTitle">
+        <section class="ops-empty cc-warehouse-empty" aria-labelledby="restockEmptyTitle" role="status">
             <span class="ops-empty-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
             <h2 id="restockEmptyTitle" class="ops-empty-title">Không có yêu cầu bổ sung phù hợp</h2>
             <p class="ops-empty-copy">Đổi trạng thái lọc, tạo yêu cầu thủ công hoặc mở một cảnh báo đã xác nhận để ghi nhận nhu cầu mới.</p>
@@ -82,7 +82,7 @@
     }
     else
     {
-        <section class="ops-table-wrap">
+        <section class="ops-table-wrap cc-warehouse-table-shell">
             <div class="ops-table-scroll">
                 <table class="ops-table">
                     <thead><tr><th>Mã</th><th>Mặt hàng</th><th class="number">Số lượng</th><th>Ưu tiên</th><th>Trạng thái xử lý</th><th>Người tạo</th><th>Thời gian</th><th></th></tr></thead>
@@ -90,7 +90,7 @@
                     @foreach (var item in Model.Items)
                     {
                         <tr>
-                            <td><span class="ops-item-name">#@item.RestockRequestId</span><div class="ops-secondary">@AdminStatusDisplay.RestockSource(item.SourceType)</div></td>
+                            <td><span class="ops-item-name">@item.ReferenceCode</span><div class="ops-secondary">@AdminStatusDisplay.RestockSource(item.SourceType)</div></td>
                             <td><div class="ops-item-name">@item.ItemName</div><div class="ops-secondary">@item.ItemTypeLabel</div></td>
                             <td class="number">
                                 @if (item.RequestedProcurementQuantity.HasValue)

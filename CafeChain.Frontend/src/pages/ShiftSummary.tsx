@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import * as signalR from '@microsoft/signalr'
 import { db, type CartSyncQueueItem } from '../db/CafeChainPOSDB'
 import { API_BASE_URL, apiClient } from '../services/apiClient'
 import {
   ACTIVE_PAYMENT_CLOSE_GUARD_CHANGED,
   getMatchingActivePaymentCloseGuard,
 } from '../services/posShiftCloseGuard'
-import { getPosSession } from '../services/posSession'
+import { getPosSession, getPosTerminalId } from '../services/posSession'
 import {
   extractOtpEnvelope,
   formatCountdown,
@@ -15,12 +16,19 @@ import {
   OTP_ACTION_CASH_DIFFERENCE,
   OTP_ACTION_CLOSE_SHIFT_EXCEPTION,
   OTP_ACTION_OPEN_SHIFT_LATE,
+  OTP_ACTION_OPEN_SHIFT_OUTSIDE_SCHEDULE,
+  OTP_ACTION_REGISTER_TERMINAL,
   OTP_TARGET_SHIFTS,
   requestOtp,
   resendOtp,
   verifyOtp,
   type OtpChallengeData,
 } from '../services/otpApprovalService'
+import {
+  isValidOperationalOtp,
+  OPERATIONAL_OTP_INPUT_ERROR,
+  sanitizeOperationalOtpInput,
+} from '../utils/otpCode'
 
 interface ShiftSummaryDto {
   shiftId?: number | null
@@ -28,6 +36,14 @@ interface ShiftSummaryDto {
   staffName?: string | null
   startTime?: string | null
   endTime?: string | null
+  startTimeUtc?: string | null
+  endTimeUtc?: string | null
+  businessDate?: string | null
+  openContext?: string | null
+  autoCloseAtUtc?: string | null
+  serverNowUtc?: string | null
+  closeType?: string | null
+  rowVersion?: string | null
   startingCash: number
   expectedEndingCash: number
   actualEndingCash?: number | null
@@ -46,7 +62,15 @@ interface ShiftSummaryDto {
   totalCashSales: number
   totalBankingSales: number
   totalOrders: number
-  status: 'Open' | 'Closed' | 'NoActiveShift' | string
+  status: 'OPEN' | 'CLOSING' | 'EXPIRED_PENDING_CLOSE' | 'CLOSED' | 'RECONCILIATION_REQUIRED' | 'NoActiveShift' | string
+}
+
+interface OpenShiftAssessmentDto {
+  openContext: 'WITHIN_SCHEDULE' | 'LATE_FOR_SCHEDULE' | 'OUTSIDE_SCHEDULE' | string
+  reasonRequired: boolean
+  approvalRequired: boolean
+  serverNowUtc: string
+  autoCloseAtUtc?: string | null
 }
 
 type ShiftActionResponse = Partial<ShiftSummaryDto> & {
@@ -88,6 +112,13 @@ const getApiErrorMessage = (
 
 const getUnexpectedErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error && error.message.trim().length > 0 ? error.message : fallback
+
+const getApiErrorCode = (value: unknown): string | null => {
+  if (!value || typeof value !== 'object') return null
+  const record = value as Record<string, unknown>
+  const code = record.errorCode ?? record.ErrorCode
+  return typeof code === 'string' ? code : null
+}
 
 const parseCloseErrorEnvelope = (response: { data: unknown; error?: string }) => {
   if (response.data && typeof response.data === 'object') {
@@ -139,23 +170,31 @@ const formatDateTime = (value?: string | null) => {
   })
 }
 
-function getPosTerminalId() {
-  const key = 'CafeChain_POS_TerminalId'
-  const existing = localStorage.getItem(key)
-  if (existing) return existing
-  const generated = crypto.randomUUID()
-  localStorage.setItem(key, generated)
-  return generated
-}
-
 export default function ShiftSummary() {
   const [shift, setShift] = useState<ShiftSummaryDto | null>(null)
   const [startingCash, setStartingCash] = useState<number | ''>('')
   const [actualEndingCash, setActualEndingCash] = useState<number | ''>('')
   const [discrepancyReason, setDiscrepancyReason] = useState('')
   const [exceptionReason, setExceptionReason] = useState('')
+  const [reconcileReason, setReconcileReason] = useState('')
   const [lateOpeningReason, setLateOpeningReason] = useState('')
+  const [openAssessment, setOpenAssessment] = useState<OpenShiftAssessmentDto | null>(null)
+  const [clockTick, setClockTick] = useState(0)
+  const [serverOffsetMs, setServerOffsetMs] = useState(0)
+  const openRequestKeyRef = useRef(crypto.randomUUID())
+  const closeRequestKeyRef = useRef(crypto.randomUUID())
+  const exceptionCloseRequestKeyRef = useRef(crypto.randomUUID())
+  const reconcileRequestKeyRef = useRef(crypto.randomUUID())
+  const terminalRegisterRequestKeyRef = useRef(crypto.randomUUID())
   const [showLateOtpPanel, setShowLateOtpPanel] = useState(false)
+  const [showTerminalRegistration, setShowTerminalRegistration] = useState(false)
+  const [terminalName, setTerminalName] = useState('Terminal POS mới')
+  const [terminalOtpChallengePublicId, setTerminalOtpChallengePublicId] = useState<string | null>(null)
+  const [terminalOtpCode, setTerminalOtpCode] = useState('')
+  const [terminalOtpMessage, setTerminalOtpMessage] = useState<string | null>(null)
+  const [terminalOtpBusy, setTerminalOtpBusy] = useState(false)
+  const [terminalOtpExpiresInSeconds, setTerminalOtpExpiresInSeconds] = useState(0)
+  const [terminalOtpResendInSeconds, setTerminalOtpResendInSeconds] = useState(0)
   const [exceptionOtpChallengePublicId, setExceptionOtpChallengePublicId] = useState<string | null>(null)
   const [verifiedExceptionOtpId, setVerifiedExceptionOtpId] = useState<string | null>(null)
   const [exceptionOtpCode, setExceptionOtpCode] = useState('')
@@ -188,10 +227,16 @@ export default function ShiftSummary() {
   )
 
   const session = getPosSession()
-  const hasOpenShift = shift?.status === 'Open' && !!shift.shiftId
+  const normalizedStatus = shift?.status?.toUpperCase()
+  const hasOpenShift = !!shift?.shiftId && ['OPEN', 'CLOSING', 'EXPIRED_PENDING_CLOSE'].includes(normalizedStatus ?? '')
+  const canAcceptTransactions = normalizedStatus === 'OPEN'
   const currentShiftId = hasOpenShift ? shift.shiftId ?? null : null
   const currentStaffId = session.staffId
   const currentStoreId = session.storeId
+  const expiryAtMs = shift?.autoCloseAtUtc ? Date.parse(shift.autoCloseAtUtc) : Number.NaN
+  const expiryRemainingSeconds = Number.isFinite(expiryAtMs)
+    ? Math.max(0, Math.ceil((expiryAtMs - (clockTick + serverOffsetMs)) / 1000))
+    : null
   const expectedEndingCash = useMemo(() => {
     if (!shift) return 0
     return shift.startingCash + shift.totalCashSales
@@ -281,6 +326,9 @@ export default function ShiftSummary() {
       const response = await apiClient.get<ShiftSummaryDto>('/api/v1/pos/shifts/current')
       if (response.ok && response.data) {
         setShift(response.data)
+        setClockTick(Date.now())
+        const serverNowMs = response.data.serverNowUtc ? Date.parse(response.data.serverNowUtc) : Number.NaN
+        setServerOffsetMs(Number.isFinite(serverNowMs) ? serverNowMs - Date.now() : 0)
       } else {
         setShift({ status: 'NoActiveShift', startingCash: 0, expectedEndingCash: 0, totalCashSales: 0, totalBankingSales: 0, totalOrders: 0 })
         setMessage({
@@ -306,6 +354,48 @@ export default function ShiftSummary() {
   }, [loadCurrentShift])
 
   useEffect(() => {
+    const refresh = () => { void loadCurrentShift() }
+    window.addEventListener('focus', refresh)
+    const pollingId = window.setInterval(refresh, 30_000)
+    if (!session.token) {
+      return () => {
+        window.removeEventListener('focus', refresh)
+        window.clearInterval(pollingId)
+      }
+    }
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${API_BASE_URL}/hubs/workshifts`, {
+        accessTokenFactory: () => session.token ?? '',
+      })
+      .withAutomaticReconnect([0, 2_000, 5_000, 10_000, 30_000])
+      .build()
+    connection.on('WorkShiftChanged', (notification: { storeId?: number }) => {
+      if (notification.storeId && session.storeId && notification.storeId !== session.storeId) return
+      refresh()
+    })
+    connection.onreconnected(() => {
+      void connection.invoke('JoinTerminal', getPosTerminalId())
+      refresh()
+    })
+    connection.start()
+      .then(() => connection.invoke('JoinTerminal', getPosTerminalId()))
+      .catch((error) => console.warn('[ShiftSummary WorkShift SignalR] Polling fallback active.', error))
+
+    return () => {
+      window.removeEventListener('focus', refresh)
+      window.clearInterval(pollingId)
+      void connection.stop()
+    }
+  }, [loadCurrentShift, session.storeId, session.token])
+
+  useEffect(() => {
+    if (!shift?.autoCloseAtUtc) return
+    const intervalId = window.setInterval(() => setClockTick(Date.now()), 1000)
+    return () => window.clearInterval(intervalId)
+  }, [shift?.autoCloseAtUtc])
+
+  useEffect(() => {
     const refreshActivePaymentGuard = () => setGuardVersion((version) => version + 1)
 
     const intervalId = window.setInterval(refreshActivePaymentGuard, 5000)
@@ -323,7 +413,7 @@ export default function ShiftSummary() {
 
   // Local display timers only — backend remains source of truth on each API response.
   useEffect(() => {
-    if (!showOtpPanel) return
+    if (!otpChallengePublicId) return
 
     const intervalId = window.setInterval(() => {
       setExpiresInSeconds((value) => (value > 0 ? value - 1 : 0))
@@ -331,7 +421,18 @@ export default function ShiftSummary() {
     }, 1000)
 
     return () => window.clearInterval(intervalId)
-  }, [showOtpPanel])
+  }, [otpChallengePublicId])
+
+  useEffect(() => {
+    if (!terminalOtpChallengePublicId) return
+
+    const intervalId = window.setInterval(() => {
+      setTerminalOtpExpiresInSeconds((value) => (value > 0 ? value - 1 : 0))
+      setTerminalOtpResendInSeconds((value) => (value > 0 ? value - 1 : 0))
+    }, 1000)
+
+    return () => window.clearInterval(intervalId)
+  }, [terminalOtpChallengePublicId])
 
   const returnToStaffHub = useCallback(() => {
     window.location.href = `${API_BASE_URL}/StaffHub/Index`
@@ -370,6 +471,17 @@ export default function ShiftSummary() {
     }
   }, [])
 
+  const applyTerminalOtpChallengeData = useCallback((data: OtpChallengeData | null | undefined) => {
+    if (!data) return
+    if (data.otpChallengePublicId) setTerminalOtpChallengePublicId(data.otpChallengePublicId)
+    if (typeof data.expiresInSeconds === 'number') {
+      setTerminalOtpExpiresInSeconds(Math.max(0, data.expiresInSeconds))
+    }
+    if (typeof data.resendAvailableInSeconds === 'number') {
+      setTerminalOtpResendInSeconds(Math.max(0, data.resendAvailableInSeconds))
+    }
+  }, [])
+
   const handleOpenShift = async (event: FormEvent, otpPublicId?: string | null) => {
     event.preventDefault()
     if (startingCash === '') return
@@ -377,18 +489,55 @@ export default function ShiftSummary() {
     setIsSubmitting(true)
     setMessage(null)
     try {
+      const terminalId = getPosTerminalId()
+      let assessment = openAssessment
+      if (!otpPublicId) {
+        const assessmentResponse = await apiClient.post<OpenShiftAssessmentDto>(
+          '/api/v1/pos/shifts/open-assessment',
+          { posTerminalId: terminalId }
+        )
+        if (!assessmentResponse.ok || !assessmentResponse.data) {
+          if (getApiErrorCode(assessmentResponse.data) === 'TERMINAL_NOT_FOUND') {
+            setShowTerminalRegistration(true)
+          }
+          setMessage({ type: 'error', text: getApiErrorMessage(assessmentResponse, 'Không thể đánh giá lịch mở POS.') })
+          return
+        }
+        setShowTerminalRegistration(false)
+        assessment = assessmentResponse.data
+        setOpenAssessment(assessment)
+        if (assessment.reasonRequired && lateOpeningReason.trim().length < 10) {
+          setShowLateOtpPanel(true)
+          setMessage({ type: 'error', text: 'Vui lòng nhập lý do cụ thể từ 10 ký tự trước khi mở POS.' })
+          return
+        }
+        if (assessment.approvalRequired) {
+          setShowLateOtpPanel(true)
+          setMessage({ type: 'error', text: 'Thao tác này cần OTP của người có quyền phê duyệt trong cửa hàng.' })
+          return
+        }
+      }
+
       const response = await apiClient.post<ShiftActionResponse>('/api/v1/pos/shifts/open', {
+        requestKey: openRequestKeyRef.current,
         startingCash,
-        posTerminalId: getPosTerminalId(),
+        posTerminalId: terminalId,
+        reason: lateOpeningReason.trim() || null,
         ...(otpPublicId ? { otpChallengePublicId: otpPublicId, lateOpeningReason: lateOpeningReason.trim() } : {}),
         ...(lateOpeningReason.trim() ? { lateOpeningReason: lateOpeningReason.trim() } : {}),
       })
 
-      if (response.ok && response.data?.status === 'Open') {
+      if (response.ok && response.data?.status?.toUpperCase() === 'OPEN') {
         setShift(response.data as ShiftSummaryDto)
+        setClockTick(Date.now())
+        const responseServerNowMs = response.data.serverNowUtc ? Date.parse(response.data.serverNowUtc) : Number.NaN
+        setServerOffsetMs(Number.isFinite(responseServerNowMs) ? responseServerNowMs - Date.now() : 0)
+        openRequestKeyRef.current = crypto.randomUUID()
         setStartingCash('')
         setLateOpeningReason('')
+        setOpenAssessment(null)
         setShowLateOtpPanel(false)
+        resetOtpState()
         setMessage({ type: 'success', text: 'Mở ca thành công.' })
       } else if (isOtpRequiredError(response)) {
         setShowLateOtpPanel(true)
@@ -434,13 +583,21 @@ export default function ShiftSummary() {
     setMessage(null)
     try {
       const response = await apiClient.post<ShiftActionResponse>(`/api/v1/pos/shifts/${shift.shiftId}/close`, {
+        requestKey: closeRequestKeyRef.current,
+        rowVersion: shift.rowVersion ?? null,
         actualEndingCash,
         discrepancyReason: discrepancyReason.trim() || null,
+        offlineQueueSummary: {
+          offlineOrderCount: offlineBlockerCount,
+          estimatedTotal: offlineEstimatedTotal,
+          localCashTotal: offlineCashTotal,
+        },
         ...(otpPublicId ? { otpChallengePublicId: otpPublicId } : {}),
       })
 
-      if (response.ok && response.data?.status === 'Closed') {
+      if (response.ok && response.data?.status?.toUpperCase() === 'CLOSED') {
         setShift(response.data as ShiftSummaryDto)
+        closeRequestKeyRef.current = crypto.randomUUID()
         setActualEndingCash('')
         setDiscrepancyReason('')
         resetOtpState()
@@ -498,6 +655,9 @@ export default function ShiftSummary() {
     hasCloseBlockers,
     hasValidActualEndingCash,
     needsReason,
+    offlineBlockerCount,
+    offlineCashTotal,
+    offlineEstimatedTotal,
     resetOtpState,
     shift,
   ])
@@ -620,9 +780,9 @@ export default function ShiftSummary() {
       setOtpMessage('Vui lòng gửi OTP cho ca trưởng trước.')
       return
     }
-    const normalizedOtp = otpCode.trim().toUpperCase().replace(/\s+/g, '')
-    if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/.test(normalizedOtp)) {
-      setOtpMessage('Vui lòng nhập đủ 6 ký tự OTP (chữ in hoa và số, không gồm O/0/I/1).')
+    const normalizedOtp = otpCode.trim().toUpperCase()
+    if (!isValidOperationalOtp(normalizedOtp)) {
+      setOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)
       return
     }
 
@@ -631,7 +791,7 @@ export default function ShiftSummary() {
     try {
       const response = await verifyOtp({
         otpChallengePublicId,
-        otpCode: otpCode.trim().toUpperCase().replace(/\s+/g, ''),
+        otpCode: normalizedOtp,
       })
       const envelope = extractOtpEnvelope(response)
 
@@ -727,9 +887,9 @@ export default function ShiftSummary() {
 
   const verifyExceptionOtp = async () => {
     if (!exceptionOtpChallengePublicId) return
-    const normalized = exceptionOtpCode.trim().toUpperCase().replace(/\s+/g, '')
-    if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/.test(normalized)) {
-      setExceptionOtpMessage('Nhập đủ 6 ký tự OTP (chữ in hoa và số, không O/0/I/1).')
+    const normalized = exceptionOtpCode.trim().toUpperCase()
+    if (!isValidOperationalOtp(normalized)) {
+      setExceptionOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)
       return
     }
     setExceptionOtpBusy(true)
@@ -788,6 +948,8 @@ export default function ShiftSummary() {
     setMessage(null)
     try {
       const response = await apiClient.post<ShiftActionResponse>(`/api/v1/pos/shifts/${shift.shiftId}/close-exception`, {
+        requestKey: exceptionCloseRequestKeyRef.current,
+        rowVersion: shift.rowVersion ?? null,
         actualEndingCash,
         discrepancyReason: discrepancyReason.trim() || null,
         exceptionReason: exceptionReason.trim(),
@@ -799,8 +961,9 @@ export default function ShiftSummary() {
         },
       })
 
-      if (response.ok && response.data?.status === 'Closed') {
+      if (response.ok && ['RECONCILIATION_REQUIRED', 'CLOSED'].includes(response.data?.status?.toUpperCase() ?? '')) {
         setShift(response.data as ShiftSummaryDto)
+        exceptionCloseRequestKeyRef.current = crypto.randomUUID()
         setActualEndingCash('')
         setDiscrepancyReason('')
         setExceptionReason('')
@@ -837,11 +1000,21 @@ export default function ShiftSummary() {
           <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
             hasOpenShift
               ? 'bg-green-50 text-green-700 border-green-200'
-              : shift?.status === 'Closed'
+              : normalizedStatus === 'CLOSED' || normalizedStatus === 'RECONCILIATION_REQUIRED'
                 ? 'bg-gray-50 text-gray-700 border-gray-200'
                 : 'bg-brand-orange-light text-brand-orange border-brand-orange-border'
           }`}>
-            {hasOpenShift ? 'Đang mở' : shift?.status === 'Closed' ? (shift.isExceptionClosed ? 'Đã đóng ngoại lệ' : 'Đã đóng') : 'Chưa mở ca'}
+            {normalizedStatus === 'OPEN'
+              ? 'Đang mở'
+              : normalizedStatus === 'CLOSING'
+                ? 'Đang chốt két'
+                : normalizedStatus === 'EXPIRED_PENDING_CLOSE'
+                  ? 'Hết hạn — chờ chốt két'
+                  : normalizedStatus === 'RECONCILIATION_REQUIRED'
+                    ? 'Cần đối soát lại'
+                    : normalizedStatus === 'CLOSED'
+                      ? 'Đã đóng'
+                      : 'Chưa mở phiên POS'}
           </span>
         </div>
 
@@ -855,13 +1028,30 @@ export default function ShiftSummary() {
           </div>
         )}
 
+        {hasOpenShift && shift?.autoCloseAtUtc && expiryRemainingSeconds !== null && (
+          <div className={`p-4 rounded-xl border text-xs font-bold ${
+            canAcceptTransactions && expiryRemainingSeconds > 600
+              ? 'bg-blue-50 border-blue-200 text-blue-700'
+              : canAcceptTransactions && expiryRemainingSeconds > 0
+                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                : 'bg-red-50 border-red-200 text-red-700'
+          }`}>
+            {canAcceptTransactions && expiryRemainingSeconds > 0
+              ? `Phiên POS ngoài lịch còn ${formatCountdown(expiryRemainingSeconds)} — tự ngừng nhận giao dịch lúc ${formatDateTime(shift.autoCloseAtUtc)}.`
+              : 'Phiên POS đã hết hạn và không nhận giao dịch mới. Vui lòng kiểm đếm, chốt két hoặc đóng ngoại lệ.'}
+          </div>
+        )}
+
         {isLoading ? (
           <div className="bg-surface-white p-12 rounded-xl border border-border text-center text-xs font-semibold text-text-muted">
             Đang tải dữ liệu ca...
           </div>
-        ) : !hasOpenShift && shift?.status !== 'Closed' ? (
+        ) : !hasOpenShift && normalizedStatus !== 'CLOSED' && normalizedStatus !== 'RECONCILIATION_REQUIRED' ? (
           <form onSubmit={handleOpenShift} className="bg-surface-white p-5 rounded-xl border border-border shadow-[var(--shadow-card)] space-y-4">
-            <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">Mở ca mới</h2>
+            <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">Mở phiên POS</h2>
+            <p className="text-xs text-text-secondary">
+              Việc mở POS chỉ tạo phiên chịu trách nhiệm POS/két; hệ thống không tạo lịch làm việc hoặc dữ liệu chấm công.
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1">
@@ -894,13 +1084,165 @@ export default function ShiftSummary() {
                 </button>
               ))}
             </div>
+            {showTerminalRegistration && (
+              <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 space-y-3 text-xs text-sky-950">
+                <p className="font-extrabold">Terminal chưa được đăng ký</p>
+                <p className="font-semibold">
+                  Thiết bị mới phải được người có quyền quản lý terminal phê duyệt bằng OTP trong đúng cửa hàng.
+                </p>
+                <input
+                  type="text"
+                  maxLength={100}
+                  value={terminalName}
+                  onChange={(event) => setTerminalName(event.target.value)}
+                  className="w-full px-3 py-2 border border-sky-200 rounded-lg bg-white font-semibold"
+                  placeholder="Tên terminal, ví dụ: Quầy chính"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={terminalOtpBusy || terminalName.trim().length === 0 || !session.staffId || !!terminalOtpChallengePublicId}
+                    onClick={async () => {
+                      if (!session.staffId) return
+                      setTerminalOtpBusy(true)
+                      setTerminalOtpMessage(null)
+                      try {
+                        const response = await requestOtp({
+                          actionType: OTP_ACTION_REGISTER_TERMINAL,
+                          targetType: OTP_TARGET_SHIFTS,
+                          targetId: Number(session.staffId),
+                          reason: `Đăng ký terminal POS ${terminalName.trim()}`,
+                          terminalId: getPosTerminalId(),
+                          terminalName: terminalName.trim(),
+                          requestKey: terminalRegisterRequestKeyRef.current,
+                        })
+                        const envelope = extractOtpEnvelope(response)
+                        if (response.ok && envelope.data?.otpChallengePublicId) {
+                          applyTerminalOtpChallengeData(envelope.data)
+                          setTerminalOtpCode('')
+                          setTerminalOtpMessage(envelope.message || 'OTP đăng ký terminal đã được gửi.')
+                        } else {
+                          setTerminalOtpMessage(mapOtpUserMessage(envelope.message ?? response.error, 'Không gửi được OTP đăng ký terminal.'))
+                        }
+                      } finally {
+                        setTerminalOtpBusy(false)
+                      }
+                    }}
+                    className="px-3 py-2 bg-white border border-sky-300 rounded-lg font-bold disabled:opacity-40"
+                  >
+                    Gửi OTP đăng ký
+                  </button>
+                  <button
+                    type="button"
+                    disabled={terminalOtpBusy || !terminalOtpChallengePublicId || terminalOtpResendInSeconds > 0}
+                    onClick={async () => {
+                      if (!terminalOtpChallengePublicId || terminalOtpResendInSeconds > 0) return
+                      setTerminalOtpBusy(true)
+                      setTerminalOtpMessage(null)
+                      try {
+                        const response = await resendOtp({ otpChallengePublicId: terminalOtpChallengePublicId })
+                        const envelope = extractOtpEnvelope(response)
+                        applyTerminalOtpChallengeData(envelope.data)
+                        if (response.ok && envelope.data) {
+                          setTerminalOtpCode('')
+                          setTerminalOtpMessage(envelope.message || 'OTP đăng ký terminal mới đã được gửi.')
+                        } else {
+                          setTerminalOtpMessage(mapOtpUserMessage(envelope.message ?? response.error, 'Không thể gửi lại OTP.'))
+                        }
+                      } finally {
+                        setTerminalOtpBusy(false)
+                      }
+                    }}
+                    className="px-3 py-2 bg-white border border-sky-300 rounded-lg font-bold disabled:opacity-40"
+                  >
+                    {terminalOtpResendInSeconds > 0
+                      ? `Gửi lại OTP (${formatCountdown(terminalOtpResendInSeconds)})`
+                      : 'Gửi lại OTP'}
+                  </button>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    autoComplete="one-time-code"
+                    autoCapitalize="characters"
+                    value={terminalOtpCode}
+                    onChange={(event) => {
+                      const sanitized = sanitizeOperationalOtpInput(event.target.value)
+                      setTerminalOtpCode(sanitized.value)
+                      if (sanitized.rejected) setTerminalOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)
+                    }}
+                    className="w-28 px-3 py-2 border rounded-lg font-extrabold tracking-widest uppercase"
+                    placeholder="OTP"
+                  />
+                  <button
+                    type="button"
+                    disabled={!terminalOtpChallengePublicId || terminalOtpBusy || !isValidOperationalOtp(terminalOtpCode) || terminalOtpExpiresInSeconds === 0}
+                    onClick={async () => {
+                      if (!terminalOtpChallengePublicId) return
+                      setTerminalOtpBusy(true)
+                      try {
+                        const verified = await verifyOtp({
+                          otpChallengePublicId: terminalOtpChallengePublicId,
+                          otpCode: terminalOtpCode.trim().toUpperCase(),
+                        })
+                        const verifiedEnvelope = extractOtpEnvelope(verified)
+                        if (!verified.ok || !verifiedEnvelope.data?.otpChallengePublicId) {
+                          setTerminalOtpMessage(mapOtpUserMessage(verifiedEnvelope.message ?? verified.error, 'OTP không hợp lệ.'))
+                          return
+                        }
+
+                        const registered = await apiClient.post<{ success?: boolean; message?: string }>(
+                          '/api/v1/pos/terminals/register',
+                          {
+                            terminalId: getPosTerminalId(),
+                            name: terminalName.trim(),
+                            otpChallengePublicId: verifiedEnvelope.data.otpChallengePublicId,
+                            requestKey: terminalRegisterRequestKeyRef.current,
+                          }
+                        )
+                        if (registered.ok) {
+                          terminalRegisterRequestKeyRef.current = crypto.randomUUID()
+                          setShowTerminalRegistration(false)
+                          setTerminalOtpChallengePublicId(null)
+                          setTerminalOtpCode('')
+                          setTerminalOtpMessage(null)
+                          setTerminalOtpExpiresInSeconds(0)
+                          setTerminalOtpResendInSeconds(0)
+                          setMessage({ type: 'success', text: 'Terminal đã được phê duyệt. Bạn có thể mở POS.' })
+                        } else {
+                          setTerminalOtpMessage(getApiErrorMessage(registered, 'Không thể đăng ký terminal.'))
+                        }
+                      } finally {
+                        setTerminalOtpBusy(false)
+                      }
+                    }}
+                    className="px-3 py-2 bg-sky-700 text-white rounded-lg font-bold disabled:opacity-40"
+                  >
+                    Xác nhận và đăng ký
+                  </button>
+                </div>
+                {terminalOtpChallengePublicId && (
+                  <p className="font-semibold">
+                    OTP hết hạn sau {formatCountdown(terminalOtpExpiresInSeconds)}. Có thể gửi lại sau {formatCountdown(terminalOtpResendInSeconds)}.
+                  </p>
+                )}
+                {terminalOtpMessage && <p className="font-semibold">{terminalOtpMessage}</p>}
+              </div>
+            )}
             {showLateOtpPanel && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3 text-xs text-amber-900">
-                <p className="font-extrabold">Mở ca trễ — cần OTP phê duyệt online</p>
+                <p className="font-extrabold">
+                  {openAssessment?.openContext === 'OUTSIDE_SCHEDULE'
+                    ? 'Mở POS ngoài lịch — cần OTP phê duyệt online'
+                    : 'Mở POS trễ — cần OTP phê duyệt online'}
+                </p>
                 <p className="font-semibold">
                   Cần kết nối mạng để gửi và xác nhận OTP của người phê duyệt. Không dùng PIN cố định.
                 </p>
-                <label className="block font-semibold text-text-secondary mb-1">Lý do mở ca trễ</label>
+                <label className="block font-semibold text-text-secondary mb-1">
+                  {openAssessment?.openContext === 'OUTSIDE_SCHEDULE'
+                    ? 'Lý do mở POS ngoài lịch'
+                    : 'Lý do mở POS trễ'}
+                </label>
                 <textarea
                   value={lateOpeningReason}
                   onChange={(e) => setLateOpeningReason(e.target.value)}
@@ -911,22 +1253,28 @@ export default function ShiftSummary() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    disabled={otpBusy || startingCash === '' || lateOpeningReason.trim().length === 0}
+                    disabled={otpBusy || startingCash === '' || lateOpeningReason.trim().length === 0 || !!otpChallengePublicId}
                     onClick={async () => {
                       if (startingCash === '' || !session.staffId) return
                       setOtpBusy(true)
                       setOtpMessage(null)
                       try {
                         const response = await requestOtp({
-                          actionType: OTP_ACTION_OPEN_SHIFT_LATE,
+                          actionType: openAssessment?.openContext === 'OUTSIDE_SCHEDULE'
+                            ? OTP_ACTION_OPEN_SHIFT_OUTSIDE_SCHEDULE
+                            : OTP_ACTION_OPEN_SHIFT_LATE,
                           targetType: OTP_TARGET_SHIFTS,
                           targetId: Number(session.staffId),
                           reason: lateOpeningReason.trim(),
                           startingCash: Number(startingCash),
+                          terminalId: getPosTerminalId(),
+                          requestKey: openRequestKeyRef.current,
                         })
                         const envelope = extractOtpEnvelope(response)
                         if (response.ok && envelope.data?.otpChallengePublicId) {
                           applyOtpChallengeData(envelope.data)
+                          setVerifiedOtpChallengePublicId(null)
+                          setOtpCode('')
                           setOtpMessage(envelope.message || 'OTP mở ca trễ đã gửi.')
                         } else {
                           setOtpMessage(mapOtpUserMessage(envelope.message ?? response.error, 'Không gửi được OTP.'))
@@ -937,19 +1285,37 @@ export default function ShiftSummary() {
                     }}
                     className="px-3 py-2 bg-white border border-amber-300 rounded-lg font-bold disabled:opacity-40"
                   >
-                    Gửi OTP mở ca trễ
+                    {openAssessment?.openContext === 'OUTSIDE_SCHEDULE'
+                      ? 'Gửi OTP mở ngoài lịch'
+                      : 'Gửi OTP mở trễ'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={otpBusy || !otpChallengePublicId || resendAvailableInSeconds > 0 || otpStatus === 'Locked'}
+                    onClick={handleResendOtp}
+                    className="px-3 py-2 bg-white border border-amber-300 rounded-lg font-bold disabled:opacity-40"
+                  >
+                    {resendAvailableInSeconds > 0
+                      ? `Gửi lại OTP (${formatCountdown(resendAvailableInSeconds)})`
+                      : 'Gửi lại OTP'}
                   </button>
                   <input
                     type="text"
                     maxLength={6}
+                    autoComplete="one-time-code"
+                    autoCapitalize="characters"
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                    onChange={(event) => {
+                      const sanitized = sanitizeOperationalOtpInput(event.target.value)
+                      setOtpCode(sanitized.value)
+                      if (sanitized.rejected) setOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)
+                    }}
                     className="w-28 px-3 py-2 border rounded-lg font-extrabold tracking-widest uppercase"
                     placeholder="OTP"
                   />
                   <button
                     type="button"
-                    disabled={!otpChallengePublicId || otpBusy || otpCode.trim().length !== 6}
+                    disabled={!otpChallengePublicId || otpBusy || !isValidOperationalOtp(otpCode) || expiresInSeconds === 0}
                     onClick={async () => {
                       if (!otpChallengePublicId) return
                       const code = otpCode.trim().toUpperCase()
@@ -976,6 +1342,11 @@ export default function ShiftSummary() {
                     Xác nhận OTP & mở ca
                   </button>
                 </div>
+                {otpChallengePublicId && (
+                  <p className="font-semibold">
+                    OTP hết hạn sau {formatCountdown(expiresInSeconds)}. Có thể gửi lại sau {formatCountdown(resendAvailableInSeconds)}.
+                  </p>
+                )}
                 {otpMessage && <p className="font-semibold">{otpMessage}</p>}
               </div>
             )}
@@ -1113,7 +1484,11 @@ export default function ShiftSummary() {
                           autoCapitalize="characters"
                           autoComplete="one-time-code"
                           value={exceptionOtpCode}
-                          onChange={(e) => setExceptionOtpCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                          onChange={(event) => {
+                            const sanitized = sanitizeOperationalOtpInput(event.target.value)
+                            setExceptionOtpCode(sanitized.value)
+                            if (sanitized.rejected) setExceptionOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)
+                          }}
                           className="w-28 px-3 py-2 border border-amber-200 rounded-lg text-xs font-extrabold tracking-widest uppercase"
                           placeholder="OTP"
                           disabled={!exceptionOtpChallengePublicId || exceptionOtpBusy}
@@ -1121,7 +1496,7 @@ export default function ShiftSummary() {
                         <button
                           type="button"
                           onClick={verifyExceptionOtp}
-                          disabled={!exceptionOtpChallengePublicId || exceptionOtpBusy || exceptionOtpCode.trim().length !== 6}
+                          disabled={!exceptionOtpChallengePublicId || exceptionOtpBusy || !isValidOperationalOtp(exceptionOtpCode)}
                           className="px-3 py-2 bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold rounded-lg disabled:opacity-40"
                         >
                           Xác nhận OTP
@@ -1357,14 +1732,11 @@ export default function ShiftSummary() {
                             autoCapitalize="characters"
                             maxLength={6}
                             value={otpCode}
-                            onChange={(event) =>
-                              setOtpCode(
-                                event.target.value
-                                  .toUpperCase()
-                                  .replace(/[^A-Z0-9]/g, '')
-                                  .slice(0, 6)
-                              )
-                            }
+                            onChange={(event) => {
+                              const sanitized = sanitizeOperationalOtpInput(event.target.value)
+                              setOtpCode(sanitized.value)
+                              if (sanitized.rejected) setOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)
+                            }}
                             disabled={otpBusy || isSubmitting || expiresInSeconds === 0}
                             className="w-full px-3 py-2 border border-violet-200 rounded-lg text-sm tracking-[0.35em] outline-none focus:border-violet-500 text-text-primary bg-white font-extrabold uppercase"
                             placeholder="A2B3C4"
@@ -1376,7 +1748,7 @@ export default function ShiftSummary() {
                           disabled={
                             otpBusy ||
                             isSubmitting ||
-                            otpCode.trim().length !== 6 ||
+                            !isValidOperationalOtp(otpCode) ||
                             expiresInSeconds === 0
                           }
                           className="px-4 py-2.5 bg-brand-orange text-white text-xs font-bold rounded-lg cursor-pointer hover:bg-brand-orange-hover disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all shadow-[var(--shadow-button)]"
@@ -1446,6 +1818,56 @@ export default function ShiftSummary() {
                         Có {shift.lateOfflineSyncCount ?? 0} đơn offline đồng bộ sau khi ca đã đóng.
                       </p>
                     )}
+                    <div className="mt-3 space-y-2">
+                      <textarea
+                        value={reconcileReason}
+                        onChange={(event) => setReconcileReason(event.target.value)}
+                        rows={2}
+                        maxLength={500}
+                        className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 font-semibold"
+                        placeholder="Lý do và kết quả đối soát (tối thiểu 10 ký tự)"
+                      />
+                      <button
+                        type="button"
+                        disabled={isSubmitting || reconcileReason.trim().length < 10 || !shift.shiftId}
+                        onClick={async () => {
+                          if (!shift.shiftId) return
+                          setIsSubmitting(true)
+                          try {
+                            const response = await apiClient.post<{ success?: boolean; message?: string }>(
+                              `/api/v1/pos/shifts/${shift.shiftId}/reconcile`,
+                              {
+                                requestKey: reconcileRequestKeyRef.current,
+                                reason: reconcileReason.trim(),
+                                rowVersion: shift.rowVersion,
+                                actualEndingCash: shift.actualEndingCash ?? 0,
+                                offlineQueueSummary: {
+                                  offlineOrderCount: 0,
+                                  estimatedTotal: 0,
+                                  localCashTotal: 0,
+                                },
+                              }
+                            )
+                            if (response.ok) {
+                              reconcileRequestKeyRef.current = crypto.randomUUID()
+                              setShift((current) => current ? {
+                                ...current,
+                                status: 'CLOSED',
+                                requiresReconciliation: false,
+                              } : current)
+                              setMessage({ type: 'success', text: response.data?.message || 'Đối soát phiên POS thành công.' })
+                            } else {
+                              setMessage({ type: 'error', text: getApiErrorMessage(response, 'Không thể đối soát phiên POS.') })
+                            }
+                          } finally {
+                            setIsSubmitting(false)
+                          }
+                        }}
+                        className="rounded-lg bg-amber-700 px-3 py-2 font-bold text-white disabled:opacity-40"
+                      >
+                        Xác nhận đã đối soát
+                      </button>
+                    </div>
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">
@@ -1454,7 +1876,7 @@ export default function ShiftSummary() {
                     onClick={returnToStaffHub}
                     className="px-4 py-2 bg-brand-orange text-white text-xs font-bold rounded-lg cursor-pointer hover:bg-brand-orange-hover transition-all shadow-[var(--shadow-button)]"
                   >
-                    Quay lại StaffHub chấm công
+                    Quay lại StaffHub
                   </button>
                   <button
                     type="button"

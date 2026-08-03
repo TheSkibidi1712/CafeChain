@@ -27,7 +27,17 @@ namespace CafeChain.Application.Services.Systems
             string actionName,
             int staffId,
             object requestBody,
-            int? referenceId = null)
+            int? referenceId = null) =>
+            await BeginScopedAsync(requestKey, actionName, staffId, requestBody, referenceId, 0, null);
+
+        public async Task<RequestDeduplicationBeginResult> BeginScopedAsync(
+            string? requestKey,
+            string actionName,
+            int staffId,
+            object requestBody,
+            int? referenceId,
+            int storeId,
+            int? accountId)
         {
             if (string.IsNullOrWhiteSpace(requestKey))
             {
@@ -37,10 +47,30 @@ namespace CafeChain.Application.Services.Systems
             var normalizedKey = requestKey.Trim();
             var serializedBody = SerializeCanonical(requestBody);
             var payloadHash = ComputeSha256(serializedBody);
-            var existing = await FindExistingAsync(normalizedKey, actionName, staffId);
+            var existing = await FindExistingAsync(normalizedKey, actionName, staffId, storeId);
 
             if (existing != null)
             {
+                var nowUtc = DateTime.UtcNow;
+                if (string.Equals(existing.PayloadHash, payloadHash, StringComparison.OrdinalIgnoreCase)
+                    && existing.Status == Processing
+                    && existing.ProcessingLeaseUntilUtc.HasValue
+                    && existing.ProcessingLeaseUntilUtc.Value <= nowUtc
+                    && existing.ExpiredAt > nowUtc)
+                {
+                    existing.ProcessingLeaseUntilUtc = nowUtc.AddMinutes(2);
+                    _repository.Update(existing);
+                    try
+                    {
+                        await _repository.SaveChangesAsync();
+                        return new RequestDeduplicationBeginResult { CanProcess = true, Entry = existing };
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        _repository.Detach(existing);
+                        existing = await FindExistingAsync(normalizedKey, actionName, staffId, storeId);
+                    }
+                }
                 return BuildDuplicateResult(existing, payloadHash);
             }
 
@@ -50,12 +80,15 @@ namespace CafeChain.Application.Services.Systems
                 RequestKey = normalizedKey,
                 ActionName = actionName,
                 StaffId = staffId,
+                AccountId = accountId,
+                StoreId = storeId,
                 ReferenceId = referenceId,
                 Status = Processing,
                 RequestBody = serializedBody,
                 PayloadHash = payloadHash,
                 CreatedAt = now,
-                ExpiredAt = now.AddMinutes(30)
+                ExpiredAt = now.AddHours(24),
+                ProcessingLeaseUntilUtc = now.AddMinutes(2)
             };
 
             await _repository.AddAsync(entry);
@@ -68,7 +101,7 @@ namespace CafeChain.Application.Services.Systems
             {
                 _repository.Detach(entry);
 
-                existing = await FindExistingAsync(normalizedKey, actionName, staffId);
+                existing = await FindExistingAsync(normalizedKey, actionName, staffId, storeId);
 
                 if (existing != null)
                 {
@@ -93,6 +126,7 @@ namespace CafeChain.Application.Services.Systems
             entry.Status = Success;
             entry.ReferenceId = referenceId;
             entry.ResponseBody = Serialize(responseBody);
+            entry.ProcessingLeaseUntilUtc = null;
 
             _repository.Update(entry);
 
@@ -112,9 +146,12 @@ namespace CafeChain.Application.Services.Systems
         private async Task<RequestDeduplication?> FindExistingAsync(
             string requestKey,
             string actionName,
-            int staffId)
+            int staffId,
+            int storeId)
         {
-            return await _repository.GetAsync(requestKey, actionName, staffId);
+            return storeId == 0
+                ? await _repository.GetAsync(requestKey, actionName, staffId)
+                : await _repository.GetAsync(requestKey, actionName, staffId, storeId);
         }
 
         private static RequestDeduplicationBeginResult BuildDuplicateResult(

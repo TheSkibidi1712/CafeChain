@@ -12,13 +12,74 @@ const PAGE_SIZE = 20
 const formatDateTime = (value: string): string => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value || '—'
-  return date.toLocaleString('vi-VN', {
+  const parts = new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hourCycle: 'h23',
     hour: '2-digit',
     minute: '2-digit',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-  })
+  }).formatToParts(date)
+  const valueOf = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ''
+  return `${valueOf('hour')}:${valueOf('minute')} ${valueOf('day')}/${valueOf('month')}/${valueOf('year')}`
+}
+
+function ActiveOtpCard({
+  code,
+  expiresAtUtc,
+  onExpired,
+}: {
+  code: string
+  expiresAtUtc: string
+  onExpired: () => void
+}) {
+  const [now, setNow] = useState(() => Date.now())
+  const [copied, setCopied] = useState(false)
+  const expiresAt = Date.parse(expiresAtUtc)
+  const remainingSeconds = Number.isFinite(expiresAt)
+    ? Math.max(0, Math.ceil((expiresAt - now) / 1000))
+    : 0
+
+  useEffect(() => {
+    if (remainingSeconds <= 0) {
+      onExpired()
+      return
+    }
+    const timer = window.setTimeout(() => setNow(Date.now()), 1000)
+    return () => window.clearTimeout(timer)
+  }, [onExpired, remainingSeconds])
+
+  if (remainingSeconds <= 0) return null
+  const minutes = String(Math.floor(remainingSeconds / 60)).padStart(2, '0')
+  const seconds = String(remainingSeconds % 60).padStart(2, '0')
+
+  return (
+    <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
+      <p className="text-[11px] font-bold text-amber-900">Mã OTP còn hiệu lực</p>
+      <div className="mt-1 flex flex-wrap items-center gap-3">
+        <code className="text-2xl font-extrabold tracking-widest text-amber-950">{code}</code>
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(code)
+              setCopied(true)
+            } catch {
+              setCopied(false)
+            }
+          }}
+          className="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-bold text-amber-900"
+        >
+          {copied ? 'Đã sao chép' : 'Sao chép mã'}
+        </button>
+      </div>
+      <p className="mt-2 text-[11px] font-semibold text-amber-800">
+        Hết hạn sau {minutes}:{seconds} · {formatDateTime(expiresAtUtc)}
+      </p>
+    </div>
+  )
 }
 
 export default function Notifications() {
@@ -109,7 +170,7 @@ export default function Notifications() {
           <div>
             <h1 className="text-xl font-bold text-text-primary">Thông báo</h1>
             <p className="text-xs text-text-muted mt-0.5">
-              Thông báo kho chi nhánh gửi đến bạn
+              Thông báo vận hành, POS, OTP và kho thuộc phạm vi của bạn
               {unreadCount > 0 ? ` · ${unreadCount} chưa đọc` : ''}
             </p>
           </div>
@@ -144,11 +205,8 @@ export default function Notifications() {
         {!loading && !error && items.length > 0 && (
           <div className="flex flex-col gap-2">
             {items.map((item) => (
-              <button
+              <article
                 key={item.notificationId}
-                type="button"
-                disabled={busyId === item.notificationId}
-                onClick={() => void onMarkOne(item)}
                 className={`text-left rounded-xl border p-4 shadow-[var(--shadow-card)] transition-colors ${
                   item.isRead
                     ? 'bg-surface-white border-border'
@@ -166,6 +224,13 @@ export default function Notifications() {
                 <p className="mt-1 text-xs text-text-secondary whitespace-pre-wrap line-clamp-4">
                   {item.body}
                 </p>
+                {item.activeOtp && (
+                  <ActiveOtpCard
+                    code={item.activeOtp.code}
+                    expiresAtUtc={item.activeOtp.expiresAtUtc}
+                    onExpired={load}
+                  />
+                )}
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-text-muted">
                   <span>{formatDateTime(item.createdAt)}</span>
                   {item.emailAttempted && !item.emailSent && (
@@ -174,17 +239,29 @@ export default function Notifications() {
                     </span>
                   )}
                   {item.targetUrl && (
-                    <span className="text-brand-orange font-semibold">Mở liên quan →</span>
+                    <button
+                      type="button"
+                      disabled={busyId === item.notificationId}
+                      onClick={() => void onMarkOne(item)}
+                      className="text-brand-orange font-semibold"
+                    >
+                      Mở liên quan →
+                    </button>
                   )}
                 </div>
                 {!item.isRead && (
                   <div className="mt-2">
-                    <span className="text-[11px] font-bold text-brand-orange">
+                    <button
+                      type="button"
+                      disabled={busyId === item.notificationId}
+                      onClick={() => void onMarkOne(item)}
+                      className="text-[11px] font-bold text-brand-orange disabled:opacity-40"
+                    >
                       Đánh dấu đã đọc
-                    </span>
+                    </button>
                   </div>
                 )}
-              </button>
+              </article>
             ))}
 
             <div className="flex items-center justify-between text-xs text-text-secondary pt-2">

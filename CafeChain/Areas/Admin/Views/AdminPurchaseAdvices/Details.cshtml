@@ -5,13 +5,13 @@
     ViewData["Title"] = Model.AdviceNumber;
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
-<div class="pa-page">
-    <header class="pa-header"><div><div class="pa-eyebrow">Đề nghị mua hàng</div><h1>@Model.AdviceNumber</h1><p class="pa-subtitle">@Model.StoreName · tạo bởi @Model.RequestedByName</p></div><div class="pa-actions"><a class="pa-action" asp-action="Index"><i class="fas fa-arrow-left"></i> Danh sách</a>@if (Model.CanEdit) { <a class="pa-action" asp-action="Edit" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-pen"></i> Sửa</a> }</div></header>
+<div class="pa-page cc-warehouse-page">
+    <header class="pa-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail"><div><div class="pa-eyebrow">Đề nghị mua hàng</div><h1>@Model.AdviceNumber</h1><p class="pa-subtitle">@Model.StoreName · tạo bởi @Model.RequestedByName</p></div><div class="pa-actions"><a class="pa-action" asp-action="Index"><i class="fas fa-arrow-left"></i> Danh sách</a>@if (Model.CanEdit) { <a class="pa-action" asp-action="Edit" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-pen"></i> Sửa</a> }</div></header>
     @if (TempData["Success"] is string success) { <div class="pa-alert pa-alert-success">@success</div> }
     @if (TempData["Error"] is string error) { <div class="pa-alert">@error</div> }
     @{ var adviceStatus = AdminStatusDisplay.PurchaseAdvice(Model.Status); var advicePriority = AdminStatusDisplay.PurchaseAdvicePriority(Model.Priority); }
     <section class="pa-band"><div class="pa-summary-grid"><div class="pa-kpi"><span>Trạng thái</span><strong><span class="pa-badge @adviceStatus.CssClass">@adviceStatus.Label</span></strong></div><div class="pa-kpi"><span>Ưu tiên</span><strong class="@advicePriority.CssClass">@advicePriority.Label</strong></div><div class="pa-kpi"><span>Ngày cần hàng</span><strong>@AdminStatusDisplay.Date(Model.NeededByDate)</strong></div><div class="pa-kpi"><span>Số dòng đề nghị</span><strong>@Model.Lines.Count</strong></div></div>@if (!string.IsNullOrWhiteSpace(Model.Note)) { <p class="pa-note"><strong>Ghi chú:</strong> @Model.Note</p> }@if (!string.IsNullOrWhiteSpace(Model.RejectionReason)) { <div class="pa-alert pa-alert-compact"><strong>Lý do từ chối:</strong> @Model.RejectionReason</div> }</section>
-    <section class="pa-table-wrap"><table class="pa-table"><thead><tr><th>Nguồn yêu cầu / nguyên liệu</th><th>Phân bổ số lượng</th><th>Số lượng đề nghị</th><th>Ngày cần hàng</th></tr></thead><tbody>
+    <section class="pa-table-wrap cc-warehouse-table-shell"><table class="pa-table"><thead><tr><th>Nguồn yêu cầu / nguyên liệu</th><th>Phân bổ số lượng</th><th>Số lượng đề nghị</th><th>Ngày cần hàng</th></tr></thead><tbody>
     @foreach (var line in Model.Lines)
     {
         var usesProcurement = line.RequestedProcurementQuantity.HasValue;
