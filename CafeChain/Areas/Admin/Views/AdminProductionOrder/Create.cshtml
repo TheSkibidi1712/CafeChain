@@ -7,9 +7,17 @@
 <link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
 
 <div class="container-fluid px-4 mt-4 po-page">
-    <div class="po-title-section">
-        <h1 class="po-title">LỆNH SƠ CHẾ</h1>
-        <p class="po-subtitle">Quản lý định lượng và quy trình sơ chế thực phẩm hàng ngày.</p>
+    <div class="po-title-section bom-depth-header">
+        <nav class="rb-breadcrumb po-breadcrumb" aria-label="breadcrumb">
+            <span>Sản xuất / BOM</span> &gt; <span>Lệnh sơ chế</span>
+        </nav>
+        <div class="admin-module-title-row">
+            <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-fire-burner"></i></span>
+            <div>
+                <h1 class="po-title">LỆNH SƠ CHẾ</h1>
+                <p class="po-subtitle">Quản lý định lượng và quy trình sơ chế thực phẩm hàng ngày.</p>
+            </div>
+        </div>
     </div>
 
     <form asp-action="Create" method="post" id="productionForm">
@@ -18,7 +26,7 @@
         <div class="po-main-card">
             <div class="row g-5">
                 <!-- Left Column -->
-                <div class="col-lg-5">
+                <div class="col-lg-5 po-form-pane">
                     <div class="po-section-title">
                         <i class="fas fa-fire-burner"></i> Thông tin sơ chế chi tiết
                     </div>
@@ -89,7 +97,7 @@
                 </div>
 
                 <!-- Right Column (BOM Table) -->
-                <div class="col-lg-7 d-flex flex-column">
+                <div class="col-lg-7 d-flex flex-column po-bom-pane">
                     <div class="po-bom-header">
                         <div class="po-bom-title">Nguyên liệu tiêu hao (BOM)</div>
                         <div class="po-bom-badge">Tính toán tự động theo định mức</div>
@@ -208,9 +216,9 @@
                                 <td class="text-center">
                                     @if (hist.CanApplyStock && !hist.StockApplied)
                                     {
-                                        <button type="button" class="btn btn-sm btn-outline-primary btn-apply-stock"
+                                        <button type="button" class="btn btn-sm btn-outline-primary btn-apply-stock rb-table-action"
                                                 data-run-id="@hist.ProductionRunId">
-                                            Áp dụng vào kho
+                                            <i class="fas fa-boxes-stacked" aria-hidden="true"></i> Áp dụng vào kho
                                         </button>
                                     }
                                     else
