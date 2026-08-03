@@ -114,7 +114,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public void RecipeList_RendersSeparateColumnsAndDeleteConfirmation()
+        public void RecipeList_RendersSeparateColumnsAndStyledDeleteConfirmation()
         {
             var view = File.ReadAllText(Path.Combine(
                 FindRepoRoot(),
@@ -132,7 +132,11 @@ namespace CafeChain.Tests.POS
             Assert.Contains("Giá vốn/mẻ", view, StringComparison.Ordinal);
             Assert.Contains("Giá vốn/đơn vị", view, StringComparison.Ordinal);
             Assert.Contains("if (type == \"SUBRECIPE\")", view, StringComparison.Ordinal);
-            Assert.Contains("confirm('Xóa công thức", view, StringComparison.Ordinal);
+            Assert.Contains("Swal.fire", view, StringComparison.Ordinal);
+            Assert.Contains("title: 'Xóa công thức?'", view, StringComparison.Ordinal);
+            Assert.Contains("showCancelButton: true", view, StringComparison.Ordinal);
+            Assert.Contains("confirmButton: 'rb-confirm-primary'", view, StringComparison.Ordinal);
+            Assert.Contains("if (!answer.isConfirmed) return;", view, StringComparison.Ordinal);
             Assert.Contains("Model.CanWrite", view, StringComparison.Ordinal);
         }
 
