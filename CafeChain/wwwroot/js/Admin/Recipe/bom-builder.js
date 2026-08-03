@@ -360,7 +360,15 @@
                 var unitA = parseInt(tr.find('.item-unitid').val(), 10) || 0;
                 var unitB = parseInt(first.find('.item-unitid').val(), 10) || 0;
                 if (unitA !== unitB) {
-                    alert('Không gộp được: đơn vị khác nhau (mã đơn vị ' + unitA + ' và ' + unitB + '). Máy chủ sẽ từ chối mã thành phần trùng nhau.');
+                    if (window.Swal) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Không thể gộp thành phần',
+                            text: 'Hai dòng đang dùng đơn vị khác nhau (mã ' + unitA + ' và ' + unitB + '). Hãy quy đổi về cùng đơn vị trước khi gộp.',
+                            confirmButtonColor: '#6f4e37',
+                            customClass: { popup: 'rb-confirm-popup' }
+                        });
+                    }
                     return;
                 }
                 var q1 = parseFloat(tr.find('.item-qty').val()) || 0;
@@ -661,7 +669,7 @@
                 success: function (res) {
                     if (res.success) {
                         if (window.Swal) {
-                            Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, confirmButtonColor: '#f97316' })
+                            Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, confirmButtonColor: '#6f4e37', customClass: { popup: 'rb-confirm-popup' } })
                                 .then(function () { window.location.href = cfg.indexUrl; });
                         } else {
                             window.location.href = cfg.indexUrl;

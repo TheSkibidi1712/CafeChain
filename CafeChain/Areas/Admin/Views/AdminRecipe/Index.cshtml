@@ -17,15 +17,20 @@
 
 <div class="rb-page">
     <div class="container-fluid px-4 pt-4 pb-5">
-        <div class="rb-page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-            <div>
+        <div class="rb-page-header bom-depth-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div class="admin-module-heading-copy">
                 <nav class="rb-breadcrumb" aria-label="breadcrumb">
                     <span>Sản xuất / BOM</span> &gt; <span>Công thức BOM</span>
                 </nav>
-                <h1 class="rb-page-title mb-1">Công thức BOM</h1>
-                <p class="text-muted mb-0">Quản lý định mức theo đúng nghiệp vụ món bán, topping và bán thành phẩm.</p>
+                <div class="admin-module-title-row">
+                    <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-diagram-project"></i></span>
+                    <div>
+                        <h1 class="rb-page-title mb-1">Công thức BOM</h1>
+                        <p class="text-muted mb-0">Quản lý định mức theo đúng nghiệp vụ món bán, topping và bán thành phẩm.</p>
+                    </div>
+                </div>
             </div>
-            <div class="d-flex flex-wrap gap-2">
+            <div class="admin-module-header-actions">
                 <a asp-action="DataHealth" class="btn btn-rb-ghost">
                     <i class="fas fa-clipboard-check me-2" aria-hidden="true"></i>Tình trạng dữ liệu
                 </a>
@@ -53,7 +58,7 @@
             </a>
         </nav>
 
-        <form method="get" class="rb-list-filters mb-3">
+        <form method="get" class="rb-list-filters rb-module-filter rb-module-filter--three mb-3">
             <input type="hidden" name="type" value="@type" />
             <label class="visually-hidden" for="recipeSearch">Tìm công thức</label>
             <input id="recipeSearch"
@@ -229,22 +234,28 @@
                                     <td><partial name="_StatusBadge" model="activeDesc" /></td>
                                 }
                                 <td class="rb-actions-cell">
-                                    <a class="btn btn-sm btn-outline-secondary"
+                                    <a class="btn btn-sm btn-outline-secondary rb-table-action"
                                        asp-action="Visualize"
                                        asp-route-recipeId="@recipe.RecipeId"
-                                       asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">Xem cấu trúc BOM</a>
+                                       title="Xem cấu trúc BOM"
+                                       aria-label="Xem cấu trúc BOM của @recipe.Name"
+                                       asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)"><i class="fas fa-diagram-project" aria-hidden="true"></i><span>Xem cấu trúc</span></a>
                                     @if (Model.CanWrite)
                                     {
-                                        <a class="btn btn-sm btn-outline-primary"
+                                        <a class="btn btn-sm btn-outline-primary rb-table-action"
                                            asp-action="Edit"
-                                           asp-route-id="@recipe.RecipeId">
-                                            @(type == "SUBRECIPE" ? "Tạo phiên bản" : "Sửa")
+                                           asp-route-id="@recipe.RecipeId"
+                                           title="@(type == "SUBRECIPE" ? "Tạo phiên bản" : "Sửa công thức")"
+                                           aria-label="@(type == "SUBRECIPE" ? $"Tạo phiên bản cho {recipe.Name}" : $"Sửa công thức {recipe.Name}")">
+                                            <i class="fas fa-pen" aria-hidden="true"></i><span>@(type == "SUBRECIPE" ? "Tạo phiên bản" : "Sửa")</span>
                                         </a>
                                         <button type="button"
-                                                class="btn btn-sm btn-outline-danger btn-delete-recipe"
+                                                class="btn btn-sm btn-outline-danger btn-delete-recipe rb-table-action"
                                                 data-id="@recipe.RecipeId"
-                                                data-name="@recipe.Name">
-                                            Xóa
+                                                data-name="@recipe.Name"
+                                                title="Xóa công thức"
+                                                aria-label="Xóa công thức @recipe.Name">
+                                            <i class="fas fa-trash-can" aria-hidden="true"></i><span>Xóa</span>
                                         </button>
                                     }
                                 </td>
@@ -278,10 +289,21 @@
     (function () {
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
         document.querySelectorAll('.btn-delete-recipe').forEach(function (button) {
-            button.addEventListener('click', function () {
+            button.addEventListener('click', async function () {
                 const id = this.dataset.id;
                 const name = this.dataset.name || '';
-                if (!confirm('Xóa công thức "' + name + '" (#' + id + ')?')) return;
+                const answer = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Xóa công thức?',
+                    text: '"' + name + '" (#' + id + ') sẽ bị xóa và không thể khôi phục.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Xác nhận xóa',
+                    cancelButtonText: 'Hủy',
+                    reverseButtons: true,
+                    customClass: { popup: 'rb-confirm-popup', confirmButton: 'rb-confirm-primary', cancelButton: 'rb-confirm-cancel' },
+                    buttonsStyling: false
+                });
+                if (!answer.isConfirmed) return;
 
                 fetch('@Url.Action("Delete", "AdminRecipe", new { area = "Admin" })?id=' + id, {
                     method: 'POST',
@@ -293,9 +315,9 @@
                 .then(response => response.json())
                 .then(result => {
                     if (result.success) location.reload();
-                    else alert(result.message || 'Không thể xóa công thức.');
+                    else Swal.fire({ icon: 'error', title: 'Không thể xóa', text: result.message || 'Không thể xóa công thức.', confirmButtonColor: '#6f4e37' });
                 })
-                .catch(() => alert('Không thể kết nối máy chủ.'));
+                .catch(() => Swal.fire({ icon: 'error', title: 'Mất kết nối', text: 'Không thể kết nối máy chủ.', confirmButtonColor: '#6f4e37' }));
             });
         });
     })();
