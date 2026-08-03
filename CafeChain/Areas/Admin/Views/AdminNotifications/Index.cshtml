@@ -2,47 +2,74 @@
 @{
     ViewData["Title"] = "Thông báo";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
-    int page = ViewBag.Page ?? 1;
+    int currentPage = ViewBag.Page ?? 1;
     int pageSize = ViewBag.PageSize ?? 20;
     int total = ViewBag.Total ?? 0;
     int unread = ViewBag.UnreadCount ?? 0;
     int totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+    var successMessage = Convert.ToString(TempData["SuccessMessage"]);
+    var isLoginSuccessMessage = string.Equals(
+        successMessage?.Trim().TrimEnd('!'),
+        "Đăng nhập thành công",
+        StringComparison.OrdinalIgnoreCase);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Notifications/admin-notifications.css" asp-append-version="true" />
 }
 
 <main class="notification-page cc-page cc-warehouse-page">
     <header class="notification-header cc-page-header cc-warehouse-header">
-        <div>
-            <p class="cc-page-kicker">Trung tâm thông báo</p>
-            <h1 class="cc-page-title">Thông báo</h1>
-            <p class="notification-meta cc-page-description">
-                Thông báo vận hành, POS, OTP và kho thuộc phạm vi của bạn
-                @if (unread > 0)
-                {
-                    <span class="cc-status-badge cc-status-warning ms-1">@unread chưa đọc</span>
-                }
-            </p>
+        <div class="notification-heading-copy">
+            <p class="cc-page-kicker">Kho &amp; Cung ứng / Trung tâm thông báo</p>
+            <div class="notification-title-row">
+                <span class="notification-title-icon" aria-hidden="true"><i class="fas fa-bell"></i></span>
+                <div>
+                    <h1 class="cc-page-title">Thông báo</h1>
+                    <p class="notification-meta cc-page-description">
+                        Theo dõi cảnh báo kho, vận hành, POS và OTP thuộc phạm vi của bạn.
+                    </p>
+                </div>
+            </div>
         </div>
         <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="MarkAllRead" method="post" class="m-0 cc-warehouse-actions">
             @Html.AntiForgeryToken()
-            <button type="submit" class="cc-button" @(unread == 0 ? "disabled" : null)>
+            <button type="submit" class="cc-button notification-mark-all" @(unread == 0 ? "disabled" : null)>
+                <i class="fas fa-check-double" aria-hidden="true"></i>
                 Đánh dấu tất cả đã đọc
             </button>
         </form>
     </header>
 
-    @if (TempData["SuccessMessage"] != null)
+    @if (!string.IsNullOrWhiteSpace(successMessage) && !isLoginSuccessMessage)
     {
-        <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div>
+        <div class="ops-notice ops-notice-success" role="status">@successMessage</div>
     }
     @if (TempData["ErrorMessage"] != null)
     {
         <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div>
     }
 
-    <div data-admin-notification-list>
+    <section class="notification-summary" aria-label="Tổng quan thông báo">
+        <div class="notification-summary-card">
+            <span class="notification-summary-icon is-total" aria-hidden="true"><i class="fas fa-bell"></i></span>
+            <div><strong data-notification-total>@total</strong><span>Tổng thông báo</span></div>
+        </div>
+        <div class="notification-summary-card @(unread > 0 ? "has-unread" : "")">
+            <span class="notification-summary-icon is-unread" aria-hidden="true"><i class="fas fa-bell"></i></span>
+            <div><strong data-notification-unread>@unread</strong><span>Chưa đọc</span></div>
+        </div>
+        <div class="notification-summary-card">
+            <span class="notification-summary-icon is-read" aria-hidden="true"><i class="fas fa-check"></i></span>
+            <div><strong data-notification-read>@Math.Max(0, total - unread)</strong><span>Đã đọc</span></div>
+        </div>
+    </section>
+
+    <div data-admin-notification-list class="notification-content">
         @if (Model.Items == null || Model.Items.Count == 0)
         {
             <div class="cc-empty-state cc-warehouse-empty" role="status">
+                <span class="notification-empty-icon" aria-hidden="true"><i class="far fa-bell-slash"></i></span>
                 <h2>Chưa có thông báo</h2>
                 <p>Các yêu cầu phê duyệt và cập nhật vận hành phù hợp với phạm vi của bạn sẽ xuất hiện tại đây.</p>
             </div>
@@ -53,42 +80,44 @@
                 @foreach (var item in Model.Items)
                 {
                     <article class="notification-item @(item.IsRead ? "" : "is-unread")">
-                        <div class="d-flex justify-content-between align-items-start gap-2">
-                            <div class="flex-grow-1">
-                                <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="notification-item-icon" aria-hidden="true">
+                            <i class="fas @(item.IsRead ? "fa-check" : "fa-bell")"></i>
+                        </span>
+                        <div class="notification-item-layout">
+                            <div class="notification-item-main">
+                                <div class="notification-item-heading">
                                     <strong class="notification-title">@item.Title</strong>
                                     @if (!item.IsRead)
                                     {
-                                        <span class="cc-status-badge cc-status-warning">Chưa đọc</span>
+                                        <span class="cc-status-badge notification-unread-badge">Chưa đọc</span>
                                     }
                                 </div>
-                                <div class="notification-body small mb-2">@item.Body</div>
+                                <div class="notification-body">@item.Body</div>
                                 @if (item.ActiveOtp != null)
                                 {
-                                    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-3 mb-2"
+                                    <div class="notification-otp-card"
                                          data-active-otp
                                          data-expires-at="@item.ActiveOtp.ExpiresAtUtc.ToString("O")">
                                         <div>
-                                            <span class="d-block small fw-semibold">Mã OTP còn hiệu lực</span>
-                                            <code class="fs-3 fw-bold" data-otp-code>@item.ActiveOtp.Code</code>
+                                            <span class="notification-otp-label">Mã OTP còn hiệu lực</span>
+                                            <code data-otp-code>@item.ActiveOtp.Code</code>
                                         </div>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" data-copy-otp>
+                                        <button type="button" class="cc-button" data-copy-otp>
+                                            <i class="far fa-copy" aria-hidden="true"></i>
                                             Sao chép mã
                                         </button>
-                                        <small class="text-muted" data-otp-countdown></small>
+                                        <small data-otp-countdown></small>
                                     </div>
                                 }
-                                <div class="notification-meta small">
-                                    @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                <div class="notification-item-footer">
+                                    <span class="notification-time"><i class="far fa-clock" aria-hidden="true"></i>@item.CreatedAt.ToLocalTime().ToString("HH:mm · dd/MM/yyyy")</span>
                                     @if (item.EmailAttempted && !item.EmailSent)
                                     {
-                                        <span class="ms-2 text-warning">
-                                            · Email chưa gửi được, nhưng thông báo đã được ghi nhận trong hệ thống.
-                                        </span>
+                                        <span class="notification-email-warning"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>Email chưa gửi được</span>
                                     }
                                     @if (!string.IsNullOrEmpty(item.TargetUrl))
                                     {
-                                        <a class="ms-2" href="@item.TargetUrl">Xem cảnh báo →</a>
+                                        <a class="notification-link" href="@item.TargetUrl">Xem chi tiết <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                                     }
                                 </div>
                             </div>
@@ -97,31 +126,34 @@
                                 <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="MarkRead" method="post" class="m-0">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@item.NotificationId" />
-                                    <button type="submit" class="cc-button">Đánh dấu đã đọc</button>
+                                    <button type="submit" class="cc-button notification-read-button" title="Đánh dấu đã đọc">
+                                        <i class="fas fa-check" aria-hidden="true"></i>
+                                        <span>Đánh dấu đã đọc</span>
+                                    </button>
                                 </form>
                             }
-                        }
+                        </div>
                     </article>
                 }
             </section>
 
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <small class="text-muted">Trang @(page) / @totalPages · Tổng @total</small>
-                <div class="btn-group">
-                    @if (page > 1)
+            <nav class="notification-pagination" aria-label="Phân trang thông báo">
+                <small>Trang <strong>@currentPage</strong> / @totalPages · Tổng @total thông báo</small>
+                <div class="notification-page-actions">
+                    @if (currentPage > 1)
                     {
                         <a class="cc-button"
                            asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index"
-                           asp-route-page="@(page - 1)">Trước</a>
+                           asp-route-page="@(currentPage - 1)"><i class="fas fa-chevron-left" aria-hidden="true"></i>Trước</a>
                     }
-                    @if (page < totalPages)
+                    @if (currentPage < totalPages)
                     {
                         <a class="cc-button"
                            asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index"
-                           asp-route-page="@(page + 1)">Sau</a>
+                           asp-route-page="@(currentPage + 1)">Sau<i class="fas fa-chevron-right" aria-hidden="true"></i></a>
                     }
                 </div>
-            </div>
+            </nav>
         }
     </div>
 </main>
