@@ -4,10 +4,14 @@ import './index.css'
 import App from './App.tsx'
 import { bootstrapPosTokenFromUrl } from './services/posSession.ts'
 
-bootstrapPosTokenFromUrl()
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+void bootstrapPosTokenFromUrl()
+  .catch((error: unknown) => {
+    console.error('Không thể khởi tạo phiên POS.', error)
+  })
+  .finally(() => {
+    createRoot(document.getElementById('root')!).render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    )
+  })

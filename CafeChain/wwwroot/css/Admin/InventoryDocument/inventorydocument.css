@@ -4,7 +4,7 @@
 
 .inventory-page {
     padding: 24px;
-    background: #F7F3EE;
+    background: var(--cc-app-bg);
     min-height: 100vh;
 }
 
@@ -58,14 +58,14 @@
 }
 
 .inventory-action-primary {
-    border: 1px solid #6F4E37;
-    background: #6F4E37;
+    border: 1px solid var(--cc-primary);
+    background: var(--cc-primary);
     color: #fff;
 }
 
 .inventory-action-primary:hover {
-    border-color: #5C3F2B;
-    background: #5C3F2B;
+    border-color: var(--cc-primary-hover);
+    background: var(--cc-primary-hover);
     color: #fff;
 }
 

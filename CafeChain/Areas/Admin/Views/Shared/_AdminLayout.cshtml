@@ -54,7 +54,6 @@
         PermissionConstants.PurchaseOrderViewBatch,
         PermissionConstants.PurchaseOrderView,
         PermissionConstants.SupplierQualityView,
-        PermissionConstants.NotificationView,
         PermissionConstants.IngredientView,
         PermissionConstants.UnitConversionView,
         PermissionConstants.SupplierView,
@@ -464,12 +463,12 @@
                 @if (canAccessInventory)
                 {
                 <a href="#collapseInventory" data-bs-toggle="collapse"
-                   aria-expanded="@(Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce") != "" ? "true" : "false")"
-                   class="sidebar-section-header @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce")">
+                   aria-expanded="@(Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce") != "" ? "true" : "false")"
+                   class="sidebar-section-header @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce")">
                     <i class="fas fa-warehouse section-icon"></i> Kho & Cung ứng
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
-                <div class="collapse @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce", cssClass: "show")" id="collapseInventory">
+                <div class="collapse @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce", cssClass: "show")" id="collapseInventory">
                     <div class="sidebar-sub">
                         @if (effectivePermissions.Contains(PermissionConstants.InventoryView))
                         {
@@ -518,10 +517,6 @@
                         @if (effectivePermissions.Contains(PermissionConstants.SupplierQualityView))
                         {
                             <a asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Index" class="@Html.IsActive("AdminSupplierQuality")"><i class="fas fa-circle"></i> Chất lượng nhà cung cấp</a>
-                        }
-                        @if (effectivePermissions.Contains(PermissionConstants.NotificationView))
-                        {
-                            <a asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index" class="@Html.IsActive("AdminNotifications")"><i class="fas fa-circle"></i> Thông báo kho</a>
                         }
                         @if (effectivePermissions.Contains(PermissionConstants.IngredientView))
                         {
@@ -680,6 +675,8 @@
 
     <div class="main-content">
         <div class="topbar">
+            @if (effectivePermissions.Contains(PermissionConstants.NotificationView))
+            {
             <a asp-area="Admin"
                asp-controller="AdminNotifications"
                asp-action="Index"
@@ -692,6 +689,7 @@
                 <i class="fas fa-bell" aria-hidden="true"></i>
                 <span id="adminNotificationBadge" class="admin-notification-badge d-none" aria-live="polite"></span>
             </a>
+            }
             <a asp-area="Admin"
                asp-controller="AdminProfile"
                asp-action="MyProfile"

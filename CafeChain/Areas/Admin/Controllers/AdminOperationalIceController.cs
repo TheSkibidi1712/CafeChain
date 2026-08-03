@@ -329,14 +329,14 @@ public sealed class AdminOperationalIceController : AdminBaseController
             ReconciliationReason = allocation.ReconciliationReason,
             CostSnapshotStatus = allocation.CostSnapshotStatus,
             UnitCostSnapshot = allocation.UnitCostSnapshot * detailDisplayToBaseFactor,
-            WorkShifts = allocation.OperationalShift.WorkShiftLinks.OrderBy(x => x.WorkShift.StartTime)
+            WorkShifts = allocation.OperationalShift.WorkShiftLinks.OrderBy(x => x.WorkShift.StartTimeUtc)
                 .Select(x => new OperationalIceWorkShiftVM
                 {
                     WorkShiftId = x.WorkShiftId,
                     StaffName = x.WorkShift.User.FullName,
                     Status = x.WorkShift.Status,
-                    StartTime = x.WorkShift.StartTime,
-                    EndTime = x.WorkShift.EndTime
+                    StartTime = x.WorkShift.StartTimeUtc.ToLocalTime(),
+                    EndTime = x.WorkShift.EndTimeUtc?.ToLocalTime()
                 }).ToList(),
             Supplements = allocation.SupplementalIssues.OrderByDescending(x => x.RequestedAtUtc)
                 .Select(x => new OperationalIceSupplementVM

@@ -79,8 +79,11 @@ namespace CafeChain.Extensions.Services
     {
         public static IServiceCollection AddCafeChainApplicationServices(this IServiceCollection services)
         {
-            services.AddDataProtection();
+            services.AddDataProtection()
+                .SetApplicationName("CafeChain");
             services.AddSingleton(TimeProvider.System);
+            services.AddOptions<WorkShiftOptions>()
+                .BindConfiguration(WorkShiftOptions.SectionName);
             services.AddScoped<IUserContext, UserContext>();
             services.AddScoped<IAIService, AIService>();
             services.AddScoped<IAIImagePipelineService, AIImagePipelineService>();
@@ -305,18 +308,24 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IAdminSettingService, AdminSettingService>();
 
             services.AddScoped<IWorkShiftService, WorkShiftService>();
+            services.AddScoped<IPosSessionExchangeService, PosSessionExchangeService>();
+            services.AddScoped<IWorkShiftAuditService, WorkShiftAuditService>();
             services.AddScoped<IStaffScheduleService, StaffScheduleService>();
 
             // POS
             services.AddScoped<IPOSOrderService, POSOrderService>();
             services.AddScoped<IOrderRefundService, OrderRefundService>();
+            services.AddScoped<IPOSPaymentCancellationService, POSPaymentCancellationService>();
             services.AddScoped<IPosBranchInventoryService, PosBranchInventoryService>();
             services.AddScoped<IPrintDispatcher, PrintDispatcher>();
             services.AddScoped<IEscPosBuilder, EscPosReceiptBuilder>();
             services.AddScoped<IPayOSWebhookProcessor, PayOSWebhookProcessor>();
             services.AddScoped<IOtpApprovalService, OtpApprovalService>();
             services.AddSingleton<IOtpCodeGenerator, OtpCodeGenerator>();
+            services.AddSingleton<IOtpProtectedPayloadService, OtpProtectedPayloadService>();
             services.AddSingleton<IOtpPayloadFingerprintService, OtpPayloadFingerprintService>();
+            services.AddScoped<IWorkShiftNotificationPublisher,
+                CafeChain.Infrastructure.Realtime.SignalRWorkShiftNotificationPublisher>();
 
             // Shared unit conversion (POS catalog + inventory deduction + COGS)
             // Physical (Unit-domain kg↔g, l↔ml) then ingredient-specific — Issue #110
@@ -363,6 +372,8 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Services.Operations.InventoryNotificationDeliveryService>();
             services.AddScoped<CafeChain.Application.Interfaces.Operations.IInventoryNotificationPublisher,
                 CafeChain.Infrastructure.Realtime.SignalRInventoryNotificationPublisher>();
+            services.AddScoped<CafeChain.Application.Interfaces.POS.IOperationalOtpNotificationPublisher,
+                CafeChain.Infrastructure.Realtime.SignalROperationalOtpNotificationPublisher>();
             services.AddOptions<InventoryNotificationOptions>()
                 .BindConfiguration(InventoryNotificationOptions.SectionName);
 

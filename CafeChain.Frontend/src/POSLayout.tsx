@@ -16,7 +16,7 @@ import {
   publishCustomerDisplay,
 } from './services/customerDisplay'
 import { openCustomerDisplayWindow } from './services/customerDisplayWindow'
-import { getPosSession } from './services/posSession'
+import { getPosSession, getPosTerminalId } from './services/posSession'
 import { usePOSData } from './hooks/usePOSData'
 import { usePosLayoutMode } from './hooks/usePosLayoutMode'
 import ProductModifierModal, {
@@ -65,6 +65,9 @@ interface ActiveModifier {
 interface ShiftSummary {
   shiftId?: number | null
   status: 'Open' | 'Closed' | 'NoActiveShift' | string
+  openContext?: 'WITHIN_SCHEDULE' | 'LATE_FOR_SCHEDULE' | 'OUTSIDE_SCHEDULE' | 'LEGACY' | string | null
+  autoCloseAtUtc?: string | null
+  serverNowUtc?: string | null
 }
 
 interface POSCommitApiResponse {
@@ -245,6 +248,8 @@ export default function POSLayout() {
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
   const [activeModifier, setActiveModifier] = useState<ActiveModifier | null>(null)
   const [shift, setShift] = useState<ShiftSummary | null>(null)
+  const [workShiftClock, setWorkShiftClock] = useState(0)
+  const [workShiftServerOffsetMs, setWorkShiftServerOffsetMs] = useState(0)
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null)
   const [pendingCashInput, setPendingCashInput] = useState('')
   const [cashConfirmation, setCashConfirmation] = useState<CashPaymentConfirmation | null>(null)
@@ -268,22 +273,59 @@ export default function POSLayout() {
 
   useEffect(() => {
     let active = true
+    let connection: signalR.HubConnection | null = null
 
     const loadShift = async () => {
       const response = await apiClient.get<ShiftSummary>('/api/v1/pos/shifts/current')
       if (!active) return
-      if (response.ok && response.data) setShift(response.data)
-      else setShift({ status: 'NoActiveShift' })
+      if (response.ok && response.data) {
+        setShift(response.data)
+        setWorkShiftClock(Date.now())
+        const serverNowMs = response.data.serverNowUtc ? Date.parse(response.data.serverNowUtc) : Number.NaN
+        if (Number.isFinite(serverNowMs)) setWorkShiftServerOffsetMs(serverNowMs - Date.now())
+      } else setShift({ status: 'NoActiveShift' })
     }
 
     loadShift()
     window.addEventListener('focus', loadShift)
+    const pollingId = window.setInterval(loadShift, 30_000)
+    const clockId = window.setInterval(() => setWorkShiftClock(Date.now()), 1_000)
+
+    if (session.token) {
+      connection = new signalR.HubConnectionBuilder()
+        .withUrl(`${API_BASE_URL}/hubs/workshifts`, {
+          accessTokenFactory: () => session.token ?? '',
+        })
+        .withAutomaticReconnect([0, 2_000, 5_000, 10_000, 30_000])
+        .build()
+
+      connection.on('WorkShiftChanged', (notification: { storeId?: number; staffId?: number }) => {
+        if (notification.storeId && session.storeId && notification.storeId !== session.storeId) return
+        void loadShift()
+      })
+      connection.onreconnected(() => {
+        void connection?.invoke('JoinTerminal', getPosTerminalId())
+        void loadShift()
+      })
+      connection.start()
+        .then(() => connection?.invoke('JoinTerminal', getPosTerminalId()))
+        .catch((error) => {
+          console.warn('[POS WorkShift SignalR] Connection failed; polling remains active.', error)
+        })
+    }
 
     return () => {
       active = false
       window.removeEventListener('focus', loadShift)
+      window.clearInterval(pollingId)
+      window.clearInterval(clockId)
+      if (connection) {
+        void connection.stop().catch((error) => {
+          console.warn('[POS WorkShift SignalR] Stop failed:', error)
+        })
+      }
     }
-  }, [])
+  }, [session.storeId, session.token])
 
   const selectedCategoryId = selectedCategory !== null
     && categories.some((cat) => cat.id === selectedCategory)
@@ -301,7 +343,12 @@ export default function POSLayout() {
   const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
   const currentCategory = categories.find((cat) => cat.id === selectedCategoryId)
-  const hasOpenShift = shift?.status === 'Open' && !!shift.shiftId
+  const normalizedShiftStatus = shift?.status?.toUpperCase() ?? 'NOACTIVESHIFT'
+  const autoCloseAtMs = shift?.autoCloseAtUtc ? Date.parse(shift.autoCloseAtUtc) : Number.NaN
+  const deadlineReached = Number.isFinite(autoCloseAtMs)
+    && workShiftClock + workShiftServerOffsetMs >= autoCloseAtMs
+  const hasOpenShift = normalizedShiftStatus === 'OPEN' && !deadlineReached && !!shift?.shiftId
+  const allowsOfflineOrders = hasOpenShift && shift?.openContext !== 'OUTSIDE_SCHEDULE'
   const hasPosIdentity = !!session.staffId && !!session.storeId
   const hasPendingPayment = pendingPayment !== null
   const isCartLocked = hasPendingPayment
@@ -1130,6 +1177,11 @@ export default function POSLayout() {
   }) => {
     if (!hasOpenShift || !shift?.shiftId) {
       showMessage('Bạn cần mở ca làm việc trước khi lưu đơn offline.')
+      return false
+    }
+
+    if (!allowsOfflineOrders) {
+      showMessage('Phiên POS ngoài lịch không cho phép tạo đơn offline mới.')
       return false
     }
 

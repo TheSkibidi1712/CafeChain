@@ -4,9 +4,12 @@ import { apiClient, type ApiResponse } from './apiClient'
 export const OTP_ACTION_CASH_DIFFERENCE = 'CASH_DIFFERENCE'
 export const OTP_ACTION_CLOSE_SHIFT_EXCEPTION = 'CLOSE_SHIFT_EXCEPTION'
 export const OTP_ACTION_OPEN_SHIFT_LATE = 'OPEN_SHIFT_LATE'
+export const OTP_ACTION_OPEN_SHIFT_OUTSIDE_SCHEDULE = 'OPEN_SHIFT_OUTSIDE_SCHEDULE'
+export const OTP_ACTION_REGISTER_TERMINAL = 'REGISTER_POS_TERMINAL'
 export const OTP_TARGET_SHIFTS = 'shifts'
 export const OTP_ERROR_REQUIRED = 'OTP_REQUIRED'
 export const OTP_ERROR_LATE_OPENING = 'LATE_OPENING_REQUIRES_OTP'
+export const OTP_ERROR_OUTSIDE_SCHEDULE = 'OUTSIDE_SCHEDULE_APPROVAL_REQUIRED'
 export const OTP_ERROR_FEATURE_NOT_AVAILABLE = 'FEATURE_NOT_AVAILABLE'
 
 export interface OtpChallengeData {
@@ -42,6 +45,9 @@ export interface OtpRequestPayload {
   discrepancyReason?: string | null
   offlineQueueSummary?: OtpOfflineQueueSummary
   startingCash?: number
+  terminalId?: string
+  terminalName?: string
+  requestKey?: string
   oldValueJson?: string | null
   newValueJson?: string | null
 }
@@ -132,7 +138,8 @@ export const isOtpRequiredError = (response: { data: unknown; error?: string }):
   const envelope = parseApiJsonBody(response)
   if (
     envelope?.errorCode === OTP_ERROR_REQUIRED ||
-    envelope?.errorCode === OTP_ERROR_LATE_OPENING
+    envelope?.errorCode === OTP_ERROR_LATE_OPENING ||
+    envelope?.errorCode === OTP_ERROR_OUTSIDE_SCHEDULE
   ) {
     return true
   }

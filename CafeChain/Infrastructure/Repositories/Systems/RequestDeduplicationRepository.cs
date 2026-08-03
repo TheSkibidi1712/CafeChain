@@ -19,11 +19,21 @@ namespace CafeChain.Infrastrusture.Repositories.Systems
             string actionName,
             int staffId)
         {
+            return await GetAsync(requestKey, actionName, staffId, 0);
+        }
+
+        public async Task<RequestDeduplication?> GetAsync(
+            string requestKey,
+            string actionName,
+            int staffId,
+            int storeId)
+        {
             return await _context.RequestDeduplications
                 .FirstOrDefaultAsync(x =>
                     x.RequestKey == requestKey
                     && x.ActionName == actionName
-                    && x.StaffId == staffId);
+                    && x.StaffId == staffId
+                    && x.StoreId == storeId);
         }
 
         public async Task AddAsync(RequestDeduplication request)

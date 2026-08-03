@@ -407,7 +407,9 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
         public async Task<bool> HasActiveShiftAsync(int staffId)
         {
             return await _context.WorkShifts.AnyAsync(shift =>
-                shift.UserId == staffId && shift.Status == "Open" && shift.EndTime == null);
+                shift.UserId == staffId
+                && WorkShiftStatuses.ActiveResponsibility.Contains(shift.Status)
+                && shift.EndTimeUtc == null);
         }
 
         // ==================== MASTER DATA (Thin Controller) ====================

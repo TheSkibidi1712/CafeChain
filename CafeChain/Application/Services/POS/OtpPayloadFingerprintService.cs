@@ -74,7 +74,19 @@ namespace CafeChain.Application.Services.POS
             int actorStaffId,
             decimal startingCash,
             string reason,
-            string scheduledStartCanonical)
+            string scheduledStartCanonical) =>
+            BuildOpenShiftBoundFingerprint(storeId, actorStaffId, startingCash, reason,
+                scheduledStartCanonical, OtpConstants.ActionTypes.OpenShiftLate, null, null);
+
+        public string BuildOpenShiftBoundFingerprint(
+            int storeId,
+            int actorStaffId,
+            decimal startingCash,
+            string reason,
+            string scheduledStartCanonical,
+            string actionType,
+            string? terminalId,
+            string? requestKey)
         {
             var cash = FormatDecimal(startingCash);
             var scheduled = string.IsNullOrWhiteSpace(scheduledStartCanonical)
@@ -82,10 +94,10 @@ namespace CafeChain.Application.Services.POS
                 : scheduledStartCanonical.Trim();
 
             // targetId = actor staff (no WorkShift yet at request time).
-            var canonical = string.Join('\n', new[]
+            var canonicalParts = new List<string>
             {
                 "version=1",
-                $"action={OtpConstants.ActionTypes.OpenShiftLate}",
+                $"action={actionType}",
                 $"store={storeId}",
                 $"actor={actorStaffId}",
                 $"targetType={OtpConstants.TargetTypes.Shifts}",
@@ -95,7 +107,12 @@ namespace CafeChain.Application.Services.POS
                 $"reason={NormalizeReason(reason)}",
                 $"scheduledStart={scheduled}",
                 $"lateThresholdMinutes={OtpConstants.LateOpenThresholdMinutes}"
-            });
+            };
+            if (!string.IsNullOrWhiteSpace(terminalId))
+                canonicalParts.Add($"terminalId={terminalId.Trim()}");
+            if (!string.IsNullOrWhiteSpace(requestKey))
+                canonicalParts.Add($"requestKey={requestKey.Trim()}");
+            var canonical = string.Join('\n', canonicalParts);
 
             return Sha256Hex(canonical);
         }

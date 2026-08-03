@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using CafeChain.Models.Stores;
 
 namespace CafeChain.Models.Stores
@@ -21,7 +22,10 @@ namespace CafeChain.Models.Stores
 
         public bool Active { get; set; } = true;
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+        [NotMapped]
+        public DateTime CreatedAt { get => CreatedAtUtc; set => CreatedAtUtc = value; }
 
         // ================= NAVIGATION =================
         public virtual Store Store { get; set; } = null!;

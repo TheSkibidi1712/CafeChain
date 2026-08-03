@@ -9,6 +9,7 @@ using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CafeChain.Application.Services.Admin.StoreMenu
 {
@@ -125,7 +126,6 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                 return Conflict();
 
             var now = DateTime.UtcNow;
-            var catalogBefore = await _catalogVersions.GetAsync(item.StoreId, cancellationToken);
             var oldData = new
             {
                 item.IsEnabled,
@@ -134,41 +134,55 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                 item.DisplayOrder,
                 item.PauseReason
             };
-            switch (request.Action)
-            {
-                case StoreMenuLifecycleActions.Publish:
-                    item.PublishedAtUtc ??= now;
-                    item.PublishedByStaffId = actorStaffId;
-                    item.IsEnabled = true;
-                    item.PauseReason = null;
-                    break;
-                case StoreMenuLifecycleActions.Pause:
-                    if (!item.PublishedAtUtc.HasValue)
-                        return ServiceResult<StoreMenuWorkspaceRowDto>.Failure("SKU chưa publish nên không thể tạm dừng.");
-                    item.IsEnabled = false;
-                    item.PauseReason = request.Reason.Trim();
-                    break;
-                case StoreMenuLifecycleActions.Resume:
-                    if (!item.PublishedAtUtc.HasValue)
-                        return ServiceResult<StoreMenuWorkspaceRowDto>.Failure("SKU chưa publish nên không thể mở bán lại.");
-                    item.IsEnabled = true;
-                    item.PauseReason = null;
-                    break;
-                case StoreMenuLifecycleActions.ChangeDisplayOrder:
-                    if (request.DisplayOrder is null or < 0)
-                        return ServiceResult<StoreMenuWorkspaceRowDto>.Failure("Thứ tự hiển thị phải từ 0 trở lên.");
-                    item.DisplayOrder = request.DisplayOrder.Value;
-                    break;
-            }
-
-            _context.Entry(item).Property(x => x.RowVersion).OriginalValue = expected;
-            item.UpdatedAtUtc = now;
-            var catalogVersions = await _catalogVersions.InvalidateAsync(
-                new[] { item.StoreId }, now, cancellationToken);
-
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
+                if (!await TryAcquireCatalogWriterLockAsync(item.StoreId, cancellationToken))
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return Conflict();
+                }
+
+                await _context.Entry(item).ReloadAsync(cancellationToken);
+                if (!expected.SequenceEqual(item.RowVersion))
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return Conflict();
+                }
+
+                var catalogBefore = await _catalogVersions.GetAsync(item.StoreId, cancellationToken);
+                switch (request.Action)
+                {
+                    case StoreMenuLifecycleActions.Publish:
+                        item.PublishedAtUtc ??= now;
+                        item.PublishedByStaffId = actorStaffId;
+                        item.IsEnabled = true;
+                        item.PauseReason = null;
+                        break;
+                    case StoreMenuLifecycleActions.Pause:
+                        if (!item.PublishedAtUtc.HasValue)
+                            return ServiceResult<StoreMenuWorkspaceRowDto>.Failure("SKU chưa publish nên không thể tạm dừng.");
+                        item.IsEnabled = false;
+                        item.PauseReason = request.Reason.Trim();
+                        break;
+                    case StoreMenuLifecycleActions.Resume:
+                        if (!item.PublishedAtUtc.HasValue)
+                            return ServiceResult<StoreMenuWorkspaceRowDto>.Failure("SKU chưa publish nên không thể mở bán lại.");
+                        item.IsEnabled = true;
+                        item.PauseReason = null;
+                        break;
+                    case StoreMenuLifecycleActions.ChangeDisplayOrder:
+                        if (request.DisplayOrder is null or < 0)
+                            return ServiceResult<StoreMenuWorkspaceRowDto>.Failure("Thứ tự hiển thị phải từ 0 trở lên.");
+                        item.DisplayOrder = request.DisplayOrder.Value;
+                        break;
+                }
+
+                _context.Entry(item).Property(x => x.RowVersion).OriginalValue = expected;
+                item.UpdatedAtUtc = now;
+                var catalogVersions = await _catalogVersions.InvalidateAsync(
+                    new[] { item.StoreId }, now, cancellationToken);
+
                 await _context.SaveChangesAsync(cancellationToken);
                 _context.StoreMenuItemAudits.Add(new StoreMenuItemAudit
                 {
@@ -220,6 +234,39 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
             return ServiceResult<StoreMenuWorkspaceRowDto>.Success(
                 Map(item, operational, cost),
                 LifecycleMessage(request.Action));
+        }
+
+        private async Task<bool> TryAcquireCatalogWriterLockAsync(
+            int storeId,
+            CancellationToken cancellationToken)
+        {
+            if (!_context.Database.IsSqlServer())
+                return true;
+
+            var currentTransaction = _context.Database.CurrentTransaction;
+            if (currentTransaction == null)
+                throw new InvalidOperationException("Catalog writer lock requires an active database transaction.");
+
+            var connection = _context.Database.GetDbConnection();
+            await using var command = connection.CreateCommand();
+            command.Transaction = currentTransaction.GetDbTransaction();
+            command.CommandText = """
+                DECLARE @result int;
+                EXEC @result = sys.sp_getapplock
+                    @Resource = @resource,
+                    @LockMode = N'Exclusive',
+                    @LockOwner = N'Transaction',
+                    @LockTimeout = 0;
+                SELECT @result;
+                """;
+
+            var resource = command.CreateParameter();
+            resource.ParameterName = "@resource";
+            resource.Value = $"CafeChain:StoreMenuCatalog:{storeId}";
+            command.Parameters.Add(resource);
+
+            var result = await command.ExecuteScalarAsync(cancellationToken);
+            return result != null && Convert.ToInt32(result) >= 0;
         }
 
         private async Task<bool> CanReadStoreAsync(int staffId, int storeId, CancellationToken cancellationToken)

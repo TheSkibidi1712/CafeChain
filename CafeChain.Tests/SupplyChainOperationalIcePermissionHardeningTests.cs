@@ -108,18 +108,18 @@ public sealed class SupplyChainOperationalIcePermissionHardeningTests
     }
 
     [Fact]
-    public void SupplyChainRoleMigration_MatchesManagedSeedMatrix()
+    public void SupplyChainRoleSeed_MatchesManagedSeedMatrix()
     {
         var seed = Read("CafeChain", "Scripts", "SeedAll.sql");
         var migration = Read(
             "CafeChain",
             "Migrations",
-            "20260802143748_AlignSupplyChainRolePermissions.cs");
+            "20260802183312_InitialCreate.cs");
         var migrationRows = Regex.Matches(
-            migration,
-            @"(N'(?<code>[^']+)',(?<owner>[01]),(?<area>[01]),(?<store>[01]),(?<sales>[01]),(?<accountant>[01]),(?<lead>[01]))");
+            seed,
+            @"(N'(?<code>[^']+)',(?<owner>[01]),(?<area>[01]),(?<store>[01]),(?<sales>[01]),(?<accountant>[01]),[01],[01],(?<lead>[01]))");
 
-        Assert.True(migrationRows.Count >= 80, "Migration phải quản lý đầy đủ nhóm quyền Kho & Cung ứng.");
+        Assert.True(migrationRows.Count >= 80, "SeedAll phải quản lý đầy đủ nhóm quyền Kho & Cung ứng.");
         foreach (Match row in migrationRows)
         {
             var code = row.Groups["code"].Value;
@@ -131,8 +131,9 @@ public sealed class SupplyChainOperationalIcePermissionHardeningTests
                 Assert.Equal(seedRow.Groups[role].Value, row.Groups[role].Value);
         }
 
-        Assert.Contains("N'Quản trị hệ thống'", migration, StringComparison.Ordinal);
-        Assert.Contains("THROW 53373", migration, StringComparison.Ordinal);
+        Assert.Contains("N'Quản trị hệ thống'", seed, StringComparison.Ordinal);
+        Assert.Contains("THROW 53344", seed, StringComparison.Ordinal);
+        Assert.DoesNotContain("OperationalIce.CreateShift", migration, StringComparison.Ordinal);
     }
 
     [Fact]

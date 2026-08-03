@@ -2,6 +2,7 @@ using CafeChain.Application.Interfaces.StaffHub;
 using CafeChain.Application.Results;
 using CafeChain.Infrastructure.Interfaces.StaffHub;
 using CafeChain.ViewModels.StaffHub;
+using CafeChain.Application.Services.POS;
 
 namespace CafeChain.Application.Services.StaffHub;
 
@@ -30,6 +31,7 @@ public sealed class StaffScheduleService : IStaffScheduleService
                 {
                     var start = x.CustomStartTime ?? x.Shift.StartTime;
                     var end = x.CustomEndTime ?? x.Shift.EndTime;
+                    var interval = ScheduleIntervalResolver.Resolve(x);
                     return new StaffHubScheduleItemVM
                     {
                         StaffShiftId = x.StaffShiftId,
@@ -37,6 +39,8 @@ public sealed class StaffScheduleService : IStaffScheduleService
                         ShiftName = x.Shift.Name,
                         StartTime = start,
                         EndTime = end,
+                        PlannedStartLocal = interval.StartLocal,
+                        PlannedEndLocal = interval.EndLocal,
                         IsOvernight = x.Shift.IsOvernight || end <= start,
                         StatusCode = x.Status.Code
                     };

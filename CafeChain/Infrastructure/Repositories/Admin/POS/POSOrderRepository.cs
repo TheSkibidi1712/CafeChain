@@ -423,7 +423,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         // === TRANSACTION ===
         public async Task BeginTransactionAsync()
         {
-            _transaction = await _context.Database.BeginTransactionAsync();
+            _transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         }
 
         public async Task CommitTransactionAsync()

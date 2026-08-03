@@ -17,6 +17,7 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
         Task<WorkShift> CreateShiftAsync(WorkShift shift);
         Task UpdateShiftAsync(WorkShift shift);
         Task EnsurePosTerminalAsync(string terminalId, int storeId, string name);
+        Task<PosTerminal> RegisterPosTerminalAsync(string terminalId, int storeId, string name);
 
         // === STAFF SHIFT LOOKUP ===
         Task<StaffShift?> GetEffectiveStaffShiftAsync(int staffId, int storeId, DateTime now);

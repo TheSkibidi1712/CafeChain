@@ -12,10 +12,10 @@
 <main class="notification-page cc-page cc-warehouse-page">
     <header class="notification-header cc-page-header cc-warehouse-header">
         <div>
-            <p class="cc-page-kicker">Kho &amp; Cung ứng</p>
-            <h1 class="cc-page-title">Thông báo kho</h1>
+            <p class="cc-page-kicker">Trung tâm thông báo</p>
+            <h1 class="cc-page-title">Thông báo</h1>
             <p class="notification-meta cc-page-description">
-                Thông báo kho chi nhánh gửi đến bạn
+                Thông báo vận hành, POS, OTP và kho thuộc phạm vi của bạn
                 @if (unread > 0)
                 {
                     <span class="cc-status-badge cc-status-warning ms-1">@unread chưa đọc</span>
@@ -43,13 +43,13 @@
         @if (Model.Items == null || Model.Items.Count == 0)
         {
             <div class="cc-empty-state cc-warehouse-empty" role="status">
-                <h2>Chưa có thông báo kho</h2>
-                <p>Các cảnh báo tồn kho và cập nhật vận hành phù hợp với phạm vi của bạn sẽ xuất hiện tại đây.</p>
+                <h2>Chưa có thông báo</h2>
+                <p>Các yêu cầu phê duyệt và cập nhật vận hành phù hợp với phạm vi của bạn sẽ xuất hiện tại đây.</p>
             </div>
         }
         else
         {
-            <section class="notification-list cc-warehouse-panel" aria-label="Danh sách thông báo kho">
+            <section class="notification-list cc-warehouse-panel" aria-label="Danh sách thông báo">
                 @foreach (var item in Model.Items)
                 {
                     <article class="notification-item @(item.IsRead ? "" : "is-unread")">
@@ -63,6 +63,21 @@
                                     }
                                 </div>
                                 <div class="notification-body small mb-2">@item.Body</div>
+                                @if (item.ActiveOtp != null)
+                                {
+                                    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-3 mb-2"
+                                         data-active-otp
+                                         data-expires-at="@item.ActiveOtp.ExpiresAtUtc.ToString("O")">
+                                        <div>
+                                            <span class="d-block small fw-semibold">Mã OTP còn hiệu lực</span>
+                                            <code class="fs-3 fw-bold" data-otp-code>@item.ActiveOtp.Code</code>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-copy-otp>
+                                            Sao chép mã
+                                        </button>
+                                        <small class="text-muted" data-otp-countdown></small>
+                                    </div>
+                                }
                                 <div class="notification-meta small">
                                     @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                                     @if (item.EmailAttempted && !item.EmailSent)

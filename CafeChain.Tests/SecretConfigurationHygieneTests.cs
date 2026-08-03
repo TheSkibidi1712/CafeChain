@@ -44,7 +44,9 @@ public sealed class SecretConfigurationHygieneTests
         Assert.DoesNotContain("configuration[\"Jwt:Key\"] ??", authentication, StringComparison.Ordinal);
         Assert.DoesNotContain("_configuration[\"Jwt:Key\"] ??", staffHub, StringComparison.Ordinal);
         Assert.Contains("Jwt:Key is required", authentication, StringComparison.Ordinal);
-        Assert.Contains("Jwt:Key is required", staffHub, StringComparison.Ordinal);
+        Assert.DoesNotContain("Jwt:Key", staffHub, StringComparison.Ordinal);
+        Assert.Contains("IPosSessionExchangeService", staffHub, StringComparison.Ordinal);
+        Assert.Contains("IssueAsync(", staffHub, StringComparison.Ordinal);
     }
 
     private static void AssertPathsAreAbsent(

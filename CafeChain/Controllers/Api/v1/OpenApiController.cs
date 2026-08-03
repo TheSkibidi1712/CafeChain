@@ -111,18 +111,18 @@ namespace CafeChain.Controllers.Api.v1
             if (from.HasValue)
             {
                 var startDate = from.Value.Date;
-                query = query.Where(s => s.StartTime >= startDate);
+                query = query.Where(s => s.StartTimeUtc >= startDate);
             }
 
             if (to.HasValue)
             {
                 var endDate = to.Value.Date.AddDays(1).AddTicks(-1);
-                query = query.Where(s => s.StartTime <= endDate);
+                query = query.Where(s => s.StartTimeUtc <= endDate);
             }
 
             int total = await query.CountAsync();
             var shifts = await query
-                .OrderByDescending(s => s.StartTime)
+                .OrderByDescending(s => s.StartTimeUtc)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(s => new
@@ -130,8 +130,8 @@ namespace CafeChain.Controllers.Api.v1
                     s.ShiftId,
                     s.StoreId,
                     s.UserId,
-                    s.StartTime,
-                    s.EndTime,
+                    StartTime = s.StartTimeUtc,
+                    EndTime = s.EndTimeUtc,
                     s.StartingCash,
                     s.ExpectedEndingCash,
                     s.ActualEndingCash,

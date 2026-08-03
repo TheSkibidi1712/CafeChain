@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Operations;
+using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
 using CafeChain.Infrastructure.Interfaces.Operations;
 using CafeChain.Models.Operations;
@@ -17,10 +18,17 @@ namespace CafeChain.Application.Services.Operations
         public const string ChannelAdmin = "admin";
 
         private readonly IStaffNotificationRepository _repository;
+        private readonly IOtpProtectedPayloadService? _otpProtectedPayload;
+        private readonly TimeProvider _timeProvider;
 
-        public StaffNotificationQueryService(IStaffNotificationRepository repository)
+        public StaffNotificationQueryService(
+            IStaffNotificationRepository repository,
+            IOtpProtectedPayloadService? otpProtectedPayload = null,
+            TimeProvider? timeProvider = null)
         {
             _repository = repository;
+            _otpProtectedPayload = otpProtectedPayload;
+            _timeProvider = timeProvider ?? TimeProvider.System;
         }
 
         public async Task<ServiceResult<StaffNotificationUnreadCountDto>> GetUnreadCountAsync(
@@ -61,7 +69,60 @@ namespace CafeChain.Application.Services.Operations
                 ? ChannelPos
                 : targetUrlChannel.Trim().ToLowerInvariant();
 
-            var items = rows.Select(n => MapItem(n, channel)).ToList();
+            var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+            var otpIds = rows
+                .Where(n =>
+                    !n.ResolvedAt.HasValue
+                    &&
+                    string.Equals(n.Type, StaffNotificationTypes.OperationalOtpRequest, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(n.EntityType, StaffNotificationEntityTypes.OtpChallenge, StringComparison.OrdinalIgnoreCase))
+                .Select(n => n.EntityId)
+                .Distinct()
+                .ToArray();
+            var activeChallenges = otpIds.Length == 0
+                ? new List<OtpChallenge>()
+                : await _repository.GetActiveOtpChallengesAsync(
+                    recipientStaffId,
+                    otpIds,
+                    nowUtc) ?? new List<OtpChallenge>();
+            var activeOtpByChallengeId = new Dictionary<int, (int StoreId, ActiveOtpNotificationDto Otp)>();
+            if (_otpProtectedPayload != null)
+            {
+                foreach (var challenge in activeChallenges)
+                {
+                    if (_otpProtectedPayload.TryUnprotect(
+                            challenge.ProtectedOtpPayload,
+                            challenge.PublicId,
+                            recipientStaffId,
+                            challenge.ExpiresAt,
+                            nowUtc,
+                            out var otpCode))
+                    {
+                        activeOtpByChallengeId[challenge.OtpChallengeId] = (
+                            challenge.StoreId,
+                            new ActiveOtpNotificationDto
+                            {
+                                Code = otpCode,
+                                ExpiresAtUtc = challenge.ExpiresAt
+                            });
+                    }
+                }
+            }
+
+            var items = rows.Select(n =>
+            {
+                ActiveOtpNotificationDto? activeOtp = null;
+                if (!n.ResolvedAt.HasValue
+                    && string.Equals(n.Type, StaffNotificationTypes.OperationalOtpRequest, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(n.EntityType, StaffNotificationEntityTypes.OtpChallenge, StringComparison.OrdinalIgnoreCase)
+                    && activeOtpByChallengeId.TryGetValue(n.EntityId, out var protectedOtp)
+                    && protectedOtp.StoreId == n.StoreId)
+                {
+                    activeOtp = protectedOtp.Otp;
+                }
+
+                return MapItem(n, channel, activeOtp);
+            }).ToList();
 
             return ServiceResult<StaffNotificationListDto>.Success(new StaffNotificationListDto
             {
@@ -188,7 +249,10 @@ namespace CafeChain.Application.Services.Operations
             return $"/Admin/AdminStockAlerts/Details/{entityId}";
         }
 
-        private static StaffNotificationItemDto MapItem(StaffNotification n, string channel)
+        private static StaffNotificationItemDto MapItem(
+            StaffNotification n,
+            string channel,
+            ActiveOtpNotificationDto? activeOtp)
         {
             string? targetUrl;
             if (string.Equals(channel, ChannelAdmin, StringComparison.OrdinalIgnoreCase))
@@ -213,7 +277,8 @@ namespace CafeChain.Application.Services.Operations
                 EmailAttempted = n.EmailAttempted,
                 EmailSent = n.EmailSent,
                 EmailDeliveryHint = MapEmailDeliveryHint(n.EmailAttempted, n.EmailSent),
-                TargetUrl = targetUrl
+                TargetUrl = targetUrl,
+                ActiveOtp = activeOtp
             };
         }
     }

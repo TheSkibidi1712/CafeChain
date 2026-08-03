@@ -55,20 +55,23 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task CloseShiftByExceptionAsync_BackendAwaitingPaymentStillBlocksExceptionClose()
+        public async Task CloseShiftByExceptionAsync_BackendAwaitingPayment_CanMoveToReconciliation()
         {
             var shift = CreateOpenShift();
             var repository = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
             repository.Setup(repo => repo.GetActiveShiftAsync(17, 3)).ReturnsAsync(shift);
-            repository.Setup(repo => repo.HasOpenPosPaymentAsync(85, 3)).ReturnsAsync(true);
-            var service = CreateWorkShiftService(repository, Mock.Of<IOtpChallengeRepository>());
+            repository.Setup(repo => repo.GetTotalCashSalesAsync(85)).ReturnsAsync(0m);
+            repository.Setup(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>())).Returns(Task.CompletedTask);
+            var challenge = CreateApprovedExceptionChallenge();
+            var otpRepo = SetupOtpRepo(challenge);
+            var service = CreateWorkShiftService(repository, otpRepo.Object);
 
             var result = await service.CloseShiftByExceptionAsync(17, 3, 85, CreateExceptionRequestWithOtp());
 
-            Assert.False(result.IsSuccess);
-            Assert.Contains("giao dịch thanh toán chưa hoàn tất", result.Message);
-            Assert.Equal("Open", shift.Status);
-            repository.Verify(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>()), Times.Never);
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.Equal(WorkShiftStatuses.ReconciliationRequired, shift.Status);
+            Assert.True(shift.RequiresReconciliation);
+            repository.Verify(repo => repo.HasOpenPosPaymentAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         }
 
         [Fact]
@@ -90,7 +93,7 @@ namespace CafeChain.Tests.POS
             var result = await service.CloseShiftByExceptionAsync(17, 3, 85, CreateExceptionRequestWithOtp());
 
             Assert.True(result.IsSuccess, result.Message);
-            Assert.Equal("Closed", shift.Status);
+            Assert.Equal(WorkShiftStatuses.ReconciliationRequired, shift.Status);
             Assert.True(shift.IsExceptionClosed);
             Assert.True(shift.RequiresReconciliation);
             Assert.Equal(200, shift.ExceptionClosedByStaffId);
@@ -157,6 +160,46 @@ namespace CafeChain.Tests.POS
             repository.Verify(repo => repo.SaveChangesAsync(), Times.Never);
         }
 
+        [Fact]
+        public async Task ReconcileAsync_BlocksUntilAllOfflineOrdersAreServerConfirmed()
+        {
+            var shift = CreateReconciliationShift(offlineAtClose: 2, lateSynced: 1);
+            var repository = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
+            repository.Setup(repo => repo.GetShiftByIdAsync(85, 17, 3)).ReturnsAsync(shift);
+            repository.Setup(repo => repo.HasOpenPosPaymentAsync(85, 3)).ReturnsAsync(false);
+            var otpRepo = SetupTransactionOnlyOtpRepo();
+            var service = CreateWorkShiftService(repository, otpRepo.Object);
+
+            var result = await service.ReconcileAsync(17, 3, 85, CreateReconcileRequest());
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(WorkShiftErrorCodes.OfflineOrdersPending, result.ErrorCode);
+            Assert.Equal(WorkShiftStatuses.ReconciliationRequired, shift.Status);
+            repository.Verify(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>()), Times.Never);
+            otpRepo.Verify(repo => repo.RollbackTransactionAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task ReconcileAsync_AllOfflineOrdersConfirmed_ClosesOriginalShift()
+        {
+            var shift = CreateReconciliationShift(offlineAtClose: 2, lateSynced: 2);
+            var repository = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
+            repository.Setup(repo => repo.GetShiftByIdAsync(85, 17, 3)).ReturnsAsync(shift);
+            repository.Setup(repo => repo.HasOpenPosPaymentAsync(85, 3)).ReturnsAsync(false);
+            repository.Setup(repo => repo.GetTotalCashSalesAsync(85)).ReturnsAsync(90000m);
+            repository.Setup(repo => repo.UpdateShiftAsync(shift)).Returns(Task.CompletedTask);
+            var otpRepo = SetupTransactionOnlyOtpRepo();
+            var service = CreateWorkShiftService(repository, otpRepo.Object);
+
+            var result = await service.ReconcileAsync(17, 3, 85, CreateReconcileRequest());
+
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.Equal(WorkShiftStatuses.Closed, shift.Status);
+            Assert.False(shift.RequiresReconciliation);
+            Assert.Equal(590000m, shift.ExpectedEndingCash);
+            otpRepo.Verify(repo => repo.CommitTransactionAsync(), Times.Once);
+        }
+
         private static WorkShiftService CreateWorkShiftService(
             Mock<IWorkShiftRepository> repository,
             IOtpChallengeRepository otpRepo,
@@ -179,6 +222,15 @@ namespace CafeChain.Tests.POS
             otpRepo.Setup(r => r.GetByPublicIdForUpdateAsync(OtpId)).ReturnsAsync(challenge);
             otpRepo.Setup(r => r.IsApproverStillEligibleAsync(200, 3, 17)).ReturnsAsync(true);
             otpRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+            return otpRepo;
+        }
+
+        private static Mock<IOtpChallengeRepository> SetupTransactionOnlyOtpRepo()
+        {
+            var otpRepo = new Mock<IOtpChallengeRepository>(MockBehavior.Strict);
+            otpRepo.Setup(repo => repo.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            otpRepo.Setup(repo => repo.CommitTransactionAsync()).Returns(Task.CompletedTask);
+            otpRepo.Setup(repo => repo.RollbackTransactionAsync()).Returns(Task.CompletedTask);
             return otpRepo;
         }
 
@@ -271,6 +323,34 @@ namespace CafeChain.Tests.POS
                 ActualEndingCash = 500000m,
                 IsExceptionClosed = true,
                 RequiresReconciliation = true
+            };
+        }
+
+        private static WorkShift CreateReconciliationShift(int offlineAtClose, int lateSynced)
+        {
+            return new WorkShift
+            {
+                ShiftId = 85,
+                StoreId = 3,
+                UserId = 17,
+                Status = WorkShiftStatuses.ReconciliationRequired,
+                StartingCash = 500000m,
+                ExpectedEndingCash = 500000m,
+                ActualEndingCash = 590000m,
+                RequiresReconciliation = true,
+                OfflineOrderCountAtClose = offlineAtClose,
+                LateOfflineSyncCount = lateSynced,
+                HasLateOfflineSync = lateSynced > 0
+            };
+        }
+
+        private static ReconcileWorkShiftRequestDto CreateReconcileRequest()
+        {
+            return new ReconcileWorkShiftRequestDto
+            {
+                RequestKey = Guid.NewGuid().ToString("N"),
+                Reason = "Đã xác nhận toàn bộ đơn offline và thanh toán muộn.",
+                OfflineQueueSummary = new OfflineQueueSummaryDto()
             };
         }
 

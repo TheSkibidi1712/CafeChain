@@ -38,6 +38,7 @@ namespace CafeChain.Tests.POS
         private int _storeId;
         private int _requesterId;
         private int _approverId;
+        private string _terminalId = string.Empty;
         private readonly OtpPayloadFingerprintService _fp = new();
 
         public async Task InitializeAsync()
@@ -99,7 +100,7 @@ IF DB_ID(N'{Database}') IS NULL
             await using var verify = CreateContext();
             var shift = await verify.WorkShifts.AsNoTracking().FirstAsync(s => s.ShiftId == shiftId);
             var challenge = await verify.OtpChallenges.AsNoTracking().FirstAsync(c => c.PublicId == publicId);
-            Assert.Equal("Closed", shift.Status);
+            Assert.Equal(WorkShiftStatuses.ReconciliationRequired, shift.Status);
             Assert.True(shift.IsExceptionClosed);
             Assert.Equal(OtpConstants.Statuses.Used, challenge.Status);
         }
@@ -145,7 +146,7 @@ IF DB_ID(N'{Database}') IS NULL
             await using var verify = CreateContext();
             var shift = await verify.WorkShifts.AsNoTracking().FirstAsync(s => s.ShiftId == shiftId);
             var challenge = await verify.OtpChallenges.AsNoTracking().FirstAsync(c => c.PublicId == publicId);
-            Assert.Equal("Open", shift.Status);
+            Assert.Equal(WorkShiftStatuses.Open, shift.Status);
             Assert.Equal(OtpConstants.Statuses.Approved, challenge.Status);
         }
 
@@ -194,7 +195,8 @@ IF DB_ID(N'{Database}') IS NULL
                 {
                     StartingCash = cash,
                     LateOpeningReason = reason,
-                    OtpChallengePublicId = publicId
+                    OtpChallengePublicId = publicId,
+                    PosTerminalId = _terminalId
                 });
             });
 
@@ -204,7 +206,7 @@ IF DB_ID(N'{Database}') IS NULL
 
             await using var verify = CreateContext();
             var opens = await verify.WorkShifts.CountAsync(s =>
-                s.UserId == _requesterId && s.StoreId == _storeId && s.Status == "Open");
+                s.UserId == _requesterId && s.StoreId == _storeId && s.Status == WorkShiftStatuses.Open);
             Assert.Equal(1, opens);
             var challenge = await verify.OtpChallenges.AsNoTracking().FirstAsync(c => c.PublicId == publicId);
             Assert.Equal(OtpConstants.Statuses.Used, challenge.Status);
@@ -371,6 +373,20 @@ IF DB_ID(N'{Database}') IS NULL
             _requesterId = await EnsureStaffAsync(ctx, RoleConstants.SalesStaff, $"p2-cashier-{Guid.NewGuid():N}@test.local");
             _approverId = await EnsureStaffAsync(ctx, RoleConstants.ShiftSupervisor, $"p2-ss-{Guid.NewGuid():N}@test.local");
             await EnsureStaffAsync(ctx, RoleConstants.StoreManager, $"p2-sm-{Guid.NewGuid():N}@test.local");
+
+            _terminalId = $"otp-p2-terminal-{_storeId}";
+            if (!await ctx.PosTerminals.AnyAsync(x => x.TerminalId == _terminalId))
+            {
+                ctx.PosTerminals.Add(new PosTerminal
+                {
+                    TerminalId = _terminalId,
+                    StoreId = _storeId,
+                    Name = "OTP Phase 2 Terminal",
+                    Active = true,
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+                await ctx.SaveChangesAsync();
+            }
         }
 
         private async Task<int> EnsureStaffAsync(AppDbContext ctx, string roleName, string email)
@@ -448,12 +464,14 @@ IF DB_ID(N'{Database}') IS NULL
         private async Task CloseOpenShiftsAsync(AppDbContext ctx, int userId)
         {
             var opens = await ctx.WorkShifts
-                .Where(s => s.UserId == userId && s.StoreId == _storeId && s.Status == "Open")
+                .Where(s => s.UserId == userId
+                    && s.StoreId == _storeId
+                    && (s.Status == WorkShiftStatuses.Open || s.Status == "Open"))
                 .ToListAsync();
             foreach (var o in opens)
             {
-                o.Status = "Closed";
-                o.EndTime = DateTime.Now;
+                o.Status = WorkShiftStatuses.Closed;
+                o.EndTimeUtc = DateTime.UtcNow;
             }
             await ctx.SaveChangesAsync();
         }
@@ -465,8 +483,8 @@ IF DB_ID(N'{Database}') IS NULL
             {
                 StoreId = _storeId,
                 UserId = userId,
-                Status = "Open",
-                StartTime = DateTime.Now,
+                Status = WorkShiftStatuses.Open,
+                StartTimeUtc = DateTime.UtcNow,
                 StartingCash = 500_000m,
                 ExpectedEndingCash = 500_000m
             };

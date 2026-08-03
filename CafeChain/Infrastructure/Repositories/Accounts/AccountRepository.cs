@@ -154,6 +154,61 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
             return Task.CompletedTask;
         }
 
+        public async Task RecordFailedLoginAsync(
+            int accountId,
+            DateTime nowUtc,
+            int maxAttempts,
+            TimeSpan lockDuration)
+        {
+            if (_context.Database.IsSqlServer())
+            {
+                var lockoutEndUtc = nowUtc.Add(lockDuration);
+                await _context.Database.ExecuteSqlInterpolatedAsync($@"
+UPDATE dbo.Accounts WITH (UPDLOCK, ROWLOCK)
+SET FailedLoginAttempts = CASE
+        WHEN FailedLoginAttempts + 1 >= {maxAttempts} THEN 0
+        ELSE FailedLoginAttempts + 1
+    END,
+    LockoutEnd = CASE
+        WHEN FailedLoginAttempts + 1 >= {maxAttempts} THEN {lockoutEndUtc}
+        ELSE NULL
+    END
+WHERE AccountId = {accountId};");
+                return;
+            }
+
+            await ExecuteInTransactionAsync(async () =>
+            {
+                var tracked = await _context.Accounts.SingleAsync(x => x.AccountId == accountId);
+                tracked.FailedLoginAttempts++;
+                if (tracked.FailedLoginAttempts >= maxAttempts)
+                {
+                    tracked.FailedLoginAttempts = 0;
+                    tracked.LockoutEnd = nowUtc.Add(lockDuration);
+                }
+            });
+        }
+
+        public async Task ResetLoginFailuresAsync(int accountId)
+        {
+            if (_context.Database.IsSqlServer())
+            {
+                await _context.Database.ExecuteSqlInterpolatedAsync($@"
+UPDATE dbo.Accounts WITH (UPDLOCK, ROWLOCK)
+SET FailedLoginAttempts = 0,
+    LockoutEnd = NULL
+WHERE AccountId = {accountId};");
+                return;
+            }
+
+            await ExecuteInTransactionAsync(async () =>
+            {
+                var tracked = await _context.Accounts.SingleAsync(x => x.AccountId == accountId);
+                tracked.FailedLoginAttempts = 0;
+                tracked.LockoutEnd = null;
+            });
+        }
+
         public async Task<(bool, int)>CheckLockAsync(string email)
         {
             var account = await GetAccountByEmailAsync(email);

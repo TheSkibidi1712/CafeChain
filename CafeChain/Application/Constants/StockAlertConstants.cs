@@ -66,6 +66,7 @@ namespace CafeChain.Application.Constants
         public const string RestockRequestSubmitted = "RESTOCK_REQUEST_SUBMITTED";
         public const string InventoryReorderAlert = "INVENTORY_REORDER_ALERT";
         public const string OperationalAnomaly = "OPERATIONAL_ANOMALY";
+        public const string OperationalOtpRequest = "OPERATIONAL_OTP_REQUEST";
     }
 
     /// <summary>Issue #98 — StaffNotification entity type codes.</summary>
@@ -76,5 +77,6 @@ namespace CafeChain.Application.Constants
         public const string RestockRequest = "RestockRequest";
         public const string InventoryReorder = "InventoryReorder";
         public const string OperationalAnomaly = "OperationalAnomaly";
+        public const string OtpChallenge = "OtpChallenge";
     }
 }

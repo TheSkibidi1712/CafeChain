@@ -18,6 +18,20 @@ namespace CafeChain.Models.Operations
 
         public int? WorkShiftId { get; set; }
 
+        [MaxLength(100)]
+        public string? TerminalId { get; set; }
+
+        [MaxLength(200)]
+        public string? RequestKey { get; set; }
+
+        /// <summary>SHA-256 fingerprint; never stores the raw client IP.</summary>
+        [MaxLength(64)]
+        public string? ClientIpHash { get; set; }
+
+        /// <summary>SHA-256 fingerprint derived from a server-observed device header/user agent.</summary>
+        [MaxLength(64)]
+        public string? DeviceFingerprintHash { get; set; }
+
         public int RequestedByStaffId { get; set; }
 
         public int ApproverStaffId { get; set; }
@@ -35,6 +49,14 @@ namespace CafeChain.Models.Operations
 
         [MaxLength(255)]
         public string OtpHash { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Data Protection ciphertext used only to let the selected approver review an
+        /// active OTP from the private notification list. Never contains plaintext.
+        /// Cleared as soon as the challenge leaves Pending.
+        /// </summary>
+        [MaxLength(2048)]
+        public string? ProtectedOtpPayload { get; set; }
 
         /// <summary>SHA-256 hex fingerprint of canonical action payload (required for new challenges).</summary>
         [MaxLength(128)]

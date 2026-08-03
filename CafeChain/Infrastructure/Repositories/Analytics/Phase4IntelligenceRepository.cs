@@ -100,8 +100,8 @@ public sealed class AnomalyDetectionRepository : IAnomalyDetectionRepository
         result["WASTE_ADJUSTMENT"] = await _db.InventoryTransactions.AsNoTracking().Where(x => x.StoreInventory.StoreId == storeId && x.CreatedAt >= fromUtc && x.CreatedAt < toUtc
                 && (x.Type == InventoryTransactionTypeEnum.WASTE || x.Type == InventoryTransactionTypeEnum.ADJUSTMENT_IN || x.Type == InventoryTransactionTypeEnum.ADJUSTMENT_OUT))
             .GroupBy(x => x.CreatedAt.Date).Select(g => new DailyMetricPoint(g.Key, g.Sum(x => Math.Abs(x.Quantity)))).OrderBy(x => x.Date).ToListAsync(ct);
-        result["CASH_DISCREPANCY"] = await _db.WorkShifts.AsNoTracking().Where(x => x.StoreId == storeId && x.EndTime.HasValue && x.EndTime >= fromUtc && x.EndTime < toUtc && x.CashDiscrepancy.HasValue)
-            .GroupBy(x => x.EndTime!.Value.Date).Select(g => new DailyMetricPoint(g.Key, g.Sum(x => Math.Abs(x.CashDiscrepancy!.Value)))).OrderBy(x => x.Date).ToListAsync(ct);
+        result["CASH_DISCREPANCY"] = await _db.WorkShifts.AsNoTracking().Where(x => x.StoreId == storeId && x.EndTimeUtc.HasValue && x.EndTimeUtc >= fromUtc && x.EndTimeUtc < toUtc && x.CashDiscrepancy.HasValue)
+            .GroupBy(x => x.EndTimeUtc!.Value.Date).Select(g => new DailyMetricPoint(g.Key, g.Sum(x => Math.Abs(x.CashDiscrepancy!.Value)))).OrderBy(x => x.Date).ToListAsync(ct);
         result["SUPPLIER_ISSUE"] = await _db.SupplierReceiptIssues.AsNoTracking().Where(x => x.StoreId == storeId && x.ReportedAtUtc >= fromUtc && x.ReportedAtUtc < toUtc)
             .GroupBy(x => x.ReportedAtUtc.Date).Select(g => new DailyMetricPoint(g.Key, g.Count())).OrderBy(x => x.Date).ToListAsync(ct);
 
