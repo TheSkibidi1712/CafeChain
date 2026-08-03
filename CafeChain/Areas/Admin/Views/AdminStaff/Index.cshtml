@@ -27,14 +27,17 @@
 <div class="admin-wo-page">
 
     
-    <div class="page-header staff-page-header">
-        <div class="d-flex align-items-center gap-3">
-            <div class="staff-page-heading-icon">
-                <i class="fas fa-users"></i>
-            </div>
-            <div>
-                <h2 class="mb-0">Quản lý nhân sự</h2>
-                <p class="mb-0">Quản lý thông tin, vai trò và quyền hạn của đội ngũ nhân viên CafeChain.</p>
+    <header class="page-header staff-page-header cc-admin-heading">
+        <div class="cc-admin-heading__copy">
+            <div class="cc-admin-heading__eyebrow">Nhân sự &amp; Vận hành / Quản lý nhân viên</div>
+            <div class="cc-admin-heading__row">
+                <span class="staff-page-heading-icon cc-admin-heading__icon" aria-hidden="true">
+                    <i class="fas fa-users"></i>
+                </span>
+                <div class="cc-admin-heading__text">
+                    <h1>Quản lý nhân sự</h1>
+                    <p>Quản lý thông tin, vai trò và quyền hạn của đội ngũ nhân viên CafeChain.</p>
+                </div>
             </div>
         </div>
         @if (canCreateStaff)
@@ -44,7 +47,7 @@
                 <i class="fas fa-user-plus"></i> Thêm nhân viên
             </button>
         }
-    </div>
+    </header>
 
     
     <div class="staff-kpi-row mb-4">
@@ -273,14 +276,25 @@
             const icon = isActive ? 'warning' : 'question';
 
             Swal.fire({
-                title: `Xác nhận ${action} tài khoản?`,
-                html: `Bạn có chắc muốn <strong>${action}</strong> tài khoản của <strong>${staffName}</strong>?`,
+                title: `${isActive ? 'Khóa' : 'Mở khóa'} tài khoản`,
+                html: `<div class="staff-swal-message">Bạn đang yêu cầu <strong>${action}</strong> tài khoản của</div><div class="staff-swal-subject">${staffName}</div><div class="staff-swal-note">${isActive ? 'Nhân viên sẽ không thể đăng nhập cho đến khi tài khoản được mở lại.' : 'Nhân viên sẽ có thể đăng nhập và tiếp tục làm việc.'}</div>`,
                 icon: icon,
+                iconHtml: `<i class="fas ${isActive ? 'fa-lock' : 'fa-lock-open'}"></i>`,
                 showCancelButton: true,
-                confirmButtonColor: isActive ? '#dc2626' : '#16a34a',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: isActive ? '<i class="fas fa-lock"></i> Khóa' : '<i class="fas fa-unlock"></i> Mở khóa',
-                cancelButtonText: 'Hủy bỏ'
+                confirmButtonText: isActive ? '<i class="fas fa-lock"></i> Khóa tài khoản' : '<i class="fas fa-unlock"></i> Mở khóa tài khoản',
+                cancelButtonText: 'Hủy bỏ',
+                reverseButtons: true,
+                buttonsStyling: false,
+                focusCancel: isActive,
+                customClass: {
+                    popup: `staff-swal-popup ${isActive ? 'staff-swal-danger' : 'staff-swal-success'}`,
+                    icon: 'staff-swal-icon',
+                    title: 'staff-swal-title',
+                    htmlContainer: 'staff-swal-content',
+                    actions: 'staff-swal-actions',
+                    confirmButton: 'staff-swal-button staff-swal-confirm',
+                    cancelButton: 'staff-swal-button staff-swal-cancel'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     AdminMutationGuard.run(`staff-toggle-${staffId}`, button, () => fetch(`/Admin/AdminStaff/ToggleStatus/${staffId}`, {
@@ -306,13 +320,31 @@
 
         async function resetStaffPassword(accountId, staffName, button) {
             const result = await Swal.fire({
-                title: `Đặt lại mật khẩu cho ${staffName}`,
+                title: 'Đặt lại mật khẩu',
+                html: `<div class="staff-swal-message">Tạo mật khẩu đăng nhập mới cho</div><div class="staff-swal-subject">${staffName}</div><div class="staff-swal-note">Mật khẩu mới cần có ít nhất 6 ký tự. Hãy gửi mật khẩu cho nhân viên qua kênh an toàn.</div>`,
+                icon: 'info',
+                iconHtml: '<i class="fas fa-key"></i>',
                 input: 'password',
-                inputLabel: 'Mật khẩu mới (tối thiểu 6 ký tự)',
-                inputAttributes: { minlength: 6, autocomplete: 'new-password' },
+                inputLabel: 'Mật khẩu mới',
+                inputPlaceholder: 'Nhập tối thiểu 6 ký tự',
+                inputAttributes: { minlength: 6, autocomplete: 'new-password', autocapitalize: 'off', spellcheck: 'false' },
                 showCancelButton: true,
-                confirmButtonText: 'Đặt lại mật khẩu',
+                confirmButtonText: '<i class="fas fa-key"></i> Đặt lại mật khẩu',
                 cancelButtonText: 'Hủy',
+                reverseButtons: true,
+                buttonsStyling: false,
+                customClass: {
+                    popup: 'staff-swal-popup staff-swal-password',
+                    icon: 'staff-swal-icon',
+                    title: 'staff-swal-title',
+                    htmlContainer: 'staff-swal-content',
+                    input: 'staff-swal-input',
+                    inputLabel: 'staff-swal-input-label',
+                    validationMessage: 'staff-swal-validation',
+                    actions: 'staff-swal-actions',
+                    confirmButton: 'staff-swal-button staff-swal-confirm',
+                    cancelButton: 'staff-swal-button staff-swal-cancel'
+                },
                 inputValidator: value => !value || value.length < 6 ? 'Mật khẩu phải có ít nhất 6 ký tự.' : undefined
             });
             if (!result.isConfirmed) return;

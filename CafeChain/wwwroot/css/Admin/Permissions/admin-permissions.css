@@ -27,6 +27,8 @@
 }
 
 .perm-page .perm-tab {
+    flex: 1 1 0;
+    justify-content: center;
     min-height: 44px;
     border-radius: 10px;
 }
@@ -81,9 +83,12 @@
 
 /* Brown depth refresh */
 .perm-page {
-    max-width: 1480px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: none;
+    align-self: stretch;
+    margin: 0;
     padding: 24px clamp(16px, 2.2vw, 32px) 40px;
+    box-sizing: border-box;
     border-radius: 24px;
     background:
         radial-gradient(circle at 96% 2%, rgba(184, 149, 125, .16), transparent 230px),
@@ -1252,5 +1257,267 @@
 
     .perm-radio-set {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Layered depth system for Permission workspace and forms. */
+.perm-page .perm-tabs {
+    position: relative;
+    z-index: 2;
+    border-color: #d9cabf;
+    background: rgba(255, 255, 255, .96);
+    box-shadow:
+        0 2px 4px rgba(71, 50, 35, .055),
+        0 13px 30px rgba(71, 50, 35, .115),
+        inset 0 1px 0 rgba(255, 255, 255, .95);
+}
+
+.perm-page .perm-tab.is-active {
+    box-shadow:
+        0 3px 5px rgba(45, 29, 20, .13),
+        0 9px 19px rgba(111, 78, 55, .24),
+        inset 0 1px 0 rgba(255, 255, 255, .16);
+}
+
+.perm-page .perm-panel {
+    position: relative;
+    z-index: 1;
+    border-color: #d9cabf;
+    background: #fff;
+    box-shadow:
+        0 3px 5px rgba(71, 50, 35, .055),
+        0 22px 52px rgba(71, 50, 35, .15),
+        inset 0 1px 0 rgba(255, 255, 255, .95);
+}
+
+.perm-page .perm-toolbar {
+    position: relative;
+    z-index: 2;
+    border-bottom-color: #dfd2c7;
+    background: linear-gradient(180deg, #fff, #faf6f2);
+    box-shadow: 0 9px 22px rgba(71, 50, 35, .055);
+}
+
+.perm-page .perm-table thead {
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 4px 10px rgba(71, 50, 35, .055);
+}
+
+.perm-page .perm-table tbody tr {
+    transition: background-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.perm-page .perm-side {
+    box-shadow: 8px 0 24px rgba(71, 50, 35, .055);
+}
+
+.perm-page .perm-selected-head,
+.perm-page .perm-scope-editor,
+.perm-page .perm-override-group {
+    border-color: #ded0c5;
+    box-shadow:
+        0 2px 4px rgba(71, 50, 35, .045),
+        0 11px 26px rgba(71, 50, 35, .08),
+        inset 0 1px 0 rgba(255, 255, 255, .95);
+}
+
+.perm-page .perm-staff-item.is-active {
+    box-shadow:
+        0 2px 4px rgba(71, 50, 35, .06),
+        0 9px 19px rgba(111, 78, 55, .14),
+        inset 3px 0 #6f4e37;
+}
+
+.perm-modal {
+    box-shadow:
+        0 5px 12px rgba(45, 29, 20, .13),
+        0 34px 95px rgba(45, 29, 20, .34),
+        inset 0 1px 0 rgba(255, 255, 255, .95);
+}
+
+.perm-modal::before {
+    position: absolute;
+    z-index: 3;
+    inset: 0 0 auto;
+    height: 5px;
+    background: #6f4e37;
+    content: "";
+    pointer-events: none;
+}
+
+.perm-modal-head {
+    box-shadow: 0 8px 22px rgba(71, 50, 35, .07);
+}
+
+#permRoleModal .perm-permission-group,
+#permStaffRoleModal .perm-role-option {
+    box-shadow:
+        0 2px 4px rgba(71, 50, 35, .045),
+        0 10px 23px rgba(71, 50, 35, .075),
+        inset 0 1px 0 rgba(255, 255, 255, .95);
+}
+
+@media (max-width: 1100px) {
+    .perm-page .perm-side {
+        box-shadow: 0 8px 22px rgba(71, 50, 35, .055);
+    }
+}
+
+/* Final shared treatment for permission forms and dialogs. */
+.perm-modal {
+    overflow: hidden;
+    border: 1px solid #d8c7b9;
+    border-radius: 20px;
+    background: #faf7f4;
+    box-shadow: 0 30px 90px rgba(45, 29, 20, .3);
+}
+
+.perm-modal-head {
+    min-height: 88px;
+    padding: 18px 24px;
+    border-bottom-color: #e4d7cd;
+    background: #fff;
+}
+
+.perm-modal-heading {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 15px;
+}
+
+.perm-modal-heading-icon {
+    display: inline-flex;
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 15px;
+    color: #fff;
+    background: #6f4e37;
+    box-shadow: 0 9px 20px rgba(111, 78, 55, .22);
+}
+
+.perm-modal-heading-icon i {
+    color: #fff;
+    font-size: 20px;
+}
+
+.perm-modal h2 {
+    color: #1f2937;
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -.02em;
+}
+
+.perm-modal-meta {
+    margin-top: 5px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.perm-modal-head > .perm-icon-button {
+    width: 40px;
+    height: 40px;
+    border-color: #e2d6cc;
+    border-radius: 10px;
+    background: #faf7f4;
+}
+
+#permRoleModal .perm-modal-tools {
+    padding: 16px 24px;
+}
+
+#permRoleModal .perm-permission-groups {
+    max-height: 60vh;
+    padding: 20px 24px;
+}
+
+.perm-modal-foot {
+    min-height: 68px;
+    padding: 14px 24px;
+    border-top-color: #e4d7cd;
+    background: #fff;
+    box-shadow: 0 -8px 20px rgba(71, 50, 35, .04);
+}
+
+.perm-modal-foot .perm-primary-button,
+.perm-modal-foot .perm-ghost-button {
+    min-height: 42px;
+    border-radius: 10px;
+}
+
+#permStaffRoleModal .modal-dialog {
+    max-width: 640px;
+}
+
+#permStaffRoleModal .perm-role-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 20px 24px;
+}
+
+#permStaffRoleModal .perm-role-option {
+    min-height: 54px;
+    align-items: center;
+    margin: 0;
+    padding: 12px 14px;
+    border-color: #e5d9cf;
+    border-radius: 11px;
+    background: #fff;
+    transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+#permStaffRoleModal .perm-role-option:hover {
+    border-color: #ae8d75;
+    background: #faf7f4;
+    transform: translateY(-1px);
+}
+
+#permStaffRoleModal .perm-role-option:has(input:checked) {
+    border-color: #8b6b55;
+    background: #f5ede3;
+    box-shadow: 0 0 0 2px rgba(111, 78, 55, .08);
+}
+
+#permStaffRoleModal .perm-note {
+    margin: 0 24px 18px;
+    border: 1px solid #ddcabb;
+    border-radius: 11px;
+    color: #5c3f2b;
+    background: #faf3ed;
+}
+
+@media (max-width: 700px) {
+    .perm-modal-head,
+    .perm-modal-foot,
+    #permRoleModal .perm-modal-tools,
+    #permRoleModal .perm-permission-groups,
+    #permStaffRoleModal .perm-role-options {
+        padding-inline: 16px;
+    }
+
+    .perm-modal-heading-icon {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+        border-radius: 13px;
+    }
+
+    .perm-modal h2 {
+        font-size: 20px;
+    }
+
+    #permStaffRoleModal .perm-role-options {
+        grid-template-columns: 1fr;
+    }
+
+    #permStaffRoleModal .perm-note {
+        margin-inline: 16px;
     }
 }
