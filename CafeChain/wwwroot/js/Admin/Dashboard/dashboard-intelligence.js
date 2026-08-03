@@ -34,6 +34,7 @@
         confirmedMarginRate: "Biên lợi nhuận", cancellationRate: "Tỷ lệ hủy",
         completedOrders: "Đơn hoàn tất", cancelledOrders: "Đơn hủy", dataStatus: "Chất lượng dữ liệu",
         alertValue: "Giá trị cảnh báo", alertCount: "Số cảnh báo", shiftCount: "Số ca",
+        entityName: "Đối tượng", severity: "Mức độ", unit: "Đơn vị", message: "Nội dung",
         riskIngredientCount: "Số nguyên liệu rủi ro", bomIssueCount: "Số lỗi BOM",
         effectiveSuggestedQuantity: "Số lượng đề xuất hiệu lực", issueCount: "Số sự cố", spend: "Chi phí mua",
         averageBaseUnitCost: "Giá mua bình quân", wasteValue: "Giá trị hao hụt",
@@ -48,6 +49,11 @@
     const aiStatusLabels = { Available: "AI khả dụng", Fallback: "Chế độ dự phòng" };
     const priorityLabels = { Critical: "Nghiêm trọng", High: "Cao", Medium: "Trung bình", Low: "Thấp" };
     const severityLabels = { CRITICAL: "Nghiêm trọng", URGENT: "Khẩn cấp", WARNING: "Cảnh báo", INFO: "Thông tin" };
+    const unitLabels = {
+        VND: "VNĐ", DAY: "ngày", DAYS: "ngày", HOUR: "giờ", HOURS: "giờ",
+        G: "g", GRAM: "g", KG: "kg", KILOGRAM: "kg", ML: "ml", MILLILITER: "ml",
+        L: "lít", LITER: "lít", PIECE: "cái", PCS: "cái", COUNT: "lần"
+    };
     const trendLabels = {
         Increasing: "Tăng", Decreasing: "Giảm", Stable: "Ổn định",
         MixedIncreasing: "Biến động nhưng tăng", MixedDecreasing: "Biến động nhưng giảm",
@@ -176,6 +182,13 @@
         return map[value] || map[String(value).toUpperCase()] || String(value);
     }
 
+    function displayUnitLabel(value) {
+        if (value === null || value === undefined || value === "") return "—";
+        const normalized = String(value).trim().toUpperCase();
+        if (normalized === "INGREDIENT") return "—";
+        return unitLabels[normalized] || String(value);
+    }
+
     function evidenceMap(data) {
         return new Map([
             ...(data.facts || []),
@@ -260,6 +273,8 @@
                 return normalized !== "datastatus"
                     && normalized !== "entitytype"
                     && normalized !== "alerttype"
+                    && !(normalized === "alertcount"
+                        && String(chart?.widgetKey || "").toLowerCase() === "operationalalerts")
                     && !normalized.endsWith("id")
                     && !normalized.endsWith("code");
             })
@@ -277,7 +292,12 @@
         const table = element("table", "dashboard-intelligence__table");
         const thead = document.createElement("thead");
         const header = document.createElement("tr");
-        keys.forEach(key => header.append(element("th", "", fieldLabel(chart, key))));
+        keys.forEach(key => {
+            const th = element("th", "", fieldLabel(chart, key));
+            th.dataset.field = String(key).toLowerCase();
+            th.setAttribute("scope", "col");
+            header.append(th);
+        });
         thead.append(header);
         table.append(thead);
         const tbody = document.createElement("tbody");
@@ -289,9 +309,22 @@
                 const text = normalized === "severity" || normalized === "priority"
                     ? localizedLabel(row[key], normalized === "severity" ? severityLabels : priorityLabels)
                     : normalized === "unit"
-                        ? ({ DAY: "ngày", HOUR: "giờ", VND: "đ" }[String(row[key] || "").toUpperCase()] || row[key] || "")
+                        ? displayUnitLabel(row[key])
                         : formatUnit(row[key], unit);
-                tr.append(element("td", "", text));
+                const td = element("td", "");
+                td.dataset.label = fieldLabel(chart, key);
+                td.dataset.field = normalized;
+                if (normalized === "severity" || normalized === "priority") {
+                    const rawLevel = String(row[key] || "").toLowerCase();
+                    td.append(element(
+                        "span",
+                        `dashboard-intelligence__severity is-${rawLevel || "unknown"}`,
+                        text
+                    ));
+                } else {
+                    td.textContent = text;
+                }
+                tr.append(td);
             });
             tbody.append(tr);
         });

@@ -443,7 +443,7 @@ BEGIN
                'INGREDIENT' AS EntityType, i.IngredientId AS EntityId, i.Code AS EntityCode, i.Name AS EntityName,
                 CASE WHEN si.AvailableQty-si.ReservedQty < 0 THEN 'CRITICAL' ELSE 'WARNING' END AS Severity,
                si.AvailableQty-si.ReservedQty AS AlertValue, u.UnitCode AS Unit,
-               CONCAT('Tồn dưới ngưỡng: ', i.Name) AS Message, 'AVAILABLE' AS DataStatus
+               CONCAT(N'Tồn dưới ngưỡng: ', i.Name) AS Message, 'AVAILABLE' AS DataStatus
         FROM dbo.StoreInventories AS si
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = si.StoreId
         INNER JOIN dbo.Stores AS s ON s.StoreId=si.StoreId
@@ -454,7 +454,7 @@ BEGIN
         SELECT 'CASH_DISCREPANCY', w.StoreId, s.Name, 'WORK_SHIFT', w.ShiftId,
                CONVERT(nvarchar(50),w.ShiftId), CONCAT('WorkShift #',w.ShiftId),
                CASE WHEN ABS(COALESCE(w.CashDiscrepancy, 0)) >= 50000 THEN 'CRITICAL' ELSE 'WARNING' END,
-               COALESCE(w.CashDiscrepancy, 0), 'VND', CONCAT('Chênh lệch WorkShift #', w.ShiftId), 'AVAILABLE'
+               COALESCE(w.CashDiscrepancy, 0), 'VND', CONCAT(N'Chênh lệch WorkShift #', w.ShiftId), 'AVAILABLE'
         FROM dbo.WorkShifts AS w
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = w.StoreId
         INNER JOIN dbo.Stores AS s ON s.StoreId=w.StoreId
@@ -463,7 +463,7 @@ BEGIN
         UNION ALL
         SELECT 'OVERDUE_PO', po.StoreId, st.Name, 'PURCHASE_ORDER', po.PurchaseOrderId,
                po.Code,po.Code,'WARNING',DATEDIFF(day, po.ExpectedDeliveryAtUtc, SYSUTCDATETIME()),
-               'DAY',CONCAT('PO quá hạn: ', po.Code), 'AVAILABLE'
+               'DAY',CONCAT(N'PO quá hạn: ', po.Code), 'AVAILABLE'
         FROM dbo.PurchaseOrders AS po
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = po.StoreId
         INNER JOIN dbo.Stores AS st ON st.StoreId=po.StoreId
@@ -472,15 +472,37 @@ BEGIN
         SELECT 'SUPPLIER_ISSUE', issue.StoreId,st.Name,'SUPPLIER',issue.SupplierId,
                CONVERT(nvarchar(50),issue.SupplierId),s.Name,
                CASE WHEN issue.Status='OPEN' THEN 'WARNING' ELSE 'INFO' END,
-               issue.AffectedBaseQuantity,'INGREDIENT',
-               CONCAT('Sự cố nhà cung cấp: ',s.Name,' - ',issue.IssueType),'AVAILABLE'
+               issue.AffectedBaseQuantity,COALESCE(u.UnitCode,N''),
+               CONCAT(
+                   N'Sự cố nhà cung cấp: ',s.Name,N' - ',
+                   CASE issue.IssueType
+                       WHEN 'LATE_DELIVERY' THEN N'giao hàng trễ'
+                       WHEN 'SHORT_DELIVERY' THEN N'giao thiếu hàng'
+                       WHEN 'WRONG_ITEM' THEN N'giao sai mặt hàng'
+                       WHEN 'DAMAGED' THEN N'hàng hóa hư hỏng'
+                       WHEN 'EXPIRED' THEN N'hàng hóa hết hạn'
+                       WHEN 'QUALITY_FAILURE' THEN N'không đạt chất lượng'
+                       WHEN 'PACKAGING_FAILURE' THEN N'sự cố bao bì'
+                       WHEN 'DOCUMENT_MISMATCH' THEN N'sai lệch chứng từ'
+                       ELSE COALESCE(NULLIF(issue.Description,N''),N'sự cố khác')
+                   END),'AVAILABLE'
         FROM dbo.SupplierReceiptIssues AS issue
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=issue.StoreId
         INNER JOIN dbo.Stores AS st ON st.StoreId=issue.StoreId
         INNER JOIN dbo.Suppliers AS s ON s.SupplierId=issue.SupplierId
+        LEFT JOIN dbo.BranchReceiptLines AS brl ON brl.BranchReceiptLineId=issue.BranchReceiptLineId
+        LEFT JOIN dbo.Units AS u ON u.UnitId=brl.BaseUnitId
         WHERE issue.ReportedAtUtc>=@FromDate AND issue.ReportedAtUtc<@ToDate
     ) AS alert
-    ORDER BY CASE alert.Severity WHEN 'CRITICAL' THEN 0 ELSE 1 END, ABS(alert.AlertValue) DESC;
+    ORDER BY CASE alert.Severity WHEN 'CRITICAL' THEN 0 WHEN 'WARNING' THEN 1 ELSE 2 END,
+             CASE alert.AlertType
+                 WHEN 'CASH_DISCREPANCY' THEN 0
+                 WHEN 'LOW_STOCK' THEN 1
+                 WHEN 'OVERDUE_PO' THEN 2
+                 WHEN 'SUPPLIER_ISSUE' THEN 3
+                 ELSE 4
+             END,
+             ABS(alert.AlertValue) DESC;
 END;
 GO
 
@@ -675,7 +697,7 @@ CREATE OR ALTER PROCEDURE dbo.usp_Product_SizeMargin
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT od.SizeId,COALESCE(od.SizeName,'Không size') AS SizeName,SUM(od.Quantity) AS TotalSold,
+    SELECT od.SizeId,COALESCE(od.SizeName,N'Không size') AS SizeName,SUM(od.Quantity) AS TotalSold,
            SUM((od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity) AS Revenue,
            SUM(CASE WHEN od.CostStatus=1 THEN od.TotalCogs ELSE 0 END) AS ConfirmedCogs,
            SUM(CASE WHEN od.CostStatus=1 THEN (od.Price-COALESCE(t.ToppingUnitPrice,0))*od.Quantity-COALESCE(od.TotalCogs,0) ELSE 0 END) AS ConfirmedGrossProfit,
