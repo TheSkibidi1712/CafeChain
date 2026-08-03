@@ -14,6 +14,28 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
         /// </summary>
         Task<Staff?> GetOtpApproverAsync(int storeId, int excludeStaffId, DateTime utcNow);
 
+        Task<IReadOnlyList<Staff>> GetOtpApproverCandidatesAsync(int excludeStaffId);
+
+        Task<int> GetRecentFailedAttemptsAsync(int requestedByStaffId, DateTime sinceUtc);
+
+        Task<int> GetRecentChallengeCountForStaffAsync(int requestedByStaffId, DateTime sinceUtc)
+            => Task.FromResult(0);
+
+        Task<int> GetRecentChallengeCountForTerminalAsync(string terminalId, DateTime sinceUtc)
+            => Task.FromResult(0);
+
+        Task<int> GetRecentChallengeCountForIpAsync(string clientIpHash, DateTime sinceUtc)
+            => Task.FromResult(0);
+
+        Task<int> GetRecentChallengeCountForDeviceAsync(string deviceFingerprintHash, DateTime sinceUtc)
+            => Task.FromResult(0);
+
+        Task<int> GetRecentFailedAttemptsForIpAsync(string clientIpHash, DateTime sinceUtc)
+            => Task.FromResult(0);
+
+        Task<int> GetRecentFailedAttemptsForDeviceAsync(string deviceFingerprintHash, DateTime sinceUtc)
+            => Task.FromResult(0);
+
         /// <summary>Revalidate approver still eligible at store and not the actor.</summary>
         Task<bool> IsApproverStillEligibleAsync(int approverStaffId, int storeId, int actorStaffId);
 

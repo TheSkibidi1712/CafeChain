@@ -71,10 +71,50 @@
                     : "warning",
                 title: message.changeKind === "Escalated"
                     ? "Cảnh báo kho đã tăng mức độ"
-                    : "Có thông báo kho mới",
+                    : "Có thông báo mới",
                 text: "Mở mục Thông báo để xem chi tiết."
             });
         }
+    }
+
+    function showOperationalOtp(message) {
+        if (!message?.eventId || !remember(message.eventId)) return;
+        void refresh();
+
+        const expiresAt = new Date(message.expiresAtUtc);
+        const remainingMs = expiresAt.getTime() - Date.now();
+        if (!Number.isFinite(remainingMs) || remainingMs <= 0 || !window.Swal) return;
+
+        void window.Swal.fire({
+            icon: "warning",
+            title: "Yêu cầu phê duyệt POS",
+            html: '<div class="text-start">' +
+                '<p id="operationalOtpContext" class="mb-2"></p>' +
+                '<div class="d-flex align-items-center justify-content-between gap-2 p-3 rounded bg-light">' +
+                '<code id="operationalOtpCode" class="fs-3 fw-bold"></code>' +
+                '<button id="copyOperationalOtp" type="button" class="btn btn-sm btn-outline-primary">Sao chép mã</button>' +
+                '</div><small id="operationalOtpExpiry" class="d-block mt-2 text-muted"></small></div>',
+            showConfirmButton: true,
+            confirmButtonText: "Đã hiểu",
+            timer: remainingMs,
+            timerProgressBar: true,
+            didOpen: function () {
+                const context = document.getElementById("operationalOtpContext");
+                const code = document.getElementById("operationalOtpCode");
+                const expiry = document.getElementById("operationalOtpExpiry");
+                if (context) context.textContent = `${message.requesterName} yêu cầu ${message.actionLabel} tại ${message.storeName}.`;
+                if (code) code.textContent = message.otpCode;
+                if (expiry) expiry.textContent = `Mã hết hạn lúc ${expiresAt.toLocaleTimeString("vi-VN")}.`;
+                document.getElementById("copyOperationalOtp")?.addEventListener("click", async function () {
+                    try {
+                        await navigator.clipboard.writeText(message.otpCode);
+                        this.textContent = "Đã sao chép";
+                    } catch {
+                        this.textContent = "Không thể sao chép";
+                    }
+                });
+            }
+        });
     }
 
     const connection = new signalRClient.HubConnectionBuilder()
@@ -92,12 +132,23 @@
             { detail: message }));
     });
 
+    connection.on("OperationalOtpNotificationChanged", function (message) {
+        if (!remember(message?.eventId)) return;
+        void refresh();
+        window.dispatchEvent(new CustomEvent("admin-notifications-changed", { detail: message }));
+    });
+
+    connection.on("OperationalOtpIssued", showOperationalOtp);
+
     connection.onreconnected(function () {
         void refresh();
     });
 
     void refresh();
     window.setInterval(refresh, 60000);
+    window.addEventListener("admin-active-otp-expired", function () {
+        void refresh();
+    });
     connection.start().catch(function (error) {
         console.warn("[admin-notifications] SignalR unavailable; polling remains active.", error);
     });

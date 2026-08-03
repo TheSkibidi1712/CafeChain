@@ -8,6 +8,7 @@ using CafeChain.Data;
 using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Inventories.Ice;
 using CafeChain.Models.Inventories.Transactions;
+using CafeChain.Models.Stores;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Enums.Unit;
 using Microsoft.EntityFrameworkCore;
@@ -210,22 +211,27 @@ public sealed class OperationalIceService : IOperationalIceService
         var startLocal = shift.StartAtUtc.ToLocalTime();
         var endLocal = shift.EndAtUtc.ToLocalTime();
         var (businessWindowStart, businessWindowEnd) = LocalBusinessWindow(shift, endLocal);
+        var startUtc = startLocal.ToUniversalTime();
+        var endUtc = endLocal.ToUniversalTime();
+        var businessWindowStartUtc = businessWindowStart.ToUniversalTime();
+        var businessWindowEndUtc = businessWindowEnd.ToUniversalTime();
         var suggestions = await _context.WorkShifts.AsNoTracking()
             .Where(x => x.StoreId == shift.StoreId
-                        && (x.Status == "Open" || x.Status == "Closed")
-                        && x.StartTime >= businessWindowStart
-                        && x.StartTime < businessWindowEnd
-                        && x.StartTime < endLocal
-                        && (x.EndTime == null || x.EndTime > startLocal)
+                        && (x.Status == WorkShiftStatuses.Open || x.Status == WorkShiftStatuses.Closed
+                            || x.Status == "Open" || x.Status == "Closed")
+                        && x.StartTimeUtc >= businessWindowStartUtc
+                        && x.StartTimeUtc < businessWindowEndUtc
+                        && x.StartTimeUtc < endUtc
+                        && (x.EndTimeUtc == null || x.EndTimeUtc > startUtc)
                         && !_context.OperationalShiftWorkShifts.Any(link => link.WorkShiftId == x.ShiftId))
-            .OrderBy(x => x.StartTime)
+            .OrderBy(x => x.StartTimeUtc)
             .Take(30)
             .Select(x => new OperationalIceWorkShiftSuggestionDto
             {
                 WorkShiftId = x.ShiftId,
                 StaffName = x.User.FullName,
-                StartTime = x.StartTime,
-                EndTime = x.EndTime
+                StartTime = x.StartTimeUtc,
+                EndTime = x.EndTimeUtc
             })
             .ToListAsync(cancellationToken);
         return ServiceResult<IReadOnlyList<OperationalIceWorkShiftSuggestionDto>>.Success(suggestions);
@@ -1631,20 +1637,28 @@ public sealed class OperationalIceService : IOperationalIceService
             : operationalEndLocal;
         var workShifts = await _context.WorkShifts.AsNoTracking()
             .Where(x => distinctIds.Contains(x.ShiftId))
-            .Select(x => new { x.ShiftId, x.StoreId, x.StartTime, x.EndTime, x.Status })
+            .Select(x => new { x.ShiftId, x.StoreId, x.StartTimeUtc, x.EndTimeUtc, x.Status })
             .ToListAsync(cancellationToken);
         if (workShifts.Count != distinctIds.Length || workShifts.Any(x => x.StoreId != operationalShift.StoreId))
             return Invalid("WorkShift POS không thuộc cửa hàng của ca vận hành.");
-        if (workShifts.Any(x => x.Status is not ("Open" or "Closed")))
+        if (workShifts.Any(x => x.Status != WorkShiftStatuses.Open
+                                && x.Status != WorkShiftStatuses.Closed
+                                && x.Status != "Open"
+                                && x.Status != "Closed"))
             return Invalid("WorkShift POS không ở trạng thái hợp lệ để liên kết.");
-        if (workShifts.Any(x => x.StartTime < businessWindowStart
-                                || x.StartTime >= businessWindowEnd))
+        var businessWindowStartUtc = businessWindowStart.ToUniversalTime();
+        var businessWindowEndUtc = businessWindowEnd.ToUniversalTime();
+        var operationalStartUtc = operationalStartLocal.ToUniversalTime();
+        var operationalEndUtc = operationalEndLocal.ToUniversalTime();
+        var openWorkShiftEndUtc = openWorkShiftEnd.ToUniversalTime();
+        if (workShifts.Any(x => x.StartTimeUtc < businessWindowStartUtc
+                                || x.StartTimeUtc >= businessWindowEndUtc))
         {
             return Invalid(
                 "WorkShift POS không thuộc ngày kinh doanh của ca vận hành.");
         }
-        if (workShifts.Any(x => x.StartTime >= operationalEndLocal
-                                || (x.EndTime ?? openWorkShiftEnd) <= operationalStartLocal))
+        if (workShifts.Any(x => x.StartTimeUtc >= operationalEndUtc
+                                || (x.EndTimeUtc ?? openWorkShiftEndUtc) <= operationalStartUtc))
             return Invalid("WorkShift POS không giao thời gian với ca vận hành.");
         var links = await _context.OperationalShiftWorkShifts.AsNoTracking()
             .Where(x => distinctIds.Contains(x.WorkShiftId))

@@ -124,6 +124,7 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         var seed = File.ReadAllText(Path.Combine(root, "CafeChain", "Scripts", "SeedAll.sql"))
             .Replace("$(TargetDatabase)", Database, StringComparison.Ordinal)
             .Replace("use CafeChain", $"use [{Database}]", StringComparison.OrdinalIgnoreCase)
+            .Replace("use [$(CafeChainDatabase)]", $"use [{Database}]", StringComparison.OrdinalIgnoreCase)
             .Replace("IF UPPER(DB_NAME()) <> N'CAFECHAIN'",
                 $"IF UPPER(DB_NAME()) <> N'{Database.ToUpperInvariant()}'", StringComparison.Ordinal);
         var analytics = File.ReadAllText(Path.Combine(root, "CafeChain", "Scripts",
@@ -164,7 +165,9 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Code=N'App.AdminDashboard' AND r.Name=N'Quản trị hệ thống';", 1L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Permissions p WHERE p.Active=1 AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions rp JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE rp.PermissionId=p.PermissionId AND r.Name=N'Quản trị hệ thống');", 0L);
+            "SELECT COUNT_BIG(1) FROM dbo.Permissions p WHERE p.Active=1 AND p.Code NOT LIKE N'POS.WorkShift.%' AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions rp JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE rp.PermissionId=p.PermissionId AND r.Name=N'Quản trị hệ thống');", 0L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Permissions p WHERE p.Active=1 AND p.Code LIKE N'POS.WorkShift.%' AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions rp JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE rp.PermissionId=p.PermissionId AND r.Name=N'Quản trị hệ thống');", 8L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Active=1 AND r.Name=N'Quản trị hệ thống';", 169L);
         await AssertScalarAsync(connection,
@@ -176,7 +179,7 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.Payments p JOIN dbo.Orders o ON o.OrderId=p.OrderId WHERE o.Source=N'DEMO_DASHBOARD_V13' AND p.CashSessionId IS NOT NULL;", 0L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.WorkShifts WHERE StoreId=1 AND StartTime IN ('2026-01-15T06:00:00','2026-01-15T12:00:00','2026-01-16T06:00:00','2026-01-18T06:00:00');", 4L);
+            "SELECT COUNT_BIG(1) FROM dbo.WorkShifts WHERE StoreId=1 AND StartTimeUtc IN ('2026-01-14T23:00:00','2026-01-15T05:00:00','2026-01-15T23:00:00','2026-01-17T23:00:00');", 4L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.PreparedItems;", 12L);
         await AssertScalarAsync(connection,

@@ -12,6 +12,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Accounts
         Task<Account> CreateAccountForExistingCustomerAsync(Customer customer, string email, string passwordHash);
         Task<Account> CreateNewCustomerAccountAsync(Account account, string phone); 
         Task UpdateAsync(Account account); 
+        Task RecordFailedLoginAsync(int accountId, DateTime nowUtc, int maxAttempts, TimeSpan lockDuration);
+        Task ResetLoginFailuresAsync(int accountId);
         Task<(bool IsLocked, int RemainingMinutes)> CheckLockAsync(string email);
         Task ExecuteInTransactionAsync(Func<Task> action);
 

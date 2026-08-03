@@ -15,9 +15,9 @@
     "dexie": "^4.4.3",
     "dexie-react-hooks": "^4.4.0",
     "qrcode": "^1.5.4",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "react-router-dom": "^7.17.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "npm:react-router@8.3.0",
     "sweetalert2": "^11.26.25",
     "tailwindcss": "^4.3.0"
   },

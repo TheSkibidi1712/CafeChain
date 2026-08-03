@@ -12,6 +12,7 @@ using CafeChain.Models.Customers;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Loyalties;
+using CafeChain.Models.Stores;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -273,6 +274,33 @@ namespace CafeChain.Application.Services.POS
             var transactionCommitted = false;
             try
             {
+                // Re-read inside the serializable transaction. UI state is never the authority.
+                activeShift = await _workShiftService.GetActiveShiftAsync(userId, storeId);
+                if (activeShift == null)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure(
+                        "Phiên POS không còn hoạt động.",
+                        errorCode: WorkShiftErrorCodes.WorkShiftNotOpen);
+                }
+
+                var nowUtc = DateTime.UtcNow;
+                if (activeShift.Status != WorkShiftStatuses.Open && activeShift.Status != "Open")
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure(
+                        "Phiên POS đang chờ chốt két và không nhận giao dịch mới.",
+                        errorCode: WorkShiftErrorCodes.WorkShiftPendingClose);
+                }
+
+                if (activeShift.AutoCloseAtUtc.HasValue && activeShift.AutoCloseAtUtc.Value <= nowUtc)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure(
+                        "Phiên POS ngoài lịch đã hết hạn.",
+                        errorCode: WorkShiftErrorCodes.WorkShiftExpired);
+                }
+
                 // 1. Calculate order totals
                 decimal subTotal = 0;
                 var orderDetails = new List<OrderDetail>();
@@ -616,6 +644,13 @@ namespace CafeChain.Application.Services.POS
                     errorCode: OrderAccessErrorCodes.WorkShiftNotFound);
             }
 
+            if (originalShift.OpenContext == WorkShiftOpenContexts.OutsideSchedule)
+            {
+                return ServiceResult<object>.Failure(
+                    "Phiên POS ngoài lịch không cho phép tạo đơn offline.",
+                    errorCode: WorkShiftErrorCodes.OutsideScheduleOfflineNotAllowed);
+            }
+
             var actor = new AdminActorContext
             {
                 StaffId = syncContext.ActorStaffId,
@@ -904,7 +939,7 @@ namespace CafeChain.Application.Services.POS
                     originalShift.RequiresReconciliation = true;
                     originalShift.HasLateOfflineSync = true;
                     originalShift.LateOfflineSyncCount += 1;
-                    originalShift.LastLateOfflineSyncedAt = DateTime.Now;
+                    originalShift.LastLateOfflineSyncedAtUtc = DateTime.UtcNow;
                     await _repository.SaveChangesAsync();
                 }
 
@@ -1174,12 +1209,12 @@ namespace CafeChain.Application.Services.POS
             var totalOrders = await _repository.GetCompletedOrderCountAsync(activeShift.ShiftId);
 
             var expectedEndingCash = activeShift.StartingCash + totalCashSales;
-            var duration = DateTime.Now - activeShift.StartTime;
+            var duration = DateTime.UtcNow - activeShift.StartTimeUtc;
 
             return ServiceResult<object>.Success(new
             {
                 activeShift.ShiftId,
-                startTime = activeShift.StartTime.ToString("hh:mm tt"),
+                startTime = activeShift.StartTimeUtc.ToString("O"),
                 currentTime = DateTime.Now.ToString("hh:mm tt"),
                 durationHours = (int)duration.TotalHours,
                 durationMinutes = duration.Minutes,

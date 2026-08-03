@@ -33,6 +33,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // GET: /Admin/AdminNotifications
         [HttpGet]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<IActionResult> Index(int page = 1, int pageSize = 20)
         {
             var staffId = ResolveStaffId();
@@ -109,6 +110,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         /// <summary>JSON endpoints for optional AJAX badge (same auth as Admin).</summary>
         [HttpGet]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<IActionResult> ListJson(int page = 1, int pageSize = 20)
         {
             var staffId = ResolveStaffId();

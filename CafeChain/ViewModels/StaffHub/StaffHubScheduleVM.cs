@@ -17,6 +17,8 @@ public sealed class StaffHubScheduleItemVM
     public string ShiftName { get; init; } = string.Empty;
     public TimeSpan StartTime { get; init; }
     public TimeSpan EndTime { get; init; }
+    public DateTime PlannedStartLocal { get; init; }
+    public DateTime PlannedEndLocal { get; init; }
     public bool IsOvernight { get; init; }
     public string StatusCode { get; init; } = string.Empty;
 }

@@ -9,7 +9,7 @@
 <link rel="stylesheet"
       href="~/css/Admin/InventoryDocument/inventorydocumentcreate.css" />
 
-<div class="inventory-page"
+<div class="inventory-page cc-warehouse-page"
      id="inventoryDocumentPage"
      data-detail-url="@Url.Action("DetailModal", "AdminInventoryDocument", new { area = "Admin" })"
      data-create-modal-url="@Url.Action("CreateModal", "AdminInventoryDocument", new { area = "Admin" })"
@@ -28,7 +28,7 @@
 
     @Html.AntiForgeryToken()
 
-    <div class="inventory-header">
+    <div class="inventory-header cc-warehouse-header">
         <div class="inventory-heading">
             <span class="inventory-heading-icon" aria-hidden="true">
                 <i class="fas fa-file-invoice"></i>

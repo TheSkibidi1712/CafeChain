@@ -25,7 +25,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         {
             if (_context.Database.CurrentTransaction != null || _transaction != null)
                 return;
-            _transaction = await _context.Database.BeginTransactionAsync();
+            _transaction = await _context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         }
 
         public async Task CommitTransactionAsync()
@@ -67,7 +67,9 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             var approverRoles = new[]
             {
                 RoleConstants.ShiftSupervisor,
-                RoleConstants.StoreManager
+                RoleConstants.StoreManager,
+                RoleConstants.AreaManager,
+                RoleConstants.BusinessOwner
             };
 
             var candidates = await _context.Staffs
@@ -94,6 +96,76 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .FirstOrDefault();
         }
 
+        public async Task<IReadOnlyList<Staff>> GetOtpApproverCandidatesAsync(int excludeStaffId)
+        {
+            var candidates = await _context.Staffs
+                .Include(x => x.Account)
+                    .ThenInclude(x => x!.AccountRoles)
+                        .ThenInclude(x => x.Role)
+                .Where(x => x.StaffId != excludeStaffId
+                    && x.Active
+                    && x.Account != null
+                    && x.Account.Active
+                    && !string.IsNullOrWhiteSpace(x.Account.Email))
+                .AsNoTracking()
+                .ToListAsync();
+
+            return candidates
+                .OrderBy(GetOtpApproverRolePriority)
+                .ThenBy(x => x.StaffId)
+                .ToList();
+        }
+
+        public async Task<int> GetRecentFailedAttemptsAsync(int requestedByStaffId, DateTime sinceUtc)
+        {
+            return await _context.OtpChallenges
+                .Where(x => x.RequestedByStaffId == requestedByStaffId && x.CreatedAt >= sinceUtc)
+                .SumAsync(x => (int?)x.FailedAttempts) ?? 0;
+        }
+
+        public Task<int> GetRecentChallengeCountForStaffAsync(int requestedByStaffId, DateTime sinceUtc)
+        {
+            return _context.OtpChallenges.CountAsync(x =>
+                x.RequestedByStaffId == requestedByStaffId && x.CreatedAt >= sinceUtc);
+        }
+
+        public Task<int> GetRecentChallengeCountForTerminalAsync(string terminalId, DateTime sinceUtc)
+        {
+            var normalizedTerminalId = terminalId.Trim();
+            return _context.OtpChallenges.CountAsync(x =>
+                x.TerminalId == normalizedTerminalId && x.CreatedAt >= sinceUtc);
+        }
+
+        public Task<int> GetRecentChallengeCountForIpAsync(string clientIpHash, DateTime sinceUtc)
+        {
+            var normalized = clientIpHash.Trim();
+            return _context.OtpChallenges.CountAsync(x =>
+                x.ClientIpHash == normalized && x.CreatedAt >= sinceUtc);
+        }
+
+        public Task<int> GetRecentChallengeCountForDeviceAsync(string deviceFingerprintHash, DateTime sinceUtc)
+        {
+            var normalized = deviceFingerprintHash.Trim();
+            return _context.OtpChallenges.CountAsync(x =>
+                x.DeviceFingerprintHash == normalized && x.CreatedAt >= sinceUtc);
+        }
+
+        public async Task<int> GetRecentFailedAttemptsForIpAsync(string clientIpHash, DateTime sinceUtc)
+        {
+            var normalized = clientIpHash.Trim();
+            return await _context.OtpChallenges
+                .Where(x => x.ClientIpHash == normalized && x.CreatedAt >= sinceUtc)
+                .SumAsync(x => (int?)x.FailedAttempts) ?? 0;
+        }
+
+        public async Task<int> GetRecentFailedAttemptsForDeviceAsync(string deviceFingerprintHash, DateTime sinceUtc)
+        {
+            var normalized = deviceFingerprintHash.Trim();
+            return await _context.OtpChallenges
+                .Where(x => x.DeviceFingerprintHash == normalized && x.CreatedAt >= sinceUtc)
+                .SumAsync(x => (int?)x.FailedAttempts) ?? 0;
+        }
+
         public async Task<bool> IsApproverStillEligibleAsync(int approverStaffId, int storeId, int actorStaffId)
         {
             if (approverStaffId == actorStaffId)
@@ -102,7 +174,9 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             var approverRoles = new[]
             {
                 RoleConstants.ShiftSupervisor,
-                RoleConstants.StoreManager
+                RoleConstants.StoreManager,
+                RoleConstants.AreaManager,
+                RoleConstants.BusinessOwner
             };
 
             return await _context.Staffs
@@ -131,7 +205,11 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 return 0;
             if (roleNames.Contains(RoleConstants.StoreManager))
                 return 1;
-            return 99;
+            if (roleNames.Contains(RoleConstants.AreaManager))
+                return 2;
+            if (roleNames.Contains(RoleConstants.BusinessOwner))
+                return 3;
+            return 4;
         }
 
         public async Task<Store?> GetStoreAsync(int storeId)
@@ -265,6 +343,21 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             foreach (var challenge in stale)
             {
                 challenge.Status = OtpConstants.Statuses.Expired;
+                challenge.ProtectedOtpPayload = null;
+            }
+
+            var staleIds = stale.Select(x => x.OtpChallengeId).ToList();
+            var notifications = await _context.StaffNotifications
+                .Where(x =>
+                    x.Type == StaffNotificationTypes.OperationalOtpRequest
+                    && x.EntityType == StaffNotificationEntityTypes.OtpChallenge
+                    && staleIds.Contains(x.EntityId)
+                    && x.ResolvedAt == null)
+                .ToListAsync();
+            foreach (var notification in notifications)
+            {
+                notification.ResolvedAt = utcNow;
+                notification.UpdatedAt = utcNow;
             }
 
             await _context.SaveChangesAsync();

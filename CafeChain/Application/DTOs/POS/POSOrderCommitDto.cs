@@ -97,6 +97,11 @@ namespace CafeChain.Application.DTOs.POS
     /// </summary>
     public class CloseShiftRequestDto
     {
+        public string RequestKey { get; set; } = string.Empty;
+
+        /// <summary>Base64 rowversion nhận từ server.</summary>
+        public string? RowVersion { get; set; }
+
         /// <summary>Tiền mặt thực tế đếm được trong hộc kéo</summary>
         public decimal ActualEndingCash { get; set; }
 
@@ -108,6 +113,9 @@ namespace CafeChain.Application.DTOs.POS
         /// Bắt buộc khi chênh lệch két tiền vượt ngưỡng cho phép.
         /// </summary>
         public Guid? OtpChallengePublicId { get; set; }
+
+        /// <summary>Manifest hàng đợi offline của đúng WorkShift; đóng thường chỉ chấp nhận manifest rỗng.</summary>
+        public OfflineQueueSummaryDto OfflineQueueSummary { get; set; } = new();
     }
 
     /// <summary>
@@ -120,7 +128,6 @@ namespace CafeChain.Application.DTOs.POS
         public string? ExceptionReason { get; set; }
 
         /// <summary>Tóm tắt Offline Order local tại POS, không làm nguồn sự thật backend.</summary>
-        public OfflineQueueSummaryDto OfflineQueueSummary { get; set; } = new();
     }
 
     /// <summary>
@@ -150,7 +157,19 @@ namespace CafeChain.Application.DTOs.POS
     {
         public string TerminalId { get; set; } = null!;
         public string Name { get; set; } = null!;
-        public int StoreId { get; set; }
+        public Guid OtpChallengePublicId { get; set; }
+        public string RequestKey { get; set; } = string.Empty;
+    }
+
+    public sealed class StartClosingRequestDto
+    {
+        public string RequestKey { get; set; } = string.Empty;
+        public string? RowVersion { get; set; }
+    }
+
+    public sealed class ReconcileWorkShiftRequestDto : CloseShiftRequestDto
+    {
+        public string Reason { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -175,5 +194,11 @@ namespace CafeChain.Application.DTOs.POS
         public string? Reason { get; set; }
         public string? RequestKey { get; set; }
     }
+
+    public sealed record POSPaymentOperationResultDto(
+        bool Success,
+        int HttpStatusCode,
+        string Message,
+        string? ErrorCode = null);
 }
 

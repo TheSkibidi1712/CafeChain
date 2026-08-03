@@ -12,6 +12,15 @@ namespace CafeChain.Application.Interfaces.Systems
             object requestBody,
             int? referenceId = null);
 
+        Task<RequestDeduplicationBeginResult> BeginScopedAsync(
+            string? requestKey,
+            string actionName,
+            int staffId,
+            object requestBody,
+            int? referenceId,
+            int storeId,
+            int? accountId);
+
         Task MarkSuccessAsync(
             RequestDeduplication entry,
             int referenceId,

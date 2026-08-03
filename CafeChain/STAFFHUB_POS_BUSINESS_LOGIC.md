@@ -1,3 +1,7 @@
+# Tài liệu cũ — không dùng làm nguồn nghiệp vụ
+
+> Tài liệu này chứa các khái niệm Face ID/chấm công/ca tự do và route giả định không còn đúng. Nguồn chuẩn hiện hành là [Doc/STAFFHUB_POS_WORKSHIFT_BUSINESS_RULES.md](Doc/STAFFHUB_POS_WORKSHIFT_BUSINESS_RULES.md). Không triển khai nghiệp vụ mới dựa trên nội dung bên dưới.
+
 # 📑 TÀI LIỆU PHÂN TÍCH KIẾN TRÚC & NGHIỆP VỤ HỆ THỐNG STAFF HUB & POS (CAFECHAIN)
 ## 🎯 Báo Cáo Kỹ Thuật Hội Đồng Bảo Vệ & Cẩm Nang Vibe Coding
 

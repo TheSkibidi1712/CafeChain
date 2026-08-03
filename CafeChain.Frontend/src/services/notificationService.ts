@@ -16,6 +16,10 @@ export interface StaffNotificationItem {
   emailSent: boolean
   emailDeliveryHint: EmailDeliveryHint
   targetUrl?: string | null
+  activeOtp?: {
+    code: string
+    expiresAtUtc: string
+  } | null
 }
 
 export interface NotificationListData {

@@ -31,6 +31,14 @@ namespace CafeChain.Application.Constants
         public const string AppAdminDashboard = "App.AdminDashboard";
         public const string AppStaffHub = "App.StaffHub";
         public const string AppPos = "App.POS";
+        public const string PosWorkShiftView = "POS.WorkShift.View";
+        public const string PosWorkShiftOpen = "POS.WorkShift.Open";
+        public const string PosWorkShiftClose = "POS.WorkShift.Close";
+        public const string PosWorkShiftOpenOutsideSchedule = "POS.WorkShift.OpenOutsideSchedule";
+        public const string PosWorkShiftApproveOutsideSchedule = "POS.WorkShift.ApproveOutsideSchedule";
+        public const string PosWorkShiftCloseException = "POS.WorkShift.CloseException";
+        public const string PosWorkShiftReconcile = "POS.WorkShift.Reconcile";
+        public const string PosWorkShiftOverrideTerminal = "POS.WorkShift.OverrideTerminal";
         public const string NotificationView = "Notification.View";
 
         public const string IngredientView = "Ingredient.View";

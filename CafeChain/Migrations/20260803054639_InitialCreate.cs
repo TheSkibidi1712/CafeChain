@@ -243,13 +243,17 @@ namespace CafeChain.Migrations
                     RequestKey = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     ActionName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     StaffId = table.Column<int>(type: "int", nullable: false),
+                    AccountId = table.Column<int>(type: "int", nullable: true),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
                     ReferenceId = table.Column<int>(type: "int", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     RequestBody = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PayloadHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     ResponseBody = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
-                    ExpiredAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    ExpiredAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ProcessingLeaseUntilUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1686,7 +1690,7 @@ namespace CafeChain.Migrations
                     StoreId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
                 },
                 constraints: table =>
                 {
@@ -3143,64 +3147,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "WorkShifts",
-                columns: table => new
-                {
-                    ShiftId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    StoreId = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<int>(type: "int", nullable: false),
-                    StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    StartingCash = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
-                    ExpectedEndingCash = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
-                    ActualEndingCash = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    CashDiscrepancy = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Open"),
-                    DiscrepancyReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    IsExceptionClosed = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    ExceptionCloseReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ExceptionClosedByStaffId = table.Column<int>(type: "int", nullable: true),
-                    ExceptionClosedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    OfflineOrderCountAtClose = table.Column<int>(type: "int", nullable: true),
-                    OfflineEstimatedTotalAtClose = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    OfflineCashTotalAtClose = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    RequiresReconciliation = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    HasLateOfflineSync = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    LateOfflineSyncCount = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    LastLateOfflineSyncedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    PosTerminalId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_WorkShifts", x => x.ShiftId);
-                    table.ForeignKey(
-                        name: "FK_WorkShifts_PosTerminals_PosTerminalId",
-                        column: x => x.PosTerminalId,
-                        principalTable: "PosTerminals",
-                        principalColumn: "TerminalId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_WorkShifts_Staffs_ExceptionClosedByStaffId",
-                        column: x => x.ExceptionClosedByStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_WorkShifts_Staffs_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_WorkShifts_Stores_StoreId",
-                        column: x => x.StoreId,
-                        principalTable: "Stores",
-                        principalColumn: "StoreId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "InventoryConsolidationLines",
                 columns: table => new
                 {
@@ -3747,11 +3693,106 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "WorkShifts",
+                columns: table => new
+                {
+                    ShiftId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    StartTimeUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EndTimeUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    BusinessDate = table.Column<DateTime>(type: "date", nullable: false),
+                    SourceStaffShiftId = table.Column<int>(type: "int", nullable: true),
+                    OpenContext = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false, defaultValue: "LEGACY"),
+                    OutsideScheduleReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ApprovedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    ApprovedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    AutoCloseAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ExpiredAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ClosingStartedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CloseType = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: true),
+                    ClosedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    CloseReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ExpiryWarningLevel = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)0),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
+                    StartingCash = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
+                    ExpectedEndingCash = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
+                    ActualEndingCash = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    CashDiscrepancy = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false, defaultValue: "OPEN"),
+                    DiscrepancyReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    IsExceptionClosed = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    ExceptionCloseReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ExceptionClosedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    ExceptionClosedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    OfflineOrderCountAtClose = table.Column<int>(type: "int", nullable: true),
+                    OfflineEstimatedTotalAtClose = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    OfflineCashTotalAtClose = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    RequiresReconciliation = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    HasLateOfflineSync = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    LateOfflineSyncCount = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    LastLateOfflineSyncedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    PosTerminalId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WorkShifts", x => x.ShiftId);
+                    table.CheckConstraint("CK_WorkShifts_ActualEndingCash", "[ActualEndingCash] IS NULL OR ([ActualEndingCash] >= 0 AND [ActualEndingCash] = FLOOR([ActualEndingCash]))");
+                    table.CheckConstraint("CK_WorkShifts_OpenContext", "[OpenContext] IN ('WITHIN_SCHEDULE','LATE_FOR_SCHEDULE','OUTSIDE_SCHEDULE','LEGACY')");
+                    table.CheckConstraint("CK_WorkShifts_StartingCash", "[StartingCash] >= 0 AND [StartingCash] = FLOOR([StartingCash])");
+                    table.CheckConstraint("CK_WorkShifts_Status", "[Status] IN ('OPEN','CLOSING','EXPIRED_PENDING_CLOSE','CLOSED','RECONCILIATION_REQUIRED')");
+                    table.ForeignKey(
+                        name: "FK_WorkShifts_PosTerminals_PosTerminalId",
+                        column: x => x.PosTerminalId,
+                        principalTable: "PosTerminals",
+                        principalColumn: "TerminalId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_WorkShifts_StaffShifts_SourceStaffShiftId",
+                        column: x => x.SourceStaffShiftId,
+                        principalTable: "StaffShifts",
+                        principalColumn: "StaffShiftId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_WorkShifts_Staffs_ApprovedByStaffId",
+                        column: x => x.ApprovedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_WorkShifts_Staffs_ClosedByStaffId",
+                        column: x => x.ClosedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_WorkShifts_Staffs_ExceptionClosedByStaffId",
+                        column: x => x.ExceptionClosedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_WorkShifts_Staffs_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_WorkShifts_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RestockRequests",
                 columns: table => new
                 {
                     RestockRequestId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    ReferenceCode = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     StockAlertId = table.Column<int>(type: "int", nullable: true),
                     StoreId = table.Column<int>(type: "int", nullable: false),
                     SourceType = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false, defaultValue: "Legacy"),
@@ -3979,178 +4020,6 @@ namespace CafeChain.Migrations
                         column: x => x.StoreMenuItemId,
                         principalTable: "StoreMenuItems",
                         principalColumn: "StoreMenuItemId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "OperationalShiftWorkShifts",
-                columns: table => new
-                {
-                    OperationalShiftId = table.Column<int>(type: "int", nullable: false),
-                    WorkShiftId = table.Column<int>(type: "int", nullable: false),
-                    LinkedByStaffId = table.Column<int>(type: "int", nullable: false),
-                    LinkedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OperationalShiftWorkShifts", x => new { x.OperationalShiftId, x.WorkShiftId });
-                    table.ForeignKey(
-                        name: "FK_OperationalShiftWorkShifts_OperationalShifts_OperationalShiftId",
-                        column: x => x.OperationalShiftId,
-                        principalTable: "OperationalShifts",
-                        principalColumn: "OperationalShiftId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OperationalShiftWorkShifts_Staffs_LinkedByStaffId",
-                        column: x => x.LinkedByStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OperationalShiftWorkShifts_WorkShifts_WorkShiftId",
-                        column: x => x.WorkShiftId,
-                        principalTable: "WorkShifts",
-                        principalColumn: "ShiftId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Orders",
-                columns: table => new
-                {
-                    OrderId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CustomerId = table.Column<int>(type: "int", nullable: true),
-                    StoreId = table.Column<int>(type: "int", nullable: false),
-                    OrderStatusId = table.Column<int>(type: "int", nullable: false),
-                    PaymentStatusId = table.Column<int>(type: "int", nullable: false),
-                    OrderTypeId = table.Column<int>(type: "int", nullable: false),
-                    TableId = table.Column<int>(type: "int", nullable: true),
-                    StaffId = table.Column<int>(type: "int", nullable: true),
-                    WorkShiftId = table.Column<int>(type: "int", nullable: true),
-                    ClientOrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    RecommendationSessionId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    Source = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    PaymentReference = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ReceiverName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    ReceiverPhone = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DeliveryAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ShippingFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    SubTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
-                    VoucherDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
-                    PointDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
-                    PointsUsed = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    Total = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    CostStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    TotalCogs = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    GrossProfit = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    CostedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Orders", x => x.OrderId);
-                    table.ForeignKey(
-                        name: "FK_Orders_Customers_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Customers",
-                        principalColumn: "CustomerId",
-                        onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "FK_Orders_OrderStatuses_OrderStatusId",
-                        column: x => x.OrderStatusId,
-                        principalTable: "OrderStatuses",
-                        principalColumn: "OrderStatusId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Orders_OrderTypes_OrderTypeId",
-                        column: x => x.OrderTypeId,
-                        principalTable: "OrderTypes",
-                        principalColumn: "OrderTypeId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Orders_PaymentStatuses_PaymentStatusId",
-                        column: x => x.PaymentStatusId,
-                        principalTable: "PaymentStatuses",
-                        principalColumn: "PaymentStatusId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Orders_Staffs_StaffId",
-                        column: x => x.StaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId");
-                    table.ForeignKey(
-                        name: "FK_Orders_Stores_StoreId",
-                        column: x => x.StoreId,
-                        principalTable: "Stores",
-                        principalColumn: "StoreId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Orders_WorkShifts_WorkShiftId",
-                        column: x => x.WorkShiftId,
-                        principalTable: "WorkShifts",
-                        principalColumn: "ShiftId",
-                        onDelete: ReferentialAction.SetNull);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "OtpChallenges",
-                columns: table => new
-                {
-                    OtpChallengeId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PublicId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    StoreId = table.Column<int>(type: "int", nullable: false),
-                    WorkShiftId = table.Column<int>(type: "int", nullable: true),
-                    RequestedByStaffId = table.Column<int>(type: "int", nullable: false),
-                    ApproverStaffId = table.Column<int>(type: "int", nullable: false),
-                    ActionType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    TargetType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    TargetId = table.Column<int>(type: "int", nullable: true),
-                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    OtpHash = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    PayloadFingerprint = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false, defaultValue: ""),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ApprovedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    UsedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    LockedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CancelledAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    FailedAttempts = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    ResendCount = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    LastSentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    OldValueJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    NewValueJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OtpChallenges", x => x.OtpChallengeId);
-                    table.ForeignKey(
-                        name: "FK_OtpChallenges_Staffs_ApproverStaffId",
-                        column: x => x.ApproverStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OtpChallenges_Staffs_RequestedByStaffId",
-                        column: x => x.RequestedByStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OtpChallenges_Stores_StoreId",
-                        column: x => x.StoreId,
-                        principalTable: "Stores",
-                        principalColumn: "StoreId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OtpChallenges_WorkShifts_WorkShiftId",
-                        column: x => x.WorkShiftId,
-                        principalTable: "WorkShifts",
-                        principalColumn: "ShiftId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -4390,6 +4259,183 @@ namespace CafeChain.Migrations
                         column: x => x.SupplierId,
                         principalTable: "Suppliers",
                         principalColumn: "SupplierId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OperationalShiftWorkShifts",
+                columns: table => new
+                {
+                    OperationalShiftId = table.Column<int>(type: "int", nullable: false),
+                    WorkShiftId = table.Column<int>(type: "int", nullable: false),
+                    LinkedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    LinkedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OperationalShiftWorkShifts", x => new { x.OperationalShiftId, x.WorkShiftId });
+                    table.ForeignKey(
+                        name: "FK_OperationalShiftWorkShifts_OperationalShifts_OperationalShiftId",
+                        column: x => x.OperationalShiftId,
+                        principalTable: "OperationalShifts",
+                        principalColumn: "OperationalShiftId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OperationalShiftWorkShifts_Staffs_LinkedByStaffId",
+                        column: x => x.LinkedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OperationalShiftWorkShifts_WorkShifts_WorkShiftId",
+                        column: x => x.WorkShiftId,
+                        principalTable: "WorkShifts",
+                        principalColumn: "ShiftId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Orders",
+                columns: table => new
+                {
+                    OrderId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CustomerId = table.Column<int>(type: "int", nullable: true),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    OrderStatusId = table.Column<int>(type: "int", nullable: false),
+                    PaymentStatusId = table.Column<int>(type: "int", nullable: false),
+                    OrderTypeId = table.Column<int>(type: "int", nullable: false),
+                    TableId = table.Column<int>(type: "int", nullable: true),
+                    StaffId = table.Column<int>(type: "int", nullable: true),
+                    WorkShiftId = table.Column<int>(type: "int", nullable: true),
+                    ClientOrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    RecommendationSessionId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Source = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    PaymentReference = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReceiverName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    ReceiverPhone = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DeliveryAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ShippingFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    SubTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
+                    VoucherDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
+                    PointDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
+                    PointsUsed = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    Total = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CostStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    TotalCogs = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    GrossProfit = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    CostedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Orders", x => x.OrderId);
+                    table.ForeignKey(
+                        name: "FK_Orders_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "CustomerId",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Orders_OrderStatuses_OrderStatusId",
+                        column: x => x.OrderStatusId,
+                        principalTable: "OrderStatuses",
+                        principalColumn: "OrderStatusId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Orders_OrderTypes_OrderTypeId",
+                        column: x => x.OrderTypeId,
+                        principalTable: "OrderTypes",
+                        principalColumn: "OrderTypeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Orders_PaymentStatuses_PaymentStatusId",
+                        column: x => x.PaymentStatusId,
+                        principalTable: "PaymentStatuses",
+                        principalColumn: "PaymentStatusId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Orders_Staffs_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId");
+                    table.ForeignKey(
+                        name: "FK_Orders_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Orders_WorkShifts_WorkShiftId",
+                        column: x => x.WorkShiftId,
+                        principalTable: "WorkShifts",
+                        principalColumn: "ShiftId",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OtpChallenges",
+                columns: table => new
+                {
+                    OtpChallengeId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PublicId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    WorkShiftId = table.Column<int>(type: "int", nullable: true),
+                    TerminalId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    RequestKey = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    ClientIpHash = table.Column<string>(type: "nchar(64)", fixedLength: true, maxLength: 64, nullable: true),
+                    DeviceFingerprintHash = table.Column<string>(type: "nchar(64)", fixedLength: true, maxLength: 64, nullable: true),
+                    RequestedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    ApproverStaffId = table.Column<int>(type: "int", nullable: false),
+                    ActionType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    TargetType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    TargetId = table.Column<int>(type: "int", nullable: true),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    OtpHash = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    ProtectedOtpPayload = table.Column<string>(type: "nvarchar(2048)", maxLength: 2048, nullable: true),
+                    PayloadFingerprint = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false, defaultValue: ""),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ApprovedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UsedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LockedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CancelledAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    FailedAttempts = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    ResendCount = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    LastSentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    OldValueJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NewValueJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OtpChallenges", x => x.OtpChallengeId);
+                    table.ForeignKey(
+                        name: "FK_OtpChallenges_Staffs_ApproverStaffId",
+                        column: x => x.ApproverStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OtpChallenges_Staffs_RequestedByStaffId",
+                        column: x => x.RequestedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OtpChallenges_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OtpChallenges_WorkShifts_WorkShiftId",
+                        column: x => x.WorkShiftId,
+                        principalTable: "WorkShifts",
+                        principalColumn: "ShiftId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -8492,9 +8538,19 @@ namespace CafeChain.Migrations
                 columns: new[] { "ApproverStaffId", "Status", "ExpiresAt" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_OtpChallenges_ClientIpHash_CreatedAt",
+                table: "OtpChallenges",
+                columns: new[] { "ClientIpHash", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OtpChallenges_CreatedAt",
                 table: "OtpChallenges",
                 column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OtpChallenges_DeviceFingerprintHash_CreatedAt",
+                table: "OtpChallenges",
+                columns: new[] { "DeviceFingerprintHash", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_OtpChallenges_PublicId",
@@ -8508,6 +8564,11 @@ namespace CafeChain.Migrations
                 column: "RequestedByStaffId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OtpChallenges_RequestKey",
+                table: "OtpChallenges",
+                column: "RequestKey");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OtpChallenges_StoreId_RequestedByStaffId_ActionType_TargetType_TargetId_Status",
                 table: "OtpChallenges",
                 columns: new[] { "StoreId", "RequestedByStaffId", "ActionType", "TargetType", "TargetId", "Status" });
@@ -8516,6 +8577,11 @@ namespace CafeChain.Migrations
                 name: "IX_OtpChallenges_StoreId_Status_ExpiresAt",
                 table: "OtpChallenges",
                 columns: new[] { "StoreId", "Status", "ExpiresAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OtpChallenges_TerminalId",
+                table: "OtpChallenges",
+                column: "TerminalId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OtpChallenges_WorkShiftId",
@@ -9265,6 +9331,11 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_RequestDeduplications_AccountId",
+                table: "RequestDeduplications",
+                column: "AccountId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RequestDeduplications_ActionName",
                 table: "RequestDeduplications",
                 column: "ActionName");
@@ -9280,9 +9351,9 @@ namespace CafeChain.Migrations
                 column: "ExpiredAt");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RequestDeduplications_RequestKey_ActionName_StaffId",
+                name: "IX_RequestDeduplications_RequestKey_ActionName_StaffId_StoreId",
                 table: "RequestDeduplications",
-                columns: new[] { "RequestKey", "ActionName", "StaffId" },
+                columns: new[] { "RequestKey", "ActionName", "StaffId", "StoreId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -9299,6 +9370,11 @@ namespace CafeChain.Migrations
                 name: "IX_RequestDeduplications_Status_ExpiredAt",
                 table: "RequestDeduplications",
                 columns: new[] { "Status", "ExpiredAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RequestDeduplications_StoreId",
+                table: "RequestDeduplications",
+                column: "StoreId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RestockFulfillmentPostings_BaseUnitId",
@@ -9431,6 +9507,12 @@ namespace CafeChain.Migrations
                 columns: new[] { "StoreId", "PreparedItemId" },
                 unique: true,
                 filter: "[PreparedItemId] IS NOT NULL AND [Status] IN ('DRAFT','SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_RestockRequests_ReferenceCode",
+                table: "RestockRequests",
+                column: "ReferenceCode",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_RestockRequestTransitions_ActorStaffId",
@@ -10321,14 +10403,29 @@ namespace CafeChain.Migrations
                 column: "WheelPrizeId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_WorkShifts_ApprovedByStaffId",
+                table: "WorkShifts",
+                column: "ApprovedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WorkShifts_ClosedByStaffId",
+                table: "WorkShifts",
+                column: "ClosedByStaffId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_WorkShifts_ExceptionClosedByStaffId",
                 table: "WorkShifts",
                 column: "ExceptionClosedByStaffId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_WorkShifts_PosTerminalId",
+                name: "IX_WorkShifts_OpenContext_Status_AutoCloseAtUtc",
                 table: "WorkShifts",
-                column: "PosTerminalId");
+                columns: new[] { "OpenContext", "Status", "AutoCloseAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WorkShifts_SourceStaffShiftId",
+                table: "WorkShifts",
+                column: "SourceStaffShiftId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_WorkShifts_StoreId",
@@ -10341,9 +10438,18 @@ namespace CafeChain.Migrations
                 columns: new[] { "StoreId", "RequiresReconciliation" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_WorkShifts_UserId",
+                name: "UX_WorkShifts_ActiveStaff",
                 table: "WorkShifts",
-                column: "UserId");
+                column: "UserId",
+                unique: true,
+                filter: "[Status] IN ('OPEN','CLOSING','EXPIRED_PENDING_CLOSE')");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_WorkShifts_ActiveTerminal",
+                table: "WorkShifts",
+                column: "PosTerminalId",
+                unique: true,
+                filter: "[PosTerminalId] IS NOT NULL AND [Status] IN ('OPEN','CLOSING','EXPIRED_PENDING_CLOSE')");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_BranchReceiptLines_InventoryTransactions_InventoryTransactionId",
@@ -10782,9 +10888,6 @@ namespace CafeChain.Migrations
                 name: "StaffScopes");
 
             migrationBuilder.DropTable(
-                name: "StaffShifts");
-
-            migrationBuilder.DropTable(
                 name: "StaffTimeOffs");
 
             migrationBuilder.DropTable(
@@ -10884,9 +10987,6 @@ namespace CafeChain.Migrations
                 name: "ScopeTypes");
 
             migrationBuilder.DropTable(
-                name: "StaffShiftStatuses");
-
-            migrationBuilder.DropTable(
                 name: "StockTakeSessions");
 
             migrationBuilder.DropTable(
@@ -10924,9 +11024,6 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "WheelConfigs");
-
-            migrationBuilder.DropTable(
-                name: "Shifts");
 
             migrationBuilder.DropTable(
                 name: "OrderToppings");
@@ -11011,6 +11108,15 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "PosTerminals");
+
+            migrationBuilder.DropTable(
+                name: "StaffShifts");
+
+            migrationBuilder.DropTable(
+                name: "Shifts");
+
+            migrationBuilder.DropTable(
+                name: "StaffShiftStatuses");
 
             migrationBuilder.DropTable(
                 name: "PreparedItems");

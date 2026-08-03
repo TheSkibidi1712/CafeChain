@@ -5,6 +5,7 @@
     ViewData["Title"] = "Lịch làm việc";
     Layout = "_Layout";
     var canAccessPos = ViewBag.CanAccessPos is true;
+    var canAccessDashboard = ViewBag.CanAccessDashboard is true;
     var days = Enumerable.Range(0, 7).Select(i => Model.WeekStart.AddDays(i)).ToList();
     var activeSchedules = Model.Schedules
         .Where(x => !string.Equals(x.StatusCode, "CANCELLED", StringComparison.OrdinalIgnoreCase))
@@ -23,6 +24,7 @@
 
 <div id="staffHubApp"
      class="staffhub-page"
+     data-preview-pos-url="@Url.Action("PreviewOpenPos", "StaffHub")"
      data-issue-pos-url="@Url.Action("IssuePosToken", "StaffHub")">
     @Html.AntiForgeryToken()
     <div class="staffhub-shell">
@@ -44,14 +46,39 @@
                     </div>
                 </div>
             </div>
-            @if (canAccessPos)
-            {
-                <button id="openPosButton" type="button" class="staffhub-pos-button">
-                    <span><i class="bi bi-cash-register"></i></span>
-                    <span><strong>Mở POS</strong><small>Bắt đầu bán hàng</small></span>
-                    <i class="bi bi-arrow-right"></i>
-                </button>
-            }
+            <nav class="staffhub-profile-actions" aria-label="Điều hướng StaffHub">
+                <a asp-area=""
+                   asp-controller="AppLauncher"
+                   asp-action="Index"
+                   class="staffhub-action-button is-secondary"
+                   aria-label="Quay về AppLauncher">
+                    <span><i class="bi bi-grid-3x3-gap"></i></span>
+                    <span><strong>AppLauncher</strong><small>Chọn ứng dụng</small></span>
+                    <i class="bi bi-arrow-up-right"></i>
+                </a>
+
+                @if (canAccessDashboard)
+                {
+                    <a asp-area="Admin"
+                       asp-controller="Dashboard"
+                       asp-action="Index"
+                       class="staffhub-action-button is-secondary"
+                       aria-label="Quay về Dashboard">
+                        <span><i class="bi bi-speedometer2"></i></span>
+                        <span><strong>Dashboard</strong><small>Tổng quan vận hành</small></span>
+                        <i class="bi bi-arrow-up-right"></i>
+                    </a>
+                }
+
+                @if (canAccessPos)
+                {
+                    <button id="openPosButton" type="button" class="staffhub-action-button is-primary">
+                        <span><i class="bi bi-cash-register"></i></span>
+                        <span><strong>Mở POS</strong><small>Bắt đầu bán hàng</small></span>
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                }
+            </nav>
         </section>
 
         <section class="staffhub-summary" aria-label="Tổng quan lịch làm việc">
@@ -122,11 +149,7 @@
                                     </div>
                                     <div class="schedule-time">
                                         <i class="bi bi-clock"></i>
-                                        <span>@item.StartTime.ToString(@"hh\:mm") – @item.EndTime.ToString(@"hh\:mm")</span>
-                                        @if (item.IsOvernight)
-                                        {
-                                            <small>+1 ngày</small>
-                                        }
+                                        <span>@item.PlannedStartLocal.ToString("dd/MM/yyyy HH:mm") → @item.PlannedEndLocal.ToString("dd/MM/yyyy HH:mm")</span>
                                     </div>
                                 </div>
                             }
@@ -152,6 +175,41 @@
                 <p>Đây không phải dữ liệu chấm công. Việc chưa được xếp lịch không ngăn bạn mở POS nếu tài khoản đã được cấp quyền.</p>
             </div>
         </aside>
+
+        <dialog id="openPosPreviewDialog" class="staffhub-pos-dialog" aria-labelledby="openPosPreviewTitle">
+            <form method="dialog" class="staffhub-pos-dialog-card">
+                <header class="staffhub-pos-dialog-header">
+                    <span class="staffhub-pos-dialog-icon"><i class="bi bi-cash-register"></i></span>
+                    <div>
+                        <small>Xác nhận mở POS</small>
+                        <h2 id="openPosPreviewTitle">Kiểm tra lịch dự kiến</h2>
+                    </div>
+                </header>
+                <div class="staffhub-pos-dialog-body">
+                    <dl class="staffhub-pos-preview-grid">
+                        <div><dt>Nhân viên</dt><dd>@Model.StaffName</dd></div>
+                        <div><dt>Cửa hàng</dt><dd>@Model.StoreName</dd></div>
+                        <div><dt>Thời gian máy chủ</dt><dd id="openPosServerTime">—</dd></div>
+                        <div><dt>Phân loại</dt><dd id="openPosContextLabel">—</dd></div>
+                        <div id="openPosPlannedRow" hidden><dt>Lịch liên quan</dt><dd id="openPosPlannedTime">—</dd></div>
+                        <div id="openPosExpiryRow" hidden><dt>Dự kiến hết hạn</dt><dd id="openPosExpiryTime">—</dd></div>
+                    </dl>
+                    <div id="openPosPreviewNotice" class="staffhub-pos-preview-notice" role="status"></div>
+                    <p class="staffhub-pos-preview-boundary">
+                        Việc mở POS chỉ tạo phiên chịu trách nhiệm POS/két. Hệ thống không tạo lịch làm việc hoặc dữ liệu chấm công.
+                    </p>
+                    <p class="staffhub-pos-preview-next">
+                        Tiền đầu phiên, terminal, lý do và OTP (nếu cần) sẽ được nhập và xác nhận tại POS.
+                    </p>
+                </div>
+                <footer class="staffhub-pos-dialog-actions">
+                    <button id="cancelOpenPosPreview" type="button" class="staffhub-dialog-button is-secondary">Hủy</button>
+                    <button id="continueOpenPosPreview" type="button" class="staffhub-dialog-button is-primary">
+                        <span>Tiếp tục sang POS</span><i class="bi bi-arrow-right"></i>
+                    </button>
+                </footer>
+            </form>
+        </dialog>
         </div>
 </div>
 

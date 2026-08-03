@@ -223,7 +223,7 @@
 /* Primary Button (Tạo/mở cảnh báo, Tính lại) */
 .cc-button-primary,
 .reorder-page .btn-primary {
-    background: linear-gradient(135deg, #6F4E37 0%, #5C3F2B 100%) !important;
+    background: var(--cc-primary) !important;
     border: 1px solid #5C3F2B !important;
     color: #ffffff !important;
     box-shadow: 0 4px 14px rgba(111, 78, 55, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
@@ -231,7 +231,7 @@
 
 .cc-button-primary:hover,
 .reorder-page .btn-primary:hover {
-    background: linear-gradient(135deg, #5C3F2B 0%, #4A3222 100%) !important;
+    background: var(--cc-primary-hover) !important;
     border-color: #4A3222 !important;
     color: #ffffff !important;
     transform: translateY(-2px);
@@ -249,14 +249,14 @@
 
 /* AI Feature Button (Xem giải thích AI) */
 .cc-button-ai {
-    background: linear-gradient(135deg, #ffffff 0%, #fbf3ea 100%) !important;
+    background: var(--cc-surface) !important;
     border: 1.5px solid #c67a45 !important;
     color: #8b4e22 !important;
     box-shadow: 0 2px 8px rgba(198, 122, 69, 0.12) !important;
 }
 
 .cc-button-ai:hover {
-    background: linear-gradient(135deg, #c67a45 0%, #a85e2b 100%) !important;
+    background: var(--cc-accent) !important;
     border-color: #a85e2b !important;
     color: #ffffff !important;
     transform: translateY(-2px);
@@ -340,13 +340,11 @@
 
 /* Visual hierarchy and interaction polish */
 .reorder-page {
-    background:
-        radial-gradient(circle at 96% 2%, rgba(111, 78, 55, 0.08), transparent 260px),
-        linear-gradient(180deg, #faf8f5 0%, #f7f4f0 100%);
+    background: var(--cc-app-bg);
 }
 
 .reorder-header {
-    background: linear-gradient(135deg, #ffffff 0%, #fbf7f2 100%);
+    background: var(--cc-surface);
     border: 1px solid rgba(111, 78, 55, 0.14);
     border-radius: 16px;
     box-shadow: 0 12px 30px rgba(63, 43, 30, 0.08);
@@ -394,7 +392,7 @@
 }
 
 .reorder-filters {
-    background: linear-gradient(180deg, #ffffff 0%, #fdfbf9 100%);
+    background: var(--cc-surface);
     border-color: rgba(111, 78, 55, 0.16);
     border-radius: 14px;
     box-shadow: 0 8px 22px rgba(63, 43, 30, 0.06);
@@ -426,7 +424,7 @@
 }
 
 .reorder-note {
-    background: linear-gradient(90deg, #fff8ef 0%, #fffdf9 100%);
+    background: var(--cc-warning-bg);
     border: 1px solid rgba(166, 103, 46, 0.18);
     border-left: 4px solid #a6672e;
     border-radius: 10px;
@@ -458,12 +456,12 @@
 }
 
 .reorder-table-scrollbar {
-    background: linear-gradient(180deg, #f8f3ed 0%, #f3ece4 100%);
+    background: var(--cc-surface-muted);
     padding-top: 3px;
 }
 
 .reorder-table th {
-    background: linear-gradient(180deg, #f8f4ef 0%, #f1e9e1 100%);
+    background: var(--cc-surface-muted);
     border-bottom: 1px solid rgba(111, 78, 55, 0.18) !important;
     color: #5c3f2b;
     letter-spacing: 0.025em;
@@ -588,7 +586,7 @@
 }
 
 .reorder-bulk-modal .modal-header {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f1e9 100%);
+    background: var(--cc-surface);
     border-bottom-color: rgba(111, 78, 55, 0.14);
     padding: 20px 24px;
 }
@@ -811,13 +809,13 @@
     inset: 0 0 auto;
     height: 4px;
     content: "";
-    background: linear-gradient(90deg, #342116, #6F4E37 48%, #C67A45 100%);
+    background: var(--cc-primary);
 }
 
 .reorder-bulk-modal .modal-header {
     position: relative;
     padding: 22px 24px;
-    background: linear-gradient(118deg, #FFF 0%, #FFF8F1 72%, #F1DECA 100%);
+    background: var(--cc-surface);
 }
 
 .reorder-bulk-modal .modal-header > div:first-child {
@@ -836,7 +834,7 @@
     place-items: center;
     border-radius: 14px;
     color: #FFF;
-    background: linear-gradient(145deg, #956D50, #342116);
+    background: var(--cc-primary);
     box-shadow: 0 12px 23px rgba(79, 53, 37, .24);
     content: "\f46d";
     font-family: "Font Awesome 6 Free";
@@ -856,7 +854,7 @@
 
 .reorder-bulk-modal .modal-body {
     padding: 18px 20px;
-    background: linear-gradient(180deg, #FFF, #FFFCF8);
+    background: var(--cc-surface);
 }
 
 .reorder-bulk-notice,
@@ -877,7 +875,7 @@
 
 .reorder-bulk-toolbar {
     min-height: 50px;
-    background: linear-gradient(180deg, #FBF6F0, #F5ECE3);
+    background: var(--cc-surface-muted);
 }
 
 .reorder-select-all input,
@@ -927,7 +925,7 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: linear-gradient(180deg, #F5EADF, #EEDFCE);
+    background: var(--cc-surface-muted);
     border-bottom-color: #D8C1AB;
     color: #563A28;
     letter-spacing: .035em;
@@ -964,7 +962,7 @@
 
 .reorder-bulk-table td:nth-child(5) {
     border-left: 4px solid #956D50;
-    background: linear-gradient(145deg, #FBF5EF, #F2E5DA);
+    background: var(--cc-surface-muted);
     box-shadow: inset 0 0 0 1px rgba(111, 78, 55, .1);
 }
 
@@ -990,7 +988,7 @@
 
 .reorder-bulk-result--pending {
     border-color: #B9DDCF;
-    background: linear-gradient(145deg, #F1FAF6, #E8F6F0);
+    background: var(--cc-success-bg);
     color: #28755D;
     box-shadow: 0 5px 12px rgba(40, 117, 93, .08);
 }
@@ -1006,7 +1004,7 @@
 
 .reorder-bulk-footer {
     padding: 15px 20px;
-    background: linear-gradient(180deg, #FCF8F4, #F3E8DC);
+    background: var(--cc-surface-muted);
 }
 
 .swal2-popup.reorder-explain-dialog {
@@ -1016,7 +1014,7 @@
     padding: 0 0 22px;
     border: 1px solid rgba(111, 78, 55, .24);
     border-radius: 20px;
-    background: linear-gradient(180deg, #FFF 0%, #FFFCF8 100%);
+    background: var(--cc-surface);
     box-shadow: 0 30px 80px rgba(39, 25, 16, .3), 0 8px 22px rgba(39, 25, 16, .12);
 }
 
@@ -1025,7 +1023,7 @@
     inset: 0 0 auto;
     height: 5px;
     content: "";
-    background: linear-gradient(90deg, #342116, #6F4E37 52%, #C67A45);
+    background: var(--cc-primary);
 }
 
 .reorder-explain-dialog .swal2-icon {
@@ -1035,7 +1033,7 @@
     border-width: 3px;
     border-color: #D9A06F;
     color: #9B5A2D;
-    background: linear-gradient(145deg, #FFF8EF, #F2DDC7);
+    background: var(--cc-warning-bg);
     box-shadow: 0 10px 23px rgba(111, 78, 55, .14);
 }
 
@@ -1068,7 +1066,7 @@
     overflow: hidden;
     border: 1px solid #E2D3C4;
     border-radius: 12px;
-    background: linear-gradient(145deg, #FFF, #FAF3EC);
+    background: var(--cc-surface);
     box-shadow: 0 6px 16px rgba(64, 41, 26, .065);
     transition: transform .17s ease, border-color .17s ease, box-shadow .17s ease;
 }
@@ -1078,7 +1076,7 @@
     inset: 0 auto 0 0;
     width: 3px;
     content: "";
-    background: linear-gradient(180deg, #C67A45, #6F4E37);
+    background: var(--cc-accent);
 }
 
 .reorder-explain-section:hover {

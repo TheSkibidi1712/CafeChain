@@ -99,7 +99,7 @@ namespace CafeChain.Tests.POS
             Assert.Equal(6, OtpConstants.CodeLength);
             Assert.Equal("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", OtpConstants.Alphabet);
             Assert.Equal(5, OtpConstants.TtlMinutes);
-            Assert.Equal(5, OtpConstants.MaxFailedAttempts);
+            Assert.Equal(3, OtpConstants.MaxFailedAttempts);
             Assert.Equal(60, OtpConstants.ResendCooldownSeconds);
             Assert.Equal(3, OtpConstants.MaxResendCount);
             Assert.DoesNotContain('O', OtpConstants.Alphabet);

@@ -140,7 +140,7 @@ namespace CafeChain.Tests.POS
             });
 
             Assert.True(result.IsSuccess, result.Message);
-            Assert.Equal("Closed", shift.Status);
+            Assert.Equal(WorkShiftStatuses.Closed, shift.Status);
         }
 
         [Fact]
@@ -180,8 +180,8 @@ namespace CafeChain.Tests.POS
             });
 
             Assert.False(result.IsSuccess);
-            Assert.Equal("OTP_REQUIRED", result.ErrorCode);
-            Assert.Contains("Cần xác nhận OTP", result.Message);
+            Assert.Equal(WorkShiftErrorCodes.CashDiscrepancyApprovalRequired, result.ErrorCode);
+            Assert.Contains("cần OTP", result.Message);
             Assert.NotEqual("Closed", shift.Status);
         }
 
@@ -199,7 +199,7 @@ namespace CafeChain.Tests.POS
             });
 
             Assert.False(result.IsSuccess);
-            Assert.Equal("OTP_REQUIRED", result.ErrorCode);
+            Assert.Equal(WorkShiftErrorCodes.CashDiscrepancyApprovalRequired, result.ErrorCode);
         }
 
         [Fact]
@@ -219,7 +219,7 @@ namespace CafeChain.Tests.POS
             });
 
             Assert.True(result.IsSuccess, result.Message);
-            Assert.Equal("Closed", shift.Status);
+            Assert.Equal(WorkShiftStatuses.Closed, shift.Status);
             otpRepo.Verify(r => r.CommitTransactionAsync(), Times.Once);
         }
 
@@ -412,7 +412,7 @@ namespace CafeChain.Tests.POS
             });
 
             Assert.False(result.IsSuccess);
-            Assert.Contains("Lỗi hệ thống", result.Message);
+            Assert.Contains("Không thể đóng phiên POS", result.Message);
             otpRepo.Verify(r => r.RollbackTransactionAsync(), Times.Once);
             otpRepo.Verify(r => r.CommitTransactionAsync(), Times.Never);
         }
