@@ -15,6 +15,7 @@ public sealed class NotificationRealtimeAndHomeSourceTests
         Assert.Contains("microsoft-signalr/signalr.min.js", layout, StringComparison.Ordinal);
         Assert.Contains("withAutomaticReconnect", client, StringComparison.Ordinal);
         Assert.Contains("setInterval(refresh, 60000)", client, StringComparison.Ordinal);
+        Assert.Contains("count > 9 ? \"9+\"", client, StringComparison.Ordinal);
         Assert.Contains("eventId", client, StringComparison.Ordinal);
     }
 

@@ -11,6 +11,10 @@
     const seenEventIds = new Set();
     let refreshPromise = null;
 
+    function formatBadgeCount(count) {
+        return count > 9 ? "9+" : String(count);
+    }
+
     function remember(eventId) {
         if (!eventId || seenEventIds.has(eventId)) return false;
         seenEventIds.add(eventId);
@@ -39,7 +43,13 @@
             try {
                 const unreadPayload = await getJson(unreadUrl);
                 const count = Number(unreadPayload?.data?.unreadCount || 0);
-                badge.textContent = count > 99 ? "99+" : String(count);
+                badge.textContent = formatBadgeCount(count);
+                badge.title = `${count} thông báo chưa đọc`;
+                bell.setAttribute(
+                    "aria-label",
+                    count > 0
+                        ? `Mở danh sách thông báo, ${count} thông báo chưa đọc`
+                        : "Mở danh sách thông báo");
                 badge.classList.toggle("d-none", count <= 0);
 
                 if (document.querySelector("[data-admin-notification-list]")) {

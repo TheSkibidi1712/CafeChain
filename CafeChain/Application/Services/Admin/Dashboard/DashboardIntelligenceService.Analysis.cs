@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Diagnostics;
+using System.Globalization;
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Dashboard;
 using Microsoft.Extensions.Caching.Memory;
@@ -8,6 +9,8 @@ namespace CafeChain.Application.Services.Admin.Dashboard;
 
 public sealed partial class DashboardIntelligenceService
 {
+    private static readonly CultureInfo VietnameseCulture = CultureInfo.GetCultureInfo("vi-VN");
+
     public async Task<DashboardStructuredAnalysisResultDto> AnalyzeAsync(
         AdminActorContext actor,
         DashboardPromptRequestDto request,
@@ -1002,6 +1005,11 @@ public sealed partial class DashboardIntelligenceService
 
         if (string.IsNullOrWhiteSpace(entityName))
             return null;
+        var effectiveUnit = string.IsNullOrWhiteSpace(unit) ? definition.Unit : unit;
+        var statement = widget == DashboardAnalyticsWidget.OperationalAlerts
+            ? OperationalAlertStatement(row, entityName, storeName, value, effectiveUnit)
+            : $"{entityName}: {FormatDashboardNumber(value)} {DisplayUnit(effectiveUnit)}."
+                .Replace("  ", " ");
         var evidence = new DashboardEvidenceDto
         {
             EvidenceId = $"E-{widget}-{index:000}",
@@ -1012,13 +1020,13 @@ public sealed partial class DashboardIntelligenceService
             Title = $"{definition.Title}: {entityName}",
             Description = "Evidence cấp thực thể từ backend.",
             MetricName = definition.Metric!.Name,
-            Statement = $"{entityName}: {value:N2} {DisplayUnit(unit)}.".Replace("  ", " "),
+            Statement = statement,
             CurrentValue = value,
             SampleSize = EntitySample(widget, row),
-            Unit = string.IsNullOrWhiteSpace(unit) ? definition.Unit : unit,
+            Unit = effectiveUnit,
             DisplayMetric = DisplayMetric(definition.Metric!.Name),
-            DisplayValue = value.ToString("N2"),
-            DisplayUnit = DisplayUnit(string.IsNullOrWhiteSpace(unit) ? definition.Unit : unit),
+            DisplayValue = FormatDashboardNumber(value),
+            DisplayUnit = DisplayUnit(effectiveUnit),
             DataStatus = dataStatus,
             EntityType = entityType,
             EntityId = entityId,
@@ -1056,8 +1064,73 @@ public sealed partial class DashboardIntelligenceService
         "VND" => "đ",
         "PERCENT" => "%",
         "COUNT" => string.Empty,
+        "G" or "GRAM" => "g",
+        "KG" or "KILOGRAM" => "kg",
+        "ML" or "MILLILITER" => "ml",
+        "L" or "LITER" => "lít",
+        "PIECE" or "PCS" => "cái",
+        "INGREDIENT" => string.Empty,
         var value => value.ToLowerInvariant()
     };
+
+    private static string OperationalAlertStatement(
+        JsonElement row,
+        string entityName,
+        string? storeName,
+        decimal value,
+        string unit)
+    {
+        var alertType = Text(row, "alertType").Trim().ToUpperInvariant();
+        var displayValue = FormatDashboardNumber(Math.Abs(value));
+        var displayUnit = DisplayUnit(unit);
+        var amount = string.IsNullOrWhiteSpace(displayUnit)
+            ? displayValue
+            : $"{displayValue} {displayUnit}";
+        var atStore = string.IsNullOrWhiteSpace(storeName) ? string.Empty : $" tại {storeName}";
+
+        return alertType switch
+        {
+            "CASH_DISCREPANCY" =>
+                $"{WorkShiftLabel(entityName)}{atStore} đang {(value < 0 ? "thiếu" : "thừa")} {amount}.",
+            "LOW_STOCK" =>
+                $"Tồn khả dụng của {entityName}{atStore} đã xuống dưới ngưỡng, hiện ở mức {FormatDashboardNumber(value)} {displayUnit}."
+                    .Replace("  ", " "),
+            "OVERDUE_PO" => $"PO {entityName}{atStore} đã quá hạn {displayValue} ngày.",
+            "SUPPLIER_ISSUE" => SupplierIssueStatement(row, atStore, amount),
+            _ => GenericAlertStatement(row, entityName, atStore, amount)
+        };
+    }
+
+    private static string SupplierIssueStatement(JsonElement row, string atStore, string amount)
+    {
+        var message = Text(row, "message").Trim().TrimEnd('.');
+        if (string.IsNullOrWhiteSpace(message))
+            message = "Có sự cố nhà cung cấp cần kiểm tra";
+        return $"{message}{atStore}, lượng ảnh hưởng {amount}.";
+    }
+
+    private static string GenericAlertStatement(
+        JsonElement row,
+        string entityName,
+        string atStore,
+        string amount)
+    {
+        var message = Text(row, "message").Trim().TrimEnd('.');
+        return string.IsNullOrWhiteSpace(message)
+            ? $"{entityName}{atStore} có cảnh báo với giá trị {amount}."
+            : $"{message}{atStore}, giá trị cảnh báo {amount}.";
+    }
+
+    private static string WorkShiftLabel(string entityName)
+    {
+        const string prefix = "WorkShift";
+        return entityName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? $"Ca{entityName[prefix.Length..]}"
+            : $"Ca {entityName}";
+    }
+
+    private static string FormatDashboardNumber(decimal value) =>
+        value.ToString("#,0.##", VietnameseCulture);
 
     private static IEnumerable<string> EntityMetadataFields(DashboardAnalyticsWidget widget) => widget switch
     {

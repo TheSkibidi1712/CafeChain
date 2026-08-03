@@ -322,6 +322,8 @@
             font-size: 0.7rem;
             line-height: 1.2rem;
             text-align: center;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
         }
 
         .topbar-user:hover,
@@ -374,6 +376,7 @@
     </style>
     @await RenderSectionAsync("Styles", required: false)
     <link rel="stylesheet" href="~/css/Admin/Procurement/procurement-design-system.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Admin/admin-unified-depth.css" asp-append-version="true" />
 </head>
 
 <body>
