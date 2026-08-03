@@ -15,57 +15,6 @@
     };
 }
 
-<style>
-    .staff-modal .modal-content { border: 0; border-radius: 16px; overflow: hidden; }
-    .staff-modal .modal-header { border-bottom: 1px solid #eee7df; padding: 18px 22px; }
-    .staff-modal .form-label { font-weight: 800; font-size: 13px; color: #334155; margin-bottom: 6px; }
-    .staff-modal .form-control, .staff-modal .form-select { border-radius: 8px; border: 1px solid #dbe3ef; font-size: 14px; padding: 10px 12px; }
-    .staff-modal .form-control:focus, .staff-modal .form-select:focus { border-color: #c67a45; box-shadow: 0 0 0 3px rgba(198,122,69,.14); }
-    .staff-modal .nav-tabs { border-bottom: 1px solid #eee7df; }
-    .staff-modal .nav-link { color: #64748b; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .35px; border: 0; border-bottom: 3px solid transparent; padding: 11px 18px; }
-    .staff-modal .nav-link.active { color: #8b512d; border-color: #c67a45; background: transparent; }
-    .staff-modal .tab-pane { min-height: 330px; }
-    .staff-modal .section-title { color: #8b512d; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .45px; margin-bottom: 16px; }
-    .staff-modal #createStaffSubmit {
-        color: #fff;
-        background: #6f4e37;
-        border-color: #6f4e37;
-        box-shadow: 0 6px 16px rgba(111, 78, 55, .22);
-    }
-    .staff-modal #createStaffSubmit:hover,
-    .staff-modal #createStaffSubmit:focus-visible {
-        color: #fff;
-        background: #5c3f2b;
-        border-color: #5c3f2b;
-        box-shadow: 0 8px 20px rgba(92, 63, 43, .28);
-    }
-    .staff-modal #createStaffSubmit:disabled {
-        color: #fff;
-        background: #9c806c;
-        border-color: #9c806c;
-        opacity: .72;
-    }
-    .staff-modal #createStaffSubmit i { color: inherit; }
-    .avatar-upload-box { position: relative; width: 190px; height: 190px; border: 2px dashed #dbc4a9; border-radius: 14px; background: #f8f2eb; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; text-align: center; }
-    .avatar-upload-box:hover { border-color: #c67a45; background: #f5ede3; }
-    .avatar-upload-box img { width: 100%; height: 100%; object-fit: cover; display: none; }
-    .avatar-upload-placeholder i { display: block; color: #c67a45; font-size: 34px; margin-bottom: 8px; }
-    .avatar-upload-placeholder span { color: #64748b; font-size: 12px; }
-    .avatar-actions { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
-    .staff-scope-help { background: #fff7ed; border: 1px solid #fed7aa; color: #7c2d12; border-radius: 10px; padding: 12px 14px; font-size: 13px; }
-    .staff-modal .modal-content { box-shadow: 0 28px 80px rgba(45,29,20,.28); }
-    .staff-modal .modal-header { background: linear-gradient(135deg, #fffdfb, #f7f3ee); }
-    .staff-modal-heading-icon { width: 44px; height: 44px; border: 1px solid #d7c3b3; border-radius: 13px; color: #fff; background: linear-gradient(145deg,#6f4e37,#8b6b55); box-shadow: 0 8px 18px rgba(111,78,55,.2); }
-    .staff-modal .modal-body { background: #faf7f4; }
-    .staff-modal .nav-tabs { margin: -16px -8px 20px; padding: 0 8px; background: #fffdfb; border-radius: 12px 12px 0 0; }
-    .staff-modal .tab-pane { border: 1px solid #e7dcd3; border-radius: 15px; padding: 20px; background: #fff; box-shadow: 0 10px 26px rgba(71,50,35,.06); }
-    .staff-modal .section-title { display: flex; align-items: center; gap: 7px; padding-bottom: 9px; border-bottom: 1px solid #eee4dc; color: #6f4e37; }
-    .staff-modal .form-control:hover, .staff-modal .form-select:hover { border-color: #b8957d; }
-    .staff-modal .form-control:focus, .staff-modal .form-select:focus { border-color: #6f4e37; box-shadow: 0 0 0 3px rgba(111,78,55,.12); }
-    .staff-modal .modal-footer { border-top: 1px solid #e7dcd3; background: #fffdfb; box-shadow: 0 -8px 20px rgba(71,50,35,.04); }
-    @@media (max-width: 767.98px) { .avatar-upload-box { width: 140px; height: 140px; } .staff-modal .nav-link { padding: 10px 8px; font-size: 10px; } }
-</style>
-
 <div class="modal fade staff-modal" id="createStaffModal" tabindex="-1" aria-labelledby="createStaffTitle" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content admin-wo-card shadow">
@@ -73,11 +22,11 @@
                   enctype="multipart/form-data" id="createStaffForm" novalidate>
                 @Html.AntiForgeryToken()
                 <div class="modal-header">
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="staff-modal-heading-icon d-flex align-items-center justify-content-center">
+                    <div class="staff-modal-heading">
+                        <span class="staff-modal-heading-icon cc-admin-heading__icon" aria-hidden="true">
                             <i class="fas fa-user-plus"></i>
                         </span>
-                        <div><h4 class="modal-title fw-bold mb-0" id="createStaffTitle">Thêm nhân viên mới</h4><small class="text-muted">Tạo hồ sơ, tài khoản và phạm vi làm việc trong một giao dịch.</small></div>
+                        <div><h4 class="modal-title" id="createStaffTitle">Thêm nhân viên mới</h4><small>Tạo hồ sơ, tài khoản và phạm vi làm việc trong một giao dịch.</small></div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
@@ -85,9 +34,9 @@
                 <div class="modal-body px-4 pt-3">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 d-none" id="createStaffValidationSummary"></div>
                     <ul class="nav nav-tabs mb-4" id="createStaffTabs" role="tablist">
-                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#create-general" type="button">Thông tin chung</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#create-scope" type="button">Vai trò & phạm vi</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#create-account" type="button">Công việc & tài khoản</button></li>
+                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#create-general" type="button"><span>1</span>Thông tin chung</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#create-scope" type="button"><span>2</span>Vai trò &amp; phạm vi</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#create-account" type="button"><span>3</span>Công việc &amp; tài khoản</button></li>
                     </ul>
 
                     <div class="tab-content">
