@@ -161,10 +161,19 @@ public sealed partial class AIService
     private static DashboardExplanationResultDto BuildDashboardFallback(DashboardInsightExplanationContextDto context)
     {
         var focus = context.Understanding?.AnswerFocus ?? DashboardAnswerFocus.Dynamic;
-        var evidence = context.Evidence
+        var validEvidence = context.Evidence
             .Where(item => item.DataStatus is not ("NO_DATA" or "ERROR"))
-            .OrderBy(item => PriorityRank(item.Priority ?? item.RiskLevel))
-            .ThenByDescending(item => item.CurrentValue)
+            .Select((item, index) => new { Item = item, Index = index });
+        var evidence = (focus == DashboardAnswerFocus.OperationalPriorities
+                ? validEvidence
+                    .OrderBy(item => PriorityRank(item.Item.Priority ?? item.Item.RiskLevel))
+                    .ThenBy(item => OperationalAlertRank(item.Item))
+                    .ThenBy(item => item.Index)
+                : validEvidence
+                    .OrderBy(item => PriorityRank(item.Item.Priority ?? item.Item.RiskLevel))
+                    .ThenByDescending(item => item.Item.CurrentValue)
+                    .ThenBy(item => item.Index))
+            .Select(item => item.Item)
             .ToList();
         if (evidence.Count == 0)
         {
@@ -192,11 +201,14 @@ public sealed partial class AIService
                 $"Hệ thống ghi nhận {Math.Min(3, entityEvidence.Count)} rủi ro cần chú ý trong phạm vi đang chọn. Tín hiệu ưu tiên cao nhất là {leading.EntityName}: {leading.DisplayValue} {leading.DisplayUnit}.",
             DashboardAnswerFocus.IngredientConsumptionTrend =>
                 $"Xu hướng tiêu thụ trong kỳ được thể hiện bởi {leading.EntityName} với giá trị {leading.DisplayValue} {leading.DisplayUnit}. Chỉ kết luận xu hướng khi chuỗi có đủ điểm thời gian.",
-            DashboardAnswerFocus.ReorderPriority or DashboardAnswerFocus.OperationalPriorities =>
+            DashboardAnswerFocus.OperationalPriorities =>
+                BuildOperationalPriorityAnswer(entityEvidence),
+            DashboardAnswerFocus.ReorderPriority =>
                 $"Ưu tiên vận hành hiện tại là {leading.EntityName} với giá trị {leading.DisplayValue} {leading.DisplayUnit}. Hệ thống chỉ đề nghị kiểm tra, không tự tạo chứng từ.",
             _ => $"{leading.EntityName ?? leading.Title} có giá trị {leading.DisplayValue} {leading.DisplayUnit} trong kỳ đã chọn. Kết luận được giới hạn trong dữ liệu Dashboard hiện tại."
         };
-        var proofPoints = (focus is DashboardAnswerFocus.OperationalAnomaly
+        var proofPoints = (focus is DashboardAnswerFocus.OperationalPriorities
+                or DashboardAnswerFocus.OperationalAnomaly
                 or DashboardAnswerFocus.SupplierAndOverdueRisk
                 or DashboardAnswerFocus.InventoryShortage
                 ? entityEvidence.Take(3)
@@ -207,12 +219,7 @@ public sealed partial class AIService
                 EvidenceIds = [item.EvidenceId]
             }).ToList();
         var action = CanReturnAction(focus)
-            ? new DashboardActionToCheckDto
-            {
-                Text = "Kiểm tra tín hiệu ưu tiên cùng dữ liệu nguồn trước khi thực hiện nghiệp vụ.",
-                EvidenceIds = [leading.EvidenceId],
-                VerifyCondition = "Đối chiếu số liệu và trạng thái chứng từ tại cửa hàng liên quan."
-            }
+            ? BuildFallbackAction(focus, leading)
             : null;
         return new DashboardExplanationResultDto
         {
@@ -244,6 +251,110 @@ public sealed partial class AIService
         "LOW" => 3,
         _ => 4
     };
+
+    private static int OperationalAlertRank(DashboardEvidenceDto evidence) =>
+        MetadataText(evidence, "alertType").ToUpperInvariant() switch
+        {
+            "CASH_DISCREPANCY" => 0,
+            "LOW_STOCK" => 1,
+            "OVERDUE_PO" => 2,
+            "SUPPLIER_ISSUE" => 3,
+            _ => 4
+        };
+
+    private static string BuildOperationalPriorityAnswer(IReadOnlyList<DashboardEvidenceDto> alerts)
+    {
+        if (alerts.Count == 0)
+            return "Chưa có cảnh báo vận hành cụ thể trong phạm vi đang chọn. Hệ thống không suy đoán khi thiếu bằng chứng.";
+
+        var criticalCount = alerts.Count(item =>
+            string.Equals(item.RiskLevel ?? item.Priority, "CRITICAL", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(item.Priority, "Critical", StringComparison.OrdinalIgnoreCase));
+        var warningCount = alerts.Count - criticalCount;
+        var summary = criticalCount > 0
+            ? $"Có {criticalCount} cảnh báo nghiêm trọng"
+                + (warningCount > 0 ? $" và {warningCount} cảnh báo khác" : string.Empty)
+                + " cần chú ý trong phạm vi đang chọn."
+            : $"Có {alerts.Count} cảnh báo vận hành cần chú ý trong phạm vi đang chọn.";
+        var details = string.Join(" ", alerts.Take(3).Select(item => EnsureSentence(item.Statement)));
+        var answer = $"{summary} {details}".Trim();
+        return answer.Length <= 600
+            ? answer
+            : $"{summary} {EnsureSentence(alerts[0].Statement)}";
+    }
+
+    private static DashboardActionToCheckDto BuildFallbackAction(
+        DashboardAnswerFocus focus,
+        DashboardEvidenceDto leading)
+    {
+        if (focus != DashboardAnswerFocus.OperationalPriorities)
+        {
+            return new DashboardActionToCheckDto
+            {
+                Text = "Kiểm tra tín hiệu ưu tiên cùng dữ liệu nguồn trước khi thực hiện nghiệp vụ.",
+                EvidenceIds = [leading.EvidenceId],
+                VerifyCondition = "Đối chiếu số liệu và trạng thái chứng từ tại cửa hàng liên quan."
+            };
+        }
+
+        var alertType = MetadataText(leading, "alertType").ToUpperInvariant();
+        var store = string.IsNullOrWhiteSpace(leading.StoreName)
+            ? string.Empty
+            : $" tại {leading.StoreName}";
+        return alertType switch
+        {
+            "CASH_DISCREPANCY" => new DashboardActionToCheckDto
+            {
+                Text = $"Đối chiếu tiền mặt thực tế và các giao dịch của {WorkShiftReference(leading.EntityName)}{store}.",
+                EvidenceIds = [leading.EvidenceId],
+                VerifyCondition = "Xác nhận số tiền thiếu hoặc thừa trước khi xử lý chênh lệch ca."
+            },
+            "LOW_STOCK" => new DashboardActionToCheckDto
+            {
+                Text = $"Kiểm đếm tồn thực tế của {leading.EntityName}{store} và đối chiếu ngưỡng tồn tối thiểu.",
+                EvidenceIds = [leading.EvidenceId],
+                VerifyCondition = "Xác nhận tồn khả dụng và các yêu cầu nhập hàng đang mở."
+            },
+            "OVERDUE_PO" => new DashboardActionToCheckDto
+            {
+                Text = $"Kiểm tra trạng thái giao nhận của PO {leading.EntityName}{store}.",
+                EvidenceIds = [leading.EvidenceId],
+                VerifyCondition = "Đối chiếu ngày giao dự kiến, phiếu nhập và trạng thái đóng đơn mua."
+            },
+            "SUPPLIER_ISSUE" => new DashboardActionToCheckDto
+            {
+                Text = $"Đối chiếu sự cố của nhà cung cấp {leading.EntityName}{store} với phiếu nhập liên quan.",
+                EvidenceIds = [leading.EvidenceId],
+                VerifyCondition = "Xác nhận loại sự cố, lượng ảnh hưởng và trạng thái xử lý hiện tại."
+            },
+            _ => new DashboardActionToCheckDto
+            {
+                Text = $"Kiểm tra cảnh báo của {leading.EntityName}{store} cùng dữ liệu nguồn.",
+                EvidenceIds = [leading.EvidenceId],
+                VerifyCondition = "Xác nhận dữ liệu thực tế trước khi thực hiện nghiệp vụ."
+            }
+        };
+    }
+
+    private static string MetadataText(DashboardEvidenceDto evidence, string key) =>
+        evidence.Metadata.TryGetValue(key, out var value)
+            ? Convert.ToString(value, CultureInfo.InvariantCulture)?.Trim() ?? string.Empty
+            : string.Empty;
+
+    private static string EnsureSentence(string text)
+    {
+        var value = text.Trim();
+        return value.Length == 0 || value.EndsWith('.') ? value : $"{value}.";
+    }
+
+    private static string WorkShiftReference(string? entityName)
+    {
+        var value = entityName?.Trim() ?? "ca làm việc";
+        const string prefix = "WorkShift";
+        return value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? $"ca{value[prefix.Length..]}"
+            : value;
+    }
 
     private static bool CanReturnAction(DashboardAnswerFocus? focus) => focus is
         DashboardAnswerFocus.OperationalPriorities
