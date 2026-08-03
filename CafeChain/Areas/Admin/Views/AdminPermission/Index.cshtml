@@ -24,12 +24,12 @@
      data-scope-references-url="@Url.Action(nameof(AdminPermissionController.ScopeReferences), "AdminPermission", new { area = "Admin" })"
      data-login-url="@Url.Action("Login", "Account", new { area = "" })"
     data-access-denied-url="@Url.Action("AccessDenied", "Account", new { area = "" })">
-    <div class="perm-heading">
-        <div class="perm-heading-copy">
-            <div class="perm-breadcrumb">Hệ thống / Bảng phân quyền</div>
-            <div class="perm-title-row">
-                <span class="perm-title-icon"><i class="fas fa-shield-halved"></i></span>
-                <div>
+    <header class="perm-heading cc-admin-heading">
+        <div class="perm-heading-copy cc-admin-heading__copy">
+            <div class="perm-breadcrumb cc-admin-heading__eyebrow">Hệ thống / Bảng phân quyền</div>
+            <div class="perm-title-row cc-admin-heading__row">
+                <span class="perm-title-icon cc-admin-heading__icon" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
+                <div class="cc-admin-heading__text">
                     <h1>Bảng phân quyền</h1>
                     <p>Kiểm soát vai trò, quyền thao tác và phạm vi dữ liệu của từng nhân viên.</p>
                 </div>
@@ -38,7 +38,7 @@
         <button type="button" class="perm-icon-button" id="permRefreshBtn" title="Tải lại" aria-label="Tải lại dữ liệu phân quyền">
             <i class="fas fa-rotate-right"></i>
         </button>
-    </div>
+    </header>
 
     <div class="perm-tabs" role="tablist" aria-label="Nhóm chức năng phân quyền">
         <button type="button" class="perm-tab is-active" data-tab="roles">
@@ -204,9 +204,12 @@
     <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content perm-modal">
             <div class="perm-modal-head">
-                <div>
-                    <h2>Phân quyền vai trò</h2>
-                    <div class="perm-modal-meta" id="permRoleModalMeta"></div>
+                <div class="perm-modal-heading">
+                    <span class="perm-modal-heading-icon" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
+                    <div>
+                        <h2>Phân quyền vai trò</h2>
+                        <div class="perm-modal-meta" id="permRoleModalMeta"></div>
+                    </div>
                 </div>
                 <button type="button" class="perm-icon-button" data-bs-dismiss="modal" title="Đóng">
                     <i class="fas fa-xmark"></i>
@@ -247,9 +250,12 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content perm-modal">
             <div class="perm-modal-head">
-                <div>
-                    <h2>Gán vai trò cho nhân viên</h2>
-                    <div class="perm-modal-meta" id="permStaffRoleMeta"></div>
+                <div class="perm-modal-heading">
+                    <span class="perm-modal-heading-icon" aria-hidden="true"><i class="fas fa-user-tag"></i></span>
+                    <div>
+                        <h2>Gán vai trò cho nhân viên</h2>
+                        <div class="perm-modal-meta" id="permStaffRoleMeta"></div>
+                    </div>
                 </div>
                 <button type="button" class="perm-icon-button" data-bs-dismiss="modal" title="Đóng">
                     <i class="fas fa-xmark"></i>
