@@ -152,6 +152,36 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
 
         await using var connection = new SqlConnection(ConnectionString);
         await connection.OpenAsync();
+        await using (var alertCommand = AnalyticsCommand(connection, "dbo.usp_Dashboard_OperationalAlerts"))
+        {
+            alertCommand.Parameters["@StoreIds"].Value = "1,3";
+            await using var alertReader = await alertCommand.ExecuteReaderAsync();
+            var alerts = new List<(string Type, string Unit, string Message)>();
+            while (await alertReader.ReadAsync())
+            {
+                alerts.Add((
+                    Convert.ToString(alertReader["AlertType"])!,
+                    Convert.ToString(alertReader["Unit"])!,
+                    Convert.ToString(alertReader["Message"])!));
+            }
+
+            Assert.NotEmpty(alerts);
+            Assert.All(alerts, alert => Assert.DoesNotContain('?', alert.Message));
+            Assert.Contains(alerts, alert => alert.Type == "CASH_DISCREPANCY"
+                                             && alert.Message.StartsWith("Chênh lệch", StringComparison.Ordinal));
+            Assert.Contains(alerts, alert => alert.Type == "LOW_STOCK"
+                                             && alert.Message.StartsWith("Tồn dưới ngưỡng", StringComparison.Ordinal));
+            Assert.Contains(alerts, alert => alert.Type == "OVERDUE_PO"
+                                             && alert.Message.StartsWith("PO quá hạn", StringComparison.Ordinal));
+            var supplierAlerts = alerts.Where(alert => alert.Type == "SUPPLIER_ISSUE").ToList();
+            Assert.NotEmpty(supplierAlerts);
+            Assert.All(supplierAlerts, alert =>
+            {
+                Assert.Equal("g", alert.Unit, ignoreCase: true);
+                Assert.DoesNotContain("INGREDIENT", alert.Unit, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("sự cố bao bì", alert.Message, StringComparison.OrdinalIgnoreCase);
+            });
+        }
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.Permissions WHERE Code IN (N'StoreMenu.OverridePrice',N'Profitability.UpdatePrice',N'Profitability.UpdateToppingPolicy',N'PreparedItem.ToggleStatus',N'Recipe.Delete',N'PurchaseAdvice.Update',N'PurchaseAdvice.Cancel',N'PurchaseOrder.CloseRemaining',N'SupplierQuality.Create',N'SupplierQuality.Transition',N'InventoryTransfer.RequestReturn',N'InventoryTransfer.ConfirmReturn',N'InventoryTransfer.ResolveDiscrepancy',N'Order.RefundRequest',N'Order.RefundConfirm',N'System.Diagnostics.View',N'System.Cutover.View',N'System.Cutover.Manage',N'System.LegacyConsolidation.View',N'System.LegacyConsolidation.Manage') AND Active=1;", 20L);
         await AssertScalarAsync(connection,
