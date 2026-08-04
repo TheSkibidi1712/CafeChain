@@ -123,7 +123,6 @@ namespace CafeChain.Application.Services.Inventories
                 var source = await BuildSourceAsync(requestId, null, false);
                 if (source != null
                     && HasRemainingToPurchase(source)
-                    && source.ExistingPurchaseAdviceQuantity == 0
                     && (string.Equals(
                             source.SourceType,
                             RestockRequestSourceTypes.Legacy,

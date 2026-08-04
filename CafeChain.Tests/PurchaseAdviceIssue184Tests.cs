@@ -282,6 +282,65 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task RestockWith1Of10KgPaCoverage_AppearsAs9KgCandidate()
+    {
+        using var context = CreateDbContext();
+        var seed = await SeedAsync(context, 10m);
+        var restock = await context.RestockRequests.SingleAsync(
+            x => x.RestockRequestId == seed.RestockRequestId);
+        restock.SourceType = RestockRequestSourceTypes.ManualByStore;
+        restock.SourcingDecision = RestockSourcingDecisionTypes.Purchase;
+        restock.SourcingStatus = RestockSourcingStatuses.FullyAllocated;
+        restock.RequestedProcurementQuantity = 10m;
+        restock.ProcurementUnitId = seed.UnitId;
+        var advice = new PurchaseAdvice
+        {
+            AdviceNumber = "PA-PARTIAL-305",
+            RequestKey = "PA-PARTIAL-305",
+            StoreId = seed.StoreId,
+            RequestedByStaffId = seed.ManagerId,
+            Status = PurchaseAdviceStatuses.UnderReview,
+            NeededByDate = DateTime.UtcNow.AddDays(2),
+            Priority = PurchaseAdvicePriorities.Normal,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+        advice.Lines.Add(new PurchaseAdviceLine
+        {
+            RestockRequest = restock,
+            IngredientId = seed.IngredientId,
+            RequestedPurchaseBaseQuantity = 1m,
+            RequestedProcurementQuantity = 1m,
+            ProcurementUnitId = seed.UnitId,
+            BaseUnitId = seed.UnitId,
+            NeededByDate = DateTime.UtcNow.AddDays(2),
+            IsActiveReservation = true
+        });
+        restock.SourcingAllocations.Add(new RestockSourcingAllocation
+        {
+            DecisionType = RestockSourcingDecisionTypes.Purchase,
+            ProcurementQuantity = 9m,
+            ProcurementUnitId = seed.UnitId,
+            Status = RestockSourcingAllocationStatuses.PendingPurchaseAdvice,
+            CreatedByStaffId = seed.ManagerId,
+            CreatedAtUtc = DateTime.UtcNow
+        });
+        context.PurchaseAdvices.Add(advice);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).GetAvailableSourcesAsync(
+            seed.StoreId,
+            Manager(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        var candidate = Assert.Single(result.Data!);
+        Assert.Equal(10m, candidate.RestockRequestedProcurementQuantity);
+        Assert.Equal(1m, candidate.ExistingPurchaseAdviceProcurementQuantity);
+        Assert.Equal(9m, candidate.PendingPurchaseAllocationProcurementQuantity);
+        Assert.Equal(9m, candidate.RemainingToPurchaseProcurementQuantity);
+    }
+
+    [Fact]
     public void PurchaseAllocationModel_AllowsManyActiveAllocationsPerAdviceLine_WhileRestockReservationStaysUnique()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
