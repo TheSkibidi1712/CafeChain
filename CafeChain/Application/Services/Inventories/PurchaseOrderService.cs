@@ -766,11 +766,15 @@ namespace CafeChain.Application.Services.Inventories
                 or RoleConstants.SystemAdmin);
 
         private static bool CanApprove(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
+            roles.Contains(RoleConstants.BusinessOwner)
+            || roles.Contains(RoleConstants.StoreManager)
+            || roles.Contains(RoleConstants.SystemAdmin);
         private static bool CanSend(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.AccountantWarehouse) || roles.Contains(RoleConstants.SystemAdmin);
         private static bool CanCancel(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
+            roles.Contains(RoleConstants.BusinessOwner)
+            || roles.Contains(RoleConstants.StoreManager)
+            || roles.Contains(RoleConstants.SystemAdmin);
         private static bool CanCloseRemaining(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
 

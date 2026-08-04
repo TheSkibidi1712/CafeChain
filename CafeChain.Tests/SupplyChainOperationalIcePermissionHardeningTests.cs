@@ -18,6 +18,8 @@ public sealed class SupplyChainOperationalIcePermissionHardeningTests
     [Fact] public void StoreManager_CanVerifyAlertWithinStoreScope() => AssertGrant("StockAlert.Resolve", StoreManager, true);
     [Fact] public void StoreManager_CanCreateManualRestock() => AssertGrant("Restock.Create", StoreManager, true);
     [Fact] public void StoreManager_CannotCreatePO() => AssertGrant("PurchaseOrder.Create", StoreManager, false);
+    [Fact] public void StoreManager_CanApprovePOWithinStoreScope() => AssertGrant("PurchaseOrder.Approve", StoreManager, true);
+    [Fact] public void StoreManager_CanCancelPOWithinStoreScope() => AssertGrant("PurchaseOrder.Cancel", StoreManager, true);
 
     [Fact]
     public void RegionManager_CanViewOnlyRegionScope()

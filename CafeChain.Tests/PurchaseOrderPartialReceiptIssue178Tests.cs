@@ -2,6 +2,7 @@ using CafeChain.Areas.Admin.Controllers;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
@@ -15,6 +16,7 @@ using CafeChain.Models.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Xunit;
 
 namespace CafeChain.Tests;
@@ -81,6 +83,115 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
         Assert.False(stale.IsSuccess);
         Assert.Equal(BranchReceiptErrorCodes.ResourceChanged, stale.ErrorCode);
         Assert.Equal(PurchaseOrderStatuses.Draft, (await context.PurchaseOrders.SingleAsync()).Status);
+    }
+
+    [Fact]
+    public async Task StoreManager_CanApproveAndCancelNormalPOWithinStoreScope()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 20m);
+        var service = CreateService(context, allowStoreId: StoreId);
+        var offerId = await context.IngredientSuppliers
+            .Where(x => x.IngredientId == IngredientId && x.SupplierId == SupplierId)
+            .Select(x => x.IngredientSupplierId)
+            .SingleAsync();
+
+        var first = await service.CreateDraftAsync(new CreatePurchaseOrderRequest
+        {
+            StoreId = StoreId,
+            SupplierId = SupplierId,
+            Lines = { new() { RestockRequestId = request.RestockRequestId, IngredientId = IngredientId, IngredientSupplierId = offerId, PackageCount = 2m } }
+        }, StaffId, new[] { RoleConstants.AccountantWarehouse });
+        Assert.True(first.IsSuccess, first.Message);
+        var approved = await service.ApproveAsync(
+            first.Data!.PurchaseOrderId,
+            first.Data.RowVersion,
+            ApproverStaffId,
+            new[] { RoleConstants.StoreManager });
+
+        var second = await service.CreateDraftAsync(new CreatePurchaseOrderRequest
+        {
+            StoreId = StoreId,
+            SupplierId = SupplierId,
+            Lines = { new() { IngredientId = IngredientId, IngredientSupplierId = offerId, PackageCount = 2m } }
+        }, StaffId, new[] { RoleConstants.AccountantWarehouse });
+        Assert.True(second.IsSuccess, second.Message);
+        var cancelled = await service.CancelAsync(
+            second.Data!.PurchaseOrderId,
+            second.Data.RowVersion,
+            ApproverStaffId,
+            new[] { RoleConstants.StoreManager },
+            "Cửa hàng điều chỉnh kế hoạch mua");
+
+        Assert.True(approved.IsSuccess, approved.Message);
+        Assert.Equal(PurchaseOrderStatuses.Approved, approved.Data!.Status);
+        Assert.True(cancelled.IsSuccess, cancelled.Message);
+        Assert.Equal(PurchaseOrderStatuses.Cancelled, cancelled.Data!.Status);
+    }
+
+    [Fact]
+    public async Task StoreManager_CannotApproveOrCancelNormalPOOutsideStoreScope()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 20m);
+        var unrestricted = CreateService(context);
+        var offerId = await context.IngredientSuppliers
+            .Where(x => x.IngredientId == IngredientId && x.SupplierId == SupplierId)
+            .Select(x => x.IngredientSupplierId)
+            .SingleAsync();
+        var created = await unrestricted.CreateDraftAsync(new CreatePurchaseOrderRequest
+        {
+            StoreId = StoreId,
+            SupplierId = SupplierId,
+            Lines = { new() { RestockRequestId = request.RestockRequestId, IngredientId = IngredientId, IngredientSupplierId = offerId, PackageCount = 2m } }
+        }, StaffId, new[] { RoleConstants.AccountantWarehouse });
+        Assert.True(created.IsSuccess, created.Message);
+        var scoped = CreateService(context, allowStoreId: OtherStoreId);
+
+        var approve = await scoped.ApproveAsync(
+            created.Data!.PurchaseOrderId,
+            created.Data.RowVersion,
+            ApproverStaffId,
+            new[] { RoleConstants.StoreManager });
+        var cancel = await scoped.CancelAsync(
+            created.Data.PurchaseOrderId,
+            created.Data.RowVersion,
+            ApproverStaffId,
+            new[] { RoleConstants.StoreManager },
+            "Không thuộc cửa hàng quản lý");
+
+        Assert.False(approve.IsSuccess);
+        Assert.Contains("cửa hàng", approve.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(cancel.IsSuccess);
+        Assert.Contains("cửa hàng", cancel.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task StoreManager_CannotApproveOwnNormalPO()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 20m);
+        var service = CreateService(context, allowStoreId: StoreId);
+        var offerId = await context.IngredientSuppliers
+            .Where(x => x.IngredientId == IngredientId && x.SupplierId == SupplierId)
+            .Select(x => x.IngredientSupplierId)
+            .SingleAsync();
+        var created = await service.CreateDraftAsync(new CreatePurchaseOrderRequest
+        {
+            StoreId = StoreId,
+            SupplierId = SupplierId,
+            Lines = { new() { RestockRequestId = request.RestockRequestId, IngredientId = IngredientId, IngredientSupplierId = offerId, PackageCount = 2m } }
+        }, StaffId, new[] { RoleConstants.AccountantWarehouse });
+        Assert.True(created.IsSuccess, created.Message);
+
+        var result = await service.ApproveAsync(
+            created.Data!.PurchaseOrderId,
+            created.Data.RowVersion,
+            StaffId,
+            new[] { RoleConstants.StoreManager });
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("tự duyệt", result.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -632,17 +743,26 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
         Assert.Null(line.ProcurementToInventoryFactor);
     }
 
-    private static PurchaseOrderService CreateService(AppDbContext context)
+    private static PurchaseOrderService CreateService(AppDbContext context, int? allowStoreId = null)
     {
         var physical = new PhysicalUnitConversionService(context, NullLogger<PhysicalUnitConversionService>.Instance);
         var conversion = new UnitConversionService(
             context,
             NullLogger<UnitConversionService>.Instance,
             physical);
+        IScopeAuthorizationService? scope = null;
+        if (allowStoreId.HasValue)
+        {
+            var mock = new Mock<IScopeAuthorizationService>();
+            mock.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>()))
+                .ReturnsAsync((int _, int storeId) => storeId == allowStoreId.Value);
+            scope = mock.Object;
+        }
         return new PurchaseOrderService(
             context,
             conversion,
-            new RestockAllocationService(context, new NoPurchaseOrderAllocationProvider()));
+            new RestockAllocationService(context, new NoPurchaseOrderAllocationProvider()),
+            scope);
     }
 
     private static string FindRepoRoot()
