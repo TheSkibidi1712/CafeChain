@@ -34,6 +34,22 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task SingleValidPA_CanCreateNormalPO()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(db);
+        var request = Request(seed);
+        request.Lines = request.Lines.Take(1).ToList();
+
+        var result = await BatchService(db).CreateAsync(request, Warehouse(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        var purchaseOrder = Assert.Single(result.Data!.ChildPurchaseOrders);
+        Assert.Equal(PurchaseOrderStatuses.Draft, purchaseOrder.Status);
+        Assert.Single(result.Data.Lines.Single().Allocations);
+    }
+
+    [Fact]
     public async Task Batch_Create_SnapshotsTrackedAdvicesBeforeRecomputingStatuses()
     {
         using var db = CreateDbContext();
