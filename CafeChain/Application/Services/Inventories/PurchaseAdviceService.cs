@@ -955,9 +955,7 @@ namespace CafeChain.Application.Services.Inventories
                 or RoleConstants.SystemAdmin);
 
         private static bool CanCreate(AdminActorContext actor) =>
-            HasRole(actor, RoleConstants.StoreManager)
-            || HasRole(actor, RoleConstants.AccountantWarehouse)
-            || HasRole(actor, RoleConstants.BusinessOwner)
+            HasRole(actor, RoleConstants.AccountantWarehouse)
             || HasRole(actor, RoleConstants.SystemAdmin);
         private async Task<bool> CanCreateForStoreAsync(AdminActorContext actor, int storeId)
             => CanCreate(actor)
@@ -968,7 +966,6 @@ namespace CafeChain.Application.Services.Inventories
 
         private async Task<bool> CanReviewStoreAsync(AdminActorContext actor, int storeId)
             => (HasRole(actor, RoleConstants.SystemAdmin)
-                || HasRole(actor, RoleConstants.BusinessOwner)
                 || HasRole(actor, RoleConstants.AccountantWarehouse))
                && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
         private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);

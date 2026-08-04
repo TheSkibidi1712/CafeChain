@@ -670,7 +670,6 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
 
     private static bool CanCreate(AdminActorContext actor) =>
         HasRole(actor, RoleConstants.AccountantWarehouse)
-        || HasRole(actor, RoleConstants.BusinessOwner)
         || HasRole(actor, RoleConstants.SystemAdmin);
     private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
     private static string? Clean(string? value, int max) => string.IsNullOrWhiteSpace(value) ? null : value.Trim()[..Math.Min(value.Trim().Length, max)];
