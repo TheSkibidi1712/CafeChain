@@ -173,7 +173,11 @@
                         </div>
                     }
 
-                    <form asp-controller="AdminPurchaseOrderBatches" asp-action="Create" method="post" class="pa-create-form" data-loading-form>
+                    <form asp-controller="@(createsConsolidatedOrder ? "AdminPurchaseOrderBatches" : "AdminPurchaseOrders")"
+                          asp-action="@(createsConsolidatedOrder ? "Create" : "CreateFromAdvice")"
+                          method="post"
+                          class="pa-create-form"
+                          data-loading-form>
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="SupplierId" value="@preview.SupplierId" />
                         <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />

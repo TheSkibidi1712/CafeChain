@@ -140,6 +140,7 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
         using var context = CreateDbContext();
         await SeedScenarioAsync(context, allocationCount: 1);
         context.PurchaseOrderLineAllocations.RemoveRange(context.PurchaseOrderLineAllocations);
+        (await context.PurchaseOrderLines.SingleAsync()).PurchaseAdviceLineId = null;
         await context.SaveChangesAsync();
 
         var result = await new PurchaseAdviceFulfillmentService(context)
@@ -147,6 +148,29 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.Empty(context.PurchaseAdviceFulfillmentPostings);
+    }
+
+    [Fact]
+    public async Task NormalPurchaseOrderWithDirectAdviceTraceBackPostsWithoutBatchAllocation()
+    {
+        using var context = CreateDbContext();
+        await SeedScenarioAsync(context, allocationCount: 1);
+        context.PurchaseOrderLineAllocations.RemoveRange(context.PurchaseOrderLineAllocations);
+        var orderLine = await context.PurchaseOrderLines.SingleAsync();
+        orderLine.PurchaseAdviceLineId = 1;
+        await context.SaveChangesAsync();
+
+        var service = new PurchaseAdviceFulfillmentService(context);
+        var first = await service.BackPostAcceptedAsync(20, 40, 10m, 99);
+        var replay = await service.BackPostAcceptedAsync(20, 40, 10m, 99);
+
+        Assert.True(first.IsSuccess, first.Message);
+        Assert.True(replay.IsSuccess, replay.Message);
+        var posting = Assert.Single(await context.PurchaseAdviceFulfillmentPostings.ToListAsync());
+        Assert.Null(posting.PurchaseOrderLineAllocationId);
+        Assert.Equal(20, posting.PurchaseOrderLineId);
+        Assert.Equal(1, posting.PurchaseAdviceLineId);
+        Assert.Equal(10m, (await context.PurchaseAdviceLines.SingleAsync()).AcceptedBaseQuantity);
     }
 
     [Fact]
@@ -462,6 +486,7 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
             {
                 PurchaseOrderLineId = lineId,
                 PurchaseOrderId = 10 + index,
+                PurchaseAdviceLineId = 1,
                 IngredientId = IngredientId,
                 IngredientSupplierId = 1,
                 PackageUnitIdSnapshot = UnitId,

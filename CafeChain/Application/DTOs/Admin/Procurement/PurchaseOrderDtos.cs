@@ -15,6 +15,8 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
 
     public sealed class CreatePurchaseOrderLineRequest
     {
+        public int? PurchaseAdviceLineId { get; set; }
+        public string? PurchaseAdviceLineRowVersion { get; set; }
         public int? RestockRequestId { get; set; }
         public int IngredientId { get; set; }
         public int IngredientSupplierId { get; set; }

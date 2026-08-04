@@ -32,10 +32,16 @@ public sealed class PurchaseAdviceFulfillmentPostingConfiguration : IEntityTypeC
         b.HasIndex(x => new { x.PurchaseOrderLineAllocationId, x.PostingType });
         b.HasIndex(x => new { x.BranchReceiptLineId, x.PurchaseOrderLineAllocationId, x.PostingType })
             .IsUnique()
-            .HasFilter("[BranchReceiptLineId] IS NOT NULL AND [PostingType] = 'ACCEPTED'");
+            .HasFilter("[BranchReceiptLineId] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NOT NULL AND [PostingType] = 'ACCEPTED'");
         b.HasIndex(x => new { x.CloseOperationKey, x.PurchaseOrderLineAllocationId, x.PostingType })
             .IsUnique()
-            .HasFilter("[CloseOperationKey] IS NOT NULL AND [PostingType] = 'CLOSED'");
+            .HasFilter("[CloseOperationKey] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NOT NULL AND [PostingType] = 'CLOSED'");
+        b.HasIndex(x => new { x.BranchReceiptLineId, x.PurchaseOrderLineId, x.PostingType })
+            .IsUnique()
+            .HasFilter("[BranchReceiptLineId] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NULL AND [PostingType] = 'ACCEPTED'");
+        b.HasIndex(x => new { x.CloseOperationKey, x.PurchaseOrderLineId, x.PostingType })
+            .IsUnique()
+            .HasFilter("[CloseOperationKey] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NULL AND [PostingType] = 'CLOSED'");
         b.HasIndex(x => new
         {
             x.SourceDocumentType,

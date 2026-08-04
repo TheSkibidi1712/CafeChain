@@ -134,6 +134,66 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequirePermission(PermissionConstants.PurchaseOrderCreate)]
+        public async Task<IActionResult> CreateFromAdvice(CreatePurchaseOrderBatchRequest request)
+        {
+            if (!await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCreate))
+                return Forbid();
+            if (request.Lines.Select(x => x.PurchaseAdviceLineId).Distinct().Count() != 1)
+            {
+                TempData["Error"] = "Đơn đặt hàng thường chỉ nhận một nguồn đề nghị mua.";
+                return RedirectToAction("Index", "AdminPurchaseAdviceConsolidation");
+            }
+
+            var selected = request.Lines.Single();
+            var adviceLine = await _context.PurchaseAdviceLines
+                .AsNoTracking()
+                .Include(x => x.PurchaseAdvice)
+                .SingleOrDefaultAsync(x => x.PurchaseAdviceLineId == selected.PurchaseAdviceLineId);
+            if (adviceLine == null)
+            {
+                TempData["Error"] = "Không tìm thấy dòng đề nghị mua đã chọn.";
+                return RedirectToAction("Index", "AdminPurchaseAdviceConsolidation");
+            }
+
+            var actor = _actor.Get(User);
+            var result = await _service.CreateDraftAsync(new CreatePurchaseOrderRequest
+            {
+                StoreId = adviceLine.PurchaseAdvice.StoreId,
+                SupplierId = request.SupplierId,
+                ExpectedDeliveryAtUtc = request.ExpectedDeliveryTo?.Date
+                    ?? request.ExpectedDeliveryFrom?.Date
+                    ?? adviceLine.NeededByDate,
+                Note = request.Note,
+                Lines =
+                {
+                    new CreatePurchaseOrderLineRequest
+                    {
+                        PurchaseAdviceLineId = adviceLine.PurchaseAdviceLineId,
+                        PurchaseAdviceLineRowVersion = selected.RowVersion,
+                        RestockRequestId = adviceLine.RestockRequestId,
+                        IngredientId = adviceLine.IngredientId,
+                        IngredientSupplierId = selected.IngredientSupplierId,
+                        PurchaseMode = selected.PurchaseMode,
+                        PackageCount = selected.PackageCount,
+                        OrderedProcurementQuantity = selected.OrderedProcurementQuantity,
+                        ProcurementUnitId = adviceLine.ProcurementUnitId
+                    }
+                }
+            }, actor.StaffId, actor.RoleNames);
+
+            if (!result.IsSuccess || result.Data == null)
+            {
+                TempData["Error"] = result.Message ?? "Không thể tạo đơn đặt hàng.";
+                return RedirectToAction("Index", "AdminPurchaseAdviceConsolidation");
+            }
+
+            TempData["SuccessMessage"] = "Đã tạo đơn đặt hàng thường từ đề nghị mua.";
+            return RedirectToAction(nameof(Details), new { id = result.Data.PurchaseOrderId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PurchaseOrderCreate)]
         public async Task<IActionResult> Create(CreatePurchaseOrderRequest model)
         {
             if (!await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCreate)) return Forbid();

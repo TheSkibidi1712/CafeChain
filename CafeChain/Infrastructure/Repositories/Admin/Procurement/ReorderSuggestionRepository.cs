@@ -413,10 +413,11 @@ public sealed class ReorderSuggestionRepository : IReorderSuggestionRepository
         var fulfillmentRows = allocationIds.Length == 0
             ? new List<(int AllocationId, string Type, decimal Quantity)>()
             : (await _context.PurchaseAdviceFulfillmentPostings.AsNoTracking()
-                .Where(x => allocationIds.Contains(x.PurchaseOrderLineAllocationId))
+                .Where(x => x.PurchaseOrderLineAllocationId.HasValue
+                    && allocationIds.Contains(x.PurchaseOrderLineAllocationId.Value))
                 .Select(x => new
                 {
-                    AllocationId = x.PurchaseOrderLineAllocationId,
+                    AllocationId = x.PurchaseOrderLineAllocationId!.Value,
                     x.PostingType,
                     x.Quantity
                 })

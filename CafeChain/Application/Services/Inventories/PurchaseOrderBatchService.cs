@@ -40,6 +40,10 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
         AdminActorContext actor)
     {
         if (!CanCreate(actor)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Kế toán/kho được tạo đơn đặt hàng gộp.");
+        if (request.Lines.Select(x => x.PurchaseAdviceLineId).Distinct().Count() < 2)
+            return Failure<PurchaseOrderBatchDetailDto>(
+                PurchaseOrderBatchErrorCodes.Invalid,
+                "Chỉ có một nguồn nhu cầu. Vui lòng tạo đơn đặt hàng thường.");
         request.RequestKey = Clean(request.RequestKey, 64) ?? Guid.NewGuid().ToString("N");
         var replay = await _context.PurchaseOrderBatches.AsNoTracking().SingleOrDefaultAsync(x => x.RequestKey == request.RequestKey);
         if (replay != null) return await GetDetailAsync(replay.PurchaseOrderBatchId, actor);
