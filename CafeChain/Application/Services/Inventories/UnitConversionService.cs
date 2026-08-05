@@ -263,6 +263,7 @@ namespace CafeChain.Application.Services.Inventories
                     UnitId = unit.UnitId,
                     UnitCode = unit.UnitCode,
                     UnitName = unit.Name,
+                    UnitType = unit.Type,
                     ConversionFactorToBase = converted.Data,
                     IsBaseUnit = unit.UnitId == ingredient.BaseUnitId
                 });

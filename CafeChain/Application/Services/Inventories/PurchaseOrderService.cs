@@ -179,6 +179,7 @@ namespace CafeChain.Application.Services.Inventories
                     decimal? packageCount = null;
                     decimal? unitPricePerPackage = null;
                     decimal? unitPricePerProcurement = null;
+                    decimal? looseDemandProcurement = null;
                     int sourceUnitId;
                     decimal sourceQuantity;
 
@@ -190,10 +191,19 @@ namespace CafeChain.Application.Services.Inventories
                             || procurementUnitId != offer.LooseProcurementUnitId)
                             return Fail("Nhà cung cấp chưa cho phép mua rời theo đúng đơn vị mua hàng của nhu cầu.");
 
-                        orderedProcurement = requested.OrderedProcurementQuantity!.Value;
+                        looseDemandProcurement = requested.OrderedProcurementQuantity!.Value;
+                        if (!LoosePurchaseMath.TryPlan(
+                                looseDemandProcurement.Value,
+                                offer.LooseMinimumOrderQuantity,
+                                offer.LooseQuantityStep,
+                                out var loosePlan))
+                            return Fail("Không thể áp dụng MOQ hoặc bước số lượng mua lẻ của Nhà cung cấp.");
+
+                        orderedProcurement = loosePlan.OrderedQuantity;
                         sourceUnitId = offer.LooseProcurementUnitId.Value;
                         sourceQuantity = orderedProcurement.Value;
                         unitPricePerProcurement = offer.CurrentProcurementUnitPrice;
+                        roundingSurplus = loosePlan.RoundingSurplusQuantity;
                     }
                     else
                     {
@@ -218,6 +228,21 @@ namespace CafeChain.Application.Services.Inventories
                     if (!converted.IsSuccess || converted.Data <= 0)
                         return Fail(converted.Message ?? "Không quy đổi được số lượng đặt về đơn vị tồn kho.");
 
+                    var demandCoveredBaseQuantity = converted.Data;
+                    if (requested.PurchaseMode == PurchaseMode.Loose
+                        && looseDemandProcurement.HasValue
+                        && orderedProcurement != looseDemandProcurement)
+                    {
+                        var demandConversion = await _conversion.ConvertAsync(
+                            offer.IngredientId,
+                            looseDemandProcurement.Value,
+                            sourceUnitId,
+                            offer.Ingredient.BaseUnitId);
+                        if (!demandConversion.IsSuccess || demandConversion.Data <= 0m)
+                            return Fail(demandConversion.Message ?? "Không quy đổi được nhu cầu mua lẻ về đơn vị tồn kho.");
+                        demandCoveredBaseQuantity = demandConversion.Data;
+                    }
+
                     if (requested.PurchaseMode == PurchaseMode.Packaged && procurementUnitId.HasValue)
                     {
                         var procurementConverted = await _conversion.ConvertAsync(
@@ -236,12 +261,11 @@ namespace CafeChain.Application.Services.Inventories
                         && demand?.RequestedProcurementQuantity is decimal requestedProcurement)
                     {
                         var remainingProcurement = Math.Max(0m, requestedProcurement);
-                        if (orderedProcurement > remainingProcurement)
+                        if (looseDemandProcurement > remainingProcurement)
                             return Fail($"Số lượng mua rời vượt {remainingProcurement:N3} đơn vị mua hàng còn lại.");
                     }
 
-                    var demandCoveredBaseQuantity = converted.Data;
-                    decimal? demandCoveredProcurementQuantity = orderedProcurement;
+                    decimal? demandCoveredProcurementQuantity = looseDemandProcurement ?? orderedProcurement;
                     if (adviceLine != null)
                     {
                         var remainingBase = Math.Max(0m,
@@ -260,7 +284,9 @@ namespace CafeChain.Application.Services.Inventories
                                     - adviceLine.ClosedProcurementQuantity);
                             if (!orderedProcurement.HasValue || orderedProcurement.Value <= 0m)
                                 return Fail("Không xác định được số lượng mua theo đơn vị của đề nghị mua.");
-                            demandCoveredProcurementQuantity = Math.Min(remainingProcurement, orderedProcurement.Value);
+                            demandCoveredProcurementQuantity = Math.Min(
+                                remainingProcurement,
+                                looseDemandProcurement ?? orderedProcurement.Value);
                         }
                     }
                     else if (requested.RestockRequestId.HasValue)
@@ -285,9 +311,9 @@ namespace CafeChain.Application.Services.Inventories
                         }
                         else
                         {
-                            if (converted.Data > summary.RemainingUnallocatedQuantity)
+                            if (demandCoveredBaseQuantity > summary.RemainingUnallocatedQuantity)
                                 return Fail("Số lượng mua rời vượt phần nhu cầu chưa phân bổ.");
-                            allocationQuantity = converted.Data;
+                            allocationQuantity = demandCoveredBaseQuantity;
                         }
                         var allocation = await _allocations.ValidateAllocationAsync(new RestockAllocationValidationRequest
                         {

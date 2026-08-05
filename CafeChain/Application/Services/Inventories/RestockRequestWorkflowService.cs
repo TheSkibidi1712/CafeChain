@@ -587,7 +587,7 @@ namespace CafeChain.Application.Services.Inventories
                     || !request.ProcurementUnitId.HasValue))
             {
                 return ServiceResult.Failure(
-                    "Yêu cầu bổ sung mới phải có số lượng và đơn vị mua hàng kg, L hoặc cái.",
+                    "Yêu cầu bổ sung mới phải có số lượng và đơn vị nhu cầu hợp lệ.",
                     errorCode: BranchReceiptErrorCodes.QuantityInvalid);
             }
 

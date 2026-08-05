@@ -267,7 +267,8 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                var id = await _service.CreateIngredientOfferAsync(dto);
+                var actor = _actorContext.Get(User);
+                var id = await _service.CreateIngredientOfferAsync(dto, actor.StaffId);
                 return Json(new { success = true, message = "Thêm gói mua nguyên liệu thành công", data = id });
             }
             catch (Exception ex)
@@ -282,7 +283,8 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                await _service.UpdateIngredientOfferAsync(dto);
+                var actor = _actorContext.Get(User);
+                await _service.UpdateIngredientOfferAsync(dto, actor.StaffId);
                 return Json(new { success = true, message = "Cập nhật gói mua nguyên liệu thành công" });
             }
             catch (Exception ex)
@@ -297,10 +299,12 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
+                var actor = _actorContext.Get(User);
                 await _service.ToggleIngredientOfferActiveAsync(
                     dto.IngredientSupplierId,
                     dto.Active,
-                    dto.RowVersion);
+                    dto.RowVersion,
+                    actor.StaffId);
                 return Json(new { success = true, message = "Đã cập nhật trạng thái gói mua" });
             }
             catch (Exception ex)
@@ -355,6 +359,20 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(new { success = true, data });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetCompatibleUnitOptions(int ingredientId)
+        {
+            try
+            {
+                var data = await _service.GetCompatibleUnitDropdownAsync(ingredientId);
+                return Json(new { success = true, data });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
         // ===================== STORE SCOPE =====================
 
         [HttpGet]
@@ -397,7 +415,8 @@ namespace CafeChain.Areas.Admin.Controllers
                         return SupplierStoreScopeDenied();
                 }
 
-                await _service.SaveSupplierStoreAsync(dto);
+                var actor = _actorContext.Get(User);
+                await _service.SaveSupplierStoreAsync(dto, actor.StaffId);
                 return Json(new { success = true, message = "Đã cập nhật phạm vi cửa hàng" });
             }
             catch (Exception ex)

@@ -22,7 +22,7 @@
         && Model.RequestedProcurementQuantity.Value > 0
         && Model.ProcurementUnitId.HasValue;
     var requestUnitName = usesProcurement
-        ? Model.ProcurementUnitName ?? "đơn vị mua hàng"
+        ? Model.ProcurementUnitName ?? "đơn vị nhu cầu"
         : Model.BaseUnitName;
     var target = usesProcurement
         ? Model.RequestedProcurementQuantity!.Value
