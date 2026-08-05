@@ -28,6 +28,25 @@ namespace CafeChain.Application.Interfaces.POS
             int storeId,
             CancellationToken cancellationToken = default);
 
+        Task<ServiceResult<OpenShiftAssessmentDto>> AssessOpenContextAsync(
+            int staffId,
+            int storeId,
+            string terminalId,
+            CancellationToken cancellationToken = default);
+
+        Task<IReadOnlyList<PosTerminalOptionDto>> GetAvailableTerminalsAsync(
+            int storeId,
+            CancellationToken cancellationToken = default);
+
+        Task<ServiceResult<PosSessionExchangeContextDto>> PrepareOpenExchangeContextAsync(
+            int accountId, int staffId, int storeId, string terminalId, string requestKey,
+            string? reason, Guid? otpChallengePublicId,
+            CancellationToken cancellationToken = default);
+
+        Task<ServiceResult<PosSessionExchangeContextDto>> PrepareResumeExchangeContextAsync(
+            int accountId, int staffId, int storeId,
+            CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Gets the currently open WorkShift for a user at a store.
         /// Returns null if no shift is open.
