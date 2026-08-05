@@ -1,5 +1,4 @@
-IF DB_NAME() IN (N'master',N'model',N'msdb',N'tempdb')
-    THROW 53000,N'SeedAll phải chạy trên database CafeChain đích, không được chạy trên system database.',1;
+use CafeChain
 go
 
 SET ANSI_NULLS ON;
