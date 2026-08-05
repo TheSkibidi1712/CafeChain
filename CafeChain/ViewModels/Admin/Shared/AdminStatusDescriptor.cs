@@ -311,9 +311,16 @@ namespace CafeChain.ViewModels.Admin.Shared
                 "milliliter" or "ml" => "ml",
                 "liter" or "litre" or "l" => "L",
                 "piece" or "pieces" or "pcs" => "cái",
+                "package" or "pack" or "packet" or "bag" or "goi" or "gói" => "gói",
+                "case" or "carton" or "box" or "kien" or "kiện" => "kiện",
                 _ => label
             };
         }
+
+        public static string RestockReference(string? referenceCode, int restockRequestId)
+            => string.IsNullOrWhiteSpace(referenceCode)
+                ? $"Yêu cầu nhập hàng #{restockRequestId}"
+                : referenceCode.Trim();
 
         public static string Currency(decimal value) => $"{value.ToString("N0", VietnameseCulture)} ₫";
 

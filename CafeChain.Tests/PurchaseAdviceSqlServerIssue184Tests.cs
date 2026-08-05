@@ -53,8 +53,8 @@ public sealed class PurchaseAdviceSqlServerIssue184Tests : IAsyncLifetime
         await using var firstContext = CreateContext();
         await using var secondContext = CreateContext();
         var results = await Task.WhenAll(
-            CreateService(firstContext).CreateAsync(CreateRequest(seed, 6m), Manager(seed)),
-            CreateService(secondContext).CreateAsync(CreateRequest(seed, 6m), Manager(seed)));
+            CreateService(firstContext).CreateAsync(CreateRequest(seed, 6m), ProcurementActor(seed)),
+            CreateService(secondContext).CreateAsync(CreateRequest(seed, 6m), ProcurementActor(seed)));
 
         Assert.Single(results.Where(x => x.IsSuccess));
         Assert.Single(results.Where(x => !x.IsSuccess));
@@ -86,12 +86,12 @@ public sealed class PurchaseAdviceSqlServerIssue184Tests : IAsyncLifetime
         var seed = await SeedAsync(10m);
         PurchaseAdviceDetailDto created;
         await using (var context = CreateContext())
-            created = (await CreateService(context).CreateAsync(CreateRequest(seed, 5m), Manager(seed))).Data!;
+            created = (await CreateService(context).CreateAsync(CreateRequest(seed, 5m), ProcurementActor(seed))).Data!;
         await using var firstContext = CreateContext();
         await using var secondContext = CreateContext();
         var results = await Task.WhenAll(
-            CreateService(firstContext).SubmitAsync(created.PurchaseAdviceId, new PurchaseAdviceTransitionRequest { RowVersion = created.RowVersion }, Manager(seed)),
-            CreateService(secondContext).SubmitAsync(created.PurchaseAdviceId, new PurchaseAdviceTransitionRequest { RowVersion = created.RowVersion }, Manager(seed)));
+            CreateService(firstContext).SubmitAsync(created.PurchaseAdviceId, new PurchaseAdviceTransitionRequest { RowVersion = created.RowVersion }, ProcurementActor(seed)),
+            CreateService(secondContext).SubmitAsync(created.PurchaseAdviceId, new PurchaseAdviceTransitionRequest { RowVersion = created.RowVersion }, ProcurementActor(seed)));
 
         Assert.All(results, x => Assert.True(x.IsSuccess, x.Message));
         await using var verify = CreateContext();
@@ -104,13 +104,13 @@ public sealed class PurchaseAdviceSqlServerIssue184Tests : IAsyncLifetime
         var seed = await SeedAsync(10m);
         PurchaseAdviceDetailDto created;
         await using (var createContext = CreateContext())
-            created = (await CreateService(createContext).CreateAsync(CreateRequest(seed, 5m), Manager(seed))).Data!;
+            created = (await CreateService(createContext).CreateAsync(CreateRequest(seed, 5m), ProcurementActor(seed))).Data!;
         await using var firstContext = CreateContext();
         await using var secondContext = CreateContext();
         var firstService = CreateService(firstContext);
         var secondService = CreateService(secondContext);
-        var first = await firstService.UpdateAsync(UpdateRequest(created, 6m), Manager(seed));
-        var stale = await secondService.UpdateAsync(UpdateRequest(created, 7m), Manager(seed));
+        var first = await firstService.UpdateAsync(UpdateRequest(created, 6m), ProcurementActor(seed));
+        var stale = await secondService.UpdateAsync(UpdateRequest(created, 7m), ProcurementActor(seed));
 
         Assert.True(first.IsSuccess, first.Message);
         Assert.False(stale.IsSuccess);
@@ -118,7 +118,7 @@ public sealed class PurchaseAdviceSqlServerIssue184Tests : IAsyncLifetime
     }
 
     private static async Task<bool> CreateAdviceOutcomeAsync(AppDbContext context, Seed seed, decimal quantity) =>
-        (await CreateService(context).CreateAsync(CreateRequest(seed, quantity), Manager(seed))).IsSuccess;
+        (await CreateService(context).CreateAsync(CreateRequest(seed, quantity), ProcurementActor(seed))).IsSuccess;
 
     private static async Task<bool> CreateTransferOutcomeAsync(AppDbContext context, Seed seed, decimal quantity)
     {
@@ -171,6 +171,13 @@ public sealed class PurchaseAdviceSqlServerIssue184Tests : IAsyncLifetime
     };
 
     private static AdminActorContext Manager(Seed seed) => new() { StaffId = seed.ManagerId, StoreId = seed.StoreId, RoleNames = new[] { RoleConstants.StoreManager } };
+
+    private static AdminActorContext ProcurementActor(Seed seed) => new()
+    {
+        StaffId = seed.ManagerId,
+        StoreId = seed.StoreId,
+        RoleNames = new[] { RoleConstants.AccountantWarehouse }
+    };
 
     private static AppDbContext CreateContext() => new(new DbContextOptionsBuilder<AppDbContext>().UseSqlServer(ConnectionString).Options);
 

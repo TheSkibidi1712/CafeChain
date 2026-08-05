@@ -133,6 +133,7 @@ public sealed class PurchaseOrderBatchChildDto
     public decimal? AcceptedProcurementQuantity { get; set; }
     public decimal? RemainingProcurementQuantity { get; set; }
     public string? ProcurementUnitName { get; set; }
+    public string? BaseUnitName { get; set; }
 }
 
 public sealed class PurchaseOrderBatchDetailPageDto

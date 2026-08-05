@@ -34,6 +34,22 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task SingleSource_CannotCreateConsolidatedPO()
+    {
+        using var db = CreateDbContext();
+        var seed = await SeedAsync(db);
+        var request = Request(seed);
+        request.Lines = request.Lines.Take(1).ToList();
+
+        var result = await BatchService(db).CreateAsync(request, Warehouse(seed));
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("một nguồn nhu cầu", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(await db.PurchaseOrderBatches.ToListAsync());
+        Assert.Empty(await db.PurchaseOrders.ToListAsync());
+    }
+
+    [Fact]
     public async Task Batch_Create_SnapshotsTrackedAdvicesBeforeRecomputingStatuses()
     {
         using var db = CreateDbContext();
@@ -222,7 +238,7 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Packaged10Kg_With1KgPackage_Creates10Packages()
+    public async Task Packaged10Kg_SingleSourceUsesNormalPoFlow()
     {
         using var db = CreateDbContext();
         var seed = await SeedAsync(
@@ -252,14 +268,9 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
 
         var result = await BatchService(db).CreateAsync(request, Warehouse(seed));
 
-        Assert.True(result.IsSuccess, result.Message);
-        var batchLine = Assert.Single(result.Data!.Lines);
-        Assert.Equal(10m, batchLine.TotalPackageCount);
-        Assert.Equal(10m, batchLine.TotalProcurementQuantity);
-        Assert.Equal(10m, batchLine.DemandCoveredProcurementQuantity);
-        Assert.Equal(0m, batchLine.RoundingSurplusProcurementQuantity);
-        var child = Assert.Single(result.Data.ChildPurchaseOrders);
-        Assert.Equal(10m, child.OrderedProcurementQuantity);
+        Assert.False(result.IsSuccess);
+        Assert.Contains("đơn đặt hàng thường", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(await db.PurchaseOrderBatches.ToListAsync());
     }
 
     [Fact]

@@ -18,6 +18,10 @@ public sealed class SupplyChainOperationalIcePermissionHardeningTests
     [Fact] public void StoreManager_CanVerifyAlertWithinStoreScope() => AssertGrant("StockAlert.Resolve", StoreManager, true);
     [Fact] public void StoreManager_CanCreateManualRestock() => AssertGrant("Restock.Create", StoreManager, true);
     [Fact] public void StoreManager_CannotCreatePO() => AssertGrant("PurchaseOrder.Create", StoreManager, false);
+    [Fact] public void StoreManager_CannotReceiveRestockForProcessing() => AssertGrant("Restock.Approve", StoreManager, false);
+    [Fact] public void StoreManager_CannotCreatePA() => AssertGrant("PurchaseAdvice.Create", StoreManager, false);
+    [Fact] public void StoreManager_CannotApprovePO() => AssertGrant("PurchaseOrder.Approve", StoreManager, false);
+    [Fact] public void StoreManager_CannotCancelPO() => AssertGrant("PurchaseOrder.Cancel", StoreManager, false);
 
     [Fact]
     public void RegionManager_CanViewOnlyRegionScope()
@@ -27,6 +31,8 @@ public sealed class SupplyChainOperationalIcePermissionHardeningTests
     }
 
     [Fact] public void WarehouseAccountant_CanCreateCentralPlannerRestock() => AssertGrant("Restock.Create", WarehouseAccountant, true);
+    [Fact] public void WarehouseAccountant_CanReceiveRestock() => AssertGrant("Restock.Approve", WarehouseAccountant, true);
+    [Fact] public void WarehouseAccountant_CanCreatePA() => AssertGrant("PurchaseAdvice.Create", WarehouseAccountant, true);
     [Fact] public void WarehouseAccountant_CanSelectSupplySource() => AssertGrant("PurchaseAdvice.SelectSupplier", WarehouseAccountant, true);
     [Fact] public void WarehouseAccountant_CanCreatePO() => AssertGrant("PurchaseOrder.Create", WarehouseAccountant, true);
 
@@ -43,6 +49,17 @@ public sealed class SupplyChainOperationalIcePermissionHardeningTests
     }
 
     [Fact] public void Owner_CanApprovePO() => AssertGrant("PurchaseOrder.Approve", Owner, true);
+    [Fact] public void Owner_CanRejectPO() => AssertGrant("PurchaseOrder.Cancel", Owner, true);
+    [Fact] public void Owner_CannotCreatePAByDefault() => AssertGrant("PurchaseAdvice.Create", Owner, false);
+    [Fact] public void Owner_CannotCreatePOByDefault() => AssertGrant("PurchaseOrder.Create", Owner, false);
+
+    [Fact]
+    public void PurchaseAdvice_DoesNotShowSendToAccountantForAccountant()
+    {
+        var view = Read("CafeChain", "Areas", "Admin", "Views", "AdminPurchaseAdvices", "Details.cshtml");
+        Assert.DoesNotContain("Gửi Kế toán", view, StringComparison.Ordinal);
+        Assert.Contains("Chuyển sang xem xét", view, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void OutOfScopeStore_IsRejectedByBackend()
@@ -114,7 +131,7 @@ public sealed class SupplyChainOperationalIcePermissionHardeningTests
         var migration = Read(
             "CafeChain",
             "Migrations",
-            "20260802183312_InitialCreate.cs");
+            "20260803054639_InitialCreate.cs");
         var migrationRows = Regex.Matches(
             seed,
             @"(N'(?<code>[^']+)',(?<owner>[01]),(?<area>[01]),(?<store>[01]),(?<sales>[01]),(?<accountant>[01]),[01],[01],(?<lead>[01]))");

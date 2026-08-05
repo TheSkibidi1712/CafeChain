@@ -510,6 +510,7 @@ namespace CafeChain.Application.Services.Inventories
                 .Include(r => r.Lines).ThenInclude(l => l.InputUnit)
                 .Include(r => r.Lines).ThenInclude(l => l.BaseUnit)
                 .Include(r => r.Lines).ThenInclude(l => l.ProcurementUnit)
+                .Include(r => r.Lines).ThenInclude(l => l.RestockRequest)
                 .FirstOrDefaultAsync(r => r.BranchReceiptId == branchReceiptId);
 
             if (receipt == null)
@@ -1178,6 +1179,7 @@ namespace CafeChain.Application.Services.Inventories
                 .Include(x => x.Lines).ThenInclude(x => x.Ingredient)
                 .Include(x => x.Lines).ThenInclude(x => x.PackageUnitSnapshot)
                 .Include(x => x.Lines).ThenInclude(x => x.ProcurementUnit)
+                .Include(x => x.Lines).ThenInclude(x => x.InventoryBaseUnit)
                 .Include(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
                 .SingleAsync(x => x.PurchaseOrderId == receipt.PurchaseOrderId);
             var savedByPoLine = receipt.Lines
@@ -1209,8 +1211,10 @@ namespace CafeChain.Application.Services.Inventories
                             PurchaseMode = x.PurchaseMode,
                             PurchaseOrderLineId = x.PurchaseOrderLineId,
                             RestockRequestId = x.RestockRequestId,
+                            RestockReferenceCode = x.RestockRequest != null ? x.RestockRequest.ReferenceCode : null,
                             IngredientId = x.IngredientId,
                             IngredientName = x.Ingredient.Name,
+                            BaseUnitName = x.InventoryBaseUnit?.Name ?? string.Empty,
                             PackageUnitName = x.PackageUnitSnapshot?.Name ?? string.Empty,
                             PackageQuantitySnapshot = x.PackageQuantitySnapshot,
                             PackagePriceSnapshot = x.PackagePriceSnapshot,
@@ -2053,6 +2057,7 @@ namespace CafeChain.Application.Services.Inventories
                 .Include(r => r.Supplier)
                 .Include(r => r.Lines).ThenInclude(l => l.InputUnit)
                 .Include(r => r.Lines).ThenInclude(l => l.BaseUnit)
+                .Include(r => r.Lines).ThenInclude(l => l.RestockRequest)
                 .FirstAsync(r => r.BranchReceiptId == id);
             return MapDetail(receipt);
         }
@@ -2086,6 +2091,7 @@ namespace CafeChain.Application.Services.Inventories
                     BranchReceiptLineId = l.BranchReceiptLineId,
                     PurchaseOrderLineId = l.PurchaseOrderLineId,
                     RestockRequestId = l.RestockRequestId,
+                    RestockReferenceCode = l.RestockRequest?.ReferenceCode,
                     IngredientId = l.IngredientId,
                     PreparedItemId = l.PreparedItemId,
                     RecipeId = l.RecipeId,

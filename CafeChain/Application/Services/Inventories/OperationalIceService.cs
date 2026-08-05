@@ -739,10 +739,10 @@ public sealed class OperationalIceService : IOperationalIceService
         if (!authorization.IsSuccess)
             return authorization;
         if (shift.Status != OperationalIceStatuses.Open)
-            return InvalidState("Chỉ ca vận hành đang mở mới nhận thêm WorkShift POS.");
+            return InvalidState("Chỉ ca đá đang mở mới có thể liên kết thêm ca bán hàng POS.");
         var requestedIds = request.WorkShiftIds.Where(x => x > 0).Distinct().ToArray();
         if (requestedIds.Length == 0)
-            return Invalid("Vui lòng chọn ít nhất một WorkShift POS để liên kết.");
+            return Invalid("Vui lòng chọn ít nhất một ca bán hàng POS để liên kết.");
         var validation = await ValidateWorkShiftsAsync(shift, requestedIds, cancellationToken);
         if (!validation.IsSuccess)
             return validation;
@@ -754,7 +754,7 @@ public sealed class OperationalIceService : IOperationalIceService
             .ToListAsync(cancellationToken);
         var missingIds = requestedIds.Except(existingIds).ToArray();
         if (missingIds.Length == 0)
-            return ServiceResult.Success("Các WorkShift POS đã được liên kết trước đó.");
+            return ServiceResult.Success("Các ca bán hàng POS đã được liên kết trước đó.");
 
         var now = DateTime.UtcNow;
         _context.OperationalShiftWorkShifts.AddRange(missingIds.Select(workShiftId => new OperationalShiftWorkShift
@@ -782,7 +782,7 @@ public sealed class OperationalIceService : IOperationalIceService
         {
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return ServiceResult.Success($"Đã liên kết {missingIds.Length} WorkShift POS với ca vận hành.");
+            return ServiceResult.Success($"Đã liên kết {missingIds.Length} ca bán hàng POS với ca đá.");
         }
         catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
         {
@@ -794,9 +794,9 @@ public sealed class OperationalIceService : IOperationalIceService
                 .ToListAsync(cancellationToken);
             return links.Count == requestedIds.Length
                    && links.All(x => x.OperationalShiftId == shift.OperationalShiftId)
-                ? ServiceResult.Success("Các WorkShift POS đã được liên kết trước đó.")
+                ? ServiceResult.Success("Các ca bán hàng POS đã được liên kết trước đó.")
                 : ServiceResult.Failure(
-                    "Có WorkShift POS vừa được liên kết với ca vận hành khác. Vui lòng tải lại.",
+                    "Có ca bán hàng POS vừa được liên kết với ca đá khác. Vui lòng tải lại.",
                      errorCode: OperationalIceErrorCodes.WorkShiftAlreadyLinked);
         }
         catch (DbUpdateConcurrencyException)
@@ -810,7 +810,7 @@ public sealed class OperationalIceService : IOperationalIceService
         {
             await transaction.RollbackAsync(cancellationToken);
             return ServiceResult.Failure(
-                "Không thể lưu liên kết WorkShift POS. Vui lòng tải lại và thử lại.",
+                "Không thể lưu liên kết ca bán hàng POS. Vui lòng tải lại và thử lại.",
                 errorCode: OperationalIceErrorCodes.InvalidState);
         }
     }
@@ -1621,7 +1621,7 @@ public sealed class OperationalIceService : IOperationalIceService
     {
         var distinctIds = workShiftIds.Where(id => id > 0).Distinct().ToArray();
         if (distinctIds.Length != workShiftIds.Count)
-            return Invalid("Danh sách WorkShift POS không hợp lệ hoặc bị trùng.");
+            return Invalid("Danh sách ca bán hàng POS không hợp lệ hoặc bị trùng.");
         if (distinctIds.Length == 0)
             return ServiceResult.Success();
 
@@ -1640,12 +1640,12 @@ public sealed class OperationalIceService : IOperationalIceService
             .Select(x => new { x.ShiftId, x.StoreId, x.StartTimeUtc, x.EndTimeUtc, x.Status })
             .ToListAsync(cancellationToken);
         if (workShifts.Count != distinctIds.Length || workShifts.Any(x => x.StoreId != operationalShift.StoreId))
-            return Invalid("WorkShift POS không thuộc cửa hàng của ca vận hành.");
+            return Invalid("Ca bán hàng POS không thuộc cửa hàng của ca đá này.");
         if (workShifts.Any(x => x.Status != WorkShiftStatuses.Open
                                 && x.Status != WorkShiftStatuses.Closed
                                 && x.Status != "Open"
                                 && x.Status != "Closed"))
-            return Invalid("WorkShift POS không ở trạng thái hợp lệ để liên kết.");
+            return Invalid("Ca bán hàng POS không ở trạng thái cho phép liên kết.");
         var businessWindowStartUtc = businessWindowStart.ToUniversalTime();
         var businessWindowEndUtc = businessWindowEnd.ToUniversalTime();
         var operationalStartUtc = operationalStartLocal.ToUniversalTime();
@@ -1655,16 +1655,16 @@ public sealed class OperationalIceService : IOperationalIceService
                                 || x.StartTimeUtc >= businessWindowEndUtc))
         {
             return Invalid(
-                "WorkShift POS không thuộc ngày kinh doanh của ca vận hành.");
+                "Ca bán hàng POS không thuộc ngày vận hành của ca đá này.");
         }
         if (workShifts.Any(x => x.StartTimeUtc >= operationalEndUtc
                                 || (x.EndTimeUtc ?? openWorkShiftEndUtc) <= operationalStartUtc))
-            return Invalid("WorkShift POS không giao thời gian với ca vận hành.");
+            return Invalid("Thời gian ca bán hàng POS không giao với thời gian ca đá.");
         var links = await _context.OperationalShiftWorkShifts.AsNoTracking()
             .Where(x => distinctIds.Contains(x.WorkShiftId))
             .ToListAsync(cancellationToken);
         return links.Any(x => x.OperationalShiftId != operationalShift.OperationalShiftId)
-            ? ServiceResult.Failure("Có WorkShift POS đã liên kết với ca vận hành khác.", errorCode: OperationalIceErrorCodes.WorkShiftAlreadyLinked)
+            ? ServiceResult.Failure("Có ca bán hàng POS đã được liên kết với một ca đá khác.", errorCode: OperationalIceErrorCodes.WorkShiftAlreadyLinked)
             : ServiceResult.Success();
     }
 

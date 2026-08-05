@@ -15,7 +15,10 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
 
     public sealed class CreatePurchaseOrderLineRequest
     {
+        public int? PurchaseAdviceLineId { get; set; }
+        public string? PurchaseAdviceLineRowVersion { get; set; }
         public int? RestockRequestId { get; set; }
+        public string? RestockReferenceCode { get; set; }
         public int IngredientId { get; set; }
         public int IngredientSupplierId { get; set; }
         public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
@@ -49,6 +52,7 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
         public int PurchaseOrderLineId { get; set; }
         public int? RestockRequestId { get; set; }
+        public string? RestockReferenceCode { get; set; }
         public int IngredientId { get; set; }
         public string IngredientName { get; set; } = string.Empty;
         public string BaseUnitName { get; set; } = string.Empty;

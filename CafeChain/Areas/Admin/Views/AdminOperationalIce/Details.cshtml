@@ -5,14 +5,6 @@
     ViewData["Title"] = $"Ca đá {Model.ShiftName}";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 
-    var statusLabels = new Dictionary<string, string>(StringComparer.Ordinal)
-    {
-        [OperationalIceStatuses.Open] = "Đang vận hành",
-        [OperationalIceStatuses.PendingApproval] = "Chờ duyệt chênh lệch",
-        [OperationalIceStatuses.ReconciliationRequired] = "Cần đối soát",
-        [OperationalIceStatuses.Closed] = "Đã đóng",
-        [OperationalIceStatuses.Cancelled] = "Đã hủy"
-    };
     var statusClasses = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         [OperationalIceStatuses.Open] = "ice-badge-success",
@@ -21,16 +13,9 @@
         [OperationalIceStatuses.Closed] = "ice-badge-closed",
         [OperationalIceStatuses.Cancelled] = "ice-badge-neutral"
     };
-    string StatusLabel(string value) => statusLabels.TryGetValue(value, out var label) ? label : value;
+    string StatusLabel(string value) => OperationalIceDisplayText.Status(value);
     string StatusClass(string value) => statusClasses.TryGetValue(value, out var css) ? css : "ice-badge-neutral";
-    string SupplementLabel(string value) => value switch
-    {
-        IceSupplementalIssueStatuses.Pending => "Chờ duyệt",
-        IceSupplementalIssueStatuses.Approved => "Đã duyệt",
-        IceSupplementalIssueStatuses.Rejected => "Từ chối",
-        IceSupplementalIssueStatuses.Cancelled => "Đã hủy",
-        _ => value
-    };
+    string SupplementLabel(string value) => OperationalIceDisplayText.SupplementStatus(value);
     string SupplementClass(string value) => value switch
     {
         IceSupplementalIssueStatuses.Approved => "ice-badge-success",
@@ -110,11 +95,11 @@
             <small>Đầu ca @DisplayQuantity(Model.InitialIssuedQuantity) · Bổ sung @DisplayQuantity(Model.SupplementalIssuedQuantity)</small>
         </article>
         <article>
-            <span>Lý thuyết POS</span>
+            <span>Tiêu hao lý thuyết POS</span>
             <strong>@DisplayQuantity(Model.TheoreticalUsageQuantity)</strong>
         </article>
         <article>
-            <span>Thực tế</span>
+            <span>Tiêu hao thực tế</span>
             <strong>@DisplayNullableQuantity(Model.ActualUsageQuantity)</strong>
         </article>
         <article class="@(Model.VarianceQuantity is > 0 ? "ice-summary-danger" : Model.VarianceQuantity is < 0 ? "ice-summary-warning" : "")">
@@ -128,7 +113,7 @@
                 <div class="ice-section-heading">
                     <div>
                         <span class="ice-section-kicker">Liên kết bán hàng</span>
-                        <h2>WorkShift POS</h2>
+                        <h2>Ca bán hàng POS</h2>
                     </div>
                     <p>
                         @(Model.WorkShifts.Count == 0 ? "Chưa liên kết" : $"Đã liên kết {Model.WorkShifts.Count} ca")
@@ -138,13 +123,13 @@
 
                 @if (Model.WorkShifts.Count == 0)
                 {
-                    <div class="ice-empty ice-empty-compact cc-warehouse-empty" role="status"><p>Chưa liên kết WorkShift POS.</p></div>
+                    <div class="ice-empty ice-empty-compact cc-warehouse-empty" role="status"><p>Chưa liên kết ca bán hàng POS.</p></div>
                 }
                 else
                 {
                     <div class="ice-table-scroll">
                         <table class="ice-table">
-                            <thead><tr><th>WorkShift</th><th>Nhân viên</th><th>Bắt đầu</th><th>Kết thúc</th><th>Trạng thái</th></tr></thead>
+                            <thead><tr><th>Ca bán hàng POS</th><th>Nhân viên</th><th>Bắt đầu</th><th>Kết thúc</th><th>Trạng thái</th></tr></thead>
                             <tbody>
                             @foreach (var shift in Model.WorkShifts)
                             {
@@ -153,7 +138,7 @@
                                     <td>@shift.StaffName</td>
                                     <td>@shift.StartTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                                     <td>@(shift.EndTime?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Đang mở")</td>
-                                    <td><span class="ice-badge ice-badge-neutral">@shift.Status</span></td>
+                                    <td><span class="ice-badge ice-badge-neutral">@OperationalIceDisplayText.WorkShiftStatus(shift.Status)</span></td>
                                 </tr>
                             }
                             </tbody>
@@ -168,7 +153,7 @@
                         <input type="hidden" name="OperationalShiftId" value="@Model.OperationalShiftId" />
                         <input type="hidden" name="allocationId" value="@Model.IceAllocationId" />
                         <fieldset class="ice-workshift-options">
-                            <legend>Đã tìm thấy @Model.AvailableWorkShifts.Count WorkShift POS phù hợp</legend>
+                            <legend>Đã tìm thấy @Model.AvailableWorkShifts.Count ca bán hàng POS phù hợp</legend>
                             @foreach (var option in Model.AvailableWorkShifts)
                             {
                                 <label>
@@ -290,7 +275,7 @@
                                     <td class="ice-number">@DisplayQuantity(carry.Quantity)</td>
                                     <td>@carry.HandedOverBy</td>
                                     <td>@(carry.ReceivedBy ?? "Chưa xác nhận")</td>
-                                    <td><span class="ice-badge @(carry.Status == IceCarryOverStatuses.Confirmed ? "ice-badge-success" : "ice-badge-warning")">@(carry.Status == IceCarryOverStatuses.Confirmed ? "Đã xác nhận" : "Chờ xác nhận")</span></td>
+                                    <td><span class="ice-badge @(carry.Status == IceCarryOverStatuses.Confirmed ? "ice-badge-success" : "ice-badge-warning")">@OperationalIceDisplayText.CarryOverStatus(carry.Status)</span></td>
                                 </tr>
                             }
                             </tbody>
@@ -336,7 +321,7 @@
                         <span class="ice-section-kicker">Kiểm toán</span>
                         <h2>Bút toán điều chỉnh tồn kho</h2>
                     </div>
-                    <p>Mỗi chênh lệch dương chỉ có một bút toán giảm kho idempotent.</p>
+                    <p>Mỗi chênh lệch dương chỉ tạo một bút toán giảm kho.</p>
                 </div>
                 @if (Model.Postings.Count == 0)
                 {
@@ -346,7 +331,7 @@
                 {
                     <div class="ice-table-scroll">
                         <table class="ice-table">
-                            <thead><tr><th>Thời điểm</th><th>Loại</th><th class="ice-number">Số lượng</th><th>Chi phí</th><th>Người duyệt</th><th>Tham chiếu</th></tr></thead>
+                            <thead><tr><th>Thời điểm</th><th>Loại</th><th class="ice-number">Số lượng</th><th>Chi phí</th><th>Người duyệt</th><th>Mã chống trùng lặp</th></tr></thead>
                             <tbody>
                             @foreach (var posting in Model.Postings)
                             {
@@ -372,7 +357,7 @@
                 <section class="ice-action-panel">
                     <span class="ice-section-kicker">Bước tiếp theo</span>
                     <h2>Chốt ca</h2>
-                    <p>Hệ thống tự tính lý thuyết từ ledger POS. Đá đã đưa ra sử dụng không được trả lại kho.</p>
+                    <p>Hệ thống tự tính tiêu hao lý thuyết từ giao dịch bán hàng POS. Đá đã đưa ra sử dụng không được trả lại kho.</p>
                     <form asp-action="CloseAllocation" method="post" class="ice-stacked-form" id="closeIceForm">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="IceAllocationId" value="@Model.IceAllocationId" />
@@ -401,7 +386,7 @@
                         </div>
                         <div class="ice-field">
                             <label for="closeReason">Lý do chênh lệch (nếu có)</label>
-                            <textarea id="closeReason" name="CloseReason" maxlength="500" rows="3" placeholder="Giải trình khi thực tế khác lý thuyết POS"></textarea>
+                            <textarea id="closeReason" name="CloseReason" maxlength="500" rows="3" placeholder="Giải trình khi tiêu hao thực tế khác tiêu hao lý thuyết POS"></textarea>
                         </div>
                         <button class="ice-btn ice-btn-primary ice-btn-block" type="submit">
                             <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Gửi chốt ca
@@ -413,7 +398,7 @@
             {
                 <section class="ice-action-panel ice-action-warning">
                     <span class="ice-section-kicker">Chờ phê duyệt</span>
-                    <h2>Duyệt hao hụt</h2>
+                    <h2>Duyệt chênh lệch</h2>
                     <p>Chênh lệch dương sẽ tạo đúng một bút toán giảm kho bổ sung.</p>
                     <form asp-action="ApproveVariance" method="post" class="ice-stacked-form">
                         @Html.AntiForgeryToken()
@@ -459,12 +444,12 @@
             <section class="ice-facts">
                 <h2>Thông tin kiểm toán</h2>
                 <dl>
-                    <div><dt>Mã phân bổ</dt><dd>#@Model.IceAllocationId</dd></div>
+                    <div><dt>Mã cấp đá</dt><dd>#@Model.IceAllocationId</dd></div>
                     <div><dt>Tồn chuyển đầu ca</dt><dd>@DisplayQuantity(Model.OpeningCarryQuantity)</dd></div>
                     <div><dt>Tồn chuyển cuối ca</dt><dd>@DisplayQuantity(Model.ClosingCarryQuantity)</dd></div>
                     <div><dt>Đá trả hợp lệ</dt><dd>@DisplayQuantity(Model.ReturnedQuantity)</dd></div>
-                    <div><dt>Giá vốn snapshot</dt><dd>@DisplayMoney(Model.UnitCostSnapshot)</dd></div>
-                    <div><dt>Tình trạng giá vốn</dt><dd>@(Model.CostSnapshotStatus == IceCostSnapshotStatuses.Available ? "Đã có" : "Thiếu dữ liệu")</dd></div>
+                    <div><dt>Giá vốn tại thời điểm chốt</dt><dd>@DisplayMoney(Model.UnitCostSnapshot)</dd></div>
+                    <div><dt>Tình trạng giá vốn</dt><dd>@OperationalIceDisplayText.CostStatus(Model.CostSnapshotStatus)</dd></div>
                 </dl>
                 @if (!string.IsNullOrWhiteSpace(Model.CloseReason))
                 {

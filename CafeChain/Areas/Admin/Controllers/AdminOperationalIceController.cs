@@ -152,9 +152,11 @@ public sealed class AdminOperationalIceController : AdminBaseController
             }
             else
             {
-                TempData["ErrorMessage"] = string.IsNullOrWhiteSpace(reviews.Message)
-                    ? "Không thể kiểm tra thay đổi lịch làm việc. Vui lòng tải lại."
-                    : reviews.Message;
+                TempData["ErrorMessage"] = OperationalIceDisplayText.ErrorMessage(
+                    reviews.ErrorCode,
+                    string.IsNullOrWhiteSpace(reviews.Message)
+                        ? "Không thể kiểm tra thay đổi lịch làm việc. Vui lòng tải lại."
+                        : reviews.Message);
             }
         }
         SetStoreScopeViewData(scope);
@@ -276,16 +278,18 @@ public sealed class AdminOperationalIceController : AdminBaseController
             }
             else
             {
-                TempData["ErrorMessage"] = string.IsNullOrWhiteSpace(suggestionResult.Message)
-                    ? "Không thể tải danh sách ca POS phù hợp. Vui lòng tải lại."
-                    : suggestionResult.Message;
+                TempData["ErrorMessage"] = OperationalIceDisplayText.ErrorMessage(
+                    suggestionResult.ErrorCode,
+                    string.IsNullOrWhiteSpace(suggestionResult.Message)
+                        ? "Không thể tải danh sách ca bán hàng POS phù hợp. Vui lòng tải lại."
+                        : suggestionResult.Message);
             }
         }
         var availableWorkShifts = availableWorkShiftRows
             .Select(x => new OperationalIceOptionVM
             {
                 Id = x.WorkShiftId,
-                Label = $"POS #{x.WorkShiftId} · {x.StaffName} · {x.StartTime:dd/MM/yyyy HH:mm}"
+                Label = $"Ca bán hàng POS #{x.WorkShiftId} · {x.StaffName} · {x.StartTime:dd/MM/yyyy HH:mm}"
                         + (x.EndTime.HasValue ? $"–{x.EndTime:HH:mm}" : "–Đang mở")
             })
             .ToList();
@@ -413,7 +417,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
         var result = await _reportService.BuildAsync(id, cancellationToken);
         if (!result.IsSuccess || result.Data == null)
         {
-            TempData["ErrorMessage"] = result.Message;
+            TempData["ErrorMessage"] = OperationalIceDisplayText.ErrorMessage(result.ErrorCode, result.Message);
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -432,7 +436,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
         var result = await _reportService.BuildAsync(id, cancellationToken);
         if (!result.IsSuccess || result.Data == null)
         {
-            TempData["ErrorMessage"] = result.Message;
+            TempData["ErrorMessage"] = OperationalIceDisplayText.ErrorMessage(result.ErrorCode, result.Message);
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -798,7 +802,9 @@ public sealed class AdminOperationalIceController : AdminBaseController
 
     private IActionResult RedirectWithResult(ServiceResult result, string action, object? routeValues = null)
     {
-        TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
+        TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.IsSuccess
+            ? result.Message
+            : OperationalIceDisplayText.ErrorMessage(result.ErrorCode, result.Message);
         return RedirectToAction(action, routeValues);
     }
 

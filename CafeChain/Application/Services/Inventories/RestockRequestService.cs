@@ -5,6 +5,7 @@ using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Unit;
+using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Operations;
 using Microsoft.Data.SqlClient;
@@ -560,6 +561,72 @@ namespace CafeChain.Application.Services.Inventories
                 if (request.NeedByDate.HasValue)
                     demand.NeedByDate = DateTime.SpecifyKind(request.NeedByDate.Value.Date, DateTimeKind.Utc);
                 demand.UpdatedAt = DateTime.UtcNow;
+
+                // A demand increase keeps the established PURCHASE decision. Mutable PA lines
+                // are revised in-place; locked history receives a separate pending allocation.
+                if (string.Equals(
+                        demand.SourcingDecision,
+                        RestockSourcingDecisionTypes.Purchase,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    var activeAdviceLine = await _context.PurchaseAdviceLines
+                        .Include(x => x.PurchaseAdvice)
+                        .Where(x => x.RestockRequestId == demand.RestockRequestId
+                            && x.IsActiveReservation)
+                        .OrderBy(x => x.PurchaseAdviceLineId)
+                        .FirstOrDefaultAsync();
+                    var isLocked = activeAdviceLine != null
+                        && await _context.PurchaseOrderLineAllocations
+                            .AnyAsync(x => x.PurchaseAdviceLineId == activeAdviceLine.PurchaseAdviceLineId);
+                    var isMutable = activeAdviceLine != null
+                        && !isLocked
+                        && activeAdviceLine.PurchaseAdvice.Status is PurchaseAdviceStatuses.Draft
+                            or PurchaseAdviceStatuses.Submitted
+                            or PurchaseAdviceStatuses.UnderReview;
+
+                    if (isMutable)
+                    {
+                        activeAdviceLine!.RequestedPurchaseBaseQuantity +=
+                            request.AdjustmentProcurementQuantity * basePerProcurementUnit;
+                        activeAdviceLine.RequestedProcurementQuantity =
+                            activeAdviceLine.RequestedProcurementQuantity.GetValueOrDefault()
+                            + request.AdjustmentProcurementQuantity;
+                        activeAdviceLine.PurchaseAdvice.UpdatedAtUtc = DateTime.UtcNow;
+
+                        if (activeAdviceLine.PurchaseAdvice.Status == PurchaseAdviceStatuses.UnderReview)
+                        {
+                            var previousStatus = activeAdviceLine.PurchaseAdvice.Status;
+                            activeAdviceLine.PurchaseAdvice.Status = PurchaseAdviceStatuses.Submitted;
+                            activeAdviceLine.PurchaseAdvice.Transitions.Add(new PurchaseAdviceTransition
+                            {
+                                PreviousStatus = previousStatus,
+                                NewStatus = PurchaseAdviceStatuses.Submitted,
+                                ActorStaffId = actorStaffId,
+                                OccurredAtUtc = DateTime.UtcNow,
+                                Reason = "Nhu cầu mua tăng; đề nghị mua cần được xem xét lại."
+                            });
+                        }
+                    }
+
+                    demand.SourcingAllocations.Add(new RestockSourcingAllocation
+                    {
+                        DecisionType = RestockSourcingDecisionTypes.Purchase,
+                        ProcurementQuantity = request.AdjustmentProcurementQuantity,
+                        ProcurementUnitId = request.ProcurementUnitId,
+                        Status = isMutable
+                            ? RestockSourcingAllocationStatuses.Active
+                            : RestockSourcingAllocationStatuses.PendingPurchaseAdvice,
+                        SourceDocumentType = RestockRequestAuditKeys.DemandAdjustmentPrefix.TrimEnd(':'),
+                        SourceDocumentId = activeAdviceLine?.PurchaseAdviceId,
+                        SourceDocumentLineId = activeAdviceLine?.PurchaseAdviceLineId,
+                        PurchaseAdviceLineId = isMutable
+                            ? activeAdviceLine!.PurchaseAdviceLineId
+                            : null,
+                        Reason = reason,
+                        CreatedByStaffId = actorStaffId,
+                        CreatedAtUtc = DateTime.UtcNow
+                    });
+                }
 
                 var allocated = ActiveAllocatedProcurementQuantity(demand);
                 demand.SourcingStatus = allocated <= 0
