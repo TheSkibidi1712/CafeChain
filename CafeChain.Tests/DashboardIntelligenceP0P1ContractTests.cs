@@ -150,8 +150,11 @@ public sealed class DashboardIntelligenceP0P1ContractTests
     [Fact]
     public void AiFrontend_ContainsRealChartsFallbackUnitsAbortAndFingerprintGuard()
     {
+        var root = FindRepoRoot();
         var script = File.ReadAllText(Path.Combine(
-            FindRepoRoot(), "CafeChain", "wwwroot", "js", "Admin", "Dashboard", "dashboard-intelligence.js"));
+            root, "CafeChain", "wwwroot", "js", "Admin", "Dashboard", "dashboard-intelligence.js"));
+        var styles = File.ReadAllText(Path.Combine(
+            root, "CafeChain", "wwwroot", "css", "Admin", "Dashboard", "dashboard.css"));
 
         Assert.Contains("\"HorizontalBar\"", script, StringComparison.Ordinal);
         Assert.Contains("\"Donut\"", script, StringComparison.Ordinal);
@@ -171,6 +174,15 @@ public sealed class DashboardIntelligenceP0P1ContractTests
         Assert.Contains("ellipsis: \"…\"", script, StringComparison.Ordinal);
         Assert.Contains("axisValueLabel", script, StringComparison.Ordinal);
         Assert.Contains("instance.resize()", script, StringComparison.Ordinal);
+        Assert.Contains("entityName: \"Đối tượng\"", script, StringComparison.Ordinal);
+        Assert.Contains("severity: \"Mức độ\"", script, StringComparison.Ordinal);
+        Assert.Contains("unit: \"Đơn vị\"", script, StringComparison.Ordinal);
+        Assert.Contains("displayUnitLabel", script, StringComparison.Ordinal);
+        Assert.Contains("td.dataset.label", script, StringComparison.Ordinal);
+        Assert.Contains("dashboard-intelligence__severity", script, StringComparison.Ordinal);
+        Assert.Contains("content: attr(data-label)", styles, StringComparison.Ordinal);
+        Assert.Contains(".dashboard-intelligence__severity.is-critical", styles, StringComparison.Ordinal);
+        Assert.Contains(".dashboard-intelligence__table tbody tr", styles, StringComparison.Ordinal);
         Assert.DoesNotContain("question.length < 0", script, StringComparison.Ordinal);
     }
 
@@ -227,6 +239,15 @@ public sealed class DashboardIntelligenceP0P1ContractTests
         Assert.Contains("usp_Product_LowVolumeProducts", script, StringComparison.Ordinal);
         Assert.Contains("usp_Product_LowMarginProducts", script, StringComparison.Ordinal);
         Assert.Contains("HAVING SUM(CASE WHEN od.CostStatus <> 1 OR od.TotalCogs IS NULL THEN 1 ELSE 0 END) = 0", script, StringComparison.Ordinal);
+        Assert.Contains("CONCAT(N'Tồn dưới ngưỡng: '", script, StringComparison.Ordinal);
+        Assert.Contains("CONCAT(N'Chênh lệch WorkShift #'", script, StringComparison.Ordinal);
+        Assert.Contains("CONCAT(N'PO quá hạn: '", script, StringComparison.Ordinal);
+        Assert.Contains("N'Sự cố nhà cung cấp: '", script, StringComparison.Ordinal);
+        Assert.Contains("COALESCE(od.SizeName,N'Không size')", script, StringComparison.Ordinal);
+        Assert.Contains("COALESCE(u.UnitCode,N'')", script, StringComparison.Ordinal);
+        Assert.Contains("u.UnitId=brl.BaseUnitId", script, StringComparison.Ordinal);
+        Assert.Contains("WHEN 'PACKAGING_FAILURE' THEN N'sự cố bao bì'", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("issue.AffectedBaseQuantity,'INGREDIENT'", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -289,6 +310,10 @@ public sealed class DashboardIntelligenceP0P1ContractTests
         var anomaly = Assert.Single(anomalies);
         Assert.Equal("LOW_STOCK", anomaly.Code);
         Assert.NotEmpty(anomaly.EvidenceIds);
+        var evidence = BuildEvidence(DashboardAnalyticsWidget.OperationalAlerts, rows)
+            .Single(item => item.EntityName == "Sữa tươi");
+        Assert.Equal("Tồn khả dụng của Sữa tươi tại Dĩ An đã xuống dưới ngưỡng, hiện ở mức -2 lít.", evidence.Statement);
+        Assert.Equal("lít", evidence.DisplayUnit);
     }
 
     [Fact]
