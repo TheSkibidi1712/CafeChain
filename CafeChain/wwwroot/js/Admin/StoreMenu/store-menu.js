@@ -30,7 +30,6 @@
         active: document.getElementById('activeSkuCount'),
         unavailable: document.getElementById('unavailableSkuCount'),
         overrides: document.getElementById('overrideSkuCount'),
-        backdrop: document.getElementById('storeMenuDrawerBackdrop'),
         drawer: document.getElementById('storeMenuDrawer'),
         drawerEyebrow: document.getElementById('storeMenuDrawerEyebrow'),
         drawerTitle: document.getElementById('storeMenuDrawerTitle'),
@@ -216,19 +215,14 @@
         els.actionError.hidden = true;
         els.submit.textContent = meta[2];
         els.submit.disabled = false;
-        els.backdrop.hidden = false;
-        els.drawer.classList.add('is-open');
-        els.drawer.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        window.setTimeout(() => (action === 'CHANGE_DISPLAY_ORDER' ? els.displayOrder : action === 'SET_PRICE_OVERRIDE' ? els.overridePrice : els.reason).focus(), 50);
+        bootstrap.Offcanvas.getOrCreateInstance(els.drawer).show();
+        els.drawer.addEventListener('shown.bs.offcanvas', () =>
+            (action === 'CHANGE_DISPLAY_ORDER' ? els.displayOrder : action === 'SET_PRICE_OVERRIDE' ? els.overridePrice : els.reason).focus(),
+            { once: true });
     }
 
     function closeDrawer() {
-        els.drawer.classList.remove('is-open');
-        els.drawer.setAttribute('aria-hidden', 'true');
-        els.backdrop.hidden = true;
-        document.body.style.overflow = '';
-        selected = null;
+        bootstrap.Offcanvas.getOrCreateInstance(els.drawer).hide();
     }
 
     async function submitAction(event) {
@@ -301,9 +295,7 @@
         if (row) openDrawer(row, trigger.dataset.action);
     });
     els.form?.addEventListener('submit', submitAction);
-    els.backdrop?.addEventListener('click', closeDrawer);
-    document.querySelectorAll('[data-close-drawer]').forEach(x => x.addEventListener('click', closeDrawer));
-    document.addEventListener('keydown', event => { if (event.key === 'Escape' && selected) closeDrawer(); });
+    els.drawer?.addEventListener('hidden.bs.offcanvas', () => { selected = null; });
 
     loadRows();
 })();

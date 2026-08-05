@@ -1,4 +1,5 @@
 :root {
+    --pf-accent: #8B6B55;
     --pf-orange: #6F4E37;
     --pf-orange-dark: #5C3F2B;
     --pf-orange-soft: #F2EAE3;
@@ -365,30 +366,12 @@ textarea.pf-control {
     }
 }
 
-.pf-drawer-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 1040;
-    background: rgba(18, 25, 38, .32);
-}
-
 .pf-drawer {
-    position: fixed;
-    top: 0;
-    right: 0;
-    z-index: 1050;
     width: min(480px, 100vw);
-    height: 100dvh;
     display: grid;
     grid-template-rows: auto 1fr auto;
     background: #fff;
     box-shadow: -12px 0 30px rgba(23, 32, 51, .18);
-    transform: translateX(102%);
-    transition: transform .22s ease;
-}
-
-.pf-drawer.is-open {
-    transform: translateX(0);
 }
 
 .pf-drawer-header,
@@ -578,7 +561,6 @@ textarea.pf-control {
 
 /* Elevated CafeChain profitability workspace */
 .pf-page {
-    --pf-accent: #8B6B55;
     width: calc(100% - 24px);
     max-width: 1540px;
     min-height: calc(100dvh - 84px);

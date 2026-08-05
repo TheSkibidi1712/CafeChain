@@ -3,7 +3,9 @@
     ViewData["Title"] = "Menu cửa hàng";
 }
 
-<link rel="stylesheet" href="~/css/Admin/StoreMenu/store-menu.css" asp-append-version="true" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/StoreMenu/store-menu.css" asp-append-version="true" />
+}
 
 <main class="sm-page" id="storeMenuApp"
       data-can-publish="@Model.CanPublish.ToString().ToLowerInvariant()"
@@ -124,11 +126,10 @@
         </div>
     </section>
 
-    <div class="sm-drawer-backdrop" id="storeMenuDrawerBackdrop" hidden></div>
-    <aside class="sm-drawer" id="storeMenuDrawer" aria-hidden="true" aria-labelledby="storeMenuDrawerTitle">
+    <aside class="offcanvas offcanvas-end sm-drawer" id="storeMenuDrawer" tabindex="-1" aria-labelledby="storeMenuDrawerTitle">
         <header class="sm-drawer-header">
             <div><span id="storeMenuDrawerEyebrow">Menu cửa hàng</span><h2 id="storeMenuDrawerTitle">Cập nhật SKU</h2></div>
-            <button type="button" class="sm-icon-button" data-close-drawer title="Đóng"><i class="fas fa-xmark"></i></button>
+            <button type="button" class="sm-icon-button" data-bs-dismiss="offcanvas" title="Đóng"><i class="fas fa-xmark"></i></button>
         </header>
         <div class="sm-drawer-body">
             <section class="sm-drawer-summary" id="storeMenuDrawerSummary"></section>
@@ -146,7 +147,7 @@
             </form>
         </div>
         <footer class="sm-drawer-footer">
-            <button type="button" class="sm-secondary-button" data-close-drawer>Hủy</button>
+            <button type="button" class="sm-secondary-button" data-bs-dismiss="offcanvas">Hủy</button>
             <button type="submit" form="storeMenuActionForm" id="storeMenuSubmitAction" class="sm-primary-button">Xác nhận</button>
         </footer>
     </aside>

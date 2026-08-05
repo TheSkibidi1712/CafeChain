@@ -158,7 +158,7 @@
             }
         </section>
 
-        <aside class="supplier-detail" id="supplierDetail" role="dialog" aria-modal="true" aria-label="Chi tiết nhà cung cấp" aria-hidden="true">
+        <aside class="offcanvas offcanvas-end supplier-detail" id="supplierDetail" tabindex="-1" aria-label="Chi tiết nhà cung cấp">
             <div class="supplier-detail-placeholder" id="supplierDetailPlaceholder">
                 <i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i>
                 <strong>Chọn một nhà cung cấp</strong>
@@ -173,7 +173,7 @@
                         <p id="detailSummary"></p>
                         <span class="supplier-status" id="detailStatus"></span>
                     </div>
-                    <button type="button" class="supplier-icon-button" id="closeSupplierDetail" title="Đóng chi tiết" aria-label="Đóng chi tiết">
+                    <button type="button" class="supplier-icon-button" id="closeSupplierDetail" data-bs-dismiss="offcanvas" title="Đóng chi tiết" aria-label="Đóng chi tiết">
                         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                     </button>
                 </header>
@@ -314,8 +314,9 @@
 
 @if (canMutate)
 {
-    <div class="supplier-modal" id="createSupplierModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="createSupplierTitle" aria-describedby="createSupplierDescription">
-        <div class="supplier-modal-panel cc-modal">
+    <div class="modal fade supplier-modal" id="createSupplierModal" tabindex="-1" aria-hidden="true" aria-labelledby="createSupplierTitle" aria-describedby="createSupplierDescription">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content supplier-modal-panel cc-modal">
             <header>
                 <div class="supplier-modal-title">
                     <span class="supplier-modal-icon" aria-hidden="true"><i class="fa-solid fa-building-circle-check"></i></span>
@@ -325,7 +326,7 @@
                         <p id="createSupplierDescription">Khởi tạo hồ sơ doanh nghiệp và đầu mối liên hệ chính.</p>
                     </div>
                 </div>
-                <button type="button" class="supplier-icon-button" data-close-modal aria-label="Đóng"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                <button type="button" class="supplier-icon-button" data-bs-dismiss="modal" aria-label="Đóng"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </header>
             <form class="supplier-form" id="createSupplierForm">
                 <div class="supplier-modal-body">
@@ -376,31 +377,12 @@
                 <footer class="supplier-modal-footer">
                     <span><em>*</em> Trường bắt buộc</span>
                     <div class="supplier-modal-actions">
-                        <button type="button" class="supplier-btn supplier-btn-quiet" data-close-modal>Hủy</button>
+                        <button type="button" class="supplier-btn supplier-btn-quiet" data-bs-dismiss="modal">Hủy</button>
                         <button class="supplier-btn supplier-btn-primary" type="submit"><i class="fa-solid fa-plus" aria-hidden="true"></i>Tạo nhà cung cấp</button>
                     </div>
                 </footer>
             </form>
         </div>
-    </div>
-
-    <div class="supplier-modal supplier-confirm-modal" id="supplierConfirmModal" aria-hidden="true" role="alertdialog" aria-modal="true" aria-labelledby="supplierConfirmTitle" aria-describedby="supplierConfirmMessage">
-        <div class="supplier-confirm-panel cc-modal">
-            <header>
-                <span class="supplier-confirm-icon" aria-hidden="true"><i class="fa-solid fa-trash-can"></i></span>
-                <div>
-                    <p class="supplier-eyebrow">Xác nhận thao tác</p>
-                    <h2 id="supplierConfirmTitle">Xóa dữ liệu?</h2>
-                </div>
-            </header>
-            <div class="supplier-confirm-body">
-                <p id="supplierConfirmMessage"></p>
-                <span>Thao tác này không thể hoàn tác.</span>
-            </div>
-            <footer>
-                <button type="button" class="supplier-btn supplier-btn-quiet" id="cancelSupplierConfirm">Giữ lại</button>
-                <button type="button" class="supplier-btn supplier-btn-danger" id="acceptSupplierConfirm">Xác nhận xóa</button>
-            </footer>
         </div>
     </div>
 }

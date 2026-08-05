@@ -713,7 +713,7 @@ body {
     transform: translateY(-2px);
 }
 
-.admin-page-body :is(.modal-content, .perm-modal) {
+:is(.admin-page-body, #cc-modal-host) :is(.modal-content, .perm-modal) {
     overflow: hidden;
     border: 1px solid var(--admin-brown-200);
     border-radius: 18px;
@@ -1091,7 +1091,7 @@ body {
 }
 
 /* Add/edit entity modal: same hierarchy and depth as the module cards. */
-.admin-page-body .rb-entity-modal {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal {
     overflow: hidden;
     border: 1px solid rgba(111, 78, 55, .22);
     border-radius: 20px;
@@ -1099,7 +1099,7 @@ body {
     box-shadow: 0 28px 70px rgba(34, 24, 18, .28), 0 7px 20px rgba(71, 50, 35, .12);
 }
 
-.admin-page-body .rb-entity-modal .modal-header {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-header {
     position: relative;
     min-height: 84px;
     padding: 18px 22px;
@@ -1109,7 +1109,7 @@ body {
         linear-gradient(135deg, #fff 0%, #f9f1ea 100%);
 }
 
-.admin-page-body .rb-entity-modal .modal-header::before {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-header::before {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -1119,14 +1119,14 @@ body {
     background: linear-gradient(180deg, var(--admin-brown-600), #b7825d);
 }
 
-.admin-page-body .rb-modal-heading {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-heading {
     display: flex;
     min-width: 0;
     align-items: center;
     gap: 13px;
 }
 
-.admin-page-body .rb-modal-heading-icon {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-heading-icon {
     display: inline-flex;
     width: 44px;
     height: 44px;
@@ -1139,7 +1139,7 @@ body {
     box-shadow: 0 9px 18px rgba(111, 78, 55, .22), inset 0 1px rgba(255, 255, 255, .22);
 }
 
-.admin-page-body .rb-entity-modal .modal-title {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-title {
     margin: 0 0 3px;
     color: var(--admin-ink);
     font-size: 20px;
@@ -1147,13 +1147,13 @@ body {
     line-height: 1.2;
 }
 
-.admin-page-body .rb-modal-subtitle {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-subtitle {
     color: var(--admin-muted);
     font-size: 12px;
     line-height: 17px;
 }
 
-.admin-page-body .rb-entity-modal .btn-close {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .btn-close {
     width: 38px;
     height: 38px;
     padding: 0;
@@ -1162,14 +1162,14 @@ body {
     box-shadow: 0 3px 9px rgba(71, 50, 35, .08);
 }
 
-.admin-page-body .rb-entity-modal .modal-body {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-body {
     display: grid;
     gap: 14px;
     padding: 20px 22px;
     background: #fcfaf8;
 }
 
-.admin-page-body .rb-modal-section {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section {
     padding: 16px;
     border: 1px solid var(--admin-brown-100);
     border-radius: 14px;
@@ -1177,7 +1177,7 @@ body {
     box-shadow: var(--admin-shadow-xs);
 }
 
-.admin-page-body .rb-modal-section-heading {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -1187,7 +1187,7 @@ body {
     color: var(--admin-brown-700);
 }
 
-.admin-page-body .rb-modal-section-heading > i {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading > i {
     display: inline-flex;
     width: 34px;
     height: 34px;
@@ -1198,47 +1198,47 @@ body {
     background: var(--admin-brown-50);
 }
 
-.admin-page-body .rb-modal-section-heading strong,
-.admin-page-body .rb-modal-section-heading span {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading strong,
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading span {
     display: block;
 }
 
-.admin-page-body .rb-modal-section-heading strong {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading strong {
     font-size: 13px;
     line-height: 18px;
 }
 
-.admin-page-body .rb-modal-section-heading span {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading span {
     color: var(--admin-muted);
     font-size: 11.5px;
     line-height: 16px;
 }
 
-.admin-page-body .rb-entity-modal :is(.form-control, .form-select) {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal :is(.form-control, .form-select) {
     min-height: 44px;
     border-color: var(--admin-brown-200);
     border-radius: 10px;
     background-color: #fffdfb;
 }
 
-.admin-page-body .rb-entity-modal textarea.form-control {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal textarea.form-control {
     min-height: 92px;
 }
 
-.admin-page-body .rb-entity-modal .form-label {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .form-label {
     margin-bottom: 7px;
     color: var(--admin-ink);
     font-size: 13px;
 }
 
-.admin-page-body .rb-entity-modal .form-text {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .form-text {
     margin-top: 6px;
     color: var(--admin-muted);
     font-size: 11.5px;
     line-height: 16px;
 }
 
-.admin-page-body .rb-entity-modal .rb-brown-switch {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .rb-brown-switch {
     display: inline-flex;
     min-height: 40px;
     align-items: center;
@@ -1250,7 +1250,7 @@ body {
     background: var(--admin-brown-50);
 }
 
-.admin-page-body .rb-entity-modal .modal-footer {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-footer {
     min-height: 76px;
     gap: 10px;
     padding: 15px 22px;
@@ -1258,7 +1258,7 @@ body {
     background: linear-gradient(180deg, #fff, #faf4ee);
 }
 
-.admin-page-body .rb-entity-modal .modal-footer .btn {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-footer .btn {
     display: inline-flex;
     min-width: 118px;
     height: 44px;

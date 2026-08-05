@@ -11,13 +11,10 @@
         $("#btnCreate").on("click", openCreateModal);
         $("#btnFilter").on("click", applyFilter);
         $("#btnReset").on("click", () => { window.location.href = "/Admin/AdminIngredient"; });
-        $("#btnClose, #btnClose2").on("click", closeModal);
         $("#btnSave").on("click", saveIngredient);
         $(document).on("click", ".edit-btn", function () { openEditModal($(this).data("id")); });
         $(document).on("click", ".toggle-btn", function () { toggleStatus($(this).data("id"), this); });
-        $("#ingredientModal").on("click", event => {
-            if ($(event.target).is("#ingredientModal")) closeModal();
-        });
+        document.getElementById("ingredientModal")?.addEventListener("hidden.bs.modal", clearForm);
     });
 
     function preloadUnits() {
@@ -33,8 +30,10 @@
         if (selectedId) select.value = String(selectedId);
     }
 
-    function showModal() { $("#ingredientModal").addClass("show"); }
-    function closeModal() { $("#ingredientModal").removeClass("show"); }
+    function openIngredientModal() {
+        const element = document.getElementById("ingredientModal");
+        if (element) bootstrap.Modal.getOrCreateInstance(element).show();
+    }
     function clearForm() {
         $("#ingredientId").val("");
         $("#code").val("");
@@ -46,7 +45,7 @@
         isEdit = false;
         clearForm();
         $("#modalTitle").text("Thêm nguyên liệu");
-        showModal();
+        openIngredientModal();
     }
 
     async function openEditModal(id) {
@@ -61,7 +60,7 @@
         $("#name").val(item.name);
         renderUnits(item.baseUnitId);
         $("#modalTitle").text("Cập nhật nguyên liệu");
-        showModal();
+        openIngredientModal();
     }
 
     function payload() {

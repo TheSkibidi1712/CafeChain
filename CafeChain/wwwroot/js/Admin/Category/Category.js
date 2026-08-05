@@ -238,7 +238,7 @@ function validateCategoryName(name) {
 
         toast(
             "Tên danh mục không được để trống.",
-            "error"
+            "warning"
         );
 
         return false;
@@ -250,7 +250,7 @@ function validateCategoryName(name) {
 
         toast(
             "Tên danh mục phải từ 2 ký tự trở lên.",
-            "error"
+            "warning"
         );
 
         return false;
@@ -260,7 +260,7 @@ function validateCategoryName(name) {
 
         toast(
             "Tên danh mục tối đa 100 ký tự.",
-            "error"
+            "warning"
         );
 
         return false;
@@ -275,7 +275,7 @@ function validateCategoryCode(code) {
 
         toast(
             "Mã danh mục không được để trống.",
-            "error"
+            "warning"
         );
 
         return false;
@@ -287,7 +287,7 @@ function validateCategoryCode(code) {
 
         toast(
             "Mã danh mục phải từ 2 ký tự trở lên.",
-            "error"
+            "warning"
         );
 
         return false;
@@ -297,7 +297,7 @@ function validateCategoryCode(code) {
 
         toast(
             "Mã danh mục tối đa 30 ký tự.",
-            "error"
+            "warning"
         );
 
         return false;
@@ -321,10 +321,12 @@ async function createCategory(form) {
     const icon = form.querySelector('[name="Icon"]')?.value;
 
     if (!validateCategoryCode(code)) {
+        form.querySelector('[name="CategoryCode"]')?.focus();
         return;
     }
 
     if (!validateCategoryName(name)) {
+        form.querySelector('[name="Name"]')?.focus();
         return;
     }
 
@@ -357,11 +359,11 @@ async function createCategory(form) {
 
         if (!response.ok || !result.success) {
 
-            toast(
-                result.message ||
-                "Có lỗi xảy ra",
-                "error"
-            );
+            toast(window.AdminFeedback.resolveMessage(result, {
+                status: response.status,
+                action: "create",
+                entityName: "danh mục"
+            }), "error");
 
             unlockButton(
                 btn,
@@ -392,10 +394,7 @@ async function createCategory(form) {
     }
     catch {
 
-        toast(
-            "Có lỗi xảy ra",
-            "error"
-        );
+        toast(window.AdminFeedback.networkMessage(), "error");
 
         unlockButton(
             btn,

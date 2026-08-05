@@ -1188,7 +1188,12 @@ html {
 .ops-line-editor,
 .inventory-table-wrap,
 .transaction-state,
-.modal-content,
+.cc-warehouse-page .modal-content,
+.procurement-page .modal-content,
+.pa-page .modal-content,
+.po-page .modal-content,
+.reorder-page .modal-content,
+.branch-receipt-page .modal-content,
 .reorder-filters,
 .reorder-table-shell,
 .uc-card,
@@ -1440,24 +1445,35 @@ html {
     color: var(--cc-danger);
 }
 
-.modal {
-    background: rgba(31, 41, 55, .46);
-}
-
-.modal-content {
+.cc-warehouse-page .modal-content,
+.procurement-page .modal-content,
+.pa-page .modal-content,
+.po-page .modal-content,
+.reorder-page .modal-content,
+.branch-receipt-page .modal-content {
     width: min(1180px, calc(100vw - 32px));
     max-height: calc(100dvh - 48px);
     overflow: auto;
     box-shadow: var(--cc-shadow);
 }
 
-.modal-close {
+.cc-warehouse-page .modal-close,
+.procurement-page .modal-close,
+.pa-page .modal-close,
+.po-page .modal-close,
+.reorder-page .modal-close,
+.branch-receipt-page .modal-close {
     border-radius: var(--cc-radius-sm);
     background: var(--cc-surface-muted);
     color: var(--cc-text-secondary);
 }
 
-.modal-close:hover {
+.cc-warehouse-page .modal-close:hover,
+.procurement-page .modal-close:hover,
+.pa-page .modal-close:hover,
+.po-page .modal-close:hover,
+.reorder-page .modal-close:hover,
+.branch-receipt-page .modal-close:hover {
     background: var(--cc-danger-bg);
     color: var(--cc-danger);
 }
@@ -1672,7 +1688,12 @@ html {
     }
 
     .cc-modal,
-    .modal-content {
+    .cc-warehouse-page .modal-content,
+    .procurement-page .modal-content,
+    .pa-page .modal-content,
+    .po-page .modal-content,
+    .reorder-page .modal-content,
+    .branch-receipt-page .modal-content {
         width: min(100%, calc(100vw - 24px));
         max-height: calc(100dvh - 24px);
     }

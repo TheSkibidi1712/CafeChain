@@ -118,7 +118,7 @@ const InventoryCreate = (() => {
             spinner();
 
         const modal =
-            new bootstrap.Modal(
+            bootstrap.Modal.getOrCreateInstance(
                 document.querySelector(
                     selector.modal));
 

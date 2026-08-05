@@ -111,10 +111,14 @@ public sealed class SupplyChainOperationalIcePermissionHardeningTests
     public void SupplyChainRoleSeed_MatchesManagedSeedMatrix()
     {
         var seed = Read("CafeChain", "Scripts", "SeedAll.sql");
-        var migration = Read(
+        var migrationDirectory = Path.Combine(
+            FindRepoRoot(),
             "CafeChain",
-            "Migrations",
-            "20260802183312_InitialCreate.cs");
+            "Migrations");
+        var initialMigrationPath = Directory
+            .GetFiles(migrationDirectory, "*_InitialCreate.cs", SearchOption.TopDirectoryOnly)
+            .Single(path => !path.EndsWith(".Designer.cs", StringComparison.OrdinalIgnoreCase));
+        var migration = File.ReadAllText(initialMigrationPath);
         var migrationRows = Regex.Matches(
             seed,
             @"(N'(?<code>[^']+)',(?<owner>[01]),(?<area>[01]),(?<store>[01]),(?<sales>[01]),(?<accountant>[01]),[01],[01],(?<lead>[01]))");

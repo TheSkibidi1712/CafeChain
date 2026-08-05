@@ -195,9 +195,9 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Code=N'App.AdminDashboard' AND r.Name=N'Quản trị hệ thống';", 1L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Permissions p WHERE p.Active=1 AND p.Code NOT LIKE N'POS.WorkShift.%' AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions rp JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE rp.PermissionId=p.PermissionId AND r.Name=N'Quản trị hệ thống');", 0L);
+            "SELECT COUNT_BIG(1) FROM dbo.Permissions p JOIN dbo.PermissionGroups g ON g.PermissionGroupId=p.PermissionGroupId WHERE p.Active=1 AND g.Code<>N'POS_WORKSHIFT' AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions rp JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE rp.PermissionId=p.PermissionId AND r.Name=N'Quản trị hệ thống');", 0L);
         await AssertScalarAsync(connection,
-            "SELECT COUNT_BIG(1) FROM dbo.Permissions p WHERE p.Active=1 AND p.Code LIKE N'POS.WorkShift.%' AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions rp JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE rp.PermissionId=p.PermissionId AND r.Name=N'Quản trị hệ thống');", 8L);
+            "SELECT COUNT_BIG(1) FROM dbo.Permissions p JOIN dbo.PermissionGroups g ON g.PermissionGroupId=p.PermissionGroupId WHERE p.Active=1 AND g.Code=N'POS_WORKSHIFT' AND NOT EXISTS(SELECT 1 FROM dbo.RolePermissions rp JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE rp.PermissionId=p.PermissionId AND r.Name=N'Quản trị hệ thống');", 9L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Active=1 AND r.Name=N'Quản trị hệ thống';", 169L);
         await AssertScalarAsync(connection,

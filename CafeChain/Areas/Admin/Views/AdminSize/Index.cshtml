@@ -16,7 +16,9 @@
     }
 }
 
-<link rel="stylesheet" href="~/css/Admin/Size/size.css" asp-append-version="true" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Size/size.css" asp-append-version="true" />
+}
 
 <div class="container-fluid p-4 size-admin-page">
     @Html.AntiForgeryToken()
@@ -177,7 +179,7 @@
 </div>
 
 <!-- ================= CREATE MODAL ================= -->
-<div class="modal fade" id="createModal">
+<div class="modal fade size-module-modal" id="createModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered size-modal-dialog">
         <div class="modal-content p-3 size-modal">
 
@@ -304,7 +306,7 @@
     </div>
 </div>
 <!-- ================= EDIT MODAL ================= -->
-<div class="modal fade" id="editModal">
+<div class="modal fade size-module-modal" id="editModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered size-modal-dialog">
         <div class="modal-content p-3 size-modal">
 
@@ -402,7 +404,7 @@
 </div>
 
 <!-- ================= DRINK MODAL ================= -->
-<div class="modal fade" id="drinkModal">
+<div class="modal fade size-module-modal" id="drinkModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content p-3">
 
@@ -439,7 +441,7 @@
 </div>
 
 
-<div class="modal fade" id="priceModal">
+<div class="modal fade size-module-modal" id="priceModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content p-3">
 

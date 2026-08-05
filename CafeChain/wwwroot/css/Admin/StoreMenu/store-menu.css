@@ -1,4 +1,5 @@
 :root {
+    --sm-accent: #8B6B55;
     --sm-ink: #1F2937;
     --sm-muted: #475569;
     --sm-line: #E7DED5;
@@ -463,30 +464,12 @@ textarea.sm-control {
     cursor: not-allowed;
 }
 
-.sm-drawer-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 1030;
-    background: rgba(20, 27, 40, .28);
-}
-
 .sm-drawer {
-    position: fixed;
-    top: 0;
-    right: 0;
-    z-index: 1040;
     width: min(440px, 100vw);
-    height: 100dvh;
     display: grid;
     grid-template-rows: auto 1fr auto;
     background: #fff;
     box-shadow: -18px 0 40px rgba(31, 41, 55, .14);
-    transform: translateX(102%);
-    transition: transform .22s ease;
-}
-
-.sm-drawer.is-open {
-    transform: translateX(0);
 }
 
 .sm-drawer-header,
@@ -608,7 +591,6 @@ textarea.sm-control {
 
 /* Elevated CafeChain store-menu workspace */
 .sm-page {
-    --sm-accent: #8B6B55;
     width: calc(100% - 24px);
     max-width: 1540px;
     min-height: calc(100dvh - 84px);

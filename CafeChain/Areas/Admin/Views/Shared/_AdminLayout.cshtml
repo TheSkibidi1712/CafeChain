@@ -400,9 +400,9 @@
             padding-top: 8px;
         }
     </style>
-    @await RenderSectionAsync("Styles", required: false)
     <link rel="stylesheet" href="~/css/Admin/Procurement/procurement-design-system.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/admin-unified-depth.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 
 <body>
@@ -739,6 +739,11 @@
 
     <!-- Toast Container -->
     <div id="toast-container"></div>
+
+    <!-- Modal phải là con trực tiếp của body để không bị stacking context của main-content chặn. -->
+    <div id="cc-modal-host">
+        @await RenderSectionAsync("Modals", required: false)
+    </div>
 
     <!-- Bootstrap & Plugins -->
     <script src="~/js/Toast/toast.js" asp-append-version="true"></script>

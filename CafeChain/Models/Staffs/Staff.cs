@@ -24,6 +24,11 @@ namespace CafeChain.Models.Staffs
         public string? AvatarPublicId { get; set; }
         public bool Active { get; set; }
 
+        /// <summary>BCrypt hash của PIN cá nhân dùng riêng cho chuyển người thao tác POS.</summary>
+        public string? PosPinHash { get; set; }
+        public int PosPinFailedAttempts { get; set; }
+        public DateTime? PosPinLockedUntilUtc { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public virtual Store Store { get; set; }

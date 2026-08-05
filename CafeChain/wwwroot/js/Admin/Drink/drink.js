@@ -7,6 +7,7 @@ $(document).ready(function () {
     let editedImageFile = null;
     let isCreateSubmitting = false;
     let isEditSubmitting = false;
+    let restoreImageManagerAfterEdit = false;
 
     $.ajaxPrefilter(function (options, originalOptions, xhr) {
         if ((options.type || 'GET').toUpperCase() !== 'GET') {
@@ -130,6 +131,58 @@ $(document).ready(function () {
             return;
         }
 
+        const submitDoneHtml = '<i class="fas fa-save me-1"></i> Tạo Nước Uống';
+        const $validationSummary = $('#drinkCreateValidationSummary');
+        let validationFeedbackPending = false;
+
+        function restoreCreateSubmit() {
+            isCreateSubmitting = false;
+            window.AdminMutationGuard?.unlockForm($form[0]);
+            $form.removeAttr('data-submit-busy data-submit-pending aria-busy');
+            $form.find('button[type="submit"]')
+                .prop('disabled', false)
+                .removeAttr('aria-busy')
+                .removeClass('is-submitting')
+                .html(submitDoneHtml);
+        }
+
+        function showValidationFeedback(validator) {
+            restoreCreateSubmit();
+            const invalidElements = (validator?.errorList || [])
+                .map(item => item.element)
+                .filter(Boolean);
+            invalidElements.forEach(element => {
+                element.classList.add('is-invalid');
+                element.setAttribute('aria-invalid', 'true');
+            });
+
+            const firstInvalid = invalidElements[0]
+                || $form[0].querySelector('.input-validation-error, [aria-invalid="true"], :invalid');
+            $validationSummary.removeClass('d-none');
+            firstInvalid?.focus({ preventScroll: false });
+
+            if (!validationFeedbackPending) {
+                validationFeedbackPending = true;
+                notify('Vui lòng kiểm tra và nhập đầy đủ các trường bắt buộc.', 'warning');
+                window.setTimeout(() => { validationFeedbackPending = false; }, 250);
+            }
+        }
+
+        $form.on('invalid-form.validate', function (_event, validator) {
+            showValidationFeedback(validator);
+        });
+
+        $form[0].addEventListener('invalid', function () {
+            window.setTimeout(() => showValidationFeedback($form.data('validator')), 0);
+        }, true);
+
+        $form.on('input change', 'input, select, textarea', function () {
+            if (this.checkValidity()) {
+                this.classList.remove('is-invalid', 'input-validation-error');
+                this.removeAttribute('aria-invalid');
+            }
+        });
+
         $('#imageFilesInput').on('change', async function (e) {
             await handleCreateFiles(e.target.files);
             this.value = '';
@@ -183,9 +236,13 @@ $(document).ready(function () {
                 return;
             }
 
-            if ($form.data('validator') && !$form.valid()) {
+            const validator = $form.data('validator');
+            if ((validator && !$form.valid()) || (!validator && !$form[0].checkValidity())) {
+                showValidationFeedback(validator);
                 return;
             }
+
+            $validationSummary.addClass('d-none');
 
             const imageInput = document.getElementById('imageFilesInput');
 
@@ -203,7 +260,7 @@ $(document).ready(function () {
 
             submitAjaxForm($form, {
                 loadingHtml: '<i class="fas fa-spinner fa-spin me-1"></i> Đang tạo...',
-                doneHtml: '<i class="fas fa-save me-1"></i> Tạo Nước Uống',
+                doneHtml: submitDoneHtml,
                 onComplete: function () {
                     isCreateSubmitting = false;
                 }
@@ -368,13 +425,21 @@ $(document).ready(function () {
                 options.onComplete();
                 notify(res.message || 'Dữ liệu không hợp lệ', 'error');
             },
-            error: function () {
+            error: function (xhr) {
                 $submitBtn
                     .prop('disabled', false)
                     .html(options.doneHtml);
 
                 options.onComplete();
-                notify('Có lỗi xảy ra', 'error');
+                const feedback = window.AdminFeedback;
+                const message = xhr.status === 0
+                    ? (feedback?.networkMessage?.() || 'Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại.')
+                    : (feedback?.resolveMessage?.(xhr.responseJSON, {
+                        status: xhr.status,
+                        action: $form.attr('id') === 'drinkCreateForm' ? 'create' : 'update',
+                        entityName: 'nước uống'
+                    }) || xhr.responseJSON?.message || 'Không thể lưu nước uống. Vui lòng thử lại.');
+                notify(message, 'error');
             }
         });
     }
@@ -407,6 +472,14 @@ $(document).ready(function () {
     }
 
     function initImageManager() {
+        const imageManagerElement = document.getElementById('imageModal');
+        const editImageElement = document.getElementById('editImageModal');
+        editImageElement?.addEventListener('hidden.bs.modal', function () {
+            if (!restoreImageManagerAfterEdit || !imageManagerElement) return;
+            restoreImageManagerAfterEdit = false;
+            bootstrap.Modal.getOrCreateInstance(imageManagerElement).show();
+        });
+
         $(document).on('click', '.btn-manage-images', function () {
             const drinkId = $(this).data('id');
             const drinkName = $(this).data('name');
@@ -419,7 +492,7 @@ $(document).ready(function () {
             const modalElement = document.getElementById('imageModal');
 
             if (modalElement) {
-                new bootstrap.Modal(modalElement).show();
+                bootstrap.Modal.getOrCreateInstance(modalElement).show();
             }
         });
 
@@ -489,7 +562,16 @@ $(document).ready(function () {
             const modalElement = document.getElementById('editImageModal');
 
             if (modalElement) {
-                new bootstrap.Modal(modalElement).show();
+                const editModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                const managerElement = document.getElementById('imageModal');
+                if (managerElement?.classList.contains('show')) {
+                    restoreImageManagerAfterEdit = true;
+                    managerElement.addEventListener('hidden.bs.modal', () => editModal.show(), { once: true });
+                    bootstrap.Modal.getOrCreateInstance(managerElement).hide();
+                } else {
+                    restoreImageManagerAfterEdit = false;
+                    editModal.show();
+                }
             }
         });
 

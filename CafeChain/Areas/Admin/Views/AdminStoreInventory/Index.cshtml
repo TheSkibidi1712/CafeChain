@@ -1,6 +1,8 @@
 ﻿@model CafeChain.ViewModels.Admin.StoreInventories.InventoryIndexVM
 
-<link rel="stylesheet" href="~/css/Admin/StoreInventory/storeinventory.css" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/StoreInventory/storeinventory.css" asp-append-version="true" />
+}
 
 @{
     var isPreparedItems = Model.ActiveTab == CafeChain.Application.DTOs.Admin.StoreInventories.InventoryCatalogTypes.PreparedItems;
@@ -70,4 +72,6 @@
 
 @await Html.PartialAsync("Partials/_TransactionModalPartial")
 
-<script src="~/js/Admin/StoreInventory/storeinventory.js"></script>
+@section Scripts {
+    <script src="~/js/Admin/StoreInventory/storeinventory.js" asp-append-version="true"></script>
+}

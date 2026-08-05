@@ -15,7 +15,7 @@
         tableWrap: document.getElementById('tableWrap'), rows: document.getElementById('profitabilityRows'),
         meta: document.getElementById('previewMeta'), timestamp: document.getElementById('costTimestamp'),
         sizeCount: document.getElementById('sizeCount'), readyCount: document.getElementById('readyCount'),
-        backdrop: document.getElementById('drawerBackdrop'), priceDrawer: document.getElementById('priceDrawer'),
+        priceDrawer: document.getElementById('priceDrawer'),
         policyDrawer: document.getElementById('policyDrawer')
     };
     let preview = null;
@@ -116,16 +116,13 @@
 
     function findRow(id) { return preview?.sizes?.find(x => x.drinkSizeId === Number(id)); }
     function openDrawer(drawer) {
-        closeDrawers();
-        els.backdrop.hidden = false;
-        drawer.classList.add('is-open');
-        drawer.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
+        [els.priceDrawer, els.policyDrawer]
+            .filter(item => item !== drawer)
+            .forEach(item => bootstrap.Offcanvas.getInstance(item)?.hide());
+        bootstrap.Offcanvas.getOrCreateInstance(drawer).show();
     }
     function closeDrawers() {
-        [els.priceDrawer, els.policyDrawer].forEach(x => { x.classList.remove('is-open'); x.setAttribute('aria-hidden', 'true'); });
-        els.backdrop.hidden = true;
-        document.body.style.overflow = '';
+        [els.priceDrawer, els.policyDrawer].forEach(item => bootstrap.Offcanvas.getInstance(item)?.hide());
     }
 
     function openPrice(id) {
@@ -274,9 +271,6 @@
         if (price) openPrice(price.dataset.priceId);
         if (policy) openPolicies(policy.dataset.policyId);
     });
-    document.querySelectorAll('[data-close-drawer]').forEach(x => x.addEventListener('click', closeDrawers));
-    els.backdrop.addEventListener('click', closeDrawers);
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeDrawers(); });
     document.getElementById('calculateSuggestion').addEventListener('click', calculateSuggestion);
     document.getElementById('savePrice').addEventListener('click', savePrice);
     document.getElementById('savePolicy').addEventListener('click', savePolicy);

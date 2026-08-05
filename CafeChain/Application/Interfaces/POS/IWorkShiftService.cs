@@ -1,6 +1,7 @@
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Results;
 using CafeChain.Models.Stores;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace CafeChain.Application.Interfaces.POS
@@ -85,5 +86,10 @@ namespace CafeChain.Application.Interfaces.POS
         Task<ServiceResult> ReconcileAsync(int userId, int storeId, int shiftId, ReconcileWorkShiftRequestDto request);
 
         Task<ServiceResult> RegisterTerminalAsync(int userId, int storeId, PosTerminalRegisterDto request);
+        Task<ServiceResult> SetOperatorPinAsync(
+            int accountId, int staffId, int storeId, SetOperatorPinRequestDto request);
+        Task<ServiceResult> SwitchOperatorAsync(
+            int responsibleStaffId, int storeId, int shiftId, SwitchOperatorRequestDto request);
+        Task<ServiceResult<IReadOnlyList<PosOperatorCandidateDto>>> GetOperatorCandidatesAsync(int storeId);
     }
 }

@@ -29,7 +29,10 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             var activeStatuses = WorkShiftStatuses.ActiveResponsibility;
             return await _context.WorkShifts
                 .Include(ws => ws.User)
+                .Include(ws => ws.CurrentOperatorStaff)
                 .Include(ws => ws.PosTerminal)
+                .OrderByDescending(ws => ws.StartTimeUtc)
+                .ThenByDescending(ws => ws.ShiftId)
                 .FirstOrDefaultAsync(ws => ws.UserId == userId && ws.StoreId == storeId
                     && activeStatuses.Contains(ws.Status));
         }
@@ -39,7 +42,10 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             var activeStatuses = WorkShiftStatuses.ActiveResponsibility;
             return await _context.WorkShifts
                 .Include(x => x.User)
+                .Include(x => x.CurrentOperatorStaff)
                 .Include(x => x.PosTerminal)
+                .OrderByDescending(x => x.StartTimeUtc)
+                .ThenByDescending(x => x.ShiftId)
                 .FirstOrDefaultAsync(x => x.StoreId == storeId
                     && x.PosTerminalId == terminalId
                     && activeStatuses.Contains(x.Status));
@@ -53,10 +59,23 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .ToListAsync();
         }
 
+        public Task<Staff?> GetStaffForOperatorAsync(int staffId) => _context.Staffs
+            .Include(x => x.Account)
+            .SingleOrDefaultAsync(x => x.StaffId == staffId);
+
+        public async Task<IReadOnlyList<Staff>> GetActiveOperatorCandidatesAsync(int storeId) =>
+            await _context.Staffs.AsNoTracking()
+                .Include(x => x.Account)
+                .Where(x => x.StoreId == storeId && x.Active && x.Account.Active)
+                .OrderBy(x => x.FullName)
+                .ThenBy(x => x.StaffId)
+                .ToListAsync();
+
         public async Task<WorkShift?> GetShiftByIdAsync(int shiftId, int userId, int storeId)
         {
             return await _context.WorkShifts
                 .Include(ws => ws.User)
+                .Include(ws => ws.CurrentOperatorStaff)
                 .FirstOrDefaultAsync(ws =>
                     ws.ShiftId == shiftId &&
                     ws.UserId == userId &&
@@ -67,6 +86,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         {
             return await _context.WorkShifts
                 .Include(ws => ws.User)
+                .Include(ws => ws.CurrentOperatorStaff)
                 .FirstOrDefaultAsync(ws => ws.ShiftId == shiftId);
         }
 

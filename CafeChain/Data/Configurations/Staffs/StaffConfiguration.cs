@@ -42,6 +42,12 @@ namespace CafeChain.Data.Configurations.Staffs
             entity.Property(x => x.Active)
                 .HasDefaultValue(true);
 
+            entity.Property(x => x.PosPinHash)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.PosPinFailedAttempts)
+                .HasDefaultValue(0);
+
             entity.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETDATE()");
 

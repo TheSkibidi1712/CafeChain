@@ -242,20 +242,12 @@
 .search-form button:focus-visible,
 .btn-view-all:focus-visible,
 .btn-view:focus-visible,
-.modal-close:focus-visible {
+.store-inventory-modal .modal-close:focus-visible {
     outline: 2px solid var(--cc-focus);
     outline-offset: 2px;
 }
 
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    inset: 0;
-    overflow: auto;
-    background: rgba(15, 23, 42, 0.45);
-}
-.modal-content {
+.store-inventory-modal .modal-content {
     position: relative;
     width: min(1180px, 92%);
     margin: 5% auto;
@@ -263,7 +255,7 @@
     border-radius: 8px;
     background: var(--cc-surface);
 }
-.modal-close {
+.store-inventory-modal .modal-close {
     position: absolute;
     z-index: 2000;
     top: 12px;
@@ -280,7 +272,7 @@
     cursor: pointer;
     font-size: 18px;
 }
-.modal-close:hover { background: var(--cc-danger-bg); color: var(--cc-danger); }
+.store-inventory-modal .modal-close:hover { background: var(--cc-danger-bg); color: var(--cc-danger); }
 
 @media (max-width: 900px) {
     .inventory-header { flex-direction: column; }

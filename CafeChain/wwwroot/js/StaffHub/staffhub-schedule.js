@@ -22,6 +22,12 @@
         const resendOpenOtpButton = document.getElementById("resendOpenPosOtp");
         const requestTerminalOtpButton = document.getElementById("requestTerminalOtp");
         const resendTerminalOtpButton = document.getElementById("resendTerminalOtp");
+        const operatorPinDialog = document.getElementById("operatorPinDialog");
+        const operatorPinForm = document.getElementById("operatorPinForm");
+        const operatorCurrentPassword = document.getElementById("operatorCurrentPassword");
+        const operatorNewPin = document.getElementById("operatorNewPin");
+        const operatorPinStatus = document.getElementById("operatorPinStatus");
+        const saveOperatorPinButton = document.getElementById("saveOperatorPin");
 
         let requestKey = crypto.randomUUID();
         let assessment = null;
@@ -33,6 +39,12 @@
         const resendCountdowns = new Map();
 
         function notify(message, success) {
+            if (typeof window.showToast === "function") {
+                window.showToast(
+                    message || (success ? "Thao tác đã hoàn tất." : "Không thể thực hiện thao tác."),
+                    success ? "success" : "error");
+                return Promise.resolve();
+            }
             if (window.Swal) return Swal.fire(success ? "Thành công" : "Không thành công", message, success ? "success" : "error");
             window.alert(message);
             return Promise.resolve();
@@ -50,7 +62,15 @@
             });
             const result = await response.json().catch(() => ({ message: "Máy chủ trả về dữ liệu không hợp lệ." }));
             if (!response.ok) {
-                const error = new Error(result.message || "Không thể thực hiện thao tác.");
+                const statusMessage = {
+                    401: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+                    403: "Bạn không có quyền thực hiện thao tác này.",
+                    409: "Dữ liệu vừa thay đổi. Vui lòng tải lại và thử lại."
+                }[response.status];
+                const serverMessage = response.status >= 500
+                    ? `Hệ thống đang gặp lỗi. Vui lòng thử lại sau${result.correlationId ? `. Mã tra cứu: ${result.correlationId}` : "."}`
+                    : null;
+                const error = new Error(result.message || statusMessage || serverMessage || "Không thể thực hiện thao tác. Vui lòng thử lại.");
                 error.errorCode = result.errorCode;
                 error.data = result.data;
                 throw error;
@@ -59,13 +79,11 @@
         }
 
         function showDialog(dialog) {
-            if (typeof dialog?.showModal === "function") dialog.showModal();
-            else dialog?.setAttribute("open", "open");
+            if (dialog && window.bootstrap?.Modal) bootstrap.Modal.getOrCreateInstance(dialog).show();
         }
 
         function closeDialog(dialog) {
-            if (typeof dialog?.close === "function") dialog.close();
-            else dialog?.removeAttribute("open");
+            if (dialog && window.bootstrap?.Modal) bootstrap.Modal.getOrCreateInstance(dialog).hide();
         }
 
         function parseUtc(value) {
@@ -401,8 +419,60 @@
                 window.location.reload();
             } catch (error) { await notify(error.message, false); }
         });
-        previewDialog?.addEventListener("close", resetOpenOtpState);
-        registrationDialog?.addEventListener("close", resetTerminalOtpState);
+
+        document.getElementById("openOperatorPinDialog")?.addEventListener("click", () => {
+            if (operatorPinStatus) operatorPinStatus.textContent = "";
+            showDialog(operatorPinDialog);
+            operatorCurrentPassword?.focus();
+        });
+        document.getElementById("cancelOperatorPin")?.addEventListener("click", () => closeDialog(operatorPinDialog));
+        operatorPinForm?.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const currentPassword = operatorCurrentPassword?.value || "";
+            const pin = operatorNewPin?.value.trim() || "";
+            if (!currentPassword) {
+                if (operatorPinStatus) operatorPinStatus.textContent = "Vui lòng nhập mật khẩu hiện tại.";
+                operatorCurrentPassword?.focus();
+                return;
+            }
+            if (!/^\d{6}$/.test(pin) || /^(\d)\1{5}$/.test(pin)) {
+                if (operatorPinStatus) operatorPinStatus.textContent = "PIN phải gồm đúng 6 chữ số và không được lặp một chữ số.";
+                operatorNewPin?.focus();
+                return;
+            }
+
+            if (saveOperatorPinButton) {
+                saveOperatorPinButton.disabled = true;
+                saveOperatorPinButton.textContent = "Đang lưu...";
+            }
+            operatorPinForm.setAttribute("aria-busy", "true");
+            try {
+                const result = await post(root.dataset.setOperatorPinUrl, { CurrentPassword: currentPassword, Pin: pin });
+                if (operatorPinStatus) operatorPinStatus.textContent = "PIN thao tác POS đã được thiết lập.";
+                if (operatorCurrentPassword) operatorCurrentPassword.value = "";
+                if (operatorNewPin) operatorNewPin.value = "";
+                await notify(result.message || "Thiết lập PIN thao tác POS thành công.", true);
+                closeDialog(operatorPinDialog);
+            } catch (error) {
+                if (operatorPinStatus) operatorPinStatus.textContent = error.message;
+                await notify(error.message || "Không thể thiết lập PIN thao tác POS.", false);
+            } finally {
+                if (operatorCurrentPassword) operatorCurrentPassword.value = "";
+                if (operatorNewPin) operatorNewPin.value = "";
+                operatorPinForm.removeAttribute("aria-busy");
+                if (saveOperatorPinButton) {
+                    saveOperatorPinButton.disabled = false;
+                    saveOperatorPinButton.textContent = "Lưu PIN";
+                }
+            }
+        });
+        previewDialog?.addEventListener("hidden.bs.modal", resetOpenOtpState);
+        registrationDialog?.addEventListener("hidden.bs.modal", resetTerminalOtpState);
+        operatorPinDialog?.addEventListener("hidden.bs.modal", () => {
+            if (operatorCurrentPassword) operatorCurrentPassword.value = "";
+            if (operatorNewPin) operatorNewPin.value = "";
+            if (operatorPinStatus) operatorPinStatus.textContent = "";
+        });
     }
 
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, { once: true });
