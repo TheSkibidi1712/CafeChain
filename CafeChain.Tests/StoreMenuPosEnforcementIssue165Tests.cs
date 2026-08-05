@@ -35,6 +35,9 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
         Assert.Equal(7, result.Data.CatalogVersion);
         Assert.Single(result.Data.Toppings);
         Assert.Equal(5_000m, result.Data.Toppings[0].AcceptedPrice);
+        Assert.Equal(1m, result.Data.Toppings[0].QuantityPerDrink);
+        Assert.Equal(ToppingPriceTreatments.AddToppingPrice, result.Data.Toppings[0].PriceTreatment);
+        Assert.Equal(ToppingCostTreatments.IncludedInDrinkRecipe, result.Data.Toppings[0].CostTreatment);
     }
 
     [Fact]
@@ -149,6 +152,10 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
         Assert.Equal(SalesCostStatus.Pending, detail.CostStatus);
         Assert.Null(detail.UnitCogs);
         Assert.Null(detail.TotalCogs);
+        var topping = Assert.Single(detail.OrderToppings);
+        Assert.Equal(1m, topping.QuantityPerDrinkSnapshot);
+        Assert.Equal(ToppingPriceTreatments.AddToppingPrice, topping.PriceTreatmentSnapshot);
+        Assert.Equal(ToppingCostTreatments.IncludedInDrinkRecipe, topping.CostTreatmentSnapshot);
     }
 
     [Fact]
@@ -261,7 +268,15 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
         CatalogVersion = 7,
         Toppings = new[]
         {
-            new POSAcceptedSaleToppingDto { ToppingId = 16507, Name = "Trân châu", AcceptedPrice = 5_000m }
+            new POSAcceptedSaleToppingDto
+            {
+                ToppingId = 16507,
+                Name = "Trân châu",
+                AcceptedPrice = 5_000m,
+                QuantityPerDrink = 1m,
+                PriceTreatment = ToppingPriceTreatments.AddToppingPrice,
+                CostTreatment = ToppingCostTreatments.IncludedInDrinkRecipe
+            }
         }
     };
 
@@ -307,6 +322,7 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
                                 IsDefaultSelected = true,
                                 IsRequired = true,
                                 PriceTreatment = ToppingPriceTreatments.AddToppingPrice,
+                                CostTreatment = ToppingCostTreatments.IncludedInDrinkRecipe,
                                 QuantityPerDrink = 1m
                             }
                         }

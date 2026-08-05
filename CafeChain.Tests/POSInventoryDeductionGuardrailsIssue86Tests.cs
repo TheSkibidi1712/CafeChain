@@ -72,6 +72,42 @@ namespace CafeChain.Tests.POS
             Assert.Equal(3, await context.InventoryTransactions.CountAsync(t => t.ReferenceOrderId == 9001));
         }
 
+        [Fact]
+        public async Task IncludedCostTreatment_DoesNotDoubleCountToppingRecipe()
+        {
+            using var context = CreateDbContext();
+            SeedInventoryCatalog(context);
+            SeedCompletedPaidOrder(context, orderId: 9004);
+            SeedOrderLine(context, 9004, ToppingCostTreatments.IncludedInDrinkRecipe, 1m);
+            await context.SaveChangesAsync();
+            var service = CreateService(context);
+
+            var result = await service.DeductStockForCommittedOrderAsync(
+                CreateSoldItems(), StoreId, referenceOrderId: 9004);
+
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.Equal(95m, await GetIngredientQtyAsync(context, MilkIngredientId));
+            Assert.Equal(50m, await GetIngredientQtyAsync(context, TapiocaIngredientId));
+            Assert.Equal(9m, await GetChildRecipeQtyAsync(context));
+        }
+
+        [Fact]
+        public async Task ToppingQuantitySnapshot_MultipliesRecipeConsumption()
+        {
+            using var context = CreateDbContext();
+            SeedInventoryCatalog(context);
+            SeedCompletedPaidOrder(context, orderId: 9005);
+            SeedOrderLine(context, 9005, ToppingCostTreatments.AddToppingRecipeCost, 2m);
+            await context.SaveChangesAsync();
+            var service = CreateService(context);
+
+            var result = await service.DeductStockForCommittedOrderAsync(
+                CreateSoldItems(), StoreId, referenceOrderId: 9005);
+
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.Equal(44m, await GetIngredientQtyAsync(context, TapiocaIngredientId));
+        }
+
         [Theory]
         [InlineData(SystemConstants.OrderStatuses.AwaitingPayment, SystemConstants.PaymentStatuses.Unpaid)]
         [InlineData(SystemConstants.OrderStatuses.Cancelled, SystemConstants.PaymentStatuses.Failed)]
@@ -488,6 +524,37 @@ namespace CafeChain.Tests.POS
                 orderId,
                 SystemConstants.OrderStatuses.Completed,
                 SystemConstants.PaymentStatuses.Paid);
+        }
+
+        private static void SeedOrderLine(
+            CafeChain.Data.AppDbContext context,
+            int orderId,
+            string costTreatment,
+            decimal quantityPerDrink)
+        {
+            context.OrderDetails.Add(new OrderDetail
+            {
+                OrderId = orderId,
+                DrinkId = DrinkId,
+                SizeId = SizeMId,
+                DrinkName = "Test drink",
+                SizeName = "M",
+                Price = 45_000m,
+                Quantity = 1,
+                Note = string.Empty,
+                OrderToppings = new List<OrderTopping>
+                {
+                    new()
+                    {
+                        ToppingId = ToppingId,
+                        ToppingName = "Test topping",
+                        Price = 5_000m,
+                        QuantityPerDrinkSnapshot = quantityPerDrink,
+                        PriceTreatmentSnapshot = ToppingPriceTreatments.AddToppingPrice,
+                        CostTreatmentSnapshot = costTreatment
+                    }
+                }
+            });
         }
 
         private static void SeedOrder(
