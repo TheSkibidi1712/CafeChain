@@ -27,4 +27,6 @@ public static class WorkShiftErrorCodes
     public const string InvalidRequestKey = "INVALID_REQUEST_KEY";
     public const string InvalidCashAmount = "INVALID_CASH_AMOUNT";
     public const string OutsideScheduleOfflineNotAllowed = "OUTSIDE_SCHEDULE_OFFLINE_NOT_ALLOWED";
+    public const string PosOpenContextRequired = "POS_OPEN_CONTEXT_REQUIRED";
+    public const string PosOpenContextInvalid = "POS_OPEN_CONTEXT_INVALID";
 }

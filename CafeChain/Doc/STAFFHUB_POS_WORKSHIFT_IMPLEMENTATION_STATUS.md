@@ -1,103 +1,83 @@
 # Báo cáo triển khai StaffHub và WorkShift POS
 
-Cập nhật: 03/08/2026. Đây là báo cáo cuối của đợt refactor, không phải tài liệu checkpoint.
+Cập nhật: 03/08/2026.
 
-## Trạng thái mã nguồn
+## Kết quả
 
-- Migration hiện hành gồm `20260802183312_InitialCreate` và migration tăng dần `20260803050636_AddProtectedOperationalOtpPayload`.
-- `Scripts/SeedAll.sql` là nguồn seed duy nhất cho RBAC và fixture; migration không seed permission/role.
-- Không sửa `FIX.md` và không tạo chức năng chấm công, lương hoặc sao chép tiền tự động.
-- Backend và frontend đều build được tại thời điểm báo cáo.
+Đã chuyển toàn bộ nghiệp vụ chọn/đăng ký terminal, preview lịch, mở sớm/trễ/ngoài lịch, lý do và OTP từ React POS sang StaffHub. POS chỉ exchange context đã được backend xác nhận, nhập tiền đầu phiên và gọi mở phiên bình thường.
 
-## Hạng mục đã hoàn tất
+Không sửa `FIX.md`, không tạo chấm công/lương/tăng ca/`StaffShift` giả và không chỉnh `Scripts/SeedAll.sql`.
 
-- Mở rộng model/state machine WorkShift, UTC fields, BusinessDate, nguồn lịch, expiry, close metadata và rowversion.
-- Constraint/index ngăn tiền âm, tiền VND thập phân và WorkShift active trùng terminal/nhân viên.
-- Resolver lịch tuyệt đối hỗ trợ ca qua đêm và phân loại mở theo lịch/trễ/ngoài lịch.
-- Lý do, OTP và thời hạn sáu giờ cho phiên ngoài lịch; không tạo StaffShift giả.
-- Idempotency cho mở, đóng, đóng ngoại lệ, reconcile và đăng ký terminal.
-- Worker cảnh báo 30/10/1 phút, auto-close phiên rỗng, pending-close cho phiên cần kiểm đếm.
-- Backend guard order/offline/payment theo trạng thái và deadline WorkShift.
-- `POSPaymentController` đã là controller mỏng; transaction, cash-return evidence, idempotency actor+store và cancellation token nằm trong `POSPaymentCancellationService`.
-- Đóng hai bước, tính tiền phía server, đóng ngoại lệ và reconcile WorkShift cũ; reconcile bị chặn đến khi server xác nhận đủ toàn bộ đơn offline của phiên cũ.
-- Permission/scope runtime; terminal enrollment cần approver có quyền OverrideTerminal.
-- OTP bind action/store/terminal/WorkShift/request; OTP được hash và consume một lần.
-- OTP dùng `TimeProvider`/timezone chung, giới hạn challenge theo nhân viên/terminal/IP/device bằng dữ liệu SQL dùng chung giữa các instance, không reset số lần sai khi resend, đồng thời revalidate permission/scope ở verify và resend. IP/device chỉ lưu SHA-256, không lưu dữ liệu thô.
-- OTP đúng/sai được ghi `AuditLog` với bảng nguồn `OtpChallenges`; log/audit không chứa mã OTP.
-- OTP vận hành dài đúng 6 ký tự, chỉ dùng `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`; backend chuẩn hóa chữ thường, từ chối ký tự đặc biệt/khoảng trắng nội bộ/ký tự có dấu/emoji và không ánh xạ ký tự dễ nhầm.
-- Mã OTP còn hiệu lực được lưu bằng ciphertext Data Protection trong `OtpChallenges`, chỉ đúng người duyệt xem lại được qua chuông; payload bị xóa khi challenge được duyệt, dùng, khóa, hủy hoặc hết hạn. Gửi lại bị khóa 60 giây ở cả backend và giao diện.
-- Chuông Admin là trung tâm thông báo hợp nhất; mục “Thông báo kho” riêng đã được loại khỏi sidebar.
-- Cập nhật login failure bằng SQL atomic update để tránh mất bộ đếm khi request đồng thời.
-- SignalR group theo store permission/staff/terminal; publisher phát đến đủ ba audience, polling fallback và khóa phía frontend theo deadline server.
-- Worker SQL Server lấy từng WorkShift bằng `UPDLOCK/READPAST/ROWLOCK` trong transaction để nhiều instance không xử lý cùng một deadline.
-- StaffHub hiển thị khoảng lịch qua đêm đầy đủ và dùng one-time POS exchange code.
-- POS có RequestKey, countdown, modal ngoài lịch/terminal/reconcile và bỏ nhãn chấm công.
-- Audit WorkShift dùng `AuditLog`.
-- Sửa SeedAll để chạy lại an toàn với schema `StartTimeUtc`, `ExpiryWarningLevel=0` và temp table cleanup.
-- Đồng bộ các trang kho/mua hàng với shared warehouse shell và semantic design token; loại bỏ sáu lỗi full-suite nền.
-- Khóa cập nhật POS catalog theo cửa hàng bằng SQL Server `sp_getapplock` trong transaction để nhiều instance không cùng ghi catalog version.
+## Backend
 
-## Kiểm tra thực tế
+- Thêm DTO StaffHub terminal/preview/OTP/issue ticket và exchange context.
+- StaffHub actions có authorization/anti-forgery cho preview, OTP, terminal registration, issue open/resume.
+- Context bind account/staff/store/terminal/purpose/OpenContext/schedule/RequestKey/reason/approval.
+- Exchange code hash-only, TTL 60 giây, one-time; JWT chứa context ID/purpose.
+- Tách `POS_EXCHANGE_CODE_EXPIRED`, `POS_EXCHANGE_CODE_ALREADY_USED`, `POS_EXCHANGE_CODE_INVALID`.
+- POS open yêu cầu exchange context; request client chỉ còn tiền đầu phiên có ý nghĩa nghiệp vụ.
+- Public `open-assessment` và `POSTerminalController` đã loại bỏ.
+- Repository có query active theo staff/terminal và danh sách terminal active.
+- Staff active được map đúng: `OPEN` → `STAFF_ALREADY_HAS_OPEN_SHIFT`; `CLOSING`/`EXPIRED_PENDING_CLOSE` → `WORKSHIFT_PENDING_CLOSE`.
+- Terminal active → `TERMINAL_ALREADY_HAS_OPEN_SHIFT`.
+- `WORKSHIFT_EXPIRED` không còn được dùng cho preview/mở mới/exchange.
+- Open revalidate context/lịch/permission/terminal/OTP; active check và create nằm trong transaction serializable.
+- Unique violation được requery để trả lỗi nghiệp vụ hoặc `CONCURRENCY_CONFLICT`.
+- OTP mở ca không bind tiền đầu phiên; vẫn revalidate approver và consume trong transaction.
 
-| Kiểm tra | Kết quả |
-|---|---|
-| `dotnet build CafeChain/CafeChain.csproj --no-restore` | Pass, 0 error; 670 warning nền khi biên dịch lại toàn bộ |
-| Frontend `npm run build` | Pass; cảnh báo chunk/annotation |
-| Frontend `npm run lint` | Pass |
-| Assessment + resolver + expiry worker | Pass 10/10 |
-| Nhóm WorkShift/OTP/offline/schedule không-SQL | Pass 135/135 |
-| Nhóm WorkShift/OTP/offline/schedule/payment không-SQL | Pass 148/148 |
-| Rà soát cuối WorkShift/OTP/offline/schedule/payment không-SQL | Pass 138/138 theo filter cuối, ngày 03/08/2026 |
-| Nhóm WorkShift/OTP/offline/schedule dùng SQL Server Express | Pass 13/13 |
-| Operational Ice tương thích trạng thái | Pass 19/19 |
-| SeedAll chạy hai lần trên SQL Server | Pass; số lượng bảng chính không đổi |
-| Migration/model pending changes | Không có pending model change |
-| Default/index/constraint WorkShift trên SQL | Pass |
-| InitialCreate thực thi trên database SQL Server mới | Pass 1/1 qua migration contract test |
-| Full suite không-SQL (có E2E procurement dùng SQL fixture) | Pass 1708/1708 |
-| Full suite gồm toàn bộ SQL Server integration | Pass 1844/1844 |
-| OTP generator/validation/ciphertext/đúng người nhận (lần chạy 03/08/2026) | Pass 16/16 |
-| Toàn bộ test không có tên `SqlServer` (lần chạy 03/08/2026) | 1729 pass, 1 fail vì test procurement tên legacy vẫn mở SQL Server |
-| Full suite lần chạy 03/08/2026 | Không xác nhận được: các integration test không kết nối được SQL Server mặc định, lỗi SNI 26 |
+## StaffHub UI
 
-Kết quả 1844/1844 và 1708/1708 ở trên là lần xác minh trước đó khi máy kiểm thử có SQL Server phù hợp. Lần chạy gần nhất sau refactor OTP đã khởi chạy full suite nhưng không thể xác nhận lại nhóm SQL do instance mặc định không truy cập được (`SNI error 26`). Phần không phụ thuộc SQL đạt 1729 test; test thất bại duy nhất trong filter này là procurement E2E có tên legacy nhưng vẫn cần SQL Server. Nhóm mới trực tiếp kiểm tra OTP đạt 16/16.
+- Bắt buộc chọn terminal trước preview.
+- Luôn hiển thị xác nhận, kể cả `WITHIN_SCHEDULE`.
+- Lý do và request/verify/resend OTP nằm tại StaffHub.
+- Đăng ký terminal và OTP terminal nằm tại StaffHub.
+- Phiên đang khóa hiển thị mã, terminal, bắt đầu, trạng thái, hạn và nút tiếp tục/đóng/kiểm đếm.
+- Tiền đầu phiên không xuất hiện tại StaffHub.
 
-Mười ba test tích hợp SQL/OTP qua .NET đã được chạy lại trên `localhost\SQLEXPRESS02` và pass 13/13, gồm consume OTP đồng thời, đóng ngoại lệ đúng trạng thái `RECONCILIATION_REQUIRED` và chỉ tạo một WorkShift khi nhiều request mở ca trễ chạy đồng thời. Kết nối Windows Integrated Authentication cần chạy ngoài filesystem sandbox; chạy trong sandbox trả lỗi SSPI, không phải lỗi test nghiệp vụ. Backend E2E đã khởi động trên database seed và route đăng nhập trả HTTP 200; browser E2E tương tác chưa chạy được vì runtime Codex không có browser khả dụng (`agent.browsers.list()` trả danh sách rỗng).
+## React POS
 
-## Kết quả SeedAll
+- Đã gỡ `open-assessment`, tự phân loại lịch, form lý do, OTP mở trễ/ngoài lịch và đăng ký terminal.
+- Open request chỉ gửi `startingCash`.
+- Fragment exchange được xóa trước network theo luồng session hiện hành.
+- Direct open không có context bị backend từ chối.
 
-SeedAll đã chạy hai lần trên `CafeChain_SeedAll_Idempotency_20260803`. Sau hai lần, số lượng tương ứng của StoreToppings, SupplierStores, StoreDrinks, StoreMenuItems, InventoryDocs, InventoryDocDetails, StoreInventories, InventoryTransactions, ProductionRuns, InventoryCostLayers, DrinkRecipeDetails, StoreInventoryPolicies, WorkShifts, Orders và Payments không đổi:
+## Idempotency và schema
 
-```text
-101|101|120|168|6|106|124|1254|71|178|738|244|65|136|127
-```
+Schema hiện hành đã có rowversion và filtered unique index:
 
-Đã xác minh có đúng tám permission `POS.WorkShift.*`; SalesStaff nhận 4 quyền, ShiftSupervisor/StoreManager/AreaManager/BusinessOwner nhận 8 quyền, các role ngoài nghiệp vụ không được cấp mặc định.
+- `UX_WorkShifts_ActiveStaff`
+- `UX_WorkShifts_ActiveTerminal`
 
-## Rủi ro còn lại trước production
+Cả hai bảo vệ `OPEN`, `CLOSING`, `EXPIRED_PENDING_CLOSE`. Migration hiện hành là `20260803054639_InitialCreate`; không thêm migration vì model đã có đủ guard.
 
-- Migration hợp nhất là InitialCreate cho database mới; database đã tồn tại với lịch sử migration cũ cần kế hoạch backup/baseline hoặc chuyển dữ liệu, không áp trực tiếp chồng schema.
-- OTP rate limit theo nhân viên/terminal/IP/device dùng dữ liệu SQL và index dùng chung giữa các instance; kiểm thử tải dài hạn với nhiều application instance vật lý vẫn cần thực hiện trước production.
-- SignalR giảm độ trễ giao diện nhưng không phải nguồn khóa; backend/database vẫn là nguồn quyết định.
-- Cần chạy browser E2E đầy đủ trước production trên máy có browser; môi trường Codex hiện tại không cung cấp browser để thao tác. Integration SQL Server Express cục bộ đã pass nhưng vẫn cần chạy lại trong CI bằng connection string riêng của môi trường.
-- Warning biên dịch nền hiện hữu chưa được triệt tiêu. Cần chạy lại full suite với `CAFECHAIN_TEST_SQLSERVER_CONNECTION_STRING` trỏ tới SQL Server khả dụng trước khi phát hành.
+RequestKey/payload hash bảo đảm replay đúng trả kết quả cũ, cùng key khác payload trả `DUPLICATE_REQUEST`, race còn lại trả lỗi active hoặc `CONCURRENCY_CONFLICT`.
 
-## File trọng tâm
+## Kiểm thử
 
-- `Models/Stores/WorkShift.cs`, `Data/Configurations/Stores/StoreConfiguration.cs`
-- `Models/Operations/OtpChallenge.cs`, `Models/Systems/RequestDeduplication.cs`
-- `Migrations/20260802183312_InitialCreate.cs`
-- `Migrations/20260803050636_AddProtectedOperationalOtpPayload.cs`
-- `Scripts/SeedAll.sql`
-- `Application/Services/POS/WorkShiftService.cs`
-- `Application/Services/POS/POSPaymentCancellationService.cs`
-- `Application/Workers/WorkShiftExpiryWorker.cs`
-- `Application/Services/POS/OtpApprovalService.cs`
-- `Infrastructure/Repositories/Admin/POS/WorkShiftRepository.cs`
-- `Controllers/Api/v1/POSShiftController.cs`, `POSTerminalController.cs`
-- `Controllers/Api/v1/POSPaymentController.cs`
-- `Hubs/WorkShiftHub.cs`
-- `CafeChain.Frontend/src/pages/ShiftSummary.tsx`
-- `CafeChain.Frontend/src/POSLayout.tsx`
-- `Doc/STAFFHUB_POS_WORKSHIFT_BUSINESS_RULES.md`
-- `Doc/STAFFHUB_POS_WORKSHIFT_REFACTOR_GUIDE.md`
+Đã cập nhật/thêm kiểm thử cho:
+
+- Preview StaffHub không issue ticket.
+- Staff `OPEN`, `CLOSING`, `EXPIRED_PENDING_CLOSE` trả đúng mã.
+- Terminal ở cả ba active state trả terminal conflict.
+- React POS chỉ submit tiền đầu phiên và không còn nghiệp vụ đặc biệt.
+- POS bắt buộc exchange context; không còn public assessment/terminal registration.
+- Exchange contract 60 giây/hash-only/one-time/ba mã lỗi.
+- Hai filtered unique index chứa đầy đủ active states.
+- Worker expiry hiện hành: phiên rỗng tự đóng; phiên có tiền chuyển `EXPIRED_PENDING_CLOSE`.
+
+Kết quả xác minh tại lần cập nhật tài liệu:
+
+- Backend build: đạt.
+- Frontend `npm ci` và production build: đạt; chỉ còn cảnh báo bundle/annotation từ dependency.
+- Targeted StaffHub/assessment/expiry/refactor: 23/23 đạt.
+- Suite loại theo tên `SqlServer`: 1.738 đạt; còn hai lỗi hạ tầng/baseline không thuộc refactor (một test trỏ migration cũ `20260802183312_InitialCreate` không còn tồn tại và một test vẫn mở SQL Server dù tên không chứa `SqlServer`).
+- Frontend production build và ESLint: đạt; build chỉ còn cảnh báo bundle/annotation từ dependency.
+- EF `has-pending-model-changes`: không có thay đổi model chưa migration.
+- Full SQL Server integration chưa thể kết luận trong runner hiện tại: `sqlcmd` kết nối được instance nhưng tiến trình test .NET thất bại khi tạo SSPI context. Nhóm OTP Phase 2 không dùng SQL đạt 21/21 sau khi kiểm tra tương thích fingerprint.
+
+## Chưa mở rộng
+
+- Không tạo migration/index mới vì schema hiện hành đã đủ.
+- Không thay đổi nghiệp vụ đóng ngoại lệ/reconciliation ngoài việc giữ đúng ranh giới active.
+- Không thêm chấm công, tiền lương, overtime, thu/chi két.
+- Kiểm thử tải nhiều application instance và SQL Server race thực tế vẫn phụ thuộc hạ tầng CI/connection string.

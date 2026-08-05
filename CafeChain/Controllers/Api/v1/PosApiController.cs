@@ -2,6 +2,7 @@ using CafeChain.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace CafeChain.Controllers.Api.v1
 {
@@ -31,5 +32,15 @@ namespace CafeChain.Controllers.Api.v1
         /// Throw UnauthorizedAccessException nếu claim không tồn tại.
         /// </summary>
         protected int CurrentStaffId => User.GetStaffId();
+
+        protected int CurrentAccountId => int.TryParse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
+            ? accountId
+            : throw new UnauthorizedAccessException("JWT không có AccountId hợp lệ.");
+
+        protected int CurrentExchangeContextId => int.TryParse(
+            User.FindFirstValue("PosExchangeContextId"), out var contextId)
+            ? contextId
+            : 0;
     }
 }
