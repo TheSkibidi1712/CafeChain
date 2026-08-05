@@ -1,107 +1,60 @@
-﻿body {
-    font-family: 'Segoe UI', sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background: linear-gradient(135deg, #ff7a18, #ff4d00);
+/* CafeChain Masterpiece Luxury Coffee Theme - OTP Stylesheet */
+:root {
+    --espresso-dark: #090503;
+    --espresso-deep: #140b07;
+    --espresso-surface: rgba(26, 16, 11, 0.92);
+    --primary-brown: #8d6243;
+    --primary-brown-dark: #5c3b24;
+    --primary-brown-light: #ab7956;
+    --crema-gold: #d4a373;
+    --crema-gold-light: #e0b07a;
+    --latte-cream: #f7ede2;
+    --latte-soft: rgba(42, 28, 20, 0.7);
+    --text-primary: #f8f4f0;
+    --text-secondary: #c2b4a8;
+    --text-muted: #8c857b;
+    --border-color: rgba(212, 163, 115, 0.22);
+    --card-bg: rgba(20, 12, 8, 0.88);
+    --input-bg: rgba(34, 22, 15, 0.85);
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    background: var(--espresso-dark) !important;
+    color: var(--text-primary) !important;
     margin: 0;
 }
 
 .otp-container {
-    background: white;
-    padding: 40px 50px;
-    border-radius: 16px;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    width: 350px;
-}
-
-h2 {
-    margin-bottom: 10px;
-}
-
-p {
-    color: #666;
-    font-size: 14px;
-}
-
-.otp-box {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin: 25px 0;
+    background: var(--card-bg) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-primary) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.85) !important;
 }
 
 .otp-input {
-    width: 45px;
-    height: 55px;
-    text-align: center;
-    font-size: 22px;
-    border: 2px solid #ddd;
-    border-radius: 10px;
-    transition: 0.2s;
+    background: var(--input-bg) !important;
+    border: 2px solid var(--border-color) !important;
+    color: var(--crema-gold-light) !important;
 }
 
-    /* focus đẹp */
-    .otp-input:focus {
-        border-color: #ff4d00;
-        outline: none;
-        box-shadow: 0 0 5px rgba(255, 77, 0, 0.5);
-    }
-
-    /* nhập xong highlight */
-    .otp-input:not(:placeholder-shown) {
-        border-color: #ff4d00;
-    }
-
-button {
-    width: 100%;
-    padding: 12px;
-    background: #ff4d00;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.2s;
+.otp-input:focus {
+    border-color: var(--crema-gold) !important;
+    box-shadow: 0 0 0 4px rgba(212, 163, 115, 0.35) !important;
 }
 
-    button:hover {
-        background: #e64500;
-    }
-
-.text-danger {
-    color: red;
-    font-size: 13px;
-    margin-top: 10px;
-}
-.resend {
-    margin-top: 15px;
+button[type="submit"] {
+    background: linear-gradient(135deg, var(--primary-brown) 0%, var(--primary-brown-dark) 100%) !important;
+    color: #ffffff !important;
+    border-radius: 12px !important;
 }
 
 #countdown {
-    display: block;
-    margin-bottom: 10px;
-    font-weight: bold;
-    color: #ff4d00;
+    color: var(--crema-gold-light) !important;
 }
 
-#resendBtn {
-    background: #ccc;
-    cursor: not-allowed;
-}
-
-    #resendBtn:not(:disabled) {
-        background: #ff4d00;
-        cursor: pointer;
-    }
-.text-danger {
-    color: #ff4d00;
-    font-size: 13px;
-    margin-top: 10px;
-    background: #fff3ed;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ffd2c2;
+#resendBtn:not(:disabled) {
+    background: linear-gradient(135deg, var(--primary-brown) 0%, var(--primary-brown-dark) 100%) !important;
+    color: #ffffff !important;
 }
