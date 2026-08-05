@@ -46,7 +46,8 @@ public sealed class PurchasePackUnitContractIssue217Tests
         var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPurchaseOrders/Create.cshtml");
 
         Assert.Contains("asp-for=\"Lines[i].RestockRequestId\" type=\"hidden\"", view);
-        Assert.Contains("Yêu cầu nhập hàng #", view);
+        Assert.Contains("AdminStatusDisplay.RestockReference", view);
+        Assert.DoesNotContain("Yêu cầu nhập hàng #", view);
         Assert.Contains("asp-for=\"Lines[i].PackageCount\" type=\"number\" min=\"1\" step=\"1\"", view);
         Assert.DoesNotContain("placeholder=\"Mã yêu cầu\"", view);
         Assert.DoesNotContain("step=\"0.001\" class=\"ops-input w-100\" required", view);
