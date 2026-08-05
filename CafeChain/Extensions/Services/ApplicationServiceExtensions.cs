@@ -278,6 +278,7 @@ namespace CafeChain.Extensions.Services
 
             // Admin - Suppliers
             services.AddScoped<IAdminSupplierService, AdminSupplierService>();
+            services.AddScoped<ISupplierVisibilityRepairService, SupplierVisibilityRepairService>();
 
             // Admin - Orders Dashboard
             services.AddScoped<IAdminOrderService, AdminOrderService>();

@@ -793,9 +793,15 @@
         setFieldError($('#duplicateReason'), $('#duplicateReasonError'), '');
         setBusy(form, true);
         try {
-            await api('/Create', { method: 'POST', body });
-            toast('Đã tạo nhà cung cấp.');
-            window.location.reload();
+            const result = await api('/Create', { method: 'POST', body });
+            const createdSupplierId = Number(result.data);
+            const target = new URL(window.location.href);
+            target.searchParams.set('search', body.name);
+            target.searchParams.delete('status');
+            target.searchParams.set('page', '1');
+            target.searchParams.set('openSupplierId', String(createdSupplierId));
+            target.searchParams.set('created', '1');
+            window.location.assign(target.toString());
         } catch (error) {
             if (error.payload?.code === 'SUPPLIER_TAX_CODE_INVALID') {
                 setFieldError($('#createTaxCode'), $('#createTaxCodeError'), error.message);
@@ -821,6 +827,19 @@
         await submitCreate(false);
     });
     $('#confirmDuplicateCreate')?.addEventListener('click', () => submitCreate(true));
+
+    const initialSupplierId = Number(new URLSearchParams(window.location.search).get('openSupplierId'));
+    if (Number.isInteger(initialSupplierId) && initialSupplierId > 0) {
+        openSupplier(initialSupplierId).then(() => {
+            const target = new URL(window.location.href);
+            if (target.searchParams.get('created') !== '1'
+                || state.detail?.supplierId !== initialSupplierId) return;
+
+            toast(`Đã tạo nhà cung cấp ${state.detail.name}.`);
+            target.searchParams.delete('created');
+            window.history.replaceState({}, '', target.toString());
+        });
+    }
 
     $$('#createSupplierForm input, #createSupplierForm textarea').forEach(control => {
         if (control.id === 'duplicateReason') return;

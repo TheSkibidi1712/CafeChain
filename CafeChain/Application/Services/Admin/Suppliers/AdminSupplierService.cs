@@ -170,7 +170,10 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                             "Cảnh báo trùng đã được sử dụng bởi yêu cầu khác. Vui lòng kiểm tra lại.");
                     }
                     if (IsTaxCodeCollision(ex))
-                        throw TaxCodeDuplicate(dto.TaxCode, null);
+                    {
+                        if (transaction != null) await transaction.DisposeAsync();
+                        throw await TaxCodeDuplicateAsync(dto.TaxCode);
+                    }
                     if ((IsUniqueCodeCollision(ex) || IsSqlDeadlock(ex)) && attempt < 2)
                     {
                         await Task.Delay(40 * (attempt + 1));
@@ -240,7 +243,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
             catch (DbUpdateException ex) when (IsTaxCodeCollision(ex))
             {
-                throw TaxCodeDuplicate(dto.TaxCode, dto.SupplierId);
+                throw await TaxCodeDuplicateAsync(dto.TaxCode, dto.SupplierId);
             }
         }
 
@@ -429,11 +432,29 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
         }
 
-        private static SupplierDomainException TaxCodeDuplicate(string? taxCode, int? supplierId) =>
-            new(
+        private async Task<SupplierDomainException> TaxCodeDuplicateAsync(
+            string? taxCode,
+            int? excludeSupplierId = null)
+        {
+            var owner = taxCode == null
+                ? null
+                : await _context.Suppliers
+                    .AsNoTracking()
+                    .Where(x => x.TaxCode == taxCode
+                                && (!excludeSupplierId.HasValue
+                                    || x.SupplierId != excludeSupplierId.Value))
+                    .Select(x => new { x.SupplierId, x.Code, x.Name, x.Active })
+                    .FirstOrDefaultAsync();
+
+            object payload = owner != null
+                ? new { existingSupplier = owner }
+                : new { taxCode, supplierId = excludeSupplierId };
+
+            return new SupplierDomainException(
                 SupplierIdentityConstants.TaxCodeDuplicate,
                 "Mã số thuế này đã được sử dụng bởi Nhà cung cấp khác.",
-                new { taxCode, supplierId });
+                payload);
+        }
 
         private async Task<List<SoftDuplicateMatch>> FindSoftDuplicateMatchesAsync(AdminSupplierCreateDTO dto)
         {
