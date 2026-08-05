@@ -9,6 +9,8 @@ namespace CafeChain.Models.Orders
 
         public int OrderDetailId { get; set; }
         public int ToppingId { get; set; }
+        /// <summary>Immutable sale-time topping BOM version. Null for legacy or BOM-included toppings.</summary>
+        public int? RecipeIdSnapshot { get; set; }
 
         public string ToppingName { get; set; }
 
@@ -17,6 +19,9 @@ namespace CafeChain.Models.Orders
 
         /// <summary>Immutable sale-time topping quantity, expressed as topping recipe portions.</summary>
         public decimal QuantityPerDrinkSnapshot { get; set; } = 1m;
+
+        /// <summary>Unit authority for QuantityPerDrinkSnapshot.</summary>
+        public string QuantityUnitSnapshot { get; set; } = "RECIPE_PORTION";
 
         /// <summary>Immutable sale-time selling-price treatment.</summary>
         public string PriceTreatmentSnapshot { get; set; } = "ADD_TOPPING_PRICE";
@@ -30,5 +35,6 @@ namespace CafeChain.Models.Orders
 
         public virtual OrderDetail OrderDetail { get; set; }
         public virtual Topping Topping { get; set; }
+        public virtual Recipe? RecipeSnapshot { get; set; }
     }
 }

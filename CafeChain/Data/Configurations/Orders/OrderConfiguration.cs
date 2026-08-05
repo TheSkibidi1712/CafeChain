@@ -203,6 +203,11 @@ namespace CafeChain.Data.Configurations.Orders
                 .HasForeignKey(x => x.DrinkSizeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.RecipeSnapshot)
+                .WithMany()
+                .HasForeignKey(x => x.RecipeIdSnapshot)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(x => x.IceIngredient)
                 .WithMany()
                 .HasForeignKey(x => x.IceIngredientId)
@@ -214,6 +219,7 @@ namespace CafeChain.Data.Configurations.Orders
             entity.HasIndex(x => x.SizeId);
             entity.HasIndex(x => x.StoreMenuItemId);
             entity.HasIndex(x => x.DrinkSizeId);
+            entity.HasIndex(x => x.RecipeIdSnapshot);
             entity.HasIndex(x => x.IceIngredientId);
 
            
@@ -240,6 +246,11 @@ namespace CafeChain.Data.Configurations.Orders
             entity.Property(x => x.QuantityPerDrinkSnapshot)
                 .HasColumnType("decimal(18,5)")
                 .HasDefaultValue(1m)
+                .IsRequired();
+
+            entity.Property(x => x.QuantityUnitSnapshot)
+                .HasMaxLength(32)
+                .HasDefaultValue("RECIPE_PORTION")
                 .IsRequired();
 
             entity.Property(x => x.PriceTreatmentSnapshot)
@@ -270,8 +281,14 @@ namespace CafeChain.Data.Configurations.Orders
                 .HasForeignKey(x => x.ToppingId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.RecipeSnapshot)
+                .WithMany()
+                .HasForeignKey(x => x.RecipeIdSnapshot)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => new { x.OrderDetailId, x.ToppingId })
                 .IsUnique();
+            entity.HasIndex(x => x.RecipeIdSnapshot);
 
             entity.ToTable("OrderToppings", table =>
             {
@@ -284,6 +301,9 @@ namespace CafeChain.Data.Configurations.Orders
                 table.HasCheckConstraint(
                     "CK_OrderToppings_CostTreatmentSnapshot",
                     "[CostTreatmentSnapshot] IN ('INCLUDED_IN_DRINK_RECIPE','ADD_TOPPING_RECIPE_COST')");
+                table.HasCheckConstraint(
+                    "CK_OrderToppings_QuantityUnitSnapshot",
+                    "[QuantityUnitSnapshot] = 'RECIPE_PORTION'");
             });
 
         }

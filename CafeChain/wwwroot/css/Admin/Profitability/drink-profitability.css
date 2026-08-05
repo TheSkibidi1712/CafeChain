@@ -311,6 +311,18 @@ textarea.pf-control {
     padding-top: 12px;
 }
 
+.pf-field-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: .75rem;
+}
+
+@media (max-width: 640px) {
+    .pf-field-pair {
+        grid-template-columns: 1fr;
+    }
+}
+
 .pf-completeness-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

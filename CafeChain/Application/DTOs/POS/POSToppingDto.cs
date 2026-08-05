@@ -16,6 +16,9 @@ namespace CafeChain.Application.DTOs.POS
         /// <summary>Topping.Price</summary>
         public decimal Price { get; set; }
 
+        /// <summary>Exact topping BOM version published in this catalog snapshot.</summary>
+        public int? RecipeId { get; set; }
+
         /// <summary>Topping.ImageUrl (nullable)</summary>
         public string? ImageUrl { get; set; }
     }

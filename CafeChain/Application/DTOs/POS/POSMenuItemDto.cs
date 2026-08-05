@@ -48,6 +48,9 @@ namespace CafeChain.Application.DTOs.POS
 
         public int DrinkSizeId { get; set; }
 
+        /// <summary>Exact BOM version published in this catalog snapshot.</summary>
+        public int RecipeId { get; set; }
+
         /// <summary>Size.SizeId</summary>
         public int SizeId { get; set; }
 
@@ -86,5 +89,7 @@ namespace CafeChain.Application.DTOs.POS
         public string PriceTreatment { get; set; } = string.Empty;
         public string CostTreatment { get; set; } = string.Empty;
         public decimal QuantityPerDrink { get; set; }
+        public string QuantityUnit { get; set; } = "RECIPE_PORTION";
+        public int? RecipeId { get; set; }
     }
 }

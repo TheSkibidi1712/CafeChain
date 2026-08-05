@@ -10,6 +10,7 @@ namespace CafeChain.Models.Drinks
         public string PriceTreatment { get; set; } = string.Empty;
         public string CostTreatment { get; set; } = string.Empty;
         public decimal QuantityPerDrink { get; set; }
+        public string QuantityUnit { get; set; } = "RECIPE_PORTION";
         public bool IsActive { get; set; }
         public int CreatedByStaffId { get; set; }
         public int? UpdatedByStaffId { get; set; }

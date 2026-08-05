@@ -46,6 +46,7 @@ export default function TemporaryReceiptTemplate({ order }: TemporaryReceiptTemp
       menuItemId: item.menuItemId,
       storeMenuItemId: item.storeMenuItemId,
       drinkSizeId: item.drinkSizeId,
+      recipeIdSnapshot: item.recipeIdSnapshot,
       name: item.name,
       sizeId: item.sizeId,
       quantity: item.quantity,

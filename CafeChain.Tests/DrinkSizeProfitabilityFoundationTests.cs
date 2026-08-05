@@ -434,6 +434,7 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
             QuantityPerDrink = 1, IsActive = true, Reason = "Khởi tạo policy"
         }, OwnerStaffId);
         Assert.True(created.IsSuccess, created.Message);
+        Assert.Equal(ToppingQuantityUnits.RecipePortion, created.Data.QuantityUnit);
 
         var updated = await service.UpsertAsync(new UpsertDrinkSizeToppingPolicyRequest
         {
@@ -475,6 +476,30 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task ToppingQuantity_RequiresSupportedUnit()
+    {
+        await SeedBaseAsync(addLegacyDefault: true);
+        await using var context = CreateDbContext();
+
+        var result = await new DrinkSizeToppingPolicyService(context).UpsertAsync(
+            new UpsertDrinkSizeToppingPolicyRequest
+            {
+                DrinkSizeId = DrinkSizeId,
+                ToppingId = ToppingId,
+                IsDefaultSelected = true,
+                PriceTreatment = ToppingPriceTreatments.IncludedInBasePrice,
+                CostTreatment = ToppingCostTreatments.AddToppingRecipeCost,
+                QuantityPerDrink = 1,
+                QuantityUnit = string.Empty,
+                IsActive = true,
+                Reason = "Test đơn vị"
+            }, OwnerStaffId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Đơn vị", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ProfitabilityUi_UsesVietnameseBusinessTermsAndLabelsRoundingField()
     {
         var root = FindRepoRoot();
@@ -485,6 +510,8 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
         Assert.Contains("Quy tắc làm tròn giá", view);
         Assert.Contains("Biên lợi nhuận gộp (Margin)", view);
         Assert.Contains("Tỷ lệ cộng giá (Markup)", view);
+        Assert.Contains("Phần công thức", view);
+        Assert.Contains("policyQuantityUnit", script);
         Assert.DoesNotContain("Contract theo DrinkSize", renderedScope, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("policy active", renderedScope, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(">DRINK_RECIPE<", renderedScope, StringComparison.OrdinalIgnoreCase);

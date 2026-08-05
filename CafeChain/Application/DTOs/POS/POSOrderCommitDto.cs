@@ -72,6 +72,7 @@ namespace CafeChain.Application.DTOs.POS
         public int? SizeId { get; set; }
         public int? StoreMenuItemId { get; set; }
         public int? DrinkSizeId { get; set; }
+        public int? RecipeIdSnapshot { get; set; }
         public decimal? AcceptedBasePrice { get; set; }
         public decimal? AcceptedUnitPrice { get; set; }
         public string? PriceSource { get; set; }
@@ -91,6 +92,8 @@ namespace CafeChain.Application.DTOs.POS
         public decimal? AcceptedPrice { get; set; }
         public string? Name { get; set; }
         public decimal? QuantityPerDrink { get; set; }
+        public string? QuantityUnit { get; set; }
+        public int? RecipeIdSnapshot { get; set; }
         public string? PriceTreatment { get; set; }
         public string? CostTreatment { get; set; }
     }

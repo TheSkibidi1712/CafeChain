@@ -210,7 +210,7 @@
 
     function renderPolicies() {
         const list = document.getElementById('policyList');
-        const activeMarkup = policyPayload.policies.length ? policyPayload.policies.map(x => `<article class="pf-policy-item"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${number(x.quantityPerDrink)} phần · ${escapeHtml(treatmentLabels[x.priceTreatment])} · ${escapeHtml(treatmentLabels[x.costTreatment])}${x.isDefaultSelected ? ' · Chọn mặc định trên POS' : ''}${x.isRequired ? ' · Bắt buộc' : ''}</p></div><button type="button" class="pf-row-button" data-edit-policy="${x.policyId}">Sửa</button></article>`).join('') : '<div class="pf-empty-policy">Chưa có chính sách topping đang áp dụng cho món và size này.</div>';
+        const activeMarkup = policyPayload.policies.length ? policyPayload.policies.map(x => `<article class="pf-policy-item"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${number(x.quantityPerDrink)} phần công thức · ${escapeHtml(treatmentLabels[x.priceTreatment])} · ${escapeHtml(treatmentLabels[x.costTreatment])}${x.isDefaultSelected ? ' · Chọn mặc định trên POS' : ''}${x.isRequired ? ' · Bắt buộc' : ''}</p></div><button type="button" class="pf-row-button" data-edit-policy="${x.policyId}">Sửa</button></article>`).join('') : '<div class="pf-empty-policy">Chưa có chính sách topping đang áp dụng cho món và size này.</div>';
         const reviewMarkup = (policyPayload.legacyReviews ?? []).map(x => `<article class="pf-policy-item pf-policy-review"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${escapeHtml(x.message)}</p></div><span class="pf-status pf-status-warning">Cần xác nhận</span></article>`).join('');
         list.innerHTML = activeMarkup + reviewMarkup;
         document.getElementById('policyTopping').innerHTML = policyPayload.options.map(x => `<option value="${x.toppingId}">${escapeHtml(x.name)} · ${currency(x.price)}</option>`).join('');
@@ -230,6 +230,7 @@
         document.getElementById('priceTreatment').value = policy.priceTreatment;
         document.getElementById('costTreatment').value = policy.costTreatment;
         document.getElementById('policyQuantity').value = policy.quantityPerDrink;
+        document.getElementById('policyQuantityUnit').value = policy.quantityUnit || 'RECIPE_PORTION';
         document.getElementById('policyDefaultSelected').checked = policy.isDefaultSelected;
         document.getElementById('policyRequired').checked = policy.isRequired;
         document.getElementById('policyReason').value = '';
@@ -243,6 +244,7 @@
         document.getElementById('priceTreatment').value = 'INCLUDED_IN_BASE_PRICE';
         document.getElementById('costTreatment').value = 'INCLUDED_IN_DRINK_RECIPE';
         document.getElementById('policyQuantity').value = '1';
+        document.getElementById('policyQuantityUnit').value = 'RECIPE_PORTION';
         document.getElementById('policyDefaultSelected').checked = true;
         document.getElementById('policyRequired').checked = false;
         document.getElementById('policyReason').value = '';
@@ -268,6 +270,7 @@
                 priceTreatment: document.getElementById('priceTreatment').value,
                 costTreatment: document.getElementById('costTreatment').value,
                 quantityPerDrink: Number(document.getElementById('policyQuantity').value),
+                quantityUnit: document.getElementById('policyQuantityUnit').value,
                 isActive: true,
                 expectedRowVersion: document.getElementById('policyRowVersion').value || null,
                 reason

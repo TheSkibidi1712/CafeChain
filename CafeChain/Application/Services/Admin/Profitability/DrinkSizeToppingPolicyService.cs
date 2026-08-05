@@ -33,6 +33,8 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Chỉ Chủ doanh nghiệp được cập nhật chính sách topping mặc định.");
             if (request.QuantityPerDrink <= 0)
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Số lượng topping trên mỗi đồ uống phải lớn hơn 0.");
+            if (!ToppingQuantityUnits.All.Contains(request.QuantityUnit))
+                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Đơn vị số lượng topping không hợp lệ.");
             if (request.IsRequired && !request.IsDefaultSelected)
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Topping bắt buộc phải được chọn mặc định.");
             if (!IsValidCombination(request.PriceTreatment, request.CostTreatment))
@@ -87,6 +89,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
             entity.PriceTreatment = request.PriceTreatment;
             entity.CostTreatment = request.CostTreatment;
             entity.QuantityPerDrink = request.QuantityPerDrink;
+            entity.QuantityUnit = request.QuantityUnit;
             entity.IsActive = request.IsActive;
             entity.UpdatedAtUtc = DateTime.UtcNow;
 
@@ -140,12 +143,12 @@ namespace CafeChain.Application.Services.Admin.Profitability
             ToppingName = x.Topping?.Name ?? string.Empty, ToppingPrice = x.Topping?.Price ?? 0,
             IsDefaultSelected = x.IsDefaultSelected, IsRequired = x.IsRequired,
             PriceTreatment = x.PriceTreatment, CostTreatment = x.CostTreatment,
-            QuantityPerDrink = x.QuantityPerDrink, IsActive = x.IsActive,
+            QuantityPerDrink = x.QuantityPerDrink, QuantityUnit = x.QuantityUnit, IsActive = x.IsActive,
             RowVersion = x.RowVersion.Length == 0 ? string.Empty : Convert.ToBase64String(x.RowVersion)
         };
 
         private static string Serialize(DrinkSizeToppingPolicy x) => JsonSerializer.Serialize(new
-        { x.DrinkSizeId, x.ToppingId, x.IsDefaultSelected, x.IsRequired, x.PriceTreatment, x.CostTreatment, x.QuantityPerDrink, x.IsActive });
+        { x.DrinkSizeId, x.ToppingId, x.IsDefaultSelected, x.IsRequired, x.PriceTreatment, x.CostTreatment, x.QuantityPerDrink, x.QuantityUnit, x.IsActive });
 
         private static bool IsActiveDuplicate(DbUpdateException ex)
         {

@@ -60,6 +60,16 @@ namespace CafeChain.Application.Constants
         public static readonly string[] All = { IncludedInDrinkRecipe, AddToppingRecipeCost, DisplayOnly };
     }
 
+    public static class ToppingQuantityUnits
+    {
+        /// <summary>One execution of the topping recipe; recipe lines own physical UOM conversion.</summary>
+        public const string RecipePortion = "RECIPE_PORTION";
+        public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+        {
+            RecipePortion
+        };
+    }
+
     public static class ProfitabilityTargetModes
     {
         public const string Margin = "MARGIN";

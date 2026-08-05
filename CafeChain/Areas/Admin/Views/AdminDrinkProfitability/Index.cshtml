@@ -171,7 +171,11 @@
                 <label><span>Topping</span><select id="policyTopping" class="pf-control"></select></label>
                 <label><span>Xử lý giá bán</span><select id="priceTreatment" class="pf-control"><option value="INCLUDED_IN_BASE_PRICE">Đã gồm trong giá gốc</option><option value="ADD_TOPPING_PRICE">Cộng giá topping</option></select></label>
                 <label><span>Xử lý giá vốn</span><select id="costTreatment" class="pf-control"><option value="INCLUDED_IN_DRINK_RECIPE">Đã gồm trong BOM đồ uống</option><option value="ADD_TOPPING_RECIPE_COST">Cộng thêm giá vốn topping</option></select></label>
-                <label><span>Số lượng mỗi ly</span><span class="pf-control-with-unit"><input id="policyQuantity" class="pf-control" type="number" min="0.00001" step="0.01" value="1" /><span>phần</span></span><small>Một phần tương ứng với một lần thực hiện công thức topping.</small></label>
+                <div class="pf-field-pair">
+                    <label><span>Số lượng mỗi ly</span><input id="policyQuantity" class="pf-control" type="number" min="0.00001" step="0.01" value="1" /></label>
+                    <label><span>Đơn vị</span><select id="policyQuantityUnit" class="pf-control"><option value="RECIPE_PORTION">Phần công thức</option></select></label>
+                </div>
+                <small>Một phần công thức tương ứng với một lần thực hiện BOM topping; nguyên liệu bên trong được quy đổi về đơn vị tồn kho.</small>
                 <label class="pf-check"><input type="checkbox" id="policyDefaultSelected" checked /><span>Chọn mặc định trên POS</span></label>
                 <label class="pf-check"><input type="checkbox" id="policyRequired" /><span>Bắt buộc chọn trên POS</span></label>
                 <label><span>Lý do thay đổi <strong aria-hidden="true">*</strong></span><textarea id="policyReason" class="pf-control" rows="2" maxlength="500" required></textarea></label>

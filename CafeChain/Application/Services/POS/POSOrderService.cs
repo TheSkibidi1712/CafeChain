@@ -1055,6 +1055,7 @@ namespace CafeChain.Application.Services.POS
                 SizeId = accepted.SizeId,
                 StoreMenuItemId = accepted.StoreMenuItemId,
                 DrinkSizeId = accepted.DrinkSizeId,
+                RecipeIdSnapshot = accepted.RecipeId,
                 DrinkName = accepted.DrinkName,
                 SizeName = accepted.SizeName,
                 Price = accepted.AcceptedUnitPrice,
@@ -1069,6 +1070,8 @@ namespace CafeChain.Application.Services.POS
                     ToppingName = x.Name,
                     Price = x.AcceptedPrice,
                     QuantityPerDrinkSnapshot = x.QuantityPerDrink,
+                    QuantityUnitSnapshot = x.QuantityUnit,
+                    RecipeIdSnapshot = x.RecipeId,
                     PriceTreatmentSnapshot = x.PriceTreatment,
                     CostTreatmentSnapshot = x.CostTreatment
                 }).ToList()

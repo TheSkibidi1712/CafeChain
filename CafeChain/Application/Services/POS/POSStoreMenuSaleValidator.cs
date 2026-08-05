@@ -55,6 +55,7 @@ namespace CafeChain.Application.Services.POS
 
             if (snapshot.Version != item.CatalogVersion
                 || size.Price != item.AcceptedBasePrice
+                || size.RecipeId != item.RecipeIdSnapshot
                 || !string.Equals(size.PriceSource, item.PriceSource, StringComparison.Ordinal))
             {
                 return Fail(
@@ -90,6 +91,7 @@ namespace CafeChain.Application.Services.POS
                 DrinkSizeId = size.DrinkSizeId,
                 DrinkId = menuItem.Id,
                 SizeId = size.SizeId,
+                RecipeId = size.RecipeId,
                 DrinkName = menuItem.Name,
                 SizeName = size.SizeName,
                 AcceptedBasePrice = size.Price,
@@ -136,6 +138,18 @@ namespace CafeChain.Application.Services.POS
                     POSCatalogSaleErrorCodes.SnapshotInvalid);
             }
 
+            var drinkRecipeMatches = await _context.Recipes.AsNoTracking().AnyAsync(x =>
+                x.RecipeId == item.RecipeIdSnapshot
+                && x.DrinkId == item.DrinkId
+                && x.ToppingId == null
+                && (x.SizeId == item.SizeId || x.SizeId == null), cancellationToken);
+            if (!drinkRecipeMatches)
+            {
+                return Fail(
+                    "Snapshot công thức đồ uống không khớp món và size gốc.",
+                    POSCatalogSaleErrorCodes.SnapshotInvalid);
+            }
+
             var selected = item.Toppings ?? new List<POSOrderToppingDto>();
             if (selected.GroupBy(x => x.ToppingId).Any(x => x.Count() > 1)
                 || selected.Any(x => !IsValidOfflineToppingSnapshot(x)))
@@ -166,12 +180,36 @@ namespace CafeChain.Application.Services.POS
                     POSCatalogSaleErrorCodes.ToppingInvalid);
             }
 
+
+            var toppingRecipeIds = selected
+                .Where(x => x.RecipeIdSnapshot.HasValue)
+                .Select(x => x.RecipeIdSnapshot!.Value)
+                .Distinct()
+                .ToArray();
+            var toppingRecipes = await _context.Recipes.AsNoTracking()
+                .Where(x => toppingRecipeIds.Contains(x.RecipeId))
+                .Select(x => new { x.RecipeId, x.ToppingId, x.DrinkId })
+                .ToListAsync(cancellationToken);
+            if (selected.Any(x =>
+                (x.CostTreatment ?? ToppingCostTreatments.AddToppingRecipeCost) == ToppingCostTreatments.AddToppingRecipeCost
+                && (!x.RecipeIdSnapshot.HasValue || !toppingRecipes.Any(r =>
+                    r.RecipeId == x.RecipeIdSnapshot.Value
+                    && r.ToppingId == x.ToppingId
+                    && r.DrinkId == null))))
+            {
+                return Fail(
+                    "Snapshot công thức topping không khớp topping gốc.",
+                    POSCatalogSaleErrorCodes.ToppingInvalid);
+            }
+
             var acceptedToppings = selected.Select(x => new POSAcceptedSaleToppingDto
             {
                 ToppingId = x.ToppingId,
                 Name = toppingRows.Single(y => y.ToppingId == x.ToppingId).Name,
                 AcceptedPrice = Money(x.AcceptedPrice!.Value),
                 QuantityPerDrink = x.QuantityPerDrink ?? 1m,
+                QuantityUnit = x.QuantityUnit ?? ToppingQuantityUnits.RecipePortion,
+                RecipeId = x.RecipeIdSnapshot,
                 PriceTreatment = x.PriceTreatment ?? ToppingPriceTreatments.AddToppingPrice,
                 CostTreatment = x.CostTreatment ?? ToppingCostTreatments.AddToppingRecipeCost
             }).ToList();
@@ -189,6 +227,7 @@ namespace CafeChain.Application.Services.POS
                 DrinkSizeId = menuRow.DrinkSizeId,
                 DrinkId = menuRow.DrinkSize.DrinkId,
                 SizeId = menuRow.DrinkSize.SizeId,
+                RecipeId = item.RecipeIdSnapshot!.Value,
                 DrinkName = menuRow.DrinkSize.Drink.Name,
                 SizeName = menuRow.DrinkSize.Size.Name,
                 AcceptedBasePrice = Money(item.AcceptedBasePrice.Value),
@@ -235,6 +274,14 @@ namespace CafeChain.Application.Services.POS
                 }
 
                 var policy = size.ToppingPolicies.SingleOrDefault(x => x.ToppingId == topping.Id);
+                var costTreatment = policy?.CostTreatment ?? ToppingCostTreatments.AddToppingRecipeCost;
+                var recipeId = policy?.RecipeId ?? topping.RecipeId;
+                if (costTreatment == ToppingCostTreatments.AddToppingRecipeCost && !recipeId.HasValue)
+                {
+                    return ServiceResult<IReadOnlyList<POSAcceptedSaleToppingDto>>.Failure(
+                        $"Topping {topping.Name} chưa có công thức giá vốn hợp lệ.",
+                        errorCode: POSCatalogSaleErrorCodes.ToppingInvalid);
+                }
                 var expectedPrice = policy?.PriceTreatment == ToppingPriceTreatments.IncludedInBasePrice
                     ? 0m
                     : Money(topping.Price * (policy?.QuantityPerDrink ?? 1m));
@@ -251,8 +298,10 @@ namespace CafeChain.Application.Services.POS
                     Name = topping.Name,
                     AcceptedPrice = expectedPrice,
                     QuantityPerDrink = policy?.QuantityPerDrink ?? 1m,
+                    QuantityUnit = policy?.QuantityUnit ?? ToppingQuantityUnits.RecipePortion,
+                    RecipeId = recipeId,
                     PriceTreatment = policy?.PriceTreatment ?? ToppingPriceTreatments.AddToppingPrice,
-                    CostTreatment = policy?.CostTreatment ?? ToppingCostTreatments.AddToppingRecipeCost
+                    CostTreatment = costTreatment
                 });
             }
 
@@ -265,12 +314,16 @@ namespace CafeChain.Application.Services.POS
                 return false;
 
             var quantity = topping.QuantityPerDrink ?? 1m;
+            var quantityUnit = topping.QuantityUnit ?? ToppingQuantityUnits.RecipePortion;
             var priceTreatment = topping.PriceTreatment ?? ToppingPriceTreatments.AddToppingPrice;
             var costTreatment = topping.CostTreatment ?? ToppingCostTreatments.AddToppingRecipeCost;
             return quantity > 0
+                && ToppingQuantityUnits.All.Contains(quantityUnit)
                 && ToppingPriceTreatments.All.Contains(priceTreatment)
                 && (costTreatment == ToppingCostTreatments.IncludedInDrinkRecipe
-                    || costTreatment == ToppingCostTreatments.AddToppingRecipeCost);
+                    || costTreatment == ToppingCostTreatments.AddToppingRecipeCost)
+                && (costTreatment != ToppingCostTreatments.AddToppingRecipeCost
+                    || topping.RecipeIdSnapshot.HasValue);
         }
 
         private static ServiceResult<POSAcceptedSaleLineDto>? ValidateRequiredSnapshot(POSOrderItemDto item)
@@ -279,6 +332,8 @@ namespace CafeChain.Application.Services.POS
                 return Fail("Số lượng món phải lớn hơn 0.", POSCatalogSaleErrorCodes.SnapshotInvalid);
             if (!item.StoreMenuItemId.HasValue
                 || !item.DrinkSizeId.HasValue
+                || !item.RecipeIdSnapshot.HasValue
+                || item.RecipeIdSnapshot.Value <= 0
                 || !item.SizeId.HasValue
                 || !item.AcceptedBasePrice.HasValue
                 || !item.AcceptedUnitPrice.HasValue
