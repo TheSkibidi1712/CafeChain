@@ -24,6 +24,27 @@ namespace CafeChain.Application.Constants
         public const string Incomplete = "INCOMPLETE";
     }
 
+    public static class ProfitabilityCostSections
+    {
+        public const string BaseBom = "BASE_BOM";
+        public const string PreparedItem = "PREPARED_ITEM";
+        public const string DefaultTopping = "DEFAULT_TOPPING";
+        public const string UnitConversion = "UNIT_CONVERSION";
+    }
+
+    public static class ProfitabilityComponentSources
+    {
+        public const string BaseBom = "BASE_BOM";
+        public const string DefaultTopping = "DEFAULT_TOPPING";
+    }
+
+    public static class ProfitabilityComponentTypes
+    {
+        public const string Ingredient = "Ingredient";
+        public const string PreparedItem = "PreparedItem";
+        public const string Topping = "Topping";
+    }
+
     public static class ToppingPriceTreatments
     {
         public const string IncludedInBasePrice = "INCLUDED_IN_BASE_PRICE";
