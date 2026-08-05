@@ -595,7 +595,11 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         var page = await service.GetPageAsync(new PurchaseAdviceFilterDto { StoreId = seed.StoreId }, Manager(seed));
         Assert.True(page.IsSuccess, page.Message);
         Assert.Single(page.Data!.Items);
-        Assert.Equal("#" + seed.RestockRequestId, page.Data.Items.Single().SourceRestockSummary);
+        var referenceCode = await context.RestockRequests
+            .Where(x => x.RestockRequestId == seed.RestockRequestId)
+            .Select(x => x.ReferenceCode)
+            .SingleAsync();
+        Assert.Equal(referenceCode, page.Data.Items.Single().SourceRestockSummary);
         Assert.Empty(context.PurchaseOrders);
     }
 

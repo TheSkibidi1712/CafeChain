@@ -31,6 +31,7 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
     public class PurchaseAdviceSourceDto
     {
         public int RestockRequestId { get; set; }
+        public string RestockReferenceCode { get; set; } = string.Empty;
         public int StoreId { get; set; }
         public string StoreName { get; set; } = string.Empty;
         public int IngredientId { get; set; }

@@ -51,6 +51,7 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
         public int PurchaseOrderLineId { get; set; }
         public int? RestockRequestId { get; set; }
+        public string? RestockReferenceCode { get; set; }
         public int IngredientId { get; set; }
         public string IngredientName { get; set; } = string.Empty;
         public string BaseUnitName { get; set; } = string.Empty;

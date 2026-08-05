@@ -864,6 +864,14 @@ namespace CafeChain.Application.Services.Inventories
                     .ThenInclude(x => x.BranchReceiptLine)
                 .SingleOrDefaultAsync(x => x.PurchaseOrderId == id);
             if (order == null) return new PurchaseOrderDetailDto();
+            var restockIds = order.Lines
+                .Where(x => x.RestockRequestId.HasValue)
+                .Select(x => x.RestockRequestId!.Value)
+                .Distinct()
+                .ToArray();
+            var restockReferences = await _context.RestockRequests.AsNoTracking()
+                .Where(x => restockIds.Contains(x.RestockRequestId))
+                .ToDictionaryAsync(x => x.RestockRequestId, x => x.ReferenceCode);
             var activeReceiptDraftId = await _context.BranchReceipts
                 .AsNoTracking()
                 .Where(x => x.PurchaseOrderId == order.PurchaseOrderId
@@ -901,6 +909,9 @@ namespace CafeChain.Application.Services.Inventories
                         PurchaseMode = x.PurchaseMode,
                         PurchaseOrderLineId = x.PurchaseOrderLineId,
                         RestockRequestId = x.RestockRequestId,
+                        RestockReferenceCode = x.RestockRequestId.HasValue
+                            ? restockReferences.GetValueOrDefault(x.RestockRequestId.Value)
+                            : null,
                         IngredientId = x.IngredientId,
                         IngredientName = x.Ingredient.Name,
                         BaseUnitName = x.Ingredient.BaseUnit.Name,
