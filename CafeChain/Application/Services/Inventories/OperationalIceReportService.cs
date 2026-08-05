@@ -188,7 +188,7 @@ public sealed class OperationalIceReportService : IOperationalIceReportService
                 }).ToList()
         };
 
-        return ServiceResult<OperationalIceReportDto>.Success(report, "Đã lập báo cáo đá từ dữ liệu ledger.");
+        return ServiceResult<OperationalIceReportDto>.Success(report, "Đã lập báo cáo đá từ dữ liệu giao dịch kho.");
     }
 
     private static string ResolveCostStatus(
@@ -200,12 +200,12 @@ public sealed class OperationalIceReportService : IOperationalIceReportService
         if (!actualUsage.HasValue)
             return "Chưa chốt ca";
         if (!theoreticalCost.HasValue)
-            return "Thiếu giá vốn FIFO/ledger cho giao dịch bán";
+            return "Thiếu dữ liệu giá vốn theo phiếu xuất kho cho giao dịch bán";
         if (variance is < 0)
-            return "Cần đối soát; hệ thống không ghi tăng tồn tự động";
+            return "Cần đối soát; hệ thống không tự tăng tồn kho.";
         if (variance is > 0 && !varianceCost.HasValue)
-            return "Chênh lệch chưa có bút toán giá vốn hoàn chỉnh";
-        return "Đầy đủ theo FIFO/ledger";
+            return "Chênh lệch chưa có đủ dữ liệu giá vốn.";
+        return "Đủ dữ liệu giá vốn theo phiếu xuất kho";
     }
 
     private sealed record LedgerMovement(InventoryTransactionTypeEnum Type, decimal Quantity, decimal? TotalCost);

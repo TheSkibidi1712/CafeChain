@@ -67,7 +67,7 @@ public sealed class OperationalIceReportEndToEndIssue250Tests : IntegrationTestB
         Assert.Equal(14_000m, result.Data.TheoreticalCost);
         Assert.Equal(2_500m, result.Data.VarianceCost);
         Assert.Equal(16_500m, result.Data.ActualCost);
-        Assert.Equal("Đầy đủ theo FIFO/ledger", result.Data.CostStatus);
+        Assert.Equal("Đủ dữ liệu giá vốn theo phiếu xuất kho", result.Data.CostStatus);
         var posting = Assert.Single(result.Data.InventoryPostings);
         Assert.Equal(setup.VarianceTransactionId, posting.InventoryTransactionId);
         Assert.Equal("IceVariancePosting:250:2", posting.IdempotencyKey);
@@ -85,7 +85,7 @@ public sealed class OperationalIceReportEndToEndIssue250Tests : IntegrationTestB
         Assert.True(result.IsSuccess, result.Message);
         Assert.Null(result.Data.TheoreticalCost);
         Assert.Null(result.Data.ActualCost);
-        Assert.Contains("Thiếu giá vốn FIFO/ledger", result.Data.CostStatus);
+        Assert.Contains("Thiếu dữ liệu giá vốn theo phiếu xuất kho", result.Data.CostStatus);
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public sealed class OperationalIceReportEndToEndIssue250Tests : IntegrationTestB
         Assert.Contains("Cấp đầu ca", view);
         Assert.Contains("Cấp bổ sung", view);
         Assert.Contains("Tồn chuyển cuối ca", view);
-        Assert.Contains("Dùng thực tế", view);
+        Assert.Contains("Tiêu hao thực tế", view);
         Assert.Contains("Dùng theo POS", view);
         Assert.Contains("Chênh lệch", view);
         Assert.Contains("Giá vốn theo POS", view);
@@ -125,7 +125,7 @@ public sealed class OperationalIceReportEndToEndIssue250Tests : IntegrationTestB
         Assert.Contains("Giá vốn thực tế", view);
         Assert.Contains("Người giao / nhận / duyệt", view);
         Assert.Contains("Tham chiếu bút toán kho", view);
-        Assert.Contains("WorkShift POS", view);
+        Assert.Contains("Ca bán hàng POS", view);
         Assert.Contains("@media (max-width: 640px)", css);
         Assert.Contains("@media print", css);
     }

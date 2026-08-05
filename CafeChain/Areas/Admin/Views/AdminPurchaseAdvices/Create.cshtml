@@ -85,7 +85,7 @@
                 <table class="pa-table pa-create-source-table">
                     <thead>
                         <tr>
-                            <th>Chọn</th><th>Yêu cầu / chi nhánh</th><th>Nguyên liệu</th><th class="pa-number">Tổng nhu cầu</th><th class="pa-number">Đã chọn mua / đang chờ PA</th><th class="pa-number">Còn có thể đề nghị</th><th>Ngày cần</th><th>Ưu tiên</th><th>Nguồn cung</th><th class="pa-number">Số lượng đề nghị</th>
+                            <th>Chọn</th><th>Yêu cầu / chi nhánh</th><th>Nguyên liệu</th><th class="pa-number">Tổng nhu cầu mua ngoài</th><th class="pa-number">Đã có trong đề nghị mua</th><th class="pa-number">Chưa lập đề nghị mua</th><th>Ngày cần</th><th>Ưu tiên</th><th>Nguồn cung</th><th class="pa-number">Số lượng đề nghị</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -100,8 +100,11 @@
                         var pendingPurchase = usesProcurement
                             ? source.PendingPurchaseAllocationProcurementQuantity.GetValueOrDefault()
                             : source.PendingPurchaseAllocationBaseQuantity;
+                        var proposed = usesProcurement
+                            ? source.ExistingPurchaseAdviceProcurementQuantity.GetValueOrDefault()
+                            : source.ExistingPurchaseAdviceQuantity;
                         var eligible = EligibleQuantity(source);
-                        var unitName = usesProcurement ? source.ProcurementUnitName : source.BaseUnitName;
+                        var unitName = AdminStatusDisplay.Unit(usesProcurement ? source.ProcurementUnitName : source.BaseUnitName);
                         var sourcingLabel = source.SourcingStatus switch { "FULLY_ALLOCATED" => "Đã phân bổ đủ", "PARTIALLY_ALLOCATED" => "Đã phân bổ một phần", _ => "Chưa phân bổ đủ" };
                         var modelLine = Model.Lines.FirstOrDefault(x => x.RestockRequestId == source.RestockRequestId);
                         var modelQuantity = usesProcurement
@@ -109,11 +112,11 @@
                             : modelLine?.RequestedPurchaseBaseQuantity ?? 0m;
                         var initialQuantity = isSelected && modelQuantity > 0 ? Math.Min(modelQuantity, eligible) : isSelected ? eligible : 0m;
                         <tr data-source-row>
-                            <td><input class="pa-check" type="checkbox" name="selectedRestockIds" value="@source.RestockRequestId" checked="@isSelected" @(eligible <= 0 ? "disabled" : null) aria-label="Chọn yêu cầu #@source.RestockRequestId" /></td>
-                            <td><a class="pa-code" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@source.RestockRequestId">#@source.RestockRequestId</a><div class="pa-muted">@source.StoreName</div><input type="hidden" name="Lines[@i].RestockRequestId" value="@source.RestockRequestId" /><input type="hidden" name="Lines[@i].RestockRowVersion" value="@source.RestockRowVersion" /></td>
+                            <td><input class="pa-check" type="checkbox" name="selectedRestockIds" value="@source.RestockRequestId" checked="@isSelected" @(eligible <= 0 ? "disabled" : null) aria-label="Chọn @AdminStatusDisplay.RestockReference(source.RestockReferenceCode, source.RestockRequestId)" /></td>
+                            <td><a class="pa-code" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@source.RestockRequestId">@AdminStatusDisplay.RestockReference(source.RestockReferenceCode, source.RestockRequestId)</a><div class="pa-muted">@source.StoreName</div><input type="hidden" name="Lines[@i].RestockRequestId" value="@source.RestockRequestId" /><input type="hidden" name="Lines[@i].RestockRowVersion" value="@source.RestockRowVersion" /></td>
                             <td><strong>@source.IngredientName</strong><div class="pa-muted">@unitName</div></td>
                             <td class="pa-number">@AdminStatusDisplay.Quantity(requested) @unitName</td>
-                            <td class="pa-number">@AdminStatusDisplay.Quantity(pendingPurchase) @unitName</td>
+                            <td class="pa-number">@AdminStatusDisplay.Quantity(proposed) @unitName</td>
                             <td class="pa-number"><strong>@AdminStatusDisplay.Quantity(eligible) @unitName</strong></td>
                             <td>@(source.NeedByDate?.ToLocalTime().ToString("dd/MM/yyyy") ?? "Chưa đặt")<input type="hidden" name="Lines[@i].NeededByDate" value="@(source.NeedByDate?.ToString("yyyy-MM-dd") ?? Model.NeededByDate.ToString("yyyy-MM-dd"))" /></td>
                             <td><span class="pa-badge pa-priority-@source.Priority.ToLowerInvariant()">@AdminStatusDisplay.RestockRequestPriority(source.Priority).Label</span></td>

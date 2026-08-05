@@ -58,7 +58,7 @@
                             <td>
                                 @if (line.RestockRequestId.HasValue)
                                 {
-                                    <a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@line.RestockRequestId" asp-route-storeId="@Model.StoreId">#@line.RestockRequestId</a>
+                                    <a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@line.RestockRequestId" asp-route-storeId="@Model.StoreId">@AdminStatusDisplay.RestockReference(line.RestockReferenceCode, line.RestockRequestId.Value)</a>
                                 }
                                 else
                                 {
@@ -66,9 +66,9 @@
                                 }
                             </td>
                             <td><strong>@identity</strong><div class="ops-secondary">Dòng #@line.BranchReceiptLineId</div></td>
-                            <td class="number">@AdminStatusDisplay.Quantity(line.InputQuantity) @(line.InputUnitName ?? $"u{line.InputUnitId}")</td>
-                            <td class="number">@AdminStatusDisplay.Quantity(line.ReceivedBaseQuantity) @(line.BaseUnitName ?? $"u{line.BaseUnitId}")</td>
-                            <td class="number">@AdminStatusDisplay.Quantity(line.RejectedBaseQuantity)</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.InputQuantity) @AdminStatusDisplay.Unit(line.InputUnitName ?? $"u{line.InputUnitId}")</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.ReceivedBaseQuantity) @AdminStatusDisplay.Unit(line.BaseUnitName ?? $"u{line.BaseUnitId}")</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.RejectedBaseQuantity) @AdminStatusDisplay.Unit(line.BaseUnitName ?? $"u{line.BaseUnitId}")</td>
                             <td class="number">@AdminStatusDisplay.Currency(line.BaseUnitCostSnapshot)</td>
                             <td class="number fw-bold">@AdminStatusDisplay.Currency(line.LineTotalCost)</td>
                             <td>@(line.InventoryTransactionId.HasValue ? $"#{line.InventoryTransactionId}" : "Chưa ghi kho")</td>

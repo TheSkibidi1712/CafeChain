@@ -140,6 +140,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
         public int BranchReceiptLineId { get; set; }
         public int? RestockRequestId { get; set; }
+        public string? RestockReferenceCode { get; set; }
         public int? PurchaseOrderLineId { get; set; }
         public int? IngredientId { get; set; }
         public int? PreparedItemId { get; set; }
@@ -243,8 +244,10 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;
         public int PurchaseOrderLineId { get; set; }
         public int? RestockRequestId { get; set; }
+        public string? RestockReferenceCode { get; set; }
         public int IngredientId { get; set; }
         public string IngredientName { get; set; } = string.Empty;
+        public string BaseUnitName { get; set; } = string.Empty;
         public string PackageUnitName { get; set; } = string.Empty;
         public decimal? PackageQuantitySnapshot { get; set; }
         public decimal? PackagePriceSnapshot { get; set; }

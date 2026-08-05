@@ -5,15 +5,6 @@
     ViewData["Title"] = "Quản lý đá theo ca";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 
-    var statusLabels = new Dictionary<string, string>(StringComparer.Ordinal)
-    {
-        [OperationalIceStatuses.Draft] = "Kế hoạch",
-        [OperationalIceStatuses.Open] = "Đang vận hành",
-        [OperationalIceStatuses.PendingApproval] = "Chờ duyệt chênh lệch",
-        [OperationalIceStatuses.ReconciliationRequired] = "Cần đối soát",
-        [OperationalIceStatuses.Closed] = "Đã đóng",
-        [OperationalIceStatuses.Cancelled] = "Đã hủy"
-    };
     var statusClasses = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         [OperationalIceStatuses.Draft] = "ice-badge-neutral",
@@ -23,7 +14,7 @@
         [OperationalIceStatuses.Closed] = "ice-badge-closed",
         [OperationalIceStatuses.Cancelled] = "ice-badge-neutral"
     };
-    string StatusLabel(string value) => statusLabels.TryGetValue(value, out var label) ? label : value;
+    string StatusLabel(string value) => OperationalIceDisplayText.Status(value);
     string StatusClass(string value) => statusClasses.TryGetValue(value, out var css) ? css : "ice-badge-neutral";
     string InputNumber(decimal value) => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
     var viCulture = CultureInfo.GetCultureInfo("vi-VN");
@@ -244,7 +235,7 @@
                     <span class="ice-section-kicker">Kế hoạch</span>
                     <h2>Tạo ca vận hành</h2>
                 </div>
-                <p>Một ca vận hành có thể liên kết nhiều WorkShift POS.</p>
+                <p>Một ca đá có thể liên kết nhiều ca bán hàng POS.</p>
             </div>
             @if (!Model.HasValidPolicy)
             {
@@ -416,7 +407,7 @@
             <div class="ice-empty cc-warehouse-empty" role="status">
                 <i class="fa-solid fa-cubes-stacked" aria-hidden="true"></i>
                 <h3>Chưa có ca vận hành</h3>
-                <p>Tạo ca đầu tiên để xác nhận cấp đá và liên kết WorkShift POS.</p>
+                <p>Tạo ca đầu tiên để xác nhận cấp đá và liên kết ca bán hàng POS.</p>
             </div>
         }
         else
@@ -443,8 +434,8 @@
                                     <strong>@row.ShiftName</strong>
                                     <small>
                                         Ca #@row.OperationalShiftId ·
-                                        @(row.CreationSource == OperationalIceCreationSources.StaffSchedule ? "Lịch làm việc" : "Thủ công") ·
-                                        Đã liên kết @row.LinkedWorkShiftCount ca POS
+                                        @OperationalIceDisplayText.CreationSource(row.CreationSource) ·
+                                        Đã liên kết @row.LinkedWorkShiftCount ca bán hàng POS
                                     </small>
                                     @if (row.ScheduleReview is { HasChanges: true } scheduleReview)
                                     {

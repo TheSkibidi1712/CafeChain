@@ -71,7 +71,13 @@ namespace CafeChain.Application.Services.Inventories
             var itemIds = items.Select(x => x.PurchaseAdviceId).ToArray();
             var sourceRows = await _context.PurchaseAdviceLines.AsNoTracking()
                 .Where(x => itemIds.Contains(x.PurchaseAdviceId))
-                .Select(x => new { x.PurchaseAdviceId, x.RestockRequestId, x.RequestedPurchaseBaseQuantity })
+                .Select(x => new
+                {
+                    x.PurchaseAdviceId,
+                    x.RestockRequestId,
+                    x.RestockRequest.ReferenceCode,
+                    x.RequestedPurchaseBaseQuantity
+                })
                 .ToListAsync();
             var sourcesByAdvice = sourceRows.GroupBy(x => x.PurchaseAdviceId).ToDictionary(x => x.Key, x => x.ToList());
             foreach (var item in items)
@@ -79,7 +85,10 @@ namespace CafeChain.Application.Services.Inventories
                 var lines = sourcesByAdvice.GetValueOrDefault(item.PurchaseAdviceId) ?? new();
                 item.SourceRestockSummary = lines.Count == 0
                     ? "—"
-                    : string.Join(", ", lines.OrderBy(x => x.RestockRequestId).Select(x => "#" + x.RestockRequestId));
+                    : string.Join(", ", lines.OrderBy(x => x.RestockRequestId)
+                        .Select(x => string.IsNullOrWhiteSpace(x.ReferenceCode)
+                            ? "Yêu cầu nhập hàng #" + x.RestockRequestId
+                            : x.ReferenceCode));
                 item.LineCount = lines.Count;
                 item.TotalRequestedBaseQuantity = lines.Sum(x => x.RequestedPurchaseBaseQuantity);
             }
@@ -123,7 +132,6 @@ namespace CafeChain.Application.Services.Inventories
                 var source = await BuildSourceAsync(requestId, null, false);
                 if (source != null
                     && HasRemainingToPurchase(source)
-                    && source.ExistingPurchaseAdviceQuantity == 0
                     && (string.Equals(
                             source.SourceType,
                             RestockRequestSourceTypes.Legacy,
@@ -768,6 +776,7 @@ namespace CafeChain.Application.Services.Inventories
             return new PurchaseAdviceSourceDto
             {
                 RestockRequestId = request.RestockRequestId,
+                RestockReferenceCode = request.ReferenceCode,
                 StoreId = request.StoreId,
                 StoreName = request.Store.Name,
                 IngredientId = request.IngredientId.Value,
@@ -836,6 +845,7 @@ namespace CafeChain.Application.Services.Inventories
                 {
                     PurchaseAdviceLineId = line.PurchaseAdviceLineId,
                     RestockRequestId = source.RestockRequestId,
+                    RestockReferenceCode = source.RestockReferenceCode,
                     StoreId = source.StoreId,
                     StoreName = source.StoreName,
                     IngredientId = source.IngredientId,
@@ -956,9 +966,7 @@ namespace CafeChain.Application.Services.Inventories
                 or RoleConstants.SystemAdmin);
 
         private static bool CanCreate(AdminActorContext actor) =>
-            HasRole(actor, RoleConstants.StoreManager)
-            || HasRole(actor, RoleConstants.AccountantWarehouse)
-            || HasRole(actor, RoleConstants.BusinessOwner)
+            HasRole(actor, RoleConstants.AccountantWarehouse)
             || HasRole(actor, RoleConstants.SystemAdmin);
         private async Task<bool> CanCreateForStoreAsync(AdminActorContext actor, int storeId)
             => CanCreate(actor)
@@ -969,7 +977,6 @@ namespace CafeChain.Application.Services.Inventories
 
         private async Task<bool> CanReviewStoreAsync(AdminActorContext actor, int storeId)
             => (HasRole(actor, RoleConstants.SystemAdmin)
-                || HasRole(actor, RoleConstants.BusinessOwner)
                 || HasRole(actor, RoleConstants.AccountantWarehouse))
                && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
         private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);

@@ -20,7 +20,7 @@ public class PurchaseAdviceFulfillmentPosting
 {
     public long PurchaseAdviceFulfillmentPostingId { get; set; }
     public int PurchaseAdviceLineId { get; set; }
-    public int PurchaseOrderLineAllocationId { get; set; }
+    public int? PurchaseOrderLineAllocationId { get; set; }
     public int PurchaseOrderLineId { get; set; }
     public int? BranchReceiptLineId { get; set; }
     public string? CloseOperationKey { get; set; }
@@ -35,7 +35,7 @@ public class PurchaseAdviceFulfillmentPosting
     public DateTime CreatedAtUtc { get; set; }
 
     public virtual PurchaseAdviceLine PurchaseAdviceLine { get; set; } = null!;
-    public virtual PurchaseOrderLineAllocation PurchaseOrderLineAllocation { get; set; } = null!;
+    public virtual PurchaseOrderLineAllocation? PurchaseOrderLineAllocation { get; set; }
     public virtual PurchaseOrderLine PurchaseOrderLine { get; set; } = null!;
     public virtual BranchReceiptLine? BranchReceiptLine { get; set; }
     public virtual Unit BaseUnit { get; set; } = null!;
