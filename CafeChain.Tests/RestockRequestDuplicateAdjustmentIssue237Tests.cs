@@ -8,6 +8,7 @@ using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Permissions;
 using CafeChain.Models.Staffs;
@@ -156,6 +157,7 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
         var created = await service.CreateManualAsync(Request(StoreA, "ADJUST-1"), ManagerA);
         var demand = await context.RestockRequests.SingleAsync();
         demand.Status = RestockRequestStatuses.Processing;
+        demand.SourcingDecision = RestockSourcingDecisionTypes.Purchase;
         context.RestockSourcingAllocations.Add(new RestockSourcingAllocation
         {
             RestockRequestId = demand.RestockRequestId,
@@ -185,7 +187,13 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
         var updated = await context.RestockRequests.Include(x => x.SourcingAllocations).SingleAsync();
         Assert.Equal(13m, updated.RequestedProcurementQuantity);
         Assert.Equal(13_000m, updated.RequestedQuantity);
-        Assert.Equal(4m, updated.SourcingAllocations.Single().ProcurementQuantity);
+        Assert.Equal(new[] { 3m, 4m }, updated.SourcingAllocations
+            .Select(x => x.ProcurementQuantity)
+            .OrderBy(x => x));
+        var supplemental = updated.SourcingAllocations.Single(x => x.ProcurementQuantity == 3m);
+        Assert.Equal(RestockSourcingDecisionTypes.Purchase, supplemental.DecisionType);
+        Assert.Equal(RestockSourcingAllocationStatuses.PendingPurchaseAdvice, supplemental.Status);
+        Assert.Contains("Tăng nhu cầu cuối tuần", supplemental.Reason);
         Assert.Equal(RestockSourcingStatuses.PartiallyAllocated, updated.SourcingStatus);
         Assert.Empty(await context.PurchaseAdvices.ToListAsync());
         Assert.Empty(await context.PurchaseOrders.ToListAsync());
@@ -196,6 +204,80 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
         Assert.Equal(13m, audit.QuantityAfter);
         Assert.Equal("Tăng nhu cầu cuối tuần", audit.Reason);
         Assert.StartsWith(RestockRequestAuditKeys.DemandAdjustmentPrefix, audit.RequestKey);
+    }
+
+    [Fact]
+    public async Task RestockDemandIncrease_ReconcilesMutableUnderReviewPa_From1To10Kg()
+    {
+        using var context = CreateDbContext();
+        await SeedAsync(context);
+        var service = CreateService(context);
+        var created = await service.CreateManualAsync(Request(StoreA, "PA-RECONCILE"), ManagerA);
+        var demand = await context.RestockRequests.SingleAsync();
+        demand.Status = RestockRequestStatuses.Processing;
+        demand.SourcingDecision = RestockSourcingDecisionTypes.Purchase;
+        demand.SourcingStatus = RestockSourcingStatuses.FullyAllocated;
+        demand.RequestedProcurementQuantity = 1m;
+        demand.RequestedQuantity = 1_000m;
+        var advice = new PurchaseAdvice
+        {
+            AdviceNumber = "PA-ISSUE-305",
+            RequestKey = "PA-ISSUE-305",
+            StoreId = StoreA,
+            RequestedByStaffId = WarehouseStaff,
+            Status = PurchaseAdviceStatuses.UnderReview,
+            NeededByDate = DateTime.UtcNow.AddDays(2),
+            Priority = PurchaseAdvicePriorities.Normal,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+        var line = new PurchaseAdviceLine
+        {
+            RestockRequest = demand,
+            IngredientId = IngredientId,
+            RequestedPurchaseBaseQuantity = 1_000m,
+            RequestedProcurementQuantity = 1m,
+            ProcurementUnitId = ProcurementUnitId,
+            BaseUnitId = BaseUnitId,
+            NeededByDate = DateTime.UtcNow.AddDays(2),
+            IsActiveReservation = true
+        };
+        advice.Lines.Add(line);
+        context.PurchaseAdvices.Add(advice);
+        demand.SourcingAllocations.Add(new RestockSourcingAllocation
+        {
+            DecisionType = RestockSourcingDecisionTypes.Purchase,
+            ProcurementQuantity = 1m,
+            ProcurementUnitId = ProcurementUnitId,
+            Status = RestockSourcingAllocationStatuses.Active,
+            PurchaseAdviceLine = line,
+            CreatedByStaffId = WarehouseStaff,
+            CreatedAtUtc = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        var result = await service.AddDemandAdjustmentAsync(
+            Adjustment(created.Data!.RestockRequestId, demand.RowVersion, "increase-1-to-10", 9m),
+            ManagerA);
+
+        Assert.True(result.IsSuccess, result.Message);
+        context.ChangeTracker.Clear();
+        var updated = await context.RestockRequests
+            .Include(x => x.SourcingAllocations)
+            .SingleAsync();
+        var updatedAdvice = await context.PurchaseAdvices
+            .Include(x => x.Lines)
+            .Include(x => x.Transitions)
+            .SingleAsync();
+        Assert.Equal(10m, updated.RequestedProcurementQuantity);
+        Assert.Equal(10_000m, updated.RequestedQuantity);
+        Assert.Equal(10m, updated.SourcingAllocations.Sum(x => x.ProcurementQuantity));
+        Assert.Equal(10m, updatedAdvice.Lines.Single().RequestedProcurementQuantity);
+        Assert.Equal(10_000m, updatedAdvice.Lines.Single().RequestedPurchaseBaseQuantity);
+        Assert.Equal(PurchaseAdviceStatuses.Submitted, updatedAdvice.Status);
+        Assert.Contains(updatedAdvice.Transitions, x =>
+            x.PreviousStatus == PurchaseAdviceStatuses.UnderReview
+            && x.NewStatus == PurchaseAdviceStatuses.Submitted);
     }
 
     [Fact]

@@ -166,7 +166,7 @@ public sealed class OperationalIceWorkShiftLinkHardeningTests : IntegrationTestB
         Assert.True(linked.IsSuccess, linked.Message);
         Assert.False(conflict.IsSuccess);
         Assert.Equal(OperationalIceErrorCodes.WorkShiftAlreadyLinked, conflict.ErrorCode);
-        Assert.Contains("ca vận hành khác", conflict.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ca đá khác", conflict.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Single(await context.OperationalShiftWorkShifts.AsNoTracking().ToListAsync());
     }
 

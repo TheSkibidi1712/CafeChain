@@ -2,6 +2,7 @@
 @using CafeChain.Models.Inventories.Suppliers
 @using CafeChain.Models.Stores
 @using CafeChain.Models.Enums.Inventory
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Tạo đơn đặt hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -73,7 +74,7 @@
                     <div class="col-md-2">
                         <span class="ops-form-label">Nguồn nhu cầu</span>
                         <input asp-for="Lines[i].RestockRequestId" type="hidden" />
-                        <div class="ops-readonly-field restock-reference" aria-readonly="true">@(Model.Lines[i].RestockRequestId.HasValue ? $"Yêu cầu nhập hàng #{Model.Lines[i].RestockRequestId}" : "Mua chủ động")</div>
+                        <div class="ops-readonly-field restock-reference" aria-readonly="true">@(Model.Lines[i].RestockRequestId.HasValue ? AdminStatusDisplay.RestockReference(Model.Lines[i].RestockReferenceCode, Model.Lines[i].RestockRequestId.Value) : "Mua chủ động")</div>
                     </div>
                     <div class="col-md-5"><label class="ops-form-label" asp-for="Lines[i].IngredientSupplierId">Quy cách và giá cung cấp</label><select asp-for="Lines[i].IngredientSupplierId" class="ops-select w-100 po-offer" data-index="@i" required><option value="">Chọn quy cách cung cấp</option>@foreach(var x in offers){<option value="@x.IngredientSupplierId" data-ingredient="@x.IngredientId" data-supplier="@x.SupplierId" data-allows-loose="@x.AllowsLoosePurchase.ToString().ToLowerInvariant()" data-loose-unit-id="@x.LooseProcurementUnitId" data-loose-unit="@x.LooseProcurementUnit?.Name" data-loose-price="@x.CurrentProcurementUnitPrice">@x.Ingredient.Name · @x.Supplier.Name · @(x.PackageQuantity > 0 ? $"{x.PackageQuantity} {x.Unit.Name} · {x.CurrentPrice:N0} ₫/gói" : "không có gói")@(x.AllowsLoosePurchase ? $" · mua rời {x.CurrentProcurementUnitPrice:N0} ₫/{x.LooseProcurementUnit?.Name}" : "")</option>}</select><input asp-for="Lines[i].IngredientId" type="hidden" /><input asp-for="Lines[i].ProcurementUnitId" type="hidden" class="po-procurement-unit" /></div>
                     <div class="col-md-2"><label class="ops-form-label" asp-for="Lines[i].PurchaseMode">Hình thức</label><select asp-for="Lines[i].PurchaseMode" class="ops-select w-100 po-mode"><option value="@PurchaseMode.Packaged">Đóng gói</option><option value="@PurchaseMode.Loose">Mua rời</option></select><input asp-for="Lines[i].PackageCount" type="number" min="1" step="1" class="ops-input w-100 po-package-count mt-2" placeholder="Số gói" aria-label="Số gói" /><input asp-for="Lines[i].OrderedProcurementQuantity" type="number" min="0.001" step="0.001" class="ops-input w-100 po-loose-quantity mt-2" placeholder="Số lượng kg/L" aria-label="Số lượng mua rời" /><div class="ops-help po-mode-help">Đóng gói chỉ nhận số nguyên.</div></div>

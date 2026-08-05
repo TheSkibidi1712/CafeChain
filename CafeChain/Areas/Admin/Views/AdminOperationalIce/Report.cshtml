@@ -9,16 +9,7 @@
     string Quantity(decimal value) => $"{value.ToString("0.##", viCulture)} {unit}";
     string NullableQuantity(decimal? value) => value.HasValue ? Quantity(value.Value) : "Chưa chốt";
     string Money(decimal? value) => value.HasValue ? $"{value.Value.ToString("N0", viCulture)} đ" : "Chưa đủ dữ liệu";
-    string StatusLabel(string status) => status switch
-    {
-        OperationalIceStatuses.Draft => "Kế hoạch",
-        OperationalIceStatuses.Open => "Đang vận hành",
-        OperationalIceStatuses.PendingApproval => "Chờ duyệt chênh lệch",
-        OperationalIceStatuses.ReconciliationRequired => "Cần đối soát",
-        OperationalIceStatuses.Closed => "Đã đóng",
-        OperationalIceStatuses.Cancelled => "Đã hủy",
-        _ => status
-    };
+    string StatusLabel(string status) => OperationalIceDisplayText.Status(status);
 }
 <link rel="stylesheet" href="~/css/Admin/OperationalIce/operational-ice.css" />
 
@@ -30,7 +21,7 @@
             </a>
             <div class="ice-eyebrow">@Model.StoreName · @Model.BusinessDate.ToString("dd/MM/yyyy")</div>
             <h1>Báo cáo @Model.OperationalShiftName</h1>
-            <p>@Model.IngredientName · Dữ liệu chi phí lấy từ FIFO và ledger kho.</p>
+            <p>@Model.IngredientName · Dữ liệu chi phí lấy từ các giao dịch kho đã ghi nhận.</p>
         </div>
         <div class="ice-header-actions">
             <a class="ice-btn ice-btn-primary" asp-action="DownloadReport" asp-route-id="@Model.IceAllocationId">
@@ -45,7 +36,7 @@
     @if (Model.HasUsageSnapshotMismatch)
     {
         <div class="ice-notice ice-notice-danger" role="alert">
-            Snapshot lý thuyết khi chốt là @Quantity(Model.TheoreticalUsage), trong khi ledger hiện tại là @Quantity(Model.LedgerTheoreticalUsage).
+            Tiêu hao lý thuyết đã lưu khi chốt là @Quantity(Model.TheoreticalUsage), trong khi dữ liệu giao dịch hiện tại là @Quantity(Model.LedgerTheoreticalUsage).
             Cần đối soát dữ liệu đơn hàng liên kết trước khi sử dụng báo cáo.
         </div>
     }
@@ -59,17 +50,17 @@
         <article>
             <span>Trạng thái</span>
             <strong>@StatusLabel(Model.Status)</strong>
-            <small>Allocation #@Model.IceAllocationId</small>
+            <small>Mã cấp đá #@Model.IceAllocationId</small>
         </article>
         <article>
-            <span>WorkShift POS</span>
+            <span>Ca bán hàng POS</span>
             <strong>@(Model.WorkShiftIds.Count == 0 ? "Chưa liên kết" : string.Join(", ", Model.WorkShiftIds.Select(x => $"#{x}")))</strong>
             <small>Nguồn tính tiêu hao lý thuyết</small>
         </article>
         <article>
             <span>Tình trạng giá vốn</span>
-            <strong>@Model.CostStatus</strong>
-            <small>Không dùng giá seed làm authority</small>
+            <strong>@OperationalIceDisplayText.CostStatus(Model.CostStatus)</strong>
+            <small>Dựa trên dữ liệu giao dịch kho đã ghi nhận</small>
         </article>
     </section>
 
@@ -79,7 +70,7 @@
                 <span class="ice-section-kicker">Số lượng</span>
                 <h2>Đối chiếu ca/ngày</h2>
             </div>
-            <p>Thực tế = tồn chuyển đầu + tổng cấp − tồn chuyển cuối − trả kho hợp lệ.</p>
+            <p>Tiêu hao thực tế = tổng lượng đã cấp + lượng nhận bàn giao đầu ca − lượng bàn giao cuối ca − lượng trả kho hợp lệ.</p>
         </div>
         <div class="ice-report-quantity-grid">
             <article><span>Tồn chuyển đầu ca</span><strong>@Quantity(Model.OpeningCarry)</strong></article>
@@ -87,7 +78,7 @@
             <article><span>Cấp bổ sung</span><strong>@Quantity(Model.SupplementalIssued)</strong></article>
             <article><span>Trả kho hợp lệ</span><strong>@Quantity(Model.ReturnedQuantity)</strong></article>
             <article><span>Tồn chuyển cuối ca</span><strong>@Quantity(Model.ClosingCarry)</strong></article>
-            <article><span>Dùng thực tế</span><strong>@NullableQuantity(Model.ActualUsage)</strong></article>
+            <article><span>Tiêu hao thực tế</span><strong>@NullableQuantity(Model.ActualUsage)</strong></article>
             <article><span>Dùng theo POS</span><strong>@Quantity(Model.TheoreticalUsage)</strong></article>
             <article class="@(Model.Variance is > 0 ? "is-danger" : Model.Variance is < 0 ? "is-warning" : "")"><span>Chênh lệch</span><strong>@NullableQuantity(Model.Variance)</strong></article>
         </div>
@@ -96,17 +87,17 @@
     <section class="ice-panel">
         <div class="ice-section-heading">
             <div>
-                <span class="ice-section-kicker">FIFO / Ledger</span>
+                <span class="ice-section-kicker">Dữ liệu giao dịch kho</span>
                 <h2>Giá vốn vận hành</h2>
             </div>
-            <p>Ô thiếu dữ liệu được giữ trống có chủ đích, không nội suy từ giá seed.</p>
+            <p>Ô thiếu dữ liệu được giữ trống có chủ đích, không tự ước tính giá vốn.</p>
         </div>
         <div class="ice-report-cost-grid">
             <article><span>Giá vốn theo POS</span><strong>@Money(Model.TheoreticalCost)</strong></article>
             <article><span>Giá vốn chênh lệch</span><strong>@Money(Model.VarianceCost)</strong></article>
             <article><span>Giá vốn thực tế</span><strong>@Money(Model.ActualCost)</strong></article>
         </div>
-        <p class="ice-report-cost-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> @Model.CostStatus</p>
+        <p class="ice-report-cost-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> @OperationalIceDisplayText.CostStatus(Model.CostStatus)</p>
     </section>
 
     <div class="ice-report-two-column">
@@ -126,7 +117,7 @@
 
         <section class="ice-panel">
             <div class="ice-section-heading">
-                <div><span class="ice-section-kicker">Bàn giao</span><h2>Carry-over cùng ngày</h2></div>
+                <div><span class="ice-section-kicker">Bàn giao</span><h2>Bàn giao trong cùng ngày</h2></div>
             </div>
             @if (Model.CarryOvers.Count == 0)
             {
@@ -140,7 +131,7 @@
                         <article>
                             <strong>@carry.Direction @Quantity(carry.Quantity) · @carry.OtherShiftName</strong>
                             <span>@carry.HandedOverBy → @(carry.ReceivedBy ?? "Chưa xác nhận")</span>
-                            <small>@carry.Status · @(carry.ConfirmedAtUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Chưa xác nhận")</small>
+                            <small>@OperationalIceDisplayText.CarryOverStatus(carry.Status) · @(carry.ConfirmedAtUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Chưa xác nhận")</small>
                         </article>
                     }
                 </div>
@@ -151,10 +142,10 @@
     <section class="ice-panel">
         <div class="ice-section-heading">
             <div>
-                <span class="ice-section-kicker">Audit</span>
+                <span class="ice-section-kicker">Kiểm toán</span>
                 <h2>Tham chiếu bút toán kho</h2>
             </div>
-            <p>Mỗi chênh lệch dương chỉ có một idempotency key và một giao dịch kho.</p>
+            <p>Mỗi chênh lệch dương chỉ có một mã chống trùng lặp và một giao dịch kho.</p>
         </div>
         @if (Model.InventoryPostings.Count == 0)
         {
@@ -168,12 +159,12 @@
         {
             <div class="ice-table-scroll cc-warehouse-table-shell">
                 <table class="ice-table">
-                    <thead><tr><th>Posting</th><th>Idempotency key</th><th>Giao dịch kho</th><th class="ice-number">Số lượng</th><th class="ice-number">Giá trị</th><th>Người duyệt</th></tr></thead>
+                    <thead><tr><th>Bút toán</th><th>Mã chống trùng lặp</th><th>Giao dịch kho</th><th class="ice-number">Số lượng</th><th class="ice-number">Giá trị</th><th>Người duyệt</th></tr></thead>
                     <tbody>
                     @foreach (var posting in Model.InventoryPostings)
                     {
                         <tr>
-                            <td>#@posting.IceInventoryPostingId · @posting.PostingType</td>
+                            <td>#@posting.IceInventoryPostingId · @OperationalIceDisplayText.PostingType(posting.PostingType)</td>
                             <td><code>@posting.IdempotencyKey</code></td>
                             <td>@(posting.InventoryTransactionId.HasValue ? $"#{posting.InventoryTransactionId}" : "—")</td>
                             <td class="ice-number">@Quantity(posting.Quantity)</td>

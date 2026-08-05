@@ -360,6 +360,7 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IPurchaseAdviceFulfillmentService, PurchaseAdviceFulfillmentService>();
             services.AddScoped<IPurchaseAdviceConsolidationService, PurchaseAdviceConsolidationService>();
             services.AddScoped<IPurchaseOrderBatchService, PurchaseOrderBatchService>();
+            services.AddScoped<IDuplicatePurchaseOrderRepairService, DuplicatePurchaseOrderRepairService>();
             services.AddScoped<ISupplierQualityService, SupplierQualityService>();
             services.AddScoped<IBranchReceiptService, BranchReceiptService>();
 

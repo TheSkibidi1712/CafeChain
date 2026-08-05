@@ -27,8 +27,8 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
         if (acceptedQuantity <= 0)
             return Failure(PurchaseAdviceErrorCodes.AcceptedExceedsAllocation, "Số lượng chấp nhận phải lớn hơn 0.");
 
-        var allocation = await LoadAllocationForUpdateAsync(purchaseOrderLineId);
-        if (allocation == null)
+        var trace = await LoadOrderTraceForUpdateAsync(purchaseOrderLineId);
+        if (trace == null)
             return await HandleMissingAllocationAsync(purchaseOrderLineId);
 
         var receiptLine = await _context.BranchReceiptLines.AsNoTracking()
@@ -42,17 +42,18 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
 
         var existing = await _context.PurchaseAdviceFulfillmentPostings
             .SingleOrDefaultAsync(x => x.BranchReceiptLineId == branchReceiptLineId
-                && x.PurchaseOrderLineAllocationId == allocation.PurchaseOrderLineAllocationId
+                && x.PurchaseOrderLineAllocationId == trace.AllocationId
+                && x.PurchaseOrderLineId == purchaseOrderLineId
                 && x.PostingType == PurchaseAdviceFulfillmentPostingTypes.Accepted);
         if (existing != null)
         {
             if (existing.Quantity != acceptedQuantity
-                || existing.PurchaseAdviceLineId != allocation.PurchaseAdviceLineId)
+                || existing.PurchaseAdviceLineId != trace.PurchaseAdviceLineId)
             {
                 return Failure(PurchaseAdviceErrorCodes.BackPostConflict, "Dòng phiếu nhận đã được ghi nhận với số lượng hoặc phân bổ khác.");
             }
 
-            var replayLine = await LoadAdviceLineAsync(allocation.PurchaseAdviceLineId);
+            var replayLine = await LoadAdviceLineAsync(trace.PurchaseAdviceLineId);
             if (replayLine != null)
             {
                 await RefreshCachedQuantitiesAsync(replayLine);
@@ -66,7 +67,7 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
             return ServiceResult.Success("Số lượng chấp nhận đã được ghi nhận trước đó.");
         }
 
-        var line = await LoadAdviceLineAsync(allocation.PurchaseAdviceLineId);
+        var line = await LoadAdviceLineAsync(trace.PurchaseAdviceLineId);
         if (line == null)
             return Failure(PurchaseAdviceErrorCodes.BackPostTraceMissing, "Không tìm thấy dòng đề nghị mua để ghi số lượng chấp nhận.");
 
@@ -75,33 +76,32 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
         var allocationAccepted = await SumPostingQuantityAsync(
             line.PurchaseAdviceLineId,
             PurchaseAdviceFulfillmentPostingTypes.Accepted,
-            allocation.PurchaseOrderLineAllocationId);
+            trace.AllocationId,
+            purchaseOrderLineId);
         var allocationClosed = await SumPostingQuantityAsync(
             line.PurchaseAdviceLineId,
             PurchaseAdviceFulfillmentPostingTypes.Closed,
-            allocation.PurchaseOrderLineAllocationId);
-        var totalAllocated = await _context.PurchaseOrderLineAllocations
-            .Where(x => x.PurchaseAdviceLineId == line.PurchaseAdviceLineId)
-            .Select(x => x.AllocatedBaseQuantity)
-            .ToListAsync();
-        if (allocationAccepted + allocationClosed + acceptedQuantity > allocation.AllocatedBaseQuantity)
+            trace.AllocationId,
+            purchaseOrderLineId);
+        var totalAllocated = await SumActiveAllocatedBaseQuantityAsync(line.PurchaseAdviceLineId);
+        if (allocationAccepted + allocationClosed + acceptedQuantity > trace.AllocatedBaseQuantity)
         {
             return Failure(
                 PurchaseAdviceErrorCodes.AcceptedExceedsAllocation,
                 "Số lượng chấp nhận vượt số lượng đã phân bổ cho đề nghị mua.");
         }
-        if (accepted + closed + acceptedQuantity > totalAllocated.Sum())
+        if (accepted + closed + acceptedQuantity > totalAllocated)
         {
             return Failure(
                 PurchaseAdviceErrorCodes.AcceptedExceedsAllocation,
                 "Tổng số lượng chấp nhận vượt tổng số lượng đã phân bổ cho đề nghị mua.");
         }
 
-        var sourceHash = ComputeHash($"{branchReceiptLineId}|{allocation.PurchaseOrderLineAllocationId}|{acceptedQuantity:0.000}");
+        var sourceHash = ComputeHash($"{branchReceiptLineId}|{trace.AllocationId?.ToString() ?? $"PO-LINE-{purchaseOrderLineId}"}|{acceptedQuantity:0.000}");
         _context.PurchaseAdviceFulfillmentPostings.Add(new PurchaseAdviceFulfillmentPosting
         {
-            PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
-            PurchaseOrderLineAllocationId = allocation.PurchaseOrderLineAllocationId,
+            PurchaseAdviceLineId = trace.PurchaseAdviceLineId,
+            PurchaseOrderLineAllocationId = trace.AllocationId,
             PurchaseOrderLineId = purchaseOrderLineId,
             BranchReceiptLineId = branchReceiptLineId,
             PostingType = PurchaseAdviceFulfillmentPostingTypes.Accepted,
@@ -132,13 +132,14 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
         if (closedQuantity <= 0)
             return Failure(PurchaseAdviceErrorCodes.ClosedExceedsAllocation, "Số lượng đóng không giao bù phải lớn hơn 0.");
 
-        var allocation = await LoadAllocationForUpdateAsync(purchaseOrderLineId);
-        if (allocation == null)
+        var trace = await LoadOrderTraceForUpdateAsync(purchaseOrderLineId);
+        if (trace == null)
             return await HandleMissingAllocationAsync(purchaseOrderLineId);
 
         var existing = await _context.PurchaseAdviceFulfillmentPostings
             .SingleOrDefaultAsync(x => x.CloseOperationKey == closeOperationKey
-                && x.PurchaseOrderLineAllocationId == allocation.PurchaseOrderLineAllocationId
+                && x.PurchaseOrderLineAllocationId == trace.AllocationId
+                && x.PurchaseOrderLineId == purchaseOrderLineId
                 && x.PostingType == PurchaseAdviceFulfillmentPostingTypes.Closed);
         if (existing != null)
         {
@@ -149,7 +150,7 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
                 return Failure(PurchaseAdviceErrorCodes.BackPostConflict, "Mã chống gửi trùng đã được dùng cho dữ liệu đóng phần còn lại khác.");
             }
 
-            var replayLine = await LoadAdviceLineAsync(allocation.PurchaseAdviceLineId);
+            var replayLine = await LoadAdviceLineAsync(trace.PurchaseAdviceLineId);
             if (replayLine != null)
             {
                 await RefreshCachedQuantitiesAsync(replayLine);
@@ -160,7 +161,7 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
             return ServiceResult.Success("Phần còn lại đã được đóng và ghi nhận trước đó.");
         }
 
-        var line = await LoadAdviceLineAsync(allocation.PurchaseAdviceLineId);
+        var line = await LoadAdviceLineAsync(trace.PurchaseAdviceLineId);
         if (line == null)
             return Failure(PurchaseAdviceErrorCodes.BackPostTraceMissing, "Không tìm thấy dòng đề nghị mua để ghi số lượng đóng.");
 
@@ -169,22 +170,21 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
         var allocationAccepted = await SumPostingQuantityAsync(
             line.PurchaseAdviceLineId,
             PurchaseAdviceFulfillmentPostingTypes.Accepted,
-            allocation.PurchaseOrderLineAllocationId);
+            trace.AllocationId,
+            purchaseOrderLineId);
         var allocationClosed = await SumPostingQuantityAsync(
             line.PurchaseAdviceLineId,
             PurchaseAdviceFulfillmentPostingTypes.Closed,
-            allocation.PurchaseOrderLineAllocationId);
-        var totalAllocated = await _context.PurchaseOrderLineAllocations
-            .Where(x => x.PurchaseAdviceLineId == line.PurchaseAdviceLineId)
-            .Select(x => x.AllocatedBaseQuantity)
-            .ToListAsync();
-        if (allocationAccepted + allocationClosed + closedQuantity > allocation.AllocatedBaseQuantity)
+            trace.AllocationId,
+            purchaseOrderLineId);
+        var totalAllocated = await SumActiveAllocatedBaseQuantityAsync(line.PurchaseAdviceLineId);
+        if (allocationAccepted + allocationClosed + closedQuantity > trace.AllocatedBaseQuantity)
         {
             return Failure(
                 PurchaseAdviceErrorCodes.ClosedExceedsAllocation,
                 "Số lượng đóng vượt số lượng đã phân bổ cho đề nghị mua.");
         }
-        if (accepted + closed + closedQuantity > totalAllocated.Sum())
+        if (accepted + closed + closedQuantity > totalAllocated)
         {
             return Failure(
                 PurchaseAdviceErrorCodes.ClosedExceedsAllocation,
@@ -193,8 +193,8 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
 
         _context.PurchaseAdviceFulfillmentPostings.Add(new PurchaseAdviceFulfillmentPosting
         {
-            PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
-            PurchaseOrderLineAllocationId = allocation.PurchaseOrderLineAllocationId,
+            PurchaseAdviceLineId = trace.PurchaseAdviceLineId,
+            PurchaseOrderLineAllocationId = trace.AllocationId,
             PurchaseOrderLineId = purchaseOrderLineId,
             CloseOperationKey = closeOperationKey,
             PostingType = PurchaseAdviceFulfillmentPostingTypes.Closed,
@@ -407,12 +407,16 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
     private async Task<decimal> SumPostingQuantityAsync(
         int purchaseAdviceLineId,
         string postingType,
-        int? allocationId = null)
+        int? allocationId = null,
+        int? purchaseOrderLineId = null)
     {
         var query = _context.PurchaseAdviceFulfillmentPostings
             .Where(x => x.PurchaseAdviceLineId == purchaseAdviceLineId && x.PostingType == postingType);
         if (allocationId.HasValue)
             query = query.Where(x => x.PurchaseOrderLineAllocationId == allocationId.Value);
+        else if (purchaseOrderLineId.HasValue)
+            query = query.Where(x => x.PurchaseOrderLineAllocationId == null
+                && x.PurchaseOrderLineId == purchaseOrderLineId.Value);
         var quantities = await query.Select(x => x.Quantity).ToListAsync();
         return quantities.Sum();
     }
@@ -450,8 +454,21 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
                 x.PurchaseOrderLine.ClosedProcurementQuantity
             })
             .ToListAsync();
+        var normalEvidence = await _context.PurchaseOrderLines
+            .AsNoTracking()
+            .Where(x => x.PurchaseAdviceLineId == line.PurchaseAdviceLineId
+                && x.PurchaseOrder.PurchaseOrderBatchId == null)
+            .Select(x => new
+            {
+                x.PurchaseOrderLineId,
+                DemandCoveredProcurementQuantity = x.OrderedProcurementQuantity,
+                x.PurchaseOrder.Status,
+                x.ClosedProcurementQuantity
+            })
+            .ToListAsync();
         var purchaseOrderLineIds = procurementEvidence
             .Select(x => x.PurchaseOrderLineId)
+            .Concat(normalEvidence.Select(x => x.PurchaseOrderLineId))
             .Distinct()
             .ToArray();
         var acceptedProcurementRows = await _context.PurchaseOrderReceiptPostings
@@ -468,12 +485,16 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
             line.RequestedProcurementQuantity.Value,
             procurementEvidence
                 .Where(x => x.Status != PurchaseOrderStatuses.Cancelled)
+                .Sum(x => x.DemandCoveredProcurementQuantity ?? 0m)
+            + normalEvidence
+                .Where(x => x.Status != PurchaseOrderStatuses.Cancelled)
                 .Sum(x => x.DemandCoveredProcurementQuantity ?? 0m));
 
         var procurementAggregate = ClampFulfillmentToDemand(
             line.RequestedProcurementQuantity.Value,
             acceptedProcurementRows.Sum(x => x.AcceptedProcurementQuantity ?? 0m),
-            procurementEvidence.Sum(x => x.ClosedProcurementQuantity));
+            procurementEvidence.Sum(x => x.ClosedProcurementQuantity)
+                + normalEvidence.Sum(x => x.ClosedProcurementQuantity));
         line.AcceptedProcurementQuantity = procurementAggregate.Accepted;
         line.ClosedProcurementQuantity = procurementAggregate.Closed;
     }
@@ -503,6 +524,71 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
         return await _context.PurchaseOrderLineAllocations
             .SingleOrDefaultAsync(x => x.PurchaseOrderLineId == purchaseOrderLineId);
     }
+
+    private async Task<PurchaseOrderTrace?> LoadOrderTraceForUpdateAsync(int purchaseOrderLineId)
+    {
+        var allocation = await LoadAllocationForUpdateAsync(purchaseOrderLineId);
+        if (allocation != null)
+        {
+            return new PurchaseOrderTrace(
+                allocation.PurchaseAdviceLineId,
+                allocation.PurchaseOrderLineAllocationId,
+                allocation.AllocatedBaseQuantity);
+        }
+
+        PurchaseOrderLine? line;
+        if (_context.Database.IsSqlServer())
+        {
+            line = await _context.PurchaseOrderLines.FromSqlInterpolated(
+                    $"SELECT * FROM PurchaseOrderLines WITH (UPDLOCK, HOLDLOCK, ROWLOCK) WHERE PurchaseOrderLineId = {purchaseOrderLineId}")
+                .SingleOrDefaultAsync();
+        }
+        else
+        {
+            line = await _context.PurchaseOrderLines.SingleOrDefaultAsync(
+                x => x.PurchaseOrderLineId == purchaseOrderLineId);
+        }
+
+        if (line?.PurchaseAdviceLineId == null)
+            return null;
+
+        var belongsToBatch = await _context.PurchaseOrders
+            .Where(x => x.PurchaseOrderId == line.PurchaseOrderId)
+            .Select(x => x.PurchaseOrderBatchId.HasValue)
+            .SingleAsync();
+        if (belongsToBatch)
+            return null;
+
+        var requested = await _context.PurchaseAdviceLines
+            .Where(x => x.PurchaseAdviceLineId == line.PurchaseAdviceLineId.Value)
+            .Select(x => x.RequestedPurchaseBaseQuantity)
+            .SingleAsync();
+        return new PurchaseOrderTrace(
+            line.PurchaseAdviceLineId.Value,
+            null,
+            Math.Min(requested, line.OrderedBaseQuantity));
+    }
+
+    private async Task<decimal> SumActiveAllocatedBaseQuantityAsync(int purchaseAdviceLineId)
+    {
+        var batchQuantities = await _context.PurchaseOrderLineAllocations
+            .Where(x => x.PurchaseAdviceLineId == purchaseAdviceLineId
+                && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled)
+            .Select(x => x.AllocatedBaseQuantity)
+            .ToListAsync();
+        var normalQuantities = await _context.PurchaseOrderLines
+            .Where(x => x.PurchaseAdviceLineId == purchaseAdviceLineId
+                && x.PurchaseOrder.PurchaseOrderBatchId == null
+                && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled)
+            .Select(x => x.OrderedBaseQuantity)
+            .ToListAsync();
+        return batchQuantities.Sum() + normalQuantities.Sum();
+    }
+
+    private sealed record PurchaseOrderTrace(
+        int PurchaseAdviceLineId,
+        int? AllocationId,
+        decimal AllocatedBaseQuantity);
 
     private async Task<ServiceResult> HandleMissingAllocationAsync(int purchaseOrderLineId)
     {
