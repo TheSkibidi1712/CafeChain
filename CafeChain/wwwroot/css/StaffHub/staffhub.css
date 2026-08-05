@@ -177,6 +177,41 @@
     max-width: 660px;
 }
 
+.staffhub-terminal-picker {
+    display: grid;
+    gap: .35rem;
+    min-width: 15rem;
+    color: var(--staffhub-muted, #64748b);
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.staffhub-terminal-picker > span {
+    color: #fff;
+}
+
+.staffhub-terminal-picker select,
+.staffhub-pos-dialog input,
+.staffhub-pos-dialog textarea {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: .75rem;
+    padding: .65rem .8rem;
+    background: #fff;
+}
+
+.staffhub-pos-dialog textarea { min-height: 5.5rem; resize: vertical; }
+
+#openPosApprovalFields,
+#openPosOtpFields {
+    display: grid;
+    gap: .75rem;
+    margin-top: 1rem;
+}
+
+#openPosApprovalFields[hidden],
+#openPosOtpFields[hidden] { display: none; }
+
 .staffhub-action-button {
     position: relative;
     display: grid;
@@ -727,8 +762,21 @@
 
 .staffhub-dialog-button.is-primary { color: #fff; border-color: #9a3412; background: #9a3412; }
 .staffhub-dialog-button.is-secondary { color: #374151; background: #fff; }
+.staffhub-dialog-button.is-secondary:not(:disabled):hover {
+    color: #9a3412;
+    border-color: #c2410c;
+    background: #fff7ed;
+}
 .staffhub-dialog-button:focus-visible { outline: 3px solid rgba(234, 88, 12, .3); outline-offset: 2px; }
-.staffhub-dialog-button:disabled { opacity: .6; cursor: wait; }
+.staffhub-dialog-button:disabled {
+    color: #6b7280;
+    border-color: #d1d5db;
+    background: #e5e7eb;
+    opacity: 1;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
 
 @media (max-width: 991.98px) {
     .staffhub-calendar-grid {

@@ -28,15 +28,28 @@ namespace CafeChain.Controllers.Api.v1
         /// </summary>
         [HttpPost("open")]
         [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
-        public async Task<IActionResult> OpenShift([FromBody] OpenShiftRequestDto request)
+        public async Task<IActionResult> OpenShift([FromBody] OpenPosSessionRequestDto request)
         {
-            var result = await _shiftService.OpenShiftAsync(CurrentStaffId, CurrentStoreId, request);
+            if (CurrentExchangeContextId <= 0
+                || !string.Equals(User.FindFirst("PosPurpose")?.Value,
+                    PosSessionPurposes.OpenWorkShift, StringComparison.Ordinal))
+                return WorkShiftError(
+                    WorkShiftErrorCodes.PosOpenContextRequired,
+                    "Vui lòng mở POS từ StaffHub để nhận ngữ cảnh mở phiên hợp lệ.");
+            var command = new OpenShiftRequestDto
+            {
+                StartingCash = request.StartingCash,
+                ExchangeContextId = CurrentExchangeContextId,
+                AccountId = CurrentAccountId
+            };
+            var result = await _shiftService.OpenShiftAsync(CurrentStaffId, CurrentStoreId, command);
 
             if (!result.IsSuccess)
                 return WorkShiftError(result.ErrorCode, result.Message);
 
             // Fetch the newly created shift to return summary
-            var summary = await _shiftService.GetSummaryAsync(CurrentStaffId, CurrentStoreId);
+            var summary = await _shiftService.GetSummaryAsync(
+                CurrentStaffId, CurrentStoreId, result.EntityId);
 
             return summary == null
                 ? WorkShiftError(WorkShiftErrorCodes.WorkShiftNotOpen, "Không đọc được phiên POS vừa tạo.")
@@ -47,22 +60,6 @@ namespace CafeChain.Controllers.Api.v1
         /// POST /api/v1/pos/shifts/{id}/close
         /// Đóng ca két tiền + đối soát tiền mặt.
         /// </summary>
-        [HttpPost("open-assessment")]
-        [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
-        public async Task<IActionResult> AssessOpenShift(
-            [FromBody] OpenShiftAssessmentRequestDto request,
-            CancellationToken cancellationToken)
-        {
-            var result = await _shiftService.AssessOpenShiftAsync(
-                CurrentStaffId,
-                CurrentStoreId,
-                request,
-                cancellationToken);
-            return result.IsSuccess && result.Data != null
-                ? Ok(result.Data)
-                : WorkShiftError(result.ErrorCode, result.Message);
-        }
-
         [HttpPost("{id}/close")]
         [RequirePermission(PermissionConstants.PosWorkShiftClose)]
         public async Task<IActionResult> CloseShift(int id, [FromBody] CloseShiftRequestDto request)
@@ -157,6 +154,8 @@ namespace CafeChain.Controllers.Api.v1
                     or OtpConstants.ErrorCodes.LateOpeningRequiresOtp
                     or OtpConstants.ErrorCodes.Required => StatusCode(403, payload),
                 WorkShiftErrorCodes.TerminalNotFound => NotFound(payload),
+                WorkShiftErrorCodes.PosOpenContextRequired
+                    or WorkShiftErrorCodes.PosOpenContextInvalid => Unauthorized(payload),
                 WorkShiftErrorCodes.DuplicateRequest
                     or WorkShiftErrorCodes.ConcurrencyConflict
                     or WorkShiftErrorCodes.TerminalAlreadyHasOpenShift

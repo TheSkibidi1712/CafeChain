@@ -53,10 +53,11 @@ public sealed class StaffHubNavigationAndBusinessFlowTests
         Assert.Contains("ValidateAntiForgeryToken", controller, StringComparison.Ordinal);
         Assert.Contains("data-preview-pos-url", view, StringComparison.Ordinal);
         Assert.Contains("openPosPreviewDialog", view, StringComparison.Ordinal);
-        Assert.Contains("Tiền đầu phiên, terminal, lý do và OTP", view, StringComparison.Ordinal);
+        Assert.Contains("Terminal, lý do và OTP (nếu cần) được xác nhận tại StaffHub", view, StringComparison.Ordinal);
+        Assert.Contains("POS chỉ yêu cầu nhập tiền đầu phiên", view, StringComparison.Ordinal);
         Assert.Contains("root.dataset.previewPosUrl", script, StringComparison.Ordinal);
         Assert.Contains("WITHIN_SCHEDULE", script, StringComparison.Ordinal);
-        Assert.Contains("issueAndRedirect", script, StringComparison.Ordinal);
+        Assert.Contains("redirectWithTicket", script, StringComparison.Ordinal);
     }
 
     [Fact]
