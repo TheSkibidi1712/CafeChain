@@ -250,7 +250,7 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
         await using var db = CreateContext();
         var seed = await SeedFoundationAsync(db);
         var adviceService = AdviceService(db);
-        var own = await adviceService.CreateAsync(CreateAdviceRequest(seed.Restock1Id, seed.Store1Id, seed.Restock1RowVersion), Manager1(seed));
+        var own = await adviceService.CreateAsync(CreateAdviceRequest(seed.Restock1Id, seed.Store1Id, seed.Restock1RowVersion), Warehouse(seed));
         Assert.True(own.IsSuccess, own.Message);
 
         var otherStore = await adviceService.CreateAsync(CreateAdviceRequest(seed.Restock2Id, seed.Store2Id, seed.Restock2RowVersion), Manager1(seed));
@@ -262,7 +262,7 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
         Assert.True(systemAdmin.IsSuccess, systemAdmin.Message);
 
         var submitted = await adviceService.SubmitAsync(own.Data!.PurchaseAdviceId,
-            new() { RowVersion = own.Data.RowVersion }, Manager1(seed));
+            new() { RowVersion = own.Data.RowVersion }, Warehouse(seed));
         var reviewed = await adviceService.StartReviewAsync(submitted.Data!.PurchaseAdviceId,
             new() { RowVersion = submitted.Data.RowVersion }, Warehouse(seed));
         Assert.True(reviewed.IsSuccess, reviewed.Message);
@@ -410,10 +410,10 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
     private static async Task<PurchaseAdviceDetailDto> CreateReviewedAdviceAsync(
         PurchaseAdviceService service, CreatePurchaseAdviceRequest request, AdminActorContext manager, AdminActorContext warehouse)
     {
-        var created = await service.CreateAsync(request, manager);
+        var created = await service.CreateAsync(request, warehouse);
         Assert.True(created.IsSuccess, created.Message);
         var submitted = await service.SubmitAsync(created.Data!.PurchaseAdviceId,
-            new() { RowVersion = created.Data.RowVersion }, manager);
+            new() { RowVersion = created.Data.RowVersion }, warehouse);
         Assert.True(submitted.IsSuccess, submitted.Message);
         var reviewed = await service.StartReviewAsync(submitted.Data!.PurchaseAdviceId,
             new() { RowVersion = submitted.Data.RowVersion }, warehouse);

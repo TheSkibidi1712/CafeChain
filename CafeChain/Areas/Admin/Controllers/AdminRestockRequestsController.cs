@@ -65,8 +65,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.StatusFilter = status;
-            ViewBag.CanWarehouse = CanWarehouseProcess(ctx.RoleNames)
-                && await HasEffectivePermissionAsync(PermissionConstants.RestockUpdate);
+            ViewBag.CanWarehouse = await HasEffectivePermissionAsync(PermissionConstants.RestockUpdate);
             ViewBag.CanCreateReceipt = await HasEffectivePermissionAsync(PermissionConstants.ReceiptCreate);
             ViewBag.CanCreateDemand = await HasEffectivePermissionAsync(PermissionConstants.RestockCreate);
             return View(result.Data);
@@ -130,8 +129,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 return NotFound(result.Message ?? "Không tìm thấy yêu cầu.");
             }
 
-            ViewBag.CanWarehouse = CanWarehouseProcess(ctx.RoleNames)
-                && await HasEffectivePermissionAsync(PermissionConstants.RestockUpdate);
+            ViewBag.CanWarehouse = await HasEffectivePermissionAsync(PermissionConstants.RestockUpdate);
             ViewBag.CanCreateReceipt = await HasEffectivePermissionAsync(PermissionConstants.ReceiptCreate);
             ViewBag.CanCancel = await HasEffectivePermissionAsync(PermissionConstants.RestockCancel);
             ViewBag.CanSubmit = await HasEffectivePermissionAsync(PermissionConstants.RestockSubmit);
@@ -139,10 +137,6 @@ namespace CafeChain.Areas.Admin.Controllers
                 && RestockRequestStatuses.ActiveValues.Contains(result.Data.Status);
             return View(result.Data);
         }
-
-        private static bool CanWarehouseProcess(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.AccountantWarehouse, StringComparer.OrdinalIgnoreCase)
-            || roles.Contains(RoleConstants.SystemAdmin, StringComparer.OrdinalIgnoreCase);
 
         [HttpGet]
         public async Task<IActionResult> CheckActive(int storeId, int ingredientId)
