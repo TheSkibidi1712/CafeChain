@@ -20,7 +20,7 @@
     };
     let preview = null;
     let selectedRow = null;
-    let policyPayload = { policies: [], options: [] };
+    let policyPayload = { policies: [], options: [], legacyReviews: [] };
 
     const currency = value => value == null ? 'Chưa đủ dữ liệu' : `${Number(value).toLocaleString('vi-VN')}đ`;
     const percent = value => value == null ? '—' : `${Number(value).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%`;
@@ -29,15 +29,15 @@
     const isComplete = row => row.costStatus === 'COMPLETE';
 
     const statusLabels = {
-        EXACT_READY: 'BOM đúng size', GENERIC_FALLBACK_ONLY: 'Chỉ có BOM fallback', MISSING_RECIPE: 'Thiếu BOM theo size',
+        EXACT_READY: 'BOM đúng size', GENERIC_FALLBACK_ONLY: 'Chỉ có BOM chung', MISSING_RECIPE: 'Thiếu BOM theo size',
         MULTIPLE_ACTIVE_RECIPE: 'Trùng BOM hiệu lực', INVALID_RECIPE: 'BOM không hợp lệ', FUTURE_RECIPE_ONLY: 'BOM chưa đến ngày hiệu lực',
-        COMPLETE: 'Đầy đủ', INCOMPLETE: 'Chưa đầy đủ', MISSING_DEFAULT_TOPPING_POLICY: 'Thiếu policy topping',
+        COMPLETE: 'Đầy đủ', INCOMPLETE: 'Chưa đầy đủ', MISSING_DEFAULT_TOPPING_POLICY: 'Cấu hình topping cũ cần xác nhận',
         MISSING_COST_LAYER: 'Thiếu lớp giá FIFO', INSUFFICIENT_COST_QUANTITY: 'Không đủ lượng FIFO',
         MISSING_CONVERSION: 'Thiếu quy đổi', INVALID_BOM: 'BOM không hợp lệ'
     };
     const treatmentLabels = {
         INCLUDED_IN_BASE_PRICE: 'Đã gồm trong giá gốc', ADD_TOPPING_PRICE: 'Cộng giá topping',
-        INCLUDED_IN_DRINK_RECIPE: 'Đã gồm trong BOM đồ uống', ADD_TOPPING_RECIPE_COST: 'Cộng BOM topping', DISPLAY_ONLY: 'Chỉ hiển thị'
+        INCLUDED_IN_DRINK_RECIPE: 'Đã gồm trong BOM đồ uống', ADD_TOPPING_RECIPE_COST: 'Cộng thêm giá vốn topping', DISPLAY_ONLY: 'Cấu hình cũ cần xác nhận'
     };
 
     async function request(url, options = {}) {
@@ -109,9 +109,10 @@
     }
 
     function renderDetails(row) {
-        const components = row.components?.length ? row.components.map(x => `<tr><td>${escapeHtml(x.itemName)}<span class="pf-subtext">${escapeHtml(x.source)}</span></td><td>${number(x.requiredQuantity)} ${escapeHtml(x.unitName)}</td><td>${number(x.coveredQuantity)}</td><td>${currency(x.knownCost)}</td><td>${escapeHtml(statusLabels[x.status] || x.status)}<span class="pf-subtext">${escapeHtml(x.message)}</span></td></tr>`).join('') : '<tr><td colspan="5">Chưa có thành phần chi phí.</td></tr>';
-        const toppings = row.defaultToppings?.length ? row.defaultToppings.map(x => `<tr><td>${escapeHtml(x.toppingName)}</td><td>${number(x.quantityPerDrink)}</td><td>${escapeHtml(treatmentLabels[x.priceTreatment] || x.priceTreatment)}</td><td>${escapeHtml(treatmentLabels[x.costTreatment] || x.costTreatment)}</td><td>${currency(x.priceImpact)}</td><td>${currency(x.costImpact)}</td></tr>`).join('') : '<tr><td colspan="6">Chưa có topping mặc định được chọn.</td></tr>';
-        return `<div class="pf-detail-grid"><section><h4>Phân bổ FIFO mô phỏng</h4><div class="pf-table-wrap"><table class="pf-mini-table"><thead><tr><th>Thành phần</th><th>Cần</th><th>Có giá</th><th>Chi phí biết được</th><th>Trạng thái</th></tr></thead><tbody>${components}</tbody></table></div></section><section><h4>Topping mặc định</h4><div class="pf-table-wrap"><table class="pf-mini-table"><thead><tr><th>Topping</th><th>SL</th><th>Giá</th><th>Vốn</th><th>Ảnh hưởng giá</th><th>Ảnh hưởng vốn</th></tr></thead><tbody>${toppings}</tbody></table></div></section></div>`;
+        const sections = row.costSections?.map(x => `<article class="pf-completeness-item"><span>${escapeHtml(x.label)}</span><strong class="pf-status ${x.status === 'COMPLETE' ? 'pf-status-ready' : 'pf-status-warning'}">${escapeHtml(statusLabels[x.status] || 'Chưa đầy đủ')}</strong><small>${escapeHtml(x.message)}</small></article>`).join('') ?? '';
+        const components = row.components?.length ? row.components.map(x => `<tr><td>${escapeHtml(x.itemName)}<span class="pf-subtext">${escapeHtml(x.itemTypeLabel)} · ${escapeHtml(x.sourceLabel)}</span></td><td>${number(x.requiredQuantity)} ${escapeHtml(x.unitName)}</td><td>${number(x.coveredQuantity)} ${escapeHtml(x.unitName)}</td><td>${currency(x.knownCost)}</td><td>${escapeHtml(statusLabels[x.status] || 'Chưa đầy đủ')}<span class="pf-subtext">${escapeHtml(x.message)}</span></td></tr>`).join('') : '<tr><td colspan="5">Chưa có thành phần chi phí.</td></tr>';
+        const toppings = row.defaultToppings?.length ? row.defaultToppings.map(x => `<tr><td>${escapeHtml(x.toppingName)}</td><td>${number(x.quantityPerDrink)} phần</td><td>${escapeHtml(treatmentLabels[x.priceTreatment] || 'Chưa xác định')}</td><td>${escapeHtml(treatmentLabels[x.costTreatment] || 'Chưa xác định')}</td><td>${currency(x.priceImpact)}</td><td>${currency(x.costImpact)}</td></tr>`).join('') : '<tr><td colspan="6">Chưa có topping mặc định đang áp dụng.</td></tr>';
+        return `<div class="pf-completeness-grid">${sections}</div><div class="pf-detail-grid"><section><h4>Phân bổ giá vốn theo nhập trước - xuất trước (FIFO)</h4><div class="pf-table-wrap"><table class="pf-mini-table"><thead><tr><th>Thành phần</th><th>Số lượng cần</th><th>Số lượng đã có dữ liệu giá</th><th>Chi phí tính được</th><th>Trạng thái</th></tr></thead><tbody>${components}</tbody></table></div></section><section><h4>Topping mặc định</h4><div class="pf-table-wrap"><table class="pf-mini-table"><thead><tr><th>Topping</th><th>Số lượng</th><th>Ảnh hưởng giá bán</th><th>Ảnh hưởng giá vốn</th><th>Giá tăng</th><th>Vốn tăng</th></tr></thead><tbody>${toppings}</tbody></table></div></section></div>`;
     }
 
     function findRow(id) { return preview?.sizes?.find(x => x.drinkSizeId === Number(id)); }
@@ -156,7 +157,8 @@
             }) });
             const data = payload.data;
             const result = document.getElementById('suggestionResult');
-            result.innerHTML = `<strong>${currency(data.roundedSuggestedPrice)}</strong><br>Giá thô: ${currency(data.rawSuggestedPrice)} · Lời: ${currency(data.effectiveGrossProfit)} · Margin: ${percent(data.effectiveMarginPercent)} · Markup: ${percent(data.effectiveMarkupPercent)} <button type="button" class="pf-row-button" id="applySuggestion">Dùng giá này</button>`;
+            const difference = data.roundedSuggestedPrice - selectedRow.currentGlobalPrice;
+            result.innerHTML = `<strong>Giá đề xuất: ${currency(data.roundedSuggestedPrice)}</strong><br>Giá hiện tại: ${currency(selectedRow.currentGlobalPrice)} · Chênh lệch: ${difference >= 0 ? '+' : ''}${currency(difference)}<br>Lợi nhuận mới: ${currency(data.effectiveGrossProfit)} · Biên lợi nhuận mới: ${percent(data.effectiveMarginPercent)} · Tỷ lệ cộng giá mới: ${percent(data.effectiveMarkupPercent)} <button type="button" class="pf-row-button" id="applySuggestion">Dùng giá này</button>`;
             result.hidden = false;
             document.getElementById('applySuggestion').addEventListener('click', () => { document.getElementById('newSellingPrice').value = data.roundedSuggestedPrice; });
         } catch (error) {
@@ -167,7 +169,11 @@
     async function savePrice() {
         if (!selectedRow) return;
         const reason = document.getElementById('priceReason').value.trim();
-        if (!isComplete(selectedRow) && (!document.getElementById('confirmIncomplete').checked || !reason)) {
+        if (!reason) {
+            showInline('priceFormError', 'Vui lòng nhập lý do thay đổi giá bán.');
+            return;
+        }
+        if (!isComplete(selectedRow) && !document.getElementById('confirmIncomplete').checked) {
             showInline('priceFormError', 'Giá vốn chưa đầy đủ. Hãy xác nhận cảnh báo và nhập lý do.');
             return;
         }
@@ -178,7 +184,8 @@
                 drinkSizeId: selectedRow.drinkSizeId,
                 newSellingPrice: Number(document.getElementById('newSellingPrice').value),
                 expectedRowVersion: selectedRow.rowVersion,
-                reason: reason || null
+                reason,
+                confirmIncompleteCost: document.getElementById('confirmIncomplete').checked
             }) });
             window.toast?.('Đã cập nhật giá bán toàn hệ thống.', 'success');
             closeDrawers();
@@ -203,8 +210,12 @@
 
     function renderPolicies() {
         const list = document.getElementById('policyList');
-        list.innerHTML = policyPayload.policies.length ? policyPayload.policies.map(x => `<article class="pf-policy-item"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${number(x.quantityPerDrink)} · ${escapeHtml(treatmentLabels[x.priceTreatment])} · ${escapeHtml(treatmentLabels[x.costTreatment])}${x.isDefaultSelected ? ' · Chọn mặc định' : ''}</p></div><button type="button" class="pf-row-button" data-edit-policy="${x.policyId}">Sửa</button></article>`).join('') : '<div class="pf-inline-error">Chưa có policy active. Giá vốn sẽ báo thiếu nếu topping đang là mặc định legacy.</div>';
+        const activeMarkup = policyPayload.policies.length ? policyPayload.policies.map(x => `<article class="pf-policy-item"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${number(x.quantityPerDrink)} phần · ${escapeHtml(treatmentLabels[x.priceTreatment])} · ${escapeHtml(treatmentLabels[x.costTreatment])}${x.isDefaultSelected ? ' · Chọn mặc định trên POS' : ''}${x.isRequired ? ' · Bắt buộc' : ''}</p></div><button type="button" class="pf-row-button" data-edit-policy="${x.policyId}">Sửa</button></article>`).join('') : '<div class="pf-empty-policy">Chưa có chính sách topping đang áp dụng cho món và size này.</div>';
+        const reviewMarkup = (policyPayload.legacyReviews ?? []).map(x => `<article class="pf-policy-item pf-policy-review"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${escapeHtml(x.message)}</p></div><span class="pf-status pf-status-warning">Cần xác nhận</span></article>`).join('');
+        list.innerHTML = activeMarkup + reviewMarkup;
         document.getElementById('policyTopping').innerHTML = policyPayload.options.map(x => `<option value="${x.toppingId}">${escapeHtml(x.name)} · ${currency(x.price)}</option>`).join('');
+        document.getElementById('policyFormSection').hidden = policyPayload.options.length === 0;
+        if (policyPayload.options.length === 0) list.insertAdjacentHTML('beforeend', '<div class="pf-empty-policy">Món/size này chưa có topping phù hợp. Hãy cấu hình danh mục topping cho món trước.</div>');
         list.querySelectorAll('[data-edit-policy]').forEach(button => button.addEventListener('click', () => editPolicy(button.dataset.editPolicy)));
     }
 
@@ -220,6 +231,7 @@
         document.getElementById('costTreatment').value = policy.costTreatment;
         document.getElementById('policyQuantity').value = policy.quantityPerDrink;
         document.getElementById('policyDefaultSelected').checked = policy.isDefaultSelected;
+        document.getElementById('policyRequired').checked = policy.isRequired;
         document.getElementById('policyReason').value = '';
     }
 
@@ -232,12 +244,18 @@
         document.getElementById('costTreatment').value = 'INCLUDED_IN_DRINK_RECIPE';
         document.getElementById('policyQuantity').value = '1';
         document.getElementById('policyDefaultSelected').checked = true;
+        document.getElementById('policyRequired').checked = false;
         document.getElementById('policyReason').value = '';
         document.getElementById('policyFormError').hidden = true;
     }
 
     async function savePolicy() {
         if (!selectedRow) return;
+        const reason = document.getElementById('policyReason').value.trim();
+        if (!reason) {
+            showInline('policyFormError', 'Vui lòng nhập lý do thay đổi chính sách topping.');
+            return;
+        }
         const button = document.getElementById('savePolicy');
         button.disabled = true;
         try {
@@ -246,12 +264,13 @@
                 drinkSizeId: selectedRow.drinkSizeId,
                 toppingId: Number(document.getElementById('policyTopping').value),
                 isDefaultSelected: document.getElementById('policyDefaultSelected').checked,
+                isRequired: document.getElementById('policyRequired').checked,
                 priceTreatment: document.getElementById('priceTreatment').value,
                 costTreatment: document.getElementById('costTreatment').value,
                 quantityPerDrink: Number(document.getElementById('policyQuantity').value),
                 isActive: true,
                 expectedRowVersion: document.getElementById('policyRowVersion').value || null,
-                reason: document.getElementById('policyReason').value.trim() || null
+                reason
             }) });
             window.toast?.('Đã lưu chính sách topping mặc định.', 'success');
             await openPolicies(selectedRow.drinkSizeId);
@@ -274,6 +293,5 @@
     document.getElementById('calculateSuggestion').addEventListener('click', calculateSuggestion);
     document.getElementById('savePrice').addEventListener('click', savePrice);
     document.getElementById('savePolicy').addEventListener('click', savePolicy);
-    document.getElementById('costTreatment').addEventListener('change', event => { if (event.target.value === 'DISPLAY_ONLY') document.getElementById('priceTreatment').value = 'INCLUDED_IN_BASE_PRICE'; });
     loadPreview();
 })();

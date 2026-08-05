@@ -37,11 +37,13 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Topping bắt buộc phải được chọn mặc định.");
             if (!IsValidCombination(request.PriceTreatment, request.CostTreatment))
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Cặp quy tắc giá bán và giá vốn topping không hợp lệ.");
+            if (string.IsNullOrWhiteSpace(request.Reason))
+                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Vui lòng nhập lý do thay đổi chính sách topping.");
 
             var drinkSize = await _context.DrinkSizes.AsNoTracking().FirstOrDefaultAsync(x => x.DrinkSizeId == request.DrinkSizeId && x.Active, cancellationToken);
             var topping = await _context.Toppings.AsNoTracking().FirstOrDefaultAsync(x => x.ToppingId == request.ToppingId && x.Active, cancellationToken);
             if (drinkSize == null || topping == null)
-                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("DrinkSize hoặc topping không tồn tại/đã ngừng hoạt động.");
+                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Size đồ uống hoặc topping không tồn tại/đã ngừng hoạt động.");
 
             var permitted = await _context.DrinkToppings.AsNoTracking().AnyAsync(x => x.DrinkId == drinkSize.DrinkId && x.ToppingId == request.ToppingId && x.Active, cancellationToken)
                 || await _context.DrinkDefaultToppings.AsNoTracking().AnyAsync(x => x.DrinkId == drinkSize.DrinkId && x.ToppingId == request.ToppingId, cancellationToken);
@@ -99,7 +101,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
                     OldDataJson = oldJson,
                     NewDataJson = Serialize(entity),
                     ActorStaffId = actorStaffId,
-                    Reason = request.Reason?.Trim(),
+                    Reason = request.Reason.Trim(),
                     CreatedAtUtc = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync(cancellationToken);
@@ -115,7 +117,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
             catch (DbUpdateException ex) when (IsActiveDuplicate(ex))
             {
                 await transaction.RollbackAsync(cancellationToken);
-                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Đã có chính sách active cho topping này trong size.");
+                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Đã có chính sách đang áp dụng cho topping này trong size.");
             }
         }
 
@@ -128,10 +130,8 @@ namespace CafeChain.Application.Services.Admin.Profitability
         private static bool IsValidCombination(string price, string cost)
         {
             if (!ToppingPriceTreatments.All.Contains(price) || !ToppingCostTreatments.All.Contains(cost)) return false;
-            if (cost == ToppingCostTreatments.DisplayOnly) return true;
-            return (price == ToppingPriceTreatments.IncludedInBasePrice && cost == ToppingCostTreatments.IncludedInDrinkRecipe)
-                || (price == ToppingPriceTreatments.AddToppingPrice && cost == ToppingCostTreatments.AddToppingRecipeCost)
-                || (price == ToppingPriceTreatments.IncludedInBasePrice && cost == ToppingCostTreatments.AddToppingRecipeCost);
+            if (cost == ToppingCostTreatments.DisplayOnly) return false;
+            return true;
         }
 
         private static DrinkSizeToppingPolicyDto Map(DrinkSizeToppingPolicy x) => new()

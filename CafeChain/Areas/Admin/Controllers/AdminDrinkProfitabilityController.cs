@@ -110,7 +110,21 @@ namespace CafeChain.Areas.Admin.Controllers
                 .Select(x => new { x.ToppingId, x.Name, x.Price })
                 .ToListAsync(cancellationToken);
             var policies = await _toppingPolicies.GetActiveAsync(drinkSizeId, cancellationToken);
-            return Json(new { success = true, data = new { policies, options } });
+            var activePolicyIds = policies.Select(x => x.ToppingId).ToHashSet();
+            var legacyReviews = await _context.DrinkDefaultToppings.AsNoTracking()
+                .Where(x => x.DrinkId == drinkSize.DrinkId
+                    && x.Topping.Active
+                    && !activePolicyIds.Contains(x.ToppingId))
+                .OrderBy(x => x.Topping.Name)
+                .Select(x => new
+                {
+                    x.ToppingId,
+                    ToppingName = x.Topping.Name,
+                    Status = "NEEDS_REVIEW",
+                    Message = "Cấu hình topping cũ cần được xác nhận lại trước khi dùng để tính giá vốn."
+                })
+                .ToListAsync(cancellationToken);
+            return Json(new { success = true, data = new { policies, options, legacyReviews } });
         }
 
         [HttpPost]

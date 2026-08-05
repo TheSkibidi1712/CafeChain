@@ -104,13 +104,13 @@
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Size / BOM</th>
+                        <th>Size / Định mức nguyên liệu (BOM)</th>
                         <th>Trạng thái chi phí</th>
                         <th class="pf-number">Giá vốn FIFO</th>
-                        <th class="pf-number">Giá bán global</th>
+                        <th class="pf-number">Giá bán toàn hệ thống</th>
                         <th class="pf-number">Lợi nhuận gộp</th>
-                        <th class="pf-number">Margin</th>
-                        <th class="pf-number">Markup</th>
+                        <th class="pf-number">Biên lợi nhuận gộp (Margin)</th>
+                        <th class="pf-number">Tỷ lệ cộng giá (Markup)</th>
                         <th>Thao tác</th>
                     </tr>
                 </thead>
@@ -132,9 +132,9 @@
             <section class="pf-form-section">
                 <h3>Giá đề xuất</h3>
                 <div class="pf-form-grid">
-                    <label><span>Mục tiêu</span><select id="targetMode" class="pf-control"><option value="MARGIN">Margin</option><option value="MARKUP">Markup</option><option value="PROFIT_AMOUNT">Tiền lời</option></select></label>
-                    <label><span>Giá trị</span><input id="targetValue" class="pf-control" type="number" min="0" step="0.01" /></label>
-                    <label class="pf-span-2"><span>Làm tròn</span><select id="roundingMode" class="pf-control"><option value="NONE">Không làm tròn</option><option value="NEAREST_500">Gần nhất 500đ</option><option value="CEILING_500">Lên 500đ</option><option value="NEAREST_1000">Gần nhất 1.000đ</option><option value="CEILING_1000">Lên 1.000đ</option></select></label>
+                    <label><span>Mục tiêu</span><select id="targetMode" class="pf-control"><option value="MARGIN">Biên lợi nhuận gộp (Margin)</option><option value="MARKUP">Tỷ lệ cộng giá (Markup)</option><option value="PROFIT_AMOUNT">Tiền lời mong muốn</option></select></label>
+                    <label><span>Giá trị mục tiêu</span><input id="targetValue" class="pf-control" type="number" min="0" step="0.01" /></label>
+                    <label class="pf-span-2"><span>Quy tắc làm tròn giá</span><select id="roundingMode" class="pf-control"><option value="NONE">Không làm tròn</option><option value="NEAREST_500">Gần nhất 500đ</option><option value="CEILING_500">Làm tròn lên 500đ</option><option value="NEAREST_1000">Gần nhất 1.000đ</option><option value="CEILING_1000">Làm tròn lên 1.000đ</option></select></label>
                 </div>
                 <button type="button" id="calculateSuggestion" class="pf-secondary-button">Tính giá đề xuất</button>
                 <div id="suggestionResult" class="pf-suggestion" hidden></div>
@@ -142,20 +142,24 @@
             <section class="pf-form-section">
                 <h3>Giá bán mới</h3>
                 <label><span>Giá bán (VND)</span><input id="newSellingPrice" class="pf-control" type="number" min="1" step="500" /></label>
-                <label><span>Lý do thay đổi</span><textarea id="priceReason" class="pf-control" rows="3" maxlength="500"></textarea></label>
+                <div class="pf-price-summary">
+                    <div><span>Phạm vi áp dụng</span><strong>Toàn hệ thống</strong></div>
+                    <div><span>Thời điểm hiệu lực</span><strong>Ngay khi xác nhận</strong></div>
+                </div>
+                <label><span>Lý do thay đổi <strong aria-hidden="true">*</strong></span><textarea id="priceReason" class="pf-control" rows="3" maxlength="500" required></textarea></label>
                 <label id="incompleteConfirmation" class="pf-check" hidden><input type="checkbox" id="confirmIncomplete" /><span>Tôi xác nhận giá vốn chưa đầy đủ và vẫn muốn lưu giá thủ công.</span></label>
                 <div id="priceFormError" class="pf-inline-error" hidden></div>
             </section>
         </div>
         <div class="pf-drawer-footer">
             <button type="button" class="pf-secondary-button" data-bs-dismiss="offcanvas">Hủy</button>
-            <button type="button" id="savePrice" class="pf-primary-button">Lưu giá toàn hệ thống</button>
+            <button type="button" id="savePrice" class="pf-primary-button">Xác nhận áp dụng giá</button>
         </div>
     </aside>
 
     <aside class="offcanvas offcanvas-end pf-drawer" id="policyDrawer" tabindex="-1" aria-labelledby="policyDrawerTitle">
         <div class="pf-drawer-header">
-            <div><span>Contract theo DrinkSize</span><h2 id="policyDrawerTitle">Topping mặc định</h2></div>
+            <div><span>Chính sách topping theo size</span><h2 id="policyDrawerTitle">Topping cho món</h2></div>
             <button type="button" class="pf-icon-button" data-bs-dismiss="offcanvas" title="Đóng"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="pf-drawer-body">
@@ -166,10 +170,11 @@
                 <input type="hidden" id="policyRowVersion" />
                 <label><span>Topping</span><select id="policyTopping" class="pf-control"></select></label>
                 <label><span>Xử lý giá bán</span><select id="priceTreatment" class="pf-control"><option value="INCLUDED_IN_BASE_PRICE">Đã gồm trong giá gốc</option><option value="ADD_TOPPING_PRICE">Cộng giá topping</option></select></label>
-                <label><span>Xử lý giá vốn</span><select id="costTreatment" class="pf-control"><option value="INCLUDED_IN_DRINK_RECIPE">Đã gồm trong BOM đồ uống</option><option value="ADD_TOPPING_RECIPE_COST">Cộng giá vốn BOM topping</option><option value="DISPLAY_ONLY">Chỉ hiển thị</option></select></label>
-                <label><span>Số lượng mỗi ly</span><input id="policyQuantity" class="pf-control" type="number" min="0.00001" step="0.01" value="1" /></label>
+                <label><span>Xử lý giá vốn</span><select id="costTreatment" class="pf-control"><option value="INCLUDED_IN_DRINK_RECIPE">Đã gồm trong BOM đồ uống</option><option value="ADD_TOPPING_RECIPE_COST">Cộng thêm giá vốn topping</option></select></label>
+                <label><span>Số lượng mỗi ly</span><span class="pf-control-with-unit"><input id="policyQuantity" class="pf-control" type="number" min="0.00001" step="0.01" value="1" /><span>phần</span></span><small>Một phần tương ứng với một lần thực hiện công thức topping.</small></label>
                 <label class="pf-check"><input type="checkbox" id="policyDefaultSelected" checked /><span>Chọn mặc định trên POS</span></label>
-                <label><span>Lý do</span><textarea id="policyReason" class="pf-control" rows="2" maxlength="500"></textarea></label>
+                <label class="pf-check"><input type="checkbox" id="policyRequired" /><span>Bắt buộc chọn trên POS</span></label>
+                <label><span>Lý do thay đổi <strong aria-hidden="true">*</strong></span><textarea id="policyReason" class="pf-control" rows="2" maxlength="500" required></textarea></label>
                 <div id="policyFormError" class="pf-inline-error" hidden></div>
                 <button type="button" id="savePolicy" class="pf-primary-button">Lưu chính sách</button>
             </section>
