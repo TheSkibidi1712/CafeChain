@@ -2791,34 +2791,3 @@ Chỉ được xem là hoàn thành khi:
 37. Không có regression đối với mở POS bình thường.
 38. Không biến WorkShift thành chấm công hoặc tính lương.
 
----
-
-# 66. Yêu cầu cuối cùng cho Codex
-
-Hãy ưu tiên tính đúng nghiệp vụ và tính toàn vẹn dữ liệu hơn việc sửa nhanh giao diện.
-
-Bắt buộc:
-
-- Inspect trước.
-- Tìm root cause trước.
-- Sửa P0 trước.
-- Test P0 trước.
-- Sau đó mới refactor OTP.
-- Không che lỗi.
-- Không đoán.
-- Không bịa file.
-- Không bỏ qua transaction.
-- Không bỏ qua database constraint.
-- Không bỏ qua StaffScope.
-- Không bỏ qua audit.
-- Không tuyên bố hoàn thành khi chưa kiểm thử.
-
-Giải pháp cuối phải đơn giản, dễ bảo trì, phù hợp quy mô CafeChain nhưng vẫn bảo đảm:
-
-- Đúng WorkShift.
-- Đúng Terminal.
-- Đúng nhân viên.
-- Đúng thời gian.
-- Đúng Order.
-- Đúng Payment.
-- Đúng trách nhiệm két.

@@ -1,8 +1,9 @@
-<div id="transactionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="transactionModalTitle">
+<div id="transactionModal" class="modal fade store-inventory-modal" tabindex="-1" aria-hidden="true" aria-labelledby="transactionModalTitle">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content cc-modal">
         <button type="button"
                 class="modal-close"
-                onclick="closeModal()"
+                data-bs-dismiss="modal"
                 aria-label="Đóng">
             <i class="fa fa-times" aria-hidden="true"></i>
         </button>
@@ -15,5 +16,6 @@
                 <p>Hệ thống đang lấy các giao dịch phù hợp với chi nhánh được chọn.</p>
             </div>
         </div>
+    </div>
     </div>
 </div>

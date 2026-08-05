@@ -43,6 +43,21 @@
     border-left: 5px solid #c62828;
 }
 
+.toast-item.warning {
+    background: #9a6700;
+    border-left: 5px solid #704800;
+}
+
+.toast-item.info {
+    background: #2563eb;
+    border-left: 5px solid #1e40af;
+}
+
+.toast-item:focus-visible {
+    outline: 3px solid rgba(255, 255, 255, .9);
+    outline-offset: 2px;
+}
+
 /* PROGRESS */
 .toast-progress {
     height: 4px;

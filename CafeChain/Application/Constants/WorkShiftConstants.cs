@@ -29,4 +29,14 @@ public static class WorkShiftErrorCodes
     public const string OutsideScheduleOfflineNotAllowed = "OUTSIDE_SCHEDULE_OFFLINE_NOT_ALLOWED";
     public const string PosOpenContextRequired = "POS_OPEN_CONTEXT_REQUIRED";
     public const string PosOpenContextInvalid = "POS_OPEN_CONTEXT_INVALID";
+    public const string OperatorNotAuthorized = "OPERATOR_NOT_AUTHORIZED";
+    public const string OperatorPinNotConfigured = "OPERATOR_PIN_NOT_CONFIGURED";
+    public const string OperatorPinInvalid = "OPERATOR_PIN_INVALID";
+    public const string OperatorPinLocked = "OPERATOR_PIN_LOCKED";
+}
+
+public static class WorkShiftOpenResultCodes
+{
+    public const string OpenedNewWorkShift = "OPENED_NEW_WORKSHIFT";
+    public const string ResumeExistingWorkShift = "RESUME_EXISTING_WORKSHIFT";
 }

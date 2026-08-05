@@ -6,12 +6,14 @@ using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Options;
 using CafeChain.Application.Results;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
+using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Models.Operations;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
 
@@ -32,6 +34,7 @@ namespace CafeChain.Application.Services.POS
         private readonly IAdminPermissionService? _permissions;
         private readonly IWorkShiftNotificationPublisher? _notifications;
         private readonly IPosSessionExchangeService? _posSessionExchange;
+        private readonly IAccountRepository? _accounts;
 
         public WorkShiftService(
             IWorkShiftRepository shiftRepo,
@@ -46,7 +49,8 @@ namespace CafeChain.Application.Services.POS
             IWorkShiftAuditService? audit = null,
             IAdminPermissionService? permissions = null,
             IWorkShiftNotificationPublisher? notifications = null,
-            IPosSessionExchangeService? posSessionExchange = null)
+            IPosSessionExchangeService? posSessionExchange = null,
+            IAccountRepository? accounts = null)
         {
             _shiftRepo = shiftRepo;
             _posRepo = posRepo;
@@ -62,6 +66,7 @@ namespace CafeChain.Application.Services.POS
             _permissions = permissions;
             _notifications = notifications;
             _posSessionExchange = posSessionExchange;
+            _accounts = accounts;
         }
 
         public async Task<ServiceResult> OpenShiftAsync(int userId, int storeId, OpenShiftRequestDto request)
@@ -237,6 +242,8 @@ namespace CafeChain.Application.Services.POS
                 var newShift = new WorkShift
                 {
                     UserId = userId,
+                    CurrentOperatorStaffId = userId,
+                    OperatorChangedAtUtc = nowUtc,
                     StoreId = storeId,
                     StartTimeUtc = nowUtc,
                     BusinessDate = businessDate,
@@ -694,6 +701,10 @@ namespace CafeChain.Application.Services.POS
                 ShiftId = shift.ShiftId,
                 StoreId = shift.StoreId,
                 StaffName = shift.User?.FullName,
+                ResponsibleStaffId = shift.UserId,
+                CurrentOperatorStaffId = shift.CurrentOperatorStaffId ?? shift.UserId,
+                CurrentOperatorName = shift.CurrentOperatorStaff?.FullName ?? shift.User?.FullName,
+                OperatorChangedAtUtc = shift.OperatorChangedAtUtc,
                 StartTime = shift.StartTimeUtc,
                 EndTime = shift.EndTimeUtc,
                 StartTimeUtc = shift.StartTimeUtc,
@@ -768,7 +779,9 @@ namespace CafeChain.Application.Services.POS
 
                 var activeShift = await _shiftRepo.GetActiveShiftAsync(userId, storeId);
                 if (activeShift == null)
-                    return ServiceResult.Failure("Không tìm thấy ca két tiền đang mở.");
+                    return ServiceResult.Failure(
+                        "Không tìm thấy ca két tiền hiện tại đang mở.",
+                        errorCode: WorkShiftErrorCodes.WorkShiftNotOpen);
                 if (!MatchesRequestRowVersion(activeShift, request.RowVersion))
                     return ServiceResult.Failure("Dữ liệu phiên POS đã thay đổi.", errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
 
@@ -854,9 +867,6 @@ namespace CafeChain.Application.Services.POS
                                 "Chênh lệch két tiền vượt ngưỡng cho phép. Cần xác nhận OTP từ Ca trưởng.",
                                 errorCode: OtpConstants.ErrorCodes.Required);
                         }
-
-                        await _otpChallengeRepo.BeginTransactionAsync();
-                        ownsTransaction = true;
 
                         otpChallenge = await _otpChallengeRepo.GetByPublicIdForUpdateAsync(request.OtpChallengePublicId.Value);
                         var expectedFingerprint = _otpFingerprint.BuildCashDifferenceFingerprint(
@@ -1384,6 +1394,183 @@ namespace CafeChain.Application.Services.POS
                     ? ServiceResult.Failure(business.Message, errorCode: business.ErrorCode)
                     : ServiceResult.Failure("Không thể đăng ký terminal POS.");
             }
+        }
+
+        public async Task<ServiceResult> SetOperatorPinAsync(
+            int accountId,
+            int staffId,
+            int storeId,
+            SetOperatorPinRequestDto request)
+        {
+            if (_accounts == null)
+                return ServiceResult.Failure("Dịch vụ PIN POS chưa sẵn sàng.", errorCode: WorkShiftErrorCodes.OperatorNotAuthorized);
+            if (request == null || !IsValidOperatorPin(request.Pin))
+                return ServiceResult.Failure("PIN POS phải gồm đúng 6 chữ số và không được là chuỗi lặp đơn giản.", errorCode: WorkShiftErrorCodes.OperatorPinInvalid);
+
+            var staff = await _shiftRepo.GetStaffForOperatorAsync(staffId);
+            var account = await _accounts.GetAccountByIdAsync(accountId);
+            if (staff == null || account == null || staff.AccountId != accountId
+                || staff.StoreId != storeId || !staff.Active || !account.Active)
+                return ServiceResult.Failure("Không thể thiết lập PIN cho tài khoản này.", errorCode: WorkShiftErrorCodes.OperatorNotAuthorized);
+            if (string.IsNullOrWhiteSpace(account.PasswordHash)
+                || !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, account.PasswordHash))
+                return ServiceResult.Failure("Mật khẩu hiện tại không chính xác.", errorCode: WorkShiftErrorCodes.OperatorNotAuthorized);
+
+            staff.PosPinHash = BCrypt.Net.BCrypt.HashPassword(request.Pin.Trim(), workFactor: 11);
+            staff.PosPinFailedAttempts = 0;
+            staff.PosPinLockedUntilUtc = null;
+            await _shiftRepo.SaveChangesAsync();
+            if (_audit != null)
+                await _audit.WriteAsync("POS_OPERATOR_PIN_CONFIGURED", 0, staffId, null, new { staffId, storeId });
+            return ServiceResult.Success("Thiết lập PIN thao tác POS thành công.");
+        }
+
+        public async Task<ServiceResult<IReadOnlyList<PosOperatorCandidateDto>>> GetOperatorCandidatesAsync(int storeId)
+        {
+            var staff = await _shiftRepo.GetActiveOperatorCandidatesAsync(storeId);
+            var candidates = new List<PosOperatorCandidateDto>();
+            foreach (var candidate in staff)
+            {
+                if (_permissions != null)
+                {
+                    var permission = await _permissions.HasPermissionAsync(
+                        candidate.AccountId, PermissionConstants.PosOperatorSwitch, storeId);
+                    if (!permission.IsSuccess || permission.Data?.Allowed != true)
+                        continue;
+                }
+
+                candidates.Add(new PosOperatorCandidateDto
+                {
+                    StaffId = candidate.StaffId,
+                    FullName = candidate.FullName
+                });
+            }
+
+            return ServiceResult<IReadOnlyList<PosOperatorCandidateDto>>.Success(candidates);
+        }
+
+        public async Task<ServiceResult> SwitchOperatorAsync(
+            int responsibleStaffId,
+            int storeId,
+            int shiftId,
+            SwitchOperatorRequestDto request)
+        {
+            if (request == null || request.OperatorStaffId <= 0 || !IsValidOperatorPin(request.Pin))
+                return ServiceResult.Failure("Thông tin người thao tác hoặc PIN không hợp lệ.", errorCode: WorkShiftErrorCodes.OperatorPinInvalid);
+            if (string.IsNullOrWhiteSpace(request.RequestKey) || request.RequestKey.Trim().Length > 200)
+                return ServiceResult.Failure("RequestKey không hợp lệ.", errorCode: WorkShiftErrorCodes.InvalidRequestKey);
+
+            await _otpChallengeRepo.BeginTransactionAsync();
+            try
+            {
+                var shift = await _shiftRepo.GetActiveShiftAsync(responsibleStaffId, storeId);
+                if (shift == null || shift.ShiftId != shiftId || shift.Status != WorkShiftStatuses.Open)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("Phiên POS không còn ở trạng thái cho phép đổi người thao tác.", errorCode: WorkShiftErrorCodes.WorkShiftNotOpen);
+                }
+                if (!MatchesRequestRowVersion(shift, request.RowVersion))
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("Phiên POS vừa thay đổi. Vui lòng tải lại.", errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+                }
+
+                var target = await _shiftRepo.GetStaffForOperatorAsync(request.OperatorStaffId);
+                if (target?.Account == null || !target.Active || !target.Account.Active)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("Nhân viên không hoạt động hoặc không tồn tại.", errorCode: WorkShiftErrorCodes.OperatorNotAuthorized);
+                }
+
+                var permission = _permissions == null
+                    ? null
+                    : await _permissions.HasPermissionAsync(target.AccountId, PermissionConstants.PosOperatorSwitch, storeId);
+                var targetAllowed = permission == null
+                    ? target.StoreId == storeId
+                    : permission.IsSuccess && permission.Data?.Allowed == true;
+                if (!targetAllowed)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("Nhân viên không có quyền thao tác POS tại cửa hàng này.", errorCode: WorkShiftErrorCodes.OperatorNotAuthorized);
+                }
+
+                var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+                if (target.PosPinLockedUntilUtc.HasValue && target.PosPinLockedUntilUtc.Value > nowUtc)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("PIN POS đang bị khóa tạm thời do nhập sai nhiều lần.", errorCode: WorkShiftErrorCodes.OperatorPinLocked);
+                }
+                if (string.IsNullOrWhiteSpace(target.PosPinHash))
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("Nhân viên chưa thiết lập PIN thao tác POS.", errorCode: WorkShiftErrorCodes.OperatorPinNotConfigured);
+                }
+                if (!BCrypt.Net.BCrypt.Verify(request.Pin.Trim(), target.PosPinHash))
+                {
+                    target.PosPinFailedAttempts++;
+                    if (target.PosPinFailedAttempts >= 5)
+                    {
+                        target.PosPinFailedAttempts = 0;
+                        target.PosPinLockedUntilUtc = nowUtc.AddMinutes(15);
+                    }
+                    await _shiftRepo.SaveChangesAsync();
+                    await _otpChallengeRepo.CommitTransactionAsync();
+                    return ServiceResult.Failure(
+                        target.PosPinLockedUntilUtc.HasValue
+                            ? "PIN POS đã bị khóa 15 phút do nhập sai nhiều lần."
+                            : "PIN POS không chính xác.",
+                        errorCode: target.PosPinLockedUntilUtc.HasValue
+                            ? WorkShiftErrorCodes.OperatorPinLocked
+                            : WorkShiftErrorCodes.OperatorPinInvalid);
+                }
+
+                Models.Systems.RequestDeduplication? dedupEntry = null;
+                if (_deduplication != null)
+                {
+                    var begin = await _deduplication.BeginScopedAsync(
+                        request.RequestKey, "POS.OPERATOR.SWITCH", responsibleStaffId,
+                        request, shiftId, storeId, null);
+                    if (!begin.CanProcess)
+                    {
+                        await _otpChallengeRepo.RollbackTransactionAsync();
+                        return string.Equals(begin.Status, "SUCCESS", StringComparison.Ordinal)
+                            ? ServiceResult.Success("Người thao tác POS đã được đổi trước đó.")
+                            : ServiceResult.Failure(begin.ErrorMessage ?? "RequestKey đã được sử dụng.", errorCode: begin.ErrorCode);
+                    }
+                    dedupEntry = begin.Entry;
+                }
+
+                var previousOperatorId = shift.CurrentOperatorStaffId ?? shift.UserId;
+                target.PosPinFailedAttempts = 0;
+                target.PosPinLockedUntilUtc = null;
+                shift.CurrentOperatorStaffId = target.StaffId;
+                shift.OperatorChangedAtUtc = nowUtc;
+                await _shiftRepo.UpdateShiftAsync(shift);
+                if (_audit != null)
+                    await _audit.WriteAsync("POS_OPERATOR_CHANGED", shiftId, responsibleStaffId,
+                        new { CurrentOperatorStaffId = previousOperatorId },
+                        new { CurrentOperatorStaffId = target.StaffId, request.RequestKey });
+                if (dedupEntry != null && _deduplication != null)
+                    await _deduplication.MarkSuccessAsync(dedupEntry, shiftId, new { shiftId, target.StaffId });
+                await _otpChallengeRepo.CommitTransactionAsync();
+                await PublishNotificationSafeAsync(shift, "OPERATOR_CHANGED");
+                return ServiceResult.Success($"Đã chuyển người thao tác POS sang {target.FullName}.");
+            }
+            catch (Exception ex)
+            {
+                await _otpChallengeRepo.RollbackTransactionAsync();
+                _logger.LogError(ex, "POS_OPERATOR_SWITCH_FAILED | ShiftId={ShiftId}", shiftId);
+                return ServiceResult.Failure("Không thể đổi người thao tác POS. Vui lòng thử lại.");
+            }
+        }
+
+        private static bool IsValidOperatorPin(string? pin)
+        {
+            pin = pin?.Trim();
+            return pin is { Length: 6 }
+                && pin.All(char.IsDigit)
+                && pin.Distinct().Count() > 1
+                && pin is not "123456" and not "654321";
         }
 
         private async Task PublishNotificationSafeAsync(WorkShift shift, string eventType)

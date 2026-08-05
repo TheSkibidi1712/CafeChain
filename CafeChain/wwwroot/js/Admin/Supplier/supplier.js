@@ -24,32 +24,6 @@
     const detailPanel = $('#supplierDetail');
     const detailContent = $('#supplierDetailContent');
     const detailPlaceholder = $('#supplierDetailPlaceholder');
-    let detailReturnFocus = null;
-    let modalReturnFocus = null;
-    let confirmReturnFocus = null;
-
-    function syncPageScrollLock() {
-        const overlayOpen = detailPanel?.classList.contains('is-open')
-            || $('#createSupplierModal')?.classList.contains('is-open')
-            || $('#supplierConfirmModal')?.classList.contains('is-open');
-        document.body.style.overflow = overlayOpen ? 'hidden' : '';
-    }
-
-    function trapFocus(event, container) {
-        if (event.key !== 'Tab' || !container) return;
-        const focusable = $$('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])', container)
-            .filter(item => item.offsetParent !== null);
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault();
-            last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault();
-            first.focus();
-        }
-    }
 
     const escapeHtml = (value) => String(value ?? '')
         .replaceAll('&', '&amp;')
@@ -161,27 +135,19 @@
     }));
 
     function openDetailShell() {
-        if (!detailPanel.classList.contains('is-open')) detailReturnFocus = document.activeElement;
-        detailPanel.classList.add('is-open');
-        detailPanel.setAttribute('aria-hidden', 'false');
         detailPlaceholder.classList.add('is-hidden');
         detailContent.classList.remove('is-hidden');
-        syncPageScrollLock();
+        bootstrap.Offcanvas.getOrCreateInstance(detailPanel).show();
     }
 
     function closeDetail() {
-        detailPanel.classList.remove('is-open');
-        detailPanel.setAttribute('aria-hidden', 'true');
-        $$('#supplierRows tr').forEach(row => row.classList.remove('is-selected'));
-        syncPageScrollLock();
-        if (window.innerWidth < 1180) {
-            detailContent.classList.add('is-hidden');
-            detailPlaceholder.classList.remove('is-hidden');
-        }
-        detailReturnFocus?.focus();
-        detailReturnFocus = null;
+        bootstrap.Offcanvas.getOrCreateInstance(detailPanel).hide();
     }
-    $('#closeSupplierDetail')?.addEventListener('click', closeDetail);
+    detailPanel?.addEventListener('hidden.bs.offcanvas', () => {
+        $$('#supplierRows tr').forEach(row => row.classList.remove('is-selected'));
+        detailContent.classList.add('is-hidden');
+        detailPlaceholder.classList.remove('is-hidden');
+    });
 
     async function loadReferenceData() {
         if (!canMutate || state.loaded.reference) return;
@@ -711,38 +677,19 @@
 
     const modal = $('#createSupplierModal');
     const duplicatePanel = $('#supplierDuplicatePanel');
-    const confirmModal = $('#supplierConfirmModal');
-    let confirmResolver = null;
-
-    function closeConfirmation(confirmed) {
-        if (!confirmModal?.classList.contains('is-open')) return;
-        confirmModal.classList.remove('is-open');
-        confirmModal.setAttribute('aria-hidden', 'true');
-        syncPageScrollLock();
-        const resolver = confirmResolver;
-        confirmResolver = null;
-        resolver?.(confirmed);
-        confirmReturnFocus?.focus();
-        confirmReturnFocus = null;
+    async function requestConfirmation(title, message) {
+        if (!window.Swal) return window.confirm(`${title}\n${message}`);
+        const result = await window.Swal.fire({
+            title,
+            text: message,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận',
+            cancelButtonText: 'Giữ lại',
+            focusCancel: true
+        });
+        return result.isConfirmed === true;
     }
-
-    function requestConfirmation(title, message) {
-        if (!confirmModal) return Promise.resolve(false);
-        confirmReturnFocus = document.activeElement;
-        $('#supplierConfirmTitle').textContent = title;
-        $('#supplierConfirmMessage').textContent = message;
-        confirmModal.classList.add('is-open');
-        confirmModal.setAttribute('aria-hidden', 'false');
-        syncPageScrollLock();
-        window.setTimeout(() => $('#cancelSupplierConfirm')?.focus(), 30);
-        return new Promise(resolve => { confirmResolver = resolve; });
-    }
-
-    $('#cancelSupplierConfirm')?.addEventListener('click', () => closeConfirmation(false));
-    $('#acceptSupplierConfirm')?.addEventListener('click', () => closeConfirmation(true));
-    confirmModal?.addEventListener('click', event => {
-        if (event.target === confirmModal) closeConfirmation(false);
-    });
 
     function resetDuplicateWarning() {
         state.duplicateWarningId = null;
@@ -789,20 +736,13 @@
 
     function setModalOpen(open) {
         if (!modal) return;
-        if (open) modalReturnFocus = document.activeElement;
-        modal.classList.toggle('is-open', open);
-        modal.setAttribute('aria-hidden', String(!open));
-        syncPageScrollLock();
-        if (open) window.setTimeout(() => $('#createName')?.focus(), 50);
-        else {
-            resetDuplicateWarning();
-            modalReturnFocus?.focus();
-            modalReturnFocus = null;
-        }
+        const instance = bootstrap.Modal.getOrCreateInstance(modal);
+        if (open) instance.show();
+        else instance.hide();
     }
     $('#createSupplierButton')?.addEventListener('click', () => setModalOpen(true));
-    $$('[data-close-modal]').forEach(button => button.addEventListener('click', () => setModalOpen(false)));
-    modal?.addEventListener('click', event => { if (event.target === modal) setModalOpen(false); });
+    modal?.addEventListener('shown.bs.modal', () => $('#createName')?.focus());
+    modal?.addEventListener('hidden.bs.modal', resetDuplicateWarning);
 
     $('#cancelDuplicateWarning')?.addEventListener('click', resetDuplicateWarning);
     $('#openDuplicateSupplier')?.addEventListener('click', () => {
@@ -889,16 +829,4 @@
         });
     });
 
-    document.addEventListener('keydown', event => {
-        if (event.key === 'Tab') {
-            if (confirmModal?.classList.contains('is-open')) trapFocus(event, confirmModal);
-            else if (modal?.classList.contains('is-open')) trapFocus(event, modal);
-            else if (detailPanel?.classList.contains('is-open')) trapFocus(event, detailPanel);
-            return;
-        }
-        if (event.key !== 'Escape') return;
-        if (confirmModal?.classList.contains('is-open')) closeConfirmation(false);
-        else if (modal?.classList.contains('is-open')) setModalOpen(false);
-        else if (detailPanel?.classList.contains('is-open')) closeDetail();
-    });
 })();

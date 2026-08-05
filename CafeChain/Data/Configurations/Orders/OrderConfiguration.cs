@@ -23,6 +23,9 @@ namespace CafeChain.Data.Configurations.Orders
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
+            entity.Property(x => x.TerminalId)
+                .HasMaxLength(100);
+
             // ================= MONEY (QUAN TRỌNG) =================
             entity.Property(x => x.SubTotal)
                 .HasColumnType("decimal(18,2)")
@@ -80,6 +83,11 @@ namespace CafeChain.Data.Configurations.Orders
                 .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.NoAction); // tránh multiple cascade
 
+            entity.HasOne(x => x.Terminal)
+                .WithMany()
+                .HasForeignKey(x => x.TerminalId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(x => x.OrderStatus)
                 .WithMany(x => x.Orders)
                 .HasForeignKey(x => x.OrderStatusId)
@@ -95,6 +103,7 @@ namespace CafeChain.Data.Configurations.Orders
             entity.HasIndex(x => x.CustomerId);
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => x.StaffId);
+            entity.HasIndex(x => x.TerminalId);
 
             // ADR-0002: Idempotency Key — Unique chỉ khi ClientOrderId IS NOT NULL
             // Đơn online (ClientOrderId = null) không bị ảnh hưởng bởi constraint này

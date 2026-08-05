@@ -52,7 +52,9 @@
     var hasKeyword = !string.IsNullOrWhiteSpace(Model.Filter.Keyword);
 }
 
-<link rel="stylesheet" href="~/css/Admin/Category/Category.css" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Category/Category.css" asp-append-version="true" />
+}
 
 @Html.AntiForgeryToken()
 
@@ -661,6 +663,5 @@
 
 @section Scripts
 {
-    <script src="~/js/Toast/toast.js"></script>
     <script src="~/js/Admin/Category/Category.js"></script>
 }

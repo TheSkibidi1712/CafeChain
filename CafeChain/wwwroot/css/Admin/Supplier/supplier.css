@@ -24,7 +24,7 @@
     min-height: 100vh;
 }
 
-.supplier-page *, .supplier-modal * { box-sizing: border-box; letter-spacing: 0; }
+.supplier-page *, .supplier-modal *, .supplier-detail * { box-sizing: border-box; letter-spacing: 0; }
 
 .supplier-page-header {
     position: relative;
@@ -115,7 +115,8 @@
 
 .supplier-btn:focus-visible, .supplier-icon-button:focus-visible, .supplier-tabs button:focus-visible,
 .supplier-page input:focus-visible, .supplier-page select:focus-visible, .supplier-page textarea:focus-visible,
-.supplier-modal input:focus-visible, .supplier-modal select:focus-visible, .supplier-modal textarea:focus-visible {
+.supplier-modal input:focus-visible, .supplier-modal select:focus-visible, .supplier-modal textarea:focus-visible,
+.supplier-detail input:focus-visible, .supplier-detail select:focus-visible, .supplier-detail textarea:focus-visible {
     outline: 3px solid rgba(111,78,55,.25);
     outline-offset: 1px;
 }
@@ -203,7 +204,8 @@
 }
 
 .supplier-page input, .supplier-page select, .supplier-page textarea,
-.supplier-modal input, .supplier-modal select, .supplier-modal textarea {
+.supplier-modal input, .supplier-modal select, .supplier-modal textarea,
+.supplier-detail input, .supplier-detail select, .supplier-detail textarea {
     width: 100%;
     min-height: 39px;
     padding: 8px 11px;
@@ -217,14 +219,16 @@
 }
 
 .supplier-page input:focus, .supplier-page select:focus, .supplier-page textarea:focus,
-.supplier-modal input:focus, .supplier-modal select:focus, .supplier-modal textarea:focus {
+.supplier-modal input:focus, .supplier-modal select:focus, .supplier-modal textarea:focus,
+.supplier-detail input:focus, .supplier-detail select:focus, .supplier-detail textarea:focus {
     border-color: var(--supplier-primary);
     box-shadow: 0 0 0 3px rgba(111,78,55,.12);
     outline: none;
 }
 
-.supplier-page textarea, .supplier-modal textarea { resize: vertical; line-height: 1.5; }
-.supplier-page input:disabled, .supplier-page select:disabled { background: var(--cc-app-bg); color: var(--cc-text-secondary); }
+.supplier-page textarea, .supplier-modal textarea, .supplier-detail textarea { resize: vertical; line-height: 1.5; }
+.supplier-page input:disabled, .supplier-page select:disabled,
+.supplier-detail input:disabled, .supplier-detail select:disabled { background: var(--cc-app-bg); color: var(--cc-text-secondary); }
 
 /* ── Workspace ── */
 .supplier-workspace {
@@ -419,35 +423,12 @@
 
 /* ── Detail drawer ── */
 .supplier-detail {
-    display: none;
+    --bs-offcanvas-width: min(760px, calc(100vw - 40px));
     min-width: 0;
     background: var(--cc-surface-muted);
     border-left: 1px solid var(--supplier-line);
-}
-.supplier-detail.is-open {
-    display: block;
-    position: fixed;
-    inset: 0 0 0 auto;
-    z-index: 1050;
-    width: min(760px, calc(100vw - 40px));
-    height: 100dvh;
     overflow: hidden;
-    border: 0;
-    border-left: 1px solid var(--supplier-line);
     box-shadow: -24px 0 64px rgba(67, 42, 26, .2);
-    background: var(--cc-surface);
-    animation: supplierDrawerIn .22s cubic-bezier(.2, .8, .2, 1);
-}
-@keyframes supplierDrawerIn {
-    from { opacity: .6; transform: translateX(28px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-.supplier-workspace:has(.supplier-detail.is-open)::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 1049;
-    background: rgba(30, 20, 12, .42);
 }
 .supplier-detail-content {
     height: 100%;
@@ -520,10 +501,9 @@
 .supplier-audit-list dd { margin: 0; font-size: 13px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
 /* ── Modal tạo nhà cung cấp ── */
-.supplier-modal { position: fixed; inset: 0; z-index: 1040; display: none; align-items: center; justify-content: center; padding: 24px; background: rgba(30, 20, 12, .46); }
-.supplier-modal.is-open { display: flex; }
+.supplier-modal .modal-dialog { width: min(1040px, 100%); max-width: calc(100vw - 32px); }
 .supplier-modal-panel {
-    width: min(1040px, 100%);
+    width: 100%;
     max-height: calc(100dvh - 48px);
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
@@ -728,7 +708,7 @@
         border-top: 1px solid var(--supplier-line);
     }
     .supplier-detail-placeholder { display: none; }
-    .supplier-detail.is-open { width: min(680px, 100vw); }
+    .supplier-detail.offcanvas { --bs-offcanvas-width: min(680px, 100vw); }
 }
 
 @media (max-width: 760px) {
@@ -757,7 +737,7 @@
     .supplier-form .is-wide { grid-column: auto; }
     .supplier-check { padding-top: 0; }
     .supplier-history-row { grid-template-columns: 1fr; gap: 4px; }
-    .supplier-modal { align-items: stretch; padding: 0; }
+    .supplier-modal .modal-dialog { width: 100%; min-height: 100dvh; margin: 0; }
     .supplier-modal-panel { width: 100%; max-height: 100dvh; border: 0; border-radius: 0; }
     .supplier-modal-panel > header { padding: 16px; }
     .supplier-modal-icon { display: none; }

@@ -84,8 +84,12 @@ namespace CafeChain.Tests.POS
                 Assert.Null(dto.GetProperty("SupervisorPin"));
                 Assert.Null(dto.GetProperty("SupervisorPinCode"));
                 Assert.Null(dto.GetProperty("PinCode"));
-                // Generic "Pin" field (BypassAuthorizationRequest / SupervisorAuthRequestDto removed)
-                Assert.Null(dto.GetProperty("Pin"));
+                // PIN cá nhân của Current Operator là luồng riêng, không phải
+                // supervisor approval legacy. Chỉ hai request POS này được mang field Pin.
+                if (dto.GetProperty("Pin") != null)
+                {
+                    Assert.Contains(dto.Name, new[] { "SwitchOperatorRequestDto", "SetOperatorPinRequestDto" });
+                }
             }
         }
 

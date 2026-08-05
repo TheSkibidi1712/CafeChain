@@ -66,6 +66,23 @@ public sealed class StaffHubController : Controller
         return View(result.Data);
     }
 
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [RequirePermission(PermissionConstants.PosOperatorSwitch)]
+    public async Task<IActionResult> SetOperatorPin([FromForm] SetOperatorPinRequestDto request)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
+            || !int.TryParse(User.FindFirstValue("StaffId"), out var staffId)
+            || !int.TryParse(User.FindFirstValue("StoreId"), out var storeId))
+            return Unauthorized(new { success = false, message = "Phiên đăng nhập không hợp lệ." });
+
+        var result = await _workShiftService.SetOperatorPinAsync(accountId, staffId, storeId, request);
+        return result.IsSuccess
+            ? Ok(new { success = true, message = result.Message })
+            : StatusCode(result.ErrorCode == WorkShiftErrorCodes.OperatorNotAuthorized
+                ? StatusCodes.Status403Forbidden : StatusCodes.Status400BadRequest,
+                new { success = false, errorCode = result.ErrorCode, message = result.Message });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
@@ -153,6 +170,9 @@ public sealed class StaffHubController : Controller
         return Ok(new
         {
             success = true,
+            resultCode = WorkShiftOpenResultCodes.ResumeExistingWorkShift,
+            workShiftId = prepared.Data.WorkShiftId,
+            requiresOpeningCash = false,
             exchangeCode = ticket.ExchangeCode,
             expiresAtUtc = ticket.ExpiresAtUtc,
             exchangeUrl = Url.Content("~/api/v1/pos/session/exchange"),

@@ -9747,6 +9747,10 @@ namespace CafeChain.Migrations
                     b.Property<int?>("TableId")
                         .HasColumnType("int");
 
+                    b.Property<string>("TerminalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<decimal>("Total")
                         .HasColumnType("decimal(18,2)");
 
@@ -9784,6 +9788,8 @@ namespace CafeChain.Migrations
                     b.HasIndex("StaffId");
 
                     b.HasIndex("StoreId");
+
+                    b.HasIndex("TerminalId");
 
                     b.HasIndex("WorkShiftId");
 
@@ -10124,6 +10130,9 @@ namespace CafeChain.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("PaidByStaffId")
+                        .HasColumnType("int");
+
                     b.Property<int>("PaymentMethodId")
                         .HasColumnType("int");
 
@@ -10133,9 +10142,19 @@ namespace CafeChain.Migrations
                     b.Property<decimal?>("ReceivedAmount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TerminalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("TransactionCode")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("WorkShiftId")
+                        .HasColumnType("int");
 
                     b.HasKey("PaymentId");
 
@@ -10143,9 +10162,17 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("OrderId");
 
+                    b.HasIndex("PaidByStaffId");
+
                     b.HasIndex("PaymentMethodId");
 
                     b.HasIndex("PaymentStatusId");
+
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("TerminalId");
+
+                    b.HasIndex("WorkShiftId");
 
                     b.ToTable("Payments", (string)null);
                 });
@@ -11018,6 +11045,18 @@ namespace CafeChain.Migrations
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
+                    b.Property<int>("PosPinFailedAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("PosPinHash")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("PosPinLockedUntilUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
 
@@ -11049,6 +11088,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Chủ doanh nghiệp",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11062,6 +11102,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Quản lý vùng TP.HCM",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11075,6 +11116,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Quản lý chi nhánh Quận 1",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11088,6 +11130,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Nhân viên bán hàng",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11101,6 +11144,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Nhân viên kế toán kho",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11114,6 +11158,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Quản trị hệ thống",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11127,6 +11172,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Ca trưởng chi nhánh",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         });
                 });
@@ -12372,6 +12418,9 @@ namespace CafeChain.Migrations
                     b.Property<DateTime?>("ClosingStartedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("CurrentOperatorStaffId")
+                        .HasColumnType("int");
+
                     b.Property<string>("DiscrepancyReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -12436,6 +12485,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("nvarchar(32)")
                         .HasDefaultValue("LEGACY");
 
+                    b.Property<DateTime?>("OperatorChangedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("OutsideScheduleReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -12484,6 +12536,8 @@ namespace CafeChain.Migrations
                     b.HasIndex("ApprovedByStaffId");
 
                     b.HasIndex("ClosedByStaffId");
+
+                    b.HasIndex("CurrentOperatorStaffId");
 
                     b.HasIndex("ExceptionClosedByStaffId");
 
@@ -15985,6 +16039,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Stores.PosTerminal", "Terminal")
+                        .WithMany()
+                        .HasForeignKey("TerminalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Stores.WorkShift", "WorkShift")
                         .WithMany("Orders")
                         .HasForeignKey("WorkShiftId")
@@ -16001,6 +16060,8 @@ namespace CafeChain.Migrations
                     b.Navigation("Staff");
 
                     b.Navigation("Store");
+
+                    b.Navigation("Terminal");
 
                     b.Navigation("WorkShift");
                 });
@@ -16103,6 +16164,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "PaidByStaff")
+                        .WithMany()
+                        .HasForeignKey("PaidByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Payments.PaymentMethod", "PaymentMethod")
                         .WithMany("Payments")
                         .HasForeignKey("PaymentMethodId")
@@ -16115,13 +16181,36 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.PosTerminal", "Terminal")
+                        .WithMany()
+                        .HasForeignKey("TerminalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.WorkShift", "WorkShift")
+                        .WithMany()
+                        .HasForeignKey("WorkShiftId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CashSession");
 
                     b.Navigation("Order");
 
+                    b.Navigation("PaidByStaff");
+
                     b.Navigation("PaymentMethod");
 
                     b.Navigation("PaymentStatus");
+
+                    b.Navigation("Store");
+
+                    b.Navigation("Terminal");
+
+                    b.Navigation("WorkShift");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Permissions.AccountPermissionOverride", b =>
@@ -16636,6 +16725,11 @@ namespace CafeChain.Migrations
                         .HasForeignKey("ClosedByStaffId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "CurrentOperatorStaff")
+                        .WithMany()
+                        .HasForeignKey("CurrentOperatorStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Staffs.Staff", "ExceptionClosedByStaff")
                         .WithMany()
                         .HasForeignKey("ExceptionClosedByStaffId")
@@ -16666,6 +16760,8 @@ namespace CafeChain.Migrations
                     b.Navigation("ApprovedByStaff");
 
                     b.Navigation("ClosedByStaff");
+
+                    b.Navigation("CurrentOperatorStaff");
 
                     b.Navigation("ExceptionClosedByStaff");
 

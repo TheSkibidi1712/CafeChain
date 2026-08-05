@@ -489,6 +489,7 @@ namespace CafeChain.Data.Configurations.Stores
             entity.HasIndex(x => x.SourceStaffShiftId);
             entity.HasIndex(x => x.ApprovedByStaffId);
             entity.HasIndex(x => x.ClosedByStaffId);
+            entity.HasIndex(x => x.CurrentOperatorStaffId);
 
             // ─── Relationships ────────────────────────────
             entity.HasOne(x => x.Store)
@@ -499,6 +500,11 @@ namespace CafeChain.Data.Configurations.Stores
             entity.HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.CurrentOperatorStaff)
+                .WithMany()
+                .HasForeignKey(x => x.CurrentOperatorStaffId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.ExceptionClosedByStaff)

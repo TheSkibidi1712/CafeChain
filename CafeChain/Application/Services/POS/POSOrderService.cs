@@ -471,10 +471,12 @@ namespace CafeChain.Application.Services.POS
                 var paymentStatusId = hasPayOsPayment
                     ? SystemConstants.PaymentStatuses.Unpaid
                     : SystemConstants.PaymentStatuses.Paid;
+                var operatorStaffId = activeShift.CurrentOperatorStaffId ?? activeShift.UserId;
 
                 var newOrder = await _repository.CreateOrderAsync(new Order
                 {
-                    StoreId = storeId, StaffId = userId > 0 ? userId : null, WorkShiftId = activeShift.ShiftId,
+                    StoreId = storeId, StaffId = operatorStaffId, WorkShiftId = activeShift.ShiftId,
+                    TerminalId = activeShift.PosTerminalId,
                     CustomerId = dto.CustomerId, OrderTypeId = dto.OrderTypeId > 0 ? dto.OrderTypeId : 1,
                     OrderStatusId = orderStatusId, PaymentStatusId = paymentStatusId, SubTotal = subTotal,
                     VoucherDiscount = voucherDiscount, PointDiscount = pointDiscount, PointsUsed = actualPointsUsed,
@@ -494,6 +496,10 @@ namespace CafeChain.Application.Services.POS
                         ReceivedAmount = !hasPayOsPayment && payLine.PaymentMethodId == 1 ? effectiveReceivedAmount : null,
                         ChangeAmount = !hasPayOsPayment && payLine.PaymentMethodId == 1 ? cashChangeAmount : null,
                         PaymentStatusId = paymentStatusId,
+                        StoreId = storeId,
+                        WorkShiftId = activeShift.ShiftId,
+                        PaidByStaffId = operatorStaffId,
+                        TerminalId = activeShift.PosTerminalId,
                         PaidAt = hasPayOsPayment ? null : DateTime.Now
                     });
                 }
@@ -896,6 +902,7 @@ namespace CafeChain.Application.Services.POS
                     StoreId = storeId,
                     StaffId = userId,
                     WorkShiftId = originalShift.ShiftId,
+                    TerminalId = originalShift.PosTerminalId,
                     CustomerId = dto.CustomerId,
                     OrderTypeId = dto.OrderTypeId > 0 ? dto.OrderTypeId : 1,
                     OrderStatusId = SystemConstants.OrderStatuses.Completed,
@@ -924,6 +931,10 @@ namespace CafeChain.Application.Services.POS
                         ReceivedAmount = effectiveReceivedAmount,
                         ChangeAmount = cashChangeAmount,
                         PaymentStatusId = SystemConstants.PaymentStatuses.Paid,
+                        StoreId = storeId,
+                        WorkShiftId = originalShift.ShiftId,
+                        PaidByStaffId = userId,
+                        TerminalId = originalShift.PosTerminalId,
                         PaidAt = createdAt
                     });
                 }

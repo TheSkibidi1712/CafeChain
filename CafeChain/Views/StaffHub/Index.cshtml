@@ -34,6 +34,7 @@
      data-request-terminal-otp-url="@Url.Action("RequestTerminalRegistrationOtp", "StaffHub")"
      data-verify-otp-url="@Url.Action("VerifyOperationalOtp", "StaffHub")"
      data-resend-otp-url="@Url.Action("ResendOperationalOtp", "StaffHub")"
+     data-set-operator-pin-url="@Url.Action("SetOperatorPin", "StaffHub")"
      data-register-terminal-url="@Url.Action("RegisterTerminal", "StaffHub")">
     @Html.AntiForgeryToken()
     <div class="staffhub-shell">
@@ -210,8 +211,21 @@
             </div>
         </aside>
 
-        <dialog id="openPosPreviewDialog" class="staffhub-pos-dialog" aria-labelledby="openPosPreviewTitle">
-            <form method="dialog" class="staffhub-pos-dialog-card">
+        @if (canAccessPos)
+        {
+            <section class="staffhub-note" aria-labelledby="operatorPinHeading">
+                <span class="staffhub-note-icon"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i></span>
+                <div>
+                    <strong id="operatorPinHeading">PIN thao tác POS</strong>
+                    <p>PIN cá nhân gồm 6 chữ số, dùng khi đổi Current Operator. PIN không thay đổi người chịu trách nhiệm két.</p>
+                    <button id="openOperatorPinDialog" type="button" class="staffhub-dialog-button is-secondary">Thiết lập hoặc đổi PIN</button>
+                </div>
+            </section>
+        }
+
+        <div id="openPosPreviewDialog" class="modal fade staffhub-pos-dialog" tabindex="-1" aria-hidden="true" aria-labelledby="openPosPreviewTitle">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <form class="modal-content staffhub-pos-dialog-card">
                 <header class="staffhub-pos-dialog-header">
                     <span class="staffhub-pos-dialog-icon"><i class="bi bi-cash-register" aria-hidden="true"></i></span>
                     <div>
@@ -261,11 +275,13 @@
                     <button id="resumeExistingPos" type="button" class="staffhub-dialog-button is-primary" hidden></button>
                 </footer>
             </form>
-        </dialog>
+            </div>
+        </div>
 
-        <dialog id="terminalRegistrationDialog" class="staffhub-pos-dialog">
-            <form method="dialog" class="staffhub-pos-dialog-card">
-                <header class="staffhub-pos-dialog-header"><h2>Đăng ký terminal POS</h2></header>
+        <div id="terminalRegistrationDialog" class="modal fade staffhub-pos-dialog" tabindex="-1" aria-hidden="true" aria-labelledby="terminalRegistrationDialogTitle">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <form class="modal-content staffhub-pos-dialog-card">
+                <header class="staffhub-pos-dialog-header"><h2 id="terminalRegistrationDialogTitle">Đăng ký terminal POS</h2></header>
                 <div class="staffhub-pos-dialog-body">
                     <label>Tên terminal <input id="terminalRegistrationName" maxlength="100" /></label>
                     <label>Mã OTP <input id="terminalRegistrationOtp" maxlength="6" autocomplete="one-time-code" /></label>
@@ -278,6 +294,34 @@
                     <button id="verifyAndRegisterTerminal" type="button" class="staffhub-dialog-button is-primary">Xác nhận và đăng ký</button>
                 </footer>
             </form>
-        </dialog>
+            </div>
+        </div>
+
+        <div id="operatorPinDialog" class="modal fade staffhub-pos-dialog" tabindex="-1" aria-hidden="true" aria-labelledby="operatorPinDialogTitle">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <form id="operatorPinForm" class="modal-content staffhub-pos-dialog-card">
+                <header class="staffhub-pos-dialog-header">
+                    <h2 id="operatorPinDialogTitle">Thiết lập PIN thao tác POS</h2>
+                </header>
+                <div class="staffhub-pos-dialog-body">
+                    <label>Mật khẩu hiện tại
+                        <input id="operatorCurrentPassword" type="password" autocomplete="current-password" maxlength="200" required />
+                    </label>
+                    <label>PIN mới gồm 6 chữ số
+                        <input id="operatorNewPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="6" maxlength="6" pattern="[0-9]{6}" required />
+                    </label>
+                    <small id="operatorPinStatus" aria-live="polite"></small>
+                </div>
+                <footer class="staffhub-pos-dialog-actions">
+                    <button id="cancelOperatorPin" type="button" class="staffhub-dialog-button is-secondary">Hủy</button>
+                    <button id="saveOperatorPin" type="submit" class="staffhub-dialog-button is-primary">Lưu PIN</button>
+                </footer>
+            </form>
+            </div>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/StaffHub/staffhub-schedule.js" asp-append-version="true"></script>
+}

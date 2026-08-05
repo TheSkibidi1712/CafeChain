@@ -31,6 +31,10 @@ interface ShiftSummaryDto {
   shiftId?: number | null
   storeId?: number
   staffName?: string | null
+  responsibleStaffId?: number | null
+  currentOperatorStaffId?: number | null
+  currentOperatorStaffName?: string | null
+  operatorChangedAtUtc?: string | null
   startTime?: string | null
   endTime?: string | null
   startTimeUtc?: string | null
@@ -60,6 +64,11 @@ interface ShiftSummaryDto {
   totalBankingSales: number
   totalOrders: number
   status: 'OPEN' | 'CLOSING' | 'EXPIRED_PENDING_CLOSE' | 'CLOSED' | 'RECONCILIATION_REQUIRED' | 'NoActiveShift' | string
+}
+
+interface PosOperatorCandidateDto {
+  staffId: number
+  fullName: string
 }
 
 type ShiftActionResponse = Partial<ShiftSummaryDto> & {
@@ -173,6 +182,12 @@ export default function ShiftSummary() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [guardVersion, setGuardVersion] = useState(0)
+  const [operatorCandidates, setOperatorCandidates] = useState<PosOperatorCandidateDto[]>([])
+  const [selectedOperatorId, setSelectedOperatorId] = useState<number | ''>('')
+  const [operatorPin, setOperatorPin] = useState('')
+  const [operatorBusy, setOperatorBusy] = useState(false)
+  const [showOperatorPanel, setShowOperatorPanel] = useState(false)
+  const operatorRequestKeyRef = useRef(crypto.randomUUID())
 
   // Issue #91 — OTP ca trưởng khi lệch két vượt ngưỡng
   const [showOtpPanel, setShowOtpPanel] = useState(false)
@@ -321,6 +336,61 @@ export default function ShiftSummary() {
       void loadCurrentShift()
     })
   }, [loadCurrentShift])
+
+  useEffect(() => {
+    if (!hasOpenShift) return
+
+    let cancelled = false
+    void apiClient.get<PosOperatorCandidateDto[]>('/api/v1/pos/shifts/operator/candidates')
+      .then((response) => {
+        if (!cancelled && response.ok && Array.isArray(response.data)) {
+          setOperatorCandidates(response.data)
+        }
+      })
+    return () => { cancelled = true }
+  }, [hasOpenShift])
+
+  const handleSwitchOperator = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!shift?.shiftId || selectedOperatorId === '' || !/^\d{6}$/.test(operatorPin)) {
+      setMessage({ type: 'error', text: 'Vui lòng chọn nhân viên và nhập đúng PIN gồm 6 chữ số.' })
+      return
+    }
+
+    setOperatorBusy(true)
+    try {
+      const response = await apiClient.post<ShiftSummaryDto>(
+        `/api/v1/pos/shifts/${shift.shiftId}/operator/switch`,
+        {
+          operatorStaffId: selectedOperatorId,
+          pin: operatorPin,
+          requestKey: operatorRequestKeyRef.current,
+          rowVersion: shift.rowVersion,
+        }
+      )
+      if (!response.ok || !response.data) {
+        setMessage({
+          type: 'error',
+          text: getApiErrorMessage(response, 'Không thể đổi người thao tác POS. Vui lòng kiểm tra PIN và thử lại.'),
+        })
+        return
+      }
+
+      setShift(response.data)
+      setMessage({ type: 'success', text: 'Đã đổi người thao tác POS thành công.' })
+      setShowOperatorPanel(false)
+      setSelectedOperatorId('')
+      operatorRequestKeyRef.current = crypto.randomUUID()
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: getUnexpectedErrorMessage(error, 'Không thể đổi người thao tác POS. Vui lòng thử lại.'),
+      })
+    } finally {
+      setOperatorPin('')
+      setOperatorBusy(false)
+    }
+  }
 
   useEffect(() => {
     const refresh = () => { void loadCurrentShift() }
@@ -1017,10 +1087,16 @@ export default function ShiftSummary() {
 
             <div className="bg-surface-white p-5 rounded-xl border border-border shadow-[var(--shadow-card)] space-y-3">
               <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">Thông tin ca</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
                 <div>
-                  <p className="text-text-secondary">Nhân viên</p>
+                  <p className="text-text-secondary">Nhân viên chịu trách nhiệm</p>
                   <p className="font-bold text-text-primary mt-1">{shift?.staffName || session.staffName}</p>
+                </div>
+                <div>
+                  <p className="text-text-secondary">Người đang thao tác</p>
+                  <p className="font-bold text-brand-orange mt-1">
+                    {shift?.currentOperatorStaffName || shift?.staffName || session.staffName}
+                  </p>
                 </div>
                 <div>
                   <p className="text-text-secondary">Mở ca</p>
@@ -1031,6 +1107,48 @@ export default function ShiftSummary() {
                   <p className="font-bold text-brand-orange mt-1">{formatVND(expectedEndingCash)}</p>
                 </div>
               </div>
+              {normalizedStatus === 'OPEN' && (
+                <div className="border-t border-border pt-3">
+                  {!showOperatorPanel ? (
+                    <button type="button" onClick={() => setShowOperatorPanel(true)}
+                      className="px-3 py-2 rounded-lg border border-border text-xs font-bold text-text-primary hover:border-brand-orange">
+                      Đổi người thao tác
+                    </button>
+                  ) : (
+                    <form onSubmit={handleSwitchOperator} className="grid grid-cols-1 sm:grid-cols-[1fr_180px_auto_auto] gap-2 items-end">
+                      <label className="text-xs font-semibold text-text-secondary">
+                        Nhân viên
+                        <select value={selectedOperatorId}
+                          onChange={(event) => setSelectedOperatorId(event.target.value ? Number(event.target.value) : '')}
+                          disabled={operatorBusy}
+                          className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-text-primary" required>
+                          <option value="">Chọn người thao tác</option>
+                          {operatorCandidates.map((candidate) => (
+                            <option key={candidate.staffId} value={candidate.staffId}>{candidate.fullName}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="text-xs font-semibold text-text-secondary">
+                        PIN cá nhân
+                        <input type="password" inputMode="numeric" autoComplete="off" maxLength={6} pattern="[0-9]{6}"
+                          value={operatorPin}
+                          onChange={(event) => setOperatorPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                          disabled={operatorBusy}
+                          className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-text-primary" required />
+                      </label>
+                      <button type="submit" disabled={operatorBusy || selectedOperatorId === '' || operatorPin.length !== 6}
+                        className="px-3 py-2 rounded-lg bg-brand-orange text-white text-xs font-bold disabled:opacity-40">
+                        {operatorBusy ? 'Đang xác thực...' : 'Xác nhận'}
+                      </button>
+                      <button type="button" disabled={operatorBusy}
+                        onClick={() => { setShowOperatorPanel(false); setOperatorPin(''); setSelectedOperatorId('') }}
+                        className="px-3 py-2 rounded-lg border border-border text-xs font-bold">
+                        Hủy
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
             </div>
 
             {hasOpenShift ? (

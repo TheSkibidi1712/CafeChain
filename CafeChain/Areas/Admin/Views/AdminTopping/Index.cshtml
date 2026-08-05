@@ -23,8 +23,10 @@
 }
 
 
-<link rel="stylesheet" href="~/css/Admin/Topping/topping.css" asp-append-version="true" />
-<link rel="stylesheet" href="~/css/Admin/AI/ai-image-pipeline.css" asp-append-version="true" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Topping/topping.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Admin/AI/ai-image-pipeline.css" asp-append-version="true" />
+}
 
 <div class="container-fluid p-4 topping-admin-page">
 
@@ -289,7 +291,7 @@
 <!-- CREATE MODAL -->
 <!-- ===================================================== -->
 
-<div class="modal fade"
+<div class="modal fade topping-module-modal"
      id="createModal"
      tabindex="-1"
      aria-hidden="true">
@@ -501,7 +503,7 @@
 <!-- EDIT MODAL -->
 <!-- ===================================================== -->
 
-<div class="modal fade"
+<div class="modal fade topping-module-modal"
      id="editModal"
      tabindex="-1"
      aria-hidden="true">
@@ -672,7 +674,7 @@
 <!-- DRINK TOPPING MODAL -->
 <!-- ===================================================== -->
 
-<div class="modal fade"
+<div class="modal fade topping-module-modal"
      id="drinkModal"
      tabindex="-1"
      aria-labelledby="drinkModalTitle"

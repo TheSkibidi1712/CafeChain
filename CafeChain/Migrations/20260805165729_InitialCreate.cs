@@ -1747,6 +1747,9 @@ namespace CafeChain.Migrations
                     AvatarUrl = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
                     AvatarPublicId = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    PosPinHash = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    PosPinFailedAttempts = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    PosPinLockedUntilUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
                 },
                 constraints: table =>
@@ -3700,6 +3703,8 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StoreId = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: false),
+                    CurrentOperatorStaffId = table.Column<int>(type: "int", nullable: true),
+                    OperatorChangedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
                     StartTimeUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EndTimeUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
                     BusinessDate = table.Column<DateTime>(type: "date", nullable: false),
@@ -3763,6 +3768,12 @@ namespace CafeChain.Migrations
                     table.ForeignKey(
                         name: "FK_WorkShifts_Staffs_ClosedByStaffId",
                         column: x => x.ClosedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_WorkShifts_Staffs_CurrentOperatorStaffId",
+                        column: x => x.CurrentOperatorStaffId,
                         principalTable: "Staffs",
                         principalColumn: "StaffId",
                         onDelete: ReferentialAction.Restrict);
@@ -4308,6 +4319,7 @@ namespace CafeChain.Migrations
                     TableId = table.Column<int>(type: "int", nullable: true),
                     StaffId = table.Column<int>(type: "int", nullable: true),
                     WorkShiftId = table.Column<int>(type: "int", nullable: true),
+                    TerminalId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     ClientOrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     RecommendationSessionId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     Source = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
@@ -4355,6 +4367,12 @@ namespace CafeChain.Migrations
                         principalTable: "PaymentStatuses",
                         principalColumn: "PaymentStatusId",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Orders_PosTerminals_TerminalId",
+                        column: x => x.TerminalId,
+                        principalTable: "PosTerminals",
+                        principalColumn: "TerminalId",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Orders_Staffs_StaffId",
                         column: x => x.StaffId,
@@ -4686,6 +4704,10 @@ namespace CafeChain.Migrations
                     PaymentMethodId = table.Column<int>(type: "int", nullable: false),
                     PaymentStatusId = table.Column<int>(type: "int", nullable: false),
                     CashSessionId = table.Column<int>(type: "int", nullable: true),
+                    StoreId = table.Column<int>(type: "int", nullable: true),
+                    WorkShiftId = table.Column<int>(type: "int", nullable: true),
+                    PaidByStaffId = table.Column<int>(type: "int", nullable: true),
+                    TerminalId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     TransactionCode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     PaidAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -4715,6 +4737,30 @@ namespace CafeChain.Migrations
                         column: x => x.PaymentStatusId,
                         principalTable: "PaymentStatuses",
                         principalColumn: "PaymentStatusId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Payments_PosTerminals_TerminalId",
+                        column: x => x.TerminalId,
+                        principalTable: "PosTerminals",
+                        principalColumn: "TerminalId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Payments_Staffs_PaidByStaffId",
+                        column: x => x.PaidByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Payments_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Payments_WorkShifts_WorkShiftId",
+                        column: x => x.WorkShiftId,
+                        principalTable: "WorkShifts",
+                        principalColumn: "ShiftId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -6587,16 +6633,16 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Staffs",
-                columns: new[] { "StaffId", "AccountId", "Active", "AvatarPublicId", "AvatarUrl", "CCCD", "CreatedAt", "DateOfBirth", "EmployeeStatus", "FullName", "Gender", "StartDate", "StoreId" },
+                columns: new[] { "StaffId", "AccountId", "Active", "AvatarPublicId", "AvatarUrl", "CCCD", "CreatedAt", "DateOfBirth", "EmployeeStatus", "FullName", "Gender", "PosPinHash", "PosPinLockedUntilUtc", "StartDate", "StoreId" },
                 values: new object[,]
                 {
-                    { 1, 1, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Chủ doanh nghiệp", 0, null, 1 },
-                    { 2, 2, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Quản lý vùng TP.HCM", 0, null, 1 },
-                    { 3, 3, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Quản lý chi nhánh Quận 1", 0, null, 1 },
-                    { 4, 4, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Nhân viên bán hàng", 0, null, 1 },
-                    { 5, 5, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Nhân viên kế toán kho", 0, null, 1 },
-                    { 6, 6, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Quản trị hệ thống", 0, null, 1 },
-                    { 15, 15, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Ca trưởng chi nhánh", 0, null, 1 }
+                    { 1, 1, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Chủ doanh nghiệp", 0, null, null, null, 1 },
+                    { 2, 2, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Quản lý vùng TP.HCM", 0, null, null, null, 1 },
+                    { 3, 3, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Quản lý chi nhánh Quận 1", 0, null, null, null, 1 },
+                    { 4, 4, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Nhân viên bán hàng", 0, null, null, null, 1 },
+                    { 5, 5, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Nhân viên kế toán kho", 0, null, null, null, 1 },
+                    { 6, 6, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Quản trị hệ thống", 0, null, null, null, 1 },
+                    { 15, 15, true, "avtdf_rfdc7o", "https://res.cloudinary.com/dzfizobk8/image/upload/v1784653191/avtdf_rfdc7o.jpg", null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, "Ca trưởng chi nhánh", 0, null, null, null, 1 }
                 });
 
             migrationBuilder.InsertData(
@@ -8483,6 +8529,11 @@ namespace CafeChain.Migrations
                 column: "StoreId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Orders_TerminalId",
+                table: "Orders",
+                column: "TerminalId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Orders_WorkShiftId",
                 table: "Orders",
                 column: "WorkShiftId");
@@ -8627,6 +8678,11 @@ namespace CafeChain.Migrations
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Payments_PaidByStaffId",
+                table: "Payments",
+                column: "PaidByStaffId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Payments_PaymentMethodId",
                 table: "Payments",
                 column: "PaymentMethodId");
@@ -8635,6 +8691,21 @@ namespace CafeChain.Migrations
                 name: "IX_Payments_PaymentStatusId",
                 table: "Payments",
                 column: "PaymentStatusId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Payments_StoreId",
+                table: "Payments",
+                column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Payments_TerminalId",
+                table: "Payments",
+                column: "TerminalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Payments_WorkShiftId",
+                table: "Payments",
+                column: "WorkShiftId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PaymentStatuses_Code",
@@ -10411,6 +10482,11 @@ namespace CafeChain.Migrations
                 name: "IX_WorkShifts_ClosedByStaffId",
                 table: "WorkShifts",
                 column: "ClosedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WorkShifts_CurrentOperatorStaffId",
+                table: "WorkShifts",
+                column: "CurrentOperatorStaffId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_WorkShifts_ExceptionClosedByStaffId",

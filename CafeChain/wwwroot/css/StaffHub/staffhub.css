@@ -945,9 +945,13 @@ body:has(.staffhub-page) > footer {
 /* ================================================================
    POS DIALOG
    ================================================================ */
-.staffhub-pos-dialog {
+.staffhub-pos-dialog .modal-dialog {
     width: min(640px, calc(100vw - 32px));
+    max-width: 640px;
     max-height: calc(100vh - 32px);
+}
+
+.staffhub-pos-dialog .modal-content {
     padding: 0;
     border: 1px solid var(--sh-border);
     border-radius: 30px;
@@ -957,12 +961,6 @@ body:has(.staffhub-page) > footer {
         0 0 0 1px rgba(194, 162, 100, 0.12);
     background: var(--sh-card-bg);
     overflow: hidden;
-}
-
-.staffhub-pos-dialog::backdrop {
-    background: rgba(44, 24, 16, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
 }
 
 .staffhub-pos-dialog-header {

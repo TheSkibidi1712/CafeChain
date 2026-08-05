@@ -3,7 +3,9 @@
     ViewData["Title"] = "Vốn và lợi nhuận gộp dự kiến";
 }
 
-<link rel="stylesheet" href="~/css/Admin/Profitability/drink-profitability.css" asp-append-version="true" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Profitability/drink-profitability.css" asp-append-version="true" />
+}
 
 <main class="pf-page" id="profitabilityApp"
       data-can-update-price="@Model.CanUpdateGlobalPrice.ToString().ToLowerInvariant()"
@@ -117,11 +119,10 @@
         </div>
     </section>
 
-    <div class="pf-drawer-backdrop" id="drawerBackdrop" hidden></div>
-    <aside class="pf-drawer" id="priceDrawer" aria-labelledby="priceDrawerTitle" aria-hidden="true">
+    <aside class="offcanvas offcanvas-end pf-drawer" id="priceDrawer" tabindex="-1" aria-labelledby="priceDrawerTitle">
         <div class="pf-drawer-header">
             <div><span>Giá bán toàn hệ thống</span><h2 id="priceDrawerTitle">Cập nhật giá</h2></div>
-            <button type="button" class="pf-icon-button" data-close-drawer title="Đóng"><i class="fas fa-xmark"></i></button>
+            <button type="button" class="pf-icon-button" data-bs-dismiss="offcanvas" title="Đóng"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="pf-drawer-body">
             <div class="pf-price-summary">
@@ -147,15 +148,15 @@
             </section>
         </div>
         <div class="pf-drawer-footer">
-            <button type="button" class="pf-secondary-button" data-close-drawer>Hủy</button>
+            <button type="button" class="pf-secondary-button" data-bs-dismiss="offcanvas">Hủy</button>
             <button type="button" id="savePrice" class="pf-primary-button">Lưu giá toàn hệ thống</button>
         </div>
     </aside>
 
-    <aside class="pf-drawer" id="policyDrawer" aria-labelledby="policyDrawerTitle" aria-hidden="true">
+    <aside class="offcanvas offcanvas-end pf-drawer" id="policyDrawer" tabindex="-1" aria-labelledby="policyDrawerTitle">
         <div class="pf-drawer-header">
             <div><span>Contract theo DrinkSize</span><h2 id="policyDrawerTitle">Topping mặc định</h2></div>
-            <button type="button" class="pf-icon-button" data-close-drawer title="Đóng"><i class="fas fa-xmark"></i></button>
+            <button type="button" class="pf-icon-button" data-bs-dismiss="offcanvas" title="Đóng"><i class="fas fa-xmark"></i></button>
         </div>
         <div class="pf-drawer-body">
             <div id="policyList" class="pf-policy-list"></div>

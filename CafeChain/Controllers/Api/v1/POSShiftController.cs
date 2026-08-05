@@ -53,7 +53,7 @@ namespace CafeChain.Controllers.Api.v1
 
             return summary == null
                 ? WorkShiftError(WorkShiftErrorCodes.WorkShiftNotOpen, "Không đọc được phiên POS vừa tạo.")
-                : StatusCode(201, summary);
+                : CreatedSummary(summary);
         }
 
         /// <summary>
@@ -136,6 +136,42 @@ namespace CafeChain.Controllers.Api.v1
             return Ok(summary);
         }
 
+        [HttpPost("operator/pin")]
+        [RequirePermission(PermissionConstants.PosOperatorSwitch)]
+        public async Task<IActionResult> SetOperatorPin([FromBody] SetOperatorPinRequestDto request)
+        {
+            var result = await _shiftService.SetOperatorPinAsync(
+                CurrentAccountId, CurrentStaffId, CurrentStoreId, request);
+            return result.IsSuccess
+                ? Ok(new { success = true, message = result.Message })
+                : WorkShiftError(result.ErrorCode, result.Message);
+        }
+
+        [HttpGet("operator/candidates")]
+        [RequirePermission(PermissionConstants.PosOperatorSwitch)]
+        public async Task<IActionResult> GetOperatorCandidates()
+        {
+            var result = await _shiftService.GetOperatorCandidatesAsync(CurrentStoreId);
+            return result.IsSuccess
+                ? Ok(result.Data)
+                : WorkShiftError(result.ErrorCode, result.Message);
+        }
+
+        [HttpPost("{id}/operator/switch")]
+        [RequirePermission(PermissionConstants.PosOperatorSwitch)]
+        public async Task<IActionResult> SwitchOperator(int id, [FromBody] SwitchOperatorRequestDto request)
+        {
+            var result = await _shiftService.SwitchOperatorAsync(
+                CurrentStaffId, CurrentStoreId, id, request);
+            if (!result.IsSuccess)
+                return WorkShiftError(result.ErrorCode, result.Message);
+
+            var summary = await _shiftService.GetSummaryAsync(CurrentStaffId, CurrentStoreId, id);
+            return summary == null
+                ? WorkShiftError(WorkShiftErrorCodes.WorkShiftNotOpen, "Không đọc được phiên POS sau khi đổi người thao tác.")
+                : Ok(summary);
+        }
+
         private IActionResult WorkShiftError(string? errorCode, string? message)
         {
             var payload = new
@@ -153,6 +189,8 @@ namespace CafeChain.Controllers.Api.v1
                     or WorkShiftErrorCodes.InvalidApproverScope
                     or OtpConstants.ErrorCodes.LateOpeningRequiresOtp
                     or OtpConstants.ErrorCodes.Required => StatusCode(403, payload),
+                WorkShiftErrorCodes.OperatorNotAuthorized => StatusCode(403, payload),
+                WorkShiftErrorCodes.OperatorPinLocked => StatusCode(423, payload),
                 WorkShiftErrorCodes.TerminalNotFound => NotFound(payload),
                 WorkShiftErrorCodes.PosOpenContextRequired
                     or WorkShiftErrorCodes.PosOpenContextInvalid => Unauthorized(payload),
@@ -164,6 +202,13 @@ namespace CafeChain.Controllers.Api.v1
                     or WorkShiftErrorCodes.WorkShiftPendingClose => Conflict(payload),
                 _ => BadRequest(payload)
             };
+        }
+
+        private IActionResult CreatedSummary(ShiftSummaryDto summary)
+        {
+            summary.ResultCode = WorkShiftOpenResultCodes.OpenedNewWorkShift;
+            summary.RequiresOpeningCash = true;
+            return StatusCode(StatusCodes.Status201Created, summary);
         }
     }
 }

@@ -43,6 +43,31 @@ public sealed class StaffHubPosRefactorContractTests
     }
 
     [Fact]
+    public void Open_and_resume_responses_expose_explicit_result_codes()
+    {
+        var shiftController = Read("CafeChain", "Controllers", "Api", "v1", "POSShiftController.cs");
+        var staffHubController = Read("CafeChain", "Controllers", "StaffHubController.cs");
+        var dto = Read("CafeChain", "Application", "DTOs", "POS", "ShiftSummaryDto.cs");
+
+        Assert.Contains("OpenedNewWorkShift", shiftController, StringComparison.Ordinal);
+        Assert.Contains("RequiresOpeningCash = true", shiftController, StringComparison.Ordinal);
+        Assert.Contains("ResumeExistingWorkShift", staffHubController, StringComparison.Ordinal);
+        Assert.Contains("requiresOpeningCash = false", staffHubController, StringComparison.Ordinal);
+        Assert.Contains("ResultCode", dto, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Legacy_active_queries_are_deterministic_if_dirty_data_exists()
+    {
+        var repository = Read("CafeChain", "Infrastructure", "Repositories", "Admin", "POS", "WorkShiftRepository.cs");
+
+        Assert.Contains("OrderByDescending(ws => ws.StartTimeUtc)", repository, StringComparison.Ordinal);
+        Assert.Contains("ThenByDescending(ws => ws.ShiftId)", repository, StringComparison.Ordinal);
+        Assert.Contains("OrderByDescending(x => x.StartTimeUtc)", repository, StringComparison.Ordinal);
+        Assert.Contains("ThenByDescending(x => x.ShiftId)", repository, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Existing_database_guards_cover_all_active_responsibility_states()
     {
         var db = Read("CafeChain", "Data", "Configurations", "Stores", "StoreConfiguration.cs");
