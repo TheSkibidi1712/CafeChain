@@ -362,7 +362,7 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
         var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPurchaseAdviceConsolidation/Index.cshtml");
         return Slice(
             view,
-            "<form asp-controller=\"AdminPurchaseOrderBatches\"",
+            "<form asp-controller=\"@(createsConsolidatedOrder",
             "</form>");
     }
 

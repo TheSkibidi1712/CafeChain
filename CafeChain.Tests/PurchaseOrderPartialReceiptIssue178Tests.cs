@@ -86,7 +86,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
     }
 
     [Fact]
-    public async Task StoreManager_CanApproveAndCancelNormalPOWithinStoreScope()
+    public async Task OwnerCanApprove_AndWarehouseAccountantCanCancelNormalPO()
     {
         using var context = CreateDbContext();
         var request = await SeedFoundationAsync(context, 20m);
@@ -107,7 +107,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
             first.Data!.PurchaseOrderId,
             first.Data.RowVersion,
             ApproverStaffId,
-            new[] { RoleConstants.StoreManager });
+            new[] { RoleConstants.BusinessOwner });
 
         var second = await service.CreateDraftAsync(new CreatePurchaseOrderRequest
         {
@@ -120,7 +120,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
             second.Data!.PurchaseOrderId,
             second.Data.RowVersion,
             ApproverStaffId,
-            new[] { RoleConstants.StoreManager },
+            new[] { RoleConstants.AccountantWarehouse },
             "Cửa hàng điều chỉnh kế hoạch mua");
 
         Assert.True(approved.IsSuccess, approved.Message);
@@ -130,7 +130,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
     }
 
     [Fact]
-    public async Task StoreManager_CannotApproveOrCancelNormalPOOutsideStoreScope()
+    public async Task OwnerCannotApproveOrCancelNormalPOOutsideStoreScope()
     {
         using var context = CreateDbContext();
         var request = await SeedFoundationAsync(context, 20m);
@@ -152,12 +152,12 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
             created.Data!.PurchaseOrderId,
             created.Data.RowVersion,
             ApproverStaffId,
-            new[] { RoleConstants.StoreManager });
+            new[] { RoleConstants.BusinessOwner });
         var cancel = await scoped.CancelAsync(
             created.Data.PurchaseOrderId,
             created.Data.RowVersion,
             ApproverStaffId,
-            new[] { RoleConstants.StoreManager },
+            new[] { RoleConstants.BusinessOwner },
             "Không thuộc cửa hàng quản lý");
 
         Assert.False(approve.IsSuccess);
@@ -167,7 +167,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
     }
 
     [Fact]
-    public async Task StoreManager_CannotApproveOwnNormalPO()
+    public async Task BusinessOwner_CannotApproveOwnNormalPO()
     {
         using var context = CreateDbContext();
         var request = await SeedFoundationAsync(context, 20m);
@@ -188,7 +188,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
             created.Data!.PurchaseOrderId,
             created.Data.RowVersion,
             StaffId,
-            new[] { RoleConstants.StoreManager });
+            new[] { RoleConstants.BusinessOwner });
 
         Assert.False(result.IsSuccess);
         Assert.Contains("tự duyệt", result.Message, StringComparison.OrdinalIgnoreCase);
@@ -632,7 +632,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
         input.AllowOverallocationOverride = true;
         input.OverallocationOverrideReason = "Dự phòng cao điểm đã được chủ doanh nghiệp duyệt";
         var approved = await service.CreateDraftAsync(
-            input, StaffId, new[] { RoleConstants.BusinessOwner });
+            input, StaffId, new[] { RoleConstants.SystemAdmin });
 
         Assert.False(rejected.IsSuccess);
         Assert.True(approved.IsSuccess, approved.Message);
