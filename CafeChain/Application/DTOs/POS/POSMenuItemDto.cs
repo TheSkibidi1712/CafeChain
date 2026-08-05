@@ -84,6 +84,7 @@ namespace CafeChain.Application.DTOs.POS
         public bool IsDefaultSelected { get; set; }
         public bool IsRequired { get; set; }
         public string PriceTreatment { get; set; } = string.Empty;
+        public string CostTreatment { get; set; } = string.Empty;
         public decimal QuantityPerDrink { get; set; }
     }
 }

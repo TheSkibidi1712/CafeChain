@@ -20,5 +20,8 @@ namespace CafeChain.Application.DTOs.POS
         public int ToppingId { get; init; }
         public string Name { get; init; } = string.Empty;
         public decimal AcceptedPrice { get; init; }
+        public decimal QuantityPerDrink { get; init; } = 1m;
+        public string PriceTreatment { get; init; } = "ADD_TOPPING_PRICE";
+        public string CostTreatment { get; init; } = "ADD_TOPPING_RECIPE_COST";
     }
 }

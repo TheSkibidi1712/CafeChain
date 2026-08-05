@@ -164,6 +164,7 @@ const applyToppingPolicy = (
     isRequired: policy?.isRequired ?? false,
     isDefaultSelected: policy?.isDefaultSelected ?? false,
     priceTreatment: policy?.priceTreatment,
+    costTreatment: policy?.costTreatment,
     quantityPerDrink: policy?.quantityPerDrink ?? 1,
   }
 }
@@ -1131,6 +1132,9 @@ export default function POSLayout() {
         toppingId: topping.id,
         name: topping.name,
         acceptedPrice: topping.acceptedPrice ?? topping.price,
+        quantityPerDrink: topping.quantityPerDrink ?? 1,
+        priceTreatment: topping.priceTreatment ?? 'ADD_TOPPING_PRICE',
+        costTreatment: topping.costTreatment ?? 'ADD_TOPPING_RECIPE_COST',
       })),
     }))
 
@@ -1157,6 +1161,9 @@ export default function POSLayout() {
         name: topping.name,
         price: topping.acceptedPrice ?? topping.price,
         acceptedPrice: topping.acceptedPrice ?? topping.price,
+        quantityPerDrink: topping.quantityPerDrink ?? 1,
+        priceTreatment: topping.priceTreatment ?? 'ADD_TOPPING_PRICE',
+        costTreatment: topping.costTreatment ?? 'ADD_TOPPING_RECIPE_COST',
       })),
     }))
 
@@ -1251,6 +1258,9 @@ export default function POSLayout() {
         toppingId: topping.id,
         name: topping.name,
         acceptedPrice: topping.acceptedPrice ?? topping.price,
+        quantityPerDrink: topping.quantityPerDrink ?? 1,
+        priceTreatment: topping.priceTreatment ?? 'ADD_TOPPING_PRICE',
+        costTreatment: topping.costTreatment ?? 'ADD_TOPPING_RECIPE_COST',
       })),
     }))
 

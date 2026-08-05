@@ -278,6 +278,11 @@ namespace CafeChain.Application.Services.Inventories
 
                         foreach (var topping in item.Toppings ?? new List<POSOrderToppingDto>())
                         {
+                            var costTreatment = topping.CostTreatment
+                                ?? ToppingCostTreatments.AddToppingRecipeCost;
+                            if (costTreatment == ToppingCostTreatments.IncludedInDrinkRecipe)
+                                continue;
+
                             var toppingRecipe = await GetActiveRecipeAsync(null, null, topping.ToppingId);
                             if (toppingRecipe == null)
                             {
@@ -289,7 +294,7 @@ namespace CafeChain.Application.Services.Inventories
 
                             await CollectRequirementsAsync(
                                 toppingRecipe,
-                                item.Quantity,
+                                item.Quantity * (topping.QuantityPerDrink ?? 1m),
                                 storeId,
                                 mode,
                                 modeSnapshot,
@@ -854,6 +859,9 @@ namespace CafeChain.Application.Services.Inventories
 
                 foreach (var topping in detail.OrderToppings.OrderBy(t => t.OrderToppingId))
                 {
+                    if (topping.CostTreatmentSnapshot == ToppingCostTreatments.IncludedInDrinkRecipe)
+                        continue;
+
                     var toppingRecipe = await GetActiveRecipeAsync(null, null, topping.ToppingId);
                     if (toppingRecipe == null)
                     {
@@ -866,7 +874,7 @@ namespace CafeChain.Application.Services.Inventories
 
                     await CollectRequirementsAsync(
                         toppingRecipe,
-                        detail.Quantity,
+                        detail.Quantity * topping.QuantityPerDrinkSnapshot,
                         storeId,
                         mode,
                         modeSnapshot,
@@ -879,7 +887,7 @@ namespace CafeChain.Application.Services.Inventories
 
         private async Task CollectRequirementsAsync(
             Recipe saleRecipe,
-            int soldQuantity,
+            decimal soldQuantity,
             int storeId,
             InventoryWriterMode mode,
             InventoryWriterModeSnapshot? modeSnapshot,

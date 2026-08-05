@@ -138,7 +138,7 @@ namespace CafeChain.Application.Services.POS
 
             var selected = item.Toppings ?? new List<POSOrderToppingDto>();
             if (selected.GroupBy(x => x.ToppingId).Any(x => x.Count() > 1)
-                || selected.Any(x => !x.AcceptedPrice.HasValue || x.AcceptedPrice.Value < 0))
+                || selected.Any(x => !IsValidOfflineToppingSnapshot(x)))
             {
                 return Fail("Snapshot topping offline không hợp lệ.", POSCatalogSaleErrorCodes.ToppingInvalid);
             }
@@ -170,7 +170,10 @@ namespace CafeChain.Application.Services.POS
             {
                 ToppingId = x.ToppingId,
                 Name = toppingRows.Single(y => y.ToppingId == x.ToppingId).Name,
-                AcceptedPrice = Money(x.AcceptedPrice!.Value)
+                AcceptedPrice = Money(x.AcceptedPrice!.Value),
+                QuantityPerDrink = x.QuantityPerDrink ?? 1m,
+                PriceTreatment = x.PriceTreatment ?? ToppingPriceTreatments.AddToppingPrice,
+                CostTreatment = x.CostTreatment ?? ToppingCostTreatments.AddToppingRecipeCost
             }).ToList();
             var expectedUnitPrice = Money(item.AcceptedBasePrice!.Value + acceptedToppings.Sum(x => x.AcceptedPrice));
             if (Money(item.AcceptedUnitPrice!.Value) != expectedUnitPrice)
@@ -246,11 +249,28 @@ namespace CafeChain.Application.Services.POS
                 {
                     ToppingId = topping.Id,
                     Name = topping.Name,
-                    AcceptedPrice = expectedPrice
+                    AcceptedPrice = expectedPrice,
+                    QuantityPerDrink = policy?.QuantityPerDrink ?? 1m,
+                    PriceTreatment = policy?.PriceTreatment ?? ToppingPriceTreatments.AddToppingPrice,
+                    CostTreatment = policy?.CostTreatment ?? ToppingCostTreatments.AddToppingRecipeCost
                 });
             }
 
             return ServiceResult<IReadOnlyList<POSAcceptedSaleToppingDto>>.Success(accepted);
+        }
+
+        private static bool IsValidOfflineToppingSnapshot(POSOrderToppingDto topping)
+        {
+            if (!topping.AcceptedPrice.HasValue || topping.AcceptedPrice.Value < 0)
+                return false;
+
+            var quantity = topping.QuantityPerDrink ?? 1m;
+            var priceTreatment = topping.PriceTreatment ?? ToppingPriceTreatments.AddToppingPrice;
+            var costTreatment = topping.CostTreatment ?? ToppingCostTreatments.AddToppingRecipeCost;
+            return quantity > 0
+                && ToppingPriceTreatments.All.Contains(priceTreatment)
+                && (costTreatment == ToppingCostTreatments.IncludedInDrinkRecipe
+                    || costTreatment == ToppingCostTreatments.AddToppingRecipeCost);
         }
 
         private static ServiceResult<POSAcceptedSaleLineDto>? ValidateRequiredSnapshot(POSOrderItemDto item)

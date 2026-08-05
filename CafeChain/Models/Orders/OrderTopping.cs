@@ -15,6 +15,15 @@ namespace CafeChain.Models.Orders
         /// <summary>Selling price authority (Topping.Price). Not COGS.</summary>
         public decimal Price { get; set; }
 
+        /// <summary>Immutable sale-time topping quantity, expressed as topping recipe portions.</summary>
+        public decimal QuantityPerDrinkSnapshot { get; set; } = 1m;
+
+        /// <summary>Immutable sale-time selling-price treatment.</summary>
+        public string PriceTreatmentSnapshot { get; set; } = "ADD_TOPPING_PRICE";
+
+        /// <summary>Immutable sale-time inventory/cost treatment.</summary>
+        public string CostTreatmentSnapshot { get; set; } = "ADD_TOPPING_RECIPE_COST";
+
         /// <summary>Issue #133 actual FIFO COGS for topping BOM consumption.</summary>
         public SalesCostStatus CostStatus { get; set; } = SalesCostStatus.Pending;
         public decimal? TotalCogs { get; set; }

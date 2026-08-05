@@ -78,6 +78,7 @@ export interface ToppingPolicy {
   isDefaultSelected: boolean
   isRequired: boolean
   priceTreatment: 'INCLUDED_IN_BASE_PRICE' | 'ADD_TOPPING_PRICE' | string
+  costTreatment: 'INCLUDED_IN_DRINK_RECIPE' | 'ADD_TOPPING_RECIPE_COST' | string
   quantityPerDrink: number
 }
 
@@ -96,6 +97,7 @@ export interface ToppingOption {
   isRequired?: boolean
   isDefaultSelected?: boolean
   priceTreatment?: string
+  costTreatment?: string
   quantityPerDrink?: number
 }
 
@@ -113,6 +115,9 @@ export interface CartQueueToppingSnapshot {
   name?: string
   price?: number
   acceptedPrice?: number
+  quantityPerDrink?: number
+  priceTreatment?: string
+  costTreatment?: string
 }
 
 export interface CartQueueItemSnapshot {
@@ -180,7 +185,14 @@ export interface CartSyncQueueItem {
     catalogVersion: number
     iceLevelPercent?: 0 | 50 | 100 | null
     note?: string
-    toppings?: Array<{ toppingId: number; name?: string; acceptedPrice: number }>
+    toppings?: Array<{
+      toppingId: number
+      name?: string
+      acceptedPrice: number
+      quantityPerDrink?: number
+      priceTreatment?: string
+      costTreatment?: string
+    }>
   }>
   /** Snapshot đầy đủ của giỏ hàng lúc thu ngân bấm thanh toán */
   cartSnapshot: CartQueueItemSnapshot[]

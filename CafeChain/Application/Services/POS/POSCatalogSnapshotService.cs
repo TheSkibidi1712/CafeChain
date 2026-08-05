@@ -139,6 +139,7 @@ namespace CafeChain.Application.Services.POS
                         IsDefaultSelected = x.IsDefaultSelected,
                         IsRequired = x.IsRequired,
                         PriceTreatment = x.PriceTreatment,
+                        CostTreatment = x.CostTreatment,
                         QuantityPerDrink = x.QuantityPerDrink
                     }
                 })

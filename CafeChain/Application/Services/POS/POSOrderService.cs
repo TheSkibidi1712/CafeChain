@@ -1067,7 +1067,10 @@ namespace CafeChain.Application.Services.POS
                 {
                     ToppingId = x.ToppingId,
                     ToppingName = x.Name,
-                    Price = x.AcceptedPrice
+                    Price = x.AcceptedPrice,
+                    QuantityPerDrinkSnapshot = x.QuantityPerDrink,
+                    PriceTreatmentSnapshot = x.PriceTreatment,
+                    CostTreatmentSnapshot = x.CostTreatment
                 }).ToList()
             };
             ApplyIceSnapshot(detail, iceSnapshot);

@@ -85,6 +85,9 @@ namespace CafeChain.Application.DTOs.POS
         public string? Name { get; set; }
         public decimal? Price { get; set; }
         public decimal? AcceptedPrice { get; set; }
+        public decimal? QuantityPerDrink { get; set; }
+        public string? PriceTreatment { get; set; }
+        public string? CostTreatment { get; set; }
     }
 
     public class OfflinePaymentSnapshotDTO
