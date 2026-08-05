@@ -22,6 +22,180 @@
 }
 
 /* =======================================================
+   TOPPING ADMIN PAGE WRAPPER
+======================================================= */
+.topping-admin-page {
+    --topping-primary: #6f4e37;
+    --topping-primary-hover: #5c3f2b;
+    --topping-secondary: #8b6b55;
+    --topping-soft: #f7f3ee;
+    --topping-line: #e2d6cc;
+    --topping-text: #1f2937;
+    max-width: 1480px;
+    margin: 0 auto;
+    background:
+        radial-gradient(circle at 96% 2%, rgba(184, 149, 125, .16), transparent 230px),
+        linear-gradient(180deg, #faf7f4 0, #f7f3ee 260px, transparent 520px);
+}
+
+/* =======================================================
+   PAGE HEADING
+======================================================= */
+/* =======================================================
+   PAGE HEADING CARD & RIGHT-CORNER BROWN CIRCLE DECORATION
+======================================================= */
+.topping-page-heading {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 22px;
+    min-height: 150px;
+    padding: 24px 26px;
+    border: 1px solid #E4D7CB;
+    border-radius: 18px;
+    background: linear-gradient(112deg, #FFFFFF 0%, #FBF7F2 62%, #F1E5DA 100%);
+    box-shadow: 0 12px 34px rgba(71, 50, 35, .08);
+    overflow: hidden;
+}
+
+/* Brown circle orb in top-right corner copied 100% identically from Category header */
+.topping-page-heading::after {
+    position: absolute;
+    right: -45px;
+    bottom: -80px;
+    width: 240px;
+    height: 240px;
+    border: 36px solid rgba(111, 78, 55, .055);
+    border-radius: 50%;
+    content: "";
+    pointer-events: none;
+    z-index: 0;
+}
+
+.topping-page-heading-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    z-index: 1;
+}
+
+.topping-page-heading-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    flex: 0 0 54px;
+    border-radius: 16px;
+    color: #fff;
+    background: linear-gradient(145deg, #6f4e37, #8b6b55);
+    box-shadow: 0 11px 24px rgba(111, 78, 55, .22);
+    font-size: 22px;
+}
+
+.topping-page-kicker {
+    color: #8b6b55;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.topping-page-heading h1 {
+    margin: 2px 0 3px;
+    color: var(--topping-text);
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -.035em;
+}
+
+.topping-page-heading p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* =======================================================
+   PILL TABS — mirror size-page-tabs
+======================================================= */
+.topping-page-tabs {
+    gap: 8px;
+    width: fit-content;
+    padding: 7px;
+    border: 1px solid var(--topping-line) !important;
+    border-radius: 13px;
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(71, 50, 35, .06);
+}
+
+.topping-page-tabs a {
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 9px;
+    padding: 9px 15px !important;
+    color: #64748b;
+    text-decoration: none;
+    transition: color .18s ease, background-color .18s ease, transform .18s ease;
+}
+
+.topping-page-tabs a:hover {
+    color: #5c3f2b !important;
+    background: #f5ede3;
+    transform: translateY(-1px);
+}
+
+/* Active tab pill highlight */
+.topping-page-tabs a.active,
+.topping-page-tabs a[style*="color:#6F4E37"],
+.topping-page-tabs a[style*="6F4E37"] {
+    color: #5c3f2b !important;
+    background: #f5ede3 !important;
+    font-weight: 700 !important;
+}
+
+/* =======================================================
+   CARD — override khi dùng topping-admin-page
+======================================================= */
+.topping-admin-page .main-card {
+    overflow: hidden;
+    border-color: var(--topping-line);
+    border-radius: 18px;
+    padding: 22px !important;
+    box-shadow: 0 18px 46px rgba(71, 50, 35, .09) !important;
+}
+
+.topping-admin-page .main-card>.d-flex h5 {
+    color: var(--topping-text);
+    font-size: 18px;
+}
+
+@media (max-width: 575.98px) {
+    .topping-admin-page {
+        padding: 16px 12px !important;
+    }
+
+    .topping-page-heading {
+        align-items: flex-start;
+    }
+
+    .topping-page-heading p {
+        display: none;
+    }
+
+    .topping-page-tabs {
+        width: 100%;
+    }
+
+    .topping-page-tabs a {
+        flex: 1;
+        text-align: center;
+    }
+}
+
+/* =======================================================
    TABS  — áp dụng bảng màu
 ======================================================= */
 
@@ -55,29 +229,29 @@
     margin-bottom: 0;
 }
 
-    .table thead th {
-        font-size: 12px;
-        font-weight: 700;
-        color: #99623B;
-        letter-spacing: .5px;
-        padding: 14px 12px;
-        background: #FAF6F2;
-        text-transform: uppercase;
-    }
+.table thead th {
+    font-size: 12px;
+    font-weight: 700;
+    color: #99623B;
+    letter-spacing: .5px;
+    padding: 14px 12px;
+    background: #FAF6F2;
+    text-transform: uppercase;
+}
 
-    .table tbody td {
-        vertical-align: middle;
-        padding: 16px 12px;
-        color: #1F2937;
-    }
+.table tbody td {
+    vertical-align: middle;
+    padding: 16px 12px;
+    color: #1F2937;
+}
 
-    .table tbody tr {
-        transition: .2s;
-    }
+.table tbody tr {
+    transition: .2s;
+}
 
-        .table tbody tr:hover {
-            background: #F7F3EE;
-        }
+.table tbody tr:hover {
+    background: #F7F3EE;
+}
 
 /* =======================================================
    TOPPING IMAGE
@@ -147,46 +321,155 @@
 }
 
 /* =======================================================
-   BUTTONS
+   BUTTONS — Standardized with BOM / Production Order contract
 ======================================================= */
 
 .btn-orange {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 20px;
+    border: 1px solid #6F4E37;
+    border-radius: 10px;
     background: #6F4E37;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 18px;
-    font-weight: 600;
-    transition: .2s;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 8px 18px rgba(111, 78, 55, .18);
+    transition: transform .16s ease, border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease;
 }
 
-    .btn-orange:hover {
-        background: #5C3F2B;
-        color: #fff;
-    }
+.btn-orange:hover {
+    border-color: #5C3F2B;
+    background: #5C3F2B;
+    color: #FFFFFF;
+    box-shadow: 0 10px 22px rgba(92, 63, 43, .24);
+    transform: translateY(-2px);
+}
 
-    .btn-orange:disabled {
-        opacity: .7;
-    }
+.btn-orange:disabled {
+    opacity: .65;
+    box-shadow: none;
+    transform: none;
+}
 
 .btn-light {
-    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid #E2D6CC;
+    border-radius: 10px;
+    background: #FAF7F4;
+    color: #5C3F2B;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    transition: transform .16s ease, border-color .16s ease, background-color .16s ease, color .16s ease;
+}
+
+.btn-light:hover {
+    border-color: #C9AD99;
+    background: #F5EDE3;
+    color: #3F2B20;
 }
 
 /* =======================================================
-   MODAL
+   TABLE & ACTIONS — Standardized typography with BOM
+======================================================= */
+
+.table thead th {
+    font-size: 11px;
+    font-weight: 800;
+    color: #81502F;
+    letter-spacing: .025em;
+    padding: 12px 14px;
+    background: #F8F2EC;
+    border-bottom: 1px solid #E2D6CC;
+    text-transform: uppercase;
+}
+
+.table td {
+    font-size: 13px;
+    line-height: 18px;
+    color: #1F2937;
+    vertical-align: middle;
+    padding: 12px 14px;
+}
+
+.table tbody tr:hover {
+    background: #FAF6F2;
+}
+
+.table .btn-sm,
+.topping-actions-cell .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    height: 36px;
+    padding: 6px 12px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    box-shadow: 0 2px 7px rgba(71, 50, 35, .06);
+    transition: transform .16s ease, border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+
+.table .btn-sm:hover:not(:disabled),
+.topping-actions-cell .btn:hover:not(:disabled) {
+    box-shadow: 0 7px 16px rgba(92, 63, 43, .18);
+    transform: translateY(-2px);
+}
+
+/* =======================================================
+   MODAL & FORM CONTROLS
 ======================================================= */
 
 .modal-content {
-    border: none;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 12px 40px rgba(111,78,55,.12);
+    border-radius: 18px;
+    box-shadow: 0 28px 70px rgba(61, 36, 24, .22);
+    border: 1px solid #E2D6CC;
 }
 
-/* Edit modal header — thay bg-warning → primary */
-.modal-header.bg-warning {
-    background: #6F4E37 !important;
+.modal-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #1F2937;
+}
+
+.form-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.form-control,
+.form-select {
+    min-height: 44px;
+    height: 44px;
+    font-size: 13.5px;
+    border-radius: 10px;
+    padding: 10px 14px;
+    border: 1px solid #E2D6CC;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #6F4E37;
+    box-shadow: 0 0 0 3px rgba(111, 78, 55, 0.13);
 }
 
 .modal-header.bg-warning .modal-title,
@@ -231,10 +514,10 @@
     border: 1px solid #ddd4c9;
 }
 
-    .form-control:focus {
-        border-color: #6F4E37;
-        box-shadow: 0 0 0 0.2rem rgba(111,78,55,.15);
-    }
+.form-control:focus {
+    border-color: #6F4E37;
+    box-shadow: 0 0 0 0.2rem rgba(111, 78, 55, .15);
+}
 
 /* =======================================================
    CREATE PREVIEW
@@ -277,10 +560,10 @@
     transition: all .2s ease;
 }
 
-    .drink-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(111,78,55,.1);
-    }
+.drink-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(111, 78, 55, .1);
+}
 
 .drink-img {
     width: 100%;
@@ -315,16 +598,16 @@
     padding-right: 4px;
 }
 
-    #assignedList::-webkit-scrollbar,
-    #unassignedList::-webkit-scrollbar {
-        width: 6px;
-    }
+#assignedList::-webkit-scrollbar,
+#unassignedList::-webkit-scrollbar {
+    width: 6px;
+}
 
-    #assignedList::-webkit-scrollbar-thumb,
-    #unassignedList::-webkit-scrollbar-thumb {
-        background: #c9b8a8;
-        border-radius: 999px;
-    }
+#assignedList::-webkit-scrollbar-thumb,
+#unassignedList::-webkit-scrollbar-thumb {
+    background: #c9b8a8;
+    border-radius: 999px;
+}
 
 /* =======================================================
    ALERT
@@ -350,7 +633,9 @@
 }
 
 /* Bảng topping: min-width để scroll ngang thay vì vỡ */
-.main-card .table { min-width: 900px; }
+.main-card .table {
+    min-width: 900px;
+}
 
 .topping-source-cell {
     min-width: 330px;
@@ -397,8 +682,13 @@
 }
 
 @media (max-width: 767.98px) {
-    .main-card { padding: 12px !important; }
-    .topping-source-cell { min-width: 280px; }
+    .main-card {
+        padding: 12px !important;
+    }
+
+    .topping-source-cell {
+        min-width: 280px;
+    }
 }
 
 /* =======================================================
@@ -448,15 +738,15 @@
     transition: border-color .15s, box-shadow .15s, background .15s;
 }
 
-    .ai-option-card:hover {
-        border-color: #C67A45;
-    }
+.ai-option-card:hover {
+    border-color: #C67A45;
+}
 
-    .ai-option-card.is-selected {
-        border-color: #6F4E37;
-        background: #FAF6F2;
-        box-shadow: 0 0 0 2px rgba(111, 78, 55, .15);
-    }
+.ai-option-card.is-selected {
+    border-color: #6F4E37;
+    background: #FAF6F2;
+    box-shadow: 0 0 0 2px rgba(111, 78, 55, .15);
+}
 
 /* =======================================================
    SPINNER
@@ -518,7 +808,7 @@
     gap: 17px 16px;
 }
 
-.topping-create-fields > .mb-3 {
+.topping-create-fields>.mb-3 {
     min-width: 0;
     margin-bottom: 0 !important;
 }

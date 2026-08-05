@@ -26,43 +26,42 @@
 <link rel="stylesheet" href="~/css/Admin/Topping/topping.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/Admin/AI/ai-image-pipeline.css" asp-append-version="true" />
 
-<div class="container-fluid p-4">
+<div class="container-fluid p-4 topping-admin-page">
 
     <!-- ===================================================== -->
     <!-- TABS -->
     <!-- ===================================================== -->
 
-    <div class="d-flex mb-3 border-bottom">
+    <!-- Page Heading -->
+    <div class="topping-page-heading">
+        <div class="topping-page-heading-content">
+            <div class="topping-page-heading-icon"><i class="fas fa-cookie-bite"></i></div>
+            <div>
+                <span class="topping-page-kicker"><i class="fas fa-layer-group me-1"></i> CẤU TRÚC THỰC ĐƠN</span>
+                <h1>Quản lý Topping đồ uống</h1>
+                <p>Thiết lập topping, giá bán và nguồn nguyên liệu tiêu hao trên thực đơn.</p>
+            </div>
+        </div>
+    </div>
 
+    <!-- Tabs -->
+    <div class="topping-page-tabs d-flex mb-3">
         @if (canViewSize)
         {
-        <a asp-area="Admin"
-           asp-controller="AdminSize"
-           asp-action="Index"
-           class="me-4 pb-2 text-decoration-none fw-semibold
-            @(currentController == "AdminSize"
-                ? "tab-active border-bottom"
-                : "text-muted")"
-           style="@(currentController == "AdminSize" ? "color:#6F4E37;border-color:#6F4E37!important;" : "")">
-
-            Quản lý Size
-
-        </a>
+            <a asp-area="Admin"
+               asp-controller="AdminSize"
+               asp-action="Index"
+               class="text-decoration-none fw-semibold @(currentController == "AdminSize" ? "active" : "")">
+                Quản lý Size
+            </a>
         }
 
         <a asp-area="Admin"
            asp-controller="AdminTopping"
            asp-action="Index"
-           class="pb-2 text-decoration-none fw-semibold
-            @(currentController == "AdminTopping"
-                ? "tab-active border-bottom"
-                : "text-muted")"
-           style="@(currentController == "AdminTopping" ? "color:#6F4E37;border-color:#6F4E37!important;" : "")">
-
+           class="text-decoration-none fw-semibold @(currentController == "AdminTopping" ? "active" : "")">
             Quản lý Topping
-
         </a>
-
     </div>
 
     <!-- ===================================================== -->
@@ -99,51 +98,39 @@
         <div class="table-responsive">
 
             <table class="table table-borderless align-middle">
-
                 <thead class="text-muted">
-
                     <tr>
-                        <th>TOPPING</th>
-                        <th>MÃ</th>
-                        <th>GIÁ BÁN</th>
-                        <th>NGUỒN TIÊU HAO / GIÁ VỐN</th>
-                        <th>TRẠNG THÁI</th>
-                        <th class="text-end">HÀNH ĐỘNG</th>
+                        <th style="width: 18%;">TOPPING</th>
+                        <th class="text-center" style="width: 10%;">MÃ</th>
+                        <th style="width: 12%;">GIÁ BÁN</th>
+                        <th style="width: 32%;">NGUỒN TIÊU HAO / GIÁ VỐN</th>
+                        <th class="text-center" style="width: 14%;">TRẠNG THÁI</th>
+                        <th class="text-center" style="width: 14%;">HÀNH ĐỘNG</th>
                     </tr>
-
                 </thead>
 
                 <tbody>
-
                     @foreach (var item in Model)
                     {
                         <tr class="border-top">
-
                             <!-- TOPPING -->
                             <td>
-
                                 <div class="d-flex align-items-center">
-
                                     <img src="@(string.IsNullOrWhiteSpace(item.ImageUrl)
-                                                                                             ? "/images/no-image.png"
-                                                                                             : item.ImageUrl)"
+                                                ? "/images/no-image.png"
+                                                : item.ImageUrl)"
                                          class="topping-img me-3" />
-
                                     <div class="fw-semibold">
                                         @item.Name
                                     </div>
-
                                 </div>
-
                             </td>
 
                             <!-- CODE -->
-                            <td>
-
+                            <td class="text-center">
                                 <span class="topping-code-badge">
                                     @item.ToppingCode
                                 </span>
-
                             </td>
 
                             <!-- PRICE -->
@@ -222,8 +209,7 @@
                             </td>
 
                             <!-- STATUS -->
-                            <td>
-
+                            <td class="text-center">
                                 @if (item.Active)
                                 {
                                     <span class="status-active">
@@ -236,61 +222,56 @@
                                         Ngừng
                                     </span>
                                 }
-
                             </td>
 
                             <!-- ACTIONS -->
-                            <td class="text-end">
+                            <td class="text-center">
+                                <div class="d-inline-flex align-items-center justify-content-center gap-1">
+                                    <!-- ASSIGN -->
+                                    @if (canAssign)
+                                    {
+                                    <button type="button"
+                                            class="btn btn-sm btn-warning"
+                                            title="Gán đồ uống"
+                                            onclick="openDrinkModal(
+                                        @item.ToppingId,
+                                        '@Html.Raw(item.Name.Replace("'", "\\'"))')">
+                                        <i class="fas fa-link"></i>
+                                    </button>
+                                    }
 
-                                <!-- ASSIGN -->
-                                @if (canAssign)
-                                {
-                                <button type="button"
-                                        class="btn btn-sm btn-warning me-2"
-                                        onclick="openDrinkModal(
-                                    @item.ToppingId,
-                                    '@Html.Raw(item.Name.Replace("'", "\\'"))')">
+                                    <!-- EDIT -->
+                                    @if (canUpdate)
+                                    {
+                                    <button type="button"
+                                            class="btn btn-sm btn-light btn-edit-topping"
+                                            title="Chỉnh sửa"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editModal"
+                                            data-id="@item.ToppingId"
+                                            data-code="@item.ToppingCode"
+                                            data-name="@item.Name"
+                                            data-price="@item.Price"
+                                            data-image="@item.ImageUrl">
+                                        <i class="fas fa-pen text-primary"></i>
+                                    </button>
+                                    }
 
-                                    <i class="fas fa-link"></i>
-
-                                </button>
-                                }
-
-                                <!-- EDIT -->
-                                @if (canUpdate)
-                                {
-                                <button type="button"
-                                        class="btn btn-sm btn-light me-2 btn-edit-topping"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#editModal"
-                                        data-id="@item.ToppingId"
-                                        data-code="@item.ToppingCode"
-                                        data-name="@item.Name"
-                                        data-price="@item.Price"
-                                        data-image="@item.ImageUrl">
-
-                                    <i class="fas fa-pen text-primary"></i>
-
-                                </button>
-                                }
-
-                                <!-- TOGGLE -->
-                                @if (canToggle)
-                                {
-                                <button type="button"
-                                        class="btn btn-sm js-toggle-topping"
-                                        data-id="@item.ToppingId"
-                                        data-url="@Url.Action("ToggleStatus", "AdminTopping", new { area = "Admin", id = item.ToppingId })">
-
-                                    <i class="fas @(item.Active
-                                                                                   ? "fa-lock text-danger"
-                                                                                   : "fa-unlock text-success")"></i>
-
-                                </button>
-                                }
-
+                                    <!-- TOGGLE -->
+                                    @if (canToggle)
+                                    {
+                                    <button type="button"
+                                            class="btn btn-sm js-toggle-topping"
+                                            title="@(item.Active ? "Khóa" : "Mở khóa")"
+                                            data-id="@item.ToppingId"
+                                            data-url="@Url.Action("ToggleStatus", "AdminTopping", new { area = "Admin", id = item.ToppingId })">
+                                        <i class="fas @(item.Active
+                                                        ? "fa-lock text-danger"
+                                                        : "fa-unlock text-success")"></i>
+                                    </button>
+                                    }
+                                </div>
                             </td>
-
                         </tr>
                     }
 

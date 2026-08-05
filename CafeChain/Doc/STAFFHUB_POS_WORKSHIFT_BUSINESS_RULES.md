@@ -1,145 +1,140 @@
 # Nghiệp vụ chuẩn StaffHub và phiên POS WorkShift
 
-> Xem các tình huống màn hình → backend → kết quả tại [Phân tích luồng nghiệp vụ người dùng StaffHub](./STAFFHUB_USER_BUSINESS_FLOWS.md).
+> Xem tình huống giao diện và kết quả tại [STAFFHUB_USER_BUSINESS_FLOWS.md](./STAFFHUB_USER_BUSINESS_FLOWS.md).
+>
+> Xem giải thích dành cho người dùng tại [POS_TERMINAL_USER_GUIDE.md](./POS_TERMINAL_USER_GUIDE.md).
 
-## 1. Phạm vi và thuật ngữ
-
-Tài liệu này là nguồn nghiệp vụ chuẩn cho StaffHub và vòng đời phiên POS. Ba khái niệm phải tách biệt:
+## 1. Phạm vi
 
 - `Shift`: mẫu giờ dự kiến của cửa hàng.
-- `StaffShift`: lịch dự kiến đã phân cho nhân viên; không chứng minh nhân viên có mặt và không dùng tính lương.
-- `WorkShift`: phiên chịu trách nhiệm POS/két, tiền đầu phiên, giao dịch và đối soát.
+- `StaffShift`: lịch dự kiến đã phân cho nhân viên.
+- `WorkShift`: phiên chịu trách nhiệm POS/két, giao dịch và đối soát.
+- Mở POS không tạo chấm công, giờ công, tăng ca, tính lương hoặc `StaffShift` giả.
+- StaffHub là nơi duy nhất chọn/đăng ký terminal, đánh giá lịch, yêu cầu lý do/OTP và phát mã sang POS. POS chỉ đổi mã và nhập tiền đầu phiên.
 
-Hệ thống không tạo chấm công, giờ công, tăng ca, lương hoặc `StaffShift` giả khi mở POS ngoài lịch. Thuật ngữ giao diện dùng “lịch dự kiến”, “mở POS ngoài lịch”, “thời lượng phiên POS”, “chờ chốt két” và “cần đối soát lại”.
-
-## 2. Thời gian và lịch qua đêm
-
-Mọi mốc WorkShift được lưu UTC; lịch được tính tại `Asia/Ho_Chi_Minh`.
+## 2. Luồng mở POS chuẩn
 
 ```text
-PlannedStartLocal = WorkDate + (CustomStartTime ?? Shift.StartTime)
-PlannedEndLocal   = WorkDate + (CustomEndTime   ?? Shift.EndTime)
-Nếu PlannedEndLocal <= PlannedStartLocal thì cộng PlannedEndLocal thêm 1 ngày.
+StaffHub
+→ xác thực Account/Staff/store scope/permission
+→ chọn terminal active thuộc store
+→ preview StaffShift và WorkShift đang khóa
+→ WITHIN_SCHEDULE / LATE_FOR_SCHEDULE / OUTSIDE_SCHEDULE
+→ xác nhận, lý do và OTP nếu cần
+→ phát exchange code một lần
+→ chuyển code bằng URL fragment
+→ POS xóa fragment và exchange
+→ POS nhập tiền đầu phiên
+→ backend mở WorkShift trong transaction
 ```
 
-Khi mở POS phải tìm lịch ngày trước, ngày hiện tại và ngày tiếp theo trong cùng cửa hàng, bỏ lịch đã hủy. `BusinessDate` là `WorkDate` của lịch nguồn; với phiên ngoài lịch là ngày địa phương lúc mở và không đổi khi qua nửa đêm.
+Truy cập trực tiếp endpoint mở phiên mà không có exchange context hợp lệ trả `POS_OPEN_CONTEXT_REQUIRED`. Backend không tin `StaffId`, `StoreId`, `TerminalId`, thời gian hoặc `OpenContext` từ React.
 
-Chính sách mặc định:
+## 3. Lịch và OpenContext
 
-- Mở sớm tối đa 30 phút.
-- Trong lịch: từ mốc mở sớm đến 15 phút sau giờ bắt đầu.
-- Mở trễ: sau 15 phút, tối đa 30 phút sau giờ kết thúc.
-- Trễ trên 15 phút cần lý do; trễ trên 30 phút cần OTP.
-- Ngoài các khoảng trên là `OUTSIDE_SCHEDULE`, luôn cần lý do 10–500 ký tự và OTP.
+Backend tìm lịch hiệu lực trong đúng cửa hàng, hỗ trợ ca qua đêm bằng khoảng thời gian tuyệt đối.
 
-Các ngưỡng nằm trong `WorkShift` options, không hard-code ở view/controller.
+- `WITHIN_SCHEDULE`: luôn hiển thị xác nhận; không cần OTP.
+- `LATE_FOR_SCHEDULE`: trễ trên 15 phút cần lý do; trên 30 phút cần thêm OTP theo cấu hình hiện hành.
+- `OUTSIDE_SCHEDULE`: cần quyền `POS.WorkShift.OpenOutsideSchedule`, lý do 10–500 ký tự và OTP.
+- Mở ngoài lịch không tạo `StaffShift`; `AutoCloseAtUtc = StartTimeUtc + 6 giờ`.
+- Một nhân viên ngoài lịch được mở WorkShift riêng trên terminal trống dù cửa hàng đang có WorkShift khác. Không gắn vào phiên người khác, không chuyển đơn/tiền và không sao chép tiền cuối phiên.
 
-## 3. Ngữ cảnh mở và vòng đời
+## 4. Trạng thái trách nhiệm active
 
-`OpenContext` có `WITHIN_SCHEDULE`, `LATE_FOR_SCHEDULE`, `OUTSIDE_SCHEDULE`; `LEGACY` chỉ dùng backfill dữ liệu cũ.
+Định nghĩa dùng chung `WorkShiftStatuses.ActiveResponsibility` gồm:
 
-```text
-OPEN ──start close──────────────> CLOSING ──đối soát xong──> CLOSED
-  │
-  └─ngoài lịch đủ 6 giờ────────> EXPIRED_PENDING_CLOSE
-                                  ├─kiểm đếm, đóng thường──> CLOSED
-                                  └─đóng ngoại lệ──────────> RECONCILIATION_REQUIRED
-                                                               └─reconcile──> CLOSED
-```
+- `OPEN`
+- `CLOSING`
+- `EXPIRED_PENDING_CLOSE`
 
-- Chỉ `OPEN` được tạo đơn/thanh toán mới.
-- `CLOSING`, `EXPIRED_PENDING_CLOSE`, `RECONCILIATION_REQUIRED`, `CLOSED` đều khóa giao dịch mới.
-- Callback payment đã khởi tạo hợp lệ và đồng bộ muộn tiếp tục cập nhật WorkShift gốc, không chuyển sang phiên mới.
-- Mỗi terminal và mỗi nhân viên chỉ có tối đa một phiên thuộc nhóm trách nhiệm active (`OPEN`, `CLOSING`, `EXPIRED_PENDING_CLOSE`).
+`CLOSED` và `RECONCILIATION_REQUIRED` không khóa mở phiên mới. Phiên cũ vẫn được xử lý/đối soát riêng; order hoặc payment đồng bộ muộn giữ nguyên `WorkShiftId` cũ.
 
-## 4. Mở POS
+Phân loại khi mở mới:
 
-Backend lấy account, staff, store và quyền từ identity; không tin `StaffId`, `StoreId` hay thời gian do client gửi. Terminal phải tồn tại, active và thuộc đúng store. Terminal mới chỉ được đăng ký sau OTP có permission `POS.WorkShift.OverrideTerminal` trong đúng scope.
+| Xung đột | Error code | Kết quả |
+|---|---|---|
+| Staff có `OPEN` | `STAFF_ALREADY_HAS_OPEN_SHIFT` | Tiếp tục hoặc đóng phiên cũ |
+| Staff có `CLOSING` | `WORKSHIFT_PENDING_CLOSE` | Hoàn tất chốt két |
+| Staff có `EXPIRED_PENDING_CLOSE` | `WORKSHIFT_PENDING_CLOSE` | Kiểm đếm và đóng |
+| Terminal có bất kỳ trạng thái active nào | `TERMINAL_ALREADY_HAS_OPEN_SHIFT` | Chọn terminal khác |
+| Phiên cũ `CLOSED` | không chặn | Tạo WorkShift mới với request/lý do/OTP/tiền mới |
+| Phiên cũ `RECONCILIATION_REQUIRED` | không chặn | Phiên cũ tiếp tục đối soát riêng |
 
-Mở ngoài lịch không tạo `StaffShift`. Hệ thống đặt:
+`WORKSHIFT_EXPIRED` chỉ dùng khi thao tác trực tiếp trên WorkShift thực sự hết hạn và hành động không còn được phép; không dùng cho preview/mở mới, staff/terminal active, request trùng hoặc exchange code.
 
-```text
-AutoCloseAtUtc = StartTimeUtc + 6 giờ
-```
+## 5. Terminal
 
-Không gia hạn phiên cũ. Muốn tiếp tục bán phải đóng/đóng ngoại lệ, kiểm đếm và mở phiên mới bằng lý do, OTP và tiền đầu phiên mới. Không sao chép tự động tiền cuối phiên cũ.
+StaffHub tải terminal active đúng store. Terminal phải tồn tại, active và cửa hàng của terminal phải active. Đăng ký terminal cũng thực hiện tại StaffHub:
 
-## 5. Hết hạn và worker
+1. Backend sinh/bind terminal ID và RequestKey của luồng.
+2. Người dùng nhập tên.
+3. OTP được requester/approver đúng store xác nhận với quyền `POS.WorkShift.OverrideTerminal`.
+4. Backend consume approval rồi đăng ký và làm mới danh sách.
 
-Worker chạy mỗi phút, cảnh báo một lần tại 30, 10 và 1 phút, sau đó xử lý hết hạn. SignalR chỉ gửi tới group store/terminal/staff liên quan; backend vẫn là nguồn khóa khi SignalR mất kết nối.
+POS không có endpoint hoặc giao diện đăng ký terminal trực tiếp.
 
-Phiên chỉ tự đóng `AUTO_EMPTY_SHIFT` khi hoàn toàn rỗng: không order/payment/offline/reconciliation, tiền đầu phiên bằng 0 và không có dữ liệu cần kiểm đếm. Khi đó ba số tiền đều bằng 0. Mọi trường hợp khác chuyển `EXPIRED_PENDING_CLOSE`; không tự điền tiền thực tế.
+## 6. OTP mở ca
 
-## 6. Đóng, ngoại lệ và đối soát
+OTP bind action, requester, approver, store, terminal, lịch nguồn/OpenContext, lý do và RequestKey. Tiền đầu phiên không thuộc fingerprint OTP vì chỉ được nhập sau exchange tại POS. OTP phải còn hạn, ở trạng thái approved, chưa dùng, đúng payload, permission và scope; được gắn `WorkShiftId` và consume trong transaction mở thành công.
 
-Đóng thường:
+OTP gồm sáu ký tự theo chính sách hiện hành, hash khi lưu, có giới hạn thử/resend/rate limit và không ghi mã thô vào audit.
 
-```text
-ExpectedEndingCash = StartingCash + tổng payment tiền mặt hợp lệ
-CashDiscrepancy    = ActualEndingCash - ExpectedEndingCash
-```
+## 7. Exchange StaffHub → POS
 
-Dự án chưa có thực thể thu/chi két nên không giả định thêm thành phần. `ActualEndingCash` do người kiểm đếm nhập; backend tự tính hai số còn lại. Chênh lệch khác 0 cần lý do, vượt ngưỡng cần OTP. Không đóng thường khi payment đang xử lý hoặc còn manifest offline.
+- TTL đúng 60 giây; raw code chỉ trả một lần, database chỉ lưu SHA-256 hash.
+- Context bind account, staff, store, terminal, purpose, OpenContext, lịch nguồn, RequestKey, lý do, OTP và WorkShift khi resume.
+- Code truyền trong URL fragment, không truyền JWT qua query string.
+- React xóa fragment trước network I/O rồi gọi `POST /api/v1/pos/session/exchange`.
+- Code dùng một lần. Context server được giữ đến hết POS token để người dùng nhập tiền đầu phiên.
+- Mã lỗi riêng: `POS_EXCHANGE_CODE_EXPIRED`, `POS_EXCHANGE_CODE_ALREADY_USED`, `POS_EXCHANGE_CODE_INVALID`.
+- Purpose gồm `OPEN_WORKSHIFT` và `RESUME_WORKSHIFT`; purpose sai bị từ chối.
 
-Đóng ngoại lệ cần permission, lý do, OTP và kiểm đếm tiền. Phiên chuyển `RECONCILIATION_REQUIRED`; đơn/payment muộn giữ nguyên `WorkShiftId`. Reconcile chỉ hoàn tất khi hết blocker, manifest hiện tại không còn đơn offline và số đơn offline đã đóng ngoại lệ đã được server xác nhận đồng bộ đầy đủ. Sau đó backend tính lại số liệu và ghi audit điều chỉnh.
+## 8. Idempotency và concurrency
 
-## 7. Idempotency, concurrency và OTP
+Mọi mở WorkShift dùng RequestKey từ exchange context. Payload hash gồm actor/action/store/terminal/context và tiền đầu phiên.
 
-Các mutation dùng `RequestKey` ổn định. Retry cùng actor/action/store/payload trả kết quả cũ; cùng key khác payload bị từ chối; request đang xử lý có lease; dữ liệu được giữ tối thiểu 24 giờ.
+- Retry cùng key và payload trả WorkShift đã tạo.
+- Cùng key nhưng payload khác trả `DUPLICATE_REQUEST`.
+- Kiểm tra staff/terminal active và insert chạy trong transaction serializable.
+- Rowversion và filtered unique index `UX_WorkShifts_ActiveStaff`, `UX_WorkShifts_ActiveTerminal` bảo vệ ba trạng thái active.
+- Unique/rowversion race được requery để trả lỗi nghiệp vụ hoặc `CONCURRENCY_CONFLICT`.
+- Worker hết hạn dùng transaction/row lock; không tự đóng phiên có tiền, order, payment, offline manifest hoặc dữ liệu cần kiểm đếm.
 
-Transaction, rowversion và filtered unique index cùng bảo vệ double-click, hai thiết bị, worker chạy đồng thời với đóng ca và nhiều application instance.
+## 9. Giao diện StaffHub khi bị khóa
 
-OTP gồm đúng 6 ký tự lấy ngẫu nhiên bằng nguồn mật mã từ `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`; không bắt buộc mỗi mã có cả chữ và số. Backend từ chối ký tự đặc biệt, khoảng trắng nội bộ, chữ có dấu, emoji và `O/0/I/1`. OTP được hash, dùng một lần, hết hạn sau 5 phút và tối đa 3 lần sai/challenge. Trong cửa sổ 15 phút, backend giới hạn tối đa 5 challenge theo nhân viên, 10 theo terminal, 20 theo IP và 10 theo device fingerprint. Xác nhận sai cũng bị cộng dồn và chặn theo nhân viên/IP/device. IP và dấu vân tay thiết bị chỉ được lưu dưới dạng SHA-256, không lưu giá trị thô; resend chỉ được phép sau 60 giây và không xóa số lần nhập sai đã tích lũy. Challenge bind requester, approver, action, store, terminal, WorkShift và request key khi áp dụng. Permission/scope người duyệt được kiểm tra lại khi verify, resend và consume. Audit chỉ ghi metadata/kết quả, tuyệt đối không ghi OTP/PIN.
+StaffHub hiển thị mã phiên, terminal, thời gian bắt đầu, trạng thái và hạn:
 
-Người duyệt hợp lệ được ưu tiên theo thứ tự Ca trưởng → Quản lý chi nhánh → Quản lý vùng → Chủ doanh nghiệp → người khác có permission. OTP được gửi đồng thời qua Gmail bắt buộc và event SignalR riêng của đúng `ApproverStaffId`. `StaffNotification` loại `OPERATIONAL_OTP_REQUEST` chỉ chứa metadata; mã không nằm trong body, audit hoặc log. `OtpChallenge.ProtectedOtpPayload` giữ ciphertext Data Protection để đúng approver xem lại mã trong chuông khi challenge còn `Pending` và chưa hết hạn. API này không cache. Khi resend, mã cũ mất hiệu lực và cùng notification được cập nhật; khi verify/lock/cancel/expire, payload bị xóa và notification được resolve.
+- `OPEN`: nút “Tiếp tục POS”.
+- `CLOSING`: nút “Hoàn tất đóng ca”.
+- `EXPIRED_PENDING_CLOSE`: nút “Kiểm đếm và đóng”.
 
-## 8. Permission
+Không gom các trường hợp thành thông báo “Phiên POS hết hạn”.
 
-- `POS.WorkShift.View`
-- `POS.WorkShift.Open`
-- `POS.WorkShift.Close`
-- `POS.WorkShift.OpenOutsideSchedule`
-- `POS.WorkShift.ApproveOutsideSchedule`
-- `POS.WorkShift.CloseException`
-- `POS.WorkShift.Reconcile`
-- `POS.WorkShift.OverrideTerminal`
+## 10. Endpoint hiện hành
 
-`SeedAll.sql` là nguồn seed duy nhất. BusinessOwner, AreaManager, StoreManager và ShiftSupervisor nhận đủ tám quyền theo scope; SalesStaff nhận View/Open/Close/OpenOutsideSchedule. SystemAdmin, AccountantWarehouse và Customer không tự nhận quyền nghiệp vụ này.
+StaffHub cookie authorization + anti-forgery:
 
-## 9. API và mã lỗi
+- `POST /StaffHub/PreviewOpenPos`
+- `POST /StaffHub/RequestOpenPosOtp`
+- `POST /StaffHub/VerifyOperationalOtp`
+- `POST /StaffHub/ResendOperationalOtp`
+- `POST /StaffHub/RequestTerminalRegistrationOtp`
+- `POST /StaffHub/RegisterTerminal`
+- `POST /StaffHub/IssuePosToken`
+- `POST /StaffHub/IssueResumePosToken`
 
-API chính:
+POS:
 
-- `POST /StaffHub/PreviewOpenPos` (anti-forgery, preflight không mutation)
-- `POST /StaffHub/IssuePosToken` (chỉ gọi sau preview/xác nhận)
-- `POST /api/v1/pos/shifts/open-assessment`
-- `POST /api/v1/pos/shifts/open`
-- `POST /api/v1/pos/shifts/{id}/start-closing`
-- `POST /api/v1/pos/shifts/{id}/close`
-- `POST /api/v1/pos/shifts/{id}/close-exception`
-- `POST /api/v1/pos/shifts/{id}/reconcile`
-- `POST /api/v1/pos/terminals/register`
 - `POST /api/v1/pos/session/exchange`
+- `POST /api/v1/pos/shifts/open` — chỉ tiền đầu phiên từ client; identity/context từ token và database.
 
-StaffHub đánh giá lịch trước khi phát mã. `WITHIN_SCHEDULE` đi thẳng; `LATE_FOR_SCHEDULE` và `OUTSIDE_SCHEDULE` hiện modal chỉ để xác nhận, không nhập tiền/lý do/OTP. Nút Hủy không tạo exchange code. Sau khi tiếp tục, StaffHub phát mã trao đổi một lần 60 giây, chỉ lưu hash và chuyển qua URL fragment. React xóa fragment trước network I/O rồi POST đổi sang JWT; JWT không đi qua query string.
+Public POS `open-assessment` và đăng ký terminal trực tiếp đã bị loại bỏ.
 
-Frontend xử lý theo `errorCode`, gồm các mã ổn định: `POS_PERMISSION_REQUIRED`, `STORE_SCOPE_DENIED`, `TERMINAL_NOT_FOUND`, `TERMINAL_INACTIVE`, `TERMINAL_ALREADY_HAS_OPEN_SHIFT`, `STAFF_ALREADY_HAS_OPEN_SHIFT`, `OUTSIDE_SCHEDULE_REASON_REQUIRED`, `OUTSIDE_SCHEDULE_APPROVAL_REQUIRED`, `WORKSHIFT_EXPIRED`, `WORKSHIFT_PENDING_CLOSE`, `PAYMENT_IN_PROGRESS`, `OFFLINE_ORDERS_PENDING`, `DUPLICATE_REQUEST`, `CONCURRENCY_CONFLICT`.
+## 11. Error-code matrix
 
-## 10. Migration và dữ liệu
+`STAFF_ALREADY_HAS_OPEN_SHIFT`, `TERMINAL_ALREADY_HAS_OPEN_SHIFT`, `WORKSHIFT_PENDING_CLOSE`, `WORKSHIFT_EXPIRED`, `DUPLICATE_REQUEST`, `CONCURRENCY_CONFLICT`, `POS_OPEN_CONTEXT_REQUIRED`, `POS_OPEN_CONTEXT_INVALID`, `POS_EXCHANGE_CODE_EXPIRED`, `POS_EXCHANGE_CODE_ALREADY_USED`, `POS_EXCHANGE_CODE_INVALID`.
 
-Phiên bản hiện hành dùng migration khởi tạo hợp nhất `20260802183312_InitialCreate`. Migration chỉ chứa schema, constraint và index; không seed RBAC. Nó dùng để tạo database mới, không được chạy chồng lên database đã có lịch sử migration cũ nếu chưa backup và lập kế hoạch baseline/chuyển dữ liệu.
+## 12. Nghiệm thu tối thiểu
 
-Permission, role-permission và fixture tương thích schema mới nằm trong `Scripts/SeedAll.sql`. Script dùng business key, dọn temp table trước khi tái tạo và dùng marker `seedall_foundation_inventory_v1` để các batch nền không nhân đôi khi chạy lại.
-
-## 11. Kiểm thử nghiệm thu tối thiểu
-
-- Lịch qua đêm ngày trước được tìm đúng và hiển thị đủ hai ngày.
-- Ngoài lịch cần lý do/OTP, không tạo StaffShift, hết hạn đúng 6 giờ.
-- Hai request đồng thời chỉ tạo một WorkShift; retry cùng key không tạo thêm dữ liệu.
-- Backend chặn order/payment sau hạn dù sửa JavaScript hoặc mất SignalR.
-- Phiên rỗng tiền đầu 0 tự đóng; phiên có tiền/giao dịch chờ kiểm đếm.
-- Đóng thường chặn payment/offline; đóng ngoại lệ và sync muộn giữ WorkShift gốc.
-- OTP sai action/store/staff/terminal/request key, hết hạn hoặc reuse đều bị từ chối.
-- Gmail và SignalR riêng tư nhận cùng mã; chỉ approver nhận event có mã.
-- `StaffNotifications.Body`, audit và log không chứa OTP; payload xem lại là ciphertext; resend không tạo notification trùng.
-- Sửa StoreId/StaffId ở payload không mở rộng quyền.
+Phải kiểm tra đủ: đúng lịch; ngoài lịch khi store trống; A/Terminal 1 và B/Terminal 2 độc lập; terminal đã dùng; cùng staff mở thêm; expired pending close; phiên cũ closed; double-click; worker đồng thời với open; exchange hết hạn; terminal registration tại StaffHub; từ chối mở POS trực tiếp. Không test nào được kỳ vọng tạo `StaffShift` giả hay sao chép tiền.
