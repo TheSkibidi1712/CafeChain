@@ -18,9 +18,14 @@ public sealed class POSSessionController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _exchangeService.ExchangeAsync(request.ExchangeCode, cancellationToken);
-        if (result == null)
-            return Unauthorized(new { success = false, errorCode = "POS_SESSION_EXCHANGE_INVALID",
-                message = "Mã mở POS không hợp lệ, đã hết hạn hoặc đã được sử dụng." });
-        return Ok(new { success = true, token = result.Token, expiresAtUtc = result.ExpiresAtUtc });
+        if (!result.IsSuccess || result.Data == null)
+            return Unauthorized(new { success = false, errorCode = result.ErrorCode, message = result.Message });
+        return Ok(new
+        {
+            success = true,
+            token = result.Data.Token,
+            expiresAtUtc = result.Data.ExpiresAtUtc,
+            purpose = result.Data.Purpose
+        });
     }
 }
