@@ -9,10 +9,11 @@
     var canReceive = (bool?)ViewBag.CanReceive == true;
     var canCloseRemaining = (bool?)ViewBag.CanCloseRemaining == true;
     var canReceiveStatus = Model.Status is "APPROVED" or "MARKED_AS_SENT" or "PARTIALLY_RECEIVED";
-    var totalAccepted = Model.Lines.Sum(x => x.AcceptedBaseQuantity);
-    var totalRejected = Model.Lines.Sum(x => x.RejectedBaseQuantity);
     var totalClosed = Model.Lines.Sum(x => x.ClosedRemainingQuantity);
     var totalRemaining = Model.Lines.Sum(x => x.RemainingBaseQuantity);
+    var acceptedLineCount = Model.Lines.Count(x => x.AcceptedBaseQuantity > 0);
+    var rejectedLineCount = Model.Lines.Count(x => x.RejectedBaseQuantity > 0);
+    var remainingLineCount = Model.Lines.Count(x => x.RemainingBaseQuantity > 0);
     var completedWithShortfall = Model.Status == "COMPLETED" && totalClosed > 0;
     var orderStatus = AdminStatusDisplay.PurchaseOrder(Model.Status);
     var orderStatusLabel = completedWithShortfall
@@ -56,9 +57,9 @@
 
     <section class="ops-metrics">
         <div class="ops-metric"><span class="ops-metric-label">Giá trị đặt</span><strong class="ops-metric-value">@AdminStatusDisplay.Currency(Model.TotalAmount)</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Đã nhận hợp lệ</span><strong class="ops-metric-value success">@AdminStatusDisplay.Quantity(totalAccepted)</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Đã từ chối</span><strong class="ops-metric-value danger">@AdminStatusDisplay.Quantity(totalRejected)</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Còn phải giao</span><strong class="ops-metric-value warning">@AdminStatusDisplay.Quantity(totalRemaining)</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Dòng đã nhận hợp lệ</span><strong class="ops-metric-value success">@acceptedLineCount</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Dòng có từ chối</span><strong class="ops-metric-value danger">@rejectedLineCount</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Dòng còn phải giao</span><strong class="ops-metric-value warning">@remainingLineCount</strong></div>
     </section>
 
     <section class="ops-panel">
@@ -90,7 +91,7 @@
                                 }
                                 else
                                 {
-                                    <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault()) gói · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())/gói · 1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()) @line.PackageUnitName</div>
+                                    <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault()) gói · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())/gói · 1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.PackageUnitName)</div>
                                 }
                             </td>
                             <td>@(line.RestockRequestId.HasValue ? AdminStatusDisplay.RestockReference(line.RestockReferenceCode, line.RestockRequestId.Value) : "Mua chủ động")</td>

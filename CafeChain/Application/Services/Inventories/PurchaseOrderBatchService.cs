@@ -514,6 +514,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Store)
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.ProcurementUnit)
+            .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.InventoryBaseUnit)
             .AsSplitQuery()
             .SingleOrDefaultAsync(x => x.PurchaseOrderBatchId == id);
         if (batch == null) return null;
@@ -604,6 +605,11 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                     .Select(x => x.ProcurementUnit!.Name)
                     .Distinct()
                     .ToArray();
+                var baseUnitNames = po.Lines
+                    .Where(x => x.InventoryBaseUnit != null)
+                    .Select(x => x.InventoryBaseUnit!.Name)
+                    .Distinct()
+                    .ToArray();
                 var orderedProcurement = po.Lines.All(x => x.OrderedProcurementQuantity.HasValue)
                     ? po.Lines.Sum(x => x.OrderedProcurementQuantity!.Value)
                     : (decimal?)null;
@@ -636,6 +642,9 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                         : null,
                     ProcurementUnitName = procurementUnitNames.Length == 1
                         ? procurementUnitNames[0]
+                        : null,
+                    BaseUnitName = baseUnitNames.Length == 1
+                        ? baseUnitNames[0]
                         : null
                 };
             }).OrderBy(x => x.StoreName).ToArray()

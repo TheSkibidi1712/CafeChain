@@ -148,6 +148,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var adviceLine = await _context.PurchaseAdviceLines
                 .AsNoTracking()
                 .Include(x => x.PurchaseAdvice)
+                .Include(x => x.RestockRequest)
                 .SingleOrDefaultAsync(x => x.PurchaseAdviceLineId == selected.PurchaseAdviceLineId);
             if (adviceLine == null)
             {
@@ -171,6 +172,7 @@ namespace CafeChain.Areas.Admin.Controllers
                         PurchaseAdviceLineId = adviceLine.PurchaseAdviceLineId,
                         PurchaseAdviceLineRowVersion = selected.RowVersion,
                         RestockRequestId = adviceLine.RestockRequestId,
+                        RestockReferenceCode = adviceLine.RestockRequest.ReferenceCode,
                         IngredientId = adviceLine.IngredientId,
                         IngredientSupplierId = selected.IngredientSupplierId,
                         PurchaseMode = selected.PurchaseMode,

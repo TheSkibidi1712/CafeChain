@@ -18,6 +18,7 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public int? PurchaseAdviceLineId { get; set; }
         public string? PurchaseAdviceLineRowVersion { get; set; }
         public int? RestockRequestId { get; set; }
+        public string? RestockReferenceCode { get; set; }
         public int IngredientId { get; set; }
         public int IngredientSupplierId { get; set; }
         public PurchaseMode PurchaseMode { get; set; } = PurchaseMode.Packaged;

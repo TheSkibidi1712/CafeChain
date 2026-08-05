@@ -93,33 +93,33 @@
                                     <strong class="ops-item-name">@line.IngredientName</strong>
                                     @if (isLoose)
                                     {
-                                        <div class="ops-secondary">Mua rời · @AdminStatusDisplay.Currency(line.UnitPricePerProcurementUnit.GetValueOrDefault())/@line.ProcurementUnitName</div>
+                                        <div class="ops-secondary">Mua rời · @AdminStatusDisplay.Currency(line.UnitPricePerProcurementUnit.GetValueOrDefault())/@AdminStatusDisplay.Unit(line.ProcurementUnitName)</div>
                                     }
                                     else
                                     {
-                                        <div class="ops-secondary">1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()) @line.PackageUnitName · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())/gói</div>
+                                        <div class="ops-secondary">1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.PackageUnitName) · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())/gói</div>
                                     }
                                     @if (line.OrderedProcurementQuantity.HasValue)
                                     {
-                                        <div class="ops-secondary">Đơn vị mua: đặt @AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.Value) @line.ProcurementUnitName · đã nhận @AdminStatusDisplay.Quantity(line.PreviouslyAcceptedProcurementQuantity.GetValueOrDefault()) · còn @AdminStatusDisplay.Quantity(line.RemainingProcurementQuantity.GetValueOrDefault()) @line.ProcurementUnitName</div>
+                                        <div class="ops-secondary">Đơn vị mua: đặt @AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.Value) @AdminStatusDisplay.Unit(line.ProcurementUnitName) · đã nhận @AdminStatusDisplay.Quantity(line.PreviouslyAcceptedProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.ProcurementUnitName) · còn @AdminStatusDisplay.Quantity(line.RemainingProcurementQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.ProcurementUnitName)</div>
                                     }
                                     @if (line.RestockRequestId.HasValue)
                                     {
-                                        <div class="ops-secondary">Yêu cầu nhập hàng #@line.RestockRequestId</div>
+                                        <div class="ops-secondary">@AdminStatusDisplay.RestockReference(line.RestockReferenceCode, line.RestockRequestId.Value)</div>
                                     }
                                 </td>
-                                <td class="number">@(usesProcurement ? AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity!.Value) + " " + line.ProcurementUnitName : AdminStatusDisplay.Quantity(line.OrderedBaseQuantity))</td>
-                                <td class="number">@(usesProcurement ? AdminStatusDisplay.Quantity(line.PreviouslyAcceptedProcurementQuantity.GetValueOrDefault()) + " " + line.ProcurementUnitName : AdminStatusDisplay.Quantity(line.PreviouslyAcceptedBaseQuantity))</td>
-                                <td class="number"><strong>@(usesProcurement ? AdminStatusDisplay.Quantity(line.RemainingProcurementQuantity.GetValueOrDefault()) + " " + line.ProcurementUnitName : AdminStatusDisplay.Quantity(line.RemainingBaseQuantity))</strong></td>
+                                <td class="number">@(usesProcurement ? AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity!.Value) + " " + AdminStatusDisplay.Unit(line.ProcurementUnitName) : AdminStatusDisplay.Quantity(line.OrderedBaseQuantity) + " " + AdminStatusDisplay.Unit(line.BaseUnitName))</td>
+                                <td class="number">@(usesProcurement ? AdminStatusDisplay.Quantity(line.PreviouslyAcceptedProcurementQuantity.GetValueOrDefault()) + " " + AdminStatusDisplay.Unit(line.ProcurementUnitName) : AdminStatusDisplay.Quantity(line.PreviouslyAcceptedBaseQuantity) + " " + AdminStatusDisplay.Unit(line.BaseUnitName))</td>
+                                <td class="number"><strong>@(usesProcurement ? AdminStatusDisplay.Quantity(line.RemainingProcurementQuantity.GetValueOrDefault()) + " " + AdminStatusDisplay.Unit(line.ProcurementUnitName) : AdminStatusDisplay.Quantity(line.RemainingBaseQuantity) + " " + AdminStatusDisplay.Unit(line.BaseUnitName))</strong></td>
                                 <td>
                                     <input type="hidden" name="Lines[@i].PurchaseOrderLineId" value="@line.PurchaseOrderLineId" />
                                     <input class="ops-input w-100 actual-quantity" type="number" step="0.001" min="0" name="Lines[@i].ActualReceivedQuantity" value="@line.ActualReceivedQuantity" disabled="@isClosed" aria-label="Số lượng thực giao của @line.IngredientName" />
-                                    <div class="ops-secondary">@(isLoose ? line.ProcurementUnitName : $"gói {line.PackageUnitName}")</div>
+                                    <div class="ops-secondary">@(isLoose ? AdminStatusDisplay.Unit(line.ProcurementUnitName) : $"gói ({AdminStatusDisplay.Unit(line.PackageUnitName)})")</div>
                                 </td>
                                 <td>
                                     <input class="ops-input w-100 rejected-quantity" type="number" step="0.001" min="0" name="Lines[@i].RejectedQuantity" value="@line.RejectedQuantity" disabled="@isClosed" aria-label="Số lượng từ chối của @line.IngredientName" />
                                 </td>
-                                <td><strong class="accepted-preview">0</strong> @(isLoose ? line.ProcurementUnitName : "gói")</td>
+                                <td><strong class="accepted-preview">0</strong> @(isLoose ? AdminStatusDisplay.Unit(line.ProcurementUnitName) : "gói")</td>
                             <td class="ops-cell-min-240">
                                     <select class="ops-select w-100 mb-2" name="Lines[@i].RejectionIssueType" disabled="@isClosed">
                                         <option value="">Không có sự cố</option>

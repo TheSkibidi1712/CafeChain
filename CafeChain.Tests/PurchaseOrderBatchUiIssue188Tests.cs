@@ -176,6 +176,44 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
     }
 
     [Fact]
+    public void ProcurementPages_UseBusinessRestockReferencesAndLocalizedUnits()
+    {
+        var files = new[]
+        {
+            "CafeChain/Areas/Admin/Views/AdminPurchaseAdvices/Edit.cshtml",
+            "CafeChain/Areas/Admin/Views/AdminPurchaseOrders/Create.cshtml",
+            "CafeChain/Areas/Admin/Views/AdminPurchaseOrders/Details.cshtml",
+            "CafeChain/Areas/Admin/Views/AdminBranchReceipts/PurchaseOrderDraft.cshtml",
+            "CafeChain/Areas/Admin/Views/AdminBranchReceipts/Details.cshtml"
+        };
+
+        foreach (var file in files)
+        {
+            var view = ReadRepoFile(file);
+            Assert.Contains("AdminStatusDisplay.RestockReference", view);
+            Assert.DoesNotContain("Yêu cầu nhập hàng #@", view, StringComparison.Ordinal);
+        }
+
+        var helper = ReadRepoFile("CafeChain/ViewModels/Admin/Shared/AdminStatusDescriptor.cs");
+        Assert.Contains("\"kilogram\" or \"kg\" => \"kg\"", helper);
+        Assert.Contains("\"gram\" or \"g\" => \"g\"", helper);
+        Assert.Contains("\"liter\" or \"litre\" or \"l\" => \"L\"", helper);
+
+        var receiptDraft = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminBranchReceipts/PurchaseOrderDraft.cshtml");
+        Assert.Contains("AdminStatusDisplay.Unit(line.BaseUnitName)", receiptDraft);
+        Assert.DoesNotContain("OrderedBaseQuantity) + \" \" + AdminStatusDisplay.Unit(line.PackageUnitName)", receiptDraft);
+
+        var batchDetail = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPurchaseOrderBatches/Details.cshtml");
+        Assert.Contains("AdminStatusDisplay.Unit(child.BaseUnitName)", batchDetail);
+        Assert.Contains("AdminStatusDisplay.Unit(line.ProcurementUnitName)", batchDetail);
+        Assert.DoesNotContain(" kiện", batchDetail, StringComparison.Ordinal);
+
+        var orderDetail = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPurchaseOrders/Details.cshtml");
+        Assert.Contains("Dòng còn phải giao", orderDetail);
+        Assert.DoesNotContain("AdminStatusDisplay.Quantity(totalRemaining)</strong>", orderDetail);
+    }
+
+    [Fact]
     public void PurchaseAdvicePreview_NormalizesMutuallyExclusiveQuantityFields()
     {
         var lines = new List<PurchaseAdviceConsolidationSelectionRequest>
