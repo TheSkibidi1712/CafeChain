@@ -8,9 +8,12 @@ namespace CafeChain.Application.DTOs.POS
         /// <summary>WorkShift.ShiftId — null nếu không có ca mở</summary>
         public int? ShiftId { get; set; }
         public string? ResultCode { get; set; }
+        public string? RecommendedAction { get; set; }
         public bool? RequiresOpeningCash { get; set; }
 
         public int StoreId { get; set; }
+        public string? TerminalId { get; set; }
+        public string? TerminalName { get; set; }
         public string? StaffName { get; set; }
         public int? ResponsibleStaffId { get; set; }
         public int? CurrentOperatorStaffId { get; set; }

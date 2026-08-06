@@ -7,7 +7,7 @@ import {
   ACTIVE_PAYMENT_CLOSE_GUARD_CHANGED,
   getMatchingActivePaymentCloseGuard,
 } from '../services/posShiftCloseGuard'
-import { getPosSession, getPosTerminalId } from '../services/posSession'
+import { completeOpeningCash, getPosSession, getPosTerminalId } from '../services/posSession'
 import {
   extractOtpEnvelope,
   formatCountdown,
@@ -26,10 +26,12 @@ import {
   OPERATIONAL_OTP_INPUT_ERROR,
   sanitizeOperationalOtpInput,
 } from '../utils/otpCode'
+import { parseUtcInstant, parseUtcInstantMs } from '../utils/utcDateTime'
 
 interface ShiftSummaryDto {
   shiftId?: number | null
   storeId?: number
+  terminalId?: string | null
   staffName?: string | null
   responsibleStaffId?: number | null
   currentOperatorStaffId?: number | null
@@ -74,6 +76,16 @@ interface PosOperatorCandidateDto {
 type ShiftActionResponse = Partial<ShiftSummaryDto> & {
   success?: boolean
   message?: string
+  errorCode?: string
+  recommendedAction?: string
+  staffHubUrl?: string
+}
+
+const redirectToStaffHub = (terminalId?: string | null, serverUrl?: string | null) => {
+  const target = new URL(serverUrl || '/StaffHub', API_BASE_URL)
+  target.searchParams.set('openPos', '1')
+  if (terminalId) target.searchParams.set('terminalId', terminalId)
+  window.location.assign(target.toString())
 }
 
 const readApiMessage = (value: unknown): string | null => {
@@ -149,9 +161,8 @@ const validateActualEndingCash = (amount: number | ''): string | null => {
 }
 
 const formatDateTime = (value?: string | null) => {
-  if (!value) return '--'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '--'
+  const date = parseUtcInstant(value)
+  if (!date) return '--'
   return date.toLocaleString('vi-VN', {
     hour: '2-digit',
     minute: '2-digit',
@@ -170,6 +181,7 @@ export default function ShiftSummary() {
   const [reconcileReason, setReconcileReason] = useState('')
   const [clockTick, setClockTick] = useState(0)
   const [serverOffsetMs, setServerOffsetMs] = useState(0)
+  const authoritativeOpenedShiftIdRef = useRef<number | null>(getPosSession().workShiftId ?? null)
   const closeRequestKeyRef = useRef(crypto.randomUUID())
   const exceptionCloseRequestKeyRef = useRef(crypto.randomUUID())
   const reconcileRequestKeyRef = useRef(crypto.randomUUID())
@@ -212,12 +224,19 @@ export default function ShiftSummary() {
 
   const session = getPosSession()
   const normalizedStatus = shift?.status?.toUpperCase()
-  const hasOpenShift = !!shift?.shiftId && ['OPEN', 'CLOSING', 'EXPIRED_PENDING_CLOSE'].includes(normalizedStatus ?? '')
-  const canAcceptTransactions = normalizedStatus === 'OPEN'
-  const currentShiftId = hasOpenShift ? shift.shiftId ?? null : null
+  const boundWorkShiftMismatch = session.workShiftId != null
+    && shift?.shiftId != null
+    && session.workShiftId !== shift.shiftId
+  const hasOpenShift = !boundWorkShiftMismatch
+    && !!shift?.shiftId
+    && ['OPEN', 'CLOSING', 'EXPIRED_PENDING_CLOSE'].includes(normalizedStatus ?? '')
+  const requiresOpeningCash = session.requiresOpeningCash === true
+    && session.workShiftId === shift?.shiftId
+  const canAcceptTransactions = normalizedStatus === 'OPEN' && !requiresOpeningCash
+  const currentShiftId = hasOpenShift && !requiresOpeningCash ? shift.shiftId ?? null : null
   const currentStaffId = session.staffId
   const currentStoreId = session.storeId
-  const expiryAtMs = shift?.autoCloseAtUtc ? Date.parse(shift.autoCloseAtUtc) : Number.NaN
+  const expiryAtMs = parseUtcInstantMs(shift?.autoCloseAtUtc)
   const expiryRemainingSeconds = Number.isFinite(expiryAtMs)
     ? Math.max(0, Math.ceil((expiryAtMs - (clockTick + serverOffsetMs)) / 1000))
     : null
@@ -308,10 +327,20 @@ export default function ShiftSummary() {
     setIsLoading(true)
     try {
       const response = await apiClient.get<ShiftSummaryDto>('/api/v1/pos/shifts/current')
+      if (response.status === 401) {
+        redirectToStaffHub(getPosSession().terminalId)
+        return
+      }
       if (response.ok && response.data) {
+        const authoritativeShiftId = authoritativeOpenedShiftIdRef.current
+        if (authoritativeShiftId !== null
+          && response.data.status?.toUpperCase() === 'OPEN'
+          && response.data.shiftId !== authoritativeShiftId) {
+          return
+        }
         setShift(response.data)
         setClockTick(Date.now())
-        const serverNowMs = response.data.serverNowUtc ? Date.parse(response.data.serverNowUtc) : Number.NaN
+        const serverNowMs = parseUtcInstantMs(response.data.serverNowUtc)
         setServerOffsetMs(Number.isFinite(serverNowMs) ? serverNowMs - Date.now() : 0)
       } else {
         setShift({ status: 'NoActiveShift', startingCash: 0, expectedEndingCash: 0, totalCashSales: 0, totalBankingSales: 0, totalOrders: 0 })
@@ -330,6 +359,10 @@ export default function ShiftSummary() {
       setIsLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    if (!session.token) redirectToStaffHub(session.terminalId)
+  }, [session.terminalId, session.token])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -414,11 +447,15 @@ export default function ShiftSummary() {
       refresh()
     })
     connection.onreconnected(() => {
-      void connection.invoke('JoinTerminal', getPosTerminalId())
+      const terminalId = getPosTerminalId()
+      if (terminalId) void connection.invoke('JoinTerminal', terminalId)
       refresh()
     })
     connection.start()
-      .then(() => connection.invoke('JoinTerminal', getPosTerminalId()))
+      .then(() => {
+        const terminalId = getPosTerminalId()
+        return terminalId ? connection.invoke('JoinTerminal', terminalId) : undefined
+      })
       .catch((error) => console.warn('[ShiftSummary WorkShift SignalR] Polling fallback active.', error))
 
     return () => {
@@ -511,13 +548,27 @@ export default function ShiftSummary() {
       })
 
       if (response.ok && response.data?.status?.toUpperCase() === 'OPEN') {
+        if (!response.data.shiftId) {
+          setMessage({ type: 'error', text: 'Mở ca thành công nhưng API không trả về WorkShiftId.' })
+          return
+        }
+        authoritativeOpenedShiftIdRef.current = response.data.shiftId
+        completeOpeningCash(response.data.shiftId)
         setShift(response.data as ShiftSummaryDto)
         setClockTick(Date.now())
-        const responseServerNowMs = response.data.serverNowUtc ? Date.parse(response.data.serverNowUtc) : Number.NaN
+        const responseServerNowMs = parseUtcInstantMs(response.data.serverNowUtc)
         setServerOffsetMs(Number.isFinite(responseServerNowMs) ? responseServerNowMs - Date.now() : 0)
         setStartingCash('')
         setMessage({ type: 'success', text: 'Mở ca thành công.' })
       } else {
+        const errorCode = response.data?.errorCode
+        if (errorCode === 'STAFFHUB_OPEN_REQUIRED'
+          || errorCode === 'POS_OPEN_CONTEXT_REQUIRED'
+          || errorCode === 'POS_OPEN_CONTEXT_INVALID'
+          || response.data?.recommendedAction === 'OPEN_STAFFHUB') {
+          redirectToStaffHub(session.terminalId, response.data?.staffHubUrl)
+          return
+        }
         setMessage({
           type: 'error',
           text: getApiErrorMessage(response, 'Không thể mở ca.'),
@@ -1000,6 +1051,12 @@ export default function ShiftSummary() {
           </div>
         )}
 
+        {boundWorkShiftMismatch && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700">
+            WorkShift hiện tại không khớp phiên được StaffHub cấp. Vui lòng quay lại StaffHub để mở lại đúng terminal.
+          </div>
+        )}
+
         {hasOpenShift && shift?.autoCloseAtUtc && expiryRemainingSeconds !== null && (
           <div className={`p-4 rounded-xl border text-xs font-bold ${
             canAcceptTransactions && expiryRemainingSeconds > 600
@@ -1018,9 +1075,13 @@ export default function ShiftSummary() {
           <div className="bg-surface-white p-12 rounded-xl border border-border text-center text-xs font-semibold text-text-muted">
             Đang tải dữ liệu ca...
           </div>
-        ) : !hasOpenShift && normalizedStatus !== 'CLOSED' && normalizedStatus !== 'RECONCILIATION_REQUIRED' ? (
+        ) : (requiresOpeningCash || !hasOpenShift)
+          && normalizedStatus !== 'CLOSED'
+          && normalizedStatus !== 'RECONCILIATION_REQUIRED' ? (
           <form onSubmit={handleOpenShift} className="bg-surface-white p-5 rounded-xl border border-border shadow-[var(--shadow-card)] space-y-4">
-            <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">Mở phiên POS</h2>
+            <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">
+              {requiresOpeningCash ? 'Xác nhận tiền đầu phiên' : 'Mở phiên POS'}
+            </h2>
             <p className="text-xs text-text-secondary">
               Việc mở POS chỉ tạo phiên chịu trách nhiệm POS/két; hệ thống không tạo lịch làm việc hoặc dữ liệu chấm công.
             </p>

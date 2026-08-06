@@ -75,6 +75,8 @@ namespace CafeChain.Controllers.Api.v1
             var summary = await _shiftService.GetSummaryAsync(CurrentStaffId, CurrentStoreId, id);
             if (summary == null)
                 return Ok(new { success = true, message = result.Message });
+            summary.ResultCode = WorkShiftOpenResultCodes.WorkShiftClosed;
+            summary.RecommendedAction = null;
             return Ok(summary);
         }
 
@@ -88,7 +90,13 @@ namespace CafeChain.Controllers.Api.v1
         {
             var result = await _shiftService.StartClosingAsync(CurrentStaffId, CurrentStoreId, id, request);
             return result.IsSuccess
-                ? Ok(new { success = true, message = result.Message })
+                ? Ok(new
+                {
+                    success = true,
+                    resultCode = WorkShiftOpenResultCodes.WorkShiftClosingStarted,
+                    recommendedAction = WorkShiftRecommendedActions.CompleteClosing,
+                    message = result.Message
+                })
                 : WorkShiftError(result.ErrorCode, result.Message);
         }
 
@@ -107,6 +115,8 @@ namespace CafeChain.Controllers.Api.v1
             var summary = await _shiftService.GetSummaryAsync(CurrentStaffId, CurrentStoreId, id);
             if (summary == null)
                 return Ok(new { success = true, message = result.Message });
+            summary.ResultCode = WorkShiftOpenResultCodes.WorkShiftReconciliationRequired;
+            summary.RecommendedAction = null;
             return Ok(summary);
         }
 
@@ -120,7 +130,12 @@ namespace CafeChain.Controllers.Api.v1
         {
             var result = await _shiftService.ReconcileAsync(CurrentStaffId, CurrentStoreId, id, request);
             return result.IsSuccess
-                ? Ok(new { success = true, message = result.Message })
+                ? Ok(new
+                {
+                    success = true,
+                    resultCode = WorkShiftOpenResultCodes.WorkShiftReconciled,
+                    message = result.Message
+                })
                 : WorkShiftError(result.ErrorCode, result.Message);
         }
 
@@ -178,6 +193,20 @@ namespace CafeChain.Controllers.Api.v1
             {
                 success = false,
                 errorCode,
+                recommendedAction = errorCode switch
+                {
+                    WorkShiftErrorCodes.StaffHubOpenRequired
+                        or WorkShiftErrorCodes.PosOpenContextRequired
+                        or WorkShiftErrorCodes.PosOpenContextInvalid => WorkShiftRecommendedActions.OpenStaffHub,
+                    WorkShiftErrorCodes.OpeningCashRequired => WorkShiftRecommendedActions.EnterOpeningCash,
+                    WorkShiftErrorCodes.WorkShiftPendingClose => WorkShiftRecommendedActions.CountAndClose,
+                    _ => null
+                },
+                staffHubUrl = errorCode is WorkShiftErrorCodes.StaffHubOpenRequired
+                    or WorkShiftErrorCodes.PosOpenContextRequired
+                    or WorkShiftErrorCodes.PosOpenContextInvalid
+                    ? Url.Action("Index", "StaffHub", new { openPos = 1 })
+                    : null,
                 message = message ?? "Không thể xử lý yêu cầu.",
                 correlationId = HttpContext.TraceIdentifier
             };
@@ -196,6 +225,8 @@ namespace CafeChain.Controllers.Api.v1
                     or WorkShiftErrorCodes.PosOpenContextInvalid => Unauthorized(payload),
                 WorkShiftErrorCodes.DuplicateRequest
                     or WorkShiftErrorCodes.ConcurrencyConflict
+                    or WorkShiftErrorCodes.StaffHubOpenRequired
+                    or WorkShiftErrorCodes.OpeningCashRequired
                     or WorkShiftErrorCodes.TerminalAlreadyHasOpenShift
                     or WorkShiftErrorCodes.StaffAlreadyHasOpenShift
                     or WorkShiftErrorCodes.WorkShiftExpired
@@ -207,7 +238,8 @@ namespace CafeChain.Controllers.Api.v1
         private IActionResult CreatedSummary(ShiftSummaryDto summary)
         {
             summary.ResultCode = WorkShiftOpenResultCodes.OpenedNewWorkShift;
-            summary.RequiresOpeningCash = true;
+            summary.RequiresOpeningCash = false;
+            summary.RecommendedAction = WorkShiftRecommendedActions.ContinuePos;
             return StatusCode(StatusCodes.Status201Created, summary);
         }
     }

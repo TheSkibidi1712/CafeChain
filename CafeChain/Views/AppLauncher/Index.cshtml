@@ -24,7 +24,7 @@
           id="appLauncher"
           data-launch-pos-url="@Url.Action("LaunchPos", "AppLauncher")"
           data-pos-status-url="@Url.Action("PosStatus", "AppLauncher")"
-          data-pos-token-url="@Url.Action("IssuePosToken", "StaffHub")">
+          data-staffhub-pos-url="@Url.Action("Index", "StaffHub", new { openPos = 1 })">
         @Html.AntiForgeryToken()
         <header class="launcher-header">
             <div class="launcher-header-left">

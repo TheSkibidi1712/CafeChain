@@ -93,27 +93,8 @@ WHERE [ShiftId] = {id} AND [Status] = {WorkShiftStatuses.Open}")
 
                     if (warningLevel == 4)
                     {
-                        var hasOrders = await db.Orders.AnyAsync(x => x.WorkShiftId == shift.ShiftId, cancellationToken);
-                        var isCompletelyEmpty = !hasOrders
-                            && shift.StartingCash == 0
-                            && !shift.RequiresReconciliation
-                            && !shift.HasLateOfflineSync
-                            && (shift.OfflineOrderCountAtClose ?? 0) == 0;
                         shift.ExpiredAtUtc = nowUtc;
-                        if (isCompletelyEmpty)
-                        {
-                            shift.ExpectedEndingCash = 0;
-                            shift.ActualEndingCash = 0;
-                            shift.CashDiscrepancy = 0;
-                            shift.EndTimeUtc = nowUtc;
-                            shift.CloseType = WorkShiftCloseTypes.AutoEmptyShift;
-                            shift.Status = WorkShiftStatuses.Closed;
-                            eventType = "AUTO_EMPTY_CLOSED";
-                        }
-                        else
-                        {
-                            shift.Status = WorkShiftStatuses.ExpiredPendingClose;
-                        }
+                        shift.Status = WorkShiftStatuses.ExpiredPendingClose;
                     }
 
                     shift.ExpiryWarningLevel = warningLevel;

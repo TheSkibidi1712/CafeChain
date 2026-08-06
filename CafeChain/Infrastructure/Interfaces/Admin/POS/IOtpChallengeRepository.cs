@@ -54,6 +54,11 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
             int? targetId,
             DateTime utcNow);
 
+        Task<OtpChallenge?> FindLatestOpenShiftChallengeAsync(
+            int storeId,
+            int requestedByStaffId,
+            DateTime sinceUtc);
+
         /// <summary>
         /// Mark Pending/Approved challenges past ExpiresAt as Expired so the unique
         /// one-active index can accept a new request for the same actor/action/target.

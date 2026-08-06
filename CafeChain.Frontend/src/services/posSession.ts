@@ -28,6 +28,9 @@ export interface PosSession {
   role: string
   avatarUrl?: string
   expiresAt?: number
+  workShiftId?: number | null
+  terminalId?: string | null
+  requiresOpeningCash?: boolean
 }
 
 function readClaim(payload: Record<string, unknown>, keys: string[]): string | null {
@@ -70,7 +73,14 @@ export function savePosToken(token: string): PosSession {
     role: readClaim(payload, CLAIMS.role) ?? 'POS',
     avatarUrl: typeof payload.AvatarUrl === 'string' ? payload.AvatarUrl : undefined,
     expiresAt: typeof payload.exp === 'number' ? payload.exp * 1000 : undefined,
+    workShiftId: Number(payload.PosWorkShiftId) || null,
+    terminalId: typeof payload.PosTerminalId === 'string' && payload.PosTerminalId.trim()
+      ? payload.PosTerminalId.trim()
+      : null,
+    requiresOpeningCash: String(payload.RequiresOpeningCash).toLowerCase() === 'true',
   }
+
+  if (session.terminalId) localStorage.setItem(POS_TERMINAL_KEY, session.terminalId)
 
   localStorage.setItem(POS_CONTEXT_KEY, JSON.stringify({
     staffId: session.staffId,
@@ -79,10 +89,31 @@ export function savePosToken(token: string): PosSession {
     role: session.role,
     avatarUrl: session.avatarUrl,
     expiresAt: session.expiresAt,
+    workShiftId: session.workShiftId,
+    terminalId: session.terminalId,
+    requiresOpeningCash: session.requiresOpeningCash,
   }))
 
   window.dispatchEvent(new CustomEvent('pos-session-changed', { detail: session }))
   return session
+}
+
+export function completeOpeningCash(workShiftId: number): void {
+  const session = getPosSession()
+  session.requiresOpeningCash = false
+  session.workShiftId = workShiftId
+  localStorage.setItem(POS_CONTEXT_KEY, JSON.stringify({
+    staffId: session.staffId,
+    storeId: session.storeId,
+    staffName: session.staffName,
+    role: session.role,
+    avatarUrl: session.avatarUrl,
+    expiresAt: session.expiresAt,
+    workShiftId,
+    terminalId: session.terminalId,
+    requiresOpeningCash: false,
+  }))
+  window.dispatchEvent(new CustomEvent('pos-session-changed', { detail: session }))
 }
 
 export function getPosSession(): PosSession {
@@ -144,9 +175,9 @@ export function getPosStoreId(defaultStoreId = 1): number {
 }
 
 export function getPosTerminalId(): string {
+  const sessionTerminal = getPosSession().terminalId?.trim()
+  if (sessionTerminal) return sessionTerminal
   const existing = localStorage.getItem(POS_TERMINAL_KEY)
   if (existing) return existing
-  const generated = crypto.randomUUID()
-  localStorage.setItem(POS_TERMINAL_KEY, generated)
-  return generated
+  return ''
 }

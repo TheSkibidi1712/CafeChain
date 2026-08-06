@@ -23,12 +23,6 @@
         return payload;
     };
 
-    const issuePosToken = async () => readJson(await fetch(root.dataset.posTokenUrl, {
-        method: "POST",
-        headers: headers(),
-        credentials: "same-origin"
-    }));
-
     const pollStatus = async () => {
         try {
             const response = await fetch(root.dataset.posStatusUrl, {
@@ -65,14 +59,12 @@
             }));
             if (!launch.isReady) throw new Error(launch.message || "POS chưa sẵn sàng.");
 
-            showStatus("POS đã sẵn sàng. Đang tạo phiên đăng nhập...");
-            const auth = await issuePosToken();
-            const target = new URL(auth.posUrl);
-            target.hash = `pos_token=${encodeURIComponent(auth.token)}`;
+            showStatus("POS đã sẵn sàng. Đang mở xác nhận ca tại StaffHub...");
+            const target = new URL(root.dataset.staffhubPosUrl, window.location.origin);
 
             if (newTab) newTab.location.replace(target.toString());
             else window.location.assign(target.toString());
-            showStatus("POS đã sẵn sàng.");
+            showStatus("POS đã sẵn sàng. Hãy xác nhận terminal và ca tại StaffHub.");
         } catch (error) {
             if (newTab && !newTab.closed) newTab.close();
             showStatus(error.message || "Không thể khởi chạy POS.", true);

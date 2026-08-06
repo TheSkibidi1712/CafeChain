@@ -524,7 +524,7 @@ export default function BranchInventory() {
 
       {reportItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-lg bg-surface-white border border-border shadow-xl p-5" role="dialog" aria-modal="true" aria-labelledby="shortage-report-title">
+          <div className="max-h-[calc(100dvh-2rem)] min-h-0 w-full max-w-md overflow-y-auto overscroll-contain rounded-lg bg-surface-white border border-border shadow-xl p-5" role="dialog" aria-modal="true" aria-labelledby="shortage-report-title">
             <h2 id="shortage-report-title" className="text-base font-bold text-text-primary">Báo thiếu hàng</h2>
             <p className="text-xs text-text-muted mt-1">
               {reportItem.itemName} · {itemTypeLabel(reportItem.itemType)} · Tồn{' '}

@@ -16,4 +16,12 @@ public interface IPosSessionExchangeService
         int staffId,
         int storeId,
         CancellationToken cancellationToken = default);
+
+    Task<bool> CompleteOpeningCashAsync(
+        int contextId,
+        int accountId,
+        int staffId,
+        int storeId,
+        int workShiftId,
+        CancellationToken cancellationToken = default);
 }

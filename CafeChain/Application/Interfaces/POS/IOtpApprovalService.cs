@@ -5,6 +5,10 @@ namespace CafeChain.Application.Interfaces.POS
 {
     public interface IOtpApprovalService
     {
+        Task<ServiceResult<OtpChallengeResponseDto>> GetCurrentOpenPosOtpStateAsync(
+            int requestedByStaffId,
+            int storeId);
+
         Task<ServiceResult<OtpChallengeResponseDto>> RequestOtpAsync(
             OtpRequestDto request,
             int requestedByStaffId,

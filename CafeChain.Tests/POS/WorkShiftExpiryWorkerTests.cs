@@ -14,7 +14,7 @@ public sealed class WorkShiftExpiryWorkerTests : IntegrationTestBase
     private static readonly DateTimeOffset Now = new(2026, 8, 3, 5, 30, 0, TimeSpan.Zero);
 
     [Fact]
-    public async Task ExpiredEmptyOutsideShift_IsClosedWithoutInventingCash()
+    public async Task ExpiredEmptyOutsideShift_WaitsForHumanCashCount()
     {
         await SeedShiftAsync(startingCash: 0, autoCloseAtUtc: Now.UtcDateTime.AddMinutes(-1));
         var (worker, publisher, provider) = CreateWorker();
@@ -26,10 +26,11 @@ public sealed class WorkShiftExpiryWorkerTests : IntegrationTestBase
         await using var db = CreateDbContext();
         var shift = await db.WorkShifts.FindAsync(1);
         Assert.NotNull(shift);
-        Assert.Equal(WorkShiftStatuses.Closed, shift.Status);
-        Assert.Equal(WorkShiftCloseTypes.AutoEmptyShift, shift.CloseType);
-        Assert.Equal(0, shift.ActualEndingCash);
-        Assert.Single(publisher.Notifications, x => x.EventType == "AUTO_EMPTY_CLOSED");
+        Assert.Equal(WorkShiftStatuses.ExpiredPendingClose, shift.Status);
+        Assert.Null(shift.CloseType);
+        Assert.Null(shift.ActualEndingCash);
+        Assert.Null(shift.EndTimeUtc);
+        Assert.Single(publisher.Notifications, x => x.EventType == "EXPIRED");
     }
 
     [Fact]

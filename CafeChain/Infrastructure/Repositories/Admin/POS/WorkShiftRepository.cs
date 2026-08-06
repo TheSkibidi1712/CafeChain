@@ -76,6 +76,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             return await _context.WorkShifts
                 .Include(ws => ws.User)
                 .Include(ws => ws.CurrentOperatorStaff)
+                .Include(ws => ws.PosTerminal)
                 .FirstOrDefaultAsync(ws =>
                     ws.ShiftId == shiftId &&
                     ws.UserId == userId &&
@@ -87,6 +88,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             return await _context.WorkShifts
                 .Include(ws => ws.User)
                 .Include(ws => ws.CurrentOperatorStaff)
+                .Include(ws => ws.PosTerminal)
                 .FirstOrDefaultAsync(ws => ws.ShiftId == shiftId);
         }
 

@@ -124,7 +124,7 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
                 errorCode: PosSessionExchangeErrorCodes.Invalid);
         }
 
-        var token = CreateToken(account, nowUtc, ticket.RequestDeduplicationId, context.Purpose);
+        var token = CreateToken(account, nowUtc, ticket.RequestDeduplicationId, context);
         ticket.Status = "SUCCESS";
         ticket.ProcessingLeaseUntilUtc = null;
         ticket.ExpiredAt = token.ExpiresAtUtc;
@@ -160,8 +160,46 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
         }
     }
 
+    public async Task<bool> CompleteOpeningCashAsync(
+        int contextId,
+        int accountId,
+        int staffId,
+        int storeId,
+        int workShiftId,
+        CancellationToken cancellationToken = default)
+    {
+        var ticket = await _dbContext.RequestDeduplications.SingleOrDefaultAsync(
+            x => x.RequestDeduplicationId == contextId
+                && x.ActionName == ActionName
+                && x.Status == "SUCCESS"
+                && x.AccountId == accountId
+                && x.StaffId == staffId
+                && x.StoreId == storeId,
+            cancellationToken);
+        if (ticket?.ResponseBody == null) return false;
+
+        PosSessionExchangeContextDto? context;
+        try
+        {
+            context = JsonSerializer.Deserialize<PosSessionExchangeContextDto>(ticket.ResponseBody);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+        if (context == null
+            || (context.WorkShiftId.HasValue && context.WorkShiftId.Value != workShiftId)
+            || !context.RequiresOpeningCash) return false;
+
+        context.WorkShiftId = workShiftId;
+        context.RequiresOpeningCash = false;
+        ticket.ResponseBody = JsonSerializer.Serialize(context);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     private PosSessionTokenDto CreateToken(CafeChain.Models.Customers.Account account, DateTime nowUtc,
-        int contextId, string purpose)
+        int contextId, PosSessionExchangeContextDto context)
     {
         var jwtKey = _configuration["Jwt:Key"];
         if (string.IsNullOrWhiteSpace(jwtKey))
@@ -180,8 +218,12 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
             new("StoreId", account.Staff.StoreId.ToString()),
             new("AvatarUrl", avatarUrl),
             new("PosExchangeContextId", contextId.ToString()),
-            new("PosPurpose", purpose)
+            new("PosPurpose", context.Purpose),
+            new("PosTerminalId", context.TerminalId),
+            new("RequiresOpeningCash", context.RequiresOpeningCash ? "true" : "false")
         };
+        if (context.WorkShiftId.HasValue)
+            claims.Add(new Claim("PosWorkShiftId", context.WorkShiftId.Value.ToString()));
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var expirationHours = double.TryParse(_configuration["Jwt:ExpirationHours"], out var hours) ? hours : 12;
@@ -190,7 +232,7 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
             _configuration["Jwt:Audience"] ?? "CafeChain.POS", claims, notBefore: nowUtc,
             expires: expiresAtUtc, signingCredentials: new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)), SecurityAlgorithms.HmacSha256));
-        return new PosSessionTokenDto(new JwtSecurityTokenHandler().WriteToken(token), expiresAtUtc, contextId, purpose);
+        return new PosSessionTokenDto(new JwtSecurityTokenHandler().WriteToken(token), expiresAtUtc, contextId, context.Purpose);
     }
 
     private static string Hash(string value) =>
