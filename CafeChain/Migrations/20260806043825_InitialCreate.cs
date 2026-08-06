@@ -1059,6 +1059,9 @@ namespace CafeChain.Migrations
                     AllowsLoosePurchase = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     CurrentProcurementUnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     LooseProcurementUnitId = table.Column<int>(type: "int", nullable: true),
+                    LoosePriceMode = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false, defaultValue: "INDEPENDENT"),
+                    LooseMinimumOrderQuantity = table.Column<decimal>(type: "decimal(18,5)", nullable: true),
+                    LooseQuantityStep = table.Column<decimal>(type: "decimal(18,5)", nullable: true),
                     Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
@@ -1069,7 +1072,10 @@ namespace CafeChain.Migrations
                     table.PrimaryKey("PK_IngredientSuppliers", x => x.IngredientSupplierId);
                     table.CheckConstraint("CK_IngredientSupplier_CurrentPrice", "[CurrentPrice] >= 0");
                     table.CheckConstraint("CK_IngredientSupplier_LeadTime", "[LeadTimeDays] IS NULL OR [LeadTimeDays] >= 0");
+                    table.CheckConstraint("CK_IngredientSupplier_LooseMinimumOrderQuantity", "[LooseMinimumOrderQuantity] IS NULL OR [LooseMinimumOrderQuantity] >= 0");
+                    table.CheckConstraint("CK_IngredientSupplier_LoosePriceMode", "[LoosePriceMode] IN ('DERIVED', 'INDEPENDENT')");
                     table.CheckConstraint("CK_IngredientSupplier_LoosePurchase", "[AllowsLoosePurchase] = 0 OR ([CurrentProcurementUnitPrice] IS NOT NULL AND [CurrentProcurementUnitPrice] > 0 AND [LooseProcurementUnitId] IS NOT NULL)");
+                    table.CheckConstraint("CK_IngredientSupplier_LooseQuantityStep", "[LooseQuantityStep] IS NULL OR [LooseQuantityStep] > 0");
                     table.CheckConstraint("CK_IngredientSupplier_MOQ", "[MinimumOrderPackageCount] IS NULL OR [MinimumOrderPackageCount] > 0");
                     table.CheckConstraint("CK_IngredientSupplier_PackageQuantity", "[PackageQuantity] IS NULL OR [PackageQuantity] > 0");
                     table.ForeignKey(
@@ -1285,6 +1291,7 @@ namespace CafeChain.Migrations
                     PriceTreatment = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
                     CostTreatment = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
                     QuantityPerDrink = table.Column<decimal>(type: "decimal(18,5)", nullable: false),
+                    QuantityUnit = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false, defaultValue: "RECIPE_PORTION"),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
                     UpdatedByStaffId = table.Column<int>(type: "int", nullable: true),
@@ -1298,6 +1305,7 @@ namespace CafeChain.Migrations
                     table.CheckConstraint("CK_DrinkSizeToppingPolicies_CostTreatment", "[CostTreatment] IN ('INCLUDED_IN_DRINK_RECIPE','ADD_TOPPING_RECIPE_COST','DISPLAY_ONLY')");
                     table.CheckConstraint("CK_DrinkSizeToppingPolicies_PriceTreatment", "[PriceTreatment] IN ('INCLUDED_IN_BASE_PRICE','ADD_TOPPING_PRICE')");
                     table.CheckConstraint("CK_DrinkSizeToppingPolicies_Quantity", "[QuantityPerDrink] > 0");
+                    table.CheckConstraint("CK_DrinkSizeToppingPolicies_QuantityUnit", "[QuantityUnit] = 'RECIPE_PORTION'");
                     table.CheckConstraint("CK_DrinkSizeToppingPolicies_RequiredDefault", "[IsRequired] = 0 OR [IsDefaultSelected] = 1");
                     table.ForeignKey(
                         name: "FK_DrinkSizeToppingPolicies_DrinkSizes_DrinkSizeId",
@@ -4549,6 +4557,7 @@ namespace CafeChain.Migrations
                     SizeId = table.Column<int>(type: "int", nullable: true),
                     StoreMenuItemId = table.Column<int>(type: "int", nullable: true),
                     DrinkSizeId = table.Column<int>(type: "int", nullable: true),
+                    RecipeIdSnapshot = table.Column<int>(type: "int", nullable: true),
                     DrinkName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     SizeName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
@@ -4594,6 +4603,12 @@ namespace CafeChain.Migrations
                         principalTable: "Orders",
                         principalColumn: "OrderId",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_OrderDetails_Recipes_RecipeIdSnapshot",
+                        column: x => x.RecipeIdSnapshot,
+                        principalTable: "Recipes",
+                        principalColumn: "RecipeId",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_OrderDetails_Sizes_SizeId",
                         column: x => x.SizeId,
@@ -4915,20 +4930,35 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     OrderDetailId = table.Column<int>(type: "int", nullable: false),
                     ToppingId = table.Column<int>(type: "int", nullable: false),
+                    RecipeIdSnapshot = table.Column<int>(type: "int", nullable: true),
                     ToppingName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    QuantityPerDrinkSnapshot = table.Column<decimal>(type: "decimal(18,5)", nullable: false, defaultValue: 1m),
+                    QuantityUnitSnapshot = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false, defaultValue: "RECIPE_PORTION"),
+                    PriceTreatmentSnapshot = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false, defaultValue: "ADD_TOPPING_PRICE"),
+                    CostTreatmentSnapshot = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false, defaultValue: "ADD_TOPPING_RECIPE_COST"),
                     CostStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     TotalCogs = table.Column<decimal>(type: "decimal(18,2)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OrderToppings", x => x.OrderToppingId);
+                    table.CheckConstraint("CK_OrderToppings_CostTreatmentSnapshot", "[CostTreatmentSnapshot] IN ('INCLUDED_IN_DRINK_RECIPE','ADD_TOPPING_RECIPE_COST')");
+                    table.CheckConstraint("CK_OrderToppings_PriceTreatmentSnapshot", "[PriceTreatmentSnapshot] IN ('INCLUDED_IN_BASE_PRICE','ADD_TOPPING_PRICE')");
+                    table.CheckConstraint("CK_OrderToppings_QuantityPerDrinkSnapshot", "[QuantityPerDrinkSnapshot] > 0");
+                    table.CheckConstraint("CK_OrderToppings_QuantityUnitSnapshot", "[QuantityUnitSnapshot] = 'RECIPE_PORTION'");
                     table.ForeignKey(
                         name: "FK_OrderToppings_OrderDetails_OrderDetailId",
                         column: x => x.OrderDetailId,
                         principalTable: "OrderDetails",
                         principalColumn: "OrderDetailId",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_OrderToppings_Recipes_RecipeIdSnapshot",
+                        column: x => x.RecipeIdSnapshot,
+                        principalTable: "Recipes",
+                        principalColumn: "RecipeId",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_OrderToppings_Toppings_ToppingId",
                         column: x => x.ToppingId,
@@ -6870,18 +6900,18 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "IngredientSuppliers",
-                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "CurrentProcurementUnitPrice", "IngredientId", "IsPrimary", "LeadTimeDays", "LooseProcurementUnitId", "MinimumOrderPackageCount", "Note", "PackageQuantity", "SupplierId", "UnitId" },
+                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "CurrentProcurementUnitPrice", "IngredientId", "IsPrimary", "LeadTimeDays", "LooseMinimumOrderQuantity", "LoosePriceMode", "LooseProcurementUnitId", "LooseQuantityStep", "MinimumOrderPackageCount", "Note", "PackageQuantity", "SupplierId", "UnitId" },
                 values: new object[,]
                 {
-                    { 1, true, 22000m, null, 6, true, 1, null, 1, "Đường Biên Hòa", 1m, 1, 2 },
-                    { 2, true, 27000m, null, 2, true, 2, null, 24, "Sữa đặc demo lon 380 ml (synthetic)", 380m, 2, 3 },
-                    { 3, true, 140000m, null, 1, true, 3, null, 5, "Cà phê hạt", 1m, 3, 2 },
-                    { 4, true, 250000m, null, 8, true, 4, null, 6, "Syrup Torani", 750m, 4, 3 },
-                    { 5, true, 95000m, null, 10, true, 2, null, 12, "Kem béo Rich", 1m, 2, 4 },
-                    { 6, true, 450000m, null, 9, true, 5, null, 1, "Matcha Nhật", 500m, 5, 1 },
-                    { 7, true, 180000m, null, 5, true, 3, null, 2, "Bột cacao", 1m, 3, 2 },
-                    { 8, true, 85000m, null, 4, true, 2, null, 2, "Bột sữa", 1m, 1, 2 },
-                    { 9, true, 120000m, null, 3, true, 5, null, 1, "Trà đen demo 100 túi × 2 g (synthetic)", 200m, 4, 1 }
+                    { 1, true, 22000m, null, 6, true, 1, null, "INDEPENDENT", null, null, 1, "Đường Biên Hòa", 1m, 1, 2 },
+                    { 2, true, 27000m, null, 2, true, 2, null, "INDEPENDENT", null, null, 24, "Sữa đặc demo lon 380 ml (synthetic)", 380m, 2, 3 },
+                    { 3, true, 140000m, null, 1, true, 3, null, "INDEPENDENT", null, null, 5, "Cà phê hạt", 1m, 3, 2 },
+                    { 4, true, 250000m, null, 8, true, 4, null, "INDEPENDENT", null, null, 6, "Syrup Torani", 750m, 4, 3 },
+                    { 5, true, 95000m, null, 10, true, 2, null, "INDEPENDENT", null, null, 12, "Kem béo Rich", 1m, 2, 4 },
+                    { 6, true, 450000m, null, 9, true, 5, null, "INDEPENDENT", null, null, 1, "Matcha Nhật", 500m, 5, 1 },
+                    { 7, true, 180000m, null, 5, true, 3, null, "INDEPENDENT", null, null, 2, "Bột cacao", 1m, 3, 2 },
+                    { 8, true, 85000m, null, 4, true, 2, null, "INDEPENDENT", null, null, 2, "Bột sữa", 1m, 1, 2 },
+                    { 9, true, 120000m, null, 3, true, 5, null, "INDEPENDENT", null, null, 1, "Trà đen demo 100 túi × 2 g (synthetic)", 200m, 4, 1 }
                 });
 
             migrationBuilder.InsertData(
@@ -7685,11 +7715,6 @@ namespace CafeChain.Migrations
                 column: "Active");
 
             migrationBuilder.CreateIndex(
-                name: "IX_IngredientSuppliers_IngredientId",
-                table: "IngredientSuppliers",
-                column: "IngredientId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_IngredientSuppliers_IngredientId_SupplierId",
                 table: "IngredientSuppliers",
                 columns: new[] { "IngredientId", "SupplierId" },
@@ -7709,6 +7734,13 @@ namespace CafeChain.Migrations
                 name: "IX_IngredientSuppliers_UnitId",
                 table: "IngredientSuppliers",
                 column: "UnitId");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_IngredientSuppliers_PrimaryByIngredient",
+                table: "IngredientSuppliers",
+                column: "IngredientId",
+                unique: true,
+                filter: "[IsPrimary] = 1 AND [Active] = 1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryConsolidationLines_PreparedItemId",
@@ -8448,6 +8480,11 @@ namespace CafeChain.Migrations
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OrderDetails_RecipeIdSnapshot",
+                table: "OrderDetails",
+                column: "RecipeIdSnapshot");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OrderDetails_SizeId",
                 table: "OrderDetails",
                 column: "SizeId");
@@ -8549,6 +8586,11 @@ namespace CafeChain.Migrations
                 table: "OrderToppings",
                 columns: new[] { "OrderDetailId", "ToppingId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderToppings_RecipeIdSnapshot",
+                table: "OrderToppings",
+                column: "RecipeIdSnapshot");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OrderToppings_ToppingId",

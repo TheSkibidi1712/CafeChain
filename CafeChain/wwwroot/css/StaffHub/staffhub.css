@@ -967,6 +967,10 @@ body:has(.staffhub-page) > .modal-backdrop {
     z-index: 1990 !important;
 }
 
+body:has(.staffhub-page) > .swal2-container {
+    z-index: 2010 !important;
+}
+
 .staffhub-pos-dialog .modal-dialog {
     width: min(640px, calc(100vw - 32px));
     max-width: 640px;

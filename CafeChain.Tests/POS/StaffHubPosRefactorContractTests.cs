@@ -203,6 +203,26 @@ public sealed class StaffHubPosRefactorContractTests
         Assert.Contains("POS_TERMINAL_USER_GUIDE.md", rules, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Resume_exchange_and_workshift_realtime_are_terminal_safe()
+    {
+        var controller = Read("CafeChain", "Controllers", "StaffHubController.cs");
+        var script = Read("CafeChain", "wwwroot", "js", "StaffHub", "staffhub-schedule.js");
+        var auth = Read("CafeChain", "Extensions", "Services", "AuthenticationServiceExtensions.cs");
+        var main = Read("CafeChain.Frontend", "src", "main.tsx");
+        var layout = Read("CafeChain.Frontend", "src", "POSLayout.tsx");
+        var summary = Read("CafeChain.Frontend", "src", "pages", "ShiftSummary.tsx");
+
+        Assert.Contains("StaffHubResumePosRequestDto request", controller, StringComparison.Ordinal);
+        Assert.Contains("TerminalId: terminalSelect?.value", script, StringComparison.Ordinal);
+        Assert.Contains("/hubs/workshifts", auth, StringComparison.Ordinal);
+        Assert.Contains("clearPosAuthentication()", main, StringComparison.Ordinal);
+        Assert.Contains("window.location.replace", main, StringComparison.Ordinal);
+        Assert.DoesNotContain(".finally(() =>", main, StringComparison.Ordinal);
+        Assert.Contains("queueMicrotask(() =>", layout, StringComparison.Ordinal);
+        Assert.Contains("queueMicrotask(() =>", summary, StringComparison.Ordinal);
+    }
+
     private static string Read(params string[] path) =>
         File.ReadAllText(Path.Combine([RepoRoot(), .. path]));
 

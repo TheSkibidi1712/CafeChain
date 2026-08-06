@@ -435,7 +435,11 @@
         continueButton?.addEventListener("click", issueOpenTicket);
         resumeButton?.addEventListener("click", async () => {
             resumeButton.disabled = true;
-            try { await redirectWithTicket(await post(root.dataset.resumePosUrl, {})); }
+            try {
+                await redirectWithTicket(await post(root.dataset.resumePosUrl, {
+                    TerminalId: terminalSelect?.value || ""
+                }));
+            }
             catch (error) { resumeButton.disabled = false; await notify(error.message, false); }
         });
 
@@ -644,10 +648,12 @@
         const launchOptions = document.getElementById("staffHubLaunchOptions");
         if (launchOptions?.dataset.autoOpenPos === "true") {
             const requestedTerminalId = launchOptions.dataset.requestedTerminalId || "";
+            const posLaunchError = launchOptions.dataset.posLaunchError || "";
             if (requestedTerminalId && terminalSelect?.querySelector(`option[value="${CSS.escape(requestedTerminalId)}"]`)) {
                 terminalSelect.value = requestedTerminalId;
             }
             showDialog(previewDialog);
+            if (posLaunchError) void notifyOtp(posLaunchError, false);
             if (terminalSelect?.value) {
                 void AdminMutationGuard.run("staffhub-auto-open-pos", terminalSelect, previewOpen);
             } else {

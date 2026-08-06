@@ -72,9 +72,10 @@ namespace CafeChain.Extensions.Services
                         OnMessageReceived = context =>
                         {
                             var accessToken = context.Request.Query["access_token"].ToString();
+                            var path = context.HttpContext.Request.Path;
                             if (!string.IsNullOrWhiteSpace(accessToken)
-                                && context.HttpContext.Request.Path.StartsWithSegments(
-                                    "/hubs/inventory-notifications"))
+                                && (path.StartsWithSegments("/hubs/inventory-notifications")
+                                    || path.StartsWithSegments("/hubs/workshifts")))
                             {
                                 context.Token = accessToken;
                             }

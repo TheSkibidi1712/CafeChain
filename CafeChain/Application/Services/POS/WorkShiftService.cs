@@ -646,24 +646,47 @@ namespace CafeChain.Application.Services.POS
         }
 
         public async Task<ServiceResult<PosSessionExchangeContextDto>> PrepareResumeExchangeContextAsync(
-            int accountId, int staffId, int storeId,
+            int accountId, int staffId, int storeId, string terminalId,
             CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var active = await _shiftRepo.GetActiveShiftAsync(staffId, storeId);
-            if (active == null)
-                return ServiceResult<PosSessionExchangeContextDto>.Failure(
-                    "Không còn phiên POS cần tiếp tục.", errorCode: WorkShiftErrorCodes.WorkShiftNotOpen);
-            return ServiceResult<PosSessionExchangeContextDto>.Success(new PosSessionExchangeContextDto
+            try
             {
-                Purpose = PosSessionPurposes.ResumeWorkShift,
-                AccountId = accountId,
-                StaffId = staffId,
-                StoreId = storeId,
-                TerminalId = active.PosTerminalId,
-                WorkShiftId = active.ShiftId,
-                OpenContext = active.Status
-            });
+                cancellationToken.ThrowIfCancellationRequested();
+                var normalizedTerminalId = terminalId?.Trim() ?? string.Empty;
+                if (normalizedTerminalId.Length == 0 || normalizedTerminalId.Length > 100)
+                    return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                        "Vui lòng chọn terminal POS hợp lệ.",
+                        errorCode: WorkShiftErrorCodes.TerminalNotFound);
+
+                var active = await _shiftRepo.GetActiveShiftAsync(staffId, storeId);
+                if (active == null)
+                    return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                        "Không còn phiên POS cần tiếp tục.", errorCode: WorkShiftErrorCodes.WorkShiftNotOpen);
+
+                active = await _shiftRepo.BindTerminalForResumeAsync(
+                    active.ShiftId,
+                    staffId,
+                    storeId,
+                    normalizedTerminalId,
+                    cancellationToken);
+
+                return ServiceResult<PosSessionExchangeContextDto>.Success(new PosSessionExchangeContextDto
+                {
+                    Purpose = PosSessionPurposes.ResumeWorkShift,
+                    AccountId = accountId,
+                    StaffId = staffId,
+                    StoreId = storeId,
+                    TerminalId = active.PosTerminalId,
+                    WorkShiftId = active.ShiftId,
+                    OpenContext = active.Status
+                });
+            }
+            catch (WorkShiftBusinessException ex)
+            {
+                return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                    ex.Message,
+                    errorCode: ex.ErrorCode);
+            }
         }
 
         private async Task<OpenAssessment> AssessOpenShiftCoreAsync(int userId, int storeId)
