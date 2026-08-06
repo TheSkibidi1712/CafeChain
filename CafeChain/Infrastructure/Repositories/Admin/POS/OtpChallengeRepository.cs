@@ -308,6 +308,36 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .FirstOrDefaultAsync();
         }
 
+        public Task<OtpChallenge?> FindLatestOpenShiftChallengeAsync(
+            int storeId,
+            int requestedByStaffId,
+            DateTime sinceUtc)
+        {
+            var openActions = new[]
+            {
+                OtpConstants.ActionTypes.OpenShiftLate,
+                OtpConstants.ActionTypes.OpenShiftOutsideSchedule
+            };
+            var visibleStatuses = new[]
+            {
+                OtpConstants.Statuses.Pending,
+                OtpConstants.Statuses.Approved,
+                OtpConstants.Statuses.Expired,
+                OtpConstants.Statuses.Locked
+            };
+
+            return _context.OtpChallenges
+                .AsNoTracking()
+                .Where(x => x.StoreId == storeId
+                    && x.RequestedByStaffId == requestedByStaffId
+                    && x.CreatedAt >= sinceUtc
+                    && openActions.Contains(x.ActionType)
+                    && visibleStatuses.Contains(x.Status))
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.OtpChallengeId)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<int> ExpireStaleActiveChallengesAsync(
             int storeId,
             int requestedByStaffId,

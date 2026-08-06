@@ -331,13 +331,13 @@ function DetailDrawer({
       : 'border-amber-200 bg-amber-50 text-amber-700'
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/25" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-40 flex max-h-[100dvh] min-h-0 justify-end overflow-hidden bg-black/25" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng chi tiết đơn"
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
-      <aside className="relative h-full w-full max-w-[480px] overflow-y-auto border-l border-border bg-surface-white shadow-2xl">
+      <aside className="relative flex h-full max-h-[100dvh] min-h-0 w-full max-w-[480px] flex-col overflow-y-auto overscroll-contain border-l border-border bg-surface-white shadow-2xl">
         <div className="sticky top-0 z-10 border-b border-border bg-surface-white px-5 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">

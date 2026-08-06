@@ -180,6 +180,30 @@ body {
     }
 }
 
+/* Admin modals must remain usable at 100% zoom on short and narrow screens. */
+:is(.admin-page-body, #cc-modal-host) .modal {
+    padding: max(.5rem, env(safe-area-inset-top)) max(.5rem, env(safe-area-inset-right))
+        max(.5rem, env(safe-area-inset-bottom)) max(.5rem, env(safe-area-inset-left)) !important;
+}
+
+:is(.admin-page-body, #cc-modal-host) .modal-dialog {
+    width: min(100%, calc(100vw - 1rem));
+    max-height: calc(100dvh - 1rem);
+    margin: 0 auto;
+}
+
+:is(.admin-page-body, #cc-modal-host) .modal-content {
+    max-height: calc(100dvh - 1rem);
+    min-height: 0;
+    overflow-y: auto;
+}
+
+:is(.admin-page-body, #cc-modal-host) .modal-body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
 
 /* Module headers follow the same visual hierarchy as Staff and Permissions. */
 .admin-page-body :is(.rb-page-header, .po-title-section) {

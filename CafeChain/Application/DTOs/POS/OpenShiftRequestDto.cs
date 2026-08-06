@@ -48,6 +48,7 @@ namespace CafeChain.Application.DTOs.POS
 
     public sealed class OpenShiftAssessmentDto
     {
+        public string? RecommendedAction { get; set; }
         public string OpenContext { get; set; } = string.Empty;
         public int? SourceStaffShiftId { get; set; }
         public DateTime? PlannedStartUtc { get; set; }
@@ -70,6 +71,10 @@ namespace CafeChain.Application.DTOs.POS
         public DateTime StartTimeUtc { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime? AutoCloseAtUtc { get; set; }
+        public int ResponsibleStaffId { get; set; }
+        public string? ResponsibleStaffName { get; set; }
+        public bool IsOwnedByRequester { get; set; }
+        public string RecommendedAction { get; set; } = string.Empty;
     }
 
     public sealed class PosTerminalOptionDto

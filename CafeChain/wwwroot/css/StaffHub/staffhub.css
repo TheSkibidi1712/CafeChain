@@ -945,13 +945,36 @@ body:has(.staffhub-page) > footer {
 /* ================================================================
    POS DIALOG
    ================================================================ */
+.staffhub-pos-dialog {
+    --sh-bg-espresso: #FAF6F0;
+    --sh-card-bg: #FFFFFF;
+    --sh-gold: #C2A264;
+    --sh-gold-light: #DFCA9B;
+    --sh-text-primary: #2C1810;
+    --sh-text-secondary: #6F5E57;
+    --sh-text-muted: #9E8E87;
+    --sh-border: rgba(194, 162, 100, 0.15);
+    --sh-hero-title: #FFF8F0;
+    --sh-coffee: #6F4E37;
+    --sh-brew: #8B5E3C;
+    --sh-roast: #442419;
+    --sh-white: #FFFFFF;
+    z-index: 2000 !important;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body:has(.staffhub-page) > .modal-backdrop {
+    z-index: 1990 !important;
+}
+
 .staffhub-pos-dialog .modal-dialog {
     width: min(640px, calc(100vw - 32px));
     max-width: 640px;
-    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
 
 .staffhub-pos-dialog .modal-content {
+    max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     padding: 0;
     border: 1px solid var(--sh-border);
     border-radius: 30px;
@@ -961,6 +984,20 @@ body:has(.staffhub-page) > footer {
         0 0 0 1px rgba(194, 162, 100, 0.12);
     background: var(--sh-card-bg);
     overflow: hidden;
+}
+
+.staffhub-modal-terminal-picker {
+    min-width: 0;
+}
+
+.staffhub-modal-terminal-picker > span {
+    color: var(--sh-text-secondary);
+}
+
+.staffhub-pos-dialog .modal-body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .staffhub-pos-dialog-header {
@@ -1090,6 +1127,7 @@ body:has(.staffhub-page) > footer {
     border-color: var(--sh-coffee);
     background: linear-gradient(135deg, var(--sh-coffee), var(--sh-brew));
     box-shadow: 0 4px 16px rgba(111, 78, 55, 0.25);
+}
 .staffhub-dialog-button.is-primary { color: #fff; border-color: #9a3412; background: #9a3412; }
 .staffhub-dialog-button.is-secondary { color: #374151; background: #fff; }
 .staffhub-dialog-button.is-secondary:not(:disabled):hover {
@@ -1106,6 +1144,23 @@ body:has(.staffhub-page) > footer {
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+}
+
+.staffhub-otp-verified {
+    display: block;
+    color: #15803d;
+    padding: .75rem 0;
+}
+
+@media (max-height: 720px) {
+    .staffhub-pos-dialog-header,
+    .staffhub-pos-dialog-actions {
+        padding-block: 12px;
+    }
+
+    .staffhub-pos-dialog-body {
+        padding-block: 14px;
+    }
 }
 
 .staffhub-dialog-button.is-primary:hover {

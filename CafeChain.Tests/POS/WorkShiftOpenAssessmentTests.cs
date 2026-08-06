@@ -71,6 +71,13 @@ public sealed class WorkShiftOpenAssessmentTests
         Assert.False(result.IsSuccess);
         Assert.Equal(expectedCode, result.ErrorCode);
         Assert.Equal(active.ShiftId, result.Data!.BlockingWorkShift!.WorkShiftId);
+        Assert.True(result.Data.BlockingWorkShift.IsOwnedByRequester);
+        Assert.Equal(status == WorkShiftStatuses.Open
+                ? WorkShiftRecommendedActions.ResumeExistingWorkShift
+                : status == WorkShiftStatuses.Closing
+                    ? WorkShiftRecommendedActions.CompleteClosing
+                    : WorkShiftRecommendedActions.CountAndClose,
+            result.Data.RecommendedAction);
         Assert.DoesNotContain("WORKSHIFT_EXPIRED", result.ErrorCode ?? string.Empty, StringComparison.Ordinal);
     }
 
@@ -86,6 +93,13 @@ public sealed class WorkShiftOpenAssessmentTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal(WorkShiftErrorCodes.TerminalAlreadyHasOpenShift, result.ErrorCode);
+        Assert.False(result.Data!.BlockingWorkShift!.IsOwnedByRequester);
+        Assert.Equal(status == WorkShiftStatuses.Open
+                ? WorkShiftRecommendedActions.SwitchCurrentOperator
+                : status == WorkShiftStatuses.Closing
+                    ? WorkShiftRecommendedActions.CompleteClosing
+                    : WorkShiftRecommendedActions.CountAndClose,
+            result.Data.RecommendedAction);
     }
 
     private static WorkShiftService CreateService(
