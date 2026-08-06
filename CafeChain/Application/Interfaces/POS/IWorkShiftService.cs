@@ -45,7 +45,7 @@ namespace CafeChain.Application.Interfaces.POS
             CancellationToken cancellationToken = default);
 
         Task<ServiceResult<PosSessionExchangeContextDto>> PrepareResumeExchangeContextAsync(
-            int accountId, int staffId, int storeId,
+            int accountId, int staffId, int storeId, string terminalId,
             CancellationToken cancellationToken = default);
 
         /// <summary>

@@ -33,6 +33,16 @@ export interface PosSession {
   requiresOpeningCash?: boolean
 }
 
+export class PosSessionBootstrapError extends Error {
+  readonly errorCode: string
+
+  constructor(message: string, errorCode = 'POS_EXCHANGE_UNAVAILABLE') {
+    super(message)
+    this.name = 'PosSessionBootstrapError'
+    this.errorCode = errorCode
+  }
+}
+
 function readClaim(payload: Record<string, unknown>, keys: string[]): string | null {
   for (const key of keys) {
     const value = payload[key]
@@ -98,6 +108,14 @@ export function savePosToken(token: string): PosSession {
   return session
 }
 
+export function clearPosAuthentication(): void {
+  localStorage.removeItem(POS_TOKEN_KEY)
+  localStorage.removeItem(POS_CONTEXT_KEY)
+  window.dispatchEvent(new CustomEvent('pos-session-changed', {
+    detail: getPosSession(),
+  }))
+}
+
 export function completeOpeningCash(workShiftId: number): void {
   const session = getPosSession()
   session.requiresOpeningCash = false
@@ -150,21 +168,38 @@ export async function bootstrapPosTokenFromUrl(): Promise<PosSession> {
 
   const exchangeUrl = new URL(exchangeUrlValue, window.location.origin)
   if (exchangeUrl.protocol !== 'https:' && exchangeUrl.protocol !== 'http:') {
-    throw new Error('Địa chỉ đổi mã POS không hợp lệ.')
+    throw new PosSessionBootstrapError(
+      'Địa chỉ đổi mã POS không hợp lệ.',
+      'POS_EXCHANGE_CODE_INVALID',
+    )
   }
 
   // Remove the bearer exchange code from browser history before doing network I/O.
   url.hash = ''
   window.history.replaceState({}, document.title, url.pathname + url.search)
 
-  const response = await fetch(exchangeUrl.toString(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ exchangeCode }),
-  })
-  const payload = await response.json().catch(() => null) as { token?: string; message?: string } | null
+  let response: Response
+  try {
+    response = await fetch(exchangeUrl.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ exchangeCode }),
+    })
+  } catch {
+    throw new PosSessionBootstrapError(
+      'Không thể kết nối máy chủ để đổi mã mở POS.',
+    )
+  }
+  const payload = await response.json().catch(() => null) as {
+    token?: string
+    message?: string
+    errorCode?: string
+  } | null
   if (!response.ok || !payload?.token) {
-    throw new Error(payload?.message ?? 'Mã mở POS đã hết hạn hoặc đã được sử dụng.')
+    throw new PosSessionBootstrapError(
+      payload?.message ?? 'Mã mở POS đã hết hạn hoặc đã được sử dụng.',
+      payload?.errorCode ?? 'POS_EXCHANGE_CODE_INVALID',
+    )
   }
 
   return savePosToken(payload.token)

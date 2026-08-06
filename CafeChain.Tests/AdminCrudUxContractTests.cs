@@ -42,6 +42,22 @@ public sealed class AdminCrudUxContractTests
         Assert.Contains("id=\"cc-modal-host\"", layout, StringComparison.Ordinal);
         Assert.Contains("RenderSectionAsync(\"Modals\"", layout, StringComparison.Ordinal);
         Assert.Contains("window.toast", script, StringComparison.Ordinal);
+        Assert.Contains("button instanceof HTMLButtonElement", script, StringComparison.Ordinal);
+        Assert.Contains("isButton && originalLabels.has(button)", script, StringComparison.Ordinal);
+        Assert.Contains("dataset.validationFeedback === \"sweetalert\"", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ingredient_feedback_only_reports_strict_success_and_errors_stay_red()
+    {
+        var script = Read("CafeChain", "wwwroot", "js", "Admin", "Ingredient", "ingredient.js");
+
+        Assert.Contains("result?.success !== true", script, StringComparison.Ordinal);
+        Assert.Contains("!response.ok ||", script, StringComparison.Ordinal);
+        Assert.Contains("Không thể kết nối máy chủ", script, StringComparison.Ordinal);
+        Assert.Contains("toast(error.message || \"Không thể lưu nguyên liệu.\", \"error\")", script, StringComparison.Ordinal);
+        Assert.Contains("toast(error.message || \"Không thể cập nhật trạng thái nguyên liệu.\", \"error\")", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("result.success ? \"success\" : \"error\"", script, StringComparison.Ordinal);
     }
 
     [Fact]

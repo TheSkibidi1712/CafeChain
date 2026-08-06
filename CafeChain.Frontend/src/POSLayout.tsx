@@ -312,30 +312,36 @@ export default function POSLayout() {
     const clockId = window.setInterval(() => setWorkShiftClock(Date.now()), 1_000)
 
     if (session.token) {
-      connection = new signalR.HubConnectionBuilder()
-        .withUrl(`${API_BASE_URL}/hubs/workshifts`, {
-          accessTokenFactory: () => session.token ?? '',
-        })
-        .withAutomaticReconnect([0, 2_000, 5_000, 10_000, 30_000])
-        .build()
+      queueMicrotask(() => {
+        if (!active) return
+        connection = new signalR.HubConnectionBuilder()
+          .withUrl(`${API_BASE_URL}/hubs/workshifts`, {
+            accessTokenFactory: () => session.token ?? '',
+          })
+          .withAutomaticReconnect([0, 2_000, 5_000, 10_000, 30_000])
+          .build()
 
-      connection.on('WorkShiftChanged', (notification: { storeId?: number; staffId?: number }) => {
-        if (notification.storeId && session.storeId && notification.storeId !== session.storeId) return
-        void loadShift()
-      })
-      connection.onreconnected(() => {
-        const terminalId = getPosTerminalId()
-        if (terminalId) void connection?.invoke('JoinTerminal', terminalId)
-        void loadShift()
-      })
-      connection.start()
-        .then(() => {
+        connection.on('WorkShiftChanged', (notification: { storeId?: number; staffId?: number }) => {
+          if (notification.storeId && session.storeId && notification.storeId !== session.storeId) return
+          void loadShift()
+        })
+        connection.onreconnected(() => {
           const terminalId = getPosTerminalId()
-          return terminalId ? connection?.invoke('JoinTerminal', terminalId) : undefined
+          if (terminalId) void connection?.invoke('JoinTerminal', terminalId)
+          void loadShift()
         })
-        .catch((error) => {
-          console.warn('[POS WorkShift SignalR] Connection failed; polling remains active.', error)
-        })
+        connection.start()
+          .then(() => {
+            if (!active) return undefined
+            const terminalId = getPosTerminalId()
+            return terminalId ? connection?.invoke('JoinTerminal', terminalId) : undefined
+          })
+          .catch((error) => {
+            if (active) {
+              console.warn('[POS WorkShift SignalR] Connection failed; polling remains active.', error)
+            }
+          })
+      })
     }
 
     return () => {

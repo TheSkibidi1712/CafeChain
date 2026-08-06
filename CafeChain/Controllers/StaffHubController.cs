@@ -43,6 +43,7 @@ public sealed class StaffHubController : Controller
         DateTime? date,
         bool openPos = false,
         string? terminalId = null,
+        string? posErrorCode = null,
         CancellationToken ct = default)
     {
         if (!int.TryParse(User.FindFirstValue("StaffId"), out var staffId) || staffId <= 0)
@@ -69,6 +70,20 @@ public sealed class StaffHubController : Controller
         ViewBag.PosTerminals = await _workShiftService.GetAvailableTerminalsAsync(identityStoreId, ct);
         ViewBag.AutoOpenPos = openPos;
         ViewBag.RequestedTerminalId = terminalId?.Trim();
+        ViewBag.PosLaunchError = posErrorCode switch
+        {
+            PosSessionExchangeErrorCodes.Expired =>
+                "Mã mở POS đã hết hạn. Vui lòng thử mở POS lại.",
+            PosSessionExchangeErrorCodes.AlreadyUsed =>
+                "Mã mở POS đã được sử dụng. Vui lòng thử mở POS lại.",
+            PosSessionExchangeErrorCodes.ContextInvalid =>
+                "Ngữ cảnh mở POS không hợp lệ. Vui lòng chọn lại terminal và thử lại.",
+            PosSessionExchangeErrorCodes.Invalid =>
+                "Mã mở POS không hợp lệ. Vui lòng thử mở POS lại.",
+            "POS_EXCHANGE_UNAVAILABLE" =>
+                "Không thể kết nối máy chủ để mở POS. Vui lòng kiểm tra kết nối và thử lại.",
+            _ => string.Empty
+        };
         return View(result.Data);
     }
 
@@ -172,7 +187,7 @@ public sealed class StaffHubController : Controller
 
             workShiftId = opened.EntityId;
             var resume = await _workShiftService.PrepareResumeExchangeContextAsync(
-                accountId, staffId, storeId, cancellationToken);
+                accountId, staffId, storeId, request.TerminalId, cancellationToken);
             if (!resume.IsSuccess || resume.Data?.WorkShiftId != workShiftId)
                 return Conflict(new
                 {
@@ -207,11 +222,13 @@ public sealed class StaffHubController : Controller
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
     [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
-    public async Task<IActionResult> IssueResumePosToken(CancellationToken cancellationToken)
+    public async Task<IActionResult> IssueResumePosToken(
+        [FromForm] StaffHubResumePosRequestDto request,
+        CancellationToken cancellationToken)
     {
         if (!TryGetIdentity(out var accountId, out var staffId, out var storeId)) return Unauthorized();
         var prepared = await _workShiftService.PrepareResumeExchangeContextAsync(
-            accountId, staffId, storeId, cancellationToken);
+            accountId, staffId, storeId, request.TerminalId, cancellationToken);
         if (!prepared.IsSuccess || prepared.Data == null)
             return BadRequest(new { success = false, errorCode = prepared.ErrorCode, message = prepared.Message });
         var ticket = await _posSessionExchangeService.IssueAsync(prepared.Data, cancellationToken);

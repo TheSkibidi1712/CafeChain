@@ -40,6 +40,7 @@
     <span id="staffHubLaunchOptions"
           data-auto-open-pos="@((ViewBag.AutoOpenPos is true).ToString().ToLowerInvariant())"
           data-requested-terminal-id="@(ViewBag.RequestedTerminalId as string ?? string.Empty)"
+          data-pos-launch-error="@(ViewBag.PosLaunchError as string ?? string.Empty)"
           hidden></span>
     @Html.AntiForgeryToken()
     <div class="staffhub-shell">

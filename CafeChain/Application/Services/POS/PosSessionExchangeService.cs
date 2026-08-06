@@ -103,10 +103,16 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
         {
             context = null;
         }
-        if (context == null || context.AccountId != ticket.AccountId || context.StaffId != ticket.StaffId
-            || context.StoreId != ticket.StoreId)
+        if (!IsValidExchangeContext(context, ticket))
+        {
+            ticket.Status = "FAILED";
+            ticket.ProcessingLeaseUntilUtc = null;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaction != null) await transaction.CommitAsync(cancellationToken);
             return ServiceResult<PosSessionTokenDto>.Failure(
-                "Ngữ cảnh mở POS không hợp lệ.", errorCode: PosSessionExchangeErrorCodes.Invalid);
+                "Ngữ cảnh mở POS không hợp lệ. Vui lòng quay lại StaffHub để mở lại đúng terminal.",
+                errorCode: PosSessionExchangeErrorCodes.ContextInvalid);
+        }
 
         var account = await _dbContext.Accounts
             .Include(x => x.Staff).ThenInclude(x => x.Store)
@@ -124,7 +130,7 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
                 errorCode: PosSessionExchangeErrorCodes.Invalid);
         }
 
-        var token = CreateToken(account, nowUtc, ticket.RequestDeduplicationId, context);
+        var token = CreateToken(account, nowUtc, ticket.RequestDeduplicationId, context!);
         ticket.Status = "SUCCESS";
         ticket.ProcessingLeaseUntilUtc = null;
         ticket.ExpiredAt = token.ExpiresAtUtc;
@@ -219,7 +225,7 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
             new("AvatarUrl", avatarUrl),
             new("PosExchangeContextId", contextId.ToString()),
             new("PosPurpose", context.Purpose),
-            new("PosTerminalId", context.TerminalId),
+            new("PosTerminalId", context.TerminalId!),
             new("RequiresOpeningCash", context.RequiresOpeningCash ? "true" : "false")
         };
         if (context.WorkShiftId.HasValue)
@@ -237,4 +243,27 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
 
     private static string Hash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+
+    private static bool IsValidExchangeContext(
+        PosSessionExchangeContextDto? context,
+        RequestDeduplication ticket)
+    {
+        if (context == null
+            || context.AccountId <= 0
+            || context.StaffId <= 0
+            || context.StoreId <= 0
+            || context.AccountId != ticket.AccountId
+            || context.StaffId != ticket.StaffId
+            || context.StoreId != ticket.StoreId
+            || string.IsNullOrWhiteSpace(context.TerminalId)
+            || context.TerminalId.Trim().Length > 100)
+            return false;
+
+        if (context.Purpose is not PosSessionPurposes.OpenWorkShift
+            and not PosSessionPurposes.ResumeWorkShift)
+            return false;
+
+        return context.Purpose != PosSessionPurposes.ResumeWorkShift
+            || context.WorkShiftId is > 0;
+    }
 }

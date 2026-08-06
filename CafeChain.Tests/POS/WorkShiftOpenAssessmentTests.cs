@@ -102,6 +102,47 @@ public sealed class WorkShiftOpenAssessmentTests
             result.Data.RecommendedAction);
     }
 
+    [Fact]
+    public async Task Resume_legacy_shift_binds_selected_terminal_before_issuing_context()
+    {
+        var active = ActiveShift(WorkShiftStatuses.Open, staffId: 7, terminalId: null!);
+        var shifts = new Mock<IWorkShiftRepository>();
+        shifts.Setup(x => x.GetActiveShiftAsync(7, 1)).ReturnsAsync(active);
+        shifts.Setup(x => x.BindTerminalForResumeAsync(42, 7, 1, "POS-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() =>
+            {
+                active.PosTerminalId = "POS-1";
+                return active;
+            });
+
+        var result = await CreateService(shifts.Object)
+            .PrepareResumeExchangeContextAsync(70, 7, 1, "POS-1");
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal("POS-1", result.Data!.TerminalId);
+        Assert.Equal(42, result.Data.WorkShiftId);
+        shifts.VerifyAll();
+    }
+
+    [Fact]
+    public async Task Resume_rejects_terminal_mismatch_from_atomic_binding()
+    {
+        var active = ActiveShift(WorkShiftStatuses.Open, staffId: 7, terminalId: "POS-OLD");
+        var shifts = new Mock<IWorkShiftRepository>();
+        shifts.Setup(x => x.GetActiveShiftAsync(7, 1)).ReturnsAsync(active);
+        shifts.Setup(x => x.BindTerminalForResumeAsync(42, 7, 1, "POS-NEW", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new CafeChain.Application.Results.WorkShiftBusinessException(
+                WorkShiftErrorCodes.WorkShiftTerminalMismatch,
+                "Phiên POS hiện tại đang thuộc terminal khác."));
+
+        var result = await CreateService(shifts.Object)
+            .PrepareResumeExchangeContextAsync(70, 7, 1, "POS-NEW");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(WorkShiftErrorCodes.WorkShiftTerminalMismatch, result.ErrorCode);
+        shifts.VerifyAll();
+    }
+
     private static WorkShiftService CreateService(
         DateTimeOffset now,
         StaffShift? schedule,
@@ -125,6 +166,13 @@ public sealed class WorkShiftOpenAssessmentTests
             workShiftOptions: Options.Create(new WorkShiftOptions()),
             timeProvider: new FixedTimeProvider(now));
     }
+
+    private static WorkShiftService CreateService(IWorkShiftRepository shifts) => new(
+        shifts,
+        Mock.Of<IPOSOrderRepository>(),
+        Mock.Of<IOtpChallengeRepository>(),
+        Mock.Of<CafeChain.Application.Interfaces.POS.IOtpPayloadFingerprintService>(),
+        NullLogger<WorkShiftService>.Instance);
 
     private static WorkShift ActiveShift(string status, int staffId, string terminalId) => new()
     {
