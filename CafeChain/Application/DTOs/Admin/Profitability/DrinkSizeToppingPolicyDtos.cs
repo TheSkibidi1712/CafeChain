@@ -12,6 +12,7 @@ namespace CafeChain.Application.DTOs.Admin.Profitability
         public string PriceTreatment { get; init; } = string.Empty;
         public string CostTreatment { get; init; } = string.Empty;
         public decimal QuantityPerDrink { get; init; }
+        public string QuantityUnit { get; init; } = "RECIPE_PORTION";
         public bool IsActive { get; init; }
         public string RowVersion { get; init; } = string.Empty;
     }
@@ -26,6 +27,7 @@ namespace CafeChain.Application.DTOs.Admin.Profitability
         public string PriceTreatment { get; set; } = string.Empty;
         public string CostTreatment { get; set; } = string.Empty;
         public decimal QuantityPerDrink { get; set; }
+        public string QuantityUnit { get; set; } = "RECIPE_PORTION";
         public bool IsActive { get; set; } = true;
         public string? ExpectedRowVersion { get; set; }
         public string? Reason { get; set; }

@@ -39,6 +39,15 @@ namespace CafeChain.Application.DTOs.Admin.Profitability
         public string RowVersion { get; init; } = string.Empty;
         public IReadOnlyList<FifoCostComponentDto> Components { get; init; } = Array.Empty<FifoCostComponentDto>();
         public IReadOnlyList<ProfitabilityToppingPolicyDto> DefaultToppings { get; init; } = Array.Empty<ProfitabilityToppingPolicyDto>();
+        public IReadOnlyList<CostSectionCompletenessDto> CostSections { get; init; } = Array.Empty<CostSectionCompletenessDto>();
+    }
+
+    public sealed class CostSectionCompletenessDto
+    {
+        public string Section { get; init; } = string.Empty;
+        public string Label { get; init; } = string.Empty;
+        public string Status { get; init; } = string.Empty;
+        public string Message { get; init; } = string.Empty;
     }
 
     public sealed class FifoCostComponentDto
@@ -55,6 +64,8 @@ namespace CafeChain.Application.DTOs.Admin.Profitability
         public string UnitName { get; init; } = string.Empty;
         public string Status { get; init; } = string.Empty;
         public string Message { get; init; } = string.Empty;
+        public string SourceLabel { get; init; } = string.Empty;
+        public string ItemTypeLabel { get; init; } = string.Empty;
     }
 
     public sealed class ProfitabilityToppingPolicyDto
@@ -98,6 +109,7 @@ namespace CafeChain.Application.DTOs.Admin.Profitability
         public decimal NewSellingPrice { get; set; }
         public string ExpectedRowVersion { get; set; } = string.Empty;
         public string? Reason { get; set; }
+        public bool ConfirmIncompleteCost { get; set; }
 
         [JsonExtensionData]
         public Dictionary<string, JsonElement>? UnexpectedFields { get; set; }

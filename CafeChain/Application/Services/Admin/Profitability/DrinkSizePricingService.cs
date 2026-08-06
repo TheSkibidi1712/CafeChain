@@ -63,13 +63,18 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 }, "Giá toàn hệ thống không thay đổi.");
             }
 
+            if (string.IsNullOrWhiteSpace(request.Reason))
+                return ServiceResult<DrinkSizePriceUpdateResult>.Failure(
+                    "Vui lòng nhập lý do thay đổi giá bán.",
+                    errorCode: "PRICE_CHANGE_REASON_REQUIRED");
+
             var preview = await _profitability.PreviewAsync(storeIdForCostCheck, drinkSize.DrinkId, DateTime.UtcNow, actorStaffId, cancellationToken);
             var costStatus = preview.IsSuccess
                 ? preview.Data.Sizes.FirstOrDefault(x => x.DrinkSizeId == drinkSize.DrinkSizeId)?.CostStatus ?? ProfitabilityCostStatuses.Incomplete
                 : ProfitabilityCostStatuses.Incomplete;
-            if (costStatus != ProfitabilityCostStatuses.Complete && string.IsNullOrWhiteSpace(request.Reason))
+            if (costStatus != ProfitabilityCostStatuses.Complete && !request.ConfirmIncompleteCost)
                 return ServiceResult<DrinkSizePriceUpdateResult>.Failure(
-                    "Giá vốn chưa đầy đủ. Hãy xác nhận cảnh báo và nhập lý do trước khi lưu giá thủ công.",
+                    "Giá vốn chưa đầy đủ. Hãy xác nhận cảnh báo trước khi lưu giá thủ công.",
                     errorCode: "INCOMPLETE_COST_CONFIRMATION_REQUIRED");
 
             var oldPrice = drinkSize.Price;
@@ -96,7 +101,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 OldPrice = oldPrice,
                 NewPrice = request.NewSellingPrice,
                 ActorStaffId = actorStaffId,
-                Reason = string.IsNullOrWhiteSpace(request.Reason) ? "Cập nhật giá bán toàn hệ thống" : request.Reason.Trim(),
+                Reason = request.Reason.Trim(),
                 CostStatus = costStatus,
                 CreatedAtUtc = now
             });

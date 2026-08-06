@@ -23,7 +23,7 @@
         <div asp-validation-summary="All" class="ops-notice ops-notice-error cc-warehouse-alert cc-warehouse-alert-danger" role="alert"></div>
     }
 
-    <form asp-action="CreateCentralPlanner" method="post">
+    <form id="centralDemandForm" asp-action="CreateCentralPlanner" method="post" data-units-url="@Url.Action("GetDemandUnitOptions", "AdminRestockRequests", new { area = "Admin" })">
         @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="StoreId" />
                 <input type="hidden" asp-for="SourceType" />
@@ -47,9 +47,9 @@
                         <span asp-validation-for="IngredientId" class="ops-text-danger"></span>
                     </div>
                     <div class="ops-form-field">
-                        <label class="ops-form-label" asp-for="ProcurementUnitId">Đơn vị mua hàng <span class="ops-required">*</span></label>
-                        <select class="ops-select w-100" asp-for="ProcurementUnitId" required>
-                            <option value="">Chọn đơn vị</option>
+                        <label class="ops-form-label" asp-for="ProcurementUnitId">Đơn vị nhu cầu <span class="ops-required">*</span></label>
+                        <select class="ops-select w-100" asp-for="ProcurementUnitId" required disabled>
+                            <option value="">Chọn nguyên liệu trước</option>
                             @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }
                         </select>
                         <span asp-validation-for="ProcurementUnitId" class="ops-text-danger"></span>
@@ -85,3 +85,47 @@
         </div>
     </form>
 </main>
+
+<script>
+(() => {
+    const form = document.getElementById('centralDemandForm');
+    const ingredient = document.getElementById('IngredientId');
+    const demandUnit = document.getElementById('ProcurementUnitId');
+    let requestVersion = 0;
+
+    async function loadDemandUnits() {
+        const ingredientId = ingredient.value;
+        const version = ++requestVersion;
+        demandUnit.disabled = true;
+        demandUnit.innerHTML = `<option value="">${ingredientId ? 'Đang tải đơn vị...' : 'Chọn nguyên liệu trước'}</option>`;
+        if (!ingredientId) return;
+
+        try {
+            const url = new URL(form.dataset.unitsUrl, window.location.origin);
+            url.searchParams.set('ingredientId', ingredientId);
+            const response = await fetch(url, { headers: { Accept: 'application/json' } });
+            const payload = await response.json();
+            if (version !== requestVersion) return;
+            if (!response.ok || payload.success !== true) {
+                throw new Error(payload.message || 'Không thể tải đơn vị nhu cầu.');
+            }
+
+            demandUnit.innerHTML = '<option value="">Chọn đơn vị nhu cầu</option>';
+            for (const item of payload.data || []) {
+                const option = document.createElement('option');
+                option.value = item.unitId;
+                option.textContent = `${item.unitCode} · ${item.unitName}`;
+                demandUnit.append(option);
+            }
+            demandUnit.disabled = false;
+        } catch (error) {
+            if (version !== requestVersion) return;
+            demandUnit.innerHTML = '<option value="">Không tải được đơn vị</option>';
+            console.error('[RestockRequest] Demand unit load failed.', error);
+        }
+    }
+
+    ingredient.addEventListener('change', loadDemandUnits);
+    if (ingredient.value) loadDemandUnits();
+})();
+</script>

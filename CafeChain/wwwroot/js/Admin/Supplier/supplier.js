@@ -151,21 +151,57 @@
 
     async function loadReferenceData() {
         if (!canMutate || state.loaded.reference) return;
-        const [ingredientPayload, unitPayload] = await Promise.all([
-            api('/GetIngredientOptions'),
-            api('/GetContentUnitOptions')
-        ]);
+        const ingredientPayload = await api('/GetIngredientOptions');
         state.ingredients = ingredientPayload.data || [];
-        state.units = unitPayload.data || [];
         fillSelect($('#offerIngredient'), state.ingredients, 'ingredientId', item => `${item.code} · ${item.name}`);
-        fillSelect($('#offerUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`);
-        fillSelect(
-            $('#offerLooseUnit'),
-            state.units.filter(item => ['kg', 'l', 'pcs'].includes(String(item.unitCode || '').toLowerCase())),
-            'unitId',
-            item => `${item.unitCode} · ${item.name}`);
-        fillSelect($('#newPackageUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`);
+        fillSelect($('#offerUnit'), [], 'unitId', item => item.name, 'Chọn nguyên liệu trước');
+        fillSelect($('#offerLooseUnit'), [], 'unitId', item => item.name, 'Chọn nguyên liệu trước');
+        fillSelect($('#newPackageUnit'), [], 'unitId', item => item.name, 'Chọn gói mua trước');
         state.loaded.reference = true;
+    }
+
+    async function loadCompatibleUnits(ingredientId, selectedContentUnitId = '', selectedLooseUnitId = '') {
+        if (!ingredientId) {
+            state.units = [];
+            fillSelect($('#offerUnit'), [], 'unitId', item => item.name, 'Chọn nguyên liệu trước');
+            fillSelect($('#offerLooseUnit'), [], 'unitId', item => item.name, 'Chọn nguyên liệu trước');
+            updateLoosePriceLabel();
+            return;
+        }
+
+        const payload = await api(`/GetCompatibleUnitOptions?ingredientId=${ingredientId}`);
+        state.units = payload.data || [];
+        fillSelect($('#offerUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`, 'Chọn đơn vị nội dung');
+        fillSelect($('#offerLooseUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`, 'Chọn đơn vị mua lẻ');
+        if (selectedContentUnitId) $('#offerUnit').value = String(selectedContentUnitId);
+        if (selectedLooseUnitId) $('#offerLooseUnit').value = String(selectedLooseUnitId);
+        updateLoosePriceLabel();
+    }
+
+    function updateLoosePriceLabel() {
+        const selected = $('#offerLooseUnit')?.selectedOptions?.[0];
+        const code = selected?.textContent?.split('·')?.[0]?.trim();
+        $('#offerLoosePriceLabel').textContent = `Đơn giá mua lẻ (VND/${code || 'đơn vị'})`;
+        updateDerivedLoosePrice();
+    }
+
+    function updateDerivedLoosePrice() {
+        const priceInput = $('#offerLoosePrice');
+        const derived = $('#offerLoosePriceMode')?.value === 'DERIVED';
+        if (!priceInput) return;
+        priceInput.readOnly = derived;
+        if (!derived) return;
+
+        const packageQuantity = Number($('#offerPackageQuantity')?.value || 0);
+        const packagePrice = Number($('#offerPrice')?.value || 0);
+        const packageUnit = state.units.find(item => String(item.unitId) === String($('#offerUnit')?.value));
+        const looseUnit = state.units.find(item => String(item.unitId) === String($('#offerLooseUnit')?.value));
+        const packageInLoose = packageUnit && looseUnit && Number(looseUnit.conversionFactorToBase) > 0
+            ? packageQuantity * Number(packageUnit.conversionFactorToBase) / Number(looseUnit.conversionFactorToBase)
+            : 0;
+        priceInput.value = packageInLoose > 0 && packagePrice > 0
+            ? (packagePrice / packageInLoose).toFixed(2)
+            : '';
     }
 
     function fillSelect(select, items, valueKey, labelFactory, placeholder = 'Chọn dữ liệu') {
@@ -231,7 +267,6 @@
         $('#overviewActive').value = String(Boolean(d.active));
         $('#auditCreatedAt').textContent = formatDate(d.createdAt);
         $('#auditUpdatedAt').textContent = formatDate(d.updatedAt);
-        $('#auditVersion').textContent = d.rowVersion || 'Chưa có dữ liệu';
         renderSupplierAudits();
         renderPhones();
         renderContacts();
@@ -249,17 +284,21 @@
             root.innerHTML = emptyStack('Chưa có thay đổi mã số thuế hoặc xác nhận trùng được ghi nhận.');
             return;
         }
-        const labels = {
-            SUPPLIER_CREATED: 'Tạo nhà cung cấp',
-            SUPPLIER_TAX_CODE_UPDATED: 'Cập nhật mã số thuế',
-            SUPPLIER_DUPLICATE_OVERRIDE: 'Xác nhận tạo dù có dấu hiệu trùng'
-        };
         root.innerHTML = rows.map(item => `
-            <div class="supplier-history-row">
-                <span>${escapeHtml(formatDate(item.createdAt))}</span>
-                <div><strong>${escapeHtml(labels[item.action] || item.action)}</strong><small>Nhân viên #${escapeHtml(item.actorStaffId)}</small></div>
-                <span>${escapeHtml(item.newData || '')}</span>
-            </div>`).join('');
+            <article class="supplier-history-row supplier-audit-event">
+                <time datetime="${escapeHtml(item.createdAt)}">${escapeHtml(formatDate(item.createdAt))}</time>
+                <div class="supplier-audit-event__summary">
+                    <strong>${escapeHtml(item.title || 'Cập nhật nhà cung cấp')}</strong>
+                    <small>${escapeHtml(item.actorName || 'Hệ thống')}${item.actorRole ? ` · ${escapeHtml(item.actorRole)}` : ''}</small>
+                </div>
+                <dl class="supplier-audit-event__changes">
+                    ${(item.changes || []).map(change => `
+                        <div>
+                            <dt>${escapeHtml(change.label)}</dt>
+                            ${change.before != null ? `<dd><span class="supplier-audit-value is-before">${escapeHtml(change.before)}</span><i class="fas fa-arrow-right" aria-hidden="true"></i><span class="supplier-audit-value">${escapeHtml(change.after ?? 'Để trống')}</span></dd>` : `<dd><span class="supplier-audit-value">${escapeHtml(change.after ?? 'Để trống')}</span></dd>`}
+                        </div>`).join('') || '<div><dt>Ghi nhận</dt><dd><span class="supplier-audit-value">Đã lưu thay đổi nghiệp vụ.</span></dd></div>'}
+                </dl>
+            </article>`).join('');
     }
 
     async function loadAuditHistory() {
@@ -437,7 +476,7 @@
                 <div class="supplier-stack-item-main">
                     <strong>${escapeHtml(offer.ingredientName)} ${offer.isPrimary ? '<span class="supplier-status is-current">Nguồn chính</span>' : ''}</strong>
                     <span>${escapeHtml(offer.packageDisplay)} · ${escapeHtml(offer.priceDisplay)}</span>
-                    <small>MOQ ${offer.minimumOrderPackageCount || 0} gói · Lead time ${offer.leadTimeDays || 0} ngày · ${offer.allowsLoosePurchase ? `Có mua lẻ theo ${escapeHtml(offer.looseProcurementUnitName || 'đơn vị procurement')}` : 'Chỉ mua theo gói'} · ${offer.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</small>
+                    <small>MOQ ${offer.minimumOrderPackageCount || 1} gói · Lead time ${offer.leadTimeDays || 0} ngày · ${offer.allowsLoosePurchase ? `Mua lẻ theo ${escapeHtml(offer.looseProcurementUnitName || 'đơn vị phù hợp')}, ${offer.loosePriceMode === 'DERIVED' ? 'giá tự tính từ gói' : 'giá nhập riêng'}, MOQ ${offer.looseMinimumOrderQuantity ?? 0}, bước ${offer.looseQuantityStep ?? 'không giới hạn'}` : 'Chỉ mua theo gói'} · ${offer.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</small>
                 </div>
                 <div class="supplier-stack-actions">
                     <button type="button" class="supplier-btn supplier-btn-light view-price" data-id="${offer.ingredientSupplierId}">Đổi giá & lịch sử</button>
@@ -455,18 +494,22 @@
         $('#offerRowVersion').value = '';
         $('#offerActive').checked = true;
         $('#offerAllowsLoose').checked = false;
+        $('#offerLoosePriceMode').value = 'INDEPENDENT';
+        $('#offerLooseMoq').value = '';
+        $('#offerLooseStep').value = '';
         syncLooseOfferFields();
         ['offerIngredient', 'offerUnit', 'offerPackageQuantity', 'offerPrice'].forEach(id => { if ($(`#${id}`)) $(`#${id}`).disabled = false; });
         $('#cancelOfferEdit')?.classList.add('is-hidden');
         if ($('#saveOfferButton')) $('#saveOfferButton').textContent = 'Thêm gói mua';
     }
 
-    function beginOfferEdit(id) {
+    async function beginOfferEdit(id) {
         const offer = state.offers.find(item => item.ingredientSupplierId === id);
         if (!offer) return;
         $('#offerId').value = id;
         $('#offerRowVersion').value = offer.rowVersion || '';
         $('#offerIngredient').value = offer.ingredientId;
+        await loadCompatibleUnits(offer.ingredientId, offer.unitId, offer.looseProcurementUnitId);
         $('#offerUnit').value = offer.unitId;
         $('#offerPackageQuantity').value = offer.packageQuantity;
         $('#offerPrice').value = offer.currentPrice;
@@ -476,7 +519,10 @@
         $('#offerActive').checked = Boolean(offer.active);
         $('#offerAllowsLoose').checked = Boolean(offer.allowsLoosePurchase);
         $('#offerLooseUnit').value = offer.looseProcurementUnitId || '';
+        $('#offerLoosePriceMode').value = offer.loosePriceMode || 'INDEPENDENT';
         $('#offerLoosePrice').value = offer.currentProcurementUnitPrice ?? '';
+        $('#offerLooseMoq').value = offer.looseMinimumOrderQuantity ?? '';
+        $('#offerLooseStep').value = offer.looseQuantityStep ?? '';
         syncLooseOfferFields();
         $('#offerNote').value = offer.note || '';
         ['offerIngredient', 'offerUnit', 'offerPackageQuantity', 'offerPrice'].forEach(fieldId => $(`#${fieldId}`).disabled = true);
@@ -485,12 +531,19 @@
         $('#offerForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
     $('#cancelOfferEdit')?.addEventListener('click', resetOfferForm);
+    $('#offerIngredient')?.addEventListener('change', event => loadCompatibleUnits(Number(event.target.value || 0)));
+    $('#offerLooseUnit')?.addEventListener('change', updateLoosePriceLabel);
+    $('#offerUnit')?.addEventListener('change', updateDerivedLoosePrice);
+    $('#offerPackageQuantity')?.addEventListener('input', updateDerivedLoosePrice);
+    $('#offerPrice')?.addEventListener('input', updateDerivedLoosePrice);
+    $('#offerLoosePriceMode')?.addEventListener('change', updateDerivedLoosePrice);
 
     function syncLooseOfferFields() {
         const enabled = Boolean($('#offerAllowsLoose')?.checked);
         $$('[data-loose-field]').forEach(field => field.classList.toggle('is-hidden', !enabled));
         if ($('#offerLooseUnit')) $('#offerLooseUnit').required = enabled;
         if ($('#offerLoosePrice')) $('#offerLoosePrice').required = enabled;
+        updateLoosePriceLabel();
     }
     $('#offerAllowsLoose')?.addEventListener('change', syncLooseOfferFields);
 
@@ -515,6 +568,15 @@
                 : null,
             currentProcurementUnitPrice: $('#offerAllowsLoose').checked
                 ? Number($('#offerLoosePrice').value)
+                : null,
+            loosePriceMode: $('#offerAllowsLoose').checked
+                ? $('#offerLoosePriceMode').value
+                : 'INDEPENDENT',
+            looseMinimumOrderQuantity: $('#offerAllowsLoose').checked && $('#offerLooseMoq').value
+                ? Number($('#offerLooseMoq').value)
+                : null,
+            looseQuantityStep: $('#offerAllowsLoose').checked && $('#offerLooseStep').value
+                ? Number($('#offerLooseStep').value)
                 : null,
             note: $('#offerNote').value.trim() || null,
             rowVersion: current?.rowVersion || null
@@ -556,6 +618,8 @@
         $('#pricingOfferName').textContent = offer.ingredientName;
         $('#pricingCurrentValue').textContent = `${offer.priceDisplay} · ${offer.packageDisplay}`;
         if (canMutate) {
+            const unitPayload = await api(`/GetCompatibleUnitOptions?ingredientId=${offer.ingredientId}`);
+            fillSelect($('#newPackageUnit'), unitPayload.data || [], 'unitId', item => `${item.unitCode} · ${item.name}`, 'Chọn đơn vị nội dung');
             $('#priceOfferId').value = id;
             $('#priceRowVersion').value = offer.rowVersion || '';
             $('#newPackagePrice').value = offer.currentPrice;
@@ -793,9 +857,15 @@
         setFieldError($('#duplicateReason'), $('#duplicateReasonError'), '');
         setBusy(form, true);
         try {
-            await api('/Create', { method: 'POST', body });
-            toast('Đã tạo nhà cung cấp.');
-            window.location.reload();
+            const result = await api('/Create', { method: 'POST', body });
+            const createdSupplierId = Number(result.data);
+            const target = new URL(window.location.href);
+            target.searchParams.set('search', body.name);
+            target.searchParams.delete('status');
+            target.searchParams.set('page', '1');
+            target.searchParams.set('openSupplierId', String(createdSupplierId));
+            target.searchParams.set('created', '1');
+            window.location.assign(target.toString());
         } catch (error) {
             if (error.payload?.code === 'SUPPLIER_TAX_CODE_INVALID') {
                 setFieldError($('#createTaxCode'), $('#createTaxCodeError'), error.message);
@@ -821,6 +891,19 @@
         await submitCreate(false);
     });
     $('#confirmDuplicateCreate')?.addEventListener('click', () => submitCreate(true));
+
+    const initialSupplierId = Number(new URLSearchParams(window.location.search).get('openSupplierId'));
+    if (Number.isInteger(initialSupplierId) && initialSupplierId > 0) {
+        openSupplier(initialSupplierId).then(() => {
+            const target = new URL(window.location.href);
+            if (target.searchParams.get('created') !== '1'
+                || state.detail?.supplierId !== initialSupplierId) return;
+
+            toast(`Đã tạo nhà cung cấp ${state.detail.name}.`);
+            target.searchParams.delete('created');
+            window.history.replaceState({}, '', target.toString());
+        });
+    }
 
     $$('#createSupplierForm input, #createSupplierForm textarea').forEach(control => {
         if (control.id === 'duplicateReason') return;

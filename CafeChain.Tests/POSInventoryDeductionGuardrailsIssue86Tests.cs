@@ -72,6 +72,96 @@ namespace CafeChain.Tests.POS
             Assert.Equal(3, await context.InventoryTransactions.CountAsync(t => t.ReferenceOrderId == 9001));
         }
 
+        [Fact]
+        public async Task IncludedCostTreatment_DoesNotDoubleCountToppingRecipe()
+        {
+            using var context = CreateDbContext();
+            SeedInventoryCatalog(context);
+            SeedCompletedPaidOrder(context, orderId: 9004);
+            SeedOrderLine(context, 9004, ToppingCostTreatments.IncludedInDrinkRecipe, 1m);
+            await context.SaveChangesAsync();
+            var service = CreateService(context);
+
+            var result = await service.DeductStockForCommittedOrderAsync(
+                CreateSoldItems(), StoreId, referenceOrderId: 9004);
+
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.Equal(95m, await GetIngredientQtyAsync(context, MilkIngredientId));
+            Assert.Equal(50m, await GetIngredientQtyAsync(context, TapiocaIngredientId));
+            Assert.Equal(9m, await GetChildRecipeQtyAsync(context));
+        }
+
+        [Fact]
+        public async Task ToppingQuantitySnapshot_MultipliesRecipeConsumption()
+        {
+            using var context = CreateDbContext();
+            SeedInventoryCatalog(context);
+            SeedCompletedPaidOrder(context, orderId: 9005);
+            SeedOrderLine(context, 9005, ToppingCostTreatments.AddToppingRecipeCost, 2m);
+            await context.SaveChangesAsync();
+            var service = CreateService(context);
+
+            var result = await service.DeductStockForCommittedOrderAsync(
+                CreateSoldItems(), StoreId, referenceOrderId: 9005);
+
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.Equal(44m, await GetIngredientQtyAsync(context, TapiocaIngredientId));
+        }
+
+        [Fact]
+        public async Task CommittedOrder_UsesSaleTimeRecipeSnapshotsAfterRecipesChange()
+        {
+            using var context = CreateDbContext();
+            SeedInventoryCatalog(context);
+            SeedCompletedPaidOrder(context, orderId: 9006);
+            SeedOrderLine(context, 9006, ToppingCostTreatments.AddToppingRecipeCost, 1m);
+            await context.SaveChangesAsync();
+
+            var oldDrinkRecipe = await context.Recipes.SingleAsync(x => x.RecipeId == BaseRecipeId);
+            var oldToppingRecipe = await context.Recipes.SingleAsync(x => x.RecipeId == ToppingRecipeId);
+            oldDrinkRecipe.Active = false;
+            oldDrinkRecipe.Status = "Archived";
+            oldToppingRecipe.Active = false;
+            oldToppingRecipe.Status = "Archived";
+            await context.SaveChangesAsync();
+            context.Recipes.AddRange(
+                new Recipe
+                {
+                    RecipeId = 1001,
+                    RecipeCode = "RCP_NEW_DRINK",
+                    Name = "New drink recipe",
+                    DrinkId = DrinkId,
+                    SizeId = SizeMId,
+                    Active = true,
+                    Status = "Active",
+                    RecipeDetails = new List<RecipeDetail>
+                    {
+                        new() { IngredientId = MilkIngredientId, UnitId = UnitId, Quantity = 25m }
+                    }
+                },
+                new Recipe
+                {
+                    RecipeId = 3001,
+                    RecipeCode = "RCP_NEW_TOPPING",
+                    Name = "New topping recipe",
+                    ToppingId = ToppingId,
+                    Active = true,
+                    Status = "Active",
+                    RecipeDetails = new List<RecipeDetail>
+                    {
+                        new() { IngredientId = TapiocaIngredientId, UnitId = UnitId, Quantity = 20m }
+                    }
+                });
+            await context.SaveChangesAsync();
+
+            var result = await CreateService(context).DeductStockForCommittedOrderAsync(
+                CreateSoldItems(), StoreId, referenceOrderId: 9006);
+
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.Equal(95m, await GetIngredientQtyAsync(context, MilkIngredientId));
+            Assert.Equal(47m, await GetIngredientQtyAsync(context, TapiocaIngredientId));
+        }
+
         [Theory]
         [InlineData(SystemConstants.OrderStatuses.AwaitingPayment, SystemConstants.PaymentStatuses.Unpaid)]
         [InlineData(SystemConstants.OrderStatuses.Cancelled, SystemConstants.PaymentStatuses.Failed)]
@@ -488,6 +578,40 @@ namespace CafeChain.Tests.POS
                 orderId,
                 SystemConstants.OrderStatuses.Completed,
                 SystemConstants.PaymentStatuses.Paid);
+        }
+
+        private static void SeedOrderLine(
+            CafeChain.Data.AppDbContext context,
+            int orderId,
+            string costTreatment,
+            decimal quantityPerDrink)
+        {
+            context.OrderDetails.Add(new OrderDetail
+            {
+                OrderId = orderId,
+                DrinkId = DrinkId,
+                SizeId = SizeMId,
+                RecipeIdSnapshot = BaseRecipeId,
+                DrinkName = "Test drink",
+                SizeName = "M",
+                Price = 45_000m,
+                Quantity = 1,
+                Note = string.Empty,
+                OrderToppings = new List<OrderTopping>
+                {
+                    new()
+                    {
+                        ToppingId = ToppingId,
+                        RecipeIdSnapshot = ToppingRecipeId,
+                        ToppingName = "Test topping",
+                        Price = 5_000m,
+                        QuantityPerDrinkSnapshot = quantityPerDrink,
+                        QuantityUnitSnapshot = ToppingQuantityUnits.RecipePortion,
+                        PriceTreatmentSnapshot = ToppingPriceTreatments.AddToppingPrice,
+                        CostTreatmentSnapshot = costTreatment
+                    }
+                }
+            });
         }
 
         private static void SeedOrder(

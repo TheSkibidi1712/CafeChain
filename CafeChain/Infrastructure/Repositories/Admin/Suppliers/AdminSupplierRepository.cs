@@ -43,7 +43,12 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Suppliers
                 query = query.Where(x =>
                     x.Code.ToLower().Contains(search) ||
                     x.Name.ToLower().Contains(search) ||
-                    (x.TaxCode != null && x.TaxCode.Contains(search)));
+                    (x.TaxCode != null && x.TaxCode.Contains(search)) ||
+                    x.Phones.Any(phone => phone.PhoneNumber.Contains(search)) ||
+                    x.Contacts.Any(contact =>
+                        contact.Name.ToLower().Contains(search) ||
+                        (contact.PhoneNumber != null && contact.PhoneNumber.Contains(search)) ||
+                        (contact.Email != null && contact.Email.ToLower().Contains(search))));
             }
 
             if (status.HasValue)
@@ -100,7 +105,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Suppliers
                     x.Phones.Any(phone => phone.PhoneNumber.Contains(searchTerm)) ||
                     x.Contacts.Any(contact =>
                         contact.Name.Contains(searchTerm) ||
-                        (contact.PhoneNumber != null && contact.PhoneNumber.Contains(searchTerm))));
+                        (contact.PhoneNumber != null && contact.PhoneNumber.Contains(searchTerm)) ||
+                        (contact.Email != null && contact.Email.Contains(searchTerm))));
             }
 
             if (status.HasValue)

@@ -61,7 +61,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 return EmptyRow(size, resolution.Status, resolution.Message, resolution.Recipe);
 
             var components = new List<FifoCostComponentDto>();
-            await AddRecipeComponentsAsync(storeId, resolution.Recipe!, 1m, "DRINK_RECIPE", components, ct);
+            await AddRecipeComponentsAsync(storeId, resolution.Recipe!, 1m, ProfitabilityComponentSources.BaseBom, components, ct);
 
             var configuredPolicies = await _context.DrinkSizeToppingPolicies.AsNoTracking()
                 .Where(x => x.DrinkSizeId == size.DrinkSizeId && x.IsActive)
@@ -82,19 +82,18 @@ namespace CafeChain.Application.Services.Admin.Profitability
                     var toppingRecipe = await ResolveToppingRecipeAsync(policy.ToppingId, asOfUtc, ct);
                     if (toppingRecipe == null)
                     {
-                        components.Add(MissingComponent("DEFAULT_TOPPING", "Topping", policy.ToppingId, policy.Topping.Name,
+                        components.Add(MissingComponent(ProfitabilityComponentSources.DefaultTopping, ProfitabilityComponentTypes.Topping, policy.ToppingId, policy.Topping.Name,
                             policy.QuantityPerDrink, ProfitabilityCostStatuses.MissingRecipe, "Topping chưa có BOM active hiệu lực."));
                     }
                     else
                     {
-                        await AddRecipeComponentsAsync(storeId, toppingRecipe, policy.QuantityPerDrink, "DEFAULT_TOPPING", components, ct);
+                        await AddRecipeComponentsAsync(storeId, toppingRecipe, policy.QuantityPerDrink, ProfitabilityComponentSources.DefaultTopping, components, ct);
                     }
                 }
 
-                var priceImpact = policy.CostTreatment != ToppingCostTreatments.DisplayOnly
-                    && policy.PriceTreatment == ToppingPriceTreatments.AddToppingPrice
-                        ? policy.Topping.Price
-                        : 0m;
+                var priceImpact = policy.PriceTreatment == ToppingPriceTreatments.AddToppingPrice
+                    ? policy.Topping.Price * policy.QuantityPerDrink
+                    : 0m;
                 toppingPriceImpact += priceImpact;
                 var added = components.Sum(x => x.KnownCost) - before;
                 var addedIncomplete = components.Skip(componentStart)
@@ -114,7 +113,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
             var costStatus = missingPolicies.Count > 0 ? ProfitabilityCostStatuses.MissingDefaultToppingPolicy
                 : componentIncomplete ? ProfitabilityCostStatuses.Incomplete : ProfitabilityCostStatuses.Complete;
             var costMessage = missingPolicies.Count > 0
-                ? $"Thiếu chính sách cho {missingPolicies.Count} topping mặc định legacy."
+                ? $"Có {missingPolicies.Count} cấu hình topping cũ cần xác nhận trước khi tính giá vốn."
                 : componentIncomplete ? "Giá vốn FIFO chưa đầy đủ; không được xem phần thiếu là 0." : "Giá vốn FIFO đầy đủ.";
             var estimatedCost = costStatus == ProfitabilityCostStatuses.Complete ? knownCost : (decimal?)null;
             var effectiveSellingPrice = size.Price + toppingPriceImpact;
@@ -134,7 +133,8 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 GrossMarginPercent = profit.HasValue && effectiveSellingPrice > 0 ? decimal.Round(profit.Value / effectiveSellingPrice * 100m, 2) : null,
                 MarkupPercent = profit.HasValue && estimatedCost > 0 ? decimal.Round(profit.Value / estimatedCost.Value * 100m, 2) : null,
                 RowVersion = size.RowVersion.Length == 0 ? string.Empty : Convert.ToBase64String(size.RowVersion),
-                Components = components, DefaultToppings = toppingRows
+                Components = components, DefaultToppings = toppingRows,
+                CostSections = BuildCostSections(components, missingPolicies.Count)
             };
         }
 
@@ -149,7 +149,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
                     var converted = ingredient == null ? null : await _unitConversion.ConvertAsync(ingredient.IngredientId, detail.Quantity * multiplier, detail.UnitId);
                     if (ingredient == null || converted == null || !converted.IsSuccess)
                     {
-                        rows.Add(MissingComponent(source, "Ingredient", detail.IngredientId.Value, ingredient?.Name ?? $"Ingredient #{detail.IngredientId}",
+                        rows.Add(MissingComponent(source, ProfitabilityComponentTypes.Ingredient, detail.IngredientId.Value, ingredient?.Name ?? $"Nguyên liệu #{detail.IngredientId}",
                             detail.Quantity * multiplier, ProfitabilityCostStatuses.MissingConversion, converted?.Message ?? "Nguyên liệu không tồn tại."));
                         continue;
                     }
@@ -161,14 +161,14 @@ namespace CafeChain.Application.Services.Admin.Profitability
                         .FirstOrDefaultAsync(x => x.RecipeId == detail.ChildRecipeId.Value, ct);
                     if (child?.PreparedItem == null)
                     {
-                        rows.Add(MissingComponent(source, "PreparedItem", detail.ChildRecipeId.Value, $"ChildRecipe #{detail.ChildRecipeId}",
-                            detail.Quantity * multiplier, ProfitabilityCostStatuses.InvalidBom, "ChildRecipe chưa map PreparedItem."));
+                        rows.Add(MissingComponent(source, ProfitabilityComponentTypes.PreparedItem, detail.ChildRecipeId.Value, $"Công thức con #{detail.ChildRecipeId}",
+                            detail.Quantity * multiplier, ProfitabilityCostStatuses.InvalidBom, "Công thức con chưa liên kết với bán thành phẩm tồn kho."));
                         continue;
                     }
                     var converted = await _physicalConversion.ConvertAsync(detail.Quantity * multiplier, detail.UnitId, child.PreparedItem.BaseUnitId);
                     if (!converted.IsSuccess)
                     {
-                        rows.Add(MissingComponent(source, "PreparedItem", child.PreparedItemId!.Value, child.PreparedItem.Name,
+                        rows.Add(MissingComponent(source, ProfitabilityComponentTypes.PreparedItem, child.PreparedItemId!.Value, child.PreparedItem.Name,
                             detail.Quantity * multiplier, ProfitabilityCostStatuses.MissingConversion, converted.Message));
                         continue;
                     }
@@ -195,7 +195,10 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 : remaining > 0 ? ProfitabilityCostStatuses.InsufficientCostQuantity : ProfitabilityCostStatuses.Complete;
             return new FifoCostComponentDto
             {
-                Source = source, ItemType = ingredientId.HasValue ? "Ingredient" : "PreparedItem",
+                Source = source,
+                SourceLabel = source == ProfitabilityComponentSources.DefaultTopping ? "Topping mặc định" : "Định mức nguyên liệu (BOM)",
+                ItemType = ingredientId.HasValue ? ProfitabilityComponentTypes.Ingredient : ProfitabilityComponentTypes.PreparedItem,
+                ItemTypeLabel = ingredientId.HasValue ? "Nguyên liệu" : "Bán thành phẩm",
                 ItemId = ingredientId ?? preparedItemId!.Value, ItemName = name, RequiredQuantity = required,
                 AvailableCostQuantity = layers.Sum(x => x.RemainingQuantity), CoveredQuantity = covered,
                 MissingQuantity = Math.Max(0, remaining), KnownCost = cost, UnitName = unitName ?? string.Empty,
@@ -226,7 +229,65 @@ namespace CafeChain.Application.Services.Admin.Profitability
         }
 
         private static FifoCostComponentDto MissingComponent(string source, string type, int id, string name, decimal required, string status, string message) => new()
-        { Source = source, ItemType = type, ItemId = id, ItemName = name, RequiredQuantity = required, MissingQuantity = required, Status = status, Message = message };
+        {
+            Source = source,
+            SourceLabel = source == ProfitabilityComponentSources.DefaultTopping ? "Topping mặc định" : "Định mức nguyên liệu (BOM)",
+            ItemType = type,
+            ItemTypeLabel = type == ProfitabilityComponentTypes.Ingredient ? "Nguyên liệu"
+                : type == ProfitabilityComponentTypes.PreparedItem ? "Bán thành phẩm" : "Topping",
+            ItemId = id,
+            ItemName = name,
+            RequiredQuantity = required,
+            MissingQuantity = required,
+            Status = status,
+            Message = message
+        };
+
+        private static IReadOnlyList<CostSectionCompletenessDto> BuildCostSections(
+            IReadOnlyList<FifoCostComponentDto> components,
+            int legacyPolicyCount)
+        {
+            static CostSectionCompletenessDto Section(string code, string label, bool complete, string completeMessage, string incompleteMessage) => new()
+            {
+                Section = code,
+                Label = label,
+                Status = complete ? ProfitabilityCostStatuses.Complete : ProfitabilityCostStatuses.Incomplete,
+                Message = complete ? completeMessage : incompleteMessage
+            };
+
+            var baseComponents = components.Where(x => x.Source == ProfitabilityComponentSources.BaseBom).ToList();
+            var directIngredients = baseComponents.Where(x => x.ItemType == ProfitabilityComponentTypes.Ingredient).ToList();
+            var preparedItems = baseComponents.Where(x => x.ItemType == ProfitabilityComponentTypes.PreparedItem).ToList();
+            var toppingComponents = components.Where(x => x.Source == ProfitabilityComponentSources.DefaultTopping).ToList();
+            var conversionComplete = components.All(x => x.Status != ProfitabilityCostStatuses.MissingConversion);
+
+            return new[]
+            {
+                Section(ProfitabilityCostSections.BaseBom, "BOM cơ sở",
+                    directIngredients.All(IsComplete),
+                    directIngredients.Count == 0
+                        ? "Món không có nguyên liệu trực tiếp ngoài bán thành phẩm."
+                        : "Các nguyên liệu trực tiếp trong BOM cơ sở đã có đủ lớp giá FIFO.",
+                    "BOM cơ sở còn thiếu dữ liệu giá hoặc số lượng FIFO."),
+                Section(ProfitabilityCostSections.PreparedItem, "Bán thành phẩm",
+                    preparedItems.All(IsComplete),
+                    preparedItems.Count == 0 ? "Món không sử dụng bán thành phẩm." : "Bán thành phẩm đã xác định đơn vị và lớp giá.",
+                    "Bán thành phẩm còn thiếu định danh tồn kho, quy đổi hoặc lớp giá."),
+                Section(ProfitabilityCostSections.DefaultTopping, "Topping mặc định",
+                    legacyPolicyCount == 0 && toppingComponents.All(IsComplete),
+                    toppingComponents.Count == 0 ? "Không có topping mặc định cần cộng thêm giá vốn." : "Topping mặc định đã có đủ dữ liệu giá vốn.",
+                    legacyPolicyCount > 0
+                        ? $"Có {legacyPolicyCount} cấu hình topping cũ cần xác nhận."
+                        : "Topping mặc định còn thiếu công thức, quy đổi hoặc lớp giá."),
+                Section(ProfitabilityCostSections.UnitConversion, "Đơn vị và quy đổi",
+                    conversionComplete,
+                    "Các định lượng đã quy đổi được về đơn vị tồn kho.",
+                    "Có định lượng chưa quy đổi được về đơn vị tồn kho.")
+            };
+        }
+
+        private static bool IsComplete(FifoCostComponentDto component) =>
+            component.Status == ProfitabilityCostStatuses.Complete;
 
         private static DrinkSizeProfitabilityRowDto EmptyRow(DrinkSize size, string status, string message, Recipe? recipe) => new()
         {

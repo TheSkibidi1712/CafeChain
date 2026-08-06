@@ -156,6 +156,7 @@ namespace CafeChain.Controllers.Api.v1
                             SizeId = d.SizeId,
                             StoreMenuItemId = d.StoreMenuItemId,
                             DrinkSizeId = d.DrinkSizeId,
+                            RecipeIdSnapshot = d.RecipeIdSnapshot,
                             AcceptedBasePrice = d.AcceptedBasePrice,
                             AcceptedUnitPrice = d.UnitPrice,
                             PriceSource = d.PriceSource,
@@ -476,6 +477,7 @@ namespace CafeChain.Controllers.Api.v1
                 if (cart.MenuItemId != detail.ItemId
                     || cart.StoreMenuItemId != detail.StoreMenuItemId
                     || cart.DrinkSizeId != detail.DrinkSizeId
+                    || cart.RecipeIdSnapshot != detail.RecipeIdSnapshot
                     || cart.SizeId != detail.SizeId
                     || cart.Quantity != detail.Quantity
                     || cart.UnitPrice != detail.UnitPrice
@@ -488,11 +490,29 @@ namespace CafeChain.Controllers.Api.v1
 
                 var detailToppings = (detail.Toppings ?? new List<POSOrderToppingDto>())
                     .OrderBy(x => x.ToppingId)
-                    .Select(x => new { x.ToppingId, Price = x.AcceptedPrice })
+                    .Select(x => new
+                    {
+                        x.ToppingId,
+                        Price = x.AcceptedPrice,
+                        x.QuantityPerDrink,
+                        x.QuantityUnit,
+                        x.RecipeIdSnapshot,
+                        x.PriceTreatment,
+                        x.CostTreatment
+                    })
                     .ToArray();
                 var cartToppings = (cart.Toppings ?? new List<OfflineCartSnapshotToppingDTO>())
                     .OrderBy(x => x.ToppingId)
-                    .Select(x => new { x.ToppingId, Price = x.AcceptedPrice ?? x.Price })
+                    .Select(x => new
+                    {
+                        x.ToppingId,
+                        Price = x.AcceptedPrice ?? x.Price,
+                        x.QuantityPerDrink,
+                        x.QuantityUnit,
+                        x.RecipeIdSnapshot,
+                        x.PriceTreatment,
+                        x.CostTreatment
+                    })
                     .ToArray();
                 if (!detailToppings.SequenceEqual(cartToppings))
                     return $"{POSCatalogSaleErrorCodes.SnapshotInvalid}: Topping snapshot offline không khớp.";

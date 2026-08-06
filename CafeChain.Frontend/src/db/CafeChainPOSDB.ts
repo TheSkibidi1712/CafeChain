@@ -59,6 +59,7 @@ export interface MenuItem {
 export interface MenuItemSize {
   storeMenuItemId: number
   drinkSizeId: number
+  recipeId: number
   sizeId: number
   sizeName: string
   price: number
@@ -78,7 +79,10 @@ export interface ToppingPolicy {
   isDefaultSelected: boolean
   isRequired: boolean
   priceTreatment: 'INCLUDED_IN_BASE_PRICE' | 'ADD_TOPPING_PRICE' | string
+  costTreatment: 'INCLUDED_IN_DRINK_RECIPE' | 'ADD_TOPPING_RECIPE_COST' | string
   quantityPerDrink: number
+  quantityUnit: string
+  recipeId?: number | null
 }
 
 export interface CatalogState {
@@ -96,7 +100,10 @@ export interface ToppingOption {
   isRequired?: boolean
   isDefaultSelected?: boolean
   priceTreatment?: string
+  costTreatment?: string
   quantityPerDrink?: number
+  quantityUnit?: string
+  recipeId?: number | null
 }
 
 /**
@@ -113,6 +120,11 @@ export interface CartQueueToppingSnapshot {
   name?: string
   price?: number
   acceptedPrice?: number
+  quantityPerDrink?: number
+  quantityUnit?: string
+  recipeIdSnapshot?: number | null
+  priceTreatment?: string
+  costTreatment?: string
 }
 
 export interface CartQueueItemSnapshot {
@@ -120,6 +132,7 @@ export interface CartQueueItemSnapshot {
   menuItemId: number
   storeMenuItemId: number
   drinkSizeId: number
+  recipeIdSnapshot: number
   name: string
   categoryId?: number
   sizeId?: number | null
@@ -171,6 +184,7 @@ export interface CartSyncQueueItem {
     menuItemId: number
     storeMenuItemId: number
     drinkSizeId: number
+    recipeIdSnapshot: number
     name: string
     sizeId?: number | null
     quantity: number
@@ -180,7 +194,16 @@ export interface CartSyncQueueItem {
     catalogVersion: number
     iceLevelPercent?: 0 | 50 | 100 | null
     note?: string
-    toppings?: Array<{ toppingId: number; name?: string; acceptedPrice: number }>
+    toppings?: Array<{
+      toppingId: number
+      name?: string
+      acceptedPrice: number
+      quantityPerDrink?: number
+      quantityUnit?: string
+      recipeIdSnapshot?: number | null
+      priceTreatment?: string
+      costTreatment?: string
+    }>
   }>
   /** Snapshot đầy đủ của giỏ hàng lúc thu ngân bấm thanh toán */
   cartSnapshot: CartQueueItemSnapshot[]

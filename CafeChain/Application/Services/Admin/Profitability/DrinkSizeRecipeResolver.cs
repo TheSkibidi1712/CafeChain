@@ -44,7 +44,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 if (exactActive.Count > 0)
                     return Result(DrinkSizeRecipeHealthStatuses.FutureRecipeOnly, "Chỉ có BOM có ngày hiệu lực trong tương lai.", null, exactActive.Count, genericFallback);
                 if (genericFallback)
-                    return Result(DrinkSizeRecipeHealthStatuses.GenericFallbackOnly, "Chỉ có BOM compatibility không gắn size; profitability không sử dụng fallback này.", null, 0, true);
+                    return Result(DrinkSizeRecipeHealthStatuses.GenericFallbackOnly, "Chỉ có BOM chung chưa gắn size; màn hình giá vốn không dùng công thức thay thế này.", null, 0, true);
                 return Result(DrinkSizeRecipeHealthStatuses.MissingRecipe, "Chưa có BOM chính xác cho size.", null, 0, false);
             }
 
@@ -115,10 +115,18 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 {
                     var child = detail.ChildRecipe;
                     if (child?.PreparedItem == null || !child.PreparedItem.Active)
-                        return $"ChildRecipe #{detail.ChildRecipeId} chưa map PreparedItem hoạt động.";
+                        return $"Công thức con #{detail.ChildRecipeId} chưa liên kết với bán thành phẩm đang hoạt động.";
+                    if (!child.OutputQuantity.HasValue || child.OutputQuantity.Value <= 0 || !child.OutputUnitId.HasValue)
+                        return $"Bán thành phẩm {child.PreparedItem.Name} chưa xác nhận sản lượng và đơn vị đầu ra.";
+                    var normalizedOutput = await _physicalConversion.ConvertAsync(
+                        child.OutputQuantity.Value,
+                        child.OutputUnitId.Value,
+                        child.PreparedItem.BaseUnitId);
+                    if (!normalizedOutput.IsSuccess)
+                        return $"Bán thành phẩm {child.PreparedItem.Name} chưa quy đổi được sản lượng về đơn vị tồn kho: {normalizedOutput.Message}";
                     var converted = await _physicalConversion.ConvertAsync(detail.Quantity, detail.UnitId, child.PreparedItem.BaseUnitId);
                     if (!converted.IsSuccess)
-                        return $"Dòng BOM #{detail.RecipeDetailId} thiếu quy đổi PreparedItem: {converted.Message}";
+                        return $"Dòng BOM #{detail.RecipeDetailId} thiếu quy đổi cho bán thành phẩm: {converted.Message}";
                 }
             }
             return null;

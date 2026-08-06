@@ -42,12 +42,12 @@
                                 @if (item.LegacyRecipeId.HasValue)
                                 {
                                     <small class="inventory-warning d-block">
-                                        Dòng compatibility từ Recipe #@item.LegacyRecipeId; PreparedItem vẫn là định danh tồn kho chính.
+                                        Dữ liệu công thức cũ #@item.LegacyRecipeId; bán thành phẩm vẫn là định danh tồn kho chính.
                                     </small>
                                 }
                                 @if (item.QuantitySemanticsStatus == "QUANTITY_SEMANTICS_UNKNOWN")
                                 {
-                                    <small class="inventory-warning d-block">Chưa xác nhận ngữ nghĩa số lượng theo ĐVT cơ sở.</small>
+                                    <small class="inventory-warning d-block">Chưa xác nhận số lượng theo đơn vị tồn kho.</small>
                                 }
                             }
                         </td>
@@ -65,11 +65,11 @@
                                 @if (item.CostEvidenceStatus == "ACTUAL_LAYER" && item.LastUnitPrice.HasValue)
                                 {
                                     <div class="cost-value">@item.LastUnitPrice.Value.ToString("N2") đ/@item.UnitCode</div>
-                                    <small class="text-muted">Layer #@item.LatestCostLayerId</small>
+                                    <small class="text-muted">Lô giá #@item.LatestCostLayerId</small>
                                 }
                                 else
                                 {
-                                    <span class="cost-missing">Chưa có cost layer</span>
+                                    <span class="cost-missing">Chưa có lớp giá FIFO</span>
                                 }
                             </td>
                             <td class="inventory-secondary">
@@ -80,7 +80,7 @@
                                 }
                                 else if (item.LatestCostLayerId.HasValue)
                                 {
-                                    <span>Layer kho #@item.LatestCostLayerId</span>
+                                    <span>Lô giá kho #@item.LatestCostLayerId</span>
                                 }
                                 else
                                 {

@@ -1791,6 +1791,13 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("QuantityPerDrink")
                         .HasColumnType("decimal(18,5)");
 
+                    b.Property<string>("QuantityUnit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("RECIPE_PORTION");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -1824,6 +1831,8 @@ namespace CafeChain.Migrations
                             t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_PriceTreatment", "[PriceTreatment] IN ('INCLUDED_IN_BASE_PRICE','ADD_TOPPING_PRICE')");
 
                             t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_Quantity", "[QuantityPerDrink] > 0");
+
+                            t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_QuantityUnit", "[QuantityUnit] = 'RECIPE_PORTION'");
 
                             t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_RequiredDefault", "[IsRequired] = 0 OR [IsDefaultSelected] = 1");
                         });
@@ -7847,8 +7856,21 @@ namespace CafeChain.Migrations
                     b.Property<int?>("LeadTimeDays")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("LooseMinimumOrderQuantity")
+                        .HasColumnType("decimal(18,5)");
+
+                    b.Property<string>("LoosePriceMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)")
+                        .HasDefaultValue("INDEPENDENT");
+
                     b.Property<int?>("LooseProcurementUnitId")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("LooseQuantityStep")
+                        .HasColumnType("decimal(18,5)");
 
                     b.Property<int?>("MinimumOrderPackageCount")
                         .HasColumnType("int");
@@ -7881,7 +7903,10 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("Active");
 
-                    b.HasIndex("IngredientId");
+                    b.HasIndex("IngredientId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_IngredientSuppliers_PrimaryByIngredient")
+                        .HasFilter("[IsPrimary] = 1 AND [Active] = 1");
 
                     b.HasIndex("LooseProcurementUnitId");
 
@@ -7898,7 +7923,13 @@ namespace CafeChain.Migrations
 
                             t.HasCheckConstraint("CK_IngredientSupplier_LeadTime", "[LeadTimeDays] IS NULL OR [LeadTimeDays] >= 0");
 
+                            t.HasCheckConstraint("CK_IngredientSupplier_LooseMinimumOrderQuantity", "[LooseMinimumOrderQuantity] IS NULL OR [LooseMinimumOrderQuantity] >= 0");
+
+                            t.HasCheckConstraint("CK_IngredientSupplier_LoosePriceMode", "[LoosePriceMode] IN ('DERIVED', 'INDEPENDENT')");
+
                             t.HasCheckConstraint("CK_IngredientSupplier_LoosePurchase", "[AllowsLoosePurchase] = 0 OR ([CurrentProcurementUnitPrice] IS NOT NULL AND [CurrentProcurementUnitPrice] > 0 AND [LooseProcurementUnitId] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_IngredientSupplier_LooseQuantityStep", "[LooseQuantityStep] IS NULL OR [LooseQuantityStep] > 0");
 
                             t.HasCheckConstraint("CK_IngredientSupplier_MOQ", "[MinimumOrderPackageCount] IS NULL OR [MinimumOrderPackageCount] > 0");
 
@@ -7916,6 +7947,7 @@ namespace CafeChain.Migrations
                             IngredientId = 6,
                             IsPrimary = true,
                             LeadTimeDays = 1,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 1,
                             Note = "Đường Biên Hòa",
                             PackageQuantity = 1m,
@@ -7934,6 +7966,7 @@ namespace CafeChain.Migrations
                             IngredientId = 2,
                             IsPrimary = true,
                             LeadTimeDays = 2,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 24,
                             Note = "Sữa đặc demo lon 380 ml (synthetic)",
                             PackageQuantity = 380m,
@@ -7952,6 +7985,7 @@ namespace CafeChain.Migrations
                             IngredientId = 1,
                             IsPrimary = true,
                             LeadTimeDays = 3,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 5,
                             Note = "Cà phê hạt",
                             PackageQuantity = 1m,
@@ -7970,6 +8004,7 @@ namespace CafeChain.Migrations
                             IngredientId = 8,
                             IsPrimary = true,
                             LeadTimeDays = 4,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 6,
                             Note = "Syrup Torani",
                             PackageQuantity = 750m,
@@ -7988,6 +8023,7 @@ namespace CafeChain.Migrations
                             IngredientId = 10,
                             IsPrimary = true,
                             LeadTimeDays = 2,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 12,
                             Note = "Kem béo Rich",
                             PackageQuantity = 1m,
@@ -8006,6 +8042,7 @@ namespace CafeChain.Migrations
                             IngredientId = 9,
                             IsPrimary = true,
                             LeadTimeDays = 5,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 1,
                             Note = "Matcha Nhật",
                             PackageQuantity = 500m,
@@ -8024,6 +8061,7 @@ namespace CafeChain.Migrations
                             IngredientId = 5,
                             IsPrimary = true,
                             LeadTimeDays = 3,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 2,
                             Note = "Bột cacao",
                             PackageQuantity = 1m,
@@ -8042,6 +8080,7 @@ namespace CafeChain.Migrations
                             IngredientId = 4,
                             IsPrimary = true,
                             LeadTimeDays = 2,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 2,
                             Note = "Bột sữa",
                             PackageQuantity = 1m,
@@ -8060,6 +8099,7 @@ namespace CafeChain.Migrations
                             IngredientId = 3,
                             IsPrimary = true,
                             LeadTimeDays = 5,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 1,
                             Note = "Trà đen demo 100 túi × 2 g (synthetic)",
                             PackageQuantity = 200m,
@@ -9858,6 +9898,9 @@ namespace CafeChain.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<int?>("RecipeIdSnapshot")
+                        .HasColumnType("int");
+
                     b.Property<int?>("SizeId")
                         .HasColumnType("int");
 
@@ -9883,6 +9926,8 @@ namespace CafeChain.Migrations
                     b.HasIndex("IceIngredientId");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("RecipeIdSnapshot");
 
                     b.HasIndex("SizeId");
 
@@ -9978,11 +10023,40 @@ namespace CafeChain.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
+                    b.Property<string>("CostTreatmentSnapshot")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("ADD_TOPPING_RECIPE_COST");
+
                     b.Property<int>("OrderDetailId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("PriceTreatmentSnapshot")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("ADD_TOPPING_PRICE");
+
+                    b.Property<decimal>("QuantityPerDrinkSnapshot")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,5)")
+                        .HasDefaultValue(1m);
+
+                    b.Property<string>("QuantityUnitSnapshot")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("RECIPE_PORTION");
+
+                    b.Property<int?>("RecipeIdSnapshot")
+                        .HasColumnType("int");
 
                     b.Property<int>("ToppingId")
                         .HasColumnType("int");
@@ -9997,12 +10071,23 @@ namespace CafeChain.Migrations
 
                     b.HasKey("OrderToppingId");
 
+                    b.HasIndex("RecipeIdSnapshot");
+
                     b.HasIndex("ToppingId");
 
                     b.HasIndex("OrderDetailId", "ToppingId")
                         .IsUnique();
 
-                    b.ToTable("OrderToppings", (string)null);
+                    b.ToTable("OrderToppings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderToppings_CostTreatmentSnapshot", "[CostTreatmentSnapshot] IN ('INCLUDED_IN_DRINK_RECIPE','ADD_TOPPING_RECIPE_COST')");
+
+                            t.HasCheckConstraint("CK_OrderToppings_PriceTreatmentSnapshot", "[PriceTreatmentSnapshot] IN ('INCLUDED_IN_BASE_PRICE','ADD_TOPPING_PRICE')");
+
+                            t.HasCheckConstraint("CK_OrderToppings_QuantityPerDrinkSnapshot", "[QuantityPerDrinkSnapshot] > 0");
+
+                            t.HasCheckConstraint("CK_OrderToppings_QuantityUnitSnapshot", "[QuantityUnitSnapshot] = 'RECIPE_PORTION'");
+                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderType", b =>
@@ -16090,6 +16175,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Drinks.Recipe", "RecipeSnapshot")
+                        .WithMany()
+                        .HasForeignKey("RecipeIdSnapshot")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Drinks.Size", "Size")
                         .WithMany("OrderDetails")
                         .HasForeignKey("SizeId")
@@ -16108,6 +16198,8 @@ namespace CafeChain.Migrations
 
                     b.Navigation("Order");
 
+                    b.Navigation("RecipeSnapshot");
+
                     b.Navigation("Size");
 
                     b.Navigation("StoreMenuItem");
@@ -16121,6 +16213,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Drinks.Recipe", "RecipeSnapshot")
+                        .WithMany()
+                        .HasForeignKey("RecipeIdSnapshot")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Drinks.Topping", "Topping")
                         .WithMany("OrderToppings")
                         .HasForeignKey("ToppingId")
@@ -16128,6 +16225,8 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.Navigation("OrderDetail");
+
+                    b.Navigation("RecipeSnapshot");
 
                     b.Navigation("Topping");
                 });

@@ -24,6 +24,27 @@ namespace CafeChain.Application.Constants
         public const string Incomplete = "INCOMPLETE";
     }
 
+    public static class ProfitabilityCostSections
+    {
+        public const string BaseBom = "BASE_BOM";
+        public const string PreparedItem = "PREPARED_ITEM";
+        public const string DefaultTopping = "DEFAULT_TOPPING";
+        public const string UnitConversion = "UNIT_CONVERSION";
+    }
+
+    public static class ProfitabilityComponentSources
+    {
+        public const string BaseBom = "BASE_BOM";
+        public const string DefaultTopping = "DEFAULT_TOPPING";
+    }
+
+    public static class ProfitabilityComponentTypes
+    {
+        public const string Ingredient = "Ingredient";
+        public const string PreparedItem = "PreparedItem";
+        public const string Topping = "Topping";
+    }
+
     public static class ToppingPriceTreatments
     {
         public const string IncludedInBasePrice = "INCLUDED_IN_BASE_PRICE";
@@ -37,6 +58,16 @@ namespace CafeChain.Application.Constants
         public const string AddToppingRecipeCost = "ADD_TOPPING_RECIPE_COST";
         public const string DisplayOnly = "DISPLAY_ONLY";
         public static readonly string[] All = { IncludedInDrinkRecipe, AddToppingRecipeCost, DisplayOnly };
+    }
+
+    public static class ToppingQuantityUnits
+    {
+        /// <summary>One execution of the topping recipe; recipe lines own physical UOM conversion.</summary>
+        public const string RecipePortion = "RECIPE_PORTION";
+        public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
+        {
+            RecipePortion
+        };
     }
 
     public static class ProfitabilityTargetModes

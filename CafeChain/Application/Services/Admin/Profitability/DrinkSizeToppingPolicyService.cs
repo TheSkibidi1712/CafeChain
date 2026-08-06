@@ -33,15 +33,19 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Chỉ Chủ doanh nghiệp được cập nhật chính sách topping mặc định.");
             if (request.QuantityPerDrink <= 0)
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Số lượng topping trên mỗi đồ uống phải lớn hơn 0.");
+            if (!ToppingQuantityUnits.All.Contains(request.QuantityUnit))
+                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Đơn vị số lượng topping không hợp lệ.");
             if (request.IsRequired && !request.IsDefaultSelected)
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Topping bắt buộc phải được chọn mặc định.");
             if (!IsValidCombination(request.PriceTreatment, request.CostTreatment))
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Cặp quy tắc giá bán và giá vốn topping không hợp lệ.");
+            if (string.IsNullOrWhiteSpace(request.Reason))
+                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Vui lòng nhập lý do thay đổi chính sách topping.");
 
             var drinkSize = await _context.DrinkSizes.AsNoTracking().FirstOrDefaultAsync(x => x.DrinkSizeId == request.DrinkSizeId && x.Active, cancellationToken);
             var topping = await _context.Toppings.AsNoTracking().FirstOrDefaultAsync(x => x.ToppingId == request.ToppingId && x.Active, cancellationToken);
             if (drinkSize == null || topping == null)
-                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("DrinkSize hoặc topping không tồn tại/đã ngừng hoạt động.");
+                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Size đồ uống hoặc topping không tồn tại/đã ngừng hoạt động.");
 
             var permitted = await _context.DrinkToppings.AsNoTracking().AnyAsync(x => x.DrinkId == drinkSize.DrinkId && x.ToppingId == request.ToppingId && x.Active, cancellationToken)
                 || await _context.DrinkDefaultToppings.AsNoTracking().AnyAsync(x => x.DrinkId == drinkSize.DrinkId && x.ToppingId == request.ToppingId, cancellationToken);
@@ -85,6 +89,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
             entity.PriceTreatment = request.PriceTreatment;
             entity.CostTreatment = request.CostTreatment;
             entity.QuantityPerDrink = request.QuantityPerDrink;
+            entity.QuantityUnit = request.QuantityUnit;
             entity.IsActive = request.IsActive;
             entity.UpdatedAtUtc = DateTime.UtcNow;
 
@@ -99,7 +104,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
                     OldDataJson = oldJson,
                     NewDataJson = Serialize(entity),
                     ActorStaffId = actorStaffId,
-                    Reason = request.Reason?.Trim(),
+                    Reason = request.Reason.Trim(),
                     CreatedAtUtc = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync(cancellationToken);
@@ -115,7 +120,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
             catch (DbUpdateException ex) when (IsActiveDuplicate(ex))
             {
                 await transaction.RollbackAsync(cancellationToken);
-                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Đã có chính sách active cho topping này trong size.");
+                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Đã có chính sách đang áp dụng cho topping này trong size.");
             }
         }
 
@@ -128,10 +133,8 @@ namespace CafeChain.Application.Services.Admin.Profitability
         private static bool IsValidCombination(string price, string cost)
         {
             if (!ToppingPriceTreatments.All.Contains(price) || !ToppingCostTreatments.All.Contains(cost)) return false;
-            if (cost == ToppingCostTreatments.DisplayOnly) return true;
-            return (price == ToppingPriceTreatments.IncludedInBasePrice && cost == ToppingCostTreatments.IncludedInDrinkRecipe)
-                || (price == ToppingPriceTreatments.AddToppingPrice && cost == ToppingCostTreatments.AddToppingRecipeCost)
-                || (price == ToppingPriceTreatments.IncludedInBasePrice && cost == ToppingCostTreatments.AddToppingRecipeCost);
+            if (cost == ToppingCostTreatments.DisplayOnly) return false;
+            return true;
         }
 
         private static DrinkSizeToppingPolicyDto Map(DrinkSizeToppingPolicy x) => new()
@@ -140,12 +143,12 @@ namespace CafeChain.Application.Services.Admin.Profitability
             ToppingName = x.Topping?.Name ?? string.Empty, ToppingPrice = x.Topping?.Price ?? 0,
             IsDefaultSelected = x.IsDefaultSelected, IsRequired = x.IsRequired,
             PriceTreatment = x.PriceTreatment, CostTreatment = x.CostTreatment,
-            QuantityPerDrink = x.QuantityPerDrink, IsActive = x.IsActive,
+            QuantityPerDrink = x.QuantityPerDrink, QuantityUnit = x.QuantityUnit, IsActive = x.IsActive,
             RowVersion = x.RowVersion.Length == 0 ? string.Empty : Convert.ToBase64String(x.RowVersion)
         };
 
         private static string Serialize(DrinkSizeToppingPolicy x) => JsonSerializer.Serialize(new
-        { x.DrinkSizeId, x.ToppingId, x.IsDefaultSelected, x.IsRequired, x.PriceTreatment, x.CostTreatment, x.QuantityPerDrink, x.IsActive });
+        { x.DrinkSizeId, x.ToppingId, x.IsDefaultSelected, x.IsRequired, x.PriceTreatment, x.CostTreatment, x.QuantityPerDrink, x.QuantityUnit, x.IsActive });
 
         private static bool IsActiveDuplicate(DbUpdateException ex)
         {

@@ -30,6 +30,7 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
     private const int ToppingId = 9108;
     private const int ToppingRecipeId = 9109;
     private const int OwnerStaffId = 9110;
+    private const int CashierStaffId = 9111;
 
     [Fact]
     public async Task DrinkSizeRecipe_ExactResolver_IsDeterministic()
@@ -116,6 +117,32 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task DefaultTopping_PaidButIncludedInBom_AddsPriceWithoutDoubleCountingCost()
+    {
+        await SeedBaseAsync(policy: (ToppingPriceTreatments.AddToppingPrice, ToppingCostTreatments.IncludedInDrinkRecipe));
+        var row = await PreviewRowAsync();
+
+        Assert.Equal(10m, row.EstimatedCost);
+        Assert.Equal(5_000m, row.DefaultToppingPriceImpact);
+        Assert.Equal(35_000m, row.EffectiveSellingPrice);
+        Assert.Equal(0m, row.DefaultToppings.Single().CostImpact);
+    }
+
+    [Fact]
+    public async Task ToppingQuantity_MultipliesSalesAndCostImpact()
+    {
+        await SeedBaseAsync(
+            policy: (ToppingPriceTreatments.AddToppingPrice, ToppingCostTreatments.AddToppingRecipeCost),
+            policyQuantity: 2m);
+        var row = await PreviewRowAsync();
+
+        Assert.Equal(20m, row.EstimatedCost);
+        Assert.Equal(10_000m, row.DefaultToppingPriceImpact);
+        Assert.Equal(40_000m, row.EffectiveSellingPrice);
+        Assert.Equal(10m, row.DefaultToppings.Single().CostImpact);
+    }
+
+    [Fact]
     public async Task DefaultTopping_MissingPolicy_ReturnsIncomplete()
     {
         await SeedBaseAsync(addLegacyDefault: true);
@@ -146,6 +173,36 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
         Assert.Equal(24m, row.EstimatedCost);
         Assert.Equal("PreparedItem", row.Components.Single().ItemType);
         Assert.Equal(24m, row.Components.Single().KnownCost);
+    }
+
+    [Fact]
+    public async Task CostCompleteness_SplitsBaseBomPreparedItemToppingAndConversion()
+    {
+        await SeedBaseAsync(usePreparedItem: true);
+        var row = await PreviewRowAsync();
+
+        Assert.Equal(4, row.CostSections.Count);
+        Assert.Equal(ProfitabilityCostStatuses.Complete,
+            row.CostSections.Single(x => x.Section == ProfitabilityCostSections.PreparedItem).Status);
+        Assert.Equal(ProfitabilityCostStatuses.Complete,
+            row.CostSections.Single(x => x.Section == ProfitabilityCostSections.UnitConversion).Status);
+        Assert.Equal(ProfitabilityCostStatuses.Complete,
+            row.CostSections.Single(x => x.Section == ProfitabilityCostSections.DefaultTopping).Status);
+        Assert.Equal(ProfitabilityCostStatuses.Complete,
+            row.CostSections.Single(x => x.Section == ProfitabilityCostSections.BaseBom).Status);
+        Assert.Contains("không có nguyên liệu trực tiếp", row.CostSections
+            .Single(x => x.Section == ProfitabilityCostSections.BaseBom).Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AmbiguousPreparedItemOutput_DoesNotReportCompleteCost()
+    {
+        await SeedBaseAsync(usePreparedItem: true, preparedOutputConfirmed: false);
+        var row = await PreviewRowAsync();
+
+        Assert.Null(row.EstimatedCost);
+        Assert.NotEqual(ProfitabilityCostStatuses.Complete, row.CostStatus);
+        Assert.Contains("Bán thành phẩm", row.CostMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -198,6 +255,77 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
     }
 
     [Fact]
+    public void PriceFormula_ProfitAmountAndMarginValidationAreCorrect()
+    {
+        var service = new PriceSuggestionService();
+        var profit = service.Calculate(new PriceSuggestionRequest
+        {
+            EstimatedCost = 60,
+            CurrentSellingPrice = 100,
+            TargetMode = ProfitabilityTargetModes.ProfitAmount,
+            TargetValue = 25,
+            RoundingMode = ProfitabilityRoundingModes.None
+        });
+        var invalidMargin = service.Calculate(new PriceSuggestionRequest
+        {
+            EstimatedCost = 60,
+            CurrentSellingPrice = 100,
+            TargetMode = ProfitabilityTargetModes.Margin,
+            TargetValue = 100,
+            RoundingMode = ProfitabilityRoundingModes.None
+        });
+
+        Assert.True(profit.IsValid);
+        Assert.Equal(85m, profit.RoundedSuggestedPrice);
+        Assert.False(invalidMargin.IsValid);
+    }
+
+    [Fact]
+    public async Task Profitability_UsesPriceMinusCostAndCorrectDenominators()
+    {
+        await SeedBaseAsync();
+        var row = await PreviewRowAsync();
+
+        Assert.Equal(29_990m, row.GrossProfit);
+        Assert.Equal(decimal.Round(29_990m / 30_000m * 100m, 2), row.GrossMarginPercent);
+        Assert.Equal(decimal.Round(29_990m / 10m * 100m, 2), row.MarkupPercent);
+    }
+
+    [Fact]
+    public async Task Cashier_CannotViewCosting()
+    {
+        await SeedBaseAsync();
+        await using var context = CreateDbContext();
+        var role = await context.Roles.FirstAsync(x => x.Name == RoleConstants.SalesStaff);
+        context.Accounts.Add(new Account
+        {
+            AccountId = CashierStaffId,
+            Email = "profit-cashier@test.local",
+            PasswordHash = "x",
+            Active = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        context.Staffs.Add(new Staff
+        {
+            StaffId = CashierStaffId,
+            AccountId = CashierStaffId,
+            FullName = "Profit Cashier",
+            StoreId = StoreId,
+            Active = true,
+            CreatedAt = DateTime.UtcNow,
+            EmployeeStatus = 2
+        });
+        context.AccountRoles.Add(new AccountRole { AccountId = CashierStaffId, RoleId = role.RoleId });
+        await context.SaveChangesAsync();
+
+        var result = await CreateProfitabilityService(context)
+            .PreviewAsync(StoreId, DrinkId, DateTime.UtcNow, CashierStaffId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("PROFITABILITY_FORBIDDEN", result.ErrorCode);
+    }
+
+    [Fact]
     public async Task PriceUpdate_RejectsClientCostFields()
     {
         await SeedBaseAsync();
@@ -228,6 +356,47 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
         Assert.Equal(30_000m, audit.OldPrice);
         Assert.Equal(32_000m, audit.NewPrice);
         Assert.Equal(1, (await context.PosCatalogStates.SingleAsync()).Version);
+    }
+
+    [Fact]
+    public async Task PriceUpdate_RequiresReasonForCompleteCost()
+    {
+        await SeedBaseAsync();
+        await using var context = CreateDbContext();
+        var rowVersion = Convert.ToBase64String((await context.DrinkSizes.AsNoTracking()
+            .SingleAsync(x => x.DrinkSizeId == DrinkSizeId)).RowVersion);
+
+        var result = await CreatePricingService(context).UpdatePriceAsync(new UpdateDrinkSizePriceRequest
+        {
+            DrinkSizeId = DrinkSizeId,
+            NewSellingPrice = 32_000,
+            ExpectedRowVersion = rowVersion
+        }, StoreId, OwnerStaffId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("PRICE_CHANGE_REASON_REQUIRED", result.ErrorCode);
+        Assert.Empty(await context.DrinkSizePriceAudits.ToListAsync());
+    }
+
+    [Fact]
+    public async Task PriceUpdate_IncompleteCostRequiresExplicitConfirmation()
+    {
+        await SeedBaseAsync(layerQuantity: 0);
+        await using var context = CreateDbContext();
+        var rowVersion = Convert.ToBase64String((await context.DrinkSizes.AsNoTracking()
+            .SingleAsync(x => x.DrinkSizeId == DrinkSizeId)).RowVersion);
+
+        var result = await CreatePricingService(context).UpdatePriceAsync(new UpdateDrinkSizePriceRequest
+        {
+            DrinkSizeId = DrinkSizeId,
+            NewSellingPrice = 32_000,
+            ExpectedRowVersion = rowVersion,
+            Reason = "Điều chỉnh có xác nhận thiếu giá vốn"
+        }, StoreId, OwnerStaffId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("INCOMPLETE_COST_CONFIRMATION_REQUIRED", result.ErrorCode);
+        Assert.Empty(await context.DrinkSizePriceAudits.ToListAsync());
     }
 
     [Fact]
@@ -265,6 +434,7 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
             QuantityPerDrink = 1, IsActive = true, Reason = "Khởi tạo policy"
         }, OwnerStaffId);
         Assert.True(created.IsSuccess, created.Message);
+        Assert.Equal(ToppingQuantityUnits.RecipePortion, created.Data.QuantityUnit);
 
         var updated = await service.UpsertAsync(new UpsertDrinkSizeToppingPolicyRequest
         {
@@ -280,6 +450,90 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
         Assert.Null(audits[0].OldDataJson);
         Assert.Contains(ToppingPriceTreatments.IncludedInBasePrice, audits[1].OldDataJson);
         Assert.Contains(ToppingPriceTreatments.AddToppingPrice, audits[1].NewDataJson);
+    }
+
+    [Fact]
+    public async Task DefaultToppingPolicy_RequiresReason()
+    {
+        await SeedBaseAsync(addLegacyDefault: true);
+        await using var context = CreateDbContext();
+
+        var result = await new DrinkSizeToppingPolicyService(context).UpsertAsync(
+            new UpsertDrinkSizeToppingPolicyRequest
+            {
+                DrinkSizeId = DrinkSizeId,
+                ToppingId = ToppingId,
+                IsDefaultSelected = true,
+                PriceTreatment = ToppingPriceTreatments.IncludedInBasePrice,
+                CostTreatment = ToppingCostTreatments.AddToppingRecipeCost,
+                QuantityPerDrink = 1,
+                IsActive = true
+            }, OwnerStaffId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("lý do", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(await context.DrinkSizeToppingPolicyAudits.ToListAsync());
+    }
+
+    [Fact]
+    public async Task ToppingQuantity_RequiresSupportedUnit()
+    {
+        await SeedBaseAsync(addLegacyDefault: true);
+        await using var context = CreateDbContext();
+
+        var result = await new DrinkSizeToppingPolicyService(context).UpsertAsync(
+            new UpsertDrinkSizeToppingPolicyRequest
+            {
+                DrinkSizeId = DrinkSizeId,
+                ToppingId = ToppingId,
+                IsDefaultSelected = true,
+                PriceTreatment = ToppingPriceTreatments.IncludedInBasePrice,
+                CostTreatment = ToppingCostTreatments.AddToppingRecipeCost,
+                QuantityPerDrink = 1,
+                QuantityUnit = string.Empty,
+                IsActive = true,
+                Reason = "Test đơn vị"
+            }, OwnerStaffId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Đơn vị", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ProfitabilityUi_UsesVietnameseBusinessTermsAndLabelsRoundingField()
+    {
+        var root = FindRepoRoot();
+        var view = File.ReadAllText(Path.Combine(root, "CafeChain", "Areas", "Admin", "Views", "AdminDrinkProfitability", "Index.cshtml"));
+        var script = File.ReadAllText(Path.Combine(root, "CafeChain", "wwwroot", "js", "Admin", "Profitability", "drink-profitability.js"));
+        var renderedScope = view + script;
+
+        Assert.Contains("Quy tắc làm tròn giá", view);
+        Assert.Contains("Biên lợi nhuận gộp (Margin)", view);
+        Assert.Contains("Tỷ lệ cộng giá (Markup)", view);
+        Assert.Contains("Phần công thức", view);
+        Assert.Contains("policyQuantityUnit", script);
+        Assert.DoesNotContain("Contract theo DrinkSize", renderedScope, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("policy active", renderedScope, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(">DRINK_RECIPE<", renderedScope, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("compatibility", renderedScope, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MenuAndPreparedItemUi_DoNotRenderTechnicalCostingTerms()
+    {
+        var root = FindRepoRoot();
+        var storeMenu = File.ReadAllText(Path.Combine(root, "CafeChain", "wwwroot", "js", "Admin", "StoreMenu", "store-menu.js"));
+        var inventory = File.ReadAllText(Path.Combine(root, "CafeChain", "Areas", "Admin", "Views", "AdminStoreInventory", "Partials", "_InventoryTablePartial.cshtml"));
+        var controller = File.ReadAllText(Path.Combine(root, "CafeChain", "Areas", "Admin", "Controllers", "AdminDrinkProfitabilityController.cs"));
+
+        Assert.DoesNotContain("Publish SKU", storeMenu, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Dùng giá global", storeMenu, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Dữ liệu StoreMenuItem", storeMenu, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Dòng compatibility", inventory, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Layer #", inventory, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("cost layer", inventory, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("NEEDS_REVIEW", controller);
+        Assert.Contains("Cấu hình topping cũ cần được xác nhận lại", controller);
     }
 
     [Fact]
@@ -331,7 +585,9 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
         (string Price, string Cost)? policy = null,
         bool addLegacyDefault = false,
         bool usePreparedItem = false,
-        decimal layerQuantity = 100)
+        decimal layerQuantity = 100,
+        bool preparedOutputConfirmed = true,
+        decimal policyQuantity = 1m)
     {
         await using var context = CreateDbContext();
         context.Stores.Add(new Store { StoreId = StoreId, Name = "PF Store", Address = "Test", Phone = "0900000000", Active = true, CreatedAt = DateTime.UtcNow });
@@ -365,7 +621,18 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
                 const int preparedId = 9120;
                 const int childRecipeId = 9121;
                 context.PreparedItems.Add(new PreparedItem { PreparedItemId = preparedId, Code = "PF-BTP", Name = "BTP", BaseUnitId = UnitId, Active = true });
-                context.Recipes.Add(new Recipe { RecipeId = childRecipeId, RecipeCode = "PF-CHILD", Name = "BTP recipe", Active = true, Status = "Active", PreparedItemId = preparedId, OutputQuantity = 10, OutputUnitId = UnitId, EffectiveDate = DateTime.UtcNow.AddDays(-1) });
+                context.Recipes.Add(new Recipe
+                {
+                    RecipeId = childRecipeId,
+                    RecipeCode = "PF-CHILD",
+                    Name = "BTP recipe",
+                    Active = true,
+                    Status = "Active",
+                    PreparedItemId = preparedId,
+                    OutputQuantity = preparedOutputConfirmed ? 10 : null,
+                    OutputUnitId = preparedOutputConfirmed ? UnitId : null,
+                    EffectiveDate = DateTime.UtcNow.AddDays(-1)
+                });
                 context.RecipeDetails.Add(new RecipeDetail { RecipeDetailId = RecipeId, RecipeId = RecipeId, ChildRecipeId = childRecipeId, Quantity = 2, UnitId = UnitId });
                 context.InventoryCostLayers.Add(new InventoryCostLayer { InventoryCostLayerId = RecipeId, PreparedItemId = preparedId, StoreId = StoreId, Quantity = 100, RemainingQuantity = layerQuantity, UnitCost = 12, CreatedAt = DateTime.UtcNow.AddDays(-1) });
             }
@@ -384,7 +651,7 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
                 {
                     DrinkSizeToppingPolicyId = 9130, DrinkSizeId = DrinkSizeId, ToppingId = ToppingId,
                     IsDefaultSelected = true, PriceTreatment = policy.Value.Price, CostTreatment = policy.Value.Cost,
-                    QuantityPerDrink = 1, IsActive = true, CreatedByStaffId = OwnerStaffId,
+                    QuantityPerDrink = policyQuantity, IsActive = true, CreatedByStaffId = OwnerStaffId,
                     CreatedAtUtc = DateTime.UtcNow, UpdatedAtUtc = DateTime.UtcNow
                 });
             }

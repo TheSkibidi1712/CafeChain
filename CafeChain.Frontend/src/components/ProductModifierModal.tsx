@@ -53,7 +53,10 @@ export default function ProductModifierModal({
           isRequired: policy?.isRequired ?? false,
           isDefaultSelected: policy?.isDefaultSelected ?? false,
           priceTreatment: policy?.priceTreatment,
+          costTreatment: policy?.costTreatment,
           quantityPerDrink: policy?.quantityPerDrink ?? 1,
+          quantityUnit: policy?.quantityUnit ?? 'RECIPE_PORTION',
+          recipeId: policy?.recipeId ?? topping.recipeId,
         }
       })
   }
@@ -131,7 +134,10 @@ export default function ProductModifierModal({
         isRequired: policy?.isRequired ?? false,
         isDefaultSelected: policy?.isDefaultSelected ?? false,
         priceTreatment: policy?.priceTreatment,
+        costTreatment: policy?.costTreatment,
         quantityPerDrink: policy?.quantityPerDrink ?? 1,
+        quantityUnit: policy?.quantityUnit ?? 'RECIPE_PORTION',
+        recipeId: policy?.recipeId ?? topping.recipeId,
       }]
     })
   }

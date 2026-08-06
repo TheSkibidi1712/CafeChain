@@ -82,6 +82,19 @@ namespace CafeChain.Application.Services.POS
                 .ThenBy(x => x.DrinkSizeId)
                 .ToListAsync(cancellationToken);
 
+            var menuDrinkIds = menuRows.Select(x => x.DrinkSize.DrinkId).Distinct().ToArray();
+            var drinkRecipes = await _context.Recipes.AsNoTracking()
+                .Where(x => x.DrinkId.HasValue
+                    && menuDrinkIds.Contains(x.DrinkId.Value)
+                    && x.ToppingId == null
+                    && x.Active
+                    && x.Status == "Active"
+                    && (!x.EffectiveDate.HasValue || x.EffectiveDate.Value <= asOfUtc))
+                .OrderByDescending(x => x.EffectiveDate ?? DateTime.MinValue)
+                .ThenByDescending(x => x.RecipeId)
+                .Select(x => new { x.RecipeId, x.DrinkId, x.SizeId })
+                .ToListAsync(cancellationToken);
+
             var availability = new Dictionary<int, StoreMenuAvailabilityDto>();
             var iceEligibility = new Dictionary<int, POSIceEligibilityDto>();
             foreach (var row in menuRows)
@@ -125,6 +138,24 @@ namespace CafeChain.Application.Services.POS
                 .GroupBy(x => x.DrinkId)
                 .ToDictionary(x => x.Key, x => x.Select(y => y.Topping).ToList());
 
+            var catalogToppingIds = storeToppings.Select(x => x.Topping.Id).Distinct().ToArray();
+            var toppingRecipeIds = await _context.Recipes.AsNoTracking()
+                .Where(x => x.ToppingId.HasValue
+                    && catalogToppingIds.Contains(x.ToppingId.Value)
+                    && x.DrinkId == null
+                    && x.Active
+                    && x.Status == "Active"
+                    && (!x.EffectiveDate.HasValue || x.EffectiveDate.Value <= asOfUtc))
+                .OrderByDescending(x => x.EffectiveDate ?? DateTime.MinValue)
+                .ThenByDescending(x => x.RecipeId)
+                .Select(x => new { ToppingId = x.ToppingId!.Value, x.RecipeId })
+                .ToListAsync(cancellationToken);
+            var toppingRecipeById = toppingRecipeIds
+                .GroupBy(x => x.ToppingId)
+                .ToDictionary(x => x.Key, x => x.First().RecipeId);
+            foreach (var topping in storeToppings.Select(x => x.Topping))
+                topping.RecipeId = toppingRecipeById.GetValueOrDefault(topping.Id);
+
             var drinkSizeIds = menuRows.Select(x => x.DrinkSizeId).Distinct().ToArray();
             var policiesByDrinkSize = await _context.DrinkSizeToppingPolicies.AsNoTracking()
                 .Where(x => drinkSizeIds.Contains(x.DrinkSizeId) && x.IsActive)
@@ -139,7 +170,10 @@ namespace CafeChain.Application.Services.POS
                         IsDefaultSelected = x.IsDefaultSelected,
                         IsRequired = x.IsRequired,
                         PriceTreatment = x.PriceTreatment,
-                        QuantityPerDrink = x.QuantityPerDrink
+                        CostTreatment = x.CostTreatment,
+                        QuantityPerDrink = x.QuantityPerDrink,
+                        QuantityUnit = x.QuantityUnit,
+                        RecipeId = toppingRecipeById.GetValueOrDefault(x.ToppingId)
                     }
                 })
                 .ToListAsync(cancellationToken);
@@ -156,10 +190,18 @@ namespace CafeChain.Application.Services.POS
                     {
                         var state = availability[row.DrinkSizeId];
                         iceEligibility.TryGetValue(row.DrinkSizeId, out var ice);
+                        var recipeId = drinkRecipes.FirstOrDefault(x =>
+                                x.DrinkId == row.DrinkSize.DrinkId
+                                && x.SizeId == row.DrinkSize.SizeId)?.RecipeId
+                            ?? drinkRecipes.FirstOrDefault(x =>
+                                x.DrinkId == row.DrinkSize.DrinkId
+                                && x.SizeId == null)?.RecipeId
+                            ?? 0;
                         return new POSMenuItemSizeDto
                         {
                             StoreMenuItemId = row.StoreMenuItemId,
                             DrinkSizeId = row.DrinkSizeId,
+                            RecipeId = recipeId,
                             SizeId = row.DrinkSize.SizeId,
                             SizeName = row.DrinkSize.Size.Name,
                             Price = row.GetEffectivePrice(),

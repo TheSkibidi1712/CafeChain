@@ -42,6 +42,7 @@ interface CartItem {
   acceptedBasePrice: number
   storeMenuItemId: number
   drinkSizeId: number
+  recipeIdSnapshot: number
   priceSource: string
   catalogVersion: number
   categoryId: number
@@ -172,7 +173,10 @@ const applyToppingPolicy = (
     isRequired: policy?.isRequired ?? false,
     isDefaultSelected: policy?.isDefaultSelected ?? false,
     priceTreatment: policy?.priceTreatment,
+    costTreatment: policy?.costTreatment,
     quantityPerDrink: policy?.quantityPerDrink ?? 1,
+    quantityUnit: policy?.quantityUnit ?? 'RECIPE_PORTION',
+    recipeId: policy?.recipeId ?? topping.recipeId,
   }
 }
 
@@ -664,6 +668,7 @@ export default function POSLayout() {
       acceptedBasePrice: selectedSize.price,
       storeMenuItemId: selectedSize.storeMenuItemId,
       drinkSizeId: selectedSize.drinkSizeId,
+      recipeIdSnapshot: selectedSize.recipeId,
       priceSource: selectedSize.priceSource,
       catalogVersion: item.catalogVersion,
       categoryId: item.categoryId,
@@ -1147,6 +1152,7 @@ export default function POSLayout() {
       menuItemId: ci.id,
       storeMenuItemId: ci.storeMenuItemId,
       drinkSizeId: ci.drinkSizeId,
+      recipeIdSnapshot: ci.recipeIdSnapshot,
       name: ci.name,
       sizeId: ci.sizeId ?? null,
       quantity: ci.quantity,
@@ -1160,6 +1166,11 @@ export default function POSLayout() {
         toppingId: topping.id,
         name: topping.name,
         acceptedPrice: topping.acceptedPrice ?? topping.price,
+        quantityPerDrink: topping.quantityPerDrink ?? 1,
+        quantityUnit: topping.quantityUnit ?? 'RECIPE_PORTION',
+        recipeIdSnapshot: topping.recipeId ?? null,
+        priceTreatment: topping.priceTreatment ?? 'ADD_TOPPING_PRICE',
+        costTreatment: topping.costTreatment ?? 'ADD_TOPPING_RECIPE_COST',
       })),
     }))
 
@@ -1169,6 +1180,7 @@ export default function POSLayout() {
       menuItemId: ci.id,
       storeMenuItemId: ci.storeMenuItemId,
       drinkSizeId: ci.drinkSizeId,
+      recipeIdSnapshot: ci.recipeIdSnapshot,
       name: ci.name,
       categoryId: ci.categoryId,
       sizeId: ci.sizeId ?? null,
@@ -1186,6 +1198,11 @@ export default function POSLayout() {
         name: topping.name,
         price: topping.acceptedPrice ?? topping.price,
         acceptedPrice: topping.acceptedPrice ?? topping.price,
+        quantityPerDrink: topping.quantityPerDrink ?? 1,
+        quantityUnit: topping.quantityUnit ?? 'RECIPE_PORTION',
+        recipeIdSnapshot: topping.recipeId ?? null,
+        priceTreatment: topping.priceTreatment ?? 'ADD_TOPPING_PRICE',
+        costTreatment: topping.costTreatment ?? 'ADD_TOPPING_RECIPE_COST',
       })),
     }))
 
@@ -1269,6 +1286,7 @@ export default function POSLayout() {
       sizeId: ci.sizeId,
       storeMenuItemId: ci.storeMenuItemId,
       drinkSizeId: ci.drinkSizeId,
+      recipeIdSnapshot: ci.recipeIdSnapshot,
       acceptedBasePrice: ci.acceptedBasePrice,
       acceptedUnitPrice: ci.price,
       priceSource: ci.priceSource,
@@ -1280,6 +1298,11 @@ export default function POSLayout() {
         toppingId: topping.id,
         name: topping.name,
         acceptedPrice: topping.acceptedPrice ?? topping.price,
+        quantityPerDrink: topping.quantityPerDrink ?? 1,
+        quantityUnit: topping.quantityUnit ?? 'RECIPE_PORTION',
+        recipeIdSnapshot: topping.recipeId ?? null,
+        priceTreatment: topping.priceTreatment ?? 'ADD_TOPPING_PRICE',
+        costTreatment: topping.costTreatment ?? 'ADD_TOPPING_RECIPE_COST',
       })),
     }))
 

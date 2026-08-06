@@ -4,6 +4,7 @@ using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Services.Inventories;
 using Microsoft.AspNetCore.Mvc;
 using CafeChain.Data;
 using Microsoft.EntityFrameworkCore;
@@ -21,19 +22,22 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminActorContextAccessor _actor;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
         private readonly AppDbContext? _context;
+        private readonly IUnitConversionService? _unitConversion;
 
         public AdminRestockRequestsController(
             IRestockRequestService service,
             IRestockRequestWorkflowService workflow,
             IAdminActorContextAccessor actor,
             IAdminStoreScopeResolver storeScopeResolver,
-            AppDbContext? context = null)
+            AppDbContext? context = null,
+            IUnitConversionService? unitConversion = null)
         {
             _service = service;
             _workflow = workflow;
             _actor = actor;
             _storeScopeResolver = storeScopeResolver;
             _context = context;
+            _unitConversion = unitConversion;
         }
 
         [HttpGet]
@@ -367,6 +371,29 @@ namespace CafeChain.Areas.Admin.Controllers
             return RedirectToAction(nameof(Details), new { id = model.RestockRequestId });
         }
 
+        [HttpGet]
+        [RequirePermission(PermissionConstants.RestockCreate)]
+        public async Task<IActionResult> GetDemandUnitOptions(int ingredientId)
+        {
+            if (!await HasEffectivePermissionAsync(PermissionConstants.RestockCreate))
+                return Forbid();
+            if (_unitConversion == null)
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    success = false,
+                    message = "Dịch vụ quy đổi đơn vị chưa sẵn sàng."
+                });
+
+            var result = await _unitConversion.GetActiveUnitOptionsAsync(ingredientId);
+            return result.IsSuccess && result.Data != null
+                ? Json(new
+                {
+                    success = true,
+                    data = ProcurementUnitPolicy.Filter(result.Data)
+                })
+                : BadRequest(new { success = false, message = result.Message });
+        }
+
         private async Task PopulateDemandOptionsAsync(int storeId)
         {
             if (_context == null)
@@ -377,14 +404,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 .OrderBy(x => x.Name)
                 .Select(x => new { x.IngredientId, x.Name })
                 .ToListAsync();
-            ViewBag.Units = await _context.Units
-                .AsNoTracking()
-                .Where(x => x.Active && (x.UnitCode == ProcurementUnitCodes.Kilogram
-                    || x.UnitCode == ProcurementUnitCodes.Liter
-                    || x.UnitCode == ProcurementUnitCodes.Piece))
-                .OrderBy(x => x.UnitCode)
-                .Select(x => new { x.UnitId, x.UnitCode, x.Name })
-                .ToListAsync();
+            ViewBag.Units = new List<object>();
             ViewBag.SelectedStoreId = storeId;
         }
 
