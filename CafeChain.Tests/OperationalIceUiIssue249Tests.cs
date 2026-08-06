@@ -27,7 +27,7 @@ public sealed class OperationalIceUiIssue249Tests : IntegrationTestBase
         Assert.Contains("Cần đối soát", details);
         Assert.Contains("Bàn giao cùng ngày", details);
         Assert.Contains("Gửi chốt ca", details);
-        Assert.Contains("Duyệt hao hụt", details);
+        Assert.Contains("Duyệt chênh lệch", details);
     }
 
     [Fact]

@@ -2,6 +2,7 @@
 @{
     Layout = null;
     ViewData["Title"] = "Chọn ứng dụng";
+    var availableApps = Model.Apps.Where(x => x.IsAvailable).ToList();
 }
 <!doctype html>
 <html lang="vi">
@@ -13,28 +14,57 @@
     <link rel="stylesheet" href="~/css/AppLauncher/app-launcher.css" asp-append-version="true" />
 </head>
 <body>
+    <div class="launcher-bg-decor" aria-hidden="true">
+        <div class="launcher-circle launcher-circle--1"></div>
+        <div class="launcher-circle launcher-circle--2"></div>
+        <div class="launcher-circle launcher-circle--3"></div>
+    </div>
+
     <main class="launcher-shell"
           id="appLauncher"
           data-launch-pos-url="@Url.Action("LaunchPos", "AppLauncher")"
           data-pos-status-url="@Url.Action("PosStatus", "AppLauncher")"
-          data-pos-token-url="@Url.Action("IssuePosToken", "StaffHub")">
+          data-staffhub-pos-url="@Url.Action("Index", "StaffHub", new { openPos = 1 })">
         @Html.AntiForgeryToken()
         <header class="launcher-header">
-            <div>
-                <span class="launcher-brand"><i class="bi bi-cup-hot-fill"></i> CafeChain</span>
+            <div class="launcher-header-left">
+                <span class="launcher-eyebrow"><i class="bi bi-shield-lock-fill"></i> Không gian làm việc</span>
+                <div class="launcher-brand-row">
+                    <span class="launcher-brand"><span class="launcher-brand-box"><i class="bi bi-cup-hot-fill"></i></span> CafeChain</span>
+                </div>
                 <h1>Xin chào, @Model.DisplayName</h1>
                 <p>Chọn ứng dụng bạn muốn sử dụng. Danh sách được giới hạn theo quyền của tài khoản.</p>
             </div>
-            <partial name="~/Views/Shared/_LogoutForm.cshtml"
-                     model="CafeChain.ViewModels.Shared.LogoutFormViewModel.AppLauncher()" />
+            <div class="launcher-header-right">
+                <partial name="~/Views/Shared/_LogoutForm.cshtml"
+                         model="CafeChain.ViewModels.Shared.LogoutFormViewModel.AppLauncher()" />
+            </div>
         </header>
 
-        @if (Model.HasAvailableApps)
+        @if (availableApps.Count > 0)
         {
-            <section class="launcher-grid" aria-label="Ứng dụng được phép truy cập">
-                @foreach (var app in Model.Apps.Where(x => x.IsAvailable))
+            <section class="launcher-grid launcher-grid--count-@availableApps.Count" aria-label="Ứng dụng được phép truy cập">
+                @foreach (var app in availableApps)
                 {
-                    <a class="launcher-card @(app.RequiresLaunch ? "launcher-card-pos" : string.Empty)"
+                    var appClass = "launcher-card--default";
+                    if (app.Icon.Contains("speedometer") || app.Title.ToLower().Contains("dashboard") || app.Title.ToLower().Contains("quản trị"))
+                    {
+                        appClass = "launcher-card--admindashboard";
+                    }
+                    else if (app.Icon.Contains("calendar") || app.Title.ToLower().Contains("staff") || app.Title.ToLower().Contains("nhân viên"))
+                    {
+                        appClass = "launcher-card--staffhub";
+                    }
+                    else if (app.RequiresLaunch || app.Icon.Contains("cash") || app.Title.ToLower().Contains("pos") || app.Title.ToLower().Contains("bán hàng"))
+                    {
+                        appClass = "launcher-card--pos";
+                    }
+                    else if (app.Title.ToLower().Contains("đá"))
+                    {
+                        appClass = "launcher-card--operationalice";
+                    }
+
+                    <a class="launcher-card @appClass @(app.RequiresLaunch ? "launcher-card-pos" : string.Empty)"
                        href="@app.Route"
                        data-requires-launch="@app.RequiresLaunch.ToString().ToLowerInvariant()"
                        aria-label="Mở @app.Title">
@@ -42,6 +72,7 @@
                         <span class="launcher-card-body">
                             <strong>@app.Title</strong>
                             <span>@app.Description</span>
+                            <span class="launcher-card-action">Truy cập <i class="bi bi-chevron-right"></i></span>
                         </span>
                         <i class="bi bi-arrow-right launcher-arrow" aria-hidden="true"></i>
                     </a>
@@ -52,9 +83,11 @@
         else
         {
             <section class="launcher-empty" role="status">
-                <i class="bi bi-shield-lock"></i>
-                <h2>Chưa có ứng dụng được cấp quyền</h2>
-                <p>Liên hệ quản trị viên để kiểm tra role hoặc quyền ghi đè của tài khoản.</p>
+                <div class="launcher-empty-card">
+                    <span class="launcher-empty-icon"><i class="bi bi-shield-lock-fill"></i></span>
+                    <h2>Chưa có ứng dụng được cấp quyền</h2>
+                    <p>Liên hệ quản trị viên để kiểm tra role hoặc quyền ghi đè của tài khoản.</p>
+                </div>
             </section>
         }
     </main>

@@ -29,14 +29,54 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             var activeStatuses = WorkShiftStatuses.ActiveResponsibility;
             return await _context.WorkShifts
                 .Include(ws => ws.User)
+                .Include(ws => ws.CurrentOperatorStaff)
+                .Include(ws => ws.PosTerminal)
+                .OrderByDescending(ws => ws.StartTimeUtc)
+                .ThenByDescending(ws => ws.ShiftId)
                 .FirstOrDefaultAsync(ws => ws.UserId == userId && ws.StoreId == storeId
-                    && (activeStatuses.Contains(ws.Status) || ws.Status == "Open"));
+                    && activeStatuses.Contains(ws.Status));
         }
+
+        public async Task<WorkShift?> GetActiveShiftByTerminalAsync(string terminalId, int storeId)
+        {
+            var activeStatuses = WorkShiftStatuses.ActiveResponsibility;
+            return await _context.WorkShifts
+                .Include(x => x.User)
+                .Include(x => x.CurrentOperatorStaff)
+                .Include(x => x.PosTerminal)
+                .OrderByDescending(x => x.StartTimeUtc)
+                .ThenByDescending(x => x.ShiftId)
+                .FirstOrDefaultAsync(x => x.StoreId == storeId
+                    && x.PosTerminalId == terminalId
+                    && activeStatuses.Contains(x.Status));
+        }
+
+        public async Task<IReadOnlyList<PosTerminal>> GetActiveTerminalsAsync(int storeId)
+        {
+            return await _context.PosTerminals.AsNoTracking()
+                .Where(x => x.StoreId == storeId && x.Active && x.Store.Active)
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+        }
+
+        public Task<Staff?> GetStaffForOperatorAsync(int staffId) => _context.Staffs
+            .Include(x => x.Account)
+            .SingleOrDefaultAsync(x => x.StaffId == staffId);
+
+        public async Task<IReadOnlyList<Staff>> GetActiveOperatorCandidatesAsync(int storeId) =>
+            await _context.Staffs.AsNoTracking()
+                .Include(x => x.Account)
+                .Where(x => x.StoreId == storeId && x.Active && x.Account.Active)
+                .OrderBy(x => x.FullName)
+                .ThenBy(x => x.StaffId)
+                .ToListAsync();
 
         public async Task<WorkShift?> GetShiftByIdAsync(int shiftId, int userId, int storeId)
         {
             return await _context.WorkShifts
                 .Include(ws => ws.User)
+                .Include(ws => ws.CurrentOperatorStaff)
+                .Include(ws => ws.PosTerminal)
                 .FirstOrDefaultAsync(ws =>
                     ws.ShiftId == shiftId &&
                     ws.UserId == userId &&
@@ -47,6 +87,8 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         {
             return await _context.WorkShifts
                 .Include(ws => ws.User)
+                .Include(ws => ws.CurrentOperatorStaff)
+                .Include(ws => ws.PosTerminal)
                 .FirstOrDefaultAsync(ws => ws.ShiftId == shiftId);
         }
 
@@ -60,19 +102,17 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             try
             {
                 var activeStatuses = WorkShiftStatuses.ActiveResponsibility;
-                var staffConflict = await _context.WorkShifts.AnyAsync(x =>
-                    x.UserId == shift.UserId && (activeStatuses.Contains(x.Status) || x.Status == "Open"));
-                if (staffConflict)
-                    throw new WorkShiftBusinessException(
-                        WorkShiftErrorCodes.StaffAlreadyHasOpenShift,
-                        "Nhân viên đang chịu trách nhiệm một phiên POS khác.");
+                var staffConflict = await _context.WorkShifts.FirstOrDefaultAsync(x =>
+                    x.UserId == shift.UserId && activeStatuses.Contains(x.Status));
+                if (staffConflict != null)
+                    throw BuildStaffConflict(staffConflict);
 
                 if (!string.IsNullOrWhiteSpace(shift.PosTerminalId))
                 {
-                    var terminalConflict = await _context.WorkShifts.AnyAsync(x =>
+                    var terminalConflict = await _context.WorkShifts.FirstOrDefaultAsync(x =>
                         x.PosTerminalId == shift.PosTerminalId
-                        && (activeStatuses.Contains(x.Status) || x.Status == "Open"));
-                    if (terminalConflict)
+                        && activeStatuses.Contains(x.Status));
+                    if (terminalConflict != null)
                         throw new WorkShiftBusinessException(
                             WorkShiftErrorCodes.TerminalAlreadyHasOpenShift,
                             "Terminal đang có phiên POS chưa kết thúc.");
@@ -96,6 +136,20 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     await transaction.DisposeAsync();
             }
         }
+
+        private static WorkShiftBusinessException BuildStaffConflict(WorkShift shift) => shift.Status switch
+        {
+            WorkShiftStatuses.Open => new(
+                WorkShiftErrorCodes.StaffAlreadyHasOpenShift,
+                "Bạn đang có một phiên POS hoạt động. Hãy tiếp tục sử dụng hoặc đóng phiên hiện tại trước khi mở phiên mới."),
+            WorkShiftStatuses.Closing => new(
+                WorkShiftErrorCodes.WorkShiftPendingClose,
+                "Phiên POS trước đang trong quá trình chốt két. Hãy hoàn tất đóng phiên trước khi mở phiên mới."),
+            WorkShiftStatuses.ExpiredPendingClose => new(
+                WorkShiftErrorCodes.WorkShiftPendingClose,
+                "Phiên POS trước đã hết thời lượng nhưng chưa được kiểm đếm và đóng. Hãy xử lý phiên cũ trước khi mở phiên mới."),
+            _ => new(WorkShiftErrorCodes.ConcurrencyConflict, "Trạng thái phiên POS đã thay đổi.")
+        };
 
         public async Task UpdateShiftAsync(WorkShift shift)
         {

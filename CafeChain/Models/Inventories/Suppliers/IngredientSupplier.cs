@@ -50,6 +50,15 @@ namespace CafeChain.Models.Inventories.Suppliers
 
         public int? LooseProcurementUnitId { get; set; }
 
+        /// <summary>
+        /// Determines whether the loose unit price is derived from the package or entered independently.
+        /// </summary>
+        public string LoosePriceMode { get; set; } = LoosePurchasePriceModes.Independent;
+
+        public decimal? LooseMinimumOrderQuantity { get; set; }
+
+        public decimal? LooseQuantityStep { get; set; }
+
         public string? Note { get; set; }
 
         public DateTime CreatedAt { get; set; }
@@ -69,5 +78,14 @@ namespace CafeChain.Models.Inventories.Suppliers
 
         public virtual ICollection<IngredientSupplierPriceHistory> PriceHistories { get; set; }
             = new List<IngredientSupplierPriceHistory>();
+    }
+
+    public static class LoosePurchasePriceModes
+    {
+        public const string Derived = "DERIVED";
+        public const string Independent = "INDEPENDENT";
+
+        public static bool IsValid(string? value) =>
+            value == Derived || value == Independent;
     }
 }

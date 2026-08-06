@@ -6,12 +6,14 @@ using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Options;
 using CafeChain.Application.Results;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
+using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Models.Operations;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
 
@@ -31,6 +33,8 @@ namespace CafeChain.Application.Services.POS
         private readonly IWorkShiftAuditService? _audit;
         private readonly IAdminPermissionService? _permissions;
         private readonly IWorkShiftNotificationPublisher? _notifications;
+        private readonly IPosSessionExchangeService? _posSessionExchange;
+        private readonly IAccountRepository? _accounts;
 
         public WorkShiftService(
             IWorkShiftRepository shiftRepo,
@@ -44,7 +48,9 @@ namespace CafeChain.Application.Services.POS
             IRequestDeduplicationService? deduplication = null,
             IWorkShiftAuditService? audit = null,
             IAdminPermissionService? permissions = null,
-            IWorkShiftNotificationPublisher? notifications = null)
+            IWorkShiftNotificationPublisher? notifications = null,
+            IPosSessionExchangeService? posSessionExchange = null,
+            IAccountRepository? accounts = null)
         {
             _shiftRepo = shiftRepo;
             _posRepo = posRepo;
@@ -59,15 +65,39 @@ namespace CafeChain.Application.Services.POS
             _audit = audit;
             _permissions = permissions;
             _notifications = notifications;
+            _posSessionExchange = posSessionExchange;
+            _accounts = accounts;
         }
 
         public async Task<ServiceResult> OpenShiftAsync(int userId, int storeId, OpenShiftRequestDto request)
         {
             Models.Systems.RequestDeduplication? dedupEntry = null;
             var ownsTransaction = false;
+            var terminalId = string.Empty;
             try
             {
                 request ??= new OpenShiftRequestDto();
+                PosSessionExchangeContextDto? exchangeContext = null;
+                if (request.ExchangeContextId.HasValue)
+                {
+                    if (_posSessionExchange == null || !request.AccountId.HasValue)
+                        return ServiceResult.Failure("Thiếu ngữ cảnh mở POS từ StaffHub.",
+                            errorCode: WorkShiftErrorCodes.PosOpenContextRequired);
+                    exchangeContext = await _posSessionExchange.GetContextAsync(
+                        request.ExchangeContextId.Value, request.AccountId.Value, userId, storeId);
+                    if (exchangeContext == null
+                        || exchangeContext.Purpose != PosSessionPurposes.OpenWorkShift
+                        || string.IsNullOrWhiteSpace(exchangeContext.TerminalId)
+                        || string.IsNullOrWhiteSpace(exchangeContext.RequestKey))
+                        return ServiceResult.Failure("Ngữ cảnh mở POS không hợp lệ hoặc đã hết hạn.",
+                            errorCode: WorkShiftErrorCodes.PosOpenContextInvalid);
+
+                    request.RequestKey = exchangeContext.RequestKey;
+                    request.PosTerminalId = exchangeContext.TerminalId;
+                    request.Reason = exchangeContext.Reason;
+                    request.LateOpeningReason = exchangeContext.Reason;
+                    request.OtpChallengePublicId = exchangeContext.OtpChallengePublicId;
+                }
                 if (_deduplication != null
                     && (string.IsNullOrWhiteSpace(request.RequestKey) || request.RequestKey.Trim().Length > 200))
                     return ServiceResult.Failure("RequestKey không hợp lệ.", errorCode: WorkShiftErrorCodes.InvalidRequestKey);
@@ -81,7 +111,7 @@ namespace CafeChain.Application.Services.POS
                         $"Tiền đầu phiên không hợp lệ. {cashError}",
                         errorCode: WorkShiftErrorCodes.InvalidCashAmount);
 
-                var terminalId = request.PosTerminalId?.Trim();
+                terminalId = request.PosTerminalId?.Trim();
                 if (string.IsNullOrWhiteSpace(terminalId) && _deduplication != null)
                     return ServiceResult.Failure("Terminal POS là bắt buộc.", errorCode: WorkShiftErrorCodes.TerminalNotFound);
                 terminalId ??= string.Empty;
@@ -96,13 +126,103 @@ namespace CafeChain.Application.Services.POS
                         return ServiceResult.Failure("Bạn không có quyền mở phiên POS tại cửa hàng này.", errorCode: WorkShiftErrorCodes.PosPermissionRequired);
                 }
 
+                if (exchangeContext?.WorkShiftId is int preopenedShiftId)
+                {
+                    var preopened = await _shiftRepo.GetShiftByIdAsync(preopenedShiftId, userId, storeId);
+                    if (preopened == null
+                        || preopened.Status != WorkShiftStatuses.Open
+                        || !string.Equals(preopened.PosTerminalId, terminalId, StringComparison.Ordinal))
+                        return ServiceResult.Failure(
+                            "WorkShift đã mở tại StaffHub không còn hợp lệ hoặc không khớp terminal.",
+                            errorCode: WorkShiftErrorCodes.PosOpenContextInvalid);
+
+                    if (!exchangeContext.RequiresOpeningCash)
+                    {
+                        if (preopened.StartingCash == request.StartingCash)
+                        {
+                            var replay = ServiceResult.Success("Yêu cầu xác nhận tiền đầu phiên đã được xử lý trước đó.");
+                            replay.EntityId = preopened.ShiftId;
+                            return replay;
+                        }
+                        return ServiceResult.Failure(
+                            "Tiền đầu phiên đã được xác nhận với giá trị khác.",
+                            errorCode: WorkShiftErrorCodes.DuplicateRequest);
+                    }
+
+                    if (await _posRepo.GetCompletedOrderCountAsync(preopened.ShiftId) > 0)
+                        return ServiceResult.Failure(
+                            "WorkShift đã phát sinh giao dịch trước khi xác nhận tiền đầu phiên.",
+                            errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+
+                    if (preopened.StartingCash != 0 || preopened.ExpectedEndingCash != 0)
+                    {
+                        if (preopened.StartingCash == request.StartingCash)
+                        {
+                            var replay = ServiceResult.Success("Tiền đầu phiên đã được xác nhận trước đó.");
+                            replay.EntityId = preopened.ShiftId;
+                            return replay;
+                        }
+                        return ServiceResult.Failure(
+                            "Tiền đầu phiên đã được xác nhận với giá trị khác.",
+                            errorCode: WorkShiftErrorCodes.DuplicateRequest);
+                    }
+
+                    await _otpChallengeRepo.BeginTransactionAsync();
+                    ownsTransaction = true;
+                    preopened.StartingCash = request.StartingCash;
+                    preopened.ExpectedEndingCash = request.StartingCash;
+                    await _shiftRepo.UpdateShiftAsync(preopened);
+                    if (_posSessionExchange == null
+                        || !request.ExchangeContextId.HasValue
+                        || !request.AccountId.HasValue
+                        || !await _posSessionExchange.CompleteOpeningCashAsync(
+                            request.ExchangeContextId.Value,
+                            request.AccountId.Value,
+                            userId,
+                            storeId,
+                            preopened.ShiftId))
+                    {
+                        await _otpChallengeRepo.RollbackTransactionAsync();
+                        ownsTransaction = false;
+                        return ServiceResult.Failure(
+                            "Không thể hoàn tất ngữ cảnh tiền đầu phiên.",
+                            errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+                    }
+                    if (_audit != null)
+                    {
+                        await _audit.WriteAsync(
+                            "WORKSHIFT_OPENING_CASH_CONFIRMED",
+                            preopened.ShiftId,
+                            userId,
+                            new { StartingCash = 0m },
+                            new { preopened.StartingCash, ExchangeContextId = request.ExchangeContextId });
+                    }
+                    await _otpChallengeRepo.CommitTransactionAsync();
+                    ownsTransaction = false;
+                    var initialized = ServiceResult.Success("Xác nhận tiền đầu phiên thành công.");
+                    initialized.EntityId = preopened.ShiftId;
+                    return initialized;
+                }
+
                 var current = await _shiftRepo.GetActiveShiftAsync(userId, storeId);
                 if (current != null)
-                    return ServiceResult.Failure(
-                        "Nhân viên đang chịu trách nhiệm một phiên POS chưa kết thúc.",
-                        errorCode: WorkShiftErrorCodes.StaffAlreadyHasOpenShift);
+                    return StaffConflict(current);
 
                 var assessment = await AssessOpenShiftCoreAsync(userId, storeId);
+                var requiresStaffHubNow = assessment.OpenContext != WorkShiftOpenContexts.WithinSchedule
+                    || assessment.MinutesEarly > 0;
+                if (exchangeContext != null
+                    && !exchangeContext.RequiresStaffHubOpen
+                    && requiresStaffHubNow)
+                    return ServiceResult.Failure(
+                        "Ngữ cảnh mở ca đã chuyển sang ca sớm, trễ hoặc ngoài lịch. Vui lòng xác nhận lại tại StaffHub.",
+                        errorCode: WorkShiftErrorCodes.StaffHubOpenRequired);
+                if (exchangeContext != null
+                    && (!string.Equals(exchangeContext.OpenContext, assessment.OpenContext, StringComparison.Ordinal)
+                        || exchangeContext.SourceStaffShiftId != assessment.SourceStaffShift?.StaffShiftId))
+                    return ServiceResult.Failure(
+                        "Ngữ cảnh lịch đã thay đổi. Vui lòng quay lại StaffHub để kiểm tra lại.",
+                        errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
                 if (_permissions != null && assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule)
                 {
                     var actor = await _otpChallengeRepo.GetRequestingStaffAsync(userId, storeId);
@@ -131,11 +251,8 @@ namespace CafeChain.Application.Services.POS
                             ? WorkShiftErrorCodes.OutsideScheduleApprovalRequired
                             : OtpConstants.ErrorCodes.LateOpeningRequiresOtp);
 
-                if (_deduplication != null || assessment.ApprovalRequired)
-                {
-                    await _otpChallengeRepo.BeginTransactionAsync();
-                    ownsTransaction = true;
-                }
+                await _otpChallengeRepo.BeginTransactionAsync();
+                ownsTransaction = true;
 
                 if (_deduplication != null)
                 {
@@ -146,13 +263,17 @@ namespace CafeChain.Application.Services.POS
                         request,
                         referenceId: null,
                         storeId: storeId,
-                        accountId: null);
+                        accountId: request.AccountId);
                     if (!begin.CanProcess)
                     {
                         if (ownsTransaction) await _otpChallengeRepo.RollbackTransactionAsync();
                         ownsTransaction = false;
                         if (string.Equals(begin.Status, "SUCCESS", StringComparison.Ordinal))
-                            return ServiceResult.Success("Yêu cầu mở POS đã được xử lý trước đó.");
+                        {
+                            var replay = ServiceResult.Success("Yêu cầu mở POS đã được xử lý trước đó.");
+                            replay.EntityId = begin.ReferenceId;
+                            return replay;
+                        }
                         return ServiceResult.Failure(
                             begin.ErrorMessage ?? "RequestKey đã được sử dụng.",
                             errorCode: begin.ErrorCode == "IDEMPOTENCY_KEY_REUSED"
@@ -178,7 +299,7 @@ namespace CafeChain.Application.Services.POS
                     var expectedFingerprint = _otpFingerprint.BuildOpenShiftBoundFingerprint(
                         storeId,
                         userId,
-                        request.StartingCash,
+                        exchangeContext == null ? request.StartingCash : 0,
                         reason ?? string.Empty,
                         scheduledCanonical,
                         expectedAction,
@@ -207,6 +328,8 @@ namespace CafeChain.Application.Services.POS
                 var newShift = new WorkShift
                 {
                     UserId = userId,
+                    CurrentOperatorStaffId = userId,
+                    OperatorChangedAtUtc = nowUtc,
                     StoreId = storeId,
                     StartTimeUtc = nowUtc,
                     BusinessDate = businessDate,
@@ -225,6 +348,24 @@ namespace CafeChain.Application.Services.POS
                 };
 
                 await _shiftRepo.CreateShiftAsync(newShift);
+                if (exchangeContext != null
+                    && exchangeContext.RequiresOpeningCash
+                    && request.ExchangeContextId.HasValue
+                    && request.AccountId.HasValue
+                    && (_posSessionExchange == null
+                        || !await _posSessionExchange.CompleteOpeningCashAsync(
+                            request.ExchangeContextId.Value,
+                            request.AccountId.Value,
+                            userId,
+                            storeId,
+                            newShift.ShiftId)))
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    ownsTransaction = false;
+                    return ServiceResult.Failure(
+                        "Không thể bind WorkShift vừa mở với ngữ cảnh tiền đầu phiên.",
+                        errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+                }
                 if (_audit != null)
                 {
                     await _audit.WriteAsync(
@@ -272,12 +413,31 @@ namespace CafeChain.Application.Services.POS
                 _logger.LogInformation(
                     "WORKSHIFT_OPENED | ShiftId={ShiftId} StoreId={StoreId} StaffId={StaffId} Context={Context} RequestKey={RequestKey}",
                     newShift.ShiftId, storeId, userId, newShift.OpenContext, request.RequestKey);
-                return ServiceResult.Success("Mở phiên POS thành công.");
+                var opened = ServiceResult.Success("Mở phiên POS thành công.");
+                opened.EntityId = newShift.ShiftId;
+                return opened;
             }
             catch (WorkShiftBusinessException ex)
             {
                 if (ownsTransaction) await _otpChallengeRepo.RollbackTransactionAsync();
                 return ServiceResult.Failure(ex.Message, errorCode: ex.ErrorCode);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+            {
+                if (ownsTransaction) await _otpChallengeRepo.RollbackTransactionAsync();
+                var staffConflict = await _shiftRepo.GetActiveShiftAsync(userId, storeId);
+                if (staffConflict != null) return StaffConflict(staffConflict);
+                var terminalConflict = await _shiftRepo.GetActiveShiftByTerminalAsync(terminalId, storeId);
+                if (terminalConflict != null)
+                    return ServiceResult.Failure(
+                        "Terminal đang có phiên POS chưa kết thúc.",
+                        errorCode: WorkShiftErrorCodes.TerminalAlreadyHasOpenShift);
+                _logger.LogWarning(ex,
+                    "WORKSHIFT_OPEN_CONCURRENCY_CONFLICT | StoreId={StoreId} StaffId={StaffId} TerminalId={TerminalId}",
+                    storeId, userId, terminalId);
+                return ServiceResult.Failure(
+                    "Dữ liệu phiên POS vừa thay đổi. Vui lòng tải lại và thử lại.",
+                    errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
             }
             catch (Exception ex)
             {
@@ -361,6 +521,151 @@ namespace CafeChain.Application.Services.POS
             }
         }
 
+        public async Task<ServiceResult<OpenShiftAssessmentDto>> AssessOpenContextAsync(
+            int staffId,
+            int storeId,
+            string terminalId,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(terminalId))
+                return ServiceResult<OpenShiftAssessmentDto>.Failure(
+                    "Vui lòng chọn terminal POS.", errorCode: WorkShiftErrorCodes.TerminalNotFound);
+            try
+            {
+                terminalId = terminalId.Trim();
+                await _shiftRepo.EnsurePosTerminalAsync(terminalId, storeId, terminalId);
+                var staffActive = await _shiftRepo.GetActiveShiftAsync(staffId, storeId);
+                if (staffActive != null) return AssessmentConflict(staffActive, true);
+                var terminalActive = await _shiftRepo.GetActiveShiftByTerminalAsync(terminalId, storeId);
+                if (terminalActive != null) return AssessmentConflict(terminalActive, false);
+
+                var result = await AssessOpenContextAsync(staffId, storeId, cancellationToken);
+                if (result.Data != null) result.Data.TerminalId = terminalId;
+                return result;
+            }
+            catch (WorkShiftBusinessException ex)
+            {
+                return ServiceResult<OpenShiftAssessmentDto>.Failure(ex.Message, errorCode: ex.ErrorCode);
+            }
+        }
+
+        public async Task<IReadOnlyList<PosTerminalOptionDto>> GetAvailableTerminalsAsync(
+            int storeId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var terminals = await _shiftRepo.GetActiveTerminalsAsync(storeId);
+            return terminals.Select(x => new PosTerminalOptionDto
+            {
+                TerminalId = x.TerminalId,
+                Name = x.Name
+            }).ToList();
+        }
+
+        public async Task<ServiceResult<PosSessionExchangeContextDto>> PrepareOpenExchangeContextAsync(
+            int accountId, int staffId, int storeId, string terminalId, string requestKey,
+            string? reason, Guid? otpChallengePublicId,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(requestKey) || requestKey.Trim().Length > 200)
+                return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                    "RequestKey không hợp lệ.", errorCode: WorkShiftErrorCodes.InvalidRequestKey);
+            var preview = await AssessOpenContextAsync(staffId, storeId, terminalId, cancellationToken);
+            if (!preview.IsSuccess || preview.Data == null)
+                return ServiceResult<PosSessionExchangeContextDto>.Failure(preview.Message, errorCode: preview.ErrorCode);
+
+            var assessment = preview.Data;
+            var normalizedReason = reason?.Trim();
+            var requiresStaffHubOpen = assessment.OpenContext != WorkShiftOpenContexts.WithinSchedule
+                || assessment.MinutesEarly > 0;
+            if (assessment.ReasonRequired && !IsValidReason(normalizedReason))
+                return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                    assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule
+                        ? "Lý do mở POS ngoài lịch phải có từ 10 đến 500 ký tự."
+                        : "Lý do mở POS trễ phải có từ 10 đến 500 ký tự.",
+                    errorCode: assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule
+                        ? WorkShiftErrorCodes.OutsideScheduleReasonRequired
+                        : OtpConstants.ErrorCodes.LateOpeningRequiresOtp);
+
+            if (assessment.ApprovalRequired)
+            {
+                if (!otpChallengePublicId.HasValue)
+                    return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                        "Cần OTP phê duyệt hợp lệ trước khi phát mã mở POS.",
+                        errorCode: assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule
+                            ? WorkShiftErrorCodes.OutsideScheduleApprovalRequired
+                            : OtpConstants.ErrorCodes.LateOpeningRequiresOtp);
+                var challenge = await _otpChallengeRepo.GetByPublicIdAsync(otpChallengePublicId.Value);
+                var expectedAction = assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule
+                    ? OtpConstants.ActionTypes.OpenShiftOutsideSchedule
+                    : OtpConstants.ActionTypes.OpenShiftLate;
+                var scheduled = assessment.PlannedStartUtc.HasValue
+                    ? TimeZoneInfo.ConvertTimeFromUtc(
+                        DateTime.SpecifyKind(assessment.PlannedStartUtc.Value, DateTimeKind.Utc),
+                        _workShiftOptions.ResolveTimeZone()).ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture)
+                    : "none";
+                var fingerprint = _otpFingerprint.BuildOpenShiftBoundFingerprint(
+                    storeId, staffId, 0, normalizedReason ?? string.Empty, scheduled,
+                    expectedAction, terminalId.Trim(), requestKey.Trim());
+                if (challenge == null || challenge.Status != OtpConstants.Statuses.Approved
+                    || challenge.ExpiresAt <= _timeProvider.GetUtcNow().UtcDateTime
+                    || challenge.RequestedByStaffId != staffId || challenge.StoreId != storeId
+                    || challenge.ActionType != expectedAction
+                    || !string.Equals(challenge.TerminalId, terminalId.Trim(), StringComparison.Ordinal)
+                    || !string.Equals(challenge.RequestKey, requestKey.Trim(), StringComparison.Ordinal)
+                    || !_otpFingerprint.FixedTimeEquals(challenge.PayloadFingerprint, fingerprint))
+                    return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                        "OTP phê duyệt không hợp lệ, đã hết hạn hoặc không khớp yêu cầu mở POS.",
+                        errorCode: WorkShiftErrorCodes.ApprovalExpired);
+
+                var approvalError = await ValidateAndPrepareOtpConsumeAsync(
+                    challenge, expectedAction, null, storeId, staffId, fingerprint, staffId);
+                if (approvalError.HasValue)
+                    return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                        approvalError.Value.message,
+                        errorCode: approvalError.Value.code ?? WorkShiftErrorCodes.ApprovalExpired);
+            }
+
+            return ServiceResult<PosSessionExchangeContextDto>.Success(new PosSessionExchangeContextDto
+            {
+                Purpose = PosSessionPurposes.OpenWorkShift,
+                AccountId = accountId,
+                StaffId = staffId,
+                StoreId = storeId,
+                TerminalId = terminalId.Trim(),
+                RequestKey = requestKey.Trim(),
+                OpenContext = assessment.OpenContext,
+                SourceStaffShiftId = assessment.SourceStaffShiftId,
+                PlannedStartUtc = assessment.PlannedStartUtc,
+                PlannedEndUtc = assessment.PlannedEndUtc,
+                Reason = assessment.ReasonRequired ? normalizedReason : null,
+                OtpChallengePublicId = assessment.ApprovalRequired ? otpChallengePublicId : null,
+                RequiresStaffHubOpen = requiresStaffHubOpen,
+                RequiresOpeningCash = true
+            });
+        }
+
+        public async Task<ServiceResult<PosSessionExchangeContextDto>> PrepareResumeExchangeContextAsync(
+            int accountId, int staffId, int storeId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var active = await _shiftRepo.GetActiveShiftAsync(staffId, storeId);
+            if (active == null)
+                return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                    "Không còn phiên POS cần tiếp tục.", errorCode: WorkShiftErrorCodes.WorkShiftNotOpen);
+            return ServiceResult<PosSessionExchangeContextDto>.Success(new PosSessionExchangeContextDto
+            {
+                Purpose = PosSessionPurposes.ResumeWorkShift,
+                AccountId = accountId,
+                StaffId = staffId,
+                StoreId = storeId,
+                TerminalId = active.PosTerminalId,
+                WorkShiftId = active.ShiftId,
+                OpenContext = active.Status
+            });
+        }
+
         private async Task<OpenAssessment> AssessOpenShiftCoreAsync(int userId, int storeId)
         {
             var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
@@ -372,6 +677,7 @@ namespace CafeChain.Application.Services.POS
 
             var interval = ScheduleIntervalResolver.Resolve(schedule);
             var minutesLate = Math.Max(0, (int)Math.Floor((nowLocal - interval.StartLocal).TotalMinutes));
+            var minutesEarly = Math.Max(0, (int)Math.Ceiling((interval.StartLocal - nowLocal).TotalMinutes));
             var within = nowLocal >= interval.StartLocal.AddMinutes(-_workShiftOptions.EarlyOpenMinutes)
                 && nowLocal <= interval.StartLocal.AddMinutes(_workShiftOptions.LateReasonAfterMinutes);
             var late = !within && nowLocal <= interval.EndLocal.AddMinutes(_workShiftOptions.PostEndGraceMinutes);
@@ -386,7 +692,8 @@ namespace CafeChain.Application.Services.POS
                 minutesLate,
                 !within,
                 late && minutesLate > _workShiftOptions.LateApprovalAfterMinutes,
-                nowUtc);
+                nowUtc,
+                minutesEarly);
         }
 
         private bool IsValidReason(string? reason)
@@ -406,7 +713,8 @@ namespace CafeChain.Application.Services.POS
             int MinutesLate,
             bool ReasonRequired,
             bool ApprovalRequired,
-            DateTime ServerNowUtc)
+            DateTime ServerNowUtc,
+            int MinutesEarly = 0)
         {
             public OpenShiftAssessmentDto ToDto(WorkShiftOptions options) => new()
             {
@@ -415,12 +723,81 @@ namespace CafeChain.Application.Services.POS
                 PlannedStartUtc = PlannedStartUtc,
                 PlannedEndUtc = PlannedEndUtc,
                 MinutesLate = MinutesLate,
+                MinutesEarly = MinutesEarly,
                 ReasonRequired = ReasonRequired,
                 ApprovalRequired = ApprovalRequired,
                 ServerNowUtc = ServerNowUtc,
                 AutoCloseAtUtc = OpenContext == WorkShiftOpenContexts.OutsideSchedule
                     ? ServerNowUtc.AddHours(options.OutsideScheduleDurationHours)
                     : null
+            };
+        }
+
+        private static ServiceResult StaffConflict(WorkShift shift) => shift.Status switch
+        {
+            WorkShiftStatuses.Open => ServiceResult.Failure(
+                "Bạn đang có một phiên POS hoạt động. Hãy tiếp tục sử dụng hoặc đóng phiên hiện tại trước khi mở phiên mới.",
+                errorCode: WorkShiftErrorCodes.StaffAlreadyHasOpenShift),
+            WorkShiftStatuses.Closing => ServiceResult.Failure(
+                "Phiên POS trước đang trong quá trình chốt két. Hãy hoàn tất đóng phiên trước khi mở phiên mới.",
+                errorCode: WorkShiftErrorCodes.WorkShiftPendingClose),
+            WorkShiftStatuses.ExpiredPendingClose => ServiceResult.Failure(
+                "Phiên POS trước đã hết thời lượng nhưng chưa được kiểm đếm và đóng. Hãy xử lý phiên cũ trước khi mở phiên mới.",
+                errorCode: WorkShiftErrorCodes.WorkShiftPendingClose),
+            _ => ServiceResult.Failure(
+                "Trạng thái phiên POS đã thay đổi.", errorCode: WorkShiftErrorCodes.ConcurrencyConflict)
+        };
+
+        private static ServiceResult<OpenShiftAssessmentDto> AssessmentConflict(WorkShift shift, bool staffOwned)
+        {
+            var conflict = staffOwned
+                ? StaffConflict(shift)
+                : ServiceResult.Failure(
+                    "Terminal đang có phiên POS chưa kết thúc.",
+                    errorCode: WorkShiftErrorCodes.TerminalAlreadyHasOpenShift);
+            return new ServiceResult<OpenShiftAssessmentDto>
+            {
+                IsSuccess = false,
+                Message = conflict.Message,
+                ErrorCode = conflict.ErrorCode,
+                Data = new OpenShiftAssessmentDto
+                {
+                    TerminalId = shift.PosTerminalId,
+                    RecommendedAction = staffOwned
+                        ? shift.Status == WorkShiftStatuses.Open
+                            ? WorkShiftRecommendedActions.ResumeExistingWorkShift
+                            : shift.Status == WorkShiftStatuses.Closing
+                                ? WorkShiftRecommendedActions.CompleteClosing
+                                : WorkShiftRecommendedActions.CountAndClose
+                        : shift.Status == WorkShiftStatuses.Open
+                            ? WorkShiftRecommendedActions.SwitchCurrentOperator
+                            : shift.Status == WorkShiftStatuses.Closing
+                                ? WorkShiftRecommendedActions.CompleteClosing
+                                : WorkShiftRecommendedActions.CountAndClose,
+                    BlockingWorkShift = new BlockingWorkShiftDto
+                    {
+                        WorkShiftId = shift.ShiftId,
+                        TerminalId = shift.PosTerminalId,
+                        TerminalName = shift.PosTerminal?.Name,
+                        StartTimeUtc = AsUtc(shift.StartTimeUtc),
+                        Status = shift.Status,
+                        AutoCloseAtUtc = AsUtc(shift.AutoCloseAtUtc),
+                        ResponsibleStaffId = shift.UserId,
+                        ResponsibleStaffName = shift.User?.FullName,
+                        IsOwnedByRequester = staffOwned,
+                        RecommendedAction = staffOwned
+                            ? shift.Status == WorkShiftStatuses.Open
+                                ? WorkShiftRecommendedActions.ResumeExistingWorkShift
+                                : shift.Status == WorkShiftStatuses.Closing
+                                    ? WorkShiftRecommendedActions.CompleteClosing
+                                    : WorkShiftRecommendedActions.CountAndClose
+                            : shift.Status == WorkShiftStatuses.Open
+                                ? WorkShiftRecommendedActions.SwitchCurrentOperator
+                                : shift.Status == WorkShiftStatuses.Closing
+                                    ? WorkShiftRecommendedActions.CompleteClosing
+                                    : WorkShiftRecommendedActions.CountAndClose
+                    }
+                }
             };
         }
 
@@ -456,18 +833,31 @@ namespace CafeChain.Application.Services.POS
             {
                 ShiftId = shift.ShiftId,
                 StoreId = shift.StoreId,
+                TerminalId = shift.PosTerminalId,
+                TerminalName = shift.PosTerminal?.Name,
                 StaffName = shift.User?.FullName,
-                StartTime = shift.StartTimeUtc,
-                EndTime = shift.EndTimeUtc,
-                StartTimeUtc = shift.StartTimeUtc,
-                EndTimeUtc = shift.EndTimeUtc,
+                ResponsibleStaffId = shift.UserId,
+                CurrentOperatorStaffId = shift.CurrentOperatorStaffId ?? shift.UserId,
+                CurrentOperatorName = shift.CurrentOperatorStaff?.FullName ?? shift.User?.FullName,
+                OperatorChangedAtUtc = AsUtc(shift.OperatorChangedAtUtc),
+                StartTime = AsUtc(shift.StartTimeUtc),
+                EndTime = AsUtc(shift.EndTimeUtc),
+                StartTimeUtc = AsUtc(shift.StartTimeUtc),
+                EndTimeUtc = AsUtc(shift.EndTimeUtc),
                 BusinessDate = shift.BusinessDate,
                 SourceStaffShiftId = shift.SourceStaffShiftId,
                 OpenContext = shift.OpenContext,
-                AutoCloseAtUtc = shift.AutoCloseAtUtc,
-                ExpiredAtUtc = shift.ExpiredAtUtc,
-                ClosingStartedAtUtc = shift.ClosingStartedAtUtc,
-                ServerNowUtc = _timeProvider.GetUtcNow().UtcDateTime,
+                AutoCloseAtUtc = AsUtc(shift.AutoCloseAtUtc),
+                ExpiredAtUtc = AsUtc(shift.ExpiredAtUtc),
+                ClosingStartedAtUtc = AsUtc(shift.ClosingStartedAtUtc),
+                ServerNowUtc = AsUtc(_timeProvider.GetUtcNow().UtcDateTime),
+                RecommendedAction = shift.Status switch
+                {
+                    WorkShiftStatuses.Open => WorkShiftRecommendedActions.ContinuePos,
+                    WorkShiftStatuses.Closing => WorkShiftRecommendedActions.CompleteClosing,
+                    WorkShiftStatuses.ExpiredPendingClose => WorkShiftRecommendedActions.CountAndClose,
+                    _ => null
+                },
                 CloseType = shift.CloseType,
                 ClosedByStaffId = shift.ClosedByStaffId,
                 CloseReason = shift.CloseReason,
@@ -481,20 +871,28 @@ namespace CafeChain.Application.Services.POS
                 IsExceptionClosed = shift.IsExceptionClosed,
                 ExceptionCloseReason = shift.ExceptionCloseReason,
                 ExceptionClosedByStaffId = shift.ExceptionClosedByStaffId,
-                ExceptionClosedAt = shift.ExceptionClosedAt,
+                ExceptionClosedAt = AsUtc(shift.ExceptionClosedAt),
                 OfflineOrderCountAtClose = shift.OfflineOrderCountAtClose,
                 OfflineEstimatedTotalAtClose = shift.OfflineEstimatedTotalAtClose,
                 OfflineCashTotalAtClose = shift.OfflineCashTotalAtClose,
                 RequiresReconciliation = shift.RequiresReconciliation,
                 HasLateOfflineSync = shift.HasLateOfflineSync,
                 LateOfflineSyncCount = shift.LateOfflineSyncCount,
-                LastLateOfflineSyncedAt = shift.LastLateOfflineSyncedAtUtc,
+                LastLateOfflineSyncedAt = AsUtc(shift.LastLateOfflineSyncedAtUtc),
                 TotalCashSales = totalCash,
                 TotalBankingSales = totalBanking,
                 TotalOrders = totalOrders,
                 Status = shift.Status
             };
         }
+
+        private static DateTime AsUtc(DateTime value) => value.Kind == DateTimeKind.Utc
+            ? value
+            : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+
+        private static DateTime? AsUtc(DateTime? value) => value.HasValue
+            ? AsUtc(value.Value)
+            : null;
 
         public async Task<ServiceResult> CloseShiftAsync(
             int userId,
@@ -531,7 +929,9 @@ namespace CafeChain.Application.Services.POS
 
                 var activeShift = await _shiftRepo.GetActiveShiftAsync(userId, storeId);
                 if (activeShift == null)
-                    return ServiceResult.Failure("Không tìm thấy ca két tiền đang mở.");
+                    return ServiceResult.Failure(
+                        "Không tìm thấy ca két tiền hiện tại đang mở.",
+                        errorCode: WorkShiftErrorCodes.WorkShiftNotOpen);
                 if (!MatchesRequestRowVersion(activeShift, request.RowVersion))
                     return ServiceResult.Failure("Dữ liệu phiên POS đã thay đổi.", errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
 
@@ -617,9 +1017,6 @@ namespace CafeChain.Application.Services.POS
                                 "Chênh lệch két tiền vượt ngưỡng cho phép. Cần xác nhận OTP từ Ca trưởng.",
                                 errorCode: OtpConstants.ErrorCodes.Required);
                         }
-
-                        await _otpChallengeRepo.BeginTransactionAsync();
-                        ownsTransaction = true;
 
                         otpChallenge = await _otpChallengeRepo.GetByPublicIdForUpdateAsync(request.OtpChallengePublicId.Value);
                         var expectedFingerprint = _otpFingerprint.BuildCashDifferenceFingerprint(
@@ -1149,6 +1546,183 @@ namespace CafeChain.Application.Services.POS
             }
         }
 
+        public async Task<ServiceResult> SetOperatorPinAsync(
+            int accountId,
+            int staffId,
+            int storeId,
+            SetOperatorPinRequestDto request)
+        {
+            if (_accounts == null)
+                return ServiceResult.Failure("Dịch vụ PIN POS chưa sẵn sàng.", errorCode: WorkShiftErrorCodes.OperatorNotAuthorized);
+            if (request == null || !IsValidOperatorPin(request.Pin))
+                return ServiceResult.Failure("PIN POS phải gồm đúng 6 chữ số và không được là chuỗi lặp đơn giản.", errorCode: WorkShiftErrorCodes.OperatorPinInvalid);
+
+            var staff = await _shiftRepo.GetStaffForOperatorAsync(staffId);
+            var account = await _accounts.GetAccountByIdAsync(accountId);
+            if (staff == null || account == null || staff.AccountId != accountId
+                || staff.StoreId != storeId || !staff.Active || !account.Active)
+                return ServiceResult.Failure("Không thể thiết lập PIN cho tài khoản này.", errorCode: WorkShiftErrorCodes.OperatorNotAuthorized);
+            if (string.IsNullOrWhiteSpace(account.PasswordHash)
+                || !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, account.PasswordHash))
+                return ServiceResult.Failure("Mật khẩu hiện tại không chính xác.", errorCode: WorkShiftErrorCodes.OperatorNotAuthorized);
+
+            staff.PosPinHash = BCrypt.Net.BCrypt.HashPassword(request.Pin.Trim(), workFactor: 11);
+            staff.PosPinFailedAttempts = 0;
+            staff.PosPinLockedUntilUtc = null;
+            await _shiftRepo.SaveChangesAsync();
+            if (_audit != null)
+                await _audit.WriteAsync("POS_OPERATOR_PIN_CONFIGURED", 0, staffId, null, new { staffId, storeId });
+            return ServiceResult.Success("Thiết lập PIN thao tác POS thành công.");
+        }
+
+        public async Task<ServiceResult<IReadOnlyList<PosOperatorCandidateDto>>> GetOperatorCandidatesAsync(int storeId)
+        {
+            var staff = await _shiftRepo.GetActiveOperatorCandidatesAsync(storeId);
+            var candidates = new List<PosOperatorCandidateDto>();
+            foreach (var candidate in staff)
+            {
+                if (_permissions != null)
+                {
+                    var permission = await _permissions.HasPermissionAsync(
+                        candidate.AccountId, PermissionConstants.PosOperatorSwitch, storeId);
+                    if (!permission.IsSuccess || permission.Data?.Allowed != true)
+                        continue;
+                }
+
+                candidates.Add(new PosOperatorCandidateDto
+                {
+                    StaffId = candidate.StaffId,
+                    FullName = candidate.FullName
+                });
+            }
+
+            return ServiceResult<IReadOnlyList<PosOperatorCandidateDto>>.Success(candidates);
+        }
+
+        public async Task<ServiceResult> SwitchOperatorAsync(
+            int responsibleStaffId,
+            int storeId,
+            int shiftId,
+            SwitchOperatorRequestDto request)
+        {
+            if (request == null || request.OperatorStaffId <= 0 || !IsValidOperatorPin(request.Pin))
+                return ServiceResult.Failure("Thông tin người thao tác hoặc PIN không hợp lệ.", errorCode: WorkShiftErrorCodes.OperatorPinInvalid);
+            if (string.IsNullOrWhiteSpace(request.RequestKey) || request.RequestKey.Trim().Length > 200)
+                return ServiceResult.Failure("RequestKey không hợp lệ.", errorCode: WorkShiftErrorCodes.InvalidRequestKey);
+
+            await _otpChallengeRepo.BeginTransactionAsync();
+            try
+            {
+                var shift = await _shiftRepo.GetActiveShiftAsync(responsibleStaffId, storeId);
+                if (shift == null || shift.ShiftId != shiftId || shift.Status != WorkShiftStatuses.Open)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("Phiên POS không còn ở trạng thái cho phép đổi người thao tác.", errorCode: WorkShiftErrorCodes.WorkShiftNotOpen);
+                }
+                if (!MatchesRequestRowVersion(shift, request.RowVersion))
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("Phiên POS vừa thay đổi. Vui lòng tải lại.", errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+                }
+
+                var target = await _shiftRepo.GetStaffForOperatorAsync(request.OperatorStaffId);
+                if (target?.Account == null || !target.Active || !target.Account.Active)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("Nhân viên không hoạt động hoặc không tồn tại.", errorCode: WorkShiftErrorCodes.OperatorNotAuthorized);
+                }
+
+                var permission = _permissions == null
+                    ? null
+                    : await _permissions.HasPermissionAsync(target.AccountId, PermissionConstants.PosOperatorSwitch, storeId);
+                var targetAllowed = permission == null
+                    ? target.StoreId == storeId
+                    : permission.IsSuccess && permission.Data?.Allowed == true;
+                if (!targetAllowed)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("Nhân viên không có quyền thao tác POS tại cửa hàng này.", errorCode: WorkShiftErrorCodes.OperatorNotAuthorized);
+                }
+
+                var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+                if (target.PosPinLockedUntilUtc.HasValue && target.PosPinLockedUntilUtc.Value > nowUtc)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("PIN POS đang bị khóa tạm thời do nhập sai nhiều lần.", errorCode: WorkShiftErrorCodes.OperatorPinLocked);
+                }
+                if (string.IsNullOrWhiteSpace(target.PosPinHash))
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult.Failure("Nhân viên chưa thiết lập PIN thao tác POS.", errorCode: WorkShiftErrorCodes.OperatorPinNotConfigured);
+                }
+                if (!BCrypt.Net.BCrypt.Verify(request.Pin.Trim(), target.PosPinHash))
+                {
+                    target.PosPinFailedAttempts++;
+                    if (target.PosPinFailedAttempts >= 5)
+                    {
+                        target.PosPinFailedAttempts = 0;
+                        target.PosPinLockedUntilUtc = nowUtc.AddMinutes(15);
+                    }
+                    await _shiftRepo.SaveChangesAsync();
+                    await _otpChallengeRepo.CommitTransactionAsync();
+                    return ServiceResult.Failure(
+                        target.PosPinLockedUntilUtc.HasValue
+                            ? "PIN POS đã bị khóa 15 phút do nhập sai nhiều lần."
+                            : "PIN POS không chính xác.",
+                        errorCode: target.PosPinLockedUntilUtc.HasValue
+                            ? WorkShiftErrorCodes.OperatorPinLocked
+                            : WorkShiftErrorCodes.OperatorPinInvalid);
+                }
+
+                Models.Systems.RequestDeduplication? dedupEntry = null;
+                if (_deduplication != null)
+                {
+                    var begin = await _deduplication.BeginScopedAsync(
+                        request.RequestKey, "POS.OPERATOR.SWITCH", responsibleStaffId,
+                        request, shiftId, storeId, null);
+                    if (!begin.CanProcess)
+                    {
+                        await _otpChallengeRepo.RollbackTransactionAsync();
+                        return string.Equals(begin.Status, "SUCCESS", StringComparison.Ordinal)
+                            ? ServiceResult.Success("Người thao tác POS đã được đổi trước đó.")
+                            : ServiceResult.Failure(begin.ErrorMessage ?? "RequestKey đã được sử dụng.", errorCode: begin.ErrorCode);
+                    }
+                    dedupEntry = begin.Entry;
+                }
+
+                var previousOperatorId = shift.CurrentOperatorStaffId ?? shift.UserId;
+                target.PosPinFailedAttempts = 0;
+                target.PosPinLockedUntilUtc = null;
+                shift.CurrentOperatorStaffId = target.StaffId;
+                shift.OperatorChangedAtUtc = nowUtc;
+                await _shiftRepo.UpdateShiftAsync(shift);
+                if (_audit != null)
+                    await _audit.WriteAsync("POS_OPERATOR_CHANGED", shiftId, responsibleStaffId,
+                        new { CurrentOperatorStaffId = previousOperatorId },
+                        new { CurrentOperatorStaffId = target.StaffId, request.RequestKey });
+                if (dedupEntry != null && _deduplication != null)
+                    await _deduplication.MarkSuccessAsync(dedupEntry, shiftId, new { shiftId, target.StaffId });
+                await _otpChallengeRepo.CommitTransactionAsync();
+                await PublishNotificationSafeAsync(shift, "OPERATOR_CHANGED");
+                return ServiceResult.Success($"Đã chuyển người thao tác POS sang {target.FullName}.");
+            }
+            catch (Exception ex)
+            {
+                await _otpChallengeRepo.RollbackTransactionAsync();
+                _logger.LogError(ex, "POS_OPERATOR_SWITCH_FAILED | ShiftId={ShiftId}", shiftId);
+                return ServiceResult.Failure("Không thể đổi người thao tác POS. Vui lòng thử lại.");
+            }
+        }
+
+        private static bool IsValidOperatorPin(string? pin)
+        {
+            pin = pin?.Trim();
+            return pin is { Length: 6 }
+                && pin.All(char.IsDigit)
+                && pin.Distinct().Count() > 1
+                && pin is not "123456" and not "654321";
+        }
+
         private async Task PublishNotificationSafeAsync(WorkShift shift, string eventType)
         {
             if (_notifications == null) return;
@@ -1163,8 +1737,8 @@ namespace CafeChain.Application.Services.POS
                     TerminalId = shift.PosTerminalId,
                     EventType = eventType,
                     Status = shift.Status,
-                    ServerNowUtc = _timeProvider.GetUtcNow().UtcDateTime,
-                    AutoCloseAtUtc = shift.AutoCloseAtUtc,
+                    ServerNowUtc = AsUtc(_timeProvider.GetUtcNow().UtcDateTime),
+                    AutoCloseAtUtc = AsUtc(shift.AutoCloseAtUtc),
                     RemainingMinutes = shift.AutoCloseAtUtc.HasValue
                         ? Math.Max(0, (int)Math.Ceiling((shift.AutoCloseAtUtc.Value - _timeProvider.GetUtcNow().UtcDateTime).TotalMinutes))
                         : null

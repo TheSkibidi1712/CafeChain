@@ -1,169 +1,1208 @@
 @model CafeChain.ViewModels.Accounts.VerifyOtpViewModel
-
 @{
+    ViewData["Title"] = "Xác minh OTP";
     Layout = null;
+    string expireAtVal = DateTime.Now.AddMinutes(5).ToString("o");
+    if (ViewBag.ExpireAt is DateTime dt)
+    {
+        expireAtVal = dt.ToString("o");
+    }
 }
 
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="dark">
 <head>
     <meta charset="utf-8" />
-    <title>Xác minh OTP</title>
-    <link rel="stylesheet" href="~/css/ForgotPassword/otp.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CafeChain Enterprise Platform</title>
+
+    <!-- Google Fonts: Plus Jakarta Sans & Playfair Display -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
-        #cc-toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 12px; }
-        .cc-toast { display: flex; align-items: flex-start; gap: 12px; min-width: 280px; padding: 14px 16px; border-radius: 12px; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.12); border-left: 4px solid #fd7e14; opacity: 0; transform: translateY(16px); transition: all 0.25s ease; }
-        .cc-toast.cc-show { opacity: 1; transform: translateY(0); }
-        .cc-toast-msg { font-size: 0.85rem; color: #444; }
+        :root {
+            /* Coffee Master Color System - Dark Espresso Theme Default */
+            --espresso-dark: #090503;
+            --espresso-deep: #140b07;
+            --espresso-surface: rgba(26, 16, 11, 0.92);
+            --primary-brown: #8d6243;
+            --primary-brown-dark: #5c3b24;
+            --primary-brown-light: #ab7956;
+            --crema-gold: #d4a373;
+            --crema-gold-light: #e0b07a;
+            --latte-cream: #f7ede2;
+            --latte-soft: rgba(42, 28, 20, 0.7);
+            
+            /* Text & Utility Colors */
+            --text-primary: #f8f4f0;
+            --text-secondary: #c2b4a8;
+            --text-muted: #8c7e73;
+            --border-color: rgba(212, 163, 115, 0.22);
+            --border-hover: rgba(212, 163, 115, 0.55);
+            --focus-ring: rgba(212, 163, 115, 0.35);
+            --card-bg: rgba(20, 12, 8, 0.88);
+            --card-glass-border: rgba(212, 163, 115, 0.28);
+            --input-bg: rgba(34, 22, 15, 0.85);
+            --shadow-elevation: 0 40px 80px -20px rgba(0, 0, 0, 0.85);
+            
+            --radius-xl: 28px;
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --transition-bounce: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            --transition-smooth: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+            --mouse-x: 50%;
+            --mouse-y: 50%;
+            --glare-x: 50%;
+            --glare-y: 50%;
+        }
+
+        /* Light Milk Theme Variables */
+        [data-theme="light"] {
+            --espresso-dark: #20130b;
+            --espresso-deep: #2e1a10;
+            --latte-cream: #fdfbf7;
+            --latte-soft: #f5ede3;
+            --text-primary: #1c1917;
+            --text-secondary: #57534e;
+            --text-muted: #8c857b;
+            --border-color: rgba(111, 78, 55, 0.16);
+            --border-hover: rgba(198, 138, 76, 0.6);
+            --card-bg: rgba(255, 255, 255, 0.94);
+            --card-glass-border: rgba(255, 255, 255, 0.7);
+            --input-bg: #fcfbf9;
+            --shadow-elevation: 0 30px 60px -12px rgba(31, 20, 14, 0.3);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--espresso-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+            padding: 2.5rem 1.5rem;
+            transition: background 0.4s ease;
+        }
+
+        /* 4K DYNAMIC AMBIENT BACKDROP SYSTEM */
+        .ambient-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(212, 163, 115, 0.2) 0%, rgba(9, 5, 3, 0.96) 65%);
+        }
+
+        /* Fluid Animated Shading Orbs */
+        .fluid-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.65;
+            will-change: transform;
+        }
+
+        .fluid-orb-1 {
+            width: 750px;
+            height: 750px;
+            top: -180px;
+            left: -180px;
+            background: radial-gradient(circle, rgba(212, 163, 115, 0.38) 0%, rgba(141, 98, 67, 0.18) 60%, transparent 100%);
+            animation: orbFloat1 24s ease-in-out infinite alternate;
+        }
+
+        .fluid-orb-2 {
+            width: 850px;
+            height: 850px;
+            bottom: -220px;
+            right: -220px;
+            background: radial-gradient(circle, rgba(141, 98, 67, 0.42) 0%, rgba(92, 59, 36, 0.22) 60%, transparent 100%);
+            animation: orbFloat2 30s ease-in-out infinite alternate;
+        }
+
+        .fluid-orb-3 {
+            width: 650px;
+            height: 650px;
+            top: 35%;
+            left: 32%;
+            background: radial-gradient(circle, rgba(224, 176, 122, 0.25) 0%, rgba(111, 78, 55, 0.12) 70%, transparent 100%);
+            animation: orbFloat3 20s ease-in-out infinite alternate;
+        }
+
+        @@keyframes orbFloat1 {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+            50% { transform: translate(140px, 90px) scale(1.2) rotate(180deg); }
+            100% { transform: translate(-70px, 160px) scale(0.9) rotate(360deg); }
+        }
+
+        @@keyframes orbFloat2 {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+            50% { transform: translate(-160px, -100px) scale(1.25) rotate(-180deg); }
+            100% { transform: translate(90px, -140px) scale(0.95) rotate(-360deg); }
+        }
+
+        @@keyframes orbFloat3 {
+            0% { transform: translate(0, 0) scale(0.9); }
+            50% { transform: translate(-100px, 120px) scale(1.3); }
+            100% { transform: translate(120px, -80px) scale(1); }
+        }
+
+        /* Animated Liquid Coffee Waves at Bottom */
+        .coffee-wave-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 240px;
+            overflow: hidden;
+            opacity: 0.38;
+        }
+
+        .coffee-wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 100%;
+            background-repeat: repeat-x;
+            background-position: 0 bottom;
+            transform-origin: center bottom;
+        }
+
+        .coffee-wave-1 {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0 C150,90 350,-40 500,40 C650,120 900,20 1200,60 L1200,120 L0,120 Z' fill='%23d4a373' opacity='0.3'%3E%3C/path%3E%3C/svg%3E");
+            animation: waveMove 18s linear infinite;
+        }
+
+        .coffee-wave-2 {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,40 C200,-20 400,80 700,10 C900,-30 1100,50 1200,20 L1200,120 L0,120 Z' fill='%238d6243' opacity='0.25'%3E%3C/path%3E%3C/svg%3E");
+            animation: waveMove 12s linear infinite reverse;
+        }
+
+        @@keyframes waveMove {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        #particleCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Top Live Operating Status Header Bar */
+        .top-status-bar {
+            position: fixed;
+            top: 24px;
+            left: 28px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 10px #22c55e;
+            animation: pulseDot 1.8s infinite alternate;
+        }
+
+        @@keyframes pulseDot {
+            from { opacity: 0.4; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Theme Toggle Floating Button */
+        .theme-toggle-btn {
+            position: fixed;
+            top: 24px;
+            right: 28px;
+            z-index: 100;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--crema-gold);
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            transition: var(--transition-bounce);
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.1) rotate(15deg);
+            border-color: var(--crema-gold);
+            color: var(--crema-gold-light);
+        }
+
+        /* Toast Container */
+        #cc-toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .cc-toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-elevation);
+            backdrop-filter: blur(20px);
+            color: var(--text-primary);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .cc-toast.cc-show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .cc-toast-msg {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* App Master Layout */
+        .app-viewport {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 1120px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 1fr 1.1fr;
+            gap: 2.5rem;
+            align-items: center;
+            perspective: 1200px;
+        }
+
+        /* Left Hero Panel */
+        .brand-hero {
+            padding: 3rem 2.5rem;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 600px;
+            position: relative;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            background: rgba(212, 163, 115, 0.16);
+            border: 1px solid rgba(212, 163, 115, 0.35);
+            padding: 0.5rem 1.18rem;
+            border-radius: 100px;
+            backdrop-filter: blur(12px);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--crema-gold-light);
+            width: fit-content;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .brand-badge i {
+            font-size: 0.95rem;
+            animation: pulseGlow 2s infinite alternate;
+        }
+
+        @@keyframes pulseGlow {
+            from { opacity: 0.7; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1.15); }
+        }
+
+        .hero-title-group h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.2rem;
+            font-weight: 700;
+            line-height: 1.18;
+            margin-bottom: 1.25rem;
+            background: linear-gradient(135deg, #ffffff 30%, var(--crema-gold-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .hero-title-group p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.82);
+            font-weight: 400;
+            max-width: 460px;
+            margin-bottom: 2.5rem;
+        }
+
+        /* Recovery Steps Visual Guarantee */
+        .recovery-steps-widget {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
+        }
+
+        .recovery-steps-widget h4 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--crema-gold-light);
+            margin-bottom: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .steps-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .steps-timeline::before {
+            content: '';
+            position: absolute;
+            left: 17px;
+            top: 24px;
+            bottom: 24px;
+            width: 2px;
+            background: rgba(212, 163, 115, 0.3);
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(42, 28, 20, 0.9);
+            border: 2px solid var(--border-color);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            transition: var(--transition-smooth);
+        }
+
+        .step-item.active .step-circle {
+            border-color: var(--crema-gold);
+            background: linear-gradient(135deg, var(--crema-gold), var(--primary-brown-dark));
+            color: #ffffff;
+            box-shadow: 0 0 18px rgba(212, 163, 115, 0.5);
+        }
+
+        .step-info h5 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .step-info span {
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .hero-quote {
+            border-left: 3px solid var(--crema-gold);
+            padding-left: 1.25rem;
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.92rem;
+        }
+
+        /* Right Auth Card with Interactive 3D Parallax & Reflective Glare */
+        .auth-wrapper {
+            background: var(--card-bg);
+            border: 1px solid var(--card-glass-border);
+            border-radius: var(--radius-xl);
+            padding: 3.25rem 2.85rem;
+            box-shadow: var(--shadow-elevation);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s cubic-bezier(0.1, 1, 0.1, 1), box-shadow 0.3s ease;
+            transform-style: preserve-3d;
+        }
+
+        /* Reflective Glass Light Glare Effect */
+        .auth-wrapper::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at var(--glare-x) var(--glare-y), rgba(255, 255, 255, 0.12) 0%, transparent 60%);
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .auth-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary-brown-dark), var(--crema-gold), var(--primary-brown-light));
+        }
+
+        .back-nav {
+            margin-bottom: 1.5rem;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: var(--radius-md);
+            background: var(--latte-soft);
+            border: 1px solid var(--border-color);
+            transition: var(--transition-bounce);
+        }
+
+        .back-link:hover {
+            color: var(--crema-gold-light);
+            border-color: var(--crema-gold);
+            transform: translateX(-3px);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-mark {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, var(--espresso-deep) 0%, var(--primary-brown-dark) 100%);
+            border: 2px solid var(--crema-gold);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem;
+            color: var(--crema-gold);
+            font-size: 1.9rem;
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45);
+            position: relative;
+            transition: var(--transition-bounce);
+        }
+
+        .logo-mark:hover {
+            transform: rotate(-8deg) scale(1.08);
+            border-color: var(--crema-gold-light);
+        }
+
+        .logo-mark::after {
+            content: '';
+            position: absolute;
+            inset: -5px;
+            border-radius: 26px;
+            border: 1px dashed var(--crema-gold);
+            opacity: 0.5;
+        }
+
+        .auth-header h2 {
+            font-size: 1.95rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            margin-bottom: 0.4rem;
+        }
+
+        .auth-header p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .email-badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--latte-soft);
+            border: 1px solid var(--border-color);
+            color: var(--crema-gold-light);
+            padding: 0.4rem 0.9rem;
+            border-radius: 100px;
+            font-size: 0.86rem;
+            font-weight: 700;
+            margin-top: 0.75rem;
+        }
+
+        /* 6 LUXURY OTP INPUT BOXES */
+        .otp-box-wrapper {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            margin: 2rem 0;
+        }
+
+        .otp-input {
+            width: 52px;
+            height: 62px;
+            background: var(--input-bg);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 1.6rem;
+            font-weight: 800;
+            text-align: center;
+            color: var(--crema-gold-light);
+            font-family: inherit;
+            transition: var(--transition-bounce);
+            outline: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .otp-input:hover {
+            border-color: var(--border-hover);
+        }
+
+        .otp-input:focus {
+            border-color: var(--crema-gold);
+            box-shadow: 0 0 0 4px var(--focus-ring), 0 10px 25px -5px rgba(212, 163, 115, 0.3);
+            transform: translateY(-4px) scale(1.05);
+            background: rgba(45, 28, 18, 0.95);
+        }
+
+        /* Countdown & Resend Section */
+        .resend-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--latte-soft);
+            border: 1px dashed var(--border-color);
+            padding: 0.85rem 1.2rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 2rem;
+        }
+
+        .timer-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .timer-badge i {
+            color: var(--crema-gold);
+        }
+
+        .timer-count {
+            color: var(--crema-gold-light);
+            font-family: monospace;
+            font-size: 1.1rem;
+        }
+
+        .btn-resend {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--crema-gold);
+            font-size: 0.85rem;
+            font-weight: 700;
+            font-family: inherit;
+            padding: 0.45rem 0.9rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-resend:hover:not(:disabled) {
+            background: rgba(212, 163, 115, 0.15);
+            border-color: var(--crema-gold);
+            color: var(--crema-gold-light);
+        }
+
+        .btn-resend:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            border-color: var(--border-color);
+        }
+
+        /* Submit Button */
+        .btn-submit {
+            width: 100%;
+            height: 54px;
+            background: linear-gradient(135deg, var(--primary-brown) 0%, var(--primary-brown-dark) 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1.05rem;
+            font-weight: 700;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            letter-spacing: 0.2px;
+            text-transform: none;
+            cursor: pointer;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+            transition: var(--transition-bounce);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+            transition: 0.6s;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+            background: linear-gradient(135deg, var(--primary-brown-light) 0%, var(--primary-brown-dark) 100%);
+        }
+
+        .btn-submit:hover:not(:disabled)::before {
+            left: 100%;
+        }
+
+        .btn-submit:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        /* Validation Box */
+        .validation-summary-errors, .error-message {
+            background: rgba(229, 62, 62, 0.12);
+            border: 1px solid rgba(229, 62, 62, 0.3);
+            border-left: 4px solid #e53e3e;
+            color: #fc8181;
+            padding: 0.85rem 1.15rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            font-size: 0.88rem;
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @@keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        .copyright-text {
+            text-align: center;
+            margin-top: 1.8rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Media Queries */
+        @@media (max-width: 992px) {
+            .app-viewport {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+            }
+
+            .top-status-bar {
+                display: none;
+            }
+
+            .brand-hero {
+                display: none;
+            }
+
+            .auth-wrapper {
+                padding: 2.25rem 1.75rem;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            body {
+                padding: 1rem 0.75rem;
+            }
+
+            .auth-wrapper {
+                padding: 1.75rem 1.25rem;
+                border-radius: 20px;
+            }
+
+            .otp-box-wrapper {
+                gap: 0.4rem;
+            }
+
+            .otp-input {
+                width: 42px;
+                height: 52px;
+                font-size: 1.3rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <div id="cc-toast-container"></div>
 
-    <div class="otp-container">
-        <h2>Xác minh OTP</h2>
-        <p>Nhập mã 6 ký tự đã gửi đến email của bạn</p>
+    <!-- 4K DYNAMIC AMBIENT BACKDROP SYSTEM -->
+    <div class="ambient-backdrop">
+        <!-- Fluid Shading Orbs -->
+        <div class="fluid-orb fluid-orb-1"></div>
+        <div class="fluid-orb fluid-orb-2"></div>
+        <div class="fluid-orb fluid-orb-3"></div>
 
-        <form asp-action="VerifyOtp" method="post" id="otpForm">
-            <input type="hidden" asp-for="Email" />
-            <input type="hidden" asp-for="OtpCode" id="OtpCode" />
+        <!-- Canvas Particle Engine -->
+        <canvas id="particleCanvas"></canvas>
 
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-            <div class="otp-box">
-                <input maxlength="1" class="otp-input" autofocus />
-                <input maxlength="1" class="otp-input" />
-                <input maxlength="1" class="otp-input" />
-                <input maxlength="1" class="otp-input" />
-                <input maxlength="1" class="otp-input" />
-                <input maxlength="1" class="otp-input" />
-            </div>
-            <div class="error-message">
-                @Html.ValidationSummary()
-            </div>
-
-            <button type="submit">Xác nhận</button>
-        </form>
-
-        <div class="resend">
-            <span id="countdown">05:00</span>
-            <button id="resendBtn" disabled>Gửi lại OTP</button>
+        <!-- Liquid Coffee Wave Layer -->
+        <div class="coffee-wave-container">
+            <div class="coffee-wave coffee-wave-1"></div>
+            <div class="coffee-wave coffee-wave-2"></div>
         </div>
     </div>
 
+    <!-- Live Operating Status Header Bar -->
+    <div class="top-status-bar">
+        <span class="status-dot"></span>
+        <span>Hệ thống vận hành tốt • GMT+7 <span id="liveClock">--:--:--</span></span>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="cc-toast-container"></div>
+
+    <!-- Theme Toggle Floating Button -->
+    <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Chuyển chế độ giao diện (Milk / Espresso)">
+        <i class="fas fa-sun" id="themeIcon"></i>
+    </button>
+
+    <div class="app-viewport">
+        <!-- Left Hero Showcase Panel -->
+        <div class="brand-hero">
+            <div>
+                <div class="brand-badge">
+                    <i class="fas fa-shield-halved"></i> CafeChain Security
+                </div>
+
+                <div class="hero-title-group">
+                    <h1>Xác Minh OTP 6 Chữ Số</h1>
+                    <p>Mã OTP bảo mật được gửi đến email cá nhân để đảm bảo chính chủ trước khi thiết lập mật khẩu mới.</p>
+                </div>
+
+                <!-- Recovery Steps visual widget -->
+                <div class="recovery-steps-widget">
+                    <h4><i class="fas fa-list-check"></i> Quy trình khôi phục 3 bước</h4>
+                    <div class="steps-timeline">
+                        <div class="step-item">
+                            <div class="step-circle"><i class="fas fa-check"></i></div>
+                            <div class="step-info">
+                                <h5>Nhập Email tài khoản</h5>
+                                <span>Đã xác nhận email</span>
+                            </div>
+                        </div>
+
+                        <div class="step-item active">
+                            <div class="step-circle">2</div>
+                            <div class="step-info">
+                                <h5>Nhập mã OTP</h5>
+                                <span>Mã xác thực gồm 6 chữ số</span>
+                            </div>
+                        </div>
+
+                        <div class="step-item">
+                            <div class="step-circle">3</div>
+                            <div class="step-info">
+                                <h5>Đặt mật khẩu mới</h5>
+                                <span>Hoàn tất khôi phục tài khoản</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-quote">
+                "Bảo vệ tài khoản doanh nghiệp của bạn với công nghệ xác thực đa lớp chuẩn CafeChain."
+            </div>
+        </div>
+
+        <!-- Right Main Form Panel with Interactive 3D Tilt -->
+        <div class="auth-wrapper" id="authCard">
+            <div class="back-nav">
+                <a asp-controller="Password" asp-action="ForgotPassword" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Quay lại Quên mật khẩu
+                </a>
+            </div>
+
+            <div class="auth-header">
+                <div class="logo-mark">
+                    <i class="fas fa-shield-cat"></i>
+                </div>
+                <h2>Xác Minh OTP</h2>
+                <p>Nhập mã 6 ký tự đã gửi đến email của bạn</p>
+                
+                <div class="email-badge-pill">
+                    <i class="far fa-envelope"></i>
+                    <span>@Model.Email</span>
+                </div>
+            </div>
+
+            <!-- ASP.NET Core Form -->
+            <form asp-action="VerifyOtp" method="post" id="otpForm">
+                <input type="hidden" asp-for="Email" />
+                <input type="hidden" asp-for="OtpCode" id="OtpCode" />
+
+                <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="error-message">
+                        @Html.ValidationSummary()
+                    </div>
+                }
+
+                <!-- 6 Luxury Digit Input Boxes -->
+                <div class="otp-box-wrapper">
+                    <input maxlength="1" class="otp-input" autofocus autocomplete="off" />
+                    <input maxlength="1" class="otp-input" autocomplete="off" />
+                    <input maxlength="1" class="otp-input" autocomplete="off" />
+                    <input maxlength="1" class="otp-input" autocomplete="off" />
+                    <input maxlength="1" class="otp-input" autocomplete="off" />
+                    <input maxlength="1" class="otp-input" autocomplete="off" />
+                </div>
+
+                <!-- Resend & Timer Row -->
+                <div class="resend-section">
+                    <div class="timer-badge">
+                        <i class="far fa-clock"></i>
+                        <span>Thời hạn mã:</span>
+                        <span class="timer-count" id="countdown">05:00</span>
+                    </div>
+
+                    <button type="button" class="btn-resend" id="resendBtn" disabled>
+                        <i class="fas fa-rotate-right"></i> Gửi lại OTP
+                    </button>
+                </div>
+
+                <button type="submit" id="btnSubmit" class="btn-submit">
+                    <span>Xác nhận mã OTP</span>
+                    <i class="fas fa-arrow-right" id="btnIcon"></i>
+                </button>
+            </form>
+
+            <div class="copyright-text">
+                © 2026 CafeChain Enterprise Platform
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
     <script>
-        // Minimal inline Toast for standalone pages (no Layout)
+        // Minimal Toast Notification in Coffee Theme
         window.showToast = function(msg, type) {
             var c = document.getElementById('cc-toast-container');
             var t = document.createElement('div');
             t.className = 'cc-toast';
-            t.style.borderLeftColor = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#fd7e14';
-            t.innerHTML = '<div class="cc-toast-msg">' + msg + '</div>';
+            
+            var borderColor = type === 'error' ? '#fc8181' : type === 'success' ? '#68d391' : '#d4a373';
+            var iconClass = type === 'error' ? 'fa-triangle-exclamation' : type === 'success' ? 'fa-circle-check' : 'fa-bell';
+            
+            t.style.borderLeft = '4px solid ' + borderColor;
+            t.innerHTML = '<i class="fas ' + iconClass + '" style="color:' + borderColor + '; font-size:1.1rem;"></i><div class="cc-toast-msg">' + msg + '</div>';
             c.appendChild(t);
+            
             requestAnimationFrame(function(){ requestAnimationFrame(function(){ t.classList.add('cc-show'); }); });
             setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 300); }, 3500);
         };
 
-        const inputs = document.querySelectorAll(".otp-input");
-        const hiddenInput = document.getElementById("OtpCode");
-        const form = document.getElementById("otpForm");
-
-        inputs.forEach((input, index) => {
-            input.addEventListener("input", (e) => {
-                let value = e.target.value;
-                if (!/^[a-zA-Z0-9]$/.test(value)) { input.value = ""; return; }
-                value = value.toUpperCase();
-                input.value = value;
-                if (value && index < inputs.length - 1) inputs[index + 1].focus();
-                updateOtp();
-            });
-            input.addEventListener("keydown", (e) => {
-                if (e.key === "Backspace" && !input.value && index > 0) inputs[index - 1].focus();
-            });
-        });
-
-        function updateOtp() {
-            let otp = "";
-            inputs.forEach(i => otp += i.value);
-            hiddenInput.value = otp;
-        }
-
-        form.addEventListener("submit", function (e) {
-            if (hiddenInput.value.length !== 6) {
-                e.preventDefault();
-                showToast('Vui lòng nhập đủ 6 ký tự OTP!', 'warning');
+        $(document).ready(function () {
+            // ===== 1. LIVE CLOCK UPDATE =====
+            function updateClock() {
+                const now = new Date();
+                const timeStr = now.toTimeString().split(' ')[0];
+                $('#liveClock').text(timeStr);
             }
-        });
+            updateClock();
+            setInterval(updateClock, 1000);
 
-         // ================== FIX COUNTDOWN ==================
-        const expireAtStr = '@(((DateTime)ViewBag.ExpireAt).ToString("o"))';
-        const expireAt = new Date(expireAtStr).getTime();
+            // ===== 2. INTERACTIVE MOUSE PARALLAX BACKDROP SPOTLIGHT =====
+            $(document).on('mousemove', function (e) {
+                const x = (e.clientX / window.innerWidth) * 100;
+                const y = (e.clientY / window.innerHeight) * 100;
+                document.documentElement.style.setProperty('--mouse-x', x + '%');
+                document.documentElement.style.setProperty('--mouse-y', y + '%');
+            });
 
-        const countdownEl = document.getElementById("countdown");
-        const resendBtn = document.getElementById("resendBtn");
+            // ===== 3. INTERACTIVE 3D PARALLAX TILT & GLARE EFFECT ON AUTH CARD =====
+            const authCard = document.getElementById('authCard');
+            if (authCard && window.innerWidth > 992) {
+                $(document).on('mousemove', function (e) {
+                    const rect = authCard.getBoundingClientRect();
+                    const cardX = e.clientX - rect.left;
+                    const cardY = e.clientY - rect.top;
 
-        const timer = setInterval(() => {
-            const now = new Date().getTime();
-            const timeLeft = Math.floor((expireAt - now) / 1000);
+                    if (cardX >= 0 && cardX <= rect.width && cardY >= 0 && cardY <= rect.height) {
+                        const rotateX = ((cardY - rect.height / 2) / (rect.height / 2)) * -5;
+                        const rotateY = ((cardX - rect.width / 2) / (rect.width / 2)) * 5;
 
-            if (timeLeft <= 0) {
-                clearInterval(timer);
-                countdownEl.innerText = "00:00";
-                resendBtn.disabled = false;
-                return;
+                        authCard.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+                        authCard.style.boxShadow = '0 50px 90px -20px rgba(0, 0, 0, 0.9)';
+                        
+                        document.documentElement.style.setProperty('--glare-x', (cardX / rect.width * 100) + '%');
+                        document.documentElement.style.setProperty('--glare-y', (cardY / rect.height * 100) + '%');
+                    } else {
+                        authCard.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)';
+                        authCard.style.boxShadow = '';
+                    }
+                });
             }
 
-            countdownEl.innerText =
-                String(Math.floor(timeLeft / 60)).padStart(2, '0') +
-                ":" +
-                String(timeLeft % 60).padStart(2, '0');
+            // ===== 4. CANVAS GOLDEN CREMA BOKEH PARTICLES =====
+            const canvas = document.getElementById('particleCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                let particles = [];
 
-        }, 1000);
-
-        resendBtn.addEventListener("click", () => {
-            resendBtn.disabled = true;
-
-            fetch('/Password/ResendOtp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify('@Model.Email')
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-
-                    showToast('OTP mới đã được gửi!', 'success');
-
-                    // RESET COUNTDOWN
-                    const newExpire = new Date(data.expireAt).getTime();
-
-                    const newTimer = setInterval(() => {
-                        const now = new Date().getTime();
-                        const timeLeft = Math.floor((newExpire - now) / 1000);
-
-                        if (timeLeft <= 0) {
-                            clearInterval(newTimer);
-                            countdownEl.innerText = "00:00";
-                            resendBtn.disabled = false;
-                            return;
-                        }
-
-                        countdownEl.innerText =
-                            String(Math.floor(timeLeft / 60)).padStart(2, '0') +
-                            ":" +
-                            String(timeLeft % 60).padStart(2, '0');
-
-                    }, 1000);
-
-                } else {
-                    showToast(data.message, 'error');
-                    resendBtn.disabled = false;
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
                 }
-            })
-            .catch(() => {
-                showToast('Lỗi gửi OTP', 'error');
-                resendBtn.disabled = false;
+                resizeCanvas();
+                $(window).on('resize', resizeCanvas);
+
+                class Particle {
+                    constructor() {
+                        this.reset();
+                    }
+                    reset() {
+                        this.x = Math.random() * canvas.width;
+                        this.y = canvas.height + Math.random() * 50;
+                        this.radius = Math.random() * 3 + 1;
+                        this.speed = Math.random() * 0.8 + 0.3;
+                        this.opacity = Math.random() * 0.5 + 0.15;
+                        this.color = Math.random() > 0.5 ? '212, 163, 115' : '224, 176, 122';
+                    }
+                    update() {
+                        this.y -= this.speed;
+                        this.x += Math.sin(this.y * 0.01) * 0.5;
+                        if (this.y < -20) this.reset();
+                    }
+                    draw() {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(${this.color}, ${this.opacity})`;
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = `rgba(${this.color}, 0.5)`;
+                        ctx.fill();
+                    }
+                }
+
+                for (let i = 0; i < 50; i++) {
+                    const p = new Particle();
+                    p.y = Math.random() * canvas.height;
+                    particles.push(p);
+                }
+
+                function animateParticles() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach(p => {
+                        p.update();
+                        p.draw();
+                    });
+                    requestAnimationFrame(animateParticles);
+                }
+                animateParticles();
+            }
+
+            // ===== 5. THEME SWITCHER (Dark / Light) =====
+            const savedTheme = localStorage.getItem('cafechain_theme') || 'dark';
+            setTheme(savedTheme);
+
+            $('#themeToggleBtn').click(function () {
+                const currentTheme = $('html').attr('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                setTheme(newTheme);
+            });
+
+            function setTheme(theme) {
+                $('html').attr('data-theme', theme);
+                localStorage.setItem('cafechain_theme', theme);
+                if (theme === 'dark') {
+                    $('#themeIcon').removeClass('fa-moon').addClass('fa-sun');
+                } else {
+                    $('#themeIcon').removeClass('fa-sun').addClass('fa-moon');
+                }
+            }
+
+            // ===== 6. OTP INPUTS CONTROLLER (KEYBOARD & PASTE) =====
+            const inputs = document.querySelectorAll(".otp-input");
+            const hiddenInput = document.getElementById("OtpCode");
+            const form = document.getElementById("otpForm");
+
+            inputs.forEach((input, index) => {
+                input.addEventListener("input", (e) => {
+                    let value = e.target.value;
+                    if (!/^[a-zA-Z0-9]$/.test(value)) { input.value = ""; return; }
+                    value = value.toUpperCase();
+                    input.value = value;
+                    if (value && index < inputs.length - 1) inputs[index + 1].focus();
+                    updateOtp();
+                });
+
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Backspace" && !input.value && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
+
+                // Auto Paste 6-Digit Code Support
+                input.addEventListener("paste", (e) => {
+                    e.preventDefault();
+                    const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim().toUpperCase();
+                    if (/^[A-Z0-9]{6}$/.test(pasteData)) {
+                        pasteData.split('').forEach((char, i) => {
+                            if (inputs[i]) inputs[i].value = char;
+                        });
+                        inputs[5].focus();
+                        updateOtp();
+                        showToast('Đã dán mã OTP thành công!', 'success');
+                    }
+                });
+            });
+
+            function updateOtp() {
+                let otp = "";
+                inputs.forEach(i => otp += i.value);
+                hiddenInput.value = otp;
+            }
+
+            form.addEventListener("submit", function (e) {
+                if (hiddenInput.value.length !== 6) {
+                    e.preventDefault();
+                    showToast('Vui lòng nhập đủ 6 ký tự OTP!', 'error');
+                } else {
+                    const btn = $('#btnSubmit');
+                    btn.prop('disabled', true);
+                    btn.find('span').text('Đang xác minh...');
+                    $('#btnIcon').attr('class', 'fas fa-spinner fa-spin');
+                }
+            });
+
+            // ===== 7. COUNTDOWN TIMER & RESEND OTP AJAX =====
+            const expireAtStr = '@expireAtVal';
+            let expireAt = new Date(expireAtStr).getTime();
+
+            const countdownEl = document.getElementById("countdown");
+            const resendBtn = document.getElementById("resendBtn");
+
+            let timer = setInterval(runCountdown, 1000);
+
+            function runCountdown() {
+                const now = new Date().getTime();
+                const timeLeft = Math.floor((expireAt - now) / 1000);
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    countdownEl.innerText = "00:00";
+                    resendBtn.disabled = false;
+                    return;
+                }
+
+                countdownEl.innerText =
+                    String(Math.floor(timeLeft / 60)).padStart(2, '0') +
+                    ":" +
+                    String(timeLeft % 60).padStart(2, '0');
+            }
+
+            resendBtn.addEventListener("click", () => {
+                resendBtn.disabled = true;
+                $(resendBtn).find('i').addClass('fa-spin');
+
+                fetch('/Password/ResendOtp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify('@Model.Email')
+                })
+                .then(res => res.json())
+                .then(data => {
+                    $(resendBtn).find('i').removeClass('fa-spin');
+                    if (data.success) {
+                        showToast('OTP mới đã được gửi thành công!', 'success');
+                        expireAt = new Date(data.expireAt).getTime();
+                        clearInterval(timer);
+                        timer = setInterval(runCountdown, 1000);
+                    } else {
+                        showToast(data.message || 'Lỗi gửi mã OTP', 'error');
+                        resendBtn.disabled = false;
+                    }
+                })
+                .catch(() => {
+                    $(resendBtn).find('i').removeClass('fa-spin');
+                    showToast('Lỗi kết nối máy chủ!', 'error');
+                    resendBtn.disabled = false;
+                });
             });
         });
     </script>

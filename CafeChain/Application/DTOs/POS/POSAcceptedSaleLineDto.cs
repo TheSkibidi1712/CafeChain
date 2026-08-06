@@ -6,6 +6,7 @@ namespace CafeChain.Application.DTOs.POS
         public int DrinkSizeId { get; init; }
         public int DrinkId { get; init; }
         public int SizeId { get; init; }
+        public int RecipeId { get; init; }
         public string DrinkName { get; init; } = string.Empty;
         public string? SizeName { get; init; }
         public decimal AcceptedBasePrice { get; init; }
@@ -20,5 +21,10 @@ namespace CafeChain.Application.DTOs.POS
         public int ToppingId { get; init; }
         public string Name { get; init; } = string.Empty;
         public decimal AcceptedPrice { get; init; }
+        public decimal QuantityPerDrink { get; init; } = 1m;
+        public string QuantityUnit { get; init; } = "RECIPE_PORTION";
+        public int? RecipeId { get; init; }
+        public string PriceTreatment { get; init; } = "ADD_TOPPING_PRICE";
+        public string CostTreatment { get; init; } = "ADD_TOPPING_RECIPE_COST";
     }
 }

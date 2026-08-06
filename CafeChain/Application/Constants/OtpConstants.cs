@@ -59,6 +59,11 @@ namespace CafeChain.Application.Constants
             public const string RequiresOnline = "SUPERVISOR_APPROVAL_REQUIRES_ONLINE";
             public const string LateOpeningRequiresOtp = "LATE_OPENING_REQUIRES_OTP";
             public const string RateLimited = "OTP_RATE_LIMITED";
+            public const string Invalid = "OTP_INVALID";
+            public const string Expired = "OTP_EXPIRED";
+            public const string AlreadyUsed = "OTP_ALREADY_USED";
+            public const string ContextMismatch = "OTP_CONTEXT_MISMATCH";
+            public const string VerificationLocked = "OTP_VERIFICATION_LOCKED";
             /// <summary>SMTP mode is on but Email:Password / Email__Password is not configured.</summary>
             public const string EmailSmtpPasswordNotConfigured = "EMAIL_SMTP_PASSWORD_NOT_CONFIGURED";
         }

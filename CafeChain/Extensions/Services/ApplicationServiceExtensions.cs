@@ -278,6 +278,8 @@ namespace CafeChain.Extensions.Services
 
             // Admin - Suppliers
             services.AddScoped<IAdminSupplierService, AdminSupplierService>();
+            services.AddScoped<ISupplierVisibilityRepairService, SupplierVisibilityRepairService>();
+            services.AddScoped<ISupplierProcurementDataQualityService, SupplierProcurementDataQualityService>();
 
             // Admin - Orders Dashboard
             services.AddScoped<IAdminOrderService, AdminOrderService>();
@@ -360,6 +362,7 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IPurchaseAdviceFulfillmentService, PurchaseAdviceFulfillmentService>();
             services.AddScoped<IPurchaseAdviceConsolidationService, PurchaseAdviceConsolidationService>();
             services.AddScoped<IPurchaseOrderBatchService, PurchaseOrderBatchService>();
+            services.AddScoped<IDuplicatePurchaseOrderRepairService, DuplicatePurchaseOrderRepairService>();
             services.AddScoped<ISupplierQualityService, SupplierQualityService>();
             services.AddScoped<IBranchReceiptService, BranchReceiptService>();
 

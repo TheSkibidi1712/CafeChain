@@ -198,7 +198,7 @@ const InventoryDocument = (() => {
         `;
 
         const modal =
-            new bootstrap.Modal(
+            bootstrap.Modal.getOrCreateInstance(
                 document.querySelector(selectors.modal)
             );
 
@@ -237,7 +237,7 @@ const InventoryDocument = (() => {
         `;
 
         const modal =
-            new bootstrap.Modal(
+            bootstrap.Modal.getOrCreateInstance(
                 document.querySelector(selectors.modal)
             );
 
@@ -1172,7 +1172,7 @@ const InventoryDocument = (() => {
 
         document.querySelector(selectors.exportDocumentId).value = documentId;
 
-        const modal = new bootstrap.Modal(document.querySelector(selectors.exportModal));
+        const modal = bootstrap.Modal.getOrCreateInstance(document.querySelector(selectors.exportModal));
 
         modal.show();
     }

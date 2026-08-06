@@ -44,7 +44,7 @@ function openTransactionModal(storeId) {
 
     if (!modal || !content) return;
 
-    modal.style.display = "block";
+    bootstrap.Modal.getOrCreateInstance(modal).show();
     renderTransactionState("Đang tải lịch sử tồn kho…");
 
     loadTransactionPage(1, currentStoreId);
@@ -124,28 +124,9 @@ function loadTransactionPage(page, storeId) {
 // CLOSE MODAL
 // =====================================================
 
-function closeModal() {
-    const modal = document.getElementById("transactionModal");
-    if (!modal) return;
-
+function resetTransactionModal() {
     transactionRequestController?.abort();
     transactionRequestController = null;
-    modal.style.display = "none";
 }
 
-// =====================================================
-// CLICK OUTSIDE / ESC
-// =====================================================
-
-window.addEventListener("click", function (event) {
-    const modal = document.getElementById("transactionModal");
-    if (modal && event.target === modal) {
-        closeModal();
-    }
-});
-
-window.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") {
-        closeModal();
-    }
-});
+document.getElementById("transactionModal")?.addEventListener("hidden.bs.modal", resetTransactionModal);

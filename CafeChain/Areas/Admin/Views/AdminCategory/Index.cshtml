@@ -52,7 +52,9 @@
     var hasKeyword = !string.IsNullOrWhiteSpace(Model.Filter.Keyword);
 }
 
-<link rel="stylesheet" href="~/css/Admin/Category/Category.css" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Category/Category.css" asp-append-version="true" />
+}
 
 @Html.AntiForgeryToken()
 
@@ -170,62 +172,46 @@
         <table class="table table-hover mb-0 category-table">
 
             <thead class="bg-light text-muted">
-
                 <tr>
-
-                    <th class="border-0 py-3">
+                    <th class="border-0 py-3 text-center" style="width: 25%;">
                         Mã danh mục
                     </th>
-
-                    <th class="border-0 py-3 text-center">
+                    <th class="border-0 py-3 text-center" style="width: 10%;">
                         Icon
                     </th>
-
-                    <th class="border-0 py-3">
+                    <th class="border-0 py-3" style="width: 35%;">
                         Tên danh mục
                     </th>
-
-                    <th class="border-0 py-3">
+                    <th class="border-0 py-3 text-center" style="width: 15%;">
                         Trạng thái
                     </th>
-
-                    <th class="border-0 text-end px-4 py-3">
+                    <th class="border-0 text-center py-3" style="width: 15%;">
                         Hành động
                     </th>
-
                 </tr>
-
             </thead>
 
             <tbody>
-
                 @if (!categories.Any())
                 {
                     <tr>
-
                         <td colspan="5"
                             class="category-empty-state">
-
                             <span class="category-empty-icon"><i class="fas fa-mug-hot"></i></span>
                             <strong>@(hasKeyword ? "Không tìm thấy danh mục phù hợp" : "Chưa có danh mục nào")</strong>
                             <small>@(hasKeyword ? "Thử một từ khóa khác hoặc xóa bộ lọc hiện tại." : "Tạo danh mục đầu tiên để bắt đầu tổ chức thực đơn.")</small>
                         </td>
-
                     </tr>
                 }
 
                 @foreach (var item in categories)
                 {
                     <tr>
-
-                        <td class="py-3">
-
+                        <td class="py-3 text-center">
                             @item.CategoryCode
-
                         </td>
 
                         <td class="py-3 text-center category-icon-cell">
-
                             @if (!string.IsNullOrWhiteSpace(item.Icon))
                             {
                                 <span class="category-icon-badge">
@@ -239,17 +225,13 @@
                                     -
                                 </span>
                             }
-
                         </td>
 
                         <td class="py-3 category-name">
-
                             @item.Name
-
                         </td>
 
-                        <td class="py-3">
-
+                        <td class="py-3 text-center">
                             @if (item.Active)
                             {
                                 <span class="badge badge-active">
@@ -262,39 +244,33 @@
                                     Ẩn
                                 </span>
                             }
-
                         </td>
 
-                        <td class="text-end px-4 py-3 category-actions-cell">
+                        <td class="text-center py-3 category-actions-cell">
+                            <div class="d-inline-flex align-items-center justify-content-center gap-1">
+                                @if (canUpdateCategory)
+                                {
+                                <button type="button"
+                                        class="btn btn-sm category-action-btn category-action-edit btn-edit-category"
+                                        data-id="@item.CategoryId"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editCategoryModal"
+                                        title="Sửa">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                }
 
-                            @if (canUpdateCategory)
-                            {
-                            <button type="button"
-                                    class="btn btn-sm category-action-btn category-action-edit btn-edit-category"
-                                    data-id="@item.CategoryId"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editCategoryModal"
-                                    title="Sửa">
-
-                                <i class="fas fa-pen"></i>
-
-                            </button>
-                            }
-
-                            @if (canToggleCategoryStatus)
-                            {
-                            <button type="button"
-                                    class="btn btn-sm category-action-btn @(item.Active ? "category-action-lock" : "category-action-unlock")"
-                                    onclick="toggleCategory(@item.CategoryId)"
-                                    title="@(item.Active ? "Ẩn" : "Hiển thị")">
-
-                                <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
-
-                            </button>
-                            }
-
+                                @if (canToggleCategoryStatus)
+                                {
+                                <button type="button"
+                                        class="btn btn-sm category-action-btn @(item.Active ? "category-action-lock" : "category-action-unlock")"
+                                        onclick="toggleCategory(@item.CategoryId)"
+                                        title="@(item.Active ? "Ẩn" : "Hiển thị")">
+                                    <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
+                                </button>
+                                }
+                            </div>
                         </td>
-
                     </tr>
                 }
 
@@ -687,6 +663,5 @@
 
 @section Scripts
 {
-    <script src="~/js/Toast/toast.js"></script>
     <script src="~/js/Admin/Category/Category.js"></script>
 }

@@ -23,6 +23,10 @@ namespace CafeChain.Models.Stores
         /// </summary>
         public int UserId { get; set; }
 
+        /// <summary>Nhân viên đang thao tác trên terminal; không thay đổi chủ két UserId.</summary>
+        public int? CurrentOperatorStaffId { get; set; }
+        public DateTime? OperatorChangedAtUtc { get; set; }
+
         /// <summary>
         /// Thời điểm mở ca
         /// </summary>
@@ -164,6 +168,7 @@ namespace CafeChain.Models.Stores
         // ================= NAVIGATION =================
         public virtual Store Store { get; set; }
         public virtual Staff User { get; set; }
+        public virtual Staff? CurrentOperatorStaff { get; set; }
         public virtual Staff? ExceptionClosedByStaff { get; set; }
         public virtual Staff? ApprovedByStaff { get; set; }
         public virtual Staff? ClosedByStaff { get; set; }
@@ -212,9 +217,17 @@ namespace CafeChain.Models.Stores
         public const string Closed = "CLOSED";
         public const string ReconciliationRequired = "RECONCILIATION_REQUIRED";
 
+        // Compatibility for rows created before statuses were canonicalized.
+        // Keep these readable until the data-repair migration/SeedAll pass has
+        // normalized every deployed database to the uppercase state machine.
+        public const string LegacyOpen = "Open";
+        public const string LegacyClosing = "Closing";
+        public const string LegacyExpiredPendingClose = "ExpiredPendingClose";
+
         public static readonly string[] ActiveResponsibility =
         {
-            Open, Closing, ExpiredPendingClose
+            Open, Closing, ExpiredPendingClose,
+            LegacyOpen, LegacyClosing, LegacyExpiredPendingClose
         };
     }
 

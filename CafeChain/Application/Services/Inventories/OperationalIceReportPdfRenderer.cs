@@ -1,4 +1,5 @@
 using System.Globalization;
+using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.Inventories;
 using QuestPDF.Fluent;
@@ -22,7 +23,7 @@ public sealed class OperationalIceReportPdfRenderer : IOperationalIceReportPdfRe
             page.Content().PaddingVertical(14).Column(column => Content(column, report));
             page.Footer().Row(row =>
             {
-                row.RelativeItem().Text($"Tạo lúc {generatedAtUtc:dd/MM/yyyy HH:mm} UTC · Dữ liệu giá từ FIFO/ledger")
+                row.RelativeItem().Text($"Tạo lúc {generatedAtUtc:dd/MM/yyyy HH:mm} UTC · Dữ liệu giá từ giao dịch kho")
                     .FontSize(7).FontColor("#64748B");
                 row.AutoItem().DefaultTextStyle(style => style.FontSize(7).FontColor("#64748B")).Text(text =>
                 {
@@ -48,7 +49,7 @@ public sealed class OperationalIceReportPdfRenderer : IOperationalIceReportPdfRe
             {
                 column.Item().Text(report.StoreName).Bold();
                 column.Item().Text($"{report.BusinessDate:dd/MM/yyyy} · {report.OperationalShiftName}");
-                column.Item().Text($"Allocation #{report.IceAllocationId}").FontColor("#64748B");
+                column.Item().Text($"Mã cấp đá #{report.IceAllocationId}").FontColor("#64748B");
             });
         });
     }
@@ -63,8 +64,8 @@ public sealed class OperationalIceReportPdfRenderer : IOperationalIceReportPdfRe
                 info.Item().Text("CA VẬN HÀNH").Bold().FontColor("#6F4E37");
                 info.Item().Text($"Thời gian: {report.StartAtUtc:dd/MM HH:mm} - {report.EndAtUtc:dd/MM HH:mm} UTC");
                 info.Item().Text($"Nguyên liệu: {report.IngredientName}");
-                info.Item().Text($"Trạng thái: {report.Status}");
-                info.Item().Text($"WorkShift POS: {(report.WorkShiftIds.Count == 0 ? "-" : string.Join(", ", report.WorkShiftIds.Select(x => $"#{x}")))}");
+                info.Item().Text($"Trạng thái: {OperationalIceDisplayText.Status(report.Status)}");
+                info.Item().Text($"Ca bán hàng POS: {(report.WorkShiftIds.Count == 0 ? "-" : string.Join(", ", report.WorkShiftIds.Select(x => $"#{x}")))}");
             });
             row.ConstantItem(10);
             row.RelativeItem().Element(InfoBox).Column(info =>
@@ -92,7 +93,7 @@ public sealed class OperationalIceReportPdfRenderer : IOperationalIceReportPdfRe
             AddMetric(table, "Cấp bổ sung", Quantity(report.SupplementalIssued, report.UnitName));
             AddMetric(table, "Trả kho hợp lệ", Quantity(report.ReturnedQuantity, report.UnitName));
             AddMetric(table, "Tồn chuyển cuối ca", Quantity(report.ClosingCarry, report.UnitName));
-            AddMetric(table, "Dùng thực tế", NullableQuantity(report.ActualUsage, report.UnitName));
+            AddMetric(table, "Tiêu hao thực tế", NullableQuantity(report.ActualUsage, report.UnitName));
             AddMetric(table, "Dùng theo POS", Quantity(report.TheoreticalUsage, report.UnitName));
             AddMetric(table, "Chênh lệch", NullableQuantity(report.Variance, report.UnitName));
         });
@@ -106,11 +107,11 @@ public sealed class OperationalIceReportPdfRenderer : IOperationalIceReportPdfRe
                 row.RelativeItem().Text($"Giá vốn chênh lệch: {Money(report.VarianceCost)}");
                 row.RelativeItem().Text($"Giá vốn thực tế: {Money(report.ActualCost)}").Bold();
             });
-            cost.Item().PaddingTop(5).Text(report.CostStatus).FontColor("#99623B");
+            cost.Item().PaddingTop(5).Text(OperationalIceDisplayText.CostStatus(report.CostStatus)).FontColor("#99623B");
             if (report.HasUsageSnapshotMismatch)
             {
                 cost.Item().PaddingTop(5).Text(
-                    $"Cảnh báo đối soát: snapshot {Quantity(report.TheoreticalUsage, report.UnitName)}, ledger hiện tại {Quantity(report.LedgerTheoreticalUsage, report.UnitName)}.")
+                    $"Cảnh báo đối soát: tiêu hao đã lưu {Quantity(report.TheoreticalUsage, report.UnitName)}, dữ liệu giao dịch hiện tại {Quantity(report.LedgerTheoreticalUsage, report.UnitName)}.")
                     .FontColor("#991B1B");
             }
         });
@@ -134,13 +135,13 @@ public sealed class OperationalIceReportPdfRenderer : IOperationalIceReportPdfRe
                 table.Header(header =>
                 {
                     header.Cell().Element(HeaderCell).Text("Loại").Bold();
-                    header.Cell().Element(HeaderCell).Text("Idempotency key").Bold();
+                    header.Cell().Element(HeaderCell).Text("Mã chống trùng lặp").Bold();
                     header.Cell().Element(HeaderCell).Text("Giao dịch kho").Bold();
                     header.Cell().Element(HeaderCell).AlignRight().Text("Giá trị").Bold();
                 });
                 foreach (var posting in report.InventoryPostings)
                 {
-                    table.Cell().Element(BodyCell).Text(posting.PostingType);
+                    table.Cell().Element(BodyCell).Text(OperationalIceDisplayText.PostingType(posting.PostingType));
                     table.Cell().Element(BodyCell).Text(posting.IdempotencyKey);
                     table.Cell().Element(BodyCell).Text(posting.InventoryTransactionId?.ToString() ?? "-");
                     table.Cell().Element(BodyCell).AlignRight().Text(Money(posting.TotalCost));

@@ -18,15 +18,18 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
     private readonly AppDbContext _context;
     private readonly IScopeAuthorizationService _scopeAuthorization;
     private readonly IPhysicalUnitConversionService _physicalConversion;
+    private readonly IUnitConversionService? _unitConversion;
 
     public PurchaseAdviceConsolidationService(
         AppDbContext context,
         IScopeAuthorizationService scopeAuthorization,
-        IPhysicalUnitConversionService physicalConversion)
+        IPhysicalUnitConversionService physicalConversion,
+        IUnitConversionService? unitConversion = null)
     {
         _context = context;
         _scopeAuthorization = scopeAuthorization;
         _physicalConversion = physicalConversion;
+        _unitConversion = unitConversion;
     }
 
     public async Task<ServiceResult<PurchaseAdviceConsolidationPageDto>> GetQueueAsync(
@@ -251,15 +254,29 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                     line.RequestedProcurementQuantity.GetValueOrDefault(),
                     line.AllocatedToPoProcurementQuantity,
                     line.ClosedProcurementQuantity);
-                var orderedProcurement = selected.OrderedProcurementQuantity!.Value;
-                if (remainingProcurement <= 0m || orderedProcurement > remainingProcurement)
+                var demandProcurement = selected.OrderedProcurementQuantity!.Value;
+                if (remainingProcurement <= 0m || demandProcurement > remainingProcurement)
                 {
                     return Failure<PurchaseAdviceConsolidationPreviewDto>(
                         PurchaseAdviceErrorCodes.PackageCountMismatch,
                         $"{line.Ingredient.Name} chỉ còn {remainingProcurement:N3} {line.ProcurementUnit?.Name}; không được mua rời vượt nhu cầu.");
                 }
 
-                var looseBaseConversion = await _physicalConversion.ConvertAsync(
+                if (!LoosePurchaseMath.TryPlan(
+                        demandProcurement,
+                        offer.LooseMinimumOrderQuantity,
+                        offer.LooseQuantityStep,
+                        out var loosePlan))
+                {
+                    return Failure<PurchaseAdviceConsolidationPreviewDto>(
+                        PurchaseAdviceErrorCodes.MoqViolation,
+                        $"Không thể áp dụng MOQ hoặc bước số lượng mua lẻ cho {line.Ingredient.Name}.");
+                }
+
+                var orderedProcurement = loosePlan.OrderedQuantity;
+
+                var looseBaseConversion = await ConvertForIngredientAsync(
+                    line.IngredientId,
                     orderedProcurement,
                     offer.LooseProcurementUnitId.Value,
                     line.BaseUnitId);
@@ -268,6 +285,20 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                     return Failure<PurchaseAdviceConsolidationPreviewDto>(
                         PurchaseAdviceErrorCodes.PackageMismatch,
                         $"Số lượng mua rời của {line.Ingredient.Name} không quy đổi được sang {line.BaseUnit.Name}.");
+                }
+
+                var demandBaseConversion = orderedProcurement == demandProcurement
+                    ? looseBaseConversion
+                    : await ConvertForIngredientAsync(
+                        line.IngredientId,
+                        demandProcurement,
+                        offer.LooseProcurementUnitId.Value,
+                        line.BaseUnitId);
+                if (!demandBaseConversion.IsSuccess || demandBaseConversion.Data <= 0m)
+                {
+                    return Failure<PurchaseAdviceConsolidationPreviewDto>(
+                        PurchaseAdviceErrorCodes.PackageMismatch,
+                        $"Nhu cầu mua lẻ của {line.Ingredient.Name} không quy đổi được sang {line.BaseUnit.Name}.");
                 }
 
                 allocations.Add((new PurchaseAdviceConsolidationAllocationDto
@@ -280,12 +311,12 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                     RestockRequestId = line.RestockRequestId,
                     SuggestedPackageCount = null,
                     PackageCount = null,
-                    DemandCoveredBaseQuantity = looseBaseConversion.Data,
+                    DemandCoveredBaseQuantity = demandBaseConversion.Data,
                     OrderedBaseQuantity = looseBaseConversion.Data,
-                    RoundingSurplusBaseQuantity = 0m,
-                    DemandCoveredProcurementQuantity = orderedProcurement,
+                    RoundingSurplusBaseQuantity = looseBaseConversion.Data - demandBaseConversion.Data,
+                    DemandCoveredProcurementQuantity = demandProcurement,
                     OrderedProcurementQuantity = orderedProcurement,
-                    RoundingSurplusProcurementQuantity = 0m,
+                    RoundingSurplusProcurementQuantity = loosePlan.RoundingSurplusQuantity,
                     ProcurementUnitId = line.ProcurementUnitId,
                     ProcurementUnitName = line.ProcurementUnit?.Name,
                     AllocatedBaseQuantity = looseBaseConversion.Data,
@@ -315,6 +346,8 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                     CurrentProcurementUnitPrice = offer.CurrentProcurementUnitPrice,
                     LooseProcurementUnitId = offer.LooseProcurementUnitId,
                     LooseProcurementUnitName = offer.LooseProcurementUnit?.Name,
+                    LooseMinimumOrderQuantity = offer.LooseMinimumOrderQuantity,
+                    LooseQuantityStep = offer.LooseQuantityStep,
                     Specification = offer.Note
                 }));
                 continue;
@@ -323,7 +356,8 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             if (!offer.PackageQuantity.HasValue || offer.PackageQuantity <= 0m || offer.CurrentPrice <= 0m)
                 return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.OfferInvalid, $"Quy cách đóng gói cho {line.Ingredient.Name} không hợp lệ hoặc đã hết hiệu lực.");
 
-            var baseConversion = await _physicalConversion.ConvertAsync(
+            var baseConversion = await ConvertForIngredientAsync(
+                line.IngredientId,
                 offer.PackageQuantity.Value,
                 offer.UnitId,
                 line.BaseUnitId);
@@ -345,7 +379,8 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                     : 0m;
                 if (procurementQuantity <= 0)
                 {
-                    var procurementConversion = await _physicalConversion.ConvertAsync(
+                    var procurementConversion = await ConvertForIngredientAsync(
+                        line.IngredientId,
                         offer.PackageQuantity.Value,
                         offer.UnitId,
                         line.ProcurementUnitId!.Value);
@@ -463,6 +498,8 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                 CurrentProcurementUnitPrice = offer.CurrentProcurementUnitPrice,
                 LooseProcurementUnitId = offer.LooseProcurementUnitId,
                 LooseProcurementUnitName = offer.LooseProcurementUnit?.Name,
+                LooseMinimumOrderQuantity = offer.LooseMinimumOrderQuantity,
+                LooseQuantityStep = offer.LooseQuantityStep,
                 Specification = offer.Note
             }));
         }
@@ -582,7 +619,11 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             decimal packageBaseQuantity = 0m;
             if (offer.PackageQuantity > 0m && offer.CurrentPrice > 0m)
             {
-                var conversion = await _physicalConversion.ConvertAsync(offer.PackageQuantity.Value, offer.UnitId, offer.Ingredient.BaseUnitId);
+                var conversion = await ConvertForIngredientAsync(
+                    offer.IngredientId,
+                    offer.PackageQuantity.Value,
+                    offer.UnitId,
+                    offer.Ingredient.BaseUnitId);
                 if (conversion.IsSuccess && conversion.Data > 0m)
                     packageBaseQuantity = conversion.Data;
             }
@@ -595,7 +636,8 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             {
                 if (offer.PackageQuantity > 0m)
                 {
-                    var procurementConversion = await _physicalConversion.ConvertAsync(
+                    var procurementConversion = await ConvertForIngredientAsync(
+                        offer.IngredientId,
                         offer.PackageQuantity.Value,
                         offer.UnitId,
                         targetProcurementUnitId);
@@ -654,6 +696,15 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                 allowed.Add(new ReadableStore(store.StoreId, store.Name, store.ProvinceId, store.AreaName));
         return allowed;
     }
+
+    private Task<ServiceResult<decimal>> ConvertForIngredientAsync(
+        int ingredientId,
+        decimal quantity,
+        int fromUnitId,
+        int toUnitId) =>
+        _unitConversion != null
+            ? _unitConversion.ConvertAsync(ingredientId, quantity, fromUnitId, toUnitId)
+            : _physicalConversion.ConvertAsync(quantity, fromUnitId, toUnitId);
 
     private static decimal Remaining(decimal requested, decimal allocated, decimal closed) => Math.Max(0m, requested - allocated - closed);
     private static bool CanConsolidate(AdminActorContext actor) =>

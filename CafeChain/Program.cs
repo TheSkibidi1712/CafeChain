@@ -71,3 +71,5 @@ finally
 {
     Log.CloseAndFlush();
 }
+// Trigger dotnet watch reload for views update - VerifyOtp Master UI 3.0
+

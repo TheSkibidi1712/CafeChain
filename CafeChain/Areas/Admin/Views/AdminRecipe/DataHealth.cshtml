@@ -7,19 +7,26 @@
 
 <div class="rb-page">
     <div class="container-fluid px-4 pt-4 pb-5">
-        <div class="rb-page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-            <div>
+        <div class="rb-page-header bom-depth-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div class="admin-module-heading-copy">
                 <nav class="rb-breadcrumb" aria-label="breadcrumb">
                     <a asp-action="Index" class="btn-rb-back">Công thức BOM</a> &gt; <span>Tình trạng dữ liệu BOM</span>
                 </nav>
-                <h1 class="rb-page-title mb-1">Tình trạng dữ liệu BOM</h1>
-                <p class="text-muted mb-0">
-                    Kiểm tra cấu hình công thức và dữ liệu giá vốn toàn hệ thống. Trạng thái cửa hàng được đánh giá riêng.
-                </p>
+                <div class="admin-module-title-row">
+                    <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span>
+                    <div>
+                        <h1 class="rb-page-title mb-1">Tình trạng dữ liệu BOM</h1>
+                        <p class="text-muted mb-0">
+                            Kiểm tra cấu hình công thức và dữ liệu giá vốn toàn hệ thống. Trạng thái cửa hàng được đánh giá riêng.
+                        </p>
+                    </div>
+                </div>
             </div>
-            <a asp-action="Index" class="btn btn-rb-ghost">
-                <i class="fas fa-list me-2" aria-hidden="true"></i>Danh sách công thức
-            </a>
+            <div class="admin-module-header-actions">
+                <a asp-action="Index" class="btn btn-rb-save">
+                    <i class="fas fa-list" aria-hidden="true"></i>Danh sách công thức
+                </a>
+            </div>
         </div>
 
         <section class="rb-health-summary mb-3" aria-label="Tổng hợp tình trạng dữ liệu BOM">
@@ -122,13 +129,33 @@
                                     }
                                     else
                                     {
-                                        foreach (var reason in reasons)
-                                        {
-                                            var ctaUrl = reason.CtaId.HasValue
-                                                ? Url.Action(reason.CtaAction, reason.CtaController, new { id = reason.CtaId.Value })
-                                                : Url.Action(reason.CtaAction, reason.CtaController);
-                                            <a class="btn btn-sm btn-outline-secondary" href="@ctaUrl">@reason.CtaLabel</a>
-                                        }
+                                        <div class="dropdown rb-health-action-menu">
+                                            <button class="btn rb-health-action-trigger dropdown-toggle" type="button"
+                                                    data-bs-toggle="dropdown" aria-expanded="false"
+                                                    aria-label="Mở @reasons.Count phương án xử lý">
+                                                <i class="fas fa-screwdriver-wrench" aria-hidden="true"></i>
+                                                <span>Xử lý</span>
+                                                <span class="rb-health-action-count">@reasons.Count</span>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                @foreach (var reason in reasons)
+                                                {
+                                                    var ctaUrl = reason.CtaId.HasValue
+                                                        ? Url.Action(reason.CtaAction, reason.CtaController, new { id = reason.CtaId.Value })
+                                                        : Url.Action(reason.CtaAction, reason.CtaController);
+                                                    <li>
+                                                        <a class="dropdown-item rb-health-action-item" href="@ctaUrl">
+                                                            <span class="rb-health-action-item-icon"><i class="fas fa-pen" aria-hidden="true"></i></span>
+                                                            <span class="rb-health-action-copy">
+                                                                <strong>@reason.CtaLabel</strong>
+                                                                <small>@(reason.Code == "INACTIVE" ? "NGỪNG HOẠT ĐỘNG" : reason.Code)</small>
+                                                            </span>
+                                                            <i class="fas fa-chevron-right rb-health-action-arrow" aria-hidden="true"></i>
+                                                        </a>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
                                     }
                                 </td>
                             </tr>

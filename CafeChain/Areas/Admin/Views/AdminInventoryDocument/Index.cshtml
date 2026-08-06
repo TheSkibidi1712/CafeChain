@@ -4,10 +4,10 @@
     ViewData["Title"] = "Quản lý phiếu kho";
 }
 
-<link rel="stylesheet"
-      href="~/css/Admin/InventoryDocument/inventorydocument.css" />
-<link rel="stylesheet"
-      href="~/css/Admin/InventoryDocument/inventorydocumentcreate.css" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryDocument/inventorydocument.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Admin/InventoryDocument/inventorydocumentcreate.css" asp-append-version="true" />
+}
 
 <div class="inventory-page cc-warehouse-page"
      id="inventoryDocumentPage"
@@ -117,7 +117,7 @@
 
 </div>
 
-<script src="~/js/Admin/InventoryDocument/inventorydocument.js"
-        asp-append-version="true"></script>
-<script src="~/js/Admin/InventoryDocument/inventorydocumentcreate.js"
-        asp-append-version="true"></script>
+@section Scripts {
+    <script src="~/js/Admin/InventoryDocument/inventorydocument.js" asp-append-version="true"></script>
+    <script src="~/js/Admin/InventoryDocument/inventorydocumentcreate.js" asp-append-version="true"></script>
+}

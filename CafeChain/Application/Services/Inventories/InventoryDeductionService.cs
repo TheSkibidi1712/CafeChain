@@ -278,6 +278,11 @@ namespace CafeChain.Application.Services.Inventories
 
                         foreach (var topping in item.Toppings ?? new List<POSOrderToppingDto>())
                         {
+                            var costTreatment = topping.CostTreatment
+                                ?? ToppingCostTreatments.AddToppingRecipeCost;
+                            if (costTreatment == ToppingCostTreatments.IncludedInDrinkRecipe)
+                                continue;
+
                             var toppingRecipe = await GetActiveRecipeAsync(null, null, topping.ToppingId);
                             if (toppingRecipe == null)
                             {
@@ -289,7 +294,7 @@ namespace CafeChain.Application.Services.Inventories
 
                             await CollectRequirementsAsync(
                                 toppingRecipe,
-                                item.Quantity,
+                                item.Quantity * (topping.QuantityPerDrink ?? 1m),
                                 storeId,
                                 mode,
                                 modeSnapshot,
@@ -829,7 +834,11 @@ namespace CafeChain.Application.Services.Inventories
 
             foreach (var detail in details)
             {
-                var drinkRecipe = await GetActiveRecipeAsync(detail.DrinkId, detail.SizeId, null);
+                var drinkRecipe = await GetOrderRecipeAsync(
+                    detail.RecipeIdSnapshot,
+                    detail.DrinkId,
+                    detail.SizeId,
+                    null);
                 if (drinkRecipe == null)
                 {
                     _logger.LogWarning(
@@ -854,7 +863,20 @@ namespace CafeChain.Application.Services.Inventories
 
                 foreach (var topping in detail.OrderToppings.OrderBy(t => t.OrderToppingId))
                 {
-                    var toppingRecipe = await GetActiveRecipeAsync(null, null, topping.ToppingId);
+                    if (topping.CostTreatmentSnapshot == ToppingCostTreatments.IncludedInDrinkRecipe)
+                        continue;
+
+                    if (topping.QuantityUnitSnapshot != ToppingQuantityUnits.RecipePortion)
+                    {
+                        throw new InvalidOperationException(
+                            $"Đơn vị số lượng topping của dòng #{topping.OrderToppingId} không được hỗ trợ.");
+                    }
+
+                    var toppingRecipe = await GetOrderRecipeAsync(
+                        topping.RecipeIdSnapshot,
+                        null,
+                        null,
+                        topping.ToppingId);
                     if (toppingRecipe == null)
                     {
                         _logger.LogWarning(
@@ -866,7 +888,7 @@ namespace CafeChain.Application.Services.Inventories
 
                     await CollectRequirementsAsync(
                         toppingRecipe,
-                        detail.Quantity,
+                        detail.Quantity * topping.QuantityPerDrinkSnapshot,
                         storeId,
                         mode,
                         modeSnapshot,
@@ -879,7 +901,7 @@ namespace CafeChain.Application.Services.Inventories
 
         private async Task CollectRequirementsAsync(
             Recipe saleRecipe,
-            int soldQuantity,
+            decimal soldQuantity,
             int storeId,
             InventoryWriterMode mode,
             InventoryWriterModeSnapshot? modeSnapshot,
@@ -1271,6 +1293,32 @@ namespace CafeChain.Application.Services.Inventories
             }
 
             return null;
+        }
+
+        private async Task<Recipe?> GetOrderRecipeAsync(
+            int? recipeIdSnapshot,
+            int? drinkId,
+            int? sizeId,
+            int? toppingId)
+        {
+            if (!recipeIdSnapshot.HasValue)
+                return await GetActiveRecipeAsync(drinkId, sizeId, toppingId);
+
+            var snapshot = await _context.Recipes
+                .Include(r => r.RecipeDetails)
+                .SingleOrDefaultAsync(r =>
+                    r.RecipeId == recipeIdSnapshot.Value
+                    && r.DrinkId == drinkId
+                    && r.ToppingId == toppingId
+                    && (!drinkId.HasValue || r.SizeId == sizeId || r.SizeId == null));
+
+            if (snapshot == null)
+            {
+                throw new InvalidOperationException(
+                    $"Snapshot công thức #{recipeIdSnapshot.Value} không khớp dòng đơn hàng.");
+            }
+
+            return snapshot;
         }
 
         private async Task<bool> SoldItemsContainBtpAsync(IEnumerable<POSSoldItemDto> soldItems)

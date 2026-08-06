@@ -587,7 +587,7 @@ namespace CafeChain.Application.Services.Inventories
                     || !request.ProcurementUnitId.HasValue))
             {
                 return ServiceResult.Failure(
-                    "Yêu cầu bổ sung mới phải có số lượng và đơn vị mua hàng kg, L hoặc cái.",
+                    "Yêu cầu bổ sung mới phải có số lượng và đơn vị nhu cầu hợp lệ.",
                     errorCode: BranchReceiptErrorCodes.QuantityInvalid);
             }
 
@@ -1140,7 +1140,6 @@ namespace CafeChain.Application.Services.Inventories
 
         private static bool CanWarehouseProcess(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.AccountantWarehouse)
-            || roles.Contains(RoleConstants.BusinessOwner)
             || roles.Contains(RoleConstants.SystemAdmin);
 
         private static bool CanCancel(IReadOnlyCollection<string> roles) =>
@@ -1148,7 +1147,6 @@ namespace CafeChain.Application.Services.Inventories
 
         private static bool CanSubmit(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.StoreManager)
-            || roles.Contains(RoleConstants.BusinessOwner)
             || roles.Contains(RoleConstants.SystemAdmin);
 
         private string? ApplyRequiredRowVersion(RestockRequest request, string? rowVersion)

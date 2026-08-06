@@ -25,6 +25,9 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public decimal? CurrentProcurementUnitPrice { get; set; }
         public int? LooseProcurementUnitId { get; set; }
         public string? LooseProcurementUnitName { get; set; }
+        public string LoosePriceMode { get; set; } = "INDEPENDENT";
+        public decimal? LooseMinimumOrderQuantity { get; set; }
+        public decimal? LooseQuantityStep { get; set; }
         [MaxLength(500)]
         public string? Note { get; set; }
         public DateTime UpdatedAt { get; set; }
@@ -70,6 +73,15 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public decimal? CurrentProcurementUnitPrice { get; set; }
 
         public int? LooseProcurementUnitId { get; set; }
+
+        [MaxLength(16)]
+        public string LoosePriceMode { get; set; } = "INDEPENDENT";
+
+        [Range(typeof(decimal), "0", "999999999")]
+        public decimal? LooseMinimumOrderQuantity { get; set; }
+
+        [Range(typeof(decimal), "0.00001", "999999999")]
+        public decimal? LooseQuantityStep { get; set; }
 
         public string? Note { get; set; }
 

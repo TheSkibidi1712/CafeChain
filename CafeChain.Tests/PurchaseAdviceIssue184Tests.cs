@@ -81,7 +81,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         using var context = CreateDbContext();
         var seed = await SeedAsync(context, 20m);
         var service = CreateService(context);
-        Assert.True((await service.CreateAsync(CreateRequest(seed, 5m), Manager(seed))).IsSuccess);
+        Assert.True((await service.CreateAsync(CreateRequest(seed, 5m), Warehouse(seed))).IsSuccess);
         var duplicate = await service.CreateAsync(CreateRequest(seed, 5m), Manager(seed));
         Assert.False(duplicate.IsSuccess);
         Assert.Equal(PurchaseAdviceErrorCodes.AlreadyExists, duplicate.ErrorCode);
@@ -191,7 +191,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         allocation = await context.RestockSourcingAllocations.AsNoTracking().SingleAsync();
         Assert.Equal(RestockSourcingAllocationStatuses.Released, allocation.Status);
         Assert.NotNull(allocation.ReleasedAtUtc);
-        Assert.Equal(seed.ManagerId, allocation.ReleasedByStaffId);
+        Assert.Equal(seed.WarehouseId, allocation.ReleasedByStaffId);
     }
 
     [Fact]
@@ -279,6 +279,65 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
             Assert.Equal(RestockSourcingAllocationStatuses.Active, allocation.Status);
             Assert.Equal(line.PurchaseAdviceLineId, allocation.PurchaseAdviceLineId);
         });
+    }
+
+    [Fact]
+    public async Task RestockWith1Of10KgPaCoverage_AppearsAs9KgCandidate()
+    {
+        using var context = CreateDbContext();
+        var seed = await SeedAsync(context, 10m);
+        var restock = await context.RestockRequests.SingleAsync(
+            x => x.RestockRequestId == seed.RestockRequestId);
+        restock.SourceType = RestockRequestSourceTypes.ManualByStore;
+        restock.SourcingDecision = RestockSourcingDecisionTypes.Purchase;
+        restock.SourcingStatus = RestockSourcingStatuses.FullyAllocated;
+        restock.RequestedProcurementQuantity = 10m;
+        restock.ProcurementUnitId = seed.UnitId;
+        var advice = new PurchaseAdvice
+        {
+            AdviceNumber = "PA-PARTIAL-305",
+            RequestKey = "PA-PARTIAL-305",
+            StoreId = seed.StoreId,
+            RequestedByStaffId = seed.ManagerId,
+            Status = PurchaseAdviceStatuses.UnderReview,
+            NeededByDate = DateTime.UtcNow.AddDays(2),
+            Priority = PurchaseAdvicePriorities.Normal,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+        advice.Lines.Add(new PurchaseAdviceLine
+        {
+            RestockRequest = restock,
+            IngredientId = seed.IngredientId,
+            RequestedPurchaseBaseQuantity = 1m,
+            RequestedProcurementQuantity = 1m,
+            ProcurementUnitId = seed.UnitId,
+            BaseUnitId = seed.UnitId,
+            NeededByDate = DateTime.UtcNow.AddDays(2),
+            IsActiveReservation = true
+        });
+        restock.SourcingAllocations.Add(new RestockSourcingAllocation
+        {
+            DecisionType = RestockSourcingDecisionTypes.Purchase,
+            ProcurementQuantity = 9m,
+            ProcurementUnitId = seed.UnitId,
+            Status = RestockSourcingAllocationStatuses.PendingPurchaseAdvice,
+            CreatedByStaffId = seed.ManagerId,
+            CreatedAtUtc = DateTime.UtcNow
+        });
+        context.PurchaseAdvices.Add(advice);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).GetAvailableSourcesAsync(
+            seed.StoreId,
+            Manager(seed));
+
+        Assert.True(result.IsSuccess, result.Message);
+        var candidate = Assert.Single(result.Data!);
+        Assert.Equal(10m, candidate.RestockRequestedProcurementQuantity);
+        Assert.Equal(1m, candidate.ExistingPurchaseAdviceProcurementQuantity);
+        Assert.Equal(9m, candidate.PendingPurchaseAllocationProcurementQuantity);
+        Assert.Equal(9m, candidate.RemainingToPurchaseProcurementQuantity);
     }
 
     [Fact]
@@ -435,12 +494,12 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task StoreManager_OwnStoreCanCreateAdvice_OtherStoreRejected()
+    public async Task StoreManager_CannotCreateAdvice()
     {
         using var context = CreateDbContext();
         var seed = await SeedAsync(context, 10m);
         var service = CreateService(context);
-        Assert.True((await service.CreateAsync(CreateRequest(seed, 5m), Manager(seed))).IsSuccess);
+        var ownStore = await service.CreateAsync(CreateRequest(seed, 5m), StoreManager(seed));
         var other = new AdminActorContext
         {
             StaffId = seed.ManagerId,
@@ -450,6 +509,8 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         var otherStoreRequest = CreateRequest(seed, 2m);
         otherStoreRequest.StoreId = seed.StoreId + 99;
         var denied = await service.CreateAsync(otherStoreRequest, other);
+        Assert.False(ownStore.IsSuccess);
+        Assert.Equal(PurchaseAdviceErrorCodes.Forbidden, ownStore.ErrorCode);
         Assert.False(denied.IsSuccess);
         Assert.Equal(PurchaseAdviceErrorCodes.Forbidden, denied.ErrorCode);
     }
@@ -459,8 +520,11 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
     {
         using var context = CreateDbContext();
         var seed = await SeedAsync(context, 10m);
-        var service = CreateService(context);
-        var submitted = await SubmitAsync(service, seed);
+        var submitted = await SubmitAsync(CreateScopedService(context, seed), seed);
+        var deniedScope = new Mock<IScopeAuthorizationService>();
+        deniedScope.Setup(x => x.CanAccessStoreAsync(seed.WarehouseId, seed.StoreId))
+            .ReturnsAsync(false);
+        var service = new PurchaseAdviceService(context, deniedScope.Object);
         var review = await service.StartReviewAsync(submitted.PurchaseAdviceId,
             new PurchaseAdviceTransitionRequest { RowVersion = submitted.RowVersion }, Warehouse(seed));
         var create = await service.CreateAsync(CreateRequest(seed, 1m), Warehouse(seed));
@@ -504,10 +568,10 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         using var context = CreateDbContext();
         var seed = await SeedAsync(context, 10m);
         var scope = new Mock<IScopeAuthorizationService>();
-        scope.Setup(x => x.CanAccessStoreAsync(seed.ManagerId, seed.StoreId)).ReturnsAsync(true);
+        scope.Setup(x => x.CanAccessStoreAsync(seed.WarehouseId, seed.StoreId)).ReturnsAsync(true);
         scope.Setup(x => x.CanAccessStoreAsync(seed.AreaManagerId, seed.StoreId)).ReturnsAsync(true);
         var service = new PurchaseAdviceService(context, scope.Object);
-        var created = (await service.CreateAsync(CreateRequest(seed, 5m), Manager(seed))).Data!;
+        var created = (await service.CreateAsync(CreateRequest(seed, 5m), Warehouse(seed))).Data!;
         var areaRead = await service.GetDetailAsync(created.PurchaseAdviceId,
             new AdminActorContext { StaffId = seed.AreaManagerId, StoreId = 0, RoleNames = new[] { RoleConstants.AreaManager } });
         var areaEdit = await service.SubmitAsync(created.PurchaseAdviceId,
@@ -531,7 +595,11 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         var page = await service.GetPageAsync(new PurchaseAdviceFilterDto { StoreId = seed.StoreId }, Manager(seed));
         Assert.True(page.IsSuccess, page.Message);
         Assert.Single(page.Data!.Items);
-        Assert.Equal("#" + seed.RestockRequestId, page.Data.Items.Single().SourceRestockSummary);
+        var referenceCode = await context.RestockRequests
+            .Where(x => x.RestockRequestId == seed.RestockRequestId)
+            .Select(x => x.ReferenceCode)
+            .SingleAsync();
+        Assert.Equal(referenceCode, page.Data.Items.Single().SourceRestockSummary);
         Assert.Empty(context.PurchaseOrders);
     }
 
@@ -624,7 +692,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
             .ReturnsAsync((int staffId, int storeId) =>
                 context.Staffs.AsNoTracking().Any(x =>
                     x.StaffId == staffId
-                    && x.StoreId == storeId
+                    && (x.StoreId == storeId || x.StoreId == 0)
                     && x.Active));
         return new PurchaseAdviceService(context, scope.Object, unitConversion);
     }
@@ -654,7 +722,8 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         }
     };
 
-    private static AdminActorContext Manager(Seed seed) => new() { StaffId = seed.ManagerId, StoreId = seed.StoreId, RoleNames = new[] { RoleConstants.StoreManager } };
+    private static AdminActorContext Manager(Seed seed) => Warehouse(seed);
+    private static AdminActorContext StoreManager(Seed seed) => new() { StaffId = seed.ManagerId, StoreId = seed.StoreId, RoleNames = new[] { RoleConstants.StoreManager } };
     private static AdminActorContext Warehouse(Seed seed) => new() { StaffId = seed.WarehouseId, RoleNames = new[] { RoleConstants.AccountantWarehouse } };
 
     private static async Task AddTransferAsync(AppDbContext context, Seed seed, decimal quantity)

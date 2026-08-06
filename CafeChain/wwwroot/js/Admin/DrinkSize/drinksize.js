@@ -113,7 +113,7 @@ function renderDrinkUI(data) {
 
     // chỉ tạo modal 1 lần
     if (!drinkModalInstance) {
-        drinkModalInstance = new bootstrap.Modal(document.getElementById('drinkModal'));
+        drinkModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('drinkModal'));
     }
 
     drinkModalInstance.show();
@@ -152,7 +152,7 @@ function openPriceModal(drinkId) {
     document.getElementById("priceInput").value = "";
 
     if (!priceModalInstance) {
-        priceModalInstance = new bootstrap.Modal(document.getElementById('priceModal'));
+        priceModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('priceModal'));
     }
 
     priceModalInstance.show();
@@ -165,7 +165,7 @@ function confirmAssign() {
     let price = document.getElementById("priceInput").value;
 
     if (!price || price <= 0) {
-        toast("Giá không hợp lệ", "error");
+        toast("Giá không hợp lệ", "warning");
         return;
     }
 
@@ -277,22 +277,22 @@ function openEditModal(id, sizeCode, name, description, sizeType) {
 
 function validateSizeForm(sizeCode, name) {
     if (!sizeCode) {
-        toast("Mã size không được để trống", "error");
+        toast("Mã size không được để trống", "warning");
         return false;
     }
 
     if (sizeCode.length > 20) {
-        toast("Mã size tối đa 20 ký tự", "error");
+        toast("Mã size tối đa 20 ký tự", "warning");
         return false;
     }
 
     if (!name) {
-        toast("Tên size không được để trống", "error");
+        toast("Tên size không được để trống", "warning");
         return false;
     }
 
     if (name.length > 50) {
-        toast("Tên size tối đa 50 ký tự", "error");
+        toast("Tên size tối đa 50 ký tự", "warning");
         return false;
     }
 
@@ -307,7 +307,9 @@ async function readJsonResult(response) {
 
         return {
             success: false,
-            message: text || "Phản hồi từ máy chủ không hợp lệ"
+            message: window.AdminFeedback.resolveMessage(
+                { message: text },
+                { status: response.status, fallback: "Phản hồi từ máy chủ không hợp lệ." })
         };
     }
 
@@ -316,7 +318,10 @@ async function readJsonResult(response) {
     if (!response.ok && result.success !== false) {
         return {
             success: false,
-            message: result.message || "Có lỗi xảy ra"
+            message: window.AdminFeedback.resolveMessage(result, {
+                status: response.status,
+                fallback: "Không thể thực hiện thao tác với size."
+            })
         };
     }
 
@@ -352,11 +357,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const sizeType = Number(document.getElementById("edit-size-type").value);
 
         if (!sizeId || sizeId <= 0) {
-            toast("Không tìm thấy size", "error");
+            toast("Không tìm thấy size", "warning");
             return;
         }
 
         if (!validateSizeForm(sizeCode, name.trim())) {
+            form.querySelector(":invalid")?.focus();
             return;
         }
 
@@ -385,7 +391,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 location.reload();
             }, 700);
         } catch (err) {
-            toast(err.message || "Lỗi cập nhật", "error");
+            toast(err.message || window.AdminFeedback.actionFallback("update", "size"), "error");
         }
     });
 
@@ -574,7 +580,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const sizeTypeValue = normalizeSizeTypeValue(sizeTypeElement.value);
 
         if (!sizeTypeValue) {
-            toast("Vui lòng chọn loại size", "error");
+            toast("Vui lòng chọn loại size", "warning");
             sizeTypeElement.focus();
             return;
         }
@@ -582,6 +588,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const sizeType = Number(sizeTypeValue);
 
         if (!validateSizeForm(sizeCode, name)) {
+            createForm.querySelector(":invalid")?.focus();
             return;
         }
 
@@ -614,7 +621,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 location.reload();
             }, 700);
         } catch (err) {
-            toast(err.message || "Lỗi tạo size", "error");
+            toast(err.message || window.AdminFeedback.actionFallback("create", "size"), "error");
         }
     });
 

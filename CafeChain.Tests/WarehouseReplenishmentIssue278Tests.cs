@@ -62,7 +62,8 @@ public sealed class WarehouseReplenishmentIssue278Tests
         Assert.Contains("method=\"post\"", advice);
         Assert.Contains("asp-validation-summary", advice);
         Assert.Contains("asp-controller=\"AdminPurchaseOrderBatches\"", consolidation);
-        Assert.Contains("asp-action=\"Create\"", consolidation);
+        Assert.Contains("createsConsolidatedOrder", consolidation);
+        Assert.Contains("\"Create\" : \"CreateFromAdvice\"", consolidation);
     }
 
     [Fact]

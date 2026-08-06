@@ -112,7 +112,9 @@ namespace CafeChain.Tests.POS
             Assert.Contains("inventoryType = Model.ActiveTab", paging, StringComparison.Ordinal);
             Assert.Contains("Giá vốn thực tế", table, StringComparison.Ordinal);
             Assert.Contains("Lệnh sơ chế", table, StringComparison.Ordinal);
-            Assert.Contains("PreparedItem vẫn là định danh tồn kho chính", table, StringComparison.Ordinal);
+            Assert.Contains("bán thành phẩm vẫn là định danh tồn kho chính", table, StringComparison.Ordinal);
+            Assert.DoesNotContain("compatibility", table, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("cost layer", table, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Giá vốn ước tính", table, StringComparison.Ordinal);
         }
 

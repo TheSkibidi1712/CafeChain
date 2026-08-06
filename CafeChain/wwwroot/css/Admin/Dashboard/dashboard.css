@@ -3,7 +3,7 @@
    ============================================================ */
 :root {
     --an-bg:           #F7F4F0;
-    --an-surface:      #FFFDFB;
+    --an-surface:      #F7F4F0;
     --an-primary:      #70482F;
     --an-primary-h:    #3D2418;
     --an-accent:       #A97750;
@@ -585,6 +585,24 @@
     font-weight: 800;
     letter-spacing: -.01em;
 }
+.dashboard-intelligence__summary h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.dashboard-intelligence__summary h3::before {
+    display: grid;
+    width: 25px;
+    height: 25px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--an-accent-soft);
+    color: var(--an-primary);
+    font-family: bootstrap-icons;
+    font-size: .78rem;
+    content: "\f52a";
+}
 .dashboard-intelligence__evidence > h3 {
     display: flex;
     grid-column: 1 / -1;
@@ -649,8 +667,15 @@
     background: linear-gradient(135deg, rgba(255, 247, 246, .96), #fff 55%);
 }
 .dashboard-intelligence__recommendation {
+    margin-top: 18px;
     border-left: 4px solid var(--an-success);
     background: linear-gradient(135deg, rgba(244, 251, 247, .96), #fff 55%);
+}
+.dashboard-intelligence__recommendation h3 {
+    margin: 0 0 9px;
+    color: #214f43;
+    font-size: .92rem;
+    font-weight: 800;
 }
 .dashboard-intelligence__chart-group { margin-top: 12px; }
 .dashboard-intelligence__chart-group h4 { margin: 8px 0; color: var(--an-warning); }
@@ -790,13 +815,22 @@
     box-shadow: none;
     color: #8a541f;
 }
-.dashboard-intelligence__table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 0; font-size: .82rem; }
+.dashboard-intelligence__table {
+    width: 100%;
+    min-width: 780px;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: auto;
+    font-size: .82rem;
+}
 .dashboard-intelligence__table th,
 .dashboard-intelligence__table td {
     padding: 11px 12px;
     border-bottom: 1px solid var(--an-border);
     text-align: left;
     vertical-align: middle;
+    line-height: 1.45;
 }
 .dashboard-intelligence__table th {
     position: sticky;
@@ -811,6 +845,50 @@
 }
 .dashboard-intelligence__table tbody tr:last-child td { border-bottom: 0; }
 .dashboard-intelligence__table tbody tr:hover td { background: #fffaf6; }
+.dashboard-intelligence__table [data-field="storename"] { min-width: 150px; }
+.dashboard-intelligence__table [data-field="entityname"] { min-width: 145px; }
+.dashboard-intelligence__table [data-field="message"] { min-width: 260px; }
+.dashboard-intelligence__table [data-field="severity"],
+.dashboard-intelligence__table [data-field="unit"] { white-space: nowrap; }
+.dashboard-intelligence__table [data-field="alertvalue"] {
+    min-width: 112px;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.dashboard-intelligence__severity {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 4px 9px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: #eef2f7;
+    color: #475467;
+    font-size: .72rem;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+.dashboard-intelligence__severity.is-critical,
+.dashboard-intelligence__severity.is-urgent {
+    border-color: #f3b9b4;
+    background: var(--an-danger-soft);
+    color: var(--an-danger);
+}
+.dashboard-intelligence__severity.is-warning,
+.dashboard-intelligence__severity.is-high,
+.dashboard-intelligence__severity.is-medium {
+    border-color: #edc895;
+    background: var(--an-warning-soft);
+    color: #8a541f;
+}
+.dashboard-intelligence__severity.is-info,
+.dashboard-intelligence__severity.is-low {
+    border-color: #b9ddca;
+    background: var(--an-success-soft);
+    color: var(--an-success);
+}
 
 /* ── Tabs ── */
 .analytics-tabs {
@@ -1453,6 +1531,72 @@
     .dashboard-intelligence__meta span { flex: 1 1 auto; }
     .dashboard-intelligence__summary { padding: 15px 15px 15px 18px; }
     .dashboard-intelligence__chart { padding: 12px; }
+    .dashboard-intelligence__table-wrap {
+        overflow: visible;
+        border: 0;
+        background: transparent;
+    }
+    .dashboard-intelligence__table {
+        display: block;
+        min-width: 0;
+        background: transparent;
+    }
+    .dashboard-intelligence__table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+    }
+    .dashboard-intelligence__table tbody {
+        display: grid;
+        gap: 11px;
+    }
+    .dashboard-intelligence__table tbody tr {
+        display: block;
+        overflow: hidden;
+        border: 1px solid rgba(111, 78, 55, .14);
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 7px 18px rgba(74, 45, 29, .045);
+    }
+    .dashboard-intelligence__table td,
+    .dashboard-intelligence__table tbody tr:last-child td {
+        display: grid;
+        grid-template-columns: minmax(105px, .72fr) minmax(0, 1.28fr);
+        gap: 12px;
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--an-border);
+        text-align: right;
+        white-space: normal;
+    }
+    .dashboard-intelligence__table td:last-child,
+    .dashboard-intelligence__table tbody tr:last-child td:last-child { border-bottom: 0; }
+    .dashboard-intelligence__table td::before {
+        align-self: center;
+        color: var(--an-warning);
+        font-size: .68rem;
+        font-weight: 800;
+        letter-spacing: .045em;
+        text-align: left;
+        text-transform: uppercase;
+        content: attr(data-label);
+    }
+    .dashboard-intelligence__table td[data-field="message"],
+    .dashboard-intelligence__table td[data-field="storename"],
+    .dashboard-intelligence__table td[data-field="entityname"] { text-align: left; }
+    .dashboard-intelligence__table td[data-field="alertvalue"] {
+        min-width: 0;
+        text-align: right;
+    }
+    .dashboard-intelligence__table .dashboard-intelligence__severity { justify-self: end; }
     .dashboard-guide__header { align-items: stretch; flex-direction: column; }
     .dashboard-guide__hero { grid-template-columns: 1fr; padding: 28px 23px; }
     .dashboard-guide__hero-icon { display: none; }

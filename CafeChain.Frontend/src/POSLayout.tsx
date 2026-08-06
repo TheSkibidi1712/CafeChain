@@ -32,6 +32,7 @@ import PaymentWorkspace, {
 } from './components/pos/payment/PaymentWorkspace'
 import type { CartSyncQueueItem } from './db/CafeChainPOSDB'
 import { formatIceLevel } from './utils/iceLevel'
+import { parseUtcInstantMs } from './utils/utcDateTime'
 
 interface CartItem {
   id: number
@@ -41,6 +42,7 @@ interface CartItem {
   acceptedBasePrice: number
   storeMenuItemId: number
   drinkSizeId: number
+  recipeIdSnapshot: number
   priceSource: string
   catalogVersion: number
   categoryId: number
@@ -143,6 +145,13 @@ const validateCashVnd = (amount: number, allowZero = false): string | null => {
 const formatVND = (amount: number): string =>
   new Intl.NumberFormat('vi-VN').format(amount) + 'đ'
 
+const redirectToStaffHub = (terminalId?: string | null) => {
+  const target = new URL('/StaffHub', API_BASE_URL)
+  target.searchParams.set('openPos', '1')
+  if (terminalId) target.searchParams.set('terminalId', terminalId)
+  window.location.assign(target.toString())
+}
+
 const getUnavailableReason = (item: MenuItem): string =>
   item.availabilityReason?.trim() || 'Tạm hết hàng'
 
@@ -164,7 +173,10 @@ const applyToppingPolicy = (
     isRequired: policy?.isRequired ?? false,
     isDefaultSelected: policy?.isDefaultSelected ?? false,
     priceTreatment: policy?.priceTreatment,
+    costTreatment: policy?.costTreatment,
     quantityPerDrink: policy?.quantityPerDrink ?? 1,
+    quantityUnit: policy?.quantityUnit ?? 'RECIPE_PORTION',
+    recipeId: policy?.recipeId ?? topping.recipeId,
   }
 }
 
@@ -272,16 +284,24 @@ export default function POSLayout() {
   const customerDisplayShiftId = shift?.shiftId ?? null
 
   useEffect(() => {
+    if (!session.token) redirectToStaffHub(session.terminalId)
+  }, [session.terminalId, session.token])
+
+  useEffect(() => {
     let active = true
     let connection: signalR.HubConnection | null = null
 
     const loadShift = async () => {
       const response = await apiClient.get<ShiftSummary>('/api/v1/pos/shifts/current')
       if (!active) return
+      if (response.status === 401) {
+        redirectToStaffHub(session.terminalId)
+        return
+      }
       if (response.ok && response.data) {
         setShift(response.data)
         setWorkShiftClock(Date.now())
-        const serverNowMs = response.data.serverNowUtc ? Date.parse(response.data.serverNowUtc) : Number.NaN
+        const serverNowMs = parseUtcInstantMs(response.data.serverNowUtc)
         if (Number.isFinite(serverNowMs)) setWorkShiftServerOffsetMs(serverNowMs - Date.now())
       } else setShift({ status: 'NoActiveShift' })
     }
@@ -304,11 +324,15 @@ export default function POSLayout() {
         void loadShift()
       })
       connection.onreconnected(() => {
-        void connection?.invoke('JoinTerminal', getPosTerminalId())
+        const terminalId = getPosTerminalId()
+        if (terminalId) void connection?.invoke('JoinTerminal', terminalId)
         void loadShift()
       })
       connection.start()
-        .then(() => connection?.invoke('JoinTerminal', getPosTerminalId()))
+        .then(() => {
+          const terminalId = getPosTerminalId()
+          return terminalId ? connection?.invoke('JoinTerminal', terminalId) : undefined
+        })
         .catch((error) => {
           console.warn('[POS WorkShift SignalR] Connection failed; polling remains active.', error)
         })
@@ -325,7 +349,7 @@ export default function POSLayout() {
         })
       }
     }
-  }, [session.storeId, session.token])
+  }, [session.storeId, session.terminalId, session.token])
 
   const selectedCategoryId = selectedCategory !== null
     && categories.some((cat) => cat.id === selectedCategory)
@@ -344,10 +368,19 @@ export default function POSLayout() {
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
   const currentCategory = categories.find((cat) => cat.id === selectedCategoryId)
   const normalizedShiftStatus = shift?.status?.toUpperCase() ?? 'NOACTIVESHIFT'
-  const autoCloseAtMs = shift?.autoCloseAtUtc ? Date.parse(shift.autoCloseAtUtc) : Number.NaN
+  const autoCloseAtMs = parseUtcInstantMs(shift?.autoCloseAtUtc)
   const deadlineReached = Number.isFinite(autoCloseAtMs)
     && workShiftClock + workShiftServerOffsetMs >= autoCloseAtMs
-  const hasOpenShift = normalizedShiftStatus === 'OPEN' && !deadlineReached && !!shift?.shiftId
+  const openingCashPending = session.requiresOpeningCash === true
+    && session.workShiftId === shift?.shiftId
+  const boundWorkShiftMismatch = session.workShiftId != null
+    && shift?.shiftId != null
+    && session.workShiftId !== shift.shiftId
+  const hasOpenShift = !boundWorkShiftMismatch
+    && normalizedShiftStatus === 'OPEN'
+    && !deadlineReached
+    && !openingCashPending
+    && !!shift?.shiftId
   const allowsOfflineOrders = hasOpenShift && shift?.openContext !== 'OUTSIDE_SCHEDULE'
   const hasPosIdentity = !!session.staffId && !!session.storeId
   const hasPendingPayment = pendingPayment !== null
@@ -635,6 +668,7 @@ export default function POSLayout() {
       acceptedBasePrice: selectedSize.price,
       storeMenuItemId: selectedSize.storeMenuItemId,
       drinkSizeId: selectedSize.drinkSizeId,
+      recipeIdSnapshot: selectedSize.recipeId,
       priceSource: selectedSize.priceSource,
       catalogVersion: item.catalogVersion,
       categoryId: item.categoryId,
@@ -1118,6 +1152,7 @@ export default function POSLayout() {
       menuItemId: ci.id,
       storeMenuItemId: ci.storeMenuItemId,
       drinkSizeId: ci.drinkSizeId,
+      recipeIdSnapshot: ci.recipeIdSnapshot,
       name: ci.name,
       sizeId: ci.sizeId ?? null,
       quantity: ci.quantity,
@@ -1131,6 +1166,11 @@ export default function POSLayout() {
         toppingId: topping.id,
         name: topping.name,
         acceptedPrice: topping.acceptedPrice ?? topping.price,
+        quantityPerDrink: topping.quantityPerDrink ?? 1,
+        quantityUnit: topping.quantityUnit ?? 'RECIPE_PORTION',
+        recipeIdSnapshot: topping.recipeId ?? null,
+        priceTreatment: topping.priceTreatment ?? 'ADD_TOPPING_PRICE',
+        costTreatment: topping.costTreatment ?? 'ADD_TOPPING_RECIPE_COST',
       })),
     }))
 
@@ -1140,6 +1180,7 @@ export default function POSLayout() {
       menuItemId: ci.id,
       storeMenuItemId: ci.storeMenuItemId,
       drinkSizeId: ci.drinkSizeId,
+      recipeIdSnapshot: ci.recipeIdSnapshot,
       name: ci.name,
       categoryId: ci.categoryId,
       sizeId: ci.sizeId ?? null,
@@ -1157,6 +1198,11 @@ export default function POSLayout() {
         name: topping.name,
         price: topping.acceptedPrice ?? topping.price,
         acceptedPrice: topping.acceptedPrice ?? topping.price,
+        quantityPerDrink: topping.quantityPerDrink ?? 1,
+        quantityUnit: topping.quantityUnit ?? 'RECIPE_PORTION',
+        recipeIdSnapshot: topping.recipeId ?? null,
+        priceTreatment: topping.priceTreatment ?? 'ADD_TOPPING_PRICE',
+        costTreatment: topping.costTreatment ?? 'ADD_TOPPING_RECIPE_COST',
       })),
     }))
 
@@ -1240,6 +1286,7 @@ export default function POSLayout() {
       sizeId: ci.sizeId,
       storeMenuItemId: ci.storeMenuItemId,
       drinkSizeId: ci.drinkSizeId,
+      recipeIdSnapshot: ci.recipeIdSnapshot,
       acceptedBasePrice: ci.acceptedBasePrice,
       acceptedUnitPrice: ci.price,
       priceSource: ci.priceSource,
@@ -1251,6 +1298,11 @@ export default function POSLayout() {
         toppingId: topping.id,
         name: topping.name,
         acceptedPrice: topping.acceptedPrice ?? topping.price,
+        quantityPerDrink: topping.quantityPerDrink ?? 1,
+        quantityUnit: topping.quantityUnit ?? 'RECIPE_PORTION',
+        recipeIdSnapshot: topping.recipeId ?? null,
+        priceTreatment: topping.priceTreatment ?? 'ADD_TOPPING_PRICE',
+        costTreatment: topping.costTreatment ?? 'ADD_TOPPING_RECIPE_COST',
       })),
     }))
 

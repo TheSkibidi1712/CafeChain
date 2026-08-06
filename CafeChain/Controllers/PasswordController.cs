@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.Interfaces.Accounts;
+using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.ViewModels.Accounts;
 using Microsoft.AspNetCore.Mvc;
 
@@ -42,8 +42,9 @@ namespace CafeChain.Controllers
         [HttpGet]
         public IActionResult VerifyOtp(string email)
         {
-            ViewBag.ExpireAt = TempData["ExpireAt"];
+            ViewBag.ExpireAt = TempData["ExpireAt"] ?? DateTime.Now.AddMinutes(5);
             ViewBag.Email = email;
+            // Force re-compilation of Razor view assembly: 2026-08-05
             return View(new VerifyOtpViewModel { Email = email });
         }
 

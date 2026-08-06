@@ -9,6 +9,7 @@ using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Infrastructure.Interfaces.Operations;
 using CafeChain.Models.Operations;
 using CafeChain.Models.Staffs;
+using CafeChain.Models.Stores;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -63,6 +64,30 @@ namespace CafeChain.Application.Services.POS
             _staffNotifications = staffNotifications;
             _otpNotificationPublisher = otpNotificationPublisher;
             _otpProtectedPayload = otpProtectedPayload;
+        }
+
+        public async Task<ServiceResult<OtpChallengeResponseDto>> GetCurrentOpenPosOtpStateAsync(
+            int requestedByStaffId,
+            int storeId)
+        {
+            var nowUtc = UtcNow;
+            var challenge = await _repository.FindLatestOpenShiftChallengeAsync(
+                storeId,
+                requestedByStaffId,
+                nowUtc.AddMinutes(-OtpConstants.RateLimitWindowMinutes));
+            if (challenge == null)
+            {
+                return ServiceResult<OtpChallengeResponseDto>.Success(new OtpChallengeResponseDto
+                {
+                    HasActiveChallenge = false,
+                    Status = "IDLE"
+                });
+            }
+
+            var response = MapResponse(challenge, nowUtc);
+            if (response.Status == OtpConstants.Statuses.Pending && challenge.ExpiresAt <= nowUtc)
+                response.Status = OtpConstants.Statuses.Expired;
+            return ServiceResult<OtpChallengeResponseDto>.Success(response);
         }
 
         public async Task<ServiceResult<OtpChallengeResponseDto>> RequestOtpAsync(
@@ -408,7 +433,8 @@ namespace CafeChain.Application.Services.POS
             var code = _codeGenerator.NormalizeAndValidate(request.OtpCode);
             if (code == null)
                 return ServiceResult<OtpChallengeResponseDto>.Failure(
-                    "Mã OTP không hợp lệ. Nhập đúng 6 ký tự (chữ in hoa A–Z và số, không gồm O/0/I/1).");
+                    "Mã OTP không hợp lệ. Nhập đúng 6 ký tự (chữ in hoa A–Z và số, không gồm O/0/I/1).",
+                    errorCode: OtpConstants.ErrorCodes.Invalid);
 
             var nowUtc = UtcNow;
 
@@ -473,7 +499,11 @@ namespace CafeChain.Application.Services.POS
                         await _repository.SaveChangesAsync();
                         await _repository.CommitTransactionAsync();
                         await ResolveOtpNotificationAsync(challenge, "Resolved");
-                        return Failure("Yêu cầu OTP đã bị khóa do nhập sai quá số lần cho phép.", challenge, nowUtc);
+                        return Failure(
+                            "Yêu cầu OTP đã bị khóa do nhập sai quá số lần cho phép.",
+                            challenge,
+                            nowUtc,
+                            OtpConstants.ErrorCodes.VerificationLocked);
                     }
 
                     await _repository.SaveChangesAsync();
@@ -481,7 +511,8 @@ namespace CafeChain.Application.Services.POS
                     return Failure(
                         $"OTP không đúng. Bạn còn {OtpConstants.MaxFailedAttempts - challenge.FailedAttempts} lần thử.",
                         challenge,
-                        nowUtc);
+                        nowUtc,
+                        OtpConstants.ErrorCodes.Invalid);
                 }
 
                 // One-winner: Pending → Approved
@@ -574,7 +605,8 @@ namespace CafeChain.Application.Services.POS
                 || challenge.StoreId != storeId)
             {
                 return ServiceResult<OtpChallengeResponseDto>.Failure(
-                    "Yêu cầu OTP không hợp lệ hoặc không thuộc phiên hiện tại.");
+                    "Yêu cầu OTP không hợp lệ hoặc không thuộc phiên hiện tại.",
+                    errorCode: OtpConstants.ErrorCodes.ContextMismatch);
             }
 
             var deviceHash = challenge.DeviceFingerprintHash ?? request.DeviceFingerprintHash;
@@ -771,7 +803,8 @@ namespace CafeChain.Application.Services.POS
                 || challenge.StoreId != storeId)
             {
                 return ServiceResult<OtpChallengeResponseDto>.Failure(
-                    "Yêu cầu OTP không hợp lệ hoặc không thuộc phiên hiện tại.");
+                    "Yêu cầu OTP không hợp lệ hoặc không thuộc phiên hiện tại.",
+                    errorCode: OtpConstants.ErrorCodes.ContextMismatch);
             }
 
             if (!await IsApproverStillEligibleForChallengeAsync(challenge))
@@ -1097,12 +1130,21 @@ namespace CafeChain.Application.Services.POS
         private static ServiceResult<OtpChallengeResponseDto> Failure(
             string message,
             OtpChallenge challenge,
-            DateTime nowUtc)
+            DateTime nowUtc,
+            string? errorCode = null)
         {
+            errorCode ??= challenge.Status switch
+            {
+                OtpConstants.Statuses.Expired => OtpConstants.ErrorCodes.Expired,
+                OtpConstants.Statuses.Locked => OtpConstants.ErrorCodes.VerificationLocked,
+                OtpConstants.Statuses.Approved or OtpConstants.Statuses.Used => OtpConstants.ErrorCodes.AlreadyUsed,
+                _ => null
+            };
             return new ServiceResult<OtpChallengeResponseDto>
             {
                 IsSuccess = false,
                 Message = message,
+                ErrorCode = errorCode,
                 Data = MapResponse(challenge, nowUtc)
             };
         }
@@ -1119,14 +1161,25 @@ namespace CafeChain.Application.Services.POS
 
             return new OtpChallengeResponseDto
             {
+                HasActiveChallenge = true,
                 OtpChallengePublicId = challenge.PublicId,
                 Status = challenge.Status,
+                ActionType = challenge.ActionType,
+                OpenContext = challenge.ActionType == OtpConstants.ActionTypes.OpenShiftOutsideSchedule
+                    ? WorkShiftOpenContexts.OutsideSchedule
+                    : challenge.ActionType == OtpConstants.ActionTypes.OpenShiftLate
+                        ? WorkShiftOpenContexts.LateForSchedule
+                        : null,
+                TerminalId = challenge.TerminalId,
+                Reason = challenge.Reason,
+                RequestKey = challenge.RequestKey,
                 ExpiresInSeconds = expiresInSeconds,
                 ResendAvailableInSeconds = resendAvailableInSeconds,
                 RemainingAttempts = remainingAttempts,
                 WasExistingActive = wasExistingActive
             };
         }
+
 
         private static string BuildTargetLabel(OtpChallenge challenge)
         {

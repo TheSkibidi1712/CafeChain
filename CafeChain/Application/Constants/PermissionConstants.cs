@@ -39,6 +39,7 @@ namespace CafeChain.Application.Constants
         public const string PosWorkShiftCloseException = "POS.WorkShift.CloseException";
         public const string PosWorkShiftReconcile = "POS.WorkShift.Reconcile";
         public const string PosWorkShiftOverrideTerminal = "POS.WorkShift.OverrideTerminal";
+        public const string PosOperatorSwitch = "POS.Operator.Switch";
         public const string NotificationView = "Notification.View";
 
         public const string IngredientView = "Ingredient.View";

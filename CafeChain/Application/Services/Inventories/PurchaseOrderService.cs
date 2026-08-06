@@ -9,6 +9,7 @@ using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace CafeChain.Application.Services.Inventories
 {
@@ -61,9 +62,58 @@ namespace CafeChain.Application.Services.Inventories
                 .Any(x => x.Count() > 1))
                 return Fail("Mỗi yêu cầu nhập chỉ được liên kết một lần trong cùng đơn mua hàng.");
 
-            await using var tx = await _context.Database.BeginTransactionAsync();
+            await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
+                var requestedAdviceLineIds = input.Lines
+                    .Where(x => x.PurchaseAdviceLineId.HasValue)
+                    .Select(x => x.PurchaseAdviceLineId!.Value)
+                    .Distinct()
+                    .ToArray();
+                if (requestedAdviceLineIds.Length > 0 && requestedAdviceLineIds.Length != input.Lines.Count)
+                    return Fail("Không thể trộn dòng đề nghị mua với dòng tạo thủ công trong cùng đơn đặt hàng.");
+
+                if (_context.Database.IsSqlServer())
+                {
+                    foreach (var adviceLineId in requestedAdviceLineIds.OrderBy(x => x))
+                    {
+                        var lockResource = $"NormalPurchaseOrder:PurchaseAdviceLine:{adviceLineId}";
+                        await _context.Database.ExecuteSqlInterpolatedAsync(
+                            $@"DECLARE @lockResult int;
+                               EXEC @lockResult = sp_getapplock
+                                   @Resource={lockResource},
+                                   @LockMode='Exclusive',
+                                   @LockOwner='Transaction',
+                                   @LockTimeout=15000;
+                               IF @lockResult < 0 THROW 51000, 'Không thể khóa đề nghị mua để tạo đơn đặt hàng.', 1;");
+                    }
+                }
+
+                var adviceLines = requestedAdviceLineIds.Length == 0
+                    ? new Dictionary<int, PurchaseAdviceLine>()
+                    : await _context.PurchaseAdviceLines
+                        .Include(x => x.PurchaseAdvice)
+                        .Where(x => requestedAdviceLineIds.Contains(x.PurchaseAdviceLineId))
+                        .ToDictionaryAsync(x => x.PurchaseAdviceLineId);
+                if (adviceLines.Count != requestedAdviceLineIds.Length)
+                    return Fail("Không tìm thấy đề nghị mua đã chọn.");
+
+                var existingOrderId = requestedAdviceLineIds.Length == 0
+                    ? 0
+                    : await _context.PurchaseOrderLines
+                        .Where(x => x.PurchaseAdviceLineId.HasValue
+                            && requestedAdviceLineIds.Contains(x.PurchaseAdviceLineId.Value)
+                            && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled)
+                        .Select(x => x.PurchaseOrderId)
+                        .FirstOrDefaultAsync();
+                if (existingOrderId > 0)
+                {
+                    await tx.CommitAsync();
+                    return ServiceResult<PurchaseOrderDetailDto>.Success(
+                        await MapAsync(existingOrderId),
+                        "Đề nghị mua này đã được dùng để tạo đơn đặt hàng.");
+                }
+
                 var supplierStore = await _context.SupplierStores.AsNoTracking()
                     .AnyAsync(x => x.StoreId == input.StoreId && x.SupplierId == input.SupplierId && x.Active);
                 if (!supplierStore) return Fail("Nhà cung cấp không hoạt động tại cửa hàng đã chọn.");
@@ -85,6 +135,22 @@ namespace CafeChain.Application.Services.Inventories
 
                 foreach (var requested in input.Lines)
                 {
+                    PurchaseAdviceLine? adviceLine = null;
+                    if (requested.PurchaseAdviceLineId.HasValue)
+                    {
+                        adviceLine = adviceLines[requested.PurchaseAdviceLineId.Value];
+                        if (!PurchaseAdviceStatuses.ActiveReservationStatuses.Contains(adviceLine.PurchaseAdvice.Status))
+                            return Fail("Đề nghị mua chưa ở trạng thái sẵn sàng để tạo đơn đặt hàng.");
+                        if (adviceLine.PurchaseAdvice.StoreId != input.StoreId
+                            || adviceLine.RestockRequestId != requested.RestockRequestId
+                            || adviceLine.IngredientId != requested.IngredientId)
+                            return Fail("Đề nghị mua không khớp cửa hàng, yêu cầu nhập hoặc nguyên liệu.");
+                        if (!string.IsNullOrWhiteSpace(requested.PurchaseAdviceLineRowVersion)
+                            && (!TryParseRowVersion(requested.PurchaseAdviceLineRowVersion, out var expectedAdviceVersion)
+                                || !RowVersionMatches(adviceLine.RowVersion, expectedAdviceVersion)))
+                            return Fail("Đề nghị mua đã được người khác xử lý. Vui lòng tải lại dữ liệu.");
+                    }
+
                     var offer = await _context.IngredientSuppliers.AsNoTracking()
                         .Include(x => x.Ingredient)
                         .Include(x => x.Supplier)
@@ -113,6 +179,7 @@ namespace CafeChain.Application.Services.Inventories
                     decimal? packageCount = null;
                     decimal? unitPricePerPackage = null;
                     decimal? unitPricePerProcurement = null;
+                    decimal? looseDemandProcurement = null;
                     int sourceUnitId;
                     decimal sourceQuantity;
 
@@ -124,10 +191,19 @@ namespace CafeChain.Application.Services.Inventories
                             || procurementUnitId != offer.LooseProcurementUnitId)
                             return Fail("Nhà cung cấp chưa cho phép mua rời theo đúng đơn vị mua hàng của nhu cầu.");
 
-                        orderedProcurement = requested.OrderedProcurementQuantity!.Value;
+                        looseDemandProcurement = requested.OrderedProcurementQuantity!.Value;
+                        if (!LoosePurchaseMath.TryPlan(
+                                looseDemandProcurement.Value,
+                                offer.LooseMinimumOrderQuantity,
+                                offer.LooseQuantityStep,
+                                out var loosePlan))
+                            return Fail("Không thể áp dụng MOQ hoặc bước số lượng mua lẻ của Nhà cung cấp.");
+
+                        orderedProcurement = loosePlan.OrderedQuantity;
                         sourceUnitId = offer.LooseProcurementUnitId.Value;
                         sourceQuantity = orderedProcurement.Value;
                         unitPricePerProcurement = offer.CurrentProcurementUnitPrice;
+                        roundingSurplus = loosePlan.RoundingSurplusQuantity;
                     }
                     else
                     {
@@ -152,6 +228,21 @@ namespace CafeChain.Application.Services.Inventories
                     if (!converted.IsSuccess || converted.Data <= 0)
                         return Fail(converted.Message ?? "Không quy đổi được số lượng đặt về đơn vị tồn kho.");
 
+                    var demandCoveredBaseQuantity = converted.Data;
+                    if (requested.PurchaseMode == PurchaseMode.Loose
+                        && looseDemandProcurement.HasValue
+                        && orderedProcurement != looseDemandProcurement)
+                    {
+                        var demandConversion = await _conversion.ConvertAsync(
+                            offer.IngredientId,
+                            looseDemandProcurement.Value,
+                            sourceUnitId,
+                            offer.Ingredient.BaseUnitId);
+                        if (!demandConversion.IsSuccess || demandConversion.Data <= 0m)
+                            return Fail(demandConversion.Message ?? "Không quy đổi được nhu cầu mua lẻ về đơn vị tồn kho.");
+                        demandCoveredBaseQuantity = demandConversion.Data;
+                    }
+
                     if (requested.PurchaseMode == PurchaseMode.Packaged && procurementUnitId.HasValue)
                     {
                         var procurementConverted = await _conversion.ConvertAsync(
@@ -170,11 +261,35 @@ namespace CafeChain.Application.Services.Inventories
                         && demand?.RequestedProcurementQuantity is decimal requestedProcurement)
                     {
                         var remainingProcurement = Math.Max(0m, requestedProcurement);
-                        if (orderedProcurement > remainingProcurement)
+                        if (looseDemandProcurement > remainingProcurement)
                             return Fail($"Số lượng mua rời vượt {remainingProcurement:N3} đơn vị mua hàng còn lại.");
                     }
 
-                    if (requested.RestockRequestId.HasValue)
+                    decimal? demandCoveredProcurementQuantity = looseDemandProcurement ?? orderedProcurement;
+                    if (adviceLine != null)
+                    {
+                        var remainingBase = Math.Max(0m,
+                            adviceLine.RequestedPurchaseBaseQuantity
+                                - adviceLine.AllocatedToPoBaseQuantity
+                                - adviceLine.ClosedBaseQuantity);
+                        if (remainingBase <= 0m)
+                            return Fail("Đề nghị mua này đã được dùng để tạo đơn đặt hàng.");
+                        demandCoveredBaseQuantity = Math.Min(remainingBase, converted.Data);
+
+                        if (adviceLine.RequestedProcurementQuantity.HasValue)
+                        {
+                            var remainingProcurement = Math.Max(0m,
+                                adviceLine.RequestedProcurementQuantity.Value
+                                    - adviceLine.AllocatedToPoProcurementQuantity
+                                    - adviceLine.ClosedProcurementQuantity);
+                            if (!orderedProcurement.HasValue || orderedProcurement.Value <= 0m)
+                                return Fail("Không xác định được số lượng mua theo đơn vị của đề nghị mua.");
+                            demandCoveredProcurementQuantity = Math.Min(
+                                remainingProcurement,
+                                looseDemandProcurement ?? orderedProcurement.Value);
+                        }
+                    }
+                    else if (requested.RestockRequestId.HasValue)
                     {
                         var summary = await _allocations.GetSummaryAsync(requested.RestockRequestId.Value);
                         if (summary == null || summary.RemainingUnallocatedQuantity <= 0)
@@ -196,9 +311,9 @@ namespace CafeChain.Application.Services.Inventories
                         }
                         else
                         {
-                            if (converted.Data > summary.RemainingUnallocatedQuantity)
+                            if (demandCoveredBaseQuantity > summary.RemainingUnallocatedQuantity)
                                 return Fail("Số lượng mua rời vượt phần nhu cầu chưa phân bổ.");
-                            allocationQuantity = converted.Data;
+                            allocationQuantity = demandCoveredBaseQuantity;
                         }
                         var allocation = await _allocations.ValidateAllocationAsync(new RestockAllocationValidationRequest
                         {
@@ -217,6 +332,7 @@ namespace CafeChain.Application.Services.Inventories
 
                     order.Lines.Add(new PurchaseOrderLine
                     {
+                        PurchaseAdviceLineId = requested.PurchaseAdviceLineId,
                         PurchaseMode = requested.PurchaseMode,
                         RestockRequestId = requested.RestockRequestId,
                         IngredientId = requested.IngredientId,
@@ -239,17 +355,54 @@ namespace CafeChain.Application.Services.Inventories
                         PromisedLeadTimeDaysSnapshot = offer.LeadTimeDays.GetValueOrDefault(),
                         Note = Trim(requested.Note, 500)
                     });
+
+                    if (adviceLine != null)
+                    {
+                        adviceLine.AllocatedToPoBaseQuantity = Math.Min(
+                            adviceLine.RequestedPurchaseBaseQuantity,
+                            adviceLine.AllocatedToPoBaseQuantity + demandCoveredBaseQuantity);
+                        if (adviceLine.RequestedProcurementQuantity.HasValue
+                            && demandCoveredProcurementQuantity.HasValue)
+                        {
+                            adviceLine.AllocatedToPoProcurementQuantity = Math.Min(
+                                adviceLine.RequestedProcurementQuantity.Value,
+                                adviceLine.AllocatedToPoProcurementQuantity + demandCoveredProcurementQuantity.Value);
+                        }
+                        adviceLine.PurchaseMode = requested.PurchaseMode;
+                        var remaining = adviceLine.RequestedProcurementQuantity.HasValue
+                            ? adviceLine.RequestedProcurementQuantity.Value
+                                - adviceLine.AllocatedToPoProcurementQuantity
+                                - adviceLine.ClosedProcurementQuantity
+                            : adviceLine.RequestedPurchaseBaseQuantity
+                                - adviceLine.AllocatedToPoBaseQuantity
+                                - adviceLine.ClosedBaseQuantity;
+                        adviceLine.IsActiveReservation = remaining > 0m;
+                    }
                 }
 
                 _context.PurchaseOrders.Add(order);
+                foreach (var purchaseAdviceId in adviceLines.Values
+                    .Select(x => x.PurchaseAdviceId)
+                    .Distinct())
+                {
+                    await _purchaseAdviceFulfillment.RecomputeHeaderStatusAsync(
+                        purchaseAdviceId,
+                        actorStaffId,
+                        $"Cập nhật phân bổ từ đơn đặt hàng thường {order.Code}.");
+                }
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
                 return ServiceResult<PurchaseOrderDetailDto>.Success(await MapAsync(order.PurchaseOrderId), "Đã tạo đơn mua hàng nháp.");
             }
-            catch (Exception ex)
+            catch (DbUpdateConcurrencyException)
             {
                 await tx.RollbackAsync();
-                return Fail($"Không tạo được đơn mua hàng: {ex.Message}");
+                return Fail("Đề nghị mua đã được người khác xử lý. Vui lòng tải lại dữ liệu.");
+            }
+            catch (Exception)
+            {
+                await tx.RollbackAsync();
+                return Fail("Không thể tạo đơn đặt hàng lúc này. Vui lòng thử lại.");
             }
         }
 
@@ -285,6 +438,14 @@ namespace CafeChain.Application.Services.Inventories
             order.Note = Trim($"{order.Note}\nCANCEL: {reason.Trim()}", 1000);
             try
             {
+                var affectedAdviceIds = order.Lines
+                    .Where(x => x.PurchaseAdviceLineId.HasValue)
+                    .Select(x => x.PurchaseAdviceLineId!.Value)
+                    .Distinct()
+                    .ToArray();
+                await _context.SaveChangesAsync();
+                foreach (var adviceLineId in affectedAdviceIds)
+                    await RefreshAdviceAllocationAfterCancellationAsync(adviceLineId, actorStaffId, order.Code);
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
@@ -292,6 +453,57 @@ namespace CafeChain.Application.Services.Inventories
                 return Fail("Đơn mua hàng đã được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
             }
             return ServiceResult<PurchaseOrderDetailDto>.Success(await MapAsync(id), "Đã hủy đơn mua hàng.");
+        }
+
+        private async Task RefreshAdviceAllocationAfterCancellationAsync(
+            int purchaseAdviceLineId,
+            int actorStaffId,
+            string orderCode)
+        {
+            var adviceLine = await _context.PurchaseAdviceLines
+                .Include(x => x.PurchaseAdvice)
+                .SingleAsync(x => x.PurchaseAdviceLineId == purchaseAdviceLineId);
+            var batchBase = await _context.PurchaseOrderLineAllocations
+                .Where(x => x.PurchaseAdviceLineId == purchaseAdviceLineId
+                    && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled)
+                .SumAsync(x => (decimal?)x.AllocatedBaseQuantity) ?? 0m;
+            var normalBase = await _context.PurchaseOrderLines
+                .Where(x => x.PurchaseAdviceLineId == purchaseAdviceLineId
+                    && x.PurchaseOrder.PurchaseOrderBatchId == null
+                    && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled)
+                .SumAsync(x => (decimal?)x.OrderedBaseQuantity) ?? 0m;
+            adviceLine.AllocatedToPoBaseQuantity = Math.Min(
+                adviceLine.RequestedPurchaseBaseQuantity,
+                batchBase + normalBase);
+
+            if (adviceLine.RequestedProcurementQuantity.HasValue)
+            {
+                var batchProcurement = await _context.PurchaseOrderLineAllocations
+                    .Where(x => x.PurchaseAdviceLineId == purchaseAdviceLineId
+                        && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled)
+                    .SumAsync(x => x.DemandCoveredProcurementQuantity) ?? 0m;
+                var normalProcurement = await _context.PurchaseOrderLines
+                    .Where(x => x.PurchaseAdviceLineId == purchaseAdviceLineId
+                        && x.PurchaseOrder.PurchaseOrderBatchId == null
+                        && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled)
+                    .SumAsync(x => x.OrderedProcurementQuantity) ?? 0m;
+                adviceLine.AllocatedToPoProcurementQuantity = Math.Min(
+                    adviceLine.RequestedProcurementQuantity.Value,
+                    batchProcurement + normalProcurement);
+            }
+
+            var remaining = adviceLine.RequestedProcurementQuantity.HasValue
+                ? adviceLine.RequestedProcurementQuantity.Value
+                    - adviceLine.AllocatedToPoProcurementQuantity
+                    - adviceLine.ClosedProcurementQuantity
+                : adviceLine.RequestedPurchaseBaseQuantity
+                    - adviceLine.AllocatedToPoBaseQuantity
+                    - adviceLine.ClosedBaseQuantity;
+            adviceLine.IsActiveReservation = remaining > 0m;
+            await _purchaseAdviceFulfillment.RecomputeHeaderStatusAsync(
+                adviceLine.PurchaseAdviceId,
+                actorStaffId,
+                $"Trả lại phần chưa đặt sau khi hủy đơn {orderCode}.");
         }
 
         public async Task<ServiceResult<PurchaseOrderDetailDto>> CloseLineRemainingAsync(
@@ -678,6 +890,14 @@ namespace CafeChain.Application.Services.Inventories
                     .ThenInclude(x => x.BranchReceiptLine)
                 .SingleOrDefaultAsync(x => x.PurchaseOrderId == id);
             if (order == null) return new PurchaseOrderDetailDto();
+            var restockIds = order.Lines
+                .Where(x => x.RestockRequestId.HasValue)
+                .Select(x => x.RestockRequestId!.Value)
+                .Distinct()
+                .ToArray();
+            var restockReferences = await _context.RestockRequests.AsNoTracking()
+                .Where(x => restockIds.Contains(x.RestockRequestId))
+                .ToDictionaryAsync(x => x.RestockRequestId, x => x.ReferenceCode);
             var activeReceiptDraftId = await _context.BranchReceipts
                 .AsNoTracking()
                 .Where(x => x.PurchaseOrderId == order.PurchaseOrderId
@@ -715,6 +935,9 @@ namespace CafeChain.Application.Services.Inventories
                         PurchaseMode = x.PurchaseMode,
                         PurchaseOrderLineId = x.PurchaseOrderLineId,
                         RestockRequestId = x.RestockRequestId,
+                        RestockReferenceCode = x.RestockRequestId.HasValue
+                            ? restockReferences.GetValueOrDefault(x.RestockRequestId.Value)
+                            : null,
                         IngredientId = x.IngredientId,
                         IngredientName = x.Ingredient.Name,
                         BaseUnitName = x.Ingredient.BaseUnit.Name,
@@ -762,15 +985,17 @@ namespace CafeChain.Application.Services.Inventories
                 or RoleConstants.SystemAdmin);
 
         private static bool CanCreate(IReadOnlyCollection<string> roles) =>
-            roles.Any(x => x is RoleConstants.AccountantWarehouse or RoleConstants.BusinessOwner
-                or RoleConstants.SystemAdmin);
+            roles.Any(x => x is RoleConstants.AccountantWarehouse or RoleConstants.SystemAdmin);
 
         private static bool CanApprove(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
+            roles.Contains(RoleConstants.BusinessOwner)
+            || roles.Contains(RoleConstants.SystemAdmin);
         private static bool CanSend(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.AccountantWarehouse) || roles.Contains(RoleConstants.SystemAdmin);
         private static bool CanCancel(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
+            roles.Contains(RoleConstants.BusinessOwner)
+            || roles.Contains(RoleConstants.AccountantWarehouse)
+            || roles.Contains(RoleConstants.SystemAdmin);
         private static bool CanCloseRemaining(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.BusinessOwner) || roles.Contains(RoleConstants.SystemAdmin);
 

@@ -23,10 +23,18 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
     public class AdminSupplierAuditDTO
     {
         public string Action { get; set; } = "";
-        public string? OldData { get; set; }
-        public string? NewData { get; set; }
-        public int ActorStaffId { get; set; }
+        public string Title { get; set; } = "";
+        public string ActorName { get; set; } = "Hệ thống";
+        public string? ActorRole { get; set; }
+        public List<AdminSupplierAuditChangeDTO> Changes { get; set; } = new();
         public DateTime CreatedAt { get; set; }
+    }
+
+    public class AdminSupplierAuditChangeDTO
+    {
+        public string Label { get; set; } = "";
+        public string? Before { get; set; }
+        public string? After { get; set; }
     }
 
     public class AdminSupplierPhoneDTO

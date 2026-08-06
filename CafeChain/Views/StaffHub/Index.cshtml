@@ -1,6 +1,7 @@
 @model CafeChain.ViewModels.StaffHub.StaffHubScheduleVM
 @using System.Globalization
 @using CafeChain.Application.Constants.Cloudinaries
+@using CafeChain.Application.DTOs.POS
 @{
     ViewData["Title"] = "Lịch làm việc";
     Layout = "_Layout";
@@ -16,6 +17,8 @@
         .Count();
     var cancelledScheduleCount = Model.Schedules.Count(
         x => string.Equals(x.StatusCode, "CANCELLED", StringComparison.OrdinalIgnoreCase));
+    var terminals = ViewBag.PosTerminals as IReadOnlyList<PosTerminalOptionDto>
+        ?? Array.Empty<PosTerminalOptionDto>();
 }
 
 @section Styles {
@@ -25,7 +28,19 @@
 <div id="staffHubApp"
      class="staffhub-page"
      data-preview-pos-url="@Url.Action("PreviewOpenPos", "StaffHub")"
-     data-issue-pos-url="@Url.Action("IssuePosToken", "StaffHub")">
+     data-issue-pos-url="@Url.Action("IssuePosToken", "StaffHub")"
+     data-resume-pos-url="@Url.Action("IssueResumePosToken", "StaffHub")"
+     data-request-open-otp-url="@Url.Action("RequestOpenPosOtp", "StaffHub")"
+     data-open-otp-state-url="@Url.Action("GetOpenPosOtpState", "StaffHub")"
+     data-request-terminal-otp-url="@Url.Action("RequestTerminalRegistrationOtp", "StaffHub")"
+     data-verify-otp-url="@Url.Action("VerifyOperationalOtp", "StaffHub")"
+     data-resend-otp-url="@Url.Action("ResendOperationalOtp", "StaffHub")"
+     data-set-operator-pin-url="@Url.Action("SetOperatorPin", "StaffHub")"
+     data-register-terminal-url="@Url.Action("RegisterTerminal", "StaffHub")">
+    <span id="staffHubLaunchOptions"
+          data-auto-open-pos="@((ViewBag.AutoOpenPos is true).ToString().ToLowerInvariant())"
+          data-requested-terminal-id="@(ViewBag.RequestedTerminalId as string ?? string.Empty)"
+          hidden></span>
     @Html.AntiForgeryToken()
     <div class="staffhub-shell">
         <section class="staffhub-profile">
@@ -35,14 +50,14 @@
                          src="@(string.IsNullOrWhiteSpace(Model.AvatarUrl) ? DefaultImages.StaffAvatarUrl : Model.AvatarUrl)"
                          alt="Ảnh đại diện của @Model.StaffName"
                          onerror="this.src='@DefaultImages.StaffAvatarUrl'" />
-                    <span class="staffhub-online-dot" title="Tài khoản đang hoạt động"></span>
+                    <span class="staffhub-online-dot" title="Tài khoản đang hoạt động" aria-hidden="true"></span>
                 </div>
                 <div class="staffhub-profile-copy">
                     <span class="staffhub-eyebrow"><i class="bi bi-person-badge"></i> Không gian nhân viên</span>
                     <h1>@Model.StaffName</h1>
                     <div class="staffhub-profile-meta">
-                        <span><i class="bi bi-shop"></i>@Model.StoreName</span>
-                        <span><i class="bi bi-calendar3"></i>Lịch làm việc dự kiến</span>
+                        <span><i class="bi bi-shop"></i> @Model.StoreName</span>
+                        <span><i class="bi bi-calendar3"></i> Lịch làm việc dự kiến</span>
                     </div>
                 </div>
             </div>
@@ -54,7 +69,7 @@
                    aria-label="Quay về AppLauncher">
                     <span><i class="bi bi-grid-3x3-gap"></i></span>
                     <span><strong>AppLauncher</strong><small>Chọn ứng dụng</small></span>
-                    <i class="bi bi-arrow-up-right"></i>
+                    <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
                 </a>
 
                 @if (canAccessDashboard)
@@ -66,7 +81,7 @@
                        aria-label="Quay về Dashboard">
                         <span><i class="bi bi-speedometer2"></i></span>
                         <span><strong>Dashboard</strong><small>Tổng quan vận hành</small></span>
-                        <i class="bi bi-arrow-up-right"></i>
+                        <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
                     </a>
                 }
 
@@ -75,7 +90,11 @@
                     <button id="openPosButton" type="button" class="staffhub-action-button is-primary">
                         <span><i class="bi bi-cash-register"></i></span>
                         <span><strong>Mở POS</strong><small>Bắt đầu bán hàng</small></span>
-                        <i class="bi bi-arrow-right"></i>
+                        <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                    </button>
+                    <button id="registerTerminalButton" type="button" class="staffhub-action-button is-secondary">
+                        <span><i class="bi bi-display"></i></span>
+                        <span><strong>Đăng ký terminal</strong><small>Phê duyệt bằng OTP</small></span>
                     </button>
                 }
             </nav>
@@ -109,12 +128,12 @@
                     <a asp-action="Index"
                        asp-route-date="@Model.WeekStart.AddDays(-7).ToString("yyyy-MM-dd")"
                        aria-label="Xem tuần trước">
-                        <i class="bi bi-chevron-left"></i><span>Tuần trước</span>
+                        <i class="bi bi-chevron-left" aria-hidden="true"></i><span>Tuần trước</span>
                     </a>
                     <a asp-action="Index"
                        asp-route-date="@Model.WeekStart.AddDays(7).ToString("yyyy-MM-dd")"
                        aria-label="Xem tuần sau">
-                        <span>Tuần sau</span><i class="bi bi-chevron-right"></i>
+                        <span>Tuần sau</span><i class="bi bi-chevron-right" aria-hidden="true"></i>
                     </a>
                 </nav>
             </header>
@@ -128,7 +147,14 @@
                         <header class="schedule-day-header">
                             <div>
                                 <span class="schedule-weekday">@day.ToString("dddd", new CultureInfo("vi-VN"))</span>
-                                <time datetime="@day.ToString("yyyy-MM-dd")">@day.ToString("dd/MM/yyyy")</time>
+                                @if (isToday)
+                                {
+                                    <time datetime="@day.ToString("yyyy-MM-dd")" aria-current="date">@day.ToString("dd/MM/yyyy")</time>
+                                }
+                                else
+                                {
+                                    <time datetime="@day.ToString("yyyy-MM-dd")">@day.ToString("dd/MM/yyyy")</time>
+                                }
                             </div>
                             @if (isToday)
                             {
@@ -144,12 +170,16 @@
                                         <strong>@item.ShiftName</strong>
                                         @if (item.StatusCode == "CANCELLED")
                                         {
-                                            <span>Đã hủy</span>
+                                            <span class="schedule-cancelled-badge">Đã hủy</span>
                                         }
                                     </div>
                                     <div class="schedule-time">
-                                        <i class="bi bi-clock"></i>
-                                        <span>@item.PlannedStartLocal.ToString("dd/MM/yyyy HH:mm") → @item.PlannedEndLocal.ToString("dd/MM/yyyy HH:mm")</span>
+                                        <i class="bi bi-clock" aria-hidden="true"></i>
+                                        <span>@item.PlannedStartLocal.ToString("HH:mm") – @item.PlannedEndLocal.ToString("HH:mm")</span>
+                                        @if (item.IsOvernight)
+                                        {
+                                            <span class="schedule-overnight-badge" title="Ca làm việc kéo dài qua ngày hôm sau">Qua đêm · +1 ngày</span>
+                                        }
                                     </div>
                                 </div>
                             }
@@ -157,7 +187,7 @@
                             @if (!schedules.Any())
                             {
                                 <div class="schedule-empty">
-                                    <span><i class="bi bi-cup-hot"></i></span>
+                                    <span class="schedule-empty-icon"><i class="bi bi-cup-hot" aria-hidden="true"></i></span>
                                     <strong>Chưa có lịch</strong>
                                     <small>Thời gian nghỉ hoặc chưa được phân ca.</small>
                                 </div>
@@ -169,23 +199,48 @@
         </section>
 
         <aside class="staffhub-note">
-            <span class="staffhub-note-icon"><i class="bi bi-info-circle"></i></span>
+            <span class="staffhub-note-icon"><i class="bi bi-info-circle-fill" aria-hidden="true"></i></span>
             <div>
                 <strong>Lịch làm việc dự kiến</strong>
                 <p>Đây không phải dữ liệu chấm công. Việc chưa được xếp lịch không ngăn bạn mở POS nếu tài khoản đã được cấp quyền.</p>
             </div>
         </aside>
 
-        <dialog id="openPosPreviewDialog" class="staffhub-pos-dialog" aria-labelledby="openPosPreviewTitle">
-            <form method="dialog" class="staffhub-pos-dialog-card">
+        @if (canAccessPos)
+        {
+            <section class="staffhub-note" aria-labelledby="operatorPinHeading">
+                <span class="staffhub-note-icon"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i></span>
+                <div>
+                    <strong id="operatorPinHeading">PIN thao tác POS</strong>
+                    <p>PIN cá nhân gồm 6 chữ số, dùng khi đổi Current Operator. PIN không thay đổi người chịu trách nhiệm két.</p>
+                    <button id="openOperatorPinDialog" type="button" class="staffhub-dialog-button is-secondary">Thiết lập hoặc đổi PIN</button>
+                </div>
+            </section>
+        }
+
+    </div>
+
+        <div id="openPosPreviewDialog" class="modal fade staffhub-pos-dialog" tabindex="-1" aria-hidden="true" aria-labelledby="openPosPreviewTitle">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <form class="modal-content staffhub-pos-dialog-card">
                 <header class="staffhub-pos-dialog-header">
-                    <span class="staffhub-pos-dialog-icon"><i class="bi bi-cash-register"></i></span>
+                    <span class="staffhub-pos-dialog-icon"><i class="bi bi-cash-register" aria-hidden="true"></i></span>
                     <div>
                         <small>Xác nhận mở POS</small>
                         <h2 id="openPosPreviewTitle">Kiểm tra lịch dự kiến</h2>
                     </div>
                 </header>
-                <div class="staffhub-pos-dialog-body">
+                <div class="modal-body staffhub-pos-dialog-body">
+                    <label class="staffhub-terminal-picker staffhub-modal-terminal-picker">
+                        <span>Terminal POS</span>
+                        <select id="staffHubTerminalSelect">
+                            <option value="">Chọn terminal</option>
+                            @foreach (var terminal in terminals)
+                            {
+                                <option value="@terminal.TerminalId">@terminal.Name</option>
+                            }
+                        </select>
+                    </label>
                     <dl class="staffhub-pos-preview-grid">
                         <div><dt>Nhân viên</dt><dd>@Model.StaffName</dd></div>
                         <div><dt>Cửa hàng</dt><dd>@Model.StoreName</dd></div>
@@ -193,26 +248,90 @@
                         <div><dt>Phân loại</dt><dd id="openPosContextLabel">—</dd></div>
                         <div id="openPosPlannedRow" hidden><dt>Lịch liên quan</dt><dd id="openPosPlannedTime">—</dd></div>
                         <div id="openPosExpiryRow" hidden><dt>Dự kiến hết hạn</dt><dd id="openPosExpiryTime">—</dd></div>
+                        <div id="openPosBlockingIdRow" hidden><dt>Mã phiên</dt><dd id="openPosBlockingId">—</dd></div>
+                        <div id="openPosBlockingTerminalRow" hidden><dt>Terminal</dt><dd id="openPosBlockingTerminal">—</dd></div>
+                        <div id="openPosBlockingStartRow" hidden><dt>Bắt đầu</dt><dd id="openPosBlockingStart">—</dd></div>
+                        <div id="openPosBlockingStatusRow" hidden><dt>Trạng thái</dt><dd id="openPosBlockingStatus">—</dd></div>
+                        <div id="openPosBlockingExpiryRow" hidden><dt>Hết hạn</dt><dd id="openPosBlockingExpiry">—</dd></div>
                     </dl>
                     <div id="openPosPreviewNotice" class="staffhub-pos-preview-notice" role="status"></div>
+                    <div id="openPosApprovalFields" hidden>
+                        <label>Lý do
+                            <textarea id="openPosReason" minlength="10" maxlength="500"></textarea>
+                        </label>
+                        <div id="openPosOtpFields" hidden>
+                            <button id="requestOpenPosOtp" type="button" class="staffhub-dialog-button is-secondary">Gửi OTP</button>
+                            <div id="openPosOtpVerification" hidden>
+                                <label>Mã OTP <input id="openPosOtpCode" maxlength="6" autocomplete="one-time-code" /></label>
+                                <button id="verifyOpenPosOtp" type="button" class="staffhub-dialog-button is-secondary">Xác nhận OTP</button>
+                                <button id="resendOpenPosOtp" type="button" class="staffhub-dialog-button is-secondary" disabled>Gửi lại OTP</button>
+                            </div>
+                            <strong id="openPosOtpVerified" class="staffhub-otp-verified" hidden>✓ OTP đã được xác nhận</strong>
+                            <small id="openPosOtpStatus" aria-live="polite"></small>
+                        </div>
+                    </div>
                     <p class="staffhub-pos-preview-boundary">
                         Việc mở POS chỉ tạo phiên chịu trách nhiệm POS/két. Hệ thống không tạo lịch làm việc hoặc dữ liệu chấm công.
                     </p>
                     <p class="staffhub-pos-preview-next">
-                        Tiền đầu phiên, terminal, lý do và OTP (nếu cần) sẽ được nhập và xác nhận tại POS.
+                        Terminal, lý do và OTP (nếu cần) được xác nhận tại StaffHub. POS chỉ yêu cầu nhập tiền đầu phiên.
                     </p>
                 </div>
                 <footer class="staffhub-pos-dialog-actions">
                     <button id="cancelOpenPosPreview" type="button" class="staffhub-dialog-button is-secondary">Hủy</button>
-                    <button id="continueOpenPosPreview" type="button" class="staffhub-dialog-button is-primary">
-                        <span>Tiếp tục sang POS</span><i class="bi bi-arrow-right"></i>
+                    <button id="continueOpenPosPreview" type="button" class="staffhub-dialog-button is-primary" hidden>
+                        <span>Tiếp tục sang POS</span><i class="bi bi-arrow-right" aria-hidden="true"></i>
                     </button>
+                    <button id="resumeExistingPos" type="button" class="staffhub-dialog-button is-primary" hidden></button>
                 </footer>
             </form>
-        </dialog>
+            </div>
+        </div>
+
+        <div id="terminalRegistrationDialog" class="modal fade staffhub-pos-dialog" tabindex="-1" aria-hidden="true" aria-labelledby="terminalRegistrationDialogTitle">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <form class="modal-content staffhub-pos-dialog-card">
+                <header class="staffhub-pos-dialog-header"><h2 id="terminalRegistrationDialogTitle">Đăng ký terminal POS</h2></header>
+                <div class="modal-body staffhub-pos-dialog-body">
+                    <label>Tên terminal <input id="terminalRegistrationName" maxlength="100" /></label>
+                    <label>Mã OTP <input id="terminalRegistrationOtp" maxlength="6" autocomplete="one-time-code" /></label>
+                    <small id="terminalRegistrationStatus" aria-live="polite"></small>
+                </div>
+                <footer class="staffhub-pos-dialog-actions">
+                    <button id="cancelTerminalRegistration" type="button" class="staffhub-dialog-button is-secondary">Hủy</button>
+                    <button id="requestTerminalOtp" type="button" class="staffhub-dialog-button is-secondary">Gửi OTP</button>
+                    <button id="resendTerminalOtp" type="button" class="staffhub-dialog-button is-secondary" disabled>Gửi lại OTP</button>
+                    <button id="verifyAndRegisterTerminal" type="button" class="staffhub-dialog-button is-primary">Xác nhận và đăng ký</button>
+                </footer>
+            </form>
+            </div>
+        </div>
+
+        <div id="operatorPinDialog" class="modal fade staffhub-pos-dialog" tabindex="-1" aria-hidden="true" aria-labelledby="operatorPinDialogTitle">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <form id="operatorPinForm" class="modal-content staffhub-pos-dialog-card">
+                <header class="staffhub-pos-dialog-header">
+                    <h2 id="operatorPinDialogTitle">Thiết lập PIN thao tác POS</h2>
+                </header>
+                <div class="modal-body staffhub-pos-dialog-body">
+                    <label>Mật khẩu hiện tại
+                        <input id="operatorCurrentPassword" type="password" autocomplete="current-password" maxlength="200" required />
+                    </label>
+                    <label>PIN mới gồm 6 chữ số
+                        <input id="operatorNewPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="6" maxlength="6" pattern="[0-9]{6}" required />
+                    </label>
+                    <small id="operatorPinStatus" aria-live="polite"></small>
+                </div>
+                <footer class="staffhub-pos-dialog-actions">
+                    <button id="cancelOperatorPin" type="button" class="staffhub-dialog-button is-secondary">Hủy</button>
+                    <button id="saveOperatorPin" type="submit" class="staffhub-dialog-button is-primary">Lưu PIN</button>
+                </footer>
+            </form>
+            </div>
         </div>
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.all.min.js"></script>
     <script src="~/js/StaffHub/staffhub-schedule.js" asp-append-version="true"></script>
 }

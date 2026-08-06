@@ -82,6 +82,8 @@ public sealed class PurchaseAdviceOfferDto
     public decimal? CurrentProcurementUnitPrice { get; set; }
     public int? LooseProcurementUnitId { get; set; }
     public string? LooseProcurementUnitName { get; set; }
+    public decimal? LooseMinimumOrderQuantity { get; set; }
+    public decimal? LooseQuantityStep { get; set; }
     public string Currency { get; set; } = "VND";
     public string? Specification { get; set; }
 }

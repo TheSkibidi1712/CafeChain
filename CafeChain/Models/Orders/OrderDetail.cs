@@ -14,6 +14,8 @@ namespace CafeChain.Models.Orders
         public int? SizeId { get; set; }
         public int? StoreMenuItemId { get; set; }
         public int? DrinkSizeId { get; set; }
+        /// <summary>Immutable sale-time drink/size BOM version. Null only for legacy orders.</summary>
+        public int? RecipeIdSnapshot { get; set; }
         public string DrinkName { get; set; }
         public string? SizeName { get; set; }
 
@@ -49,6 +51,7 @@ namespace CafeChain.Models.Orders
         public virtual Drink Drink { get; set; }
         public virtual StoreMenuItem? StoreMenuItem { get; set; }
         public virtual DrinkSize? DrinkSize { get; set; }
+        public virtual Recipe? RecipeSnapshot { get; set; }
         public virtual Models.Inventories.Ingredients.Ingredient? IceIngredient { get; set; }
         public virtual ICollection<OrderTopping> OrderToppings { get; set; }
     }

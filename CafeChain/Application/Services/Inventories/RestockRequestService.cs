@@ -4,7 +4,7 @@ using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
-using CafeChain.Models.Enums.Unit;
+using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Operations;
 using Microsoft.Data.SqlClient;
@@ -250,7 +250,7 @@ namespace CafeChain.Application.Services.Inventories
         {
             if (requestedProcurementQuantity <= 0 || procurementUnitId <= 0)
                 return ServiceResult<CreateRestockRequestResultDto>.Failure(
-                    "Số lượng và đơn vị mua hàng phải hợp lệ.");
+                    "Số lượng và đơn vị nhu cầu phải hợp lệ.");
 
             var alert = await _context.StockAlerts
                 .AsNoTracking()
@@ -274,31 +274,27 @@ namespace CafeChain.Application.Services.Inventories
                 .SingleOrDefaultAsync(x => x.UnitId == procurementUnitId && x.Active);
             if (baseUnit == null || procurementUnit == null)
                 return ServiceResult<CreateRestockRequestResultDto>.Failure(
-                    "Cảnh báo chưa có đơn vị tồn kho hoặc đơn vị mua hàng hợp lệ.");
-
-            var expectedProcurementCode = baseUnit.Type switch
-            {
-                UnitType.KhoiLuong => ProcurementUnitCodes.Kilogram,
-                UnitType.TheTich => ProcurementUnitCodes.Liter,
-                UnitType.Dem => ProcurementUnitCodes.Piece,
-                _ => string.Empty
-            };
-            if (!string.Equals(
-                    procurementUnit.UnitCode,
-                    expectedProcurementCode,
-                    StringComparison.OrdinalIgnoreCase))
+                    "Cảnh báo chưa có đơn vị tồn kho hoặc đơn vị nhu cầu hợp lệ.");
+            if (!ProcurementUnitPolicy.IsAllowed(baseUnit, procurementUnit))
                 return ServiceResult<CreateRestockRequestResultDto>.Failure(
-                    "Đơn vị mua hàng không tương thích với đơn vị tồn kho của mặt hàng.");
+                    "Đơn vị nhu cầu không phù hợp với nhóm đo của nguyên liệu.");
 
             decimal procurementToBaseFactor;
             if (procurementUnit.UnitId == baseUnit.UnitId)
             {
                 procurementToBaseFactor = 1m;
             }
-            else if (procurementUnit.Type == UnitType.Dem
-                && baseUnit.Type == UnitType.Dem)
+            else if (alert.IngredientId.HasValue && _unitConversion != null)
             {
-                procurementToBaseFactor = 1m;
+                var conversion = await _unitConversion.ConvertAsync(
+                    alert.IngredientId.Value,
+                    1m,
+                    procurementUnit.UnitId,
+                    baseUnit.UnitId);
+                if (!conversion.IsSuccess || conversion.Data <= 0m)
+                    return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                        "Đơn vị nhu cầu không tương thích với nguyên liệu hoặc chưa có quy đổi hợp lệ.");
+                procurementToBaseFactor = conversion.Data;
             }
             else if (!PhysicalUnitConversionRegistry.TryGetPairFactor(
                 procurementUnit.UnitCode,
@@ -308,7 +304,7 @@ namespace CafeChain.Application.Services.Inventories
                 out procurementToBaseFactor))
             {
                 return ServiceResult<CreateRestockRequestResultDto>.Failure(
-                    "Chưa cấu hình quy đổi từ đơn vị mua hàng sang đơn vị tồn kho.");
+                    "Chưa cấu hình quy đổi từ đơn vị nhu cầu sang đơn vị tồn kho.");
             }
 
             var requestedBaseQuantity =
@@ -523,7 +519,7 @@ namespace CafeChain.Application.Services.Inventories
                         errorCode: RestockRequestErrorCodes.Unauthorized);
                 if (demand.ProcurementUnitId != request.ProcurementUnitId)
                     return ServiceResult<RestockDemandAdjustmentResultDto>.Failure(
-                        "Đơn vị bổ sung phải trùng với đơn vị mua hàng của yêu cầu hiện tại.",
+                        "Đơn vị bổ sung phải trùng với đơn vị nhu cầu hiện tại.",
                         errorCode: RestockRequestErrorCodes.ProcurementUnitMismatch);
 
                 var replay = await _context.RestockRequestTransitions
@@ -550,7 +546,7 @@ namespace CafeChain.Application.Services.Inventories
                 var quantityBefore = demand.RequestedProcurementQuantity.GetValueOrDefault();
                 if (quantityBefore <= 0 || demand.RequestedQuantity <= 0)
                     return ServiceResult<RestockDemandAdjustmentResultDto>.Failure(
-                        "Yêu cầu hiện tại chưa có hợp đồng đơn vị mua hàng hợp lệ để bổ sung.",
+                        "Yêu cầu hiện tại chưa có đơn vị nhu cầu hợp lệ để bổ sung.",
                         errorCode: RestockRequestErrorCodes.DemandAdjustmentNotAllowed);
 
                 var basePerProcurementUnit = demand.RequestedQuantity / quantityBefore;
@@ -560,6 +556,72 @@ namespace CafeChain.Application.Services.Inventories
                 if (request.NeedByDate.HasValue)
                     demand.NeedByDate = DateTime.SpecifyKind(request.NeedByDate.Value.Date, DateTimeKind.Utc);
                 demand.UpdatedAt = DateTime.UtcNow;
+
+                // A demand increase keeps the established PURCHASE decision. Mutable PA lines
+                // are revised in-place; locked history receives a separate pending allocation.
+                if (string.Equals(
+                        demand.SourcingDecision,
+                        RestockSourcingDecisionTypes.Purchase,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    var activeAdviceLine = await _context.PurchaseAdviceLines
+                        .Include(x => x.PurchaseAdvice)
+                        .Where(x => x.RestockRequestId == demand.RestockRequestId
+                            && x.IsActiveReservation)
+                        .OrderBy(x => x.PurchaseAdviceLineId)
+                        .FirstOrDefaultAsync();
+                    var isLocked = activeAdviceLine != null
+                        && await _context.PurchaseOrderLineAllocations
+                            .AnyAsync(x => x.PurchaseAdviceLineId == activeAdviceLine.PurchaseAdviceLineId);
+                    var isMutable = activeAdviceLine != null
+                        && !isLocked
+                        && activeAdviceLine.PurchaseAdvice.Status is PurchaseAdviceStatuses.Draft
+                            or PurchaseAdviceStatuses.Submitted
+                            or PurchaseAdviceStatuses.UnderReview;
+
+                    if (isMutable)
+                    {
+                        activeAdviceLine!.RequestedPurchaseBaseQuantity +=
+                            request.AdjustmentProcurementQuantity * basePerProcurementUnit;
+                        activeAdviceLine.RequestedProcurementQuantity =
+                            activeAdviceLine.RequestedProcurementQuantity.GetValueOrDefault()
+                            + request.AdjustmentProcurementQuantity;
+                        activeAdviceLine.PurchaseAdvice.UpdatedAtUtc = DateTime.UtcNow;
+
+                        if (activeAdviceLine.PurchaseAdvice.Status == PurchaseAdviceStatuses.UnderReview)
+                        {
+                            var previousStatus = activeAdviceLine.PurchaseAdvice.Status;
+                            activeAdviceLine.PurchaseAdvice.Status = PurchaseAdviceStatuses.Submitted;
+                            activeAdviceLine.PurchaseAdvice.Transitions.Add(new PurchaseAdviceTransition
+                            {
+                                PreviousStatus = previousStatus,
+                                NewStatus = PurchaseAdviceStatuses.Submitted,
+                                ActorStaffId = actorStaffId,
+                                OccurredAtUtc = DateTime.UtcNow,
+                                Reason = "Nhu cầu mua tăng; đề nghị mua cần được xem xét lại."
+                            });
+                        }
+                    }
+
+                    demand.SourcingAllocations.Add(new RestockSourcingAllocation
+                    {
+                        DecisionType = RestockSourcingDecisionTypes.Purchase,
+                        ProcurementQuantity = request.AdjustmentProcurementQuantity,
+                        ProcurementUnitId = request.ProcurementUnitId,
+                        Status = isMutable
+                            ? RestockSourcingAllocationStatuses.Active
+                            : RestockSourcingAllocationStatuses.PendingPurchaseAdvice,
+                        SourceDocumentType = RestockRequestAuditKeys.DemandAdjustmentPrefix.TrimEnd(':'),
+                        SourceDocumentId = activeAdviceLine?.PurchaseAdviceId,
+                        SourceDocumentLineId = activeAdviceLine?.PurchaseAdviceLineId,
+                        PurchaseAdviceLineId = isMutable
+                            ? activeAdviceLine!.PurchaseAdviceLineId
+                            : null,
+                        Reason = reason,
+                        CreatedByStaffId = actorStaffId,
+                        CreatedAtUtc = DateTime.UtcNow
+                    });
+                }
 
                 var allocated = ActiveAllocatedProcurementQuantity(demand);
                 demand.SourcingStatus = allocated <= 0
@@ -618,7 +680,7 @@ namespace CafeChain.Application.Services.Inventories
             if (!await IsAuthorizedSourcingActorAsync(actorStaffId, demand.StoreId))
                 return ServiceResult<SourcingAllocationDto>.Failure("Bạn không có quyền quyết định nguồn cung cho cửa hàng này.");
             if (request.ProcurementUnitId != demand.ProcurementUnitId)
-                return ServiceResult<SourcingAllocationDto>.Failure("Đơn vị mua hàng phải trùng với đơn vị của nhu cầu.");
+                return ServiceResult<SourcingAllocationDto>.Failure("Đơn vị phân bổ phải trùng với đơn vị nhu cầu.");
 
             var allocated = demand.SourcingAllocations
                 .Where(x => x.Status is RestockSourcingAllocationStatuses.Active
@@ -680,9 +742,10 @@ namespace CafeChain.Application.Services.Inventories
             var unit = await _context.Units
                 .SingleOrDefaultAsync(x => x.UnitId == request.ProcurementUnitId && x.Active);
             if (ingredient == null || unit == null)
-                return ServiceResult<CreateRestockRequestResultDto>.Failure("Nguyên liệu hoặc đơn vị mua hàng không hợp lệ.");
-            if (!AllowedProcurementUnitCodes.Contains(unit.UnitCode, StringComparer.OrdinalIgnoreCase))
-                return ServiceResult<CreateRestockRequestResultDto>.Failure("Đơn vị mua hàng phải là kg, L hoặc cái.");
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Nguyên liệu hoặc đơn vị nhu cầu không hợp lệ.");
+            if (!ProcurementUnitPolicy.IsAllowed(ingredient.BaseUnit, unit))
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    "Đơn vị nhu cầu không phù hợp với nhóm đo của nguyên liệu.");
 
             var sourceReference = Clean(request.SourceReferenceId, 100);
             if (sourceReference != null)
@@ -721,7 +784,7 @@ namespace CafeChain.Application.Services.Inventories
             {
                 if (_unitConversion == null)
                     return ServiceResult<CreateRestockRequestResultDto>.Failure(
-                        "Chưa cấu hình dịch vụ quy đổi đơn vị mua hàng sang đơn vị tồn kho.");
+                        "Chưa cấu hình dịch vụ quy đổi đơn vị nhu cầu sang đơn vị tồn kho.");
 
                 var conversion = await _unitConversion.ConvertAsync(
                     ingredient.IngredientId,
@@ -900,7 +963,7 @@ namespace CafeChain.Application.Services.Inventories
                 AllocatedProcurementQuantity = allocated,
                 RemainingUnallocatedProcurementQuantity = Math.Max(0m, requested - allocated),
                 ProcurementUnitId = active.ProcurementUnitId.GetValueOrDefault(),
-                ProcurementUnitName = active.ProcurementUnit?.Name ?? "đơn vị mua hàng",
+                ProcurementUnitName = active.ProcurementUnit?.Name ?? "đơn vị nhu cầu",
                 NeedByDate = active.NeedByDate,
                 RowVersion = Convert.ToBase64String(active.RowVersion ?? Array.Empty<byte>())
             };
@@ -927,7 +990,7 @@ namespace CafeChain.Application.Services.Inventories
                 RemainingUnallocatedProcurementQuantity = Math.Max(
                     0m,
                     requested - ActiveAllocatedProcurementQuantity(demand)),
-                ProcurementUnitName = demand.ProcurementUnit?.Name ?? "đơn vị mua hàng",
+                ProcurementUnitName = demand.ProcurementUnit?.Name ?? "đơn vị nhu cầu",
                 RowVersion = Convert.ToBase64String(demand.RowVersion ?? Array.Empty<byte>()),
                 WasReplay = wasReplay
             };
@@ -991,9 +1054,6 @@ namespace CafeChain.Application.Services.Inventories
             return roles.Contains(RoleConstants.AccountantWarehouse)
                 && await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
         }
-
-        private static readonly string[] AllowedProcurementUnitCodes =
-            { ProcurementUnitCodes.Kilogram, ProcurementUnitCodes.Liter, ProcurementUnitCodes.Piece };
 
         private static string? Clean(string? value, int maxLength)
         {

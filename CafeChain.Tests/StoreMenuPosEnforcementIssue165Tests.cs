@@ -33,8 +33,13 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
         Assert.Equal(47_000m, result.Data.AcceptedUnitPrice);
         Assert.Equal(StoreMenuPriceSources.StoreOverride, result.Data.PriceSource);
         Assert.Equal(7, result.Data.CatalogVersion);
+        Assert.Equal(16510, result.Data.RecipeId);
         Assert.Single(result.Data.Toppings);
         Assert.Equal(5_000m, result.Data.Toppings[0].AcceptedPrice);
+        Assert.Equal(1m, result.Data.Toppings[0].QuantityPerDrink);
+        Assert.Equal(ToppingQuantityUnits.RecipePortion, result.Data.Toppings[0].QuantityUnit);
+        Assert.Equal(ToppingPriceTreatments.AddToppingPrice, result.Data.Toppings[0].PriceTreatment);
+        Assert.Equal(ToppingCostTreatments.IncludedInDrinkRecipe, result.Data.Toppings[0].CostTreatment);
     }
 
     [Fact]
@@ -146,9 +151,15 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
         Assert.Equal(47_000m, detail.Price);
         Assert.Equal(StoreMenuPriceSources.StoreOverride, detail.PriceSource);
         Assert.Equal(7, detail.AcceptedCatalogVersion);
+        Assert.Equal(16510, detail.RecipeIdSnapshot);
         Assert.Equal(SalesCostStatus.Pending, detail.CostStatus);
         Assert.Null(detail.UnitCogs);
         Assert.Null(detail.TotalCogs);
+        var topping = Assert.Single(detail.OrderToppings);
+        Assert.Equal(1m, topping.QuantityPerDrinkSnapshot);
+        Assert.Equal(ToppingQuantityUnits.RecipePortion, topping.QuantityUnitSnapshot);
+        Assert.Equal(ToppingPriceTreatments.AddToppingPrice, topping.PriceTreatmentSnapshot);
+        Assert.Equal(ToppingCostTreatments.IncludedInDrinkRecipe, topping.CostTreatmentSnapshot);
     }
 
     [Fact]
@@ -221,6 +232,16 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
             IsEnabled = true, PriceOverride = 88_000m, PublishedAtUtc = DateTime.UtcNow,
             CreatedAtUtc = DateTime.UtcNow, UpdatedAtUtc = DateTime.UtcNow
         });
+        context.Recipes.Add(new Recipe
+        {
+            RecipeId = 16510,
+            RecipeCode = "RCP_POS165",
+            Name = "POS 165 M",
+            DrinkId = 16503,
+            SizeId = 16504,
+            Active = false,
+            Status = "Archived"
+        });
         context.Toppings.Add(new Topping
         {
             ToppingId = 16507, ToppingCode = "TOP165", Name = "Trân châu", Price = currentToppingPrice, Active = true
@@ -236,6 +257,7 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
         SizeId = 16504,
         StoreMenuItemId = 16506,
         DrinkSizeId = 16505,
+        RecipeIdSnapshot = 16510,
         AcceptedBasePrice = 42_000m,
         AcceptedUnitPrice = 47_000m,
         PriceSource = StoreMenuPriceSources.StoreOverride,
@@ -243,7 +265,16 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
         Quantity = 1,
         Toppings = new List<POSOrderToppingDto>
         {
-            new() { ToppingId = 16507, Name = "Trân châu", AcceptedPrice = 5_000m }
+            new()
+            {
+                ToppingId = 16507,
+                Name = "Trân châu",
+                AcceptedPrice = 5_000m,
+                QuantityPerDrink = 1m,
+                QuantityUnit = ToppingQuantityUnits.RecipePortion,
+                PriceTreatment = ToppingPriceTreatments.AddToppingPrice,
+                CostTreatment = ToppingCostTreatments.IncludedInDrinkRecipe
+            }
         }
     };
 
@@ -253,6 +284,7 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
         DrinkSizeId = 16505,
         DrinkId = 16503,
         SizeId = 16504,
+        RecipeId = 16510,
         DrinkName = "POS 165",
         SizeName = "M",
         AcceptedBasePrice = 42_000m,
@@ -261,7 +293,16 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
         CatalogVersion = 7,
         Toppings = new[]
         {
-            new POSAcceptedSaleToppingDto { ToppingId = 16507, Name = "Trân châu", AcceptedPrice = 5_000m }
+            new POSAcceptedSaleToppingDto
+            {
+                ToppingId = 16507,
+                Name = "Trân châu",
+                AcceptedPrice = 5_000m,
+                QuantityPerDrink = 1m,
+                QuantityUnit = ToppingQuantityUnits.RecipePortion,
+                PriceTreatment = ToppingPriceTreatments.AddToppingPrice,
+                CostTreatment = ToppingCostTreatments.IncludedInDrinkRecipe
+            }
         }
     };
 
@@ -290,6 +331,7 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
                     {
                         StoreMenuItemId = 16506,
                         DrinkSizeId = 16505,
+                        RecipeId = 16510,
                         SizeId = 16504,
                         SizeName = "M",
                         Price = 42_000m,
@@ -307,7 +349,9 @@ public sealed class StoreMenuPosEnforcementIssue165Tests : IntegrationTestBase
                                 IsDefaultSelected = true,
                                 IsRequired = true,
                                 PriceTreatment = ToppingPriceTreatments.AddToppingPrice,
-                                QuantityPerDrink = 1m
+                                CostTreatment = ToppingCostTreatments.IncludedInDrinkRecipe,
+                                QuantityPerDrink = 1m,
+                                QuantityUnit = ToppingQuantityUnits.RecipePortion
                             }
                         }
                     }

@@ -4,7 +4,7 @@
    Loaded after module styles; selectors remain scoped to Admin.
    ============================================================ */
 
-.admin-page-body {
+:root {
     --admin-brown-900: #3f2b20;
     --admin-brown-800: #4d3425;
     --admin-brown-700: #5c3f2b;
@@ -31,6 +31,179 @@
     --admin-shadow-md: 0 16px 38px rgba(71, 50, 35, .105), 0 3px 10px rgba(71, 50, 35, .05);
     --admin-shadow-hover: 0 18px 40px rgba(92, 63, 43, .16), 0 4px 12px rgba(92, 63, 43, .06);
 }
+
+/* ============================================================
+   GLOBAL LAYOUT OVERRIDES (Unify canvas background color)
+   ============================================================ */
+body {
+    background-color: #f7f4f0 !important;
+}
+
+.main-content {
+    position: relative;
+    background-color: #f7f4f0 !important;
+    isolation: isolate;
+}
+
+/* Ensure all module page wrappers have transparent backgrounds so the canvas background shows through */
+.admin-page-body,
+.analytics-page,
+.rb-page,
+.po-page,
+.admin-wo-page,
+.perm-page,
+.cc-page,
+.cc-warehouse-page,
+.ops-shell,
+.pa-page,
+.ice-shell,
+.inventory-container,
+.reorder-page,
+.uc-page,
+.notification-page {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Decorative Background Shapes */
+.main-content::before,
+.main-content::after {
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+    content: "";
+}
+
+/* Shape 1 — Champagne Orbit Arc */
+.main-content::before {
+    width: clamp(320px, 34vw, 520px);
+    height: clamp(150px, 13vw, 190px);
+    top: 0;
+    left: clamp(32px, 10vw, 200px);
+    background: radial-gradient(
+        circle at 50% -120px,
+        transparent 0,
+        transparent 220px,
+        rgba(169, 119, 80, 0.14) 221px,
+        rgba(169, 119, 80, 0.14) 223px,
+        transparent 224px,
+        transparent 270px,
+        rgba(169, 119, 80, 0.10) 271px,
+        rgba(169, 119, 80, 0.10) 273px,
+        transparent 274px,
+        transparent 320px,
+        rgba(169, 119, 80, 0.06) 321px,
+        rgba(169, 119, 80, 0.06) 323px,
+        transparent 324px
+    );
+    animation: admin-unified-arc-float 36s ease-in-out infinite alternate;
+}
+
+/* Shape 2 — Soft Champagne Glow */
+.main-content::after {
+    width: clamp(260px, 28vw, 420px);
+    height: clamp(150px, 18vw, 240px);
+    top: 8px;
+    right: clamp(140px, 15vw, 280px);
+    background: radial-gradient(
+        circle at 100% 0%,
+        rgba(244, 233, 222, 0.35) 0%,
+        rgba(244, 233, 222, 0.12) 40%,
+        transparent 75%
+    );
+    animation: admin-unified-glow-float 42s ease-in-out infinite alternate;
+}
+
+/* Animations using translate3d, scale, and rotate for smooth rendering */
+@keyframes admin-unified-arc-float {
+    from {
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    }
+    to {
+        transform: translate3d(6px, -4px, 0) rotate(1.2deg) scale(1.01);
+    }
+}
+
+@keyframes admin-unified-glow-float {
+    from {
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 0.72;
+    }
+    to {
+        transform: translate3d(-8px, 8px, 0) scale(1.015);
+        opacity: 0.9;
+    }
+}
+
+/* Responsive constraints */
+@media (max-width: 1024px) {
+    .main-content::before {
+        width: clamp(260px, 30vw, 420px);
+        height: clamp(120px, 11vw, 160px);
+        opacity: 0.1;
+    }
+    .main-content::after {
+        width: clamp(200px, 24vw, 340px);
+        height: clamp(120px, 15vw, 200px);
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content::after {
+        display: none !important;
+    }
+    .main-content::before {
+        width: 280px;
+        height: 120px;
+        left: 16px;
+        opacity: 0.08;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content::before {
+        width: 220px;
+        height: 100px;
+        left: 12px;
+        opacity: 0.04;
+        animation: none !important;
+        transform: none !important;
+    }
+}
+
+/* Support for prefers-reduced-motion standard */
+@media (prefers-reduced-motion: reduce) {
+    .main-content::before,
+    .main-content::after {
+        animation: none !important;
+        transform: none !important;
+    }
+}
+
+/* Admin modals must remain usable at 100% zoom on short and narrow screens. */
+:is(.admin-page-body, #cc-modal-host) .modal {
+    padding: max(.5rem, env(safe-area-inset-top)) max(.5rem, env(safe-area-inset-right))
+        max(.5rem, env(safe-area-inset-bottom)) max(.5rem, env(safe-area-inset-left)) !important;
+}
+
+:is(.admin-page-body, #cc-modal-host) .modal-dialog {
+    width: min(100%, calc(100vw - 1rem));
+    max-height: calc(100dvh - 1rem);
+    margin: 0 auto;
+}
+
+:is(.admin-page-body, #cc-modal-host) .modal-content {
+    max-height: calc(100dvh - 1rem);
+    min-height: 0;
+    overflow-y: auto;
+}
+
+:is(.admin-page-body, #cc-modal-host) .modal-body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
 
 /* Module headers follow the same visual hierarchy as Staff and Permissions. */
 .admin-page-body :is(.rb-page-header, .po-title-section) {
@@ -564,7 +737,7 @@
     transform: translateY(-2px);
 }
 
-.admin-page-body :is(.modal-content, .perm-modal) {
+:is(.admin-page-body, #cc-modal-host) :is(.modal-content, .perm-modal) {
     overflow: hidden;
     border: 1px solid var(--admin-brown-200);
     border-radius: 18px;
@@ -942,7 +1115,7 @@
 }
 
 /* Add/edit entity modal: same hierarchy and depth as the module cards. */
-.admin-page-body .rb-entity-modal {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal {
     overflow: hidden;
     border: 1px solid rgba(111, 78, 55, .22);
     border-radius: 20px;
@@ -950,7 +1123,7 @@
     box-shadow: 0 28px 70px rgba(34, 24, 18, .28), 0 7px 20px rgba(71, 50, 35, .12);
 }
 
-.admin-page-body .rb-entity-modal .modal-header {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-header {
     position: relative;
     min-height: 84px;
     padding: 18px 22px;
@@ -960,7 +1133,7 @@
         linear-gradient(135deg, #fff 0%, #f9f1ea 100%);
 }
 
-.admin-page-body .rb-entity-modal .modal-header::before {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-header::before {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -970,14 +1143,14 @@
     background: linear-gradient(180deg, var(--admin-brown-600), #b7825d);
 }
 
-.admin-page-body .rb-modal-heading {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-heading {
     display: flex;
     min-width: 0;
     align-items: center;
     gap: 13px;
 }
 
-.admin-page-body .rb-modal-heading-icon {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-heading-icon {
     display: inline-flex;
     width: 44px;
     height: 44px;
@@ -990,7 +1163,7 @@
     box-shadow: 0 9px 18px rgba(111, 78, 55, .22), inset 0 1px rgba(255, 255, 255, .22);
 }
 
-.admin-page-body .rb-entity-modal .modal-title {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-title {
     margin: 0 0 3px;
     color: var(--admin-ink);
     font-size: 20px;
@@ -998,13 +1171,13 @@
     line-height: 1.2;
 }
 
-.admin-page-body .rb-modal-subtitle {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-subtitle {
     color: var(--admin-muted);
     font-size: 12px;
     line-height: 17px;
 }
 
-.admin-page-body .rb-entity-modal .btn-close {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .btn-close {
     width: 38px;
     height: 38px;
     padding: 0;
@@ -1013,14 +1186,14 @@
     box-shadow: 0 3px 9px rgba(71, 50, 35, .08);
 }
 
-.admin-page-body .rb-entity-modal .modal-body {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-body {
     display: grid;
     gap: 14px;
     padding: 20px 22px;
     background: #fcfaf8;
 }
 
-.admin-page-body .rb-modal-section {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section {
     padding: 16px;
     border: 1px solid var(--admin-brown-100);
     border-radius: 14px;
@@ -1028,7 +1201,7 @@
     box-shadow: var(--admin-shadow-xs);
 }
 
-.admin-page-body .rb-modal-section-heading {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -1038,7 +1211,7 @@
     color: var(--admin-brown-700);
 }
 
-.admin-page-body .rb-modal-section-heading > i {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading > i {
     display: inline-flex;
     width: 34px;
     height: 34px;
@@ -1049,47 +1222,47 @@
     background: var(--admin-brown-50);
 }
 
-.admin-page-body .rb-modal-section-heading strong,
-.admin-page-body .rb-modal-section-heading span {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading strong,
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading span {
     display: block;
 }
 
-.admin-page-body .rb-modal-section-heading strong {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading strong {
     font-size: 13px;
     line-height: 18px;
 }
 
-.admin-page-body .rb-modal-section-heading span {
+:is(.admin-page-body, #cc-modal-host) .rb-modal-section-heading span {
     color: var(--admin-muted);
     font-size: 11.5px;
     line-height: 16px;
 }
 
-.admin-page-body .rb-entity-modal :is(.form-control, .form-select) {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal :is(.form-control, .form-select) {
     min-height: 44px;
     border-color: var(--admin-brown-200);
     border-radius: 10px;
     background-color: #fffdfb;
 }
 
-.admin-page-body .rb-entity-modal textarea.form-control {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal textarea.form-control {
     min-height: 92px;
 }
 
-.admin-page-body .rb-entity-modal .form-label {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .form-label {
     margin-bottom: 7px;
     color: var(--admin-ink);
     font-size: 13px;
 }
 
-.admin-page-body .rb-entity-modal .form-text {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .form-text {
     margin-top: 6px;
     color: var(--admin-muted);
     font-size: 11.5px;
     line-height: 16px;
 }
 
-.admin-page-body .rb-entity-modal .rb-brown-switch {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .rb-brown-switch {
     display: inline-flex;
     min-height: 40px;
     align-items: center;
@@ -1101,7 +1274,7 @@
     background: var(--admin-brown-50);
 }
 
-.admin-page-body .rb-entity-modal .modal-footer {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-footer {
     min-height: 76px;
     gap: 10px;
     padding: 15px 22px;
@@ -1109,7 +1282,7 @@
     background: linear-gradient(180deg, #fff, #faf4ee);
 }
 
-.admin-page-body .rb-entity-modal .modal-footer .btn {
+:is(.admin-page-body, #cc-modal-host) .rb-entity-modal .modal-footer .btn {
     display: inline-flex;
     min-width: 118px;
     height: 44px;

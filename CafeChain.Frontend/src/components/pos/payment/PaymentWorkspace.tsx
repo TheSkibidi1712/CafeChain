@@ -151,7 +151,7 @@ export default function PaymentWorkspace({
         role="dialog"
         aria-modal="true"
         aria-labelledby="payment-workspace-title"
-        className="pos-payment-workspace relative ml-auto flex h-full w-full flex-col overflow-hidden border-l border-border bg-white shadow-xl"
+        className="pos-payment-workspace relative ml-auto flex h-full max-h-[100dvh] min-h-0 w-full flex-col overflow-hidden border-l border-border bg-white shadow-xl"
       >
         <header className="shrink-0 border-b border-border bg-white px-5 py-4">
           <div className="flex items-start justify-between gap-4">

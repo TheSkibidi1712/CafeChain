@@ -34,6 +34,21 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     "CK_IngredientSupplier_LoosePurchase",
                     "[AllowsLoosePurchase] = 0 OR ([CurrentProcurementUnitPrice] IS NOT NULL AND [CurrentProcurementUnitPrice] > 0 AND [LooseProcurementUnitId] IS NOT NULL)"
                 );
+
+                table.HasCheckConstraint(
+                    "CK_IngredientSupplier_LoosePriceMode",
+                    "[LoosePriceMode] IN ('DERIVED', 'INDEPENDENT')"
+                );
+
+                table.HasCheckConstraint(
+                    "CK_IngredientSupplier_LooseMinimumOrderQuantity",
+                    "[LooseMinimumOrderQuantity] IS NULL OR [LooseMinimumOrderQuantity] >= 0"
+                );
+
+                table.HasCheckConstraint(
+                    "CK_IngredientSupplier_LooseQuantityStep",
+                    "[LooseQuantityStep] IS NULL OR [LooseQuantityStep] > 0"
+                );
             });
 
             entity.HasKey(x => x.IngredientSupplierId);
@@ -61,6 +76,16 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
             entity.Property(x => x.CurrentProcurementUnitPrice)
                 .HasColumnType("decimal(18,2)");
 
+            entity.Property(x => x.LoosePriceMode)
+                .HasMaxLength(16)
+                .HasDefaultValue(LoosePurchasePriceModes.Independent);
+
+            entity.Property(x => x.LooseMinimumOrderQuantity)
+                .HasColumnType("decimal(18,5)");
+
+            entity.Property(x => x.LooseQuantityStep)
+                .HasColumnType("decimal(18,5)");
+
             entity.Property(x => x.Note)
                 .HasMaxLength(1000);
 
@@ -84,6 +109,11 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
             entity.HasIndex(x => x.SupplierId);
 
             entity.HasIndex(x => x.IngredientId);
+
+            entity.HasIndex(x => x.IngredientId)
+                .HasDatabaseName("UX_IngredientSuppliers_PrimaryByIngredient")
+                .IsUnique()
+                .HasFilter("[IsPrimary] = 1 AND [Active] = 1");
 
             entity.HasIndex(x => x.Active);
             entity.HasIndex(x => x.LooseProcurementUnitId);

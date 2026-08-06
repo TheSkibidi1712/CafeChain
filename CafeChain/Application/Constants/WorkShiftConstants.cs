@@ -27,4 +27,34 @@ public static class WorkShiftErrorCodes
     public const string InvalidRequestKey = "INVALID_REQUEST_KEY";
     public const string InvalidCashAmount = "INVALID_CASH_AMOUNT";
     public const string OutsideScheduleOfflineNotAllowed = "OUTSIDE_SCHEDULE_OFFLINE_NOT_ALLOWED";
+    public const string PosOpenContextRequired = "POS_OPEN_CONTEXT_REQUIRED";
+    public const string PosOpenContextInvalid = "POS_OPEN_CONTEXT_INVALID";
+    public const string StaffHubOpenRequired = "STAFFHUB_OPEN_REQUIRED";
+    public const string OpeningCashRequired = "OPENING_CASH_REQUIRED";
+    public const string OperatorNotAuthorized = "OPERATOR_NOT_AUTHORIZED";
+    public const string OperatorPinNotConfigured = "OPERATOR_PIN_NOT_CONFIGURED";
+    public const string OperatorPinInvalid = "OPERATOR_PIN_INVALID";
+    public const string OperatorPinLocked = "OPERATOR_PIN_LOCKED";
+}
+
+public static class WorkShiftOpenResultCodes
+{
+    public const string OpenedNewWorkShift = "OPENED_NEW_WORKSHIFT";
+    public const string ResumeExistingWorkShift = "RESUME_EXISTING_WORKSHIFT";
+    public const string OpeningCashConfirmed = "OPENING_CASH_CONFIRMED";
+    public const string WorkShiftClosingStarted = "WORKSHIFT_CLOSING_STARTED";
+    public const string WorkShiftClosed = "WORKSHIFT_CLOSED";
+    public const string WorkShiftReconciliationRequired = "WORKSHIFT_RECONCILIATION_REQUIRED";
+    public const string WorkShiftReconciled = "WORKSHIFT_RECONCILED";
+}
+
+public static class WorkShiftRecommendedActions
+{
+    public const string OpenStaffHub = "OPEN_STAFFHUB";
+    public const string EnterOpeningCash = "ENTER_OPENING_CASH";
+    public const string ContinuePos = "CONTINUE_POS";
+    public const string ResumeExistingWorkShift = "RESUME_EXISTING_WORKSHIFT";
+    public const string SwitchCurrentOperator = "SWITCH_CURRENT_OPERATOR";
+    public const string CompleteClosing = "COMPLETE_CLOSING";
+    public const string CountAndClose = "COUNT_AND_CLOSE";
 }

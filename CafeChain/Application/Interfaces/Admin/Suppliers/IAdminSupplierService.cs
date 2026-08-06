@@ -42,12 +42,16 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         Task<List<AdminIngredientSupplierDTO>> GetIngredientOffersAsync(int supplierId);
         Task<AdminIngredientSupplierDTO?> GetIngredientOfferByIdAsync(int ingredientSupplierId);
         Task<int> CreateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto);
+        Task<int> CreateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto, int actorStaffId);
         Task UpdateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto);
+        Task UpdateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto, int actorStaffId);
         Task ToggleIngredientOfferActiveAsync(int ingredientSupplierId, bool active, string? rowVersion);
+        Task ToggleIngredientOfferActiveAsync(int ingredientSupplierId, bool active, string? rowVersion, int actorStaffId);
         Task ChangeIngredientOfferPriceAsync(AdminIngredientSupplierPriceChangeDTO dto, int actorStaffId);
         Task<List<AdminIngredientSupplierPriceHistoryDTO>> GetIngredientOfferPriceHistoryAsync(int ingredientSupplierId);
         Task<List<object>> GetIngredientDropdownAsync();
         Task<List<object>> GetContentUnitDropdownAsync();
+        Task<List<object>> GetCompatibleUnitDropdownAsync(int ingredientId);
 
         // ===== STORE SCOPE =====
         Task<List<AdminSupplierStoreDTO>> GetSupplierStoresAsync(
@@ -55,5 +59,6 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
             IReadOnlyCollection<int>? storeScope = null);
         Task<List<object>> GetStoreDropdownAsync(IReadOnlyCollection<int>? storeScope = null);
         Task SaveSupplierStoreAsync(AdminSupplierStoreSaveDTO dto);
+        Task SaveSupplierStoreAsync(AdminSupplierStoreSaveDTO dto, int actorStaffId);
     }
 }

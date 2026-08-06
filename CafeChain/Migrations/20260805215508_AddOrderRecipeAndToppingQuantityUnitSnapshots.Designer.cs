@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260803054639_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260805215508_AddOrderRecipeAndToppingQuantityUnitSnapshots")]
+    partial class AddOrderRecipeAndToppingQuantityUnitSnapshots
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1794,6 +1794,13 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("QuantityPerDrink")
                         .HasColumnType("decimal(18,5)");
 
+                    b.Property<string>("QuantityUnit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("RECIPE_PORTION");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -1827,6 +1834,8 @@ namespace CafeChain.Migrations
                             t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_PriceTreatment", "[PriceTreatment] IN ('INCLUDED_IN_BASE_PRICE','ADD_TOPPING_PRICE')");
 
                             t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_Quantity", "[QuantityPerDrink] > 0");
+
+                            t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_QuantityUnit", "[QuantityUnit] = 'RECIPE_PORTION'");
 
                             t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_RequiredDefault", "[IsRequired] = 0 OR [IsDefaultSelected] = 1");
                         });
@@ -5324,7 +5333,7 @@ namespace CafeChain.Migrations
                     b.Property<int>("PurchaseAdviceLineId")
                         .HasColumnType("int");
 
-                    b.Property<int>("PurchaseOrderLineAllocationId")
+                    b.Property<int?>("PurchaseOrderLineAllocationId")
                         .HasColumnType("int");
 
                     b.Property<int>("PurchaseOrderLineId")
@@ -5359,11 +5368,19 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("BranchReceiptLineId", "PurchaseOrderLineAllocationId", "PostingType")
                         .IsUnique()
-                        .HasFilter("[BranchReceiptLineId] IS NOT NULL AND [PostingType] = 'ACCEPTED'");
+                        .HasFilter("[BranchReceiptLineId] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NOT NULL AND [PostingType] = 'ACCEPTED'");
+
+                    b.HasIndex("BranchReceiptLineId", "PurchaseOrderLineId", "PostingType")
+                        .IsUnique()
+                        .HasFilter("[BranchReceiptLineId] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NULL AND [PostingType] = 'ACCEPTED'");
 
                     b.HasIndex("CloseOperationKey", "PurchaseOrderLineAllocationId", "PostingType")
                         .IsUnique()
-                        .HasFilter("[CloseOperationKey] IS NOT NULL AND [PostingType] = 'CLOSED'");
+                        .HasFilter("[CloseOperationKey] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NOT NULL AND [PostingType] = 'CLOSED'");
+
+                    b.HasIndex("CloseOperationKey", "PurchaseOrderLineId", "PostingType")
+                        .IsUnique()
+                        .HasFilter("[CloseOperationKey] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NULL AND [PostingType] = 'CLOSED'");
 
                     b.HasIndex("SourceDocumentType", "SourceDocumentId", "SourceDocumentLineId", "PostingType", "PurchaseAdviceLineId")
                         .IsUnique();
@@ -9742,6 +9759,10 @@ namespace CafeChain.Migrations
                     b.Property<int?>("TableId")
                         .HasColumnType("int");
 
+                    b.Property<string>("TerminalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<decimal>("Total")
                         .HasColumnType("decimal(18,2)");
 
@@ -9779,6 +9800,8 @@ namespace CafeChain.Migrations
                     b.HasIndex("StaffId");
 
                     b.HasIndex("StoreId");
+
+                    b.HasIndex("TerminalId");
 
                     b.HasIndex("WorkShiftId");
 
@@ -9847,6 +9870,9 @@ namespace CafeChain.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<int?>("RecipeIdSnapshot")
+                        .HasColumnType("int");
+
                     b.Property<int?>("SizeId")
                         .HasColumnType("int");
 
@@ -9872,6 +9898,8 @@ namespace CafeChain.Migrations
                     b.HasIndex("IceIngredientId");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("RecipeIdSnapshot");
 
                     b.HasIndex("SizeId");
 
@@ -9967,11 +9995,40 @@ namespace CafeChain.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
+                    b.Property<string>("CostTreatmentSnapshot")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("ADD_TOPPING_RECIPE_COST");
+
                     b.Property<int>("OrderDetailId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("PriceTreatmentSnapshot")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("ADD_TOPPING_PRICE");
+
+                    b.Property<decimal>("QuantityPerDrinkSnapshot")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,5)")
+                        .HasDefaultValue(1m);
+
+                    b.Property<string>("QuantityUnitSnapshot")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("RECIPE_PORTION");
+
+                    b.Property<int?>("RecipeIdSnapshot")
+                        .HasColumnType("int");
 
                     b.Property<int>("ToppingId")
                         .HasColumnType("int");
@@ -9986,12 +10043,23 @@ namespace CafeChain.Migrations
 
                     b.HasKey("OrderToppingId");
 
+                    b.HasIndex("RecipeIdSnapshot");
+
                     b.HasIndex("ToppingId");
 
                     b.HasIndex("OrderDetailId", "ToppingId")
                         .IsUnique();
 
-                    b.ToTable("OrderToppings", (string)null);
+                    b.ToTable("OrderToppings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderToppings_CostTreatmentSnapshot", "[CostTreatmentSnapshot] IN ('INCLUDED_IN_DRINK_RECIPE','ADD_TOPPING_RECIPE_COST')");
+
+                            t.HasCheckConstraint("CK_OrderToppings_PriceTreatmentSnapshot", "[PriceTreatmentSnapshot] IN ('INCLUDED_IN_BASE_PRICE','ADD_TOPPING_PRICE')");
+
+                            t.HasCheckConstraint("CK_OrderToppings_QuantityPerDrinkSnapshot", "[QuantityPerDrinkSnapshot] > 0");
+
+                            t.HasCheckConstraint("CK_OrderToppings_QuantityUnitSnapshot", "[QuantityUnitSnapshot] = 'RECIPE_PORTION'");
+                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderType", b =>
@@ -10119,6 +10187,9 @@ namespace CafeChain.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("PaidByStaffId")
+                        .HasColumnType("int");
+
                     b.Property<int>("PaymentMethodId")
                         .HasColumnType("int");
 
@@ -10128,9 +10199,19 @@ namespace CafeChain.Migrations
                     b.Property<decimal?>("ReceivedAmount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TerminalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("TransactionCode")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("WorkShiftId")
+                        .HasColumnType("int");
 
                     b.HasKey("PaymentId");
 
@@ -10138,9 +10219,17 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("OrderId");
 
+                    b.HasIndex("PaidByStaffId");
+
                     b.HasIndex("PaymentMethodId");
 
                     b.HasIndex("PaymentStatusId");
+
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("TerminalId");
+
+                    b.HasIndex("WorkShiftId");
 
                     b.ToTable("Payments", (string)null);
                 });
@@ -11013,6 +11102,18 @@ namespace CafeChain.Migrations
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
+                    b.Property<int>("PosPinFailedAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("PosPinHash")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("PosPinLockedUntilUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
 
@@ -11044,6 +11145,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Chủ doanh nghiệp",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11057,6 +11159,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Quản lý vùng TP.HCM",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11070,6 +11173,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Quản lý chi nhánh Quận 1",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11083,6 +11187,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Nhân viên bán hàng",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11096,6 +11201,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Nhân viên kế toán kho",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11109,6 +11215,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Quản trị hệ thống",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         },
                         new
@@ -11122,6 +11229,7 @@ namespace CafeChain.Migrations
                             EmployeeStatus = 0,
                             FullName = "Ca trưởng chi nhánh",
                             Gender = 0,
+                            PosPinFailedAttempts = 0,
                             StoreId = 1
                         });
                 });
@@ -12367,6 +12475,9 @@ namespace CafeChain.Migrations
                     b.Property<DateTime?>("ClosingStartedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("CurrentOperatorStaffId")
+                        .HasColumnType("int");
+
                     b.Property<string>("DiscrepancyReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -12431,6 +12542,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("nvarchar(32)")
                         .HasDefaultValue("LEGACY");
 
+                    b.Property<DateTime?>("OperatorChangedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("OutsideScheduleReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -12479,6 +12593,8 @@ namespace CafeChain.Migrations
                     b.HasIndex("ApprovedByStaffId");
 
                     b.HasIndex("ClosedByStaffId");
+
+                    b.HasIndex("CurrentOperatorStaffId");
 
                     b.HasIndex("ExceptionClosedByStaffId");
 
@@ -14328,8 +14444,7 @@ namespace CafeChain.Migrations
                     b.HasOne("CafeChain.Models.Inventories.Procurement.PurchaseOrderLineAllocation", "PurchaseOrderLineAllocation")
                         .WithMany()
                         .HasForeignKey("PurchaseOrderLineAllocationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CafeChain.Models.Inventories.Procurement.PurchaseOrderLine", "PurchaseOrderLine")
                         .WithMany()
@@ -15981,6 +16096,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Stores.PosTerminal", "Terminal")
+                        .WithMany()
+                        .HasForeignKey("TerminalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Stores.WorkShift", "WorkShift")
                         .WithMany("Orders")
                         .HasForeignKey("WorkShiftId")
@@ -15997,6 +16117,8 @@ namespace CafeChain.Migrations
                     b.Navigation("Staff");
 
                     b.Navigation("Store");
+
+                    b.Navigation("Terminal");
 
                     b.Navigation("WorkShift");
                 });
@@ -16025,6 +16147,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Drinks.Recipe", "RecipeSnapshot")
+                        .WithMany()
+                        .HasForeignKey("RecipeIdSnapshot")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Drinks.Size", "Size")
                         .WithMany("OrderDetails")
                         .HasForeignKey("SizeId")
@@ -16043,6 +16170,8 @@ namespace CafeChain.Migrations
 
                     b.Navigation("Order");
 
+                    b.Navigation("RecipeSnapshot");
+
                     b.Navigation("Size");
 
                     b.Navigation("StoreMenuItem");
@@ -16056,6 +16185,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Drinks.Recipe", "RecipeSnapshot")
+                        .WithMany()
+                        .HasForeignKey("RecipeIdSnapshot")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Drinks.Topping", "Topping")
                         .WithMany("OrderToppings")
                         .HasForeignKey("ToppingId")
@@ -16063,6 +16197,8 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.Navigation("OrderDetail");
+
+                    b.Navigation("RecipeSnapshot");
 
                     b.Navigation("Topping");
                 });
@@ -16099,6 +16235,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "PaidByStaff")
+                        .WithMany()
+                        .HasForeignKey("PaidByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Payments.PaymentMethod", "PaymentMethod")
                         .WithMany("Payments")
                         .HasForeignKey("PaymentMethodId")
@@ -16111,13 +16252,36 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.PosTerminal", "Terminal")
+                        .WithMany()
+                        .HasForeignKey("TerminalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.WorkShift", "WorkShift")
+                        .WithMany()
+                        .HasForeignKey("WorkShiftId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CashSession");
 
                     b.Navigation("Order");
 
+                    b.Navigation("PaidByStaff");
+
                     b.Navigation("PaymentMethod");
 
                     b.Navigation("PaymentStatus");
+
+                    b.Navigation("Store");
+
+                    b.Navigation("Terminal");
+
+                    b.Navigation("WorkShift");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Permissions.AccountPermissionOverride", b =>
@@ -16632,6 +16796,11 @@ namespace CafeChain.Migrations
                         .HasForeignKey("ClosedByStaffId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "CurrentOperatorStaff")
+                        .WithMany()
+                        .HasForeignKey("CurrentOperatorStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Staffs.Staff", "ExceptionClosedByStaff")
                         .WithMany()
                         .HasForeignKey("ExceptionClosedByStaffId")
@@ -16662,6 +16831,8 @@ namespace CafeChain.Migrations
                     b.Navigation("ApprovedByStaff");
 
                     b.Navigation("ClosedByStaff");
+
+                    b.Navigation("CurrentOperatorStaff");
 
                     b.Navigation("ExceptionClosedByStaff");
 

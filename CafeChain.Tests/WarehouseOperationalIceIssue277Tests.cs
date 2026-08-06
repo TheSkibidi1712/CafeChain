@@ -58,7 +58,7 @@ public sealed class WarehouseOperationalIceIssue277Tests
         Assert.Contains("Đã cấp", IndexView);
         Assert.Contains("Lý thuyết", IndexView);
         Assert.Contains("Chênh lệch", IndexView);
-        Assert.Contains("Đã liên kết @row.LinkedWorkShiftCount ca POS", IndexView);
+        Assert.Contains("Đã liên kết @row.LinkedWorkShiftCount ca bán hàng POS", IndexView);
         Assert.Contains("asp-action=\"OpenAllocation\"", IndexView);
     }
 
@@ -66,8 +66,8 @@ public sealed class WarehouseOperationalIceIssue277Tests
     public void Detail_ShowsWorkflowWorkShiftStatesAndValidActions()
     {
         Assert.Contains("aria-label=\"Tiến trình ca vận hành đá\"", DetailView);
-        Assert.Contains("WorkShift POS", DetailView);
-        Assert.Contains("Chưa liên kết WorkShift POS.", DetailView);
+        Assert.Contains("Ca bán hàng POS", DetailView);
+        Assert.Contains("Chưa liên kết ca bán hàng POS.", DetailView);
         Assert.Contains("isOpen && Model.CanSubmitClose", DetailView);
         Assert.Contains("isPendingApproval && Model.CanApproveVariance", DetailView);
         Assert.Contains("needsReconciliation && Model.CanApproveVariance", DetailView);

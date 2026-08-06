@@ -456,14 +456,42 @@
             var toast = document.createElement('div');
             toast.className = 'cc-toast cc-' + type;
             toast.id = id;
-            toast.innerHTML =
-                '<div class="cc-toast-icon"><i class="' + icon + '"></i></div>' +
-                '<div class="cc-toast-body">' +
-                    '<div class="cc-toast-title">' + toastTitle + '</div>' +
-                    '<div class="cc-toast-msg">' + message + '</div>' +
-                '</div>' +
-                '<button class="cc-toast-close" onclick="window.closeToast(\'' + id + '\')" title="Đóng"><i class="bi bi-x"></i></button>' +
-                '<div class="cc-toast-progress" style="animation-duration: ' + duration + 'ms;"></div>';
+            toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+            var iconBox = document.createElement('div');
+            iconBox.className = 'cc-toast-icon';
+            var iconNode = document.createElement('i');
+            iconNode.className = icon;
+            iconBox.appendChild(iconNode);
+
+            var body = document.createElement('div');
+            body.className = 'cc-toast-body';
+            var titleNode = document.createElement('div');
+            titleNode.className = 'cc-toast-title';
+            titleNode.textContent = String(toastTitle);
+            var messageNode = document.createElement('div');
+            messageNode.className = 'cc-toast-msg';
+            messageNode.textContent = String(message).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
+            body.appendChild(titleNode);
+            body.appendChild(messageNode);
+
+            var closeButton = document.createElement('button');
+            closeButton.type = 'button';
+            closeButton.className = 'cc-toast-close';
+            closeButton.title = 'Đóng';
+            closeButton.setAttribute('aria-label', 'Đóng thông báo');
+            var closeIcon = document.createElement('i');
+            closeIcon.className = 'bi bi-x';
+            closeButton.appendChild(closeIcon);
+            closeButton.addEventListener('click', function () { window.closeToast(id); });
+
+            var progress = document.createElement('div');
+            progress.className = 'cc-toast-progress';
+            progress.style.animationDuration = duration + 'ms';
+            toast.appendChild(iconBox);
+            toast.appendChild(body);
+            toast.appendChild(closeButton);
+            toast.appendChild(progress);
 
             container.appendChild(toast);
 
@@ -589,7 +617,11 @@
     })();
     </script>
 
-    @await RenderSectionAsync("Scripts", required: false)
+    <div id="cc-modal-host">
+        @await RenderSectionAsync("Modals", required: false)
+    </div>
+
     <script src="~/js/shared/mutation-guard.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

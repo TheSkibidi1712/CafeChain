@@ -204,8 +204,9 @@
 </div>
 
 
-<div id="ingredientModal" class="custom-modal">
-    <div class="modal-box">
+<div id="ingredientModal" class="modal fade" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content modal-box">
 
         <div class="modal-header">
             <div class="d-flex align-items-center gap-2">
@@ -214,7 +215,7 @@
                 </div>
                 <h5 id="modalTitle">Nguyên liệu</h5>
             </div>
-            <button type="button" class="close-btn" id="btnClose" aria-label="Đóng hộp thoại nguyên liệu">
+            <button type="button" class="close-btn" id="btnClose" data-bs-dismiss="modal" aria-label="Đóng hộp thoại nguyên liệu">
                 <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         </div>
@@ -250,7 +251,7 @@
         </div>
 
         <div class="modal-footer">
-            <button id="btnClose2" class="btn btn-outline-secondary">
+            <button id="btnClose2" type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                 <i class="fas fa-times me-1"></i> Đóng
             </button>
             <button type="button" id="btnSave" class="btn btn-primary px-4">
@@ -258,7 +259,9 @@
             </button>
         </div>
     </div>
+    </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="~/js/Admin/Ingredient/ingredient.js"></script>
+@section Scripts {
+    <script src="~/js/Admin/Ingredient/ingredient.js" asp-append-version="true"></script>
+}

@@ -30,7 +30,6 @@
         active: document.getElementById('activeSkuCount'),
         unavailable: document.getElementById('unavailableSkuCount'),
         overrides: document.getElementById('overrideSkuCount'),
-        backdrop: document.getElementById('storeMenuDrawerBackdrop'),
         drawer: document.getElementById('storeMenuDrawer'),
         drawerEyebrow: document.getElementById('storeMenuDrawerEyebrow'),
         drawerTitle: document.getElementById('storeMenuDrawerTitle'),
@@ -57,7 +56,7 @@
         STORE_NOT_READY: 'Cửa hàng chưa sẵn sàng', UNKNOWN: 'Chưa xác định'
     };
     const actionMeta = {
-        PUBLISH: ['Publish SKU', 'SKU sẽ xuất hiện trên catalog cửa hàng khi đủ điều kiện bán.', 'Publish'],
+        PUBLISH: ['Đăng bán món', 'Món sẽ xuất hiện trên menu cửa hàng khi đủ điều kiện bán.', 'Đăng bán'],
         PAUSE: ['Tạm dừng SKU', 'Thu ngân sẽ không thể bán SKU này tại cửa hàng.', 'Xác nhận tạm dừng'],
         RESUME: ['Mở bán lại SKU', 'SKU được đưa lại vào catalog nếu BOM và tồn kho sẵn sàng.', 'Mở bán lại'],
         CHANGE_DISPLAY_ORDER: ['Đổi thứ tự hiển thị', 'Số nhỏ hơn được ưu tiên hiển thị trước trên POS.', 'Lưu thứ tự'],
@@ -156,10 +155,10 @@
     function renderRows(rows) {
         if (!rows.length) {
             setMainState('empty');
-            els.emptyTitle.textContent = allRows.length ? 'Không có SKU phù hợp bộ lọc.' : 'Chưa có SKU trong menu cửa hàng.';
+            els.emptyTitle.textContent = allRows.length ? 'Không có món/size phù hợp bộ lọc.' : 'Chưa có món/size trong menu cửa hàng.';
             els.emptyMessage.textContent = allRows.length
                 ? 'Thử xóa từ khóa hoặc chọn trạng thái khác.'
-                : 'Dữ liệu StoreMenuItem cần được backfill/publish trước khi vận hành.';
+                : 'Dữ liệu menu cần được thiết lập và đăng bán trước khi vận hành.';
             return;
         }
         els.rows.innerHTML = rows.map(rowTemplate).join('');
@@ -170,6 +169,15 @@
         const configured = configuredLabels[row.configuredStatus] || row.configuredStatus;
         const operational = operationalLabels[row.operationalStatus] || row.operationalStatus;
         const margin = row.estimatedGrossMarginPercent == null ? 'Chưa tính được' : `${Number(row.estimatedGrossMarginPercent).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%`;
+        const costStatusLabels = {
+            COMPLETE: 'Giá vốn đầy đủ',
+            INCOMPLETE: 'Giá vốn chưa đầy đủ',
+            MISSING_RECIPE: 'Thiếu BOM theo size',
+            MISSING_CONVERSION: 'Thiếu quy đổi đơn vị',
+            MISSING_COST_LAYER: 'Thiếu lớp giá FIFO',
+            INSUFFICIENT_COST_QUANTITY: 'Không đủ số lượng FIFO',
+            MISSING_DEFAULT_TOPPING_POLICY: 'Cấu hình topping cũ cần xác nhận'
+        };
         const from = dateTime(row.effectiveFromUtc);
         const to = dateTime(row.effectiveToUtc);
         const window = !from && !to ? 'Không giới hạn' : `${from ? `Từ ${from}` : 'Có hiệu lực ngay'}<br>${to ? `Đến ${to}` : 'Không có ngày kết thúc'}`;
@@ -177,8 +185,8 @@
             <td class="sm-number"><strong>${row.displayOrder}</strong></td>
             <td><div class="sm-sku"><span class="sm-sku-icon"><i class="fas fa-mug-hot"></i></span><div><strong title="${escapeHtml(row.drinkName)}">${escapeHtml(row.drinkName)}</strong><span>${escapeHtml(row.drinkCode)} · ${escapeHtml(row.sizeName)}</span><span>${escapeHtml(row.categoryName)}</span></div></div></td>
             <td><div class="sm-status-stack"><span class="sm-badge sm-badge-${statusTone(row.configuredStatus)}">${escapeHtml(configured)}</span><span class="sm-badge sm-badge-${statusTone(row.operationalStatus)}" title="${escapeHtml(row.availabilityReason)}">${escapeHtml(operational)}</span><span class="sm-muted-line" title="${escapeHtml(row.availabilityReason)}">${escapeHtml(row.availabilityReason)}</span></div></td>
-            <td class="sm-number"><div class="sm-price-stack"><strong>${money(row.effectivePrice)}</strong><span class="sm-price-source">${row.priceSource === 'STORE_OVERRIDE' ? 'Giá riêng cửa hàng' : 'Giá toàn hệ thống'}</span><span class="sm-muted-line">Global: ${money(row.globalPrice)}${row.storeOverride != null ? `<br>Override: ${money(row.storeOverride)}` : ''}</span></div></td>
-            <td class="sm-number"><div class="sm-cost-stack"><strong>${money(row.fifoCost)}</strong><span class="${row.estimatedGrossMarginPercent != null && row.estimatedGrossMarginPercent < 0 ? 'sm-badge sm-badge-danger' : 'sm-muted-line'}">Margin ${escapeHtml(margin)}</span><span class="sm-muted-line">${escapeHtml(row.costStatus)}</span></div></td>
+            <td class="sm-number"><div class="sm-price-stack"><strong>${money(row.effectivePrice)}</strong><span class="sm-price-source">${row.priceSource === 'STORE_OVERRIDE' ? 'Giá riêng cửa hàng' : 'Giá toàn hệ thống'}</span><span class="sm-muted-line">Giá toàn hệ thống: ${money(row.globalPrice)}${row.storeOverride != null ? `<br>Giá riêng: ${money(row.storeOverride)}` : ''}</span></div></td>
+            <td class="sm-number"><div class="sm-cost-stack"><strong>${money(row.fifoCost)}</strong><span class="${row.estimatedGrossMarginPercent != null && row.estimatedGrossMarginPercent < 0 ? 'sm-badge sm-badge-danger' : 'sm-muted-line'}">Biên lợi nhuận ${escapeHtml(margin)}</span><span class="sm-muted-line">${escapeHtml(costStatusLabels[row.costStatus] || 'Chưa xác định')}</span></div></td>
             <td><div class="sm-window">${window}</div></td>
             <td><div class="sm-row-actions">${actionButtons(row)}</div></td>
         </tr>`;
@@ -186,12 +194,12 @@
 
     function actionButtons(row) {
         const buttons = [];
-        if (permissions.publish && row.configuredStatus === 'DRAFT') buttons.push(button('PUBLISH', 'fa-cloud-arrow-up', 'Publish SKU'));
+        if (permissions.publish && row.configuredStatus === 'DRAFT') buttons.push(button('PUBLISH', 'fa-cloud-arrow-up', 'Đăng bán món'));
         if (permissions.operate && ['ACTIVE', 'SCHEDULED'].includes(row.configuredStatus)) buttons.push(button('PAUSE', 'fa-pause', 'Tạm dừng'));
         if (permissions.operate && row.configuredStatus === 'PAUSED') buttons.push(button('RESUME', 'fa-play', 'Mở bán lại'));
         if (permissions.operate) buttons.push(button('CHANGE_DISPLAY_ORDER', 'fa-arrow-down-1-9', 'Đổi thứ tự'));
         if (permissions.override) buttons.push(button('SET_PRICE_OVERRIDE', 'fa-tag', 'Đặt giá riêng'));
-        if (permissions.override && row.storeOverride != null) buttons.push(button('USE_GLOBAL_PRICE', 'fa-rotate-left', 'Dùng giá global'));
+        if (permissions.override && row.storeOverride != null) buttons.push(button('USE_GLOBAL_PRICE', 'fa-rotate-left', 'Dùng giá toàn hệ thống'));
         if (row.recipeId) buttons.push(link(`/Admin/AdminRecipe/Edit/${row.recipeId}`, 'fa-flask', 'Xem BOM'));
         buttons.push(link(`/Admin/AdminDrinkProfitability?storeId=${row.storeId}&drinkId=${row.drinkId}`, 'fa-chart-line', 'Xem lợi nhuận'));
         return buttons.join('');
@@ -216,19 +224,14 @@
         els.actionError.hidden = true;
         els.submit.textContent = meta[2];
         els.submit.disabled = false;
-        els.backdrop.hidden = false;
-        els.drawer.classList.add('is-open');
-        els.drawer.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        window.setTimeout(() => (action === 'CHANGE_DISPLAY_ORDER' ? els.displayOrder : action === 'SET_PRICE_OVERRIDE' ? els.overridePrice : els.reason).focus(), 50);
+        bootstrap.Offcanvas.getOrCreateInstance(els.drawer).show();
+        els.drawer.addEventListener('shown.bs.offcanvas', () =>
+            (action === 'CHANGE_DISPLAY_ORDER' ? els.displayOrder : action === 'SET_PRICE_OVERRIDE' ? els.overridePrice : els.reason).focus(),
+            { once: true });
     }
 
     function closeDrawer() {
-        els.drawer.classList.remove('is-open');
-        els.drawer.setAttribute('aria-hidden', 'true');
-        els.backdrop.hidden = true;
-        document.body.style.overflow = '';
-        selected = null;
+        bootstrap.Offcanvas.getOrCreateInstance(els.drawer).hide();
     }
 
     async function submitAction(event) {
@@ -301,9 +304,7 @@
         if (row) openDrawer(row, trigger.dataset.action);
     });
     els.form?.addEventListener('submit', submitAction);
-    els.backdrop?.addEventListener('click', closeDrawer);
-    document.querySelectorAll('[data-close-drawer]').forEach(x => x.addEventListener('click', closeDrawer));
-    document.addEventListener('keydown', event => { if (event.key === 'Escape' && selected) closeDrawer(); });
+    els.drawer?.addEventListener('hidden.bs.offcanvas', () => { selected = null; });
 
     loadRows();
 })();

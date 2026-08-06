@@ -13,7 +13,7 @@
         <div>
             <div class="ops-eyebrow">KHO &amp; CUNG ỨNG / YÊU CẦU BỔ SUNG</div>
             <h1 class="ops-title">Tạo yêu cầu bổ sung</h1>
-            <p class="ops-subtitle">Ghi nhận một nhu cầu vận hành mới theo đơn vị mua hàng. Yêu cầu này chưa tạo đề nghị mua cho đến khi bộ phận phụ trách chọn nguồn “Mua ngoài”.</p>
+            <p class="ops-subtitle">Ghi nhận một nhu cầu vận hành mới theo đơn vị phù hợp với nguyên liệu. Yêu cầu này chưa tạo đề nghị mua cho đến khi bộ phận phụ trách chọn nguồn “Mua ngoài”.</p>
         </div>
         <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách yêu cầu</a>
     </header>
@@ -49,7 +49,7 @@
     <section class="ops-panel">
         <div class="ops-panel-header"><h2 class="ops-panel-title">Thông tin nhu cầu</h2></div>
         <div class="ops-panel-body">
-            <form id="createDemandForm" asp-action="CreateManual" method="post" data-check-url="@Url.Action("CheckActive", "AdminRestockRequests", new { area = "Admin" })">
+            <form id="createDemandForm" asp-action="CreateManual" method="post" data-check-url="@Url.Action("CheckActive", "AdminRestockRequests", new { area = "Admin" })" data-units-url="@Url.Action("GetDemandUnitOptions", "AdminRestockRequests", new { area = "Admin" })">
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="StoreId" />
                 <input type="hidden" asp-for="SourceType" />
@@ -63,9 +63,9 @@
                         </select>
                     </div>
                     <div>
-                        <label class="ops-form-label" asp-for="ProcurementUnitId">Đơn vị mua hàng</label>
-                        <select class="ops-select" asp-for="ProcurementUnitId" required>
-                            <option value="">Chọn đơn vị</option>
+                        <label class="ops-form-label" asp-for="ProcurementUnitId">Đơn vị nhu cầu</label>
+                        <select class="ops-select" asp-for="ProcurementUnitId" required disabled>
+                            <option value="">Chọn nguyên liệu trước</option>
                             @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }
                         </select>
                     </div>
@@ -95,11 +95,13 @@
 (() => {
     const form = document.getElementById('createDemandForm');
     const ingredient = document.getElementById('IngredientId');
+    const demandUnit = document.getElementById('ProcurementUnitId');
     const submit = document.getElementById('createDemandSubmit');
     const card = document.getElementById('activeDemandCard');
     const storeId = document.getElementById('StoreId').value;
     let activeExists = false;
     let requestVersion = 0;
+    let unitRequestVersion = 0;
 
     const setText = (id, value) => { document.getElementById(id).textContent = value ?? '—'; };
     const quantity = value => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 3 }).format(Number(value || 0));
@@ -147,7 +149,39 @@
         }
     }
 
-    ingredient.addEventListener('change', checkActive);
+    async function loadDemandUnits() {
+        const ingredientId = ingredient.value;
+        const version = ++unitRequestVersion;
+        demandUnit.disabled = true;
+        demandUnit.innerHTML = `<option value="">${ingredientId ? 'Đang tải đơn vị...' : 'Chọn nguyên liệu trước'}</option>`;
+        if (!ingredientId) return;
+
+        try {
+            const url = new URL(form.dataset.unitsUrl, window.location.origin);
+            url.searchParams.set('ingredientId', ingredientId);
+            const response = await fetch(url, { headers: { Accept: 'application/json' } });
+            const payload = await response.json();
+            if (version !== unitRequestVersion) return;
+            if (!response.ok || payload.success !== true) {
+                throw new Error(payload.message || 'Không thể tải đơn vị nhu cầu.');
+            }
+
+            demandUnit.innerHTML = '<option value="">Chọn đơn vị nhu cầu</option>';
+            for (const item of payload.data || []) {
+                const option = document.createElement('option');
+                option.value = item.unitId;
+                option.textContent = `${item.unitCode} · ${item.unitName}`;
+                demandUnit.append(option);
+            }
+            demandUnit.disabled = false;
+        } catch (error) {
+            if (version !== unitRequestVersion) return;
+            demandUnit.innerHTML = '<option value="">Không tải được đơn vị</option>';
+            console.error('[RestockRequest] Demand unit load failed.', error);
+        }
+    }
+
+    ingredient.addEventListener('change', () => Promise.all([checkActive(), loadDemandUnits()]));
     document.getElementById('chooseAnotherIngredient').addEventListener('click', () => {
         ingredient.value = '';
         resetConflict();
@@ -162,6 +196,6 @@
         submit.disabled = true;
         submit.textContent = 'Đang tạo yêu cầu...';
     });
-    if (ingredient.value) checkActive();
+    if (ingredient.value) Promise.all([checkActive(), loadDemandUnits()]);
 })();
 </script>

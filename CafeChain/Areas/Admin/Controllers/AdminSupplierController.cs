@@ -17,15 +17,18 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminSupplierService _service;
         private readonly IAdminActorContextAccessor _actorContext;
         private readonly IScopeAuthorizationService _scopeAuthorization;
+        private readonly ILogger<AdminSupplierController> _logger;
 
         public AdminSupplierController(
             IAdminSupplierService service,
             IAdminActorContextAccessor actorContext,
-            IScopeAuthorizationService scopeAuthorization)
+            IScopeAuthorizationService scopeAuthorization,
+            ILogger<AdminSupplierController> logger)
         {
             _service = service;
             _actorContext = actorContext;
             _scopeAuthorization = scopeAuthorization;
+            _logger = logger;
         }
 
         // ===== INDEX =====
@@ -35,8 +38,7 @@ namespace CafeChain.Areas.Admin.Controllers
             int page = 1,
             int pageSize = 20)
         {
-            var storeScope = await ResolveStoreScopeAsync();
-            var data = await _service.GetPagedAsync(search, status, page, pageSize, storeScope);
+            var data = await _service.GetPagedAsync(search, status, page, pageSize);
             ViewBag.CanMutateSupplier = await HasEffectivePermissionAsync(PermissionConstants.SupplierUpdate)
                 || await HasEffectivePermissionAsync(PermissionConstants.SupplierCreate)
                 || await HasEffectivePermissionAsync(PermissionConstants.SupplierToggleStatus);
@@ -47,9 +49,12 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetById(int id)
         {
-            var data = await _service.GetByIdAsync(id, await ResolveStoreScopeAsync());
+            var data = await _service.GetByIdAsync(id);
             if (data == null)
-                return Json(new { success = false, message = "Không tìm thấy nhà cung cấp" });
+            {
+                Response.StatusCode = StatusCodes.Status404NotFound;
+                return Json(new { success = false, message = "Không tìm thấy nhà cung cấp." });
+            }
 
             return Json(new { success = true, data });
         }
@@ -61,8 +66,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 return SupplierScopeDenied();
 
             var data = await _service.GetAuditHistoryAsync(
-                supplierId,
-                await ResolveStoreScopeAsync());
+                supplierId);
             return Json(new { success = true, data });
         }
 
@@ -94,7 +98,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, code = "SUPPLIER_OPERATION_FAILED", message = ex.Message });
+                return SupplierUnexpectedError(ex, "create");
             }
         }
 
@@ -118,7 +122,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, code = "SUPPLIER_OPERATION_FAILED", message = ex.Message });
+                return SupplierUnexpectedError(ex, "update");
             }
         }
 
@@ -134,7 +138,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return SupplierUnexpectedError(ex, "toggle-status");
             }
         }
 
@@ -151,7 +155,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return SupplierUnexpectedError(ex, "add-phone");
             }
         }
 
@@ -263,7 +267,8 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                var id = await _service.CreateIngredientOfferAsync(dto);
+                var actor = _actorContext.Get(User);
+                var id = await _service.CreateIngredientOfferAsync(dto, actor.StaffId);
                 return Json(new { success = true, message = "Thêm gói mua nguyên liệu thành công", data = id });
             }
             catch (Exception ex)
@@ -278,7 +283,8 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                await _service.UpdateIngredientOfferAsync(dto);
+                var actor = _actorContext.Get(User);
+                await _service.UpdateIngredientOfferAsync(dto, actor.StaffId);
                 return Json(new { success = true, message = "Cập nhật gói mua nguyên liệu thành công" });
             }
             catch (Exception ex)
@@ -293,10 +299,12 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
+                var actor = _actorContext.Get(User);
                 await _service.ToggleIngredientOfferActiveAsync(
                     dto.IngredientSupplierId,
                     dto.Active,
-                    dto.RowVersion);
+                    dto.RowVersion,
+                    actor.StaffId);
                 return Json(new { success = true, message = "Đã cập nhật trạng thái gói mua" });
             }
             catch (Exception ex)
@@ -351,6 +359,20 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(new { success = true, data });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetCompatibleUnitOptions(int ingredientId)
+        {
+            try
+            {
+                var data = await _service.GetCompatibleUnitDropdownAsync(ingredientId);
+                return Json(new { success = true, data });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
         // ===================== STORE SCOPE =====================
 
         [HttpGet]
@@ -381,18 +403,31 @@ namespace CafeChain.Areas.Admin.Controllers
 
             try
             {
-                await _service.SaveSupplierStoreAsync(dto);
+                var storeScope = await ResolveStoreScopeAsync();
+                if (storeScope == null || !storeScope.Contains(dto.StoreId))
+                    return SupplierStoreScopeDenied();
+
+                if (dto.SupplierStoreId.HasValue)
+                {
+                    var visibleLinks = await _service.GetSupplierStoresAsync(dto.SupplierId, storeScope);
+                    if (!visibleLinks.Any(x => x.SupplierStoreId == dto.SupplierStoreId.Value
+                                               && x.StoreId == dto.StoreId))
+                        return SupplierStoreScopeDenied();
+                }
+
+                var actor = _actorContext.Get(User);
+                await _service.SaveSupplierStoreAsync(dto, actor.StaffId);
                 return Json(new { success = true, message = "Đã cập nhật phạm vi cửa hàng" });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return SupplierUnexpectedError(ex, "save-store-coverage");
             }
         }
 
         private async Task<bool> CanReadSupplierAsync(int supplierId)
         {
-            var supplier = await _service.GetByIdAsync(supplierId, await ResolveStoreScopeAsync());
+            var supplier = await _service.GetByIdAsync(supplierId);
             return supplier != null;
         }
 
@@ -410,7 +445,29 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(new
             {
                 success = false,
-                message = "Nhà cung cấp không thuộc phạm vi cửa hàng bạn được phép xem."
+                message = "Bạn không có quyền xem nhà cung cấp này."
+            });
+        }
+
+        private JsonResult SupplierStoreScopeDenied()
+        {
+            Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Json(new
+            {
+                success = false,
+                message = "Cửa hàng không thuộc phạm vi bạn được phép quản lý."
+            });
+        }
+
+        private JsonResult SupplierUnexpectedError(Exception exception, string operation)
+        {
+            _logger.LogError(exception, "Supplier operation {Operation} failed.", operation);
+            Response.StatusCode = StatusCodes.Status500InternalServerError;
+            return Json(new
+            {
+                success = false,
+                code = "SUPPLIER_OPERATION_FAILED",
+                message = "Không thể xử lý yêu cầu nhà cung cấp lúc này. Vui lòng thử lại."
             });
         }
 

@@ -6,22 +6,76 @@
 }
 
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="dark">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - CafeChain</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>@ViewData["Title"] - CafeChain Enterprise Platform</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & Playfair Display -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
         :root {
-            --primary-brown: #6f4e37;
-            --primary-brown-dark: #5c3f2b;
-            --primary-brown-soft: #f5ede3;
-            --bg-color: #f9f9f9;
-            --text-color: #1a1a1a;
-            --border-color: #eeeeee;
-            --placeholder-color: #9ca3af;
+            /* Coffee Master Color System - Dark Espresso Theme Default */
+            --espresso-dark: #0e0805;
+            --espresso-deep: #180f0a;
+            --espresso-surface: rgba(30, 20, 14, 0.88);
+            --primary-brown: #8d6243;
+            --primary-brown-dark: #5c3b24;
+            --primary-brown-light: #ab7956;
+            --crema-gold: #d4a373;
+            --crema-gold-light: #e0b07a;
+            --latte-cream: #f7ede2;
+            --latte-soft: rgba(42, 28, 20, 0.7);
+            
+            /* Text & Utility Colors */
+            --text-primary: #f8f4f0;
+            --text-secondary: #c2b4a8;
+            --text-muted: #8c7e73;
+            --border-color: rgba(212, 163, 115, 0.22);
+            --border-hover: rgba(212, 163, 115, 0.55);
+            --focus-ring: rgba(212, 163, 115, 0.28);
+            --card-bg: rgba(22, 14, 10, 0.88);
+            --card-glass-border: rgba(212, 163, 115, 0.25);
+            --input-bg: rgba(38, 25, 18, 0.8);
+            --shadow-elevation: 0 35px 70px -15px rgba(0, 0, 0, 0.8);
+            
+            --radius-xl: 28px;
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --transition-bounce: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            --transition-smooth: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+            --mouse-x: 50%;
+            --mouse-y: 50%;
+        }
+
+        /* Light Milk Theme Variables */
+        [data-theme="light"] {
+            --espresso-dark: #24160e;
+            --espresso-deep: #321c12;
+            --latte-cream: #fdfbf7;
+            --latte-soft: #f5ede3;
+            --text-primary: #1c1917;
+            --text-secondary: #57534e;
+            --text-muted: #8c857b;
+            --border-color: rgba(111, 78, 55, 0.16);
+            --border-hover: rgba(198, 138, 76, 0.6);
+            --card-bg: rgba(255, 255, 255, 0.94);
+            --card-glass-border: rgba(255, 255, 255, 0.7);
+            --input-bg: #fcfbf9;
+            --shadow-elevation: 0 30px 60px -12px rgba(31, 20, 14, 0.3);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         input[type="password"]::-ms-reveal,
@@ -29,417 +83,1050 @@
             display: none;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
+        /* Webkit Autofill Override */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 50px var(--input-bg) inset !important;
+            -webkit-text-fill-color: var(--text-primary) !important;
+            transition: background-color 5000s ease-in-out 0s;
         }
 
         body {
-            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/Images/Login/LogIn.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--espresso-dark);
+            color: var(--text-primary);
             min-height: 100vh;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            overflow-y: auto;
-            padding: 2rem 1rem;
-        }
-
-        .login-card {
-            background-color: white;
-            width: 100%;
-            max-width: 480px;
-            border-radius: 24px;
-            padding: 3rem;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            text-align: center;
-            margin: auto;
-        }
-
-        .logo-container {
-            margin-bottom: 1.5rem;
-        }
-
-        .logo-icon {
-            background: linear-gradient(135deg, var(--primary-brown), var(--primary-brown-dark));
-            color: #ffffff;
-            width: 56px;
-            height: 56px;
-            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.6rem;
-            font-weight: 800;
-            margin: 0 auto 1rem;
-            box-shadow: 0 10px 24px rgba(111, 78, 55, 0.26);
+            position: relative;
+            overflow-x: hidden;
+            padding: 2rem 1.5rem;
+            transition: background 0.4s ease;
         }
 
-        .brand-name {
-            font-size: 2.25rem;
-            font-weight: 800;
-            color: #0c1221;
-            margin-bottom: 0.5rem;
+        /* 4K DYNAMIC AMBIENT BACKDROP SYSTEM */
+        .ambient-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(212, 163, 115, 0.18) 0%, rgba(14, 8, 5, 0.95) 60%);
         }
 
-        .subtitle {
-            font-size: 1.1rem;
-            color: #666;
+        /* Fluid Animated Shading Orbs */
+        .fluid-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.6;
+            will-change: transform;
+        }
+
+        .fluid-orb-1 {
+            width: 700px;
+            height: 700px;
+            top: -150px;
+            left: -150px;
+            background: radial-gradient(circle, rgba(212, 163, 115, 0.35) 0%, rgba(141, 98, 67, 0.15) 60%, transparent 100%);
+            animation: orbFloat1 22s ease-in-out infinite alternate;
+        }
+
+        .fluid-orb-2 {
+            width: 800px;
+            height: 800px;
+            bottom: -200px;
+            right: -200px;
+            background: radial-gradient(circle, rgba(141, 98, 67, 0.4) 0%, rgba(92, 59, 36, 0.2) 60%, transparent 100%);
+            animation: orbFloat2 28s ease-in-out infinite alternate;
+        }
+
+        .fluid-orb-3 {
+            width: 600px;
+            height: 600px;
+            top: 40%;
+            left: 30%;
+            background: radial-gradient(circle, rgba(224, 176, 122, 0.22) 0%, rgba(111, 78, 55, 0.1) 70%, transparent 100%);
+            animation: orbFloat3 18s ease-in-out infinite alternate;
+        }
+
+        @@keyframes orbFloat1 {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+            50% { transform: translate(120px, 80px) scale(1.2) rotate(180deg); }
+            100% { transform: translate(-60px, 140px) scale(0.9) rotate(360deg); }
+        }
+
+        @@keyframes orbFloat2 {
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+            50% { transform: translate(-140px, -90px) scale(1.25) rotate(-180deg); }
+            100% { transform: translate(80px, -120px) scale(0.95) rotate(-360deg); }
+        }
+
+        @@keyframes orbFloat3 {
+            0% { transform: translate(0, 0) scale(0.9); }
+            50% { transform: translate(-90px, 110px) scale(1.3); }
+            100% { transform: translate(110px, -70px) scale(1); }
+        }
+
+        /* Animated Liquid Coffee Waves at Bottom */
+        .coffee-wave-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+            opacity: 0.35;
+        }
+
+        .coffee-wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 100%;
+            background-repeat: repeat-x;
+            background-position: 0 bottom;
+            transform-origin: center bottom;
+        }
+
+        .coffee-wave-1 {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0 C150,90 350,-40 500,40 C650,120 900,20 1200,60 L1200,120 L0,120 Z' fill='%23d4a373' opacity='0.3'%3E%3C/path%3E%3C/svg%3E");
+            animation: waveMove 18s linear infinite;
+        }
+
+        .coffee-wave-2 {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,40 C200,-20 400,80 700,10 C900,-30 1100,50 1200,20 L1200,120 L0,120 Z' fill='%238d6243' opacity='0.25'%3E%3C/path%3E%3C/svg%3E");
+            animation: waveMove 12s linear infinite reverse;
+        }
+
+        @@keyframes waveMove {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Floating Bokeh Particle Canvas */
+        #particleCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Theme Toggle Floating Button */
+        .theme-toggle-btn {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 100;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--crema-gold);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            transition: var(--transition-bounce);
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.1) rotate(15deg);
+            border-color: var(--crema-gold);
+            color: var(--crema-gold-light);
+        }
+
+        /* App Master Layout */
+        .app-viewport {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 1180px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 1fr 1.1fr;
+            gap: 2.5rem;
+            align-items: center;
+        }
+
+        /* Left Hero Panel */
+        .brand-hero {
+            padding: 3rem 2.5rem;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 640px;
+            position: relative;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            background: rgba(212, 163, 115, 0.16);
+            border: 1px solid rgba(212, 163, 115, 0.35);
+            padding: 0.5rem 1.1rem;
+            border-radius: 100px;
+            backdrop-filter: blur(12px);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--crema-gold-light);
+            width: fit-content;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .brand-badge i {
+            font-size: 0.95rem;
+            animation: pulseGlow 2s infinite alternate;
+        }
+
+        @@keyframes pulseGlow {
+            from { opacity: 0.7; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1.15); }
+        }
+
+        .hero-title-group h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 1.25rem;
+            background: linear-gradient(135deg, #ffffff 30%, var(--crema-gold-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .hero-title-group p {
+            font-size: 1.125rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.82);
+            font-weight: 400;
+            max-width: 480px;
+            margin-bottom: 2.5rem;
+        }
+
+        .feature-pills {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
             margin-bottom: 3rem;
         }
 
+        .pill-card {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 1.1rem;
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(10px);
+            transition: var(--transition-smooth);
+        }
+
+        .pill-card:hover {
+            background: rgba(212, 163, 115, 0.18);
+            border-color: rgba(212, 163, 115, 0.4);
+            transform: translateY(-4px);
+        }
+
+        .pill-card .pill-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--crema-gold), var(--primary-brown-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+        }
+
+        .pill-card h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+            color: #ffffff;
+        }
+
+        .pill-card span {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .hero-quote {
+            border-left: 3px solid var(--crema-gold);
+            padding-left: 1.25rem;
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.95rem;
+        }
+
+        /* Right Auth Card */
+        .auth-wrapper {
+            background: var(--card-bg);
+            border: 1px solid var(--card-glass-border);
+            border-radius: var(--radius-xl);
+            padding: 3rem 2.75rem;
+            box-shadow: var(--shadow-elevation);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition-smooth);
+        }
+
+        .auth-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary-brown-dark), var(--crema-gold), var(--primary-brown-light));
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-mark {
+            width: 68px;
+            height: 68px;
+            background: linear-gradient(135deg, var(--espresso-deep) 0%, var(--primary-brown-dark) 100%);
+            border: 2px solid var(--crema-gold);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem;
+            color: var(--crema-gold);
+            font-size: 2rem;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+            position: relative;
+            transition: var(--transition-bounce);
+        }
+
+        .logo-mark:hover {
+            transform: rotate(-6deg) scale(1.05);
+        }
+
+        .logo-mark::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 24px;
+            border: 1px dashed var(--crema-gold);
+            opacity: 0.5;
+        }
+
+        .auth-header h2 {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            margin-bottom: 0.4rem;
+        }
+
+        .auth-header p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        /* Quick Account Selector Grid */
+        .demo-section {
+            background: var(--latte-soft);
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .demo-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .demo-header h3 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--crema-gold);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .selected-account-indicator {
+            font-size: 0.78rem;
+            padding: 0.25rem 0.65rem;
+            background: rgba(212, 163, 115, 0.2);
+            color: var(--crema-gold-light);
+            border-radius: 100px;
+            font-weight: 600;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .account-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.6rem;
+        }
+
+        .account-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.65rem 0.5rem;
+            cursor: pointer;
+            text-align: center;
+            transition: var(--transition-bounce);
+            position: relative;
+            user-select: none;
+        }
+
+        .account-card:hover {
+            border-color: var(--crema-gold);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+        }
+
+        .account-card.active {
+            border-color: var(--crema-gold);
+            background: linear-gradient(135deg, var(--primary-brown), var(--primary-brown-dark));
+            color: #ffffff !important;
+            box-shadow: 0 8px 20px rgba(141, 98, 67, 0.45);
+        }
+
+        .account-card.active strong,
+        .account-card.active small,
+        .account-card.active i {
+            color: #ffffff !important;
+        }
+
+        .account-card i {
+            font-size: 1.15rem;
+            color: var(--crema-gold);
+            margin-bottom: 0.35rem;
+            display: block;
+            transition: var(--transition-smooth);
+        }
+
+        .account-card strong {
+            display: block;
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.25;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .account-card small {
+            display: none;
+        }
+
+        /* Form Controls */
         .form-group {
-            margin-bottom: 1.5rem;
-            text-align: left;
+            margin-bottom: 1.35rem;
+            position: relative;
         }
 
         .form-label {
             display: block;
-            margin-bottom: 0.75rem;
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #555;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
         }
 
         .input-wrapper {
             position: relative;
+            display: flex;
+            align-items: center;
         }
 
         .input-icon {
             position: absolute;
-            left: 1.25rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--placeholder-color);
+            left: 1.15rem;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            transition: var(--transition-smooth);
+            pointer-events: none;
         }
 
         .form-input {
             width: 100%;
-            padding: 1rem 1.25rem 1rem 3.2rem;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            font-size: 1.05rem;
-            background-color: #ffffff;
-            transition: all 0.2s;
+            height: 52px;
+            padding: 0 3rem 0 3.1rem;
+            background: var(--input-bg);
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.98rem;
+            font-family: inherit;
+            color: var(--text-primary);
+            transition: var(--transition-smooth);
+        }
+
+        .form-input:hover {
+            border-color: var(--border-hover);
         }
 
         .form-input:focus {
             outline: none;
-            border-color: var(--primary-brown);
-            box-shadow: 0 0 0 4px rgba(111, 78, 55, 0.12);
+            border-color: var(--crema-gold);
+            box-shadow: 0 0 0 4px var(--focus-ring);
+        }
+
+        .form-input:focus ~ .input-icon {
+            color: var(--crema-gold);
+            transform: scale(1.1);
         }
 
         .toggle-password {
             position: absolute;
-            right: 1.25rem;
-            top: 50%;
-            transform: translateY(-50%);
+            right: 1.15rem;
+            color: var(--text-muted);
+            font-size: 1.1rem;
             cursor: pointer;
-            color: var(--placeholder-color);
+            padding: 0.4rem;
+            border-radius: 6px;
+            transition: var(--transition-smooth);
+        }
+
+        .toggle-password:hover {
+            color: var(--crema-gold);
+            background: rgba(212, 163, 115, 0.12);
         }
 
         .action-row {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
-            font-size: 0.95rem;
+            justify-content: space-between;
+            margin-bottom: 1.75rem;
+            font-size: 0.875rem;
         }
 
-        .checkbox-group {
+        .custom-checkbox {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            color: #666;
+            gap: 0.6rem;
+            cursor: pointer;
+            user-select: none;
+            color: var(--text-secondary);
+            font-weight: 500;
         }
 
-        .checkbox-group input {
-            cursor: pointer;
+        .custom-checkbox input {
             width: 18px;
             height: 18px;
             accent-color: var(--primary-brown);
+            border-radius: 4px;
+            cursor: pointer;
         }
 
         .forgot-password {
-            color: var(--primary-brown);
+            color: var(--crema-gold);
+            font-weight: 700;
             text-decoration: none;
-            font-weight: 600;
+            transition: var(--transition-smooth);
+            position: relative;
         }
 
+        .forgot-password::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--crema-gold);
+            transition: var(--transition-smooth);
+        }
+
+        .forgot-password:hover::after {
+            width: 100%;
+        }
+
+        /* Action Submit Button */
         .submit-btn {
             width: 100%;
-            background-color: var(--primary-brown);
-            color: white;
+            height: 54px;
+            background: linear-gradient(135deg, var(--primary-brown) 0%, var(--primary-brown-dark) 100%);
+            color: #ffffff;
             border: none;
-            padding: 1.125rem;
-            border-radius: 16px;
-            font-size: 1.1rem;
+            border-radius: var(--radius-md);
+            font-size: 1.05rem;
             font-weight: 700;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            letter-spacing: 0.2px;
+            text-transform: none;
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 10px 20px rgba(111, 78, 55, 0.24);
-            margin-bottom: 2rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+            transition: var(--transition-bounce);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            position: relative;
+            overflow: hidden;
         }
 
-        .submit-btn:not(:disabled):hover {
-            background-color: var(--primary-brown-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 14px 24px rgba(111, 78, 55, 0.28);
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+            transition: 0.6s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+            background: linear-gradient(135deg, var(--primary-brown-light) 0%, var(--primary-brown-dark) 100%);
+        }
+
+        .submit-btn:hover:not(:disabled)::before {
+            left: 100%;
+        }
+
+        .submit-btn:active:not(:disabled) {
+            transform: translateY(1px);
         }
 
         .submit-btn:disabled {
-            opacity: 0.6;
+            opacity: 0.65;
             cursor: not-allowed;
+            filter: grayscale(30%);
         }
 
+        /* Validation Box */
         .validation-summary {
-            background-color: #fee2e2;
-            color: #b91c1c;
-            padding: 1rem;
-            border-radius: 12px;
+            background: rgba(229, 62, 62, 0.12);
+            border: 1px solid rgba(229, 62, 62, 0.3);
+            border-left: 4px solid #e53e3e;
+            color: #fc8181;
+            padding: 1rem 1.15rem;
+            border-radius: var(--radius-md);
             margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-            text-align: left;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            animation: shake 0.4s ease-in-out;
         }
 
-        
-            .demo-accounts {
-                margin-top: 25px;
-                margin-bottom: 28px;
-                border-top: 1px solid #eee;
-                padding-top: 20px;
+        @@keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        .card-footer {
+            margin-top: 2rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        /* Media Queries */
+        @@media (max-width: 992px) {
+            .app-viewport {
+                grid-template-columns: 1fr;
+                max-width: 520px;
             }
 
-                .demo-accounts h3 {
-                    margin-bottom: 15px;
-                    font-size: 16px;
-                    color: #333;
-                }
+            .brand-hero {
+                display: none;
+            }
+
+            .auth-wrapper {
+                padding: 2.25rem 1.75rem;
+            }
 
             .account-grid {
-                display: grid;
-                grid-template-columns: repeat(2,1fr);
-                gap: 10px;
+                grid-template-columns: repeat(4, 1fr);
             }
+        }
 
-            .account-card {
-                min-width: 0;
-                border: 1px solid #ddd;
-                border-radius: 12px;
-                padding: 12px;
-                cursor: pointer;
-                transition: all .2s;
-                text-align: left;
-                background: #fafafa;
-            }
-
-                .account-card:hover {
-                    border-color: var(--primary-brown);
-                    background: var(--primary-brown-soft);
-                    transform: translateY(-2px);
-                }
-
-                .account-card strong {
-                    display: block;
-                    color: var(--primary-brown);
-                }
-
-                .account-card small {
-                    display: block;
-                    overflow: hidden;
-                    color: #666;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                }
-
-            .login-card form {
-                position: relative;
-                clear: both;
-                padding-top: 2px;
-            }
-
-            .login-card form .form-group:first-of-type {
-                margin-top: 0;
-            }
-
-        @@media (max-width: 520px) {
+        @@media (max-width: 480px) {
             body {
-                padding: 1rem .75rem;
+                padding: 1rem 0.75rem;
             }
 
-            .login-card {
-                border-radius: 18px;
-                padding: 1.5rem 1.25rem;
-            }
-
-            .subtitle {
-                margin-bottom: 1.75rem;
-            }
-
-            .demo-accounts {
-                margin-top: 18px;
-                margin-bottom: 24px;
-                padding-top: 16px;
+            .auth-wrapper {
+                padding: 1.75rem 1.25rem;
+                border-radius: 20px;
             }
 
             .account-grid {
-                gap: 8px;
-            }
-
-            .account-card {
-                padding: 10px;
-            }
-
-            .account-card strong {
-                overflow: hidden;
-                font-size: .9rem;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-
-            .account-card small {
-                font-size: .75rem;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
             }
         }
-
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <div class="logo-container">
-            <div class="logo-icon">
-                C
-            </div>
-            <h1 class="brand-name">CafeChain</h1>
-            <p class="subtitle">Chào mừng bạn quay trở lại</p>
-        </div>
-        <div class="demo-accounts">
-            <h3>Tài khoản nhanh</h3>
 
-            <div class="account-grid">
-                <div class="account-card"
-                     data-email="owner@cafechain.vn"
-                     data-password="The@1712">
-                    <strong>Chủ doanh nghiệp</strong>
-                    <small>owner@cafechain.vn</small>
-                </div>
+    <!-- 4K DYNAMIC AMBIENT BACKDROP SYSTEM -->
+    <div class="ambient-backdrop">
+        <!-- Fluid Shading Orbs -->
+        <div class="fluid-orb fluid-orb-1"></div>
+        <div class="fluid-orb fluid-orb-2"></div>
+        <div class="fluid-orb fluid-orb-3"></div>
 
-                <div class="account-card"
-                     data-email="areamanager@cafechain.vn"
-                     data-password="The@1712">
-                    <strong>Quản lý vùng</strong>
-                    <small>areamanager@cafechain.vn</small>
-                </div>
+        <!-- Canvas Particle Engine -->
+        <canvas id="particleCanvas"></canvas>
 
-                <div class="account-card"
-                     data-email="storemanager@cafechain.vn"
-                     data-password="The@1712">
-                    <strong>Quản lý chi nhánh</strong>
-                    <small>storemanager@cafechain.vn</small>
-                </div>
-
-                <div class="account-card"
-                     data-email="salesstaff@cafechain.vn"
-                     data-password="The@1712">
-                    <strong>Nhân viên bán hàng</strong>
-                    <small>salesstaff@cafechain.vn</small>
-                </div>
-
-                <div class="account-card"
-                     data-email="accountantwarehouse@cafechain.vn"
-                     data-password="The@1712">
-                    <strong>Kế toán/kho</strong>
-                    <small>accountantwarehouse@cafechain.vn</small>
-                </div>
-
-                <div class="account-card"
-                     data-email="shiftsupervisor@cafechain.vn"
-                     data-password="The@1712">
-                     <strong>Ca trưởng chi nhánh</strong>
-                     <small>shiftsupervisor@cafechain.vn</small>
-                </div>
-
-                <div class="account-card"
-                     data-email="systemadmin@cafechain.vn"
-                     data-password="The@1712">
-                    <strong>Quản trị hệ thống</strong>
-                    <small>systemadmin@cafechain.vn</small>
-                </div>
-
-                <div class="account-card"
-                     data-email="khachhang@gmail.com"
-                     data-password="The@1712">
-                    <strong>Khách hàng</strong>
-                    <small>khachhang@gmail.com</small>
-                </div>
-            </div>
-        </div>
-
-        <form asp-action="Login" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="returnUrl" value="@Context.Request.Query["returnUrl"]" />
-
-            @if (ViewBag.LockMessage != null)
-            {
-                <div class="validation-summary">
-                    @ViewBag.LockMessage
-                </div>
-            }
-            else if (!ViewData.ModelState.IsValid)
-            {
-                <div class="validation-summary" asp-validation-summary="All"></div>
-            }
-
-            <div class="form-group">
-                <label class="form-label" asp-for="Email"></label>
-                <div class="input-wrapper">
-                    <i class="far fa-envelope input-icon"></i>
-                    <input asp-for="Email" class="form-input" placeholder="username@email.com" readonly="@(isLocked ? "readonly" : null)" />
-                </div>
-                <span asp-validation-for="Email" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" asp-for="Password"></label>
-                <div class="input-wrapper">
-                    <i class="fas fa-lock input-icon"></i>
-                    <input asp-for="Password" type="password" class="form-input" id="passwordInput" placeholder="••••••••" readonly="@(isLocked ? "readonly" : null)" />
-                    <i class="far fa-eye toggle-password" id="togglePassword"></i>
-                </div>
-                <span asp-validation-for="Password" class="text-danger"></span>
-            </div>
-
-            <div class="action-row">
-                <div class="checkbox-group">
-                    <input type="checkbox" asp-for="RememberMe" id="rememberMe" disabled="@(isLocked ? "disabled" : null)" />
-                    <label for="rememberMe">Ghi nhớ đăng nhập</label>
-                </div>
-                <a asp-controller="Password" asp-action="ForgotPassword" class="forgot-password">Quên mật khẩu?</a>
-            </div>
-
-            <button type="submit" class="submit-btn" disabled="@(isLocked ? "disabled" : null)">
-                @(isLocked ? "Đang bị khóa..." : "Đăng nhập")
-            </button>
-
-        </form>
-
-        <div class="card-footer">
-            © 2026 CafeChain Professional Network
+        <!-- Liquid Coffee Wave Layer -->
+        <div class="coffee-wave-container">
+            <div class="coffee-wave coffee-wave-1"></div>
+            <div class="coffee-wave coffee-wave-2"></div>
         </div>
     </div>
 
+    <!-- Theme Toggle Floating Button -->
+    <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Chuyển chế độ giao diện (Milk / Espresso)">
+        <i class="fas fa-sun" id="themeIcon"></i>
+    </button>
+
+    <div class="app-viewport">
+        <!-- Left Hero Showcase Panel -->
+        <div class="brand-hero">
+            <div>
+                <div class="brand-badge">
+                    <i class="fas fa-mug-hot"></i> CafeChain Platform 2.0
+                </div>
+
+                <div class="hero-title-group">
+                    <h1>Hệ Thống Quản Lý Chuỗi Cà Phê</h1>
+                    <p>Giải pháp quản trị toàn diện dành cho chủ doanh nghiệp, quản lý và nhân viên vận hành chuỗi cà phê chuyên nghiệp.</p>
+                </div>
+
+                <div class="feature-pills">
+                    <div class="pill-card">
+                        <div class="pill-icon"><i class="fas fa-store"></i></div>
+                        <h4>Đa Chi Nhánh</h4>
+                        <span>Đồng bộ thời gian thực</span>
+                    </div>
+
+                    <div class="pill-card">
+                        <div class="pill-icon"><i class="fas fa-chart-pie"></i></div>
+                        <h4>Báo Cáo POS</h4>
+                        <span>Doanh thu & Lợi nhuận</span>
+                    </div>
+
+                    <div class="pill-card">
+                        <div class="pill-icon"><i class="fas fa-cubes"></i></div>
+                        <h4>Quản Lý Kho</h4>
+                        <span>BOM & Định lượng chuẩn</span>
+                    </div>
+
+                    <div class="pill-card">
+                        <div class="pill-icon"><i class="fas fa-users-gear"></i></div>
+                        <h4>Tối Ưu Ca</h4>
+                        <span>Phân lịch tự động</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-quote">
+                "Cà phê đậm đà, quản lý mượt mà — Nâng tầm chuỗi thương hiệu của bạn."
+            </div>
+        </div>
+
+        <!-- Right Main Form Panel -->
+        <div class="auth-wrapper">
+            <div class="auth-header">
+                <div class="logo-mark">
+                    <i class="fas fa-coffee"></i>
+                </div>
+                <h2>Đăng Nhập CafeChain</h2>
+                <p>Nhập thông tin tài khoản của bạn để tiếp tục</p>
+            </div>
+
+            <!-- Quick Demo Accounts Grid -->
+            <div class="demo-section">
+                <div class="demo-header">
+                    <h3><i class="fas fa-bolt" style="color: var(--crema-gold);"></i> Tài khoản đăng nhập nhanh</h3>
+                    <span class="selected-account-indicator" id="selectedAccountBadge">
+                        <i class="fas fa-check-circle"></i> <span id="selectedRoleText"></span>
+                    </span>
+                </div>
+
+                <div class="account-grid">
+                    <div class="account-card"
+                         data-email="owner@cafechain.vn"
+                         data-password="The@1712"
+                         data-role="Chủ doanh nghiệp">
+                        <i class="fas fa-crown"></i>
+                        <strong>Chủ doanh nghiệp</strong>
+                        <small>owner@cafechain.vn</small>
+                    </div>
+
+                    <div class="account-card"
+                         data-email="areamanager@cafechain.vn"
+                         data-password="The@1712"
+                         data-role="Quản lý vùng">
+                        <i class="fas fa-user-tie"></i>
+                        <strong>Quản lý vùng</strong>
+                        <small>areamanager@cafechain.vn</small>
+                    </div>
+
+                    <div class="account-card"
+                         data-email="storemanager@cafechain.vn"
+                         data-password="The@1712"
+                         data-role="Quản lý chi nhánh">
+                        <i class="fas fa-store"></i>
+                        <strong>Quản lý CH</strong>
+                        <small>storemanager@cafechain.vn</small>
+                    </div>
+
+                    <div class="account-card"
+                         data-email="salesstaff@cafechain.vn"
+                         data-password="The@1712"
+                         data-role="Nhân viên bán hàng">
+                        <i class="fas fa-cash-register"></i>
+                        <strong>Bán hàng</strong>
+                        <small>salesstaff@cafechain.vn</small>
+                    </div>
+
+                    <div class="account-card"
+                         data-email="salesstaff2@cafechain.vn"
+                         data-password="The@1712"
+                         data-role="Nhân viên bán hàng · Store 1">
+                        <i class="fas fa-cash-register"></i>
+                        <strong>Bán hàng 2 – Store 1</strong>
+                        <small>salesstaff2@cafechain.vn</small>
+                    </div>
+
+                    <div class="account-card"
+                         data-email="salesstaff3@cafechain.vn"
+                         data-password="The@1712"
+                         data-role="Nhân viên bán hàng · Store 3">
+                        <i class="fas fa-cash-register"></i>
+                        <strong>Bán hàng 3 – Store 3</strong>
+                        <small>salesstaff3@cafechain.vn</small>
+                    </div>
+
+                    <div class="account-card"
+                         data-email="accountantwarehouse@cafechain.vn"
+                         data-password="The@1712"
+                         data-role="Kế toán / Kho">
+                        <i class="fas fa-boxes-stacked"></i>
+                        <strong>Kế toán / Kho</strong>
+                        <small>accountantwarehouse@cafechain.vn</small>
+                    </div>
+
+                    <div class="account-card"
+                         data-email="shiftsupervisor@cafechain.vn"
+                         data-password="The@1712"
+                         data-role="Ca trưởng">
+                        <i class="fas fa-user-clock"></i>
+                        <strong>Ca trưởng</strong>
+                        <small>shiftsupervisor@cafechain.vn</small>
+                    </div>
+
+                    <div class="account-card"
+                         data-email="systemadmin@cafechain.vn"
+                         data-password="The@1712"
+                         data-role="Quản trị hệ thống">
+                        <i class="fas fa-shield-halved"></i>
+                        <strong>Admin</strong>
+                        <small>systemadmin@cafechain.vn</small>
+                    </div>
+
+                    <div class="account-card"
+                         data-email="khachhang@gmail.com"
+                         data-password="The@1712"
+                         data-role="Khách hàng">
+                        <i class="fas fa-user"></i>
+                        <strong>Khách hàng</strong>
+                        <small>khachhang@gmail.com</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ASP.NET Core Form -->
+            <form asp-action="Login" method="post" id="loginForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@Context.Request.Query["returnUrl"]" />
+
+                @if (ViewBag.LockMessage != null)
+                {
+                    <div class="validation-summary">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 1.2rem; margin-top: 2px;"></i>
+                        <div>@ViewBag.LockMessage</div>
+                    </div>
+                }
+                else if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="validation-summary">
+                        <i class="fas fa-exclamation-circle" style="font-size: 1.2rem; margin-top: 2px;"></i>
+                        <div asp-validation-summary="All"></div>
+                    </div>
+                }
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="Email">Email hoặc Tên đăng nhập</label>
+                    <div class="input-wrapper">
+                        <input asp-for="Email" class="form-input" id="Email" placeholder="username@cafechain.vn" readonly="@(isLocked ? "readonly" : null)" />
+                        <i class="far fa-envelope input-icon"></i>
+                    </div>
+                    <span asp-validation-for="Email" class="text-danger" style="font-size: 0.8rem; color: #fc8181; margin-top: 0.3rem; display: block;"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="Password">Mật khẩu</label>
+                    <div class="input-wrapper">
+                        <input asp-for="Password" type="password" class="form-input" id="passwordInput" placeholder="••••••••" readonly="@(isLocked ? "readonly" : null)" />
+                        <i class="fas fa-lock input-icon"></i>
+                        <i class="far fa-eye toggle-password" id="togglePassword" title="Hiện/Ẩn mật khẩu"></i>
+                    </div>
+                    <span asp-validation-for="Password" class="text-danger" style="font-size: 0.8rem; color: #fc8181; margin-top: 0.3rem; display: block;"></span>
+                </div>
+
+                <div class="action-row">
+                    <label class="custom-checkbox" for="rememberMe">
+                        <input type="checkbox" asp-for="RememberMe" id="rememberMe" disabled="@(isLocked ? "disabled" : null)" />
+                        <span>Ghi nhớ đăng nhập</span>
+                    </label>
+                    <a asp-controller="Password" asp-action="ForgotPassword" class="forgot-password">Quên mật khẩu?</a>
+                </div>
+
+                <button type="submit" class="submit-btn" id="btnSubmit" disabled="@(isLocked ? "disabled" : null)">
+                    <span>@(isLocked ? "Đang bị khóa..." : "Truy cập hệ thống")</span>
+                    <i class="fas fa-arrow-right" id="btnIcon"></i>
+                </button>
+            </form>
+
+            <div class="card-footer">
+                © 2026 CafeChain Enterprise • Powered by Modern Frontend Design
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
 
     <script>
         $(document).ready(function () {
+            // ===== 1. INTERACTIVE MOUSE PARALLAX BACKDROP SPOTLIGHT =====
+            $(document).on('mousemove', function (e) {
+                const x = (e.clientX / window.innerWidth) * 100;
+                const y = (e.clientY / window.innerHeight) * 100;
+                document.documentElement.style.setProperty('--mouse-x', x + '%');
+                document.documentElement.style.setProperty('--mouse-y', y + '%');
+            });
 
-            // Toggle password
+            // ===== 2. CANVAS GOLDEN CREMA BOKEH PARTICLES =====
+            const canvas = document.getElementById('particleCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                let particles = [];
+
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
+                resizeCanvas();
+                $(window).on('resize', resizeCanvas);
+
+                class Particle {
+                    constructor() {
+                        this.reset();
+                    }
+                    reset() {
+                        this.x = Math.random() * canvas.width;
+                        this.y = canvas.height + Math.random() * 50;
+                        this.radius = Math.random() * 3 + 1;
+                        this.speed = Math.random() * 0.8 + 0.3;
+                        this.opacity = Math.random() * 0.5 + 0.15;
+                        this.swing = Math.random() * 0.02 - 0.01;
+                        this.color = Math.random() > 0.5 ? '212, 163, 115' : '224, 176, 122';
+                    }
+                    update() {
+                        this.y -= this.speed;
+                        this.x += Math.sin(this.y * 0.01) * 0.5;
+                        if (this.y < -20) this.reset();
+                    }
+                    draw() {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(${this.color}, ${this.opacity})`;
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = `rgba(${this.color}, 0.5)`;
+                        ctx.fill();
+                    }
+                }
+
+                for (let i = 0; i < 45; i++) {
+                    const p = new Particle();
+                    p.y = Math.random() * canvas.height;
+                    particles.push(p);
+                }
+
+                function animateParticles() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach(p => {
+                        p.update();
+                        p.draw();
+                    });
+                    requestAnimationFrame(animateParticles);
+                }
+                animateParticles();
+            }
+
+            // ===== 3. THEME SWITCHER (Dark Espresso / Light Latte) =====
+            const savedTheme = localStorage.getItem('cafechain_theme') || 'dark';
+            setTheme(savedTheme);
+
+            $('#themeToggleBtn').click(function () {
+                const currentTheme = $('html').attr('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                setTheme(newTheme);
+            });
+
+            function setTheme(theme) {
+                $('html').attr('data-theme', theme);
+                localStorage.setItem('cafechain_theme', theme);
+                if (theme === 'dark') {
+                    $('#themeIcon').removeClass('fa-moon').addClass('fa-sun');
+                } else {
+                    $('#themeIcon').removeClass('fa-sun').addClass('fa-moon');
+                }
+            }
+
+            // ===== 4. TOGGLE PASSWORD VISIBILITY =====
             $('#togglePassword').click(function () {
                 const input = $('#passwordInput');
                 const type = input.attr('type') === 'password' ? 'text' : 'password';
@@ -447,19 +1134,46 @@
                 $(this).toggleClass('fa-eye fa-eye-slash');
             });
 
-            // ===== COUNTDOWN LOCK =====
-                   const email = $('input[name="Email"]').val();
+            // ===== 5. DEMO ACCOUNTS SELECTION =====
+            $('.account-card').click(function () {
+                $('.account-card').removeClass('active');
+                $(this).addClass('active');
+
+                const email = $(this).data('email');
+                const password = $(this).data('password');
+                const roleName = $(this).data('role');
+
+                $('#Email').val(email).trigger('change');
+                $('#passwordInput').val(password).trigger('change');
+
+                $('#selectedRoleText').text(roleName);
+                $('#selectedAccountBadge').fadeIn(200);
+
+                $('#Email, #passwordInput').css('border-color', 'var(--crema-gold)');
+                setTimeout(() => {
+                    $('#Email, #passwordInput').css('border-color', '');
+                }, 600);
+            });
+
+            const currentEmail = $('#Email').val();
+            if (currentEmail) {
+                $(`.account-card[data-email="${currentEmail}"]`).addClass('active');
+            }
+
+            // ===== 6. LOCK COUNTDOWN POLLING =====
+            const email = $('input[name="Email"]').val();
 
             function updateLockUI(isLocked, remainingMinutes) {
-                const btn = $('.submit-btn');
+                const btn = $('#btnSubmit');
 
                 if (isLocked) {
-                    $('input, button').prop('disabled', true);
-
-                    btn.text(`Thử lại sau ${remainingMinutes} phút`);
+                    $('input, button:not(#themeToggleBtn)').prop('disabled', true);
+                    btn.find('span').text(`Thử lại sau ${remainingMinutes} phút`);
+                    $('#btnIcon').attr('class', 'fas fa-lock');
                 } else {
                     $('input, button').prop('disabled', false);
-                    btn.text('Đăng nhập');
+                    btn.find('span').text('Truy cập hệ thống');
+                    $('#btnIcon').attr('class', 'fas fa-arrow-right');
                 }
             }
 
@@ -472,31 +1186,28 @@
 
                     updateLockUI(data.isLocked, data.remainingMinutes);
 
-                    // 🔥 nếu đã unlock thì dừng polling
-                    if (!data.isLocked) {
+                    if (!data.isLocked && typeof interval !== 'undefined') {
                         clearInterval(interval);
                     }
-
                 } catch (err) {
-                    console.error('Check lock error:', err);
+                    console.error('Check lock status error:', err);
                 }
             }
 
-            // 🔥 chạy ngay lần đầu
-            checkLock();
+            if (email) {
+                checkLock();
+                var interval = setInterval(checkLock, 5000);
+            }
 
-            // 🔥 polling mỗi 5 giây
-            const interval = setInterval(checkLock, 5000);
-        });
+            // ===== 7. SUBMIT SPINNER ANIMATION =====
+            $('#loginForm').submit(function () {
+                if ($(this).valid && !$(this).valid()) return;
 
-        $('.account-card').click(function () {
-
-            const email = $(this).data('email');
-            const password = $(this).data('password');
-
-            $('#Email').val(email);
-            $('#passwordInput').val(password);
-
+                const btn = $('#btnSubmit');
+                btn.prop('disabled', true);
+                btn.find('span').text('Đang xác thực...');
+                $('#btnIcon').attr('class', 'fas fa-spinner fa-spin');
+            });
         });
     </script>
 </body>

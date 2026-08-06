@@ -7,7 +7,7 @@ import {
   ACTIVE_PAYMENT_CLOSE_GUARD_CHANGED,
   getMatchingActivePaymentCloseGuard,
 } from '../services/posShiftCloseGuard'
-import { getPosSession, getPosTerminalId } from '../services/posSession'
+import { completeOpeningCash, getPosSession, getPosTerminalId } from '../services/posSession'
 import {
   extractOtpEnvelope,
   formatCountdown,
@@ -15,9 +15,6 @@ import {
   mapOtpUserMessage,
   OTP_ACTION_CASH_DIFFERENCE,
   OTP_ACTION_CLOSE_SHIFT_EXCEPTION,
-  OTP_ACTION_OPEN_SHIFT_LATE,
-  OTP_ACTION_OPEN_SHIFT_OUTSIDE_SCHEDULE,
-  OTP_ACTION_REGISTER_TERMINAL,
   OTP_TARGET_SHIFTS,
   requestOtp,
   resendOtp,
@@ -29,11 +26,17 @@ import {
   OPERATIONAL_OTP_INPUT_ERROR,
   sanitizeOperationalOtpInput,
 } from '../utils/otpCode'
+import { parseUtcInstant, parseUtcInstantMs } from '../utils/utcDateTime'
 
 interface ShiftSummaryDto {
   shiftId?: number | null
   storeId?: number
+  terminalId?: string | null
   staffName?: string | null
+  responsibleStaffId?: number | null
+  currentOperatorStaffId?: number | null
+  currentOperatorStaffName?: string | null
+  operatorChangedAtUtc?: string | null
   startTime?: string | null
   endTime?: string | null
   startTimeUtc?: string | null
@@ -65,17 +68,24 @@ interface ShiftSummaryDto {
   status: 'OPEN' | 'CLOSING' | 'EXPIRED_PENDING_CLOSE' | 'CLOSED' | 'RECONCILIATION_REQUIRED' | 'NoActiveShift' | string
 }
 
-interface OpenShiftAssessmentDto {
-  openContext: 'WITHIN_SCHEDULE' | 'LATE_FOR_SCHEDULE' | 'OUTSIDE_SCHEDULE' | string
-  reasonRequired: boolean
-  approvalRequired: boolean
-  serverNowUtc: string
-  autoCloseAtUtc?: string | null
+interface PosOperatorCandidateDto {
+  staffId: number
+  fullName: string
 }
 
 type ShiftActionResponse = Partial<ShiftSummaryDto> & {
   success?: boolean
   message?: string
+  errorCode?: string
+  recommendedAction?: string
+  staffHubUrl?: string
+}
+
+const redirectToStaffHub = (terminalId?: string | null, serverUrl?: string | null) => {
+  const target = new URL(serverUrl || '/StaffHub', API_BASE_URL)
+  target.searchParams.set('openPos', '1')
+  if (terminalId) target.searchParams.set('terminalId', terminalId)
+  window.location.assign(target.toString())
 }
 
 const readApiMessage = (value: unknown): string | null => {
@@ -112,13 +122,6 @@ const getApiErrorMessage = (
 
 const getUnexpectedErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error && error.message.trim().length > 0 ? error.message : fallback
-
-const getApiErrorCode = (value: unknown): string | null => {
-  if (!value || typeof value !== 'object') return null
-  const record = value as Record<string, unknown>
-  const code = record.errorCode ?? record.ErrorCode
-  return typeof code === 'string' ? code : null
-}
 
 const parseCloseErrorEnvelope = (response: { data: unknown; error?: string }) => {
   if (response.data && typeof response.data === 'object') {
@@ -158,9 +161,8 @@ const validateActualEndingCash = (amount: number | ''): string | null => {
 }
 
 const formatDateTime = (value?: string | null) => {
-  if (!value) return '--'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '--'
+  const date = parseUtcInstant(value)
+  if (!date) return '--'
   return date.toLocaleString('vi-VN', {
     hour: '2-digit',
     minute: '2-digit',
@@ -177,24 +179,12 @@ export default function ShiftSummary() {
   const [discrepancyReason, setDiscrepancyReason] = useState('')
   const [exceptionReason, setExceptionReason] = useState('')
   const [reconcileReason, setReconcileReason] = useState('')
-  const [lateOpeningReason, setLateOpeningReason] = useState('')
-  const [openAssessment, setOpenAssessment] = useState<OpenShiftAssessmentDto | null>(null)
   const [clockTick, setClockTick] = useState(0)
   const [serverOffsetMs, setServerOffsetMs] = useState(0)
-  const openRequestKeyRef = useRef(crypto.randomUUID())
+  const authoritativeOpenedShiftIdRef = useRef<number | null>(getPosSession().workShiftId ?? null)
   const closeRequestKeyRef = useRef(crypto.randomUUID())
   const exceptionCloseRequestKeyRef = useRef(crypto.randomUUID())
   const reconcileRequestKeyRef = useRef(crypto.randomUUID())
-  const terminalRegisterRequestKeyRef = useRef(crypto.randomUUID())
-  const [showLateOtpPanel, setShowLateOtpPanel] = useState(false)
-  const [showTerminalRegistration, setShowTerminalRegistration] = useState(false)
-  const [terminalName, setTerminalName] = useState('Terminal POS mới')
-  const [terminalOtpChallengePublicId, setTerminalOtpChallengePublicId] = useState<string | null>(null)
-  const [terminalOtpCode, setTerminalOtpCode] = useState('')
-  const [terminalOtpMessage, setTerminalOtpMessage] = useState<string | null>(null)
-  const [terminalOtpBusy, setTerminalOtpBusy] = useState(false)
-  const [terminalOtpExpiresInSeconds, setTerminalOtpExpiresInSeconds] = useState(0)
-  const [terminalOtpResendInSeconds, setTerminalOtpResendInSeconds] = useState(0)
   const [exceptionOtpChallengePublicId, setExceptionOtpChallengePublicId] = useState<string | null>(null)
   const [verifiedExceptionOtpId, setVerifiedExceptionOtpId] = useState<string | null>(null)
   const [exceptionOtpCode, setExceptionOtpCode] = useState('')
@@ -204,6 +194,12 @@ export default function ShiftSummary() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [guardVersion, setGuardVersion] = useState(0)
+  const [operatorCandidates, setOperatorCandidates] = useState<PosOperatorCandidateDto[]>([])
+  const [selectedOperatorId, setSelectedOperatorId] = useState<number | ''>('')
+  const [operatorPin, setOperatorPin] = useState('')
+  const [operatorBusy, setOperatorBusy] = useState(false)
+  const [showOperatorPanel, setShowOperatorPanel] = useState(false)
+  const operatorRequestKeyRef = useRef(crypto.randomUUID())
 
   // Issue #91 — OTP ca trưởng khi lệch két vượt ngưỡng
   const [showOtpPanel, setShowOtpPanel] = useState(false)
@@ -228,12 +224,19 @@ export default function ShiftSummary() {
 
   const session = getPosSession()
   const normalizedStatus = shift?.status?.toUpperCase()
-  const hasOpenShift = !!shift?.shiftId && ['OPEN', 'CLOSING', 'EXPIRED_PENDING_CLOSE'].includes(normalizedStatus ?? '')
-  const canAcceptTransactions = normalizedStatus === 'OPEN'
-  const currentShiftId = hasOpenShift ? shift.shiftId ?? null : null
+  const boundWorkShiftMismatch = session.workShiftId != null
+    && shift?.shiftId != null
+    && session.workShiftId !== shift.shiftId
+  const hasOpenShift = !boundWorkShiftMismatch
+    && !!shift?.shiftId
+    && ['OPEN', 'CLOSING', 'EXPIRED_PENDING_CLOSE'].includes(normalizedStatus ?? '')
+  const requiresOpeningCash = session.requiresOpeningCash === true
+    && session.workShiftId === shift?.shiftId
+  const canAcceptTransactions = normalizedStatus === 'OPEN' && !requiresOpeningCash
+  const currentShiftId = hasOpenShift && !requiresOpeningCash ? shift.shiftId ?? null : null
   const currentStaffId = session.staffId
   const currentStoreId = session.storeId
-  const expiryAtMs = shift?.autoCloseAtUtc ? Date.parse(shift.autoCloseAtUtc) : Number.NaN
+  const expiryAtMs = parseUtcInstantMs(shift?.autoCloseAtUtc)
   const expiryRemainingSeconds = Number.isFinite(expiryAtMs)
     ? Math.max(0, Math.ceil((expiryAtMs - (clockTick + serverOffsetMs)) / 1000))
     : null
@@ -324,10 +327,20 @@ export default function ShiftSummary() {
     setIsLoading(true)
     try {
       const response = await apiClient.get<ShiftSummaryDto>('/api/v1/pos/shifts/current')
+      if (response.status === 401) {
+        redirectToStaffHub(getPosSession().terminalId)
+        return
+      }
       if (response.ok && response.data) {
+        const authoritativeShiftId = authoritativeOpenedShiftIdRef.current
+        if (authoritativeShiftId !== null
+          && response.data.status?.toUpperCase() === 'OPEN'
+          && response.data.shiftId !== authoritativeShiftId) {
+          return
+        }
         setShift(response.data)
         setClockTick(Date.now())
-        const serverNowMs = response.data.serverNowUtc ? Date.parse(response.data.serverNowUtc) : Number.NaN
+        const serverNowMs = parseUtcInstantMs(response.data.serverNowUtc)
         setServerOffsetMs(Number.isFinite(serverNowMs) ? serverNowMs - Date.now() : 0)
       } else {
         setShift({ status: 'NoActiveShift', startingCash: 0, expectedEndingCash: 0, totalCashSales: 0, totalBankingSales: 0, totalOrders: 0 })
@@ -348,10 +361,69 @@ export default function ShiftSummary() {
   }, [])
 
   useEffect(() => {
+    if (!session.token) redirectToStaffHub(session.terminalId)
+  }, [session.terminalId, session.token])
+
+  useEffect(() => {
     queueMicrotask(() => {
       void loadCurrentShift()
     })
   }, [loadCurrentShift])
+
+  useEffect(() => {
+    if (!hasOpenShift) return
+
+    let cancelled = false
+    void apiClient.get<PosOperatorCandidateDto[]>('/api/v1/pos/shifts/operator/candidates')
+      .then((response) => {
+        if (!cancelled && response.ok && Array.isArray(response.data)) {
+          setOperatorCandidates(response.data)
+        }
+      })
+    return () => { cancelled = true }
+  }, [hasOpenShift])
+
+  const handleSwitchOperator = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!shift?.shiftId || selectedOperatorId === '' || !/^\d{6}$/.test(operatorPin)) {
+      setMessage({ type: 'error', text: 'Vui lòng chọn nhân viên và nhập đúng PIN gồm 6 chữ số.' })
+      return
+    }
+
+    setOperatorBusy(true)
+    try {
+      const response = await apiClient.post<ShiftSummaryDto>(
+        `/api/v1/pos/shifts/${shift.shiftId}/operator/switch`,
+        {
+          operatorStaffId: selectedOperatorId,
+          pin: operatorPin,
+          requestKey: operatorRequestKeyRef.current,
+          rowVersion: shift.rowVersion,
+        }
+      )
+      if (!response.ok || !response.data) {
+        setMessage({
+          type: 'error',
+          text: getApiErrorMessage(response, 'Không thể đổi người thao tác POS. Vui lòng kiểm tra PIN và thử lại.'),
+        })
+        return
+      }
+
+      setShift(response.data)
+      setMessage({ type: 'success', text: 'Đã đổi người thao tác POS thành công.' })
+      setShowOperatorPanel(false)
+      setSelectedOperatorId('')
+      operatorRequestKeyRef.current = crypto.randomUUID()
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: getUnexpectedErrorMessage(error, 'Không thể đổi người thao tác POS. Vui lòng thử lại.'),
+      })
+    } finally {
+      setOperatorPin('')
+      setOperatorBusy(false)
+    }
+  }
 
   useEffect(() => {
     const refresh = () => { void loadCurrentShift() }
@@ -375,11 +447,15 @@ export default function ShiftSummary() {
       refresh()
     })
     connection.onreconnected(() => {
-      void connection.invoke('JoinTerminal', getPosTerminalId())
+      const terminalId = getPosTerminalId()
+      if (terminalId) void connection.invoke('JoinTerminal', terminalId)
       refresh()
     })
     connection.start()
-      .then(() => connection.invoke('JoinTerminal', getPosTerminalId()))
+      .then(() => {
+        const terminalId = getPosTerminalId()
+        return terminalId ? connection.invoke('JoinTerminal', terminalId) : undefined
+      })
       .catch((error) => console.warn('[ShiftSummary WorkShift SignalR] Polling fallback active.', error))
 
     return () => {
@@ -423,17 +499,6 @@ export default function ShiftSummary() {
     return () => window.clearInterval(intervalId)
   }, [otpChallengePublicId])
 
-  useEffect(() => {
-    if (!terminalOtpChallengePublicId) return
-
-    const intervalId = window.setInterval(() => {
-      setTerminalOtpExpiresInSeconds((value) => (value > 0 ? value - 1 : 0))
-      setTerminalOtpResendInSeconds((value) => (value > 0 ? value - 1 : 0))
-    }, 1000)
-
-    return () => window.clearInterval(intervalId)
-  }, [terminalOtpChallengePublicId])
-
   const returnToStaffHub = useCallback(() => {
     window.location.href = `${API_BASE_URL}/StaffHub/Index`
   }, [])
@@ -471,81 +536,39 @@ export default function ShiftSummary() {
     }
   }, [])
 
-  const applyTerminalOtpChallengeData = useCallback((data: OtpChallengeData | null | undefined) => {
-    if (!data) return
-    if (data.otpChallengePublicId) setTerminalOtpChallengePublicId(data.otpChallengePublicId)
-    if (typeof data.expiresInSeconds === 'number') {
-      setTerminalOtpExpiresInSeconds(Math.max(0, data.expiresInSeconds))
-    }
-    if (typeof data.resendAvailableInSeconds === 'number') {
-      setTerminalOtpResendInSeconds(Math.max(0, data.resendAvailableInSeconds))
-    }
-  }, [])
-
-  const handleOpenShift = async (event: FormEvent, otpPublicId?: string | null) => {
+  const handleOpenShift = async (event: FormEvent) => {
     event.preventDefault()
     if (startingCash === '') return
 
     setIsSubmitting(true)
     setMessage(null)
     try {
-      const terminalId = getPosTerminalId()
-      let assessment = openAssessment
-      if (!otpPublicId) {
-        const assessmentResponse = await apiClient.post<OpenShiftAssessmentDto>(
-          '/api/v1/pos/shifts/open-assessment',
-          { posTerminalId: terminalId }
-        )
-        if (!assessmentResponse.ok || !assessmentResponse.data) {
-          if (getApiErrorCode(assessmentResponse.data) === 'TERMINAL_NOT_FOUND') {
-            setShowTerminalRegistration(true)
-          }
-          setMessage({ type: 'error', text: getApiErrorMessage(assessmentResponse, 'Không thể đánh giá lịch mở POS.') })
-          return
-        }
-        setShowTerminalRegistration(false)
-        assessment = assessmentResponse.data
-        setOpenAssessment(assessment)
-        if (assessment.reasonRequired && lateOpeningReason.trim().length < 10) {
-          setShowLateOtpPanel(true)
-          setMessage({ type: 'error', text: 'Vui lòng nhập lý do cụ thể từ 10 ký tự trước khi mở POS.' })
-          return
-        }
-        if (assessment.approvalRequired) {
-          setShowLateOtpPanel(true)
-          setMessage({ type: 'error', text: 'Thao tác này cần OTP của người có quyền phê duyệt trong cửa hàng.' })
-          return
-        }
-      }
-
       const response = await apiClient.post<ShiftActionResponse>('/api/v1/pos/shifts/open', {
-        requestKey: openRequestKeyRef.current,
         startingCash,
-        posTerminalId: terminalId,
-        reason: lateOpeningReason.trim() || null,
-        ...(otpPublicId ? { otpChallengePublicId: otpPublicId, lateOpeningReason: lateOpeningReason.trim() } : {}),
-        ...(lateOpeningReason.trim() ? { lateOpeningReason: lateOpeningReason.trim() } : {}),
       })
 
       if (response.ok && response.data?.status?.toUpperCase() === 'OPEN') {
+        if (!response.data.shiftId) {
+          setMessage({ type: 'error', text: 'Mở ca thành công nhưng API không trả về WorkShiftId.' })
+          return
+        }
+        authoritativeOpenedShiftIdRef.current = response.data.shiftId
+        completeOpeningCash(response.data.shiftId)
         setShift(response.data as ShiftSummaryDto)
         setClockTick(Date.now())
-        const responseServerNowMs = response.data.serverNowUtc ? Date.parse(response.data.serverNowUtc) : Number.NaN
+        const responseServerNowMs = parseUtcInstantMs(response.data.serverNowUtc)
         setServerOffsetMs(Number.isFinite(responseServerNowMs) ? responseServerNowMs - Date.now() : 0)
-        openRequestKeyRef.current = crypto.randomUUID()
         setStartingCash('')
-        setLateOpeningReason('')
-        setOpenAssessment(null)
-        setShowLateOtpPanel(false)
-        resetOtpState()
         setMessage({ type: 'success', text: 'Mở ca thành công.' })
-      } else if (isOtpRequiredError(response)) {
-        setShowLateOtpPanel(true)
-        setMessage({
-          type: 'error',
-          text: 'Cần OTP phê duyệt online để mở ca trễ. Cần kết nối mạng để gửi và xác nhận OTP.',
-        })
       } else {
+        const errorCode = response.data?.errorCode
+        if (errorCode === 'STAFFHUB_OPEN_REQUIRED'
+          || errorCode === 'POS_OPEN_CONTEXT_REQUIRED'
+          || errorCode === 'POS_OPEN_CONTEXT_INVALID'
+          || response.data?.recommendedAction === 'OPEN_STAFFHUB') {
+          redirectToStaffHub(session.terminalId, response.data?.staffHubUrl)
+          return
+        }
         setMessage({
           type: 'error',
           text: getApiErrorMessage(response, 'Không thể mở ca.'),
@@ -1028,6 +1051,12 @@ export default function ShiftSummary() {
           </div>
         )}
 
+        {boundWorkShiftMismatch && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700">
+            WorkShift hiện tại không khớp phiên được StaffHub cấp. Vui lòng quay lại StaffHub để mở lại đúng terminal.
+          </div>
+        )}
+
         {hasOpenShift && shift?.autoCloseAtUtc && expiryRemainingSeconds !== null && (
           <div className={`p-4 rounded-xl border text-xs font-bold ${
             canAcceptTransactions && expiryRemainingSeconds > 600
@@ -1046,9 +1075,13 @@ export default function ShiftSummary() {
           <div className="bg-surface-white p-12 rounded-xl border border-border text-center text-xs font-semibold text-text-muted">
             Đang tải dữ liệu ca...
           </div>
-        ) : !hasOpenShift && normalizedStatus !== 'CLOSED' && normalizedStatus !== 'RECONCILIATION_REQUIRED' ? (
+        ) : (requiresOpeningCash || !hasOpenShift)
+          && normalizedStatus !== 'CLOSED'
+          && normalizedStatus !== 'RECONCILIATION_REQUIRED' ? (
           <form onSubmit={handleOpenShift} className="bg-surface-white p-5 rounded-xl border border-border shadow-[var(--shadow-card)] space-y-4">
-            <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">Mở phiên POS</h2>
+            <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">
+              {requiresOpeningCash ? 'Xác nhận tiền đầu phiên' : 'Mở phiên POS'}
+            </h2>
             <p className="text-xs text-text-secondary">
               Việc mở POS chỉ tạo phiên chịu trách nhiệm POS/két; hệ thống không tạo lịch làm việc hoặc dữ liệu chấm công.
             </p>
@@ -1084,272 +1117,6 @@ export default function ShiftSummary() {
                 </button>
               ))}
             </div>
-            {showTerminalRegistration && (
-              <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 space-y-3 text-xs text-sky-950">
-                <p className="font-extrabold">Terminal chưa được đăng ký</p>
-                <p className="font-semibold">
-                  Thiết bị mới phải được người có quyền quản lý terminal phê duyệt bằng OTP trong đúng cửa hàng.
-                </p>
-                <input
-                  type="text"
-                  maxLength={100}
-                  value={terminalName}
-                  onChange={(event) => setTerminalName(event.target.value)}
-                  className="w-full px-3 py-2 border border-sky-200 rounded-lg bg-white font-semibold"
-                  placeholder="Tên terminal, ví dụ: Quầy chính"
-                />
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    disabled={terminalOtpBusy || terminalName.trim().length === 0 || !session.staffId || !!terminalOtpChallengePublicId}
-                    onClick={async () => {
-                      if (!session.staffId) return
-                      setTerminalOtpBusy(true)
-                      setTerminalOtpMessage(null)
-                      try {
-                        const response = await requestOtp({
-                          actionType: OTP_ACTION_REGISTER_TERMINAL,
-                          targetType: OTP_TARGET_SHIFTS,
-                          targetId: Number(session.staffId),
-                          reason: `Đăng ký terminal POS ${terminalName.trim()}`,
-                          terminalId: getPosTerminalId(),
-                          terminalName: terminalName.trim(),
-                          requestKey: terminalRegisterRequestKeyRef.current,
-                        })
-                        const envelope = extractOtpEnvelope(response)
-                        if (response.ok && envelope.data?.otpChallengePublicId) {
-                          applyTerminalOtpChallengeData(envelope.data)
-                          setTerminalOtpCode('')
-                          setTerminalOtpMessage(envelope.message || 'OTP đăng ký terminal đã được gửi.')
-                        } else {
-                          setTerminalOtpMessage(mapOtpUserMessage(envelope.message ?? response.error, 'Không gửi được OTP đăng ký terminal.'))
-                        }
-                      } finally {
-                        setTerminalOtpBusy(false)
-                      }
-                    }}
-                    className="px-3 py-2 bg-white border border-sky-300 rounded-lg font-bold disabled:opacity-40"
-                  >
-                    Gửi OTP đăng ký
-                  </button>
-                  <button
-                    type="button"
-                    disabled={terminalOtpBusy || !terminalOtpChallengePublicId || terminalOtpResendInSeconds > 0}
-                    onClick={async () => {
-                      if (!terminalOtpChallengePublicId || terminalOtpResendInSeconds > 0) return
-                      setTerminalOtpBusy(true)
-                      setTerminalOtpMessage(null)
-                      try {
-                        const response = await resendOtp({ otpChallengePublicId: terminalOtpChallengePublicId })
-                        const envelope = extractOtpEnvelope(response)
-                        applyTerminalOtpChallengeData(envelope.data)
-                        if (response.ok && envelope.data) {
-                          setTerminalOtpCode('')
-                          setTerminalOtpMessage(envelope.message || 'OTP đăng ký terminal mới đã được gửi.')
-                        } else {
-                          setTerminalOtpMessage(mapOtpUserMessage(envelope.message ?? response.error, 'Không thể gửi lại OTP.'))
-                        }
-                      } finally {
-                        setTerminalOtpBusy(false)
-                      }
-                    }}
-                    className="px-3 py-2 bg-white border border-sky-300 rounded-lg font-bold disabled:opacity-40"
-                  >
-                    {terminalOtpResendInSeconds > 0
-                      ? `Gửi lại OTP (${formatCountdown(terminalOtpResendInSeconds)})`
-                      : 'Gửi lại OTP'}
-                  </button>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    autoComplete="one-time-code"
-                    autoCapitalize="characters"
-                    value={terminalOtpCode}
-                    onChange={(event) => {
-                      const sanitized = sanitizeOperationalOtpInput(event.target.value)
-                      setTerminalOtpCode(sanitized.value)
-                      if (sanitized.rejected) setTerminalOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)
-                    }}
-                    className="w-28 px-3 py-2 border rounded-lg font-extrabold tracking-widest uppercase"
-                    placeholder="OTP"
-                  />
-                  <button
-                    type="button"
-                    disabled={!terminalOtpChallengePublicId || terminalOtpBusy || !isValidOperationalOtp(terminalOtpCode) || terminalOtpExpiresInSeconds === 0}
-                    onClick={async () => {
-                      if (!terminalOtpChallengePublicId) return
-                      setTerminalOtpBusy(true)
-                      try {
-                        const verified = await verifyOtp({
-                          otpChallengePublicId: terminalOtpChallengePublicId,
-                          otpCode: terminalOtpCode.trim().toUpperCase(),
-                        })
-                        const verifiedEnvelope = extractOtpEnvelope(verified)
-                        if (!verified.ok || !verifiedEnvelope.data?.otpChallengePublicId) {
-                          setTerminalOtpMessage(mapOtpUserMessage(verifiedEnvelope.message ?? verified.error, 'OTP không hợp lệ.'))
-                          return
-                        }
-
-                        const registered = await apiClient.post<{ success?: boolean; message?: string }>(
-                          '/api/v1/pos/terminals/register',
-                          {
-                            terminalId: getPosTerminalId(),
-                            name: terminalName.trim(),
-                            otpChallengePublicId: verifiedEnvelope.data.otpChallengePublicId,
-                            requestKey: terminalRegisterRequestKeyRef.current,
-                          }
-                        )
-                        if (registered.ok) {
-                          terminalRegisterRequestKeyRef.current = crypto.randomUUID()
-                          setShowTerminalRegistration(false)
-                          setTerminalOtpChallengePublicId(null)
-                          setTerminalOtpCode('')
-                          setTerminalOtpMessage(null)
-                          setTerminalOtpExpiresInSeconds(0)
-                          setTerminalOtpResendInSeconds(0)
-                          setMessage({ type: 'success', text: 'Terminal đã được phê duyệt. Bạn có thể mở POS.' })
-                        } else {
-                          setTerminalOtpMessage(getApiErrorMessage(registered, 'Không thể đăng ký terminal.'))
-                        }
-                      } finally {
-                        setTerminalOtpBusy(false)
-                      }
-                    }}
-                    className="px-3 py-2 bg-sky-700 text-white rounded-lg font-bold disabled:opacity-40"
-                  >
-                    Xác nhận và đăng ký
-                  </button>
-                </div>
-                {terminalOtpChallengePublicId && (
-                  <p className="font-semibold">
-                    OTP hết hạn sau {formatCountdown(terminalOtpExpiresInSeconds)}. Có thể gửi lại sau {formatCountdown(terminalOtpResendInSeconds)}.
-                  </p>
-                )}
-                {terminalOtpMessage && <p className="font-semibold">{terminalOtpMessage}</p>}
-              </div>
-            )}
-            {showLateOtpPanel && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3 text-xs text-amber-900">
-                <p className="font-extrabold">
-                  {openAssessment?.openContext === 'OUTSIDE_SCHEDULE'
-                    ? 'Mở POS ngoài lịch — cần OTP phê duyệt online'
-                    : 'Mở POS trễ — cần OTP phê duyệt online'}
-                </p>
-                <p className="font-semibold">
-                  Cần kết nối mạng để gửi và xác nhận OTP của người phê duyệt. Không dùng PIN cố định.
-                </p>
-                <label className="block font-semibold text-text-secondary mb-1">
-                  {openAssessment?.openContext === 'OUTSIDE_SCHEDULE'
-                    ? 'Lý do mở POS ngoài lịch'
-                    : 'Lý do mở POS trễ'}
-                </label>
-                <textarea
-                  value={lateOpeningReason}
-                  onChange={(e) => setLateOpeningReason(e.target.value)}
-                  rows={2}
-                  className="w-full px-3 py-2 border border-amber-200 rounded-lg text-xs font-semibold bg-white"
-                  placeholder="Ví dụ: tắc đường, hỗ trợ cửa hàng khác..."
-                />
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    disabled={otpBusy || startingCash === '' || lateOpeningReason.trim().length === 0 || !!otpChallengePublicId}
-                    onClick={async () => {
-                      if (startingCash === '' || !session.staffId) return
-                      setOtpBusy(true)
-                      setOtpMessage(null)
-                      try {
-                        const response = await requestOtp({
-                          actionType: openAssessment?.openContext === 'OUTSIDE_SCHEDULE'
-                            ? OTP_ACTION_OPEN_SHIFT_OUTSIDE_SCHEDULE
-                            : OTP_ACTION_OPEN_SHIFT_LATE,
-                          targetType: OTP_TARGET_SHIFTS,
-                          targetId: Number(session.staffId),
-                          reason: lateOpeningReason.trim(),
-                          startingCash: Number(startingCash),
-                          terminalId: getPosTerminalId(),
-                          requestKey: openRequestKeyRef.current,
-                        })
-                        const envelope = extractOtpEnvelope(response)
-                        if (response.ok && envelope.data?.otpChallengePublicId) {
-                          applyOtpChallengeData(envelope.data)
-                          setVerifiedOtpChallengePublicId(null)
-                          setOtpCode('')
-                          setOtpMessage(envelope.message || 'OTP mở ca trễ đã gửi.')
-                        } else {
-                          setOtpMessage(mapOtpUserMessage(envelope.message ?? response.error, 'Không gửi được OTP.'))
-                        }
-                      } finally {
-                        setOtpBusy(false)
-                      }
-                    }}
-                    className="px-3 py-2 bg-white border border-amber-300 rounded-lg font-bold disabled:opacity-40"
-                  >
-                    {openAssessment?.openContext === 'OUTSIDE_SCHEDULE'
-                      ? 'Gửi OTP mở ngoài lịch'
-                      : 'Gửi OTP mở trễ'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={otpBusy || !otpChallengePublicId || resendAvailableInSeconds > 0 || otpStatus === 'Locked'}
-                    onClick={handleResendOtp}
-                    className="px-3 py-2 bg-white border border-amber-300 rounded-lg font-bold disabled:opacity-40"
-                  >
-                    {resendAvailableInSeconds > 0
-                      ? `Gửi lại OTP (${formatCountdown(resendAvailableInSeconds)})`
-                      : 'Gửi lại OTP'}
-                  </button>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    autoComplete="one-time-code"
-                    autoCapitalize="characters"
-                    value={otpCode}
-                    onChange={(event) => {
-                      const sanitized = sanitizeOperationalOtpInput(event.target.value)
-                      setOtpCode(sanitized.value)
-                      if (sanitized.rejected) setOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)
-                    }}
-                    className="w-28 px-3 py-2 border rounded-lg font-extrabold tracking-widest uppercase"
-                    placeholder="OTP"
-                  />
-                  <button
-                    type="button"
-                    disabled={!otpChallengePublicId || otpBusy || !isValidOperationalOtp(otpCode) || expiresInSeconds === 0}
-                    onClick={async () => {
-                      if (!otpChallengePublicId) return
-                      const code = otpCode.trim().toUpperCase()
-                      setOtpBusy(true)
-                      try {
-                        const response = await verifyOtp({ otpChallengePublicId, otpCode: code })
-                        const envelope = extractOtpEnvelope(response)
-                        if (response.ok && envelope.data?.otpChallengePublicId) {
-                          setVerifiedOtpChallengePublicId(envelope.data.otpChallengePublicId)
-                          setOtpMessage('OTP đã xác nhận. Nhấn mở ca lại.')
-                          await handleOpenShift(
-                            { preventDefault() {} } as FormEvent,
-                            envelope.data.otpChallengePublicId
-                          )
-                        } else {
-                          setOtpMessage(mapOtpUserMessage(envelope.message ?? response.error, 'OTP không hợp lệ.'))
-                        }
-                      } finally {
-                        setOtpBusy(false)
-                      }
-                    }}
-                    className="px-3 py-2 bg-amber-100 border border-amber-300 rounded-lg font-bold disabled:opacity-40"
-                  >
-                    Xác nhận OTP & mở ca
-                  </button>
-                </div>
-                {otpChallengePublicId && (
-                  <p className="font-semibold">
-                    OTP hết hạn sau {formatCountdown(expiresInSeconds)}. Có thể gửi lại sau {formatCountdown(resendAvailableInSeconds)}.
-                  </p>
-                )}
-                {otpMessage && <p className="font-semibold">{otpMessage}</p>}
-              </div>
-            )}
             <button
               type="submit"
               disabled={isSubmitting || startingCash === ''}
@@ -1381,10 +1148,16 @@ export default function ShiftSummary() {
 
             <div className="bg-surface-white p-5 rounded-xl border border-border shadow-[var(--shadow-card)] space-y-3">
               <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">Thông tin ca</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
                 <div>
-                  <p className="text-text-secondary">Nhân viên</p>
+                  <p className="text-text-secondary">Nhân viên chịu trách nhiệm</p>
                   <p className="font-bold text-text-primary mt-1">{shift?.staffName || session.staffName}</p>
+                </div>
+                <div>
+                  <p className="text-text-secondary">Người đang thao tác</p>
+                  <p className="font-bold text-brand-orange mt-1">
+                    {shift?.currentOperatorStaffName || shift?.staffName || session.staffName}
+                  </p>
                 </div>
                 <div>
                   <p className="text-text-secondary">Mở ca</p>
@@ -1395,6 +1168,48 @@ export default function ShiftSummary() {
                   <p className="font-bold text-brand-orange mt-1">{formatVND(expectedEndingCash)}</p>
                 </div>
               </div>
+              {normalizedStatus === 'OPEN' && (
+                <div className="border-t border-border pt-3">
+                  {!showOperatorPanel ? (
+                    <button type="button" onClick={() => setShowOperatorPanel(true)}
+                      className="px-3 py-2 rounded-lg border border-border text-xs font-bold text-text-primary hover:border-brand-orange">
+                      Đổi người thao tác
+                    </button>
+                  ) : (
+                    <form onSubmit={handleSwitchOperator} className="grid grid-cols-1 sm:grid-cols-[1fr_180px_auto_auto] gap-2 items-end">
+                      <label className="text-xs font-semibold text-text-secondary">
+                        Nhân viên
+                        <select value={selectedOperatorId}
+                          onChange={(event) => setSelectedOperatorId(event.target.value ? Number(event.target.value) : '')}
+                          disabled={operatorBusy}
+                          className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-text-primary" required>
+                          <option value="">Chọn người thao tác</option>
+                          {operatorCandidates.map((candidate) => (
+                            <option key={candidate.staffId} value={candidate.staffId}>{candidate.fullName}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="text-xs font-semibold text-text-secondary">
+                        PIN cá nhân
+                        <input type="password" inputMode="numeric" autoComplete="off" maxLength={6} pattern="[0-9]{6}"
+                          value={operatorPin}
+                          onChange={(event) => setOperatorPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                          disabled={operatorBusy}
+                          className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-text-primary" required />
+                      </label>
+                      <button type="submit" disabled={operatorBusy || selectedOperatorId === '' || operatorPin.length !== 6}
+                        className="px-3 py-2 rounded-lg bg-brand-orange text-white text-xs font-bold disabled:opacity-40">
+                        {operatorBusy ? 'Đang xác thực...' : 'Xác nhận'}
+                      </button>
+                      <button type="button" disabled={operatorBusy}
+                        onClick={() => { setShowOperatorPanel(false); setOperatorPin(''); setSelectedOperatorId('') }}
+                        className="px-3 py-2 rounded-lg border border-border text-xs font-bold">
+                        Hủy
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
             </div>
 
             {hasOpenShift ? (

@@ -158,7 +158,7 @@
             }
         </section>
 
-        <aside class="supplier-detail" id="supplierDetail" role="dialog" aria-modal="true" aria-label="Chi tiết nhà cung cấp" aria-hidden="true">
+        <aside class="offcanvas offcanvas-end supplier-detail" id="supplierDetail" tabindex="-1" aria-label="Chi tiết nhà cung cấp">
             <div class="supplier-detail-placeholder" id="supplierDetailPlaceholder">
                 <i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i>
                 <strong>Chọn một nhà cung cấp</strong>
@@ -173,7 +173,7 @@
                         <p id="detailSummary"></p>
                         <span class="supplier-status" id="detailStatus"></span>
                     </div>
-                    <button type="button" class="supplier-icon-button" id="closeSupplierDetail" title="Đóng chi tiết" aria-label="Đóng chi tiết">
+                    <button type="button" class="supplier-icon-button" id="closeSupplierDetail" data-bs-dismiss="offcanvas" title="Đóng chi tiết" aria-label="Đóng chi tiết">
                         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                     </button>
                 </header>
@@ -232,7 +232,7 @@
                     </section>
 
                     <section class="supplier-tab" data-tab-panel="offers">
-                        <div class="supplier-section-heading"><div><h3>Quy cách mua nguyên liệu</h3><p>Duy trì giá theo gói và có thể cho phép mua lẻ trực tiếp theo kg, L hoặc cái.</p></div></div>
+                        <div class="supplier-section-heading"><div><h3>Quy cách mua nguyên liệu</h3><p>Duy trì giá theo gói và đơn vị mua lẻ tương thích với từng nguyên liệu.</p></div></div>
                         @if (canMutate)
                         {
                             <form class="supplier-form supplier-subform" id="offerForm">
@@ -242,14 +242,17 @@
                                     <label><span>Nguyên liệu</span><select id="offerIngredient" required></select></label>
                                     <label><span>Đơn vị nội dung</span><select id="offerUnit" required></select></label>
                                     <label><span>Lượng trong gói</span><input id="offerPackageQuantity" type="number" min="0.00001" step="0.00001" required /></label>
-                                    <label><span>Giá một gói</span><input id="offerPrice" type="number" min="0" step="1" required /></label>
-                                    <label><span>MOQ (số gói)</span><input id="offerMoq" type="number" min="1" step="1" /></label>
-                                    <label><span>Lead time (ngày)</span><input id="offerLeadTime" type="number" min="0" step="1" /></label>
+                                    <label><span>Giá một gói (VND)</span><input id="offerPrice" type="number" min="0" step="1" required /></label>
+                                    <label><span>MOQ theo gói</span><input id="offerMoq" type="number" min="1" step="1" /></label>
+                                    <label><span>Lead time mặc định (ngày)</span><input id="offerLeadTime" type="number" min="0" step="1" /></label>
                                     <label class="supplier-check"><input id="offerPrimary" type="checkbox" /><span>Nguồn cung chính</span></label>
                                     <label class="supplier-check"><input id="offerActive" type="checkbox" checked /><span>Đang hoạt động</span></label>
                                     <label class="supplier-check"><input id="offerAllowsLoose" type="checkbox" /><span>Cho phép mua lẻ</span></label>
                                     <label data-loose-field class="is-hidden"><span>Đơn vị mua lẻ</span><select id="offerLooseUnit"></select></label>
-                                    <label data-loose-field class="is-hidden"><span>Đơn giá mỗi kg/L/cái</span><input id="offerLoosePrice" type="number" min="0.01" step="1" /></label>
+                                    <label data-loose-field class="is-hidden"><span>Cách xác định giá lẻ</span><select id="offerLoosePriceMode"><option value="INDEPENDENT">Nhập đơn giá mua lẻ riêng</option><option value="DERIVED">Tự tính từ giá gói</option></select></label>
+                                    <label data-loose-field class="is-hidden"><span id="offerLoosePriceLabel">Đơn giá mua lẻ (VND/đơn vị)</span><input id="offerLoosePrice" type="number" min="0.01" step="0.01" /></label>
+                                    <label data-loose-field class="is-hidden"><span>MOQ mua lẻ</span><input id="offerLooseMoq" type="number" min="0" step="0.00001" /><small>Tính theo đơn vị mua lẻ đã chọn.</small></label>
+                                    <label data-loose-field class="is-hidden"><span>Bước số lượng mua lẻ</span><input id="offerLooseStep" type="number" min="0.00001" step="0.00001" /><small>Đơn hàng được làm tròn lên theo bước này.</small></label>
                                     <label class="is-wide"><span>Ghi chú</span><input id="offerNote" /></label>
                                 </div>
                                 <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet is-hidden" id="cancelOfferEdit">Hủy sửa</button><button class="supplier-btn supplier-btn-primary" type="submit" id="saveOfferButton">Thêm gói mua</button></div>
@@ -290,8 +293,8 @@
                                 <input type="hidden" id="supplierStoreRowVersion" />
                                 <div class="supplier-form-grid">
                                     <label><span>Cửa hàng</span><select id="assignmentStore" required></select></label>
-                                    <label><span>Lead time riêng (ngày)</span><input id="assignmentLeadTime" type="number" min="0" step="1" /></label>
-                                    <label><span>Lịch giao hàng</span><input id="assignmentSchedule" maxlength="300" /></label>
+                                    <label><span>Lead time riêng (ngày)</span><input id="assignmentLeadTime" type="number" min="0" step="1" /><small>Để trống để dùng lead time mặc định của gói mua; khi nhập, giá trị này sẽ thay thế mặc định tại cửa hàng.</small></label>
+                                    <label><span>Lịch giao hàng dự kiến</span><input id="assignmentSchedule" maxlength="300" placeholder="Ví dụ: Thứ Hai, Thứ Tư và Thứ Sáu" /></label>
                                     <label class="supplier-check"><input id="assignmentActive" type="checkbox" checked /><span>Đang hoạt động</span></label>
                                     <label class="is-wide"><span>Ghi chú</span><input id="assignmentNote" maxlength="1000" /></label>
                                 </div>
@@ -303,7 +306,7 @@
 
                     <section class="supplier-tab" data-tab-panel="audit">
                         <div class="supplier-section-heading"><div><h3>Dấu vết cập nhật</h3><p>Mốc thời gian của hồ sơ nhà cung cấp.</p></div></div>
-                        <dl class="supplier-audit-list"><div><dt>Khởi tạo</dt><dd id="auditCreatedAt"></dd></div><div><dt>Cập nhật gần nhất</dt><dd id="auditUpdatedAt"></dd></div><div><dt>Phiên bản dữ liệu</dt><dd id="auditVersion"></dd></div></dl>
+                        <dl class="supplier-audit-list"><div><dt>Khởi tạo</dt><dd id="auditCreatedAt"></dd></div><div><dt>Cập nhật gần nhất</dt><dd id="auditUpdatedAt"></dd></div></dl>
                         <div class="supplier-history" id="supplierAuditEvents"></div>
                     </section>
                 </div>
@@ -314,8 +317,9 @@
 
 @if (canMutate)
 {
-    <div class="supplier-modal" id="createSupplierModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="createSupplierTitle" aria-describedby="createSupplierDescription">
-        <div class="supplier-modal-panel cc-modal">
+    <div class="modal fade supplier-modal" id="createSupplierModal" tabindex="-1" aria-hidden="true" aria-labelledby="createSupplierTitle" aria-describedby="createSupplierDescription">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content supplier-modal-panel cc-modal">
             <header>
                 <div class="supplier-modal-title">
                     <span class="supplier-modal-icon" aria-hidden="true"><i class="fa-solid fa-building-circle-check"></i></span>
@@ -325,10 +329,10 @@
                         <p id="createSupplierDescription">Khởi tạo hồ sơ doanh nghiệp và đầu mối liên hệ chính.</p>
                     </div>
                 </div>
-                <button type="button" class="supplier-icon-button" data-close-modal aria-label="Đóng"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                <button type="button" class="supplier-icon-button" data-bs-dismiss="modal" aria-label="Đóng"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </header>
             <form class="supplier-form" id="createSupplierForm">
-                <div class="supplier-modal-body">
+                <div class="modal-body supplier-modal-body">
                     <div class="supplier-create-grid">
                     <fieldset class="supplier-form-section">
                         <legend>Thông tin doanh nghiệp</legend>
@@ -376,31 +380,12 @@
                 <footer class="supplier-modal-footer">
                     <span><em>*</em> Trường bắt buộc</span>
                     <div class="supplier-modal-actions">
-                        <button type="button" class="supplier-btn supplier-btn-quiet" data-close-modal>Hủy</button>
+                        <button type="button" class="supplier-btn supplier-btn-quiet" data-bs-dismiss="modal">Hủy</button>
                         <button class="supplier-btn supplier-btn-primary" type="submit"><i class="fa-solid fa-plus" aria-hidden="true"></i>Tạo nhà cung cấp</button>
                     </div>
                 </footer>
             </form>
         </div>
-    </div>
-
-    <div class="supplier-modal supplier-confirm-modal" id="supplierConfirmModal" aria-hidden="true" role="alertdialog" aria-modal="true" aria-labelledby="supplierConfirmTitle" aria-describedby="supplierConfirmMessage">
-        <div class="supplier-confirm-panel cc-modal">
-            <header>
-                <span class="supplier-confirm-icon" aria-hidden="true"><i class="fa-solid fa-trash-can"></i></span>
-                <div>
-                    <p class="supplier-eyebrow">Xác nhận thao tác</p>
-                    <h2 id="supplierConfirmTitle">Xóa dữ liệu?</h2>
-                </div>
-            </header>
-            <div class="supplier-confirm-body">
-                <p id="supplierConfirmMessage"></p>
-                <span>Thao tác này không thể hoàn tác.</span>
-            </div>
-            <footer>
-                <button type="button" class="supplier-btn supplier-btn-quiet" id="cancelSupplierConfirm">Giữ lại</button>
-                <button type="button" class="supplier-btn supplier-btn-danger" id="acceptSupplierConfirm">Xác nhận xóa</button>
-            </footer>
         </div>
     </div>
 }

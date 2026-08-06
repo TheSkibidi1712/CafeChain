@@ -7,7 +7,6 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/Admin/Drink/drink.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/Admin/AI/ai-image-pipeline.css" asp-append-version="true" />
 }
 
 <div class="container-fluid px-0 drink-form-page">
@@ -41,6 +40,13 @@
         <div asp-validation-summary="ModelOnly"
              class="alert alert-danger mb-3"
              style="display:none">
+        </div>
+
+        <div id="drinkCreateValidationSummary"
+             class="alert alert-warning mb-3 d-none"
+             role="alert"
+             tabindex="-1">
+            Vui lòng kiểm tra và nhập đầy đủ các trường bắt buộc.
         </div>
 
         <div class="row g-4">
@@ -173,47 +179,6 @@
                                       rows="6"
                                       placeholder="Mô tả thành phần, hương vị..."></textarea>
 
-                        </div>
-
-                        <div class="mt-3">
-                            <label for="drinkAiIdea" class="form-label fw-semibold">Ý tưởng cho AI <span class="text-muted fw-normal">(không bắt buộc)</span></label>
-                            <select id="drinkAiGenerationMode" class="form-select mb-2" aria-label="Chế độ gợi ý đồ uống">
-                                <option value="0">Tạo mới</option>
-                                <option value="1">Phát triển dữ liệu đang nhập</option>
-                                <option value="2">Tạo biến thể</option>
-                            </select>
-                            <div class="input-group">
-                            <input id="drinkAiIdea" class="form-control" maxlength="200" placeholder="Ví dụ: trà đào mùa hè" autocomplete="off" />
-                            <button type="button"
-                                    id="btnDrinkAiSuggestion"
-                                    class="btn btn-outline-primary d-none"
-                                    aria-hidden="true"
-                                    tabindex="-1">
-                                <i class="fas fa-wand-magic-sparkles me-1"></i> AI gợi ý
-                            </button>
-                            </div>
-                        </div>
-
-                        <div id="drinkAiSuggestionPanel" class="ai-suggestion-panel mt-3 d-none" aria-live="polite">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong>Gợi ý cho đồ uống</strong>
-                                <span id="drinkAiSource" class="badge bg-secondary"></span>
-                            </div>
-                            <div id="drinkAiOptionList" class="ai-option-grid"></div>
-                            <div id="drinkAiStatus" class="ai-pipeline-status mt-2" aria-live="polite"></div>
-                            <div class="mt-3"><small class="fw-semibold">1. Chọn ảnh tham chiếu Pexels</small></div>
-                            <div id="drinkAiReferenceList" class="ai-image-grid"></div>
-                            <div class="mt-3"><small class="fw-semibold">2. Chọn ảnh cuối từ Pexels hoặc ComfyUI</small></div>
-                            <div id="drinkAiGeneratedList" class="ai-image-grid"></div>
-                            <div id="drinkAiWarnings" class="small text-warning mt-2"></div>
-                            <div class="d-flex gap-2 mt-3">
-                                <button type="button" id="btnApplyDrinkAi" class="btn btn-primary btn-sm" disabled>Áp dụng</button>
-                                <button type="button" id="btnUseDrinkPexels" class="btn btn-outline-success btn-sm" disabled>Dùng ảnh Pexels</button>
-                                <button type="button" id="btnGenerateDrinkAi" class="btn btn-outline-primary btn-sm" disabled>Tạo lại bằng ComfyUI</button>
-                                <button type="button" id="btnGenerateDrinkAiWithoutReference" class="btn btn-outline-warning btn-sm d-none">Tạo ảnh bằng ComfyUI không dùng Pexels</button>
-                                <button type="button" id="btnRetryDrinkAiSearch" class="btn btn-outline-secondary btn-sm" disabled>Tìm lại Pexels</button>
-                                <button type="button" id="btnDismissDrinkAi" class="btn btn-light btn-sm">Bỏ qua</button>
-                            </div>
                         </div>
 
                     </div>
@@ -445,7 +410,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 
-    <script src="~/js/Admin/AI/ai-image-pipeline.js" asp-append-version="true"></script>
     <script src="~/js/Admin/Drink/drink.js" asp-append-version="true"></script>
 
 }

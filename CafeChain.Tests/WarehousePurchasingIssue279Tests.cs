@@ -123,28 +123,26 @@ public sealed class WarehousePurchasingIssue279Tests
         var script = Read("CafeChain/wwwroot/js/Admin/Supplier/supplier.js");
 
         Assert.Contains("supplier-list-heading", view);
-        Assert.Contains("role=\"dialog\" aria-modal=\"true\" aria-label=\"Chi tiết nhà cung cấp\"", view);
+        Assert.Contains("class=\"offcanvas offcanvas-end supplier-detail\"", view);
+        Assert.Contains("data-bs-dismiss=\"offcanvas\"", view);
         Assert.Contains("supplier-modal-body", view);
         Assert.Contains("supplier-modal-footer", view);
-        Assert.Contains("id=\"supplierConfirmModal\"", view);
-        Assert.Contains("role=\"alertdialog\"", view);
+        Assert.DoesNotContain("id=\"supplierConfirmModal\"", view);
         Assert.Contains("supplier-form-section", view);
         Assert.Contains("Thông tin doanh nghiệp", view);
         Assert.Contains("Đầu mối chính", view);
         Assert.Contains("Ghi chú vận hành", view);
 
-        Assert.Contains("inset: 0 0 0 auto", css);
-        Assert.Contains("height: 100dvh", css);
+        Assert.Contains("--bs-offcanvas-width: min(760px, calc(100vw - 40px))", css);
         Assert.Contains("grid-template-rows: auto auto minmax(0, 1fr)", css);
         Assert.Contains("max-height: calc(100dvh - 48px)", css);
         Assert.Contains("grid-template-rows: minmax(0, 1fr) auto", css);
 
-        Assert.Contains("function trapFocus", script);
-        Assert.Contains("function syncPageScrollLock", script);
-        Assert.Contains("detailReturnFocus?.focus()", script);
-        Assert.Contains("modalReturnFocus?.focus()", script);
+        Assert.Contains("bootstrap.Offcanvas.getOrCreateInstance(detailPanel)", script);
+        Assert.DoesNotContain("function trapFocus", script);
+        Assert.DoesNotContain("function syncPageScrollLock", script);
         Assert.Contains("function requestConfirmation", script);
-        Assert.DoesNotContain("window.confirm", script);
+        Assert.Contains("window.Swal.fire", script);
     }
 
     [Fact]

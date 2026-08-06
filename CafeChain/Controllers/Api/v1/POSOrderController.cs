@@ -32,17 +32,20 @@ namespace CafeChain.Controllers.Api.v1
         private readonly IInventoryDeductionService _inventoryService;
         private readonly ILogger<POSOrderController> _logger;
         private readonly IOrderAccessAuthorizationService? _orderAccessAuthorization;
+        private readonly IPosSessionExchangeService? _posSessionExchangeService;
 
         public POSOrderController(
             IPOSOrderService orderService,
             IInventoryDeductionService inventoryService,
             ILogger<POSOrderController> logger,
-            IOrderAccessAuthorizationService? orderAccessAuthorization = null)
+            IOrderAccessAuthorizationService? orderAccessAuthorization = null,
+            IPosSessionExchangeService? posSessionExchangeService = null)
         {
             _orderService = orderService;
             _inventoryService = inventoryService;
             _logger = logger;
             _orderAccessAuthorization = orderAccessAuthorization;
+            _posSessionExchangeService = posSessionExchangeService;
         }
 
         // ============================================================
@@ -56,6 +59,9 @@ namespace CafeChain.Controllers.Api.v1
         [HttpPost("commit")]
         public async Task<IActionResult> CommitOrder([FromBody] POSOrderCommitDto dto)
         {
+            var openingCashGuard = await EnsureOpeningCashReadyAsync();
+            if (openingCashGuard != null) return openingCashGuard;
+
             if (dto == null || dto.Items == null || !dto.Items.Any())
                 return BadRequest(new { success = false, message = "Giỏ hàng trống." });
 
@@ -104,6 +110,9 @@ namespace CafeChain.Controllers.Api.v1
         [Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
         public async Task<IActionResult> SyncOfflineOrders([FromBody] OfflineBatchSyncRequestDto request)
         {
+            var openingCashGuard = await EnsureOpeningCashReadyAsync();
+            if (openingCashGuard != null) return openingCashGuard;
+
             if (request?.Orders == null || !request.Orders.Any())
                 return BadRequest(new { success = false, message = "Không có đơn hàng để đồng bộ." });
 
@@ -147,6 +156,7 @@ namespace CafeChain.Controllers.Api.v1
                             SizeId = d.SizeId,
                             StoreMenuItemId = d.StoreMenuItemId,
                             DrinkSizeId = d.DrinkSizeId,
+                            RecipeIdSnapshot = d.RecipeIdSnapshot,
                             AcceptedBasePrice = d.AcceptedBasePrice,
                             AcceptedUnitPrice = d.UnitPrice,
                             PriceSource = d.PriceSource,
@@ -272,6 +282,43 @@ namespace CafeChain.Controllers.Api.v1
                 message = $"Đồng bộ hoàn tất: {createdCount} tạo mới, {duplicateCount} trùng lặp, {failedCount} lỗi.",
                 summary = new { createdCount, duplicateCount, failedCount, total = request.Orders.Count },
                 results
+            });
+        }
+
+        private async Task<IActionResult?> EnsureOpeningCashReadyAsync()
+        {
+            if (_posSessionExchangeService == null) return null;
+            if (CurrentExchangeContextId <= 0)
+                return Conflict(new
+                {
+                    success = false,
+                    errorCode = WorkShiftErrorCodes.StaffHubOpenRequired,
+                    recommendedAction = WorkShiftRecommendedActions.OpenStaffHub,
+                    message = "Phiên POS không có ngữ cảnh StaffHub hợp lệ."
+                });
+
+            var context = await _posSessionExchangeService.GetContextAsync(
+                CurrentExchangeContextId,
+                CurrentAccountId,
+                CurrentStaffId,
+                CurrentStoreId);
+            if (context == null)
+                return Conflict(new
+                {
+                    success = false,
+                    errorCode = WorkShiftErrorCodes.StaffHubOpenRequired,
+                    recommendedAction = WorkShiftRecommendedActions.OpenStaffHub,
+                    message = "Ngữ cảnh POS đã hết hạn. Vui lòng mở lại từ StaffHub."
+                });
+            if (!context.RequiresOpeningCash) return null;
+
+            return Conflict(new
+            {
+                success = false,
+                errorCode = WorkShiftErrorCodes.OpeningCashRequired,
+                recommendedAction = WorkShiftRecommendedActions.EnterOpeningCash,
+                workShiftId = context.WorkShiftId,
+                message = "Vui lòng xác nhận tiền đầu phiên trước khi bán hàng."
             });
         }
 
@@ -430,6 +477,7 @@ namespace CafeChain.Controllers.Api.v1
                 if (cart.MenuItemId != detail.ItemId
                     || cart.StoreMenuItemId != detail.StoreMenuItemId
                     || cart.DrinkSizeId != detail.DrinkSizeId
+                    || cart.RecipeIdSnapshot != detail.RecipeIdSnapshot
                     || cart.SizeId != detail.SizeId
                     || cart.Quantity != detail.Quantity
                     || cart.UnitPrice != detail.UnitPrice
@@ -442,11 +490,29 @@ namespace CafeChain.Controllers.Api.v1
 
                 var detailToppings = (detail.Toppings ?? new List<POSOrderToppingDto>())
                     .OrderBy(x => x.ToppingId)
-                    .Select(x => new { x.ToppingId, Price = x.AcceptedPrice })
+                    .Select(x => new
+                    {
+                        x.ToppingId,
+                        Price = x.AcceptedPrice,
+                        x.QuantityPerDrink,
+                        x.QuantityUnit,
+                        x.RecipeIdSnapshot,
+                        x.PriceTreatment,
+                        x.CostTreatment
+                    })
                     .ToArray();
                 var cartToppings = (cart.Toppings ?? new List<OfflineCartSnapshotToppingDTO>())
                     .OrderBy(x => x.ToppingId)
-                    .Select(x => new { x.ToppingId, Price = x.AcceptedPrice ?? x.Price })
+                    .Select(x => new
+                    {
+                        x.ToppingId,
+                        Price = x.AcceptedPrice ?? x.Price,
+                        x.QuantityPerDrink,
+                        x.QuantityUnit,
+                        x.RecipeIdSnapshot,
+                        x.PriceTreatment,
+                        x.CostTreatment
+                    })
                     .ToArray();
                 if (!detailToppings.SequenceEqual(cartToppings))
                     return $"{POSCatalogSaleErrorCodes.SnapshotInvalid}: Topping snapshot offline không khớp.";

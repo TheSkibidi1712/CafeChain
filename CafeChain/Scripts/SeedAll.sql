@@ -1,9 +1,104 @@
-IF DB_NAME() IN (N'master',N'model',N'msdb',N'tempdb')
-    THROW 53000,N'SeedAll phải chạy trên database CafeChain đích, không được chạy trên system database.',1;
+use CafeChain
 go
 
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
+GO
+
+/* ============================================================
+   FIXED POS TEST IDENTITIES
+   - Must run before any later batch creates identity rows.
+   - AccountId/StaffId 16 and 17 continue directly after migration seed 15.
+   - Password hash is copied from salesstaff; POS operator PIN is never seeded.
+   ============================================================ */
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    DECLARE @PosTestPasswordHash nvarchar(500), @PosTestGender int, @PosTestEmployeeStatus int;
+    DECLARE @PosTestSalesRoleId int, @PosTestStoreScopeTypeId int;
+
+    SELECT @PosTestPasswordHash=a.PasswordHash,
+           @PosTestGender=s.Gender,
+           @PosTestEmployeeStatus=s.EmployeeStatus
+    FROM dbo.Accounts a
+    JOIN dbo.Staffs s ON s.AccountId=a.AccountId
+    WHERE a.Email=N'salesstaff@cafechain.vn' AND a.Active=1 AND s.Active=1 AND s.StoreId=1;
+
+    SELECT @PosTestSalesRoleId=RoleId FROM dbo.Roles WHERE Name=N'Nhân viên bán hàng' AND Active=1;
+    SELECT @PosTestStoreScopeTypeId=ScopeTypeId FROM dbo.ScopeTypes WHERE Code=N'STORE';
+
+    IF @PosTestPasswordHash IS NULL OR @PosTestSalesRoleId IS NULL OR @PosTestStoreScopeTypeId IS NULL
+       OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE StoreId=1 AND Name=N'CafeChain Thủ Dầu Một')
+       OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE StoreId=3 AND Name=N'CafeChain Dĩ An')
+        THROW 53700,N'POS_TEST_IDENTITIES: thiếu salesstaff, role, STORE scope hoặc Store 1/3 nền.',1;
+
+    IF EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=16 AND
+              (Email<>N'salesstaff2@cafechain.vn' OR PasswordHash<>@PosTestPasswordHash OR Active<>1 OR RequiresPasswordChange<>0))
+       OR EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=N'salesstaff2@cafechain.vn' AND AccountId<>16)
+        THROW 53701,N'POS_TEST_IDENTITIES: AccountId/email 16 đã tồn tại với payload khác.',1;
+    IF EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=17 AND
+              (Email<>N'salesstaff3@cafechain.vn' OR PasswordHash<>@PosTestPasswordHash OR Active<>1 OR RequiresPasswordChange<>0))
+       OR EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=N'salesstaff3@cafechain.vn' AND AccountId<>17)
+        THROW 53702,N'POS_TEST_IDENTITIES: AccountId/email 17 đã tồn tại với payload khác.',1;
+
+    SET IDENTITY_INSERT dbo.Accounts ON;
+    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=16)
+        INSERT dbo.Accounts(AccountId,Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
+        VALUES(16,N'salesstaff2@cafechain.vn',@PosTestPasswordHash,1,0,'2026-08-06T00:00:00',0,NULL);
+    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=17)
+        INSERT dbo.Accounts(AccountId,Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
+        VALUES(17,N'salesstaff3@cafechain.vn',@PosTestPasswordHash,1,0,'2026-08-06T00:00:00',0,NULL);
+    SET IDENTITY_INSERT dbo.Accounts OFF;
+
+    IF EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId IN(16,17) AND RoleId<>@PosTestSalesRoleId)
+        THROW 53703,N'POS_TEST_IDENTITIES: tài khoản test có role ngoài Nhân viên bán hàng.',1;
+    IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=16 AND RoleId=@PosTestSalesRoleId)
+        INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(16,@PosTestSalesRoleId);
+    IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=17 AND RoleId=@PosTestSalesRoleId)
+        INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(17,@PosTestSalesRoleId);
+
+    IF EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=16 AND
+              (AccountId<>16 OR FullName<>N'Nhân viên bán hàng 2' OR StoreId<>1 OR Active<>1 OR PosPinHash IS NOT NULL))
+       OR EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=16 AND StaffId<>16)
+        THROW 53704,N'POS_TEST_IDENTITIES: StaffId/AccountId 16 đã tồn tại với payload khác.',1;
+    IF EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=17 AND
+              (AccountId<>17 OR FullName<>N'Nhân viên bán hàng 3' OR StoreId<>3 OR Active<>1 OR PosPinHash IS NOT NULL))
+       OR EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=17 AND StaffId<>17)
+        THROW 53705,N'POS_TEST_IDENTITIES: StaffId/AccountId 17 đã tồn tại với payload khác.',1;
+
+    SET IDENTITY_INSERT dbo.Staffs ON;
+    IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=16)
+        INSERT dbo.Staffs(StaffId,AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,StoreId,
+                          AvatarUrl,AvatarPublicId,Active,PosPinHash,PosPinFailedAttempts,PosPinLockedUntilUtc,CreatedAt)
+        VALUES(16,16,N'Nhân viên bán hàng 2',NULL,@PosTestGender,'2026-08-06',@PosTestEmployeeStatus,NULL,1,
+               NULL,NULL,1,NULL,0,NULL,'2026-08-06T00:00:00');
+    IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=17)
+        INSERT dbo.Staffs(StaffId,AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,StoreId,
+                          AvatarUrl,AvatarPublicId,Active,PosPinHash,PosPinFailedAttempts,PosPinLockedUntilUtc,CreatedAt)
+        VALUES(17,17,N'Nhân viên bán hàng 3',NULL,@PosTestGender,'2026-08-06',@PosTestEmployeeStatus,NULL,3,
+               NULL,NULL,1,NULL,0,NULL,'2026-08-06T00:00:00');
+    SET IDENTITY_INSERT dbo.Staffs OFF;
+
+    IF EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=16 AND
+              (ScopeTypeId<>@PosTestStoreScopeTypeId OR ScopeRefId<>1))
+       OR EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=17 AND
+              (ScopeTypeId<>@PosTestStoreScopeTypeId OR ScopeRefId<>3))
+        THROW 53706,N'POS_TEST_IDENTITIES: StaffScope test khác STORE/Store contract.',1;
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=16 AND ScopeTypeId=@PosTestStoreScopeTypeId AND ScopeRefId=1)
+        INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId) VALUES(16,@PosTestStoreScopeTypeId,1);
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=17 AND ScopeTypeId=@PosTestStoreScopeTypeId AND ScopeRefId=3)
+        INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId) VALUES(17,@PosTestStoreScopeTypeId,3);
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    SET IDENTITY_INSERT dbo.Accounts OFF;
+    SET IDENTITY_INSERT dbo.Staffs OFF;
+    THROW;
+END CATCH;
 GO
 
 /* ============================================================
@@ -2117,6 +2212,8 @@ BEGIN TRY
 
        The 24 EF rows remain unchanged. IDs 73-101 add one physical
        purchase-unit conversion for each retained/new mass or volume item.
+       IDs 102-107 model packaging procurement: inventory/BOM consumes pcs,
+       while suppliers sell cups, lids, straws and bags by carton.
        ============================================================ */
 
     DECLARE @UnitConversionSeed TABLE
@@ -2162,7 +2259,13 @@ BEGIN TRY
         (98,47,2,1,1,1000,1),
         (99,48,2,1,1,1000,1),
         (100,49,2,1,1,1000,1),
-        (101,50,2,1,1,1000,1);
+        (101,50,2,1,1,1000,1),
+        (102,32,14,1,9,1000,1),
+        (103,33,14,1,9,1000,1),
+        (104,34,14,1,9,1000,1),
+        (105,35,14,1,9,1000,1),
+        (106,36,14,1,9,2000,1),
+        (107,37,14,1,9,500,1);
 
     IF EXISTS
     (
@@ -2264,8 +2367,8 @@ BEGIN TRY
     IF (SELECT COUNT(*) FROM dbo.Ingredients) <> 50
         THROW 52221, N'Tổng số Ingredients sau Batch 03 phải bằng 50.', 1;
 
-    IF (SELECT COUNT(*) FROM dbo.UnitConversions) <> 53
-        THROW 52222, N'Tổng số UnitConversions sau Batch 03 phải bằng 53.', 1;
+    IF (SELECT COUNT(*) FROM dbo.UnitConversions) <> 59
+        THROW 52222, N'Tổng số UnitConversions sau Batch 03 phải bằng 59.', 1;
 
     IF (SELECT COUNT(*) FROM dbo.PreparedItems) <> 12
         THROW 52223, N'PreparedItems count must be 12.', 1;
@@ -2294,10 +2397,22 @@ BEGIN TRY
         FROM @UnitConversionSeed c
         JOIN dbo.Ingredients i ON i.IngredientId = c.IngredientId
         WHERE c.FromQuantity <> 1
-           OR c.ToQuantity <> 1000
            OR c.FromUnitId = c.ToUnitId
            OR c.ToUnitId <> i.BaseUnitId
-           OR NOT ((c.FromUnitId = 2 AND c.ToUnitId = 1) OR (c.FromUnitId = 4 AND c.ToUnitId = 3))
+           OR NOT (
+                (c.ToQuantity = 1000 AND
+                    ((c.FromUnitId = 2 AND c.ToUnitId = 1)
+                     OR (c.FromUnitId = 4 AND c.ToUnitId = 3)))
+                OR
+                (c.IngredientId BETWEEN 32 AND 37
+                 AND c.FromUnitId = 14
+                 AND c.ToUnitId = 9
+                 AND c.ToQuantity = CASE c.IngredientId
+                     WHEN 36 THEN 2000
+                     WHEN 37 THEN 500
+                     ELSE 1000
+                 END)
+           )
     )
         THROW 52225, N'UnitConversion mới không đúng kg-g hoặc l-ml/base unit.', 1;
 
@@ -2374,7 +2489,7 @@ UNION ALL
 SELECT N'UnitConversions', COUNT(*), MIN(UnitConversionId), MAX(UnitConversionId),
        SUM(CASE WHEN UnitConversionId BETWEEN 1 AND 72 THEN 1 ELSE 0 END),
        SUM(CASE WHEN UnitConversionId BETWEEN 73 AND 89 THEN 1 ELSE 0 END),
-       SUM(CASE WHEN UnitConversionId BETWEEN 90 AND 101 THEN 1 ELSE 0 END)
+       SUM(CASE WHEN UnitConversionId BETWEEN 90 AND 107 THEN 1 ELSE 0 END)
 FROM dbo.UnitConversions
 UNION ALL
 SELECT N'PreparedItems', COUNT(*), MIN(PreparedItemId), MAX(PreparedItemId),
@@ -4092,12 +4207,12 @@ THROW 52602, N'Price histories EF IDs 1-3 thiếu hoặc khác contract migratio
 (32,31,7,2,1,220000,1,3,1,1,N'DEMO_OFFER_CHEESE_POWDER','2026-01-01','2026-01-01'),
 (33,13,9,4,20,30000,1,4,1,1,N'DEMO_OFFER_WATER','2026-01-01','2026-01-01'),
 (34,7,9,2,20,40000,1,5,1,1,N'DEMO_OFFER_ICE','2026-01-01','2026-01-01'),
-(35,32,8,9,1000,900000,1,1,1,1,N'DEMO_OFFER_CUP_M','2026-01-01','2026-01-01'),
-(36,33,8,9,1000,1050000,1,2,1,1,N'DEMO_OFFER_CUP_L','2026-01-01','2026-01-01'),
-(37,34,8,9,1000,300000,1,3,1,1,N'DEMO_OFFER_LID_M','2026-01-01','2026-01-01'),
-(38,35,8,9,1000,350000,1,4,1,1,N'DEMO_OFFER_LID_L','2026-01-01','2026-01-01'),
-(39,36,8,9,2000,300000,1,5,1,1,N'DEMO_OFFER_STRAW','2026-01-01','2026-01-01'),
-(40,37,8,9,500,250000,1,1,1,1,N'DEMO_OFFER_BAG','2026-01-01','2026-01-01'),
+(35,32,8,14,1,900000,1,1,1,1,N'DEMO_OFFER_CUP_M','2026-01-01','2026-01-01'),
+(36,33,8,14,1,1050000,1,2,1,1,N'DEMO_OFFER_CUP_L','2026-01-01','2026-01-01'),
+(37,34,8,14,1,300000,1,3,1,1,N'DEMO_OFFER_LID_M','2026-01-01','2026-01-01'),
+(38,35,8,14,1,350000,1,4,1,1,N'DEMO_OFFER_LID_L','2026-01-01','2026-01-01'),
+(39,36,8,14,1,300000,1,5,1,1,N'DEMO_OFFER_STRAW','2026-01-01','2026-01-01'),
+(40,37,8,14,1,250000,1,1,1,1,N'DEMO_OFFER_BAG','2026-01-01','2026-01-01'),
 (41,1,11,2,1,148400,5,3,0,1,N'SEEDALL_ALT_ING_001','2026-01-01','2026-01-01'),
 (42,4,22,2,1,90100,2,2,0,1,N'SEEDALL_ALT_ING_004','2026-01-01','2026-01-01'),
 (43,5,39,2,1,190800,2,4,0,1,N'SEEDALL_ALT_ING_005','2026-01-01','2026-01-01'),
@@ -4126,12 +4241,12 @@ THROW 52602, N'Price histories EF IDs 1-3 thiếu hoặc khác contract migratio
 (66,29,39,2,1,169600,1,4,0,1,N'SEEDALL_ALT_ING_029','2026-01-01','2026-01-01'),
 (67,30,40,2,1,190800,1,3,0,1,N'SEEDALL_ALT_ING_030','2026-01-01','2026-01-01'),
 (68,31,25,2,1,233200,1,2,0,1,N'SEEDALL_ALT_ING_031','2026-01-01','2026-01-01'),
-(69,32,50,9,1000,954000,1,3,0,1,N'SEEDALL_ALT_ING_032','2026-01-01','2026-01-01'),
-(70,33,43,9,1000,1113000,1,2,0,1,N'SEEDALL_ALT_ING_033','2026-01-01','2026-01-01'),
-(71,34,44,9,1000,318000,1,3,0,1,N'SEEDALL_ALT_ING_034','2026-01-01','2026-01-01'),
-(72,35,45,9,1000,371000,1,2,0,1,N'SEEDALL_ALT_ING_035','2026-01-01','2026-01-01'),
-(73,36,46,9,2000,318000,1,4,0,1,N'SEEDALL_ALT_ING_036','2026-01-01','2026-01-01'),
-(74,37,47,9,500,265000,1,3,0,1,N'SEEDALL_ALT_ING_037','2026-01-01','2026-01-01'),
+(69,32,50,14,1,954000,1,3,0,1,N'SEEDALL_ALT_ING_032','2026-01-01','2026-01-01'),
+(70,33,43,14,1,1113000,1,2,0,1,N'SEEDALL_ALT_ING_033','2026-01-01','2026-01-01'),
+(71,34,44,14,1,318000,1,3,0,1,N'SEEDALL_ALT_ING_034','2026-01-01','2026-01-01'),
+(72,35,45,14,1,371000,1,2,0,1,N'SEEDALL_ALT_ING_035','2026-01-01','2026-01-01'),
+(73,36,46,14,1,318000,1,4,0,1,N'SEEDALL_ALT_ING_036','2026-01-01','2026-01-01'),
+(74,37,47,14,1,265000,1,3,0,1,N'SEEDALL_ALT_ING_037','2026-01-01','2026-01-01'),
 (75,38,32,2,1,120000,2,2,1,1,N'SEEDALL_PRIMARY_ING_038','2026-01-01','2026-01-01'),
 (76,38,33,2,1,127200,2,3,0,1,N'SEEDALL_ALT_ING_038','2026-01-01','2026-01-01'),
 (77,39,33,2,5,180000,2,3,1,1,N'SEEDALL_PRIMARY_ING_039','2026-01-01','2026-01-01'),
@@ -4296,24 +4411,24 @@ THROW 52602, N'Price histories EF IDs 1-3 thiếu hoặc khác contract migratio
 (94,34,36000,20,2,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
 (95,34,38000,20,2,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
 (96,34,40000,20,2,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(97,35,810000,1000,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(98,35,855000,1000,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(99,35,900000,1000,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(100,36,945000,1000,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(101,36,997500,1000,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(102,36,1050000,1000,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(103,37,270000,1000,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(104,37,285000,1000,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(105,37,300000,1000,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(106,38,315000,1000,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(107,38,332500,1000,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(108,38,350000,1000,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(109,39,270000,2000,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(110,39,285000,2000,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(111,39,300000,2000,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(112,40,225000,500,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(113,40,237500,500,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(114,40,250000,500,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(97,35,810000,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(98,35,855000,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(99,35,900000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(100,36,945000,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(101,36,997500,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(102,36,1050000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(103,37,270000,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(104,37,285000,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(105,37,300000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(106,38,315000,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(107,38,332500,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(108,38,350000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(109,39,270000,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(110,39,285000,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(111,39,300000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(112,40,225000,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(113,40,237500,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(114,40,250000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
 (115,41,133600,1,2,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
 (116,41,141000,1,2,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
 (117,41,148400,1,2,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
@@ -4398,24 +4513,24 @@ THROW 52602, N'Price histories EF IDs 1-3 thiếu hoặc khác contract migratio
 (196,68,209900,1,2,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
 (197,68,221500,1,2,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
 (198,68,233200,1,2,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(199,69,858600,1000,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(200,69,906300,1000,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(201,69,954000,1000,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(202,70,1001700,1000,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(203,70,1057400,1000,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(204,70,1113000,1000,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(205,71,286200,1000,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(206,71,302100,1000,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(207,71,318000,1000,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(208,72,333900,1000,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(209,72,352500,1000,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(210,72,371000,1000,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(211,73,286200,2000,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(212,73,302100,2000,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(213,73,318000,2000,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
-(214,74,238500,500,9,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
-(215,74,251800,500,9,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
-(216,74,265000,500,9,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(199,69,858600,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(200,69,906300,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(201,69,954000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(202,70,1001700,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(203,70,1057400,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(204,70,1113000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(205,71,286200,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(206,71,302100,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(207,71,318000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(208,72,333900,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(209,72,352500,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(210,72,371000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(211,73,286200,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(212,73,302100,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(213,73,318000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
+(214,74,238500,1,14,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
+(215,74,251800,1,14,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
+(216,74,265000,1,14,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
 (217,75,108000,1,2,'2025-01-01',0,N'Giá lịch sử 2025-01',@ActorStaffId,'2025-01-01'),
 (218,75,114000,1,2,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
 (219,75,120000,1,2,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01'),
@@ -6980,37 +7095,37 @@ BEGIN TRY
 (N'Restock.View',1,1,1,0,1,0,0,1),
 (N'Restock.Create',1,0,1,0,1,0,0,0),
 (N'Restock.Submit',0,0,1,0,1,0,0,0),
-(N'Restock.Approve',1,0,0,0,1,0,0,0),
-(N'Restock.Reject',1,0,0,0,1,0,0,0),
+(N'Restock.Approve',0,0,0,0,1,0,0,0),
+(N'Restock.Reject',0,0,0,0,1,0,0,0),
 (N'Restock.Cancel',1,0,1,0,1,0,0,0),
 (N'ReorderSuggestion.View',1,1,1,0,1,0,0,0),
 (N'Restock.Update',0,0,1,0,1,0,0,0),
 (N'Restock.CloseRemaining',1,0,0,0,1,0,0,0),
-(N'Restock.CreatePurchaseOrder',1,0,0,0,1,0,0,0),
-(N'Restock.CreateTransfer',1,0,0,0,1,0,0,0),
+(N'Restock.CreatePurchaseOrder',0,0,0,0,1,0,0,0),
+(N'Restock.CreateTransfer',0,0,0,0,1,0,0,0),
 (N'PurchaseAdvice.View',1,1,1,0,1,0,0,0),
-(N'PurchaseAdvice.Create',1,0,1,0,1,0,0,0),
-(N'PurchaseAdvice.Submit',1,0,1,0,1,0,0,0),
-(N'PurchaseAdvice.Review',1,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.Approve',1,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.Reject',1,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.Consolidate',1,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.SelectSupplier',1,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.CreatePurchaseOrder',1,0,0,0,1,0,0,0),
+(N'PurchaseAdvice.Create',0,0,0,0,1,0,0,0),
+(N'PurchaseAdvice.Submit',0,0,0,0,1,0,0,0),
+(N'PurchaseAdvice.Review',0,0,0,0,1,0,0,0),
+(N'PurchaseAdvice.Approve',0,0,0,0,1,0,0,0),
+(N'PurchaseAdvice.Reject',0,0,0,0,1,0,0,0),
+(N'PurchaseAdvice.Consolidate',0,0,0,0,1,0,0,0),
+(N'PurchaseAdvice.SelectSupplier',0,0,0,0,1,0,0,0),
+(N'PurchaseAdvice.CreatePurchaseOrder',0,0,0,0,1,0,0,0),
 (N'PurchaseOrder.View',1,1,1,0,1,0,0,1),
-(N'PurchaseOrder.Create',1,0,0,0,1,0,0,0),
-(N'PurchaseOrder.Update',1,0,0,0,1,0,0,0),
-(N'PurchaseOrder.Send',1,0,0,0,1,0,0,0),
+(N'PurchaseOrder.Create',0,0,0,0,1,0,0,0),
+(N'PurchaseOrder.Update',0,0,0,0,1,0,0,0),
+(N'PurchaseOrder.Send',0,0,0,0,1,0,0,0),
 (N'PurchaseOrder.Receive',0,0,1,0,0,0,0,1),
 (N'PurchaseOrder.Cancel',1,0,0,0,1,0,0,0),
 (N'PurchaseOrder.ViewBatch',1,1,0,0,1,0,0,0),
-(N'PurchaseOrder.CreateBatch',1,0,0,0,1,0,0,0),
-(N'PurchaseOrder.Consolidate',1,0,0,0,1,0,0,0),
-(N'PurchaseOrder.Submit',1,0,0,0,1,0,0,0),
+(N'PurchaseOrder.CreateBatch',0,0,0,0,1,0,0,0),
+(N'PurchaseOrder.Consolidate',0,0,0,0,1,0,0,0),
+(N'PurchaseOrder.Submit',0,0,0,0,1,0,0,0),
 (N'PurchaseOrder.Approve',1,0,0,0,0,0,0,0),
 (N'PurchaseOrder.RejectApproval',1,0,0,0,0,0,0,0),
 (N'PurchaseOrder.OverrideAllocation',1,0,0,0,0,0,0,0),
-(N'PurchaseOrder.Export',1,0,0,0,1,0,0,0),
+(N'PurchaseOrder.Export',0,0,0,0,1,0,0,0),
 (N'Receipt.View',1,1,1,0,1,0,0,1),
 (N'Receipt.Create',0,0,1,0,0,0,0,1),
 (N'Receipt.Confirm',0,0,1,0,0,0,0,1),
@@ -7312,7 +7427,8 @@ BEGIN TRY
  (N'POS.WorkShift.ApproveOutsideSchedule',N'Duyệt mở POS ngoài lịch',N'ApproveOutsideSchedule',N'Phê duyệt mở POS ngoài lịch trong StaffScope'),
  (N'POS.WorkShift.CloseException',N'Đóng phiên POS ngoại lệ',N'CloseException',N'Đóng ngoại lệ và chuyển phiên cũ sang trạng thái cần đối soát'),
  (N'POS.WorkShift.Reconcile',N'Đối soát lại phiên POS',N'Reconcile',N'Đối soát payment hoặc đơn offline đồng bộ muộn trên phiên gốc'),
- (N'POS.WorkShift.OverrideTerminal',N'Đăng ký terminal POS',N'OverrideTerminal',N'Phê duyệt đăng ký hoặc kích hoạt terminal POS trong StaffScope');
+ (N'POS.WorkShift.OverrideTerminal',N'Đăng ký terminal POS',N'OverrideTerminal',N'Phê duyệt đăng ký hoặc kích hoạt terminal POS trong StaffScope'),
+ (N'POS.Operator.Switch',N'Đổi người thao tác POS',N'SwitchOperator',N'Cho phép thiết lập PIN cá nhân và chuyển Current Operator trong đúng StaffScope');
 
  IF EXISTS
  (
@@ -7383,7 +7499,7 @@ BEGIN TRY
    (
     m.GrantAll=1
     OR (m.GrantStaffOperations=1 AND p.Code IN
-       (N'POS.WorkShift.View',N'POS.WorkShift.Open',N'POS.WorkShift.Close',N'POS.WorkShift.OpenOutsideSchedule'))
+       (N'POS.WorkShift.View',N'POS.WorkShift.Open',N'POS.WorkShift.Close',N'POS.WorkShift.OpenOutsideSchedule',N'POS.Operator.Switch'))
    );
 
  DELETE rp
@@ -7406,7 +7522,7 @@ BEGIN TRY
   WHERE rp.RoleId=e.RoleId AND rp.PermissionId=e.PermissionId
  );
 
- IF (SELECT COUNT(*) FROM dbo.Permissions WHERE PermissionGroupId=@WorkShiftPermissionGroupId AND Active=1)<>8
+ IF (SELECT COUNT(*) FROM dbo.Permissions WHERE PermissionGroupId=@WorkShiftPermissionGroupId AND Active=1)<>9
  OR EXISTS
  (
   SELECT e.RoleId,e.PermissionId FROM @ExpectedWorkShiftRolePermissions e

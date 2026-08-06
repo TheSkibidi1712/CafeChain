@@ -12,6 +12,7 @@ using CafeChain.Application.Services.Inventories;
 using CafeChain.Application.Services.Security;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
@@ -249,7 +250,7 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
         await using var db = CreateContext();
         var seed = await SeedFoundationAsync(db);
         var adviceService = AdviceService(db);
-        var own = await adviceService.CreateAsync(CreateAdviceRequest(seed.Restock1Id, seed.Store1Id, seed.Restock1RowVersion), Manager1(seed));
+        var own = await adviceService.CreateAsync(CreateAdviceRequest(seed.Restock1Id, seed.Store1Id, seed.Restock1RowVersion), Warehouse(seed));
         Assert.True(own.IsSuccess, own.Message);
 
         var otherStore = await adviceService.CreateAsync(CreateAdviceRequest(seed.Restock2Id, seed.Store2Id, seed.Restock2RowVersion), Manager1(seed));
@@ -261,7 +262,7 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
         Assert.True(systemAdmin.IsSuccess, systemAdmin.Message);
 
         var submitted = await adviceService.SubmitAsync(own.Data!.PurchaseAdviceId,
-            new() { RowVersion = own.Data.RowVersion }, Manager1(seed));
+            new() { RowVersion = own.Data.RowVersion }, Warehouse(seed));
         var reviewed = await adviceService.StartReviewAsync(submitted.Data!.PurchaseAdviceId,
             new() { RowVersion = submitted.Data.RowVersion }, Warehouse(seed));
         Assert.True(reviewed.IsSuccess, reviewed.Message);
@@ -277,6 +278,91 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
             999999, seed.WarehouseId, null, new[] { RoleConstants.AccountantWarehouse });
         Assert.False(accountantReceipt.IsSuccess);
         Assert.Equal(BranchReceiptErrorCodes.Unauthorized, accountantReceipt.ErrorCode);
+    }
+
+    [Fact]
+    public async Task SqlServer_SingleSourceCannotCreateConsolidatedPurchaseOrder()
+    {
+        await using var db = CreateContext();
+        var seed = await SeedFoundationAsync(db);
+        var reviewed = await CreateReviewedAdviceAsync(
+            AdviceService(db),
+            CreateAdviceRequest(seed.Restock1Id, seed.Store1Id, seed.Restock1RowVersion),
+            Manager1(seed),
+            Warehouse(seed));
+        var line = Assert.Single(reviewed.Lines);
+
+        var result = await BatchService(db).CreateAsync(new CreatePurchaseOrderBatchRequest
+        {
+            SupplierId = seed.SupplierId,
+            RequestKey = "single-source-189",
+            Lines =
+            {
+                new()
+                {
+                    PurchaseAdviceLineId = line.PurchaseAdviceLineId,
+                    IngredientSupplierId = seed.OfferId,
+                    PackageCount = 5,
+                    RowVersion = line.RowVersion
+                }
+            }
+        }, Warehouse(seed));
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("một nguồn nhu cầu", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(await db.PurchaseOrderBatches.ToListAsync());
+        Assert.Empty(await db.PurchaseOrders.ToListAsync());
+    }
+
+    [Fact]
+    public async Task SqlServer_SinglePaCreatesOneNormalPoAndRetryReturnsExistingOrder()
+    {
+        await using var db = CreateContext();
+        var seed = await SeedFoundationAsync(db);
+        var reviewed = await CreateReviewedAdviceAsync(
+            AdviceService(db),
+            CreateAdviceRequest(seed.Restock1Id, seed.Store1Id, seed.Restock1RowVersion),
+            Manager1(seed),
+            Warehouse(seed));
+        var adviceLine = Assert.Single(reviewed.Lines);
+        var request = new CreatePurchaseOrderRequest
+        {
+            StoreId = seed.Store1Id,
+            SupplierId = seed.SupplierId,
+            Lines =
+            {
+                new()
+                {
+                    PurchaseAdviceLineId = adviceLine.PurchaseAdviceLineId,
+                    PurchaseAdviceLineRowVersion = adviceLine.RowVersion,
+                    RestockRequestId = seed.Restock1Id,
+                    IngredientId = seed.IngredientId,
+                    IngredientSupplierId = seed.OfferId,
+                    PurchaseMode = PurchaseMode.Packaged,
+                    PackageCount = 5,
+                    ProcurementUnitId = adviceLine.ProcurementUnitId
+                }
+            }
+        };
+        var service = NormalOrderService(db);
+
+        var first = await service.CreateDraftAsync(
+            request,
+            seed.WarehouseId,
+            new[] { RoleConstants.AccountantWarehouse });
+        var replay = await service.CreateDraftAsync(
+            request,
+            seed.WarehouseId,
+            new[] { RoleConstants.AccountantWarehouse });
+
+        Assert.True(first.IsSuccess, first.Message);
+        Assert.True(replay.IsSuccess, replay.Message);
+        Assert.Equal(first.Data!.PurchaseOrderId, replay.Data!.PurchaseOrderId);
+        Assert.Single(await db.PurchaseOrders.ToListAsync());
+        Assert.Empty(await db.PurchaseOrderBatches.ToListAsync());
+        var persistedLine = Assert.Single(await db.PurchaseOrderLines.ToListAsync());
+        Assert.Equal(adviceLine.PurchaseAdviceLineId, persistedLine.PurchaseAdviceLineId);
+        Assert.Equal(5m, (await db.PurchaseAdviceLines.SingleAsync()).AllocatedToPoBaseQuantity);
     }
 
     private static async Task<PurchaseOrderReceiptDraftDto> PrepareReceiptAsync(
@@ -324,10 +410,10 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
     private static async Task<PurchaseAdviceDetailDto> CreateReviewedAdviceAsync(
         PurchaseAdviceService service, CreatePurchaseAdviceRequest request, AdminActorContext manager, AdminActorContext warehouse)
     {
-        var created = await service.CreateAsync(request, manager);
+        var created = await service.CreateAsync(request, warehouse);
         Assert.True(created.IsSuccess, created.Message);
         var submitted = await service.SubmitAsync(created.Data!.PurchaseAdviceId,
-            new() { RowVersion = created.Data.RowVersion }, manager);
+            new() { RowVersion = created.Data.RowVersion }, warehouse);
         Assert.True(submitted.IsSuccess, submitted.Message);
         var reviewed = await service.StartReviewAsync(submitted.Data!.PurchaseAdviceId,
             new() { RowVersion = submitted.Data.RowVersion }, warehouse);
@@ -353,6 +439,17 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
         return new(db, Scope(db), physical.Object);
     }
     private static PurchaseOrderBatchService BatchService(AppDbContext db) => new(db, ConsolidationService(db), Scope(db));
+    private static PurchaseOrderService NormalOrderService(AppDbContext db)
+    {
+        var physical = new PhysicalUnitConversionService(db, NullLogger<PhysicalUnitConversionService>.Instance);
+        var unit = new UnitConversionService(db, NullLogger<UnitConversionService>.Instance, physical);
+        return new PurchaseOrderService(
+            db,
+            unit,
+            new RestockAllocationService(db, new NoPurchaseOrderAllocationProvider()),
+            Scope(db),
+            new PurchaseAdviceFulfillmentService(db));
+    }
     private static PurchaseOrderBatchDocumentService DocumentService(AppDbContext db, MemoryStorage storage) =>
         new(db, new DeterministicRenderer(), storage, Scope(db));
 

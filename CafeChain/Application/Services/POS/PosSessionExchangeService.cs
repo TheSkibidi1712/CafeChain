@@ -9,6 +9,8 @@ using CafeChain.Data;
 using CafeChain.Models.Systems;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Text.Json;
+using CafeChain.Application.Results;
 
 namespace CafeChain.Application.Services.POS;
 
@@ -29,34 +31,38 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
         _timeProvider = timeProvider;
     }
 
-    public async Task<PosSessionExchangeTicketDto> IssueAsync(int accountId, int staffId, int storeId,
+    public async Task<PosSessionExchangeTicketDto> IssueAsync(PosSessionExchangeContextDto context,
         CancellationToken cancellationToken = default)
     {
         var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
         var actorIsActive = await _dbContext.Staffs.AsNoTracking()
-            .AnyAsync(x => x.StaffId == staffId && x.AccountId == accountId
-                && x.StoreId == storeId && x.Active && x.Account.Active && x.Store.Active,
+            .AnyAsync(x => x.StaffId == context.StaffId && x.AccountId == context.AccountId
+                && x.StoreId == context.StoreId && x.Active && x.Account.Active && x.Store.Active,
                 cancellationToken);
         if (!actorIsActive)
             throw new UnauthorizedAccessException("Phiên nhân viên hoặc cửa hàng không còn hoạt động.");
 
         var rawCode = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var expiresAtUtc = nowUtc.Add(TicketLifetime);
-        _dbContext.RequestDeduplications.Add(new RequestDeduplication
+        var serializedContext = JsonSerializer.Serialize(context);
+        var entry = new RequestDeduplication
         {
-            RequestKey = Hash(rawCode), ActionName = ActionName, StaffId = staffId,
-            AccountId = accountId, StoreId = storeId, Status = "PROCESSING",
-            PayloadHash = Hash($"{accountId}:{staffId}:{storeId}"), CreatedAt = nowUtc,
+            RequestKey = Hash(rawCode), ActionName = ActionName, StaffId = context.StaffId,
+            AccountId = context.AccountId, StoreId = context.StoreId, Status = "PROCESSING",
+            PayloadHash = Hash(serializedContext), ResponseBody = serializedContext, CreatedAt = nowUtc,
             ExpiredAt = expiresAtUtc, ProcessingLeaseUntilUtc = expiresAtUtc
-        });
+        };
+        _dbContext.RequestDeduplications.Add(entry);
         await _dbContext.SaveChangesAsync(cancellationToken);
-        return new PosSessionExchangeTicketDto(rawCode, expiresAtUtc);
+        return new PosSessionExchangeTicketDto(rawCode, expiresAtUtc, entry.RequestDeduplicationId);
     }
 
-    public async Task<PosSessionTokenDto?> ExchangeAsync(string exchangeCode,
+    public async Task<ServiceResult<PosSessionTokenDto>> ExchangeAsync(string exchangeCode,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(exchangeCode)) return null;
+        if (string.IsNullOrWhiteSpace(exchangeCode))
+            return ServiceResult<PosSessionTokenDto>.Failure(
+                "Mã mở POS không hợp lệ.", errorCode: PosSessionExchangeErrorCodes.Invalid);
         var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
         var codeHash = Hash(exchangeCode.Trim());
         await using var transaction = _dbContext.Database.IsRelational()
@@ -66,7 +72,13 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
 
         var ticket = await _dbContext.RequestDeduplications.SingleOrDefaultAsync(
             x => x.RequestKey == codeHash && x.ActionName == ActionName, cancellationToken);
-        if (ticket == null || ticket.Status != "PROCESSING" || ticket.ExpiredAt <= nowUtc)
+        if (ticket == null)
+            return ServiceResult<PosSessionTokenDto>.Failure(
+                "Mã mở POS không hợp lệ.", errorCode: PosSessionExchangeErrorCodes.Invalid);
+        if (ticket.Status == "SUCCESS")
+            return ServiceResult<PosSessionTokenDto>.Failure(
+                "Mã mở POS đã được sử dụng.", errorCode: PosSessionExchangeErrorCodes.AlreadyUsed);
+        if (ticket.ExpiredAt <= nowUtc || ticket.Status == "EXPIRED")
         {
             if (ticket is { Status: "PROCESSING" })
             {
@@ -74,8 +86,27 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 if (transaction != null) await transaction.CommitAsync(cancellationToken);
             }
-            return null;
+            return ServiceResult<PosSessionTokenDto>.Failure(
+                "Mã mở POS đã hết hạn. Vui lòng quay lại StaffHub để thực hiện lại.",
+                errorCode: PosSessionExchangeErrorCodes.Expired);
         }
+        if (ticket.Status != "PROCESSING")
+            return ServiceResult<PosSessionTokenDto>.Failure(
+                "Mã mở POS không hợp lệ.", errorCode: PosSessionExchangeErrorCodes.Invalid);
+
+        PosSessionExchangeContextDto? context;
+        try
+        {
+            context = JsonSerializer.Deserialize<PosSessionExchangeContextDto>(ticket.ResponseBody ?? string.Empty);
+        }
+        catch (JsonException)
+        {
+            context = null;
+        }
+        if (context == null || context.AccountId != ticket.AccountId || context.StaffId != ticket.StaffId
+            || context.StoreId != ticket.StoreId)
+            return ServiceResult<PosSessionTokenDto>.Failure(
+                "Ngữ cảnh mở POS không hợp lệ.", errorCode: PosSessionExchangeErrorCodes.Invalid);
 
         var account = await _dbContext.Accounts
             .Include(x => x.Staff).ThenInclude(x => x.Store)
@@ -88,18 +119,87 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
             ticket.Status = "FAILED";
             await _dbContext.SaveChangesAsync(cancellationToken);
             if (transaction != null) await transaction.CommitAsync(cancellationToken);
-            return null;
+            return ServiceResult<PosSessionTokenDto>.Failure(
+                "Phiên nhân viên hoặc cửa hàng không còn hoạt động.",
+                errorCode: PosSessionExchangeErrorCodes.Invalid);
         }
 
+        var token = CreateToken(account, nowUtc, ticket.RequestDeduplicationId, context);
         ticket.Status = "SUCCESS";
-        ticket.ResponseBody = "CONSUMED";
         ticket.ProcessingLeaseUntilUtc = null;
+        ticket.ExpiredAt = token.ExpiresAtUtc;
         await _dbContext.SaveChangesAsync(cancellationToken);
         if (transaction != null) await transaction.CommitAsync(cancellationToken);
-        return CreateToken(account, nowUtc);
+        return ServiceResult<PosSessionTokenDto>.Success(token);
     }
 
-    private PosSessionTokenDto CreateToken(CafeChain.Models.Customers.Account account, DateTime nowUtc)
+    public async Task<PosSessionExchangeContextDto?> GetContextAsync(
+        int contextId,
+        int accountId,
+        int staffId,
+        int storeId,
+        CancellationToken cancellationToken = default)
+    {
+        var ticket = await _dbContext.RequestDeduplications.AsNoTracking().SingleOrDefaultAsync(
+            x => x.RequestDeduplicationId == contextId
+                && x.ActionName == ActionName
+                && x.Status == "SUCCESS"
+                && x.AccountId == accountId
+                && x.StaffId == staffId
+                && x.StoreId == storeId
+                && x.ExpiredAt > _timeProvider.GetUtcNow().UtcDateTime,
+            cancellationToken);
+        if (ticket?.ResponseBody == null) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<PosSessionExchangeContextDto>(ticket.ResponseBody);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    public async Task<bool> CompleteOpeningCashAsync(
+        int contextId,
+        int accountId,
+        int staffId,
+        int storeId,
+        int workShiftId,
+        CancellationToken cancellationToken = default)
+    {
+        var ticket = await _dbContext.RequestDeduplications.SingleOrDefaultAsync(
+            x => x.RequestDeduplicationId == contextId
+                && x.ActionName == ActionName
+                && x.Status == "SUCCESS"
+                && x.AccountId == accountId
+                && x.StaffId == staffId
+                && x.StoreId == storeId,
+            cancellationToken);
+        if (ticket?.ResponseBody == null) return false;
+
+        PosSessionExchangeContextDto? context;
+        try
+        {
+            context = JsonSerializer.Deserialize<PosSessionExchangeContextDto>(ticket.ResponseBody);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+        if (context == null
+            || (context.WorkShiftId.HasValue && context.WorkShiftId.Value != workShiftId)
+            || !context.RequiresOpeningCash) return false;
+
+        context.WorkShiftId = workShiftId;
+        context.RequiresOpeningCash = false;
+        ticket.ResponseBody = JsonSerializer.Serialize(context);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    private PosSessionTokenDto CreateToken(CafeChain.Models.Customers.Account account, DateTime nowUtc,
+        int contextId, PosSessionExchangeContextDto context)
     {
         var jwtKey = _configuration["Jwt:Key"];
         if (string.IsNullOrWhiteSpace(jwtKey))
@@ -116,8 +216,14 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
             new(ClaimTypes.Email, account.Email),
             new("StaffId", account.Staff.StaffId.ToString()),
             new("StoreId", account.Staff.StoreId.ToString()),
-            new("AvatarUrl", avatarUrl)
+            new("AvatarUrl", avatarUrl),
+            new("PosExchangeContextId", contextId.ToString()),
+            new("PosPurpose", context.Purpose),
+            new("PosTerminalId", context.TerminalId),
+            new("RequiresOpeningCash", context.RequiresOpeningCash ? "true" : "false")
         };
+        if (context.WorkShiftId.HasValue)
+            claims.Add(new Claim("PosWorkShiftId", context.WorkShiftId.Value.ToString()));
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var expirationHours = double.TryParse(_configuration["Jwt:ExpirationHours"], out var hours) ? hours : 12;
@@ -126,7 +232,7 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
             _configuration["Jwt:Audience"] ?? "CafeChain.POS", claims, notBefore: nowUtc,
             expires: expiresAtUtc, signingCredentials: new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)), SecurityAlgorithms.HmacSha256));
-        return new PosSessionTokenDto(new JwtSecurityTokenHandler().WriteToken(token), expiresAtUtc);
+        return new PosSessionTokenDto(new JwtSecurityTokenHandler().WriteToken(token), expiresAtUtc, contextId, context.Purpose);
     }
 
     private static string Hash(string value) =>

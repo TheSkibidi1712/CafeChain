@@ -67,6 +67,100 @@ public sealed class DashboardAiFallbackContractTests
         Assert.Contains("số không tồn tại", string.Join(" ", result.Warnings), StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task Operational_priority_fallback_uses_business_order_and_readable_statements()
+    {
+        var ollama = new Mock<IOllamaClient>();
+        ollama.Setup(x => x.ChatAsync(
+                It.IsAny<string>(), It.IsAny<string>(), "dashboard-insight-explanation", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OllamaResultDTO { Success = false });
+        var context = OperationalContext(
+            Alert("E-CASH", "CASH_DISCREPANCY", "WorkShift #65", "CafeChain Dĩ An", -80000, "VND", "Critical", "CRITICAL",
+                "Ca #65 tại CafeChain Dĩ An đang thiếu 80.000 đ."),
+            Alert("E-STOCK", "LOW_STOCK", "Hạt chia", "CafeChain Thủ Dầu Một", 2, "g", "High", "WARNING",
+                "Tồn khả dụng của Hạt chia tại CafeChain Thủ Dầu Một đã xuống dưới ngưỡng, hiện ở mức 2 g."),
+            Alert("E-PO", "OVERDUE_PO", "PO-OVERDUE", "CafeChain Thủ Dầu Một", 999999, "DAY", "High", "WARNING",
+                "PO PO-OVERDUE tại CafeChain Thủ Dầu Một đã quá hạn 999.999 ngày."));
+
+        var result = await CreateService(ollama).ExplainDashboardInsightAsync(context);
+
+        Assert.True(result.UsedFallback);
+        Assert.StartsWith("Có 1 cảnh báo nghiêm trọng và 2 cảnh báo khác", result.DirectAnswer, StringComparison.Ordinal);
+        Assert.True(result.DirectAnswer.IndexOf("Hạt chia", StringComparison.Ordinal)
+                    < result.DirectAnswer.IndexOf("PO-OVERDUE", StringComparison.Ordinal));
+        Assert.Equal(new[] { "E-CASH", "E-STOCK", "E-PO" },
+            result.ProofPoints.SelectMany(item => item.EvidenceIds));
+        Assert.Contains("Đối chiếu tiền mặt", result.ActionToCheck!.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("INGREDIENT", result.DirectAnswer, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("CASH_DISCREPANCY", "Đối chiếu tiền mặt")]
+    [InlineData("LOW_STOCK", "Kiểm đếm tồn thực tế")]
+    [InlineData("OVERDUE_PO", "trạng thái giao nhận")]
+    [InlineData("SUPPLIER_ISSUE", "phiếu nhập liên quan")]
+    public async Task Operational_priority_action_matches_alert_type(string alertType, string expectedAction)
+    {
+        var ollama = new Mock<IOllamaClient>();
+        ollama.Setup(x => x.ChatAsync(
+                It.IsAny<string>(), It.IsAny<string>(), "dashboard-insight-explanation", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OllamaResultDTO { Success = false });
+        var context = OperationalContext(Alert(
+            "E-1", alertType, "Đối tượng kiểm tra", "CafeChain Dĩ An", 2, "g", "High", "WARNING",
+            "Cảnh báo nghiệp vụ cần kiểm tra."));
+
+        var result = await CreateService(ollama).ExplainDashboardInsightAsync(context);
+
+        Assert.Contains(expectedAction, result.ActionToCheck!.Text, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static DashboardInsightExplanationContextDto OperationalContext(
+        params DashboardEvidenceDto[] evidence) => new()
+    {
+        AnalysisId = Guid.NewGuid(),
+        Widget = DashboardAnalyticsWidget.OperationalAlerts,
+        BusinessIntent = DashboardBusinessIntent.GeneralBusinessSummary,
+        FromDate = new DateTime(2026, 8, 1),
+        ToDate = new DateTime(2026, 8, 3),
+        DataStatus = "OK",
+        Confidence = .9m,
+        Comparison = new DashboardComparisonResultDto { CurrentValue = evidence.Length },
+        Understanding = new DashboardQuestionUnderstandingDto
+        {
+            OriginalQuestion = "Tôi nên chú ý điều gì?",
+            AnswerFocus = DashboardAnswerFocus.OperationalPriorities
+        },
+        Evidence = evidence
+    };
+
+    private static DashboardEvidenceDto Alert(
+        string id,
+        string alertType,
+        string entityName,
+        string storeName,
+        decimal value,
+        string unit,
+        string priority,
+        string risk,
+        string statement) => new()
+    {
+        EvidenceId = id,
+        SourceWidget = DashboardAnalyticsWidget.OperationalAlerts,
+        WidgetKey = "OperationalAlerts",
+        Kind = "FACT",
+        CurrentValue = value,
+        DisplayValue = Math.Abs(value).ToString("0.##"),
+        Unit = unit,
+        DisplayUnit = unit,
+        EntityName = entityName,
+        StoreName = storeName,
+        Priority = priority,
+        RiskLevel = risk,
+        Statement = statement,
+        DataStatus = "OK",
+        Metadata = new Dictionary<string, object?> { ["alertType"] = alertType }
+    };
+
     private static DashboardInsightExplanationContextDto Context()
     {
         var id = Guid.NewGuid();

@@ -217,7 +217,7 @@ function validateName(name) {
 
         toast(
             "Tên topping không được để trống",
-            "error"
+            "warning"
         );
 
         return false;
@@ -227,7 +227,7 @@ function validateName(name) {
 
         toast(
             "Tên topping tối đa 100 ký tự",
-            "error"
+            "warning"
         );
 
         return false;
@@ -242,7 +242,7 @@ function validateCode(code) {
 
         toast(
             "Mã topping không được để trống",
-            "error"
+            "warning"
         );
 
         return false;
@@ -252,7 +252,7 @@ function validateCode(code) {
 
         toast(
             "Mã topping tối đa 50 ký tự",
-            "error"
+            "warning"
         );
 
         return false;
@@ -269,7 +269,7 @@ function validatePrice(price) {
 
         toast(
             "Vui lòng nhập giá topping",
-            "error"
+            "warning"
         );
 
         return false;
@@ -279,7 +279,7 @@ function validatePrice(price) {
 
         toast(
             "Giá topping phải lớn hơn hoặc bằng 1000",
-            "error"
+            "warning"
         );
 
         return false;
@@ -303,7 +303,7 @@ function validateImageFile(
 
             toast(
                 "Vui lòng chọn ảnh topping",
-                "error"
+                "warning"
             );
 
             return false;
@@ -316,7 +316,7 @@ function validateImageFile(
 
         toast(
             "File ảnh không hợp lệ",
-            "error"
+            "warning"
         );
 
         return false;
@@ -326,7 +326,7 @@ function validateImageFile(
 
         toast(
             "Ảnh không được vượt quá 3MB",
-            "error"
+            "warning"
         );
 
         return false;
@@ -343,7 +343,7 @@ function validateImageFile(
 
         toast(
             "Chỉ chấp nhận JPG, JPEG, PNG hoặc WEBP",
-            "error"
+            "warning"
         );
 
         return false;
@@ -353,7 +353,7 @@ function validateImageFile(
 
         toast(
             "Định dạng ảnh không hợp lệ",
-            "error"
+            "warning"
         );
 
         return false;
@@ -606,6 +606,7 @@ document.addEventListener(
                             true
                         )
                     ) {
+                        this.querySelector(":invalid, [name='ToppingCode'], [name='Name'], [name='Price']")?.focus();
                         return;
                     }
 
@@ -637,10 +638,11 @@ document.addEventListener(
 
                         if (!result.success) {
 
-                            toast(
-                                result.message,
-                                "error"
-                            );
+                            toast(window.AdminFeedback.resolveMessage(result, {
+                                status: response.status,
+                                action: "create",
+                                entityName: "topping"
+                            }), "error");
 
                             unlockButton(
                                 btn,
@@ -670,7 +672,7 @@ document.addEventListener(
                     catch {
 
                         toast(
-                            "Có lỗi xảy ra",
+                            window.AdminFeedback.networkMessage(),
                             "error"
                         );
 
@@ -717,6 +719,7 @@ document.addEventListener(
                         !validateName(name) ||
                         !validatePrice(price)
                     ) {
+                        this.querySelector(":invalid, [name='ToppingCode'], [name='Name'], [name='Price']")?.focus();
                         return;
                     }
 
@@ -748,10 +751,11 @@ document.addEventListener(
 
                         if (!result.success) {
 
-                            toast(
-                                result.message,
-                                "error"
-                            );
+                            toast(window.AdminFeedback.resolveMessage(result, {
+                                status: response.status,
+                                action: "update",
+                                entityName: "topping"
+                            }), "error");
 
                             unlockButton(
                                 btn,
@@ -781,7 +785,7 @@ document.addEventListener(
                     catch {
 
                         toast(
-                            "Có lỗi xảy ra",
+                            window.AdminFeedback.networkMessage(),
                             "error"
                         );
 
@@ -843,7 +847,7 @@ async function openDrinkModal(
         if (!drinkModalInstance) {
 
             drinkModalInstance =
-                new bootstrap.Modal(
+                bootstrap.Modal.getOrCreateInstance(
                     modalElement
                 );
         }

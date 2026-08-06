@@ -40,6 +40,10 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
         AdminActorContext actor)
     {
         if (!CanCreate(actor)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Kế toán/kho được tạo đơn đặt hàng gộp.");
+        if (request.Lines.Select(x => x.PurchaseAdviceLineId).Distinct().Count() < 2)
+            return Failure<PurchaseOrderBatchDetailDto>(
+                PurchaseOrderBatchErrorCodes.Invalid,
+                "Chỉ có một nguồn nhu cầu. Vui lòng tạo đơn đặt hàng thường.");
         request.RequestKey = Clean(request.RequestKey, 64) ?? Guid.NewGuid().ToString("N");
         var replay = await _context.PurchaseOrderBatches.AsNoTracking().SingleOrDefaultAsync(x => x.RequestKey == request.RequestKey);
         if (replay != null) return await GetDetailAsync(replay.PurchaseOrderBatchId, actor);
@@ -510,6 +514,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Store)
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.ProcurementUnit)
+            .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.InventoryBaseUnit)
             .AsSplitQuery()
             .SingleOrDefaultAsync(x => x.PurchaseOrderBatchId == id);
         if (batch == null) return null;
@@ -600,6 +605,11 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                     .Select(x => x.ProcurementUnit!.Name)
                     .Distinct()
                     .ToArray();
+                var baseUnitNames = po.Lines
+                    .Where(x => x.InventoryBaseUnit != null)
+                    .Select(x => x.InventoryBaseUnit!.Name)
+                    .Distinct()
+                    .ToArray();
                 var orderedProcurement = po.Lines.All(x => x.OrderedProcurementQuantity.HasValue)
                     ? po.Lines.Sum(x => x.OrderedProcurementQuantity!.Value)
                     : (decimal?)null;
@@ -632,6 +642,9 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                         : null,
                     ProcurementUnitName = procurementUnitNames.Length == 1
                         ? procurementUnitNames[0]
+                        : null,
+                    BaseUnitName = baseUnitNames.Length == 1
+                        ? baseUnitNames[0]
                         : null
                 };
             }).OrderBy(x => x.StoreName).ToArray()
@@ -666,7 +679,6 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
 
     private static bool CanCreate(AdminActorContext actor) =>
         HasRole(actor, RoleConstants.AccountantWarehouse)
-        || HasRole(actor, RoleConstants.BusinessOwner)
         || HasRole(actor, RoleConstants.SystemAdmin);
     private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
     private static string? Clean(string? value, int max) => string.IsNullOrWhiteSpace(value) ? null : value.Trim()[..Math.Min(value.Trim().Length, max)];

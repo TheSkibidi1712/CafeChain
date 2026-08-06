@@ -27,6 +27,9 @@ namespace CafeChain.Data.Configurations.Payments
             entity.Property(x => x.TransactionCode)
                 .HasMaxLength(100);
 
+            entity.Property(x => x.TerminalId)
+                .HasMaxLength(100);
+
             entity.Property(x => x.PaidAt);
 
             // RELATION
@@ -51,10 +54,33 @@ namespace CafeChain.Data.Configurations.Payments
                 .HasForeignKey(x => x.CashSessionId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(x => x.Store)
+                .WithMany()
+                .HasForeignKey(x => x.StoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.WorkShift)
+                .WithMany()
+                .HasForeignKey(x => x.WorkShiftId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.PaidByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.PaidByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Terminal)
+                .WithMany()
+                .HasForeignKey(x => x.TerminalId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // INDEX
 
             entity.HasIndex(x => x.OrderId);
             entity.HasIndex(x => x.PaymentStatusId);
+            entity.HasIndex(x => x.WorkShiftId);
+            entity.HasIndex(x => x.PaidByStaffId);
+            entity.HasIndex(x => x.TerminalId);
 
         }
     }

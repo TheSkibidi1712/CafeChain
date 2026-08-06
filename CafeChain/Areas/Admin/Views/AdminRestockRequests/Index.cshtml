@@ -95,7 +95,7 @@
                             <td class="number">
                                 @if (item.RequestedProcurementQuantity.HasValue)
                                 {
-                                    <strong>@AdminStatusDisplay.Quantity(item.RequestedProcurementQuantity.Value) @(item.ProcurementUnitName ?? "đơn vị mua hàng")</strong>
+                                    <strong>@AdminStatusDisplay.Quantity(item.RequestedProcurementQuantity.Value) @(item.ProcurementUnitName ?? "đơn vị nhu cầu")</strong>
                                     <div class="ops-secondary">@AdminStatusDisplay.SourcingDecision(item.SourcingDecision)</div>
                                 }
                                 else

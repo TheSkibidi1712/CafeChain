@@ -1,37 +1,684 @@
+/* ================================================================
+   APPLAUNCHER — Luxury Latte & High-Contrast Chocolate Banner Theme
+   v7 · Symmetric Wide Banner & Centered Card Grid (Light Mode)
+   ================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
+
 :root {
     color-scheme: light;
-    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --launcher-brown: #6f4e37;
-    --launcher-brown-dark: #5c3f2b;
-    --launcher-brown-soft: #f6efe9;
-    --launcher-brown-border: #ddcbbc;
+
+    /* ── Color System: Saturated Lattes, Warm Sands & Mahogany ── */
+    --al-bg-page: #FAF5EE;        /* Creamy porcelain background */
+    --al-bg-decor: #F2E7DC;       /* Latte foam warm beige */
+    --al-card-bg: #FFFFFF;        /* Solid white porcelain */
+    --al-card-hover: #FFFDFB;     /* Warm white hover */
+    --al-white: #FFFFFF;          /* Pure white text/bg */
+    
+    /* Luxury Dark Espresso (for left header panel contrast) */
+    --al-dark-espresso: #25120B;  /* Deep roasted mahogany */
+    --al-dark-mocha: #3A2016;     /* Dark warm cocoa */
+    
+    /* Golds & Bronzes */
+    --al-gold: #C2A264;           /* Brushed satin gold */
+    --al-gold-light: #E7D5B1;    /* Champagne gold */
+    --al-gold-dark: #96743A;      /* Antique gold */
+    --al-gold-glow: rgba(194, 162, 100, 0.22);
+    --al-gold-border: rgba(194, 162, 100, 0.28);
+
+    /* Text */
+    --al-text-primary: #2A170F;   /* Espresso dark brown text */
+    --al-text-secondary: #6B554C; /* Warm mocha gray */
+    --al-text-muted: #9A867E;     /* Clay gray */
+    
+    /* UI */
+    --al-border: rgba(194, 162, 100, 0.22);
+    --al-danger: #DC2626;
+
+    /* ── Multi-Layer Shadows ── */
+    --al-shadow-sm: 0 4px 14px rgba(75, 52, 37, 0.05);
+    --al-shadow-md: 0 10px 28px rgba(75, 52, 37, 0.08);
+    --al-shadow-xl: 0 24px 56px rgba(75, 52, 37, 0.12);
+    --al-shadow-gold: 0 10px 30px rgba(194, 162, 100, 0.18), 0 4px 10px rgba(194, 162, 100, 0.08);
+
+    /* ── Radius ── */
+    --al-r-sm: 14px;
+    --al-r-md: 20px;
+    --al-r-lg: 28px;
+    --al-r-xl: 36px;
+
+    /* ── Motion ── */
+    --al-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --al-spring: cubic-bezier(0.25, 1.4, 0.5, 1);
+    --al-dur: 0.32s;
 }
-* { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; color: #1f2937; background: radial-gradient(circle at top left, #f6efe9, transparent 38%), linear-gradient(145deg, #faf9f7, #eef2f7); }
-.launcher-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: clamp(32px, 7vw, 88px) 0; }
-.launcher-header { display: flex; justify-content: space-between; gap: 28px; align-items: flex-start; margin-bottom: 40px; }
-.launcher-brand { display: inline-flex; gap: 9px; align-items: center; color: var(--launcher-brown); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-.launcher-header h1 { margin: 14px 0 8px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.05; color: #111827; }
-.launcher-header p { margin: 0; max-width: 650px; color: #64748b; font-size: 1.05rem; }
-.launcher-logout { border: 1px solid #dbe2ea; background: rgba(255,255,255,.82); color: #334155; border-radius: 12px; padding: 11px 16px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: border-color .18s ease, color .18s ease, background .18s ease; }
-.launcher-logout:hover, .launcher-logout:focus-visible { border-color: var(--launcher-brown); color: var(--launcher-brown-dark); background: var(--launcher-brown-soft); outline: none; }
-.launcher-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
-.launcher-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 18px; min-height: 170px; padding: 26px; border: 1px solid rgba(203,213,225,.85); border-radius: 22px; color: inherit; background: rgba(255,255,255,.9); box-shadow: 0 18px 45px rgba(15,23,42,.08); text-decoration: none; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-.launcher-card:hover, .launcher-card:focus-visible { transform: translateY(-4px); border-color: var(--launcher-brown); box-shadow: 0 24px 55px rgba(92,63,43,.16); outline: none; }
-.launcher-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 17px; color: #fff; background: linear-gradient(135deg, var(--launcher-brown-dark), #8a654b); box-shadow: 0 10px 24px rgba(92,63,43,.22); font-size: 1.55rem; }
-.launcher-card-body { display: grid; gap: 8px; }
-.launcher-card-body strong { font-size: 1.2rem; color: #111827; }
-.launcher-card-body span { color: #64748b; line-height: 1.5; }
-.launcher-arrow { color: var(--launcher-brown); font-size: 1.2rem; }
-.launcher-card.is-launching { pointer-events: none; opacity: .72; transform: none; }
-.launcher-card.is-launching .launcher-arrow { animation: launcher-spin 1s linear infinite; }
-.launcher-status { margin-top: 20px; padding: 14px 18px; border: 1px solid var(--launcher-brown-border); border-radius: 14px; color: var(--launcher-brown-dark); background: var(--launcher-brown-soft); font-weight: 700; }
-.launcher-status.is-error { border-color: #fecaca; color: #991b1b; background: #fef2f2; }
-@keyframes launcher-spin { to { transform: rotate(360deg); } }
-.launcher-empty { padding: 56px 24px; text-align: center; border: 1px dashed #cbd5e1; border-radius: 22px; background: rgba(255,255,255,.75); }
-.launcher-empty > i { font-size: 2.4rem; color: #94a3b8; }
-.launcher-empty h2 { margin: 16px 0 8px; }
-.launcher-empty p { margin: 0; color: #64748b; }
-@media (max-width: 900px) { .launcher-grid { grid-template-columns: 1fr; } .launcher-card { min-height: 132px; } }
-@media (max-width: 600px) { .launcher-shell { width: min(100% - 22px, 1120px); padding-top: 28px; } .launcher-header { display: grid; } .launcher-logout { width: 100%; } .launcher-card { padding: 20px; grid-template-columns: auto 1fr; } .launcher-arrow { display: none; } }
-@media (prefers-reduced-motion: reduce) { .launcher-card { transition: none; } .launcher-card.is-launching .launcher-arrow { animation: none; } }
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: var(--al-text-primary);
+    background: var(--al-bg-page);
+    position: relative;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ================================================================
+   AMBIENT BACKGROUND GLOWS (Saturated Latte Art Colors)
+   ================================================================ */
+.launcher-bg-decor {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+    background: 
+        radial-gradient(circle at 80% 10%, rgba(223, 202, 155, 0.22), transparent 45%),
+        radial-gradient(circle at 10% 90%, rgba(139, 107, 85, 0.12), transparent 45%);
+}
+
+.launcher-circle {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(140px);
+    animation: ambientFloat 40s infinite alternate ease-in-out;
+    will-change: transform;
+    opacity: 0.35;
+}
+
+.launcher-circle--1 {
+    top: -20%;
+    left: -10%;
+    width: 50vw;
+    height: 50vw;
+    background: var(--al-gold-light);
+}
+
+.launcher-circle--2 {
+    bottom: -20%;
+    right: -5%;
+    width: 55vw;
+    height: 55vw;
+    background: var(--al-bg-decor);
+    animation-delay: -10s;
+}
+
+.launcher-circle--3 {
+    top: 35%;
+    left: 45%;
+    width: 30vw;
+    height: 30vw;
+    background: rgba(194, 162, 100, 0.12);
+    animation-delay: -20s;
+}
+
+@keyframes ambientFloat {
+    0%   { transform: translate(0, 0) scale(1) rotate(0deg); }
+    50%  { transform: translate(4vw, -4vw) scale(1.08) rotate(15deg); }
+    100% { transform: translate(-3vw, 3vw) scale(0.95) rotate(-15deg); }
+}
+
+/* ================================================================
+   SYMMETRIC WIDE CONTAINER SHELL
+   ================================================================ */
+.launcher-shell {
+    width: min(1080px, calc(100% - 48px));
+    margin: 0 auto;
+    padding: clamp(48px, 7vw, 96px) 0;
+    position: relative;
+    z-index: 2;
+    animation: shellReveal 0.8s var(--al-ease) both;
+}
+
+@keyframes shellReveal {
+    from { opacity: 0; transform: translateY(30px) scale(0.99); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ================================================================
+   WIDE HEADER BANNER (Rich Mahogany Gradient & White Text)
+   Solves contrast issue completely by explicitly overriding text colors.
+   ================================================================ */
+.launcher-header {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 44px 48px;
+    border-radius: var(--al-r-lg);
+    background: 
+        radial-gradient(circle at 10% 20%, rgba(194, 162, 100, 0.16), transparent 45%),
+        linear-gradient(135deg, var(--al-dark-espresso), var(--al-dark-mocha));
+    border: 1px solid rgba(194, 162, 100, 0.38);
+    box-shadow: 
+        var(--al-shadow-xl),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    margin-bottom: 40px;
+}
+
+@media (min-width: 768px) {
+    .launcher-header {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+    }
+}
+
+.launcher-header-left {
+    max-width: 720px;
+}
+
+/* Eyebrow - Champagne Gold */
+.launcher-header-left .launcher-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--al-gold-light) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    margin-bottom: 14px;
+}
+
+.launcher-brand-row {
+    margin-bottom: 18px;
+}
+
+.launcher-brand {
+    display: inline-flex;
+    gap: 12px;
+    align-items: center;
+    color: var(--al-white) !important;
+    font-weight: 900;
+    font-size: 1.55rem;
+    letter-spacing: -0.03em;
+}
+
+.launcher-brand-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--al-gold), var(--al-gold-dark));
+    color: var(--al-dark-espresso) !important;
+    font-size: 1.15rem;
+    box-shadow: 0 4px 16px rgba(194, 162, 100, 0.35);
+}
+
+.launcher-brand-box i {
+    color: var(--al-dark-espresso) !important;
+}
+
+/* Greeting - Crisp Clean Champagne White with Shadow Depth */
+.launcher-header h1 {
+    margin: 0 0 10px;
+    font-size: clamp(2rem, 4.5vw, 2.75rem);
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -0.04em;
+    color: var(--al-white) !important;
+    text-shadow: 0 3px 14px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+/* Description - Light Muted Cream with high legibility */
+.launcher-header p {
+    margin: 0;
+    color: #F0E3D7 !important; /* Extremely clear warm milk cream text */
+    font-size: 0.96rem;
+    line-height: 1.6;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* Logout Button (Glass Pill Inside Dark Header) */
+.launcher-logout {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--al-white) !important;
+    border-radius: var(--al-r-sm);
+    padding: 14px 28px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: var(--al-shadow-sm);
+    transition: 
+        border-color var(--al-dur) ease,
+        color var(--al-dur) ease,
+        background-color var(--al-dur) ease,
+        transform var(--al-dur) var(--al-ease),
+        box-shadow var(--al-dur) ease;
+}
+
+.launcher-logout i {
+    color: var(--al-white) !important;
+}
+
+.launcher-logout:hover {
+    border-color: var(--al-white) !important;
+    color: var(--al-dark-espresso) !important;
+    background: var(--al-white) !important;
+    box-shadow: 0 10px 24px rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.launcher-logout:hover i {
+    color: var(--al-dark-espresso) !important;
+}
+
+.launcher-logout:focus-visible {
+    outline: 3px solid var(--al-gold-glow);
+    outline-offset: 2px;
+}
+
+/* ================================================================
+   CENTERED APP GRID (Below Header)
+   ================================================================ */
+.launcher-grid {
+    display: grid;
+    gap: 24px;
+    margin: 40px auto 0;
+}
+
+.launcher-grid--count-1 {
+    grid-template-columns: 1fr;
+    max-width: 440px;
+}
+
+.launcher-grid--count-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 860px;
+}
+
+.launcher-grid--count-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 100%;
+}
+
+@media (max-width: 767px) {
+    .launcher-grid--count-2,
+    .launcher-grid--count-3 {
+        grid-template-columns: 1fr;
+        max-width: 440px;
+    }
+}
+
+/* ================================================================
+   CREATIVE APP CARDS (Ivory Slabs with Colored Top Border)
+   ================================================================ */
+.launcher-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 230px;
+    padding: 36px 30px 28px;
+    border: 1px solid var(--al-border);
+    border-radius: var(--al-r-lg);
+    color: var(--al-text-primary);
+    background: var(--al-card-bg);
+    box-shadow: 
+        0 12px 30px rgba(75, 52, 37, 0.05), 
+        0 2px 4px rgba(75, 52, 37, 0.03), 
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    transition: 
+        transform var(--al-dur) var(--al-spring),
+        border-color var(--al-dur) ease,
+        box-shadow var(--al-dur) var(--al-ease),
+        background-color var(--al-dur) ease;
+}
+
+/* Colored top border indicator */
+.launcher-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    transition: height 0.25s ease;
+}
+
+.launcher-card--admindashboard::before {
+    background: linear-gradient(90deg, var(--al-gold-dark), var(--al-gold-light));
+}
+.launcher-card--staffhub::before {
+    background: linear-gradient(90deg, #A47551, #D2B48C);
+}
+.launcher-card--pos::before {
+    background: linear-gradient(90deg, #5C2E0B, #A0522D);
+}
+
+/* Shimmer overlay */
+.launcher-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+        115deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.4) 45%,
+        rgba(223, 202, 155, 0.18) 50%,
+        rgba(255, 255, 255, 0.4) 55%,
+        transparent 70%
+    );
+    transform: translateX(-130%);
+    pointer-events: none;
+}
+
+.launcher-card:hover::after {
+    animation: goldSweep 0.9s var(--al-ease) forwards;
+}
+
+/* Hover state */
+.launcher-card:hover,
+.launcher-card:focus-visible {
+    transform: translateY(-8px) scale(1.02);
+    border-color: rgba(194, 162, 100, 0.4);
+    background-color: var(--al-card-hover);
+    box-shadow: 
+        var(--al-shadow-xl), 
+        var(--al-shadow-gold);
+    outline: none;
+}
+
+.launcher-card:hover::before {
+    height: 6px;
+}
+
+/* ── Icon ── */
+.launcher-icon {
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+    color: var(--al-gold-light);
+    background: linear-gradient(135deg, #4B3425, #2C1810);
+    box-shadow: 
+        0 6px 16px rgba(44, 24, 16, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    font-size: 1.6rem;
+    margin-bottom: 22px;
+    transition: 
+        transform var(--al-dur) var(--al-spring), 
+        color var(--al-dur), 
+        background var(--al-dur),
+        border-color var(--al-dur);
+}
+
+.launcher-card:hover .launcher-icon,
+.launcher-card:focus-visible .launcher-icon {
+    transform: scale(1.1) rotate(-4deg);
+    color: #4B3425;
+    background: var(--al-gold);
+    border-color: var(--al-gold);
+}
+
+/* ── Card Body ── */
+.launcher-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    flex: 1;
+}
+
+.launcher-card-body strong {
+    font-size: 1.25rem;
+    font-weight: 850;
+    color: #1F0D06; /* High contrast deep espresso */
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+}
+
+/* Gold dot indicator */
+.launcher-card-body strong::after {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-left: 8px;
+    vertical-align: middle;
+    background: var(--al-gold-dark);
+    opacity: 0.6;
+    transition: transform var(--al-dur) var(--al-spring), opacity var(--al-dur);
+}
+
+.launcher-card:hover .launcher-card-body strong::after {
+    transform: scale(1.4);
+    opacity: 1;
+}
+
+.launcher-card-body span {
+    color: #5C4740; /* High contrast dark chocolate grey for superior legibility */
+    font-size: 0.88rem;
+    line-height: 1.6;
+}
+
+/* Access link button */
+.launcher-card-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 900;
+    font-size: 0.78rem !important;
+    color: #9E7B3B !important; /* Elegant saturated gold */
+    margin-top: auto;
+    padding-top: 18px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: gap 0.25s var(--al-ease);
+}
+
+.launcher-card:hover .launcher-card-action {
+    gap: 12px;
+}
+
+/* Arrow removal */
+.launcher-arrow {
+    display: none;
+}
+
+/* ================================================================
+   LAUNCHING STATE
+   ================================================================ */
+.launcher-card.is-launching {
+    pointer-events: none;
+    opacity: 0.55;
+    transform: none;
+    box-shadow: var(--al-shadow-sm);
+    border-color: var(--al-border);
+}
+
+.launcher-card.is-launching .launcher-icon {
+    position: relative;
+}
+
+.launcher-card.is-launching .launcher-icon i {
+    visibility: hidden;
+}
+
+.launcher-card.is-launching .launcher-icon::after {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(44, 24, 16, 0.2);
+    border-top-color: var(--al-gold);
+    border-radius: 50%;
+    animation: launcherSpin 0.75s linear infinite;
+}
+
+#appLauncher [hidden] {
+    display: none !important;
+}
+
+/* Status Notifications Box */
+.launcher-status {
+    margin-top: 24px;
+    padding: 18px 24px;
+    border: 1px solid var(--al-border);
+    border-radius: var(--al-r-md);
+    color: var(--al-text-primary);
+    background: var(--al-card-bg);
+    font-weight: 700;
+    font-size: 0.92rem;
+    box-shadow: var(--al-shadow-md);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: statusSlide 0.35s var(--al-ease) both;
+}
+
+.launcher-status::before {
+    content: '☕';
+    font-size: 1.15rem;
+}
+
+.launcher-status.is-error {
+    border-color: #EF4444;
+    color: #DC2626;
+    background-color: rgba(239, 68, 68, 0.05);
+}
+
+.launcher-status.is-error::before {
+    content: '⚠️';
+}
+
+@keyframes statusSlide {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes launcherSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ================================================================
+   EMPTY STATE
+   ================================================================ */
+.launcher-empty {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 24px 0;
+}
+
+.launcher-empty-card {
+    text-align: center;
+    border: 1px solid var(--al-border);
+    border-radius: var(--al-r-xl);
+    background: var(--al-card-bg);
+    padding: 60px 40px;
+    box-shadow: var(--al-shadow-xl);
+}
+
+.launcher-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: rgba(194, 162, 100, 0.08);
+    color: var(--al-gold-dark);
+    font-size: 2rem;
+    margin-bottom: 24px;
+}
+
+.launcher-empty h2 {
+    margin: 0 0 12px;
+    color: var(--al-text-primary);
+    font-weight: 900;
+    font-size: 1.25rem;
+}
+
+.launcher-empty p {
+    margin: 0;
+    color: var(--al-text-secondary);
+    line-height: 1.65;
+    font-size: 0.92rem;
+}
+
+/* ================================================================
+   RESPONSIVE BREAKPOINTS
+   ================================================================ */
+@media (max-width: 767px) {
+    .launcher-header {
+        padding: 34px 28px;
+    }
+    .launcher-header h1 {
+        font-size: 1.85rem;
+    }
+    .launcher-card {
+        min-height: 190px;
+        padding: 30px 24px 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .launcher-shell {
+        width: min(100% - 24px, 1200px);
+        padding-top: 32px;
+    }
+    .launcher-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 15px;
+        font-size: 1.35rem;
+        margin-bottom: 16px;
+    }
+}
+
+/* ================================================================
+   ACCESSIBILITY: REDUCED MOTION OVERRIDES
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+    .launcher-shell,
+    .launcher-status {
+        animation: none !important;
+    }
+    .launcher-circle {
+        animation: none !important;
+    }
+    .launcher-card,
+    .launcher-icon,
+    .launcher-logout,
+    .launcher-card-action {
+        transition: none !important;
+    }
+    .launcher-card:hover {
+        transform: none !important;
+        box-shadow: var(--al-shadow-md) !important;
+    }
+    .launcher-card::after {
+        content: none !important;
+    }
+    .launcher-card:hover .launcher-icon {
+        transform: none !important;
+    }
+    .launcher-card.is-launching .launcher-icon::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+    .launcher-logout:hover {
+        transform: none !important;
+    }
+    .launcher-card:hover .launcher-card-action {
+        gap: 6px !important;
+    }
+}

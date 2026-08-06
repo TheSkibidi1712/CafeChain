@@ -3,6 +3,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.Exceptions;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
 using CafeChain.Models.Inventories.Suppliers;
@@ -26,15 +27,23 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         private readonly IAdminSupplierRepository _repo;
         private readonly AppDbContext _context;
         private readonly IIngredientSupplierPackageValidator _packageValidator;
+        private readonly IUnitConversionService _unitConversion;
 
         public AdminSupplierService(
             IAdminSupplierRepository repo,
             AppDbContext context,
-            IIngredientSupplierPackageValidator packageValidator)
+            IIngredientSupplierPackageValidator packageValidator,
+            IUnitConversionService? unitConversion = null)
         {
             _repo = repo;
             _context = context;
             _packageValidator = packageValidator;
+            _unitConversion = unitConversion ?? new UnitConversionService(
+                context,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<UnitConversionService>.Instance,
+                new PhysicalUnitConversionService(
+                    context,
+                    Microsoft.Extensions.Logging.Abstractions.NullLogger<PhysicalUnitConversionService>.Instance));
         }
 
         // ===== GET ALL =====
@@ -72,20 +81,41 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             if (!await _repo.ExistsInScopeAsync(supplierId, storeScope))
                 return new List<AdminSupplierAuditDTO>();
 
-            return await _context.AuditLogs
+            var rows = await _context.AuditLogs
                 .AsNoTracking()
                 .Where(x => x.TableName == "Suppliers" && x.RecordId == supplierId)
                 .OrderByDescending(x => x.CreatedAt)
-                .Take(20)
-                .Select(x => new AdminSupplierAuditDTO
-                {
-                    Action = x.Action,
-                    OldData = x.OldData,
-                    NewData = x.NewData,
-                    ActorStaffId = x.UserId,
-                    CreatedAt = x.CreatedAt
-                })
+                .Take(50)
                 .ToListAsync();
+
+            var actorIds = rows.Where(x => x.UserId > 0).Select(x => x.UserId).Distinct().ToArray();
+            var actors = await _context.Staffs
+                .AsNoTracking()
+                .Where(x => actorIds.Contains(x.StaffId))
+                .Select(x => new
+                {
+                    x.StaffId,
+                    x.FullName,
+                    Role = x.Account.AccountRoles
+                        .OrderBy(ar => ar.RoleId)
+                        .Select(ar => ar.Role.Name)
+                        .FirstOrDefault()
+                })
+                .ToDictionaryAsync(x => x.StaffId);
+
+            return rows.Select(row =>
+            {
+                actors.TryGetValue(row.UserId, out var actor);
+                return new AdminSupplierAuditDTO
+                {
+                    Action = row.Action,
+                    Title = SupplierAuditTitle(row.Action),
+                    ActorName = actor?.FullName ?? "Hệ thống",
+                    ActorRole = actor?.Role,
+                    Changes = BuildBusinessAuditChanges(row.OldData, row.NewData),
+                    CreatedAt = row.CreatedAt
+                };
+            }).ToList();
         }
 
         // ===== GENERATE NEXT CODE =====
@@ -170,7 +200,10 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                             "Cảnh báo trùng đã được sử dụng bởi yêu cầu khác. Vui lòng kiểm tra lại.");
                     }
                     if (IsTaxCodeCollision(ex))
-                        throw TaxCodeDuplicate(dto.TaxCode, null);
+                    {
+                        if (transaction != null) await transaction.DisposeAsync();
+                        throw await TaxCodeDuplicateAsync(dto.TaxCode);
+                    }
                     if ((IsUniqueCodeCollision(ex) || IsSqlDeadlock(ex)) && attempt < 2)
                     {
                         await Task.Delay(40 * (attempt + 1));
@@ -240,7 +273,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
             catch (DbUpdateException ex) when (IsTaxCodeCollision(ex))
             {
-                throw TaxCodeDuplicate(dto.TaxCode, dto.SupplierId);
+                throw await TaxCodeDuplicateAsync(dto.TaxCode, dto.SupplierId);
             }
         }
 
@@ -429,11 +462,29 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
         }
 
-        private static SupplierDomainException TaxCodeDuplicate(string? taxCode, int? supplierId) =>
-            new(
+        private async Task<SupplierDomainException> TaxCodeDuplicateAsync(
+            string? taxCode,
+            int? excludeSupplierId = null)
+        {
+            var owner = taxCode == null
+                ? null
+                : await _context.Suppliers
+                    .AsNoTracking()
+                    .Where(x => x.TaxCode == taxCode
+                                && (!excludeSupplierId.HasValue
+                                    || x.SupplierId != excludeSupplierId.Value))
+                    .Select(x => new { x.SupplierId, x.Code, x.Name, x.Active })
+                    .FirstOrDefaultAsync();
+
+            object payload = owner != null
+                ? new { existingSupplier = owner }
+                : new { taxCode, supplierId = excludeSupplierId };
+
+            return new SupplierDomainException(
                 SupplierIdentityConstants.TaxCodeDuplicate,
                 "Mã số thuế này đã được sử dụng bởi Nhà cung cấp khác.",
-                new { taxCode, supplierId });
+                payload);
+        }
 
         private async Task<List<SoftDuplicateMatch>> FindSoftDuplicateMatchesAsync(AdminSupplierCreateDTO dto)
         {
@@ -694,6 +745,91 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             CreatedAt = DateTime.UtcNow
         };
 
+        private static string SupplierAuditTitle(string action) => action switch
+        {
+            "SUPPLIER_CREATED" => "Tạo nhà cung cấp",
+            "SUPPLIER_TAX_CODE_UPDATED" => "Cập nhật mã số thuế",
+            "SUPPLIER_DUPLICATE_OVERRIDE" => "Xác nhận tạo dù có cảnh báo trùng",
+            "SUPPLIER_OFFER_CREATED" => "Thêm gói mua",
+            "SUPPLIER_OFFER_UPDATED" => "Cập nhật gói mua",
+            "SUPPLIER_OFFER_STATUS_CHANGED" => "Thay đổi trạng thái gói mua",
+            "SUPPLIER_OFFER_PRICE_CHANGED" => "Cập nhật giá gói mua",
+            "SUPPLIER_STORE_SCOPE_UPDATED" => "Cập nhật phạm vi cửa hàng",
+            _ => "Cập nhật nhà cung cấp"
+        };
+
+        private static List<AdminSupplierAuditChangeDTO> BuildBusinessAuditChanges(
+            string? oldData,
+            string? newData)
+        {
+            var before = ReadBusinessAuditValues(oldData);
+            var after = ReadBusinessAuditValues(newData);
+            return before.Keys.Union(after.Keys)
+                .Select(key => new AdminSupplierAuditChangeDTO
+                {
+                    Label = SupplierAuditFieldLabel(key),
+                    Before = before.GetValueOrDefault(key),
+                    After = after.GetValueOrDefault(key)
+                })
+                .Where(x => x.Before != x.After)
+                .ToList();
+        }
+
+        private static Dictionary<string, string?> ReadBusinessAuditValues(string? json)
+        {
+            var result = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(json)) return result;
+            try
+            {
+                using var document = JsonDocument.Parse(json);
+                if (document.RootElement.ValueKind != JsonValueKind.Object) return result;
+                foreach (var property in document.RootElement.EnumerateObject())
+                {
+                    if (SupplierAuditFieldLabel(property.Name) == string.Empty) continue;
+                    result[property.Name] = FormatAuditValue(property.Value);
+                }
+            }
+            catch (JsonException)
+            {
+                // Legacy malformed payloads stay available in developer logs, never in the business UI.
+            }
+            return result;
+        }
+
+        private static string SupplierAuditFieldLabel(string field) => field.ToLowerInvariant() switch
+        {
+            "code" => "Mã nhà cung cấp",
+            "name" => "Tên nhà cung cấp",
+            "taxcode" => "Mã số thuế",
+            "packagequantity" => "Lượng trong gói",
+            "packageprice" => "Giá một gói",
+            "minimumorderpackagecount" => "MOQ theo gói",
+            "leadtimedays" => "Lead time mặc định",
+            "isprimary" => "Nguồn cung chính",
+            "active" => "Trạng thái",
+            "allowsloosepurchase" => "Cho phép mua lẻ",
+            "looseunitprice" => "Đơn giá mua lẻ",
+            "loosepricemode" => "Cách xác định giá lẻ",
+            "looseminimumorderquantity" => "MOQ mua lẻ",
+            "loosequantitystep" => "Bước số lượng mua lẻ",
+            "deliveryschedule" => "Lịch giao hàng",
+            "note" => "Ghi chú",
+            "reason" => "Lý do",
+            _ => string.Empty
+        };
+
+        private static string? FormatAuditValue(JsonElement value) => value.ValueKind switch
+        {
+            JsonValueKind.Null => null,
+            JsonValueKind.True => "Có",
+            JsonValueKind.False => "Không",
+            JsonValueKind.String when value.GetString() == LoosePurchasePriceModes.Derived => "Tự tính từ giá gói",
+            JsonValueKind.String when value.GetString() == LoosePurchasePriceModes.Independent => "Nhập giá riêng",
+            JsonValueKind.String => value.GetString(),
+            JsonValueKind.Number => value.GetRawText(),
+            _ => null
+        };
+
         private async Task<IDbContextTransaction?> BeginTransactionAsync(IsolationLevel isolationLevel) =>
             _context.Database.IsRelational()
                 ? await _context.Database.BeginTransactionAsync(isolationLevel)
@@ -769,10 +905,14 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             return await MapIngredientOfferAsync(offer);
         }
 
-        public async Task<int> CreateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto)
+        public Task<int> CreateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto) =>
+            CreateIngredientOfferAsync(dto, 0);
+
+        public async Task<int> CreateIngredientOfferAsync(
+            AdminIngredientSupplierSaveDTO dto,
+            int actorStaffId)
         {
             ValidateOfferOperationalTerms(dto);
-            await ValidateLooseOfferAsync(dto);
 
             var requirePackage = dto.Active;
             var validation = await _packageValidator.ValidateAsync(
@@ -786,6 +926,8 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
             if (!validation.IsSuccess)
                 throw new InvalidOperationException(validation.Message);
+
+            var looseUnitPrice = await ResolveLooseUnitPriceAsync(dto);
 
             await using var tx = await _context.Database.BeginTransactionAsync();
             try
@@ -806,10 +948,19 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     Active = dto.Active,
                     AllowsLoosePurchase = dto.AllowsLoosePurchase,
                     CurrentProcurementUnitPrice = dto.AllowsLoosePurchase
-                        ? dto.CurrentProcurementUnitPrice
+                        ? looseUnitPrice
                         : null,
                     LooseProcurementUnitId = dto.AllowsLoosePurchase
                         ? dto.LooseProcurementUnitId
+                        : null,
+                    LoosePriceMode = dto.AllowsLoosePurchase
+                        ? dto.LoosePriceMode
+                        : LoosePurchasePriceModes.Independent,
+                    LooseMinimumOrderQuantity = dto.AllowsLoosePurchase
+                        ? dto.LooseMinimumOrderQuantity
+                        : null,
+                    LooseQuantityStep = dto.AllowsLoosePurchase
+                        ? dto.LooseQuantityStep
                         : null,
                     Note = dto.Note?.Trim(),
                     CreatedAt = DateTime.UtcNow,
@@ -830,6 +981,12 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     Note = "Khởi tạo gói mua",
                     CreatedAtUtc = DateTime.UtcNow
                 });
+                _context.AuditLogs.Add(NewSupplierAudit(
+                    entity.SupplierId,
+                    "SUPPLIER_OFFER_CREATED",
+                    actorStaffId,
+                    null,
+                    SerializeOfferAudit(entity)));
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
                 return entity.IngredientSupplierId;
@@ -841,7 +998,12 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
         }
 
-        public async Task UpdateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto)
+        public Task UpdateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto) =>
+            UpdateIngredientOfferAsync(dto, 0);
+
+        public async Task UpdateIngredientOfferAsync(
+            AdminIngredientSupplierSaveDTO dto,
+            int actorStaffId)
         {
             if (!dto.IngredientSupplierId.HasValue || dto.IngredientSupplierId.Value <= 0)
                 throw new InvalidOperationException("Thiếu mã bảng giá gói mua.");
@@ -853,7 +1015,6 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             EnsureRowVersionMatches(entity.RowVersion, expectedVersion);
 
             ValidateOfferOperationalTerms(dto);
-            await ValidateLooseOfferAsync(dto);
 
             var packageOrPriceChanged =
                 entity.CurrentPrice != dto.CurrentPrice
@@ -882,10 +1043,13 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             if (!validation.IsSuccess)
                 throw new InvalidOperationException(validation.Message);
 
+            var looseUnitPrice = await ResolveLooseUnitPriceAsync(dto);
+
             if (entity.IngredientId != dto.IngredientId || entity.SupplierId != dto.SupplierId)
                 throw new InvalidOperationException("Không được đổi nhà cung cấp hoặc nguyên liệu của gói đã tạo.");
 
             _context.Entry(entity).Property(x => x.RowVersion).OriginalValue = expectedVersion;
+            var oldAudit = SerializeOfferAudit(entity);
 
             await using var tx = await _context.Database.BeginTransactionAsync();
             try
@@ -928,14 +1092,29 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 entity.Active = dto.Active;
                 entity.AllowsLoosePurchase = dto.AllowsLoosePurchase;
                 entity.CurrentProcurementUnitPrice = dto.AllowsLoosePurchase
-                    ? dto.CurrentProcurementUnitPrice
+                    ? looseUnitPrice
                     : null;
                 entity.LooseProcurementUnitId = dto.AllowsLoosePurchase
                     ? dto.LooseProcurementUnitId
                     : null;
+                entity.LoosePriceMode = dto.AllowsLoosePurchase
+                    ? dto.LoosePriceMode
+                    : LoosePurchasePriceModes.Independent;
+                entity.LooseMinimumOrderQuantity = dto.AllowsLoosePurchase
+                    ? dto.LooseMinimumOrderQuantity
+                    : null;
+                entity.LooseQuantityStep = dto.AllowsLoosePurchase
+                    ? dto.LooseQuantityStep
+                    : null;
                 entity.Note = dto.Note?.Trim();
                 entity.UpdatedAt = DateTime.UtcNow;
 
+                _context.AuditLogs.Add(NewSupplierAudit(
+                    entity.SupplierId,
+                    "SUPPLIER_OFFER_UPDATED",
+                    actorStaffId,
+                    oldAudit,
+                    SerializeOfferAudit(entity)));
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
             }
@@ -952,10 +1131,17 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
         }
 
+        public Task ToggleIngredientOfferActiveAsync(
+            int ingredientSupplierId,
+            bool active,
+            string? rowVersion) =>
+            ToggleIngredientOfferActiveAsync(ingredientSupplierId, active, rowVersion, 0);
+
         public async Task ToggleIngredientOfferActiveAsync(
             int ingredientSupplierId,
             bool active,
-            string? rowVersion)
+            string? rowVersion,
+            int actorStaffId)
         {
             var entity = await LoadOfferTrackedAsync(ingredientSupplierId, asNoTracking: false)
                 ?? throw new InvalidOperationException("Không tìm thấy bảng giá gói mua.");
@@ -980,6 +1166,12 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
 
             entity.Active = active;
+            _context.AuditLogs.Add(NewSupplierAudit(
+                entity.SupplierId,
+                "SUPPLIER_OFFER_STATUS_CHANGED",
+                actorStaffId,
+                JsonSerializer.Serialize(new { active = !active }),
+                JsonSerializer.Serialize(new { active })));
             try
             {
                 await _context.SaveChangesAsync();
@@ -1046,7 +1238,38 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 entity.CurrentPrice = dto.PackagePrice;
                 entity.PackageQuantity = dto.PackageQuantity;
                 entity.UnitId = dto.PackageUnitId;
+                if (entity.AllowsLoosePurchase
+                    && entity.LoosePriceMode == LoosePurchasePriceModes.Derived)
+                {
+                    entity.CurrentProcurementUnitPrice = await ResolveLooseUnitPriceAsync(
+                        new AdminIngredientSupplierSaveDTO
+                        {
+                            IngredientId = entity.IngredientId,
+                            SupplierId = entity.SupplierId,
+                            UnitId = dto.PackageUnitId,
+                            PackageQuantity = dto.PackageQuantity,
+                            CurrentPrice = dto.PackagePrice,
+                            AllowsLoosePurchase = true,
+                            LooseProcurementUnitId = entity.LooseProcurementUnitId,
+                            LoosePriceMode = LoosePurchasePriceModes.Derived,
+                            LooseMinimumOrderQuantity = entity.LooseMinimumOrderQuantity,
+                            LooseQuantityStep = entity.LooseQuantityStep
+                        });
+                }
                 entity.UpdatedAt = now;
+                _context.AuditLogs.Add(NewSupplierAudit(
+                    entity.SupplierId,
+                    "SUPPLIER_OFFER_PRICE_CHANGED",
+                    actorStaffId,
+                    null,
+                    JsonSerializer.Serialize(new
+                    {
+                        entity.IngredientSupplierId,
+                        packagePrice = dto.PackagePrice,
+                        packageQuantity = dto.PackageQuantity,
+                        looseUnitPrice = entity.CurrentProcurementUnitPrice,
+                        reason = dto.Reason.Trim()
+                    })));
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
             }
@@ -1126,6 +1349,25 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             return rows.Cast<object>().ToList();
         }
 
+        public async Task<List<object>> GetCompatibleUnitDropdownAsync(int ingredientId)
+        {
+            var result = await _unitConversion.GetActiveUnitOptionsAsync(ingredientId);
+            if (!result.IsSuccess || result.Data == null)
+                throw new InvalidOperationException(result.Message);
+
+            return ProcurementUnitPolicy.Filter(result.Data)
+                .Select(x => new
+                {
+                    unitId = x.UnitId,
+                    unitCode = x.UnitCode,
+                    name = x.UnitName,
+                    conversionFactorToBase = x.ConversionFactorToBase,
+                    isBaseUnit = x.IsBaseUnit
+                })
+                .Cast<object>()
+                .ToList();
+        }
+
         // ===== STORE SCOPE =====
 
         public async Task<List<AdminSupplierStoreDTO>> GetSupplierStoresAsync(
@@ -1185,7 +1427,12 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             return stores.Cast<object>().ToList();
         }
 
-        public async Task SaveSupplierStoreAsync(AdminSupplierStoreSaveDTO dto)
+        public Task SaveSupplierStoreAsync(AdminSupplierStoreSaveDTO dto) =>
+            SaveSupplierStoreAsync(dto, 0);
+
+        public async Task SaveSupplierStoreAsync(
+            AdminSupplierStoreSaveDTO dto,
+            int actorStaffId)
         {
             var supplierActive = await _context.Suppliers
                 .AnyAsync(x => x.SupplierId == dto.SupplierId && x.Active);
@@ -1200,6 +1447,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             var entity = await _context.SupplierStores
                 .FirstOrDefaultAsync(x => x.SupplierId == dto.SupplierId && x.StoreId == dto.StoreId);
             var now = DateTime.UtcNow;
+            string? oldAudit = null;
             if (entity == null)
             {
                 entity = new SupplierStore
@@ -1212,6 +1460,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
             else if (!string.IsNullOrWhiteSpace(dto.RowVersion))
             {
+                oldAudit = SerializeStoreAudit(entity);
                 _context.Entry(entity).Property(x => x.RowVersion).OriginalValue =
                     Convert.FromBase64String(dto.RowVersion);
             }
@@ -1221,6 +1470,13 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             entity.DeliverySchedule = Clean(dto.DeliverySchedule);
             entity.Note = Clean(dto.Note);
             entity.UpdatedAt = now;
+
+            _context.AuditLogs.Add(NewSupplierAudit(
+                dto.SupplierId,
+                "SUPPLIER_STORE_SCOPE_UPDATED",
+                actorStaffId,
+                oldAudit,
+                SerializeStoreAudit(entity)));
 
             try
             {
@@ -1257,46 +1513,65 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
             if (dto.LeadTimeDays.HasValue && dto.LeadTimeDays.Value < 0)
                 throw new InvalidOperationException("Thời gian giao hàng không được âm.");
+
+            if (dto.LooseMinimumOrderQuantity.HasValue
+                && dto.LooseMinimumOrderQuantity.Value < 0m)
+                throw new InvalidOperationException("MOQ mua lẻ không được âm.");
+
+            if (dto.LooseQuantityStep.HasValue
+                && dto.LooseQuantityStep.Value <= 0m)
+                throw new InvalidOperationException("Bước số lượng mua lẻ phải lớn hơn 0.");
         }
 
-        private async Task ValidateLooseOfferAsync(AdminIngredientSupplierSaveDTO dto)
+        private async Task<decimal?> ResolveLooseUnitPriceAsync(AdminIngredientSupplierSaveDTO dto)
         {
             if (!dto.AllowsLoosePurchase)
-                return;
+                return null;
+
+            dto.LoosePriceMode = string.IsNullOrWhiteSpace(dto.LoosePriceMode)
+                ? LoosePurchasePriceModes.Independent
+                : dto.LoosePriceMode.Trim().ToUpperInvariant();
+
+            if (!LoosePurchasePriceModes.IsValid(dto.LoosePriceMode))
+                throw new InvalidOperationException("Cách xác định giá mua lẻ không hợp lệ.");
 
             if (!dto.LooseProcurementUnitId.HasValue)
-                throw new InvalidOperationException("Mua lẻ phải chọn đơn vị kg, L hoặc cái.");
+                throw new InvalidOperationException("Mua lẻ phải chọn đơn vị phù hợp với nguyên liệu.");
 
-            if (!dto.CurrentProcurementUnitPrice.HasValue
-                || dto.CurrentProcurementUnitPrice.Value <= 0m)
-                throw new InvalidOperationException("Đơn giá mua lẻ phải lớn hơn 0.");
+            var options = await _unitConversion.GetActiveUnitOptionsAsync(dto.IngredientId);
+            if (!options.IsSuccess || options.Data == null)
+                throw new InvalidOperationException(options.Message);
 
-            var ingredient = await _context.Ingredients
-                .AsNoTracking()
-                .Include(x => x.BaseUnit)
-                .SingleOrDefaultAsync(x => x.IngredientId == dto.IngredientId && x.Active)
-                ?? throw new InvalidOperationException("Nguyên liệu không tồn tại hoặc đã ngừng hoạt động.");
-
-            var looseUnit = await _context.Units
-                .AsNoTracking()
-                .SingleOrDefaultAsync(x =>
-                    x.UnitId == dto.LooseProcurementUnitId.Value
-                    && x.Active)
-                ?? throw new InvalidOperationException("Đơn vị mua lẻ không tồn tại hoặc đã ngừng hoạt động.");
-
-            var expectedCode = ingredient.BaseUnit.Type switch
-            {
-                Models.Enums.Unit.UnitType.KhoiLuong => ProcurementUnitCodes.Kilogram,
-                Models.Enums.Unit.UnitType.TheTich => ProcurementUnitCodes.Liter,
-                Models.Enums.Unit.UnitType.Dem => ProcurementUnitCodes.Piece,
-                _ => string.Empty
-            };
-
-            if (looseUnit.Type != ingredient.BaseUnit.Type
-                || string.IsNullOrEmpty(expectedCode)
-                || !string.Equals(looseUnit.UnitCode, expectedCode, StringComparison.OrdinalIgnoreCase))
+            if (!ProcurementUnitPolicy.Filter(options.Data)
+                .Any(x => x.UnitId == dto.LooseProcurementUnitId.Value))
                 throw new InvalidOperationException(
-                    $"Đơn vị mua lẻ không phù hợp với nguyên liệu. Hãy chọn đơn vị {expectedCode}.");
+                    "Đơn vị mua lẻ không phù hợp với nguyên liệu hoặc chưa có quy đổi hợp lệ.");
+
+            if (dto.LoosePriceMode == LoosePurchasePriceModes.Independent)
+            {
+                if (!dto.CurrentProcurementUnitPrice.HasValue
+                    || dto.CurrentProcurementUnitPrice.Value <= 0m)
+                    throw new InvalidOperationException("Đơn giá mua lẻ phải lớn hơn 0.");
+                return dto.CurrentProcurementUnitPrice.Value;
+            }
+
+            if (!dto.PackageQuantity.HasValue || dto.PackageQuantity.Value <= 0m || dto.CurrentPrice <= 0m)
+                throw new InvalidOperationException(
+                    "Cần đủ lượng trong gói và giá gói để tự tính giá mua lẻ.");
+
+            var converted = await _unitConversion.ConvertAsync(
+                dto.IngredientId,
+                dto.PackageQuantity.Value,
+                dto.UnitId,
+                dto.LooseProcurementUnitId.Value);
+            if (!converted.IsSuccess || converted.Data <= 0m)
+                throw new InvalidOperationException(
+                    converted.Message ?? "Không thể quy đổi lượng trong gói sang đơn vị mua lẻ.");
+
+            return decimal.Round(
+                dto.CurrentPrice / converted.Data,
+                2,
+                MidpointRounding.AwayFromZero);
         }
 
         private static byte[] ParseRequiredRowVersion(string? value)
@@ -1325,6 +1600,37 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 throw new InvalidOperationException(
                     "RESOURCE_CHANGED_BY_ANOTHER_USER: Gói cung cấp vừa được cập nhật. Vui lòng tải lại.");
         }
+
+        private static string SerializeOfferAudit(IngredientSupplier entity) =>
+            JsonSerializer.Serialize(new
+            {
+                entity.IngredientSupplierId,
+                entity.IngredientId,
+                entity.UnitId,
+                entity.PackageQuantity,
+                packagePrice = entity.CurrentPrice,
+                entity.MinimumOrderPackageCount,
+                entity.LeadTimeDays,
+                entity.IsPrimary,
+                entity.Active,
+                entity.AllowsLoosePurchase,
+                entity.LooseProcurementUnitId,
+                looseUnitPrice = entity.CurrentProcurementUnitPrice,
+                entity.LoosePriceMode,
+                entity.LooseMinimumOrderQuantity,
+                entity.LooseQuantityStep
+            });
+
+        private static string SerializeStoreAudit(SupplierStore entity) =>
+            JsonSerializer.Serialize(new
+            {
+                entity.SupplierStoreId,
+                entity.StoreId,
+                entity.Active,
+                entity.LeadTimeOverrideDays,
+                entity.DeliverySchedule,
+                entity.Note
+            });
 
         private static bool IsSupplierStoreUniqueCollision(DbUpdateException ex)
         {
@@ -1381,6 +1687,9 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 CurrentProcurementUnitPrice = x.CurrentProcurementUnitPrice,
                 LooseProcurementUnitId = x.LooseProcurementUnitId,
                 LooseProcurementUnitName = x.LooseProcurementUnit?.Name,
+                LoosePriceMode = x.LoosePriceMode,
+                LooseMinimumOrderQuantity = x.LooseMinimumOrderQuantity,
+                LooseQuantityStep = x.LooseQuantityStep,
                 Note = x.Note,
                 UpdatedAt = x.UpdatedAt,
                 RowVersion = Convert.ToBase64String(x.RowVersion),

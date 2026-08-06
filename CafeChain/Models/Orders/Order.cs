@@ -25,6 +25,10 @@ namespace CafeChain.Models.Orders
         /// </summary>
         public int? WorkShiftId { get; set; }
 
+        /// <summary>Terminal POS gốc; null cho đơn online/legacy.</summary>
+        [MaxLength(100)]
+        public string? TerminalId { get; set; }
+
         /// <summary>
         /// UUID v4 sinh tại iPad lúc nhấn "Thanh toán" — Idempotency Key cho Offline Order.
         /// Null cho đơn online (bán trực tiếp khi có mạng).
@@ -75,6 +79,7 @@ namespace CafeChain.Models.Orders
         public virtual Store Store { get; set; }
         public virtual Staff Staff { get; set; }
         public virtual WorkShift WorkShift { get; set; }
+        public virtual PosTerminal? Terminal { get; set; }
         public virtual OrderStatus OrderStatus { get; set; }
         public virtual PaymentStatus PaymentStatus { get; set; }
         public virtual OrderType OrderType { get; set; }
