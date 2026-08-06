@@ -38,6 +38,8 @@ public sealed class PosSessionExchangeContextDto
     public string? Reason { get; set; }
     public Guid? OtpChallengePublicId { get; set; }
     public int? WorkShiftId { get; set; }
+    public bool RequiresStaffHubOpen { get; set; }
+    public bool RequiresOpeningCash { get; set; }
 }
 
 public sealed record PosSessionExchangeTicketDto(string ExchangeCode, DateTime ExpiresAtUtc, int ContextId);

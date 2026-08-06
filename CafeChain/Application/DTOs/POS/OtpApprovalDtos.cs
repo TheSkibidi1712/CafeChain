@@ -64,8 +64,14 @@ namespace CafeChain.Application.DTOs.POS
 
     public class OtpChallengeResponseDto
     {
+        public bool HasActiveChallenge { get; set; } = true;
         public Guid? OtpChallengePublicId { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string? ActionType { get; set; }
+        public string? OpenContext { get; set; }
+        public string? TerminalId { get; set; }
+        public string? Reason { get; set; }
+        public string? RequestKey { get; set; }
         public int ExpiresInSeconds { get; set; }
         public int ResendAvailableInSeconds { get; set; }
         public int RemainingAttempts { get; set; }

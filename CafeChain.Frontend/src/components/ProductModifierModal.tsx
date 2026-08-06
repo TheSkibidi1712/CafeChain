@@ -186,7 +186,7 @@ export default function ProductModifierModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modifier-dialog-title"
-        className="pos-option-sheet relative ml-auto flex h-full w-full flex-col overflow-hidden border-l border-border bg-surface-white shadow-xl"
+        className="pos-option-sheet relative ml-auto flex h-full max-h-[100dvh] min-h-0 w-full flex-col overflow-hidden border-l border-border bg-surface-white shadow-xl"
       >
         <div className="flex items-center justify-between border-b border-border bg-surface-white px-5 py-4">
           <div className="min-w-0">

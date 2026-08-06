@@ -126,11 +126,97 @@ namespace CafeChain.Application.Services.POS
                         return ServiceResult.Failure("Bạn không có quyền mở phiên POS tại cửa hàng này.", errorCode: WorkShiftErrorCodes.PosPermissionRequired);
                 }
 
+                if (exchangeContext?.WorkShiftId is int preopenedShiftId)
+                {
+                    var preopened = await _shiftRepo.GetShiftByIdAsync(preopenedShiftId, userId, storeId);
+                    if (preopened == null
+                        || preopened.Status != WorkShiftStatuses.Open
+                        || !string.Equals(preopened.PosTerminalId, terminalId, StringComparison.Ordinal))
+                        return ServiceResult.Failure(
+                            "WorkShift đã mở tại StaffHub không còn hợp lệ hoặc không khớp terminal.",
+                            errorCode: WorkShiftErrorCodes.PosOpenContextInvalid);
+
+                    if (!exchangeContext.RequiresOpeningCash)
+                    {
+                        if (preopened.StartingCash == request.StartingCash)
+                        {
+                            var replay = ServiceResult.Success("Yêu cầu xác nhận tiền đầu phiên đã được xử lý trước đó.");
+                            replay.EntityId = preopened.ShiftId;
+                            return replay;
+                        }
+                        return ServiceResult.Failure(
+                            "Tiền đầu phiên đã được xác nhận với giá trị khác.",
+                            errorCode: WorkShiftErrorCodes.DuplicateRequest);
+                    }
+
+                    if (await _posRepo.GetCompletedOrderCountAsync(preopened.ShiftId) > 0)
+                        return ServiceResult.Failure(
+                            "WorkShift đã phát sinh giao dịch trước khi xác nhận tiền đầu phiên.",
+                            errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+
+                    if (preopened.StartingCash != 0 || preopened.ExpectedEndingCash != 0)
+                    {
+                        if (preopened.StartingCash == request.StartingCash)
+                        {
+                            var replay = ServiceResult.Success("Tiền đầu phiên đã được xác nhận trước đó.");
+                            replay.EntityId = preopened.ShiftId;
+                            return replay;
+                        }
+                        return ServiceResult.Failure(
+                            "Tiền đầu phiên đã được xác nhận với giá trị khác.",
+                            errorCode: WorkShiftErrorCodes.DuplicateRequest);
+                    }
+
+                    await _otpChallengeRepo.BeginTransactionAsync();
+                    ownsTransaction = true;
+                    preopened.StartingCash = request.StartingCash;
+                    preopened.ExpectedEndingCash = request.StartingCash;
+                    await _shiftRepo.UpdateShiftAsync(preopened);
+                    if (_posSessionExchange == null
+                        || !request.ExchangeContextId.HasValue
+                        || !request.AccountId.HasValue
+                        || !await _posSessionExchange.CompleteOpeningCashAsync(
+                            request.ExchangeContextId.Value,
+                            request.AccountId.Value,
+                            userId,
+                            storeId,
+                            preopened.ShiftId))
+                    {
+                        await _otpChallengeRepo.RollbackTransactionAsync();
+                        ownsTransaction = false;
+                        return ServiceResult.Failure(
+                            "Không thể hoàn tất ngữ cảnh tiền đầu phiên.",
+                            errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+                    }
+                    if (_audit != null)
+                    {
+                        await _audit.WriteAsync(
+                            "WORKSHIFT_OPENING_CASH_CONFIRMED",
+                            preopened.ShiftId,
+                            userId,
+                            new { StartingCash = 0m },
+                            new { preopened.StartingCash, ExchangeContextId = request.ExchangeContextId });
+                    }
+                    await _otpChallengeRepo.CommitTransactionAsync();
+                    ownsTransaction = false;
+                    var initialized = ServiceResult.Success("Xác nhận tiền đầu phiên thành công.");
+                    initialized.EntityId = preopened.ShiftId;
+                    return initialized;
+                }
+
                 var current = await _shiftRepo.GetActiveShiftAsync(userId, storeId);
                 if (current != null)
                     return StaffConflict(current);
 
                 var assessment = await AssessOpenShiftCoreAsync(userId, storeId);
+                var requiresStaffHubNow = assessment.OpenContext != WorkShiftOpenContexts.WithinSchedule
+                    || assessment.MinutesEarly > 0;
+                if (exchangeContext != null
+                    && !exchangeContext.RequiresStaffHubOpen
+                    && requiresStaffHubNow)
+                    return ServiceResult.Failure(
+                        "Ngữ cảnh mở ca đã chuyển sang ca sớm, trễ hoặc ngoài lịch. Vui lòng xác nhận lại tại StaffHub.",
+                        errorCode: WorkShiftErrorCodes.StaffHubOpenRequired);
                 if (exchangeContext != null
                     && (!string.Equals(exchangeContext.OpenContext, assessment.OpenContext, StringComparison.Ordinal)
                         || exchangeContext.SourceStaffShiftId != assessment.SourceStaffShift?.StaffShiftId))
@@ -262,6 +348,24 @@ namespace CafeChain.Application.Services.POS
                 };
 
                 await _shiftRepo.CreateShiftAsync(newShift);
+                if (exchangeContext != null
+                    && exchangeContext.RequiresOpeningCash
+                    && request.ExchangeContextId.HasValue
+                    && request.AccountId.HasValue
+                    && (_posSessionExchange == null
+                        || !await _posSessionExchange.CompleteOpeningCashAsync(
+                            request.ExchangeContextId.Value,
+                            request.AccountId.Value,
+                            userId,
+                            storeId,
+                            newShift.ShiftId)))
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    ownsTransaction = false;
+                    return ServiceResult.Failure(
+                        "Không thể bind WorkShift vừa mở với ngữ cảnh tiền đầu phiên.",
+                        errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+                }
                 if (_audit != null)
                 {
                     await _audit.WriteAsync(
@@ -472,6 +576,8 @@ namespace CafeChain.Application.Services.POS
 
             var assessment = preview.Data;
             var normalizedReason = reason?.Trim();
+            var requiresStaffHubOpen = assessment.OpenContext != WorkShiftOpenContexts.WithinSchedule
+                || assessment.MinutesEarly > 0;
             if (assessment.ReasonRequired && !IsValidReason(normalizedReason))
                 return ServiceResult<PosSessionExchangeContextDto>.Failure(
                     assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule
@@ -533,7 +639,9 @@ namespace CafeChain.Application.Services.POS
                 PlannedStartUtc = assessment.PlannedStartUtc,
                 PlannedEndUtc = assessment.PlannedEndUtc,
                 Reason = assessment.ReasonRequired ? normalizedReason : null,
-                OtpChallengePublicId = assessment.ApprovalRequired ? otpChallengePublicId : null
+                OtpChallengePublicId = assessment.ApprovalRequired ? otpChallengePublicId : null,
+                RequiresStaffHubOpen = requiresStaffHubOpen,
+                RequiresOpeningCash = true
             });
         }
 
@@ -655,14 +763,39 @@ namespace CafeChain.Application.Services.POS
                 Data = new OpenShiftAssessmentDto
                 {
                     TerminalId = shift.PosTerminalId,
+                    RecommendedAction = staffOwned
+                        ? shift.Status == WorkShiftStatuses.Open
+                            ? WorkShiftRecommendedActions.ResumeExistingWorkShift
+                            : shift.Status == WorkShiftStatuses.Closing
+                                ? WorkShiftRecommendedActions.CompleteClosing
+                                : WorkShiftRecommendedActions.CountAndClose
+                        : shift.Status == WorkShiftStatuses.Open
+                            ? WorkShiftRecommendedActions.SwitchCurrentOperator
+                            : shift.Status == WorkShiftStatuses.Closing
+                                ? WorkShiftRecommendedActions.CompleteClosing
+                                : WorkShiftRecommendedActions.CountAndClose,
                     BlockingWorkShift = new BlockingWorkShiftDto
                     {
                         WorkShiftId = shift.ShiftId,
                         TerminalId = shift.PosTerminalId,
                         TerminalName = shift.PosTerminal?.Name,
-                        StartTimeUtc = shift.StartTimeUtc,
+                        StartTimeUtc = AsUtc(shift.StartTimeUtc),
                         Status = shift.Status,
-                        AutoCloseAtUtc = shift.AutoCloseAtUtc
+                        AutoCloseAtUtc = AsUtc(shift.AutoCloseAtUtc),
+                        ResponsibleStaffId = shift.UserId,
+                        ResponsibleStaffName = shift.User?.FullName,
+                        IsOwnedByRequester = staffOwned,
+                        RecommendedAction = staffOwned
+                            ? shift.Status == WorkShiftStatuses.Open
+                                ? WorkShiftRecommendedActions.ResumeExistingWorkShift
+                                : shift.Status == WorkShiftStatuses.Closing
+                                    ? WorkShiftRecommendedActions.CompleteClosing
+                                    : WorkShiftRecommendedActions.CountAndClose
+                            : shift.Status == WorkShiftStatuses.Open
+                                ? WorkShiftRecommendedActions.SwitchCurrentOperator
+                                : shift.Status == WorkShiftStatuses.Closing
+                                    ? WorkShiftRecommendedActions.CompleteClosing
+                                    : WorkShiftRecommendedActions.CountAndClose
                     }
                 }
             };
@@ -700,22 +833,31 @@ namespace CafeChain.Application.Services.POS
             {
                 ShiftId = shift.ShiftId,
                 StoreId = shift.StoreId,
+                TerminalId = shift.PosTerminalId,
+                TerminalName = shift.PosTerminal?.Name,
                 StaffName = shift.User?.FullName,
                 ResponsibleStaffId = shift.UserId,
                 CurrentOperatorStaffId = shift.CurrentOperatorStaffId ?? shift.UserId,
                 CurrentOperatorName = shift.CurrentOperatorStaff?.FullName ?? shift.User?.FullName,
-                OperatorChangedAtUtc = shift.OperatorChangedAtUtc,
-                StartTime = shift.StartTimeUtc,
-                EndTime = shift.EndTimeUtc,
-                StartTimeUtc = shift.StartTimeUtc,
-                EndTimeUtc = shift.EndTimeUtc,
+                OperatorChangedAtUtc = AsUtc(shift.OperatorChangedAtUtc),
+                StartTime = AsUtc(shift.StartTimeUtc),
+                EndTime = AsUtc(shift.EndTimeUtc),
+                StartTimeUtc = AsUtc(shift.StartTimeUtc),
+                EndTimeUtc = AsUtc(shift.EndTimeUtc),
                 BusinessDate = shift.BusinessDate,
                 SourceStaffShiftId = shift.SourceStaffShiftId,
                 OpenContext = shift.OpenContext,
-                AutoCloseAtUtc = shift.AutoCloseAtUtc,
-                ExpiredAtUtc = shift.ExpiredAtUtc,
-                ClosingStartedAtUtc = shift.ClosingStartedAtUtc,
-                ServerNowUtc = _timeProvider.GetUtcNow().UtcDateTime,
+                AutoCloseAtUtc = AsUtc(shift.AutoCloseAtUtc),
+                ExpiredAtUtc = AsUtc(shift.ExpiredAtUtc),
+                ClosingStartedAtUtc = AsUtc(shift.ClosingStartedAtUtc),
+                ServerNowUtc = AsUtc(_timeProvider.GetUtcNow().UtcDateTime),
+                RecommendedAction = shift.Status switch
+                {
+                    WorkShiftStatuses.Open => WorkShiftRecommendedActions.ContinuePos,
+                    WorkShiftStatuses.Closing => WorkShiftRecommendedActions.CompleteClosing,
+                    WorkShiftStatuses.ExpiredPendingClose => WorkShiftRecommendedActions.CountAndClose,
+                    _ => null
+                },
                 CloseType = shift.CloseType,
                 ClosedByStaffId = shift.ClosedByStaffId,
                 CloseReason = shift.CloseReason,
@@ -729,20 +871,28 @@ namespace CafeChain.Application.Services.POS
                 IsExceptionClosed = shift.IsExceptionClosed,
                 ExceptionCloseReason = shift.ExceptionCloseReason,
                 ExceptionClosedByStaffId = shift.ExceptionClosedByStaffId,
-                ExceptionClosedAt = shift.ExceptionClosedAt,
+                ExceptionClosedAt = AsUtc(shift.ExceptionClosedAt),
                 OfflineOrderCountAtClose = shift.OfflineOrderCountAtClose,
                 OfflineEstimatedTotalAtClose = shift.OfflineEstimatedTotalAtClose,
                 OfflineCashTotalAtClose = shift.OfflineCashTotalAtClose,
                 RequiresReconciliation = shift.RequiresReconciliation,
                 HasLateOfflineSync = shift.HasLateOfflineSync,
                 LateOfflineSyncCount = shift.LateOfflineSyncCount,
-                LastLateOfflineSyncedAt = shift.LastLateOfflineSyncedAtUtc,
+                LastLateOfflineSyncedAt = AsUtc(shift.LastLateOfflineSyncedAtUtc),
                 TotalCashSales = totalCash,
                 TotalBankingSales = totalBanking,
                 TotalOrders = totalOrders,
                 Status = shift.Status
             };
         }
+
+        private static DateTime AsUtc(DateTime value) => value.Kind == DateTimeKind.Utc
+            ? value
+            : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+
+        private static DateTime? AsUtc(DateTime? value) => value.HasValue
+            ? AsUtc(value.Value)
+            : null;
 
         public async Task<ServiceResult> CloseShiftAsync(
             int userId,
@@ -1587,8 +1737,8 @@ namespace CafeChain.Application.Services.POS
                     TerminalId = shift.PosTerminalId,
                     EventType = eventType,
                     Status = shift.Status,
-                    ServerNowUtc = _timeProvider.GetUtcNow().UtcDateTime,
-                    AutoCloseAtUtc = shift.AutoCloseAtUtc,
+                    ServerNowUtc = AsUtc(_timeProvider.GetUtcNow().UtcDateTime),
+                    AutoCloseAtUtc = AsUtc(shift.AutoCloseAtUtc),
                     RemainingMinutes = shift.AutoCloseAtUtc.HasValue
                         ? Math.Max(0, (int)Math.Ceiling((shift.AutoCloseAtUtc.Value - _timeProvider.GetUtcNow().UtcDateTime).TotalMinutes))
                         : null

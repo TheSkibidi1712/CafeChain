@@ -6,6 +6,102 @@ SET QUOTED_IDENTIFIER ON;
 GO
 
 /* ============================================================
+   FIXED POS TEST IDENTITIES
+   - Must run before any later batch creates identity rows.
+   - AccountId/StaffId 16 and 17 continue directly after migration seed 15.
+   - Password hash is copied from salesstaff; POS operator PIN is never seeded.
+   ============================================================ */
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    DECLARE @PosTestPasswordHash nvarchar(500), @PosTestGender int, @PosTestEmployeeStatus int;
+    DECLARE @PosTestSalesRoleId int, @PosTestStoreScopeTypeId int;
+
+    SELECT @PosTestPasswordHash=a.PasswordHash,
+           @PosTestGender=s.Gender,
+           @PosTestEmployeeStatus=s.EmployeeStatus
+    FROM dbo.Accounts a
+    JOIN dbo.Staffs s ON s.AccountId=a.AccountId
+    WHERE a.Email=N'salesstaff@cafechain.vn' AND a.Active=1 AND s.Active=1 AND s.StoreId=1;
+
+    SELECT @PosTestSalesRoleId=RoleId FROM dbo.Roles WHERE Name=N'Nhân viên bán hàng' AND Active=1;
+    SELECT @PosTestStoreScopeTypeId=ScopeTypeId FROM dbo.ScopeTypes WHERE Code=N'STORE';
+
+    IF @PosTestPasswordHash IS NULL OR @PosTestSalesRoleId IS NULL OR @PosTestStoreScopeTypeId IS NULL
+       OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE StoreId=1 AND Name=N'CafeChain Thủ Dầu Một')
+       OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE StoreId=3 AND Name=N'CafeChain Dĩ An')
+        THROW 53700,N'POS_TEST_IDENTITIES: thiếu salesstaff, role, STORE scope hoặc Store 1/3 nền.',1;
+
+    IF EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=16 AND
+              (Email<>N'salesstaff2@cafechain.vn' OR PasswordHash<>@PosTestPasswordHash OR Active<>1 OR RequiresPasswordChange<>0))
+       OR EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=N'salesstaff2@cafechain.vn' AND AccountId<>16)
+        THROW 53701,N'POS_TEST_IDENTITIES: AccountId/email 16 đã tồn tại với payload khác.',1;
+    IF EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=17 AND
+              (Email<>N'salesstaff3@cafechain.vn' OR PasswordHash<>@PosTestPasswordHash OR Active<>1 OR RequiresPasswordChange<>0))
+       OR EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=N'salesstaff3@cafechain.vn' AND AccountId<>17)
+        THROW 53702,N'POS_TEST_IDENTITIES: AccountId/email 17 đã tồn tại với payload khác.',1;
+
+    SET IDENTITY_INSERT dbo.Accounts ON;
+    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=16)
+        INSERT dbo.Accounts(AccountId,Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
+        VALUES(16,N'salesstaff2@cafechain.vn',@PosTestPasswordHash,1,0,'2026-08-06T00:00:00',0,NULL);
+    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=17)
+        INSERT dbo.Accounts(AccountId,Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
+        VALUES(17,N'salesstaff3@cafechain.vn',@PosTestPasswordHash,1,0,'2026-08-06T00:00:00',0,NULL);
+    SET IDENTITY_INSERT dbo.Accounts OFF;
+
+    IF EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId IN(16,17) AND RoleId<>@PosTestSalesRoleId)
+        THROW 53703,N'POS_TEST_IDENTITIES: tài khoản test có role ngoài Nhân viên bán hàng.',1;
+    IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=16 AND RoleId=@PosTestSalesRoleId)
+        INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(16,@PosTestSalesRoleId);
+    IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=17 AND RoleId=@PosTestSalesRoleId)
+        INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(17,@PosTestSalesRoleId);
+
+    IF EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=16 AND
+              (AccountId<>16 OR FullName<>N'Nhân viên bán hàng 2' OR StoreId<>1 OR Active<>1 OR PosPinHash IS NOT NULL))
+       OR EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=16 AND StaffId<>16)
+        THROW 53704,N'POS_TEST_IDENTITIES: StaffId/AccountId 16 đã tồn tại với payload khác.',1;
+    IF EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=17 AND
+              (AccountId<>17 OR FullName<>N'Nhân viên bán hàng 3' OR StoreId<>3 OR Active<>1 OR PosPinHash IS NOT NULL))
+       OR EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=17 AND StaffId<>17)
+        THROW 53705,N'POS_TEST_IDENTITIES: StaffId/AccountId 17 đã tồn tại với payload khác.',1;
+
+    SET IDENTITY_INSERT dbo.Staffs ON;
+    IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=16)
+        INSERT dbo.Staffs(StaffId,AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,StoreId,
+                          AvatarUrl,AvatarPublicId,Active,PosPinHash,PosPinFailedAttempts,PosPinLockedUntilUtc,CreatedAt)
+        VALUES(16,16,N'Nhân viên bán hàng 2',NULL,@PosTestGender,'2026-08-06',@PosTestEmployeeStatus,NULL,1,
+               NULL,NULL,1,NULL,0,NULL,'2026-08-06T00:00:00');
+    IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=17)
+        INSERT dbo.Staffs(StaffId,AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,StoreId,
+                          AvatarUrl,AvatarPublicId,Active,PosPinHash,PosPinFailedAttempts,PosPinLockedUntilUtc,CreatedAt)
+        VALUES(17,17,N'Nhân viên bán hàng 3',NULL,@PosTestGender,'2026-08-06',@PosTestEmployeeStatus,NULL,3,
+               NULL,NULL,1,NULL,0,NULL,'2026-08-06T00:00:00');
+    SET IDENTITY_INSERT dbo.Staffs OFF;
+
+    IF EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=16 AND
+              (ScopeTypeId<>@PosTestStoreScopeTypeId OR ScopeRefId<>1))
+       OR EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=17 AND
+              (ScopeTypeId<>@PosTestStoreScopeTypeId OR ScopeRefId<>3))
+        THROW 53706,N'POS_TEST_IDENTITIES: StaffScope test khác STORE/Store contract.',1;
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=16 AND ScopeTypeId=@PosTestStoreScopeTypeId AND ScopeRefId=1)
+        INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId) VALUES(16,@PosTestStoreScopeTypeId,1);
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=17 AND ScopeTypeId=@PosTestStoreScopeTypeId AND ScopeRefId=3)
+        INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId) VALUES(17,@PosTestStoreScopeTypeId,3);
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    SET IDENTITY_INSERT dbo.Accounts OFF;
+    SET IDENTITY_INSERT dbo.Staffs OFF;
+    THROW;
+END CATCH;
+GO
+
+/* ============================================================
    BATCH 16 - DEMO_COVERAGE_V16 branch receipt integrity
    - Remediates the two historical confirmed demo receipts.
    - Adds Store 2 and enough confirmed receipts for supplier analytics.

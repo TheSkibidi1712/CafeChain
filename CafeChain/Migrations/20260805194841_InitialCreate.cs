@@ -5779,7 +5779,7 @@ namespace CafeChain.Migrations
                     PurchaseAdviceFulfillmentPostingId = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PurchaseAdviceLineId = table.Column<int>(type: "int", nullable: false),
-                    PurchaseOrderLineAllocationId = table.Column<int>(type: "int", nullable: false),
+                    PurchaseOrderLineAllocationId = table.Column<int>(type: "int", nullable: true),
                     PurchaseOrderLineId = table.Column<int>(type: "int", nullable: false),
                     BranchReceiptLineId = table.Column<int>(type: "int", nullable: true),
                     CloseOperationKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
@@ -8909,14 +8909,28 @@ namespace CafeChain.Migrations
                 table: "PurchaseAdviceFulfillmentPostings",
                 columns: new[] { "BranchReceiptLineId", "PurchaseOrderLineAllocationId", "PostingType" },
                 unique: true,
-                filter: "[BranchReceiptLineId] IS NOT NULL AND [PostingType] = 'ACCEPTED'");
+                filter: "[BranchReceiptLineId] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NOT NULL AND [PostingType] = 'ACCEPTED'");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseAdviceFulfillmentPostings_BranchReceiptLineId_PurchaseOrderLineId_PostingType",
+                table: "PurchaseAdviceFulfillmentPostings",
+                columns: new[] { "BranchReceiptLineId", "PurchaseOrderLineId", "PostingType" },
+                unique: true,
+                filter: "[BranchReceiptLineId] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NULL AND [PostingType] = 'ACCEPTED'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PurchaseAdviceFulfillmentPostings_CloseOperationKey_PurchaseOrderLineAllocationId_PostingType",
                 table: "PurchaseAdviceFulfillmentPostings",
                 columns: new[] { "CloseOperationKey", "PurchaseOrderLineAllocationId", "PostingType" },
                 unique: true,
-                filter: "[CloseOperationKey] IS NOT NULL AND [PostingType] = 'CLOSED'");
+                filter: "[CloseOperationKey] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NOT NULL AND [PostingType] = 'CLOSED'");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseAdviceFulfillmentPostings_CloseOperationKey_PurchaseOrderLineId_PostingType",
+                table: "PurchaseAdviceFulfillmentPostings",
+                columns: new[] { "CloseOperationKey", "PurchaseOrderLineId", "PostingType" },
+                unique: true,
+                filter: "[CloseOperationKey] IS NOT NULL AND [PurchaseOrderLineAllocationId] IS NULL AND [PostingType] = 'CLOSED'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PurchaseAdviceFulfillmentPostings_PurchaseAdviceLineId_CreatedAtUtc",
