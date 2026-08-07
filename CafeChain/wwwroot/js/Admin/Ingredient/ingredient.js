@@ -6,6 +6,38 @@
     const $ = window.jQuery;
     const token = () => document.querySelector('#ingredientAntiForgeryForm input[name="__RequestVerificationToken"]')?.value || "";
 
+    function resolveMessage(payload, response, fallback) {
+        return window.AdminFeedback?.resolveMessage?.(payload, {
+            status: response?.status,
+            fallback
+        }) || (typeof payload?.message === "string" ? payload.message : fallback);
+    }
+
+    async function requestJson(url, options = {}, config = {}) {
+        const requireSuccess = config.requireSuccess !== false;
+        const fallback = config.fallback || "Không thể thực hiện thao tác. Vui lòng thử lại.";
+        let response;
+        try {
+            response = await fetch(url, options);
+        } catch {
+            throw new Error(window.AdminFeedback?.networkMessage?.()
+                || "Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại.");
+        }
+
+        let result;
+        try {
+            result = await response.json();
+        } catch {
+            throw new Error(resolveMessage(null, response,
+                response.ok ? "Máy chủ trả về dữ liệu không hợp lệ." : fallback));
+        }
+
+        if (!response.ok || (requireSuccess && result?.success !== true)) {
+            throw new Error(resolveMessage(result, response, fallback));
+        }
+        return result;
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         preloadUnits();
         $("#btnCreate").on("click", openCreateModal);
@@ -17,10 +49,20 @@
         document.getElementById("ingredientModal")?.addEventListener("hidden.bs.modal", clearForm);
     });
 
-    function preloadUnits() {
-        return fetch("/Admin/AdminIngredient/GetUnits")
-            .then(response => response.json())
-            .then(data => { unitCache = data || []; renderUnits(); });
+    async function preloadUnits() {
+        try {
+            const data = await requestJson("/Admin/AdminIngredient/GetUnits", {}, {
+                requireSuccess: false,
+                fallback: "Không thể tải danh sách đơn vị."
+            });
+            if (!Array.isArray(data)) throw new Error("Máy chủ trả về danh sách đơn vị không hợp lệ.");
+            unitCache = data;
+            renderUnits();
+        } catch (error) {
+            unitCache = [];
+            renderUnits();
+            toast(error.message || "Không thể tải danh sách đơn vị.", "error");
+        }
     }
 
     function renderUnits(selectedId) {
@@ -51,16 +93,21 @@
     async function openEditModal(id) {
         isEdit = true;
         clearForm();
-        const response = await fetch(`/Admin/AdminIngredient/GetById?id=${id}`);
-        const result = await response.json();
-        if (!result.success) return toast(result.message || "Không tìm thấy nguyên liệu", "error");
-        const item = result.data;
-        $("#ingredientId").val(item.ingredientId);
-        $("#code").val(item.code);
-        $("#name").val(item.name);
-        renderUnits(item.baseUnitId);
-        $("#modalTitle").text("Cập nhật nguyên liệu");
-        openIngredientModal();
+        try {
+            const result = await requestJson(`/Admin/AdminIngredient/GetById?id=${id}`, {}, {
+                fallback: "Không thể tải thông tin nguyên liệu."
+            });
+            const item = result.data;
+            if (!item) throw new Error("Máy chủ không trả về thông tin nguyên liệu.");
+            $("#ingredientId").val(item.ingredientId);
+            $("#code").val(item.code);
+            $("#name").val(item.name);
+            renderUnits(item.baseUnitId);
+            $("#modalTitle").text("Cập nhật nguyên liệu");
+            openIngredientModal();
+        } catch (error) {
+            toast(error.message || "Không thể tải thông tin nguyên liệu.", "error");
+        }
     }
 
     function payload() {
@@ -78,28 +125,38 @@
             return toast("Vui lòng nhập mã, tên và đơn vị tồn kho cơ sở.", "warning");
 
         const button = document.getElementById("btnSave");
-        AdminMutationGuard.run("ingredient-save", button, async () => {
-            const action = isEdit ? "Update" : "Create";
-            const response = await fetch(`/Admin/AdminIngredient/${action}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "RequestVerificationToken": token() },
-                body: JSON.stringify(data)
-            });
-            const result = await response.json();
-            toast(result.message || "Có lỗi xảy ra", result.success ? "success" : "error");
-            if (result.success) window.location.reload();
+        void AdminMutationGuard.run("ingredient-save", button, async () => {
+            try {
+                const action = isEdit ? "Update" : "Create";
+                const result = await requestJson(`/Admin/AdminIngredient/${action}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "RequestVerificationToken": token() },
+                    body: JSON.stringify(data)
+                }, {
+                    fallback: isEdit ? "Không thể cập nhật nguyên liệu." : "Không thể tạo nguyên liệu."
+                });
+                toast(result.message || (isEdit ? "Cập nhật thành công" : "Thêm thành công"), "success");
+                window.location.reload();
+            } catch (error) {
+                toast(error.message || "Không thể lưu nguyên liệu.", "error");
+            }
         });
     }
 
     function toggleStatus(id, button) {
-        AdminMutationGuard.run(`ingredient-toggle-${id}`, button, async () => {
-            const response = await fetch(`/Admin/AdminIngredient/ToggleStatus?id=${id}`, {
-                method: "POST",
-                headers: { "RequestVerificationToken": token() }
-            });
-            const result = await response.json();
-            toast(result.message || "Có lỗi xảy ra", result.success ? "success" : "error");
-            if (result.success) window.location.reload();
+        void AdminMutationGuard.run(`ingredient-toggle-${id}`, button, async () => {
+            try {
+                const result = await requestJson(`/Admin/AdminIngredient/ToggleStatus?id=${id}`, {
+                    method: "POST",
+                    headers: { "RequestVerificationToken": token() }
+                }, {
+                    fallback: "Không thể cập nhật trạng thái nguyên liệu."
+                });
+                toast(result.message || "Đã cập nhật trạng thái", "success");
+                window.location.reload();
+            } catch (error) {
+                toast(error.message || "Không thể cập nhật trạng thái nguyên liệu.", "error");
+            }
         });
     }
 

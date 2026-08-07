@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260805215508_AddOrderRecipeAndToppingQuantityUnitSnapshots")]
-    partial class AddOrderRecipeAndToppingQuantityUnitSnapshots
+    [Migration("20260806043825_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -7859,8 +7859,21 @@ namespace CafeChain.Migrations
                     b.Property<int?>("LeadTimeDays")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("LooseMinimumOrderQuantity")
+                        .HasColumnType("decimal(18,5)");
+
+                    b.Property<string>("LoosePriceMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)")
+                        .HasDefaultValue("INDEPENDENT");
+
                     b.Property<int?>("LooseProcurementUnitId")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("LooseQuantityStep")
+                        .HasColumnType("decimal(18,5)");
 
                     b.Property<int?>("MinimumOrderPackageCount")
                         .HasColumnType("int");
@@ -7893,7 +7906,10 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("Active");
 
-                    b.HasIndex("IngredientId");
+                    b.HasIndex("IngredientId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_IngredientSuppliers_PrimaryByIngredient")
+                        .HasFilter("[IsPrimary] = 1 AND [Active] = 1");
 
                     b.HasIndex("LooseProcurementUnitId");
 
@@ -7910,7 +7926,13 @@ namespace CafeChain.Migrations
 
                             t.HasCheckConstraint("CK_IngredientSupplier_LeadTime", "[LeadTimeDays] IS NULL OR [LeadTimeDays] >= 0");
 
+                            t.HasCheckConstraint("CK_IngredientSupplier_LooseMinimumOrderQuantity", "[LooseMinimumOrderQuantity] IS NULL OR [LooseMinimumOrderQuantity] >= 0");
+
+                            t.HasCheckConstraint("CK_IngredientSupplier_LoosePriceMode", "[LoosePriceMode] IN ('DERIVED', 'INDEPENDENT')");
+
                             t.HasCheckConstraint("CK_IngredientSupplier_LoosePurchase", "[AllowsLoosePurchase] = 0 OR ([CurrentProcurementUnitPrice] IS NOT NULL AND [CurrentProcurementUnitPrice] > 0 AND [LooseProcurementUnitId] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_IngredientSupplier_LooseQuantityStep", "[LooseQuantityStep] IS NULL OR [LooseQuantityStep] > 0");
 
                             t.HasCheckConstraint("CK_IngredientSupplier_MOQ", "[MinimumOrderPackageCount] IS NULL OR [MinimumOrderPackageCount] > 0");
 
@@ -7928,6 +7950,7 @@ namespace CafeChain.Migrations
                             IngredientId = 6,
                             IsPrimary = true,
                             LeadTimeDays = 1,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 1,
                             Note = "Đường Biên Hòa",
                             PackageQuantity = 1m,
@@ -7946,6 +7969,7 @@ namespace CafeChain.Migrations
                             IngredientId = 2,
                             IsPrimary = true,
                             LeadTimeDays = 2,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 24,
                             Note = "Sữa đặc demo lon 380 ml (synthetic)",
                             PackageQuantity = 380m,
@@ -7964,6 +7988,7 @@ namespace CafeChain.Migrations
                             IngredientId = 1,
                             IsPrimary = true,
                             LeadTimeDays = 3,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 5,
                             Note = "Cà phê hạt",
                             PackageQuantity = 1m,
@@ -7982,6 +8007,7 @@ namespace CafeChain.Migrations
                             IngredientId = 8,
                             IsPrimary = true,
                             LeadTimeDays = 4,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 6,
                             Note = "Syrup Torani",
                             PackageQuantity = 750m,
@@ -8000,6 +8026,7 @@ namespace CafeChain.Migrations
                             IngredientId = 10,
                             IsPrimary = true,
                             LeadTimeDays = 2,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 12,
                             Note = "Kem béo Rich",
                             PackageQuantity = 1m,
@@ -8018,6 +8045,7 @@ namespace CafeChain.Migrations
                             IngredientId = 9,
                             IsPrimary = true,
                             LeadTimeDays = 5,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 1,
                             Note = "Matcha Nhật",
                             PackageQuantity = 500m,
@@ -8036,6 +8064,7 @@ namespace CafeChain.Migrations
                             IngredientId = 5,
                             IsPrimary = true,
                             LeadTimeDays = 3,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 2,
                             Note = "Bột cacao",
                             PackageQuantity = 1m,
@@ -8054,6 +8083,7 @@ namespace CafeChain.Migrations
                             IngredientId = 4,
                             IsPrimary = true,
                             LeadTimeDays = 2,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 2,
                             Note = "Bột sữa",
                             PackageQuantity = 1m,
@@ -8072,6 +8102,7 @@ namespace CafeChain.Migrations
                             IngredientId = 3,
                             IsPrimary = true,
                             LeadTimeDays = 5,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 1,
                             Note = "Trà đen demo 100 túi × 2 g (synthetic)",
                             PackageQuantity = 200m,

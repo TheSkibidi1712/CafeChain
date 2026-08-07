@@ -426,6 +426,8 @@ export default function ShiftSummary() {
   }
 
   useEffect(() => {
+    let active = true
+    let connection: signalR.HubConnection | null = null
     const refresh = () => { void loadCurrentShift() }
     window.addEventListener('focus', refresh)
     const pollingId = window.setInterval(refresh, 30_000)
@@ -436,32 +438,41 @@ export default function ShiftSummary() {
       }
     }
 
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${API_BASE_URL}/hubs/workshifts`, {
-        accessTokenFactory: () => session.token ?? '',
+    queueMicrotask(() => {
+      if (!active) return
+      connection = new signalR.HubConnectionBuilder()
+        .withUrl(`${API_BASE_URL}/hubs/workshifts`, {
+          accessTokenFactory: () => session.token ?? '',
+        })
+        .withAutomaticReconnect([0, 2_000, 5_000, 10_000, 30_000])
+        .build()
+      connection.on('WorkShiftChanged', (notification: { storeId?: number }) => {
+        if (notification.storeId && session.storeId && notification.storeId !== session.storeId) return
+        refresh()
       })
-      .withAutomaticReconnect([0, 2_000, 5_000, 10_000, 30_000])
-      .build()
-    connection.on('WorkShiftChanged', (notification: { storeId?: number }) => {
-      if (notification.storeId && session.storeId && notification.storeId !== session.storeId) return
-      refresh()
-    })
-    connection.onreconnected(() => {
-      const terminalId = getPosTerminalId()
-      if (terminalId) void connection.invoke('JoinTerminal', terminalId)
-      refresh()
-    })
-    connection.start()
-      .then(() => {
+      connection.onreconnected(() => {
         const terminalId = getPosTerminalId()
-        return terminalId ? connection.invoke('JoinTerminal', terminalId) : undefined
+        if (terminalId) void connection?.invoke('JoinTerminal', terminalId)
+        refresh()
       })
-      .catch((error) => console.warn('[ShiftSummary WorkShift SignalR] Polling fallback active.', error))
+      connection.start()
+        .then(() => {
+          if (!active) return undefined
+          const terminalId = getPosTerminalId()
+          return terminalId ? connection?.invoke('JoinTerminal', terminalId) : undefined
+        })
+        .catch((error) => {
+          if (active) {
+            console.warn('[ShiftSummary WorkShift SignalR] Polling fallback active.', error)
+          }
+        })
+    })
 
     return () => {
+      active = false
       window.removeEventListener('focus', refresh)
       window.clearInterval(pollingId)
-      void connection.stop()
+      if (connection) void connection.stop()
     }
   }, [loadCurrentShift, session.storeId, session.token])
 

@@ -8,6 +8,7 @@ public static class WorkShiftErrorCodes
     public const string TerminalInactive = "TERMINAL_INACTIVE";
     public const string TerminalStoreMismatch = "TERMINAL_STORE_MISMATCH";
     public const string TerminalAlreadyHasOpenShift = "TERMINAL_ALREADY_HAS_OPEN_SHIFT";
+    public const string WorkShiftTerminalMismatch = "WORKSHIFT_TERMINAL_MISMATCH";
     public const string StaffAlreadyHasOpenShift = "STAFF_ALREADY_HAS_OPEN_SHIFT";
     public const string OutsideScheduleReasonRequired = "OUTSIDE_SCHEDULE_REASON_REQUIRED";
     public const string OutsideScheduleApprovalRequired = "OUTSIDE_SCHEDULE_APPROVAL_REQUIRED";

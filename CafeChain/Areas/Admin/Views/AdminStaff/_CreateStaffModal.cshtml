@@ -19,7 +19,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content admin-wo-card shadow">
             <form asp-action="Create" asp-controller="AdminStaff" asp-area="Admin" method="post" class="staff-create-form"
-                  enctype="multipart/form-data" id="createStaffForm" novalidate>
+                  enctype="multipart/form-data" id="createStaffForm" data-validation-feedback="sweetalert" novalidate>
                 @Html.AntiForgeryToken()
                 <div class="modal-header">
                     <div class="staff-modal-heading">
@@ -148,8 +148,23 @@
     const avatarPreview = document.getElementById('createAvatarPreview');
     const avatarPlaceholder = document.getElementById('createAvatarPlaceholder');
     const removeAvatar = document.getElementById('removeCreateAvatar');
+    const submitButton = document.getElementById('createStaffSubmit');
     let districtRequestVersion = 0;
     let wardRequestVersion = 0;
+
+    const restoreCreateSubmit = () => {
+        window.AdminMutationGuard?.unlockForm?.(form);
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.removeAttribute('aria-busy');
+            submitButton.classList.remove('is-submitting');
+        }
+    };
+
+    const validationLabel = field => {
+        const text = field.labels?.[0]?.textContent || field.getAttribute('aria-label') || field.name || '';
+        return text.replace(/\*/g, '').replace(/\s+/g, ' ').trim();
+    };
 
     const scopeTypeCatalog = [...scopeType.options]
         .filter(x => x.value)
@@ -317,14 +332,28 @@
         e.stopPropagation();
         if (!form.checkValidity()) {
             form.classList.add('was-validated');
-            const invalid = form.querySelector(':invalid');
+            const invalidFields = [...form.querySelectorAll(':invalid')];
+            invalidFields.forEach(field => {
+                field.classList.add('is-invalid');
+                field.setAttribute('aria-invalid', 'true');
+            });
+            const invalid = invalidFields[0];
             const pane = invalid?.closest('.tab-pane');
             if (pane) bootstrap.Tab.getOrCreateInstance(document.querySelector(`[data-bs-target="#${pane.id}"]`)).show();
-            requestAnimationFrame(() => invalid?.focus());
+            const labels = [...new Set(invalidFields.map(validationLabel).filter(Boolean))].slice(0, 5);
+            restoreCreateSubmit();
+            await Swal.fire({
+                title: 'Thông tin chưa hợp lệ',
+                text: labels.length
+                    ? `Vui lòng kiểm tra: ${labels.join(', ')}.`
+                    : 'Vui lòng kiểm tra và nhập đầy đủ các trường bắt buộc.',
+                icon: 'warning',
+                confirmButtonText: 'Quay lại kiểm tra'
+            });
+            requestAnimationFrame(() => invalid?.focus({ preventScroll: false }));
             return;
         }
 
-        const submitButton = document.getElementById('createStaffSubmit');
         submitButton.disabled = true;
         try {
             const response = await fetch(form.action, {
@@ -349,7 +378,7 @@
         } catch {
             await Swal.fire('Lỗi kết nối', 'Không thể kết nối máy chủ. Dữ liệu bạn đã nhập vẫn được giữ lại.', 'error');
         } finally {
-            submitButton.disabled = false;
+            restoreCreateSubmit();
         }
     });
 })();

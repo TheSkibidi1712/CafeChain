@@ -3,16 +3,208 @@
    Coffee-Brown Theme | Frontend Only
    ============================================================ */
 
-/* ---- Custom Modal (non-Bootstrap, AJAX-driven) ---- */
+:root {
+    --cc-primary: #70482F;
+    --cc-primary-hover: #3D2418;
+    --cc-accent: #8B6247;
+    --cc-warning: #99623B;
+    --cc-warning-bg: #FBF3EA;
+    --cc-success: #2F6F5E;
+    --cc-success-bg: #EDF6F2;
+    --cc-danger: #991B1B;
+    --cc-danger-bg: #FDF0F0;
+    --cc-surface: #FFFDFB;
+    --cc-surface-muted: #FBF7F2;
+    --cc-border: #E9DED4;
+    --cc-border-strong: #D8C5B6;
+    --cc-text-primary: #201812;
+    --cc-text-secondary: #66584F;
+    --cc-focus: rgba(112, 72, 47, 0.22);
+    --cc-radius-control: 10px;
+    --cc-radius-card: 16px;
+    --cc-radius-modal: 18px;
+}
+
+/* ---- Page Outer Container ---- */
+.cc-warehouse-page,
+.admin-wo-page {
+    width: 100% !important;
+    max-width: 1480px !important;
+    margin: 0 auto !important;
+    padding: 24px !important;
+    background: #F7F4F0 !important;
+    min-height: 100vh;
+    box-sizing: border-box !important;
+}
+
+/* ---- Page Header Card with Single Clean Brown Left Accent Bar ---- */
+.cc-warehouse-header::before {
+    display: none !important;
+    content: none !important;
+}
+
+.cc-warehouse-header,
+.page-header.cc-warehouse-header {
+    width: 100% !important;
+    position: relative;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 15px;
+    margin-bottom: 22px !important;
+    min-height: 148px !important;
+    max-height: 148px !important;
+    padding: 24px 28px !important;
+    border: 1px solid #E9DED4 !important;
+    border-left: 5px solid #5C3F2B !important;
+    border-radius: 20px !important;
+    background: linear-gradient(112deg, #FFFFFF 0%, #FBF7F2 62%, #F1E5DA 100%) !important;
+    box-shadow: 0 12px 32px rgba(61, 36, 24, 0.08) !important;
+    overflow: hidden;
+    box-sizing: border-box !important;
+}
+
+.cc-warehouse-header-main {
+    position: relative;
+    z-index: 1;
+}
+
+.cc-warehouse-header h2,
+.cc-warehouse-header h1 {
+    font-weight: 800 !important;
+    color: #201812 !important;
+    font-size: 28px !important;
+    letter-spacing: -0.02em !important;
+    margin: 0 0 4px 0 !important;
+    line-height: 1.2 !important;
+}
+
+.cc-warehouse-header p {
+    color: #66584F !important;
+    font-size: 14px !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
+}
+
+/* ---- Filter Card ---- */
+.cc-warehouse-panel,
+.card {
+    width: 100% !important;
+    border: 1px solid #E9DED4 !important;
+    border-radius: 16px !important;
+    background: #FFFDFB !important;
+    box-shadow: 0 4px 16px rgba(61, 36, 24, 0.04) !important;
+    box-sizing: border-box !important;
+}
+
+/* ---- Primary Buttons ---- */
+#btnCreate,
+#btnFilter,
+.cc-warehouse-header .btn-primary,
+.cc-warehouse-panel .btn-primary {
+    background-color: #5C3F2B !important;
+    border: 1px solid #5C3F2B !important;
+    border-radius: 10px !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    max-height: 44px !important;
+    padding: 0 22px !important;
+    font-weight: 750 !important;
+    font-size: 14px !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 4px 16px rgba(61, 36, 24, 0.12) !important;
+    transition: all 0.18s ease !important;
+    position: relative;
+    z-index: 1;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+}
+
+#btnCreate:hover,
+#btnFilter:hover,
+.cc-warehouse-header .btn-primary:hover,
+.cc-warehouse-panel .btn-primary:hover {
+    background-color: #3D2418 !important;
+    border-color: #3D2418 !important;
+    color: #FFFFFF !important;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(61, 36, 24, 0.18) !important;
+}
+
+/* ---- Secondary / Reset Buttons ---- */
+#btnReset,
+.btn-outline-secondary {
+    background-color: #FFFDFB !important;
+    border: 1px solid #D8C5B6 !important;
+    border-radius: 10px !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    max-height: 44px !important;
+    padding: 0 18px !important;
+    font-weight: 750 !important;
+    font-size: 14px !important;
+    color: #3D2418 !important;
+    transition: all 0.18s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+}
+
+#btnReset:hover,
+.btn-outline-secondary:hover {
+    background-color: #FBF3EA !important;
+    border-color: #70482F !important;
+    color: #3D2418 !important;
+}
+
+/* ---- Form Controls ---- */
+.form-control,
+.form-select,
+#searchBox,
+#statusFilter {
+    min-height: 44px !important;
+    height: 44px !important;
+    max-height: 44px !important;
+    border: 1px solid #D8C5B6 !important;
+    border-radius: 10px !important;
+    background: #FFFFFF !important;
+    color: #201812 !important;
+    font-size: 14px !important;
+    padding: 10px 14px !important;
+    box-sizing: border-box !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+#searchBox:focus,
+#statusFilter:focus {
+    border-color: #70482F !important;
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.22) !important;
+}
+
+/* ---- Custom Modal & Icon Header ---- */
 .ingredient-page-icon,
 .ingredient-row-icon {
     display: flex;
     flex: 0 0 auto;
     align-items: center;
     justify-content: center;
-    border-radius: var(--cc-radius-md);
-    background: var(--cc-warning-bg);
-    color: var(--cc-accent);
+    border-radius: 12px;
+    background: #FBF3EA;
+    color: #70482F;
+}
+
+/* Fix input text clipping for searchBox with ps-0 */
+#searchBox,
+.admin-wo-page #searchBox.ps-0 {
+    padding-left: 12px !important;
 }
 
 .ingredient-page-icon { width: 46px; height: 46px; font-size: 20px; }

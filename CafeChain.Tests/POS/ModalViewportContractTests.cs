@@ -34,11 +34,17 @@ public sealed class ModalViewportContractTests
     {
         var script = Read("CafeChain", "wwwroot", "js", "StaffHub", "staffhub-schedule.js");
         var css = Read("CafeChain", "wwwroot", "css", "StaffHub", "staffhub.css");
+        var guard = Read("CafeChain", "wwwroot", "js", "shared", "mutation-guard.js");
 
         Assert.Contains("document.body.appendChild(dialog)", script, StringComparison.Ordinal);
+        Assert.Contains("AdminMutationGuard.run(\"staffhub-preview-terminal\", terminalSelect", script, StringComparison.Ordinal);
         Assert.Contains("body:has(.staffhub-page) > .modal-backdrop", css, StringComparison.Ordinal);
+        Assert.Contains("body:has(.staffhub-page) > .swal2-container", css, StringComparison.Ordinal);
         Assert.Contains("z-index: 2000 !important", css, StringComparison.Ordinal);
         Assert.Contains("z-index: 1990 !important", css, StringComparison.Ordinal);
+        Assert.Contains("z-index: 2010 !important", css, StringComparison.Ordinal);
+        Assert.Contains("const isButton = button instanceof HTMLButtonElement", guard, StringComparison.Ordinal);
+        Assert.Contains("if (isButton && originalLabels.has(button))", guard, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -19,6 +19,12 @@ public sealed class StaffHubIssuePosRequestDto : StaffHubPosPreviewRequestDto
     public Guid? OtpChallengePublicId { get; set; }
 }
 
+public sealed class StaffHubResumePosRequestDto
+{
+    [Required, StringLength(100)]
+    public string TerminalId { get; set; } = string.Empty;
+}
+
 public sealed class StaffHubOpenOtpRequestDto : StaffHubPosPreviewRequestDto
 {
     [Required, StringLength(500, MinimumLength = 10)]
