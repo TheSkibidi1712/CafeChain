@@ -212,7 +212,7 @@
 }
 .analytics-filter__grid {
     display: grid;
-    grid-template-columns: repeat(8, minmax(110px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
     gap: 12px;
     padding: 17px 18px 19px;
     align-items: end;
@@ -228,22 +228,28 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .04em;
-    overflow-wrap: anywhere;
     white-space: nowrap;
 }
 .analytics-filter input,
 .analytics-filter select {
     width: 100%;
-    min-height: 40px;
-    padding: 8px 10px;
+    min-height: 44px;
+    padding: 8px 12px;
     border: 1px solid var(--an-border);
     border-radius: 10px;
     background: #FBF7F2;
     color: var(--an-ink);
     font: inherit;
-    font-weight: 500;
+    font-weight: 600;
     font-size: .85rem;
+    line-height: 1.2;
+    box-sizing: border-box;
     transition: border-color .18s, box-shadow .18s;
+}
+.analytics-filter select {
+    padding-right: 24px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .analytics-filter input:focus,
 .analytics-filter select:focus {
