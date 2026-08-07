@@ -15,6 +15,12 @@ namespace CafeChain.Models.Operations
 
         public int RecipientStaffId { get; set; }
 
+        /// <summary>
+        /// Typed link for operational OTP notifications. Generic inventory notifications
+        /// leave this null and continue to use EntityType/EntityId.
+        /// </summary>
+        public int? OtpChallengeId { get; set; }
+
         /// <summary>e.g. STOCK_SHORTAGE_REPORT</summary>
         public string Type { get; set; } = string.Empty;
 
@@ -56,5 +62,6 @@ namespace CafeChain.Models.Operations
 
         public virtual Store Store { get; set; } = null!;
         public virtual Staff RecipientStaff { get; set; } = null!;
+        public virtual OtpChallenge? OtpChallenge { get; set; }
     }
 }

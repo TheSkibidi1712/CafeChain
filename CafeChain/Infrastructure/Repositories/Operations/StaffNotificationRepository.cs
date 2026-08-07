@@ -71,6 +71,25 @@ public sealed class StaffNotificationRepository : IStaffNotificationRepository
             .ToListAsync(cancellationToken);
     }
 
+    public Task<List<OtpChallenge>> GetOtpChallengesAsync(
+        int recipientStaffId,
+        IReadOnlyCollection<int> challengeIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (challengeIds.Count == 0)
+            return Task.FromResult(new List<OtpChallenge>());
+
+        return _context.OtpChallenges
+            .AsNoTracking()
+            .Include(x => x.Store)
+            .Include(x => x.RequestedByStaff)
+            .Include(x => x.ApproverStaff)
+            .Include(x => x.ConfirmedByStaff)
+            .Where(x => challengeIds.Contains(x.OtpChallengeId)
+                && x.ApproverStaffId == recipientStaffId)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<StaffNotification?> GetByDeduplicationKeyAsync(
         string key,
         CancellationToken cancellationToken = default) =>
@@ -113,14 +132,9 @@ public sealed class StaffNotificationRepository : IStaffNotificationRepository
     {
         query = query.Where(x =>
             x.RecipientStaffId == recipientStaffId
-            && x.ResolvedAt == null
             && x.Type != RetiredScheduleGapType
-            && (x.Type != CafeChain.Application.Constants.StaffNotificationTypes.OperationalOtpRequest
-                || _context.OtpChallenges.Any(challenge =>
-                    challenge.OtpChallengeId == x.EntityId
-                    && challenge.ApproverStaffId == recipientStaffId
-                    && challenge.Status == CafeChain.Application.Constants.OtpConstants.Statuses.Pending
-                    && challenge.ExpiresAt > DateTime.UtcNow)));
+            && (x.ResolvedAt == null
+                || x.Type == CafeChain.Application.Constants.StaffNotificationTypes.OperationalOtpRequest));
         if (allowedStoreIds != null)
             query = query.Where(x => allowedStoreIds.Contains(x.StoreId));
         return query;

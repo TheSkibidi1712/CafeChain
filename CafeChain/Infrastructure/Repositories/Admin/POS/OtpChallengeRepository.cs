@@ -338,6 +338,32 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .FirstOrDefaultAsync();
         }
 
+        public Task<OtpChallenge?> FindLatestTerminalRegistrationChallengeAsync(
+            int storeId,
+            int requestedByStaffId,
+            DateTime sinceUtc)
+        {
+            var visibleStatuses = new[]
+            {
+                OtpConstants.Statuses.Pending,
+                OtpConstants.Statuses.Approved,
+                OtpConstants.Statuses.Used,
+                OtpConstants.Statuses.Expired,
+                OtpConstants.Statuses.Locked,
+                OtpConstants.Statuses.Cancelled
+            };
+            return _context.OtpChallenges
+                .AsNoTracking()
+                .Where(x => x.StoreId == storeId
+                    && x.RequestedByStaffId == requestedByStaffId
+                    && x.ActionType == OtpConstants.ActionTypes.RegisterTerminal
+                    && x.CreatedAt >= sinceUtc
+                    && visibleStatuses.Contains(x.Status))
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.OtpChallengeId)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<int> ExpireStaleActiveChallengesAsync(
             int storeId,
             int requestedByStaffId,
@@ -392,6 +418,48 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
 
             await _context.SaveChangesAsync();
             return stale.Count;
+        }
+
+        public async Task<IReadOnlyList<(int ChallengeId, Guid PublicId, int ApproverStaffId, int? NotificationId)>>
+            ExpireDueChallengesAsync(DateTime utcNow, CancellationToken cancellationToken = default)
+        {
+            var activeStatuses = new[] { OtpConstants.Statuses.Pending, OtpConstants.Statuses.Approved };
+            var due = await _context.OtpChallenges
+                .Where(x => activeStatuses.Contains(x.Status) && x.ExpiresAt <= utcNow)
+                .OrderBy(x => x.OtpChallengeId)
+                .Take(200)
+                .ToListAsync(cancellationToken);
+            if (due.Count == 0)
+                return Array.Empty<(int, Guid, int, int?)>();
+
+            var ids = due.Select(x => x.OtpChallengeId).ToArray();
+            var notifications = await _context.StaffNotifications
+                .Where(x => x.Type == StaffNotificationTypes.OperationalOtpRequest
+                    && ((x.OtpChallengeId.HasValue && ids.Contains(x.OtpChallengeId.Value))
+                        || ids.Contains(x.EntityId)))
+                .ToListAsync(cancellationToken);
+
+            foreach (var challenge in due)
+            {
+                challenge.Status = OtpConstants.Statuses.Expired;
+                challenge.ProtectedOtpPayload = null;
+            }
+            foreach (var notification in notifications)
+            {
+                notification.ResolvedAt ??= utcNow;
+                notification.UpdatedAt = utcNow;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var notificationByChallenge = notifications
+                .GroupBy(x => x.OtpChallengeId ?? x.EntityId)
+                .ToDictionary(x => x.Key, x => (int?)x.OrderByDescending(n => n.StaffNotificationId).First().StaffNotificationId);
+            return due.Select(x => (
+                    x.OtpChallengeId,
+                    x.PublicId,
+                    x.ApproverStaffId,
+                    notificationByChallenge.GetValueOrDefault(x.OtpChallengeId)))
+                .ToArray();
         }
 
         public async Task AddAsync(OtpChallenge challenge)

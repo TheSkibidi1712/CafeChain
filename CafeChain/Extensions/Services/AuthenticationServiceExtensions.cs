@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json;
+using System.IdentityModel.Tokens.Jwt;
+using CafeChain.Application.Interfaces.POS;
 
 namespace CafeChain.Extensions.Services
 {
@@ -81,6 +83,46 @@ namespace CafeChain.Extensions.Services
                             }
 
                             return Task.CompletedTask;
+                        },
+                        OnTokenValidated = async context =>
+                        {
+                            var sessionIdText = context.Principal?.FindFirst("PosSessionId")?.Value;
+                            var jwtId = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                            if (!Guid.TryParse(sessionIdText, out var sessionId)
+                                || string.IsNullOrWhiteSpace(jwtId))
+                            {
+                                context.Fail("POS access session claim is missing.");
+                                return;
+                            }
+
+                            var validator = context.HttpContext.RequestServices
+                                .GetRequiredService<IPosAccessSessionService>();
+                            var validation = await validator.ValidateAsync(
+                                sessionId,
+                                jwtId,
+                                context.HttpContext.RequestAborted);
+                            if (!validation.IsSuccess)
+                            {
+                                context.HttpContext.Items["PosSessionErrorCode"] = validation.ErrorCode;
+                                context.HttpContext.Items["PosSessionErrorMessage"] = validation.Message;
+                                context.Fail(validation.Message ?? "POS access session is not active.");
+                            }
+                        },
+                        OnChallenge = async context =>
+                        {
+                            if (context.Response.HasStarted) return;
+                            var errorCode = context.HttpContext.Items["PosSessionErrorCode"] as string;
+                            var message = context.HttpContext.Items["PosSessionErrorMessage"] as string;
+                            if (string.IsNullOrWhiteSpace(errorCode)) return;
+                            context.HandleResponse();
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                            context.Response.ContentType = "application/json";
+                            await context.Response.WriteAsync(JsonSerializer.Serialize(new
+                            {
+                                success = false,
+                                errorCode,
+                                message
+                            }));
                         }
                     };
                 });

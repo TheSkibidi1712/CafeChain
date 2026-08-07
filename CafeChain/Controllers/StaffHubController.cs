@@ -22,6 +22,7 @@ public sealed class StaffHubController : Controller
     private readonly IPosSessionExchangeService _posSessionExchangeService;
     private readonly IWorkShiftService _workShiftService;
     private readonly IOtpApprovalService _otpApprovalService;
+    private readonly IWorkShiftOpenApprovalService? _lateOpenApprovals;
 
     public StaffHubController(
         IStaffScheduleService scheduleService,
@@ -29,7 +30,8 @@ public sealed class StaffHubController : Controller
         IAuthorizationService authorizationService,
         IPosSessionExchangeService posSessionExchangeService,
         IWorkShiftService workShiftService,
-        IOtpApprovalService otpApprovalService)
+        IOtpApprovalService otpApprovalService,
+        IWorkShiftOpenApprovalService? lateOpenApprovals = null)
     {
         _scheduleService = scheduleService;
         _configuration = configuration;
@@ -37,6 +39,7 @@ public sealed class StaffHubController : Controller
         _posSessionExchangeService = posSessionExchangeService;
         _workShiftService = workShiftService;
         _otpApprovalService = otpApprovalService;
+        _lateOpenApprovals = lateOpenApprovals;
     }
 
     public async Task<IActionResult> Index(
@@ -157,7 +160,8 @@ public sealed class StaffHubController : Controller
 
         var prepared = await _workShiftService.PrepareOpenExchangeContextAsync(
             accountId, staffId, storeId, request.TerminalId, request.RequestKey,
-            request.Reason, request.OtpChallengePublicId, cancellationToken);
+            request.Reason, request.OtpChallengePublicId, cancellationToken,
+            request.LateOpenApprovalPublicId);
         if (!prepared.IsSuccess || prepared.Data == null)
             return BadRequest(new { success = false, errorCode = prepared.ErrorCode, message = prepared.Message });
 
@@ -175,7 +179,8 @@ public sealed class StaffHubController : Controller
                 PosTerminalId = request.TerminalId,
                 Reason = request.Reason,
                 LateOpeningReason = request.Reason,
-                OtpChallengePublicId = request.OtpChallengePublicId
+                OtpChallengePublicId = request.OtpChallengePublicId,
+                LateOpenApprovalPublicId = request.LateOpenApprovalPublicId
             });
             if (!opened.IsSuccess || !opened.EntityId.HasValue)
                 return StatusCode(opened.ErrorCode is WorkShiftErrorCodes.DuplicateRequest
@@ -311,6 +316,42 @@ public sealed class StaffHubController : Controller
         ApplySecurityMetadata(otpRequest, request.TerminalId, staffId);
         var result = await _otpApprovalService.RequestOtpAsync(otpRequest, staffId, storeId);
         return OtpResult(result);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    public async Task<IActionResult> GetTerminalRegistrationOtpState()
+    {
+        if (!TryGetIdentity(out _, out var staffId, out var storeId)) return Unauthorized();
+        return OtpResult(await _otpApprovalService.GetCurrentTerminalRegistrationOtpStateAsync(staffId, storeId));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    public async Task<IActionResult> RequestLateOpenApproval(
+        [FromForm] CreateWorkShiftOpenApprovalRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (_lateOpenApprovals == null) return StatusCode(503);
+        if (!TryGetIdentity(out _, out var staffId, out var storeId)) return Unauthorized();
+        var result = await _lateOpenApprovals.CreateAsync(staffId, storeId, request, cancellationToken);
+        return result.IsSuccess
+            ? Ok(new { success = true, message = result.Message, data = result.Data })
+            : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message, data = result.Data });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    public async Task<IActionResult> GetLateOpenApproval(
+        [FromForm] Guid id,
+        CancellationToken cancellationToken)
+    {
+        if (_lateOpenApprovals == null) return StatusCode(503);
+        if (!TryGetIdentity(out _, out var staffId, out _)) return Unauthorized();
+        var result = await _lateOpenApprovals.GetAsync(staffId, id, cancellationToken);
+        return result.IsSuccess
+            ? Ok(new { success = true, message = result.Message, data = result.Data })
+            : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message });
     }
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
