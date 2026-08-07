@@ -1,4 +1,4 @@
-@model CafeChain.ViewModels.Admin.Recipes.BomDataHealthPageVM
+﻿@model CafeChain.ViewModels.Admin.Recipes.BomDataHealthPageVM
 @{
     ViewData["Title"] = "Tình trạng dữ liệu BOM";
 }
@@ -29,26 +29,51 @@
             </div>
         </div>
 
-        <section class="rb-health-summary mb-3" aria-label="Tổng hợp tình trạng dữ liệu BOM">
+        <section class="rb-health-summary mb-4" aria-label="Tổng hợp tình trạng dữ liệu BOM">
             <div class="rb-health-metric rb-health-ok">
-                <span>Hoàn chỉnh</span>
-                <strong>@Model.CompleteCount</strong>
+                <div class="rb-health-metric-icon">
+                    <i class="fas fa-circle-check" aria-hidden="true"></i>
+                </div>
+                <div class="rb-health-metric-info">
+                    <span class="rb-health-metric-label">Hoàn chỉnh</span>
+                    <strong class="rb-health-metric-value">@Model.CompleteCount</strong>
+                </div>
             </div>
-            <div class="rb-health-metric">
-                <span>Thiếu giá</span>
-                <strong>@Model.MissingQuoteCount</strong>
+            <div class="rb-health-metric rb-health-warning">
+                <div class="rb-health-metric-icon">
+                    <i class="fas fa-tags" aria-hidden="true"></i>
+                </div>
+                <div class="rb-health-metric-info">
+                    <span class="rb-health-metric-label">Thiếu giá</span>
+                    <strong class="rb-health-metric-value">@Model.MissingQuoteCount</strong>
+                </div>
             </div>
-            <div class="rb-health-metric">
-                <span>Thiếu quy đổi</span>
-                <strong>@Model.MissingConversionCount</strong>
+            <div class="rb-health-metric rb-health-info">
+                <div class="rb-health-metric-icon">
+                    <i class="fas fa-calculator" aria-hidden="true"></i>
+                </div>
+                <div class="rb-health-metric-info">
+                    <span class="rb-health-metric-label">Thiếu quy đổi</span>
+                    <strong class="rb-health-metric-value">@Model.MissingConversionCount</strong>
+                </div>
             </div>
-            <div class="rb-health-metric">
-                <span>Thiếu đầu ra</span>
-                <strong>@Model.MissingOutputCount</strong>
+            <div class="rb-health-metric rb-health-yield">
+                <div class="rb-health-metric-icon">
+                    <i class="fas fa-boxes-stacked" aria-hidden="true"></i>
+                </div>
+                <div class="rb-health-metric-info">
+                    <span class="rb-health-metric-label">Thiếu đầu ra</span>
+                    <strong class="rb-health-metric-value">@Model.MissingOutputCount</strong>
+                </div>
             </div>
-            <div class="rb-health-metric">
-                <span>Liên kết lỗi</span>
-                <strong>@Model.MappingErrorCount</strong>
+            <div class="rb-health-metric rb-health-danger">
+                <div class="rb-health-metric-icon">
+                    <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                </div>
+                <div class="rb-health-metric-info">
+                    <span class="rb-health-metric-label">Liên kết lỗi</span>
+                    <strong class="rb-health-metric-value">@Model.MappingErrorCount</strong>
+                </div>
             </div>
         </section>
 
@@ -61,7 +86,7 @@
                             <th>Cấu hình</th>
                             <th>Dữ liệu giá vốn</th>
                             <th>Lý do và xử lý</th>
-                            <th>Thao tác</th>
+                            <th class="text-center">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>

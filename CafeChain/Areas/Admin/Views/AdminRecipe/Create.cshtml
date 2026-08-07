@@ -1,4 +1,4 @@
-@model CafeChain.ViewModels.Admin.Recipes.AdminRecipeFormPageVM
+﻿@model CafeChain.ViewModels.Admin.Recipes.AdminRecipeFormPageVM
 @{
     ViewData["Title"] = "Tạo công thức BOM";
     var form = Model.Form;
@@ -17,11 +17,15 @@
 <div class="rb-page rb-create-theme" data-theme="light">
 <div class="container-fluid px-4 pt-4">
     <header class="rb-builder-heading mb-4">
-        <nav class="rb-breadcrumb" aria-label="breadcrumb">
-            <a asp-action="Index" class="btn-rb-back">Công thức BOM</a> &gt; <span>Tạo công thức</span>
-        </nav>
-        <h1 class="rb-page-title mb-1">Tạo công thức</h1>
-        <p class="text-muted mb-0">Thiết lập đối tượng áp dụng, thành phần định mức và giá vốn dự kiến.</p>
+        <div>
+            <nav class="rb-breadcrumb" aria-label="Breadcrumb navigation">
+                <a asp-action="Index" class="rb-breadcrumb-item">Công thức BOM</a>
+                <i class="fas fa-chevron-right rb-breadcrumb-sep" aria-hidden="true"></i>
+                <span class="rb-breadcrumb-current">Tạo công thức</span>
+            </nav>
+            <h1 class="rb-page-title mb-1">Tạo công thức</h1>
+            <p class="text-muted mb-0">Thiết lập đối tượng áp dụng, thành phần định mức và giá vốn dự kiến.</p>
+        </div>
     </header>
 
     <form method="post" id="recipeForm" novalidate>
@@ -162,13 +166,13 @@
                             <thead>
                                 <tr>
                                     <th scope="col" class="text-center" width="4%">#</th>
-                                    <th scope="col" width="12%">Loại</th>
-                                    <th scope="col" width="28%">Thành phần</th>
-                                    <th scope="col" class="text-end" width="12%">Số lượng</th>
-                                    <th scope="col" width="12%">Đơn vị</th>
-                                    <th scope="col" class="text-end" width="14%">Giá vốn dòng</th>
-                                    <th scope="col" width="10%">Trạng thái dữ liệu</th>
-                                    <th scope="col" class="text-center" width="8%">Thao tác</th>
+                                    <th scope="col" class="text-center" width="14%">LOẠI</th>
+                                    <th scope="col" class="text-start" width="30%">THÀNH PHẦN</th>
+                                    <th scope="col" class="text-center" width="12%">SỐ LƯỢNG</th>
+                                    <th scope="col" class="text-center" width="12%">ĐƠN VỊ</th>
+                                    <th scope="col" class="text-center" width="14%">GIÁ VỐN DÒNG</th>
+                                    <th scope="col" class="text-center" width="12%">TRẠNG THÁI</th>
+                                    <th scope="col" class="text-center" width="10%">THAO TÁC</th>
                                 </tr>
                             </thead>
                             <tbody id="bomTableBody"></tbody>

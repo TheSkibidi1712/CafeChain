@@ -1,4 +1,4 @@
-@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+﻿@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
 
 @if (Model.Status == CafeChain.Models.Enums.Inventory.InventoryTransferStatus.DISPATCHED
     && (Model.CanReceive || Model.CanRequestReturn || Model.CanConfirmReturn || Model.CanResolveShortage || Model.CanCreateFollowUp))

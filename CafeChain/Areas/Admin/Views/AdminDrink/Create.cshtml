@@ -1,7 +1,7 @@
-@model CafeChain.ViewModels.Admin.Drinks.AdminDrinkCreateViewModel
+﻿@model CafeChain.ViewModels.Admin.Drinks.AdminDrinkCreateViewModel
 
 @{
-    ViewData["Title"] = "Thêm Nước Uống Mới";
+    ViewData["Title"] = "Thêm Đồ Uống Mới";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
@@ -12,7 +12,7 @@
 <div class="container-fluid px-0 drink-form-page">
     <div class="drink-form-heading">
         <span class="drink-eyebrow"><i class="fas fa-wand-magic-sparkles"></i> Sản phẩm mới</span>
-        <h1>Thêm nước uống mới</h1>
+        <h1>Thêm đồ uống mới</h1>
         <p>Hoàn thiện thông tin, hình ảnh và phân loại để sản phẩm sẵn sàng lên menu.</p>
     </div>
     <ol class="breadcrumb mb-4">
@@ -20,7 +20,7 @@
             <a asp-area="Admin"
                asp-controller="AdminDrink"
                asp-action="Index">
-                Danh sách Nước uống
+                Danh sách đồ uống
             </a>
         </li>
         <li class="breadcrumb-item active">
@@ -59,7 +59,7 @@
                     <div class="card-header bg-white border-bottom">
                         <h5 class="mb-0 text-primary">
                             <i class="fas fa-coffee me-2"></i>
-                            Thông tin Nước uống
+                            Thông tin Đồ uống
                         </h5>
                     </div>
 
@@ -72,7 +72,7 @@
                                 <label asp-for="DrinkCreateDTO.DrinkCode"
                                        class="form-label fw-semibold">
 
-                                    Mã Nước Uống
+                                    Mã Đồ Uống
                                     <span class="text-danger">*</span>
 
                                 </label>
@@ -92,14 +92,14 @@
                                 <label asp-for="DrinkCreateDTO.Name"
                                        class="form-label fw-semibold">
 
-                                    Tên Nước Uống
+                                    Tên Đồ Uống
                                     <span class="text-danger">*</span>
 
                                 </label>
 
                                 <input asp-for="DrinkCreateDTO.Name"
                                        class="form-control form-control-lg"
-                                       placeholder="Nhập tên nước uống..." />
+                                       placeholder="Nhập tên đồ uống..." />
 
                                 <span asp-validation-for="DrinkCreateDTO.Name"
                                       class="text-danger small">

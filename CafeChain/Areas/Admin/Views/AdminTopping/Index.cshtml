@@ -1,4 +1,4 @@
-@model IEnumerable<CafeChain.ViewModels.Admin.Toppings.AdminToppingVM>
+﻿@model IEnumerable<CafeChain.ViewModels.Admin.Toppings.AdminToppingVM>
 
 @using System.Security.Claims
 @using CafeChain.Application.Constants
@@ -183,21 +183,21 @@
                                     <span>Giá vốn thực tế: FIFO khi bán</span>
                                 </div>
 
-                                <div class="mt-2 d-flex flex-wrap gap-2">
+                                <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                                     @if (item.ConsumptionSource.ActiveRecipeId.HasValue)
                                     {
                                         <a asp-area="Admin"
                                            asp-controller="AdminRecipe"
                                            asp-action="Visualize"
                                            asp-route-recipeId="@item.ConsumptionSource.ActiveRecipeId"
-                                           class="btn btn-sm btn-outline-secondary">Xem BOM</a>
+                                           class="topping-bom-btn btn-bom-view"><i class="fas fa-diagram-project me-1" aria-hidden="true"></i>Xem BOM</a>
                                         @if (canWriteRecipes)
                                         {
                                             <a asp-area="Admin"
                                                asp-controller="AdminRecipe"
                                                asp-action="Edit"
                                                asp-route-id="@item.ConsumptionSource.ActiveRecipeId"
-                                               class="btn btn-sm btn-outline-primary">Sửa BOM</a>
+                                               class="topping-bom-btn btn-bom-edit"><i class="fas fa-pen me-1" aria-hidden="true"></i>Sửa BOM</a>
                                         }
                                     }
                                     else if (canWriteRecipes)
@@ -205,7 +205,7 @@
                                         <a asp-area="Admin"
                                            asp-controller="AdminRecipe"
                                            asp-action="Create"
-                                           class="btn btn-sm btn-outline-primary">Tạo BOM</a>
+                                           class="topping-bom-btn btn-bom-create"><i class="fas fa-plus me-1" aria-hidden="true"></i>Tạo BOM</a>
                                     }
                                 </div>
                             </td>

@@ -483,23 +483,23 @@
             var selectOptionsHtml = $('#itemTemplateSelect').html();
             var tr = $('<tr></tr>');
             tr.html(
-                '<td class="text-center text-muted fw-bold">' + (index + 1) + '</td>' +
-                '<td class="row-type-badge"><span class="text-muted small">—</span></td>' +
-                '<td>' +
+                '<td class="text-center text-muted fw-bold align-middle">' + (index + 1) + '</td>' +
+                '<td class="row-type-badge text-center align-middle"><span class="text-muted small">—</span></td>' +
+                '<td class="align-middle">' +
                 '<select name="Details[' + index + '].ItemCode" class="form-select form-select-sm item-select" required aria-label="Thành phần dòng ' + (index + 1) + '">' +
                 selectOptionsHtml +
                 '</select></td>' +
-                '<td><input type="number" step="0.01" min="0.01" name="Details[' + index + '].Quantity" ' +
-                'class="form-control form-control-sm text-end item-qty" value="' + (prefill && prefill.qty ? prefill.qty : '1') + '" required aria-label="Số lượng" /></td>' +
-                '<td>' +
-                '<input type="text" class="form-control form-control-sm bg-light item-unitname" name="Details[' + index + '].UnitName" readonly tabindex="-1" placeholder="Tự động" />' +
+                '<td class="text-center align-middle"><input type="number" step="0.01" min="0.01" name="Details[' + index + '].Quantity" ' +
+                'class="form-control form-control-sm text-center item-qty mx-auto" style="max-width:100px;" value="' + (prefill && prefill.qty ? prefill.qty : '1') + '" required aria-label="Số lượng" /></td>' +
+                '<td class="text-center align-middle">' +
+                '<input type="text" class="form-control form-control-sm bg-light text-center item-unitname mx-auto" style="max-width:100px;" name="Details[' + index + '].UnitName" readonly tabindex="-1" placeholder="Tự động" />' +
                 '<input type="hidden" name="Details[' + index + '].UnitId" class="item-unitid" value="0" />' +
                 '<input type="hidden" name="Details[' + index + '].YieldPercentage" class="item-yield" value="100" />' +
                 '</td>' +
-                '<td class="text-center row-total-display"><span class="text-muted small">Chưa chọn</span></td>' +
-                '<td class="text-center row-data-status"></td>' +
-                '<td class="text-center">' +
-                '<button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" aria-label="Xóa dòng">Xóa dòng</button>' +
+                '<td class="text-center align-middle row-total-display"><span class="text-muted small">Chưa chọn</span></td>' +
+                '<td class="text-center align-middle row-data-status"></td>' +
+                '<td class="text-center align-middle">' +
+                '<button type="button" class="btn btn-sm btn-rb-action-delete btn-remove-row" aria-label="Xóa dòng"><i class="fas fa-trash-can me-1" aria-hidden="true"></i>Xóa</button>' +
                 '</td>'
             );
             tableBody.append(tr);

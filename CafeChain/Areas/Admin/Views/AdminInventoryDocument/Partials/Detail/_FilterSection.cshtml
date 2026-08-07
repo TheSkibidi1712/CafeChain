@@ -1,10 +1,7 @@
 ﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.Index.AdminInventoryDocumentIndexVM
 @using CafeChain.Models.Enums.Inventory
 
-<form method="get"
-      asp-action="Index"
-      id="filterForm">
-
+<form method="get" asp-action="Index" id="filterForm">
     <div class="filter-container">
 
         <div class="inventory-section-heading">
@@ -16,122 +13,107 @@
             <span class="inventory-section-pill">3 loại phiếu</span>
         </div>
 
-        <div class="search-box">
+        <div class="search-box mb-3">
             <i class="fas fa-search" aria-hidden="true"></i>
             <input asp-for="Filter.Search"
                    class="form-control"
-                   placeholder="Tìm mã phiếu, cửa hàng, đối tác, người lập..."
+                   placeholder="Tìm theo mã phiếu, cửa hàng, đối tác, người lập..."
                    aria-label="Tìm kiếm phiếu kho" />
         </div>
 
-        <div class="filter-row">
+        <div class="filter-grid">
 
-            <select asp-for="Filter.Type"
-                    id="inventoryFilterType"
-                    class="form-select">
+            <div class="filter-col">
+                <label class="filter-label">Loại phiếu</label>
+                <select asp-for="Filter.Type" id="inventoryFilterType" class="form-select">
+                    <option value="">-- tất cả --</option>
+                    @foreach (var item in new[]
+                    {
+                        InventoryDocumentType.EXPORT,
+                        InventoryDocumentType.STOCK_TAKE,
+                        InventoryDocumentType.WASTE
+                    })
+                    {
+                        <option value="@item">@item.ToVietnamese()</option>
+                    }
+                </select>
+            </div>
 
-                <option value="">Loại phiếu</option>
+            <div class="filter-col">
+                <label class="filter-label">Trạng thái</label>
+                <select asp-for="Filter.Status" class="form-select">
+                    <option value="">-- tất cả --</option>
+                    @foreach (var item in Enum.GetValues<InventoryDocumentStatus>())
+                    {
+                        <option value="@item">@item.ToVietnamese()</option>
+                    }
+                </select>
+            </div>
 
-                @foreach (var item in new[]
-                {
-                    InventoryDocumentType.EXPORT,
-                    InventoryDocumentType.STOCK_TAKE,
-                    InventoryDocumentType.WASTE
-                })
-                {
-                    <option value="@item">@item.ToVietnamese()</option>
-                }
+            <div class="filter-col">
+                <label class="filter-label">Mục đích</label>
+                <select asp-for="Filter.Purpose"
+                        id="inventoryFilterPurpose"
+                        class="form-select"
+                        disabled="@(!Model.Filter.Type.HasValue)">
+                    <option value="">@(Model.Filter.Type.HasValue ? "-- tất cả --" : "Chọn loại phiếu trước")</option>
+                    @foreach (var item in new[]
+                    {
+                        new { Purpose = InventoryDocumentPurpose.IMPORT_PURCHASE, Type = InventoryDocumentType.IMPORT, Label = InventoryDocumentPurpose.IMPORT_PURCHASE.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Type = InventoryDocumentType.IMPORT, Label = $"{InventoryDocumentPurpose.IMPORT_ADJUSTMENT.ToVietnamese()} (lịch sử)" },
+                        new { Purpose = InventoryDocumentPurpose.SALE, Type = InventoryDocumentType.EXPORT, Label = InventoryDocumentPurpose.SALE.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.STOCK_TAKE, Type = InventoryDocumentType.STOCK_TAKE, Label = InventoryDocumentPurpose.STOCK_TAKE.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.DAMAGED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.DAMAGED.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.EXPIRED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.EXPIRED.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.BROKEN, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.BROKEN.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.CONTAMINATED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.CONTAMINATED.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.LOST, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.LOST.ToVietnamese() }
+                    })
+                    {
+                        <option value="@item.Purpose" data-document-type="@item.Type">
+                            @item.Label
+                        </option>
+                    }
+                </select>
+            </div>
 
-            </select>
+            <div class="filter-col">
+                <label class="filter-label">Cửa hàng</label>
+                <select asp-for="Filter.StoreId" class="form-select">
+                    <option value="">-- tất cả --</option>
+                    @foreach (var store in Model.Stores)
+                    {
+                        <option value="@store.StoreId">@store.StoreName</option>
+                    }
+                </select>
+            </div>
 
-            <select asp-for="Filter.Status"
-                    class="form-select">
-
-                <option value="">Trạng thái</option>
-
-                @foreach (var item in Enum.GetValues<InventoryDocumentStatus>())
-                {
-                    <option value="@item">@item.ToVietnamese()</option>
-                }
-
-            </select>
-
-            <select asp-for="Filter.Purpose"
-                    id="inventoryFilterPurpose"
-                    class="form-select"
-                    disabled="@(!Model.Filter.Type.HasValue)">
-
-                <option value="">@(Model.Filter.Type.HasValue ? "Mục đích" : "Chọn loại phiếu trước")</option>
-
-                @foreach (var item in new[]
-                {
-                    new { Purpose = InventoryDocumentPurpose.IMPORT_PURCHASE, Type = InventoryDocumentType.IMPORT, Label = InventoryDocumentPurpose.IMPORT_PURCHASE.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Type = InventoryDocumentType.IMPORT, Label = $"{InventoryDocumentPurpose.IMPORT_ADJUSTMENT.ToVietnamese()} (lịch sử)" },
-                    new { Purpose = InventoryDocumentPurpose.SALE, Type = InventoryDocumentType.EXPORT, Label = InventoryDocumentPurpose.SALE.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.STOCK_TAKE, Type = InventoryDocumentType.STOCK_TAKE, Label = InventoryDocumentPurpose.STOCK_TAKE.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.DAMAGED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.DAMAGED.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.EXPIRED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.EXPIRED.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.BROKEN, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.BROKEN.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.CONTAMINATED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.CONTAMINATED.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.LOST, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.LOST.ToVietnamese() }
-                })
-                {
-                    <option value="@item.Purpose"
-                            data-document-type="@item.Type">
-                        @item.Label
-                    </option>
-                }
-
-            </select>
-
-            <select asp-for="Filter.StoreId"
-                    class="form-select">
-
-                <option value="">Cửa hàng</option>
-
-                @foreach (var store in Model.Stores)
-                {
-                    <option value="@store.StoreId">
-                        @store.StoreName
-                    </option>
-                }
-
-            </select>
-
-            <div class="filter-date-field">
-                <label asp-for="Filter.FromDate">Từ ngày</label>
+            <div class="filter-col">
+                <label class="filter-label" asp-for="Filter.FromDate">Từ ngày</label>
                 <input asp-for="Filter.FromDate"
                        type="date"
                        class="form-control"
                        value="@(Model.Filter.FromDate?.ToString("yyyy-MM-dd"))" />
             </div>
 
-            <div class="filter-date-field">
-                <label asp-for="Filter.ToDate">Đến ngày</label>
+            <div class="filter-col">
+                <label class="filter-label" asp-for="Filter.ToDate">Đến ngày</label>
                 <input asp-for="Filter.ToDate"
                        type="date"
                        class="form-control"
                        value="@(Model.Filter.ToDate?.ToString("yyyy-MM-dd"))" />
             </div>
 
-            <div class="filter-actions">
-
-                <a asp-action="Index"
-                   class="btn btn-light inventory-action-secondary">
-                    <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                    Đặt lại
+            <div class="filter-col filter-actions-col">
+                <a asp-action="Index" class="btn btn-ghost inventory-action-secondary filter-btn-reset">
+                    <i class="fas fa-rotate-left" aria-hidden="true"></i> Đặt lại
                 </a>
-
-                <button type="submit"
-                        class="btn btn-primary inventory-action-primary">
-                    <i class="fas fa-filter" aria-hidden="true"></i>
-                    Áp dụng
+                <button type="submit" class="btn btn-primary-action inventory-action-primary filter-btn-submit">
+                    <i class="fas fa-filter" aria-hidden="true"></i> Áp dụng
                 </button>
-
             </div>
 
         </div>
 
     </div>
-
 </form>

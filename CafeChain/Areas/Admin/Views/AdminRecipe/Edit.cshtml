@@ -1,4 +1,4 @@
-@model CafeChain.ViewModels.Admin.Recipes.AdminRecipeFormPageVM
+﻿@model CafeChain.ViewModels.Admin.Recipes.AdminRecipeFormPageVM
 @{
     ViewData["Title"] = "Tạo phiên bản công thức";
     var form = Model.Form;
@@ -14,15 +14,15 @@
 <div class="rb-page rb-edit-theme" data-theme="light">
 <div class="container-fluid px-4 pt-4 pb-5">
     <header class="rb-builder-heading mb-4">
-    <nav class="rb-breadcrumb">
-        <a asp-action="Index" class="btn-rb-back">Công thức BOM</a> &gt; <span>Tạo phiên bản mới</span>
-    </nav>
-    <div class="d-flex flex-wrap align-items-start gap-2">
         <div>
+            <nav class="rb-breadcrumb" aria-label="Breadcrumb navigation">
+                <a asp-action="Index" class="rb-breadcrumb-item">Công thức BOM</a>
+                <i class="fas fa-chevron-right rb-breadcrumb-sep" aria-hidden="true"></i>
+                <span class="rb-breadcrumb-current">Tạo phiên bản mới</span>
+            </nav>
             <h1 class="rb-page-title mb-1">Tạo phiên bản mới <span class="rb-status-badge rb-status-incomplete">từ #@recipeId</span></h1>
             <p class="text-muted mb-0">@recipeName — phiên bản cũ sẽ được lưu trữ, phiên bản mới sẽ được kích hoạt theo quy tắc hiện hành.</p>
         </div>
-    </div>
     </header>
 
     <form asp-action="Edit" asp-route-id="@recipeId" method="post" id="recipeForm">
@@ -147,20 +147,20 @@
         <section class="rb-card mb-4">
             <div class="rb-card-header d-flex justify-content-between align-items-center">
                 <span class="rb-section-title">C. Thành phần BOM</span>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddRow"><i class="fas fa-plus" aria-hidden="true"></i>Thêm thành phần</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddRow"><i class="fas fa-plus me-1" aria-hidden="true"></i>Thêm thành phần</button>
             </div>
             <div class="table-responsive">
                 <table class="table rb-table mb-0" id="bomTable">
                     <thead>
                         <tr>
-                            <th class="text-center">#</th>
-                            <th>Loại</th>
-                            <th>Thành phần</th>
-                            <th class="text-end">Số lượng</th>
-                            <th>Đơn vị</th>
-                            <th class="text-center">Giá vốn dòng</th>
-                            <th class="text-center">Trạng thái dữ liệu</th>
-                            <th class="text-center">Thao tác</th>
+                            <th scope="col" class="text-center" width="4%">#</th>
+                            <th scope="col" class="text-center" width="14%">LOẠI</th>
+                            <th scope="col" class="text-start" width="30%">THÀNH PHẦN</th>
+                            <th scope="col" class="text-center" width="12%">SỐ LƯỢNG</th>
+                            <th scope="col" class="text-center" width="12%">ĐƠN VỊ</th>
+                            <th scope="col" class="text-center" width="14%">GIÁ VỐN DÒNG</th>
+                            <th scope="col" class="text-center" width="12%">TRẠNG THÁI</th>
+                            <th scope="col" class="text-center" width="10%">THAO TÁC</th>
                         </tr>
                     </thead>
                     <tbody id="bomTableBody"></tbody>

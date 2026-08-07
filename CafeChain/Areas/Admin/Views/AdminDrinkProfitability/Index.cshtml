@@ -1,4 +1,4 @@
-@model CafeChain.ViewModels.Admin.Profitability.DrinkProfitabilityPageVM
+﻿@model CafeChain.ViewModels.Admin.Profitability.DrinkProfitabilityPageVM
 @{
     ViewData["Title"] = "Vốn và lợi nhuận gộp dự kiến";
 }
@@ -53,10 +53,13 @@
                 }
             </select>
         </label>
-        <button type="button" id="refreshPreview" class="pf-primary-button">
-            <i class="fas fa-rotate" aria-hidden="true"></i>
-            Tải mô phỏng
-        </button>
+        <div class="pf-filter-action">
+            <span class="pf-filter-spacer" aria-hidden="true">&nbsp;</span>
+            <button type="button" id="refreshPreview" class="pf-primary-button">
+                <i class="fas fa-rotate" aria-hidden="true"></i>
+                Tải mô phỏng
+            </button>
+        </div>
     </section>
 
     <aside class="pf-global-notice">
@@ -104,14 +107,14 @@
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Size / Định mức nguyên liệu (BOM)</th>
-                        <th>Trạng thái chi phí</th>
-                        <th class="pf-number">Giá vốn FIFO</th>
-                        <th class="pf-number">Giá bán toàn hệ thống</th>
-                        <th class="pf-number">Lợi nhuận gộp</th>
-                        <th class="pf-number">Biên lợi nhuận gộp (Margin)</th>
-                        <th class="pf-number">Tỷ lệ cộng giá (Markup)</th>
-                        <th>Thao tác</th>
+                        <th class="pf-th-size">Size / Định mức nguyên liệu (BOM)</th>
+                        <th class="pf-th-status">Trạng thái chi phí</th>
+                        <th class="pf-number pf-th-cost">Giá vốn FIFO</th>
+                        <th class="pf-number pf-th-price">Giá bán toàn hệ thống</th>
+                        <th class="pf-number pf-th-profit">Lợi nhuận gộp</th>
+                        <th class="pf-number pf-th-margin">Biên lợi nhuận (Margin)</th>
+                        <th class="pf-number pf-th-markup">Cộng giá (Markup)</th>
+                        <th class="pf-th-actions">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="profitabilityRows"></tbody>

@@ -1,4 +1,4 @@
-@model CafeChain.ViewModels.Admin.Drinks.AdminDrinkIndexViewModel
+﻿@model CafeChain.ViewModels.Admin.Drinks.AdminDrinkIndexViewModel
 @using System.Security.Claims
 @using CafeChain.Application.Constants
 @using CafeChain.Application.Interfaces.Admin.Permissions
@@ -52,7 +52,7 @@
                 <i class="fas fa-mug-hot"></i>
                 Thực đơn CafeChain
             </span>
-            <h1>Danh sách nước uống</h1>
+            <h1>Danh sách đồ uống</h1>
             <p>Theo dõi hình ảnh, danh mục và trạng thái bán của toàn bộ sản phẩm.</p>
         </div>
 
@@ -164,10 +164,10 @@
                         </th>
                         <th>Hình ảnh</th>
                         <th>Mã</th>
-                        <th>Tên nước uống</th>
-                        <th>Danh mục</th>
-                        <th>Loại sản phẩm</th>
-                        <th>Trạng thái</th>
+                        <th>Tên đồ uống</th>
+                        <th class="text-center">Danh mục</th>
+                        <th class="text-center">Loại sản phẩm</th>
+                        <th class="text-center">Trạng thái</th>
                         <th class="text-center">Thao tác</th>
                     </tr>
                 </thead>
@@ -202,23 +202,23 @@
                                 </span>
                             </td>
 
-                            <td data-label="Tên nước uống">
+                            <td data-label="Tên đồ uống">
                                 <div class="drink-name">@item.Name</div>
                             </td>
 
-                            <td data-label="Danh mục">
+                            <td class="text-center" data-label="Danh mục">
                                 <span class="drink-badge drink-badge-category">
                                     @item.CategoryName
                                 </span>
                             </td>
 
-                            <td data-label="Loại sản phẩm">
+                            <td class="text-center" data-label="Loại sản phẩm">
                                 <span class="drink-badge drink-badge-type">
                                     @item.ProductTypeName
                                 </span>
                             </td>
 
-                            <td data-label="Trạng thái">
+                            <td class="text-center" data-label="Trạng thái">
                                 @if (item.Active)
                                 {
                                     <span class="drink-status-badge active">

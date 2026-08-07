@@ -396,7 +396,7 @@
 }
 
 /* Action Buttons Standardized with Size Module (34px) */
-.table .btn-sm,
+.table .btn-sm:not(.topping-bom-btn),
 .table .btn-warning,
 .table .btn-edit-topping,
 .table .js-toggle-topping {
@@ -437,8 +437,66 @@
     transform: translateY(-2px);
 }
 
-.table .btn-sm:hover:not(:disabled) {
+.table .btn-sm:hover:not(:disabled):not(.topping-bom-btn) {
     box-shadow: var(--cc-shadow-sm, 0 4px 10px rgba(32, 24, 18, 0.06));
+}
+
+/* Specific Pill Action Buttons for BOM Links inside Topping Source Cell */
+.topping-bom-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    min-width: auto !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 12px !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    text-decoration: none !important;
+    transition: all 0.16s ease !important;
+}
+
+.btn-bom-view {
+    color: var(--cc-brown-900, #3d2418) !important;
+    background: var(--cc-surface-raised, #ffffff) !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+}
+
+.btn-bom-view:hover {
+    background: var(--cc-surface-active, #f4e9df) !important;
+    border-color: var(--cc-brown-600, #70482f) !important;
+    color: var(--cc-brown-900, #3d2418) !important;
+    transform: translateY(-1px);
+}
+
+.btn-bom-edit {
+    color: var(--cc-brown-600, #70482f) !important;
+    background: var(--cc-surface-active, #f4e9df) !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+}
+
+.btn-bom-edit:hover {
+    background: var(--cc-brown-600, #70482f) !important;
+    border-color: var(--cc-brown-600, #70482f) !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+}
+
+.btn-bom-create {
+    color: #ffffff !important;
+    background: var(--cc-brown-600, #70482f) !important;
+    border: 1px solid var(--cc-brown-600, #70482f) !important;
+}
+
+.btn-bom-create:hover {
+    background: var(--cc-brown-900, #3d2418) !important;
+    border-color: var(--cc-brown-900, #3d2418) !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
 }
 
 /* ==========================================================================

@@ -1,39 +1,39 @@
-@model CafeChain.ViewModels.Admin.Productions.ProductionOrderVM
+﻿@model CafeChain.ViewModels.Admin.Productions.ProductionOrderVM
 
 @{
-    ViewData["Title"] = "Lệnh Sơ Chế";
+    ViewData["Title"] = "Lệnh sơ chế";
 }
 
 <link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
 
-<div class="container-fluid px-4 mt-4 po-page">
-    <div class="po-title-section bom-depth-header">
-        <nav class="rb-breadcrumb po-breadcrumb" aria-label="breadcrumb">
-            <span>Sản xuất / BOM</span> &gt; <span>Lệnh sơ chế</span>
-        </nav>
+<div class="container-fluid px-3 px-md-4 mt-4 po-page">
+    <!-- Header Banner -->
+    <div class="po-title-section">
         <div class="admin-module-title-row">
             <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-fire-burner"></i></span>
             <div>
-                <h1 class="po-title">LỆNH SƠ CHẾ</h1>
+                <h1 class="po-title">Lệnh sơ chế</h1>
                 <p class="po-subtitle">Quản lý định lượng và quy trình sơ chế thực phẩm hàng ngày.</p>
             </div>
         </div>
     </div>
 
+    <!-- Main Create Form Card -->
     <form asp-action="Create" method="post" id="productionForm">
         @Html.AntiForgeryToken()
 
         <div class="po-main-card">
-            <div class="row g-5">
-                <!-- Left Column -->
+            <div class="row g-4 g-lg-5">
+                <!-- Left Column: Order Information Form -->
                 <div class="col-lg-5 po-form-pane">
-                    <div class="po-section-title">
-                        <i class="fas fa-fire-burner"></i> Thông tin sơ chế chi tiết
+                    <div class="po-section-title mb-3">
+                        <i class="fas fa-fire-burner me-2"></i>Thông tin sơ chế chi tiết
                     </div>
 
                     <div class="row g-3">
+                        <!-- Cửa hàng -->
                         <div class="col-12">
-                            <label class="form-label" asp-for="StoreId">Cửa hàng <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold" asp-for="StoreId">Cửa hàng <span class="text-danger">*</span></label>
                             <select asp-for="StoreId" id="storeSelect" class="form-select" required>
                                 <option value="">-- Chọn cửa hàng --</option>
                                 @foreach (var store in Model.Stores)
@@ -43,8 +43,9 @@
                             </select>
                         </div>
 
+                        <!-- Tên thành phẩm sơ chế -->
                         <div class="col-12">
-                            <label class="form-label">Tên thành phẩm sơ chế <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Tên thành phẩm sơ chế <span class="text-danger">*</span></label>
                             <select asp-for="TargetRecipeId" id="recipeSelect" class="form-select" required>
                                 <option value="">-- Chọn thành phẩm --</option>
                                 @foreach (var recipe in Model.RecipeOptions)
@@ -61,66 +62,69 @@
                                     </option>
                                 }
                             </select>
-                            <div class="form-text">Chỉ hiển thị công thức BTP đang hoạt động; món bán tại quầy và topping không dùng cho lệnh sơ chế.</div>
+                            <div class="form-text text-muted">Chỉ hiển thị công thức BTP đang hoạt động.</div>
                         </div>
 
+                        <!-- Mã SKU dự kiến -->
                         <div class="col-12">
-                            <label class="form-label">Mã SKU dự kiến</label>
-                            <input type="text" id="skuInput" class="form-control" readonly placeholder="Tự động tạo..." />
+                            <label class="form-label fw-semibold">Mã SKU dự kiến</label>
+                            <input type="text" id="skuInput" class="form-control text-center" readonly placeholder="Tự động tạo..." />
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Số lượng mẻ <span class="text-danger">*</span></label>
+                        <!-- Số lượng mẻ & Đơn vị -->
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Số lượng mẻ <span class="text-danger">*</span></label>
                             <input type="number" step="any" min="0.00001" max="9999" name="PlannedBatches" id="batchInput"
                                    class="form-control fw-bold text-center" value="1" required />
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Đơn vị</label>
-                            <input type="text" class="form-control" value="mẻ" readonly />
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Đơn vị</label>
+                            <input type="text" class="form-control text-center" value="mẻ" readonly />
                         </div>
 
+                        <!-- Ghi chú hướng dẫn sơ chế -->
                         <div class="col-12">
-                            <label class="form-label">Ghi chú hướng dẫn sơ chế</label>
+                            <label class="form-label fw-semibold">Ghi chú hướng dẫn sơ chế</label>
                             <textarea name="Notes" class="form-control" rows="3" placeholder="Ví dụ: Cần băm nhuyễn, chú ý nhiệt độ..."></textarea>
                         </div>
 
-                        <!-- Using ProductionDate as per the ViewModel instead of pure "Thời gian" text -->
+                        <!-- Thời gian dự kiến / Ngày thực hiện -->
                         <div class="col-12">
-                            <label class="form-label">Thời gian dự kiến / Ngày thực hiện</label>
+                            <label class="form-label fw-semibold">Thời gian dự kiến / Ngày thực hiện</label>
                             <div class="input-group">
-                                <input type="datetime-local" name="ProductionDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+                                <input type="datetime-local" name="ProductionDate" class="form-control text-center" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
                                 <span class="input-group-text bg-white"><i class="far fa-clock text-muted"></i></span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column (BOM Table) -->
+                <!-- Right Column: BOM & Inventory Calculations -->
                 <div class="col-lg-7 d-flex flex-column po-bom-pane">
-                    <div class="po-bom-header">
-                        <div class="po-bom-title">Nguyên liệu tiêu hao (BOM)</div>
-                        <div class="po-bom-badge">Tính toán tự động theo định mức</div>
+                    <div class="po-section-title mb-3 d-flex align-items-center justify-content-between">
+                        <span><i class="fas fa-boxes-stacked me-2"></i>Định mức & Tồn kho BTP</span>
+                        <span class="po-bom-badge">BOM & Thẩm định FIFO</span>
                     </div>
 
-                    <div id="readinessSummary" class="po-readiness-summary" aria-live="polite">
+                    <div id="readinessSummary" class="po-readiness-summary mb-3" aria-live="polite">
                         <span class="po-readiness-state is-neutral">Chưa xem trước</span>
-                        <span class="small text-muted">Chọn cửa hàng, BTP và số mẻ để kiểm tra.</span>
+                        <span class="small text-muted ms-2">Chọn cửa hàng, BTP và số mẻ để kiểm tra.</span>
                     </div>
 
-                    <div id="outputSummary" class="po-output-summary d-none"></div>
+                    <div id="outputSummary" class="po-output-summary d-none mb-3"></div>
 
                     <div class="po-table-wrapper flex-grow-1 bg-white">
-                        <table class="table po-table">
+                        <table class="table po-table mb-0">
                             <thead>
                                 <tr>
-                                    <th>ĐẦU VÀO</th>
-                                    <th class="text-end">YÊU CẦU</th>
-                                    <th class="text-end">HIỆN CÓ</th>
-                                    <th class="text-end">ĐÃ GIỮ</th>
-                                    <th class="text-end">KHẢ DỤNG</th>
-                                    <th class="text-end">THIẾU</th>
-                                    <th>GIÁ VỐN FIFO</th>
+                                    <th scope="col" class="text-center">ĐẦU VÀO</th>
+                                    <th scope="col" class="text-center">YÊU CẦU</th>
+                                    <th scope="col" class="text-center">HIỆN CÓ</th>
+                                    <th scope="col" class="text-center">ĐÃ GIỮ</th>
+                                    <th scope="col" class="text-center">KHẢ DỤNG</th>
+                                    <th scope="col" class="text-center">THIẾU</th>
+                                    <th scope="col" class="text-center">GIÁ VỐN FIFO</th>
                                 </tr>
                             </thead>
                             <tbody id="resultTableBody">
@@ -136,8 +140,8 @@
                 </div>
             </div>
 
-            <!-- Footer Actions -->
-            <div class="po-actions">
+            <!-- Footer Action Buttons -->
+            <div class="po-actions mt-4 pt-3 border-top">
                 <button type="button" class="btn btn-ghost" onclick="window.location.reload()">
                     <i class="fas fa-redo-alt me-1"></i> Làm lại form
                 </button>
@@ -153,91 +157,92 @@
         </div>
     </form>
 
-    <div class="history-section">
-        <div class="history-header">
-            <h3 class="history-title">Lịch sử lệnh sơ chế gần đây</h3>
+    <!-- History Section -->
+    <div class="history-section mt-5">
+        <div class="history-header mb-3 d-flex align-items-center justify-content-between">
+            <h3 class="history-title mb-0">Lịch sử lệnh sơ chế gần đây</h3>
             <span class="history-link text-muted small">Chưa áp dụng tồn kho (chờ bước kho)</span>
         </div>
         <div class="history-card">
             <div class="table-responsive">
-            <table class="table po-table">
-                <thead>
-                    <tr>
-                        <th>MÃ LỆNH</th>
-                        <th>CỬA HÀNG</th>
-                        <th>CÔNG THỨC</th>
-                        <th>SỐ MẺ</th>
-                        <th>NGƯỜI GHI NHẬN</th>
-                        <th>XÁC NHẬN</th>
-                        <th class="text-center">TRẠNG THÁI</th>
-                        <th class="text-center">TỒN KHO</th>
-                        <th class="text-center">GIÁ VỐN</th>
-                        <th class="text-center">THAO TÁC</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @{
-                        var history = ViewBag.RecentHistory as IEnumerable<CafeChain.Application.DTOs.Admin.Production.ProductionRunHistoryItemDto>;
-                    }
-                    @if (history != null && history.Any())
-                    {
-                        foreach (var hist in history)
+                <table class="table po-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="text-center">MÃ LỆNH</th>
+                            <th scope="col" class="text-center">CỬA HÀNG</th>
+                            <th scope="col" class="text-center">CÔNG THỨC</th>
+                            <th scope="col" class="text-center">SỐ MẺ</th>
+                            <th scope="col" class="text-center">NGƯỜI GHI NHẬN</th>
+                            <th scope="col" class="text-center">XÁC NHẬN</th>
+                            <th scope="col" class="text-center">TRẠNG THÁI</th>
+                            <th scope="col" class="text-center">TỒN KHO</th>
+                            <th scope="col" class="text-center">GIÁ VỐN</th>
+                            <th scope="col" class="text-center">THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var history = ViewBag.RecentHistory as IEnumerable<CafeChain.Application.DTOs.Admin.Production.ProductionRunHistoryItemDto>;
+                        }
+                        @if (history != null && history.Any())
+                        {
+                            foreach (var hist in history)
+                            {
+                                <tr>
+                                    <td class="text-center text-muted fw-bold align-middle">#PR-@hist.ProductionRunId</td>
+                                    <td class="text-center align-middle">@(hist.StoreName ?? hist.StoreId.ToString())</td>
+                                    <td class="text-center fw-bold align-middle">@(hist.RecipeName ?? $"Công thức #{hist.RecipeId}")</td>
+                                    <td class="text-center align-middle">@hist.RequestedRunCount.ToString("0.#####") mẻ</td>
+                                    <td class="text-center align-middle">@(hist.ActorName ?? "—")</td>
+                                    <td class="text-center align-middle small">@hist.ConfirmedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td class="text-center align-middle"><span class="badge-status-done">@hist.Status</span></td>
+                                    <td class="text-center align-middle text-muted small">
+                                        @(hist.StockApplied ? "Đã áp dụng vào kho" : "Chưa áp dụng vào kho")
+                                        @if (hist.CompletedAt.HasValue)
+                                        {
+                                            <br /><span class="small">@hist.CompletedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                        }
+                                        @if (hist.NormalizedOutputQuantity.HasValue)
+                                        {
+                                            <br /><span class="small">SL ra: @hist.NormalizedOutputQuantity.Value.ToString("0.###")</span>
+                                        }
+                                    </td>
+                                    <td class="text-center align-middle text-muted small">
+                                        <div>@hist.ValuationStatus</div>
+                                        @if (hist.TotalInputCost.HasValue)
+                                        {
+                                            <div>Tổng: @hist.TotalInputCost.Value.ToString("N2")</div>
+                                        }
+                                        @if (hist.OutputUnitCost.HasValue)
+                                        {
+                                            <div>/đv: @hist.OutputUnitCost.Value.ToString("N4")</div>
+                                        }
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        @if (hist.CanApplyStock && !hist.StockApplied)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-rb-action-view btn-apply-stock rb-table-action"
+                                                    data-run-id="@hist.ProductionRunId">
+                                                <i class="fas fa-boxes-stacked me-1" aria-hidden="true"></i> Áp dụng vào kho
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
                         {
                             <tr>
-                                <td class="text-muted fw-bold">#PR-@hist.ProductionRunId</td>
-                                <td>@(hist.StoreName ?? hist.StoreId.ToString())</td>
-                                <td class="fw-bold">@(hist.RecipeName ?? $"Công thức #{hist.RecipeId}")</td>
-                                <td>@hist.RequestedRunCount.ToString("0.#####") mẻ</td>
-                                <td>@(hist.ActorName ?? "—")</td>
-                                <td class="small">@hist.ConfirmedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td class="text-center"><span class="badge-status-done">@hist.Status</span></td>
-                                <td class="text-center text-muted small">
-                                    @(hist.StockApplied ? "Đã áp dụng vào kho" : "Chưa áp dụng vào kho")
-                                    @if (hist.CompletedAt.HasValue)
-                                    {
-                                        <br /><span class="small">@hist.CompletedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
-                                    }
-                                    @if (hist.NormalizedOutputQuantity.HasValue)
-                                    {
-                                        <br /><span class="small">SL ra: @hist.NormalizedOutputQuantity.Value.ToString("0.###")</span>
-                                    }
-                                </td>
-                                <td class="text-center text-muted small">
-                                    <div>@hist.ValuationStatus</div>
-                                    @if (hist.TotalInputCost.HasValue)
-                                    {
-                                        <div>Tổng: @hist.TotalInputCost.Value.ToString("N2")</div>
-                                    }
-                                    @if (hist.OutputUnitCost.HasValue)
-                                    {
-                                        <div>/đv: @hist.OutputUnitCost.Value.ToString("N4")</div>
-                                    }
-                                </td>
-                                <td class="text-center">
-                                    @if (hist.CanApplyStock && !hist.StockApplied)
-                                    {
-                                        <button type="button" class="btn btn-sm btn-outline-primary btn-apply-stock rb-table-action"
-                                                data-run-id="@hist.ProductionRunId">
-                                            <i class="fas fa-boxes-stacked" aria-hidden="true"></i> Áp dụng vào kho
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">—</span>
-                                    }
-                                </td>
+                                <td colspan="10" class="text-center text-muted py-4">Chưa có lệnh sơ chế nào.</td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="10" class="text-center text-muted py-4">Chưa có lệnh sơ chế nào.</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -375,16 +380,22 @@
                                     : `Thiếu lớp giá ${formatQty(item.costEvidenceShortage)} ${escapeHtml(item.baseUnitCode)}`;
                                 tbody.append(`
                                     <tr>
-                                        <td>
+                                        <td class="text-center align-middle">
                                             <div class="item-name">[${escapeHtml(item.itemCode)}] ${escapeHtml(item.itemName)}</div>
                                             <div class="small text-muted">${escapeHtml(translateSourceType(item.sourceType))}${item.childRecipeId ? ' · cố định Công thức #' + item.childRecipeId : ''}</div>
                                         </td>
-                                        <td class="text-end fw-semibold">${formatQty(item.requiredTotal)} ${escapeHtml(item.baseUnitCode)}</td>
-                                        <td class="text-end">${formatQty(item.currentQuantity)}</td>
-                                        <td class="text-end">${formatQty(item.reservedQuantity)}</td>
-                                        <td class="text-end">${formatQty(item.usableQuantity)}</td>
-                                        <td class="text-end ${shortageClass}">${formatQty(item.shortageQuantity)}</td>
-                                        <td class="small ${item.costEvidenceComplete ? 'text-success' : 'text-danger'}">${costText}</td>
+                                        <td class="text-center align-middle fw-semibold">${formatQty(item.requiredTotal)} ${escapeHtml(item.baseUnitCode)}</td>
+                                        <td class="text-center align-middle">${formatQty(item.currentQuantity)}</td>
+                                        <td class="text-center align-middle">${formatQty(item.reservedQuantity)}</td>
+                                        <td class="text-center align-middle">${formatQty(item.usableQuantity)}</td>
+                                        <td class="text-center align-middle ${shortageClass}">${formatQty(item.shortageQuantity)}</td>
+                                        <td class="text-center align-middle small ${item.costEvidenceComplete ? 'text-success' : 'text-danger'}">${costText}</td>
+                                    </tr>
+                                `);
+                            });
+                        }atQty(item.usableQuantity)}</td>
+                                        <td class="text-center align-middle ${shortageClass}">${formatQty(item.shortageQuantity)}</td>
+                                        <td class="text-center align-middle small ${item.costEvidenceComplete ? 'text-success' : 'text-danger'}">${costText}</td>
                                     </tr>
                                 `);
                             });

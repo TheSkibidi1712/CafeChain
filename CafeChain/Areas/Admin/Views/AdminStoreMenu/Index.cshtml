@@ -1,4 +1,4 @@
-@model CafeChain.ViewModels.Admin.StoreMenu.StoreMenuPageVM
+﻿@model CafeChain.ViewModels.Admin.StoreMenu.StoreMenuPageVM
 @{
     ViewData["Title"] = "Menu cửa hàng";
 }
@@ -81,10 +81,22 @@
     </section>
 
     <section class="sm-summary" id="storeMenuSummary" hidden>
-        <div><span>Tổng SKU</span><strong id="totalSkuCount">0</strong></div>
-        <div><span>Đang bán</span><strong id="activeSkuCount">0</strong></div>
-        <div><span>Không khả dụng</span><strong id="unavailableSkuCount">0</strong></div>
-        <div><span>Dùng giá riêng</span><strong id="overrideSkuCount">0</strong></div>
+        <div class="sm-summary-card">
+            <div class="sm-summary-icon sm-icon-total"><i class="fas fa-boxes-stacked"></i></div>
+            <div class="sm-summary-text"><span>Tổng SKU</span><strong id="totalSkuCount">0</strong></div>
+        </div>
+        <div class="sm-summary-card">
+            <div class="sm-summary-icon sm-icon-active"><i class="fas fa-circle-check"></i></div>
+            <div class="sm-summary-text"><span>Đang bán</span><strong id="activeSkuCount">0</strong></div>
+        </div>
+        <div class="sm-summary-card">
+            <div class="sm-summary-icon sm-icon-unavailable"><i class="fas fa-circle-xmark"></i></div>
+            <div class="sm-summary-text"><span>Không khả dụng</span><strong id="unavailableSkuCount">0</strong></div>
+        </div>
+        <div class="sm-summary-card">
+            <div class="sm-summary-icon sm-icon-override"><i class="fas fa-tags"></i></div>
+            <div class="sm-summary-text"><span>Dùng giá riêng</span><strong id="overrideSkuCount">0</strong></div>
+        </div>
     </section>
 
     <section class="sm-content" aria-live="polite">
@@ -98,12 +110,12 @@
             <strong>Đang tải menu cửa hàng...</strong>
         </div>
         <div id="storeMenuError" class="sm-state sm-state-error" hidden>
-            <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+            <div class="sm-state-icon text-danger"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></div>
             <div><strong>Không tải được menu cửa hàng</strong><p id="storeMenuErrorMessage"></p></div>
-            <button type="button" id="retryStoreMenu" class="sm-secondary-button">Thử lại</button>
+            <button type="button" id="retryStoreMenu" class="sm-secondary-button"><i class="fas fa-rotate me-1"></i>Thử lại</button>
         </div>
         <div id="storeMenuEmpty" class="sm-state" hidden>
-            <i class="fas fa-list-check" aria-hidden="true"></i>
+            <div class="sm-state-icon"><i class="fas fa-clipboard-list" aria-hidden="true"></i></div>
             <strong id="storeMenuEmptyTitle">Chưa có món/size trong menu cửa hàng.</strong>
             <p id="storeMenuEmptyMessage">Hãy kiểm tra dữ liệu menu hoặc thay đổi bộ lọc.</p>
         </div>

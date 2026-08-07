@@ -1,6 +1,6 @@
 /* ==========================================================================
    CAFECHAIN ADMIN DESIGN SYSTEM - PRODUCTION ORDER MODULE (FRONTEND 1)
-   Coffee-Brown Premium Contract Synchronization
+   Coffee-Brown Premium Contract Synchronization with Phiếu Kho
    ========================================================================== */
 
 :root {
@@ -36,17 +36,13 @@
     --cc-danger: #991b1b;
 
     --cc-shadow-xs: 0 1px 2px rgba(32, 24, 18, 0.05);
-    --cc-shadow-sm: 0 4px 10px rgba(32, 24, 18, 0.06);
-    --cc-shadow-md: 0 8px 24px rgba(32, 24, 18, 0.09);
-    --cc-shadow-lg: 0 18px 48px rgba(32, 24, 18, 0.14);
+    --cc-shadow-sm: 0 2px 10px rgba(111, 78, 55, 0.05);
+    --cc-shadow-md: 0 6px 18px rgba(32, 24, 18, 0.07);
     --cc-focus-ring: 0 0 0 3px rgba(112, 72, 47, 0.22);
 
-    --cc-radius-xs: 4px;
-    --cc-radius-sm: 8px;
     --cc-radius-control: 10px;
     --cc-radius-md: 12px;
-    --cc-radius-lg: 16px;
-    --cc-radius-xl: 20px;
+    --cc-radius-lg: 14px;
     --cc-radius-modal: 18px;
 
     /* PO Palette Legacy Alias Mapping */
@@ -72,15 +68,11 @@
    PAGE CANVAS CONTAINER
    ========================================================================== */
 .po-page {
-    width: calc(100% - 24px);
-    max-width: 1540px;
+    width: 100%;
+    max-width: 1400px;
     min-height: calc(100vh - 84px);
     margin: 0 auto;
-    border-radius: var(--cc-radius-modal, 18px);
-    padding: 28px 28px 120px;
-    background:
-        radial-gradient(circle at 96% 4%, rgba(198, 122, 69, 0.08), transparent 260px),
-        linear-gradient(180deg, #faf7f4 0%, #f7f4f0 320px, transparent 600px);
+    padding: 24px 24px 100px;
     color: var(--cc-text, #201812);
 }
 
@@ -89,71 +81,70 @@
 }
 
 /* ==========================================================================
-   PAGE HEADING & BANNER
+   PAGE HEADING & BANNER (Synchronized with Phiếu Kho / Inventory Header)
    ========================================================================== */
 .po-title-section {
     position: relative;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     overflow: hidden;
-    min-height: 120px;
     margin-bottom: 24px;
-    border: 1px solid var(--cc-border-strong, #d8c5b6);
-    border-left: 5px solid var(--cc-caramel-500, #c67a45);
-    border-radius: var(--cc-radius-modal, 18px);
-    background: linear-gradient(112deg, var(--cc-surface-raised, #ffffff) 0%, var(--cc-surface-muted, #fbf7f2) 62%, #f1e5da 100%);
-    padding: 22px 28px;
-    box-shadow: var(--cc-shadow-md, 0 8px 24px rgba(32, 24, 18, 0.09));
-}
-
-.po-title-section::after {
-    position: absolute;
-    right: -45px;
-    bottom: -80px;
-    width: 250px;
-    height: 250px;
-    border: 38px solid rgba(112, 72, 47, 0.055);
-    border-radius: 50%;
-    content: "";
-    pointer-events: none;
-    z-index: 0;
-}
-
-.po-title-section > * {
-    position: relative;
-    z-index: 1;
+    border: 1px solid #E6DCCD;
+    border-radius: 14px;
+    background: #F5EDE3;
+    padding: 22px 26px;
+    box-shadow: 0 2px 10px rgba(111, 78, 55, 0.05);
 }
 
 .po-breadcrumb {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 4px;
-    color: var(--cc-text-muted, #8c7b70);
-    font-size: 11.5px;
+    margin-bottom: 2px;
+    color: #8c7b70;
+    font-size: 12px;
 }
 
 .po-breadcrumb span {
-    color: var(--cc-brown-600, #70482f);
-    font-weight: 750;
+    color: #70482f;
+    font-weight: 700;
+}
+
+.admin-module-title-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.admin-module-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(112, 72, 47, 0.12);
+    color: #70482f;
+    font-size: 20px;
+    flex-shrink: 0;
 }
 
 .po-title {
-    margin: 2px 0 4px;
-    color: var(--cc-text, #201812);
-    font-size: clamp(22px, 2vw, 28px);
-    font-weight: 850;
-    letter-spacing: -0.03em;
-    text-transform: uppercase;
+    margin: 0;
+    color: #1F2937;
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
 }
 
 .po-subtitle {
     max-width: 720px;
-    margin: 0;
-    color: var(--cc-text-secondary, #66584f);
-    font-size: 13.5px;
+    margin: 2px 0 0;
+    color: #5C3F2B;
+    font-size: 0.88rem;
+    font-weight: 500;
 }
 
 /* ==========================================================================
@@ -161,11 +152,11 @@
    ========================================================================== */
 .po-main-card,
 .history-card {
-    background: var(--cc-surface-raised, #ffffff);
-    border: 1px solid var(--cc-border, #e9ded4);
-    border-radius: var(--cc-radius-lg, 16px);
-    box-shadow: var(--cc-shadow-sm, 0 4px 10px rgba(32, 24, 18, 0.06));
-    padding: 26px;
+    background: #ffffff;
+    border: 1px solid #E6DCCD;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(111, 78, 55, 0.05);
+    padding: 26px 30px;
     margin-bottom: 24px;
 }
 
@@ -175,15 +166,17 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: var(--cc-brown-900, #3d2418);
-    font-size: 15px;
+    color: #3d2418;
+    font-size: 15.5px;
     font-weight: 800;
     margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #E6DCCD;
 }
 
 .po-section-title i,
 .po-bom-title i {
-    color: var(--cc-brown-600, #70482f);
+    color: #70482f;
 }
 
 .history-title::before {
@@ -192,28 +185,28 @@
     width: 4px;
     height: 16px;
     border-radius: 999px;
-    background: var(--cc-brown-600, #70482f);
+    background: #70482f;
 }
 
 /* ==========================================================================
-   FORM CONTROLS & SELECT2
+   FORM CONTROLS
    ========================================================================== */
 .po-page .form-label {
     display: block;
     margin-bottom: 6px;
-    color: var(--cc-brown-900, #3d2418);
+    color: #3d2418;
     font-size: 13px;
-    font-weight: 750;
+    font-weight: 700;
 }
 
 .po-page .form-label .text-danger {
-    color: var(--cc-danger, #991b1b) !important;
+    color: #991b1b !important;
     font-weight: 800;
 }
 
 .po-page .form-text {
     margin-top: 4px;
-    color: var(--cc-text-muted, #8c7b70) !important;
+    color: #8c7b70 !important;
     font-size: 12px;
     line-height: 1.4;
 }
@@ -221,72 +214,33 @@
 .po-page .form-control,
 .po-page .form-select {
     min-height: 44px;
-    height: 44px;
-    padding: 9px 14px;
-    color: var(--cc-text, #201812);
-    background: var(--cc-surface-raised, #ffffff);
-    border: 1px solid var(--cc-border-strong, #d8c5b6);
-    border-radius: var(--cc-radius-control, 10px);
+    padding: 8px 14px;
+    border: 1px solid #d8c5b6;
+    border-radius: 10px;
+    background-color: #ffffff;
     font-size: 13.5px;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.po-page textarea.form-control {
-    min-height: 80px;
-    height: auto;
-    resize: vertical;
+    color: #201812;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .po-page .form-control:focus,
 .po-page .form-select:focus {
-    border-color: var(--cc-brown-600, #70482f);
+    border-color: #70482f;
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.18);
     outline: none;
-    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
-}
-
-.po-page .form-control[readonly] {
-    background: var(--cc-surface-muted, #fbf7f2);
-    color: var(--cc-text-secondary, #66584f);
-    font-weight: 600;
-    cursor: default;
-}
-
-/* Select2 Bootstrap-5 overrides */
-.po-page .select2-container--bootstrap-5 .select2-selection {
-    min-height: 44px;
-    padding: 6px 12px;
-    border-color: var(--cc-border-strong, #d8c5b6);
-    border-radius: var(--cc-radius-control, 10px);
-    background-color: var(--cc-surface-raised, #ffffff);
-    font-size: 13.5px;
-}
-
-.po-page .select2-container--bootstrap-5.select2-container--focus .select2-selection {
-    border-color: var(--cc-brown-600, #70482f);
-    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
 }
 
 /* ==========================================================================
    BOM PANEL & READINESS SUMMARY
    ========================================================================== */
-.po-bom-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 14px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--cc-border, #e9ded4);
-}
-
 .po-bom-badge {
     display: inline-flex;
     align-items: center;
-    padding: 4px 12px;
+    padding: 5px 14px;
     border: 1px solid #f2d8b8;
     border-radius: 999px;
-    background: var(--cc-warning-bg, #fcf4e8);
-    color: var(--cc-warning, #99623b);
+    background: #fcf4e8;
+    color: #99623b;
     font-size: 11.5px;
     font-weight: 750;
     white-space: nowrap;
@@ -297,41 +251,41 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 12px;
-    margin-bottom: 12px;
-    padding: 12px 16px;
-    border: 1px solid var(--cc-border-strong, #d8c5b6);
-    border-left: 4px solid var(--cc-brown-600, #70482f);
-    border-radius: var(--cc-radius-md, 12px);
-    background: var(--cc-surface-muted, #fbf7f2);
+    margin-bottom: 14px;
+    padding: 14px 18px;
+    border: 1px solid #E6DCCD;
+    border-left: 4px solid #70482f;
+    border-radius: 12px;
+    background: #F5EDE3;
 }
 
 .po-readiness-state {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 12px;
+    padding: 5px 14px;
     border-radius: 999px;
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 750;
     white-space: nowrap;
 }
 
 .po-readiness-state.is-ready {
-    background: var(--cc-success-bg, #edf6f2);
-    color: var(--cc-success, #2f6f5e);
+    background: #edf6f2;
+    color: #2f6f5e;
     border: 1px solid #a8d8cc;
 }
 
 .po-readiness-state.is-error {
-    background: var(--cc-danger-bg, #fdf0f0);
-    color: var(--cc-danger, #991b1b);
+    background: #fdf0f0;
+    color: #991b1b;
     border: 1px solid #e9b8b8;
 }
 
 .po-readiness-state.is-neutral {
-    background: var(--cc-surface-active, #f4e9df);
-    color: var(--cc-brown-600, #70482f);
-    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    background: #ffffff;
+    color: #70482f;
+    border: 1px solid #d8c5b6;
 }
 
 .po-output-summary {
@@ -340,24 +294,24 @@
     gap: 1px;
     margin-bottom: 14px;
     overflow: hidden;
-    border: 1px solid var(--cc-border, #e9ded4);
-    border-radius: var(--cc-radius-md, 12px);
-    background: var(--cc-border, #e9ded4);
+    border: 1px solid #E6DCCD;
+    border-radius: 12px;
+    background: #E6DCCD;
 }
 
 .po-output-summary > div {
     padding: 12px 16px;
-    background: var(--cc-surface-raised, #ffffff);
+    background: #ffffff;
     transition: background-color 0.16s ease;
 }
 
 .po-output-summary > div:hover {
-    background: var(--cc-surface-active, #f4e9df);
+    background: #fbf7f2;
 }
 
 .po-output-summary span {
     display: block;
-    color: var(--cc-text-muted, #8c7b70);
+    color: #8c7b70;
     font-size: 11.5px;
     font-weight: 700;
     text-transform: uppercase;
@@ -366,7 +320,7 @@
 .po-output-summary strong {
     display: block;
     margin-top: 2px;
-    color: var(--cc-text, #201812);
+    color: #201812;
     font-size: 13.5px;
     font-weight: 750;
     font-variant-numeric: tabular-nums;
@@ -376,8 +330,8 @@
    BOM TABLE & HISTORY TABLE
    ========================================================================== */
 .po-table-wrapper {
-    border: 1px solid var(--cc-border, #e9ded4);
-    border-radius: var(--cc-radius-md, 12px);
+    border: 1px solid #E6DCCD;
+    border-radius: 12px;
     overflow-x: auto;
 }
 
@@ -392,9 +346,9 @@
 .po-page .po-table > thead > tr > th {
     height: 42px;
     padding: 10px 14px;
-    background: var(--cc-surface-muted, #fbf7f2);
-    color: var(--cc-brown-600, #70482f);
-    border-bottom: 1px solid var(--cc-border-strong, #d8c5b6);
+    background: #fbf7f2;
+    color: #70482f;
+    border-bottom: 1px solid #E6DCCD;
     font-size: 11.5px;
     font-weight: 800;
     letter-spacing: 0.03em;
@@ -404,19 +358,19 @@
 
 .po-page .po-table > tbody > tr > td {
     padding: 12px 14px;
-    border-bottom: 1px solid var(--cc-border, #e9ded4);
+    border-bottom: 1px solid #e9ded4;
     vertical-align: middle;
-    color: var(--cc-text, #201812);
+    color: #201812;
     font-variant-numeric: tabular-nums;
 }
 
 .po-page .po-table > tbody > tr:hover {
-    background: var(--cc-surface-active, #f4e9df);
+    background: #fbf7f2;
 }
 
 .item-name {
     font-weight: 750;
-    color: var(--cc-brown-900, #3d2418);
+    color: #3d2418;
 }
 
 /* Badges in History Table */
@@ -426,8 +380,8 @@
     justify-content: center;
     padding: 4px 10px;
     border-radius: 999px;
-    background: var(--cc-success-bg, #edf6f2);
-    color: var(--cc-success, #2f6f5e);
+    background: #edf6f2;
+    color: #2f6f5e;
     font-size: 11.5px;
     font-weight: 750;
     border: 1px solid #a8d8cc;
@@ -439,15 +393,15 @@
     justify-content: center;
     padding: 4px 10px;
     border-radius: 999px;
-    background: var(--cc-warning-bg, #fcf4e8);
-    color: var(--cc-warning, #99623b);
+    background: #fcf4e8;
+    color: #99623b;
     font-size: 11.5px;
     font-weight: 750;
     border: 1px solid #f2d8b8;
 }
 
 /* ==========================================================================
-   FOOTER ACTIONS
+   FOOTER ACTIONS (Synchronized with Phiếu Kho Pill Buttons)
    ========================================================================== */
 .po-actions {
     display: flex;
@@ -456,7 +410,7 @@
     gap: 16px;
     margin-top: 24px;
     padding-top: 22px;
-    border-top: 1px solid var(--cc-border, #e9ded4);
+    border-top: 1px solid #E6DCCD;
 }
 
 .btn-ghost,
@@ -465,25 +419,23 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 44px;
-    height: 44px;
-    padding: 0 18px;
-    border: 1px solid var(--cc-border-strong, #d8c5b6);
-    border-radius: var(--cc-radius-control, 10px);
-    background: var(--cc-surface-muted, #fbf7f2);
-    color: var(--cc-brown-900, #3d2418);
-    font-size: 13.5px;
+    min-height: 40px;
+    padding: 8px 20px;
+    border: 1px solid #d4b8a3;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #5C3F2B;
+    font-size: 13px;
     font-weight: 700;
     white-space: nowrap;
-    transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+    transition: all 0.16s ease;
 }
 
 .btn-ghost:hover,
 .btn-outline-dark:hover {
-    border-color: var(--cc-brown-500, #8b6247);
-    background: var(--cc-surface-active, #f4e9df);
-    color: var(--cc-brown-900, #3d2418);
-    transform: translateY(-1px);
+    border-color: #C67A45;
+    background: #F5EDE3;
+    color: #5C3F2B;
 }
 
 .btn-primary-action {
@@ -491,25 +443,23 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 44px;
-    height: 44px;
-    padding: 0 24px;
-    border: 1px solid var(--cc-brown-600, #70482f);
-    border-radius: var(--cc-radius-control, 10px);
-    background: var(--cc-brown-600, #70482f);
+    min-height: 40px;
+    padding: 8px 22px;
+    border: 1px solid #70482f;
+    border-radius: 999px;
+    background: #70482f;
     color: #ffffff !important;
-    font-size: 14px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 700;
     white-space: nowrap;
-    box-shadow: 0 6px 16px rgba(112, 72, 47, 0.18);
-    transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.18);
+    transition: all 0.16s ease;
 }
 
 .btn-primary-action:hover:not(:disabled) {
-    border-color: var(--cc-brown-900, #3d2418);
-    background: var(--cc-brown-900, #3d2418);
+    border-color: #3d2418;
+    background: #3d2418;
     color: #ffffff !important;
-    transform: translateY(-2px);
 }
 
 .btn-primary-action:disabled {
@@ -518,11 +468,18 @@
     box-shadow: none;
 }
 
+.btn-apply-stock {
+    border-radius: 999px !important;
+    padding: 6px 14px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+}
+
 /* ==========================================================================
    RESPONSIVE BREAKPOINTS
    ========================================================================== */
 @media (max-width: 991.98px) {
-    .po-main-card {
+    .po-main-card, .history-card {
         padding: 20px;
     }
 

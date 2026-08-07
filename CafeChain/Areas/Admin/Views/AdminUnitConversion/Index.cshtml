@@ -1,4 +1,4 @@
-@model CafeChain.ViewModels.Admin.UnitConversions.AdminUnitConversionIndexPageVM
+﻿@model CafeChain.ViewModels.Admin.UnitConversions.AdminUnitConversionIndexPageVM
 @using System.Security.Claims
 @using CafeChain.Application.Constants
 @using CafeChain.Application.Interfaces.Admin.Permissions
@@ -68,7 +68,7 @@
                             <th>Quy đổi</th>
                             <th>Chiều</th>
                             <th>Nguồn</th>
-                            <th>Sửa được</th>
+                            <th class="text-center">Sửa được</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -78,7 +78,7 @@
                             <td class="uc-phys-item">@p.DisplayText</td>
                             <td>@p.Dimension</td>
                             <td>@p.Source</td>
-                            <td><span class="uc-status uc-status-ok">Không</span></td>
+                            <td class="text-center"><span class="uc-status uc-status-neutral"><i class="fas fa-lock me-1"></i>Không</span></td>
                         </tr>
                     }
                     </tbody>
@@ -281,11 +281,11 @@
                                 <tr>
                                     <th>Nguyên liệu</th>
                                     <th>NCC</th>
-                                    <th>Số lượng tịnh / gói</th>
-                                    <th>Giá một gói</th>
-                                    <th>Giá vốn / base</th>
-                                    <th>TT</th>
-                                    <th></th>
+                                    <th class="text-nowrap">Số lượng tịnh / gói</th>
+                                    <th class="text-end text-nowrap">Giá một gói</th>
+                                    <th class="text-end text-nowrap">Giá vốn / base</th>
+                                    <th class="text-center text-nowrap">Trạng thái</th>
+                                    <th class="text-center text-nowrap">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -293,12 +293,12 @@
                             {
                                 var p = g.PrimaryPackage!;
                                 <tr>
-                                    <td><code>[@g.IngredientCode]</code> @g.IngredientName<br /><span class="small text-muted">Base: @g.BaseUnitCode</span></td>
+                                    <td><code>[@g.IngredientCode]</code> <strong class="ms-1">@g.IngredientName</strong><br /><span class="small text-muted">Base: @g.BaseUnitCode</span></td>
                                     <td>@(p.SupplierName ?? "—")</td>
-                                    <td>@p.DisplayPackage</td>
-                                    <td>@(p.PackagePrice?.ToString("N0") ?? "—")</td>
-                                    <td>@p.DisplayBaseCost</td>
-                                    <td>
+                                    <td class="text-nowrap">@p.DisplayPackage</td>
+                                    <td class="text-end fw-bold text-nowrap">@(p.PackagePrice.HasValue ? $"{p.PackagePrice.Value:N0} đ" : "—")</td>
+                                    <td class="text-end fw-semibold text-nowrap">@p.DisplayBaseCost</td>
+                                    <td class="text-center text-nowrap">
                                         @if (p.IsComplete)
                                         {
                                             <span class="uc-status uc-status-ok">Đủ dữ liệu</span>
@@ -306,11 +306,13 @@
                                         else
                                         {
                                             <span class="uc-status uc-status-warn">Thiếu</span>
-                                            <div class="small text-muted">@p.IncompleteReason</div>
+                                            <div class="small text-muted mt-1">@p.IncompleteReason</div>
                                         }
                                     </td>
-                                    <td>
-                                        <a class="btn btn-sm btn-uc-ghost" asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index">Xem NCC</a>
+                                    <td class="text-center text-nowrap">
+                                        <a class="btn btn-sm btn-uc-ghost" asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index">
+                                            <i class="fas fa-truck me-1"></i>Xem NCC
+                                        </a>
                                     </td>
                                 </tr>
                             }

@@ -22,8 +22,9 @@
     let selectedRow = null;
     let policyPayload = { policies: [], options: [], legacyReviews: [] };
 
-    const currency = value => value == null ? 'Chưa đủ dữ liệu' : `${Number(value).toLocaleString('vi-VN')}đ`;
-    const percent = value => value == null ? '—' : `${Number(value).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%`;
+    const rawCurrency = value => value == null ? 'Chưa đủ dữ liệu' : `${Number(value).toLocaleString('vi-VN')}đ`;
+    const currency = value => value == null ? '<span class="pf-no-data">Chưa đủ dữ liệu</span>' : `${Number(value).toLocaleString('vi-VN')}đ`;
+    const percent = value => value == null ? '<span class="pf-no-data">—</span>' : `${Number(value).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%`;
     const number = value => Number(value ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 5 });
     const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
     const isComplete = row => row.costStatus === 'COMPLETE';
@@ -103,7 +104,7 @@
             <td class="pf-number">${currency(row.grossProfit)}</td>
             <td class="pf-number">${percent(row.grossMarginPercent)}</td>
             <td class="pf-number">${percent(row.markupPercent)}</td>
-            <td><div class="pf-row-actions"><button type="button" class="pf-row-button" data-detail-id="${row.drinkSizeId}">Chi tiết</button>${priceButton}${policyButton}</div></td>
+            <td><div class="pf-row-actions"><button type="button" class="pf-row-button" data-detail-id="${row.drinkSizeId}"><i class="fas fa-eye"></i> Chi tiết</button>${priceButton}${policyButton}</div></td>
         </tr>
         <tr class="pf-detail-row" id="detail-${row.drinkSizeId}" hidden><td colspan="8">${renderDetails(row)}</td></tr>`;
     }
@@ -130,8 +131,8 @@
         selectedRow = findRow(id);
         if (!selectedRow) return;
         document.getElementById('priceDrawerTitle').textContent = `${preview.drinkName} · ${selectedRow.sizeName}`;
-        document.getElementById('drawerCost').textContent = currency(selectedRow.estimatedCost);
-        document.getElementById('drawerCurrentPrice').textContent = currency(selectedRow.currentGlobalPrice);
+        document.getElementById('drawerCost').innerHTML = currency(selectedRow.estimatedCost);
+        document.getElementById('drawerCurrentPrice').innerHTML = currency(selectedRow.currentGlobalPrice);
         document.getElementById('newSellingPrice').value = selectedRow.currentGlobalPrice;
         document.getElementById('priceReason').value = '';
         document.getElementById('targetValue').value = '';
@@ -213,7 +214,7 @@
         const activeMarkup = policyPayload.policies.length ? policyPayload.policies.map(x => `<article class="pf-policy-item"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${number(x.quantityPerDrink)} phần công thức · ${escapeHtml(treatmentLabels[x.priceTreatment])} · ${escapeHtml(treatmentLabels[x.costTreatment])}${x.isDefaultSelected ? ' · Chọn mặc định trên POS' : ''}${x.isRequired ? ' · Bắt buộc' : ''}</p></div><button type="button" class="pf-row-button" data-edit-policy="${x.policyId}">Sửa</button></article>`).join('') : '<div class="pf-empty-policy">Chưa có chính sách topping đang áp dụng cho món và size này.</div>';
         const reviewMarkup = (policyPayload.legacyReviews ?? []).map(x => `<article class="pf-policy-item pf-policy-review"><div><strong>${escapeHtml(x.toppingName)}</strong><p>${escapeHtml(x.message)}</p></div><span class="pf-status pf-status-warning">Cần xác nhận</span></article>`).join('');
         list.innerHTML = activeMarkup + reviewMarkup;
-        document.getElementById('policyTopping').innerHTML = policyPayload.options.map(x => `<option value="${x.toppingId}">${escapeHtml(x.name)} · ${currency(x.price)}</option>`).join('');
+        document.getElementById('policyTopping').innerHTML = policyPayload.options.map(x => `<option value="${x.toppingId}">${escapeHtml(x.name)} · ${rawCurrency(x.price)}</option>`).join('');
         document.getElementById('policyFormSection').hidden = policyPayload.options.length === 0;
         if (policyPayload.options.length === 0) list.insertAdjacentHTML('beforeend', '<div class="pf-empty-policy">Món/size này chưa có topping phù hợp. Hãy cấu hình danh mục topping cho món trước.</div>');
         list.querySelectorAll('[data-edit-policy]').forEach(button => button.addEventListener('click', () => editPolicy(button.dataset.editPolicy)));
