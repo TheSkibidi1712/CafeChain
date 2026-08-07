@@ -1288,17 +1288,21 @@
     border-radius: 50%;
 }
 .dashboard-guide__hero > div { position: relative; z-index: 1; }
-.dashboard-guide__hero .analytics-eyebrow { color: #ECCFB8; }
-.dashboard-guide__hero .analytics-eyebrow::before { background: #ECCFB8; }
+.admin-page-body .dashboard-guide__hero .analytics-eyebrow,
+.dashboard-guide__hero .analytics-eyebrow { color: #ECCFB8 !important; }
+.dashboard-guide__hero .analytics-eyebrow::before { background: #ECCFB8 !important; }
+.admin-page-body .dashboard-guide__hero h2,
 .dashboard-guide__hero h2 {
     max-width: 680px;
     margin: 0 0 10px;
+    color: #FFFDFB !important;
     font-size: clamp(1.8rem, 3vw, 2.45rem);
     line-height: 1.12;
     font-weight: 800;
     letter-spacing: -.035em;
 }
-.dashboard-guide__hero p { max-width: 650px; margin: 0; color: #EADFD7; }
+.admin-page-body .dashboard-guide__hero p,
+.dashboard-guide__hero p { max-width: 650px; margin: 0; color: #EADFD7 !important; }
 .dashboard-guide__hero-icon {
     position: relative;
     z-index: 1;
