@@ -58,30 +58,35 @@
                         }
                     </select>
                 </div>
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold" for="FromQuantity">SL đầu vào</label>
+                <div class="row g-3 align-items-end mb-3">
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold" for="FromQuantity">SL vào</label>
                         <input name="FromQuantity" id="FromQuantity" class="form-control text-end" type="number" step="any" value="@form.FromQuantity" />
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold" for="FromUnitId">ĐVT vào</label>
-                        <select name="FromUnitId" id="FromUnitId" class="form-select">
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold" for="FromUnitId">Đơn vị đầu vào</label>
+                        <select name="FromUnitId" id="FromUnitId" class="form-select" title="Chọn đơn vị đầu vào">
                             @foreach (var u in units)
                             {
-                                <option value="@u.UnitId" selected="@(u.UnitId == form.FromUnitId)" data-code="@u.UnitCode" data-type="@u.Type" data-pack="@(u.IsPackagingCount ? "1" : "0")">@u.UnitCode</option>
+                                <option value="@u.UnitId" selected="@(u.UnitId == form.FromUnitId)" data-code="@u.UnitCode" data-type="@u.Type" data-pack="@(u.IsPackagingCount ? "1" : "0")">
+                                    @u.Name (@u.UnitCode)@(u.IsPackagingCount ? " · đếm/đóng gói" : "")
+                                </option>
                             }
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold" for="ToQuantity">SL đầu ra</label>
+                    <div class="col-md-1 text-center fw-bold text-muted pb-2">=</div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold" for="ToQuantity">SL ra</label>
                         <input name="ToQuantity" id="ToQuantity" class="form-control text-end" type="number" step="any" value="@form.ToQuantity" />
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-semibold" for="ToUnitId">ĐVT ra</label>
-                        <select name="ToUnitId" id="ToUnitId" class="form-select">
+                        <select name="ToUnitId" id="ToUnitId" class="form-select" title="Chọn đơn vị đầu ra">
                             @foreach (var u in units)
                             {
-                                <option value="@u.UnitId" selected="@(u.UnitId == form.ToUnitId)" data-code="@u.UnitCode" data-type="@u.Type" data-pack="@(u.IsPackagingCount ? "1" : "0")">@u.UnitCode</option>
+                                <option value="@u.UnitId" selected="@(u.UnitId == form.ToUnitId)" data-code="@u.UnitCode" data-type="@u.Type" data-pack="@(u.IsPackagingCount ? "1" : "0")">
+                                    @u.Name (@u.UnitCode)
+                                </option>
                             }
                         </select>
                     </div>
