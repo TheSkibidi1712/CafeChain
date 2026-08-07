@@ -82,6 +82,8 @@ namespace CafeChain.Data
         public DbSet<InvoiceAuditLog> InvoiceAuditLogs { get; set; }
         public DbSet<OtpChallenge> OtpChallenges { get; set; }
         public DbSet<StaffNotification> StaffNotifications { get; set; }
+        public DbSet<PosAccessSession> PosAccessSessions { get; set; }
+        public DbSet<WorkShiftOpenApprovalRequest> WorkShiftOpenApprovalRequests { get; set; }
         public DbSet<ForecastRun> ForecastRuns { get; set; }
         public DbSet<ForecastPoint> ForecastPoints { get; set; }
         public DbSet<PosRecommendationCatalog> PosRecommendationCatalog { get; set; }

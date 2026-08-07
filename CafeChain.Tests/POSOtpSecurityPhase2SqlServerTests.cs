@@ -178,13 +178,12 @@ IF DB_ID(N'{Database}') IS NULL
         public async Task SqlServer_OpenShiftLate_ConcurrentConsume_CreatesOneShift()
         {
             await using var setup = CreateContext();
-            await EnsureLateScheduleAsync(setup, _requesterId);
             // Close any open shifts for requester
             await CloseOpenShiftsAsync(setup, _requesterId);
 
             const decimal cash = 500_000m;
             const string reason = "SQL late concurrent";
-            var scheduled = await ResolveScheduledAsync(setup, _requesterId);
+            const string scheduled = "none";
             var publicId = await InsertApprovedOpenLateAsync(setup, cash, reason, scheduled);
 
             var tasks = Enumerable.Range(0, 6).Select(async _ =>
@@ -216,12 +215,11 @@ IF DB_ID(N'{Database}') IS NULL
         public async Task SqlServer_OpenShiftLate_ActionMutationAndConsume_AreAtomic()
         {
             await using var setup = CreateContext();
-            await EnsureLateScheduleAsync(setup, _requesterId);
             await CloseOpenShiftsAsync(setup, _requesterId);
 
             const decimal cash = 500_000m;
             const string reason = "SQL late atomic";
-            var scheduled = await ResolveScheduledAsync(setup, _requesterId);
+            const string scheduled = "none";
             var publicId = await InsertApprovedOpenLateAsync(setup, cash, reason, scheduled);
 
             await using var ctx = CreateContext();
@@ -323,7 +321,6 @@ IF DB_ID(N'{Database}') IS NULL
         public async Task SqlServer_ShiftOtp_InvoiceAuditLogCannotAuthorizeWithoutChallenge()
         {
             await using var setup = CreateContext();
-            await EnsureLateScheduleAsync(setup, _requesterId);
             await CloseOpenShiftsAsync(setup, _requesterId);
 
             // Seed a recent PIN-style audit (should not authorize late open).
@@ -341,11 +338,12 @@ IF DB_ID(N'{Database}') IS NULL
             var service = CreateWorkShiftService(ctx, hrOk: true);
             var result = await service.OpenShiftAsync(_requesterId, _storeId, new OpenShiftRequestDto
             {
-                StartingCash = 500_000m
+                StartingCash = 500_000m,
+                LateOpeningReason = "SQL outside schedule requires current OTP"
             });
 
             Assert.False(result.IsSuccess);
-            Assert.Equal(OtpConstants.ErrorCodes.LateOpeningRequiresOtp, result.ErrorCode);
+            Assert.Equal(WorkShiftErrorCodes.OutsideScheduleApprovalRequired, result.ErrorCode);
         }
 
         // ---- infra ----
@@ -540,12 +538,13 @@ IF DB_ID(N'{Database}') IS NULL
                 WorkShiftId = null,
                 RequestedByStaffId = _requesterId,
                 ApproverStaffId = _approverId,
-                ActionType = OtpConstants.ActionTypes.OpenShiftLate,
+                ActionType = OtpConstants.ActionTypes.OpenShiftOutsideSchedule,
                 TargetType = OtpConstants.TargetTypes.Shifts,
                 TargetId = _requesterId,
                 Reason = reason,
-                PayloadFingerprint = _fp.BuildOpenShiftLateFingerprint(
-                    _storeId, _requesterId, cash, reason, scheduled),
+                PayloadFingerprint = _fp.BuildOpenShiftBoundFingerprint(
+                    _storeId, _requesterId, cash, reason, "none",
+                    OtpConstants.ActionTypes.OpenShiftOutsideSchedule, null, null),
                 OtpHash = BCrypt.Net.BCrypt.HashPassword("APPR2V"),
                 ExpiresAt = now.AddMinutes(5),
                 LastSentAt = now,

@@ -40,6 +40,7 @@ namespace CafeChain.Data.Configurations.Operations
                 .HasDefaultValue(string.Empty);
 
             entity.Property(x => x.TerminalId).HasMaxLength(100);
+            entity.Property(x => x.TerminalName).HasMaxLength(100);
             entity.Property(x => x.RequestKey).HasMaxLength(200);
             entity.Property(x => x.ClientIpHash).HasMaxLength(64).IsFixedLength();
             entity.Property(x => x.DeviceFingerprintHash).HasMaxLength(64).IsFixedLength();
@@ -69,6 +70,7 @@ namespace CafeChain.Data.Configurations.Operations
             entity.HasIndex(x => x.RequestedByStaffId);
             entity.HasIndex(x => x.WorkShiftId);
             entity.HasIndex(x => x.TerminalId);
+            entity.HasIndex(x => x.ConfirmedByStaffId);
             entity.HasIndex(x => x.RequestKey);
             entity.HasIndex(x => new { x.ClientIpHash, x.CreatedAt });
             entity.HasIndex(x => new { x.DeviceFingerprintHash, x.CreatedAt });
@@ -118,6 +120,11 @@ namespace CafeChain.Data.Configurations.Operations
             entity.HasOne(x => x.ApproverStaff)
                 .WithMany()
                 .HasForeignKey(x => x.ApproverStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ConfirmedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.ConfirmedByStaffId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

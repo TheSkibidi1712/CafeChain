@@ -38,8 +38,47 @@ public sealed class WorkShiftOpenAssessmentTests
         Assert.True(result.IsSuccess, result.Message);
         Assert.Equal("LATE_FOR_SCHEDULE", result.Data!.OpenContext);
         Assert.True(result.Data.ReasonRequired);
-        Assert.True(result.Data.ApprovalRequired);
+        Assert.False(result.Data.ApprovalRequired);
+        Assert.True(result.Data.ManagerApprovalRequired);
         Assert.Equal(31, result.Data.MinutesLate);
+    }
+
+    [Theory]
+    [InlineData(0, false, false)]
+    [InlineData(15, false, false)]
+    [InlineData(16, true, false)]
+    [InlineData(30, true, false)]
+    [InlineData(31, true, true)]
+    public async Task Late_open_boundaries_follow_business_policy(
+        int minutesLate,
+        bool reasonRequired,
+        bool managerApprovalRequired)
+    {
+        var result = await CreateService(
+                LocalUtc(2026, 8, 3, 8, minutesLate),
+                Schedule(new DateTime(2026, 8, 3), 8, 16))
+            .AssessOpenShiftAsync(7, 1, new OpenShiftAssessmentRequestDto { PosTerminalId = "POS-1" });
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(minutesLate, result.Data!.MinutesLate);
+        Assert.Equal(reasonRequired, result.Data.ReasonRequired);
+        Assert.False(result.Data.ApprovalRequired);
+        Assert.Equal(managerApprovalRequired, result.Data.ManagerApprovalRequired);
+    }
+
+    [Fact]
+    public async Task Schedule_past_end_grace_cannot_be_bound_again()
+    {
+        var result = await CreateService(
+                LocalUtc(2026, 8, 3, 16, 31),
+                Schedule(new DateTime(2026, 8, 3), 8, 16))
+            .AssessOpenShiftAsync(7, 1, new OpenShiftAssessmentRequestDto { PosTerminalId = "POS-1" });
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(WorkShiftOpenContexts.OutsideSchedule, result.Data!.OpenContext);
+        Assert.Null(result.Data.SourceStaffShiftId);
+        Assert.True(result.Data.ApprovalRequired);
+        Assert.False(result.Data.ManagerApprovalRequired);
     }
 
     [Fact]

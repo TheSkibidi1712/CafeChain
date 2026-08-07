@@ -17,6 +17,7 @@ public sealed class StaffHubIssuePosRequestDto : StaffHubPosPreviewRequestDto
     public string? Reason { get; set; }
 
     public Guid? OtpChallengePublicId { get; set; }
+    public Guid? LateOpenApprovalPublicId { get; set; }
 }
 
 public sealed class StaffHubResumePosRequestDto

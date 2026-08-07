@@ -16,7 +16,7 @@ import {
   publishCustomerDisplay,
 } from './services/customerDisplay'
 import { openCustomerDisplayWindow } from './services/customerDisplayWindow'
-import { getPosSession, getPosTerminalId } from './services/posSession'
+import { clearPosAuthentication, getPosSession, getPosTerminalId } from './services/posSession'
 import { usePOSData } from './hooks/usePOSData'
 import { usePosLayoutMode } from './hooks/usePosLayoutMode'
 import ProductModifierModal, {
@@ -325,6 +325,13 @@ export default function POSLayout() {
           if (notification.storeId && session.storeId && notification.storeId !== session.storeId) return
           void loadShift()
         })
+        connection.on('PosAccessSessionChanged', (notification: { sessionId?: string; status?: string }) => {
+          if (notification.sessionId && session.sessionId
+            && notification.sessionId.toLowerCase() !== session.sessionId.toLowerCase()) return
+          if ((notification.status || '').toUpperCase() === 'ACTIVE') return
+          clearPosAuthentication()
+          redirectToStaffHub(session.terminalId)
+        })
         connection.onreconnected(() => {
           const terminalId = getPosTerminalId()
           if (terminalId) void connection?.invoke('JoinTerminal', terminalId)
@@ -355,7 +362,7 @@ export default function POSLayout() {
         })
       }
     }
-  }, [session.storeId, session.terminalId, session.token])
+  }, [session.sessionId, session.storeId, session.terminalId, session.token])
 
   const selectedCategoryId = selectedCategory !== null
     && categories.some((cat) => cat.id === selectedCategory)

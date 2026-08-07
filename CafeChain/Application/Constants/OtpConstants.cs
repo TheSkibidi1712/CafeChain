@@ -64,6 +64,7 @@ namespace CafeChain.Application.Constants
             public const string AlreadyUsed = "OTP_ALREADY_USED";
             public const string ContextMismatch = "OTP_CONTEXT_MISMATCH";
             public const string VerificationLocked = "OTP_VERIFICATION_LOCKED";
+            public const string Cancelled = "OTP_CANCELLED";
             /// <summary>SMTP mode is on but Email:Password / Email__Password is not configured.</summary>
             public const string EmailSmtpPasswordNotConfigured = "EMAIL_SMTP_PASSWORD_NOT_CONFIGURED";
         }

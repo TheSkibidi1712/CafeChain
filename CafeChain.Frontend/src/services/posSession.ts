@@ -30,6 +30,7 @@ export interface PosSession {
   expiresAt?: number
   workShiftId?: number | null
   terminalId?: string | null
+  sessionId?: string | null
   requiresOpeningCash?: boolean
 }
 
@@ -87,6 +88,9 @@ export function savePosToken(token: string): PosSession {
     terminalId: typeof payload.PosTerminalId === 'string' && payload.PosTerminalId.trim()
       ? payload.PosTerminalId.trim()
       : null,
+    sessionId: typeof payload.PosSessionId === 'string' && payload.PosSessionId.trim()
+      ? payload.PosSessionId.trim()
+      : null,
     requiresOpeningCash: String(payload.RequiresOpeningCash).toLowerCase() === 'true',
   }
 
@@ -101,6 +105,7 @@ export function savePosToken(token: string): PosSession {
     expiresAt: session.expiresAt,
     workShiftId: session.workShiftId,
     terminalId: session.terminalId,
+    sessionId: session.sessionId,
     requiresOpeningCash: session.requiresOpeningCash,
   }))
 
@@ -129,6 +134,7 @@ export function completeOpeningCash(workShiftId: number): void {
     expiresAt: session.expiresAt,
     workShiftId,
     terminalId: session.terminalId,
+    sessionId: session.sessionId,
     requiresOpeningCash: false,
   }))
   window.dispatchEvent(new CustomEvent('pos-session-changed', { detail: session }))

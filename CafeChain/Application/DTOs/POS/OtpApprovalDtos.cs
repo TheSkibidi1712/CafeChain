@@ -70,6 +70,7 @@ namespace CafeChain.Application.DTOs.POS
         public string? ActionType { get; set; }
         public string? OpenContext { get; set; }
         public string? TerminalId { get; set; }
+        public string? TerminalName { get; set; }
         public string? Reason { get; set; }
         public string? RequestKey { get; set; }
         public int ExpiresInSeconds { get; set; }

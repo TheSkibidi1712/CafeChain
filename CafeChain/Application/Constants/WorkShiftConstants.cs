@@ -32,6 +32,13 @@ public static class WorkShiftErrorCodes
     public const string PosOpenContextInvalid = "POS_OPEN_CONTEXT_INVALID";
     public const string StaffHubOpenRequired = "STAFFHUB_OPEN_REQUIRED";
     public const string OpeningCashRequired = "OPENING_CASH_REQUIRED";
+    public const string LateOpenApprovalPending = "LATE_OPEN_APPROVAL_PENDING";
+    public const string LateOpenApprovalRejected = "LATE_OPEN_APPROVAL_REJECTED";
+    public const string LateOpenApprovalExpired = "LATE_OPEN_APPROVAL_EXPIRED";
+    public const string PosSessionRevoked = "POS_SESSION_REVOKED";
+    public const string PosSessionEnded = "POS_SESSION_ENDED";
+    public const string PosSessionExpired = "POS_SESSION_EXPIRED";
+    public const string PosTerminalLocked = "POS_TERMINAL_LOCKED";
     public const string OperatorNotAuthorized = "OPERATOR_NOT_AUTHORIZED";
     public const string OperatorPinNotConfigured = "OPERATOR_PIN_NOT_CONFIGURED";
     public const string OperatorPinInvalid = "OPERATOR_PIN_INVALID";
