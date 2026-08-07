@@ -8,7 +8,7 @@
     var tabs = new[]
     {
         ("Executive", "Điều hành", "bi-speedometer2"),
-        ("Operations", "POS / WorkShift", "bi-cash-stack"),
+        ("Operations", "POS / Ca làm việc", "bi-cash-stack"),
         ("Inventory", "Kho", "bi-box-seam"),
         ("Procurement", "Mua hàng", "bi-truck"),
         ("Product", "Sản phẩm", "bi-cup-straw"),
@@ -65,14 +65,14 @@
             <label>Cửa hàng<select id="dashboardStore"><option value="">Tất cả</option></select></label>
             <label>Độ chi tiết
                 <select id="dashboardGranularity">
-                    @foreach (var item in new[] { "Hour", "Day", "Week", "Month" })
-                    {
-                        <option value="@item" selected="@(Model.Filter.Granularity == item)">@item</option>
-                    }
+                    <option value="Hour" selected="@(Model.Filter.Granularity == "Hour")">Giờ</option>
+                    <option value="Day" selected="@(Model.Filter.Granularity == "Day")">Ngày</option>
+                    <option value="Week" selected="@(Model.Filter.Granularity == "Week")">Tuần</option>
+                    <option value="Month" selected="@(Model.Filter.Granularity == "Month")">Tháng</option>
                 </select>
             </label>
-            <label>Top<input id="dashboardTop" type="number" min="1" max="100" value="@Model.Filter.Top" /></label>
-            <label>Preset
+            <label>Số lượng (Top)<input id="dashboardTop" type="number" min="1" max="100" value="@Model.Filter.Top" /></label>
+            <label>Tùy chọn lọc
                 <select id="dashboardPreset">
                     <option value="">Tùy chọn hiện tại</option>
                     <option value="Today">Hôm nay</option>
@@ -140,7 +140,7 @@
                 </div>
             </div>
             <div class="dashboard-intelligence__heading-actions">
-                <span class="dashboard-intelligence__safe"><i class="bi bi-lock"></i> Read-only</span>
+                <span class="dashboard-intelligence__safe"><i class="bi bi-lock"></i> Chỉ đọc (Read-only)</span>
                 <button type="button"
                         class="analytics-button analytics-button--secondary dashboard-intelligence__toggle"
                         id="dashboardAiToggleResult"
@@ -167,7 +167,7 @@
         <div class="dashboard-intelligence__scope" aria-label="Phạm vi phân tích hiện tại">
             <span><i class="bi bi-calendar3"></i> @Model.Filter.FromDate.ToString("dd/MM/yyyy") – @Model.Filter.ToDate.ToString("dd/MM/yyyy")</span>
             <span><i class="bi bi-shop"></i> Phạm vi cửa hàng được cấp quyền</span>
-            <span><i class="bi bi-bar-chart"></i> @Model.Filter.Granularity</span>
+            <span><i class="bi bi-bar-chart"></i> @(Model.Filter.Granularity == "Hour" ? "Giờ" : Model.Filter.Granularity == "Day" ? "Ngày" : Model.Filter.Granularity == "Week" ? "Tuần" : Model.Filter.Granularity == "Month" ? "Tháng" : Model.Filter.Granularity)</span>
         </div>
         <div id="dashboardAiStatus" class="analytics-notice" role="status" hidden></div>
         <div id="dashboardAiPreview" class="dashboard-intelligence__preview" hidden></div>

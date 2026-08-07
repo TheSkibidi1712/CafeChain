@@ -16,10 +16,14 @@ namespace CafeChain.Controllers.Api.v1
     public class POSShiftController : PosApiController
     {
         private readonly IWorkShiftService _shiftService;
+        private readonly IPosAccessSessionService? _posAccessSessions;
 
-        public POSShiftController(IWorkShiftService shiftService)
+        public POSShiftController(
+            IWorkShiftService shiftService,
+            IPosAccessSessionService? posAccessSessions = null)
         {
             _shiftService = shiftService;
+            _posAccessSessions = posAccessSessions;
         }
 
         /// <summary>
@@ -40,7 +44,8 @@ namespace CafeChain.Controllers.Api.v1
             {
                 StartingCash = request.StartingCash,
                 ExchangeContextId = CurrentExchangeContextId,
-                AccountId = CurrentAccountId
+                AccountId = CurrentAccountId,
+                PosAccessSessionId = CurrentPosAccessSessionId
             };
             var result = await _shiftService.OpenShiftAsync(CurrentStaffId, CurrentStoreId, command);
 
@@ -143,7 +148,18 @@ namespace CafeChain.Controllers.Api.v1
         [RequirePermission(PermissionConstants.PosWorkShiftView)]
         public async Task<IActionResult> GetCurrentShift()
         {
-            var summary = await _shiftService.GetSummaryAsync(CurrentStaffId, CurrentStoreId);
+            int? workShiftId = null;
+            if (_posAccessSessions != null && CurrentPosAccessSessionId != Guid.Empty)
+            {
+                var accessSession = await _posAccessSessions.GetAsync(CurrentPosAccessSessionId);
+                if (!accessSession.IsSuccess)
+                    return WorkShiftError(accessSession.ErrorCode, accessSession.Message);
+                workShiftId = accessSession.Data?.WorkShiftId;
+            }
+
+            var summary = workShiftId.HasValue
+                ? await _shiftService.GetSummaryAsync(CurrentStaffId, CurrentStoreId, workShiftId)
+                : null;
             if (summary == null)
             {
                 return Ok(new ShiftSummaryDto { Status = "NoActiveShift" });

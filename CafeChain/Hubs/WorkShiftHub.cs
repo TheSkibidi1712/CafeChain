@@ -57,6 +57,14 @@ public sealed class WorkShiftHub : Hub
             WorkShiftGroups.ForStaff(staffId),
             Context.ConnectionAborted);
 
+        if (Guid.TryParse(Context.User?.FindFirstValue("PosSessionId"), out var sessionId))
+        {
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId,
+                WorkShiftGroups.ForSession(sessionId),
+                Context.ConnectionAborted);
+        }
+
         await base.OnConnectedAsync();
     }
 
@@ -93,4 +101,5 @@ public static class WorkShiftGroups
     public static string ForStore(int storeId) => $"store:{storeId}:permission:{PermissionConstants.PosWorkShiftView}";
     public static string ForStaff(int staffId) => $"staff:{staffId}:workshift";
     public static string ForTerminal(string terminalId) => $"terminal:{terminalId}:workshift";
+    public static string ForSession(Guid sessionId) => $"pos-session:{sessionId:N}";
 }

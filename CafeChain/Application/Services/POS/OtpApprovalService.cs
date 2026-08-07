@@ -90,6 +90,31 @@ namespace CafeChain.Application.Services.POS
             return ServiceResult<OtpChallengeResponseDto>.Success(response);
         }
 
+        public async Task<ServiceResult<OtpChallengeResponseDto>> GetCurrentTerminalRegistrationOtpStateAsync(
+            int requestedByStaffId,
+            int storeId)
+        {
+            if (requestedByStaffId <= 0 || storeId <= 0)
+                return ServiceResult<OtpChallengeResponseDto>.Failure("Ngữ cảnh nhân viên/cửa hàng không hợp lệ.");
+            var nowUtc = UtcNow;
+            var challenge = await _repository.FindLatestTerminalRegistrationChallengeAsync(
+                storeId,
+                requestedByStaffId,
+                nowUtc.AddDays(-1));
+            if (challenge == null)
+            {
+                return ServiceResult<OtpChallengeResponseDto>.Success(new OtpChallengeResponseDto
+                {
+                    HasActiveChallenge = false,
+                    Status = "IDLE"
+                });
+            }
+            var response = MapResponse(challenge, nowUtc);
+            if (challenge.Status == OtpConstants.Statuses.Pending && challenge.ExpiresAt <= nowUtc)
+                response.Status = OtpConstants.Statuses.Expired;
+            return ServiceResult<OtpChallengeResponseDto>.Success(response);
+        }
+
         public async Task<ServiceResult<OtpChallengeResponseDto>> RequestOtpAsync(
             OtpRequestDto request,
             int requestedByStaffId,
@@ -274,6 +299,9 @@ namespace CafeChain.Application.Services.POS
                     CreatedAt = nowUtc,
                     Status = OtpConstants.Statuses.Pending,
                     TerminalId = string.IsNullOrWhiteSpace(request.TerminalId) ? null : request.TerminalId.Trim(),
+                    TerminalName = string.IsNullOrWhiteSpace(request.TerminalName)
+                        ? (string.IsNullOrWhiteSpace(request.TerminalId) ? null : request.TerminalId.Trim())
+                        : request.TerminalName.Trim(),
                     RequestKey = string.IsNullOrWhiteSpace(request.RequestKey) ? null : request.RequestKey.Trim(),
                     ClientIpHash = NormalizeSecurityHash(request.ClientIpHash),
                     DeviceFingerprintHash = NormalizeSecurityHash(request.DeviceFingerprintHash),
@@ -368,33 +396,16 @@ namespace CafeChain.Application.Services.POS
                         "OTP_EMAIL_SEND_FAILED | StoreId={StoreId} | RequestedByStaffId={RequestedByStaffId} | ApproverStaffId={ApproverStaffId} | To={To}",
                         storeId, requestedByStaffId, approver.StaffId, MaskEmail(approverEmail));
 
-                    // Missing App Password: clear business error (no host crash, no PIN fallback).
-                    if (IsSmtpPasswordNotConfigured(ex))
-                    {
-                        challenge.Status = OtpConstants.Statuses.Cancelled;
-                        challenge.CancelledAt = UtcNow;
-                        challenge.ProtectedOtpPayload = null;
-                        await ResolveFailedDeliveryAsync(notification, "Gmail chưa được cấu hình.");
-                        await _repository.SaveChangesAsync();
-                        await PublishChangedSafeAsync(challenge.ApproverStaffId, notification, "Resolved");
-
-                        return ServiceResult<OtpChallengeResponseDto>.Failure(
-                            "EMAIL_SMTP_PASSWORD_NOT_CONFIGURED: Chưa cấu hình Gmail App Password. " +
-                            "Chạy .\\scripts\\setup-team-otp-email.ps1 (hoặc set Email__Password / user-secrets), " +
-                            "rồi restart backend.",
-                            errorCode: OtpConstants.ErrorCodes.EmailSmtpPasswordNotConfigured);
-                    }
-
-                    challenge.Status = OtpConstants.Statuses.Cancelled;
-                    challenge.CancelledAt = UtcNow;
-                    challenge.ProtectedOtpPayload = null;
-                    await ResolveFailedDeliveryAsync(notification, "Không gửi được Gmail.");
+                    var safeDeliveryError = IsSmtpPasswordNotConfigured(ex)
+                        ? "Gmail chưa được cấu hình."
+                        : "Không gửi được Gmail.";
+                    await ResolveFailedDeliveryAsync(notification, safeDeliveryError);
                     await _repository.SaveChangesAsync();
-                    await PublishChangedSafeAsync(challenge.ApproverStaffId, notification, "Resolved");
+                    await PublishChangedSafeAsync(challenge.ApproverStaffId, notification, "Updated");
 
-                    return ServiceResult<OtpChallengeResponseDto>.Failure(
-                        "Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình email.",
-                        errorCode: OtpConstants.ErrorCodes.EmailFailed);
+                    return ServiceResult<OtpChallengeResponseDto>.Success(
+                        MapResponse(challenge, nowUtc),
+                        "OTP vẫn còn hiệu lực trong thông báo nội bộ; kênh email gửi thất bại.");
                 }
 
                 if (notification != null && _staffNotifications != null)
@@ -406,14 +417,6 @@ namespace CafeChain.Application.Services.POS
                     await _staffNotifications.SaveChangesAsync();
                     await PublishChangedSafeAsync(challenge.ApproverStaffId, notification, "Created");
                 }
-                await PublishOtpIssuedSafeAsync(
-                    challenge.ApproverStaffId,
-                    otpCode,
-                    challenge.ExpiresAt,
-                    actionLabel,
-                    requester.FullName,
-                    store.Name);
-
                 return ServiceResult<OtpChallengeResponseDto>.Success(
                     MapResponse(challenge, nowUtc),
                     $"OTP đã được gửi đến {approverRoleLabel} ({MaskEmail(approverEmail)}). Mã gồm 6 ký tự chữ in hoa và số.");
@@ -697,35 +700,6 @@ namespace CafeChain.Application.Services.POS
                     nowUtc,
                     OtpConstants.TtlMinutes);
 
-                try
-                {
-                    await _emailService.SendAsync(challenge.ApproverStaff.Account.Email.Trim(), subject, body);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(
-                        ex,
-                        "OTP_EMAIL_RESEND_FAILED | PublicId={PublicId} | StoreId={StoreId}",
-                        challenge.PublicId, challenge.StoreId);
-
-                    if (IsSmtpPasswordNotConfigured(ex))
-                    {
-                        await _repository.RollbackTransactionAsync();
-                        return new ServiceResult<OtpChallengeResponseDto>
-                        {
-                            IsSuccess = false,
-                            Message =
-                                "EMAIL_SMTP_PASSWORD_NOT_CONFIGURED: Chưa cấu hình Gmail App Password. " +
-                                "Chạy .\\scripts\\setup-team-otp-email.ps1 rồi restart backend.",
-                            ErrorCode = OtpConstants.ErrorCodes.EmailSmtpPasswordNotConfigured,
-                            Data = MapResponse(challenge, nowUtc)
-                        };
-                    }
-
-                    await _repository.RollbackTransactionAsync();
-                    return Failure("Không gửi lại được OTP ca trưởng. Vui lòng kiểm tra cấu hình email.", challenge, nowUtc);
-                }
-
                 challenge.OtpHash = BCrypt.Net.BCrypt.HashPassword(otpCode);
                 challenge.ExpiresAt = nowUtc.AddMinutes(OtpConstants.TtlMinutes);
                 challenge.LastSentAt = nowUtc;
@@ -751,13 +725,13 @@ namespace CafeChain.Application.Services.POS
                         notification.IsRead = false;
                         notification.ReadAt = null;
                         notification.EmailAttempted = true;
-                        notification.EmailSent = true;
+                        notification.EmailSent = false;
                         notification.EmailErrorSummary = null;
                         notification.UpdatedAt = nowUtc;
                         notification.Body =
                             $"{challenge.RequestedByStaff?.FullName ?? $"Staff #{challenge.RequestedByStaffId}"} " +
                             $"yêu cầu {actionLabel} tại {challenge.Store.Name}. Lý do: {challenge.Reason}. " +
-                            $"Mã được gửi qua Gmail và có thể xem lại trong chuông thông báo bảo mật khi còn hiệu lực đến {challenge.ExpiresAt:O}.";
+                            "Chi tiết thời hạn và trạng thái được hiển thị trong thẻ OTP bên dưới.";
                         notification.MeaningfulVersion = challenge.ExpiresAt.Ticks.ToString(
                             System.Globalization.CultureInfo.InvariantCulture);
                     }
@@ -766,16 +740,33 @@ namespace CafeChain.Application.Services.POS
                 await _repository.SaveChangesAsync();
                 await _repository.CommitTransactionAsync();
 
-                await PublishChangedSafeAsync(challenge.ApproverStaffId, notification, "Updated");
-                await PublishOtpIssuedSafeAsync(
-                    challenge.ApproverStaffId,
-                    otpCode,
-                    challenge.ExpiresAt,
-                    actionLabel,
-                    challenge.RequestedByStaff?.FullName ?? $"Staff #{challenge.RequestedByStaffId}",
-                    challenge.Store.Name);
+                var emailSent = false;
+                try
+                {
+                    await _emailService.SendAsync(challenge.ApproverStaff.Account.Email.Trim(), subject, body);
+                    emailSent = true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "OTP_EMAIL_RESEND_FAILED | PublicId={PublicId} | StoreId={StoreId}",
+                        challenge.PublicId, challenge.StoreId);
+                }
 
-                const string msg = "OTP mới đã được gửi đến email người duyệt. Mã cũ không còn hiệu lực.";
+                if (notification != null && _staffNotifications != null)
+                {
+                    notification.EmailSent = emailSent;
+                    notification.EmailErrorSummary = emailSent ? null : "Không gửi được Gmail.";
+                    notification.UpdatedAt = UtcNow;
+                    await _staffNotifications.SaveChangesAsync();
+                }
+
+                await PublishChangedSafeAsync(challenge.ApproverStaffId, notification, "Updated");
+
+                var msg = emailSent
+                    ? "OTP mới đã được gửi đến email người duyệt. Mã cũ không còn hiệu lực."
+                    : "OTP mới đã được tạo và có thể xem trong thông báo nội bộ; kênh email gửi thất bại.";
                 return ServiceResult<OtpChallengeResponseDto>.Success(MapResponse(challenge, nowUtc), msg);
             }
             catch (DbUpdateConcurrencyException)
@@ -931,12 +922,13 @@ namespace CafeChain.Application.Services.POS
             Type = StaffNotificationTypes.OperationalOtpRequest,
             Title = $"Yêu cầu OTP: {actionLabel}",
             Body = $"{requesterName} yêu cầu {actionLabel} tại {storeName}. Lý do: {challenge.Reason}. " +
-                   $"Mã được gửi qua Gmail và có thể xem lại trong chuông thông báo bảo mật khi còn hiệu lực đến {challenge.ExpiresAt:O}.",
+                   "Chi tiết thời hạn và trạng thái được hiển thị trong thẻ OTP bên dưới.",
             Severity = "WARNING",
             DeduplicationKey = OtpNotificationKey(challenge.PublicId),
             MeaningfulVersion = challenge.ExpiresAt.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture),
             EntityType = StaffNotificationEntityTypes.OtpChallenge,
             EntityId = challenge.OtpChallengeId,
+            OtpChallengeId = challenge.OtpChallengeId,
             IsRead = false,
             CreatedAt = nowUtc,
             UpdatedAt = nowUtc,
@@ -954,7 +946,6 @@ namespace CafeChain.Application.Services.POS
             notification.EmailAttempted = true;
             notification.EmailSent = false;
             notification.EmailErrorSummary = safeError;
-            notification.ResolvedAt = UtcNow;
             notification.UpdatedAt = UtcNow;
             await _staffNotifications.SaveChangesAsync();
         }
@@ -1171,6 +1162,7 @@ namespace CafeChain.Application.Services.POS
                         ? WorkShiftOpenContexts.LateForSchedule
                         : null,
                 TerminalId = challenge.TerminalId,
+                TerminalName = challenge.TerminalName,
                 Reason = challenge.Reason,
                 RequestKey = challenge.RequestKey,
                 ExpiresInSeconds = expiresInSeconds,
