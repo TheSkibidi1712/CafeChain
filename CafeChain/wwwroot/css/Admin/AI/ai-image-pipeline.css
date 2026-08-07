@@ -1,13 +1,28 @@
+/* ==========================================================================
+   CAFECHAIN ADMIN DESIGN SYSTEM - AI IMAGE PIPELINE (FRONTEND 1)
+   Coffee-Brown Premium Contract Synchronization
+   ========================================================================== */
+
 .ai-pipeline-status {
     padding: .55rem .75rem;
-    border-radius: .5rem;
-    background: #f4f7fb;
-    color: #405168;
+    border-radius: var(--cc-radius-control, .5rem);
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-text-secondary, #66584f);
     font-size: .875rem;
+    border: 1px solid var(--cc-border, #e9ded4);
 }
 
-.ai-pipeline-status[data-state="Failed"] { background: #fff1f1; color: #a32929; }
-.ai-pipeline-status[data-state="Completed"] { background: #edf9f0; color: #26733b; }
+.ai-pipeline-status[data-state="Failed"] {
+    background: var(--cc-danger-bg, #fdf0f0);
+    color: var(--cc-danger, #991b1b);
+    border-color: #E9B8B8;
+}
+
+.ai-pipeline-status[data-state="Completed"] {
+    background: var(--cc-success-bg, #edf6f2);
+    color: var(--cc-success, #2f6f5e);
+    border-color: #BBDCCD;
+}
 
 .ai-image-grid {
     display: grid;
@@ -17,15 +32,36 @@
 }
 
 .ai-image-card {
-    border: 2px solid #dde4ee;
-    border-radius: .65rem;
+    border: 2px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
     padding: .4rem;
-    background: #fff;
-    color: inherit;
+    background: var(--cc-surface-raised, #ffffff);
+    color: var(--cc-text, #201812);
     overflow: hidden;
+    transition: border-color .18s ease, box-shadow .18s ease;
 }
 
-.ai-image-card:hover { border-color: #8eb8f4; }
-.ai-image-card.is-selected { border-color: #0d6efd; box-shadow: 0 0 0 2px rgba(13, 110, 253, .12); }
-.ai-image-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: .4rem; display: block; }
-.ai-image-card span { display: block; margin-top: .35rem; font-size: .72rem; line-height: 1.25; }
+.ai-image-card:hover {
+    border-color: var(--cc-brown-500, #8b6247);
+}
+
+.ai-image-card.is-selected {
+    border-color: var(--cc-brown-600, #70482f);
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+}
+
+.ai-image-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--cc-radius-xs, 6px);
+    display: block;
+}
+
+.ai-image-card span {
+    display: block;
+    margin-top: .35rem;
+    font-size: .72rem;
+    line-height: 1.25;
+    color: var(--cc-text-secondary, #66584f);
+}
