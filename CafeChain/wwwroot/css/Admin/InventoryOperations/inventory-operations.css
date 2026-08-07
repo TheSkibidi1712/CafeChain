@@ -5,9 +5,11 @@
     color: var(--cc-text, #201812);
 }
 
-.ops-shell-compact {
-    max-width: 1120px;
-    margin: 0 auto;
+.ops-shell-compact,
+.ops-shell-narrow {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
 }
 
 /* Compatibility for older procurement views while they move to the shared shell. */
@@ -656,18 +658,91 @@
     accent-color: var(--cc-primary);
 }
 
-.ops-policy-panel {
-    padding: 12px;
-    border: 1px solid var(--cc-border);
-    border-radius: 8px;
-    background: var(--cc-warning-bg);
+.ops-table td .ops-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 5px 12px;
+    font-size: 11.5px;
+    font-weight: 750;
+    line-height: 1.2;
+    border-radius: 20px;
+}
+
+.ops-table td form.mt-2 {
+    margin-top: 0 !important;
 }
 
 .ops-table-actions {
-    display: grid;
-    grid-template-columns: minmax(150px, 1fr) minmax(132px, auto) auto;
-    gap: 7px;
-    align-items: end;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.ops-table-actions > div:first-child {
+    flex: 1 1 180px;
+    min-width: 130px;
+}
+
+.ops-table-actions > div:nth-child(2) {
+    flex: 0 0 130px;
+    min-width: 110px;
+}
+
+.ops-table-actions .ops-input,
+.ops-table-actions .ops-select {
+    min-height: 40px;
+    height: 40px;
+    border: 1px solid #D8C5B6;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 650;
+    color: #201812;
+    background-color: #FFFDFB;
+    box-sizing: border-box;
+    transition: all 140ms ease;
+}
+
+.ops-table-actions .ops-select {
+    cursor: pointer;
+    font-weight: 750;
+}
+
+.ops-table-actions .ops-input:focus,
+.ops-table-actions .ops-select:focus {
+    border-color: #70482F;
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.2);
+    outline: none;
+}
+
+.ops-table-actions .ops-btn {
+    min-height: 40px;
+    height: 40px;
+    padding: 0 18px;
+    border: 1px solid #70482F;
+    border-radius: 8px;
+    background: #70482F;
+    color: #FFFDFB;
+    font-size: 13px;
+    font-weight: 750;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(112, 72, 47, 0.18);
+    transition: all 140ms ease;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ops-table-actions .ops-btn:hover {
+    background: #3D2418;
+    border-color: #3D2418;
+    color: #FFFDFB;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(61, 36, 24, 0.24);
 }
 
 .ops-action-panel {
@@ -885,12 +960,19 @@
     box-shadow: 0 4px 16px rgba(111, 78, 55, 0.04) !important;
     overflow: hidden !important;
     transition: box-shadow 0.25s ease !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .ops-panel-header {
     background: linear-gradient(180deg, #FDFBF8 0%, #F8F3ED 100%) !important;
     border-bottom: 1px solid var(--cc-border, #E2D7CD) !important;
     padding: 14px 18px !important;
+    width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    border-top-left-radius: 11px !important;
+    border-top-right-radius: 11px !important;
 }
 
 .ops-panel-title {
@@ -988,20 +1070,21 @@
 
 .ops-metrics {
     display: grid !important;
-    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
     gap: 0.85rem !important;
     margin-bottom: 1.25rem !important;
+    width: 100% !important;
 }
 
 @media (max-width: 1200px) {
     .ops-metrics {
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 }
 
 @media (max-width: 640px) {
     .ops-metrics {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        grid-template-columns: 1fr !important;
     }
 }
 
@@ -1054,9 +1137,26 @@
     color: #C62828 !important;
 }
 
-.ops-table {
+.ops-table-scroll,
+.cc-warehouse-table-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    scrollbar-gutter: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.ops-table,
+.ops-table-wide,
+.ops-table-min-1100 {
+    width: 100% !important;
+    min-width: 100% !important;
+    margin: 0 !important;
     border-collapse: separate !important;
     border-spacing: 0 !important;
+    box-sizing: border-box !important;
 }
 
 .ops-table th {
@@ -1068,6 +1168,7 @@
     letter-spacing: 0.5px !important;
     padding: 12px 16px !important;
     border-bottom: 2px solid #E2D7CD !important;
+    box-sizing: border-box !important;
 }
 
 .ops-table td {

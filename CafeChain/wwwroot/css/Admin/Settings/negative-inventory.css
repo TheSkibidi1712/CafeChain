@@ -70,8 +70,68 @@
 .negative-inventory-page .form-check-input:focus,
 .negative-inventory-page .form-control:focus,
 .negative-inventory-page .form-select:focus {
-    border-color: #9b7a62;
-    box-shadow: 0 0 0 .2rem rgba(111, 78, 55, .13);
+    border-color: #70482F;
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.22);
+    outline: none;
+}
+
+.negative-inventory-page .input-group {
+    display: flex;
+    align-items: stretch;
+    border-radius: 10px;
+    transition: all 140ms ease;
+}
+
+.negative-inventory-page .input-group .form-control {
+    min-height: 44px;
+    height: 44px;
+    border: 1px solid #D8C5B6;
+    border-right: 0;
+    border-radius: 10px 0 0 10px;
+    background-color: #FFFDFB;
+    color: #201812;
+    font-size: 14px;
+    font-weight: 750;
+    padding: 8px 14px;
+    box-sizing: border-box;
+}
+
+.negative-inventory-page .input-group .input-group-text {
+    min-height: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    border: 1px solid #D8C5B6;
+    border-left: 1px solid #E9DED4;
+    border-radius: 0 10px 10px 0;
+    background: #FBF7F2;
+    color: #5C3F2B;
+    font-size: 13px;
+    font-weight: 750;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    user-select: none;
+    box-sizing: border-box;
+    transition: all 140ms ease;
+}
+
+.negative-inventory-page .input-group:focus-within {
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.22);
+    border-radius: 10px;
+}
+
+.negative-inventory-page .input-group:focus-within .form-control {
+    border-color: #70482F;
+    outline: none;
+    box-shadow: none;
+}
+
+.negative-inventory-page .input-group:focus-within .input-group-text {
+    border-color: #70482F;
+    background: #F4E9DF;
+    color: #3D2418;
 }
 .negative-inventory-page .ni-meta-field {
     display: flex;
@@ -217,6 +277,7 @@
 .negative-inventory-page .ni-item-heading {
     display: flex;
     align-items: baseline;
+    justify-content: center;
     gap: 7px;
     min-width: 0;
     margin-bottom: 3px;
@@ -235,19 +296,63 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.negative-inventory-page .ni-stock-value { font-weight: 700; white-space: nowrap; }
-.negative-inventory-page .ni-col-item { width: 31%; }
-.negative-inventory-page .ni-col-stock { width: 13%; }
+.negative-inventory-page .ni-col-item { width: 27%; }
+.negative-inventory-page .ni-col-stock { width: 12%; }
 .negative-inventory-page .ni-col-mode { width: 13%; }
 .negative-inventory-page .ni-col-limit { width: 22%; }
-.negative-inventory-page .ni-col-effective { width: 11%; }
-.negative-inventory-page .ni-col-status { width: 10%; }
+.negative-inventory-page .ni-col-effective { width: 10%; }
+.negative-inventory-page .ni-col-status { width: 16%; }
+
+.negative-inventory-page #negativeInventoryItemsTable .badge {
+    display: inline-block;
+    white-space: nowrap;
+    text-align: center;
+    padding: 5px 12px;
+    font-size: 11.5px;
+    font-weight: 750;
+    line-height: 1.3;
+    border-radius: 20px;
+}
+
+.negative-inventory-page .ni-status-badge.text-bg-secondary {
+    background-color: #F1F5F9 !important;
+    color: #475569 !important;
+    border: 1px solid #CBD5E1;
+}
+
+.negative-inventory-page .ni-status-badge.text-bg-success {
+    background-color: #EDF6F2 !important;
+    color: #2F6F5E !important;
+    border: 1px solid #BBDCCD;
+}
+
+.negative-inventory-page #negativeInventoryItemsTable th.text-center,
+.negative-inventory-page #negativeInventoryItemsTable td.text-center {
+    text-align: center !important;
+}
+
+.negative-inventory-page #negativeInventoryItemsTable th.text-end,
+.negative-inventory-page #negativeInventoryItemsTable td.text-end {
+    text-align: right !important;
+}
+
+.negative-inventory-page .negative-limit-mode {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    text-align-last: center;
+}
+
+.negative-inventory-page .ni-stock-value { font-weight: 700; white-space: nowrap; }
 .negative-inventory-page .ni-limit-controls {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 7px;
     width: 100%;
     min-width: 0;
+    margin-left: auto;
+    margin-right: auto;
 }
 .negative-inventory-page .ni-limit-controls .form-select {
     flex: 1 1 65%;

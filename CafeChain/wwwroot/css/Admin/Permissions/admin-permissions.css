@@ -439,6 +439,7 @@
     font-weight: 800;
     background: #fbfcfe;
     border-bottom: 1px solid var(--perm-border);
+    text-align: center !important;
 }
 
 .perm-table td {
@@ -446,6 +447,7 @@
     border-bottom: 1px solid #f2f4f8;
     vertical-align: middle;
     font-size: 14px;
+    text-align: center !important;
 }
 
 .perm-table tbody tr:hover {
@@ -455,17 +457,21 @@
 .perm-name {
     font-weight: 800;
     color: #111827;
+    text-align: center;
 }
 
 .perm-subtext {
     margin-top: 4px;
     color: var(--perm-muted);
     font-size: 12px;
+    text-align: center;
 }
 
 .perm-badge {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    margin: 0 auto;
     height: 24px;
     padding: 0 9px;
     border-radius: 6px;
@@ -483,6 +489,8 @@
 .perm-role-tags {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
+    margin: 0 auto;
     gap: 6px;
 }
 
@@ -1038,7 +1046,7 @@
 
 .perm-override-row {
     display: grid;
-    grid-template-columns: minmax(280px, 1fr) 116px minmax(360px, 480px);
+    grid-template-columns: minmax(240px, 1.4fr) minmax(136px, auto) minmax(340px, auto);
     align-items: center;
     gap: 16px;
     padding: 14px 16px;
@@ -1059,12 +1067,21 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    min-height: 30px;
-    padding: 0 10px;
-    border-radius: 8px;
+    min-height: 28px;
+    padding: 4px 12px;
+    border-radius: 20px;
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 800;
     text-align: center;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    width: auto !important;
+}
+
+.perm-role-state span {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    display: inline-block !important;
 }
 
 .perm-role-state.is-yes {

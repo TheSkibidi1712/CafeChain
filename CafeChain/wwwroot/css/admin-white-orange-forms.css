@@ -417,3 +417,43 @@
     font-weight: 700;
     text-align: center !important;
 }
+
+/* Standardized Dark Accent Modal Header text brightness */
+.modal-header.accent,
+:is(.admin-page-body, #cc-modal-host) .modal-header.accent {
+    background: linear-gradient(112deg, #3D2418 0%, #70482F 100%) !important;
+    color: #FFFDFB !important;
+    padding: 20px 24px !important;
+    border-bottom: 1px solid #E9DED4 !important;
+}
+
+.modal-header.accent .modal-kicker,
+:is(.admin-page-body, #cc-modal-host) .modal-header.accent .modal-kicker {
+    color: rgba(255, 253, 251, 0.8) !important;
+    font-size: 0.65rem !important;
+    font-weight: 750 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+}
+
+.modal-header.accent .modal-title,
+.modal-header.accent .modal-title i,
+.modal-header.accent h5,
+.modal-header.accent h4,
+:is(.admin-page-body, #cc-modal-host) .modal-header.accent .modal-title,
+:is(.admin-page-body, #cc-modal-host) .modal-header.accent .modal-title i,
+:is(.admin-page-body, #cc-modal-host) .modal-header.accent h5 {
+    color: #FFFDFB !important;
+    font-weight: 800 !important;
+}
+
+.modal-header.accent .btn-close,
+:is(.admin-page-body, #cc-modal-host) .modal-header.accent .btn-close {
+    filter: brightness(0) invert(1) !important;
+    opacity: 0.85 !important;
+}
+
+.modal-header.accent .btn-close:hover,
+:is(.admin-page-body, #cc-modal-host) .modal-header.accent .btn-close:hover {
+    opacity: 1 !important;
+}

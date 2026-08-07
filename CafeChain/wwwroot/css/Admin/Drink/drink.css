@@ -262,6 +262,17 @@
     color: #64748b;
 }
 
+.drink-table th.text-center,
+.drink-table td.text-center,
+.drink-table td[data-label="Mã"] {
+    text-align: center !important;
+}
+
+.drink-table td[data-label="Mã"] .drink-badge {
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .drink-status-badge {
     display: inline-flex;
     align-items: center;

@@ -879,21 +879,46 @@
 }
 
 #scheduleModal .modal-header.accent,
-#templateModal .modal-header.accent {
+#templateModal .modal-header.accent,
+.modal-header.accent {
     border: 0;
-    background: linear-gradient(135deg, var(--shift-accent-dark), var(--shift-accent));
-    color: #fff;
+    background: linear-gradient(112deg, #3D2418 0%, #70482F 100%) !important;
+    color: #FFFDFB !important;
+    padding: 20px 24px !important;
 }
 
-.modal-kicker {
-    margin-bottom: 1px;
-    color: rgba(255, 255, 255, .72);
-    font-size: .6rem;
+.modal-kicker,
+.modal-header.accent .modal-kicker {
+    margin-bottom: 3px !important;
+    color: rgba(255, 253, 251, 0.8) !important;
+    font-size: 0.65rem !important;
+    font-weight: 750 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
 }
 
 #scheduleModal .modal-title,
-#templateModal .modal-title {
-    font-weight: 780;
+#scheduleModal .modal-title i,
+#templateModal .modal-title,
+#templateModal .modal-title i,
+.modal-header.accent .modal-title,
+.modal-header.accent .modal-title i {
+    color: #FFFDFB !important;
+    font-weight: 800 !important;
+    font-size: 18px !important;
+}
+
+#scheduleModal .btn-close,
+#templateModal .btn-close,
+.modal-header.accent .btn-close {
+    filter: brightness(0) invert(1) !important;
+    opacity: 0.85 !important;
+}
+
+#scheduleModal .btn-close:hover,
+#templateModal .btn-close:hover,
+.modal-header.accent .btn-close:hover {
+    opacity: 1 !important;
 }
 
 #scheduleModal .modal-body,
