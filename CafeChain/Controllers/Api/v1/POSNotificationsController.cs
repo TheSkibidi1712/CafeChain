@@ -1,5 +1,8 @@
 using CafeChain.Application.Interfaces.Operations;
 using CafeChain.Application.Services.Operations;
+using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Controllers.Api.v1
@@ -11,10 +14,14 @@ namespace CafeChain.Controllers.Api.v1
     public class POSNotificationsController : PosApiController
     {
         private readonly IStaffNotificationQueryService _service;
+        private readonly ITerminalRegistrationNotificationService? _terminalRegistration;
 
-        public POSNotificationsController(IStaffNotificationQueryService service)
+        public POSNotificationsController(
+            IStaffNotificationQueryService service,
+            ITerminalRegistrationNotificationService? terminalRegistration = null)
         {
             _service = service;
+            _terminalRegistration = terminalRegistration;
         }
 
         /// <summary>GET /api/v1/pos/notifications/unread-count</summary>
@@ -69,6 +76,31 @@ namespace CafeChain.Controllers.Api.v1
                 return BadRequest(new { success = false, message = result.Message });
 
             return Ok(new { success = true, data = result.Data });
+        }
+
+        [HttpGet("notifications/{id:int}/terminal-otp")]
+        [RequirePermission(PermissionConstants.PosWorkShiftOverrideTerminal)]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<IActionResult> RevealTerminalOtp(int id)
+        {
+            if (_terminalRegistration == null) return StatusCode(503);
+            var result = await _terminalRegistration.RevealOtpAsync(CurrentStaffId, id);
+            return result.IsSuccess
+                ? Ok(new { success = true, data = result.Data })
+                : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message });
+        }
+
+        [HttpPost("notifications/{id:int}/terminal-confirm")]
+        [RequirePermission(PermissionConstants.PosWorkShiftOverrideTerminal)]
+        public async Task<IActionResult> ConfirmTerminal(
+            int id,
+            [FromBody] ConfirmTerminalNotificationRequestDto request)
+        {
+            if (_terminalRegistration == null) return StatusCode(503);
+            var result = await _terminalRegistration.ConfirmAsync(CurrentStaffId, id, request);
+            return result.IsSuccess
+                ? Ok(new { success = true, message = result.Message })
+                : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message });
         }
     }
 }

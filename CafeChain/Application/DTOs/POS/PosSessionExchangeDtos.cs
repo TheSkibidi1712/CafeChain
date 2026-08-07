@@ -44,4 +44,9 @@ public sealed class PosSessionExchangeContextDto
 
 public sealed record PosSessionExchangeTicketDto(string ExchangeCode, DateTime ExpiresAtUtc, int ContextId);
 
-public sealed record PosSessionTokenDto(string Token, DateTime ExpiresAtUtc, int ContextId, string Purpose);
+public sealed record PosSessionTokenDto(
+    string Token,
+    DateTime ExpiresAtUtc,
+    int ContextId,
+    string Purpose,
+    Guid SessionId);

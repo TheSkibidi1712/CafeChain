@@ -22,13 +22,16 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
     private readonly AppDbContext _dbContext;
     private readonly IConfiguration _configuration;
     private readonly TimeProvider _timeProvider;
+    private readonly IPosAccessSessionService? _posAccessSessions;
 
     public PosSessionExchangeService(AppDbContext dbContext, IConfiguration configuration,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IPosAccessSessionService? posAccessSessions = null)
     {
         _dbContext = dbContext;
         _configuration = configuration;
         _timeProvider = timeProvider;
+        _posAccessSessions = posAccessSessions;
     }
 
     public async Task<PosSessionExchangeTicketDto> IssueAsync(PosSessionExchangeContextDto context,
@@ -130,7 +133,33 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
                 errorCode: PosSessionExchangeErrorCodes.Invalid);
         }
 
-        var token = CreateToken(account, nowUtc, ticket.RequestDeduplicationId, context!);
+        var expirationHours = double.TryParse(_configuration["Jwt:ExpirationHours"], out var hours) ? hours : 12;
+        var expiresAtUtc = nowUtc.AddHours(expirationHours);
+        var accessSession = _posAccessSessions == null
+            ? new CafeChain.Models.Operations.PosAccessSession
+            {
+                PublicId = Guid.NewGuid(),
+                JwtId = Guid.NewGuid().ToString("N"),
+                AccountId = account.AccountId,
+                StaffId = account.Staff.StaffId,
+                StoreId = account.Staff.StoreId,
+                TerminalId = context!.TerminalId!,
+                WorkShiftId = context.WorkShiftId,
+                ExchangeContextId = ticket.RequestDeduplicationId,
+                Status = CafeChain.Models.Operations.PosAccessSessionStatuses.Active,
+                IssuedAtUtc = nowUtc,
+                ExpiresAtUtc = expiresAtUtc
+            }
+            : await _posAccessSessions.CreateAsync(
+                account.AccountId,
+                account.Staff.StaffId,
+                account.Staff.StoreId,
+                context!.TerminalId!,
+                ticket.RequestDeduplicationId,
+                context.WorkShiftId,
+                expiresAtUtc,
+                cancellationToken);
+        var token = CreateToken(account, nowUtc, expiresAtUtc, ticket.RequestDeduplicationId, context, accessSession);
         ticket.Status = "SUCCESS";
         ticket.ProcessingLeaseUntilUtc = null;
         ticket.ExpiredAt = token.ExpiresAtUtc;
@@ -205,7 +234,8 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
     }
 
     private PosSessionTokenDto CreateToken(CafeChain.Models.Customers.Account account, DateTime nowUtc,
-        int contextId, PosSessionExchangeContextDto context)
+        DateTime expiresAtUtc, int contextId, PosSessionExchangeContextDto context,
+        CafeChain.Models.Operations.PosAccessSession accessSession)
     {
         var jwtKey = _configuration["Jwt:Key"];
         if (string.IsNullOrWhiteSpace(jwtKey))
@@ -224,6 +254,8 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
             new("StoreId", account.Staff.StoreId.ToString()),
             new("AvatarUrl", avatarUrl),
             new("PosExchangeContextId", contextId.ToString()),
+            new(JwtRegisteredClaimNames.Jti, accessSession.JwtId),
+            new("PosSessionId", accessSession.PublicId.ToString()),
             new("PosPurpose", context.Purpose),
             new("PosTerminalId", context.TerminalId!),
             new("RequiresOpeningCash", context.RequiresOpeningCash ? "true" : "false")
@@ -232,13 +264,16 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
             claims.Add(new Claim("PosWorkShiftId", context.WorkShiftId.Value.ToString()));
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-        var expirationHours = double.TryParse(_configuration["Jwt:ExpirationHours"], out var hours) ? hours : 12;
-        var expiresAtUtc = nowUtc.AddHours(expirationHours);
         var token = new JwtSecurityToken(_configuration["Jwt:Issuer"] ?? "CafeChain",
             _configuration["Jwt:Audience"] ?? "CafeChain.POS", claims, notBefore: nowUtc,
             expires: expiresAtUtc, signingCredentials: new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)), SecurityAlgorithms.HmacSha256));
-        return new PosSessionTokenDto(new JwtSecurityTokenHandler().WriteToken(token), expiresAtUtc, contextId, context.Purpose);
+        return new PosSessionTokenDto(
+            new JwtSecurityTokenHandler().WriteToken(token),
+            expiresAtUtc,
+            contextId,
+            context.Purpose,
+            accessSession.PublicId);
     }
 
     private static string Hash(string value) =>

@@ -182,7 +182,7 @@ public sealed class StaffHubPosRefactorContractTests
         Assert.Contains(".staffhub-dialog-button.is-secondary:not(:disabled):hover", css, StringComparison.Ordinal);
         Assert.Contains("cursor: not-allowed", css, StringComparison.Ordinal);
         Assert.Contains("id=\"resendOpenPosOtp\" type=\"button\" class=\"staffhub-dialog-button is-secondary\" disabled", view, StringComparison.Ordinal);
-        Assert.Contains("id=\"resendTerminalOtp\" type=\"button\" class=\"staffhub-dialog-button is-secondary\" disabled", view, StringComparison.Ordinal);
+        Assert.Contains("id=\"resendTerminalOtp\" type=\"button\" class=\"staffhub-dialog-button is-primary\" disabled hidden", view, StringComparison.Ordinal);
         Assert.Contains("resendAvailableInSeconds", script, StringComparison.Ordinal);
         Assert.Contains("startResendCountdown", script, StringComparison.Ordinal);
         Assert.Contains("clearResendCountdown", script, StringComparison.Ordinal);

@@ -2,8 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   fetchNotifications,
+  confirmTerminalFromNotification,
   markAllNotificationsRead,
   markNotificationRead,
+  revealTerminalOtp,
+  type OperationalOtpNotification,
   type StaffNotificationItem,
 } from '../services/notificationService'
 
@@ -26,58 +29,105 @@ const formatDateTime = (value: string): string => {
   return `${valueOf('hour')}:${valueOf('minute')} ${valueOf('day')}/${valueOf('month')}/${valueOf('year')}`
 }
 
-function ActiveOtpCard({
-  code,
-  expiresAtUtc,
-  onExpired,
+function OperationalOtpCard({
+  notificationId,
+  otp,
+  onChanged,
 }: {
-  code: string
-  expiresAtUtc: string
-  onExpired: () => void
+  notificationId: number
+  otp: OperationalOtpNotification
+  onChanged: () => void
 }) {
-  const [now, setNow] = useState(() => Date.now())
-  const [copied, setCopied] = useState(false)
-  const expiresAt = Date.parse(expiresAtUtc)
-  const remainingSeconds = Number.isFinite(expiresAt)
-    ? Math.max(0, Math.ceil((expiresAt - now) / 1000))
-    : 0
+  const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(0, otp.remainingSeconds))
+  const [revealedCode, setRevealedCode] = useState('')
+  const [enteredCode, setEnteredCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    if (remainingSeconds <= 0) {
-      onExpired()
-      return
-    }
-    const timer = window.setTimeout(() => setNow(Date.now()), 1000)
+    if (otp.status !== 'Waiting' || remainingSeconds <= 0) return
+    const timer = window.setTimeout(
+      () => setRemainingSeconds((value) => Math.max(0, value - 1)),
+      1000
+    )
     return () => window.clearTimeout(timer)
-  }, [onExpired, remainingSeconds])
+  }, [otp.status, remainingSeconds])
 
-  if (remainingSeconds <= 0) return null
   const minutes = String(Math.floor(remainingSeconds / 60)).padStart(2, '0')
   const seconds = String(remainingSeconds % 60).padStart(2, '0')
+  const effectiveStatus = otp.status === 'Waiting' && remainingSeconds <= 0 ? 'Expired' : otp.status
 
   return (
     <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
-      <p className="text-[11px] font-bold text-amber-900">Mã OTP còn hiệu lực</p>
-      <div className="mt-1 flex flex-wrap items-center gap-3">
-        <code className="text-2xl font-extrabold tracking-widest text-amber-950">{code}</code>
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(code)
-              setCopied(true)
-            } catch {
-              setCopied(false)
-            }
-          }}
-          className="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-bold text-amber-900"
-        >
-          {copied ? 'Đã sao chép' : 'Sao chép mã'}
-        </button>
+      <div className="grid gap-1 text-[11px] text-amber-950 sm:grid-cols-2">
+        <span><strong>Terminal:</strong> {otp.terminalName}</span>
+        <span><strong>Chi nhánh:</strong> {otp.storeName}</span>
+        <span><strong>Người gửi:</strong> {otp.requestedByName}</span>
+        <span><strong>Người xác nhận:</strong> {otp.confirmedByName || otp.approverName}</span>
+        <span><strong>Gửi lúc:</strong> {formatDateTime(otp.sentAtUtc)}</span>
+        <span><strong>Hết hạn:</strong> {formatDateTime(otp.expiresAtUtc)}</span>
+        <span><strong>Trạng thái:</strong> {effectiveStatus}</span>
       </div>
-      <p className="mt-2 text-[11px] font-semibold text-amber-800">
-        Hết hạn sau {minutes}:{seconds} · {formatDateTime(expiresAtUtc)}
-      </p>
+      {effectiveStatus === 'Waiting' && (
+        <>
+          <p className="mt-2 text-[11px] font-semibold text-amber-800">
+            OTP còn hiệu lực: {minutes} phút {seconds} giây
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {revealedCode ? (
+              <code className="text-xl font-extrabold tracking-widest text-amber-950">{revealedCode}</code>
+            ) : (
+              <button
+                type="button"
+                disabled={busy || !otp.canRevealOtp}
+                onClick={() => void (async () => {
+                  setBusy(true)
+                  setMessage(null)
+                  const result = await revealTerminalOtp(notificationId)
+                  setBusy(false)
+                  if (result.ok && result.data) setRevealedCode(result.data.code)
+                  else setMessage(result.error || 'Không thể xem OTP.')
+                })()}
+                className="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 disabled:opacity-50"
+              >
+                Xem OTP
+              </button>
+            )}
+          </div>
+          {otp.canContinueTerminalConfirmation && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <input
+                value={enteredCode}
+                onChange={(event) => setEnteredCode(event.target.value.toUpperCase().slice(0, 6))}
+                maxLength={6}
+                autoComplete="one-time-code"
+                aria-label="Mã OTP xác nhận Terminal"
+                className="w-36 rounded-lg border border-amber-400 bg-white px-3 py-2 text-sm font-bold tracking-widest"
+              />
+              <button
+                type="button"
+                disabled={busy || enteredCode.length !== 6}
+                onClick={() => void (async () => {
+                  setBusy(true)
+                  setMessage(null)
+                  const requestKey = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`
+                  const result = await confirmTerminalFromNotification(notificationId, enteredCode, requestKey)
+                  setBusy(false)
+                  if (result.ok) onChanged()
+                  else setMessage(result.error || 'Không thể xác nhận Terminal.')
+                })()}
+                className="rounded-lg bg-amber-800 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+              >
+                {busy ? 'Đang xác nhận...' : 'Tiếp tục xác nhận Terminal'}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+      {effectiveStatus === 'Expired' && (
+        <p className="mt-2 text-xs font-semibold text-red-700">OTP đã hết hạn. Vui lòng gửi yêu cầu mới.</p>
+      )}
+      {message && <p className="mt-2 text-xs text-red-700">{message}</p>}
     </div>
   )
 }
@@ -224,11 +274,12 @@ export default function Notifications() {
                 <p className="mt-1 text-xs text-text-secondary whitespace-pre-wrap line-clamp-4">
                   {item.body}
                 </p>
-                {item.activeOtp && (
-                  <ActiveOtpCard
-                    code={item.activeOtp.code}
-                    expiresAtUtc={item.activeOtp.expiresAtUtc}
-                    onExpired={load}
+                {item.operationalOtp && (
+                  <OperationalOtpCard
+                    key={`${item.notificationId}:${item.operationalOtp.challengePublicId}:${item.operationalOtp.status}:${item.operationalOtp.remainingSeconds}`}
+                    notificationId={item.notificationId}
+                    otp={item.operationalOtp}
+                    onChanged={load}
                   />
                 )}
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-text-muted">

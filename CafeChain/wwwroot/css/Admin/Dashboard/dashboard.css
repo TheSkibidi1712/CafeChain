@@ -1,25 +1,32 @@
 /* ============================================================
-   DASHBOARD ANALYTICS — Coffee-Brown Palette
+   DASHBOARD ANALYTICS — Single CafeChain UI Contract Tier
+   Mapped directly to Core Tokens --cc-*
    ============================================================ */
 :root {
-    --an-bg:           #F7F4F0;
-    --an-surface:      #F7F4F0;
-    --an-primary:      #70482F;
-    --an-primary-h:    #3D2418;
-    --an-accent:       #A97750;
-    --an-accent-soft:  #F4E9DF;
-    --an-ink:          #201812;
-    --an-muted:        #76685E;
-    --an-success:      #39765A;
-    --an-success-soft: #EAF5EF;
-    --an-warning:      #8B5D3B;
-    --an-warning-soft: #FFF3DF;
-    --an-danger:       #991B1B;
-    --an-danger-soft:  #FDECEA;
-    --an-border:       #E9DED4;
-    --an-shadow:       0 2px 10px rgba(70,42,25,.06), 0 12px 32px rgba(70,42,25,.08);
-    --an-shadow-lg:    0 22px 54px rgba(66,39,23,.13);
-    --an-radius:       16px;
+    --an-bg:           var(--cc-canvas, #F7F4F0);
+    --an-surface:      var(--cc-surface, #FFFDFB);
+    --an-surface-raised: var(--cc-surface-raised, #FFFFFF);
+    --an-surface-muted: var(--cc-surface-muted, #FBF7F2);
+    --an-primary:      var(--cc-brown-600, #70482F);
+    --an-primary-h:    var(--cc-brown-900, #3D2418);
+    --an-accent:       var(--cc-caramel-500, #A97750);
+    --an-accent-soft:  var(--cc-surface-active, #F4E9DF);
+    --an-ink:          var(--cc-text, #201812);
+    --an-muted:        var(--cc-text-secondary, #66584F);
+    --an-success:      var(--cc-success, #2F6F5E);
+    --an-success-soft: var(--cc-success-bg, #EDF6F2);
+    --an-warning:      var(--cc-warning, #99623B);
+    --an-warning-soft: var(--cc-warning-bg, #FBF3EA);
+    --an-danger:       var(--cc-danger, #991B1B);
+    --an-danger-soft:  var(--cc-danger-bg, #FDF0F0);
+    --an-border:       var(--cc-border, #E9DED4);
+    --an-border-strong: var(--cc-border-strong, #D8C5B6);
+    --an-shadow:       var(--cc-shadow-sm);
+    --an-shadow-lg:    var(--cc-shadow-lg);
+    --an-radius:       var(--cc-radius-card, 16px);
+    --an-radius-control: var(--cc-radius-control, 10px);
+    --an-radius-header: var(--cc-radius-header, 20px);
+    --an-focus-ring:   var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
 }
 
 /* ── Page Shell ── */
@@ -27,7 +34,7 @@
     color: var(--an-ink);
     background: var(--an-bg);
     min-height: calc(100vh - 64px);
-    padding: 38px 32px 64px;
+    padding: 30px 32px 64px;
 }
 
 /* ── Header ── */
@@ -37,26 +44,27 @@
     align-items: center;
     justify-content: space-between;
     gap: 20px;
-    margin-bottom: 20px;
-    padding: 27px 28px 27px 32px;
+    margin-bottom: 24px;
+    padding: 26px 30px;
+    min-height: 140px;
     overflow: hidden;
-    border: 1px solid rgba(111, 78, 55, .16);
-    border-radius: 20px;
+    border: 1px solid var(--an-border);
+    border-radius: var(--an-radius-header);
     background:
-        radial-gradient(circle at 88% 8%, rgba(190, 139, 100, .16), transparent 24%),
-        linear-gradient(135deg, #fff 0%, #fdf9f5 57%, #f6ece3 100%);
-    box-shadow:
-        0 18px 44px rgba(70, 42, 25, .1),
-        0 3px 10px rgba(70, 42, 25, .055),
-        inset 0 1px 0 rgba(255, 255, 255, .95);
+        radial-gradient(circle at 92% 4%, rgba(201, 158, 125, .16), transparent 260px),
+        linear-gradient(135deg, var(--an-surface-raised) 0%, var(--an-surface) 54%, #FAF6F2 100%);
+    box-shadow: var(--cc-shadow-md);
 }
 .analytics-header::before {
     position: absolute;
-    inset: 18px auto 18px 0;
+    top: 0;
+    bottom: 0;
+    left: 0;
     width: 5px;
-    border-radius: 0 8px 8px 0;
-    background: linear-gradient(180deg, #c08a62, var(--an-primary-h));
-    box-shadow: 3px 0 12px rgba(111, 78, 55, .16);
+    border-top-left-radius: var(--an-radius-header);
+    border-bottom-left-radius: var(--an-radius-header);
+    background: linear-gradient(180deg, var(--an-primary), var(--an-accent));
+    box-shadow: 3px 0 12px rgba(112, 72, 47, .18);
     content: "";
 }
 .analytics-header::after {
@@ -88,18 +96,18 @@
 }
 .analytics-header h1 {
     margin: 7px 0 5px;
-    font-size: clamp(1.75rem, 3vw, 2.4rem);
-    font-weight: 850;
-    line-height: 1.08;
-    letter-spacing: -.045em;
-    color: #261a14;
+    font-size: clamp(1.75rem, 3vw, 2.3rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -.03em;
+    color: var(--an-ink);
     text-shadow: 0 1px 0 rgba(255, 255, 255, .9);
     overflow-wrap: anywhere;
 }
 .analytics-header p {
     max-width: 650px;
     margin: 0;
-    color: #766357;
+    color: var(--an-muted);
     font-size: .89rem;
     line-height: 1.55;
     overflow-wrap: anywhere;
@@ -107,11 +115,11 @@
 .analytics-header .analytics-eyebrow {
     display: inline-flex;
     align-items: center;
-    padding: 5px 9px;
-    border: 1px solid rgba(169, 119, 80, .15);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .6);
-    box-shadow: 0 4px 12px rgba(70, 42, 25, .045);
+    padding: 5px 10px;
+    border: 1px solid var(--an-border-strong);
+    border-radius: var(--cc-radius-pill, 999px);
+    background: var(--an-surface-raised);
+    box-shadow: var(--cc-shadow-xs);
 }
 
 .analytics-eyebrow {
@@ -140,35 +148,35 @@
     gap: 8px;
     box-sizing: border-box;
     border: 1px solid var(--an-primary);
-    min-height: 44px;
-    border-radius: 12px;
+    min-height: var(--cc-control-height, 44px);
+    border-radius: var(--cc-radius-control, 10px);
     padding: 10px 18px;
-    background: linear-gradient(145deg, var(--an-warning), var(--an-primary-h));
-    color: #fff;
+    background: linear-gradient(135deg, var(--cc-brown-600, #70482F) 0%, var(--cc-brown-700, #5C3F2B) 100%);
+    color: var(--cc-text-inverse, #FFFFFF);
     font-weight: 700;
     font-size: .88rem;
     line-height: 1;
     text-align: center;
     cursor: pointer;
-    box-shadow: 0 10px 24px rgba(87,53,34,.18);
+    box-shadow: 0 4px 14px rgba(112, 72, 47, 0.24);
     transition: background .18s, border-color .18s, transform .12s, box-shadow .18s;
     text-decoration: none;
     white-space: nowrap;
 }
-.analytics-button:hover { background: var(--an-primary-h); border-color: var(--an-primary-h); color: #fff; transform: translateY(-1px); box-shadow: 0 14px 28px rgba(87,53,34,.25); }
-.analytics-button:active { transform: translateY(0); }
+.analytics-button:hover { background: linear-gradient(135deg, var(--cc-brown-700, #5C3F2B) 0%, var(--cc-brown-900, #3D2418) 100%); border-color: var(--cc-brown-900, #3D2418); color: var(--cc-text-inverse, #FFFFFF); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(61, 36, 24, 0.32); }
+.analytics-button:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(112, 72, 47, 0.22); }
 .analytics-button:disabled { opacity: .55; cursor: wait; transform: none; }
 .analytics-button--secondary {
-    color: var(--an-primary);
-    border-color: #D9B99F;
-    background: rgba(255,255,255,.84);
-    box-shadow: none;
+    color: var(--cc-brown-800, #4D3021);
+    border-color: var(--cc-border-strong, #D8C5B6);
+    background: var(--cc-surface-raised, #FFFFFF);
+    box-shadow: var(--cc-shadow-xs);
 }
 .analytics-button--secondary:hover {
-    color: var(--an-primary-h);
-    border-color: var(--an-accent);
-    background: #FFF;
-    box-shadow: 0 8px 20px rgba(87,53,34,.10);
+    color: var(--cc-brown-900, #3D2418);
+    border-color: var(--cc-brown-600, #70482F);
+    background: var(--cc-brown-50, #FAF6F2);
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.12);
 }
 
 /* ── Filter Bar ── */
@@ -212,7 +220,7 @@
 }
 .analytics-filter__grid {
     display: grid;
-    grid-template-columns: repeat(8, minmax(110px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
     gap: 12px;
     padding: 17px 18px 19px;
     align-items: end;
@@ -228,22 +236,28 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .04em;
-    overflow-wrap: anywhere;
     white-space: nowrap;
 }
 .analytics-filter input,
 .analytics-filter select {
     width: 100%;
-    min-height: 40px;
-    padding: 8px 10px;
+    min-height: 44px;
+    padding: 8px 12px;
     border: 1px solid var(--an-border);
     border-radius: 10px;
     background: #FBF7F2;
     color: var(--an-ink);
     font: inherit;
-    font-weight: 500;
+    font-weight: 600;
     font-size: .85rem;
+    line-height: 1.2;
+    box-sizing: border-box;
     transition: border-color .18s, box-shadow .18s;
+}
+.analytics-filter select {
+    padding-right: 24px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .analytics-filter input:focus,
 .analytics-filter select:focus {

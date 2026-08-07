@@ -38,48 +38,58 @@
         const seconds = Math.max(0, Math.floor(totalSeconds));
         const minutesPart = String(Math.floor(seconds / 60)).padStart(2, "0");
         const secondsPart = String(seconds % 60).padStart(2, "0");
-        return `${minutesPart}:${secondsPart}`;
+        return `${minutesPart} phút ${secondsPart} giây`;
     }
 
-    function createOtpCard(activeOtp) {
-        if (!activeOtp?.code || !activeOtp?.expiresAtUtc) return null;
+    function createOtpCard(otp, notificationId) {
+        if (!otp?.challengePublicId) return null;
         const card = element("div", "notification-otp-card");
-        card.dataset.activeOtp = "true";
-        card.dataset.expiresAt = activeOtp.expiresAtUtc;
-
-        const codeWrap = element("div");
-        codeWrap.appendChild(element("span", "notification-otp-label", "Mã OTP còn hiệu lực"));
-        const code = element("code", "", activeOtp.code);
-        code.dataset.otpCode = "true";
-        codeWrap.appendChild(code);
-        card.appendChild(codeWrap);
-
-        const copy = element("button", "cc-button");
-        copy.type = "button";
-        copy.dataset.copyOtp = "true";
-        copy.appendChild(icon("far fa-copy"));
-        copy.appendChild(text("Sao chép mã"));
-        card.appendChild(copy);
-
-        const countdown = element("small");
-        countdown.dataset.otpCountdown = "true";
-        card.appendChild(countdown);
+        card.dataset.operationalOtp = "true";
+        card.dataset.serverNow = otp.serverNowUtc;
+        card.dataset.expiresAt = otp.expiresAtUtc;
+        [
+            ["Terminal", otp.terminalName],
+            ["Chi nhánh", otp.storeName],
+            ["Người gửi", otp.requestedByName],
+            ["Người xác nhận", otp.confirmedByName || otp.approverName],
+            ["Thời gian gửi", formatDate(otp.sentAtUtc)],
+            ["Thời gian hết hạn", formatDate(otp.expiresAtUtc)],
+            ["Trạng thái", otp.status]
+        ].forEach(([label, value]) => card.appendChild(element("div", "", `${label}: ${value || "—"}`)));
+        if (otp.status === "Waiting") {
+            const countdown = element("small");
+            countdown.dataset.otpCountdown = "true";
+            card.appendChild(countdown);
+            const reveal = element("button", "cc-button", "Xem OTP");
+            reveal.type = "button";
+            reveal.dataset.revealTerminalOtp = "true";
+            reveal.dataset.notificationId = String(notificationId);
+            card.appendChild(reveal);
+        } else if (otp.status === "Expired") {
+            card.appendChild(element("small", "", "OTP đã hết hạn. Vui lòng gửi yêu cầu mới."));
+        }
         return card;
     }
 
     function updateOtpCards() {
         let hasExpired = false;
-        document.querySelectorAll("[data-active-otp]").forEach(function (card) {
+        document.querySelectorAll("[data-operational-otp]").forEach(function (card) {
             const expiresAt = new Date(card.dataset.expiresAt || "");
-            const remainingSeconds = Math.ceil((expiresAt.getTime() - Date.now()) / 1000);
+            const serverNow = new Date(card.dataset.serverNow || "");
+            if (!card.dataset.clientReceivedAt) card.dataset.clientReceivedAt = String(Date.now());
+            const clientReceivedAt = Number(card.dataset.clientReceivedAt);
+            const serverOffset = Number.isNaN(serverNow.getTime()) ? 0 : serverNow.getTime() - clientReceivedAt;
+            const remainingSeconds = Math.ceil((expiresAt.getTime() - (Date.now() + serverOffset)) / 1000);
             const label = card.querySelector("[data-otp-countdown]");
             if (!Number.isFinite(remainingSeconds) || remainingSeconds <= 0) {
-                card.hidden = true;
+                if (label) label.textContent = "OTP đã hết hạn. Vui lòng gửi yêu cầu mới.";
+                card.querySelectorAll("[data-reveal-terminal-otp], .notification-terminal-confirm-form")
+                    .forEach((node) => { node.hidden = true; });
                 hasExpired = true;
                 return;
             }
             if (label) {
-                label.textContent = `Hết hạn sau ${formatCountdown(remainingSeconds)} · ${formatDate(expiresAt.toISOString())}`;
+                label.textContent = `OTP còn hiệu lực: ${formatCountdown(remainingSeconds)}`;
             }
         });
         if (hasExpired && !expiredRefreshRequested) {
@@ -89,15 +99,41 @@
     }
 
     document.addEventListener("click", async function (event) {
-        const button = event.target.closest?.("[data-copy-otp]");
-        if (!button) return;
-        const code = button.closest("[data-active-otp]")?.querySelector("[data-otp-code]")?.textContent?.trim();
-        if (!code) return;
+        const button = event.target.closest?.("[data-reveal-terminal-otp]");
+        if (!button || button.disabled) return;
+        button.disabled = true;
         try {
-            await navigator.clipboard.writeText(code);
-            button.textContent = "Đã sao chép";
+            const id = encodeURIComponent(button.dataset.notificationId || "");
+            const response = await fetch(`/Admin/AdminNotifications/RevealTerminalOtp?id=${id}`, {
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: { Accept: "application/json" }
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload?.success || !payload?.data?.code) {
+                button.textContent = payload?.message || "Không thể xem OTP";
+                return;
+            }
+            const code = element("code", "", payload.data.code);
+            code.dataset.otpCode = "true";
+            button.replaceWith(code);
         } catch {
-            button.textContent = "Không thể sao chép";
+            button.textContent = "Lỗi mạng, thử lại";
+            button.disabled = false;
+        }
+    });
+
+    document.addEventListener("submit", function (event) {
+        const form = event.target.closest?.(".notification-terminal-confirm-form");
+        if (!form) return;
+        const submit = form.querySelector("[data-submit-once]");
+        if (submit?.disabled) {
+            event.preventDefault();
+            return;
+        }
+        if (submit) {
+            submit.disabled = true;
+            submit.textContent = "Đang xác nhận...";
         }
     });
 
@@ -121,7 +157,7 @@
 
         content.appendChild(element("div", "notification-body", item.body));
 
-        const otpCard = createOtpCard(item.activeOtp);
+        const otpCard = createOtpCard(item.operationalOtp, item.notificationId);
         if (otpCard) content.appendChild(otpCard);
 
         const meta = element("div", "notification-item-footer");

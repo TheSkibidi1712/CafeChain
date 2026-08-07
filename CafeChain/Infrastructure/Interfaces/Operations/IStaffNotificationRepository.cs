@@ -23,6 +23,10 @@ public interface IStaffNotificationRepository
         IReadOnlyCollection<int> challengeIds,
         DateTime nowUtc,
         CancellationToken cancellationToken = default);
+    Task<List<OtpChallenge>> GetOtpChallengesAsync(
+        int recipientStaffId,
+        IReadOnlyCollection<int> challengeIds,
+        CancellationToken cancellationToken = default);
     Task<StaffNotification?> GetByDeduplicationKeyAsync(
         string key,
         CancellationToken cancellationToken = default);

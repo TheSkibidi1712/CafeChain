@@ -192,7 +192,7 @@ namespace CafeChain.Tests.POS
         [Fact]
         public async Task OpenShiftLate_RequiresOtpChallenge_NotRecentPinAudit()
         {
-            var service = CreateOpenService(isLate: true, out _, out var posRepo);
+            var service = CreateOpenService(isLate: false, out _, out var posRepo);
             posRepo.Setup(r => r.GetPendingAuditLogAsync(UserId, "OPEN_SHIFT_LATE", 5))
                 .ReturnsAsync(new InvoiceAuditLog { Id = 1, ActionName = "OPEN_SHIFT_LATE", CashierId = UserId });
 
@@ -203,7 +203,7 @@ namespace CafeChain.Tests.POS
             });
 
             Assert.False(result.IsSuccess);
-            Assert.Equal(OtpConstants.ErrorCodes.LateOpeningRequiresOtp, result.ErrorCode);
+            Assert.Equal(WorkShiftErrorCodes.OutsideScheduleApprovalRequired, result.ErrorCode);
             // Recent audit must NOT authorize
             posRepo.Verify(r => r.GetPendingAuditLogAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
         }
@@ -223,7 +223,7 @@ namespace CafeChain.Tests.POS
         {
             var challenge = ApprovedOpenLateChallenge(500_000m, "Tac duong den ca tre", LateScheduledCanonical());
             var audit = new Mock<IWorkShiftAuditService>();
-            var service = CreateOpenService(isLate: true, out var shiftRepo, out var posRepo, challenge, audit);
+            var service = CreateOpenService(isLate: false, out var shiftRepo, out var posRepo, challenge, audit);
             shiftRepo.Setup(r => r.CreateShiftAsync(It.IsAny<WorkShift>()))
                 .Callback<WorkShift>(s => s.ShiftId = 999)
                 .ReturnsAsync((WorkShift s) => s);
@@ -251,7 +251,7 @@ namespace CafeChain.Tests.POS
         public async Task OpenShiftLate_ChangedReason_IsRejected()
         {
             var challenge = ApprovedOpenLateChallenge(500_000m, "Tac duong den ca tre", LateScheduledCanonical());
-            var service = CreateOpenService(isLate: true, out _, out _, challenge);
+            var service = CreateOpenService(isLate: false, out _, out _, challenge);
             var result = await service.OpenShiftAsync(UserId, StoreId, new OpenShiftRequestDto
             {
                 StartingCash = 500_000m,
@@ -267,7 +267,7 @@ namespace CafeChain.Tests.POS
         {
             var challenge = ApprovedOpenLateChallenge(500_000m, "Tac duong den ca tre", LateScheduledCanonical());
             challenge.ApproverStaffId = UserId;
-            var service = CreateOpenService(isLate: true, out _, out _, challenge);
+            var service = CreateOpenService(isLate: false, out _, out _, challenge);
             var result = await service.OpenShiftAsync(UserId, StoreId, new OpenShiftRequestDto
             {
                 StartingCash = 500_000m,
@@ -283,7 +283,7 @@ namespace CafeChain.Tests.POS
         {
             var challenge = ApprovedOpenLateChallenge(500_000m, "Tac duong den ca tre", LateScheduledCanonical());
             challenge.RequestedByStaffId = 999;
-            var service = CreateOpenService(isLate: true, out _, out _, challenge);
+            var service = CreateOpenService(isLate: false, out _, out _, challenge);
             var result = await service.OpenShiftAsync(UserId, StoreId, new OpenShiftRequestDto
             {
                 StartingCash = 500_000m,
@@ -299,7 +299,7 @@ namespace CafeChain.Tests.POS
         {
             var challenge = ApprovedOpenLateChallenge(500_000m, "Tac duong den ca tre", LateScheduledCanonical());
             challenge.StoreId = 99;
-            var service = CreateOpenService(isLate: true, out _, out _, challenge);
+            var service = CreateOpenService(isLate: false, out _, out _, challenge);
             var result = await service.OpenShiftAsync(UserId, StoreId, new OpenShiftRequestDto
             {
                 StartingCash = 500_000m,
@@ -315,7 +315,7 @@ namespace CafeChain.Tests.POS
         {
             var challenge = ApprovedOpenLateChallenge(500_000m, "Tac duong den ca tre", LateScheduledCanonical());
             challenge.Status = OtpConstants.Statuses.Used;
-            var service = CreateOpenService(isLate: true, out _, out _, challenge);
+            var service = CreateOpenService(isLate: false, out _, out _, challenge);
             var result = await service.OpenShiftAsync(UserId, StoreId, new OpenShiftRequestDto
             {
                 StartingCash = 500_000m,
@@ -330,7 +330,7 @@ namespace CafeChain.Tests.POS
         public async Task OpenShiftLate_MutationFailure_DoesNotConsumeChallenge()
         {
             var challenge = ApprovedOpenLateChallenge(500_000m, "Tac duong den ca tre", LateScheduledCanonical());
-            var service = CreateOpenService(isLate: true, out var shiftRepo, out _, challenge);
+            var service = CreateOpenService(isLate: false, out var shiftRepo, out _, challenge);
             shiftRepo.Setup(r => r.CreateShiftAsync(It.IsAny<WorkShift>()))
                 .ThrowsAsync(new InvalidOperationException("insert fail"));
 
@@ -405,12 +405,13 @@ namespace CafeChain.Tests.POS
             WorkShiftId = null,
             RequestedByStaffId = UserId,
             ApproverStaffId = ApproverId,
-            ActionType = OtpConstants.ActionTypes.OpenShiftLate,
+            ActionType = OtpConstants.ActionTypes.OpenShiftOutsideSchedule,
             TargetType = OtpConstants.TargetTypes.Shifts,
             TargetId = UserId,
             Reason = reason,
-            PayloadFingerprint = Fp.BuildOpenShiftLateFingerprint(
-                StoreId, UserId, startingCash, reason, scheduled),
+            PayloadFingerprint = Fp.BuildOpenShiftBoundFingerprint(
+                StoreId, UserId, startingCash, reason, "none",
+                OtpConstants.ActionTypes.OpenShiftOutsideSchedule, null, null),
             OtpHash = "x",
             Status = OtpConstants.Statuses.Approved,
             ExpiresAt = DateTime.UtcNow.AddMinutes(5),

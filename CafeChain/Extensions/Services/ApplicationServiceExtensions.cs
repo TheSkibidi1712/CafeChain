@@ -310,7 +310,11 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IAdminSettingService, AdminSettingService>();
 
             services.AddScoped<IWorkShiftService, WorkShiftService>();
+            services.AddScoped<IWorkShiftOpenApprovalService, WorkShiftOpenApprovalService>();
+            services.AddScoped<IWorkShiftOpenApprovalPublisher,
+                CafeChain.Infrastructure.Realtime.SignalRWorkShiftOpenApprovalPublisher>();
             services.AddScoped<IPosSessionExchangeService, PosSessionExchangeService>();
+            services.AddScoped<IPosAccessSessionService, PosAccessSessionService>();
             services.AddScoped<IWorkShiftAuditService, WorkShiftAuditService>();
             services.AddScoped<IStaffScheduleService, StaffScheduleService>();
 
@@ -328,6 +332,8 @@ namespace CafeChain.Extensions.Services
             services.AddSingleton<IOtpPayloadFingerprintService, OtpPayloadFingerprintService>();
             services.AddScoped<IWorkShiftNotificationPublisher,
                 CafeChain.Infrastructure.Realtime.SignalRWorkShiftNotificationPublisher>();
+            services.AddScoped<IPosAccessSessionPublisher,
+                CafeChain.Infrastructure.Realtime.SignalRPosAccessSessionPublisher>();
 
             // Shared unit conversion (POS catalog + inventory deduction + COGS)
             // Physical (Unit-domain kg↔g, l↔ml) then ingredient-specific — Issue #110
@@ -369,6 +375,8 @@ namespace CafeChain.Extensions.Services
             // Staff notifications read/mark (Issue #101)
             services.AddScoped<CafeChain.Application.Interfaces.Operations.IStaffNotificationQueryService,
                 CafeChain.Application.Services.Operations.StaffNotificationQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Operations.ITerminalRegistrationNotificationService,
+                CafeChain.Application.Services.Operations.TerminalRegistrationNotificationService>();
             services.AddScoped<CafeChain.Application.Interfaces.Operations.IInventoryNotificationAudienceResolver,
                 CafeChain.Application.Services.Operations.InventoryNotificationAudienceResolver>();
             services.AddScoped<CafeChain.Application.Interfaces.Operations.IInventoryNotificationDeliveryService,

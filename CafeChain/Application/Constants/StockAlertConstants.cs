@@ -67,6 +67,8 @@ namespace CafeChain.Application.Constants
         public const string InventoryReorderAlert = "INVENTORY_REORDER_ALERT";
         public const string OperationalAnomaly = "OPERATIONAL_ANOMALY";
         public const string OperationalOtpRequest = "OPERATIONAL_OTP_REQUEST";
+        public const string LateOpenApprovalRequest = "LATE_OPEN_APPROVAL_REQUEST";
+        public const string LateOpenInformation = "LATE_OPEN_INFORMATION";
     }
 
     /// <summary>Issue #98 — StaffNotification entity type codes.</summary>
@@ -78,5 +80,6 @@ namespace CafeChain.Application.Constants
         public const string InventoryReorder = "InventoryReorder";
         public const string OperationalAnomaly = "OperationalAnomaly";
         public const string OtpChallenge = "OtpChallenge";
+        public const string WorkShiftOpenApproval = "WorkShiftOpenApproval";
     }
 }

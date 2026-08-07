@@ -20,15 +20,18 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IStaffNotificationQueryService _service;
         private readonly IAdminActorContextAccessor _actorAccessor;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
+        private readonly ITerminalRegistrationNotificationService? _terminalRegistration;
 
         public AdminNotificationsController(
             IStaffNotificationQueryService service,
             IAdminActorContextAccessor actorAccessor,
-            IAdminStoreScopeResolver storeScopeResolver)
+            IAdminStoreScopeResolver storeScopeResolver,
+            ITerminalRegistrationNotificationService? terminalRegistration = null)
         {
             _service = service;
             _actorAccessor = actorAccessor;
             _storeScopeResolver = storeScopeResolver;
+            _terminalRegistration = terminalRegistration;
         }
 
         // GET: /Admin/AdminNotifications
@@ -137,6 +140,40 @@ namespace CafeChain.Areas.Admin.Controllers
                 return NotFound(new { success = false, message = result.Message });
 
             return Json(new { success = true, data = result.Data });
+        }
+
+        [HttpGet]
+        [RequirePermission(PermissionConstants.PosWorkShiftOverrideTerminal)]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<IActionResult> RevealTerminalOtp(int id)
+        {
+            if (_terminalRegistration == null) return StatusCode(503);
+            var staffId = ResolveStaffId();
+            if (staffId <= 0) return Unauthorized();
+            var result = await _terminalRegistration.RevealOtpAsync(
+                staffId, id, await ResolveAllowedStoreIdsAsync());
+            return result.IsSuccess
+                ? Json(new { success = true, data = result.Data })
+                : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PosWorkShiftOverrideTerminal)]
+        public async Task<IActionResult> ConfirmTerminal(
+            int id,
+            [FromForm] CafeChain.Application.DTOs.POS.ConfirmTerminalNotificationRequestDto request)
+        {
+            if (_terminalRegistration == null) return StatusCode(503);
+            var staffId = ResolveStaffId();
+            if (staffId <= 0) return Unauthorized();
+            var result = await _terminalRegistration.ConfirmAsync(
+                staffId, id, request, await ResolveAllowedStoreIdsAsync());
+            if (result.IsSuccess)
+                TempData["SuccessMessage"] = result.Message;
+            else
+                TempData["ErrorMessage"] = result.Message;
+            return RedirectToAction(nameof(Index));
         }
 
         private int ResolveStaffId()
