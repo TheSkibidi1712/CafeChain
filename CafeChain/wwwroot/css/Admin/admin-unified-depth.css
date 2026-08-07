@@ -917,3 +917,353 @@ body {
         scroll-behavior: auto !important;
     }
 }
+
+/* ============================================================
+   V2 ADDITIONS — MISSING CONTRACTS
+   ============================================================ */
+
+/* ── 05. Generic page-header heights per V2 spec ──
+   List/Index/Dashboard: 148–162px  |  Create/Edit/Detail: 126–140px
+   These selectors catch module headers NOT already handled by BOM locked-dimension contract. */
+.admin-page-body :is(
+    .admin-page-header,
+    .page-header,
+    .staff-page-header,
+    .perm-page-header,
+    .ops-page-header,
+    .notification-page-header,
+    .category-page-header,
+    .drink-page-header,
+    .cc-warehouse-header
+) {
+    min-height: 148px;
+    padding: 24px 28px;
+    border: 1px solid rgba(112, 72, 47, .16);
+    border-radius: var(--cc-radius-header);
+    background:
+        radial-gradient(circle at 88% 4%, rgba(184, 149, 125, .16), transparent 240px),
+        linear-gradient(135deg, var(--cc-surface-raised) 0%, #fffdfb 58%, #f6ece3 100%);
+    box-shadow: var(--cc-shadow-md);
+}
+
+.admin-page-body :is(
+    .admin-page-header--sm,
+    .page-header--create,
+    .page-header--detail,
+    .page-header--edit
+) {
+    min-height: 126px;
+    padding: 20px 28px;
+}
+
+/* ── 06. Empty state (_EmptyState.cshtml uses .rb-empty-state) ── */
+.admin-page-body .rb-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    padding: 32px 24px;
+    color: var(--cc-text-secondary);
+    font-size: 14px;
+    text-align: center;
+}
+
+.admin-page-body .rb-empty-state > p:first-child,
+.admin-page-body .rb-empty-state > .fw-semibold {
+    color: var(--cc-text);
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.admin-page-body .rb-empty-state .text-muted {
+    color: var(--cc-text-muted) !important;
+    font-size: 13px;
+}
+
+/* Empty state CTA — btn-rb-save in empty context */
+.admin-page-body .rb-empty-state .btn-rb-save {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: var(--cc-control-height);
+    padding: 0 20px;
+    border-radius: var(--cc-radius-control);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cc-text-inverse);
+    background: linear-gradient(135deg, var(--cc-brown-600) 0%, var(--cc-brown-700) 100%);
+    border: none;
+    box-shadow: 0 6px 16px rgba(112, 72, 47, .22);
+    transition: transform .16s ease, box-shadow .16s ease;
+    text-decoration: none;
+}
+
+.admin-page-body .rb-empty-state .btn-rb-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(92, 63, 43, .28);
+}
+
+/* ── 07. Status badge — _StatusBadge.cshtml (rb-status-badge + dynamic css class) ── */
+.admin-page-body .rb-status-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    letter-spacing: .01em;
+    /* default neutral */
+    background: var(--cc-neutral-bg);
+    color: var(--cc-neutral);
+    border: 1px solid var(--cc-neutral-border);
+}
+
+/* Active/Completed/Available */
+.admin-page-body .rb-status-badge:is(
+    .rb-status-active,
+    .rb-status-completed,
+    .rb-status-approved,
+    .rb-status-available,
+    .rb-status-received
+) {
+    background: var(--cc-success-bg);
+    color: var(--cc-success);
+    border-color: var(--cc-success-border);
+}
+
+/* Pending/In-progress/In-review */
+.admin-page-body .rb-status-badge:is(
+    .rb-status-pending,
+    .rb-status-inprogress,
+    .rb-status-in-progress,
+    .rb-status-inreview,
+    .rb-status-draft,
+    .rb-status-open,
+    .rb-status-partial
+) {
+    background: var(--cc-warning-bg);
+    color: var(--cc-warning);
+    border-color: var(--cc-warning-border);
+}
+
+/* Danger/Rejected/Cancelled/Locked */
+.admin-page-body .rb-status-badge:is(
+    .rb-status-inactive,
+    .rb-status-rejected,
+    .rb-status-cancelled,
+    .rb-status-canceled,
+    .rb-status-closed,
+    .rb-status-locked,
+    .rb-status-error
+) {
+    background: var(--cc-danger-bg);
+    color: var(--cc-danger);
+    border-color: var(--cc-danger-border);
+}
+
+/* Info */
+.admin-page-body .rb-status-badge:is(
+    .rb-status-info,
+    .rb-status-review
+) {
+    background: var(--cc-info-bg);
+    color: var(--cc-info);
+    border-color: var(--cc-info-border);
+}
+
+/* ── 08. Identity label — _IdentityLabel.cshtml ── */
+.admin-page-body .admin-identity-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    line-height: 1.4;
+}
+
+.admin-page-body .admin-identity-label .small.text-muted {
+    color: var(--cc-text-muted) !important;
+    font-size: 11px !important;
+}
+
+.admin-page-body .admin-identity-label .fw-semibold {
+    color: var(--cc-text);
+    font-weight: 700;
+}
+
+/* ── 09. Disabled state — buttons & controls ── */
+.admin-page-body :is(
+    .btn-rb-save,
+    .btn-rb-ghost,
+    .btn-primary-action,
+    .btn-ghost,
+    .perm-primary-button,
+    .perm-outline-button,
+    .cc-button,
+    .ops-btn,
+    .pa-btn,
+    .ice-btn,
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger,
+    .btn-light
+):disabled,
+.admin-page-body :is(
+    .btn-rb-save,
+    .btn-rb-ghost,
+    .btn-primary-action,
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger
+)[aria-disabled="true"] {
+    opacity: .5 !important;
+    pointer-events: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.admin-page-body :is(.form-control, .form-select, select, textarea):disabled {
+    background-color: var(--cc-neutral-bg) !important;
+    border-color: var(--cc-neutral-border) !important;
+    color: var(--cc-text-disabled) !important;
+    cursor: not-allowed !important;
+    opacity: .75 !important;
+}
+
+/* ── 10. Loading state — spinner inside button ── */
+.admin-page-body .btn.is-loading,
+.admin-page-body .btn[data-loading="true"] {
+    position: relative;
+    pointer-events: none;
+    opacity: .75;
+}
+
+.admin-page-body .btn.is-loading > *:not(.spinner-border):not(.spinner-grow) {
+    visibility: hidden;
+}
+
+.admin-page-body .btn.is-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: cc-spin .6s linear infinite;
+}
+
+@keyframes cc-spin { to { transform: rotate(360deg); } }
+
+/* ── 11. Icon button 40×40 ── */
+.admin-page-body .btn-icon,
+.admin-page-body :is(.rb-icon-btn, .icon-btn, .cc-icon-btn) {
+    display: inline-flex;
+    width: var(--cc-icon-btn);
+    height: var(--cc-icon-btn);
+    min-width: var(--cc-icon-btn);
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--cc-radius-control);
+    padding: 0;
+    flex-shrink: 0;
+}
+
+/* ── 12. Standard table row heights ──
+   V2: table row 52px, compact 46–48px
+   Applied to module tables not already locked by BOM contract. */
+.admin-page-body :is(
+    .rb-table, .po-table, .perm-table, .ops-table,
+    .pa-table, .table-custom, .cc-data-table
+) > tbody > tr > td {
+    height: var(--cc-table-row-h);
+    min-height: var(--cc-table-row-h);
+    vertical-align: middle;
+}
+
+/* BOM tables keep their locked row height — exception documented */
+/* .admin-page-body .rb-page .rb-table > tbody > tr > td already sets height: var(--bom-table-row-height: 80px) */
+
+/* Compact table variant */
+.admin-page-body .table-compact > tbody > tr > td {
+    height: var(--cc-table-row-compact) !important;
+    min-height: var(--cc-table-row-compact) !important;
+}
+
+/* ── 13. Modal footer always visible ── */
+:is(.admin-page-body, #cc-modal-host) .modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 2rem);
+}
+
+:is(.admin-page-body, #cc-modal-host) .modal-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+:is(.admin-page-body, #cc-modal-host) .modal-footer {
+    flex-shrink: 0; /* never squish footer — always visible */
+}
+
+/* ── 14. Validation error contract ── */
+.admin-page-body .field-validation-error,
+.admin-page-body .text-danger.small,
+.admin-page-body span[data-valmsg-for] {
+    color: var(--cc-danger) !important;
+    font-size: 12px;
+    display: block;
+    margin-top: 4px;
+}
+
+.admin-page-body .input-validation-error,
+.admin-page-body .form-control.input-validation-error,
+.admin-page-body .form-select.input-validation-error {
+    border-color: var(--cc-danger) !important;
+    box-shadow: 0 0 0 3px rgba(153, 27, 27, .12) !important;
+}
+
+/* ── 15. StoreScopeError page (StoreScopeError.cshtml uses ops-* classes) ── */
+.ops-shell .ops-panel-title {
+    color: var(--cc-text);
+    font-weight: 700;
+}
+.ops-shell .ops-secondary {
+    color: var(--cc-text-secondary);
+}
+
+/* ── 16. Responsive additions for new contracts ── */
+@media (max-width: 768px) {
+    .admin-page-body :is(
+        .admin-page-header,
+        .page-header,
+        .staff-page-header,
+        .perm-page-header
+    ) {
+        min-height: 0;
+        padding: 18px 18px;
+        border-radius: 16px;
+    }
+
+    .admin-page-body .rb-status-badge {
+        font-size: 10.5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-page-body :is(
+        .admin-page-header,
+        .page-header
+    ) {
+        padding: 14px 14px;
+    }
+}
