@@ -21,7 +21,7 @@ namespace CafeChain.Tests.POS;
 public sealed class OperationalOtpDualChannelTests : IntegrationTestBase
 {
     [Fact]
-    public async Task Request_sends_same_code_to_gmail_and_private_realtime_without_persisting_code()
+    public async Task Request_sends_email_but_never_broadcasts_or_lists_plaintext_otp()
     {
         const string otp = "ABC234";
         await SeedApproversAsync();
@@ -88,15 +88,15 @@ public sealed class OperationalOtpDualChannelTests : IntegrationTestBase
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.Equal(otp, codeUsedByEmail);
-        Assert.NotNull(realtime);
-        Assert.Equal(otp, realtime!.OtpCode);
-        Assert.Equal(300, realtimeRecipient); // ShiftSupervisor wins before StoreManager.
+        Assert.Null(realtime);
+        Assert.Equal(0, realtimeRecipient);
 
         var stored = await context.StaffNotifications.SingleAsync();
         Assert.Equal(StaffNotificationTypes.OperationalOtpRequest, stored.Type);
         Assert.Equal(300, stored.RecipientStaffId);
         Assert.DoesNotContain(otp, stored.Title, StringComparison.Ordinal);
         Assert.DoesNotContain(otp, stored.Body, StringComparison.Ordinal);
+        Assert.NotNull(stored.OtpChallengeId);
         Assert.True(stored.EmailSent);
         var challenge = await context.OtpChallenges.SingleAsync();
         Assert.False(string.IsNullOrWhiteSpace(challenge.ProtectedOtpPayload));
@@ -111,7 +111,10 @@ public sealed class OperationalOtpDualChannelTests : IntegrationTestBase
             pageSize: 20,
             targetUrlChannel: StaffNotificationQueryService.ChannelAdmin);
         Assert.True(approverList.IsSuccess);
-        Assert.Equal(otp, Assert.Single(approverList.Data!.Items).ActiveOtp?.Code);
+        var item = Assert.Single(approverList.Data!.Items);
+        Assert.Null(item.ActiveOtp);
+        Assert.NotNull(item.OperationalOtp);
+        Assert.True(item.OperationalOtp!.CanRevealOtp);
 
         var otherApproverList = await notificationQuery.GetListAsync(
             recipientStaffId: 200,
@@ -124,7 +127,9 @@ public sealed class OperationalOtpDualChannelTests : IntegrationTestBase
         await notificationQuery.MarkReadAsync(300, stored.StaffNotificationId);
         var readList = await notificationQuery.GetListAsync(
             300, 1, 20, StaffNotificationQueryService.ChannelAdmin);
-        Assert.Equal(otp, Assert.Single(readList.Data!.Items).ActiveOtp?.Code);
+        var readItem = Assert.Single(readList.Data!.Items);
+        Assert.Null(readItem.ActiveOtp);
+        Assert.NotNull(readItem.OperationalOtp);
 
         var verified = await service.VerifyOtpAsync(new OtpVerifyDto
         {
@@ -134,6 +139,57 @@ public sealed class OperationalOtpDualChannelTests : IntegrationTestBase
         Assert.True(verified.IsSuccess, verified.Message);
         Assert.NotNull(stored.ResolvedAt);
         Assert.Null(challenge.ProtectedOtpPayload);
+    }
+
+    [Fact]
+    public async Task Smtp_failure_keeps_challenge_and_internal_notification_available()
+    {
+        const string otp = "ABC234";
+        await SeedApproversAsync();
+        using var context = CreateDbContext();
+        var email = new Mock<IEmailService>();
+        email.Setup(x => x.BuildOperationalOtpEmail(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<DateTime>(), It.IsAny<int>()))
+            .Returns("<html>internal fallback remains available</html>");
+        email.Setup(x => x.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("SMTP unavailable"));
+        var generator = new Mock<IOtpCodeGenerator>();
+        generator.Setup(x => x.Generate()).Returns(otp);
+        generator.Setup(x => x.NormalizeAndValidate(otp)).Returns(otp);
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.Setup(x => x.EnvironmentName).Returns("Test");
+        var protectedPayload = new OtpProtectedPayloadService(
+            new EphemeralDataProtectionProvider(), generator.Object);
+        var service = new OtpApprovalService(
+            new OtpChallengeRepository(context),
+            new WorkShiftRepository(context),
+            email.Object,
+            generator.Object,
+            new OtpPayloadFingerprintService(),
+            Mock.Of<ILogger<OtpApprovalService>>(),
+            environment.Object,
+            staffNotifications: new StaffNotificationRepository(context),
+            otpProtectedPayload: protectedPayload);
+
+        var result = await service.RequestOtpAsync(new OtpRequestDto
+        {
+            ActionType = OtpConstants.ActionTypes.OpenShiftOutsideSchedule,
+            TargetType = OtpConstants.TargetTypes.Shifts,
+            Reason = "Hỗ trợ cửa hàng theo điều phối của quản lý",
+            TerminalId = "TEST-TERMINAL",
+            RequestKey = Guid.NewGuid().ToString("N")
+        }, requestedByStaffId: 100, storeId: 1000);
+
+        Assert.True(result.IsSuccess, result.Message);
+        var challenge = await context.OtpChallenges.SingleAsync();
+        var notification = await context.StaffNotifications.SingleAsync();
+        Assert.Equal(OtpConstants.Statuses.Pending, challenge.Status);
+        Assert.False(string.IsNullOrWhiteSpace(challenge.ProtectedOtpPayload));
+        Assert.True(notification.EmailAttempted);
+        Assert.False(notification.EmailSent);
+        Assert.Equal(challenge.OtpChallengeId, notification.OtpChallengeId);
     }
 
     [Fact]

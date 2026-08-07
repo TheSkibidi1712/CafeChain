@@ -146,7 +146,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task MultipleActivePrimary_InvalidConfiguration()
+        public async Task MultipleActivePrimary_IsRejectedByDatabaseConstraint()
         {
             using var ctx = CreateDbContext();
             EnsureUnits(ctx);
@@ -172,16 +172,7 @@ namespace CafeChain.Tests.POS
                     IsPrimary = true,
                     Active = true
                 });
-            await ctx.SaveChangesAsync();
-
-            var report = await CreateAudit(ctx).RunAuditAsync();
-            Assert.All(
-                report.Offers.Where(o => o.IngredientId == 903),
-                o => Assert.Equal(PurchaseUnitRemediationClass.InvalidConfiguration, o.Classification));
-
-            var primary = report.Primaries.Single(p => p.IngredientId == 903);
-            Assert.Equal(2, primary.ActivePrimaryCount);
-            Assert.Contains(CostIssueCodes.MultiplePrimarySuppliers, primary.IssueCodes);
+            await Assert.ThrowsAsync<DbUpdateException>(() => ctx.SaveChangesAsync());
         }
 
         [Fact]

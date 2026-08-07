@@ -42,5 +42,10 @@ namespace CafeChain.Controllers.Api.v1
             User.FindFirstValue("PosExchangeContextId"), out var contextId)
             ? contextId
             : 0;
+
+        protected Guid CurrentPosAccessSessionId => Guid.TryParse(
+            User.FindFirstValue("PosSessionId"), out var sessionId)
+            ? sessionId
+            : Guid.Empty;
     }
 }

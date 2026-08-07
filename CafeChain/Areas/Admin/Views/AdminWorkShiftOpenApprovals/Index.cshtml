@@ -1,0 +1,62 @@
+@model IReadOnlyList<CafeChain.Application.DTOs.POS.WorkShiftOpenApprovalDto>
+@{
+    ViewData["Title"] = "Duyệt mở ca trễ";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<main class="cc-page">
+    <header class="cc-page-header">
+        <div>
+            <h1 class="cc-page-title">Duyệt mở ca trễ</h1>
+            <p class="cc-page-description">Chỉ Store Manager, Area Manager hoặc Business Owner đúng phạm vi được quyết định.</p>
+        </div>
+    </header>
+    @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success">@TempData["SuccessMessage"]</div> }
+    @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error">@TempData["ErrorMessage"]</div> }
+
+    @if (Model.Count == 0)
+    {
+        <section class="cc-empty-state"><h2>Không có yêu cầu đang chờ</h2></section>
+    }
+    else
+    {
+        <section class="cc-warehouse-panel">
+            @foreach (var item in Model)
+            {
+                <article class="notification-item">
+                    <div>
+                        <strong>@item.RequestedByName · trễ @item.MinutesLate phút</strong>
+                        <p>Terminal: @item.TerminalId · Store #@item.StoreId</p>
+                        <p>Lý do: @item.Reason</p>
+                        <p>Hết hạn: @item.ExpiresAtUtc.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</p>
+                    </div>
+                    <form asp-action="Decide" method="post" data-decision-form>
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@item.PublicId" />
+                        <input type="hidden" name="storeId" value="@item.StoreId" />
+                        <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
+                        <input type="hidden" name="RowVersion" value="@item.RowVersion" />
+                        <label>Lý do quyết định <input name="Reason" maxlength="500" /></label>
+                        <div class="cc-warehouse-actions">
+                            <button class="cc-button" name="Decision" value="APPROVED" type="submit">Duyệt mở ca</button>
+                            <button class="cc-button" name="Decision" value="REJECTED" type="submit">Từ chối</button>
+                            <button class="cc-button" name="Decision" value="CONVERTED_TO_OUTSIDE_SCHEDULE" type="submit">Chuyển ngoài lịch</button>
+                        </div>
+                    </form>
+                </article>
+            }
+        </section>
+    }
+</main>
+
+<script>
+document.addEventListener('submit', function (event) {
+    var form = event.target.closest('[data-decision-form]');
+    if (!form || form.dataset.submitting === 'true') {
+        if (form) event.preventDefault();
+        return;
+    }
+    form.dataset.submitting = 'true';
+    form.querySelectorAll('button').forEach(function (button) { button.disabled = true; });
+});
+</script>

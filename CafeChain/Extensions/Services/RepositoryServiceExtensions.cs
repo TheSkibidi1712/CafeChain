@@ -113,6 +113,12 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Infrastructure.Interfaces.Operations.IStaffNotificationRepository,
                 CafeChain.Infrastructure.Repositories.Operations.StaffNotificationRepository>();
             services.AddScoped<
+                CafeChain.Infrastructure.Interfaces.Operations.IPosAccessSessionRepository,
+                CafeChain.Infrastructure.Repositories.Operations.PosAccessSessionRepository>();
+            services.AddScoped<
+                CafeChain.Infrastructure.Interfaces.Operations.IWorkShiftOpenApprovalRepository,
+                CafeChain.Infrastructure.Repositories.Operations.WorkShiftOpenApprovalRepository>();
+            services.AddScoped<
                 CafeChain.Infrastructure.Interfaces.Operations.IInventoryReorderNotificationRepository,
                 CafeChain.Infrastructure.Repositories.Operations.InventoryReorderNotificationRepository>();
 
