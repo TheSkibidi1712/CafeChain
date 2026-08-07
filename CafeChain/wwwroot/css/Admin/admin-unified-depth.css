@@ -1,51 +1,132 @@
 /* ============================================================
-   CAFECHAIN ADMIN — UNIFIED DEPTH SYSTEM
-   Shared visual contract for headers, metrics, forms and tables.
-   Loaded after module styles; selectors remain scoped to Admin.
+   CAFECHAIN ADMIN — UNIFIED DEPTH SYSTEM  v2
+   Single source of truth for the Coffee-Brown design contract.
+   Loaded after module styles; all selectors scoped to Admin.
+
+   TOKEN HIERARCHY:
+     1. --cc-* canonical tokens (V2 spec)
+     2. --admin-* aliases → var(--cc-*) for backward compat
    ============================================================ */
 
+/* ── 01. Canonical --cc-* design tokens ── */
 :root {
-    --admin-brown-900: #3f2b20;
-    --admin-brown-800: #4d3425;
-    --admin-brown-700: #5c3f2b;
-    --admin-brown-600: #6f4e37;
-    --admin-brown-500: #8b6b55;
-    --admin-brown-300: #c9ad99;
-    --admin-brown-200: #dfcec1;
-    --admin-brown-100: #eee2d8;
-    --admin-brown-50: #f8f2ec;
-    --admin-surface: #fffdfb;
-    --admin-surface-muted: #faf7f4;
-    --admin-ink: #1f2937;
-    --admin-muted: #64748b;
-    --admin-success: #2f6f5e;
-    --admin-danger: #991b1b;
-    --admin-warning: #9a5c24;
-    --admin-radius-control: 10px;
-    --admin-radius-card: 16px;
-    --admin-radius-header: 20px;
-    --admin-control-height: 44px;
-    --admin-metric-height: 92px;
-    --admin-shadow-xs: 0 3px 10px rgba(71, 50, 35, .055);
-    --admin-shadow-sm: 0 8px 22px rgba(71, 50, 35, .08);
-    --admin-shadow-md: 0 16px 38px rgba(71, 50, 35, .105), 0 3px 10px rgba(71, 50, 35, .05);
-    --admin-shadow-hover: 0 18px 40px rgba(92, 63, 43, .16), 0 4px 12px rgba(92, 63, 43, .06);
+    /* Brand brown scale */
+    --cc-brown-950: #2b1a12;
+    --cc-brown-900: #3d2418;
+    --cc-brown-800: #4d3021;
+    --cc-brown-700: #5c3f2b;
+    --cc-brown-600: #70482f;
+    --cc-brown-500: #8b6247;
+    --cc-caramel-500: #a97750;
+    --cc-caramel-300: #c99e7d;
+    --cc-brown-200: #dfc5b1;
+    --cc-brown-100: #f0e2d6;
+    --cc-brown-50:  #faf6f2;
+
+    /* Surface & canvas */
+    --cc-canvas:          #f7f4f0;
+    --cc-surface:         #fffdfb;
+    --cc-surface-raised:  #ffffff;
+    --cc-surface-muted:   #fbf7f2;
+    --cc-surface-active:  #f4e9df;
+
+    /* Border */
+    --cc-border:        #e9ded4;
+    --cc-border-strong: #d8c5b6;
+
+    /* Text */
+    --cc-text:          #201812;
+    --cc-text-secondary:#66584f;
+    --cc-text-muted:    #7a6c62;
+    --cc-text-disabled: #a69b93;
+    --cc-text-inverse:  #ffffff;
+
+    /* Semantic */
+    --cc-success:     #2f6f5e;
+    --cc-success-bg:  #edf6f2;
+    --cc-success-border: #bbdccd;
+    --cc-warning:     #99623b;
+    --cc-warning-bg:  #fbf3ea;
+    --cc-warning-border: #e4c6a9;
+    --cc-danger:      #991b1b;
+    --cc-danger-bg:   #fdf0f0;
+    --cc-danger-border: #e9b8b8;
+    --cc-info:        #3f5f7a;
+    --cc-info-bg:     #eef4f8;
+    --cc-info-border: #bdd0dd;
+    --cc-neutral:     #64748b;
+    --cc-neutral-bg:  #f1f5f9;
+    --cc-neutral-border: #cbd5e1;
+
+    /* Size & radius */
+    --cc-control-height:    44px;
+    --cc-control-height-sm: 36px;
+    --cc-control-height-lg: 48px;
+    --cc-icon-btn:          40px;
+    --cc-table-action-h:    34px;
+    --cc-radius-control:    10px;
+    --cc-radius-card:       16px;
+    --cc-radius-header:     20px;
+    --cc-radius-modal:      18px;
+    --cc-card-padding:      20px 24px;
+    --cc-table-row-h:       52px;
+    --cc-table-row-compact: 46px;
+
+    /* Focus ring */
+    --cc-focus-ring: 0 0 0 3px rgba(112, 72, 47, .18);
+
+    /* Shadow scale */
+    --cc-shadow-xs: 0 2px 6px rgba(71, 50, 35, .06);
+    --cc-shadow-sm: 0 6px 18px rgba(71, 50, 35, .08);
+    --cc-shadow-md: 0 14px 34px rgba(71, 50, 35, .10), 0 3px 9px rgba(71, 50, 35, .05);
+    --cc-shadow-lg: 0 22px 52px rgba(61, 36, 24, .13), 0 6px 16px rgba(71, 50, 35, .06);
+    --cc-shadow-hover: 0 18px 40px rgba(92, 63, 43, .16), 0 4px 12px rgba(92, 63, 43, .06);
+
+    /* ── 02. --admin-* aliases (backward compat for module CSS) ── */
+    --admin-brown-900: var(--cc-brown-900);
+    --admin-brown-800: var(--cc-brown-800);
+    --admin-brown-700: var(--cc-brown-700);
+    --admin-brown-600: var(--cc-brown-600);
+    --admin-brown-500: var(--cc-brown-500);
+    --admin-brown-300: var(--cc-caramel-300);
+    --admin-brown-200: var(--cc-brown-200);
+    --admin-brown-100: var(--cc-brown-100);
+    --admin-brown-50:  var(--cc-brown-50);
+    --admin-surface:       var(--cc-surface);
+    --admin-surface-muted: var(--cc-surface-muted);
+    --admin-ink:     var(--cc-text);
+    --admin-muted:   var(--cc-text-muted);
+    --admin-success: var(--cc-success);
+    --admin-danger:  var(--cc-danger);
+    --admin-warning: var(--cc-warning);
+    --admin-radius-control: var(--cc-radius-control);
+    --admin-radius-card:    var(--cc-radius-card);
+    --admin-radius-header:  var(--cc-radius-header);
+    --admin-control-height: var(--cc-control-height);
+    --admin-metric-height:  92px;
+    --admin-shadow-xs:    var(--cc-shadow-xs);
+    --admin-shadow-sm:    var(--cc-shadow-sm);
+    --admin-shadow-md:    var(--cc-shadow-md);
+    --admin-shadow-hover: var(--cc-shadow-hover);
 }
 
 /* ============================================================
    GLOBAL LAYOUT OVERRIDES (Unify canvas background color)
    ============================================================ */
+/* ── 03. Canvas & layout ── */
+/* Override inline <style> in _AdminLayout.cshtml (body bg #f8f9fa → cc-canvas).
+   Exception: body selector needed because inline style is in <head> before this file. */
 body {
-    background-color: #f7f4f0 !important;
+    background-color: var(--cc-canvas) !important; /* was #f8f9fa in layout <style> */
 }
 
 .main-content {
     position: relative;
-    background-color: #f7f4f0 !important;
+    background-color: var(--cc-canvas) !important;
     isolation: isolate;
 }
 
-/* Ensure all module page wrappers have transparent backgrounds so the canvas background shows through */
+/* All module page wrappers use transparent so canvas shows through */
 .admin-page-body,
 .analytics-page,
 .rb-page,
@@ -64,6 +145,82 @@ body {
     background: transparent !important;
     background-color: transparent !important;
 }
+
+/* ── 04. Sidebar color contract (override inline <style> in _AdminLayout.cshtml) ──
+   Exception: .sidebar selector needed — inline style specificity requires same level override.
+   Loaded after Bootstrap; selectors match existing markup exactly. */
+.sidebar {
+    background-color: var(--cc-surface-raised) !important; /* was #ffffff — same value, explicit token */
+    border-right-color: var(--cc-border) !important;       /* was #e9ecef → #E9DED4 */
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: var(--cc-border-strong) !important; /* was #e2e8f0 */
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--cc-brown-200) !important; /* was #cbd5e1 */
+}
+
+/* Sidebar links */
+.sidebar a:hover,
+.sidebar a.active {
+    background-color: var(--cc-surface-active) !important; /* was #f5ede3 → #F4E9DF */
+    color: var(--cc-brown-700) !important;                 /* was #5c3f2b */
+    border-right-color: var(--cc-brown-600) !important;    /* was #6f4e37 → #70482F */
+}
+
+/* Section headers */
+.sidebar-section-header:hover,
+.sidebar-section-header.active {
+    background-color: var(--cc-surface-active) !important;
+    color: var(--cc-brown-700) !important;
+    border-right-color: var(--cc-brown-600) !important;
+}
+
+/* Sub-items */
+.sidebar-sub {
+    background-color: var(--cc-surface-muted) !important; /* was #fafbfc */
+    border-left-color: var(--cc-border) !important;        /* was #e9ecef */
+}
+.sidebar-sub a {
+    color: var(--cc-text-secondary) !important; /* was #64748b */
+}
+.sidebar-sub a:hover,
+.sidebar-sub a.active {
+    color: var(--cc-brown-700) !important;
+    background-color: var(--cc-surface-active) !important;
+    border-right-color: var(--cc-brown-600) !important;
+}
+.sidebar-sub a:hover i,
+.sidebar-sub a.active i {
+    color: var(--cc-brown-600) !important; /* was #6f4e37 */
+}
+
+/* Divider */
+.sidebar-divider {
+    background-color: var(--cc-border) !important; /* was #f1f5f9 */
+}
+
+/* Logo accent */
+.logo-icon {
+    background: linear-gradient(135deg, var(--cc-brown-600), var(--cc-brown-700)) !important;
+}
+
+/* Topbar */
+.topbar {
+    border-bottom-color: var(--cc-border) !important; /* was #e9ecef */
+}
+.topbar-user:hover,
+.topbar-user.active {
+    color: var(--cc-brown-700) !important;
+    border-color: var(--cc-border-strong) !important;
+    box-shadow: 0 2px 8px rgba(112, 72, 47, .14) !important;
+}
+.topbar-user:focus-visible {
+    outline: 3px solid rgba(112, 72, 47, .2) !important;
+    color: var(--cc-brown-700) !important;
+}
+
+
 
 /* Decorative Background Shapes */
 .main-content::before,
@@ -1557,5 +1714,355 @@ body {
     .admin-page-body *::after {
         scroll-behavior: auto !important;
         transition-duration: .01ms !important;
+    }
+}
+
+/* ============================================================
+   V2 ADDITIONS — MISSING CONTRACTS
+   ============================================================ */
+
+/* ── 05. Generic page-header heights per V2 spec ──
+   List/Index/Dashboard: 148–162px  |  Create/Edit/Detail: 126–140px
+   These selectors catch module headers NOT already handled by BOM locked-dimension contract. */
+.admin-page-body :is(
+    .admin-page-header,
+    .page-header,
+    .staff-page-header,
+    .perm-page-header,
+    .ops-page-header,
+    .notification-page-header,
+    .category-page-header,
+    .drink-page-header,
+    .cc-warehouse-header
+) {
+    min-height: 148px;
+    padding: 24px 28px;
+    border: 1px solid rgba(112, 72, 47, .16);
+    border-radius: var(--cc-radius-header);
+    background:
+        radial-gradient(circle at 88% 4%, rgba(184, 149, 125, .16), transparent 240px),
+        linear-gradient(135deg, var(--cc-surface-raised) 0%, #fffdfb 58%, #f6ece3 100%);
+    box-shadow: var(--cc-shadow-md);
+}
+
+.admin-page-body :is(
+    .admin-page-header--sm,
+    .page-header--create,
+    .page-header--detail,
+    .page-header--edit
+) {
+    min-height: 126px;
+    padding: 20px 28px;
+}
+
+/* ── 06. Empty state (_EmptyState.cshtml uses .rb-empty-state) ── */
+.admin-page-body .rb-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    padding: 32px 24px;
+    color: var(--cc-text-secondary);
+    font-size: 14px;
+    text-align: center;
+}
+
+.admin-page-body .rb-empty-state > p:first-child,
+.admin-page-body .rb-empty-state > .fw-semibold {
+    color: var(--cc-text);
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.admin-page-body .rb-empty-state .text-muted {
+    color: var(--cc-text-muted) !important;
+    font-size: 13px;
+}
+
+/* Empty state CTA — btn-rb-save in empty context */
+.admin-page-body .rb-empty-state .btn-rb-save {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: var(--cc-control-height);
+    padding: 0 20px;
+    border-radius: var(--cc-radius-control);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cc-text-inverse);
+    background: linear-gradient(135deg, var(--cc-brown-600) 0%, var(--cc-brown-700) 100%);
+    border: none;
+    box-shadow: 0 6px 16px rgba(112, 72, 47, .22);
+    transition: transform .16s ease, box-shadow .16s ease;
+    text-decoration: none;
+}
+
+.admin-page-body .rb-empty-state .btn-rb-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(92, 63, 43, .28);
+}
+
+/* ── 07. Status badge — _StatusBadge.cshtml (rb-status-badge + dynamic css class) ── */
+.admin-page-body .rb-status-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    letter-spacing: .01em;
+    /* default neutral */
+    background: var(--cc-neutral-bg);
+    color: var(--cc-neutral);
+    border: 1px solid var(--cc-neutral-border);
+}
+
+/* Active/Completed/Available */
+.admin-page-body .rb-status-badge:is(
+    .rb-status-active,
+    .rb-status-completed,
+    .rb-status-approved,
+    .rb-status-available,
+    .rb-status-received
+) {
+    background: var(--cc-success-bg);
+    color: var(--cc-success);
+    border-color: var(--cc-success-border);
+}
+
+/* Pending/In-progress/In-review */
+.admin-page-body .rb-status-badge:is(
+    .rb-status-pending,
+    .rb-status-inprogress,
+    .rb-status-in-progress,
+    .rb-status-inreview,
+    .rb-status-draft,
+    .rb-status-open,
+    .rb-status-partial
+) {
+    background: var(--cc-warning-bg);
+    color: var(--cc-warning);
+    border-color: var(--cc-warning-border);
+}
+
+/* Danger/Rejected/Cancelled/Locked */
+.admin-page-body .rb-status-badge:is(
+    .rb-status-inactive,
+    .rb-status-rejected,
+    .rb-status-cancelled,
+    .rb-status-canceled,
+    .rb-status-closed,
+    .rb-status-locked,
+    .rb-status-error
+) {
+    background: var(--cc-danger-bg);
+    color: var(--cc-danger);
+    border-color: var(--cc-danger-border);
+}
+
+/* Info */
+.admin-page-body .rb-status-badge:is(
+    .rb-status-info,
+    .rb-status-review
+) {
+    background: var(--cc-info-bg);
+    color: var(--cc-info);
+    border-color: var(--cc-info-border);
+}
+
+/* ── 08. Identity label — _IdentityLabel.cshtml ── */
+.admin-page-body .admin-identity-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    line-height: 1.4;
+}
+
+.admin-page-body .admin-identity-label .small.text-muted {
+    color: var(--cc-text-muted) !important;
+    font-size: 11px !important;
+}
+
+.admin-page-body .admin-identity-label .fw-semibold {
+    color: var(--cc-text);
+    font-weight: 700;
+}
+
+/* ── 09. Disabled state — buttons & controls ── */
+.admin-page-body :is(
+    .btn-rb-save,
+    .btn-rb-ghost,
+    .btn-primary-action,
+    .btn-ghost,
+    .perm-primary-button,
+    .perm-outline-button,
+    .cc-button,
+    .ops-btn,
+    .pa-btn,
+    .ice-btn,
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger,
+    .btn-light
+):disabled,
+.admin-page-body :is(
+    .btn-rb-save,
+    .btn-rb-ghost,
+    .btn-primary-action,
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger
+)[aria-disabled="true"] {
+    opacity: .5 !important;
+    pointer-events: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.admin-page-body :is(.form-control, .form-select, select, textarea):disabled {
+    background-color: var(--cc-neutral-bg) !important;
+    border-color: var(--cc-neutral-border) !important;
+    color: var(--cc-text-disabled) !important;
+    cursor: not-allowed !important;
+    opacity: .75 !important;
+}
+
+/* ── 10. Loading state — spinner inside button ── */
+.admin-page-body .btn.is-loading,
+.admin-page-body .btn[data-loading="true"] {
+    position: relative;
+    pointer-events: none;
+    opacity: .75;
+}
+
+.admin-page-body .btn.is-loading > *:not(.spinner-border):not(.spinner-grow) {
+    visibility: hidden;
+}
+
+.admin-page-body .btn.is-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: cc-spin .6s linear infinite;
+}
+
+@keyframes cc-spin { to { transform: rotate(360deg); } }
+
+/* ── 11. Icon button 40×40 ── */
+.admin-page-body .btn-icon,
+.admin-page-body :is(.rb-icon-btn, .icon-btn, .cc-icon-btn) {
+    display: inline-flex;
+    width: var(--cc-icon-btn);
+    height: var(--cc-icon-btn);
+    min-width: var(--cc-icon-btn);
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--cc-radius-control);
+    padding: 0;
+    flex-shrink: 0;
+}
+
+/* ── 12. Standard table row heights ──
+   V2: table row 52px, compact 46–48px
+   Applied to module tables not already locked by BOM contract. */
+.admin-page-body :is(
+    .rb-table, .po-table, .perm-table, .ops-table,
+    .pa-table, .table-custom, .cc-data-table
+) > tbody > tr > td {
+    height: var(--cc-table-row-h);
+    min-height: var(--cc-table-row-h);
+    vertical-align: middle;
+}
+
+/* BOM tables keep their locked row height — exception documented */
+/* .admin-page-body .rb-page .rb-table > tbody > tr > td already sets height: var(--bom-table-row-height: 80px) */
+
+/* Compact table variant */
+.admin-page-body .table-compact > tbody > tr > td {
+    height: var(--cc-table-row-compact) !important;
+    min-height: var(--cc-table-row-compact) !important;
+}
+
+/* ── 13. Modal footer always visible ── */
+:is(.admin-page-body, #cc-modal-host) .modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 2rem);
+}
+
+:is(.admin-page-body, #cc-modal-host) .modal-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+:is(.admin-page-body, #cc-modal-host) .modal-footer {
+    flex-shrink: 0; /* never squish footer — always visible */
+}
+
+/* ── 14. Validation error contract ── */
+.admin-page-body .field-validation-error,
+.admin-page-body .text-danger.small,
+.admin-page-body span[data-valmsg-for] {
+    color: var(--cc-danger) !important;
+    font-size: 12px;
+    display: block;
+    margin-top: 4px;
+}
+
+.admin-page-body .input-validation-error,
+.admin-page-body .form-control.input-validation-error,
+.admin-page-body .form-select.input-validation-error {
+    border-color: var(--cc-danger) !important;
+    box-shadow: 0 0 0 3px rgba(153, 27, 27, .12) !important;
+}
+
+/* ── 15. StoreScopeError page (StoreScopeError.cshtml uses ops-* classes) ── */
+.ops-shell .ops-panel-title {
+    color: var(--cc-text);
+    font-weight: 700;
+}
+.ops-shell .ops-secondary {
+    color: var(--cc-text-secondary);
+}
+
+/* ── 16. Responsive additions for new contracts ── */
+@media (max-width: 768px) {
+    .admin-page-body :is(
+        .admin-page-header,
+        .page-header,
+        .staff-page-header,
+        .perm-page-header
+    ) {
+        min-height: 0;
+        padding: 18px 18px;
+        border-radius: 16px;
+    }
+
+    .admin-page-body .rb-status-badge {
+        font-size: 10.5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-page-body :is(
+        .admin-page-header,
+        .page-header
+    ) {
+        padding: 14px 14px;
     }
 }
