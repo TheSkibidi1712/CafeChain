@@ -8,6 +8,9 @@ namespace CafeChain.Application.Interfaces.POS
         Task<ServiceResult<OtpChallengeResponseDto>> GetCurrentOpenPosOtpStateAsync(
             int requestedByStaffId,
             int storeId);
+        Task<ServiceResult<OtpChallengeResponseDto>> GetCurrentTerminalRegistrationOtpStateAsync(
+            int requestedByStaffId,
+            int storeId);
 
         Task<ServiceResult<OtpChallengeResponseDto>> RequestOtpAsync(
             OtpRequestDto request,

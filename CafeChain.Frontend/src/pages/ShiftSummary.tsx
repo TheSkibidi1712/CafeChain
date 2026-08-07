@@ -7,7 +7,7 @@ import {
   ACTIVE_PAYMENT_CLOSE_GUARD_CHANGED,
   getMatchingActivePaymentCloseGuard,
 } from '../services/posShiftCloseGuard'
-import { completeOpeningCash, getPosSession, getPosTerminalId } from '../services/posSession'
+import { clearPosAuthentication, completeOpeningCash, getPosSession, getPosTerminalId } from '../services/posSession'
 import {
   extractOtpEnvelope,
   formatCountdown,
@@ -232,7 +232,6 @@ export default function ShiftSummary() {
     && ['OPEN', 'CLOSING', 'EXPIRED_PENDING_CLOSE'].includes(normalizedStatus ?? '')
   const requiresOpeningCash = session.requiresOpeningCash === true
     && session.workShiftId === shift?.shiftId
-  const canAcceptTransactions = normalizedStatus === 'OPEN' && !requiresOpeningCash
   const currentShiftId = hasOpenShift && !requiresOpeningCash ? shift.shiftId ?? null : null
   const currentStaffId = session.staffId
   const currentStoreId = session.storeId
@@ -450,6 +449,17 @@ export default function ShiftSummary() {
         if (notification.storeId && session.storeId && notification.storeId !== session.storeId) return
         refresh()
       })
+      connection.on('PosAccessSessionChanged', (notification: {
+        sessionId?: string
+        status?: string
+        reason?: string
+      }) => {
+        if (notification.sessionId && session.sessionId
+          && notification.sessionId.toLowerCase() !== session.sessionId.toLowerCase()) return
+        if ((notification.status || '').toUpperCase() === 'ACTIVE') return
+        clearPosAuthentication()
+        redirectToStaffHub(session.terminalId)
+      })
       connection.onreconnected(() => {
         const terminalId = getPosTerminalId()
         if (terminalId) void connection?.invoke('JoinTerminal', terminalId)
@@ -474,7 +484,7 @@ export default function ShiftSummary() {
       window.clearInterval(pollingId)
       if (connection) void connection.stop()
     }
-  }, [loadCurrentShift, session.storeId, session.token])
+  }, [loadCurrentShift, session.sessionId, session.storeId, session.terminalId, session.token])
 
   useEffect(() => {
     if (!shift?.autoCloseAtUtc) return
@@ -1070,15 +1080,19 @@ export default function ShiftSummary() {
 
         {hasOpenShift && shift?.autoCloseAtUtc && expiryRemainingSeconds !== null && (
           <div className={`p-4 rounded-xl border text-xs font-bold ${
-            canAcceptTransactions && expiryRemainingSeconds > 600
+            expiryRemainingSeconds > 600 && normalizedStatus === 'OPEN'
               ? 'bg-blue-50 border-blue-200 text-blue-700'
-              : canAcceptTransactions && expiryRemainingSeconds > 0
+              : expiryRemainingSeconds > 0 && normalizedStatus === 'OPEN'
                 ? 'bg-amber-50 border-amber-200 text-amber-800'
                 : 'bg-red-50 border-red-200 text-red-700'
           }`}>
-            {canAcceptTransactions && expiryRemainingSeconds > 0
-              ? `Phiên POS ngoài lịch còn ${formatCountdown(expiryRemainingSeconds)} — tự ngừng nhận giao dịch lúc ${formatDateTime(shift.autoCloseAtUtc)}.`
-              : 'Phiên POS đã hết hạn và không nhận giao dịch mới. Vui lòng kiểm đếm, chốt két hoặc đóng ngoại lệ.'}
+            {normalizedStatus === 'EXPIRED_PENDING_CLOSE' || expiryRemainingSeconds <= 0
+              ? 'WorkShift ngoài lịch đã hết thời gian giao dịch. Vui lòng kiểm đếm và chốt két.'
+              : requiresOpeningCash
+                ? `OPENING_CASH_REQUIRED — vui lòng xác nhận tiền đầu phiên. WorkShift còn ${formatCountdown(expiryRemainingSeconds)}.`
+                : normalizedStatus === 'CLOSING'
+                  ? 'WorkShift đang chốt két; hệ thống không nhận giao dịch mới.'
+                  : `Phiên POS ngoài lịch còn ${formatCountdown(expiryRemainingSeconds)} — tự ngừng nhận giao dịch lúc ${formatDateTime(shift.autoCloseAtUtc)}.`}
           </div>
         )}
 

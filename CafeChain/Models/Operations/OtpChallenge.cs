@@ -21,6 +21,10 @@ namespace CafeChain.Models.Operations
         [MaxLength(100)]
         public string? TerminalId { get; set; }
 
+        /// <summary>Immutable display snapshot for terminal-registration requests.</summary>
+        [MaxLength(100)]
+        public string? TerminalName { get; set; }
+
         [MaxLength(200)]
         public string? RequestKey { get; set; }
 
@@ -35,6 +39,9 @@ namespace CafeChain.Models.Operations
         public int RequestedByStaffId { get; set; }
 
         public int ApproverStaffId { get; set; }
+
+        /// <summary>The manager who actually completed the protected action.</summary>
+        public int? ConfirmedByStaffId { get; set; }
 
         [MaxLength(50)]
         public string ActionType { get; set; } = string.Empty;
@@ -98,5 +105,7 @@ namespace CafeChain.Models.Operations
         public virtual Staff RequestedByStaff { get; set; } = null!;
 
         public virtual Staff ApproverStaff { get; set; } = null!;
+
+        public virtual Staff? ConfirmedByStaff { get; set; }
     }
 }
