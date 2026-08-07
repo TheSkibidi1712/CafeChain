@@ -1,1202 +1,747 @@
-/* ============================================================
-   RECIPE BUILDER — Coffee-Brown Palette
-   ============================================================ */
+/* ==========================================================================
+   CAFECHAIN ADMIN DESIGN SYSTEM - RECIPE CORE MODULE (FRONTEND 1)
+   Coffee-Brown Premium Contract Synchronization (Index, Create, Edit)
+   ========================================================================== */
+
 :root {
-    --rb-bg:           #F7F3EE;
-    --rb-card:         #ffffff;
-    --rb-border:       #e5ddd5;
-    --rb-primary:      #6F4E37;
-    --rb-primary-hover:#5C3F2B;
-    --rb-accent:       #C67A45;
-    --rb-text:         #1F2937;
-    --rb-muted:        #475569;
-    --rb-success:      #2F6F5E;
-    --rb-warning:      #99623B;
-    --rb-danger:       #991B1B;
-    --rb-radius:       8px;
-    --rb-shadow:       0 1px 3px rgba(111,78,55,0.06), 0 4px 12px rgba(111,78,55,0.08);
+    --cc-brown-900: #3d2418;
+    --cc-brown-800: #4d2f1f;
+    --cc-brown-700: #5c3b27;
+    --cc-brown-600: #70482f;
+    --cc-brown-500: #8b6247;
+    --cc-brown-400: #a77c5e;
+
+    --cc-caramel-600: #b06535;
+    --cc-caramel-500: #c67a45;
+    --cc-caramel-400: #d8905b;
+
+    --cc-canvas: #f7f4f0;
+    --cc-surface: #ffffff;
+    --cc-surface-muted: #fbf7f2;
+    --cc-surface-raised: #ffffff;
+    --cc-surface-active: #f4e9df;
+
+    --cc-border: #e9ded4;
+    --cc-border-strong: #d8c5b6;
+
+    --cc-text: #201812;
+    --cc-text-secondary: #66584f;
+    --cc-text-muted: #8c7b70;
+
+    --cc-success-bg: #edf6f2;
+    --cc-success: #2f6f5e;
+    --cc-warning-bg: #fcf4e8;
+    --cc-warning: #99623b;
+    --cc-danger-bg: #fdf0f0;
+    --cc-danger: #991b1b;
+
+    --cc-shadow-xs: 0 1px 2px rgba(32, 24, 18, 0.05);
+    --cc-shadow-sm: 0 4px 10px rgba(32, 24, 18, 0.06);
+    --cc-shadow-md: 0 8px 24px rgba(32, 24, 18, 0.09);
+    --cc-shadow-lg: 0 18px 48px rgba(32, 24, 18, 0.14);
+    --cc-focus-ring: 0 0 0 3px rgba(112, 72, 47, 0.22);
+
+    --cc-radius-xs: 4px;
+    --cc-radius-sm: 8px;
+    --cc-radius-control: 10px;
+    --cc-radius-md: 12px;
+    --cc-radius-lg: 16px;
+    --cc-radius-xl: 20px;
+    --cc-radius-modal: 18px;
+
+    /* Legacy Alias Tokens mapped to Design System */
+    --rb-bg: var(--cc-canvas);
+    --rb-card: var(--cc-surface-raised);
+    --rb-border: var(--cc-border);
+    --rb-primary: var(--cc-brown-600);
+    --rb-primary-hover: var(--cc-brown-900);
+    --rb-accent: var(--cc-caramel-500);
+    --rb-text: var(--cc-text);
+    --rb-muted: var(--cc-text-secondary);
+    --rb-success: var(--cc-success);
+    --rb-warning: var(--cc-warning);
+    --rb-danger: var(--cc-danger);
+    --rb-radius: var(--cc-radius-sm);
+    --rb-shadow: var(--cc-shadow-sm);
 }
 
-.rb-page { background: var(--rb-bg); min-height: 100vh; padding-bottom: 100px; }
-
-/* ── Cards ── */
-.rb-card {
-    background: var(--rb-card);
-    border: 1px solid var(--rb-border);
-    border-radius: var(--rb-radius);
-    box-shadow: var(--rb-shadow);
-    overflow: hidden;
-}
-.rb-card-header {
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--rb-border);
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--rb-text);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #FAF6F2;
+/* ==========================================================================
+   BASE WORKSPACE LAYOUT
+   ========================================================================== */
+.rb-page {
+    width: calc(100% - 24px);
+    max-width: 1540px;
+    min-height: calc(100vh - 84px);
+    margin: 0 auto;
+    border-radius: var(--cc-radius-modal, 18px);
+    padding: 28px 28px 120px;
+    background:
+        radial-gradient(circle at 96% 4%, rgba(198, 122, 69, 0.08), transparent 260px),
+        linear-gradient(180deg, #faf7f4 0%, #f7f4f0 320px, transparent 600px);
+    color: var(--cc-text, #201812);
 }
 
-/* ── Breadcrumb ── */
-.rb-breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.8rem;
-    color: var(--rb-muted);
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-}
-.rb-breadcrumb a:not(.btn-rb-back) { color: var(--rb-muted); text-decoration: none; }
-.rb-breadcrumb a:not(.btn-rb-back):hover { color: var(--rb-primary); }
-/* btn-rb-back trong breadcrumb: thu nhỏ lại cho phù hợp */
-.rb-breadcrumb .btn-rb-back {
-    font-size: 0.8rem;
-    padding: 4px 12px;
-    height: auto;
-    min-height: unset;
-    border-radius: 6px;
-}
-.rb-page-title { font-size: 1.6rem; font-weight: 800; color: var(--rb-text); margin-bottom: 20px; }
-
-/* ── COGS ── */
-.rb-cogs-box {
-    background: #FAF6F2;
-    border: 1px solid #ddd4c9;
-    border-radius: var(--rb-radius);
-    padding: 16px 20px;
-    text-align: center;
-}
-.rb-cogs-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--rb-warning); }
-.rb-cogs-value { font-size: 1.8rem; font-weight: 800; color: var(--rb-primary); line-height: 1.2; }
-.rb-cogs-sub { font-size: 0.65rem; color: var(--rb-warning); text-transform: uppercase; }
-
-/* ── Status dot ── */
-.rb-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
-.rb-status-dot.active { background: var(--rb-success); }
-
-/* ── Type Badges ── */
-.rb-badge-raw {
-    background: #D8F0EA; color: #2F6F5E;
-    padding: 4px 12px; border-radius: 20px;
-    font-size: 0.7rem; font-weight: 600; text-transform: uppercase; white-space: nowrap;
-}
-.rb-badge-sub {
-    background: #F0E8E0; color: #6F4E37;
-    padding: 4px 12px; border-radius: 20px;
-    font-size: 0.7rem; font-weight: 600; text-transform: uppercase; white-space: nowrap;
+.rb-page * {
+    box-sizing: border-box;
 }
 
-/* ── BOM Table ── */
-.rb-table { margin-bottom: 0; }
-.rb-table thead th {
-    background: #FAF6F2; color: var(--rb-warning);
-    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0; border-bottom: 1px solid var(--rb-border);
-    padding: 10px 16px;
-    white-space: nowrap; /* FIX: chặn header bị xuống dòng */
-    /* FIX 4: chữ thead giữa bảng */
-    text-align: center;
-}
-/* Giữ left cho các cột text */
-.rb-table thead th:first-child,
-.rb-table thead th:nth-child(2),
-.rb-table thead th:nth-child(3) {
-    text-align: left;
-}
-/* FIX 2: Đơn vị đầu ra — cột "Đơn vị" không bị lệch */
-.rb-table thead th:nth-child(5) {
-    text-align: left;
-}
-.rb-table tbody td { padding: 14px 16px; vertical-align: middle; border-bottom: 1px solid #f5ede6; font-size: 0.88rem; }
-.rb-table tbody tr:hover { background: #FAF6F2; }
-.rb-item-name { font-weight: 600; color: var(--rb-text); }
-.rb-item-sku { font-size: 0.72rem; color: var(--rb-muted); }
-.rb-unit-sub { font-size: 0.68rem; color: var(--rb-muted); display: block; }
-.rb-cost-main { font-weight: 700; color: var(--rb-text); }
-.rb-cost-sub { font-size: 0.68rem; color: var(--rb-muted); display: block; }
-
-/* FIX 3: Bảng 2 — align center cho td */
-.rb-table tbody td { text-align: left; }
-.rb-table tbody td.text-center,
-.rb-table tbody td.text-end { text-align: center; }
-.rb-table tbody td.text-end { text-align: right; }
-
-/* ── Add row button ── */
-.rb-add-row {
-    border: 2px dashed var(--rb-border);
-    background: transparent;
-    color: var(--rb-muted);
-    font-weight: 600;
-    width: 100%;
-    padding: 14px;
-    border-radius: 0;
-    transition: all 0.2s;
-    font-size: 0.88rem;
-}
-.rb-add-row:hover { border-color: var(--rb-primary); color: var(--rb-primary); background: #FAF6F2; }
-
-/* ── Sticky Footer Bar ── */
-.rb-footer-bar {
-    background: var(--rb-card);
-    border-top: 1px solid var(--rb-border);
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    z-index: 1040;
-    box-shadow: 0 -2px 12px rgba(111,78,55,0.08);
-}
-.rb-footer-metric { display: flex; align-items: baseline; gap: 8px; }
-.rb-footer-metric-label { font-size: 0.75rem; font-weight: 600; color: var(--rb-muted); text-transform: uppercase; }
-.rb-footer-metric-value { font-size: 1.2rem; font-weight: 800; color: var(--rb-text); }
-.rb-footer-pct { font-size: 1.1rem; font-weight: 700; color: var(--rb-success); }
-
-/* ── Buttons ── */
-.btn-rb-ghost { background: transparent; border: 1px solid var(--rb-border); color: var(--rb-muted); font-weight: 600; border-radius: 8px; padding: 10px 24px; transition: background .18s, color .18s; }
-.btn-rb-ghost:hover { background: #FAF6F2; color: var(--rb-text); border-color: var(--rb-primary); }
-
-/* FIX 1: Nút quay lại — thêm icon, căn trái, nổi bật hơn */
-.btn-rb-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #fff;
-    border: 1px solid var(--rb-border);
-    color: var(--rb-muted);
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 8px 18px;
-    text-decoration: none;
-    transition: background .18s, color .18s, border-color .18s;
-}
-.btn-rb-back::before { content: '←'; font-size: 1.1em; }
-.btn-rb-back:hover { background: #FAF6F2; color: var(--rb-primary); border-color: var(--rb-primary); }
-.btn-rb-save {
-    background: var(--rb-primary);
-    border: 1px solid var(--rb-primary);
-    color: #fff; font-weight: 700; border-radius: 8px; padding: 10px 28px;
-    box-shadow: 0 2px 8px rgba(111,78,55,0.25);
-}
-.btn-rb-save:hover { background: var(--rb-primary-hover); border-color: var(--rb-primary-hover); color: #fff; }
-.btn-rb-save:focus-visible, .btn-rb-ghost:focus-visible, .rb-page .form-control:focus-visible, .rb-page .form-select:focus-visible {
-    outline: 2px solid var(--rb-primary);
-    outline-offset: 2px;
-}
-
-/* ── Status Badges ── */
-.rb-status-badge {
-    display: inline-block; font-size: 0.72rem; font-weight: 600;
-    padding: 4px 10px; border-radius: 6px; white-space: nowrap;
-}
-.rb-status-active, .rb-status-complete { background: #D8F0EA; color: #2F6F5E; }
-.rb-status-inactive { background: #F0E8E0; color: #6F4E37; }
-.rb-status-incomplete { background: #FDF0E6; color: #99623B; }
-.rb-status-error { background: #FDECEA; color: #991B1B; }
-.rb-code { font-size: 0.85rem; color: var(--rb-text); background: #FAF6F2; padding: 2px 6px; border-radius: 4px; }
-.rb-qty-unit { font-variant-numeric: tabular-nums; font-weight: 600; }
-.rb-empty-state { max-width: 28rem; margin: 0 auto; }
-.rb-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.rb-chip {
-    display: inline-block; padding: 6px 14px; border-radius: 8px;
-    border: 1px solid var(--rb-border); background: #fff; color: var(--rb-muted);
-    font-size: 0.85rem; font-weight: 600; text-decoration: none;
-}
-.rb-chip:hover { border-color: var(--rb-primary); color: var(--rb-primary); }
-.rb-chip.active { background: #FAF6F2; border-color: var(--rb-primary); color: var(--rb-primary); }
-.rb-badge-topping { background: #F0E8E0; color: #6F4E37; padding: 4px 12px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
-.rb-summary-card { border: 1px solid #ddd4c9; background: #FAF6F2; border-radius: 8px; padding: 12px 16px; margin-top: 10px; }
-.rb-summary-card.warn { border-color: #e8c88a; background: #FDF6E3; }
-.rb-preview-box {
-    border: 1px solid var(--rb-border);
-    background: #fff;
-    border-radius: 8px;
-    padding: 14px 16px;
-    margin-top: 8px;
-    font-variant-numeric: tabular-nums;
-    min-height: 68px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-.rb-preview-main { font-size: 1.15rem; font-weight: 800; color: var(--rb-primary); }
-.rb-preview-sub { font-size: 0.82rem; color: var(--rb-muted); margin-top: 2px; }
-.rb-cost-panel { border: 1px solid #ddd4c9; background: #FAF6F2; border-radius: 8px; padding: 16px; }
-.rb-cost-panel.incomplete { border-color: #e8c88a; background: #FDF6E3; }
-.rb-cost-panel.complete { border-color: #a8d8cc; background: #D8F0EA; }
-.rb-cost-issues { margin: 8px 0 0; padding-left: 1.1rem; font-size: 0.85rem; }
-.rb-cost-issues li { margin-bottom: 6px; }
-.rb-dup-warn { border: 1px solid #e8c88a; background: #FDF6E3; border-radius: 8px; padding: 8px 12px; margin-top: 6px; font-size: 0.85rem; }
-.rb-section-title { font-size: 0.95rem; font-weight: 700; color: var(--rb-text); margin: 0; }
-.rb-modal .modal-content { border-radius: 8px; border: 1px solid var(--rb-border); }
-.rb-modal .modal-header { border-bottom: 1px solid var(--rb-border); background: #FAF6F2; }
-.rb-modal .modal-footer { border-top: 1px solid var(--rb-border); background: #FAF6F2; }
-
-/* ── BOM Data Health ── */
-.rb-health-summary {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    border: 1px solid var(--rb-border);
-    border-radius: 8px;
-    background: #fff;
-    overflow: hidden;
-}
-.rb-health-metric { min-width: 0; padding: 12px 16px; border-right: 1px solid var(--rb-border); }
-.rb-health-metric:last-child { border-right: 0; }
-.rb-health-metric span { display: block; color: var(--rb-muted); font-size: 0.78rem; font-weight: 600; }
-.rb-health-metric strong { display: block; margin-top: 2px; color: var(--rb-warning); font-size: 1.3rem; }
-.rb-health-metric.rb-health-ok strong { color: var(--rb-success); }
-.rb-health-table th:nth-child(1) { min-width: 300px; }
-.rb-health-table th:nth-child(2), .rb-health-table th:nth-child(3) { min-width: 145px; }
-.rb-health-table th:nth-child(4) { min-width: 280px; }
-.rb-health-table th:nth-child(5) { min-width: 130px; }
-.rb-health-reasons {
-    min-width: 280px;
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-}
-.rb-health-reason {
-    padding: 8px 0;
-    border-bottom: 1px solid #f5ede6;
-}
-.rb-health-reason:first-child { padding-top: 0; }
-.rb-health-reason:last-child { padding-bottom: 0; border-bottom: 0; }
-.rb-health-reason code { display: block; width: fit-content; margin-bottom: 3px; color: var(--rb-warning); }
-.rb-health-reason span { display: block; color: var(--rb-muted); line-height: 1.35; overflow-wrap: anywhere; }
-.rb-health-actions {
-    text-align: center !important;
-}
-.rb-health-actions .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 112px;
-    margin: 2px;
-}
-
-/* ── Recipe Tabs ── */
-.rb-recipe-tabs { display: flex; gap: 24px; margin-bottom: 14px; border-bottom: 1px solid var(--rb-border); }
-.rb-recipe-tab {
-    padding: 10px 2px;
-    border-bottom: 2px solid transparent;
-    color: var(--rb-muted);
-    font-weight: 700;
-    text-decoration: none;
-}
-.rb-recipe-tab:hover, .rb-recipe-tab.active { color: var(--rb-primary); border-bottom-color: var(--rb-primary); }
-.rb-list-filters {
-    display: grid;
-    grid-template-columns: minmax(260px, 1fr) minmax(180px, 240px) auto;
-    gap: 8px;
-    max-width: 920px;
-}
-.rb-list-meta { color: var(--rb-muted); font-size: 0.85rem; }
-.rb-recipe-table { min-width: 1400px; }
-
-/* Fix cột BTP bị wrap từng ký tự */
-.rb-recipe-table td:first-child {
-    min-width: 190px;
-    max-width: 220px;
-}
-.rb-recipe-table td:first-child .fw-semibold,
-.rb-recipe-table td:first-child .font-monospace {
-    word-break: normal !important;
-    overflow-wrap: normal !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    display: block;
-    max-width: 210px;
-}
-
-.rb-actions-cell {
-    min-width: 250px;
-    white-space: nowrap;
-}
-.rb-actions-cell .btn {
-    margin: 2px 2px 2px 0;
-    white-space: nowrap;
-}
-.rb-source-cell { min-width: 280px; max-width: 420px; }
-
-/* ── PreparedItem Table — fix vỡ layout ở 100% zoom ── */
-.rb-prepareditem-table { min-width: 980px; }
-.rb-prepareditem-actions-cell {
-    min-width: 200px;
-    white-space: nowrap;
-}
-.rb-prepareditem-actions-cell .btn {
-    white-space: nowrap;
-}
-.rb-source-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 8px;
-    border: 1px solid #ddd4c9;
-    border-radius: 6px;
-    background: #FAF6F2;
-    color: var(--rb-text);
-    font-size: 12px;
-    font-weight: 700;
-}
-.rb-source-badge.is-valid { border-color: #a8d8cc; background: #D8F0EA; color: #2F6F5E; }
-.rb-source-badge.is-warning { border-color: #e0b898; background: #FDF0E6; color: #99623B; }
-.rb-source-line {
-    display: flex; flex-wrap: wrap; gap: 4px 8px;
-    margin-top: 6px; color: var(--rb-muted); font-size: 12px; line-height: 1.4;
-}
-.rb-source-line-detail { padding: 8px 0; border-top: 1px solid #ede6df; }
-.rb-pagination { display: flex; flex-wrap: wrap; gap: 6px; }
-.rb-page-link {
-    min-width: 34px; padding: 6px 10px;
-    border: 1px solid var(--rb-border); border-radius: 6px;
-    background: #fff; color: var(--rb-muted); font-weight: 600;
-    text-align: center; text-decoration: none;
-}
-.rb-page-link:hover, .rb-page-link.active { border-color: var(--rb-primary); background: #FAF6F2; color: var(--rb-primary); }
-
-.rb-page .bom-header-dark { display: none !important; }
-
-/* ── BOM detail ── */
-.min-w-0 { min-width: 0; }
-.rb-detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.rb-detail-actions, .rb-operational-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
-.rb-detail-overview, .rb-output-contract, .rb-cost-metrics {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0;
-}
-.rb-detail-overview > div, .rb-output-contract > div, .rb-cost-metrics > div {
-    min-width: 0; padding: 14px 16px;
-    border-right: 1px solid var(--rb-border);
-    border-bottom: 1px solid var(--rb-border);
-}
-.rb-detail-overview > div:nth-child(3n), .rb-output-contract > div:nth-child(3n), .rb-cost-metrics > div:nth-child(3n) { border-right: 0; }
-.rb-detail-overview span, .rb-output-contract span, .rb-cost-metrics span,
-.rb-readiness-strip span, .rb-actual-cost-box span {
-    display: block; color: var(--rb-muted); font-size: 0.75rem; font-weight: 700;
-}
-.rb-detail-overview strong, .rb-output-contract strong, .rb-cost-metrics strong {
-    display: block; margin-top: 4px; color: var(--rb-text); overflow-wrap: anywhere;
-}
-.rb-output-contract a { display: inline-block; margin-top: 6px; }
-.rb-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.rb-detail-reason {
-    display: grid; grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start; gap: 12px; padding: 9px 0; border-top: 1px solid #ede6df;
-}
-.rb-detail-reason code { display: block; width: fit-content; color: var(--rb-warning); }
-.rb-detail-reason span { display: block; margin-top: 3px; color: var(--rb-muted); overflow-wrap: anywhere; }
-.rb-detail-table {
-    min-width: 960px;
-    table-layout: auto;
-}
-.rb-detail-table th:first-child { min-width: 230px; }
-.rb-detail-table th:last-child { min-width: 210px; }
-/* FIX 5: Ngăn nội dung tràn ra khỏi ô */
-.rb-detail-table td {
-    max-width: 240px;
-    overflow-wrap: break-word;
-    word-break: break-word;
-}
-.rb-detail-table td code {
-    white-space: normal;
-    word-break: break-all;
-    display: inline-block;
-    max-width: 100%;
-}
-.rb-detail-empty { padding: 28px 18px; color: var(--rb-muted); text-align: center; }
-.rb-cost-metrics > p {
-    grid-column: 1 / -1; margin: 0; padding: 12px 16px;
-    color: var(--rb-muted); background: #FAF6F2;
-}
-.rb-store-selector { display: grid; grid-template-columns: minmax(240px, 420px) auto; align-items: end; gap: 8px; }
-.rb-readiness-strip {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-    border: 1px solid #e0b898; border-radius: var(--rb-radius); background: #FDF0E6;
-}
-.rb-readiness-strip.is-ready { border-color: #a8d8cc; background: #D8F0EA; }
-.rb-readiness-strip > div { padding: 12px 14px; border-right: 1px solid rgba(111,78,55,0.16); }
-.rb-readiness-strip > div:last-child { border-right: 0; }
-.rb-readiness-strip strong { display: block; margin-top: 3px; overflow-wrap: anywhere; }
-.rb-operational-reasons { margin: 10px 0 0; padding-left: 20px; color: var(--rb-danger); }
-.rb-operational-reasons li { margin-bottom: 5px; overflow-wrap: anywhere; }
-.rb-subpanel {
-    min-width: 0; padding: 16px;
-    border: 1px solid var(--rb-border); border-radius: var(--rb-radius); background: #fff;
-}
-.rb-subpanel h2 { margin: 0 0 12px; font-size: 1rem; color: var(--rb-text); }
-.rb-stock-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
-.rb-stock-grid div { padding: 10px; border: 1px solid #ede6df; border-radius: 6px; }
-.rb-stock-grid dt { color: var(--rb-muted); font-size: 0.75rem; }
-.rb-stock-grid dd { margin: 3px 0 0; font-weight: 800; color: var(--rb-text); }
-.rb-actual-cost-box { margin-top: 10px; padding: 12px; border-left: 3px solid var(--rb-primary); background: #FAF6F2; }
-.rb-actual-cost-box strong, .rb-actual-cost-box small { display: block; margin-top: 3px; overflow-wrap: anywhere; }
-.rb-run-list article { padding: 10px 0; border-top: 1px solid #ede6df; }
-.rb-run-list article:first-child { padding-top: 0; border-top: 0; }
-.rb-run-list article > div { display: flex; justify-content: space-between; gap: 8px; }
-.rb-run-list article p { margin: 4px 0; color: var(--rb-muted); font-size: 0.82rem; }
-.rb-run-list article small { color: var(--rb-text); overflow-wrap: anywhere; }
-
-/* ── FIX: Bảng 2 (SUBRECIPE) — text-align cho các cột ── */
-.rb-recipe-table td { text-align: left; }
-.rb-recipe-table td.font-monospace { text-align: right; }
-
-/* ── FIX: Đơn vị đầu ra — select không bị lệch ── */
-#sectionSub_Unit .form-select,
-#outputUnitSelect {
-    width: 100%;
-    min-width: 0;
-}
-#sectionOutput .row.g-3 > div {
-    min-width: 0;
-}
-
-/* ════════════════════════════════════════════════════
-   FIX 2: Section B — 3 cột cân bằng chiều cao
-   Mỗi cột: label trên cùng + field + hint (nếu có)
-════════════════════════════════════════════════════ */
-#sectionOutput .row.g-3 {
-    align-items: stretch;   /* các cột kéo dài bằng nhau */
-}
-#sectionOutput .row.g-3 > [class*="col"] {
-    display: flex;
-    flex-direction: column;
-}
-/* Label: font đồng nhất */
-#sectionOutput .form-label {
-    font-size: 0.86rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: var(--rb-text);
-    min-height: 1.4rem;     /* giữ chiều cao label nhất quán */
-    display: flex;
-    align-items: center;
-}
-/* Input và select đồng nhất chiều cao */
-#sectionOutput .form-control,
-#sectionOutput .form-select {
-    height: 42px;
-    border-radius: var(--rb-radius);
-    border-color: var(--rb-border);
-}
-#sectionOutput .form-control:focus,
-#sectionOutput .form-select:focus {
-    border-color: var(--rb-primary);
-    box-shadow: 0 0 0 3px rgba(111,78,55,.12);
-}
-/* Preview box: cao bằng input */
-#normalizedOutputPreview.rb-preview-box {
-    margin-top: 0;
-    height: 42px;
-    min-height: 42px;
-    padding: 0 14px;
-    border-radius: var(--rb-radius);
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    border: 1.5px solid var(--rb-border);
-    background: #FAF6F2;
-}
-#normalizedOutputPreview .rb-preview-main {
-    font-size: 1rem;
-    font-weight: 800;
-    color: var(--rb-primary);
-    white-space: nowrap;
-}
-#normalizedOutputPreview .rb-preview-sub {
-    font-size: 0.8rem;
-    color: var(--rb-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-/* form-text hint: xuống dòng nhẹ nhàng */
-#sectionOutput .form-text {
-    font-size: 0.78rem;
-    color: var(--rb-muted);
-    line-height: 1.45;
-    margin-top: 6px;
-}
-
-/* ── Responsive ── */
-@media (max-width: 1199.98px) {
-    .rb-footer-bar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
-    .rb-builder-grid { display: block !important; }
-    .rb-detail-header { align-items: stretch; }
-    .rb-detail-actions { justify-content: flex-start; }
-}
-@media (max-width: 1023.98px) {
-    .rb-detail-header { flex-direction: column; }
-    .rb-detail-grid { grid-template-columns: 1fr; }
-    .rb-detail-overview, .rb-output-contract { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .rb-detail-overview > div:nth-child(3n), .rb-output-contract > div:nth-child(3n) { border-right: 1px solid var(--rb-border); }
-    .rb-detail-overview > div:nth-child(2n), .rb-output-contract > div:nth-child(2n) { border-right: 0; }
-}
-@media (max-width: 767.98px) {
-    .rb-page-title { font-size: 1.25rem; }
-    .rb-footer-bar { position: sticky; }
-    .rb-health-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .rb-health-metric { border-bottom: 1px solid var(--rb-border); }
-    .rb-health-metric:nth-child(2n) { border-right: 0; }
-    .rb-health-metric:last-child { border-bottom: 0; }
-    .rb-list-filters { grid-template-columns: 1fr; }
-    .rb-list-filters .btn { width: 100%; }
-    .rb-recipe-tabs { gap: 16px; overflow-x: auto; }
-    .rb-recipe-tab { white-space: nowrap; }
-    .rb-detail-actions .btn, .rb-operational-actions .btn { flex: 1 1 100%; }
-    .rb-detail-overview, .rb-output-contract, .rb-cost-metrics, .rb-readiness-strip, .rb-stock-grid { grid-template-columns: 1fr; }
-    .rb-detail-overview > div, .rb-output-contract > div, .rb-cost-metrics > div, .rb-readiness-strip > div { border-right: 0; border-bottom: 1px solid var(--rb-border); }
-    .rb-detail-reason { grid-template-columns: 1fr; }
-    .rb-detail-reason .btn { width: 100%; }
-    .rb-store-selector { grid-template-columns: 1fr; }
-    .rb-store-selector .btn { width: 100%; }
-}
-
-/* ── Toggle buttons ── */
-.rb-toggle .btn-check:checked + .btn { background: var(--rb-primary); border-color: var(--rb-primary); color: #fff; box-shadow: 0 4px 12px rgba(111,78,55,0.3); }
-.rb-toggle .btn { border-color: var(--rb-border); color: var(--rb-muted); font-weight: 600; border-radius: var(--rb-radius) !important; }
-
-/* ── Select2 ── */
-.rb-page .select2-container--bootstrap-5 .select2-selection { border-color: var(--rb-border); border-radius: var(--rb-radius); min-height: 40px; }
-.rb-page .select2-container--bootstrap-5 .select2-results__group { background: #FAF6F2; font-weight: 700; font-size: 0.8rem; }
-
-/* ── Inputs ── */
-.rb-page .form-control, .rb-page .form-select { border-radius: var(--rb-radius); border-color: var(--rb-border); }
-.rb-page .form-control:focus, .rb-page .form-select:focus { border-color: var(--rb-primary); box-shadow: 0 0 0 3px rgba(111,78,55,0.12); }
-
-/* ════════════════════════════════════════════════════
-   FIX 4: Nút Xem cấu trúc BOM / Sửa / Xóa — đẹp hơn
-════════════════════════════════════════════════════ */
-.rb-actions-cell .btn-outline-secondary {
-    border-color: var(--rb-border);
-    color: var(--rb-muted);
-    background: #fff;
-}
-.rb-actions-cell .btn-outline-secondary:hover {
-    background: #FAF6F2;
-    color: var(--rb-primary);
-    border-color: var(--rb-primary);
-}
-.rb-actions-cell .btn-outline-primary {
-    border-color: var(--rb-primary);
-    color: var(--rb-primary);
-    background: #fff;
-}
-.rb-actions-cell .btn-outline-primary:hover {
-    background: var(--rb-primary);
-    color: #fff;
-}
-.rb-actions-cell .btn-outline-danger {
-    border-color: #f1cbc9;
-    color: var(--rb-danger);
-    background: #fff;
-}
-.rb-actions-cell .btn-outline-danger:hover {
-    background: var(--rb-danger);
-    color: #fff;
-    border-color: var(--rb-danger);
-}
-/* Detail page: xem cấu trúc / sửa xóa cải thiện */
-.rb-detail-actions .btn-outline-secondary {
-    border-color: var(--rb-border);
-    color: var(--rb-muted);
-}
-.rb-detail-actions .btn-outline-secondary:hover {
-    background: #FAF6F2;
-    color: var(--rb-primary);
-    border-color: var(--rb-primary);
-}
-
-/* ════════════════════════════════════════════════════
-   FIX 6: TRẠNG THÁI Topping — badge đồng kích thước
-════════════════════════════════════════════════════ */
-.rb-status-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 100px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 5px 12px;
-    border-radius: 6px;
-    white-space: nowrap;
-    text-align: center;
-}
-
-/* ════════════════════════════════════════════════════
-   FIX 7: Form xóa dòng BOM — nút xóa chữ cùng hàng
-════════════════════════════════════════════════════ */
-.rb-table .btn-remove-row,
-.rb-table [class*="btn-danger"],
-.rb-table [class*="btn-outline-danger"] {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    white-space: nowrap;
-    min-width: 32px;
-    height: 32px;
-    padding: 0 8px;
-}
-
-/* ════════════════════════════════════════════════════
-   FIX 3: Cấu hình / Dữ liệu giá vốn / Lý do — canh hàng
-════════════════════════════════════════════════════ */
-.rb-detail-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    align-items: start; /* FIX: các ô bắt đầu từ trên, không stretch */
-}
-.rb-card .rb-detail-reasons { margin-top: 8px; }
-.rb-detail-reasons .rb-detail-reason:first-child { border-top: 0; padding-top: 0; }
-
-/* Health table: 3 cột đầu căn đều */
-.rb-health-table td:nth-child(1),
-.rb-health-table td:nth-child(2),
-.rb-health-table td:nth-child(3) {
-    vertical-align: middle;
-}
-.rb-health-table td:nth-child(4) { vertical-align: top; }
-
-/* ════════════════════════════════════════════════════
-   FIX 8: BOM table — select2 "Thành phần" căn lề trái,
-   không bị lệch text bên dưới
-════════════════════════════════════════════════════ */
-#bomTable .select2-container--bootstrap-5 .select2-selection--single {
-    display: flex;
-    align-items: center;
-    height: 34px;
-    min-height: 34px;
-    padding: 0 8px;
-}
-#bomTable .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-    line-height: normal;
-    padding-left: 0;
-    padding-right: 20px; /* space for arrow */
-    text-align: left;
-}
-#bomTable .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
-    line-height: normal;
-    padding-left: 0;
-    color: #9CA3AF;
-}
-#bomTable .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
-    height: 100%;
-    top: 0;
-    right: 6px;
-}
-
-/* FIX 9: GIÁ VỐN DÒNG & TRẠNG THÁI DỮ LIỆU — body td center */
-#bomTable .row-total-display,
-#bomTable .row-data-status {
-    text-align: center !important;
-}
-
-/* FIX 10: SỐ LƯỢNG input trong bảng — giữ nguyên right-align cho số */
-#bomTable .item-qty {
-    text-align: right;
-}
-
-/* Căn chỉnh thống nhất các bảng và biểu mẫu trong Sản xuất / BOM. */
-.rb-recipe-table {
-    min-width: 1180px;
-    table-layout: fixed;
-}
-.rb-recipe-table th,
-.rb-recipe-table td { vertical-align: middle; }
-.rb-recipe-table th:first-child,
-.rb-recipe-table td:first-child { width: 19%; text-align: left; }
-.rb-recipe-table th:nth-child(2),
-.rb-recipe-table td:nth-child(2) { width: 13%; }
-.rb-recipe-table th:nth-child(3),
-.rb-recipe-table td:nth-child(3) { width: 12%; }
-.rb-recipe-table th:nth-child(4),
-.rb-recipe-table td:nth-child(4) { width: 11%; }
-.rb-recipe-table th:nth-child(5),
-.rb-recipe-table td:nth-child(5) { width: 14%; }
-.rb-recipe-table th:nth-child(6),
-.rb-recipe-table td:nth-child(6) { width: 11%; }
-.rb-recipe-table th:last-child,
-.rb-recipe-table td:last-child { width: 20%; }
-.rb-recipe-table th:not(:first-child),
-.rb-recipe-table td:not(:first-child),
-.rb-recipe-table .rb-actions-cell { text-align: center !important; }
-.rb-actions-cell {
-    min-width: 230px;
-}
-.rb-actions-cell .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.rb-prepareditem-table {
-    min-width: 1320px;
-    table-layout: fixed;
-}
-.rb-prepareditem-table th,
-.rb-prepareditem-table td { vertical-align: middle; }
-.rb-prepareditem-table th:nth-child(1),
-.rb-prepareditem-table td:nth-child(1) { width: 14%; text-align: left; }
-.rb-prepareditem-table th:nth-child(2),
-.rb-prepareditem-table td:nth-child(2) { width: 10%; text-align: left; }
-.rb-prepareditem-table th:nth-child(3),
-.rb-prepareditem-table td:nth-child(3) { width: 10%; text-align: center; }
-.rb-prepareditem-table th:nth-child(4),
-.rb-prepareditem-table td:nth-child(4) { width: 9%; text-align: center; }
-.rb-prepareditem-table th:nth-child(5),
-.rb-prepareditem-table td:nth-child(5) { width: 16%; text-align: center; }
-.rb-prepareditem-table th:nth-child(6),
-.rb-prepareditem-table td:nth-child(6) { width: 7%; text-align: center; }
-.rb-prepareditem-table th:nth-child(7),
-.rb-prepareditem-table td:nth-child(7) {
-    width: 13%;
-    padding-left: 6px;
-    padding-right: 6px;
-    text-align: center;
-}
-.rb-prepareditem-table th:nth-child(8),
-.rb-prepareditem-table td:nth-child(8) { width: 21%; text-align: center; }
-.rb-prepareditem-table td:nth-child(1) code {
-    display: inline-block;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: middle;
-}
-.rb-prepareditem-table td:nth-child(2) { overflow-wrap: anywhere; }
-.rb-prepareditem-actions-cell {
-    min-width: 300px;
-    text-align: center !important;
-}
-.rb-prepareditem-actions-cell > .d-flex {
-    display: grid !important;
-    grid-template-columns: 110px 42px 128px;
-    gap: 4px !important;
-    align-items: center;
-    justify-content: center;
-}
-.rb-prepareditem-actions-cell .btn {
-    width: 100%;
-    min-width: 0;
-    margin: 0;
-    padding-left: 6px;
-    padding-right: 6px;
-    justify-content: center;
-}
-.rb-prepareditem-table td:nth-child(4) .rb-status-badge {
-    width: 100px;
-    min-width: 100px;
-}
-.rb-prepareditem-table td:nth-child(7) .rb-status-badge {
-    width: 160px;
-    min-width: 160px;
-    max-width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.rb-health-table {
-    min-width: 1120px;
-    table-layout: fixed;
-}
-.rb-health-table th:nth-child(1),
-.rb-health-table td:nth-child(1) { width: 31%; text-align: left; }
-.rb-health-table th:nth-child(2),
-.rb-health-table td:nth-child(2) { width: 16%; text-align: center; }
-.rb-health-table th:nth-child(3),
-.rb-health-table td:nth-child(3) { width: 16%; text-align: center; }
-.rb-health-table th:nth-child(4),
-.rb-health-table td:nth-child(4) { width: 26%; text-align: left; }
-.rb-health-table th:nth-child(5),
-.rb-health-table td:nth-child(5) { width: 11%; text-align: center; }
-
-#bomTable {
-    width: 100%;
-    min-width: 760px;
-    table-layout: fixed;
-}
-#bomTable th,
-#bomTable td {
-    vertical-align: middle;
-    padding-left: 8px;
-    padding-right: 8px;
-}
-#bomTable th:nth-child(1),
-#bomTable td:nth-child(1) { width: 4%; text-align: center; }
-#bomTable th:nth-child(2),
-#bomTable td:nth-child(2) { width: 8%; text-align: center; }
-#bomTable th:nth-child(3),
-#bomTable td:nth-child(3) { width: 28%; text-align: left; }
-#bomTable th:nth-child(4),
-#bomTable td:nth-child(4) { width: 11%; text-align: center; }
-#bomTable th:nth-child(5),
-#bomTable td:nth-child(5) { width: 11%; text-align: center; }
-#bomTable th:nth-child(6),
-#bomTable td:nth-child(6) { width: 14%; text-align: center; }
-#bomTable th:nth-child(7),
-#bomTable td:nth-child(7) { width: 13%; text-align: center; }
-#bomTable th:nth-child(8),
-#bomTable td:nth-child(8) { width: 11%; text-align: center; }
-#bomTable .item-qty,
-#bomTable .item-unitname { width: 100%; text-align: center; }
-#bomTable .btn-remove-row {
-    width: 100%;
-    max-width: 92px;
-    min-width: 72px;
-}
-#bomTable .select2-container {
-    max-width: 100%;
-}
-
-/* Form tạo mới cần thêm không gian cho bảng; bảng kiểm tra giá vốn vẫn đủ rộng. */
-@media (min-width: 1200px) {
-    .rb-create-theme .rb-builder-grid > .col-xl-8 {
-        width: 75%;
-    }
-    .rb-create-theme .rb-builder-grid > .col-xl-4 {
-        width: 25%;
-    }
-}
-
-@media (max-width: 991.98px) {
-    #bomTable {
-        min-width: 720px;
-    }
-}
-
-/*
- * Tiêu đề cột của toàn bộ phân hệ Sản xuất / BOM luôn nằm chính giữa cột.
- * Chỉ tác động THEAD; nội dung tên, mã và mô tả trong TBODY vẫn căn trái.
- */
-.rb-recipe-table > thead > tr > th,
-.rb-prepareditem-table > thead > tr > th,
-.rb-health-table > thead > tr > th,
-#bomTable > thead > tr > th,
-.rb-detail-table > thead > tr > th {
-    text-align: center !important;
-    vertical-align: middle;
-}
-
-/* ===== Hoàn thiện giao diện Sản xuất / BOM ===== */
-.rb-page .rb-card {
-    border: 1px solid #e4d8cd;
-    border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 3px 12px rgba(92, 63, 43, 0.07);
-    overflow: hidden;
-}
-.rb-page .rb-card-header {
-    background: linear-gradient(180deg, #fffdfb 0%, #faf5f0 100%);
-    border-bottom: 1px solid #e6dbd1;
-}
-.rb-page .table-responsive {
-    scrollbar-color: #a98a73 #f3ece6;
-    scrollbar-width: thin;
-}
-.rb-page .table-responsive::-webkit-scrollbar { height: 8px; }
-.rb-page .table-responsive::-webkit-scrollbar-track { background: #f3ece6; }
-.rb-page .table-responsive::-webkit-scrollbar-thumb {
-    background: #a98a73;
-    border-radius: 999px;
-}
-
-.rb-page .rb-table > thead > tr > th {
-    height: 42px;
-    padding: 10px 12px;
-    background: #f8f2ec;
-    color: #8a4f29;
-    border-bottom: 1px solid #dfd0c4;
-    font-size: 0.71rem;
-    font-weight: 800;
-    letter-spacing: .025em;
-    vertical-align: middle;
-}
-.rb-page .rb-table > tbody > tr {
-    transition: background-color .16s ease, box-shadow .16s ease;
-}
-.rb-page .rb-table > tbody > tr:nth-child(even) {
-    background: #fffdfb;
-}
-.rb-page .rb-table > tbody > tr:hover {
-    background: #fbf4ed;
-    box-shadow: inset 3px 0 0 #795236;
-}
-.rb-page .rb-table > tbody > tr > td {
-    height: 62px;
-    border-bottom-color: #eee4db;
-}
-
-/* Tiêu đề cột chữ đi cùng trục với dữ liệu; số liệu và thao tác ở giữa. */
-.rb-prepareditem-table > thead > tr > th:nth-child(1),
-.rb-prepareditem-table > thead > tr > th:nth-child(2),
-.rb-recipe-table > thead > tr > th:first-child,
-.rb-health-table > thead > tr > th:first-child,
-.rb-health-table > thead > tr > th:nth-child(4),
-.rb-detail-table > thead > tr > th:first-child,
-#bomTable > thead > tr > th:nth-child(3) {
-    text-align: left !important;
-}
-.rb-prepareditem-table > thead > tr > th:nth-child(n+3),
-.rb-recipe-table > thead > tr > th:not(:first-child),
-.rb-health-table > thead > tr > th:nth-child(2),
-.rb-health-table > thead > tr > th:nth-child(3),
-.rb-health-table > thead > tr > th:nth-child(5),
-.rb-detail-table > thead > tr > th:not(:first-child),
-#bomTable > thead > tr > th:not(:nth-child(3)) {
-    text-align: center !important;
-}
-
-.rb-page .rb-code,
-.rb-page code.rb-code {
-    padding: 5px 8px;
-    border: 1px solid #eee3da;
-    border-radius: 6px;
-    background: #faf6f2;
-    color: #334155;
-}
-.rb-page .rb-status-badge {
-    box-shadow: inset 0 0 0 1px rgba(111, 78, 55, .05);
-}
-.rb-page .rb-table .btn {
-    border-radius: 7px;
-    transition: color .16s ease, background-color .16s ease,
-                border-color .16s ease, box-shadow .16s ease;
-}
-.rb-page .rb-table .btn:hover {
-    border-color: #795236;
-    background: #795236;
-    color: #fff;
-    box-shadow: 0 3px 8px rgba(92, 63, 43, .18);
-}
-.rb-page .rb-table .btn-outline-danger:hover {
-    border-color: #b42318;
-    background: #b42318;
-}
-
-.rb-page .form-control,
-.rb-page .form-select,
-.rb-page .select2-container--bootstrap-5 .select2-selection {
-    border-color: #dfd4ca;
-    border-radius: 9px;
-    transition: border-color .16s ease, box-shadow .16s ease,
-                background-color .16s ease;
-}
-.rb-page .form-control:hover,
-.rb-page .form-select:hover,
-.rb-page .select2-container--bootstrap-5 .select2-selection:hover {
-    border-color: #aa8a73;
-}
-.rb-page .form-control:focus,
-.rb-page .form-select:focus,
-.rb-page .select2-container--bootstrap-5.select2-container--focus .select2-selection {
-    border-color: #795236;
-    box-shadow: 0 0 0 3px rgba(121, 82, 54, .13);
-}
-.rb-list-filters {
-    padding: 12px;
-    border: 1px solid #e4d8cd;
-    border-radius: 11px;
-    background: rgba(255, 255, 255, .76);
-    box-shadow: 0 2px 8px rgba(92, 63, 43, .05);
-}
-.rb-recipe-tabs {
-    gap: 10px;
-}
-.rb-recipe-tab {
-    padding: 9px 14px;
-    border: 1px solid transparent;
-    border-radius: 8px 8px 0 0;
-}
-.rb-recipe-tab:hover {
-    background: #f8f1eb;
-}
-.rb-recipe-tab.active {
-    background: #fff;
-    border-color: #e2d5ca;
-    border-bottom-color: #795236;
-}
-.rb-add-row {
-    background: #fffdfb;
-}
-.rb-add-row:hover {
-    background: #f7ede5;
-    box-shadow: inset 0 0 0 1px #795236;
-}
-
+/* ==========================================================================
+   PAGE HEADING & BANNER
+   ========================================================================== */
 .rb-page-header,
 .rb-builder-heading,
 .rb-detail-header {
     position: relative;
-    padding: 20px 22px;
-    border: 1px solid #e2d5ca;
-    border-radius: 14px;
-    background:
-        radial-gradient(circle at 92% 18%, rgba(198, 122, 69, .13), transparent 26%),
-        linear-gradient(135deg, #fff 0%, #fbf6f1 72%, #f4e9df 100%);
-    box-shadow: 0 5px 18px rgba(92, 63, 43, .08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    overflow: hidden;
+    max-width: none;
+    min-height: 140px;
+    margin-bottom: 22px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-left: 5px solid var(--cc-caramel-500, #c67a45);
+    border-radius: var(--cc-radius-modal, 18px);
+    background: linear-gradient(112deg, var(--cc-surface-raised, #ffffff) 0%, var(--cc-surface-muted, #fbf7f2) 62%, #f1e5da 100%);
+    padding: 24px 28px;
+    box-shadow: var(--cc-shadow-md, 0 8px 24px rgba(32, 24, 18, 0.09));
+}
+
+.rb-page-header::after,
+.rb-builder-heading::after,
+.rb-detail-header::after {
+    position: absolute;
+    right: -45px;
+    bottom: -80px;
+    width: 250px;
+    height: 250px;
+    border: 38px solid rgba(112, 72, 47, 0.055);
+    border-radius: 50%;
+    content: "";
+    pointer-events: none;
+    z-index: 0;
+}
+
+.rb-page-header .admin-module-heading-copy,
+.rb-builder-heading > div,
+.rb-detail-header > div {
+    position: relative;
+    z-index: 1;
+}
+
+.rb-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: var(--cc-text-muted, #8c7b70);
+    font-size: 11.5px;
+}
+
+.rb-breadcrumb span {
+    color: var(--cc-brown-600, #70482f);
+    font-weight: 750;
+}
+
+.rb-breadcrumb a:not(.btn-rb-back) {
+    color: var(--cc-text-secondary, #66584f);
+    text-decoration: none;
+}
+
+.rb-breadcrumb a:not(.btn-rb-back):hover {
+    color: var(--cc-brown-600, #70482f);
+}
+
+.rb-page-title {
+    margin: 4px 0 6px;
+    color: var(--cc-text, #201812);
+    font-size: clamp(24px, 2.2vw, 32px);
+    font-weight: 850;
+    letter-spacing: -0.035em;
+}
+
+.rb-page-header p,
+.rb-builder-heading p,
+.rb-detail-header p {
+    max-width: 720px;
+    margin: 0;
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 13.5px;
+}
+
+.admin-module-header-actions,
+.rb-detail-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ==========================================================================
+   BUTTONS & CONTROLS
+   ========================================================================== */
+.btn-rb-save {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 22px;
+    border: 1px solid var(--cc-brown-600, #70482f);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-brown-600, #70482f);
+    color: #ffffff !important;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 6px 16px rgba(112, 72, 47, 0.18);
+    transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.btn-rb-save:hover {
+    border-color: var(--cc-brown-900, #3d2418);
+    background: var(--cc-brown-900, #3d2418);
+    color: #ffffff !important;
+    transform: translateY(-2px);
+}
+
+.btn-rb-ghost,
+.btn-rb-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 18px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-brown-900, #3d2418) !important;
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.btn-rb-ghost:hover,
+.btn-rb-back:hover {
+    border-color: var(--cc-brown-500, #8b6247);
+    background: var(--cc-surface-active, #f4e9df);
+    color: var(--cc-brown-900, #3d2418) !important;
+    transform: translateY(-1px);
+}
+
+.rb-breadcrumb .btn-rb-back {
+    min-height: 32px;
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+    border-radius: var(--cc-radius-sm, 8px);
+}
+
+.btn-rb-back::before {
+    content: "←";
+    font-size: 1.1em;
+}
+
+/* Base Form Control */
+.rb-page .form-control,
+.rb-page .form-select {
+    min-height: 44px;
+    height: 44px;
+    padding: 9px 14px;
+    color: var(--cc-text, #201812);
+    background: var(--cc-surface-raised, #ffffff);
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    font-size: 13.5px;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+textarea.form-control,
+.rb-page textarea.form-control {
+    min-height: 80px;
+    height: auto;
+    resize: vertical;
+}
+
+.rb-page .form-control:focus,
+.rb-page .form-select:focus {
+    border-color: var(--cc-brown-600, #70482f);
+    outline: none;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+}
+
+/* ==========================================================================
+   RECIPE TABS & FILTER BAND
+   ========================================================================== */
+.rb-recipe-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--cc-border, #e9ded4);
+    padding-bottom: 2px;
+}
+
+.rb-recipe-tab {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 18px;
+    border: 1px solid transparent;
+    border-radius: var(--cc-radius-sm, 8px) var(--cc-radius-sm, 8px) 0 0;
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 13.5px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
+}
+
+.rb-recipe-tab:hover {
+    color: var(--cc-brown-600, #70482f);
+    background: var(--cc-surface-active, #f4e9df);
+}
+
+.rb-recipe-tab.active {
+    color: var(--cc-brown-900, #3d2418);
+    background: var(--cc-surface-raised, #ffffff);
+    border-color: var(--cc-border, #e9ded4);
+    border-bottom: 3px solid var(--cc-brown-600, #70482f);
+    font-weight: 850;
+}
+
+.rb-list-filters {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(180px, 240px) auto;
+    gap: 12px;
+    align-items: center;
+    background: var(--cc-surface-raised, #ffffff);
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-lg, 16px);
+    padding: 14px 18px;
+    box-shadow: var(--cc-shadow-sm, 0 4px 10px rgba(32, 24, 18, 0.06));
+}
+
+.rb-list-meta {
+    margin-top: 14px;
+    margin-bottom: 10px;
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 13px;
+}
+
+.rb-list-meta strong {
+    color: var(--cc-brown-900, #3d2418);
+    font-weight: 800;
+}
+
+/* ==========================================================================
+   CARDS & SECTIONS
+   ========================================================================== */
+.rb-card {
+    background: var(--cc-surface-raised, #ffffff);
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-lg, 16px);
+    box-shadow: var(--cc-shadow-sm, 0 4px 10px rgba(32, 24, 18, 0.06));
     overflow: hidden;
 }
-.rb-page-header::before,
-.rb-builder-heading::before,
-.rb-detail-header::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    background: linear-gradient(180deg, #6f4e37, #c67a45);
-}
-.rb-page-header .rb-page-title,
-.rb-builder-heading .rb-page-title,
-.rb-detail-header .rb-page-title {
-    color: #3f2b20;
-    letter-spacing: -.025em;
-}
-.rb-page-header .rb-breadcrumb,
-.rb-builder-heading .rb-breadcrumb,
-.rb-detail-header .rb-breadcrumb {
-    margin-bottom: 8px;
-}
-.rb-page-header .btn-rb-save,
-.rb-builder-heading .btn-rb-save,
-.rb-detail-header .btn-rb-save,
-.rb-footer-bar .btn-rb-save {
-    background: linear-gradient(135deg, #795236, #5c3f2b);
-    border-color: #5c3f2b;
-    box-shadow: 0 5px 12px rgba(92, 63, 43, .24);
-}
-.rb-page-header .btn-rb-save:hover,
-.rb-builder-heading .btn-rb-save:hover,
-.rb-detail-header .btn-rb-save:hover,
-.rb-footer-bar .btn-rb-save:hover {
-    background: linear-gradient(135deg, #68462f, #493122);
-    transform: translateY(-1px);
-    box-shadow: 0 7px 16px rgba(92, 63, 43, .3);
+
+.rb-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 22px;
+    background: var(--cc-surface-muted, #fbf7f2);
+    border-bottom: 1px solid var(--cc-border, #e9ded4);
+    border-left: 4px solid var(--cc-brown-600, #70482f);
 }
 
-.rb-health-summary {
-    gap: 10px;
-    padding: 10px;
-    border: 1px solid #e2d5ca;
-    border-radius: 12px;
-    background: #f8f2ec;
-    box-shadow: 0 3px 12px rgba(92, 63, 43, .06);
-}
-.rb-health-metric {
-    position: relative;
-    border: 1px solid #eadfd6 !important;
-    border-radius: 9px;
-    background: #fff;
-    transition: transform .16s ease, box-shadow .16s ease,
-                border-color .16s ease;
-}
-.rb-health-metric:hover {
-    transform: translateY(-2px);
-    border-color: #b89982 !important;
-    box-shadow: 0 5px 12px rgba(92, 63, 43, .1);
-}
-.rb-health-metric::after {
-    content: "";
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    bottom: 0;
-    height: 3px;
-    border-radius: 3px 3px 0 0;
-    background: #b9784d;
-    opacity: .65;
-}
-.rb-health-metric.rb-health-ok::after {
-    background: #2f6f5e;
+.rb-section-title {
+    margin: 0;
+    color: var(--cc-brown-900, #3d2418);
+    font-size: 15px;
+    font-weight: 800;
 }
 
-.rb-create-theme .rb-card-header,
-.rb-edit-theme .rb-card-header {
-    min-height: 54px;
-    box-shadow: inset 4px 0 0 #795236;
+.rb-toggle .btn-group {
+    border-radius: var(--cc-radius-control, 10px);
+    overflow: hidden;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
 }
-.rb-create-theme .rb-section-title,
-.rb-edit-theme .rb-section-title {
-    color: #493122;
-    letter-spacing: -.01em;
+
+.rb-toggle .btn-check:checked + .btn {
+    background: var(--cc-brown-600, #70482f);
+    border-color: var(--cc-brown-600, #70482f);
+    color: #ffffff;
+    font-weight: 800;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12);
 }
+
+.rb-toggle .btn {
+    border-color: transparent;
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 13.5px;
+    font-weight: 700;
+    background: var(--cc-surface-muted, #fbf7f2);
+}
+
+/* ==========================================================================
+   TABLES & DYNAMIC ROW BUILDER
+   ========================================================================== */
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 0 0 var(--cc-radius-lg, 16px) var(--cc-radius-lg, 16px);
+}
+
+.rb-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13.5px;
+    margin-bottom: 0;
+}
+
+.rb-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 14px 16px;
+    color: var(--cc-brown-600, #70482f);
+    background: var(--cc-surface-muted, #fbf7f2);
+    border-bottom: 1px solid var(--cc-border-strong, #d8c5b6);
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.rb-table tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--cc-border, #e9ded4);
+    vertical-align: middle;
+    color: var(--cc-text, #201812);
+}
+
+.rb-table tbody tr:hover {
+    background: var(--cc-surface-active, #f4e9df);
+}
+
+/* Numeric formatting for BOM Table */
+.rb-table td.font-monospace,
+.rb-table td.text-end,
+.rb-qty-unit {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+/* Inner BOM Line Item Controls */
+#bomTable {
+    width: 100%;
+    min-width: 780px;
+}
+
+#bomTable .form-control-sm,
+#bomTable .form-select-sm {
+    min-height: 36px;
+    height: 36px;
+    padding: 4px 10px;
+    font-size: 13px;
+    border-radius: var(--cc-radius-sm, 8px);
+}
+
+#bomTable .item-qty {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+#bomTable .btn-remove-row {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 10px;
+    border: 1px solid #e9b8b8;
+    border-radius: var(--cc-radius-sm, 8px);
+    background: var(--cc-danger-bg, #fdf0f0);
+    color: var(--cc-danger, #991b1b);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+#bomTable .btn-remove-row:hover {
+    background: var(--cc-danger, #991b1b);
+    border-color: var(--cc-danger, #991b1b);
+    color: #ffffff;
+}
+
+.rb-add-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    border: 2px dashed var(--cc-border-strong, #d8c5b6);
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-brown-600, #70482f);
+    font-size: 13.5px;
+    font-weight: 750;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.rb-add-row:hover {
+    border-color: var(--cc-brown-600, #70482f);
+    background: var(--cc-surface-active, #f4e9df);
+    color: var(--cc-brown-900, #3d2418);
+}
+
+/* ==========================================================================
+   STATUS BADGES & INDICATORS
+   ========================================================================== */
+.rb-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 90px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+.rb-status-active,
+.rb-status-complete {
+    color: var(--cc-success, #2f6f5e);
+    background: var(--cc-success-bg, #edf6f2);
+    border: 1px solid #bbdccd;
+}
+
+.rb-status-inactive {
+    color: var(--cc-brown-600, #70482f);
+    background: var(--cc-surface-active, #f4e9df);
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+}
+
+.rb-status-incomplete {
+    color: var(--cc-warning, #99623b);
+    background: var(--cc-warning-bg, #fcf4e8);
+    border: 1px solid #f2d8b8;
+}
+
+.rb-status-error {
+    color: var(--cc-danger, #991b1b);
+    background: var(--cc-danger-bg, #fdf0f0);
+    border: 1px solid #e9b8b8;
+}
+
+.rb-badge-raw {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--cc-success-bg, #edf6f2);
+    color: var(--cc-success, #2f6f5e);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.rb-badge-sub {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--cc-surface-active, #f4e9df);
+    color: var(--cc-brown-600, #70482f);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* Action Cell Buttons in Index */
+.rb-actions-cell {
+    white-space: nowrap;
+}
+
+.rb-table-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 12px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-sm, 8px);
+    color: var(--cc-brown-900, #3d2418);
+    background: var(--cc-surface-raised, #ffffff);
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.rb-table-action:hover {
+    border-color: var(--cc-brown-600, #70482f);
+    background: var(--cc-brown-600, #70482f);
+    color: #ffffff !important;
+}
+
+.btn-delete-recipe {
+    border-color: #e9b8b8;
+    color: var(--cc-danger, #991b1b);
+    background: var(--cc-surface-raised, #ffffff);
+}
+
+.btn-delete-recipe:hover {
+    border-color: var(--cc-danger, #991b1b);
+    background: var(--cc-danger, #991b1b);
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   COST PANEL & STICKY FOOTER
+   ========================================================================== */
 .rb-cost-panel {
-    position: relative;
-    box-shadow: inset 4px 0 0 #c67a45;
+    padding: 18px;
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-md, 12px);
+    background: var(--cc-surface-muted, #fbf7f2);
+    box-shadow: var(--cc-shadow-xs, 0 1px 2px rgba(32, 24, 18, 0.05));
 }
+
+.rb-cost-panel.incomplete {
+    border-left: 4px solid var(--cc-warning, #99623b);
+    background: var(--cc-warning-bg, #fcf4e8);
+}
+
 .rb-cost-panel.complete {
-    box-shadow: inset 4px 0 0 #2f6f5e;
+    border-left: 4px solid var(--cc-success, #2f6f5e);
+    background: var(--cc-success-bg, #edf6f2);
+}
+
+.rb-cogs-value {
+    color: var(--cc-brown-900, #3d2418);
+    font-size: 24px;
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+    margin: 4px 0;
+}
+
+.rb-footer-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px 32px;
+    background: var(--cc-surface-raised, #ffffff);
+    border-top: 1px solid var(--cc-border-strong, #d8c5b6);
+    box-shadow: var(--cc-shadow-lg, 0 18px 48px rgba(32, 24, 18, 0.14));
+}
+
+.rb-footer-metric {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.rb-footer-metric-label {
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.rb-footer-metric-value {
+    color: var(--cc-brown-900, #3d2418);
+    font-size: 20px;
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+}
+
+.rb-footer-pct {
+    color: var(--cc-success, #2f6f5e);
+    font-size: 18px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   SELECT2 OVERRIDES
+   ========================================================================== */
+.rb-page .select2-container--bootstrap-5 .select2-selection {
+    min-height: 44px;
+    padding: 6px 12px;
+    border-color: var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background-color: var(--cc-surface-raised, #ffffff);
+    font-size: 13.5px;
+}
+
+.rb-page .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+    border-color: var(--cc-brown-600, #70482f);
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+}
+
+#bomTable .select2-container--bootstrap-5 .select2-selection {
+    min-height: 36px;
+    height: 36px;
+    padding: 2px 8px;
+    border-radius: var(--cc-radius-sm, 8px);
+}
+
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS
+   ========================================================================== */
+@media (max-width: 1199.98px) {
+    .rb-page {
+        padding: 20px 16px 140px;
+    }
+
+    .rb-footer-bar {
+        padding: 14px 20px;
+        flex-wrap: wrap;
+    }
 }
 
 @media (max-width: 767.98px) {
     .rb-page-header,
     .rb-builder-heading,
     .rb-detail-header {
-        padding: 16px;
-        border-radius: 11px;
+        flex-direction: column;
+        align-items: flex-start;
+        min-height: auto;
+        padding: 20px;
     }
-    .rb-health-summary {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    .rb-list-filters {
+        grid-template-columns: 1fr;
     }
-}
 
-/* Tinh chỉnh theo trục cột của các bảng danh mục và tình trạng dữ liệu. */
-.rb-prepareditem-table > thead > tr > th:nth-child(1),
-.rb-prepareditem-table > thead > tr > th:nth-child(2),
-.rb-prepareditem-table > tbody > tr > td:nth-child(1),
-.rb-prepareditem-table > tbody > tr > td:nth-child(2) {
-    text-align: center !important;
-}
-.rb-prepareditem-table > tbody > tr > td:nth-child(1) .rb-code {
-    margin-left: auto;
-    margin-right: auto;
-}
+    .rb-recipe-tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+    }
 
-.rb-recipe-table > thead > tr > th:first-child,
-.rb-recipe-table > tbody > tr > td:first-child {
-    text-align: center !important;
-}
-.rb-recipe-table > tbody > tr > td:first-child .fw-semibold,
-.rb-recipe-table > tbody > tr > td:first-child .font-monospace {
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-}
-
-.rb-health-table > thead > tr > th:first-child,
-.rb-health-table > tbody > tr > td:first-child {
-    text-align: center !important;
-}
-.rb-health-table .rb-health-identity > .d-flex {
-    justify-content: center;
-}
-.rb-health-table .rb-health-identity > .fw-semibold,
-.rb-health-table .rb-health-identity > .font-monospace {
-    text-align: center;
-}
-.rb-health-table > thead > tr > th:nth-child(4) {
-    text-align: center !important;
-    padding-left: 12px;
-    padding-right: 12px;
-}
-.rb-health-table > tbody > tr > td:nth-child(4) {
-    text-align: center !important;
-}
-.rb-health-table .rb-health-reason code {
-    margin-left: auto;
-    margin-right: auto;
-}
-.rb-health-table .rb-health-reason span {
-    text-align: center;
-}
-.rb-health-table > thead > tr > th:last-child,
-.rb-health-table > tbody > tr > td:last-child {
-    text-align: center !important;
+    .rb-footer-bar {
+        position: sticky;
+    }
 }
