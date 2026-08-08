@@ -1,6 +1,7 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.RestockRequestWorkflowDetailDto
 @using CafeChain.Application.Constants
 @using CafeChain.Application.DTOs.Admin.Production
+@using CafeChain.Application.DTOs.Admin.RestockRequests
 @using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Chi tiết yêu cầu nhập hàng";
@@ -10,6 +11,9 @@
     var canSubmit = ViewBag.CanSubmit as bool? ?? false;
     var canAddDemand = ViewBag.CanAddDemand as bool? ?? false;
     var productionEligibility = ViewBag.ProductionEligibility as ProductionSourceEligibilityDto;
+    var purchaseEligibility = ViewBag.PurchaseEligibility as PurchaseSourceEligibilityDto;
+    var canOfferPurchase = purchaseEligibility?.Eligible == true
+        || (purchaseEligibility == null && Model.IngredientId.HasValue);
     var hasPendingPurchaseAllocation = Model.SourcingAllocations.Any(x =>
         x.DecisionType == RestockSourcingDecisionTypes.Purchase
         && x.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice
@@ -183,9 +187,12 @@
                                 <button type="button" class="ops-source-option" data-source-option="TRANSFER" aria-pressed="false">
                                     <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i><strong>Điều chuyển nội bộ</strong><span>Nhận hàng từ một chi nhánh khác trong chuỗi.</span>
                                 </button>
-                                <button type="button" class="ops-source-option" data-source-option="PURCHASE" aria-pressed="false">
-                                    <i class="fa-solid fa-basket-shopping" aria-hidden="true"></i><strong>Mua ngoài</strong><span>Đưa số lượng vào đề nghị mua và chọn Nhà cung cấp ở bước tổng hợp.</span>
-                                </button>
+                                @if (canOfferPurchase)
+                                {
+                                    <button type="button" class="ops-source-option" data-source-option="PURCHASE" aria-pressed="false">
+                                        <i class="fa-solid fa-basket-shopping" aria-hidden="true"></i><strong>Mua ngoài</strong><span>Đưa số lượng vào đề nghị mua và chọn Nhà cung cấp ở bước tổng hợp.</span>
+                                    </button>
+                                }
                                 @if (productionEligibility?.Eligible == true)
                                 {
                                     <button type="button" class="ops-source-option" data-source-option="PRODUCTION" aria-pressed="false">

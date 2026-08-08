@@ -376,6 +376,7 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IStockShortageReportService, StockShortageReportService>();
             services.AddScoped<IStockAlertManagerService, StockAlertManagerService>();
             services.AddScoped<IRestockRequestService, RestockRequestService>();
+            services.AddScoped<IPurchaseSourceEligibilityService, PurchaseSourceEligibilityService>();
             services.AddScoped<IReorderSuggestionService, ReorderSuggestionService>();
             services.AddScoped<IReorderSuggestionTokenService, ReorderSuggestionTokenService>();
             services.AddScoped<IReorderSuggestionAuthorizationService, ReorderSuggestionAuthorizationService>();

@@ -39,6 +39,56 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
     private const int SalesStaff = 23704;
 
     [Fact]
+    public async Task PreparedItemWithoutPurchaseContract_DirectPurchaseRequestIsRejected()
+    {
+        using var context = CreateDbContext();
+        await SeedAsync(context);
+        var preparedItem = new PreparedItem
+        {
+            PreparedItemId = 23702,
+            Code = "BTP-23702",
+            Name = "Bán thành phẩm chưa có gói mua",
+            BaseUnitId = BaseUnitId,
+            Active = true
+        };
+        var demand = new RestockRequest
+        {
+            RestockRequestId = 23702,
+            StoreId = StoreA,
+            PreparedItemId = preparedItem.PreparedItemId,
+            RequestedQuantity = 1_000m,
+            RequestedProcurementQuantity = 1_000m,
+            ProcurementUnitId = BaseUnitId,
+            Status = RestockRequestStatuses.Processing,
+            Priority = RestockRequestPriorities.Normal,
+            CreatedByStaffId = ManagerA,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.PreparedItems.Add(preparedItem);
+        context.RestockRequests.Add(demand);
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            purchaseEligibility: new PurchaseSourceEligibilityService(context));
+
+        var result = await service.SetSourcingDecisionAsync(new SourcingDecisionRequest
+        {
+            RestockRequestId = demand.RestockRequestId,
+            DecisionType = RestockSourcingDecisionTypes.Purchase,
+            ProcurementQuantity = 1_000m,
+            ProcurementUnitId = BaseUnitId
+        }, WarehouseStaff);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(PurchaseEligibilityReasonCodes.CapabilityMissing, result.ErrorCode);
+        Assert.Contains("chưa được cấu hình", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(await context.RestockSourcingAllocations
+            .Where(x => x.RestockRequestId == demand.RestockRequestId)
+            .ToListAsync());
+    }
+
+    [Fact]
     public async Task CreateManual_NoActiveRequest_CreatesExactlyOne()
     {
         using var context = CreateDbContext();
@@ -558,7 +608,8 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
 
     private static RestockRequestService CreateService(
         CafeChain.Data.AppDbContext context,
-        IProductionSourceEligibilityService? productionEligibility = null)
+        IProductionSourceEligibilityService? productionEligibility = null,
+        IPurchaseSourceEligibilityService? purchaseEligibility = null)
     {
         var conversion = new Mock<IUnitConversionService>();
         conversion.Setup(x => x.ConvertAsync(
@@ -573,7 +624,8 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
             new ScopeAuthorizationService(context),
             new Mock<ILogger<RestockRequestService>>().Object,
             conversion.Object,
-            productionEligibility);
+            productionEligibility,
+            purchaseEligibility: purchaseEligibility);
     }
 
     private static async Task SeedAsync(CafeChain.Data.AppDbContext context)

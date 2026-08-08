@@ -25,6 +25,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly AppDbContext? _context;
         private readonly IUnitConversionService? _unitConversion;
         private readonly IProductionSourceEligibilityService? _productionEligibility;
+        private readonly IPurchaseSourceEligibilityService? _purchaseEligibility;
 
         public AdminRestockRequestsController(
             IRestockRequestService service,
@@ -33,7 +34,8 @@ namespace CafeChain.Areas.Admin.Controllers
             IAdminStoreScopeResolver storeScopeResolver,
             AppDbContext? context = null,
             IUnitConversionService? unitConversion = null,
-            IProductionSourceEligibilityService? productionEligibility = null)
+            IProductionSourceEligibilityService? productionEligibility = null,
+            IPurchaseSourceEligibilityService? purchaseEligibility = null)
         {
             _service = service;
             _workflow = workflow;
@@ -42,6 +44,7 @@ namespace CafeChain.Areas.Admin.Controllers
             _context = context;
             _unitConversion = unitConversion;
             _productionEligibility = productionEligibility;
+            _purchaseEligibility = purchaseEligibility;
         }
 
         [HttpGet]
@@ -152,6 +155,14 @@ namespace CafeChain.Areas.Admin.Controllers
                     IngredientId = result.Data.IngredientId,
                     PreparedItemId = result.Data.PreparedItemId,
                     RequiredPermissionCode = PermissionConstants.RestockSelectProductionSource
+                })).Data;
+            ViewBag.PurchaseEligibility = _purchaseEligibility == null
+                ? null
+                : (await _purchaseEligibility.EvaluateAsync(new()
+                {
+                    StoreId = result.Data.StoreId,
+                    IngredientId = result.Data.IngredientId,
+                    PreparedItemId = result.Data.PreparedItemId
                 })).Data;
             return View(result.Data);
         }

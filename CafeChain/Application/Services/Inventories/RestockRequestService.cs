@@ -37,6 +37,7 @@ namespace CafeChain.Application.Services.Inventories
         private readonly ILogger<RestockRequestService> _logger;
         private readonly IUnitConversionService? _unitConversion;
         private readonly IProductionSourceEligibilityService? _productionEligibility;
+        private readonly IPurchaseSourceEligibilityService? _purchaseEligibility;
         private readonly ProductionOperationsOptions _productionOptions;
 
         public RestockRequestService(
@@ -45,13 +46,15 @@ namespace CafeChain.Application.Services.Inventories
             ILogger<RestockRequestService> logger,
             IUnitConversionService? unitConversion = null,
             IProductionSourceEligibilityService? productionEligibility = null,
-            IOptions<ProductionOperationsOptions>? productionOptions = null)
+            IOptions<ProductionOperationsOptions>? productionOptions = null,
+            IPurchaseSourceEligibilityService? purchaseEligibility = null)
         {
             _context = context;
             _scopeAuthorization = scopeAuthorization;
             _logger = logger;
             _unitConversion = unitConversion;
             _productionEligibility = productionEligibility;
+            _purchaseEligibility = purchaseEligibility;
             _productionOptions = productionOptions?.Value ?? new ProductionOperationsOptions();
         }
 
@@ -698,6 +701,19 @@ namespace CafeChain.Application.Services.Inventories
                 return ServiceResult<SourcingAllocationDto>.Failure("Đơn vị phân bổ phải trùng với đơn vị nhu cầu.");
 
             ProductionSourceEligibilityDto? productionPlan = null;
+            if (decision == RestockSourcingDecisionTypes.Purchase)
+            {
+                var purchase = await ValidatePurchaseSourceAsync(demand);
+                if (!purchase.IsSuccess || purchase.Data?.Eligible != true)
+                {
+                    return ServiceResult<SourcingAllocationDto>.Failure(
+                        purchase.Data?.Message
+                            ?? purchase.Message
+                            ?? "Không thể chọn nguồn mua ngoài cho nhu cầu này.",
+                        errorCode: purchase.Data?.ReasonCode ?? purchase.ErrorCode);
+                }
+            }
+
             if (decision == RestockSourcingDecisionTypes.Production)
             {
                 if (!request.RequestKey.HasValue || request.RequestKey.Value == Guid.Empty)
@@ -806,6 +822,31 @@ namespace CafeChain.Application.Services.Inventories
                 IngredientId = demand.IngredientId,
                 PreparedItemId = demand.PreparedItemId,
                 RequiredPermissionCode = PermissionConstants.RestockSelectProductionSource
+            });
+        }
+
+        private async Task<ServiceResult<PurchaseSourceEligibilityDto>> ValidatePurchaseSourceAsync(
+            RestockRequest demand)
+        {
+            if (_purchaseEligibility == null)
+            {
+                return demand.PreparedItemId.HasValue
+                    ? ServiceResult<PurchaseSourceEligibilityDto>.Failure(
+                        "Dịch vụ kiểm tra nguồn mua ngoài chưa sẵn sàng.",
+                        errorCode: PurchaseEligibilityReasonCodes.InvalidRequest)
+                    : ServiceResult<PurchaseSourceEligibilityDto>.Success(new PurchaseSourceEligibilityDto
+                    {
+                        Eligible = true,
+                        ReasonCode = PurchaseEligibilityReasonCodes.Eligible,
+                        Message = "Có thể tiếp tục lập đề nghị mua theo quy trình hiện tại."
+                    });
+            }
+
+            return await _purchaseEligibility.EvaluateAsync(new PurchaseSourceEligibilityRequest
+            {
+                StoreId = demand.StoreId,
+                IngredientId = demand.IngredientId,
+                PreparedItemId = demand.PreparedItemId
             });
         }
 
