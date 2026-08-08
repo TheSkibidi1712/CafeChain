@@ -121,14 +121,27 @@
             timer = setTimeout(evaluate, 350);
         }
 
+        function updateSelectTitles() {
+            $('#FromUnitId, #ToUnitId').each(function () {
+                var selectedText = $(this).find('option:selected').text();
+                if (selectedText) {
+                    $(this).attr('title', $.trim(selectedText));
+                }
+            });
+        }
+
         $('#ingredientSelect, #FromUnitId, #ToUnitId, #FromQuantity, #ToQuantity, #PackageConflictAcknowledged')
-            .on('change input', schedule);
+            .on('change input', function () {
+                updateSelectTitles();
+                schedule();
+            });
 
         $('#PackageConflictAcknowledged').on('change', function () {
             $(this).data('user', true);
         });
 
         // Initial
+        updateSelectTitles();
         schedule();
     }
 
