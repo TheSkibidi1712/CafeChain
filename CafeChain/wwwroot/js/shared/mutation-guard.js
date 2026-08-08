@@ -34,19 +34,20 @@
 
     function setBusy(button, busy) {
         if (!button) return;
+        const isButton = button instanceof HTMLButtonElement;
         if (busy) {
-            if (!originalLabels.has(button)) originalLabels.set(button, button.innerHTML);
+            if (isButton && !originalLabels.has(button)) originalLabels.set(button, button.innerHTML);
             if (!originalDisabled.has(button)) originalDisabled.set(button, button.disabled);
             button.disabled = true;
             button.setAttribute("aria-busy", "true");
             button.classList.add("is-submitting");
             const loadingText = button.dataset.loadingText;
-            if (loadingText) button.textContent = loadingText;
+            if (isButton && loadingText) button.textContent = loadingText;
         } else {
             button.disabled = originalDisabled.get(button) === true;
             button.removeAttribute("aria-busy");
             button.classList.remove("is-submitting");
-            if (originalLabels.has(button)) button.innerHTML = originalLabels.get(button);
+            if (isButton && originalLabels.has(button)) button.innerHTML = originalLabels.get(button);
             originalLabels.delete(button);
             originalDisabled.delete(button);
         }
@@ -113,6 +114,7 @@
         if (!(field instanceof HTMLElement)) return;
         field.classList.add("is-invalid");
         field.setAttribute("aria-invalid", "true");
+        if (field.closest("form")?.dataset.validationFeedback === "sweetalert") return;
         if (validationToastPending) return;
         validationToastPending = true;
         queueMicrotask(function () {

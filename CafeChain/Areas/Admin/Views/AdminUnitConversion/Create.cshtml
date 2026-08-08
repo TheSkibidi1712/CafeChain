@@ -54,13 +54,13 @@
                 </div>
 
                 <div class="row g-3 align-items-end mb-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold" for="FromQuantity">Số lượng đầu vào <span class="text-danger">*</span></label>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold" for="FromQuantity">SL đầu vào <span class="text-danger">*</span></label>
                         <input name="FromQuantity" id="FromQuantity" class="form-control text-end" type="number" step="any" min="0.0001" value="@form.FromQuantity" />
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-5">
                         <label class="form-label fw-semibold" for="FromUnitId">Đơn vị đầu vào <span class="text-danger">*</span></label>
-                        <select name="FromUnitId" id="FromUnitId" class="form-select" required>
+                        <select name="FromUnitId" id="FromUnitId" class="form-select" required title="Chọn đơn vị đầu vào">
                             <option value="">-- ĐVT --</option>
                             @foreach (var u in units)
                             {
@@ -75,13 +75,13 @@
                         </select>
                     </div>
                     <div class="col-md-1 text-center fw-bold text-muted pb-2">=</div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold" for="ToQuantity">Số lượng đầu ra <span class="text-danger">*</span></label>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold" for="ToQuantity">SL đầu ra <span class="text-danger">*</span></label>
                         <input name="ToQuantity" id="ToQuantity" class="form-control text-end" type="number" step="any" min="0.0001" value="@form.ToQuantity" />
                     </div>
                     <div class="col-md-2">
                         <label class="form-label fw-semibold" for="ToUnitId">ĐVT ra <span class="text-danger">*</span></label>
-                        <select name="ToUnitId" id="ToUnitId" class="form-select" required>
+                        <select name="ToUnitId" id="ToUnitId" class="form-select" required title="Chọn đơn vị đầu ra">
                             <option value="">-- ĐVT --</option>
                             @foreach (var u in units)
                             {
@@ -90,7 +90,7 @@
                                         data-type="@u.Type"
                                         data-pack="@(u.IsPackagingCount ? "1" : "0")"
                                         data-phys="@(u.IsPhysicalStandard ? "1" : "0")">
-                                    @u.UnitCode
+                                    @u.Name (@u.UnitCode)
                                 </option>
                             }
                         </select>

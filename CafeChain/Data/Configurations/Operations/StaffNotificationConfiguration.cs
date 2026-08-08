@@ -64,6 +64,11 @@ namespace CafeChain.Data.Configurations.Operations
                 .HasForeignKey(x => x.RecipientStaffId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.OtpChallenge)
+                .WithMany()
+                .HasForeignKey(x => x.OtpChallengeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => new { x.RecipientStaffId, x.IsRead })
                 .HasDatabaseName("IX_StaffNotification_Recipient_IsRead");
 
@@ -72,6 +77,9 @@ namespace CafeChain.Data.Configurations.Operations
 
             entity.HasIndex(x => new { x.EntityType, x.EntityId })
                 .HasDatabaseName("IX_StaffNotification_Entity");
+
+            entity.HasIndex(x => x.OtpChallengeId)
+                .HasDatabaseName("IX_StaffNotification_OtpChallengeId");
 
             entity.HasIndex(x => x.DeduplicationKey)
                 .IsUnique()

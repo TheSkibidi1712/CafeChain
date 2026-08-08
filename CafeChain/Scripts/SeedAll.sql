@@ -6,6 +6,102 @@ SET QUOTED_IDENTIFIER ON;
 GO
 
 /* ============================================================
+   FIXED POS TEST IDENTITIES
+   - Must run before any later batch creates identity rows.
+   - AccountId/StaffId 16 and 17 continue directly after migration seed 15.
+   - Password hash is copied from salesstaff; POS operator PIN is never seeded.
+   ============================================================ */
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    DECLARE @PosTestPasswordHash nvarchar(500), @PosTestGender int, @PosTestEmployeeStatus int;
+    DECLARE @PosTestSalesRoleId int, @PosTestStoreScopeTypeId int;
+
+    SELECT @PosTestPasswordHash=a.PasswordHash,
+           @PosTestGender=s.Gender,
+           @PosTestEmployeeStatus=s.EmployeeStatus
+    FROM dbo.Accounts a
+    JOIN dbo.Staffs s ON s.AccountId=a.AccountId
+    WHERE a.Email=N'salesstaff@cafechain.vn' AND a.Active=1 AND s.Active=1 AND s.StoreId=1;
+
+    SELECT @PosTestSalesRoleId=RoleId FROM dbo.Roles WHERE Name=N'Nhân viên bán hàng' AND Active=1;
+    SELECT @PosTestStoreScopeTypeId=ScopeTypeId FROM dbo.ScopeTypes WHERE Code=N'STORE';
+
+    IF @PosTestPasswordHash IS NULL OR @PosTestSalesRoleId IS NULL OR @PosTestStoreScopeTypeId IS NULL
+       OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE StoreId=1 AND Name=N'CafeChain Thủ Dầu Một')
+       OR NOT EXISTS(SELECT 1 FROM dbo.Stores WHERE StoreId=3 AND Name=N'CafeChain Dĩ An')
+        THROW 53700,N'POS_TEST_IDENTITIES: thiếu salesstaff, role, STORE scope hoặc Store 1/3 nền.',1;
+
+    IF EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=16 AND
+              (Email<>N'salesstaff2@cafechain.vn' OR PasswordHash<>@PosTestPasswordHash OR Active<>1 OR RequiresPasswordChange<>0))
+       OR EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=N'salesstaff2@cafechain.vn' AND AccountId<>16)
+        THROW 53701,N'POS_TEST_IDENTITIES: AccountId/email 16 đã tồn tại với payload khác.',1;
+    IF EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=17 AND
+              (Email<>N'salesstaff3@cafechain.vn' OR PasswordHash<>@PosTestPasswordHash OR Active<>1 OR RequiresPasswordChange<>0))
+       OR EXISTS(SELECT 1 FROM dbo.Accounts WHERE Email=N'salesstaff3@cafechain.vn' AND AccountId<>17)
+        THROW 53702,N'POS_TEST_IDENTITIES: AccountId/email 17 đã tồn tại với payload khác.',1;
+
+    SET IDENTITY_INSERT dbo.Accounts ON;
+    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=16)
+        INSERT dbo.Accounts(AccountId,Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
+        VALUES(16,N'salesstaff2@cafechain.vn',@PosTestPasswordHash,1,0,'2026-08-06T00:00:00',0,NULL);
+    IF NOT EXISTS(SELECT 1 FROM dbo.Accounts WHERE AccountId=17)
+        INSERT dbo.Accounts(AccountId,Email,PasswordHash,Active,RequiresPasswordChange,CreatedAt,FailedLoginAttempts,LockoutEnd)
+        VALUES(17,N'salesstaff3@cafechain.vn',@PosTestPasswordHash,1,0,'2026-08-06T00:00:00',0,NULL);
+    SET IDENTITY_INSERT dbo.Accounts OFF;
+
+    IF EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId IN(16,17) AND RoleId<>@PosTestSalesRoleId)
+        THROW 53703,N'POS_TEST_IDENTITIES: tài khoản test có role ngoài Nhân viên bán hàng.',1;
+    IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=16 AND RoleId=@PosTestSalesRoleId)
+        INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(16,@PosTestSalesRoleId);
+    IF NOT EXISTS(SELECT 1 FROM dbo.AccountRoles WHERE AccountId=17 AND RoleId=@PosTestSalesRoleId)
+        INSERT dbo.AccountRoles(AccountId,RoleId) VALUES(17,@PosTestSalesRoleId);
+
+    IF EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=16 AND
+              (AccountId<>16 OR FullName<>N'Nhân viên bán hàng 2' OR StoreId<>1 OR Active<>1 OR PosPinHash IS NOT NULL))
+       OR EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=16 AND StaffId<>16)
+        THROW 53704,N'POS_TEST_IDENTITIES: StaffId/AccountId 16 đã tồn tại với payload khác.',1;
+    IF EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=17 AND
+              (AccountId<>17 OR FullName<>N'Nhân viên bán hàng 3' OR StoreId<>3 OR Active<>1 OR PosPinHash IS NOT NULL))
+       OR EXISTS(SELECT 1 FROM dbo.Staffs WHERE AccountId=17 AND StaffId<>17)
+        THROW 53705,N'POS_TEST_IDENTITIES: StaffId/AccountId 17 đã tồn tại với payload khác.',1;
+
+    SET IDENTITY_INSERT dbo.Staffs ON;
+    IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=16)
+        INSERT dbo.Staffs(StaffId,AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,StoreId,
+                          AvatarUrl,AvatarPublicId,Active,PosPinHash,PosPinFailedAttempts,PosPinLockedUntilUtc,CreatedAt)
+        VALUES(16,16,N'Nhân viên bán hàng 2',NULL,@PosTestGender,'2026-08-06',@PosTestEmployeeStatus,NULL,1,
+               NULL,NULL,1,NULL,0,NULL,'2026-08-06T00:00:00');
+    IF NOT EXISTS(SELECT 1 FROM dbo.Staffs WHERE StaffId=17)
+        INSERT dbo.Staffs(StaffId,AccountId,FullName,CCCD,Gender,StartDate,EmployeeStatus,DateOfBirth,StoreId,
+                          AvatarUrl,AvatarPublicId,Active,PosPinHash,PosPinFailedAttempts,PosPinLockedUntilUtc,CreatedAt)
+        VALUES(17,17,N'Nhân viên bán hàng 3',NULL,@PosTestGender,'2026-08-06',@PosTestEmployeeStatus,NULL,3,
+               NULL,NULL,1,NULL,0,NULL,'2026-08-06T00:00:00');
+    SET IDENTITY_INSERT dbo.Staffs OFF;
+
+    IF EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=16 AND
+              (ScopeTypeId<>@PosTestStoreScopeTypeId OR ScopeRefId<>1))
+       OR EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=17 AND
+              (ScopeTypeId<>@PosTestStoreScopeTypeId OR ScopeRefId<>3))
+        THROW 53706,N'POS_TEST_IDENTITIES: StaffScope test khác STORE/Store contract.',1;
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=16 AND ScopeTypeId=@PosTestStoreScopeTypeId AND ScopeRefId=1)
+        INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId) VALUES(16,@PosTestStoreScopeTypeId,1);
+    IF NOT EXISTS(SELECT 1 FROM dbo.StaffScopes WHERE StaffId=17 AND ScopeTypeId=@PosTestStoreScopeTypeId AND ScopeRefId=3)
+        INSERT dbo.StaffScopes(StaffId,ScopeTypeId,ScopeRefId) VALUES(17,@PosTestStoreScopeTypeId,3);
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    SET IDENTITY_INSERT dbo.Accounts OFF;
+    SET IDENTITY_INSERT dbo.Staffs OFF;
+    THROW;
+END CATCH;
+GO
+
+/* ============================================================
    BATCH 16 - DEMO_COVERAGE_V16 branch receipt integrity
    - Remediates the two historical confirmed demo receipts.
    - Adds Store 2 and enough confirmed receipts for supplier analytics.
@@ -6104,18 +6200,18 @@ BEGIN TRY
  (5,6,N'Category.View',N'Xem danh mục',N'View',N'Xem danh sách và chi tiết danh mục đồ uống',1,'2026-01-01'),
  (6,6,N'Category.Create',N'Thêm danh mục',N'Create',N'Tạo mới danh mục đồ uống',1,'2026-01-01'),
  (7,6,N'Category.Update',N'Cập nhật danh mục',N'Update',N'Cập nhật thông tin danh mục đồ uống',1,'2026-01-01'),
- (8,6,N'Category.Delete',N'Xóa danh mục',N'Delete',N'Xóa hoặc vô hiệu hóa danh mục đồ uống',1,'2026-01-01'),
+ (8,6,N'Category.Delete',N'Xóa danh mục',N'Delete',N'Xóa hoặc vô hiệu hóa danh mục đồ uống',0,'2026-01-01'),
  (9,6,N'Category.ToggleStatus',N'Ẩn / hiện danh mục',N'ToggleStatus',N'Cho phép bật hoặc tắt trạng thái hiển thị của danh mục',1,'2026-01-01'),
  (10,7,N'Size.View',N'Xem Size',N'View',N'Xem danh sách và chi tiết Size',1,'2026-01-01'),
  (11,7,N'Size.Create',N'Thêm Size',N'Create',N'Tạo mới Size',1,'2026-01-01'),
  (12,7,N'Size.Update',N'Cập nhật Size',N'Update',N'Cập nhật thông tin Size',1,'2026-01-01'),
- (13,7,N'Size.Delete',N'Xóa Size',N'Delete',N'Xóa hoặc vô hiệu hóa Size',1,'2026-01-01'),
+ (13,7,N'Size.Delete',N'Xóa Size',N'Delete',N'Xóa hoặc vô hiệu hóa Size',0,'2026-01-01'),
  (14,7,N'Size.ToggleStatus',N'Khóa / mở khóa Size',N'ToggleStatus',N'Cho phép bật hoặc tắt trạng thái hoạt động của Size',1,'2026-01-01'),
  (15,7,N'Size.AssignDrink',N'Liên kết Size với đồ uống',N'AssignDrink',N'Cho phép liên kết Size với đồ uống',1,'2026-01-01'),
  (16,2,N'Topping.View',N'Xem Topping',N'View',N'Xem danh sách và chi tiết Topping',1,'2026-01-01'),
  (17,2,N'Topping.Create',N'Thêm Topping',N'Create',N'Tạo mới Topping',1,'2026-01-01'),
  (18,2,N'Topping.Update',N'Cập nhật Topping',N'Update',N'Cập nhật thông tin Topping',1,'2026-01-01'),
- (19,2,N'Topping.Delete',N'Xóa Topping',N'Delete',N'Xóa hoặc vô hiệu hóa Topping',1,'2026-01-01'),
+ (19,2,N'Topping.Delete',N'Xóa Topping',N'Delete',N'Xóa hoặc vô hiệu hóa Topping',0,'2026-01-01'),
  (20,2,N'Topping.ToggleStatus',N'Khóa / mở khóa Topping',N'ToggleStatus',N'Cho phép bật hoặc tắt trạng thái hoạt động của Topping',1,'2026-01-01'),
  (21,2,N'Topping.AssignDrink',N'Liên kết Topping với đồ uống',N'AssignDrink',N'Cho phép liên kết Topping với đồ uống',1,'2026-01-01'),
  (22,1,N'Drink.ToggleStatus',N'Đổi trạng thái đồ uống',N'ToggleStatus',N'Cho phép chuyển trạng thái đang bán / ngừng bán của đồ uống',1,'2026-01-01'),
@@ -6160,9 +6256,18 @@ BEGIN TRY
   THROW 53306,N'RolePermission Part7 không đủ 34 cặp hoặc có FK không hợp lệ.',1;
 
  INSERT dbo.RolePermissions(RoleId,PermissionId)
- SELECT x.RoleId,x.PermissionId FROM @RolePermissionSeed x
- WHERE NOT EXISTS(SELECT 1 FROM dbo.RolePermissions rp
- WHERE rp.RoleId=x.RoleId AND rp.PermissionId=x.PermissionId);
+ SELECT x.RoleId,x.PermissionId
+ FROM @RolePermissionSeed x
+ JOIN dbo.Permissions p
+   ON p.PermissionId=x.PermissionId
+  AND p.Active=1
+ WHERE NOT EXISTS
+ (
+     SELECT 1
+     FROM dbo.RolePermissions rp
+     WHERE rp.RoleId=x.RoleId
+       AND rp.PermissionId=x.PermissionId
+ );
 
  IF EXISTS(SELECT Code FROM dbo.PermissionGroups GROUP BY Code HAVING COUNT(*)>1)
  OR EXISTS(SELECT Name FROM dbo.PermissionGroups GROUP BY Name HAVING COUNT(*)>1)
@@ -6174,8 +6279,21 @@ BEGIN TRY
  OR EXISTS(SELECT 1 FROM dbo.RolePermissions rp LEFT JOIN dbo.Roles r ON r.RoleId=rp.RoleId
  LEFT JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
  WHERE r.RoleId IS NULL OR p.PermissionId IS NULL)
- OR EXISTS(SELECT 1 FROM @RolePermissionSeed x WHERE NOT EXISTS(
- SELECT 1 FROM dbo.RolePermissions rp WHERE rp.RoleId=x.RoleId AND rp.PermissionId=x.PermissionId))
+ OR EXISTS
+ (
+    SELECT 1
+    FROM @RolePermissionSeed x
+    JOIN dbo.Permissions p
+      ON p.PermissionId=x.PermissionId
+     AND p.Active=1
+    WHERE NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.RolePermissions rp
+        WHERE rp.RoleId=x.RoleId
+          AND rp.PermissionId=x.PermissionId
+    )
+ )
   THROW 53308,N'Duplicate, orphan hoặc thiếu RolePermission sau Batch 12.',1;
 
  COMMIT;
@@ -6245,14 +6363,14 @@ BEGIN TRY
  (35,10,N'UnitConversion.ToggleStatus',N'Đổi trạng thái quy đổi',N'ToggleStatus',N'Đổi trạng thái quy đổi',1,'2026-01-01'),
 
  (36,11,N'Inventory.View',N'Xem tồn kho',N'View',N'Xem tồn kho',1,'2026-01-01'),
- (37,11,N'Inventory.Adjust',N'Điều chỉnh tồn kho',N'Adjust',N'Điều chỉnh tồn kho',1,'2026-01-01'),
- (38,11,N'Inventory.Export',N'Xuất dữ liệu tồn kho',N'Export',N'Xuất dữ liệu tồn kho',1,'2026-01-01'),
+ (37,11,N'Inventory.Adjust',N'Điều chỉnh tồn kho',N'Adjust',N'Điều chỉnh tồn kho',0,'2026-01-01'),
+ (38,11,N'Inventory.Export',N'Xuất dữ liệu tồn kho',N'Export',N'Xuất dữ liệu tồn kho',0,'2026-01-01'),
 
  (39,12,N'StockAlert.View',N'Xem cảnh báo kho',N'View',N'Xem cảnh báo kho',1,'2026-01-01'),
  (40,12,N'StockAlert.Resolve',N'Xử lý cảnh báo kho',N'Resolve',N'Xử lý cảnh báo kho',1,'2026-01-01'),
- (41,12,N'StockAlert.Configure',N'Cấu hình cảnh báo kho',N'Configure',N'Cấu hình cảnh báo kho',1,'2026-01-01'),
- (42,12,N'StockAlert.Export',N'Xuất cảnh báo kho',N'Export',N'Xuất cảnh báo kho',1,'2026-01-01'),
- (131,12,N'StockAlert.Create',N'Báo thiếu nguyên liệu',N'Create',N'Tạo cảnh báo thiếu nguyên liệu từ nghiệp vụ cửa hàng',1,'2026-01-01'),
+ (41,12,N'StockAlert.Configure',N'Cấu hình cảnh báo kho',N'Configure',N'Cấu hình cảnh báo kho',0,'2026-01-01'),
+ (42,12,N'StockAlert.Export',N'Xuất cảnh báo kho',N'Export',N'Xuất cảnh báo kho',0,'2026-01-01'),
+ (131,12,N'StockAlert.Create',N'Báo thiếu nguyên liệu',N'Create',N'Tạo cảnh báo thiếu nguyên liệu từ nghiệp vụ cửa hàng',0,'2026-01-01'),
  (132,12,N'StockAlert.CreateRestockRequest',N'Tạo yêu cầu nhập từ cảnh báo',N'CreateRestockRequest',N'Tạo yêu cầu nhập hàng từ cảnh báo kho đã được xác nhận',1,'2026-01-01'),
 
  (43,13,N'Restock.View',N'Xem yêu cầu nhập',N'View',N'Xem yêu cầu nhập',1,'2026-01-01'),
@@ -6263,49 +6381,49 @@ BEGIN TRY
  (48,13,N'Restock.Cancel',N'Hủy yêu cầu nhập',N'Cancel',N'Hủy yêu cầu nhập',1,'2026-01-01'),
  (133,13,N'Restock.Update',N'Cập nhật yêu cầu nhập',N'Update',N'Cập nhật yêu cầu nhập trước khi gửi hoặc khi trạng thái cho phép',1,'2026-01-01'),
  (134,13,N'Restock.CloseRemaining',N'Đóng phần còn lại yêu cầu nhập',N'CloseRemaining',N'Đóng phần nhu cầu nhập còn lại không tiếp tục xử lý',1,'2026-01-01'),
- (135,13,N'Restock.CreatePurchaseOrder',N'Tạo đơn đặt hàng từ yêu cầu nhập',N'CreatePurchaseOrder',N'Tạo đơn đặt hàng mua ngoài từ phần nhu cầu nhập được phân bổ',1,'2026-01-01'),
- (136,13,N'Restock.CreateTransfer',N'Tạo điều chuyển từ yêu cầu nhập',N'CreateTransfer',N'Tạo phiếu điều chuyển từ phần nhu cầu nhập được phân bổ',1,'2026-01-01'),
+ (135,13,N'Restock.CreatePurchaseOrder',N'Tạo đơn đặt hàng từ yêu cầu nhập',N'CreatePurchaseOrder',N'Tạo đơn đặt hàng mua ngoài từ phần nhu cầu nhập được phân bổ',0,'2026-01-01'),
+ (136,13,N'Restock.CreateTransfer',N'Tạo điều chuyển từ yêu cầu nhập',N'CreateTransfer',N'Tạo phiếu điều chuyển từ phần nhu cầu nhập được phân bổ',0,'2026-01-01'),
 
 
  (49,14,N'PurchaseAdvice.View',N'Xem đề nghị mua',N'View',N'Xem đề nghị mua',1,'2026-01-01'),
  (50,14,N'PurchaseAdvice.Create',N'Tạo đề nghị mua',N'Create',N'Tạo đề nghị mua',1,'2026-01-01'),
  (51,14,N'PurchaseAdvice.Submit',N'Gửi đề nghị mua',N'Submit',N'Gửi đề nghị mua',1,'2026-01-01'),
  (52,14,N'PurchaseAdvice.Review',N'Bắt đầu duyệt đề nghị mua',N'Review',N'Bắt đầu duyệt đề nghị mua',1,'2026-01-01'),
- (53,14,N'PurchaseAdvice.Approve',N'Duyệt đề nghị mua',N'Approve',N'Duyệt đề nghị mua',1,'2026-01-01'),
+ (53,14,N'PurchaseAdvice.Approve',N'Duyệt đề nghị mua',N'Approve',N'Duyệt đề nghị mua',0,'2026-01-01'),
  (54,14,N'PurchaseAdvice.Reject',N'Từ chối đề nghị mua',N'Reject',N'Từ chối đề nghị mua',1,'2026-01-01'),
  (55,14,N'PurchaseAdvice.Consolidate',N'Tổng hợp đề nghị mua',N'Consolidate',N'Tổng hợp đề nghị mua',1,'2026-01-01'),
- (137,14,N'PurchaseAdvice.SelectSupplier',N'Chọn nhà cung cấp',N'SelectSupplier',N'Chọn nhà cung cấp và quy cách mua cho đề nghị mua hàng',1,'2026-01-01'),
- (138,14,N'PurchaseAdvice.CreatePurchaseOrder',N'Tạo đơn đặt hàng từ đề nghị mua',N'CreatePurchaseOrder',N'Tạo đơn đặt hàng từ đề nghị mua đã được tổng hợp',1,'2026-01-01'),
+ (137,14,N'PurchaseAdvice.SelectSupplier',N'Chọn nhà cung cấp',N'SelectSupplier',N'Chọn nhà cung cấp và quy cách mua cho đề nghị mua hàng',0,'2026-01-01'),
+ (138,14,N'PurchaseAdvice.CreatePurchaseOrder',N'Tạo đơn đặt hàng từ đề nghị mua',N'CreatePurchaseOrder',N'Tạo đơn đặt hàng từ đề nghị mua đã được tổng hợp',0,'2026-01-01'),
 
  (56,15,N'PurchaseOrder.View',N'Xem đơn đặt hàng',N'View',N'Xem đơn đặt hàng',1,'2026-01-01'),
  (57,15,N'PurchaseOrder.Create',N'Tạo đơn đặt hàng',N'Create',N'Tạo đơn đặt hàng',1,'2026-01-01'),
- (58,15,N'PurchaseOrder.Update',N'Cập nhật đơn đặt hàng',N'Update',N'Cập nhật đơn đặt hàng',1,'2026-01-01'),
+ (58,15,N'PurchaseOrder.Update',N'Cập nhật đơn đặt hàng',N'Update',N'Cập nhật đơn đặt hàng',0,'2026-01-01'),
  (59,15,N'PurchaseOrder.Send',N'Gửi nhà cung cấp',N'Send',N'Gửi nhà cung cấp',1,'2026-01-01'),
- (60,15,N'PurchaseOrder.Receive',N'Nhận hàng từ PO',N'Receive',N'Nhận hàng từ PO',1,'2026-01-01'),
+ (60,15,N'PurchaseOrder.Receive',N'Nhận hàng từ PO',N'Receive',N'Nhận hàng từ PO',0,'2026-01-01'),
  (61,15,N'PurchaseOrder.Cancel',N'Hủy đơn đặt hàng',N'Cancel',N'Hủy đơn đặt hàng',1,'2026-01-01'),
  (62,15,N'PurchaseOrder.ViewBatch',N'Xem batch PO',N'ViewBatch',N'Xem batch PO',1,'2026-01-01'),
  (63,15,N'PurchaseOrder.CreateBatch',N'Tạo batch PO',N'CreateBatch',N'Tạo batch PO',1,'2026-01-01'),
- (64,15,N'PurchaseOrder.Consolidate',N'Tổng hợp PO',N'Consolidate',N'Tổng hợp PO',1,'2026-01-01'),
- (139,15,N'PurchaseOrder.Submit',N'Gửi đơn đặt hàng để duyệt',N'Submit',N'Chuyển đơn đặt hàng từ bản nháp sang trạng thái chờ duyệt',1,'2026-01-01'),
+ (64,15,N'PurchaseOrder.Consolidate',N'Tổng hợp PO',N'Consolidate',N'Tổng hợp PO',0,'2026-01-01'),
+ (139,15,N'PurchaseOrder.Submit',N'Gửi đơn đặt hàng để duyệt',N'Submit',N'Chuyển đơn đặt hàng từ bản nháp sang trạng thái chờ duyệt',0,'2026-01-01'),
  (140,15,N'PurchaseOrder.Approve',N'Duyệt đơn đặt hàng',N'Approve',N'Duyệt cam kết đặt hàng với nhà cung cấp',1,'2026-01-01'),
- (141,15,N'PurchaseOrder.RejectApproval',N'Từ chối duyệt đơn đặt hàng',N'RejectApproval',N'Từ chối đơn đặt hàng đang chờ duyệt',1,'2026-01-01'),
- (142,15,N'PurchaseOrder.OverrideAllocation',N'Duyệt vượt phân bổ',N'OverrideAllocation',N'Cho phép đơn đặt hàng vượt số lượng đã được phân bổ khi có lý do',1,'2026-01-01'),
+ (141,15,N'PurchaseOrder.RejectApproval',N'Từ chối duyệt đơn đặt hàng',N'RejectApproval',N'Từ chối đơn đặt hàng đang chờ duyệt',0,'2026-01-01'),
+ (142,15,N'PurchaseOrder.OverrideAllocation',N'Duyệt vượt phân bổ',N'OverrideAllocation',N'Cho phép đơn đặt hàng vượt số lượng đã được phân bổ khi có lý do',0,'2026-01-01'),
  (143,15,N'PurchaseOrder.Export',N'Xuất đơn đặt hàng',N'Export',N'Xuất tài liệu đơn đặt hàng để gửi hoặc lưu chứng từ',1,'2026-01-01'),
 
  (65,16,N'Receipt.View',N'Xem phiếu nhận hàng',N'View',N'Xem phiếu nhận hàng',1,'2026-01-01'),
  (66,16,N'Receipt.Create',N'Tạo phiếu nhận hàng',N'Create',N'Tạo phiếu nhận hàng',1,'2026-01-01'),
  (67,16,N'Receipt.Confirm',N'Xác nhận nhận hàng',N'Confirm',N'Xác nhận nhận hàng',1,'2026-01-01'),
- (68,16,N'Receipt.Reject',N'Ghi nhận hàng bị từ chối',N'Reject',N'Ghi nhận hàng bị từ chối',1,'2026-01-01'),
- (69,16,N'Receipt.Cancel',N'Hủy phiếu nhận hàng',N'Cancel',N'Hủy phiếu nhận hàng',1,'2026-01-01'),
+ (68,16,N'Receipt.Reject',N'Ghi nhận hàng bị từ chối',N'Reject',N'Ghi nhận hàng bị từ chối',0,'2026-01-01'),
+ (69,16,N'Receipt.Cancel',N'Hủy phiếu nhận hàng',N'Cancel',N'Hủy phiếu nhận hàng',0,'2026-01-01'),
  (144,16,N'Receipt.UpdateDraft',N'Cập nhật phiếu nhận bản nháp',N'UpdateDraft',N'Cập nhật phiếu nhận trước khi xác nhận nhập kho',1,'2026-01-01'),
- (145,16,N'Receipt.RecordSupplierIssue',N'Ghi nhận sự cố nhà cung cấp',N'RecordSupplierIssue',N'Ghi nhận sự cố hoặc lý do liên quan đến hàng giao từ nhà cung cấp',1,'2026-01-01'),
+ (145,16,N'Receipt.RecordSupplierIssue',N'Ghi nhận sự cố nhà cung cấp',N'RecordSupplierIssue',N'Ghi nhận sự cố hoặc lý do liên quan đến hàng giao từ nhà cung cấp',0,'2026-01-01'),
  (146,16,N'Receipt.ViewCost',N'Xem giá vốn phiếu nhận',N'ViewCost',N'Xem giá vốn và giá trị của phiếu nhận hàng',1,'2026-01-01'),
 
  (70,17,N'Supplier.View',N'Xem nhà cung cấp',N'View',N'Xem nhà cung cấp',1,'2026-01-01'),
  (71,17,N'Supplier.Create',N'Tạo nhà cung cấp',N'Create',N'Tạo nhà cung cấp',1,'2026-01-01'),
  (72,17,N'Supplier.Update',N'Cập nhật nhà cung cấp',N'Update',N'Cập nhật nhà cung cấp',1,'2026-01-01'),
  (73,17,N'Supplier.ToggleStatus',N'Đổi trạng thái nhà cung cấp',N'ToggleStatus',N'Đổi trạng thái nhà cung cấp',1,'2026-01-01'),
- (74,17,N'Supplier.ViewQuality',N'Xem chất lượng nhà cung cấp',N'ViewQuality',N'Xem chất lượng nhà cung cấp',1,'2026-01-01'),
+ (74,17,N'Supplier.ViewQuality',N'Xem chất lượng nhà cung cấp',N'ViewQuality',N'Xem chất lượng nhà cung cấp',0,'2026-01-01'),
 
  (75,18,N'InventoryDocument.View',N'Xem phiếu kho',N'View',N'Xem phiếu kho',1,'2026-01-01'),
  (76,18,N'InventoryDocument.CreateDraft',N'Tạo nháp phiếu kho',N'CreateDraft',N'Tạo nháp phiếu kho',1,'2026-01-01'),
@@ -6321,12 +6439,12 @@ BEGIN TRY
  (85,19,N'InventoryTransfer.Dispatch',N'Xuất kho nguồn',N'Dispatch',N'Xuất kho nguồn',1,'2026-01-01'),
  (86,19,N'InventoryTransfer.Receive',N'Nhận kho đích',N'Receive',N'Nhận kho đích',1,'2026-01-01'),
  (87,19,N'InventoryTransfer.Cancel',N'Hủy chuyển kho',N'Cancel',N'Hủy chuyển kho',1,'2026-01-01'),
- (88,19,N'InventoryTransfer.Export',N'Xuất dữ liệu chuyển kho',N'Export',N'Xuất dữ liệu chuyển kho',1,'2026-01-01'),
+ (88,19,N'InventoryTransfer.Export',N'Xuất dữ liệu chuyển kho',N'Export',N'Xuất dữ liệu chuyển kho',0,'2026-01-01'),
 
  (89,3,N'Order.View',N'Xem đơn hàng',N'View',N'Xem đơn hàng',1,'2026-01-01'),
  (90,3,N'Order.UpdateStatus',N'Cập nhật trạng thái đơn',N'UpdateStatus',N'Cập nhật trạng thái đơn',1,'2026-01-01'),
  (91,3,N'Order.Cancel',N'Hủy đơn hàng',N'Cancel',N'Hủy đơn hàng',1,'2026-01-01'),
- (92,3,N'Order.Refund',N'Hoàn tiền đơn hàng',N'Refund',N'Hoàn tiền đơn hàng',1,'2026-01-01'),
+ (92,3,N'Order.Refund',N'Hoàn tiền đơn hàng',N'Refund',N'Hoàn tiền đơn hàng',0,'2026-01-01'),
  (93,3,N'Order.Export',N'Xuất đơn hàng',N'Export',N'Xuất đơn hàng',1,'2026-01-01'),
 
  (94,20,N'Staff.View',N'Xem nhân viên',N'View',N'Xem nhân viên',1,'2026-01-01'),
@@ -6778,27 +6896,107 @@ BEGIN TRY
  (8,147);
 
 
- IF EXISTS(SELECT 1 FROM @AdminRolePermissionSeed x
- LEFT JOIN dbo.Roles r ON r.RoleId=x.RoleId AND r.Active=1
- LEFT JOIN dbo.Permissions p ON p.PermissionId=x.PermissionId AND p.Active=1
- WHERE r.RoleId IS NULL OR p.PermissionId IS NULL)
-  THROW 53323,N'RolePermission active-admin chứa FK không hợp lệ.',1;
+IF EXISTS
+(
+    SELECT 1
+    FROM @AdminRolePermissionSeed x
+    LEFT JOIN dbo.Roles r
+      ON r.RoleId=x.RoleId
+     AND r.Active=1
+    LEFT JOIN dbo.Permissions p
+      ON p.PermissionId=x.PermissionId
+    WHERE r.RoleId IS NULL
+       OR p.PermissionId IS NULL
+)
+    THROW 53323,
+        N'RolePermission active-admin chứa FK không hợp lệ.',
+        1;
 
- INSERT dbo.RolePermissions(RoleId,PermissionId)
- SELECT x.RoleId,x.PermissionId FROM @AdminRolePermissionSeed x
- WHERE NOT EXISTS(SELECT 1 FROM dbo.RolePermissions rp
- WHERE rp.RoleId=x.RoleId AND rp.PermissionId=x.PermissionId);
+ IF EXISTS
+(
+    SELECT 1
+    FROM @AdminRolePermissionSeed x
+    LEFT JOIN dbo.Roles r
+      ON r.RoleId=x.RoleId
+     AND r.Active=1
+    LEFT JOIN dbo.Permissions p
+      ON p.PermissionId=x.PermissionId
+    WHERE r.RoleId IS NULL
+       OR p.PermissionId IS NULL
+)
+    THROW 53323,
+        N'RolePermission active-admin chứa FK không hợp lệ.',
+        1;
 
- IF EXISTS(SELECT 1 FROM @AdminPermissionGroupSeed x WHERE NOT EXISTS(
- SELECT 1 FROM dbo.PermissionGroups g WHERE g.PermissionGroupId=x.PermissionGroupId))
- OR EXISTS(SELECT 1 FROM @AdminPermissionSeed x WHERE NOT EXISTS(
- SELECT 1 FROM dbo.Permissions p WHERE p.PermissionId=x.PermissionId))
- OR EXISTS(SELECT 1 FROM @AdminRolePermissionSeed x WHERE NOT EXISTS(
- SELECT 1 FROM dbo.RolePermissions rp WHERE rp.RoleId=x.RoleId AND rp.PermissionId=x.PermissionId))
- OR EXISTS(SELECT Code FROM dbo.Permissions GROUP BY Code HAVING COUNT(*)>1)
- OR EXISTS(SELECT PermissionGroupId,Action FROM dbo.Permissions
- GROUP BY PermissionGroupId,Action HAVING COUNT(*)>1)
-  THROW 53324,N'Catalog RBAC active-admin thiếu dữ liệu hoặc trùng khóa nghiệp vụ.',1;
+INSERT dbo.RolePermissions(RoleId,PermissionId)
+SELECT x.RoleId,x.PermissionId
+FROM @AdminRolePermissionSeed x
+JOIN dbo.Permissions p
+  ON p.PermissionId=x.PermissionId
+ AND p.Active=1
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.RolePermissions rp
+    WHERE rp.RoleId=x.RoleId
+      AND rp.PermissionId=x.PermissionId
+);
+
+IF EXISTS
+(
+    SELECT 1
+    FROM @AdminPermissionGroupSeed x
+    WHERE NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.PermissionGroups g
+        WHERE g.PermissionGroupId=x.PermissionGroupId
+    )
+)
+OR EXISTS
+(
+    SELECT 1
+    FROM @AdminPermissionSeed x
+    WHERE NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.Permissions p
+        WHERE p.PermissionId=x.PermissionId
+    )
+)
+OR EXISTS
+(
+    SELECT 1
+    FROM @AdminRolePermissionSeed x
+    JOIN dbo.Permissions p
+      ON p.PermissionId=x.PermissionId
+     AND p.Active=1
+    WHERE NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.RolePermissions rp
+        WHERE rp.RoleId=x.RoleId
+          AND rp.PermissionId=x.PermissionId
+    )
+)
+OR EXISTS
+(
+    SELECT Code
+    FROM dbo.Permissions
+    GROUP BY Code
+    HAVING COUNT(*)>1
+)
+OR EXISTS
+(
+    SELECT PermissionGroupId,Action
+    FROM dbo.Permissions
+    GROUP BY PermissionGroupId,Action
+    HAVING COUNT(*)>1
+)
+    THROW 53324,
+        N'Catalog RBAC active-admin thiếu dữ liệu hoặc trùng khóa nghiệp vụ.',
+        1;
+
 
  COMMIT;
 END TRY
@@ -6811,10 +7009,16 @@ END CATCH;
 GO
 
 /* ============================================================
-   RBAC_CAFECHAIN29_V2 - SYSTEM ADMIN FULL ACCESS RECONCILIATION
-   Source: phan_quyen_day_du_CafeChain29.md + FIX.md.
-   This block always reconciles; a version marker never skips it.
+   RBAC_CAFECHAIN_FINAL_V3 - LEAST PRIVILEGE RECONCILIATION
+   Replaces original SeedAll.sql lines 6909-7558.
+   - Preserves AccountPermissionOverrides exactly.
+   - Uses permission Code and role Name as stable identities.
+   - Adds six Dashboard section permissions to APPLICATION group.
+   - Deactivates 29 main-catalog orphan/legacy permissions.
+   - Keeps only nine active POS permissions; two unapproved POS
+     permissions remain in catalog but are inactive.
    ============================================================ */
+SET NOCOUNT ON;
 SET XACT_ABORT ON;
 BEGIN TRY
  BEGIN TRANSACTION;
@@ -6824,13 +7028,16 @@ BEGIN TRY
  OR OBJECT_ID(N'dbo.Roles',N'U') IS NULL
  OR OBJECT_ID(N'dbo.RolePermissions',N'U') IS NULL
  OR OBJECT_ID(N'dbo.AccountPermissionOverrides',N'U') IS NULL
-  THROW 53340,N'RBAC_CAFECHAIN29_V2: thiếu bảng RBAC bắt buộc.',1;
+  THROW 53340,N'RBAC_CAFECHAIN_FINAL_V3: thiếu bảng RBAC bắt buộc.',1;
 
  DROP TABLE IF EXISTS #ExpectedRolePermissions;
  DROP TABLE IF EXISTS #PermissionMatrix;
+ DROP TABLE IF EXISTS #PosPermissionMatrix;
  DROP TABLE IF EXISTS #NewPermissionCatalog;
  DROP TABLE IF EXISTS #RoleMap;
  DROP TABLE IF EXISTS #OverrideBefore;
+ DROP TABLE IF EXISTS #ManagedPermissionCodes;
+ DROP TABLE IF EXISTS #ExpectedRoleCounts;
 
  SELECT AccountPermissionOverrideId,AccountId,PermissionId,Effect,Reason
  INTO #OverrideBefore
@@ -6856,15 +7063,18 @@ BEGIN TRY
  (
   SELECT rm.RoleName
   FROM #RoleMap rm
-  LEFT JOIN dbo.Roles r ON r.Name=rm.RoleName
+  LEFT JOIN dbo.Roles r ON r.Name=rm.RoleName AND r.Active=1
   GROUP BY rm.RoleName
   HAVING COUNT(r.RoleId)<>1
  )
-  THROW 53341,N'RBAC_CAFECHAIN29_V2: mỗi RoleConstants.Name phải khớp đúng một role.',1;
+  THROW 53341,N'RBAC_CAFECHAIN_FINAL_V3: mỗi role phải khớp đúng một dòng active.',1;
 
  UPDATE rm SET RoleId=r.RoleId
- FROM #RoleMap rm JOIN dbo.Roles r ON r.Name=rm.RoleName;
+ FROM #RoleMap rm
+ JOIN dbo.Roles r ON r.Name=rm.RoleName AND r.Active=1;
 
+ /* New/dynamic permissions. PermissionId remains database-generated;
+    Code is the stable identity, matching the current SeedAll design. */
  CREATE TABLE #NewPermissionCatalog
  (
   Code nvarchar(100) NOT NULL PRIMARY KEY,
@@ -6874,48 +7084,66 @@ BEGIN TRY
   Description nvarchar(500) NOT NULL
  );
  INSERT #NewPermissionCatalog VALUES
- (N'ReorderSuggestion.View',N'REORDER_SUGGESTION',N'Xem gợi ý nhập hàng',N'View',N'Xem danh sách gợi ý nhập hàng trong phạm vi cửa hàng được phép truy cập'),
- (N'Restock.Create',N'RESTOCK',N'Tạo yêu cầu nhập hàng',N'Create',N'Tạo mới, tạo nháp hoặc bổ sung yêu cầu nhập hàng từ gợi ý nhập hàng trong phạm vi cửa hàng được phép thao tác'),
- (N'OperationalIce.ConfigurePolicy',N'OPERATIONAL_ICE',N'Cấu hình chính sách đá',N'ConfigurePolicy',N'Cấu hình định mức và ngưỡng đối soát đá trong phạm vi cửa hàng'),
- (N'OperationalIce.CreateShift',N'OPERATIONAL_ICE',N'Tạo ca vận hành đá',N'CreateShift',N'Tạo và cập nhật kế hoạch ca vận hành đá trong phạm vi cửa hàng'),
- (N'OperationalIce.OpenShift',N'OPERATIONAL_ICE',N'Mở ca vận hành đá',N'OpenShift',N'Xác nhận cấp đầu ca và mở phân bổ đá'),
- (N'OperationalIce.LinkWorkShift',N'OPERATIONAL_ICE',N'Liên kết WorkShift POS',N'LinkWorkShift',N'Liên kết WorkShift POS hợp lệ vào ca vận hành đá'),
- (N'OperationalIce.RequestSupplement',N'OPERATIONAL_ICE',N'Yêu cầu cấp bổ sung đá',N'RequestSupplement',N'Gửi yêu cầu cấp bổ sung cho ca vận hành đá được phân công'),
- (N'OperationalIce.ApproveSupplement',N'OPERATIONAL_ICE',N'Duyệt cấp bổ sung đá',N'ApproveSupplement',N'Duyệt hoặc từ chối yêu cầu cấp bổ sung đá'),
- (N'OperationalIce.Handoff',N'OPERATIONAL_ICE',N'Bàn giao đá giữa ca',N'Handoff',N'Xác nhận bàn giao đá giữa các ca cùng ngày'),
- (N'OperationalIce.SubmitClose',N'OPERATIONAL_ICE',N'Gửi chốt ca đá',N'SubmitClose',N'Gửi số liệu chốt ca vận hành đá'),
- (N'OperationalIce.ApproveVariance',N'OPERATIONAL_ICE',N'Duyệt chênh lệch đá',N'ApproveVariance',N'Duyệt hao hụt hoặc hoàn tất đối soát chênh lệch đá'),
- (N'OperationalIce.CancelScheduledShift',N'OPERATIONAL_ICE',N'Hủy ca đá chưa mở',N'CancelScheduledShift',N'Hủy ca vận hành đá còn ở trạng thái kế hoạch'),
- (N'OperationalIce.ViewReport',N'OPERATIONAL_ICE',N'Xem báo cáo ca đá',N'ViewReport',N'Xem và tải báo cáo vận hành đá trong phạm vi được cấp'),
- (N'StoreMenu.OverridePrice',N'DRINK',N'Ghi đè giá menu cửa hàng',N'OverridePrice',N'Ghi đè giá bán tại menu cửa hàng'),
- (N'Profitability.UpdatePrice',N'DRINK',N'Cập nhật giá bán',N'UpdatePrice',N'Cập nhật giá bán toàn hệ thống'),
- (N'Profitability.UpdateToppingPolicy',N'DRINK',N'Cập nhật chính sách topping',N'UpdateToppingPolicy',N'Cập nhật chính sách topping theo món và size'),
- (N'PreparedItem.ToggleStatus',N'BOM',N'Đổi trạng thái bán thành phẩm',N'PreparedItemToggleStatus',N'Kích hoạt hoặc ngưng bán thành phẩm'),
- (N'Recipe.Delete',N'BOM',N'Xóa hoặc ngưng công thức',N'RecipeDelete',N'Xóa hoặc ngưng công thức theo nghiệp vụ'),
- (N'PurchaseAdvice.Update',N'PURCHASE_ADVICE',N'Cập nhật đề nghị mua',N'Update',N'Cập nhật đề nghị mua ở trạng thái cho phép'),
- (N'PurchaseAdvice.Cancel',N'PURCHASE_ADVICE',N'Hủy đề nghị mua',N'Cancel',N'Hủy đề nghị mua trước khi bị khóa nghiệp vụ'),
- (N'PurchaseOrder.CloseRemaining',N'PURCHASE_ORDER',N'Đóng phần còn lại PO',N'CloseRemaining',N'Đóng số lượng còn lại của dòng PO'),
- (N'SupplierQuality.Create',N'SUPPLIER',N'Ghi nhận chất lượng nhà cung cấp',N'SupplierQualityCreate',N'Ghi nhận sự cố hoặc chất lượng nhà cung cấp'),
- (N'SupplierQuality.Transition',N'SUPPLIER',N'Chuyển trạng thái sự cố nhà cung cấp',N'SupplierQualityTransition',N'Xác minh hoặc đóng sự cố nhà cung cấp'),
- (N'InventoryTransfer.RequestReturn',N'INVENTORY_TRANSFER',N'Yêu cầu trả hàng điều chuyển',N'RequestReturn',N'Yêu cầu trả hàng trong luồng điều chuyển'),
- (N'InventoryTransfer.ConfirmReturn',N'INVENTORY_TRANSFER',N'Xác nhận trả hàng điều chuyển',N'ConfirmReturn',N'Xác nhận trả hàng trong luồng điều chuyển'),
- (N'InventoryTransfer.ResolveDiscrepancy',N'INVENTORY_TRANSFER',N'Xử lý chênh lệch điều chuyển',N'ResolveDiscrepancy',N'Xử lý thiếu hụt hoặc chênh lệch điều chuyển cuối'),
- (N'Order.RefundRequest',N'ORDER',N'Tạo yêu cầu hoàn tiền',N'RefundRequest',N'Tạo yêu cầu hoàn tiền đơn hàng'),
- (N'Order.RefundConfirm',N'ORDER',N'Xác nhận hoàn tiền',N'RefundConfirm',N'Xác nhận yêu cầu hoàn tiền đơn hàng'),
- (N'System.Diagnostics.View',N'SYSTEM',N'Xem chẩn đoán hệ thống',N'DiagnosticsView',N'Xem health và diagnostics kỹ thuật'),
- (N'System.Cutover.View',N'SYSTEM',N'Xem trạng thái cutover',N'CutoverView',N'Xem trạng thái cutover'),
- (N'System.Cutover.Manage',N'SYSTEM',N'Quản lý cutover',N'CutoverManage',N'Kích hoạt hoặc chặn cutover'),
- (N'System.LegacyConsolidation.View',N'SYSTEM',N'Xem hợp nhất dữ liệu legacy',N'LegacyConsolidationView',N'Xem audit và dry-run hợp nhất BTP legacy'),
- (N'System.LegacyConsolidation.Manage',N'SYSTEM',N'Quản lý hợp nhất dữ liệu legacy',N'LegacyConsolidationManage',N'Thực thi hợp nhất BTP legacy');
+  (N'ReorderSuggestion.View',N'REORDER_SUGGESTION',N'Xem gợi ý nhập hàng',N'View',N'Xem danh sách gợi ý nhập hàng trong phạm vi cửa hàng được phép truy cập'),
+  (N'Restock.Create',N'RESTOCK',N'Tạo yêu cầu nhập hàng',N'Create',N'Tạo mới, tạo nháp hoặc bổ sung yêu cầu nhập hàng từ gợi ý nhập hàng trong phạm vi cửa hàng được phép thao tác'),
+  (N'OperationalIce.ConfigurePolicy',N'OPERATIONAL_ICE',N'Cấu hình chính sách đá',N'ConfigurePolicy',N'Cấu hình định mức và ngưỡng đối soát đá trong phạm vi cửa hàng'),
+  (N'OperationalIce.CreateShift',N'OPERATIONAL_ICE',N'Tạo ca vận hành đá',N'CreateShift',N'Tạo và cập nhật kế hoạch ca vận hành đá trong phạm vi cửa hàng'),
+  (N'OperationalIce.OpenShift',N'OPERATIONAL_ICE',N'Mở ca vận hành đá',N'OpenShift',N'Xác nhận cấp đầu ca và mở phân bổ đá'),
+  (N'OperationalIce.LinkWorkShift',N'OPERATIONAL_ICE',N'Liên kết WorkShift POS',N'LinkWorkShift',N'Liên kết WorkShift POS hợp lệ vào ca vận hành đá'),
+  (N'OperationalIce.RequestSupplement',N'OPERATIONAL_ICE',N'Yêu cầu cấp bổ sung đá',N'RequestSupplement',N'Gửi yêu cầu cấp bổ sung cho ca vận hành đá được phân công'),
+  (N'OperationalIce.ApproveSupplement',N'OPERATIONAL_ICE',N'Duyệt cấp bổ sung đá',N'ApproveSupplement',N'Duyệt hoặc từ chối yêu cầu cấp bổ sung đá'),
+  (N'OperationalIce.Handoff',N'OPERATIONAL_ICE',N'Bàn giao đá giữa ca',N'Handoff',N'Xác nhận bàn giao đá giữa các ca cùng ngày'),
+  (N'OperationalIce.SubmitClose',N'OPERATIONAL_ICE',N'Gửi chốt ca đá',N'SubmitClose',N'Gửi số liệu chốt ca vận hành đá'),
+  (N'OperationalIce.ApproveVariance',N'OPERATIONAL_ICE',N'Duyệt chênh lệch đá',N'ApproveVariance',N'Duyệt hao hụt hoặc hoàn tất đối soát chênh lệch đá'),
+  (N'OperationalIce.CancelScheduledShift',N'OPERATIONAL_ICE',N'Hủy ca đá chưa mở',N'CancelScheduledShift',N'Hủy ca vận hành đá còn ở trạng thái kế hoạch'),
+  (N'OperationalIce.ViewReport',N'OPERATIONAL_ICE',N'Xem báo cáo ca đá',N'ViewReport',N'Xem và tải báo cáo vận hành đá trong phạm vi được cấp'),
+  (N'StoreMenu.OverridePrice',N'DRINK',N'Ghi đè giá menu cửa hàng',N'OverridePrice',N'Ghi đè giá bán tại menu cửa hàng'),
+  (N'Profitability.UpdatePrice',N'DRINK',N'Cập nhật giá bán',N'UpdatePrice',N'Cập nhật giá bán toàn hệ thống'),
+  (N'Profitability.UpdateToppingPolicy',N'DRINK',N'Cập nhật chính sách topping',N'UpdateToppingPolicy',N'Cập nhật chính sách topping theo món và size'),
+  (N'PreparedItem.ToggleStatus',N'BOM',N'Đổi trạng thái bán thành phẩm',N'PreparedItemToggleStatus',N'Kích hoạt hoặc ngưng bán thành phẩm'),
+  (N'Recipe.Delete',N'BOM',N'Xóa hoặc ngưng công thức',N'RecipeDelete',N'Xóa hoặc ngưng công thức theo nghiệp vụ'),
+  (N'PurchaseAdvice.Update',N'PURCHASE_ADVICE',N'Cập nhật đề nghị mua',N'Update',N'Cập nhật đề nghị mua ở trạng thái cho phép'),
+  (N'PurchaseAdvice.Cancel',N'PURCHASE_ADVICE',N'Hủy đề nghị mua',N'Cancel',N'Hủy đề nghị mua trước khi bị khóa nghiệp vụ'),
+  (N'PurchaseOrder.CloseRemaining',N'PURCHASE_ORDER',N'Đóng phần còn lại PO',N'CloseRemaining',N'Đóng số lượng còn lại của dòng PO'),
+  (N'SupplierQuality.Create',N'SUPPLIER',N'Ghi nhận chất lượng nhà cung cấp',N'SupplierQualityCreate',N'Ghi nhận sự cố hoặc chất lượng nhà cung cấp'),
+  (N'SupplierQuality.Transition',N'SUPPLIER',N'Chuyển trạng thái sự cố nhà cung cấp',N'SupplierQualityTransition',N'Xác minh hoặc đóng sự cố nhà cung cấp'),
+  (N'InventoryTransfer.RequestReturn',N'INVENTORY_TRANSFER',N'Yêu cầu trả hàng điều chuyển',N'RequestReturn',N'Yêu cầu trả hàng trong luồng điều chuyển'),
+  (N'InventoryTransfer.ConfirmReturn',N'INVENTORY_TRANSFER',N'Xác nhận trả hàng điều chuyển',N'ConfirmReturn',N'Xác nhận trả hàng trong luồng điều chuyển'),
+  (N'InventoryTransfer.ResolveDiscrepancy',N'INVENTORY_TRANSFER',N'Xử lý chênh lệch điều chuyển',N'ResolveDiscrepancy',N'Xử lý thiếu hụt hoặc chênh lệch điều chuyển cuối'),
+  (N'Order.RefundRequest',N'ORDER',N'Tạo yêu cầu hoàn tiền',N'RefundRequest',N'Tạo yêu cầu hoàn tiền đơn hàng'),
+  (N'Order.RefundConfirm',N'ORDER',N'Xác nhận hoàn tiền',N'RefundConfirm',N'Xác nhận yêu cầu hoàn tiền đơn hàng'),
+  (N'System.Diagnostics.View',N'SYSTEM',N'Xem chẩn đoán hệ thống',N'DiagnosticsView',N'Xem health và diagnostics kỹ thuật'),
+  (N'System.Cutover.View',N'SYSTEM',N'Xem trạng thái cutover',N'CutoverView',N'Xem trạng thái cutover'),
+  (N'System.Cutover.Manage',N'SYSTEM',N'Quản lý cutover',N'CutoverManage',N'Kích hoạt hoặc chặn cutover'),
+  (N'System.LegacyConsolidation.View',N'SYSTEM',N'Xem hợp nhất dữ liệu legacy',N'LegacyConsolidationView',N'Xem audit và dry-run hợp nhất BTP legacy'),
+  (N'System.LegacyConsolidation.Manage',N'SYSTEM',N'Quản lý hợp nhất dữ liệu legacy',N'LegacyConsolidationManage',N'Thực thi hợp nhất BTP legacy'),
+  (N'Dashboard.Executive.View',N'APPLICATION',N'Xem Dashboard điều hành cấp chủ doanh nghiệp',N'ExecutiveView',N'Xem các chỉ số điều hành và chiến lược toàn chuỗi'),
+  (N'Dashboard.Operations.View',N'APPLICATION',N'Xem Dashboard vận hành',N'OperationsView',N'Xem các chỉ số vận hành trong phạm vi được phân công'),
+  (N'Dashboard.Inventory.View',N'APPLICATION',N'Xem Dashboard tồn kho',N'InventoryView',N'Xem section tồn kho trên Dashboard trong phạm vi được phân công'),
+  (N'Dashboard.Procurement.View',N'APPLICATION',N'Xem Dashboard mua hàng',N'ProcurementView',N'Xem section mua hàng trên Dashboard trong phạm vi được phân công'),
+  (N'Dashboard.Product.View',N'APPLICATION',N'Xem Dashboard sản phẩm',N'ProductView',N'Xem section sản phẩm, giá vốn và lợi nhuận theo quyền'),
+  (N'Dashboard.Workforce.View',N'APPLICATION',N'Xem Dashboard nhân sự',N'WorkforceView',N'Xem section nhân sự và lịch làm việc trong phạm vi được phân công');
 
  IF EXISTS
  (
-  SELECT 1 FROM #NewPermissionCatalog c
-  LEFT JOIN dbo.PermissionGroups g ON g.Code=c.GroupCode
+  SELECT 1
+  FROM #NewPermissionCatalog c
+  LEFT JOIN dbo.PermissionGroups g ON g.Code=c.GroupCode AND g.Active=1
   GROUP BY c.Code,c.GroupCode
   HAVING COUNT(g.PermissionGroupId)<>1
  )
-  THROW 53342,N'RBAC_CAFECHAIN29_V2: PermissionGroup của permission mới thiếu hoặc trùng.',1;
+  THROW 53342,N'RBAC_CAFECHAIN_FINAL_V3: PermissionGroup của permission động thiếu hoặc trùng.',1;
+
+ IF EXISTS
+ (
+  SELECT 1
+  FROM #NewPermissionCatalog c
+  JOIN dbo.Permissions p ON p.Code=c.Code
+  JOIN dbo.PermissionGroups g ON g.Code=c.GroupCode
+  WHERE p.PermissionGroupId<>g.PermissionGroupId
+     OR p.Action<>c.Action
+ )
+  THROW 53343,N'RBAC_CAFECHAIN_FINAL_V3: permission động xung đột Code, Group hoặc Action.',1;
 
  UPDATE p
  SET PermissionGroupId=g.PermissionGroupId,
@@ -6933,213 +7161,382 @@ BEGIN TRY
  JOIN dbo.PermissionGroups g ON g.Code=c.GroupCode
  WHERE NOT EXISTS(SELECT 1 FROM dbo.Permissions p WHERE p.Code=c.Code);
 
+ /* Main catalog permissions that must stay inactive until a real
+    server-side action is implemented and permission-checked. */
  UPDATE dbo.Permissions
  SET Active=0
- WHERE Code IN(
-  N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete',
-  N'OperationalIce.Manage',N'OperationalIce.Approve',N'OperationalIce.Policy');
-
- CREATE TABLE #PermissionMatrix
+ WHERE Code IN
  (
-  PermissionCode nvarchar(100) NOT NULL PRIMARY KEY,
-  CDN bit NOT NULL,QLV bit NOT NULL,QLCN bit NOT NULL,NVBH bit NOT NULL,
-  KTK bit NOT NULL,QTHT bit NOT NULL,KH bit NOT NULL,CT bit NOT NULL
+  N'Drink.Delete',
+  N'Category.Delete',
+  N'Size.Delete',
+  N'Topping.Delete',
+  N'Inventory.Adjust',
+  N'Inventory.Export',
+  N'InventoryTransfer.Export',
+  N'Order.Refund',
+  N'PurchaseAdvice.Approve',
+  N'PurchaseAdvice.SelectSupplier',
+  N'PurchaseAdvice.CreatePurchaseOrder',
+  N'PurchaseOrder.Update',
+  N'PurchaseOrder.Receive',
+  N'PurchaseOrder.Consolidate',
+  N'PurchaseOrder.Submit',
+  N'PurchaseOrder.RejectApproval',
+  N'PurchaseOrder.OverrideAllocation',
+  N'Receipt.Reject',
+  N'Receipt.Cancel',
+  N'Receipt.RecordSupplierIssue',
+  N'Restock.CreatePurchaseOrder',
+  N'Restock.CreateTransfer',
+  N'StockAlert.Configure',
+  N'StockAlert.Create',
+  N'StockAlert.Export',
+  N'Supplier.ViewQuality',
+  N'OperationalIce.Manage',
+  N'OperationalIce.Approve',
+  N'OperationalIce.Policy'
  );
- INSERT #PermissionMatrix VALUES
-(N'Drink.View',1,1,1,0,1,0,0,0),
-(N'Drink.Create',1,0,0,0,0,0,0,0),
-(N'Drink.Update',1,0,0,0,0,0,0,0),
-(N'Drink.Delete',0,0,0,0,0,0,0,0),
-(N'Drink.ToggleStatus',1,0,0,0,0,0,0,0),
-(N'Drink.UpdateImage',1,0,0,0,0,0,0,0),
-(N'StoreMenu.View',1,1,1,0,1,0,0,0),
-(N'StoreMenu.Update',1,0,1,0,0,0,0,0),
-(N'Profitability.View',1,1,1,0,1,0,0,0),
-(N'Category.View',1,1,1,0,1,0,0,0),
-(N'Category.Create',1,0,0,0,0,0,0,0),
-(N'Category.Update',1,0,0,0,0,0,0,0),
-(N'Category.Delete',0,0,0,0,0,0,0,0),
-(N'Category.ToggleStatus',1,0,0,0,0,0,0,0),
-(N'Size.View',1,1,1,0,1,0,0,0),
-(N'Size.Create',1,0,0,0,0,0,0,0),
-(N'Size.Update',1,0,0,0,0,0,0,0),
-(N'Size.Delete',0,0,0,0,0,0,0,0),
-(N'Size.ToggleStatus',1,0,0,0,0,0,0,0),
-(N'Size.AssignDrink',1,0,0,0,0,0,0,0),
-(N'Topping.View',1,1,1,0,1,0,0,0),
-(N'Topping.Create',1,0,0,0,0,0,0,0),
-(N'Topping.Update',1,0,0,0,0,0,0,0),
-(N'Topping.Delete',0,0,0,0,0,0,0,0),
-(N'Topping.ToggleStatus',1,0,0,0,0,0,0,0),
-(N'Topping.AssignDrink',1,0,0,0,0,0,0,0),
-(N'App.AdminDashboard',1,1,1,0,1,0,0,0),
-(N'App.StaffHub',1,1,1,1,1,1,0,1),
-(N'App.POS',0,0,1,1,0,0,0,1),
-(N'System.Permission.Manage',1,0,0,0,0,1,0,0),
-(N'Ingredient.View',1,1,1,0,1,0,0,0),
-(N'Ingredient.Create',1,0,0,0,1,0,0,0),
-(N'Ingredient.Update',1,0,0,0,1,0,0,0),
-(N'Ingredient.ToggleStatus',1,0,0,0,1,0,0,0),
-(N'UnitConversion.View',1,1,1,0,1,0,0,0),
-(N'UnitConversion.Create',1,0,0,0,1,0,0,0),
-(N'UnitConversion.Update',1,0,0,0,1,0,0,0),
-(N'UnitConversion.ToggleStatus',1,0,0,0,1,0,0,0),
-(N'Inventory.View',1,1,1,0,1,0,0,0),
-(N'Inventory.Adjust',0,0,0,0,1,0,0,0),
-(N'Inventory.Export',1,1,1,0,1,0,0,0),
-(N'InventoryThreshold.View',1,1,1,0,1,0,0,0),
-(N'InventoryThreshold.Update',1,1,1,0,0,0,0,0),
-(N'StockAlert.View',1,1,1,1,1,0,0,1),
-(N'StockAlert.Resolve',1,0,1,0,0,0,0,0),
-(N'StockAlert.Configure',1,1,1,0,0,0,0,0),
-(N'StockAlert.Export',1,1,1,0,1,0,0,0),
-(N'Notification.View',1,1,1,1,1,0,0,1),
-(N'StockAlert.Create',0,0,1,1,0,0,0,1),
-(N'StockAlert.CreateRestockRequest',0,0,1,0,0,0,0,0),
-(N'Restock.View',1,1,1,0,1,0,0,1),
-(N'Restock.Create',1,0,1,0,1,0,0,0),
-(N'Restock.Submit',0,0,1,0,1,0,0,0),
-(N'Restock.Approve',0,0,0,0,1,0,0,0),
-(N'Restock.Reject',0,0,0,0,1,0,0,0),
-(N'Restock.Cancel',1,0,1,0,1,0,0,0),
-(N'ReorderSuggestion.View',1,1,1,0,1,0,0,0),
-(N'Restock.Update',0,0,1,0,1,0,0,0),
-(N'Restock.CloseRemaining',1,0,0,0,1,0,0,0),
-(N'Restock.CreatePurchaseOrder',0,0,0,0,1,0,0,0),
-(N'Restock.CreateTransfer',0,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.View',1,1,1,0,1,0,0,0),
-(N'PurchaseAdvice.Create',0,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.Submit',0,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.Review',0,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.Approve',0,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.Reject',0,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.Consolidate',0,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.SelectSupplier',0,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.CreatePurchaseOrder',0,0,0,0,1,0,0,0),
-(N'PurchaseOrder.View',1,1,1,0,1,0,0,1),
-(N'PurchaseOrder.Create',0,0,0,0,1,0,0,0),
-(N'PurchaseOrder.Update',0,0,0,0,1,0,0,0),
-(N'PurchaseOrder.Send',0,0,0,0,1,0,0,0),
-(N'PurchaseOrder.Receive',0,0,1,0,0,0,0,1),
-(N'PurchaseOrder.Cancel',1,0,0,0,1,0,0,0),
-(N'PurchaseOrder.ViewBatch',1,1,0,0,1,0,0,0),
-(N'PurchaseOrder.CreateBatch',0,0,0,0,1,0,0,0),
-(N'PurchaseOrder.Consolidate',0,0,0,0,1,0,0,0),
-(N'PurchaseOrder.Submit',0,0,0,0,1,0,0,0),
-(N'PurchaseOrder.Approve',1,0,0,0,0,0,0,0),
-(N'PurchaseOrder.RejectApproval',1,0,0,0,0,0,0,0),
-(N'PurchaseOrder.OverrideAllocation',1,0,0,0,0,0,0,0),
-(N'PurchaseOrder.Export',0,0,0,0,1,0,0,0),
-(N'Receipt.View',1,1,1,0,1,0,0,1),
-(N'Receipt.Create',0,0,1,0,0,0,0,1),
-(N'Receipt.Confirm',0,0,1,0,0,0,0,1),
-(N'Receipt.Reject',0,0,1,0,0,0,0,1),
-(N'Receipt.Cancel',1,0,1,0,1,0,0,1),
-(N'Receipt.UpdateDraft',0,0,1,0,0,0,0,1),
-(N'Receipt.RecordSupplierIssue',0,0,1,0,0,0,0,1),
-(N'Receipt.ViewCost',1,1,0,0,1,0,0,0),
-(N'Supplier.View',1,1,1,0,1,0,0,0),
-(N'Supplier.Create',1,0,0,0,1,0,0,0),
-(N'Supplier.Update',1,0,0,0,1,0,0,0),
-(N'Supplier.ToggleStatus',1,0,0,0,1,0,0,0),
-(N'Supplier.ViewQuality',1,1,1,0,1,0,0,0),
-(N'SupplierQuality.View',1,1,1,0,1,0,0,0),
-(N'InventoryDocument.View',1,1,1,0,1,0,0,0),
-(N'InventoryDocument.CreateDraft',0,0,1,0,1,0,0,0),
-(N'InventoryDocument.Submit',0,0,1,0,1,0,0,0),
-(N'InventoryDocument.Confirm',0,0,0,0,1,0,0,0),
-(N'InventoryDocument.ApproveNegative',1,0,0,0,1,0,0,0),
-(N'InventoryDocument.Cancel',1,0,1,0,1,0,0,0),
-(N'InventoryDocument.Export',1,1,1,0,1,0,0,0),
-(N'InventoryTransfer.View',1,1,1,0,1,0,0,1),
-(N'InventoryTransfer.CreateDraft',1,0,0,0,1,0,0,0),
-(N'InventoryTransfer.UpdateDraft',1,0,0,0,1,0,0,0),
-(N'InventoryTransfer.Dispatch',0,0,1,0,1,0,0,1),
-(N'InventoryTransfer.Receive',0,0,1,0,1,0,0,1),
-(N'InventoryTransfer.Cancel',1,0,0,0,1,0,0,0),
-(N'InventoryTransfer.Export',1,1,1,0,1,0,0,0),
-(N'Order.View',1,1,1,0,1,0,0,0),
-(N'Order.UpdateStatus',0,0,1,1,0,0,0,1),
-(N'Order.Cancel',1,0,1,0,0,0,0,1),
-(N'Order.Refund',1,1,1,0,0,0,0,1),
-(N'Order.Export',1,1,1,0,1,0,0,0),
-(N'Staff.View',1,1,1,0,0,1,0,0),
-(N'Staff.Create',1,1,1,0,0,0,0,0),
-(N'Staff.Update',1,1,1,0,0,0,0,0),
-(N'Staff.ToggleStatus',1,1,1,0,0,1,0,0),
-(N'Staff.ResetPassword',1,1,1,0,0,1,0,0),
-(N'Shift.View',1,1,1,0,0,0,0,0),
-(N'Shift.Create',1,1,1,0,0,0,0,0),
-(N'Shift.Update',1,1,1,0,0,0,0,0),
-(N'Shift.Cancel',1,1,1,0,0,0,0,0),
-(N'Store.View',1,1,1,0,1,1,0,0),
-(N'Store.Create',1,0,0,0,0,0,0,0),
-(N'Store.Update',1,1,0,0,0,0,0,0),
-(N'Store.ToggleStatus',1,0,0,0,0,0,0,0),
-(N'Settings.View',1,0,0,0,0,1,0,0),
-(N'Settings.Update',1,0,0,0,0,0,0,0),
-(N'Recipe.View',1,1,1,0,1,0,0,0),
-(N'Recipe.Create',1,0,0,0,1,0,0,0),
-(N'Recipe.Update',1,0,0,0,1,0,0,0),
-(N'PreparedItem.View',1,1,1,0,1,0,0,0),
-(N'PreparedItem.Create',1,0,0,0,1,0,0,0),
-(N'PreparedItem.Update',1,0,0,0,1,0,0,0),
-(N'ProductionOrder.View',1,1,1,0,1,0,0,1),
-(N'ProductionOrder.Create',1,0,1,0,1,0,0,1),
-(N'ProductionOrder.Confirm',1,0,1,0,1,0,0,1),
-(N'OperationalIce.View',1,1,1,0,1,0,0,1),
-(N'OperationalIce.Manage',0,0,0,0,0,0,0,0),
-(N'OperationalIce.Approve',0,0,0,0,0,0,0,0),
-(N'OperationalIce.Policy',0,0,0,0,0,0,0,0),
-(N'OperationalIce.ConfigurePolicy',1,0,1,0,0,0,0,0),
-(N'OperationalIce.CreateShift',1,0,1,0,0,0,0,0),
-(N'OperationalIce.OpenShift',1,0,1,0,0,0,0,0),
-(N'OperationalIce.LinkWorkShift',1,0,1,0,0,0,0,0),
-(N'OperationalIce.RequestSupplement',1,0,1,0,0,0,0,1),
-(N'OperationalIce.ApproveSupplement',1,0,1,0,0,0,0,0),
-(N'OperationalIce.Handoff',1,0,1,0,0,0,0,1),
-(N'OperationalIce.SubmitClose',1,0,1,0,0,0,0,1),
-(N'OperationalIce.ApproveVariance',1,0,1,0,0,0,0,0),
-(N'OperationalIce.CancelScheduledShift',1,0,1,0,0,0,0,0),
-(N'OperationalIce.ViewReport',1,1,1,0,1,0,0,1),
-(N'StoreMenu.OverridePrice',1,0,0,0,0,0,0,0),
-(N'Profitability.UpdatePrice',1,0,0,0,0,0,0,0),
-(N'Profitability.UpdateToppingPolicy',1,0,0,0,0,0,0,0),
-(N'PreparedItem.ToggleStatus',1,0,0,0,1,0,0,0),
-(N'Recipe.Delete',1,0,0,0,1,0,0,0),
-(N'PurchaseAdvice.Update',1,0,1,0,1,0,0,0),
-(N'PurchaseAdvice.Cancel',1,0,1,0,1,0,0,0),
-(N'PurchaseOrder.CloseRemaining',1,0,0,0,1,0,0,0),
-(N'SupplierQuality.Create',0,0,1,0,1,0,0,1),
-(N'SupplierQuality.Transition',1,0,0,0,1,0,0,0),
-(N'InventoryTransfer.RequestReturn',0,0,1,0,1,0,0,1),
-(N'InventoryTransfer.ConfirmReturn',0,0,1,0,1,0,0,1),
-(N'InventoryTransfer.ResolveDiscrepancy',1,0,0,0,0,0,0,0),
-(N'Order.RefundRequest',1,1,1,0,0,0,0,1),
-(N'Order.RefundConfirm',1,1,1,0,0,0,0,0),
-(N'System.Diagnostics.View',1,0,0,0,0,1,0,0),
-(N'System.Cutover.View',1,0,0,0,1,1,0,0),
-(N'System.Cutover.Manage',1,0,0,0,0,1,0,0),
-(N'System.LegacyConsolidation.View',1,1,0,0,1,1,0,0),
-(N'System.LegacyConsolidation.Manage',1,0,0,0,0,1,0,0);
 
- -- SystemAdmin owns every active permission in this legacy managed matrix.
- -- Sensitive POS.WorkShift permissions are seeded in the separate batch below and
- -- intentionally do not default to SystemAdmin. Orphan delete permissions remain inactive.
- UPDATE #PermissionMatrix
- SET QTHT=CASE
-     WHEN PermissionCode IN
-          (N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete',
-           N'OperationalIce.Manage',N'OperationalIce.Approve',N'OperationalIce.Policy')
-     THEN 0 ELSE 1 END;
+ /* POS permission group and catalog. */
+ IF EXISTS
+ (
+  SELECT 1 FROM dbo.PermissionGroups
+  WHERE (Code=N'POS_WORKSHIFT' AND Name<>N'Phiên POS và trách nhiệm két')
+     OR (Name=N'Phiên POS và trách nhiệm két' AND Code<>N'POS_WORKSHIFT')
+ )
+  THROW 53501,N'RBAC_CAFECHAIN_FINAL_V3: POS PermissionGroup xung đột Code hoặc Name.',1;
+
+ IF NOT EXISTS(SELECT 1 FROM dbo.PermissionGroups WHERE Code=N'POS_WORKSHIFT')
+  INSERT dbo.PermissionGroups(Code,Name,DisplayOrder,Active)
+  VALUES(N'POS_WORKSHIFT',N'Phiên POS và trách nhiệm két',28,1);
+
+ DECLARE @WorkShiftPermissionGroupId int=
+ (
+  SELECT PermissionGroupId
+  FROM dbo.PermissionGroups
+  WHERE Code=N'POS_WORKSHIFT'
+ );
+
+ DECLARE @WorkShiftPermissionCatalog TABLE
+ (
+  Code nvarchar(100) NOT NULL PRIMARY KEY,
+  Name nvarchar(200) NOT NULL,
+  Action nvarchar(50) NOT NULL UNIQUE,
+  Description nvarchar(500) NOT NULL,
+  Active bit NOT NULL
+ );
+ INSERT @WorkShiftPermissionCatalog VALUES
+  (N'POS.WorkShift.View',N'Xem phiên POS',N'View',N'Xem phiên chịu trách nhiệm POS/két trong phạm vi cửa hàng được cấp',1),
+  (N'POS.WorkShift.Open',N'Mở phiên POS',N'Open',N'Mở phiên chịu trách nhiệm POS/két khi đáp ứng lịch, terminal và phạm vi cửa hàng',1),
+  (N'POS.WorkShift.Close',N'Đóng phiên POS',N'Close',N'Kiểm đếm và đóng phiên chịu trách nhiệm POS/két',1),
+  (N'POS.WorkShift.OpenOutsideSchedule',N'Mở POS ngoài lịch',N'OpenOutsideSchedule',N'Yêu cầu mở POS ngoài lịch; vẫn bắt buộc lý do và phê duyệt',1),
+  (N'POS.WorkShift.ApproveOutsideSchedule',N'Duyệt mở POS ngoài lịch',N'ApproveOutsideSchedule',N'Phê duyệt mở POS ngoài lịch trong StaffScope',1),
+  (N'POS.WorkShift.CloseException',N'Đóng phiên POS ngoại lệ',N'CloseException',N'Đóng ngoại lệ và chuyển phiên cũ sang trạng thái cần đối soát',1),
+  (N'POS.WorkShift.Reconcile',N'Đối soát lại phiên POS',N'Reconcile',N'Đối soát payment hoặc đơn offline đồng bộ muộn trên phiên gốc',1),
+  (N'POS.WorkShift.OverrideTerminal',N'Đăng ký terminal POS',N'OverrideTerminal',N'Phê duyệt đăng ký hoặc kích hoạt terminal POS trong StaffScope',1),
+  (N'POS.WorkShift.ApproveLateOpen',N'Duyệt mở ca trễ',N'ApproveLateOpen',N'Duyệt, từ chối hoặc chuyển ngoài lịch cho yêu cầu mở ca trễ trên 30 phút',0),
+  (N'POS.Session.Manage',N'Quản lý phiên truy cập POS',N'ManagePosSession',N'Kết thúc hoặc thu hồi POS access session trong đúng StaffScope',0),
+  (N'POS.Operator.Switch',N'Đổi người thao tác POS',N'SwitchOperator',N'Cho phép thiết lập PIN cá nhân và chuyển Current Operator trong đúng StaffScope',1);
 
  IF EXISTS
  (
-  SELECT 1 FROM #PermissionMatrix m
+  SELECT 1
+  FROM @WorkShiftPermissionCatalog c
+  JOIN dbo.Permissions p ON p.Code=c.Code
+  WHERE p.PermissionGroupId<>@WorkShiftPermissionGroupId
+     OR p.Action<>c.Action
+ )
+ OR EXISTS
+ (
+  SELECT 1
+  FROM @WorkShiftPermissionCatalog c
+  JOIN dbo.Permissions p
+    ON p.PermissionGroupId=@WorkShiftPermissionGroupId
+   AND p.Action=c.Action
+  WHERE p.Code<>c.Code
+ )
+  THROW 53502,N'RBAC_CAFECHAIN_FINAL_V3: POS permission xung đột Code, Group hoặc Action.',1;
+
+ UPDATE p
+ SET Name=c.Name,
+     Description=c.Description,
+     Active=c.Active
+ FROM dbo.Permissions p
+ JOIN @WorkShiftPermissionCatalog c ON c.Code=p.Code;
+
+ INSERT dbo.Permissions(PermissionGroupId,Code,Name,Action,Description,Active,CreatedAt)
+ SELECT @WorkShiftPermissionGroupId,c.Code,c.Name,c.Action,c.Description,c.Active,SYSUTCDATETIME()
+ FROM @WorkShiftPermissionCatalog c
+ WHERE NOT EXISTS(SELECT 1 FROM dbo.Permissions p WHERE p.Code=c.Code);
+
+ /* Full main RBAC matrix.
+    Column order: CDN, QLV, QLCN, NVBH, KTK, QTHT, KH, CT. */
+ CREATE TABLE #PermissionMatrix
+ (
+  PermissionCode nvarchar(100) NOT NULL PRIMARY KEY,
+  CDN bit NOT NULL,
+  QLV bit NOT NULL,
+  QLCN bit NOT NULL,
+  NVBH bit NOT NULL,
+  KTK bit NOT NULL,
+  QTHT bit NOT NULL,
+  KH bit NOT NULL,
+  CT bit NOT NULL
+ );
+ INSERT #PermissionMatrix VALUES
+  (N'Drink.View',1,1,1,0,1,0,0,0),
+  (N'Drink.Create',1,0,0,0,0,0,0,0),
+  (N'Drink.Update',1,0,0,0,0,0,0,0),
+  (N'Drink.Delete',0,0,0,0,0,0,0,0),
+  (N'Drink.ToggleStatus',1,0,0,0,0,0,0,0),
+  (N'Drink.UpdateImage',1,0,0,0,0,0,0,0),
+  (N'StoreMenu.View',1,1,1,0,1,0,0,0),
+  (N'StoreMenu.Update',1,0,1,0,0,0,0,0),
+  (N'Profitability.View',1,1,1,0,1,0,0,0),
+  (N'Category.View',1,1,1,0,1,0,0,0),
+  (N'Category.Create',1,0,0,0,0,0,0,0),
+  (N'Category.Update',1,0,0,0,0,0,0,0),
+  (N'Category.Delete',0,0,0,0,0,0,0,0),
+  (N'Category.ToggleStatus',1,0,0,0,0,0,0,0),
+  (N'Size.View',1,1,1,0,1,0,0,0),
+  (N'Size.Create',1,0,0,0,0,0,0,0),
+  (N'Size.Update',1,0,0,0,0,0,0,0),
+  (N'Size.Delete',0,0,0,0,0,0,0,0),
+  (N'Size.ToggleStatus',1,0,0,0,0,0,0,0),
+  (N'Size.AssignDrink',1,0,0,0,0,0,0,0),
+  (N'Topping.View',1,1,1,0,1,0,0,0),
+  (N'Topping.Create',1,0,0,0,0,0,0,0),
+  (N'Topping.Update',1,0,0,0,0,0,0,0),
+  (N'Topping.Delete',0,0,0,0,0,0,0,0),
+  (N'Topping.ToggleStatus',1,0,0,0,0,0,0,0),
+  (N'Topping.AssignDrink',1,0,0,0,0,0,0,0),
+  (N'App.AdminDashboard',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Executive.View',1,0,0,0,0,0,0,0),
+  (N'Dashboard.Operations.View',1,1,1,0,0,0,0,0),
+  (N'Dashboard.Inventory.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Procurement.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Product.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Workforce.View',1,1,1,0,0,0,0,0),
+  (N'App.StaffHub',1,1,1,1,1,0,0,1),
+  (N'App.POS',0,0,1,1,0,0,0,1),
+  (N'System.Permission.Manage',1,0,0,0,0,1,0,0),
+  (N'Ingredient.View',1,1,1,0,1,0,0,0),
+  (N'Ingredient.Create',1,0,0,0,1,0,0,0),
+  (N'Ingredient.Update',1,0,0,0,1,0,0,0),
+  (N'Ingredient.ToggleStatus',1,0,0,0,1,0,0,0),
+  (N'UnitConversion.View',1,1,1,0,1,0,0,0),
+  (N'UnitConversion.Create',1,0,0,0,1,0,0,0),
+  (N'UnitConversion.Update',1,0,0,0,1,0,0,0),
+  (N'UnitConversion.ToggleStatus',1,0,0,0,1,0,0,0),
+  (N'Inventory.View',1,1,1,0,1,0,0,0),
+  (N'Inventory.Adjust',0,0,0,0,0,0,0,0),
+  (N'Inventory.Export',0,0,0,0,0,0,0,0),
+  (N'InventoryThreshold.View',1,1,1,0,1,0,0,0),
+  (N'InventoryThreshold.Update',1,1,1,0,0,0,0,0),
+  (N'StockAlert.View',1,1,1,1,1,0,0,1),
+  (N'StockAlert.Resolve',1,0,1,0,0,0,0,0),
+  (N'StockAlert.Configure',0,0,0,0,0,0,0,0),
+  (N'StockAlert.Export',0,0,0,0,0,0,0,0),
+  (N'Notification.View',1,1,1,1,1,0,0,1),
+  (N'StockAlert.Create',0,0,0,0,0,0,0,0),
+  (N'StockAlert.CreateRestockRequest',0,0,1,0,0,0,0,0),
+  (N'Restock.View',1,1,1,0,1,0,0,1),
+  (N'Restock.Create',1,0,1,0,1,0,0,0),
+  (N'Restock.Submit',0,0,1,0,1,0,0,0),
+  (N'Restock.Approve',0,0,0,0,1,0,0,0),
+  (N'Restock.Reject',0,0,0,0,1,0,0,0),
+  (N'Restock.Cancel',1,0,1,0,1,0,0,0),
+  (N'ReorderSuggestion.View',1,1,1,0,1,0,0,0),
+  (N'Restock.Update',0,0,1,0,1,0,0,0),
+  (N'Restock.CloseRemaining',1,0,0,0,1,0,0,0),
+  (N'Restock.CreatePurchaseOrder',0,0,0,0,0,0,0,0),
+  (N'Restock.CreateTransfer',0,0,0,0,0,0,0,0),
+  (N'PurchaseAdvice.View',1,1,1,0,1,0,0,0),
+  (N'PurchaseAdvice.Create',0,0,0,0,1,0,0,0),
+  (N'PurchaseAdvice.Submit',0,0,0,0,1,0,0,0),
+  (N'PurchaseAdvice.Review',0,0,0,0,1,0,0,0),
+  (N'PurchaseAdvice.Approve',0,0,0,0,0,0,0,0),
+  (N'PurchaseAdvice.Reject',0,0,0,0,1,0,0,0),
+  (N'PurchaseAdvice.Consolidate',0,0,0,0,1,0,0,0),
+  (N'PurchaseAdvice.SelectSupplier',0,0,0,0,0,0,0,0),
+  (N'PurchaseAdvice.CreatePurchaseOrder',0,0,0,0,0,0,0,0),
+  (N'PurchaseOrder.View',1,1,1,0,1,0,0,1),
+  (N'PurchaseOrder.Create',0,0,0,0,1,0,0,0),
+  (N'PurchaseOrder.Update',0,0,0,0,0,0,0,0),
+  (N'PurchaseOrder.Send',0,0,0,0,1,0,0,0),
+  (N'PurchaseOrder.Receive',0,0,0,0,0,0,0,0),
+  (N'PurchaseOrder.Cancel',1,0,0,0,1,0,0,0),
+  (N'PurchaseOrder.ViewBatch',1,1,0,0,1,0,0,0),
+  (N'PurchaseOrder.CreateBatch',0,0,0,0,1,0,0,0),
+  (N'PurchaseOrder.Consolidate',0,0,0,0,0,0,0,0),
+  (N'PurchaseOrder.Submit',0,0,0,0,0,0,0,0),
+  (N'PurchaseOrder.Approve',1,0,0,0,0,0,0,0),
+  (N'PurchaseOrder.RejectApproval',0,0,0,0,0,0,0,0),
+  (N'PurchaseOrder.OverrideAllocation',0,0,0,0,0,0,0,0),
+  (N'PurchaseOrder.Export',0,0,0,0,1,0,0,0),
+  (N'Receipt.View',1,1,1,0,1,0,0,1),
+  (N'Receipt.Create',0,0,1,0,0,0,0,1),
+  (N'Receipt.Confirm',0,0,1,0,0,0,0,1),
+  (N'Receipt.Reject',0,0,0,0,0,0,0,0),
+  (N'Receipt.Cancel',0,0,0,0,0,0,0,0),
+  (N'Receipt.UpdateDraft',0,0,1,0,0,0,0,1),
+  (N'Receipt.RecordSupplierIssue',0,0,0,0,0,0,0,0),
+  (N'Receipt.ViewCost',1,1,0,0,1,0,0,0),
+  (N'Supplier.View',1,1,1,0,1,0,0,0),
+  (N'Supplier.Create',1,0,0,0,1,0,0,0),
+  (N'Supplier.Update',1,0,0,0,1,0,0,0),
+  (N'Supplier.ToggleStatus',1,0,0,0,1,0,0,0),
+  (N'Supplier.ViewQuality',0,0,0,0,0,0,0,0),
+  (N'SupplierQuality.View',1,1,1,0,1,0,0,0),
+  (N'InventoryDocument.View',1,1,1,0,1,0,0,0),
+  (N'InventoryDocument.CreateDraft',0,0,1,0,1,0,0,0),
+  (N'InventoryDocument.Submit',0,0,1,0,1,0,0,0),
+  (N'InventoryDocument.Confirm',0,0,0,0,1,0,0,0),
+  (N'InventoryDocument.ApproveNegative',1,0,0,0,1,0,0,0),
+  (N'InventoryDocument.Cancel',1,0,1,0,1,0,0,0),
+  (N'InventoryDocument.Export',1,1,1,0,1,0,0,0),
+  (N'InventoryTransfer.View',1,1,1,0,1,0,0,1),
+  (N'InventoryTransfer.CreateDraft',1,0,0,0,1,0,0,0),
+  (N'InventoryTransfer.UpdateDraft',1,0,0,0,1,0,0,0),
+  (N'InventoryTransfer.Dispatch',0,0,1,0,1,0,0,1),
+  (N'InventoryTransfer.Receive',0,0,1,0,1,0,0,1),
+  (N'InventoryTransfer.Cancel',1,0,0,0,1,0,0,0),
+  (N'InventoryTransfer.Export',0,0,0,0,0,0,0,0),
+  (N'Order.View',1,1,1,0,1,0,0,0),
+  (N'Order.UpdateStatus',0,0,1,1,0,0,0,1),
+  (N'Order.Cancel',1,0,1,0,0,0,0,1),
+  (N'Order.Refund',0,0,0,0,0,0,0,0),
+  (N'Order.Export',1,1,1,0,1,0,0,0),
+  (N'Staff.View',1,1,1,0,0,1,0,0),
+  (N'Staff.Create',1,1,1,0,0,0,0,0),
+  (N'Staff.Update',1,1,1,0,0,0,0,0),
+  (N'Staff.ToggleStatus',1,1,1,0,0,1,0,0),
+  (N'Staff.ResetPassword',1,1,1,0,0,1,0,0),
+  (N'Shift.View',1,1,1,0,0,0,0,0),
+  (N'Shift.Create',1,1,1,0,0,0,0,0),
+  (N'Shift.Update',1,1,1,0,0,0,0,0),
+  (N'Shift.Cancel',1,1,1,0,0,0,0,0),
+  (N'Store.View',1,1,1,0,1,1,0,0),
+  (N'Store.Create',1,0,0,0,0,0,0,0),
+  (N'Store.Update',1,1,0,0,0,0,0,0),
+  (N'Store.ToggleStatus',1,0,0,0,0,0,0,0),
+  (N'Settings.View',1,0,0,0,0,0,0,0),
+  (N'Settings.Update',1,0,0,0,0,0,0,0),
+  (N'Recipe.View',1,1,1,0,1,0,0,0),
+  (N'Recipe.Create',1,0,0,0,1,0,0,0),
+  (N'Recipe.Update',1,0,0,0,1,0,0,0),
+  (N'PreparedItem.View',1,1,1,0,1,0,0,0),
+  (N'PreparedItem.Create',1,0,0,0,1,0,0,0),
+  (N'PreparedItem.Update',1,0,0,0,1,0,0,0),
+  (N'ProductionOrder.View',1,1,1,0,1,0,0,1),
+  (N'ProductionOrder.Create',1,0,1,0,1,0,0,1),
+  (N'ProductionOrder.Confirm',1,0,1,0,1,0,0,1),
+  (N'OperationalIce.View',1,1,1,0,1,0,0,1),
+  (N'OperationalIce.Manage',0,0,0,0,0,0,0,0),
+  (N'OperationalIce.Approve',0,0,0,0,0,0,0,0),
+  (N'OperationalIce.Policy',0,0,0,0,0,0,0,0),
+  (N'OperationalIce.ConfigurePolicy',1,0,1,0,0,0,0,0),
+  (N'OperationalIce.CreateShift',1,0,1,0,0,0,0,0),
+  (N'OperationalIce.OpenShift',1,0,1,0,0,0,0,0),
+  (N'OperationalIce.LinkWorkShift',1,0,1,0,0,0,0,0),
+  (N'OperationalIce.RequestSupplement',1,0,1,0,0,0,0,1),
+  (N'OperationalIce.ApproveSupplement',1,0,1,0,0,0,0,0),
+  (N'OperationalIce.Handoff',1,0,1,0,0,0,0,1),
+  (N'OperationalIce.SubmitClose',1,0,1,0,0,0,0,1),
+  (N'OperationalIce.ApproveVariance',1,0,1,0,0,0,0,0),
+  (N'OperationalIce.CancelScheduledShift',1,0,1,0,0,0,0,0),
+  (N'OperationalIce.ViewReport',1,1,1,0,1,0,0,1),
+  (N'StoreMenu.OverridePrice',1,0,0,0,0,0,0,0),
+  (N'Profitability.UpdatePrice',1,0,0,0,0,0,0,0),
+  (N'Profitability.UpdateToppingPolicy',1,0,0,0,0,0,0,0),
+  (N'PreparedItem.ToggleStatus',1,0,0,0,1,0,0,0),
+  (N'Recipe.Delete',1,0,0,0,1,0,0,0),
+  (N'PurchaseAdvice.Update',1,0,0,0,1,0,0,0),
+  (N'PurchaseAdvice.Cancel',1,0,0,0,1,0,0,0),
+  (N'PurchaseOrder.CloseRemaining',1,0,0,0,1,0,0,0),
+  (N'SupplierQuality.Create',0,0,1,0,1,0,0,1),
+  (N'SupplierQuality.Transition',1,0,0,0,1,0,0,0),
+  (N'InventoryTransfer.RequestReturn',0,0,1,0,1,0,0,1),
+  (N'InventoryTransfer.ConfirmReturn',0,0,1,0,1,0,0,1),
+  (N'InventoryTransfer.ResolveDiscrepancy',1,1,0,0,1,0,0,0),
+  (N'Order.RefundRequest',1,1,1,0,0,0,0,1),
+  (N'Order.RefundConfirm',1,1,1,0,0,0,0,0),
+  (N'System.Diagnostics.View',1,0,0,0,0,1,0,0),
+  (N'System.Cutover.View',1,0,0,0,1,1,0,0),
+  (N'System.Cutover.Manage',1,0,0,0,0,1,0,0),
+  (N'System.LegacyConsolidation.View',1,1,0,0,1,1,0,0),
+  (N'System.LegacyConsolidation.Manage',1,0,0,0,0,1,0,0);
+
+ /* Make the main catalog status exactly match the target matrix:
+    any row with at least one grant bit is active; all-zero rows are inactive. */
+ UPDATE p
+ SET Active=CONVERT(bit,CASE
+   WHEN m.CDN=1 OR m.QLV=1 OR m.QLCN=1 OR m.NVBH=1
+     OR m.KTK=1 OR m.QTHT=1 OR m.KH=1 OR m.CT=1
+   THEN 1 ELSE 0 END)
+ FROM dbo.Permissions p
+ JOIN #PermissionMatrix m ON m.PermissionCode=p.Code;
+
+ /* Granular POS matrix; only nine active permissions are managed. */
+ CREATE TABLE #PosPermissionMatrix
+ (
+  PermissionCode nvarchar(100) NOT NULL PRIMARY KEY,
+  CDN bit NOT NULL,
+  QLV bit NOT NULL,
+  QLCN bit NOT NULL,
+  NVBH bit NOT NULL,
+  KTK bit NOT NULL,
+  QTHT bit NOT NULL,
+  KH bit NOT NULL,
+  CT bit NOT NULL
+ );
+ INSERT #PosPermissionMatrix VALUES
+  (N'POS.WorkShift.View',1,1,1,1,0,0,0,1),
+  (N'POS.WorkShift.Open',0,0,1,1,0,0,0,1),
+  (N'POS.WorkShift.Close',0,0,1,1,0,0,0,1),
+  (N'POS.WorkShift.OpenOutsideSchedule',0,0,1,1,0,0,0,1),
+  (N'POS.WorkShift.ApproveOutsideSchedule',1,1,1,0,0,0,0,0),
+  (N'POS.WorkShift.CloseException',1,1,1,0,0,0,0,0),
+  (N'POS.WorkShift.Reconcile',1,1,1,0,0,0,0,0),
+  (N'POS.WorkShift.OverrideTerminal',1,1,1,0,0,0,0,0),
+  (N'POS.Operator.Switch',0,0,1,1,0,0,0,1);
+
+ CREATE TABLE #ManagedPermissionCodes
+ (
+  PermissionCode nvarchar(100) NOT NULL PRIMARY KEY
+ );
+ INSERT #ManagedPermissionCodes(PermissionCode)
+ SELECT PermissionCode FROM #PermissionMatrix
+ UNION
+ SELECT Code FROM @WorkShiftPermissionCatalog;
+
+ IF EXISTS
+ (
+  SELECT 1
+  FROM #PermissionMatrix m
   LEFT JOIN dbo.Permissions p ON p.Code=m.PermissionCode
   WHERE p.PermissionId IS NULL
  )
-  THROW 53343,N'RBAC_CAFECHAIN29_V2: managed permission thiếu trong catalog.',1;
+ OR EXISTS
+ (
+  SELECT 1
+  FROM #PosPermissionMatrix m
+  LEFT JOIN dbo.Permissions p ON p.Code=m.PermissionCode
+  WHERE p.PermissionId IS NULL OR p.Active<>1
+ )
+  THROW 53344,N'RBAC_CAFECHAIN_FINAL_V3: permission trong ma trận thiếu hoặc POS active sai.',1;
+
+ IF EXISTS
+ (
+  SELECT 1
+  FROM dbo.Permissions p
+  JOIN #PermissionMatrix m ON m.PermissionCode=p.Code
+  WHERE p.Active=0
+    AND (m.CDN=1 OR m.QLV=1 OR m.QLCN=1 OR m.NVBH=1
+      OR m.KTK=1 OR m.QTHT=1 OR m.KH=1 OR m.CT=1)
+ )
+  THROW 53345,N'RBAC_CAFECHAIN_FINAL_V3: permission inactive vẫn có bit cấp trong ma trận.',1;
 
  CREATE TABLE #ExpectedRolePermissions
  (
@@ -7149,48 +7546,72 @@ BEGIN TRY
   PermissionCode nvarchar(100) NOT NULL,
   PRIMARY KEY(RoleId,PermissionId)
  );
+
  INSERT #ExpectedRolePermissions(RoleId,PermissionId,RoleName,PermissionCode)
  SELECT rm.RoleId,p.PermissionId,rm.RoleName,m.PermissionCode
- FROM #PermissionMatrix m
+ FROM
+ (
+  SELECT * FROM #PermissionMatrix
+  UNION ALL
+  SELECT * FROM #PosPermissionMatrix
+ ) m
  CROSS APPLY
  (
   VALUES
-   (N'CDN',m.CDN),(N'QLV',m.QLV),(N'QLCN',m.QLCN),(N'NVBH',m.NVBH),
-   (N'KTK',m.KTK),(N'QTHT',m.QTHT),(N'KH',m.KH),(N'CT',m.CT)
+   (N'CDN',m.CDN),
+   (N'QLV',m.QLV),
+   (N'QLCN',m.QLCN),
+   (N'NVBH',m.NVBH),
+   (N'KTK',m.KTK),
+   (N'QTHT',m.QTHT),
+   (N'KH',m.KH),
+   (N'CT',m.CT)
  ) grantMatrix(RoleKey,IsGranted)
  JOIN #RoleMap rm ON rm.RoleKey=grantMatrix.RoleKey
  JOIN dbo.Permissions p ON p.Code=m.PermissionCode
- WHERE grantMatrix.IsGranted=1 AND p.Active=1;
+ WHERE grantMatrix.IsGranted=1
+   AND p.Active=1;
 
+ /* Remove every inactive grant and every managed grant not in target. */
  DELETE rp
  FROM dbo.RolePermissions rp
  JOIN #RoleMap rm ON rm.RoleId=rp.RoleId
  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
- JOIN #PermissionMatrix m ON m.PermissionCode=p.Code
- WHERE NOT EXISTS
- (
-  SELECT 1 FROM #ExpectedRolePermissions e
-  WHERE e.RoleId=rp.RoleId AND e.PermissionId=rp.PermissionId
- );
+ LEFT JOIN #ManagedPermissionCodes mc ON mc.PermissionCode=p.Code
+ WHERE p.Active=0
+    OR
+    (
+     mc.PermissionCode IS NOT NULL
+     AND NOT EXISTS
+     (
+      SELECT 1
+      FROM #ExpectedRolePermissions e
+      WHERE e.RoleId=rp.RoleId
+        AND e.PermissionId=rp.PermissionId
+     )
+    );
 
  INSERT dbo.RolePermissions(RoleId,PermissionId)
  SELECT e.RoleId,e.PermissionId
  FROM #ExpectedRolePermissions e
  WHERE NOT EXISTS
  (
-  SELECT 1 FROM dbo.RolePermissions rp
-  WHERE rp.RoleId=e.RoleId AND rp.PermissionId=e.PermissionId
+  SELECT 1
+  FROM dbo.RolePermissions rp
+  WHERE rp.RoleId=e.RoleId
+    AND rp.PermissionId=e.PermissionId
  );
 
  IF EXISTS
  (
-  SELECT RoleId,PermissionId FROM #ExpectedRolePermissions
+  SELECT RoleId,PermissionId
+  FROM #ExpectedRolePermissions
   EXCEPT
   SELECT rp.RoleId,rp.PermissionId
   FROM dbo.RolePermissions rp
   JOIN #RoleMap rm ON rm.RoleId=rp.RoleId
   JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
-  JOIN #PermissionMatrix m ON m.PermissionCode=p.Code
+  JOIN #ManagedPermissionCodes mc ON mc.PermissionCode=p.Code
  )
  OR EXISTS
  (
@@ -7198,11 +7619,22 @@ BEGIN TRY
   FROM dbo.RolePermissions rp
   JOIN #RoleMap rm ON rm.RoleId=rp.RoleId
   JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
-  JOIN #PermissionMatrix m ON m.PermissionCode=p.Code
+  JOIN #ManagedPermissionCodes mc ON mc.PermissionCode=p.Code
   EXCEPT
-  SELECT RoleId,PermissionId FROM #ExpectedRolePermissions
+  SELECT RoleId,PermissionId
+  FROM #ExpectedRolePermissions
  )
-  THROW 53344,N'RBAC_CAFECHAIN29_V2: RolePermission khác ma trận expected.',1;
+  THROW 53346,N'RBAC_CAFECHAIN_FINAL_V3: RolePermission khác ma trận expected.',1;
+
+ IF EXISTS
+ (
+  SELECT 1
+  FROM dbo.RolePermissions rp
+  JOIN #RoleMap rm ON rm.RoleId=rp.RoleId
+  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
+  WHERE p.Active=0
+ )
+  THROW 53347,N'RBAC_CAFECHAIN_FINAL_V3: role vẫn còn grant permission inactive.',1;
 
  IF EXISTS
  (
@@ -7220,236 +7652,63 @@ BEGIN TRY
   SELECT AccountPermissionOverrideId,AccountId,PermissionId,Effect,Reason
   FROM #OverrideBefore
  )
-  THROW 53345,N'RBAC_CAFECHAIN29_V2: AccountPermissionOverride đã bị thay đổi.',1;
+  THROW 53348,N'RBAC_CAFECHAIN_FINAL_V3: AccountPermissionOverride đã bị thay đổi.',1;
 
- IF EXISTS
+ CREATE TABLE #ExpectedRoleCounts
  (
-  SELECT 1 FROM dbo.RolePermissions rp
-  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
-  WHERE p.Code IN(N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete')
- )
-  THROW 53346,N'RBAC_CAFECHAIN29_V2: permission Delete mồ côi còn role grant.',1;
-
-IF
-(
- SELECT COUNT(*)
- FROM #ExpectedRolePermissions e
-  JOIN #RoleMap rm ON rm.RoleId=e.RoleId
-  WHERE rm.RoleKey=N'QTHT'
- ) <>
- (
-  SELECT COUNT(*)
-  FROM #PermissionMatrix m
-  JOIN dbo.Permissions p ON p.Code=m.PermissionCode
- WHERE p.Active=1
- )
- THROW 53347,N'RBAC_CAFECHAIN29_V2: SystemAdmin chưa có toàn bộ permission active trong ma trận legacy.',1;
-
-IF
-(
- SELECT COUNT(*)
- FROM #ExpectedRolePermissions e
- WHERE e.RoleId=(SELECT RoleId FROM #RoleMap WHERE RoleKey=N'QTHT')
-)<>169
- THROW 53348,N'RBAC_CAFECHAIN29_V2: SystemAdmin phải có đúng 169 permission active trong ma trận legacy.',1;
-
-COMMIT;
-
- SELECT N'RBAC_CAFECHAIN29_V2' AS RbacVersion,rm.RoleName,
-        COUNT(rp.PermissionId) AS PermissionCount
- FROM #RoleMap rm
- LEFT JOIN dbo.RolePermissions rp ON rp.RoleId=rm.RoleId
- GROUP BY rm.RoleName
- ORDER BY rm.RoleName;
-
- SELECT rm.RoleName,p.Code AS PermissionCode,
-        CONVERT(bit,CASE WHEN rp.PermissionId IS NULL THEN 0 ELSE 1 END) AS Granted,
-        roleTotals.PermissionCount
- FROM #RoleMap rm
- CROSS JOIN dbo.Permissions p
- LEFT JOIN dbo.RolePermissions rp
-   ON rp.RoleId=rm.RoleId AND rp.PermissionId=p.PermissionId
- CROSS APPLY
- (
-  SELECT COUNT(*) AS PermissionCount
-  FROM dbo.RolePermissions rolePermission
-  WHERE rolePermission.RoleId=rm.RoleId
- ) roleTotals
- WHERE rm.RoleKey IN(N'CDN',N'QLCN',N'QTHT')
-   AND p.Code IN(N'ReorderSuggestion.View',N'Restock.Create')
- ORDER BY rm.RoleName,p.Code;
-END TRY
-BEGIN CATCH
- IF @@TRANCOUNT>0 ROLLBACK;
- THROW;
-END CATCH;
-GO
-
-/* ============================================================
-   BATCH 12C - POS WORKSHIFT PERMISSIONS
-   SeedAll is the only source of RBAC seed for this feature.
-   IDs are intentionally database-generated; Code is the stable identity.
-   ============================================================ */
-SET XACT_ABORT ON;
-BEGIN TRY
- BEGIN TRANSACTION;
-
- IF OBJECT_ID(N'dbo.PermissionGroups',N'U') IS NULL
- OR OBJECT_ID(N'dbo.Permissions',N'U') IS NULL
- OR OBJECT_ID(N'dbo.Roles',N'U') IS NULL
- OR OBJECT_ID(N'dbo.RolePermissions',N'U') IS NULL
- OR OBJECT_ID(N'dbo.AccountPermissionOverrides',N'U') IS NULL
-  THROW 53500,N'POS_WORKSHIFT_RBAC: thiếu bảng RBAC bắt buộc.',1;
-
- IF EXISTS
- (
-  SELECT 1 FROM dbo.PermissionGroups
-  WHERE (Code=N'POS_WORKSHIFT' AND Name<>N'Phiên POS và trách nhiệm két')
-     OR (Name=N'Phiên POS và trách nhiệm két' AND Code<>N'POS_WORKSHIFT')
- )
-  THROW 53501,N'POS_WORKSHIFT_RBAC: PermissionGroup xung đột Code hoặc Name.',1;
-
- IF NOT EXISTS(SELECT 1 FROM dbo.PermissionGroups WHERE Code=N'POS_WORKSHIFT')
-  INSERT dbo.PermissionGroups(Code,Name,DisplayOrder,Active)
-  VALUES(N'POS_WORKSHIFT',N'Phiên POS và trách nhiệm két',28,1);
-
- DECLARE @WorkShiftPermissionGroupId int=(
-  SELECT PermissionGroupId FROM dbo.PermissionGroups WHERE Code=N'POS_WORKSHIFT');
-
- DECLARE @WorkShiftPermissionCatalog TABLE
- (
-  Code nvarchar(100) NOT NULL PRIMARY KEY,
-  Name nvarchar(200) NOT NULL,
-  [Action] nvarchar(50) NOT NULL UNIQUE,
-  Description nvarchar(500) NOT NULL
+  RoleKey nvarchar(10) NOT NULL PRIMARY KEY,
+  ExpectedCount int NOT NULL
  );
- INSERT @WorkShiftPermissionCatalog VALUES
- (N'POS.WorkShift.View',N'Xem phiên POS',N'View',N'Xem phiên chịu trách nhiệm POS/két trong phạm vi cửa hàng được cấp'),
- (N'POS.WorkShift.Open',N'Mở phiên POS',N'Open',N'Mở phiên chịu trách nhiệm POS/két khi đáp ứng lịch, terminal và phạm vi cửa hàng'),
- (N'POS.WorkShift.Close',N'Đóng phiên POS',N'Close',N'Kiểm đếm và đóng phiên chịu trách nhiệm POS/két'),
- (N'POS.WorkShift.OpenOutsideSchedule',N'Mở POS ngoài lịch',N'OpenOutsideSchedule',N'Yêu cầu mở POS ngoài lịch; vẫn bắt buộc lý do và phê duyệt'),
- (N'POS.WorkShift.ApproveOutsideSchedule',N'Duyệt mở POS ngoài lịch',N'ApproveOutsideSchedule',N'Phê duyệt mở POS ngoài lịch trong StaffScope'),
- (N'POS.WorkShift.CloseException',N'Đóng phiên POS ngoại lệ',N'CloseException',N'Đóng ngoại lệ và chuyển phiên cũ sang trạng thái cần đối soát'),
- (N'POS.WorkShift.Reconcile',N'Đối soát lại phiên POS',N'Reconcile',N'Đối soát payment hoặc đơn offline đồng bộ muộn trên phiên gốc'),
- (N'POS.WorkShift.OverrideTerminal',N'Đăng ký terminal POS',N'OverrideTerminal',N'Phê duyệt đăng ký hoặc kích hoạt terminal POS trong StaffScope'),
- (N'POS.Operator.Switch',N'Đổi người thao tác POS',N'SwitchOperator',N'Cho phép thiết lập PIN cá nhân và chuyển Current Operator trong đúng StaffScope');
+ INSERT #ExpectedRoleCounts VALUES
+  (N'CDN',131),
+  (N'QLV',59),
+  (N'QLCN',91),
+  (N'NVBH',10),
+  (N'KTK',91),
+  (N'QTHT',10),
+  (N'KH',0),
+  (N'CT',32);
 
  IF EXISTS
  (
   SELECT 1
-  FROM @WorkShiftPermissionCatalog c
-  JOIN dbo.Permissions p ON p.Code=c.Code
-  WHERE p.PermissionGroupId<>@WorkShiftPermissionGroupId OR p.[Action]<>c.[Action]
+  FROM #ExpectedRoleCounts c
+  JOIN #RoleMap rm ON rm.RoleKey=c.RoleKey
+  OUTER APPLY
+  (
+   SELECT COUNT(*) AS ActualCount
+   FROM #ExpectedRolePermissions e
+   WHERE e.RoleId=rm.RoleId
+  ) x
+  WHERE x.ActualCount<>c.ExpectedCount
  )
- OR EXISTS
- (
-  SELECT 1
-  FROM @WorkShiftPermissionCatalog c
-  JOIN dbo.Permissions p ON p.PermissionGroupId=@WorkShiftPermissionGroupId AND p.[Action]=c.[Action]
-  WHERE p.Code<>c.Code
- )
-  THROW 53502,N'POS_WORKSHIFT_RBAC: Permission xung đột Code, Group hoặc Action.',1;
-
- UPDATE p
- SET Name=c.Name,Description=c.Description,Active=1
- FROM dbo.Permissions p
- JOIN @WorkShiftPermissionCatalog c ON c.Code=p.Code;
-
- INSERT dbo.Permissions(PermissionGroupId,Code,Name,[Action],Description,Active,CreatedAt)
- SELECT @WorkShiftPermissionGroupId,c.Code,c.Name,c.[Action],c.Description,1,SYSUTCDATETIME()
- FROM @WorkShiftPermissionCatalog c
- WHERE NOT EXISTS(SELECT 1 FROM dbo.Permissions p WHERE p.Code=c.Code);
-
- DECLARE @WorkShiftRoleMatrix TABLE
- (
-  RoleName nvarchar(100) NOT NULL PRIMARY KEY,
-  GrantAll bit NOT NULL,
-  GrantStaffOperations bit NOT NULL
- );
- INSERT @WorkShiftRoleMatrix VALUES
- (N'Chủ doanh nghiệp',1,0),
- (N'Quản lý vùng',1,0),
- (N'Quản lý chi nhánh',1,0),
- (N'Ca trưởng',1,0),
- (N'Nhân viên bán hàng',0,1),
- (N'Kế toán/kho',0,0),
- (N'Quản trị hệ thống',0,0),
- (N'Khách hàng',0,0);
-
- IF EXISTS
- (
-  SELECT m.RoleName
-  FROM @WorkShiftRoleMatrix m
-  LEFT JOIN dbo.Roles r ON r.Name=m.RoleName
-  GROUP BY m.RoleName
-  HAVING COUNT(r.RoleId)<>1
- )
-  THROW 53503,N'POS_WORKSHIFT_RBAC: Role name không khớp duy nhất.',1;
-
- DECLARE @ExpectedWorkShiftRolePermissions TABLE
- (
-  RoleId int NOT NULL,
-  PermissionId int NOT NULL,
-  PRIMARY KEY(RoleId,PermissionId)
- );
- INSERT @ExpectedWorkShiftRolePermissions(RoleId,PermissionId)
- SELECT r.RoleId,p.PermissionId
- FROM @WorkShiftRoleMatrix m
- JOIN dbo.Roles r ON r.Name=m.RoleName
- CROSS JOIN dbo.Permissions p
- WHERE p.PermissionGroupId=@WorkShiftPermissionGroupId
-   AND p.Active=1
-   AND
-   (
-    m.GrantAll=1
-    OR (m.GrantStaffOperations=1 AND p.Code IN
-       (N'POS.WorkShift.View',N'POS.WorkShift.Open',N'POS.WorkShift.Close',N'POS.WorkShift.OpenOutsideSchedule',N'POS.Operator.Switch'))
-   );
-
- DELETE rp
- FROM dbo.RolePermissions rp
- JOIN dbo.Roles r ON r.RoleId=rp.RoleId
- JOIN @WorkShiftRoleMatrix m ON m.RoleName=r.Name
- JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId AND p.PermissionGroupId=@WorkShiftPermissionGroupId
- WHERE NOT EXISTS
- (
-  SELECT 1 FROM @ExpectedWorkShiftRolePermissions e
-  WHERE e.RoleId=rp.RoleId AND e.PermissionId=rp.PermissionId
- );
-
- INSERT dbo.RolePermissions(RoleId,PermissionId)
- SELECT e.RoleId,e.PermissionId
- FROM @ExpectedWorkShiftRolePermissions e
- WHERE NOT EXISTS
- (
-  SELECT 1 FROM dbo.RolePermissions rp
-  WHERE rp.RoleId=e.RoleId AND rp.PermissionId=e.PermissionId
- );
-
- IF (SELECT COUNT(*) FROM dbo.Permissions WHERE PermissionGroupId=@WorkShiftPermissionGroupId AND Active=1)<>9
- OR EXISTS
- (
-  SELECT e.RoleId,e.PermissionId FROM @ExpectedWorkShiftRolePermissions e
-  EXCEPT
-  SELECT rp.RoleId,rp.PermissionId
-  FROM dbo.RolePermissions rp
-  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
-  WHERE p.PermissionGroupId=@WorkShiftPermissionGroupId
- )
- OR EXISTS
- (
-  SELECT rp.RoleId,rp.PermissionId
-  FROM dbo.RolePermissions rp
-  JOIN dbo.Roles r ON r.RoleId=rp.RoleId
-  JOIN @WorkShiftRoleMatrix m ON m.RoleName=r.Name
-  JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId
-  WHERE p.PermissionGroupId=@WorkShiftPermissionGroupId
-  EXCEPT
-  SELECT e.RoleId,e.PermissionId FROM @ExpectedWorkShiftRolePermissions e
- )
-  THROW 53504,N'POS_WORKSHIFT_RBAC: catalog hoặc role matrix không đúng contract.',1;
+  THROW 53349,N'RBAC_CAFECHAIN_FINAL_V3: số quyền expected theo role không đúng contract.',1;
 
  COMMIT TRANSACTION;
+
+ SELECT N'RBAC_CAFECHAIN_FINAL_V3' AS RbacVersion,
+        rm.RoleName,
+        c.ExpectedCount,
+        COUNT(rp.PermissionId) AS ActualManagedPermissionCount
+ FROM #RoleMap rm
+ JOIN #ExpectedRoleCounts c ON c.RoleKey=rm.RoleKey
+ LEFT JOIN dbo.RolePermissions rp
+   ON rp.RoleId=rm.RoleId
+  AND EXISTS
+  (
+   SELECT 1
+   FROM dbo.Permissions p
+   JOIN #ManagedPermissionCodes mc ON mc.PermissionCode=p.Code
+   WHERE p.PermissionId=rp.PermissionId
+  )
+ GROUP BY rm.RoleName,c.ExpectedCount
+ ORDER BY rm.RoleName;
+
+ SELECT p.PermissionId,p.Code,p.Active
+ FROM dbo.Permissions p
+ WHERE p.Code LIKE N'Dashboard.%'
+    OR p.Code LIKE N'POS.%'
+ ORDER BY p.Code;
 END TRY
 BEGIN CATCH
  IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
@@ -11901,8 +12160,3 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
-
-
-
-
-

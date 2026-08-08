@@ -25,6 +25,11 @@ public sealed class StaffAddressRefactorSourceTests
         Assert.Contains("X-Requested-With", create, StringComparison.Ordinal);
         Assert.Contains("districtRequestVersion", create, StringComparison.Ordinal);
         Assert.Contains("wardRequestVersion", create, StringComparison.Ordinal);
+        Assert.Contains("data-validation-feedback=\"sweetalert\"", create, StringComparison.Ordinal);
+        Assert.Contains("Thông tin chưa hợp lệ", create, StringComparison.Ordinal);
+        Assert.Contains("bootstrap.Tab.getOrCreateInstance", create, StringComparison.Ordinal);
+        Assert.Contains("restoreCreateSubmit", create, StringComparison.Ordinal);
+        Assert.Contains("AdminMutationGuard?.unlockForm", create, StringComparison.Ordinal);
         Assert.Contains("const districts = await load", edit, StringComparison.Ordinal);
         Assert.Contains("await load(ward", edit, StringComparison.Ordinal);
         Assert.DoesNotContain("setTimeout", edit, StringComparison.Ordinal);

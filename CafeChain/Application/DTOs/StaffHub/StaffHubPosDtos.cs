@@ -17,6 +17,13 @@ public sealed class StaffHubIssuePosRequestDto : StaffHubPosPreviewRequestDto
     public string? Reason { get; set; }
 
     public Guid? OtpChallengePublicId { get; set; }
+    public Guid? LateOpenApprovalPublicId { get; set; }
+}
+
+public sealed class StaffHubResumePosRequestDto
+{
+    [Required, StringLength(100)]
+    public string TerminalId { get; set; } = string.Empty;
 }
 
 public sealed class StaffHubOpenOtpRequestDto : StaffHubPosPreviewRequestDto

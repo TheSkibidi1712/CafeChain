@@ -20,6 +20,28 @@ export interface StaffNotificationItem {
     code: string
     expiresAtUtc: string
   } | null
+  operationalOtp?: OperationalOtpNotification | null
+}
+
+export interface OperationalOtpNotification {
+  challengePublicId: string
+  actionType: string
+  terminalId: string
+  terminalName: string
+  storeName: string
+  requestedByStaffId: number
+  requestedByName: string
+  approverStaffId: number
+  approverName: string
+  confirmedByStaffId?: number | null
+  confirmedByName?: string | null
+  sentAtUtc: string
+  expiresAtUtc: string
+  serverNowUtc: string
+  status: 'Waiting' | 'Used' | 'Expired' | 'Cancelled' | string
+  remainingSeconds: number
+  canRevealOtp: boolean
+  canContinueTerminalConfirmation: boolean
 }
 
 export interface NotificationListData {
@@ -101,4 +123,32 @@ export async function markAllNotificationsRead(): Promise<{
     return { ok: false, markedCount: 0, error: parseError(res.error) }
   }
   return { ok: true, markedCount: res.data.data?.markedCount ?? 0 }
+}
+
+export async function revealTerminalOtp(id: number): Promise<{
+  ok: boolean
+  data?: { code: string; expiresAtUtc: string; serverNowUtc: string }
+  error?: string
+}> {
+  const res = await apiClient.get<Envelope<{ code: string; expiresAtUtc: string; serverNowUtc: string }>>(
+    `/api/v1/pos/notifications/${id}/terminal-otp`
+  )
+  if (!res.ok || !res.data?.data) {
+    return { ok: false, error: parseError(res.error, 'Không thể xem OTP.') }
+  }
+  return { ok: true, data: res.data.data }
+}
+
+export async function confirmTerminalFromNotification(
+  id: number,
+  otpCode: string,
+  requestKey: string
+): Promise<{ ok: boolean; error?: string }> {
+  const res = await apiClient.post<Envelope<unknown>>(
+    `/api/v1/pos/notifications/${id}/terminal-confirm`,
+    { otpCode, requestKey }
+  )
+  return res.ok
+    ? { ok: true }
+    : { ok: false, error: parseError(res.error, 'Không thể xác nhận Terminal.') }
 }

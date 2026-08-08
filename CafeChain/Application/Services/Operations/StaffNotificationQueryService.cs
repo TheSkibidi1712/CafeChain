@@ -72,56 +72,54 @@ namespace CafeChain.Application.Services.Operations
             var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
             var otpIds = rows
                 .Where(n =>
-                    !n.ResolvedAt.HasValue
-                    &&
                     string.Equals(n.Type, StaffNotificationTypes.OperationalOtpRequest, StringComparison.OrdinalIgnoreCase)
                     && string.Equals(n.EntityType, StaffNotificationEntityTypes.OtpChallenge, StringComparison.OrdinalIgnoreCase))
-                .Select(n => n.EntityId)
+                .Select(n => n.OtpChallengeId ?? n.EntityId)
                 .Distinct()
                 .ToArray();
-            var activeChallenges = otpIds.Length == 0
+            var otpChallenges = otpIds.Length == 0
                 ? new List<OtpChallenge>()
-                : await _repository.GetActiveOtpChallengesAsync(
-                    recipientStaffId,
-                    otpIds,
-                    nowUtc) ?? new List<OtpChallenge>();
-            var activeOtpByChallengeId = new Dictionary<int, (int StoreId, ActiveOtpNotificationDto Otp)>();
-            if (_otpProtectedPayload != null)
-            {
-                foreach (var challenge in activeChallenges)
-                {
-                    if (_otpProtectedPayload.TryUnprotect(
-                            challenge.ProtectedOtpPayload,
-                            challenge.PublicId,
-                            recipientStaffId,
-                            challenge.ExpiresAt,
-                            nowUtc,
-                            out var otpCode))
-                    {
-                        activeOtpByChallengeId[challenge.OtpChallengeId] = (
-                            challenge.StoreId,
-                            new ActiveOtpNotificationDto
-                            {
-                                Code = otpCode,
-                                ExpiresAtUtc = challenge.ExpiresAt
-                            });
-                    }
-                }
-            }
+                : await _repository.GetOtpChallengesAsync(recipientStaffId, otpIds)
+                    ?? new List<OtpChallenge>();
+            var otpByChallengeId = otpChallenges.ToDictionary(x => x.OtpChallengeId);
 
             var items = rows.Select(n =>
             {
-                ActiveOtpNotificationDto? activeOtp = null;
-                if (!n.ResolvedAt.HasValue
-                    && string.Equals(n.Type, StaffNotificationTypes.OperationalOtpRequest, StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(n.EntityType, StaffNotificationEntityTypes.OtpChallenge, StringComparison.OrdinalIgnoreCase)
-                    && activeOtpByChallengeId.TryGetValue(n.EntityId, out var protectedOtp)
-                    && protectedOtp.StoreId == n.StoreId)
+                OperationalOtpNotificationDto? operationalOtp = null;
+                var challengeId = n.OtpChallengeId ?? n.EntityId;
+                if (string.Equals(n.Type, StaffNotificationTypes.OperationalOtpRequest, StringComparison.OrdinalIgnoreCase)
+                    && otpByChallengeId.TryGetValue(challengeId, out var challenge)
+                    && challenge.StoreId == n.StoreId)
                 {
-                    activeOtp = protectedOtp.Otp;
+                    var status = MapOperationalOtpStatus(challenge, nowUtc);
+                    var isWaiting = status == "Waiting";
+                    operationalOtp = new OperationalOtpNotificationDto
+                    {
+                        ChallengePublicId = challenge.PublicId,
+                        ActionType = challenge.ActionType,
+                        TerminalId = challenge.TerminalId ?? string.Empty,
+                        TerminalName = challenge.TerminalName ?? challenge.TerminalId ?? string.Empty,
+                        StoreName = challenge.Store?.Name ?? string.Empty,
+                        RequestedByStaffId = challenge.RequestedByStaffId,
+                        RequestedByName = challenge.RequestedByStaff?.FullName ?? string.Empty,
+                        ApproverStaffId = challenge.ApproverStaffId,
+                        ApproverName = challenge.ApproverStaff?.FullName ?? string.Empty,
+                        ConfirmedByStaffId = challenge.ConfirmedByStaffId,
+                        ConfirmedByName = challenge.ConfirmedByStaff?.FullName,
+                        SentAtUtc = challenge.CreatedAt,
+                        ExpiresAtUtc = challenge.ExpiresAt,
+                        ServerNowUtc = nowUtc,
+                        Status = status,
+                        RemainingSeconds = isWaiting
+                            ? Math.Max(0, (int)Math.Ceiling((challenge.ExpiresAt - nowUtc).TotalSeconds))
+                            : 0,
+                        CanRevealOtp = isWaiting && challenge.ProtectedOtpPayload != null,
+                        CanContinueTerminalConfirmation = isWaiting
+                            && challenge.ActionType == OtpConstants.ActionTypes.RegisterTerminal
+                    };
                 }
 
-                return MapItem(n, channel, activeOtp);
+                return MapItem(n, channel, operationalOtp);
             }).ToList();
 
             return ServiceResult<StaffNotificationListDto>.Success(new StaffNotificationListDto
@@ -252,7 +250,7 @@ namespace CafeChain.Application.Services.Operations
         private static StaffNotificationItemDto MapItem(
             StaffNotification n,
             string channel,
-            ActiveOtpNotificationDto? activeOtp)
+            OperationalOtpNotificationDto? operationalOtp)
         {
             string? targetUrl;
             if (string.Equals(channel, ChannelAdmin, StringComparison.OrdinalIgnoreCase))
@@ -278,8 +276,17 @@ namespace CafeChain.Application.Services.Operations
                 EmailSent = n.EmailSent,
                 EmailDeliveryHint = MapEmailDeliveryHint(n.EmailAttempted, n.EmailSent),
                 TargetUrl = targetUrl,
-                ActiveOtp = activeOtp
+                ActiveOtp = null,
+                OperationalOtp = operationalOtp
             };
+        }
+
+        private static string MapOperationalOtpStatus(OtpChallenge challenge, DateTime nowUtc)
+        {
+            if (challenge.Status == OtpConstants.Statuses.Used) return "Used";
+            if (challenge.Status == OtpConstants.Statuses.Expired || challenge.ExpiresAt <= nowUtc) return "Expired";
+            if (challenge.Status is OtpConstants.Statuses.Cancelled or OtpConstants.Statuses.Locked) return "Cancelled";
+            return "Waiting";
         }
     }
 }

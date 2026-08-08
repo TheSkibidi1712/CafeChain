@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260805215508_AddOrderRecipeAndToppingQuantityUnitSnapshots")]
-    partial class AddOrderRecipeAndToppingQuantityUnitSnapshots
+    [Migration("20260807070051_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -7859,8 +7859,21 @@ namespace CafeChain.Migrations
                     b.Property<int?>("LeadTimeDays")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("LooseMinimumOrderQuantity")
+                        .HasColumnType("decimal(18,5)");
+
+                    b.Property<string>("LoosePriceMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)")
+                        .HasDefaultValue("INDEPENDENT");
+
                     b.Property<int?>("LooseProcurementUnitId")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("LooseQuantityStep")
+                        .HasColumnType("decimal(18,5)");
 
                     b.Property<int?>("MinimumOrderPackageCount")
                         .HasColumnType("int");
@@ -7893,7 +7906,10 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("Active");
 
-                    b.HasIndex("IngredientId");
+                    b.HasIndex("IngredientId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_IngredientSuppliers_PrimaryByIngredient")
+                        .HasFilter("[IsPrimary] = 1 AND [Active] = 1");
 
                     b.HasIndex("LooseProcurementUnitId");
 
@@ -7910,7 +7926,13 @@ namespace CafeChain.Migrations
 
                             t.HasCheckConstraint("CK_IngredientSupplier_LeadTime", "[LeadTimeDays] IS NULL OR [LeadTimeDays] >= 0");
 
+                            t.HasCheckConstraint("CK_IngredientSupplier_LooseMinimumOrderQuantity", "[LooseMinimumOrderQuantity] IS NULL OR [LooseMinimumOrderQuantity] >= 0");
+
+                            t.HasCheckConstraint("CK_IngredientSupplier_LoosePriceMode", "[LoosePriceMode] IN ('DERIVED', 'INDEPENDENT')");
+
                             t.HasCheckConstraint("CK_IngredientSupplier_LoosePurchase", "[AllowsLoosePurchase] = 0 OR ([CurrentProcurementUnitPrice] IS NOT NULL AND [CurrentProcurementUnitPrice] > 0 AND [LooseProcurementUnitId] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_IngredientSupplier_LooseQuantityStep", "[LooseQuantityStep] IS NULL OR [LooseQuantityStep] > 0");
 
                             t.HasCheckConstraint("CK_IngredientSupplier_MOQ", "[MinimumOrderPackageCount] IS NULL OR [MinimumOrderPackageCount] > 0");
 
@@ -7928,6 +7950,7 @@ namespace CafeChain.Migrations
                             IngredientId = 6,
                             IsPrimary = true,
                             LeadTimeDays = 1,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 1,
                             Note = "Đường Biên Hòa",
                             PackageQuantity = 1m,
@@ -7946,6 +7969,7 @@ namespace CafeChain.Migrations
                             IngredientId = 2,
                             IsPrimary = true,
                             LeadTimeDays = 2,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 24,
                             Note = "Sữa đặc demo lon 380 ml (synthetic)",
                             PackageQuantity = 380m,
@@ -7964,6 +7988,7 @@ namespace CafeChain.Migrations
                             IngredientId = 1,
                             IsPrimary = true,
                             LeadTimeDays = 3,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 5,
                             Note = "Cà phê hạt",
                             PackageQuantity = 1m,
@@ -7982,6 +8007,7 @@ namespace CafeChain.Migrations
                             IngredientId = 8,
                             IsPrimary = true,
                             LeadTimeDays = 4,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 6,
                             Note = "Syrup Torani",
                             PackageQuantity = 750m,
@@ -8000,6 +8026,7 @@ namespace CafeChain.Migrations
                             IngredientId = 10,
                             IsPrimary = true,
                             LeadTimeDays = 2,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 12,
                             Note = "Kem béo Rich",
                             PackageQuantity = 1m,
@@ -8018,6 +8045,7 @@ namespace CafeChain.Migrations
                             IngredientId = 9,
                             IsPrimary = true,
                             LeadTimeDays = 5,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 1,
                             Note = "Matcha Nhật",
                             PackageQuantity = 500m,
@@ -8036,6 +8064,7 @@ namespace CafeChain.Migrations
                             IngredientId = 5,
                             IsPrimary = true,
                             LeadTimeDays = 3,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 2,
                             Note = "Bột cacao",
                             PackageQuantity = 1m,
@@ -8054,6 +8083,7 @@ namespace CafeChain.Migrations
                             IngredientId = 4,
                             IsPrimary = true,
                             LeadTimeDays = 2,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 2,
                             Note = "Bột sữa",
                             PackageQuantity = 1m,
@@ -8072,6 +8102,7 @@ namespace CafeChain.Migrations
                             IngredientId = 3,
                             IsPrimary = true,
                             LeadTimeDays = 5,
+                            LoosePriceMode = "INDEPENDENT",
                             MinimumOrderPackageCount = 1,
                             Note = "Trà đen demo 100 túi × 2 g (synthetic)",
                             PackageQuantity = 200m,
@@ -9388,6 +9419,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("nchar(64)")
                         .IsFixedLength();
 
+                    b.Property<int?>("ConfirmedByStaffId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -9477,6 +9511,10 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("TerminalName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTime?>("UsedAt")
                         .HasColumnType("datetime2");
 
@@ -9484,6 +9522,8 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("OtpChallengeId");
+
+                    b.HasIndex("ConfirmedByStaffId");
 
                     b.HasIndex("CreatedAt");
 
@@ -9516,6 +9556,94 @@ namespace CafeChain.Migrations
                     b.HasIndex("StoreId", "RequestedByStaffId", "ActionType", "TargetType", "TargetId", "Status");
 
                     b.ToTable("OtpChallenges", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Operations.PosAccessSession", b =>
+                {
+                    b.Property<long>("PosAccessSessionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PosAccessSessionId"));
+
+                    b.Property<int>("AccountId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EndReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("EndedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("EndedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExchangeContextId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("IssuedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("JwtId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TerminalId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("WorkShiftId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PosAccessSessionId");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("EndedByStaffId");
+
+                    b.HasIndex("JwtId")
+                        .IsUnique();
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("TerminalId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_PosAccessSessions_ActiveTerminal")
+                        .HasFilter("[Status] = 'ACTIVE'");
+
+                    b.HasIndex("WorkShiftId");
+
+                    b.HasIndex("StoreId", "Status", "ExpiresAtUtc");
+
+                    b.ToTable("PosAccessSessions", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Operations.StaffNotification", b =>
@@ -9569,6 +9697,9 @@ namespace CafeChain.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<int?>("OtpChallengeId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("datetime2");
 
@@ -9608,6 +9739,9 @@ namespace CafeChain.Migrations
                         .HasDatabaseName("UX_StaffNotification_DeduplicationKey")
                         .HasFilter("[DeduplicationKey] IS NOT NULL");
 
+                    b.HasIndex("OtpChallengeId")
+                        .HasDatabaseName("IX_StaffNotification_OtpChallengeId");
+
                     b.HasIndex("StoreId")
                         .HasDatabaseName("IX_StaffNotification_StoreId");
 
@@ -9618,6 +9752,96 @@ namespace CafeChain.Migrations
                         .HasDatabaseName("IX_StaffNotification_Recipient_IsRead");
 
                     b.ToTable("StaffNotifications", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Operations.WorkShiftOpenApprovalRequest", b =>
+                {
+                    b.Property<int>("WorkShiftOpenApprovalRequestId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WorkShiftOpenApprovalRequestId"));
+
+                    b.Property<DateTime?>("DecidedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DecidedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MinutesLate")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RequestKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("RequestedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RequestedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int?>("SourceStaffShiftId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TerminalId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("WorkShiftOpenApprovalRequestId");
+
+                    b.HasIndex("DecidedByStaffId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("RequestKey")
+                        .IsUnique();
+
+                    b.HasIndex("SourceStaffShiftId");
+
+                    b.HasIndex("TerminalId");
+
+                    b.HasIndex("RequestedByStaffId", "Status");
+
+                    b.HasIndex("StoreId", "RequestedByStaffId", "TerminalId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_WorkShiftOpenApprovals_ActiveContext")
+                        .HasFilter("[Status] = 'PENDING'");
+
+                    b.HasIndex("StoreId", "Status", "RequestedAtUtc");
+
+                    b.ToTable("WorkShiftOpenApprovalRequests", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.InvoiceAuditLog", b =>
@@ -15996,6 +16220,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ConfirmedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ConfirmedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Staffs.Staff", "RequestedByStaff")
                         .WithMany()
                         .HasForeignKey("RequestedByStaffId")
@@ -16015,6 +16244,8 @@ namespace CafeChain.Migrations
 
                     b.Navigation("ApproverStaff");
 
+                    b.Navigation("ConfirmedByStaff");
+
                     b.Navigation("RequestedByStaff");
 
                     b.Navigation("Store");
@@ -16022,8 +16253,62 @@ namespace CafeChain.Migrations
                     b.Navigation("WorkShift");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Operations.PosAccessSession", b =>
+                {
+                    b.HasOne("CafeChain.Models.Customers.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "EndedByStaff")
+                        .WithMany()
+                        .HasForeignKey("EndedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.PosTerminal", "Terminal")
+                        .WithMany()
+                        .HasForeignKey("TerminalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.WorkShift", "WorkShift")
+                        .WithMany()
+                        .HasForeignKey("WorkShiftId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Account");
+
+                    b.Navigation("EndedByStaff");
+
+                    b.Navigation("Staff");
+
+                    b.Navigation("Store");
+
+                    b.Navigation("Terminal");
+
+                    b.Navigation("WorkShift");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Operations.StaffNotification", b =>
                 {
+                    b.HasOne("CafeChain.Models.Operations.OtpChallenge", "OtpChallenge")
+                        .WithMany()
+                        .HasForeignKey("OtpChallengeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Staffs.Staff", "RecipientStaff")
                         .WithMany()
                         .HasForeignKey("RecipientStaffId")
@@ -16036,9 +16321,52 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("OtpChallenge");
+
                     b.Navigation("RecipientStaff");
 
                     b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Operations.WorkShiftOpenApprovalRequest", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "DecidedByStaff")
+                        .WithMany()
+                        .HasForeignKey("DecidedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "RequestedByStaff")
+                        .WithMany()
+                        .HasForeignKey("RequestedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.StaffShift", "SourceStaffShift")
+                        .WithMany()
+                        .HasForeignKey("SourceStaffShiftId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.PosTerminal", "Terminal")
+                        .WithMany()
+                        .HasForeignKey("TerminalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DecidedByStaff");
+
+                    b.Navigation("RequestedByStaff");
+
+                    b.Navigation("SourceStaffShift");
+
+                    b.Navigation("Store");
+
+                    b.Navigation("Terminal");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.InvoiceAuditLog", b =>

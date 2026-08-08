@@ -23,6 +23,7 @@ namespace CafeChain.Application.DTOs.POS
         /// OTP challenge đã duyệt khi mở ca trễ &gt; 30 phút.
         /// </summary>
         public Guid? OtpChallengePublicId { get; set; }
+        public Guid? LateOpenApprovalPublicId { get; set; }
 
         /// <summary>Lý do mở ca trễ — bắt buộc khi OTP late-open (fingerprint).</summary>
         public string? LateOpeningReason { get; set; }
@@ -39,6 +40,13 @@ namespace CafeChain.Application.DTOs.POS
 
         [System.Text.Json.Serialization.JsonIgnore]
         public int? AccountId { get; set; }
+
+        /// <summary>
+        /// Server-only durable POS access session extracted from the validated JWT.
+        /// The opened WorkShift is bound to this session in the same database transaction.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public Guid? PosAccessSessionId { get; set; }
     }
 
     public sealed class OpenShiftAssessmentRequestDto
@@ -48,6 +56,7 @@ namespace CafeChain.Application.DTOs.POS
 
     public sealed class OpenShiftAssessmentDto
     {
+        public string? RecommendedAction { get; set; }
         public string OpenContext { get; set; } = string.Empty;
         public int? SourceStaffShiftId { get; set; }
         public DateTime? PlannedStartUtc { get; set; }
@@ -56,6 +65,7 @@ namespace CafeChain.Application.DTOs.POS
         public int MinutesEarly { get; set; }
         public bool ReasonRequired { get; set; }
         public bool ApprovalRequired { get; set; }
+        public bool ManagerApprovalRequired { get; set; }
         public DateTime ServerNowUtc { get; set; }
         public DateTime? AutoCloseAtUtc { get; set; }
         public string? TerminalId { get; set; }
@@ -70,6 +80,10 @@ namespace CafeChain.Application.DTOs.POS
         public DateTime StartTimeUtc { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime? AutoCloseAtUtc { get; set; }
+        public int ResponsibleStaffId { get; set; }
+        public string? ResponsibleStaffName { get; set; }
+        public bool IsOwnedByRequester { get; set; }
+        public string RecommendedAction { get; set; } = string.Empty;
     }
 
     public sealed class PosTerminalOptionDto

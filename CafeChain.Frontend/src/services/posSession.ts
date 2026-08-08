@@ -28,6 +28,20 @@ export interface PosSession {
   role: string
   avatarUrl?: string
   expiresAt?: number
+  workShiftId?: number | null
+  terminalId?: string | null
+  sessionId?: string | null
+  requiresOpeningCash?: boolean
+}
+
+export class PosSessionBootstrapError extends Error {
+  readonly errorCode: string
+
+  constructor(message: string, errorCode = 'POS_EXCHANGE_UNAVAILABLE') {
+    super(message)
+    this.name = 'PosSessionBootstrapError'
+    this.errorCode = errorCode
+  }
 }
 
 function readClaim(payload: Record<string, unknown>, keys: string[]): string | null {
@@ -70,7 +84,17 @@ export function savePosToken(token: string): PosSession {
     role: readClaim(payload, CLAIMS.role) ?? 'POS',
     avatarUrl: typeof payload.AvatarUrl === 'string' ? payload.AvatarUrl : undefined,
     expiresAt: typeof payload.exp === 'number' ? payload.exp * 1000 : undefined,
+    workShiftId: Number(payload.PosWorkShiftId) || null,
+    terminalId: typeof payload.PosTerminalId === 'string' && payload.PosTerminalId.trim()
+      ? payload.PosTerminalId.trim()
+      : null,
+    sessionId: typeof payload.PosSessionId === 'string' && payload.PosSessionId.trim()
+      ? payload.PosSessionId.trim()
+      : null,
+    requiresOpeningCash: String(payload.RequiresOpeningCash).toLowerCase() === 'true',
   }
+
+  if (session.terminalId) localStorage.setItem(POS_TERMINAL_KEY, session.terminalId)
 
   localStorage.setItem(POS_CONTEXT_KEY, JSON.stringify({
     staffId: session.staffId,
@@ -79,10 +103,41 @@ export function savePosToken(token: string): PosSession {
     role: session.role,
     avatarUrl: session.avatarUrl,
     expiresAt: session.expiresAt,
+    workShiftId: session.workShiftId,
+    terminalId: session.terminalId,
+    sessionId: session.sessionId,
+    requiresOpeningCash: session.requiresOpeningCash,
   }))
 
   window.dispatchEvent(new CustomEvent('pos-session-changed', { detail: session }))
   return session
+}
+
+export function clearPosAuthentication(): void {
+  localStorage.removeItem(POS_TOKEN_KEY)
+  localStorage.removeItem(POS_CONTEXT_KEY)
+  window.dispatchEvent(new CustomEvent('pos-session-changed', {
+    detail: getPosSession(),
+  }))
+}
+
+export function completeOpeningCash(workShiftId: number): void {
+  const session = getPosSession()
+  session.requiresOpeningCash = false
+  session.workShiftId = workShiftId
+  localStorage.setItem(POS_CONTEXT_KEY, JSON.stringify({
+    staffId: session.staffId,
+    storeId: session.storeId,
+    staffName: session.staffName,
+    role: session.role,
+    avatarUrl: session.avatarUrl,
+    expiresAt: session.expiresAt,
+    workShiftId,
+    terminalId: session.terminalId,
+    sessionId: session.sessionId,
+    requiresOpeningCash: false,
+  }))
+  window.dispatchEvent(new CustomEvent('pos-session-changed', { detail: session }))
 }
 
 export function getPosSession(): PosSession {
@@ -119,21 +174,38 @@ export async function bootstrapPosTokenFromUrl(): Promise<PosSession> {
 
   const exchangeUrl = new URL(exchangeUrlValue, window.location.origin)
   if (exchangeUrl.protocol !== 'https:' && exchangeUrl.protocol !== 'http:') {
-    throw new Error('Địa chỉ đổi mã POS không hợp lệ.')
+    throw new PosSessionBootstrapError(
+      'Địa chỉ đổi mã POS không hợp lệ.',
+      'POS_EXCHANGE_CODE_INVALID',
+    )
   }
 
   // Remove the bearer exchange code from browser history before doing network I/O.
   url.hash = ''
   window.history.replaceState({}, document.title, url.pathname + url.search)
 
-  const response = await fetch(exchangeUrl.toString(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ exchangeCode }),
-  })
-  const payload = await response.json().catch(() => null) as { token?: string; message?: string } | null
+  let response: Response
+  try {
+    response = await fetch(exchangeUrl.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ exchangeCode }),
+    })
+  } catch {
+    throw new PosSessionBootstrapError(
+      'Không thể kết nối máy chủ để đổi mã mở POS.',
+    )
+  }
+  const payload = await response.json().catch(() => null) as {
+    token?: string
+    message?: string
+    errorCode?: string
+  } | null
   if (!response.ok || !payload?.token) {
-    throw new Error(payload?.message ?? 'Mã mở POS đã hết hạn hoặc đã được sử dụng.')
+    throw new PosSessionBootstrapError(
+      payload?.message ?? 'Mã mở POS đã hết hạn hoặc đã được sử dụng.',
+      payload?.errorCode ?? 'POS_EXCHANGE_CODE_INVALID',
+    )
   }
 
   return savePosToken(payload.token)
@@ -144,9 +216,9 @@ export function getPosStoreId(defaultStoreId = 1): number {
 }
 
 export function getPosTerminalId(): string {
+  const sessionTerminal = getPosSession().terminalId?.trim()
+  if (sessionTerminal) return sessionTerminal
   const existing = localStorage.getItem(POS_TERMINAL_KEY)
   if (existing) return existing
-  const generated = crypto.randomUUID()
-  localStorage.setItem(POS_TERMINAL_KEY, generated)
-  return generated
+  return ''
 }

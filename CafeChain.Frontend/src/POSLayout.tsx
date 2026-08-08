@@ -16,7 +16,7 @@ import {
   publishCustomerDisplay,
 } from './services/customerDisplay'
 import { openCustomerDisplayWindow } from './services/customerDisplayWindow'
-import { getPosSession, getPosTerminalId } from './services/posSession'
+import { clearPosAuthentication, getPosSession, getPosTerminalId } from './services/posSession'
 import { usePOSData } from './hooks/usePOSData'
 import { usePosLayoutMode } from './hooks/usePosLayoutMode'
 import ProductModifierModal, {
@@ -32,6 +32,7 @@ import PaymentWorkspace, {
 } from './components/pos/payment/PaymentWorkspace'
 import type { CartSyncQueueItem } from './db/CafeChainPOSDB'
 import { formatIceLevel } from './utils/iceLevel'
+import { parseUtcInstantMs } from './utils/utcDateTime'
 
 interface CartItem {
   id: number
@@ -143,6 +144,13 @@ const validateCashVnd = (amount: number, allowZero = false): string | null => {
 
 const formatVND = (amount: number): string =>
   new Intl.NumberFormat('vi-VN').format(amount) + 'đ'
+
+const redirectToStaffHub = (terminalId?: string | null) => {
+  const target = new URL('/StaffHub', API_BASE_URL)
+  target.searchParams.set('openPos', '1')
+  if (terminalId) target.searchParams.set('terminalId', terminalId)
+  window.location.assign(target.toString())
+}
 
 const getUnavailableReason = (item: MenuItem): string =>
   item.availabilityReason?.trim() || 'Tạm hết hàng'
@@ -276,16 +284,24 @@ export default function POSLayout() {
   const customerDisplayShiftId = shift?.shiftId ?? null
 
   useEffect(() => {
+    if (!session.token) redirectToStaffHub(session.terminalId)
+  }, [session.terminalId, session.token])
+
+  useEffect(() => {
     let active = true
     let connection: signalR.HubConnection | null = null
 
     const loadShift = async () => {
       const response = await apiClient.get<ShiftSummary>('/api/v1/pos/shifts/current')
       if (!active) return
+      if (response.status === 401) {
+        redirectToStaffHub(session.terminalId)
+        return
+      }
       if (response.ok && response.data) {
         setShift(response.data)
         setWorkShiftClock(Date.now())
-        const serverNowMs = response.data.serverNowUtc ? Date.parse(response.data.serverNowUtc) : Number.NaN
+        const serverNowMs = parseUtcInstantMs(response.data.serverNowUtc)
         if (Number.isFinite(serverNowMs)) setWorkShiftServerOffsetMs(serverNowMs - Date.now())
       } else setShift({ status: 'NoActiveShift' })
     }
@@ -296,26 +312,43 @@ export default function POSLayout() {
     const clockId = window.setInterval(() => setWorkShiftClock(Date.now()), 1_000)
 
     if (session.token) {
-      connection = new signalR.HubConnectionBuilder()
-        .withUrl(`${API_BASE_URL}/hubs/workshifts`, {
-          accessTokenFactory: () => session.token ?? '',
-        })
-        .withAutomaticReconnect([0, 2_000, 5_000, 10_000, 30_000])
-        .build()
+      queueMicrotask(() => {
+        if (!active) return
+        connection = new signalR.HubConnectionBuilder()
+          .withUrl(`${API_BASE_URL}/hubs/workshifts`, {
+            accessTokenFactory: () => session.token ?? '',
+          })
+          .withAutomaticReconnect([0, 2_000, 5_000, 10_000, 30_000])
+          .build()
 
-      connection.on('WorkShiftChanged', (notification: { storeId?: number; staffId?: number }) => {
-        if (notification.storeId && session.storeId && notification.storeId !== session.storeId) return
-        void loadShift()
-      })
-      connection.onreconnected(() => {
-        void connection?.invoke('JoinTerminal', getPosTerminalId())
-        void loadShift()
-      })
-      connection.start()
-        .then(() => connection?.invoke('JoinTerminal', getPosTerminalId()))
-        .catch((error) => {
-          console.warn('[POS WorkShift SignalR] Connection failed; polling remains active.', error)
+        connection.on('WorkShiftChanged', (notification: { storeId?: number; staffId?: number }) => {
+          if (notification.storeId && session.storeId && notification.storeId !== session.storeId) return
+          void loadShift()
         })
+        connection.on('PosAccessSessionChanged', (notification: { sessionId?: string; status?: string }) => {
+          if (notification.sessionId && session.sessionId
+            && notification.sessionId.toLowerCase() !== session.sessionId.toLowerCase()) return
+          if ((notification.status || '').toUpperCase() === 'ACTIVE') return
+          clearPosAuthentication()
+          redirectToStaffHub(session.terminalId)
+        })
+        connection.onreconnected(() => {
+          const terminalId = getPosTerminalId()
+          if (terminalId) void connection?.invoke('JoinTerminal', terminalId)
+          void loadShift()
+        })
+        connection.start()
+          .then(() => {
+            if (!active) return undefined
+            const terminalId = getPosTerminalId()
+            return terminalId ? connection?.invoke('JoinTerminal', terminalId) : undefined
+          })
+          .catch((error) => {
+            if (active) {
+              console.warn('[POS WorkShift SignalR] Connection failed; polling remains active.', error)
+            }
+          })
+      })
     }
 
     return () => {
@@ -329,7 +362,7 @@ export default function POSLayout() {
         })
       }
     }
-  }, [session.storeId, session.token])
+  }, [session.sessionId, session.storeId, session.terminalId, session.token])
 
   const selectedCategoryId = selectedCategory !== null
     && categories.some((cat) => cat.id === selectedCategory)
@@ -348,10 +381,19 @@ export default function POSLayout() {
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
   const currentCategory = categories.find((cat) => cat.id === selectedCategoryId)
   const normalizedShiftStatus = shift?.status?.toUpperCase() ?? 'NOACTIVESHIFT'
-  const autoCloseAtMs = shift?.autoCloseAtUtc ? Date.parse(shift.autoCloseAtUtc) : Number.NaN
+  const autoCloseAtMs = parseUtcInstantMs(shift?.autoCloseAtUtc)
   const deadlineReached = Number.isFinite(autoCloseAtMs)
     && workShiftClock + workShiftServerOffsetMs >= autoCloseAtMs
-  const hasOpenShift = normalizedShiftStatus === 'OPEN' && !deadlineReached && !!shift?.shiftId
+  const openingCashPending = session.requiresOpeningCash === true
+    && session.workShiftId === shift?.shiftId
+  const boundWorkShiftMismatch = session.workShiftId != null
+    && shift?.shiftId != null
+    && session.workShiftId !== shift.shiftId
+  const hasOpenShift = !boundWorkShiftMismatch
+    && normalizedShiftStatus === 'OPEN'
+    && !deadlineReached
+    && !openingCashPending
+    && !!shift?.shiftId
   const allowsOfflineOrders = hasOpenShift && shift?.openContext !== 'OUTSIDE_SCHEDULE'
   const hasPosIdentity = !!session.staffId && !!session.storeId
   const hasPendingPayment = pendingPayment !== null

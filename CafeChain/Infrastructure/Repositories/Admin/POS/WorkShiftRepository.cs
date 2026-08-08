@@ -76,6 +76,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             return await _context.WorkShifts
                 .Include(ws => ws.User)
                 .Include(ws => ws.CurrentOperatorStaff)
+                .Include(ws => ws.PosTerminal)
                 .FirstOrDefaultAsync(ws =>
                     ws.ShiftId == shiftId &&
                     ws.UserId == userId &&
@@ -87,6 +88,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             return await _context.WorkShifts
                 .Include(ws => ws.User)
                 .Include(ws => ws.CurrentOperatorStaff)
+                .Include(ws => ws.PosTerminal)
                 .FirstOrDefaultAsync(ws => ws.ShiftId == shiftId);
         }
 
@@ -153,6 +155,115 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         {
             _context.Update(shift);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<WorkShift> BindTerminalForResumeAsync(
+            int shiftId,
+            int userId,
+            int storeId,
+            string terminalId,
+            CancellationToken cancellationToken = default)
+        {
+            var normalizedTerminalId = terminalId?.Trim() ?? string.Empty;
+            IDbContextTransaction? transaction = null;
+            var ownsTransaction = _context.Database.CurrentTransaction == null
+                && _context.Database.IsRelational();
+            if (ownsTransaction)
+            {
+                transaction = await _context.Database.BeginTransactionAsync(
+                    System.Data.IsolationLevel.Serializable,
+                    cancellationToken);
+            }
+
+            try
+            {
+                var terminal = await _context.PosTerminals
+                    .Include(x => x.Store)
+                    .SingleOrDefaultAsync(x => x.TerminalId == normalizedTerminalId, cancellationToken);
+                if (terminal == null)
+                    throw new WorkShiftBusinessException(
+                        WorkShiftErrorCodes.TerminalNotFound,
+                        "Terminal chưa được đăng ký và phê duyệt.");
+                if (terminal.StoreId != storeId)
+                    throw new WorkShiftBusinessException(
+                        WorkShiftErrorCodes.TerminalStoreMismatch,
+                        "Terminal không thuộc cửa hàng hiện tại.");
+                if (!terminal.Active || terminal.Store == null || !terminal.Store.Active)
+                    throw new WorkShiftBusinessException(
+                        WorkShiftErrorCodes.TerminalInactive,
+                        "Terminal hoặc cửa hàng đã bị vô hiệu hóa.");
+
+                var activeStatuses = WorkShiftStatuses.ActiveResponsibility;
+                var shift = await _context.WorkShifts
+                    .Include(x => x.PosTerminal)
+                    .SingleOrDefaultAsync(x => x.ShiftId == shiftId
+                        && x.UserId == userId
+                        && x.StoreId == storeId
+                        && activeStatuses.Contains(x.Status), cancellationToken);
+                if (shift == null)
+                    throw new WorkShiftBusinessException(
+                        WorkShiftErrorCodes.WorkShiftNotOpen,
+                        "Không còn phiên POS cần tiếp tục.");
+
+                if (!string.IsNullOrWhiteSpace(shift.PosTerminalId))
+                {
+                    if (!string.Equals(
+                        shift.PosTerminalId,
+                        normalizedTerminalId,
+                        StringComparison.Ordinal))
+                    {
+                        throw new WorkShiftBusinessException(
+                            WorkShiftErrorCodes.WorkShiftTerminalMismatch,
+                            "Phiên POS hiện tại đang thuộc terminal khác. Hãy chọn đúng terminal của phiên để tiếp tục.");
+                    }
+
+                    if (transaction != null)
+                        await transaction.CommitAsync(cancellationToken);
+                    return shift;
+                }
+
+                var terminalConflict = await _context.WorkShifts.AnyAsync(x =>
+                    x.ShiftId != shift.ShiftId
+                    && x.PosTerminalId == normalizedTerminalId
+                    && activeStatuses.Contains(x.Status), cancellationToken);
+                if (terminalConflict)
+                    throw new WorkShiftBusinessException(
+                        WorkShiftErrorCodes.TerminalAlreadyHasOpenShift,
+                        "Terminal đang có phiên POS chưa kết thúc.");
+
+                shift.PosTerminalId = normalizedTerminalId;
+                await _context.SaveChangesAsync(cancellationToken);
+                if (transaction != null)
+                    await transaction.CommitAsync(cancellationToken);
+                return shift;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (transaction != null)
+                    await transaction.RollbackAsync(cancellationToken);
+                throw new WorkShiftBusinessException(
+                    WorkShiftErrorCodes.ConcurrencyConflict,
+                    "Trạng thái phiên POS vừa thay đổi. Vui lòng thử lại.");
+            }
+            catch (DbUpdateException)
+            {
+                if (transaction != null)
+                    await transaction.RollbackAsync(cancellationToken);
+                throw new WorkShiftBusinessException(
+                    WorkShiftErrorCodes.TerminalAlreadyHasOpenShift,
+                    "Terminal đang có phiên POS chưa kết thúc.");
+            }
+            catch
+            {
+                if (transaction != null)
+                    await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+            finally
+            {
+                if (transaction != null)
+                    await transaction.DisposeAsync();
+            }
         }
 
         public async Task EnsurePosTerminalAsync(string terminalId, int storeId, string name)

@@ -42,10 +42,11 @@ namespace CafeChain.Application.Interfaces.POS
         Task<ServiceResult<PosSessionExchangeContextDto>> PrepareOpenExchangeContextAsync(
             int accountId, int staffId, int storeId, string terminalId, string requestKey,
             string? reason, Guid? otpChallengePublicId,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            Guid? lateOpenApprovalPublicId = null);
 
         Task<ServiceResult<PosSessionExchangeContextDto>> PrepareResumeExchangeContextAsync(
-            int accountId, int staffId, int storeId,
+            int accountId, int staffId, int storeId, string terminalId,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -86,6 +87,12 @@ namespace CafeChain.Application.Interfaces.POS
         Task<ServiceResult> ReconcileAsync(int userId, int storeId, int shiftId, ReconcileWorkShiftRequestDto request);
 
         Task<ServiceResult> RegisterTerminalAsync(int userId, int storeId, PosTerminalRegisterDto request);
+        Task<ServiceResult> ConfirmTerminalRegistrationAsync(
+            int approverStaffId,
+            int storeId,
+            Guid challengePublicId,
+            string otpCode,
+            string requestKey);
         Task<ServiceResult> SetOperatorPinAsync(
             int accountId, int staffId, int storeId, SetOperatorPinRequestDto request);
         Task<ServiceResult> SwitchOperatorAsync(

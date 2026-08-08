@@ -22,13 +22,16 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
     private readonly AppDbContext _dbContext;
     private readonly IConfiguration _configuration;
     private readonly TimeProvider _timeProvider;
+    private readonly IPosAccessSessionService? _posAccessSessions;
 
     public PosSessionExchangeService(AppDbContext dbContext, IConfiguration configuration,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IPosAccessSessionService? posAccessSessions = null)
     {
         _dbContext = dbContext;
         _configuration = configuration;
         _timeProvider = timeProvider;
+        _posAccessSessions = posAccessSessions;
     }
 
     public async Task<PosSessionExchangeTicketDto> IssueAsync(PosSessionExchangeContextDto context,
@@ -103,10 +106,16 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
         {
             context = null;
         }
-        if (context == null || context.AccountId != ticket.AccountId || context.StaffId != ticket.StaffId
-            || context.StoreId != ticket.StoreId)
+        if (!IsValidExchangeContext(context, ticket))
+        {
+            ticket.Status = "FAILED";
+            ticket.ProcessingLeaseUntilUtc = null;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaction != null) await transaction.CommitAsync(cancellationToken);
             return ServiceResult<PosSessionTokenDto>.Failure(
-                "Ngữ cảnh mở POS không hợp lệ.", errorCode: PosSessionExchangeErrorCodes.Invalid);
+                "Ngữ cảnh mở POS không hợp lệ. Vui lòng quay lại StaffHub để mở lại đúng terminal.",
+                errorCode: PosSessionExchangeErrorCodes.ContextInvalid);
+        }
 
         var account = await _dbContext.Accounts
             .Include(x => x.Staff).ThenInclude(x => x.Store)
@@ -124,7 +133,33 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
                 errorCode: PosSessionExchangeErrorCodes.Invalid);
         }
 
-        var token = CreateToken(account, nowUtc, ticket.RequestDeduplicationId, context.Purpose);
+        var expirationHours = double.TryParse(_configuration["Jwt:ExpirationHours"], out var hours) ? hours : 12;
+        var expiresAtUtc = nowUtc.AddHours(expirationHours);
+        var accessSession = _posAccessSessions == null
+            ? new CafeChain.Models.Operations.PosAccessSession
+            {
+                PublicId = Guid.NewGuid(),
+                JwtId = Guid.NewGuid().ToString("N"),
+                AccountId = account.AccountId,
+                StaffId = account.Staff.StaffId,
+                StoreId = account.Staff.StoreId,
+                TerminalId = context!.TerminalId!,
+                WorkShiftId = context.WorkShiftId,
+                ExchangeContextId = ticket.RequestDeduplicationId,
+                Status = CafeChain.Models.Operations.PosAccessSessionStatuses.Active,
+                IssuedAtUtc = nowUtc,
+                ExpiresAtUtc = expiresAtUtc
+            }
+            : await _posAccessSessions.CreateAsync(
+                account.AccountId,
+                account.Staff.StaffId,
+                account.Staff.StoreId,
+                context!.TerminalId!,
+                ticket.RequestDeduplicationId,
+                context.WorkShiftId,
+                expiresAtUtc,
+                cancellationToken);
+        var token = CreateToken(account, nowUtc, expiresAtUtc, ticket.RequestDeduplicationId, context, accessSession);
         ticket.Status = "SUCCESS";
         ticket.ProcessingLeaseUntilUtc = null;
         ticket.ExpiredAt = token.ExpiresAtUtc;
@@ -160,8 +195,47 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
         }
     }
 
+    public async Task<bool> CompleteOpeningCashAsync(
+        int contextId,
+        int accountId,
+        int staffId,
+        int storeId,
+        int workShiftId,
+        CancellationToken cancellationToken = default)
+    {
+        var ticket = await _dbContext.RequestDeduplications.SingleOrDefaultAsync(
+            x => x.RequestDeduplicationId == contextId
+                && x.ActionName == ActionName
+                && x.Status == "SUCCESS"
+                && x.AccountId == accountId
+                && x.StaffId == staffId
+                && x.StoreId == storeId,
+            cancellationToken);
+        if (ticket?.ResponseBody == null) return false;
+
+        PosSessionExchangeContextDto? context;
+        try
+        {
+            context = JsonSerializer.Deserialize<PosSessionExchangeContextDto>(ticket.ResponseBody);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+        if (context == null
+            || (context.WorkShiftId.HasValue && context.WorkShiftId.Value != workShiftId)
+            || !context.RequiresOpeningCash) return false;
+
+        context.WorkShiftId = workShiftId;
+        context.RequiresOpeningCash = false;
+        ticket.ResponseBody = JsonSerializer.Serialize(context);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     private PosSessionTokenDto CreateToken(CafeChain.Models.Customers.Account account, DateTime nowUtc,
-        int contextId, string purpose)
+        DateTime expiresAtUtc, int contextId, PosSessionExchangeContextDto context,
+        CafeChain.Models.Operations.PosAccessSession accessSession)
     {
         var jwtKey = _configuration["Jwt:Key"];
         if (string.IsNullOrWhiteSpace(jwtKey))
@@ -180,19 +254,51 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
             new("StoreId", account.Staff.StoreId.ToString()),
             new("AvatarUrl", avatarUrl),
             new("PosExchangeContextId", contextId.ToString()),
-            new("PosPurpose", purpose)
+            new(JwtRegisteredClaimNames.Jti, accessSession.JwtId),
+            new("PosSessionId", accessSession.PublicId.ToString()),
+            new("PosPurpose", context.Purpose),
+            new("PosTerminalId", context.TerminalId!),
+            new("RequiresOpeningCash", context.RequiresOpeningCash ? "true" : "false")
         };
+        if (context.WorkShiftId.HasValue)
+            claims.Add(new Claim("PosWorkShiftId", context.WorkShiftId.Value.ToString()));
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-        var expirationHours = double.TryParse(_configuration["Jwt:ExpirationHours"], out var hours) ? hours : 12;
-        var expiresAtUtc = nowUtc.AddHours(expirationHours);
         var token = new JwtSecurityToken(_configuration["Jwt:Issuer"] ?? "CafeChain",
             _configuration["Jwt:Audience"] ?? "CafeChain.POS", claims, notBefore: nowUtc,
             expires: expiresAtUtc, signingCredentials: new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)), SecurityAlgorithms.HmacSha256));
-        return new PosSessionTokenDto(new JwtSecurityTokenHandler().WriteToken(token), expiresAtUtc, contextId, purpose);
+        return new PosSessionTokenDto(
+            new JwtSecurityTokenHandler().WriteToken(token),
+            expiresAtUtc,
+            contextId,
+            context.Purpose,
+            accessSession.PublicId);
     }
 
     private static string Hash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+
+    private static bool IsValidExchangeContext(
+        PosSessionExchangeContextDto? context,
+        RequestDeduplication ticket)
+    {
+        if (context == null
+            || context.AccountId <= 0
+            || context.StaffId <= 0
+            || context.StoreId <= 0
+            || context.AccountId != ticket.AccountId
+            || context.StaffId != ticket.StaffId
+            || context.StoreId != ticket.StoreId
+            || string.IsNullOrWhiteSpace(context.TerminalId)
+            || context.TerminalId.Trim().Length > 100)
+            return false;
+
+        if (context.Purpose is not PosSessionPurposes.OpenWorkShift
+            and not PosSessionPurposes.ResumeWorkShift)
+            return false;
+
+        return context.Purpose != PosSessionPurposes.ResumeWorkShift
+            || context.WorkShiftId is > 0;
+    }
 }

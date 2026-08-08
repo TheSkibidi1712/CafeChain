@@ -1,5 +1,26 @@
 /* Unit conversion and supplier-package presentation using CafeChain operational tokens. */
 :root {
+    --cc-primary: #70482F;
+    --cc-primary-hover: #3D2418;
+    --cc-border: #E9DED4;
+    --cc-border-strong: #D8C5B6;
+    --cc-app-bg: #F7F4F0;
+    --cc-surface: #FFFDFB;
+    --cc-surface-muted: #FBF7F2;
+    --cc-surface-active: #F4E9DF;
+    --cc-text-primary: #201812;
+    --cc-text-secondary: #66584F;
+    --cc-success: #2F6F5E;
+    --cc-success-bg: #EDF6F2;
+    --cc-warning: #99623B;
+    --cc-warning-bg: #FBF3EA;
+    --cc-danger: #991B1B;
+    --cc-danger-bg: #FDF0F0;
+    --cc-radius-control: 10px;
+    --cc-radius-card: 16px;
+    --cc-radius-header: 20px;
+    --cc-focus: rgba(112, 72, 47, 0.22);
+
     --uc-primary: var(--cc-primary);
     --uc-primary-hover: var(--cc-primary-hover);
     --uc-border: var(--cc-border);
@@ -10,28 +31,117 @@
     --uc-radius: 8px;
 }
 
-.uc-page { background: var(--uc-bg); min-height: 100vh; padding-bottom: 2rem; }
-.uc-page-title { font-size: 1.5rem; font-weight: 800; color: var(--uc-text); }
+.uc-page {
+    width: 100% !important;
+    max-width: 1480px !important;
+    margin: 0 auto !important;
+    padding: 24px !important;
+    background: #F7F4F0 !important;
+    min-height: 100vh;
+    box-sizing: border-box !important;
+}
+.uc-page-title {
+    font-size: 28px !important;
+    font-weight: 800 !important;
+    color: #201812 !important;
+    letter-spacing: -0.02em !important;
+    margin: 0 0 4px 0 !important;
+    line-height: 1.2 !important;
+}
+
+/* ---- Page Header Card with Single Clean Brown Left Accent Bar ---- */
+.cc-page-header::before,
+.cc-warehouse-header::before,
+.uc-page *::before {
+    content: none;
+}
+
+.cc-page-header,
+.cc-warehouse-header {
+    width: 100% !important;
+    position: relative;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 15px;
+    margin-bottom: 22px !important;
+    min-height: 148px !important;
+    max-height: 148px !important;
+    padding: 24px 28px !important;
+    border: 1px solid #E9DED4 !important;
+    border-left: 5px solid #5C3F2B !important;
+    border-radius: 20px !important;
+    background: linear-gradient(112deg, #FFFFFF 0%, #FBF7F2 62%, #F1E5DA 100%) !important;
+    box-shadow: 0 12px 32px rgba(61, 36, 24, 0.08) !important;
+    overflow: hidden;
+    box-sizing: border-box !important;
+}
+
+.cc-page-header::after,
+.cc-warehouse-header::after {
+    position: absolute;
+    right: -45px;
+    bottom: -80px;
+    width: 240px;
+    height: 240px;
+    border: 36px solid rgba(111, 78, 55, .055);
+    border-radius: 50%;
+    content: "";
+    pointer-events: none;
+    z-index: 0;
+}
+
+.cc-warehouse-header-main {
+    position: relative;
+    z-index: 1;
+}
+
+.cc-page-kicker {
+    color: #8B6247 !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.09em !important;
+    text-transform: uppercase !important;
+    margin-bottom: 6px !important;
+}
+
+.cc-page-description {
+    color: #66584F !important;
+    font-size: 14px !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
+}
+
 .uc-card {
-    background: var(--uc-card);
-    border: 1px solid var(--uc-border);
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    width: 100% !important;
+    background: #FFFDFB !important;
+    border: 1px solid #E9DED4 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 16px rgba(61, 36, 24, 0.04) !important;
+    box-sizing: border-box !important;
 }
 .uc-card-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--uc-border);
-    font-weight: 700;
-    font-size: .95rem;
+    padding: 16px 22px !important;
+    border-bottom: 1px solid #E9DED4 !important;
+    font-weight: 750;
+    font-size: 15px;
+    background: #FBF7F2 !important;
+    color: #5C3F2B !important;
 }
-.uc-tab-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
+.uc-tab-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px !important; }
 .uc-tab {
-    padding: 8px 14px; border-radius: var(--uc-radius);
-    border: 1px solid var(--uc-border); background: var(--cc-surface);
-    color: var(--uc-muted); font-weight: 600; text-decoration: none; font-size: .875rem;
+    padding: 9px 18px !important;
+    border-radius: 10px !important;
+    border: 1px solid #E9DED4 !important;
+    background: #FFFDFB !important;
+    color: #66584F !important;
+    font-weight: 750 !important;
+    text-decoration: none !important;
+    font-size: 14px !important;
+    transition: all 0.15s ease !important;
 }
-.uc-tab:hover { border-color: var(--uc-primary); color: var(--uc-primary); }
-.uc-tab.active { background: var(--cc-warning-bg); border-color: var(--uc-primary); color: var(--cc-accent); }
+.uc-tab:hover { border-color: #70482F !important; color: #70482F !important; background: #FBF7F2 !important; }
+.uc-tab.active { background: #F4E9DF !important; border-color: #70482F !important; color: #3D2418 !important; }
 
 .uc-status {
     display: inline-block; font-size: .72rem; font-weight: 600;
@@ -107,6 +217,47 @@
     border-color: var(--uc-primary);
     box-shadow: 0 0 0 3px var(--cc-focus);
 }
+
+.uc-page #FromUnitId,
+.uc-page #ToUnitId,
+.uc-page select.form-select,
+.uc-page .select2-container--bootstrap-5 .select2-selection--single {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 44px !important;
+    border-radius: 10px !important;
+    border: 1px solid #D8C5B6 !important;
+    background-color: #FFFDFB !important;
+    color: #201812 !important;
+    font-weight: 600 !important;
+    padding: 8px 32px 8px 14px !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.35 !important;
+}
+
+.uc-page select.form-select option,
+.uc-page .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    padding: 2px 0 !important;
+    font-size: 14px !important;
+    color: #201812 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    height: auto !important;
+    line-height: 1.35 !important;
+}
+
+/* Fix empty space in numeric conversion inputs by aligning left with clean padding */
+.uc-page #FromQuantity,
+.uc-page #ToQuantity,
+.uc-page input[type="number"].form-control {
+    text-align: left !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+}
+
 .uc-page :is(a, button, input, select, textarea):focus-visible {
     outline: 2px solid var(--uc-primary); outline-offset: 2px;
 }

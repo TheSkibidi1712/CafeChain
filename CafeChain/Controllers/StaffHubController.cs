@@ -22,6 +22,7 @@ public sealed class StaffHubController : Controller
     private readonly IPosSessionExchangeService _posSessionExchangeService;
     private readonly IWorkShiftService _workShiftService;
     private readonly IOtpApprovalService _otpApprovalService;
+    private readonly IWorkShiftOpenApprovalService? _lateOpenApprovals;
 
     public StaffHubController(
         IStaffScheduleService scheduleService,
@@ -29,7 +30,8 @@ public sealed class StaffHubController : Controller
         IAuthorizationService authorizationService,
         IPosSessionExchangeService posSessionExchangeService,
         IWorkShiftService workShiftService,
-        IOtpApprovalService otpApprovalService)
+        IOtpApprovalService otpApprovalService,
+        IWorkShiftOpenApprovalService? lateOpenApprovals = null)
     {
         _scheduleService = scheduleService;
         _configuration = configuration;
@@ -37,9 +39,15 @@ public sealed class StaffHubController : Controller
         _posSessionExchangeService = posSessionExchangeService;
         _workShiftService = workShiftService;
         _otpApprovalService = otpApprovalService;
+        _lateOpenApprovals = lateOpenApprovals;
     }
 
-    public async Task<IActionResult> Index(DateTime? date, CancellationToken ct)
+    public async Task<IActionResult> Index(
+        DateTime? date,
+        bool openPos = false,
+        string? terminalId = null,
+        string? posErrorCode = null,
+        CancellationToken ct = default)
     {
         if (!int.TryParse(User.FindFirstValue("StaffId"), out var staffId) || staffId <= 0)
             return RedirectToAction("Login", "Account");
@@ -63,6 +71,22 @@ public sealed class StaffHubController : Controller
         var identityStoreId = int.TryParse(User.FindFirstValue("StoreId"), out var parsedStoreId)
             ? parsedStoreId : 0;
         ViewBag.PosTerminals = await _workShiftService.GetAvailableTerminalsAsync(identityStoreId, ct);
+        ViewBag.AutoOpenPos = openPos;
+        ViewBag.RequestedTerminalId = terminalId?.Trim();
+        ViewBag.PosLaunchError = posErrorCode switch
+        {
+            PosSessionExchangeErrorCodes.Expired =>
+                "Mã mở POS đã hết hạn. Vui lòng thử mở POS lại.",
+            PosSessionExchangeErrorCodes.AlreadyUsed =>
+                "Mã mở POS đã được sử dụng. Vui lòng thử mở POS lại.",
+            PosSessionExchangeErrorCodes.ContextInvalid =>
+                "Ngữ cảnh mở POS không hợp lệ. Vui lòng chọn lại terminal và thử lại.",
+            PosSessionExchangeErrorCodes.Invalid =>
+                "Mã mở POS không hợp lệ. Vui lòng thử mở POS lại.",
+            "POS_EXCHANGE_UNAVAILABLE" =>
+                "Không thể kết nối máy chủ để mở POS. Vui lòng kiểm tra kết nối và thử lại.",
+            _ => string.Empty
+        };
         return View(result.Data);
     }
 
@@ -136,15 +160,64 @@ public sealed class StaffHubController : Controller
 
         var prepared = await _workShiftService.PrepareOpenExchangeContextAsync(
             accountId, staffId, storeId, request.TerminalId, request.RequestKey,
-            request.Reason, request.OtpChallengePublicId, cancellationToken);
+            request.Reason, request.OtpChallengePublicId, cancellationToken,
+            request.LateOpenApprovalPublicId);
         if (!prepared.IsSuccess || prepared.Data == null)
             return BadRequest(new { success = false, errorCode = prepared.ErrorCode, message = prepared.Message });
 
-        var ticket = await _posSessionExchangeService.IssueAsync(prepared.Data, cancellationToken);
-        var posUrl = _configuration["AppLauncher:Pos:PosUrl"] ?? _configuration["PosFrontend:Url"] ?? "http://127.0.0.1:5173/order";
+        var exchangeContext = prepared.Data;
+        var resultCode = WorkShiftOpenResultCodes.OpenedNewWorkShift;
+        var requiresOpeningCash = true;
+        int? workShiftId = null;
+        if (prepared.Data.RequiresStaffHubOpen)
+        {
+            var opened = await _workShiftService.OpenShiftAsync(staffId, storeId, new OpenShiftRequestDto
+            {
+                AccountId = accountId,
+                RequestKey = request.RequestKey,
+                StartingCash = 0,
+                PosTerminalId = request.TerminalId,
+                Reason = request.Reason,
+                LateOpeningReason = request.Reason,
+                OtpChallengePublicId = request.OtpChallengePublicId,
+                LateOpenApprovalPublicId = request.LateOpenApprovalPublicId
+            });
+            if (!opened.IsSuccess || !opened.EntityId.HasValue)
+                return StatusCode(opened.ErrorCode is WorkShiftErrorCodes.DuplicateRequest
+                    or WorkShiftErrorCodes.ConcurrencyConflict
+                    or WorkShiftErrorCodes.TerminalAlreadyHasOpenShift
+                    or WorkShiftErrorCodes.StaffAlreadyHasOpenShift
+                        ? StatusCodes.Status409Conflict : StatusCodes.Status400BadRequest,
+                    new { success = false, errorCode = opened.ErrorCode, message = opened.Message });
+
+            workShiftId = opened.EntityId;
+            var resume = await _workShiftService.PrepareResumeExchangeContextAsync(
+                accountId, staffId, storeId, request.TerminalId, cancellationToken);
+            if (!resume.IsSuccess || resume.Data?.WorkShiftId != workShiftId)
+                return Conflict(new
+                {
+                    success = false,
+                    errorCode = WorkShiftErrorCodes.ConcurrencyConflict,
+                    message = "Phiên POS vừa mở không khớp ngữ cảnh resume. Vui lòng mở lại từ StaffHub."
+                });
+            exchangeContext = resume.Data;
+            exchangeContext.Purpose = PosSessionPurposes.OpenWorkShift;
+            exchangeContext.RequestKey = request.RequestKey;
+            exchangeContext.RequiresOpeningCash = true;
+            resultCode = WorkShiftOpenResultCodes.OpenedNewWorkShift;
+            requiresOpeningCash = true;
+        }
+
+        var ticket = await _posSessionExchangeService.IssueAsync(exchangeContext, cancellationToken);
+        var baseUrl = _configuration["AppLauncher:Pos:PosUrl"] ?? _configuration["PosFrontend:Url"] ?? "http://127.0.0.1:5173/shift";
+        var posUrl = new UriBuilder(new Uri(baseUrl)) { Path = "/shift" }.Uri.ToString();
         return Ok(new
         {
             success = true,
+            resultCode,
+            recommendedAction = WorkShiftRecommendedActions.EnterOpeningCash,
+            workShiftId,
+            requiresOpeningCash,
             exchangeCode = ticket.ExchangeCode,
             expiresAtUtc = ticket.ExpiresAtUtc,
             exchangeUrl = Url.Content("~/api/v1/pos/session/exchange"),
@@ -154,11 +227,13 @@ public sealed class StaffHubController : Controller
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
     [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
-    public async Task<IActionResult> IssueResumePosToken(CancellationToken cancellationToken)
+    public async Task<IActionResult> IssueResumePosToken(
+        [FromForm] StaffHubResumePosRequestDto request,
+        CancellationToken cancellationToken)
     {
         if (!TryGetIdentity(out var accountId, out var staffId, out var storeId)) return Unauthorized();
         var prepared = await _workShiftService.PrepareResumeExchangeContextAsync(
-            accountId, staffId, storeId, cancellationToken);
+            accountId, staffId, storeId, request.TerminalId, cancellationToken);
         if (!prepared.IsSuccess || prepared.Data == null)
             return BadRequest(new { success = false, errorCode = prepared.ErrorCode, message = prepared.Message });
         var ticket = await _posSessionExchangeService.IssueAsync(prepared.Data, cancellationToken);
@@ -171,6 +246,11 @@ public sealed class StaffHubController : Controller
         {
             success = true,
             resultCode = WorkShiftOpenResultCodes.ResumeExistingWorkShift,
+            recommendedAction = prepared.Data.OpenContext == WorkShiftStatuses.Open
+                ? WorkShiftRecommendedActions.ContinuePos
+                : prepared.Data.OpenContext == WorkShiftStatuses.Closing
+                    ? WorkShiftRecommendedActions.CompleteClosing
+                    : WorkShiftRecommendedActions.CountAndClose,
             workShiftId = prepared.Data.WorkShiftId,
             requiresOpeningCash = false,
             exchangeCode = ticket.ExchangeCode,
@@ -178,6 +258,14 @@ public sealed class StaffHubController : Controller
             exchangeUrl = Url.Content("~/api/v1/pos/session/exchange"),
             posUrl
         });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    public async Task<IActionResult> GetOpenPosOtpState()
+    {
+        if (!TryGetIdentity(out _, out var staffId, out var storeId)) return Unauthorized();
+        return OtpResult(await _otpApprovalService.GetCurrentOpenPosOtpStateAsync(staffId, storeId));
     }
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
@@ -232,6 +320,42 @@ public sealed class StaffHubController : Controller
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
     [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    public async Task<IActionResult> GetTerminalRegistrationOtpState()
+    {
+        if (!TryGetIdentity(out _, out var staffId, out var storeId)) return Unauthorized();
+        return OtpResult(await _otpApprovalService.GetCurrentTerminalRegistrationOtpStateAsync(staffId, storeId));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    public async Task<IActionResult> RequestLateOpenApproval(
+        [FromForm] CreateWorkShiftOpenApprovalRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (_lateOpenApprovals == null) return StatusCode(503);
+        if (!TryGetIdentity(out _, out var staffId, out var storeId)) return Unauthorized();
+        var result = await _lateOpenApprovals.CreateAsync(staffId, storeId, request, cancellationToken);
+        return result.IsSuccess
+            ? Ok(new { success = true, message = result.Message, data = result.Data })
+            : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message, data = result.Data });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    public async Task<IActionResult> GetLateOpenApproval(
+        [FromForm] Guid id,
+        CancellationToken cancellationToken)
+    {
+        if (_lateOpenApprovals == null) return StatusCode(503);
+        if (!TryGetIdentity(out _, out var staffId, out _)) return Unauthorized();
+        var result = await _lateOpenApprovals.GetAsync(staffId, id, cancellationToken);
+        return result.IsSuccess
+            ? Ok(new { success = true, message = result.Message, data = result.Data })
+            : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
     public async Task<IActionResult> VerifyOperationalOtp([FromForm] OtpVerifyDto request)
     {
         if (!TryGetIdentity(out _, out var staffId, out var storeId)) return Unauthorized();
@@ -266,10 +390,25 @@ public sealed class StaffHubController : Controller
             : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message });
     }
 
-    private IActionResult OtpResult<T>(CafeChain.Application.Results.ServiceResult<T> result) =>
-        result.IsSuccess
-            ? Ok(new { success = true, message = result.Message, data = result.Data })
-            : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message, data = result.Data });
+    private IActionResult OtpResult<T>(CafeChain.Application.Results.ServiceResult<T> result)
+    {
+        var payload = new
+        {
+            success = result.IsSuccess,
+            message = result.Message,
+            errorCode = result.ErrorCode,
+            data = result.Data
+        };
+        if (result.IsSuccess) return Ok(payload);
+        return result.ErrorCode switch
+        {
+            OtpConstants.ErrorCodes.Expired => StatusCode(StatusCodes.Status410Gone, payload),
+            OtpConstants.ErrorCodes.AlreadyUsed or OtpConstants.ErrorCodes.ContextMismatch => Conflict(payload),
+            OtpConstants.ErrorCodes.VerificationLocked => StatusCode(StatusCodes.Status423Locked, payload),
+            OtpConstants.ErrorCodes.RateLimited => StatusCode(StatusCodes.Status429TooManyRequests, payload),
+            _ => BadRequest(payload)
+        };
+    }
 
     private void ApplySecurityMetadata(OtpRequestDto request, string? terminalId, int staffId)
     {

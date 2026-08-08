@@ -93,20 +93,46 @@
                                     }
                                 </div>
                                 <div class="notification-body">@item.Body</div>
-                                @if (item.ActiveOtp != null)
+                                @if (item.OperationalOtp != null)
                                 {
+                                    var otp = item.OperationalOtp;
                                     <div class="notification-otp-card"
-                                         data-active-otp
-                                         data-expires-at="@item.ActiveOtp.ExpiresAtUtc.ToString("O")">
-                                        <div>
-                                            <span class="notification-otp-label">Mã OTP còn hiệu lực</span>
-                                            <code data-otp-code>@item.ActiveOtp.Code</code>
-                                        </div>
-                                        <button type="button" class="cc-button" data-copy-otp>
-                                            <i class="far fa-copy" aria-hidden="true"></i>
-                                            Sao chép mã
-                                        </button>
-                                        <small data-otp-countdown></small>
+                                         data-operational-otp
+                                         data-server-now="@otp.ServerNowUtc.ToString("O")"
+                                         data-expires-at="@otp.ExpiresAtUtc.ToString("O")">
+                                        <div><strong>Terminal:</strong> @otp.TerminalName</div>
+                                        <div><strong>Chi nhánh:</strong> @otp.StoreName</div>
+                                        <div><strong>Người gửi:</strong> @otp.RequestedByName</div>
+                                        <div><strong>Người xác nhận:</strong> @(otp.ConfirmedByName ?? otp.ApproverName)</div>
+                                        <div><strong>Gửi lúc:</strong> @otp.SentAtUtc.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</div>
+                                        <div><strong>Hết hạn:</strong> @otp.ExpiresAtUtc.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</div>
+                                        <div><strong>Trạng thái:</strong> <span data-otp-status>@otp.Status</span></div>
+                                        @if (otp.Status == "Waiting")
+                                        {
+                                            <small data-otp-countdown></small>
+                                            <div class="notification-item-footer">
+                                                <button type="button"
+                                                        class="cc-button"
+                                                        data-reveal-terminal-otp
+                                                        data-notification-id="@item.NotificationId">
+                                                    Xem OTP
+                                                </button>
+                                            </div>
+                                            <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="ConfirmTerminal" method="post" class="notification-terminal-confirm-form">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@item.NotificationId" />
+                                                <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
+                                                <label>
+                                                    <span>Tiếp tục xác nhận Terminal</span>
+                                                    <input name="OtpCode" maxlength="6" autocomplete="one-time-code" required />
+                                                </label>
+                                                <button type="submit" class="cc-button" data-submit-once>Xác nhận Terminal</button>
+                                            </form>
+                                        }
+                                        else if (otp.Status == "Expired")
+                                        {
+                                            <small>OTP đã hết hạn. Vui lòng gửi yêu cầu mới.</small>
+                                        }
                                     </div>
                                 }
                                 <div class="notification-item-footer">

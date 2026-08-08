@@ -1,666 +1,560 @@
-/* ============================================================
-   PRODUCTION ORDER — Coffee-Brown Palette
-   Folder: wwwroot/css/Admin/ProductionOrder/production-order.css
-   ============================================================ */
+/* ==========================================================================
+   CAFECHAIN ADMIN DESIGN SYSTEM - PRODUCTION ORDER MODULE (FRONTEND 1)
+   Coffee-Brown Premium Contract Synchronization
+   ========================================================================== */
+
 :root {
-    --po-bg:           #F7F3EE;
-    --po-card:         #ffffff;
-    --po-border:       #e5ddd5;
-    --po-primary:      #6F4E37;
-    --po-primary-hover:#5C3F2B;
-    --po-accent:       #C67A45;
-    --po-text:         #1F2937;
-    --po-label:        #3D2B1F;   /* FIX: label đậm hơn, dễ đọc */
-    --po-muted:        #6B7280;   /* FIX: muted sáng lên chút, không quá nhạt */
-    --po-hint:         #9CA3AF;   /* FIX: helper text nhỏ — riêng 1 tầng */
-    --po-danger:       #991B1B;
-    --po-success:      #2F6F5E;
-    --po-warning:      #99623B;
-    --po-warning-bg:   #FDF6E3;
-    --po-radius: 8px;
-    --po-shadow: 0 1px 3px rgba(111,78,55,0.06), 0 4px 12px rgba(111,78,55,0.08);
+    --cc-brown-900: #3d2418;
+    --cc-brown-800: #4d2f1f;
+    --cc-brown-700: #5c3b27;
+    --cc-brown-600: #70482f;
+    --cc-brown-500: #8b6247;
+    --cc-brown-400: #a77c5e;
+
+    --cc-caramel-600: #b06535;
+    --cc-caramel-500: #c67a45;
+    --cc-caramel-400: #d8905b;
+
+    --cc-canvas: #f7f4f0;
+    --cc-surface: #ffffff;
+    --cc-surface-muted: #fbf7f2;
+    --cc-surface-raised: #ffffff;
+    --cc-surface-active: #f4e9df;
+
+    --cc-border: #e9ded4;
+    --cc-border-strong: #d8c5b6;
+
+    --cc-text: #201812;
+    --cc-text-secondary: #66584f;
+    --cc-text-muted: #8c7b70;
+
+    --cc-success-bg: #edf6f2;
+    --cc-success: #2f6f5e;
+    --cc-warning-bg: #fcf4e8;
+    --cc-warning: #99623b;
+    --cc-danger-bg: #fdf0f0;
+    --cc-danger: #991b1b;
+
+    --cc-shadow-xs: 0 1px 2px rgba(32, 24, 18, 0.05);
+    --cc-shadow-sm: 0 4px 10px rgba(32, 24, 18, 0.06);
+    --cc-shadow-md: 0 8px 24px rgba(32, 24, 18, 0.09);
+    --cc-shadow-lg: 0 18px 48px rgba(32, 24, 18, 0.14);
+    --cc-focus-ring: 0 0 0 3px rgba(112, 72, 47, 0.22);
+
+    --cc-radius-xs: 4px;
+    --cc-radius-sm: 8px;
+    --cc-radius-control: 10px;
+    --cc-radius-md: 12px;
+    --cc-radius-lg: 16px;
+    --cc-radius-xl: 20px;
+    --cc-radius-modal: 18px;
+
+    /* PO Palette Legacy Alias Mapping */
+    --po-bg:            var(--cc-canvas);
+    --po-card:          var(--cc-surface-raised);
+    --po-border:        var(--cc-border);
+    --po-primary:       var(--cc-brown-600);
+    --po-primary-hover: var(--cc-brown-900);
+    --po-accent:        var(--cc-caramel-500);
+    --po-text:          var(--cc-text);
+    --po-label:         var(--cc-brown-900);
+    --po-muted:         var(--cc-text-secondary);
+    --po-hint:          var(--cc-text-muted);
+    --po-danger:        var(--cc-danger);
+    --po-success:       var(--cc-success);
+    --po-warning:       var(--cc-warning);
+    --po-warning-bg:    var(--cc-warning-bg);
+    --po-radius:        var(--cc-radius-lg);
+    --po-shadow:        var(--cc-shadow-sm);
 }
 
-/* === Scope toàn bộ vào .po-page để không leak ra global === */
-.po-page { background-color: var(--po-bg); }
+/* ==========================================================================
+   PAGE CANVAS CONTAINER
+   ========================================================================== */
+.po-page {
+    width: calc(100% - 24px);
+    max-width: 1540px;
+    min-height: calc(100vh - 84px);
+    margin: 0 auto;
+    border-radius: var(--cc-radius-modal, 18px);
+    padding: 28px 28px 120px;
+    background:
+        radial-gradient(circle at 96% 4%, rgba(198, 122, 69, 0.08), transparent 260px),
+        linear-gradient(180deg, #faf7f4 0%, #f7f4f0 320px, transparent 600px);
+    color: var(--cc-text, #201812);
+}
 
-/* ─── Page Title ─── */
+.po-page * {
+    box-sizing: border-box;
+}
+
+/* ==========================================================================
+   PAGE HEADING & BANNER
+   ========================================================================== */
 .po-title-section {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    overflow: hidden;
+    min-height: 120px;
     margin-bottom: 24px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-left: 5px solid var(--cc-caramel-500, #c67a45);
+    border-radius: var(--cc-radius-modal, 18px);
+    background: linear-gradient(112deg, var(--cc-surface-raised, #ffffff) 0%, var(--cc-surface-muted, #fbf7f2) 62%, #f1e5da 100%);
+    padding: 22px 28px;
+    box-shadow: var(--cc-shadow-md, 0 8px 24px rgba(32, 24, 18, 0.09));
 }
 
-.po-title {
-    font-size: 1.35rem;        /* FIX: tăng nhẹ cho chắc */
-    font-weight: 800;
-    color: var(--po-label);    /* FIX: dùng token đậm nhất */
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 4px;
-    line-height: 1.3;
-}
-.po-subtitle {
-    color: var(--po-muted);
-    font-size: 0.875rem;
-    line-height: 1.5;
+.po-title-section::after {
+    position: absolute;
+    right: -45px;
+    bottom: -80px;
+    width: 250px;
+    height: 250px;
+    border: 38px solid rgba(112, 72, 47, 0.055);
+    border-radius: 50%;
+    content: "";
+    pointer-events: none;
+    z-index: 0;
 }
 
-/* ─── Main Card ─── */
-.po-main-card {
-    background: var(--po-card);
-    border: 1px solid var(--po-border);
-    border-radius: var(--po-radius);
-    box-shadow: var(--po-shadow);
-    padding: 28px;
-    margin-bottom: 24px;
+.po-title-section > * {
+    position: relative;
+    z-index: 1;
 }
 
-/* ─── Section Title (Left Column header) ─── */
-.po-section-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--po-primary);
-    margin-bottom: 20px;
+.po-breadcrumb {
     display: flex;
     align-items: center;
     gap: 8px;
-    line-height: 1.4;
+    margin-bottom: 4px;
+    color: var(--cc-text-muted, #8c7b70);
+    font-size: 11.5px;
 }
 
-/* ─── Form Labels — FIX: căn đều, màu đậm nhất quán ─── */
+.po-breadcrumb span {
+    color: var(--cc-brown-600, #70482f);
+    font-weight: 750;
+}
+
+.po-title {
+    margin: 2px 0 4px;
+    color: var(--cc-text, #201812);
+    font-size: clamp(22px, 2vw, 28px);
+    font-weight: 850;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+}
+
+.po-subtitle {
+    max-width: 720px;
+    margin: 0;
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 13.5px;
+}
+
+/* ==========================================================================
+   CARDS & PANES
+   ========================================================================== */
+.po-main-card,
+.history-card {
+    background: var(--cc-surface-raised, #ffffff);
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-lg, 16px);
+    box-shadow: var(--cc-shadow-sm, 0 4px 10px rgba(32, 24, 18, 0.06));
+    padding: 26px;
+    margin-bottom: 24px;
+}
+
+.po-section-title,
+.po-bom-title,
+.history-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--cc-brown-900, #3d2418);
+    font-size: 15px;
+    font-weight: 800;
+    margin-bottom: 18px;
+}
+
+.po-section-title i,
+.po-bom-title i {
+    color: var(--cc-brown-600, #70482f);
+}
+
+.history-title::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--cc-brown-600, #70482f);
+}
+
+/* ==========================================================================
+   FORM CONTROLS & SELECT2
+   ========================================================================== */
 .po-page .form-label {
-    display: block;            /* FIX: block để không bị inline-lệch */
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: var(--po-label);    /* FIX: đậm, dễ đọc */
+    display: block;
     margin-bottom: 6px;
+    color: var(--cc-brown-900, #3d2418);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.po-page .form-label .text-danger {
+    color: var(--cc-danger, #991b1b) !important;
+    font-weight: 800;
+}
+
+.po-page .form-text {
+    margin-top: 4px;
+    color: var(--cc-text-muted, #8c7b70) !important;
+    font-size: 12px;
     line-height: 1.4;
 }
 
-/* FIX: dấu * required */
-.po-page .form-label .text-danger {
-    color: #B91C1C !important;
-    font-weight: 700;
-    margin-left: 2px;
-}
-
-/* ─── Helper text dưới field ─── */
-.po-page .form-text {
-    display: block;
-    color: var(--po-hint) !important;  /* FIX: nhạt hơn label rõ ràng */
-    font-size: 0.8rem;
-    line-height: 1.5;
-    margin-top: 4px;
-}
-
-/* ─── Form controls ─── */
 .po-page .form-control,
 .po-page .form-select {
-    border-radius: 8px;
-    border: 1.5px solid var(--po-border);
-    padding: 9px 14px;         /* FIX: padding đồng đều */
-    font-size: 0.9rem;
-    color: var(--po-text);
-    background-color: #fff;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    line-height: 1.5;
+    min-height: 44px;
+    height: 44px;
+    padding: 9px 14px;
+    color: var(--cc-text, #201812);
+    background: var(--cc-surface-raised, #ffffff);
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    font-size: 13.5px;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.po-page textarea.form-control {
+    min-height: 80px;
+    height: auto;
+    resize: vertical;
 }
 
 .po-page .form-control:focus,
 .po-page .form-select:focus {
-    border-color: var(--po-primary);
-    box-shadow: 0 0 0 3px rgba(111,78,55,0.12);
+    border-color: var(--cc-brown-600, #70482f);
     outline: none;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
 }
 
-/* FIX: readonly field — phân biệt rõ với editable */
 .po-page .form-control[readonly] {
-    background-color: #FAF6F2;
-    color: var(--po-muted);
-    font-weight: 500;
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-text-secondary, #66584f);
+    font-weight: 600;
     cursor: default;
 }
 
-/* ─── Select2 overrides — FIX: chiều cao và text align ─── */
+/* Select2 Bootstrap-5 overrides */
 .po-page .select2-container--bootstrap-5 .select2-selection {
-    border-radius: 8px;
-    border-color: var(--po-border);
-    min-height: 42px;
-    padding: 5px 14px;         /* FIX: padding đồng đều với form-control */
-    display: flex;
-    align-items: center;
+    min-height: 44px;
+    padding: 6px 12px;
+    border-color: var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background-color: var(--cc-surface-raised, #ffffff);
+    font-size: 13.5px;
 }
 
-.po-page .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-    color: var(--po-text);
-    font-size: 0.9rem;
-    line-height: 1.5;
-    padding-left: 0;           /* FIX: remove default padding gây lệch */
+.po-page .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+    border-color: var(--cc-brown-600, #70482f);
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
 }
 
-.po-page .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
-    color: var(--po-hint);
-}
-
-.po-page .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
-    height: 100%;
-    top: 0;
-    right: 8px;
-}
-
-/* ─── Input group (datetime) ─── */
-.po-page .input-group .form-control {
-    border-right: none;
-}
-.po-page .input-group-text {
-    border: 1.5px solid var(--po-border);
-    border-left: none;
-    background: #FAF6F2;
-    border-radius: 0 8px 8px 0;
-    padding: 0 12px;
-}
-
-/* ─── Right Column — BOM Panel ─── */
+/* ==========================================================================
+   BOM PANEL & READINESS SUMMARY
+   ========================================================================== */
 .po-bom-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    gap: 8px;
-}
-
-.po-bom-title {
-    font-weight: 700;
-    color: var(--po-label);    /* FIX: đậm như label */
-    font-size: 1rem;
-    margin: 0;
-    line-height: 1.4;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--cc-border, #e9ded4);
 }
 
 .po-bom-badge {
-    background-color: #F0E8E0;
-    color: var(--po-warning);
+    display: inline-flex;
+    align-items: center;
     padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    border: 1px solid #f2d8b8;
+    border-radius: 999px;
+    background: var(--cc-warning-bg, #fcf4e8);
+    color: var(--cc-warning, #99623b);
+    font-size: 11.5px;
+    font-weight: 750;
     white-space: nowrap;
 }
 
-/* ─── BOM Table ─── */
-.po-table-wrapper {
-    border: 1px solid var(--po-border);
-    border-radius: 8px;
-    overflow-x: auto;
-}
-
-.po-table {
-    margin-bottom: 0;
-    width: 100%;
-    min-width: 940px;
-}
-
-.po-table th {
-    background-color: #FAF6F2;
-    color: var(--po-warning);
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 12px 16px;
-    border-bottom: 2px solid var(--po-border);
-    white-space: nowrap;
-}
-
-.po-table td {
-    padding: 13px 16px;
-    vertical-align: middle;
-    font-size: 0.875rem;
-    color: var(--po-text);
-    border-bottom: 1px solid #f1f5f9;
-}
-
-.po-table tr:last-child td { border-bottom: none; }
-
-/* FIX: text trong td — đậm/nhạt phân tầng rõ ràng */
-.item-name   { font-weight: 600; color: var(--po-label); line-height: 1.3; }
-.item-meta   { font-size: 0.78rem; color: var(--po-hint); margin-top: 2px; }
-.stock-val   { color: var(--po-muted); font-weight: 500; }
-.req-val     { font-weight: 700; color: var(--po-text); }
-.req-val.exceeds { color: var(--po-danger); }
-
-/* ─── Readiness Summary ─── */
 .po-readiness-summary {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 12px;
-    margin-bottom: 10px;
-    padding: 10px 14px;
-    border: 1px solid var(--po-border);
-    border-radius: 8px;
-    background: #FAF6F2;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-left: 4px solid var(--cc-brown-600, #70482f);
+    border-radius: var(--cc-radius-md, 12px);
+    background: var(--cc-surface-muted, #fbf7f2);
 }
 
 .po-readiness-state {
     display: inline-flex;
-    padding: 4px 10px;
-    border: 1px solid #d7dde5;
-    border-radius: 6px;
-    color: #475467;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 12px;
+    border-radius: 999px;
     font-size: 12px;
-    font-weight: 700;
-    line-height: 1.4;
+    font-weight: 750;
+    white-space: nowrap;
 }
 
-.po-readiness-state.is-ready  { border-color: #a8d8cc; background: #D8F0EA; color: #2F6F5E; }
-.po-readiness-state.is-error  { border-color: #f3b0ad; background: #FDECEA; color: #991B1B; }
-.po-readiness-state.is-neutral { background: #FAF6F2; }
-
-.po-readiness-reasons {
-    flex-basis: 100%;
-    margin: 2px 0 0;
-    padding-left: 18px;
-    font-size: 12px;
+.po-readiness-state.is-ready {
+    background: var(--cc-success-bg, #edf6f2);
+    color: var(--cc-success, #2f6f5e);
+    border: 1px solid #a8d8cc;
 }
-.po-readiness-reasons code { color: inherit; }
 
-/* ─── Output Summary Grid ─── */
+.po-readiness-state.is-error {
+    background: var(--cc-danger-bg, #fdf0f0);
+    color: var(--cc-danger, #991b1b);
+    border: 1px solid #e9b8b8;
+}
+
+.po-readiness-state.is-neutral {
+    background: var(--cc-surface-active, #f4e9df);
+    color: var(--cc-brown-600, #70482f);
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+}
+
 .po-output-summary {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1px;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
     overflow: hidden;
-    border: 1px solid var(--po-border);
-    border-radius: 8px;
-    background: var(--po-border);
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-md, 12px);
+    background: var(--cc-border, #e9ded4);
 }
 
 .po-output-summary > div {
-    min-width: 0;
-    padding: 10px 12px;
-    background: #fff;
+    padding: 12px 16px;
+    background: var(--cc-surface-raised, #ffffff);
+    transition: background-color 0.16s ease;
 }
 
-.po-output-summary span,
+.po-output-summary > div:hover {
+    background: var(--cc-surface-active, #f4e9df);
+}
+
+.po-output-summary span {
+    display: block;
+    color: var(--cc-text-muted, #8c7b70);
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
 .po-output-summary strong {
     display: block;
-    overflow-wrap: anywhere;
+    margin-top: 2px;
+    color: var(--cc-text, #201812);
+    font-size: 13.5px;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
 }
 
-/* FIX: phân tầng màu rõ ràng */
-.po-output-summary span   { color: var(--po-hint); font-size: 11px; line-height: 1.4; }
-.po-output-summary strong { margin-top: 2px; color: var(--po-label); font-size: 13px; font-weight: 700; }
+/* ==========================================================================
+   BOM TABLE & HISTORY TABLE
+   ========================================================================== */
+.po-table-wrapper {
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-md, 12px);
+    overflow-x: auto;
+}
 
-/* ─── Footer Actions ─── */
+.po-table {
+    width: 100%;
+    margin-bottom: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+}
+
+.po-page .po-table > thead > tr > th {
+    height: 42px;
+    padding: 10px 14px;
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-brown-600, #70482f);
+    border-bottom: 1px solid var(--cc-border-strong, #d8c5b6);
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.po-page .po-table > tbody > tr > td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--cc-border, #e9ded4);
+    vertical-align: middle;
+    color: var(--cc-text, #201812);
+    font-variant-numeric: tabular-nums;
+}
+
+.po-page .po-table > tbody > tr:hover {
+    background: var(--cc-surface-active, #f4e9df);
+}
+
+.item-name {
+    font-weight: 750;
+    color: var(--cc-brown-900, #3d2418);
+}
+
+/* Badges in History Table */
+.badge-status-done {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--cc-success-bg, #edf6f2);
+    color: var(--cc-success, #2f6f5e);
+    font-size: 11.5px;
+    font-weight: 750;
+    border: 1px solid #a8d8cc;
+}
+
+.badge-status-prog {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--cc-warning-bg, #fcf4e8);
+    color: var(--cc-warning, #99623b);
+    font-size: 11.5px;
+    font-weight: 750;
+    border: 1px solid #f2d8b8;
+}
+
+/* ==========================================================================
+   FOOTER ACTIONS
+   ========================================================================== */
 .po-actions {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding-top: 24px;
+    justify-content: space-between;
+    gap: 16px;
     margin-top: 24px;
-    border-top: 1px solid var(--po-border);
-    gap: 12px;
+    padding-top: 22px;
+    border-top: 1px solid var(--cc-border, #e9ded4);
 }
 
-.btn-ghost {
-    background: transparent;
-    border: 1.5px solid var(--po-border);
-    color: var(--po-muted);
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 8px 16px;
-    transition: all 0.2s;
-}
-.btn-ghost:hover {
-    background: #FAF6F2;
-    color: var(--po-text);
-    border-color: var(--po-primary);
-}
-
+.btn-ghost,
 .btn-outline-dark {
-    border: 1.5px solid var(--po-border);
-    color: var(--po-text);
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 8px 16px;
-    background: transparent;
-    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 18px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-brown-900, #3d2418);
+    font-size: 13.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
 }
+
+.btn-ghost:hover,
 .btn-outline-dark:hover {
-    background: #FAF6F2;
-    border-color: var(--po-primary);
-    color: var(--po-primary);
+    border-color: var(--cc-brown-500, #8b6247);
+    background: var(--cc-surface-active, #f4e9df);
+    color: var(--cc-brown-900, #3d2418);
+    transform: translateY(-1px);
 }
 
 .btn-primary-action {
-    background-color: var(--po-primary);
-    border-color: var(--po-primary);
-    color: #fff;
-    font-weight: 700;
-    border-radius: 8px;
-    padding: 8px 24px;
-    box-shadow: 0 2px 8px rgba(111,78,55,0.25);
-    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 24px;
+    border: 1px solid var(--cc-brown-600, #70482f);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-brown-600, #70482f);
+    color: #ffffff !important;
+    font-size: 14px;
+    font-weight: 800;
+    white-space: nowrap;
+    box-shadow: 0 6px 16px rgba(112, 72, 47, 0.18);
+    transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
 }
+
 .btn-primary-action:hover:not(:disabled) {
-    background-color: var(--po-primary-hover);
-    border-color: var(--po-primary-hover);
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(111,78,55,0.3);
+    border-color: var(--cc-brown-900, #3d2418);
+    background: var(--cc-brown-900, #3d2418);
+    color: #ffffff !important;
+    transform: translateY(-2px);
 }
+
 .btn-primary-action:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+    box-shadow: none;
 }
 
-/* ─── History Section ─── */
-.history-section   { margin-top: 40px; }
-
-.history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.history-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--po-label);    /* FIX: đậm nhất quán với title khác */
-    margin: 0;
-}
-
-.history-link {
-    color: var(--po-muted);    /* FIX: phân biệt với title */
-    font-size: 0.82rem;
-    font-weight: 400;
-}
-
-.history-card {
-    background: var(--po-card);
-    border: 1px solid var(--po-border);
-    border-radius: var(--po-radius);
-    overflow: hidden;
-    box-shadow: var(--po-shadow);
-}
-
-.history-card .table-responsive { overflow-x: auto; }
-.history-card .po-table { min-width: 900px; }
-
-/* FIX: history table td — text alignment nhất quán */
-.history-card .po-table td {
-    font-size: 0.85rem;
-    vertical-align: middle;
-    color: var(--po-text);
-}
-.history-card .po-table td.text-muted {
-    color: var(--po-muted) !important;
-}
-
-/* Badges */
-.badge-status-done {
-    display: inline-block;
-    background: #D8F0EA;
-    color: #2F6F5E;
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 12px;
-    white-space: nowrap;
-}
-.badge-status-prog {
-    display: inline-block;
-    background: var(--po-warning-bg);
-    color: var(--po-warning);
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 12px;
-    white-space: nowrap;
-}
-
-/* Action icon */
-.action-icon {
-    background: #FAF6F2;
-    color: var(--po-muted);
-    width: 32px; height: 32px;
-    display: inline-flex; justify-content: center; align-items: center;
-    border-radius: 8px;
-    text-decoration: none;
-    transition: all 0.2s;
-}
-.action-icon:hover  { background: var(--po-primary); color: #fff; }
-.action-icon.active { background: var(--po-primary); color: #fff; }
-
-/* ─── Responsive ─── */
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS
+   ========================================================================== */
 @media (max-width: 991.98px) {
-    .po-main-card { padding: 18px; }
-    .po-actions {
-        flex-wrap: wrap;
-        align-items: stretch;
-        gap: 10px;
+    .po-main-card {
+        padding: 20px;
     }
-    .po-actions > div { flex-wrap: wrap; justify-content: flex-end; }
-}
 
-@media (max-width: 575.98px) {
-    .container-fluid { padding-left: 12px !important; padding-right: 12px !important; }
-    .po-main-card  { padding: 14px; }
-    .po-output-summary { grid-template-columns: 1fr; }
     .po-actions {
         flex-direction: column;
         align-items: stretch;
     }
-    .po-actions .btn { width: 100%; text-align: center; }
-    .po-actions > div { display: grid !important; grid-template-columns: 1fr; }
-    .history-header { align-items: flex-start; flex-direction: column; gap: 4px; }
+
+    .po-actions > div {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-ghost,
+    .btn-outline-dark,
+    .btn-primary-action {
+        width: 100%;
+    }
 }
 
-/* Căn chỉnh cột và nội dung của các bảng lệnh sơ chế. */
-.po-table {
-    table-layout: fixed;
-}
-.po-table th,
-.po-table td {
-    vertical-align: middle;
-    text-align: center;
-}
-.po-table-wrapper .po-table th:first-child,
-.po-table-wrapper .po-table td:first-child {
-    width: 25%;
-    text-align: left;
-}
-.po-table-wrapper .po-table th:nth-child(2),
-.po-table-wrapper .po-table td:nth-child(2),
-.po-table-wrapper .po-table th:nth-child(3),
-.po-table-wrapper .po-table td:nth-child(3),
-.po-table-wrapper .po-table th:nth-child(4),
-.po-table-wrapper .po-table td:nth-child(4),
-.po-table-wrapper .po-table th:nth-child(5),
-.po-table-wrapper .po-table td:nth-child(5),
-.po-table-wrapper .po-table th:nth-child(6),
-.po-table-wrapper .po-table td:nth-child(6) {
-    width: 10%;
-    text-align: center !important;
-}
-.po-table-wrapper .po-table th:nth-child(7),
-.po-table-wrapper .po-table td:nth-child(7) {
-    width: 15%;
-    text-align: center;
-}
-.history-card .po-table {
-    min-width: 1180px;
-    table-layout: fixed;
-}
-.history-card .po-table th,
-.history-card .po-table td { text-align: center; }
-.history-card .po-table th:nth-child(2),
-.history-card .po-table td:nth-child(2),
-.history-card .po-table th:nth-child(3),
-.history-card .po-table td:nth-child(3),
-.history-card .po-table th:nth-child(5),
-.history-card .po-table td:nth-child(5) { text-align: left; }
+@media (max-width: 575.98px) {
+    .po-page {
+        width: 100%;
+        padding: 16px 12px 100px;
+    }
 
-/* Tên cột của bảng nguyên liệu và lịch sử lệnh luôn căn giữa. */
-.po-page .po-table > thead > tr > th {
-    text-align: center !important;
-    vertical-align: middle;
-}
-
-/* ===== Hoàn thiện giao diện lệnh sơ chế ===== */
-.po-main-card,
-.history-card {
-    border-radius: 12px;
-    border-color: #e2d5ca;
-    box-shadow: 0 4px 16px rgba(92, 63, 43, .08);
-}
-.po-main-card {
-    position: relative;
-}
-.po-section-title,
-.po-bom-title {
-    color: #68452f;
-}
-.po-readiness-summary {
-    border-color: #e2d5ca;
-    background: linear-gradient(180deg, #fffdfb 0%, #faf5f0 100%);
-    box-shadow: inset 3px 0 0 #795236;
-}
-.po-page .po-table > thead > tr > th {
-    height: 42px;
-    padding: 10px 12px;
-    background: #f8f2ec;
-    color: #8a4f29;
-    border-bottom: 1px solid #dfd0c4;
-    font-size: .71rem;
-    font-weight: 800;
-    letter-spacing: .025em;
-}
-.po-page .po-table > tbody > tr {
-    transition: background-color .16s ease, box-shadow .16s ease;
-}
-.po-page .po-table > tbody > tr:nth-child(even) {
-    background: #fffdfb;
-}
-.po-page .po-table > tbody > tr:hover {
-    background: #fbf4ed;
-    box-shadow: inset 3px 0 0 #795236;
-}
-.po-page .po-table > tbody > tr > td {
-    border-bottom-color: #eee4db;
-}
-.po-table-wrapper .po-table > thead > tr > th:first-child,
-.history-card .po-table > thead > tr > th:nth-child(2),
-.history-card .po-table > thead > tr > th:nth-child(3),
-.history-card .po-table > thead > tr > th:nth-child(5) {
-    text-align: left !important;
-}
-.po-page .form-control:hover,
-.po-page .form-select:hover,
-.po-page .select2-container--bootstrap-5 .select2-selection:hover {
-    border-color: #aa8a73;
-}
-.po-page .form-control:focus,
-.po-page .form-select:focus,
-.po-page .select2-container--bootstrap-5.select2-container--focus .select2-selection {
-    border-color: #795236;
-    box-shadow: 0 0 0 3px rgba(121, 82, 54, .13);
-}
-.po-page .btn {
-    transition: color .16s ease, background-color .16s ease,
-                border-color .16s ease, box-shadow .16s ease,
-                transform .16s ease;
-}
-.po-page .btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(92, 63, 43, .16);
-}
-.po-page .btn-ghost:hover,
-.po-page .btn-outline-dark:hover {
-    background: #795236;
-    border-color: #795236;
-    color: #fff;
-}
-.po-output-summary > div {
-    transition: background-color .16s ease;
-}
-.po-output-summary > div:hover {
-    background: #fbf4ed;
-}
-
-.po-title-section {
-    position: relative;
-    margin-bottom: 22px;
-    padding: 20px 22px;
-    border: 1px solid #e2d5ca;
-    border-radius: 14px;
-    background:
-        radial-gradient(circle at 92% 18%, rgba(198, 122, 69, .13), transparent 26%),
-        linear-gradient(135deg, #fff 0%, #fbf6f1 72%, #f4e9df 100%);
-    box-shadow: 0 5px 18px rgba(92, 63, 43, .08);
-    overflow: hidden;
-}
-.po-title-section::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    background: linear-gradient(180deg, #6f4e37, #c67a45);
-}
-.po-title {
-    color: #3f2b20;
-    letter-spacing: -.025em;
-}
-.po-main-card {
-    padding: 26px;
-}
-.po-bom-header {
-    padding-bottom: 12px;
-    border-bottom: 1px solid #eadfd6;
-}
-.po-bom-badge {
-    border: 1px solid #e5d5c8;
-    box-shadow: inset 0 0 0 1px rgba(111, 78, 55, .03);
-}
-.po-table-wrapper {
-    box-shadow: 0 2px 8px rgba(92, 63, 43, .05);
-}
-.btn-primary-action {
-    background: linear-gradient(135deg, #795236, #5c3f2b);
-    border-color: #5c3f2b;
-    box-shadow: 0 5px 12px rgba(92, 63, 43, .24);
-}
-.btn-primary-action:hover:not(:disabled) {
-    background: linear-gradient(135deg, #68462f, #493122);
-    box-shadow: 0 7px 16px rgba(92, 63, 43, .3);
-}
-.history-header {
-    padding: 0 4px;
-}
-.history-title {
-    position: relative;
-    padding-left: 13px;
-}
-.history-title::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 2px;
-    bottom: 2px;
-    width: 4px;
-    border-radius: 999px;
-    background: #795236;
-}
-
-@media (max-width: 767.98px) {
     .po-title-section {
         padding: 16px;
-        border-radius: 11px;
     }
-    .po-main-card {
-        padding: 16px;
+
+    .po-output-summary {
+        grid-template-columns: 1fr;
     }
 }

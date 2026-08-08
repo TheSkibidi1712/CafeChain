@@ -54,6 +54,15 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
             int? targetId,
             DateTime utcNow);
 
+        Task<OtpChallenge?> FindLatestOpenShiftChallengeAsync(
+            int storeId,
+            int requestedByStaffId,
+            DateTime sinceUtc);
+        Task<OtpChallenge?> FindLatestTerminalRegistrationChallengeAsync(
+            int storeId,
+            int requestedByStaffId,
+            DateTime sinceUtc);
+
         /// <summary>
         /// Mark Pending/Approved challenges past ExpiresAt as Expired so the unique
         /// one-active index can accept a new request for the same actor/action/target.
@@ -65,6 +74,9 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
             string targetType,
             int? targetId,
             DateTime utcNow);
+
+        Task<IReadOnlyList<(int ChallengeId, Guid PublicId, int ApproverStaffId, int? NotificationId)>>
+            ExpireDueChallengesAsync(DateTime utcNow, CancellationToken cancellationToken = default);
 
         Task AddAsync(OtpChallenge challenge);
 
