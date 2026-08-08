@@ -1034,6 +1034,132 @@
 }
 
 /* ==========================================================================
+   DRINK GALLERY CARDS (Synchronized Image Management Grid)
+   ========================================================================== */
+
+.drink-gallery-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-control);
+    background: var(--cc-surface-raised);
+    box-shadow: var(--cc-shadow-xs);
+    transition: all 0.2s ease;
+}
+
+.drink-gallery-card:hover {
+    border-color: var(--cc-border-strong);
+    box-shadow: var(--cc-shadow-sm);
+    transform: translateY(-2px);
+}
+
+.drink-gallery-card.is-default {
+    border-color: var(--cc-success);
+    box-shadow: 0 0 0 1px var(--cc-success);
+}
+
+.drink-gallery-img-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: var(--cc-surface-muted);
+}
+
+.drink-gallery-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.drink-gallery-card:hover .drink-gallery-img {
+    transform: scale(1.04);
+}
+
+.drink-card-badge-default {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: var(--cc-radius-pill);
+    background: var(--cc-success);
+    color: var(--cc-text-inverse);
+    font-size: 11px;
+    font-weight: 750;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+.drink-gallery-card-body {
+    padding: 6px;
+    background: var(--cc-surface-raised);
+    border-top: 1px solid var(--cc-border);
+}
+
+.drink-card-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: var(--cc-radius-xs);
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.drink-card-btn-default {
+    border-color: #BBDCCD;
+    background: var(--cc-success-bg);
+    color: var(--cc-success) !important;
+    min-width: 0;
+}
+
+.drink-card-btn-default:hover,
+.drink-card-btn-default:focus {
+    border-color: var(--cc-success);
+    background: var(--cc-success);
+    color: var(--cc-text-inverse) !important;
+}
+
+.drink-card-btn-edit {
+    flex-shrink: 0;
+    min-width: 32px;
+    border-color: var(--cc-brown-200);
+    background: var(--cc-brown-50);
+    color: var(--cc-brown-700) !important;
+}
+
+.drink-card-btn-edit:hover,
+.drink-card-btn-edit:focus {
+    border-color: var(--cc-brown-600);
+    background: var(--cc-brown-600);
+    color: var(--cc-text-inverse) !important;
+}
+
+.drink-card-btn-delete {
+    flex-shrink: 0;
+    min-width: 32px;
+    border-color: #E9B8B8;
+    background: var(--cc-danger-bg);
+    color: var(--cc-danger) !important;
+}
+
+.drink-card-btn-delete:hover,
+.drink-card-btn-delete:focus {
+    border-color: var(--cc-danger);
+    background: var(--cc-danger);
+    color: var(--cc-text-inverse) !important;
+}
+
+/* ==========================================================================
    8. RESPONSIVE SYSTEM
    ========================================================================== */
 
