@@ -18,6 +18,10 @@ public sealed class SupplierIntelligenceOptions
 {
     public const string SectionName = "SupplierIntelligence";
     public bool ScoringEnabled { get; set; }
+    public bool Enabled { get; set; }
+    public bool ShadowMode { get; set; } = true;
+    public bool FullRollout { get; set; }
+    public List<int> StoreAllowlist { get; set; } = [];
     public string WeightVersion { get; set; } = "v1";
     public decimal PriceWeight { get; set; } = 30;
     public decimal OnTimeWeight { get; set; } = 20;
@@ -26,4 +30,8 @@ public sealed class SupplierIntelligenceOptions
     public decimal LeadTimeWeight { get; set; } = 10;
     public int MediumConfidenceReceipts { get; set; } = 5;
     public int HighConfidenceReceipts { get; set; } = 20;
+    public int PerformanceWindowDays { get; set; } = 180;
+
+    public bool IsEnabledForStore(int storeId) => (Enabled || ScoringEnabled)
+        && (FullRollout || StoreAllowlist.Contains(storeId));
 }

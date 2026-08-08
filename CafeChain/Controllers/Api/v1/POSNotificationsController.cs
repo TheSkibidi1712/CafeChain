@@ -78,17 +78,20 @@ namespace CafeChain.Controllers.Api.v1
             return Ok(new { success = true, data = result.Data });
         }
 
-        [HttpGet("notifications/{id:int}/terminal-otp")]
-        [RequirePermission(PermissionConstants.PosWorkShiftOverrideTerminal)]
+        [HttpGet("notifications/{id:int}/operational-otp")]
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-        public async Task<IActionResult> RevealTerminalOtp(int id)
+        public async Task<IActionResult> RevealOperationalOtp(int id)
         {
             if (_terminalRegistration == null) return StatusCode(503);
-            var result = await _terminalRegistration.RevealOtpAsync(CurrentStaffId, id);
+            var result = await _terminalRegistration.RevealOperationalOtpAsync(CurrentStaffId, id);
             return result.IsSuccess
                 ? Ok(new { success = true, data = result.Data })
                 : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message });
         }
+
+        [HttpGet("notifications/{id:int}/terminal-otp")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public Task<IActionResult> RevealTerminalOtp(int id) => RevealOperationalOtp(id);
 
         [HttpPost("notifications/{id:int}/terminal-confirm")]
         [RequirePermission(PermissionConstants.PosWorkShiftOverrideTerminal)]

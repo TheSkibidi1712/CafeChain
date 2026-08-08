@@ -23,7 +23,7 @@
         <section class="cc-warehouse-panel">
             @foreach (var item in Model)
             {
-                <article class="notification-item">
+                <article class="notification-item" id="approval-@item.Id">
                     <div>
                         <strong>@item.RequestedByName · trễ @item.MinutesLate phút</strong>
                         <p>Terminal: @item.TerminalId · Store #@item.StoreId</p>
@@ -34,13 +34,28 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@item.PublicId" />
                         <input type="hidden" name="storeId" value="@item.StoreId" />
+                        <input type="hidden" name="Decision" value="" data-decision-value />
                         <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
                         <input type="hidden" name="RowVersion" value="@item.RowVersion" />
                         <label>Lý do quyết định <input name="Reason" maxlength="500" /></label>
+                        @if (!item.CanApproveAsScheduled)
+                        {
+                            <p class="ops-notice ops-notice-warning">
+                                Ca đã trễ quá @item.ScheduledApprovalMaxLateMinutes phút nên không thể mở theo lịch cũ.
+                                Hãy từ chối hoặc chuyển sang ca ngoài lịch.
+                            </p>
+                        }
                         <div class="cc-warehouse-actions">
-                            <button class="cc-button" name="Decision" value="APPROVED" type="submit">Duyệt mở ca</button>
-                            <button class="cc-button" name="Decision" value="REJECTED" type="submit">Từ chối</button>
-                            <button class="cc-button" name="Decision" value="CONVERTED_TO_OUTSIDE_SCHEDULE" type="submit">Chuyển ngoài lịch</button>
+                            <button class="cc-button"
+                                    data-decision="APPROVED"
+                                    type="submit"
+                                    disabled="@(!item.CanApproveAsScheduled)"
+                                    aria-disabled="@(!item.CanApproveAsScheduled ? "true" : "false")"
+                                    title="@(!item.CanApproveAsScheduled ? $"Ca trễ quá {item.ScheduledApprovalMaxLateMinutes} phút không thể duyệt theo lịch cũ." : $"Duyệt mở ca trễ trong giới hạn {item.ScheduledApprovalMaxLateMinutes} phút")">
+                                Duyệt mở ca
+                            </button>
+                            <button class="cc-button" data-decision="REJECTED" type="submit">Từ chối</button>
+                            <button class="cc-button" data-decision="CONVERTED_TO_OUTSIDE_SCHEDULE" type="submit">Chuyển ngoài lịch</button>
                         </div>
                     </form>
                 </article>
@@ -52,11 +67,35 @@
 <script>
 document.addEventListener('submit', function (event) {
     var form = event.target.closest('[data-decision-form]');
-    if (!form || form.dataset.submitting === 'true') {
-        if (form) event.preventDefault();
+    if (!form) return;
+    var decision = event.submitter?.dataset.decision;
+    var decisionField = form.querySelector('[data-decision-value]');
+    var allowedDecisions = ['APPROVED', 'REJECTED', 'CONVERTED_TO_OUTSIDE_SCHEDULE'];
+    if (!decisionField || !allowedDecisions.includes(decision)) {
+        event.preventDefault();
+        if (typeof window.toast === 'function') {
+            window.toast('Không nhận được lựa chọn xử lý. Vui lòng thử lại.', 'warning');
+        }
         return;
     }
-    form.dataset.submitting = 'true';
-    form.querySelectorAll('button').forEach(function (button) { button.disabled = true; });
+    decisionField.value = decision;
 });
+document.addEventListener('DOMContentLoaded', function () {
+if (window.signalR?.HubConnectionBuilder) {
+    const approvalConnection = new signalR.HubConnectionBuilder()
+        .withUrl('/hubs/workshifts')
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+        .build();
+    approvalConnection.on('LateOpenApprovalChanged', function () {
+        if (!document.querySelector('[data-decision-form][data-submit-pending="true"], [data-decision-form][data-submit-busy="true"]')) {
+            window.location.reload();
+        }
+    });
+    approvalConnection.onreconnected(function () { window.location.reload(); });
+    approvalConnection.start().catch(function (error) {
+        console.warn('[late-open-approval] Realtime unavailable; manual refresh remains available.', error);
+    });
+    window.addEventListener('pagehide', function () { void approvalConnection.stop(); }, { once: true });
+}
+}, { once: true });
 </script>

@@ -1,10 +1,12 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Options;
 using CafeChain.Application.Results;
+using CafeChain.Application.Tools;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Infrastructure.Interfaces.Operations;
 using CafeChain.Models.Operations;
@@ -126,7 +128,7 @@ namespace CafeChain.Application.Services.POS
             var actionType = NormalizeActionType(request.ActionType);
             if (actionType == null)
                 return ServiceResult<OtpChallengeResponseDto>.Failure(
-                    "ActionType không hỗ trợ. Dùng CASH_DIFFERENCE, CLOSE_SHIFT_EXCEPTION hoặc OPEN_SHIFT_LATE.");
+                    "ActionType không hỗ trợ. Dùng REGISTER_POS_TERMINAL, OPEN_SHIFT_OUTSIDE_SCHEDULE, CASH_DIFFERENCE hoặc CLOSE_SHIFT_EXCEPTION.");
 
             if (!string.Equals(request.TargetType?.Trim(), OtpConstants.TargetTypes.Shifts, StringComparison.OrdinalIgnoreCase))
                 return ServiceResult<OtpChallengeResponseDto>.Failure("Chỉ hỗ trợ TargetType shifts.");
@@ -372,6 +374,10 @@ namespace CafeChain.Application.Services.POS
                         "Đang có yêu cầu OTP khác cho thao tác này. Vui lòng dùng Gửi lại OTP hoặc thử lại sau vài giây.");
                 }
 
+                // The internal notification is authoritative and should reach
+                // the approver immediately. SMTP delivery is a secondary channel.
+                await PublishChangedSafeAsync(challenge, notification, "Created");
+
                 var approverRoleLabel = ResolveApproverRoleLabel(approver);
                 var actionLabel = ResolveActionLabel(actionType);
                 var subject = $"[Xác nhận {approverRoleLabel}] {actionLabel} - {store.Name}";
@@ -401,10 +407,13 @@ namespace CafeChain.Application.Services.POS
                         : "Không gửi được Gmail.";
                     await ResolveFailedDeliveryAsync(notification, safeDeliveryError);
                     await _repository.SaveChangesAsync();
-                    await PublishChangedSafeAsync(challenge.ApproverStaffId, notification, "Updated");
+                    await PublishChangedSafeAsync(challenge, notification, "DeliveryUpdated");
 
+                    var fallbackResponse = MapResponse(challenge, nowUtc);
+                    fallbackResponse.DeliveryStatus = OtpDeliveryStatuses.InternalNotificationOnly;
+                    fallbackResponse.MaskedRecipientEmail = MaskEmail(approverEmail);
                     return ServiceResult<OtpChallengeResponseDto>.Success(
-                        MapResponse(challenge, nowUtc),
+                        fallbackResponse,
                         "OTP vẫn còn hiệu lực trong thông báo nội bộ; kênh email gửi thất bại.");
                 }
 
@@ -415,10 +424,13 @@ namespace CafeChain.Application.Services.POS
                     notification.EmailErrorSummary = null;
                     notification.UpdatedAt = UtcNow;
                     await _staffNotifications.SaveChangesAsync();
-                    await PublishChangedSafeAsync(challenge.ApproverStaffId, notification, "Created");
+                    await PublishChangedSafeAsync(challenge, notification, "DeliveryUpdated");
                 }
+                var sentResponse = MapResponse(challenge, nowUtc);
+                sentResponse.DeliveryStatus = OtpDeliveryStatuses.EmailSent;
+                sentResponse.MaskedRecipientEmail = MaskEmail(approverEmail);
                 return ServiceResult<OtpChallengeResponseDto>.Success(
-                    MapResponse(challenge, nowUtc),
+                    sentResponse,
                     $"OTP đã được gửi đến {approverRoleLabel} ({MaskEmail(approverEmail)}). Mã gồm 6 ký tự chữ in hoa và số.");
             }
             catch
@@ -739,6 +751,7 @@ namespace CafeChain.Application.Services.POS
 
                 await _repository.SaveChangesAsync();
                 await _repository.CommitTransactionAsync();
+                await PublishChangedSafeAsync(challenge, notification, "Resent");
 
                 var emailSent = false;
                 try
@@ -762,7 +775,7 @@ namespace CafeChain.Application.Services.POS
                     await _staffNotifications.SaveChangesAsync();
                 }
 
-                await PublishChangedSafeAsync(challenge.ApproverStaffId, notification, "Updated");
+                await PublishChangedSafeAsync(challenge, notification, "DeliveryUpdated");
 
                 var msg = emailSent
                     ? "OTP mới đã được gửi đến email người duyệt. Mã cũ không còn hiệu lực."
@@ -805,6 +818,164 @@ namespace CafeChain.Application.Services.POS
                     errorCode: OtpConstants.ErrorCodes.ApproverNoLongerEligible);
             }
             return await ResendOtpAsync(request);
+        }
+
+        public async Task<ServiceResult<OtpChallengeResponseDto>> CancelTerminalRegistrationOtpAsync(
+            OtpCancelDto request,
+            int requestedByStaffId,
+            int storeId)
+        {
+            if (request == null || request.OtpChallengePublicId == Guid.Empty)
+                return ServiceResult<OtpChallengeResponseDto>.Failure("Thiếu mã yêu cầu OTP.");
+
+            var nowUtc = UtcNow;
+            StaffNotification? notification = null;
+            try
+            {
+                await _repository.BeginTransactionAsync();
+                var challenge = await _repository.GetByPublicIdForUpdateAsync(request.OtpChallengePublicId);
+                if (challenge == null
+                    || challenge.RequestedByStaffId != requestedByStaffId
+                    || challenge.StoreId != storeId
+                    || challenge.ActionType != OtpConstants.ActionTypes.RegisterTerminal)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<OtpChallengeResponseDto>.Failure(
+                        "Yêu cầu đăng ký Terminal không thuộc nhân viên/cửa hàng hiện tại.",
+                        errorCode: OtpConstants.ErrorCodes.ContextMismatch);
+                }
+
+                if (challenge.Status == OtpConstants.Statuses.Cancelled)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<OtpChallengeResponseDto>.Success(
+                        MapResponse(challenge, nowUtc), "Yêu cầu đã được hủy trước đó.");
+                }
+                if (challenge.Status != OtpConstants.Statuses.Pending)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return Failure("Yêu cầu không còn ở trạng thái có thể hủy.", challenge, nowUtc);
+                }
+
+                challenge.Status = OtpConstants.Statuses.Cancelled;
+                challenge.CancelledAt = nowUtc;
+                challenge.ProtectedOtpPayload = null;
+                if (_staffNotifications != null)
+                {
+                    notification = await _staffNotifications.GetByDeduplicationKeyAsync(
+                        OtpNotificationKey(challenge.PublicId));
+                    if (notification != null)
+                    {
+                        notification.ResolvedAt ??= nowUtc;
+                        notification.UpdatedAt = nowUtc;
+                        notification.MeaningfulVersion = OtpConstants.Statuses.Cancelled;
+                    }
+                }
+                await _repository.SaveChangesAsync();
+                if (notification != null && _staffNotifications != null)
+                    await _staffNotifications.SaveChangesAsync();
+                if (_audit != null)
+                    await _audit.WriteOtpAsync(
+                        "TERMINAL_REGISTRATION_CANCELLED",
+                        challenge.OtpChallengeId,
+                        requestedByStaffId,
+                        new { challenge.PublicId, challenge.StoreId, challenge.TerminalId });
+                await _repository.CommitTransactionAsync();
+                await PublishChangedSafeAsync(challenge, notification, "Cancelled");
+                return ServiceResult<OtpChallengeResponseDto>.Success(
+                    MapResponse(challenge, nowUtc), "Đã hủy yêu cầu đăng ký Terminal.");
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await _repository.RollbackTransactionAsync();
+                return ServiceResult<OtpChallengeResponseDto>.Failure(
+                    "Yêu cầu đang được xử lý ở nơi khác.",
+                    errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+            }
+            catch
+            {
+                await _repository.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        public async Task<ServiceResult<OtpChallengeResponseDto>> CancelOpenPosOtpAsync(
+            OtpCancelDto request,
+            int requestedByStaffId,
+            int storeId)
+        {
+            if (request == null || request.OtpChallengePublicId == Guid.Empty)
+                return ServiceResult<OtpChallengeResponseDto>.Failure("Thiếu mã yêu cầu OTP.");
+
+            var nowUtc = UtcNow;
+            StaffNotification? notification = null;
+            try
+            {
+                await _repository.BeginTransactionAsync();
+                var challenge = await _repository.GetByPublicIdForUpdateAsync(request.OtpChallengePublicId);
+                var isOpenIntent = challenge?.ActionType is OtpConstants.ActionTypes.OpenShiftLate
+                    or OtpConstants.ActionTypes.OpenShiftOutsideSchedule;
+                if (challenge == null || !isOpenIntent
+                    || challenge.RequestedByStaffId != requestedByStaffId
+                    || challenge.StoreId != storeId)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<OtpChallengeResponseDto>.Failure(
+                        "Yêu cầu OTP mở ca không thuộc nhân viên/cửa hàng hiện tại.",
+                        errorCode: OtpConstants.ErrorCodes.ContextMismatch);
+                }
+
+                if (challenge.Status == OtpConstants.Statuses.Cancelled)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<OtpChallengeResponseDto>.Success(
+                        MapResponse(challenge, nowUtc), "Yêu cầu mở ca đã được hủy trước đó.");
+                }
+                if (challenge.Status is not OtpConstants.Statuses.Pending
+                    and not OtpConstants.Statuses.Approved)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return Failure("OTP đã được dùng hoặc không còn ở trạng thái có thể hủy.", challenge, nowUtc);
+                }
+
+                challenge.Status = OtpConstants.Statuses.Cancelled;
+                challenge.CancelledAt = nowUtc;
+                challenge.ProtectedOtpPayload = null;
+                if (_staffNotifications != null)
+                {
+                    notification = await _staffNotifications.GetByDeduplicationKeyAsync(
+                        OtpNotificationKey(challenge.PublicId));
+                    if (notification != null)
+                    {
+                        notification.ResolvedAt ??= nowUtc;
+                        notification.UpdatedAt = nowUtc;
+                        notification.MeaningfulVersion = OtpConstants.Statuses.Cancelled;
+                    }
+                }
+                await _repository.SaveChangesAsync();
+                if (notification != null && _staffNotifications != null)
+                    await _staffNotifications.SaveChangesAsync();
+                if (_audit != null)
+                    await _audit.WriteOtpAsync("OPEN_POS_INTENT_CANCELLED", challenge.OtpChallengeId,
+                        requestedByStaffId,
+                        new { challenge.PublicId, challenge.StoreId, challenge.TerminalId, challenge.RequestKey });
+                await _repository.CommitTransactionAsync();
+                await PublishChangedSafeAsync(challenge, notification, "Cancelled");
+                return ServiceResult<OtpChallengeResponseDto>.Success(
+                    MapResponse(challenge, nowUtc), "Đã hủy yêu cầu OTP mở ca.");
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await _repository.RollbackTransactionAsync();
+                return ServiceResult<OtpChallengeResponseDto>.Failure(
+                    "Yêu cầu đang được xử lý ở nơi khác.",
+                    errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+            }
+            catch
+            {
+                await _repository.RollbackTransactionAsync();
+                throw;
+            }
         }
 
         private async Task<(string? Error, string? Fingerprint, int? TargetId, int? WorkShiftId, string? TargetLabel)>
@@ -963,60 +1134,40 @@ namespace CafeChain.Application.Services.POS
             notification.ResolvedAt ??= UtcNow;
             notification.UpdatedAt = UtcNow;
             await _staffNotifications.SaveChangesAsync();
-            await PublishChangedSafeAsync(challenge.ApproverStaffId, notification, changeKind);
+            await PublishChangedSafeAsync(challenge, notification, changeKind);
         }
 
-        private async Task PublishOtpIssuedSafeAsync(
-            int approverStaffId,
-            string otpCode,
-            DateTime expiresAtUtc,
-            string actionLabel,
-            string requesterName,
-            string storeName)
+        private async Task PublishChangedSafeAsync(
+            OtpChallenge challenge,
+            StaffNotification? notification,
+            string changeKind)
         {
             if (_otpNotificationPublisher == null)
                 return;
 
             try
             {
-                await _otpNotificationPublisher.PublishIssuedAsync(
-                    approverStaffId,
-                    new OperationalOtpIssuedDto(
-                        Guid.NewGuid().ToString("N"),
-                        otpCode,
-                        expiresAtUtc,
-                        actionLabel,
-                        requesterName,
-                        storeName));
+                if (notification != null)
+                    await _otpNotificationPublisher.PublishChangedAsync(
+                        challenge.ApproverStaffId,
+                        new OperationalOtpNotificationChangedDto(
+                            Guid.NewGuid().ToString("N"),
+                            notification.StaffNotificationId,
+                            changeKind,
+                            UtcDateTime.Normalize(UtcNow)));
+                if (challenge.ActionType == OtpConstants.ActionTypes.RegisterTerminal)
+                    await _otpNotificationPublisher.PublishTerminalRegistrationChangedAsync(
+                        challenge.RequestedByStaffId,
+                        new TerminalRegistrationChangedDto(
+                            challenge.PublicId,
+                            challenge.Status,
+                            challenge.TerminalId,
+                            UtcDateTime.Normalize(challenge.ExpiresAt),
+                            UtcDateTime.Normalize(UtcNow)));
             }
             catch (Exception ex)
             {
-                // Deliberately do not log the event payload because it contains the OTP.
-                _logger.LogWarning(ex, "OTP_PRIVATE_SIGNALR_DELIVERY_FAILED | ApproverStaffId={ApproverStaffId}", approverStaffId);
-            }
-        }
-
-        private async Task PublishChangedSafeAsync(
-            int approverStaffId,
-            StaffNotification? notification,
-            string changeKind)
-        {
-            if (_otpNotificationPublisher == null || notification == null)
-                return;
-
-            try
-            {
-                await _otpNotificationPublisher.PublishChangedAsync(
-                    approverStaffId,
-                    new OperationalOtpNotificationChangedDto(
-                        Guid.NewGuid().ToString("N"),
-                        notification.StaffNotificationId,
-                        changeKind,
-                        UtcNow));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "OTP_NOTIFICATION_REFRESH_FAILED | ApproverStaffId={ApproverStaffId}", approverStaffId);
+                _logger.LogWarning(ex, "OTP_NOTIFICATION_REFRESH_FAILED | ApproverStaffId={ApproverStaffId}", challenge.ApproverStaffId);
             }
         }
 
@@ -1236,7 +1387,8 @@ namespace CafeChain.Application.Services.POS
             int storeId,
             int requestedByStaffId)
         {
-            var permissionCode = ResolveApproverPermissionCode(actionType);
+            if (!OperationalOtpAuthorization.TryGetApproverPermission(actionType, out var permissionCode))
+                return null;
 
             foreach (var candidate in await _repository.GetOtpApproverCandidatesAsync(requestedByStaffId))
             {
@@ -1265,22 +1417,16 @@ namespace CafeChain.Application.Services.POS
             if (accountId <= 0)
                 return false;
 
+            if (!OperationalOtpAuthorization.TryGetApproverPermission(
+                    challenge.ActionType, out var permissionCode))
+                return false;
+
             var decision = await _permissions.HasPermissionAsync(
                 accountId,
-                ResolveApproverPermissionCode(challenge.ActionType),
+                permissionCode,
                 challenge.StoreId);
             return decision.IsSuccess && decision.Data?.Allowed == true;
         }
-
-        private static string ResolveApproverPermissionCode(string actionType) => actionType switch
-        {
-            OtpConstants.ActionTypes.OpenShiftLate => PermissionConstants.PosWorkShiftApproveOutsideSchedule,
-            OtpConstants.ActionTypes.OpenShiftOutsideSchedule => PermissionConstants.PosWorkShiftApproveOutsideSchedule,
-            OtpConstants.ActionTypes.CloseShiftException => PermissionConstants.PosWorkShiftCloseException,
-            OtpConstants.ActionTypes.ReconcileWorkShift => PermissionConstants.PosWorkShiftReconcile,
-            OtpConstants.ActionTypes.RegisterTerminal => PermissionConstants.PosWorkShiftOverrideTerminal,
-            _ => PermissionConstants.PosWorkShiftClose
-        };
 
         private static string? NormalizeSecurityHash(string? value)
         {

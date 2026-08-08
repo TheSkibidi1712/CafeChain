@@ -93,10 +93,22 @@ IDLE → SENDING → SENT → VERIFYING
 
 ## 7. Current Operator và thao tác nhạy cảm
 
-- Đổi operator bằng PIN cá nhân, kiểm tra account active, permission và StaffScope.
-- Không sửa trực tiếp ResponsibleStaffId.
-- Order lưu người tạo; Payment lưu người thu; cancel/refund lưu người thực hiện và người phê duyệt khi cần.
+- Đổi operator bằng PIN cá nhân để bàn giao thao tác trên cùng quầy mà không đóng/mở lại két; backend kiểm tra account active, `POS.Operator.Switch` và StaffScope.
+- Không sửa `WorkShift.UserId`/Responsible Staff, tiền đầu ca, WorkShiftId hoặc trách nhiệm tài chính. Đây không phải bàn giao két.
+- Order lưu người tạo thực tế; Payment lưu người thu; cancel/refund lưu người thực hiện và người phê duyệt khi cần.
+- Response authoritative trả `currentOperatorName` và thời điểm đổi; trang Két, header bán hàng và tab cùng terminal đồng bộ qua `WorkShiftChanged`/SignalR.
+- PIN là mã cá nhân, chỉ lưu hash và không được chia sẻ, ghi log hay đưa vào audit payload.
 - Hủy, refund, giảm giá vượt ngưỡng, force-close, transfer và override phải theo permission/policy hiện hành và có audit.
+
+### 7.1 Xử lý mở ca trễ từ 30 phút
+
+- Luồng này dùng `WorkShiftOpenApprovalRequest`, không dùng OTP.
+- Notification của người duyệt trỏ tới `/Admin/AdminWorkShiftOpenApprovals#approval-{id}` và hiển thị **Xem và duyệt yêu cầu**.
+- Backend yêu cầu `POS.WorkShift.ApproveLateOpen`, StaffScope đúng Store, antiforgery, RequestKey và row-version.
+- `LateApprovalAfterMinutes=30` là mốc bắt đầu cần Manager, tính bao gồm phút 30; `LateScheduledApprovalMaxMinutes=45` là mốc tối đa được duyệt theo lịch cũ.
+- `30 <= MinutesLate <= 45`: `APPROVED`, `REJECTED`, `CONVERTED_TO_OUTSIDE_SCHEDULE` đều hợp lệ.
+- `MinutesLate > 45`: UI khóa **Duyệt mở ca**, backend chặn direct POST `APPROVED` bằng `LATE_OPEN_REQUIRES_OUTSIDE_SCHEDULE`; chỉ `REJECTED` và `CONVERTED_TO_OUTSIDE_SCHEDULE` hợp lệ.
+- Convert chỉ đổi context sang ngoài lịch, không sửa `StaffShift` nguồn và không tạo WorkShift tại màn duyệt.
 
 ## 8. Đóng, bàn giao và đối soát
 
@@ -163,3 +175,33 @@ Backend kiểm tra permission và StaffScope cho mọi thao tác. Audit tối th
 - UI thiết lập PIN tại StaffHub và đổi Current Operator tại POS đã được triển khai; danh sách ứng viên được lọc theo cửa hàng, trạng thái tài khoản và permission phía server.
 - Lịch sử operator phục vụ offline, DeviceInstallationId, auto-lock và toàn bộ sensitive-action approval chưa được tuyên bố hoàn thành.
 - Full SQL Server race, offline late-sync end-to-end và full regression suite phải đạt trước nghiệm thu cuối.
+
+## 14. Contract kiến trúc cuối
+
+### Terminal registration notification
+
+`StaffNotification.OtpChallengeId` là liên kết dữ liệu chuẩn. `Body` chỉ phục vụ trình bày. Terminal name được snapshot tại challenge; requester, approver, confirmer, Store, thời hạn và trạng thái được đọc từ quan hệ typed. List API không bao giờ trả OTP plaintext; reveal yêu cầu đúng recipient, permission và store scope, trả `Cache-Control: no-store`.
+
+Một request nghiệp vụ tạo đúng một notification. Request lặp khi còn hiệu lực trả lại challenge hiện tại; resend sau cooldown rotate OTP trên cùng notification. Notification kết thúc vẫn được giữ để audit với trạng thái ánh xạ `Waiting`, `Used`, `Expired`, `Cancelled`. Mark-one chỉ update đúng notification của recipient hiện tại.
+
+### PosAccessSession
+
+`PosAccessSession` là aggregate bảo mật của lần truy cập POS, không phải WorkShift. Trạng thái gồm `ACTIVE`, `LOGGED_OUT`, `REPLACED`, `REVOKED`, `ADMIN_ENDED`, `EXPIRED`, `TERMINAL_LOCKED`. Unique filtered index bảo đảm một session active trên mỗi Terminal; tạo session thay thế, audit và commit chạy cùng transaction.
+
+JWT chứa session public id/JTI. Validation kiểm tra session active/chưa hết hạn, account/staff/store/Terminal active và scope khớp. SignalR chỉ được phát sau commit; lỗi realtime không rollback dữ liệu đã commit và client hồi phục bằng validation/polling.
+
+Worker `PosAccessSessionExpiryWorker` chủ động persist `ACTIVE → EXPIRED`, ghi audit và publish realtime sau commit, kể cả khi browser không phát sinh request mới. Vì vậy danh sách quản trị và unique active-session contract không phụ thuộc vào lần validation tiếp theo.
+
+Order online không nhận `WorkShiftId` tin cậy từ JSON. Controller lấy session server-side, gán `BoundWorkShiftId` server-only; service đọc chính xác ca theo `(WorkShiftId, StaffId, StoreId)` trước và trong transaction. Các mutation đóng/đối soát/đổi operator cũng từ chối khi ca không khớp session.
+
+### Late-open approval
+
+Trễ từ 30 phút dùng `WorkShiftOpenApprovalRequest`, không dùng OTP. Request có unique `RequestKey`, rowversion, requester/decision-maker, source StaffShift, Terminal, lý do và timestamps. Approve chỉ hợp lệ đến 45 phút; reject khóa luồng, còn convert tạo context ngoài lịch sáu giờ. Create/decide idempotent, audited và publish `LateOpenApprovalChanged` sau commit.
+
+Hủy tại POS chỉ hợp lệ trước khi session bind WorkShift. Exchange context ghi `CancelledAtUtc`, `RequiresOpeningCash=false` và chuyển ticket sang `EXPIRED`, là trạng thái hợp lệ của `RequestDeduplications`; business OTP/approval chưa dùng chuyển `CANCELLED`. Retry hủy trả thành công idempotent, còn session đã có `WorkShiftId` trả conflict.
+
+Worker expiry persist `PENDING → EXPIRED`, resolve toàn bộ notification liên quan và phát SignalR sau commit. Quyền `POS.WorkShift.ApproveLateOpen` và `POS.Session.Manage` chỉ được seed cho Business Owner, Area Manager và Store Manager; Shift Supervisor không được cấp. SignalR cũng dùng group permission theo store tương ứng, không broadcast toàn hệ thống.
+
+### Database baseline
+
+Schema mới được tích hợp vào migration baseline `InitialCreate` theo quyết định của dự án: FK/index OTP notification, `PosAccessSessions`, `WorkShiftOpenApprovalRequests` và các unique filtered index. Database đã tồn tại không được tự ý chạy baseline như migration gia tăng; phải recreate database hoặc dùng script chuyển đổi được kiểm soát riêng.

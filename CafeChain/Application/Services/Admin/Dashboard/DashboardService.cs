@@ -33,6 +33,7 @@ public sealed class DashboardService : IDashboardService
     private readonly TimeProvider _clock;
     private readonly IReorderSuggestionService? _reorderSuggestions;
     private readonly IReorderSuggestionAuthorizationService? _reorderAuthorization;
+    private readonly IDashboardAuthorizationService? _authorization;
 
     public DashboardService(
         IDashboardRepository repository,
@@ -40,7 +41,8 @@ public sealed class DashboardService : IDashboardService
         IMemoryCache? cache = null,
         TimeProvider? clock = null,
         IReorderSuggestionService? reorderSuggestions = null,
-        IReorderSuggestionAuthorizationService? reorderAuthorization = null)
+        IReorderSuggestionAuthorizationService? reorderAuthorization = null,
+        IDashboardAuthorizationService? authorization = null)
     {
         _repository = repository;
         _scopeAuthorization = scopeAuthorization;
@@ -48,6 +50,7 @@ public sealed class DashboardService : IDashboardService
         _clock = clock ?? TimeProvider.System;
         _reorderSuggestions = reorderSuggestions;
         _reorderAuthorization = reorderAuthorization;
+        _authorization = authorization;
     }
 
     public async Task<DashboardPageDto> GetPageAsync(
@@ -55,15 +58,22 @@ public sealed class DashboardService : IDashboardService
         DashboardFilterDto filter,
         CancellationToken cancellationToken = default)
     {
+        var access = await RequireAccessAsync(actor, cancellationToken);
         var scope = await ResolveScopeAsync(actor, filter, cancellationToken);
         var context = CreateContext(scope.Filter, scope.StoreIds, scope.StoreOptions, generatedAt: scope.GeneratedAt);
+        context.Widgets = context.Widgets.Where(x => access.AllowedWidgets.Contains(x.Widget)).ToArray();
         StoreContext(actor, context, scope);
         return new DashboardPageDto
         {
             Filter = scope.Filter,
             Stores = scope.StoreOptions,
             RoleName = actor.RoleNames.FirstOrDefault() ?? string.Empty,
-            AnalysisContext = context
+            AnalysisContext = context,
+            AllowedSections = access.AllowedSections,
+            AllowedWidgets = access.AllowedWidgets,
+            AllowedCapabilities = access.AllowedCapabilities,
+            CanUseAi = access.CanUseAi,
+            Scope = access.Scope
         };
     }
 
@@ -72,22 +82,25 @@ public sealed class DashboardService : IDashboardService
         DashboardContextRequestDto request,
         CancellationToken cancellationToken = default)
     {
+        var access = await RequireAccessAsync(actor, cancellationToken);
         var filter = CopyFilter(request);
         if (request.Preset.HasValue)
             ApplyPreset(filter, request.Preset.Value, _clock.GetLocalNow());
         var scope = await ResolveScopeAsync(actor, filter, cancellationToken);
         var context = CreateContext(scope.Filter, scope.StoreIds, scope.StoreOptions, request.Preset, scope.GeneratedAt);
+        context.Widgets = context.Widgets.Where(x => access.AllowedWidgets.Contains(x.Widget)).ToArray();
         StoreContext(actor, context, scope);
         return context;
     }
 
-    public Task<DashboardAnalysisContextDto> GetContextAsync(
+    public async Task<DashboardAnalysisContextDto> GetContextAsync(
         AdminActorContext actor,
         Guid contextId,
         CancellationToken cancellationToken = default)
     {
+        await RequireAccessAsync(actor, cancellationToken);
         if (TryGetContext(actor, contextId, out var cached))
-            return Task.FromResult(cached.Context);
+            return cached.Context;
         throw new KeyNotFoundException("Dashboard context đã hết hạn. Vui lòng tải lại dữ liệu.");
     }
 
@@ -98,6 +111,9 @@ public sealed class DashboardService : IDashboardService
         CancellationToken cancellationToken = default,
         Guid? contextId = null)
     {
+        DashboardAuthorizationDto? access = null;
+        if (_authorization != null)
+            access = await _authorization.AuthorizeSectionAsync(actor, section, cancellationToken);
         ScopeResolution scope;
         if (contextId.HasValue)
         {
@@ -109,6 +125,7 @@ public sealed class DashboardService : IDashboardService
             scope = await ResolveScopeAsync(actor, filter, cancellationToken);
         filter = scope.Filter;
         var data = await LoadSectionAsync(actor, section, scope, cancellationToken);
+        if (access != null) FilterUnauthorizedWidgets(section, data, access.AllowedWidgets);
         return CreateSectionResponse(section, scope, data, contextId);
     }
 
@@ -205,6 +222,9 @@ public sealed class DashboardService : IDashboardService
     {
         if (widgets.Count == 0)
             return new DashboardAnalyticsBatchResponse();
+
+        if (_authorization != null)
+            await _authorization.AuthorizeWidgetsAsync(actor, widgets, cancellationToken);
 
         var normalized = CopyFilter(filter);
         var scope = await ResolveScopeAsync(actor, normalized, cancellationToken);
@@ -390,6 +410,74 @@ public sealed class DashboardService : IDashboardService
         if (ids.Length == 0) throw new UnauthorizedAccessException("Bộ lọc không còn cửa hàng hợp lệ.");
         return new ScopeResolution(normalized, ids, options, now);
     }
+
+    private Task<DashboardAuthorizationDto> RequireAccessAsync(
+        AdminActorContext actor, CancellationToken cancellationToken)
+    {
+        if (_authorization == null)
+            throw new UnauthorizedAccessException("Dashboard authorization service is required.");
+        return _authorization.GetAccessAsync(actor, cancellationToken);
+    }
+
+    private static void FilterUnauthorizedWidgets(
+        DashboardSection section, object data,
+        IReadOnlyCollection<DashboardAnalyticsWidget> allowed)
+    {
+        var map = WidgetPropertyMap.TryGetValue(section, out var value)
+            ? value : new Dictionary<string, DashboardAnalyticsWidget>();
+        foreach (var property in data.GetType().GetProperties())
+        {
+            if (!map.TryGetValue(property.Name, out var widget) || allowed.Contains(widget)) continue;
+            var replacement = Activator.CreateInstance(property.PropertyType);
+            property.PropertyType.GetProperty("Status")?.SetValue(replacement, "FORBIDDEN");
+            property.PropertyType.GetProperty("ErrorCode")?.SetValue(replacement, "DASHBOARD_WIDGET_FORBIDDEN");
+            property.SetValue(data, replacement);
+        }
+    }
+
+    private static readonly IReadOnlyDictionary<DashboardSection, IReadOnlyDictionary<string, DashboardAnalyticsWidget>> WidgetPropertyMap =
+        new Dictionary<DashboardSection, IReadOnlyDictionary<string, DashboardAnalyticsWidget>>
+        {
+            [DashboardSection.Executive] = new Dictionary<string, DashboardAnalyticsWidget>
+            {
+                ["NetSalesTrend"] = DashboardAnalyticsWidget.NetSalesTrend, ["StoreRanking"] = DashboardAnalyticsWidget.StoreRanking,
+                ["PaymentMethodMix"] = DashboardAnalyticsWidget.PaymentMethodMix, ["OrderHeatmap"] = DashboardAnalyticsWidget.OrderHeatmap,
+                ["OperationalAlerts"] = DashboardAnalyticsWidget.OperationalAlerts, ["OrderStatusSummary"] = DashboardAnalyticsWidget.OrderStatusSummary
+            },
+            [DashboardSection.Operations] = new Dictionary<string, DashboardAnalyticsWidget>
+            {
+                ["CashDiscrepancy"] = DashboardAnalyticsWidget.WorkShiftCashDiscrepancy, ["ShiftSales"] = DashboardAnalyticsWidget.WorkShiftSales,
+                ["PaymentMix"] = DashboardAnalyticsWidget.WorkShiftPaymentMix, ["OfflineReconciliation"] = DashboardAnalyticsWidget.OfflineReconciliationExceptions,
+                ["HourlyOrders"] = DashboardAnalyticsWidget.HourlyOrders, ["TopDiscrepancies"] = DashboardAnalyticsWidget.WorkShiftTopDiscrepancies,
+                ["Kpis"] = DashboardAnalyticsWidget.WorkShiftKpis
+            },
+            [DashboardSection.Inventory] = new Dictionary<string, DashboardAnalyticsWidget>
+            {
+                ["ShortageRisk"] = DashboardAnalyticsWidget.InventoryShortageRisk, ["Movement"] = DashboardAnalyticsWidget.InventoryMovementByType,
+                ["ThresholdRisk"] = DashboardAnalyticsWidget.InventoryThresholdRisk, ["ReorderSuggestions"] = DashboardAnalyticsWidget.InventoryReorderSuggestions,
+                ["Waste"] = DashboardAnalyticsWidget.InventoryWasteByStoreIngredient, ["FifoAge"] = DashboardAnalyticsWidget.InventoryFifoLayerAge,
+                ["IngredientConsumptionTrend"] = DashboardAnalyticsWidget.IngredientConsumptionTrend
+            },
+            [DashboardSection.Procurement] = new Dictionary<string, DashboardAnalyticsWidget>
+            {
+                ["PurchaseOrderPipeline"] = DashboardAnalyticsWidget.PurchaseOrderPipeline, ["OverduePurchaseOrders"] = DashboardAnalyticsWidget.OverduePurchaseOrders,
+                ["SupplierQuality"] = DashboardAnalyticsWidget.SupplierQuality, ["PurchasePriceTrend"] = DashboardAnalyticsWidget.PurchasePriceTrend,
+                ["SpendBreakdown"] = DashboardAnalyticsWidget.ProcurementSpendBreakdown, ["SupplierIssueMix"] = DashboardAnalyticsWidget.SupplierIssueMix
+            },
+            [DashboardSection.Product] = new Dictionary<string, DashboardAnalyticsWidget>
+            {
+                ["TopProducts"] = DashboardAnalyticsWidget.TopProducts, ["VolumeMargin"] = DashboardAnalyticsWidget.VolumeMarginMatrix,
+                ["SizeMargin"] = DashboardAnalyticsWidget.SizeMargin, ["TopToppings"] = DashboardAnalyticsWidget.TopToppings,
+                ["BomHealth"] = DashboardAnalyticsWidget.BomHealth, ["LowEfficiency"] = DashboardAnalyticsWidget.HighConsumptionLowEfficiency,
+                ["CategoryPerformance"] = DashboardAnalyticsWidget.CategoryPerformance, ["ProductPeriodPerformance"] = DashboardAnalyticsWidget.ProductPeriodPerformance,
+                ["LowVolumeProducts"] = DashboardAnalyticsWidget.LowVolumeProducts, ["LowMarginProducts"] = DashboardAnalyticsWidget.LowMarginProducts
+            },
+            [DashboardSection.Workforce] = new Dictionary<string, DashboardAnalyticsWidget>
+            {
+                ["ShiftStatus"] = DashboardAnalyticsWidget.WorkforceShiftStatus, ["HourlyDemand"] = DashboardAnalyticsWidget.WorkforceHourlyDemand,
+                ["StaffPerformance"] = DashboardAnalyticsWidget.WorkforceStaffPerformance
+            }
+        };
 
     private static DashboardFilterDto NormalizeFilter(DashboardFilterDto filter)
     {

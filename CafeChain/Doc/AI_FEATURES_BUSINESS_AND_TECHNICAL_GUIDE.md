@@ -51,11 +51,23 @@ Những thành phần được tái sử dụng gồm `DashboardQuestionCatalog`
 | Pipeline ảnh Pexels/ComfyUI | Có | Gắn vào đồ uống/topping | Giữ ảnh/mô tả an toàn khi provider lỗi | Đang hoạt động khi cấu hình provider |
 | Giải thích gợi ý nhập hàng | Có | Reorder Suggestions/Explain | Giải thích theo rule | Đang hoạt động |
 | AI Dashboard tập trung | Có | Dashboard/Analyze | 7 family deterministic | Đang hoạt động |
-| Forecast doanh thu/sản phẩm | Có | `AdminIntelligence/Forecast` và worker | Model runner, cảnh báo chất lượng | Có backend/API; UI chính chưa phải luồng nổi bật |
-| So sánh nhà cung cấp | Có | `AdminIntelligence` | Xếp hạng deterministic | Có backend/API |
-| POS recommendation | Có | Worker/repository | Rule/model nội bộ | Backend nền; không phải chatbot UI |
-| Operational anomaly | Có | Controller anomaly, notification, worker | Rule robust-score | Đang hoạt động ở backend/API |
+| Forecast doanh thu/sản phẩm | Có nền backend/API | Chưa có luồng UI production hoàn chỉnh | Model runner, cảnh báo chất lượng | Chưa công bố là tính năng hoàn chỉnh; feature production OFF |
+| So sánh nhà cung cấp | Có | Purchase Advice → **So sánh nhà cung cấp** | Xếp hạng deterministic, không phụ thuộc LLM | Pilot ShadowMode tại CafeChain Thủ Dầu Một |
+| POS recommendation | Có nền worker/repository | Chưa có UI production hoàn chỉnh | Rule/model nội bộ | Feature production OFF; không phải chatbot UI |
+| Operational anomaly | Có | **Nhân sự & Vận hành → Tín hiệu vận hành** | Phát hiện deterministic và giải thích dễ hiểu/fallback | Có UI; vẫn cần số liệu pilot để nghiệm thu |
 | Các DTO narrative Dashboard v1 | Còn để tương thích | Renderer mới không dùng | Không áp dụng | Legacy/deprecated |
+
+### 4.1 Lý do, đầu vào, lợi ích và giới hạn từng nhóm
+
+| Nhóm | Vì sao áp dụng | Dữ liệu và cách xử lý | Lợi ích và fallback | Giới hạn hiện tại |
+|---|---|---|---|---|
+| Gợi ý category/drink/size/topping | Giảm thời gian nhập master data và giữ cách đặt tên nhất quán | Context form + dữ liệu hiện có → rule uniqueness → Ollama structured output | Người dùng vẫn là người chọn/lưu; provider lỗi trả mẫu an toàn | Chưa có đánh giá chất lượng dài hạn hoặc học từ quyết định người dùng |
+| Pexels/ComfyUI | Hỗ trợ tìm/sinh ảnh sản phẩm khi quản trị viên thiếu asset | Metadata sản phẩm → visual specification → tìm/sinh ảnh → validation/scoring | Không ảnh hưởng CRUD khi provider ảnh lỗi | Phụ thuộc cấu hình ngoài; chưa có kiểm duyệt ảnh quy mô lớn |
+| Giải thích gợi ý nhập hàng | Biến con số tồn/ngưỡng/số gói thành diễn giải dễ đối soát | Dữ liệu reorder do backend tính → evidence → Ollama hoặc rule fallback | Không làm thay đổi số lượng authoritative và không tự tạo phiếu | Chất lượng phụ thuộc dữ liệu tồn, tiêu thụ và quy đổi |
+| AI Dashboard | Trả lời câu hỏi quản trị bằng dữ liệu đã phân quyền thay vì yêu cầu đọc nhiều bảng | Câu hỏi → classify → DataPlan cố định → widget có quyền → EvidencePack → giải thích/biểu đồ | Fallback deterministic giữ số liệu khi Ollama lỗi | Không hội thoại đa lượt, không SQL động, chưa có monitoring AI tập trung |
+| Tín hiệu vận hành | Giúp quản lý chú ý sớm đến thay đổi lớn nhưng tránh kết luận vội | BusinessDate + observation thật → median/MAD/threshold deterministic → evidence tiếng Việt → giải thích | Vẫn xem giá trị và dữ liệu nên kiểm tra khi AI tắt | Chưa đủ số liệu pilot để đánh giá false positive toàn chuỗi; không xác định nguyên nhân/thủ phạm |
+| Supplier Intelligence | Minh bạch hóa chi phí, MOQ, lượng dư và độ đầy đủ dữ liệu khi chọn nguồn cung | Offer/conversion/receipt 180 ngày → score v1 deterministic → confidence/rankability | Mua thủ công luôn còn; LLM không quyết định ranking | ShadowMode một Store; dữ liệu receipt/lead time có thể chưa đủ |
+| Forecast/POS recommendation | Là nền nghiên cứu cho dự báo và gợi ý bán hàng | Worker/repository/model contract đã có | Có quality warning/fallback ở backend | Chưa có UI/monitoring/exit gate production nên đang OFF, không mô tả là feature hoàn chỉnh |
 
 ## 5. AI Dashboard
 
@@ -119,7 +131,7 @@ Các family: `Ranking`, `Comparison`, `Trend`, `Risk`, `Statistics`, `Operationa
 - Xác nhận/tạo hoặc bổ sung RestockRequest: `Restock.Create`.
 - Authorization là permission-first và vẫn kiểm account override.
 - BusinessOwner/StoreManager theo Effective StaffScope.
-- SystemAdmin chỉ có all-active-store scope trong module Reorder Suggestions; Dashboard và module khác vẫn theo StaffScope.
+- SystemAdmin là role kỹ thuật, không mặc định có permission hoặc global scope cho Reorder/Dashboard. Muốn sử dụng phải được cấp explicit business permission và assignment StaffScope như account khác.
 - Store ngoài scope trả 403 và tạo `AuditLog` action `STORE_SCOPE_DENIED`.
 - Server luôn tính lại quantity; token, fingerprint, RequestKey, transaction và concurrency guard vẫn là nguồn sự thật.
 
@@ -173,4 +185,4 @@ Sau khi chạy `Scripts/SeedAll.sql`, marker `DEMO_AI_REORDER_TEST_V1` bảo đ�
 - Khi Ollama khả dụng, nút giải thích dùng model; khi provider không khả dụng, cùng thao tác trả về fallback deterministic.
 - Tại AI Dashboard, hỏi **“Nguyên liệu nào cần đặt lại?”**; Hạt chia phải xuất hiện trong dữ liệu ưu tiên nhập hàng.
 
-Giới hạn hiện tại: không hội thoại đa lượt; không SQL động; forecast/POS/anomaly có phần backend nền chưa đồng đều về UI; chất lượng kết quả phụ thuộc dữ liệu nguồn; LLM không được phép tự thực thi hành động.
+Giới hạn hiện tại: không hội thoại đa lượt; không SQL động; chưa có đánh giá chất lượng AI dài hạn hoặc monitoring AI tập trung; forecast production, recommendation quy mô lớn và POS recommendation UI chưa hoàn chỉnh; chất lượng kết quả phụ thuộc dữ liệu nguồn; LLM không được phép tự thực thi hành động hay tự động hóa quyết định.

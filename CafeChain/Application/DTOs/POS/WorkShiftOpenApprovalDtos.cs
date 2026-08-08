@@ -2,6 +2,7 @@ namespace CafeChain.Application.DTOs.POS;
 
 public sealed class WorkShiftOpenApprovalDto
 {
+    public int Id { get; set; }
     public Guid PublicId { get; set; }
     public string RequestKey { get; set; } = string.Empty;
     public int StoreId { get; set; }
@@ -12,6 +13,9 @@ public sealed class WorkShiftOpenApprovalDto
     public int? SourceStaffShiftId { get; set; }
     public string TerminalId { get; set; } = string.Empty;
     public int MinutesLate { get; set; }
+    public int LateApprovalThresholdMinutes { get; set; }
+    public int ScheduledApprovalMaxLateMinutes { get; set; }
+    public bool CanApproveAsScheduled { get; set; }
     public string Reason { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string? DecisionReason { get; set; }

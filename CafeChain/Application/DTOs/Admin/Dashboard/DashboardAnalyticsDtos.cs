@@ -135,6 +135,32 @@ public sealed class DashboardPageDto
     public IReadOnlyList<DashboardStoreOptionDto> Stores { get; set; } = [];
     public string RoleName { get; set; } = string.Empty;
     public DashboardAnalysisContextDto? AnalysisContext { get; set; }
+    public IReadOnlyList<DashboardSection> AllowedSections { get; set; } = [];
+    public IReadOnlyList<DashboardAnalyticsWidget> AllowedWidgets { get; set; } = [];
+    public IReadOnlyList<string> AllowedCapabilities { get; set; } = [];
+    public DashboardScopeDto Scope { get; set; } = new();
+    public bool CanUseAi { get; set; }
+}
+
+public sealed class DashboardScopeDto
+{
+    public string Type { get; set; } = "NONE";
+    public string Label { get; set; } = "Không có phạm vi";
+    public IReadOnlyList<int> AllowedStoreIds { get; set; } = [];
+    public bool CanSelectProvince { get; set; }
+    public bool CanSelectDistrict { get; set; }
+    public bool CanSelectStore { get; set; }
+    public bool CanAggregateMultipleStores { get; set; }
+}
+
+public sealed class DashboardAuthorizationDto
+{
+    public IReadOnlySet<string> EffectivePermissions { get; set; } = new HashSet<string>();
+    public IReadOnlyList<DashboardSection> AllowedSections { get; set; } = [];
+    public IReadOnlyList<DashboardAnalyticsWidget> AllowedWidgets { get; set; } = [];
+    public IReadOnlyList<string> AllowedCapabilities { get; set; } = [];
+    public DashboardScopeDto Scope { get; set; } = new();
+    public bool CanUseAi { get; set; }
 }
 
 public sealed class DashboardWidgetResult<T>

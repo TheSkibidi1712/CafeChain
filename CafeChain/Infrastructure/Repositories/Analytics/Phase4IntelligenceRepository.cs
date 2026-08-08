@@ -83,13 +83,34 @@ public sealed class PosRecommendationRepository : IPosRecommendationRepository
 
 public sealed class AnomalyDetectionRepository : IAnomalyDetectionRepository
 {
+    private sealed class DailyRevenueSqlRow
+    {
+        public DateTime Date { get; set; }
+        public decimal Value { get; set; }
+    }
     private readonly AppDbContext _db;
     public AnomalyDetectionRepository(AppDbContext db) => _db = db;
     public async Task<IReadOnlyList<int>> GetActiveStoreIdsAsync(CancellationToken ct = default) => await _db.Stores.AsNoTracking().Where(x => x.Active).Select(x => x.StoreId).ToListAsync(ct);
-    public async Task<IReadOnlyList<DailyMetricPoint>> GetDailyRevenueAsync(int storeId, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default) =>
-        await _db.Orders.AsNoTracking().Where(x => x.StoreId == storeId && x.OrderStatusId == SystemConstants.OrderStatuses.Completed && x.CreatedAt >= fromUtc && x.CreatedAt < toUtc
+    public async Task<IReadOnlyList<DailyMetricPoint>> GetDailyRevenueAsync(int storeId, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default)
+    {
+        if (_db.Database.IsRelational())
+        {
+            var rows = await _db.Database.SqlQuery<DailyRevenueSqlRow>($@"
+                SELECT CONVERT(date, f.CreatedAt) AS [Date], SUM(f.NetSales) AS [Value]
+                FROM dbo.ufn_AnalyticsOrderFacts({fromUtc}, {toUtc}) AS f
+                WHERE f.StoreId = {storeId} AND f.CountedOrder = 1
+                GROUP BY CONVERT(date, f.CreatedAt)")
+                .ToListAsync(ct);
+            return rows.Select(x => new DailyMetricPoint(x.Date, x.Value)).ToList();
+        }
+        return await _db.Orders.AsNoTracking()
+            .Where(x => x.StoreId == storeId && x.OrderStatusId == SystemConstants.OrderStatuses.Completed
+                && x.CreatedAt >= fromUtc && x.CreatedAt < toUtc
                 && !_db.OrderRefunds.Any(r => r.OrderId == x.OrderId && r.Status == OrderRefundStatus.Completed))
-            .GroupBy(x => x.CreatedAt.Date).Select(g => new DailyMetricPoint(g.Key, g.Sum(x => x.Total))).OrderBy(x => x.Date).ToListAsync(ct);
+            .GroupBy(x => x.CreatedAt.Date)
+            .Select(g => new DailyMetricPoint(g.Key, g.Sum(x => x.Total)))
+            .OrderBy(x => x.Date).ToListAsync(ct);
+    }
     public async Task<IReadOnlyDictionary<string, IReadOnlyList<DailyMetricPoint>>> GetDailyOperationalMetricsAsync(int storeId, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default)
     {
         var result = new Dictionary<string, IReadOnlyList<DailyMetricPoint>>(StringComparer.Ordinal);
@@ -122,5 +143,7 @@ public sealed class AnomalyDetectionRepository : IAnomalyDetectionRepository
     public Task AddAsync(OperationalAnomaly anomaly, CancellationToken ct = default) => _db.OperationalAnomalies.AddAsync(anomaly, ct).AsTask();
     public async Task<IReadOnlyList<OperationalAnomaly>> GetOpenAsync(int storeId, CancellationToken ct = default) => await _db.OperationalAnomalies.AsNoTracking().Where(x => x.StoreId == storeId && x.Status != "RESOLVED").OrderByDescending(x => x.Severity).ThenByDescending(x => x.CreatedAtUtc).Take(100).ToListAsync(ct);
     public Task<OperationalAnomaly?> GetByIdAsync(int id, CancellationToken ct = default) => _db.OperationalAnomalies.FirstOrDefaultAsync(x => x.OperationalAnomalyId == id, ct);
+    public Task<int?> GetStoreIdAsync(int id, CancellationToken ct = default) => _db.OperationalAnomalies.AsNoTracking()
+        .Where(x => x.OperationalAnomalyId == id).Select(x => (int?)x.StoreId).SingleOrDefaultAsync(ct);
     public Task SaveChangesAsync(CancellationToken ct = default) => _db.SaveChangesAsync(ct);
 }

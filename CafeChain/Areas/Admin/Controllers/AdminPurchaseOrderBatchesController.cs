@@ -61,6 +61,7 @@ public sealed class AdminPurchaseOrderBatchesController : AdminStoreScopedContro
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequirePermission(PermissionConstants.PurchaseOrderCreateBatch)]
+    [RequirePermission(PermissionConstants.PurchaseAdviceSelectSupplier)]
     public async Task<IActionResult> Create(CreatePurchaseOrderBatchRequest request)
     {
         var result = await _service.CreateAsync(request, _actorAccessor.Get(User));

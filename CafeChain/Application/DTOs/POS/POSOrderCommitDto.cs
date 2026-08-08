@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace CafeChain.Application.DTOs.POS
 {
@@ -51,6 +52,13 @@ namespace CafeChain.Application.DTOs.POS
         /// Default = false → luôn trigger print khi commit thành công.
         /// </summary>
         public bool SkipPrint { get; set; } = false;
+
+        /// <summary>
+        /// Server-only WorkShift binding copied from the validated PosAccessSession.
+        /// JsonIgnore prevents a browser from selecting another cashier's shift.
+        /// </summary>
+        [JsonIgnore]
+        public int? BoundWorkShiftId { get; set; }
     }
 
     /// <summary>

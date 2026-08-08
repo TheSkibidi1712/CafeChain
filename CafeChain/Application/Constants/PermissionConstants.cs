@@ -29,6 +29,18 @@ namespace CafeChain.Application.Constants
         public const string SystemPermissionManage = "System.Permission.Manage";
 
         public const string AppAdminDashboard = "App.AdminDashboard";
+        public const string DashboardExecutiveView = "Dashboard.Executive.View";
+        public const string DashboardOperationsView = "Dashboard.Operations.View";
+        public const string DashboardInventoryView = "Dashboard.Inventory.View";
+        public const string DashboardProcurementView = "Dashboard.Procurement.View";
+        public const string DashboardProductView = "Dashboard.Product.View";
+        public const string DashboardWorkforceView = "Dashboard.Workforce.View";
+        public const string DashboardAiUse = "Dashboard.AI.Use";
+        public const string DashboardFinancialSummaryView = "Dashboard.FinancialSummary.View";
+        public const string OperationalAnomalyView = "OperationalAnomaly.View";
+        public const string OperationalAnomalyAcknowledge = "OperationalAnomaly.Acknowledge";
+        public const string OperationalAnomalyResolve = "OperationalAnomaly.Resolve";
+        public const string OperationalAnomalyFeedback = "OperationalAnomaly.Feedback";
         public const string AppStaffHub = "App.StaffHub";
         public const string AppPos = "App.POS";
         public const string PosWorkShiftView = "POS.WorkShift.View";

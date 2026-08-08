@@ -35,7 +35,6 @@ public sealed class WorkShiftOpenApprovalRepository : IWorkShiftOpenApprovalRepo
         CancellationToken cancellationToken = default) =>
         _db.WorkShiftOpenApprovalRequests
             .Include(x => x.RequestedByStaff)
-            .AsNoTracking()
             .OrderByDescending(x => x.RequestedAtUtc)
             .FirstOrDefaultAsync(x => x.StoreId == storeId
                 && x.RequestedByStaffId == requesterStaffId
@@ -56,6 +55,19 @@ public sealed class WorkShiftOpenApprovalRepository : IWorkShiftOpenApprovalRepo
                 && x.Status == WorkShiftOpenApprovalStatuses.Pending)
             .OrderBy(x => x.ExpiresAtUtc)
             .Take(100)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<WorkShiftOpenApprovalRequest>> GetDueForExpiryAsync(
+        DateTime nowUtc, int take, CancellationToken cancellationToken = default)
+    {
+        var pageSize = Math.Clamp(take, 1, 500);
+        return await _db.WorkShiftOpenApprovalRequests
+            .Where(x => x.Status == WorkShiftOpenApprovalStatuses.Pending
+                && x.ExpiresAtUtc <= nowUtc)
+            .OrderBy(x => x.ExpiresAtUtc)
+            .ThenBy(x => x.WorkShiftOpenApprovalRequestId)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
     }
 

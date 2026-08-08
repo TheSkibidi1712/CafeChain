@@ -17,13 +17,22 @@ namespace CafeChain.Controllers.Api.v1
     {
         private readonly IWorkShiftService _shiftService;
         private readonly IPosAccessSessionService? _posAccessSessions;
+        private readonly IPosSessionExchangeService? _posSessionExchange;
+        private readonly IOtpApprovalService? _otpApprovals;
+        private readonly IWorkShiftOpenApprovalService? _lateOpenApprovals;
 
         public POSShiftController(
             IWorkShiftService shiftService,
-            IPosAccessSessionService? posAccessSessions = null)
+            IPosAccessSessionService? posAccessSessions = null,
+            IPosSessionExchangeService? posSessionExchange = null,
+            IOtpApprovalService? otpApprovals = null,
+            IWorkShiftOpenApprovalService? lateOpenApprovals = null)
         {
             _shiftService = shiftService;
             _posAccessSessions = posAccessSessions;
+            _posSessionExchange = posSessionExchange;
+            _otpApprovals = otpApprovals;
+            _lateOpenApprovals = lateOpenApprovals;
         }
 
         /// <summary>
@@ -69,6 +78,8 @@ namespace CafeChain.Controllers.Api.v1
         [RequirePermission(PermissionConstants.PosWorkShiftClose)]
         public async Task<IActionResult> CloseShift(int id, [FromBody] CloseShiftRequestDto request)
         {
+            var sessionGuard = await EnsureSessionOwnsWorkShiftAsync(id);
+            if (sessionGuard != null) return sessionGuard;
             var result = await _shiftService.CloseShiftAsync(CurrentStaffId, CurrentStoreId, id, request);
 
             if (!result.IsSuccess)
@@ -93,6 +104,8 @@ namespace CafeChain.Controllers.Api.v1
         [RequirePermission(PermissionConstants.PosWorkShiftClose)]
         public async Task<IActionResult> StartClosing(int id, [FromBody] StartClosingRequestDto request)
         {
+            var sessionGuard = await EnsureSessionOwnsWorkShiftAsync(id);
+            if (sessionGuard != null) return sessionGuard;
             var result = await _shiftService.StartClosingAsync(CurrentStaffId, CurrentStoreId, id, request);
             return result.IsSuccess
                 ? Ok(new
@@ -109,6 +122,8 @@ namespace CafeChain.Controllers.Api.v1
         [RequirePermission(PermissionConstants.PosWorkShiftCloseException)]
         public async Task<IActionResult> CloseShiftByException(int id, [FromBody] CloseShiftExceptionRequestDto request)
         {
+            var sessionGuard = await EnsureSessionOwnsWorkShiftAsync(id);
+            if (sessionGuard != null) return sessionGuard;
             var result = await _shiftService.CloseShiftByExceptionAsync(
                 CurrentStaffId, CurrentStoreId, id, request);
 
@@ -133,6 +148,8 @@ namespace CafeChain.Controllers.Api.v1
         [RequirePermission(PermissionConstants.PosWorkShiftReconcile)]
         public async Task<IActionResult> Reconcile(int id, [FromBody] ReconcileWorkShiftRequestDto request)
         {
+            var sessionGuard = await EnsureSessionOwnsWorkShiftAsync(id);
+            if (sessionGuard != null) return sessionGuard;
             var result = await _shiftService.ReconcileAsync(CurrentStaffId, CurrentStoreId, id, request);
             return result.IsSuccess
                 ? Ok(new
@@ -174,7 +191,7 @@ namespace CafeChain.Controllers.Api.v1
             var result = await _shiftService.SetOperatorPinAsync(
                 CurrentAccountId, CurrentStaffId, CurrentStoreId, request);
             return result.IsSuccess
-                ? Ok(new { success = true, message = result.Message })
+                ? Ok(new { success = true, message = result.Message, pinConfigured = true })
                 : WorkShiftError(result.ErrorCode, result.Message);
         }
 
@@ -192,6 +209,8 @@ namespace CafeChain.Controllers.Api.v1
         [RequirePermission(PermissionConstants.PosOperatorSwitch)]
         public async Task<IActionResult> SwitchOperator(int id, [FromBody] SwitchOperatorRequestDto request)
         {
+            var sessionGuard = await EnsureSessionOwnsWorkShiftAsync(id);
+            if (sessionGuard != null) return sessionGuard;
             var result = await _shiftService.SwitchOperatorAsync(
                 CurrentStaffId, CurrentStoreId, id, request);
             if (!result.IsSuccess)
@@ -201,6 +220,58 @@ namespace CafeChain.Controllers.Api.v1
             return summary == null
                 ? WorkShiftError(WorkShiftErrorCodes.WorkShiftNotOpen, "Không đọc được phiên POS sau khi đổi người thao tác.")
                 : Ok(summary);
+        }
+
+        [HttpPost("cancel-open")]
+        [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+        public async Task<IActionResult> CancelOpen([FromBody] CancelPosOpeningRequestDto request)
+        {
+            if (_posSessionExchange == null || CurrentExchangeContextId <= 0
+                || CurrentPosAccessSessionId == Guid.Empty)
+                return Conflict(new { success = false, errorCode = PosSessionExchangeErrorCodes.ContextInvalid });
+
+            var cancelled = await _posSessionExchange.CancelOpeningAsync(
+                CurrentExchangeContextId, CurrentAccountId, CurrentStaffId, CurrentStoreId,
+                CurrentPosAccessSessionId);
+            if (!cancelled.IsSuccess || cancelled.Data == null)
+                return Conflict(new
+                {
+                    success = false,
+                    errorCode = cancelled.ErrorCode,
+                    message = cancelled.Message
+                });
+
+            if (cancelled.Data.OtpChallengePublicId.HasValue && _otpApprovals != null)
+                await _otpApprovals.CancelOpenPosOtpAsync(new OtpCancelDto
+                {
+                    OtpChallengePublicId = cancelled.Data.OtpChallengePublicId.Value
+                }, CurrentStaffId, CurrentStoreId);
+            if (cancelled.Data.LateOpenApprovalPublicId.HasValue && _lateOpenApprovals != null)
+                await _lateOpenApprovals.CancelAsync(CurrentStaffId, CurrentStoreId,
+                    cancelled.Data.LateOpenApprovalPublicId.Value,
+                    cancelled.Data.TerminalId ?? string.Empty,
+                    cancelled.Data.RequestKey ?? string.Empty);
+
+            return Ok(new { success = true, status = "CANCELLED", message = cancelled.Message });
+        }
+
+        private async Task<IActionResult?> EnsureSessionOwnsWorkShiftAsync(int workShiftId)
+        {
+            // Optional only for legacy controller tests; production always resolves the durable session.
+            if (_posAccessSessions == null) return null;
+            if (CurrentPosAccessSessionId == Guid.Empty)
+                return Unauthorized(new { success = false, errorCode = "POS_SESSION_INVALID" });
+            var session = await _posAccessSessions.GetAsync(CurrentPosAccessSessionId);
+            if (!session.IsSuccess)
+                return Unauthorized(new { success = false, errorCode = session.ErrorCode, message = session.Message });
+            if (session.Data?.WorkShiftId != workShiftId)
+                return Conflict(new
+                {
+                    success = false,
+                    errorCode = "POS_SESSION_WORKSHIFT_MISMATCH",
+                    message = "WorkShift không thuộc POS access session hiện tại."
+                });
+            return null;
         }
 
         private IActionResult WorkShiftError(string? errorCode, string? message)
