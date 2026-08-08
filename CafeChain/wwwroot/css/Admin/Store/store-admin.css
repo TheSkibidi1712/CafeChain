@@ -1,72 +1,103 @@
+/* ============================================================
+   STORE MANAGEMENT MODULE — CafeChain Admin
+   Coffee-Brown Theme | Frontend Only
+   ============================================================ */
+
 :root {
-    --store-accent: #6F4E37;
-    --store-accent-dark: #5C3F2B;
-    --store-accent-soft: #F7F3EE;
-    --store-border: #e5e7eb;
-    --store-muted: #475569;
-    --store-text: #1F2937;
-    --store-bg: #F7F3EE;
-    --store-success: #2F6F5E;
-    --store-danger: #991B1B;
-    --store-accent-icon: #C67A45;
+    --store-accent: var(--cc-primary, #70482f);
+    --store-accent-dark: var(--cc-primary-hover, #3d2418);
+    --store-accent-soft: var(--cc-surface-muted, #fbf7f2);
+    --store-border: var(--cc-border, #e9ded4);
+    --store-muted: var(--cc-text-secondary, #66584f);
+    --store-text: var(--cc-text, #201812);
+    --store-bg: var(--cc-canvas, #F7F4F0);
+    --store-success: var(--cc-success, #2f6f5e);
+    --store-danger: var(--cc-danger, #991b1b);
+    --store-accent-icon: var(--cc-brown-500, #8b6247);
 }
 
 .store-admin-page {
     min-height: calc(100vh - 24px);
-    padding: 24px 28px 48px;
-    background: var(--store-bg);
-    color: var(--store-text);
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 24px clamp(16px, 2.2vw, 32px) 40px;
+    border-radius: 24px;
+    background: var(--cc-canvas, #F7F4F0);
+    color: #201812;
 }
 
-.store-admin-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 18px;
-    margin-bottom: 18px;
+.cc-admin-heading::before,
+.store-admin-page *::before {
+    content: none;
+}
+.cc-admin-heading::after,
+.store-admin-header::after {
+    display: none !important;
+    content: none !important;
+}
+
+.store-admin-header,
+.cc-admin-heading {
+    width: 100% !important;
+    position: relative;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px;
+    margin-bottom: 22px !important;
+    min-height: 140px !important;
+    padding: 24px 28px !important;
+    border: 1px solid #E9DED4 !important;
+    border-left: 5px solid #5C3F2B !important;
+    border-radius: 20px !important;
+    background: linear-gradient(112deg, #FFFFFF 0%, #FBF7F2 62%, #F1E5DA 100%) !important;
+    box-shadow: 0 12px 32px rgba(61, 36, 24, 0.08) !important;
+    overflow: hidden;
+    box-sizing: border-box !important;
 }
 
 .store-admin-kicker {
     display: block;
-    margin-bottom: 6px;
-    color: var(--store-accent);
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: .06em;
+    margin-bottom: 4px;
+    color: #8B6247;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
 }
 
 .store-admin-title {
-    margin: 0;
-    color: var(--store-text);
-    font-size: 26px;
-    font-weight: 850;
-    letter-spacing: 0;
+    margin: 4px 0 6px;
+    color: #201812;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .store-admin-subtitle {
     max-width: 680px;
-    margin: 6px 0 0;
-    color: var(--store-muted);
-    font-size: 14px;
+    margin: 0;
+    color: #66584F;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .store-admin-card {
-    border: 1px solid var(--store-border);
-    border-radius: 8px;
-    background: #fff;
-    box-shadow: 0 12px 34px rgba(15, 23, 42, .05);
+    border: 1px solid #E9DED4;
+    border-radius: 16px;
+    background: #FFFDFB;
+    box-shadow: 0 4px 16px rgba(61, 36, 24, 0.04);
 }
 
 .store-admin-card-body {
-    padding: 20px;
+    padding: 22px;
 }
 
 .store-admin-stat-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 16px;
+    margin-bottom: 22px;
 }
 
 .store-admin-stat {
@@ -74,69 +105,85 @@
     align-items: center;
     justify-content: space-between;
     gap: 14px;
-    padding: 18px;
+    padding: 20px 22px;
+    border: 1px solid #E9DED4;
+    border-radius: 16px;
+    background: #FFFDFB;
+    box-shadow: 0 2px 8px rgba(61, 36, 24, 0.03);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.store-admin-stat:hover {
+    transform: translateY(-1px);
+    border-color: #70482F;
+    box-shadow: 0 6px 16px rgba(61, 36, 24, 0.06);
 }
 
 .store-admin-stat span {
     display: block;
-    color: var(--store-muted);
+    color: #66584F;
     font-size: 11px;
-    font-weight: 900;
-    letter-spacing: .06em;
+    font-weight: 800;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
 }
 
 .store-admin-stat strong {
     display: block;
     margin-top: 4px;
-    color: var(--store-text);
+    color: #201812;
     font-size: 28px;
-    font-weight: 900;
+    font-weight: 800;
+    line-height: 1;
 }
 
 .store-admin-stat-icon {
     display: grid;
-    width: 44px;
-    height: 44px;
+    width: 46px;
+    height: 46px;
     place-items: center;
-    border-radius: 8px;
-    color: var(--store-accent-icon);
-    background: var(--store-accent-soft);
+    border-radius: 12px;
+    color: #70482F;
+    background: #FBF7F2;
+    border: 1px solid #D8C5B6;
+    font-size: 20px;
 }
 
 .store-admin-table-wrap {
     overflow-x: auto;
+    border-radius: 16px;
 }
 
 .store-admin-table {
     min-width: 920px;
     margin: 0;
-    font-size: 14px;
+    font-size: 13.5px;
 }
 
 .store-admin-table thead {
-    background: #F7F3EE;
+    background: #FBF7F2;
 }
 
 .store-admin-table th {
     padding: 14px 16px;
-    border-bottom: 1px solid var(--store-border);
-    color: var(--store-muted);
+    border-bottom: 1px solid #E9DED4;
+    color: #5C3F2B;
     font-size: 11px;
-    font-weight: 900;
-    letter-spacing: .05em;
+    font-weight: 800;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     white-space: nowrap;
 }
 
 .store-admin-table td {
     padding: 14px 16px;
-    border-color: #eef2f7;
+    border-bottom: 1px solid #F1E5DA;
     vertical-align: middle;
+    color: #201812;
 }
 
 .store-admin-table tbody tr:hover {
-    background: #f0ebe4;
+    background: #FBF7F2;
 }
 
 .store-admin-code {
@@ -144,10 +191,10 @@
     align-items: center;
     min-height: 28px;
     padding: 4px 10px;
-    border: 1px solid #d4b8a3;
-    border-radius: 7px;
+    border: 1px solid #D8C5B6;
+    border-radius: 8px;
     color: #5C3F2B;
-    background: #F7F3EE;
+    background: #FBF7F2;
     font-size: 13px;
     font-weight: 800;
 }
@@ -156,29 +203,36 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    min-height: 26px;
-    padding: 4px 10px;
-    border-radius: 7px;
+    min-height: 28px;
+    padding: 4px 12px;
+    border-radius: 20px;
     font-size: 12px;
-    font-weight: 850;
+    font-weight: 750;
 }
 
 .store-admin-badge.is-active {
-    border: 1px solid #a3d4c8;
-    color: var(--store-success);
-    background: #d1ece7;
+    border: 1px solid #A7C9BF;
+    color: #2F6F5E;
+    background: #EDF6F2;
 }
 
 .store-admin-badge.is-inactive {
-    border: 1px solid #f5a3a3;
-    color: var(--store-danger);
-    background: #fde8e8;
+    border: 1px solid #E0A6A6;
+    color: #991B1B;
+    background: #FDF0F0;
 }
 
 .store-admin-badge.is-muted {
-    border: 1px solid #e2e8f0;
-    color: var(--store-muted);
-    background: #f1f5f9;
+    border: 1px solid #D8C5B6;
+    color: #3D2418;
+    background: #FBF7F2;
+    transition: all 140ms ease;
+}
+
+.store-admin-badge.is-muted:hover {
+    border-color: #70482F;
+    color: #70482F;
+    background: #F4E9DF;
 }
 
 .store-admin-actions {
@@ -194,73 +248,75 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    border-radius: 8px;
-    font-weight: 850;
+    border-radius: 10px;
+    font-weight: 750;
     text-decoration: none;
-    transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
+    transition: all 140ms ease;
 }
 
 .store-admin-btn {
-    min-height: 40px;
-    padding: 9px 14px;
+    min-height: 44px;
+    padding: 0 18px;
     border: 1px solid transparent;
-    font-size: 13px;
+    font-size: 13.5px;
 }
 
 .store-admin-icon-btn {
     width: 36px;
     height: 36px;
-    border: 1px solid var(--store-border);
-    color: var(--store-muted);
-    background: #fff;
+    border: 1px solid #E9DED4;
+    color: #3D2418;
+    background: #FFFDFB;
     font-size: 13px;
+    border-radius: 8px;
 }
 
 .store-admin-btn-primary {
-    border-color: var(--store-accent);
-    color: #fff;
-    background: var(--store-accent);
-    box-shadow: 0 10px 22px rgba(111, 78, 55, .22);
+    border-color: #70482F;
+    color: #FFFDFB;
+    background: #70482F;
+    box-shadow: 0 2px 6px rgba(112, 72, 47, 0.18);
 }
 
 .store-admin-btn-primary:hover,
 .store-admin-btn-primary:focus {
-    border-color: var(--store-accent-dark);
-    color: #fff;
-    background: var(--store-accent-dark);
+    border-color: #3D2418;
+    color: #FFFDFB;
+    background: #3D2418;
+    box-shadow: 0 6px 16px rgba(61, 36, 24, 0.22);
 }
 
 .store-admin-btn-ghost,
 .store-admin-btn-outline {
-    border-color: var(--store-border);
-    color: #475569;
-    background: #fff;
+    border-color: #E9DED4;
+    color: #3D2418;
+    background: #FFFDFB;
 }
 
 .store-admin-btn-outline {
-    border-color: #d4b8a3;
+    border-color: #D8C5B6;
     color: #5C3F2B;
-    background: #F7F3EE;
+    background: #FBF7F2;
 }
 
 .store-admin-btn-ghost:hover,
 .store-admin-btn-outline:hover,
 .store-admin-icon-btn:hover {
-    border-color: #C67A45;
-    color: #5C3F2B;
-    background: #F7F3EE;
+    border-color: #70482F;
+    color: #70482F;
+    background: #FBF7F2;
 }
 
 .store-admin-btn-danger:hover,
 .store-admin-btn-danger:focus {
-    border-color: #f5a3a3;
-    color: var(--store-danger);
-    background: #fde8e8;
+    border-color: #E0A6A6;
+    color: #991B1B;
+    background: #FDF0F0;
 }
 
 .store-admin-form-grid {
     display: grid;
-    grid-template-columns: minmax(360px, .9fr) minmax(420px, 1.1fr);
+    grid-template-columns: minmax(360px, 0.9fr) minmax(420px, 1.1fr);
     gap: 18px;
     align-items: start;
 }
@@ -279,14 +335,21 @@
 }
 
 .store-admin-form-card label {
+<<<<<<< HEAD
     color: #334155;
     font-size: 12.5px;
     font-weight: 800;
     margin-bottom: 6px;
+=======
+    color: #201812;
+    font-size: 13px;
+    font-weight: 750;
+>>>>>>> origin/develop
 }
 
 .store-admin-form-card .form-control,
 .store-admin-form-card .form-select {
+<<<<<<< HEAD
     min-height: 42px;
     height: 42px;
     border: 1px solid #d4b8a3;
@@ -302,13 +365,21 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+=======
+    min-height: 44px;
+    border: 1px solid #D8C5B6;
+    border-radius: 10px;
+    color: #201812;
+    background-color: #FFFDFB;
+    font-size: 13.5px;
+>>>>>>> origin/develop
 }
 
 .store-admin-form-card .form-control:focus,
 .store-admin-form-card .form-select:focus {
-    border-color: var(--store-accent);
-    box-shadow: 0 0 0 3px rgba(111, 78, 55, .14);
-    background: #fff;
+    border-color: #70482F;
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.22);
+    background: #FFFDFB;
 }
 
 .store-admin-setting-panel {
@@ -316,31 +387,36 @@
     gap: 12px;
     margin-bottom: 18px;
     padding: 14px;
-    border: 1px solid #d4b8a3;
-    border-radius: 8px;
-    background: #F7F3EE;
+    border: 1px solid #D8C5B6;
+    border-radius: 10px;
+    background: #FBF7F2;
 }
 
 .store-admin-setting-title {
     display: block;
     color: #5C3F2B;
     font-size: 12px;
-    font-weight: 900;
-    letter-spacing: .04em;
+    font-weight: 800;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
 .store-admin-setting-panel p {
     margin: 4px 0 0;
-    color: #6F4E37;
+    color: #66584F;
     font-size: 13px;
     font-weight: 650;
 }
 
 .store-admin-readonly-control {
     border-style: dashed !important;
+<<<<<<< HEAD
     color: #475569 !important;
     background: #f8fafc !important;
+=======
+    color: #66584F !important;
+    background: #FBF7F2 !important;
+>>>>>>> origin/develop
     cursor: not-allowed;
     font-size: 13px;
     font-weight: 700;
@@ -348,7 +424,11 @@
 
 .store-admin-readonly-help {
     align-items: center;
+<<<<<<< HEAD
     color: #70482f;
+=======
+    color: #66584F;
+>>>>>>> origin/develop
     display: inline-flex;
     gap: 6px;
     margin-top: 8px;
@@ -361,16 +441,24 @@
 }
 
 .store-admin-map-card h5 {
+<<<<<<< HEAD
     margin-bottom: 12px;
     color: var(--store-text);
     font-size: 16px;
     font-weight: 850;
     display: flex;
     align-items: center;
+=======
+    margin-bottom: 8px;
+    color: #201812;
+    font-size: 16px;
+    font-weight: 800;
+>>>>>>> origin/develop
 }
 
 .store-admin-map-hint {
     margin-bottom: 14px;
+<<<<<<< HEAD
     border: 1px solid #e9ded4;
     border-left: 4px solid #70482f;
     border-radius: 8px;
@@ -379,38 +467,47 @@
     background: #fbf7f2;
     font-size: 13px;
     line-height: 1.5;
+=======
+    border: 1px solid #D7B69C;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #99623B;
+    background: #FBF3EA;
+    font-size: 13px;
+    font-weight: 750;
+>>>>>>> origin/develop
 }
 
 #admin-map {
     width: 100%;
     height: 480px;
-    border: 1px solid var(--store-border);
-    border-radius: 8px;
+    border: 1px solid #E9DED4;
+    border-radius: 12px;
     box-shadow: none;
 }
 
 .store-admin-empty {
     padding: 38px 16px !important;
-    color: #94a3b8 !important;
+    color: #66584F !important;
     text-align: center;
-    font-weight: 700;
+    font-weight: 750;
 }
 
 .leaflet-control-locate i {
-    color: var(--store-accent);
+    color: #70482F;
 }
 
 .store-admin-page .form-check-input:checked {
-    border-color: var(--store-accent);
-    background-color: var(--store-accent);
+    border-color: #70482F;
+    background-color: #70482F;
 }
 
 .store-admin-page .text-warning {
-    color: var(--store-accent-icon) !important;
+    color: #8B6247 !important;
 }
 
 .store-admin-page .text-info {
-    color: var(--store-accent-icon) !important;
+    color: #8B6247 !important;
 }
 
 @media (max-width: 1100px) {

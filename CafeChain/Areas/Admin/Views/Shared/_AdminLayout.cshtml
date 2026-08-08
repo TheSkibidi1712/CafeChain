@@ -505,12 +505,12 @@
                 @if (canAccessInventory)
                 {
                 <a href="#collapseInventory" data-bs-toggle="collapse"
-                   aria-expanded="@(Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce") != "" ? "true" : "false")"
-                   class="sidebar-section-header @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce")">
+                   aria-expanded="@(Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminBranchReceipts,AdminSupplierQuality,AdminOperationalIce") != "" ? "true" : "false")"
+                   class="sidebar-section-header @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminBranchReceipts,AdminSupplierQuality,AdminOperationalIce")">
                     <i class="fas fa-warehouse section-icon"></i> Kho & Cung ứng
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
-                <div class="collapse @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminSupplierQuality,AdminOperationalIce", cssClass: "show")" id="collapseInventory">
+                <div class="collapse @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrderBatches,AdminPurchaseOrders,AdminBranchReceipts,AdminSupplierQuality,AdminOperationalIce", cssClass: "show")" id="collapseInventory">
                     <div class="sidebar-sub">
                         @if (effectivePermissions.Contains(PermissionConstants.InventoryView))
                         {
@@ -621,18 +621,23 @@
 
             <!-- ━━━ 👥 NHÂN SỰ & VẬN HÀNH ━━━ -->
            @{
-                var hrControllers = "AdminPermission,AdminStaff,AdminStaffShift,AdminStore";
+                var hrControllers = "AdminPermission,AdminStaff,AdminStaffShift,AdminStore,AdminOperationalAnomalies,AdminWorkShiftOpenApprovals";
                 var isHrGroupActive = Html.IsActive(hrControllers) != "";
 
                 var canManageStaff = effectivePermissions.Contains(PermissionConstants.StaffView);
                 var canManageStaffShift = effectivePermissions.Contains(PermissionConstants.ShiftView);
 
                 var canManageStore = effectivePermissions.Contains(PermissionConstants.StoreView);
+                var canViewOperationalAnomalies = effectivePermissions.Contains(PermissionConstants.OperationalAnomalyView);
+                var canApproveLateOpen = effectivePermissions.Contains(PermissionConstants.PosWorkShiftApproveLateOpen);
 
                 var canViewHrGroup =
                     canManagePermissions ||
                     canManageStaff ||
-                    canManageStaffShift || canManageStore;
+                    canManageStaffShift ||
+                    canManageStore ||
+                    canViewOperationalAnomalies ||
+                    canApproveLateOpen;
             }
 
             @if (canViewHrGroup)
@@ -685,6 +690,26 @@
                             asp-action="Index"
                             class="@Html.IsActive("AdminStore")">
                                 <i class="fas fa-circle"></i> Quản lý cửa hàng
+                            </a>
+                        }
+
+                        @if (canViewOperationalAnomalies)
+                        {
+                            <a asp-area="Admin"
+                               asp-controller="AdminOperationalAnomalies"
+                               asp-action="Index"
+                               class="@Html.IsActive("AdminOperationalAnomalies")">
+                                <i class="fas fa-circle"></i> Tín hiệu vận hành
+                            </a>
+                        }
+
+                        @if (canApproveLateOpen)
+                        {
+                            <a asp-area="Admin"
+                               asp-controller="AdminWorkShiftOpenApprovals"
+                               asp-action="Index"
+                               class="@Html.IsActive("AdminWorkShiftOpenApprovals")">
+                                <i class="fas fa-circle"></i> Duyệt mở ca trễ
                             </a>
                         }
 

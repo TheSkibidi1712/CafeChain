@@ -15,14 +15,22 @@ AI không truy vấn database, không sinh SQL và không được tự tạo s�
 
 ## 2. Quyền truy cập và phạm vi cửa hàng
 
-Người dùng phải có policy `AdminDashboardApp`.
+AI Dashboard chỉ hoạt động khi thỏa đồng thời:
 
-Phạm vi dữ liệu được xác định từ `StaffScope` ở backend; riêng Quản trị hệ thống có global scope trên toàn bộ cửa hàng active:
+```text
+App.AdminDashboard
++ Dashboard.AI.Use
++ permission domain/widget liên quan
++ StaffScope thực tế
+```
+
+Phạm vi dữ liệu luôn được xác định từ `StaffScope` ở backend:
 
 - Có scope một cửa hàng: chỉ xem được cửa hàng đó.
 - Có nhiều scope: dữ liệu được giới hạn trong tập cửa hàng được cấp quyền.
 - Gửi `StoreId` không thuộc scope sẽ bị từ chối trước khi query dữ liệu.
 - Không có scope hợp lệ sẽ không được coi là có quyền truy cập.
+- `SystemAdmin` là role kỹ thuật; không có global business scope hoặc dữ liệu kinh doanh mặc định. Muốn dùng AI phải được cấp explicit permission và assignment scope như mọi account khác.
 
 Không dùng bộ lọc trên giao diện làm nguồn tin cậy duy nhất.
 
@@ -167,7 +175,7 @@ Tải lại phiên bản frontend mới và mở lại tab chứa biểu đồ. 
 
 ### Bị 403
 
-Tài khoản thiếu policy, bị account override `Deny` hoặc request chứa cửa hàng ngoài StaffScope. SystemAdmin có global store scope nhưng vẫn bị chặn khi account inactive hoặc permission bị `Deny`.
+Tài khoản thiếu `App.AdminDashboard`, `Dashboard.AI.Use`, permission domain/widget, bị account override `Deny` hoặc request chứa cửa hàng ngoài StaffScope đều bị từ chối trước khi query evidence. `SystemAdmin` không có ngoại lệ global scope.
 
 ## 10. Cấu hình feature flag
 
@@ -217,3 +225,14 @@ Câu trả lời Dashboard AI hiện được giới hạn theo `AnswerFocus`, d
 chart/evidence và limitation. Recommendation là tùy chọn và không xuất hiện
 khi câu hỏi không yêu cầu hành động hoặc evidence chưa đủ. Tại thời điểm cập
 nhật tài liệu, browser E2E được ghi nhận `NOT RUN`, không phải `PASS`.
+
+## 13. Tài liệu liên quan
+
+- [Quy tắc Dashboard, AI, Anomaly và Supplier](./DASHBOARD_AI_ANOMALY_SUPPLIER_BUSINESS_RULES.md)
+- [Hướng dẫn Dashboard, AI, Anomaly và Supplier](./DASHBOARD_AI_ANOMALY_SUPPLIER_USER_GUIDE.md)
+- [Luồng người dùng StaffHub/POS](./STAFFHUB_USER_BUSINESS_FLOWS.md)
+- [Hướng dẫn Terminal POS](./POS_TERMINAL_USER_GUIDE.md)
+
+OTP StaffHub/POS và Terminal là nghiệp vụ vận hành riêng; không dùng `Dashboard.AI.Use` để cấp quyền xem hoặc xác nhận OTP.
+
+Tín hiệu vận hành được mở tại **Nhân sự & Vận hành → Tín hiệu vận hành**. Nội dung chính dùng tiếng Việt phổ thông và nút **Giải thích dễ hiểu**; mã chỉ số/phiên bản/điểm chuẩn hóa nằm trong **Thông tin kỹ thuật**. Supplier Intelligence nằm trong Purchase Advice, đang pilot `ShadowMode` tại **CafeChain Thủ Dầu Một** và dùng scoring backend deterministic, không phải quyết định của AI.

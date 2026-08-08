@@ -4,6 +4,7 @@ using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Repositories;
@@ -21,15 +22,18 @@ namespace CafeChain.Application.Services.Inventories
     private readonly AppDbContext _context;
     private readonly IScopeAuthorizationService _scopeAuthorization;
     private readonly IUnitConversionService _unitConversion;
+    private readonly IAdminPermissionService? _permissions;
 
         public PurchaseAdviceService(
             AppDbContext context,
             IScopeAuthorizationService scopeAuthorization,
-            IUnitConversionService? unitConversion = null)
+            IUnitConversionService? unitConversion = null,
+            IAdminPermissionService? permissions = null)
     {
         _context = context;
         _scopeAuthorization = scopeAuthorization;
         _unitConversion = unitConversion!;
+        _permissions = permissions;
         }
 
         public async Task<ServiceResult<PurchaseAdvicePageDto>> GetPageAsync(
@@ -94,7 +98,7 @@ namespace CafeChain.Application.Services.Inventories
             }
 
             IReadOnlyList<PurchaseAdviceSourceDto> sources = Array.Empty<PurchaseAdviceSourceDto>();
-            var sourceStoreId = filter.StoreId ?? (CanCreate(actor) ? actor.StoreIdOrNull : null);
+            var sourceStoreId = filter.StoreId ?? actor.StoreIdOrNull;
             if (sourceStoreId.HasValue && await CanCreateForStoreAsync(actor, sourceStoreId.Value))
             {
                 var sourceResult = await GetAvailableSourcesAsync(sourceStoreId.Value, actor);
@@ -940,7 +944,7 @@ namespace CafeChain.Application.Services.Inventories
 
         private async Task<List<(int StoreId, string Name)>> ResolveReadableStoresAsync(AdminActorContext actor)
         {
-            if (!CanRead(actor)) return new();
+            if (_permissions == null || actor.AccountId <= 0) return new();
             var stores = await _context.Stores.AsNoTracking()
                 .Where(x => x.Active)
                 .OrderBy(x => x.Name)
@@ -948,38 +952,33 @@ namespace CafeChain.Application.Services.Inventories
                 .ToListAsync();
             var accessible = new List<(int StoreId, string Name)>();
             foreach (var store in stores)
-                if (await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, store.StoreId))
+                if (await HasPermissionAsync(actor, store.StoreId, PermissionConstants.PurchaseAdviceView)
+                    && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, store.StoreId))
                     accessible.Add((store.StoreId, store.Name));
             return accessible;
         }
 
-        private Task<bool> CanReadStoreAsync(AdminActorContext actor, int storeId) =>
-            CanRead(actor)
-                ? _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId)
-                : Task.FromResult(false);
+        private async Task<bool> CanReadStoreAsync(AdminActorContext actor, int storeId) =>
+            await HasPermissionAsync(actor, storeId, PermissionConstants.PurchaseAdviceView)
+            && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
 
-        private static bool CanRead(AdminActorContext actor) =>
-            actor.RoleNames.Any(role => role is RoleConstants.StoreManager
-                or RoleConstants.AccountantWarehouse
-                or RoleConstants.AreaManager
-                or RoleConstants.BusinessOwner
-                or RoleConstants.SystemAdmin);
-
-        private static bool CanCreate(AdminActorContext actor) =>
-            HasRole(actor, RoleConstants.AccountantWarehouse)
-            || HasRole(actor, RoleConstants.SystemAdmin);
         private async Task<bool> CanCreateForStoreAsync(AdminActorContext actor, int storeId)
-            => CanCreate(actor)
+            => await HasPermissionAsync(actor, storeId, PermissionConstants.PurchaseAdviceCreate)
                && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
 
         private Task<bool> CanManageStoreAdviceAsync(AdminActorContext actor, int storeId) =>
             CanCreateForStoreAsync(actor, storeId);
 
         private async Task<bool> CanReviewStoreAsync(AdminActorContext actor, int storeId)
-            => (HasRole(actor, RoleConstants.SystemAdmin)
-                || HasRole(actor, RoleConstants.AccountantWarehouse))
+            => await HasPermissionAsync(actor, storeId, PermissionConstants.PurchaseAdviceReview)
                && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
-        private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
+
+        private async Task<bool> HasPermissionAsync(AdminActorContext actor, int storeId, string code)
+        {
+            if (_permissions == null || actor.AccountId <= 0) return false;
+            var decision = await _permissions.HasPermissionAsync(actor.AccountId, code, storeId);
+            return decision.IsSuccess && decision.Data?.Allowed == true;
+        }
 
         private static bool HasRemainingToPurchase(PurchaseAdviceSourceDto source) =>
             source.RemainingToPurchaseProcurementQuantity.GetValueOrDefault() > 0

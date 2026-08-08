@@ -1,5 +1,6 @@
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.POS;
+using CafeChain.Application.Tools;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 
 namespace CafeChain.Application.Workers;
@@ -54,7 +55,7 @@ public sealed class OtpExpiryWorker : BackgroundService
         await using var scope = _scopeFactory.CreateAsyncScope();
         var repository = scope.ServiceProvider.GetRequiredService<IOtpChallengeRepository>();
         var publisher = scope.ServiceProvider.GetService<IOperationalOtpNotificationPublisher>();
-        var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+        var nowUtc = UtcDateTime.Normalize(_timeProvider.GetUtcNow().UtcDateTime);
         var expired = await repository.ExpireDueChallengesAsync(nowUtc, cancellationToken);
         if (publisher == null) return;
 
@@ -66,6 +67,19 @@ public sealed class OtpExpiryWorker : BackgroundService
                     Guid.NewGuid().ToString("N"),
                     item.NotificationId!.Value,
                     "Expired",
+                    nowUtc),
+                cancellationToken);
+        }
+        foreach (var item in expired.Where(x =>
+                     x.ActionType == CafeChain.Application.Constants.OtpConstants.ActionTypes.RegisterTerminal))
+        {
+            await publisher.PublishTerminalRegistrationChangedAsync(
+                item.RequestedByStaffId,
+                new TerminalRegistrationChangedDto(
+                    item.PublicId,
+                    CafeChain.Application.Constants.OtpConstants.Statuses.Expired,
+                    item.TerminalId,
+                    UtcDateTime.Normalize(item.ExpiresAtUtc),
                     nowUtc),
                 cancellationToken);
         }

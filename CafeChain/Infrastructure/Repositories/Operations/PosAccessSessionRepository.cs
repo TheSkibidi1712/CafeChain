@@ -2,13 +2,38 @@ using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Operations;
 using CafeChain.Models.Operations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CafeChain.Infrastructure.Repositories.Operations;
 
 public sealed class PosAccessSessionRepository : IPosAccessSessionRepository
 {
     private readonly AppDbContext _db;
+    private IDbContextTransaction? _ownedTransaction;
     public PosAccessSessionRepository(AppDbContext db) => _db = db;
+
+    public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_db.Database.IsRelational() || _db.Database.CurrentTransaction != null) return;
+        _ownedTransaction = await _db.Database.BeginTransactionAsync(
+            System.Data.IsolationLevel.Serializable, cancellationToken);
+    }
+
+    public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        if (_ownedTransaction == null) return;
+        await _ownedTransaction.CommitAsync(cancellationToken);
+        await _ownedTransaction.DisposeAsync();
+        _ownedTransaction = null;
+    }
+
+    public async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        if (_ownedTransaction == null) return;
+        await _ownedTransaction.RollbackAsync(cancellationToken);
+        await _ownedTransaction.DisposeAsync();
+        _ownedTransaction = null;
+    }
 
     public async Task<IReadOnlyList<PosAccessSession>> CreateReplacingActiveAsync(
         PosAccessSession session,
@@ -76,6 +101,14 @@ public sealed class PosAccessSessionRepository : IPosAccessSessionRepository
             .Take(200)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<PosAccessSession>> GetDueForExpiryAsync(
+        DateTime nowUtc, int take, CancellationToken cancellationToken = default) =>
+        await _db.PosAccessSessions
+            .Where(x => x.Status == PosAccessSessionStatuses.Active && x.ExpiresAtUtc <= nowUtc)
+            .OrderBy(x => x.ExpiresAtUtc)
+            .Take(Math.Clamp(take, 1, 500))
+            .ToListAsync(cancellationToken);
 
     public async Task BindWorkShiftAsync(Guid publicId, int workShiftId, CancellationToken cancellationToken = default)
     {

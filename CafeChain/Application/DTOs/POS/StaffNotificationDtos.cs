@@ -1,11 +1,5 @@
 namespace CafeChain.Application.DTOs.POS
 {
-    public class ActiveOtpNotificationDto
-    {
-        public string Code { get; set; } = string.Empty;
-        public DateTime ExpiresAtUtc { get; set; }
-    }
-
     public class OperationalOtpNotificationDto
     {
         public Guid ChallengePublicId { get; set; }
@@ -62,12 +56,7 @@ namespace CafeChain.Application.DTOs.POS
         public string EmailDeliveryHint { get; set; } = "none";
 
         public string? TargetUrl { get; set; }
-
-        /// <summary>
-        /// Present only for the exact approver while the OTP challenge is Pending and unexpired.
-        /// API responses carrying this value must not be cached.
-        /// </summary>
-        public ActiveOtpNotificationDto? ActiveOtp { get; set; }
+        public string? TargetActionLabel { get; set; }
 
         public OperationalOtpNotificationDto? OperationalOtp { get; set; }
     }

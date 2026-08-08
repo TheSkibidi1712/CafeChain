@@ -788,9 +788,37 @@
 }
 
 /* Automatic-check modal and rule/AI explanation dialog depth. */
+.reorder-bulk-modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 1055 !important;
+}
+
+.reorder-bulk-modal.show {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
 .reorder-bulk-modal .modal-dialog {
-    width: min(1320px, calc(100vw - 32px));
-    max-width: none;
+    width: min(1040px, 92vw) !important;
+    max-width: 92vw !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-top: auto !important;
+    margin-bottom: auto !important;
+    position: relative !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+    align-self: center !important;
     filter: drop-shadow(0 28px 50px rgba(40, 25, 16, .18));
 }
 
@@ -933,24 +961,32 @@
 }
 
 .reorder-bulk-table {
-    min-width: 1210px;
-    table-layout: fixed;
+    width: 100% !important;
+    min-width: 1040px;
+    table-layout: auto;
     border-collapse: separate;
     border-spacing: 0;
 }
 
-.reorder-bulk-table th:nth-child(1) { width: 44px; }
-.reorder-bulk-table th:nth-child(2) { width: 238px; }
-.reorder-bulk-table th:nth-child(3) { width: 165px; }
-.reorder-bulk-table th:nth-child(4) { width: 175px; }
-.reorder-bulk-table th:nth-child(5) { width: 195px; }
-.reorder-bulk-table th:nth-child(6) { width: 255px; }
-.reorder-bulk-table th:nth-child(7) { width: 132px; text-align: center; }
+.reorder-bulk-table th:nth-child(1) { width: 44px; text-align: center; }
+.reorder-bulk-table th:nth-child(2) { min-width: 190px; }
+.reorder-bulk-table th:nth-child(3) { min-width: 145px; text-align: center; }
+.reorder-bulk-table th:nth-child(4) { min-width: 145px; text-align: center; }
+.reorder-bulk-table th:nth-child(5) { min-width: 170px; text-align: center; }
+.reorder-bulk-table th:nth-child(6) { min-width: 190px; text-align: center; }
+.reorder-bulk-table th:nth-child(7) { width: 125px; text-align: center; }
 
 .reorder-bulk-table td {
     height: 132px;
     padding: 16px 12px;
-    vertical-align: top;
+    vertical-align: middle;
+}
+
+.reorder-bulk-table td:nth-child(3),
+.reorder-bulk-table td:nth-child(4),
+.reorder-bulk-table td:nth-child(5),
+.reorder-bulk-table td:nth-child(6) {
+    text-align: center;
 }
 
 .reorder-bulk-table td > strong,
@@ -968,7 +1004,7 @@
 
 .reorder-bulk-table td:nth-child(6) > span {
     width: fit-content;
-    margin-top: 18px;
+    margin: 8px auto 0 auto;
     padding: 6px 9px;
     border-radius: 8px;
     background: #F8F3EF;

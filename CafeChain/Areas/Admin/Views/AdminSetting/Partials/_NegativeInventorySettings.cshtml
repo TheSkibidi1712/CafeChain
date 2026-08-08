@@ -81,7 +81,7 @@
                        class="form-control" name="DefaultMaxNegativeQuantity"
                        value="@formatInput(Model.DefaultMaxNegativeQuantity)"
                        form="@formId" disabled="@(!Model.IsConfigurationValid)" />
-                <span class="input-group-text">base unit</span>
+                <span class="input-group-text">Đơn vị gốc</span>
             </div>
             <div class="form-text">Tự động áp dụng khi item chưa có hạn mức riêng.</div>
             </div>
@@ -102,7 +102,7 @@
             <span class="ni-meta-icon"><i class="fas fa-code-branch"></i></span>
             <div>
                 <label class="form-label fw-bold mb-1">Phiên bản chính sách</label>
-                <div class="ni-policy-version font-monospace">@Model.PolicyVersion</div>
+                <div class="ni-policy-version font-monospace">@(Model.PolicyVersion.StartsWith("manual-export-") ? Model.PolicyVersion.Replace("manual-export-", "Xuất thủ công - ") : Model.PolicyVersion)</div>
                 <div class="form-text">Tự cập nhật sau mỗi thay đổi.</div>
             </div>
           </div>
@@ -164,7 +164,7 @@
             <thead class="table-light">
                 <tr>
                     <th class="ni-col-item text-start">Item</th>
-                    <th class="ni-col-stock text-end">Tốn khả dụng</th>
+                    <th class="ni-col-stock text-end">Tồn khả dụng</th>
                     <th class="ni-col-mode text-center">Chế độ</th>
                     <th class="ni-col-limit text-center">Hạn mức riêng</th>
                     <th class="ni-col-effective text-end">Hiệu lực</th>

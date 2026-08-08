@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using CafeChain.Application.Constants.Cloudinaries;
+using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Data;
@@ -158,13 +159,16 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
                 ticket.RequestDeduplicationId,
                 context.WorkShiftId,
                 expiresAtUtc,
-                cancellationToken);
+                cancellationToken,
+                publishAfterCommit: false);
         var token = CreateToken(account, nowUtc, expiresAtUtc, ticket.RequestDeduplicationId, context, accessSession);
         ticket.Status = "SUCCESS";
         ticket.ProcessingLeaseUntilUtc = null;
         ticket.ExpiredAt = token.ExpiresAtUtc;
         await _dbContext.SaveChangesAsync(cancellationToken);
         if (transaction != null) await transaction.CommitAsync(cancellationToken);
+        if (_posAccessSessions != null)
+            await _posAccessSessions.FlushPendingPublicationsAsync(cancellationToken);
         return ServiceResult<PosSessionTokenDto>.Success(token);
     }
 
@@ -231,6 +235,65 @@ public sealed class PosSessionExchangeService : IPosSessionExchangeService
         ticket.ResponseBody = JsonSerializer.Serialize(context);
         await _dbContext.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task<ServiceResult<PosSessionExchangeContextDto>> CancelOpeningAsync(
+        int contextId, int accountId, int staffId, int storeId, Guid sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var ticket = await _dbContext.RequestDeduplications.SingleOrDefaultAsync(
+            x => x.RequestDeduplicationId == contextId
+                && x.ActionName == ActionName
+                && x.AccountId == accountId
+                && x.StaffId == staffId
+                && x.StoreId == storeId,
+            cancellationToken);
+        if (ticket?.ResponseBody == null)
+            return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                "Ngữ cảnh mở POS không hợp lệ.", errorCode: PosSessionExchangeErrorCodes.ContextInvalid);
+
+        PosSessionExchangeContextDto? context;
+        try { context = JsonSerializer.Deserialize<PosSessionExchangeContextDto>(ticket.ResponseBody); }
+        catch (JsonException) { context = null; }
+        if (context == null || context.Purpose != PosSessionPurposes.OpenWorkShift)
+            return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                "Ngữ cảnh không phải phiên mở WorkShift.", errorCode: PosSessionExchangeErrorCodes.ContextInvalid);
+        if (_posAccessSessions != null && sessionId != Guid.Empty)
+        {
+            var session = await _posAccessSessions.GetAsync(sessionId, cancellationToken);
+            if (session.Data?.WorkShiftId is > 0)
+                return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                    "WorkShift đã được tạo; không thể hủy mở ca.",
+                    errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+        }
+        if (context.CancelledAtUtc.HasValue)
+        {
+            if (_posAccessSessions != null && sessionId != Guid.Empty)
+                await _posAccessSessions.EndAsync(sessionId,
+                    CafeChain.Models.Operations.PosAccessSessionStatuses.LoggedOut,
+                    staffId, "Người dùng hủy mở ca trước khi xác nhận tiền đầu ca.", cancellationToken);
+            return ServiceResult<PosSessionExchangeContextDto>.Success(
+                context, "Phiên mở ca đã được hủy trước đó.");
+        }
+        if (context.WorkShiftId.HasValue || !context.RequiresOpeningCash)
+            return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                "WorkShift đã được tạo; không thể hủy mở ca.", errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+        if (ticket.Status != "SUCCESS")
+            return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                "Ngữ cảnh mở POS không còn hoạt động.", errorCode: PosSessionExchangeErrorCodes.ContextInvalid);
+
+        context.CancelledAtUtc = _timeProvider.GetUtcNow().UtcDateTime;
+        context.RequiresOpeningCash = false;
+        ticket.ResponseBody = JsonSerializer.Serialize(context);
+        ticket.Status = "EXPIRED";
+        ticket.ProcessingLeaseUntilUtc = null;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        if (_posAccessSessions != null && sessionId != Guid.Empty)
+            await _posAccessSessions.EndAsync(sessionId,
+                CafeChain.Models.Operations.PosAccessSessionStatuses.LoggedOut,
+                staffId, "Người dùng hủy mở ca trước khi xác nhận tiền đầu ca.", cancellationToken);
+        return ServiceResult<PosSessionExchangeContextDto>.Success(context,
+            "Đã hủy mở ca và kết thúc POS access session.");
     }
 
     private PosSessionTokenDto CreateToken(CafeChain.Models.Customers.Account account, DateTime nowUtc,

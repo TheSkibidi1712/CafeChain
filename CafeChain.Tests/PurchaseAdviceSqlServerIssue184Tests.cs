@@ -3,6 +3,9 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.DTOs.Admin.Permissions;
+using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Application.Services.Security;
 using CafeChain.Data;
@@ -15,6 +18,7 @@ using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace CafeChain.Tests;
@@ -162,7 +166,24 @@ public sealed class PurchaseAdviceSqlServerIssue184Tests : IAsyncLifetime
     };
 
     private static PurchaseAdviceService CreateService(AppDbContext context)
-        => new(context, new ScopeAuthorizationService(context));
+        => new(context, new ScopeAuthorizationService(context), permissions: AllowPermissions());
+
+    private static IAdminPermissionService AllowPermissions()
+    {
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.HasPermissionAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int?>()))
+            .ReturnsAsync((int accountId, string code, int? storeId) =>
+                ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = accountId,
+                    PermissionCode = code,
+                    TargetStoreId = storeId,
+                    Allowed = true,
+                    RoleAllowed = true,
+                    ScopeAllowed = true
+                }));
+        return permissions.Object;
+    }
 
     private static CreatePurchaseAdviceRequest CreateRequest(Seed seed, decimal quantity) => new()
     {
@@ -170,10 +191,11 @@ public sealed class PurchaseAdviceSqlServerIssue184Tests : IAsyncLifetime
         Lines = new List<CreatePurchaseAdviceLineRequest> { new() { RestockRequestId = seed.RestockRequestId, RequestedPurchaseBaseQuantity = quantity, RestockRowVersion = seed.RestockRowVersion } }
     };
 
-    private static AdminActorContext Manager(Seed seed) => new() { StaffId = seed.ManagerId, StoreId = seed.StoreId, RoleNames = new[] { RoleConstants.StoreManager } };
+    private static AdminActorContext Manager(Seed seed) => new() { AccountId = seed.ManagerId, StaffId = seed.ManagerId, StoreId = seed.StoreId, RoleNames = new[] { RoleConstants.StoreManager } };
 
     private static AdminActorContext ProcurementActor(Seed seed) => new()
     {
+        AccountId = seed.ManagerId,
         StaffId = seed.ManagerId,
         StoreId = seed.StoreId,
         RoleNames = new[] { RoleConstants.AccountantWarehouse }

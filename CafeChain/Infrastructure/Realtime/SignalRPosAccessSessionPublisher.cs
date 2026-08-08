@@ -13,6 +13,7 @@ public sealed class SignalRPosAccessSessionPublisher : IPosAccessSessionPublishe
     public Task PublishAsync(PosAccessSessionChangedDto notification, CancellationToken cancellationToken = default) =>
         _hub.Clients.Groups(
                 WorkShiftGroups.ForTerminal(notification.TerminalId),
-                WorkShiftGroups.ForSession(notification.SessionId))
+                WorkShiftGroups.ForSession(notification.SessionId),
+                WorkShiftGroups.ForSessionManagementStore(notification.StoreId))
             .SendAsync("PosAccessSessionChanged", notification, cancellationToken);
 }

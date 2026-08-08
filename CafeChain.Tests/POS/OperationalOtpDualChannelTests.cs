@@ -21,15 +21,14 @@ namespace CafeChain.Tests.POS;
 public sealed class OperationalOtpDualChannelTests : IntegrationTestBase
 {
     [Fact]
-    public async Task Request_sends_email_but_never_broadcasts_or_lists_plaintext_otp()
+    public async Task Request_sends_email_and_only_publishes_sanitized_utc_notification_events()
     {
         const string otp = "ABC234";
         await SeedApproversAsync();
         using var context = CreateDbContext();
 
         string? codeUsedByEmail = null;
-        OperationalOtpIssuedDto? realtime = null;
-        int realtimeRecipient = 0;
+        var realtimeEvents = new List<(int Recipient, OperationalOtpNotificationChangedDto Message)>();
 
         var email = new Mock<IEmailService>();
         email.Setup(x => x.BuildOperationalOtpEmail(
@@ -47,16 +46,10 @@ public sealed class OperationalOtpDualChannelTests : IntegrationTestBase
         codeGenerator.Setup(x => x.NormalizeAndValidate(otp)).Returns(otp);
 
         var publisher = new Mock<IOperationalOtpNotificationPublisher>();
-        publisher.Setup(x => x.PublishIssuedAsync(
-                It.IsAny<int>(), It.IsAny<OperationalOtpIssuedDto>(), It.IsAny<CancellationToken>()))
-            .Callback<int, OperationalOtpIssuedDto, CancellationToken>((recipient, message, _) =>
-            {
-                realtimeRecipient = recipient;
-                realtime = message;
-            })
-            .Returns(Task.CompletedTask);
         publisher.Setup(x => x.PublishChangedAsync(
                 It.IsAny<int>(), It.IsAny<OperationalOtpNotificationChangedDto>(), It.IsAny<CancellationToken>()))
+            .Callback<int, OperationalOtpNotificationChangedDto, CancellationToken>((recipient, message, _) =>
+                realtimeEvents.Add((recipient, message)))
             .Returns(Task.CompletedTask);
 
         var environment = new Mock<IWebHostEnvironment>();
@@ -88,8 +81,9 @@ public sealed class OperationalOtpDualChannelTests : IntegrationTestBase
 
         Assert.True(result.IsSuccess, result.Message);
         Assert.Equal(otp, codeUsedByEmail);
-        Assert.Null(realtime);
-        Assert.Equal(0, realtimeRecipient);
+        Assert.Contains(realtimeEvents, x => x.Recipient == 300 && x.Message.ChangeKind == "Created");
+        Assert.Contains(realtimeEvents, x => x.Recipient == 300 && x.Message.ChangeKind == "DeliveryUpdated");
+        Assert.All(realtimeEvents, x => Assert.Equal(DateTimeKind.Utc, x.Message.OccurredAtUtc.Kind));
 
         var stored = await context.StaffNotifications.SingleAsync();
         Assert.Equal(StaffNotificationTypes.OperationalOtpRequest, stored.Type);
@@ -112,9 +106,17 @@ public sealed class OperationalOtpDualChannelTests : IntegrationTestBase
             targetUrlChannel: StaffNotificationQueryService.ChannelAdmin);
         Assert.True(approverList.IsSuccess);
         var item = Assert.Single(approverList.Data!.Items);
-        Assert.Null(item.ActiveOtp);
         Assert.NotNull(item.OperationalOtp);
         Assert.True(item.OperationalOtp!.CanRevealOtp);
+        Assert.Equal("Waiting", item.OperationalOtp.Status);
+        Assert.InRange(item.OperationalOtp.RemainingSeconds, 1, 300);
+        Assert.Equal(DateTimeKind.Utc, item.OperationalOtp.SentAtUtc.Kind);
+        Assert.Equal(DateTimeKind.Utc, item.OperationalOtp.ExpiresAtUtc.Kind);
+        Assert.Equal(DateTimeKind.Utc, item.OperationalOtp.ServerNowUtc.Kind);
+        Assert.Equal(DateTimeKind.Utc, item.CreatedAt.Kind);
+        var json = System.Text.Json.JsonSerializer.Serialize(item);
+        Assert.Contains("Z", json, StringComparison.Ordinal);
+        Assert.DoesNotContain(otp, json, StringComparison.Ordinal);
 
         var otherApproverList = await notificationQuery.GetListAsync(
             recipientStaffId: 200,
@@ -128,7 +130,6 @@ public sealed class OperationalOtpDualChannelTests : IntegrationTestBase
         var readList = await notificationQuery.GetListAsync(
             300, 1, 20, StaffNotificationQueryService.ChannelAdmin);
         var readItem = Assert.Single(readList.Data!.Items);
-        Assert.Null(readItem.ActiveOtp);
         Assert.NotNull(readItem.OperationalOtp);
 
         var verified = await service.VerifyOtpAsync(new OtpVerifyDto
@@ -190,6 +191,75 @@ public sealed class OperationalOtpDualChannelTests : IntegrationTestBase
         Assert.True(notification.EmailAttempted);
         Assert.False(notification.EmailSent);
         Assert.Equal(challenge.OtpChallengeId, notification.OtpChallengeId);
+    }
+
+    [Fact]
+    public async Task Requester_can_cancel_pending_terminal_registration_and_realtime_is_sanitized()
+    {
+        const string otp = "ABC234";
+        await SeedApproversAsync();
+        using var context = CreateDbContext();
+        var email = new Mock<IEmailService>();
+        email.Setup(x => x.BuildOperationalOtpEmail(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<DateTime>(), It.IsAny<int>()))
+            .Returns("<html>safe</html>");
+        email.Setup(x => x.SendAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+        var generator = new Mock<IOtpCodeGenerator>();
+        generator.Setup(x => x.Generate()).Returns(otp);
+        generator.Setup(x => x.NormalizeAndValidate(otp)).Returns(otp);
+        var publisher = new Mock<IOperationalOtpNotificationPublisher>();
+        publisher.Setup(x => x.PublishChangedAsync(
+                It.IsAny<int>(), It.IsAny<OperationalOtpNotificationChangedDto>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        TerminalRegistrationChangedDto? requesterEvent = null;
+        publisher.Setup(x => x.PublishTerminalRegistrationChangedAsync(
+                100, It.IsAny<TerminalRegistrationChangedDto>(), It.IsAny<CancellationToken>()))
+            .Callback<int, TerminalRegistrationChangedDto, CancellationToken>((_, value, _) => requesterEvent = value)
+            .Returns(Task.CompletedTask);
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.Setup(x => x.EnvironmentName).Returns("Test");
+        var protectedPayload = new OtpProtectedPayloadService(
+            new EphemeralDataProtectionProvider(), generator.Object);
+        var service = new OtpApprovalService(
+            new OtpChallengeRepository(context),
+            new WorkShiftRepository(context),
+            email.Object,
+            generator.Object,
+            new OtpPayloadFingerprintService(),
+            Mock.Of<ILogger<OtpApprovalService>>(),
+            environment.Object,
+            staffNotifications: new StaffNotificationRepository(context),
+            otpNotificationPublisher: publisher.Object,
+            otpProtectedPayload: protectedPayload);
+        var terminalId = Guid.NewGuid().ToString();
+        var requested = await service.RequestOtpAsync(new OtpRequestDto
+        {
+            ActionType = OtpConstants.ActionTypes.RegisterTerminal,
+            TargetType = OtpConstants.TargetTypes.Shifts,
+            Reason = "Quầy bán hàng tầng một",
+            TerminalId = terminalId,
+            TerminalName = "Quầy tầng một",
+            RequestKey = Guid.NewGuid().ToString("N")
+        }, 100, 1000);
+        Assert.True(requested.IsSuccess, requested.Message);
+
+        var cancelled = await service.CancelTerminalRegistrationOtpAsync(
+            new OtpCancelDto { OtpChallengePublicId = requested.Data!.OtpChallengePublicId!.Value },
+            100,
+            1000);
+
+        Assert.True(cancelled.IsSuccess, cancelled.Message);
+        var challenge = await context.OtpChallenges.SingleAsync();
+        var notification = await context.StaffNotifications.SingleAsync();
+        Assert.Equal(OtpConstants.Statuses.Cancelled, challenge.Status);
+        Assert.NotNull(challenge.CancelledAt);
+        Assert.Null(challenge.ProtectedOtpPayload);
+        Assert.NotNull(notification.ResolvedAt);
+        Assert.Equal(OtpConstants.Statuses.Cancelled, requesterEvent?.Status);
+        Assert.Equal(terminalId, requesterEvent?.TerminalId);
     }
 
     [Fact]

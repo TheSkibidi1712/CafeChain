@@ -143,19 +143,22 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        [RequirePermission(PermissionConstants.PosWorkShiftOverrideTerminal)]
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-        public async Task<IActionResult> RevealTerminalOtp(int id)
+        public async Task<IActionResult> RevealOperationalOtp(int id)
         {
             if (_terminalRegistration == null) return StatusCode(503);
             var staffId = ResolveStaffId();
             if (staffId <= 0) return Unauthorized();
-            var result = await _terminalRegistration.RevealOtpAsync(
+            var result = await _terminalRegistration.RevealOperationalOtpAsync(
                 staffId, id, await ResolveAllowedStoreIdsAsync());
             return result.IsSuccess
                 ? Json(new { success = true, data = result.Data })
                 : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message });
         }
+
+        [HttpGet]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public Task<IActionResult> RevealTerminalOtp(int id) => RevealOperationalOtp(id);
 
         [HttpPost]
         [ValidateAntiForgeryToken]

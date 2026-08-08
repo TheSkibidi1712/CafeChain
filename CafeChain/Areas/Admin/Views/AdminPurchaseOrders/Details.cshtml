@@ -31,9 +31,12 @@
             <p class="ops-subtitle">@orderStatusLabel. Số lượng còn phải giao chỉ trừ phần đã nhận hợp lệ hoặc phần được đóng rõ ràng.</p>
         </div>
         <div class="ops-actions">
+            <a class="ops-btn ops-btn-primary" asp-action="Print" asp-route-id="@Model.PurchaseOrderId" target="_blank">
+                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Xuất PDF
+            </a>
             @if (canReceive && canReceiveStatus && totalRemaining > 0)
             {
-                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="ReceivePurchaseOrder" asp-route-purchaseOrderId="@Model.PurchaseOrderId">
+                <a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="ReceivePurchaseOrder" asp-route-purchaseOrderId="@Model.PurchaseOrderId">
                     <i class="fa-solid fa-box-open" aria-hidden="true"></i>
                     @(Model.ActiveReceiptDraftId.HasValue ? "Tiếp tục kiểm đếm" : "Nhận hàng")
                 </a>
@@ -111,18 +114,24 @@
                             </td>
                             <td class="number"><strong>@AdminStatusDisplay.Quantity(line.RemainingBaseQuantity) @AdminStatusDisplay.Unit(line.BaseUnitName)</strong>@if (line.RemainingProcurementQuantity.HasValue) { <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.RemainingProcurementQuantity.Value) @AdminStatusDisplay.Unit(line.ProcurementUnitName)</div> }</td>
                             <td>
-                                <span class="ops-badge ops-badge-neutral">@line.ReceiptCount lần nhận</span>
+                                <span class="ops-badge ops-badge-neutral"><i class="fa-solid fa-clock-rotate-left me-1"></i>@line.ReceiptCount lần nhận</span>
                                 @if (canCloseRemaining && canReceiveStatus && line.RemainingBaseQuantity > 0)
                                 {
-                                    <form method="post" asp-action="CloseLineRemaining" asp-route-id="@Model.PurchaseOrderId" class="mt-2" onsubmit="return confirm('Đóng phần còn lại sẽ chấm dứt nghĩa vụ giao bù và không nhập kho. Bạn chắc chắn?');">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="lineId" value="@line.PurchaseOrderLineId" />
-                                        <input type="hidden" name="rowVersion" value="@line.RowVersion" />
-                                        <input type="hidden" name="requestKey" value="@Guid.NewGuid().ToString("N")" />
-                                        <label class="ops-form-label" for="closeReason-@line.PurchaseOrderLineId">Lý do không yêu cầu giao bù</label>
-                                        <input id="closeReason-@line.PurchaseOrderLineId" class="ops-input w-100" name="reason" maxlength="500" required placeholder="Nhập lý do..." />
-                                        <button class="ops-btn ops-btn-danger mt-2" type="submit">Đóng phần còn lại</button>
-                                    </form>
+                                    <div class="ops-line-closure-box p-2 mt-2 rounded-3 border text-start" style="background-color: #FAF6F0; border-color: #E2D7CD !important; min-width: 320px;">
+                                        <label class="ops-form-label mb-1 d-block fw-bold text-dark small" for="closeReason-@line.PurchaseOrderLineId">
+                                            Lý do không yêu cầu giao bù <span class="text-danger">*</span>
+                                        </label>
+                                        <form method="post" asp-action="CloseLineRemaining" asp-route-id="@Model.PurchaseOrderId" onsubmit="return confirm('Đóng phần còn lại sẽ chấm dứt nghĩa vụ giao bù và không nhập kho. Bạn chắc chắn?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="lineId" value="@line.PurchaseOrderLineId" />
+                                            <input type="hidden" name="rowVersion" value="@line.RowVersion" />
+                                            <input type="hidden" name="requestKey" value="@Guid.NewGuid().ToString("N")" />
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <input id="closeReason-@line.PurchaseOrderLineId" class="ops-input flex-grow-1" name="reason" maxlength="500" required placeholder="Nhập lý do không yêu cầu giao..." style="min-width: 170px; text-align: left !important; font-size: 0.85rem; height: 36px !important; background: #FFFFFF !important;" />
+                                                <button class="ops-btn ops-btn-danger text-nowrap flex-shrink-0" type="submit" style="white-space: nowrap; height: 36px !important; padding: 0 14px; font-size: 0.85rem; font-weight: 600;">Đóng phần còn lại</button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 }
                             </td>
                         </tr>
@@ -139,13 +148,16 @@
         </div>
         <div class="ops-panel-body">
             <div class="ops-inline-actions">
+                <a class="ops-btn ops-btn-secondary" asp-action="Print" asp-route-id="@Model.PurchaseOrderId" target="_blank">
+                    <i class="fa-solid fa-file-pdf text-danger" aria-hidden="true"></i> Xuất PDF Đơn đặt hàng
+                </a>
                 @if (canApprove && Model.Status == "DRAFT")
                 {
                     <form method="post" asp-action="Approve" asp-route-id="@Model.PurchaseOrderId">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button class="ops-btn ops-btn-primary">Duyệt đơn</button></form>
                 }
-                @if (canSend && Model.Status == "APPROVED")
+                @if (Model.Status is "APPROVED" or "MARKED_AS_SENT" or "PARTIALLY_RECEIVED" or "COMPLETED")
                 {
-                    <form method="post" asp-action="MarkSent" asp-route-id="@Model.PurchaseOrderId">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button class="ops-btn ops-btn-primary">Đánh dấu đã gửi Nhà cung cấp</button></form>
+                    <form method="post" asp-action="MarkSent" asp-route-id="@Model.PurchaseOrderId">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button class="ops-btn ops-btn-primary" @(canSend ? "" : "disabled") title="@(canSend ? "" : "Bạn chưa được cấp mã quyền PurchaseOrder.Send")">Đánh dấu đã gửi Nhà cung cấp</button></form>
                 }
                 @if (Model.ActiveReceiptDraftId.HasValue)
                 {

@@ -1,29 +1,100 @@
-/* =====================================================
-   PAGE
-===================================================== */
+/* ==========================================================================
+   CAFECHAIN ADMIN DESIGN SYSTEM - INVENTORY DOCUMENT MODULE (FRONTEND 1)
+   Coffee-Brown Premium Contract Synchronization
+   ========================================================================== */
 
-.inventory-page {
-    padding: 24px;
-    background: var(--cc-app-bg);
-    min-height: 100vh;
+:root {
+    --cc-brown-900: #3d2418;
+    --cc-brown-800: #4d2f1f;
+    --cc-brown-700: #5c3b27;
+    --cc-brown-600: #70482f;
+    --cc-brown-500: #8b6247;
+    --cc-brown-400: #a77c5e;
+
+    --cc-caramel-600: #b06535;
+    --cc-caramel-500: #c67a45;
+    --cc-caramel-400: #d8905b;
+
+    --cc-canvas: #f7f4f0;
+    --cc-surface: #ffffff;
+    --cc-surface-muted: #fbf7f2;
+    --cc-surface-raised: #ffffff;
+    --cc-surface-active: #f4e9df;
+
+    --cc-border: #e9ded4;
+    --cc-border-strong: #d8c5b6;
+
+    --cc-text: #201812;
+    --cc-text-secondary: #66584f;
+    --cc-text-muted: #8c7b70;
+
+    --cc-success-bg: #edf6f2;
+    --cc-success: #2f6f5e;
+    --cc-warning-bg: #fcf4e8;
+    --cc-warning: #99623b;
+    --cc-danger-bg: #fdf0f0;
+    --cc-danger: #991b1b;
+
+    --cc-shadow-xs: 0 1px 2px rgba(32, 24, 18, 0.05);
+    --cc-shadow-sm: 0 4px 10px rgba(32, 24, 18, 0.06);
+    --cc-shadow-md: 0 8px 24px rgba(32, 24, 18, 0.09);
+    --cc-shadow-lg: 0 18px 48px rgba(32, 24, 18, 0.14);
+    --cc-focus-ring: 0 0 0 3px rgba(112, 72, 47, 0.22);
+
+    --cc-radius-xs: 4px;
+    --cc-radius-sm: 8px;
+    --cc-radius-control: 10px;
+    --cc-radius-md: 12px;
+    --cc-radius-lg: 16px;
+    --cc-radius-xl: 20px;
+    --cc-radius-modal: 18px;
+
+    /* Inventory Module Palette Alias */
+    --cc-app-bg: var(--cc-canvas);
+    --cc-primary: var(--cc-brown-600);
+    --cc-primary-hover: var(--cc-brown-900);
 }
 
-/* =====================================================
-   HEADER
-===================================================== */
+/* ==========================================================================
+   PAGE CANVAS & LAYOUT
+   ========================================================================== */
+.inventory-page {
+    width: calc(100% - 24px);
+    max-width: 1540px;
+    min-height: calc(100vh - 84px);
+    margin: 0 auto;
+    border-radius: var(--cc-radius-modal, 18px);
+    padding: 28px 28px 120px;
+    background:
+        radial-gradient(circle at 96% 4%, rgba(198, 122, 69, 0.08), transparent 260px),
+        linear-gradient(180deg, #faf7f4 0%, #f7f4f0 320px, transparent 600px);
+    background-color: var(--cc-app-bg);
+    color: var(--cc-text, #201812);
+}
 
+.inventory-page * {
+    box-sizing: border-box;
+}
+
+/* ==========================================================================
+   HEADER BANNER
+   ========================================================================== */
 .inventory-header {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    background: #F5EDE3;
-    border: 1px solid #E6DCCD;
-    border-radius: 14px;
-    padding: 22px 26px;
-    box-shadow: 0 2px 10px rgba(111, 78, 55, 0.05);
+    overflow: hidden;
+    margin-bottom: 24px;
+    padding: 22px 28px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-left: 5px solid var(--cc-caramel-500, #c67a45);
+    border-radius: var(--cc-radius-modal, 18px);
+    background: linear-gradient(112deg, var(--cc-surface-raised, #ffffff) 0%, var(--cc-surface-muted, #fbf7f2) 62%, #f1e5da 100%);
+    box-shadow: var(--cc-shadow-md, 0 8px 24px rgba(32, 24, 18, 0.09));
 }
 
+<<<<<<< HEAD
 .inventory-header h3 {
     font-weight: 800;
     font-size: 1.55rem;
@@ -35,6 +106,38 @@
     color: #5C3F2B;
     font-size: 0.88rem;
     margin: 0;
+=======
+.inventory-header::after {
+    position: absolute;
+    right: -45px;
+    bottom: -80px;
+    width: 250px;
+    height: 250px;
+    border: 38px solid rgba(112, 72, 47, 0.055);
+    border-radius: 50%;
+    content: "";
+    pointer-events: none;
+    z-index: 0;
+}
+
+.inventory-header > * {
+    position: relative;
+    z-index: 1;
+}
+
+.inventory-header h3 {
+    margin-bottom: 4px;
+    color: var(--cc-text, #201812);
+    font-size: clamp(20px, 1.8vw, 26px);
+    font-weight: 850;
+    letter-spacing: -0.03em;
+}
+
+.inventory-header p {
+    margin: 0;
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 13.5px;
+>>>>>>> origin/develop
     font-weight: 500;
 }
 
@@ -45,42 +148,47 @@
 
 .inventory-action-primary,
 .inventory-action-secondary {
-    align-items: center;
     display: inline-flex;
-    gap: 8px;
+    align-items: center;
     justify-content: center;
-    min-height: 40px;
-    border-radius: 999px;
-    padding: 8px 20px;
-    font-weight: 700;
-    font-size: 13px;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 20px;
+    border-radius: var(--cc-radius-control, 10px);
+    font-size: 13.5px;
+    font-weight: 750;
     white-space: nowrap;
+    transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
 }
 
 .inventory-action-primary {
     border: 1px solid var(--cc-primary);
     background: var(--cc-primary);
-    color: #fff;
+    color: #ffffff !important;
+    box-shadow: 0 6px 16px rgba(112, 72, 47, 0.18);
 }
 
 .inventory-action-primary:hover {
     border-color: var(--cc-primary-hover);
     background: var(--cc-primary-hover);
-    color: #fff;
+    color: #ffffff !important;
+    transform: translateY(-1px);
 }
 
 .inventory-action-secondary {
-    border: 1px solid #d4b8a3;
-    color: #5C3F2B;
-    background: #fff;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-brown-900, #3d2418);
 }
 
 .inventory-action-secondary:hover {
-    border-color: #C67A45;
-    color: #5C3F2B;
-    background: #F7F3EE;
+    border-color: var(--cc-brown-500, #8b6247);
+    background: var(--cc-surface-active, #f4e9df);
+    color: var(--cc-brown-900, #3d2418);
+    transform: translateY(-1px);
 }
 
+<<<<<<< HEAD
 /* =====================================================
    DASHBOARD
 ===================================================== */
@@ -89,14 +197,20 @@
    DASHBOARD
 ===================================================== */
 
+=======
+/* ==========================================================================
+   DASHBOARD METRIC CARDS
+   ========================================================================== */
+>>>>>>> origin/develop
 .inventory-cards {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .dashboard-card {
+<<<<<<< HEAD
     background: #ffffff;
     border: 1px solid #E6DCCD;
     border-radius: 12px;
@@ -107,10 +221,22 @@
     display: flex;
     align-items: center;
     gap: 14px;
+=======
+    display: flex;
+    flex-direction: column-reverse;
+    padding: 18px 20px;
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-bottom: 3px solid var(--cc-brown-600, #70482f);
+    border-radius: var(--cc-radius-md, 12px);
+    background: var(--cc-surface-raised, #ffffff);
+    box-shadow: var(--cc-shadow-xs, 0 1px 2px rgba(32, 24, 18, 0.05));
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+>>>>>>> origin/develop
 }
 
 .dashboard-card:hover {
     transform: translateY(-2px);
+<<<<<<< HEAD
     box-shadow: 0 4px 12px rgba(111, 78, 55, .12);
 }
 
@@ -159,8 +285,32 @@
 /* =====================================================
    FILTER
 ===================================================== */
+=======
+    box-shadow: var(--cc-shadow-md, 0 8px 24px rgba(32, 24, 18, 0.09));
+}
 
+.dashboard-card .value {
+    color: var(--cc-text, #201812);
+    font-size: 26px;
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+}
+
+.dashboard-card .label {
+    margin-bottom: 6px;
+    color: var(--cc-brown-600, #70482f);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+>>>>>>> origin/develop
+
+/* ==========================================================================
+   FILTER CONTAINER
+   ========================================================================== */
 .filter-container {
+<<<<<<< HEAD
     background: white;
     border: 1px solid #E6DCCD;
     border-radius: 12px;
@@ -192,10 +342,29 @@
     border-radius: 8px;
     border-color: #d4b8a3;
     background: #F7F3EE;
+=======
+    margin-bottom: 24px;
+    padding: 22px;
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-lg, 16px);
+    background: var(--cc-surface-raised, #ffffff);
+    box-shadow: var(--cc-shadow-sm, 0 4px 10px rgba(32, 24, 18, 0.06));
+}
+
+.search-box input {
+    height: 44px;
+    padding: 9px 14px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-text, #201812);
+>>>>>>> origin/develop
     font-size: 13.5px;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .search-box input:focus {
+<<<<<<< HEAD
     border-color: #6F4E37;
     background: #fff;
     box-shadow: 0 0 0 3px rgba(111, 78, 55, .12);
@@ -260,12 +429,66 @@
     height: 40px !important;
     padding: 6px 12px !important;
     font-size: 12px !important;
+=======
+    border-color: var(--cc-brown-600, #70482f);
+    background: var(--cc-surface-raised, #ffffff);
+    outline: none;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
 }
 
-/* =====================================================
-   TABS
-===================================================== */
+.filter-row {
+    display: grid;
+    grid-template-columns:
+        minmax(160px, 1.4fr)
+        minmax(130px, 1fr)
+        minmax(150px, 1fr)
+        minmax(130px, 1fr)
+        minmax(130px, 0.85fr)
+        minmax(130px, 0.85fr)
+        auto;
+    align-items: end;
+    gap: 12px;
+    margin-top: 16px;
+}
 
+.filter-row .form-control,
+.filter-row .form-select {
+    height: 42px;
+    padding: 8px 12px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-text, #201812);
+    font-size: 13px;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.filter-row .form-control:focus,
+.filter-row .form-select:focus {
+    border-color: var(--cc-brown-600, #70482f);
+    background: var(--cc-surface-raised, #ffffff);
+    outline: none;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+}
+
+.filter-date-field label {
+    margin: 0 0 4px;
+    color: var(--cc-brown-900, #3d2418);
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 8px;
+>>>>>>> origin/develop
+}
+
+/* ==========================================================================
+   TABS
+   ========================================================================== */
 .inventory-tabs {
     display: flex;
     gap: 10px;
@@ -273,18 +496,21 @@
 }
 
 .tab-btn {
-    padding: 9px 18px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 18px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
     border-radius: 999px;
-    background: white;
-    color: #475569;
-    text-decoration: none;
-    font-weight: 700;
+    background: var(--cc-surface-raised, #ffffff);
+    color: var(--cc-text-secondary, #66584f);
     font-size: 13px;
-    transition: .2s;
-    border: 1px solid #E6DCCD;
+    font-weight: 750;
+    text-decoration: none;
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
 }
 
 .tab-btn:hover {
+<<<<<<< HEAD
     background: #F7F3EE;
     color: #6F4E37;
     border-color: #d4b8a3;
@@ -299,13 +525,26 @@
 /* =====================================================
    TABLE
 ===================================================== */
+=======
+    border-color: var(--cc-brown-500, #8b6247);
+    background: var(--cc-surface-active, #f4e9df);
+    color: var(--cc-brown-900, #3d2418);
+}
 
+.tab-btn.active {
+    border-color: var(--cc-brown-600, #70482f);
+    background: var(--cc-brown-600, #70482f);
+    color: #ffffff !important;
+}
+>>>>>>> origin/develop
+
+/* ==========================================================================
+   DOCUMENT TABLE
+   ========================================================================== */
 .inventory-table-wrapper {
-    background: white;
-    border: 1px solid #E6DCCD;
-    border-radius: 12px;
     overflow: hidden;
     overflow-x: auto;
+<<<<<<< HEAD
     box-shadow: 0 2px 10px rgba(0, 0, 0, .03);
 }
 
@@ -361,48 +600,92 @@
 
 .inventory-table tbody tr:hover {
     background: #f0ebe4;
+=======
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-lg, 16px);
+    background: var(--cc-surface-raised, #ffffff);
+    box-shadow: var(--cc-shadow-sm, 0 4px 10px rgba(32, 24, 18, 0.06));
+}
+
+.inventory-table {
+    width: 100%;
+    min-width: 1000px;
+    margin-bottom: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+}
+
+.inventory-table thead {
+    background: var(--cc-surface-muted, #fbf7f2);
+    border-bottom: 2px solid var(--cc-border-strong, #d8c5b6);
+}
+
+.inventory-table th {
+    padding: 14px 16px;
+    border: none;
+    border-bottom: 2px solid var(--cc-border-strong, #d8c5b6);
+    color: var(--cc-brown-600, #70482f);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
+.inventory-table td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--cc-border, #e9ded4);
+    color: var(--cc-text, #201812);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.inventory-table tbody tr:hover {
+    background: var(--cc-surface-active, #f4e9df);
+>>>>>>> origin/develop
 }
 
 .inventory-empty-state {
-    align-items: center;
-    color: #64748b;
     display: grid;
     gap: 6px;
+    align-items: center;
     justify-items: center;
-    min-height: 116px;
-    padding: 24px 16px;
+    min-height: 140px;
+    padding: 32px 16px;
+    color: var(--cc-text-muted, #8c7b70);
 }
 
 .inventory-empty-state strong {
-    color: #334155;
+    color: var(--cc-brown-900, #3d2418);
     font-size: 15px;
     font-weight: 800;
 }
 
-.inventory-empty-state span {
-    font-size: 13px;
-}
-
 .code {
-    font-weight: 700;
-    color: #C67A45;
+    color: var(--cc-caramel-500, #c67a45);
+    font-weight: 800;
 }
 
-/* =====================================================
-   STATUS
-===================================================== */
-
+/* ==========================================================================
+   STATUS BADGES & ACTIONS
+   ========================================================================== */
 .status-badge {
-    display: inline-block;
-    padding: 4px 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 12px;
     border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    white-space: nowrap;
+    font-size: 11.5px;
+    font-weight: 750;
     line-height: 1.4;
+    white-space: nowrap;
 }
 
 .status-badge.confirmed {
+<<<<<<< HEAD
     background: #d1ece7;
     color: #2F6F5E;
 }
@@ -420,6 +703,24 @@
 /* =====================================================
    ACTION BUTTON
 ===================================================== */
+=======
+    border: 1px solid #a8d8cc;
+    background: var(--cc-success-bg, #edf6f2);
+    color: var(--cc-success, #2f6f5e);
+}
+
+.status-badge.draft {
+    border: 1px solid #f2d8b8;
+    background: var(--cc-warning-bg, #fcf4e8);
+    color: var(--cc-warning, #99623b);
+}
+
+.status-badge.cancelled {
+    border: 1px solid #f0b8b8;
+    background: var(--cc-danger-bg, #fdf0f0);
+    color: var(--cc-danger, #991b1b);
+}
+>>>>>>> origin/develop
 
 .action-group {
     display: flex;
@@ -429,6 +730,7 @@
 }
 
 .table-action {
+<<<<<<< HEAD
     width: 38px;
     height: 38px;
     border: none;
@@ -453,12 +755,21 @@
 }
 
 .draft-preview-actions {
+=======
+    display: inline-flex;
+>>>>>>> origin/develop
     align-items: center;
-    gap: 10px;
-    border-top: 1px solid #e5e7eb;
-    background: #fff;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-brown-900, #3d2418);
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
 }
 
+<<<<<<< HEAD
 .draft-preview-actions .btn {
     border-radius: 8px;
     font-weight: 600;
@@ -467,20 +778,38 @@
 .is-loading {
     opacity: .75;
     pointer-events: none;
+=======
+.table-action:hover {
+    border-color: var(--cc-brown-600, #70482f);
+    background: var(--cc-brown-600, #70482f);
+    color: #ffffff !important;
+>>>>>>> origin/develop
 }
 
-/* =====================================================
-   FOOTER
-===================================================== */
+.table-action.btn-draft-confirm {
+    border-color: #a8d8cc;
+    background: var(--cc-success-bg, #edf6f2);
+    color: var(--cc-success, #2f6f5e);
+}
 
+.table-action.btn-draft-confirm:hover {
+    border-color: var(--cc-success, #2f6f5e);
+    background: var(--cc-success, #2f6f5e);
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   PAGINATION
+   ========================================================================== */
 .table-footer {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     margin-top: 20px;
 }
 
 .table-info {
+<<<<<<< HEAD
     color: #7b8794;
 }
 
@@ -542,11 +871,90 @@
 
 .detail-label {
     color: #94a3b8;
+=======
+    color: var(--cc-text-muted, #8c7b70);
+>>>>>>> origin/develop
     font-size: 13px;
 }
 
+.pagination {
+    display: flex;
+    gap: 6px;
+    margin: 0;
+}
+
+.page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface-raised, #ffffff);
+    color: var(--cc-text, #201812);
+    font-size: 13px;
+    font-weight: 750;
+    transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+
+.page-btn:hover {
+    border-color: var(--cc-brown-500, #8b6247);
+    background: var(--cc-surface-active, #f4e9df);
+}
+
+.page-btn.active {
+    border-color: var(--cc-brown-600, #70482f);
+    background: var(--cc-brown-600, #70482f);
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   DETAIL MODAL
+   ========================================================================== */
+#inventoryDetailModal .modal-content {
+    overflow: hidden;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-modal, 18px);
+    background: var(--cc-surface-raised, #ffffff);
+    box-shadow: var(--cc-shadow-lg, 0 18px 48px rgba(32, 24, 18, 0.14));
+}
+
+#inventoryDetailModal .modal-header {
+    border-bottom: 1px solid var(--cc-border, #e9ded4);
+    background: var(--cc-surface-muted, #fbf7f2);
+    padding: 18px 24px;
+}
+
+#inventoryDetailModal .modal-body {
+    background: var(--cc-canvas, #f7f4f0);
+    padding: 24px;
+}
+
+.detail-card {
+    margin-bottom: 18px;
+    padding: 22px;
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-lg, 16px);
+    background: var(--cc-surface-raised, #ffffff);
+    box-shadow: var(--cc-shadow-xs, 0 1px 2px rgba(32, 24, 18, 0.05));
+}
+
+.detail-card h6 {
+    margin-bottom: 16px;
+    color: var(--cc-brown-900, #3d2418);
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.detail-label {
+    color: var(--cc-text-muted, #8c7b70);
+    font-size: 12.5px;
+}
+
 .detail-value {
-    font-weight: 600;
+    color: var(--cc-text, #201812);
+    font-weight: 750;
 }
 
 .summary-box {
@@ -556,6 +964,7 @@
     margin-top: 20px;
 }
 
+<<<<<<< HEAD
 .summary-box>div {
     background: white;
     border-radius: 16px;
@@ -566,17 +975,36 @@
 .summary-box h3 {
     color: #6F4E37;
     font-weight: 700;
+=======
+.summary-box > div,
+.summary-item {
+    padding: 18px;
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-md, 12px);
+    background: var(--cc-surface-raised, #ffffff);
+    text-align: center;
+}
+
+.summary-box h3,
+.summary-item h4 {
+    margin: 0;
+    color: var(--cc-brown-600, #70482f);
+    font-size: 22px;
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+>>>>>>> origin/develop
 }
 
 .voucher-preview {
     max-width: 820px;
     margin: auto;
-    background: white;
-    border-radius: 16px;
-    padding: 40px;
-    border: 1px solid #e5e7eb;
+    padding: 36px;
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-lg, 16px);
+    background: var(--cc-surface-raised, #ffffff);
 }
 
+<<<<<<< HEAD
 .voucher-title {
     text-align: center;
     margin-bottom: 35px;
@@ -673,9 +1101,16 @@
     color: #475569;
     background: #f1f5f9;
     font-size: 12px;
+=======
+.voucher-table th {
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-brown-600, #70482f);
+>>>>>>> origin/develop
     font-weight: 800;
+    padding: 12px;
 }
 
+<<<<<<< HEAD
 .voucher-summary {
     margin-top: 24px;
     background: #f8fafc;
@@ -769,47 +1204,53 @@
     color: #94a3b8;
     font-size: 18px;
     font-weight: 700;
+=======
+.voucher-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--cc-border, #e9ded4);
+    font-variant-numeric: tabular-nums;
+>>>>>>> origin/develop
 }
 
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS
+   ========================================================================== */
 @media (max-width: 1180px) {
     .inventory-cards {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(2, 1fr);
     }
-
     .filter-row {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(3, 1fr);
     }
-
     .filter-actions {
         grid-column: 2 / -1;
     }
 }
 
 @media (max-width: 768px) {
+<<<<<<< HEAD
 
+=======
+    .inventory-page {
+        width: 100%;
+        padding: 16px 12px 100px;
+    }
+>>>>>>> origin/develop
     .inventory-header,
     .table-footer {
-        align-items: flex-start;
         flex-direction: column;
+        align-items: flex-start;
         gap: 14px;
     }
-
-    .inventory-actions,
-    .filter-actions {
-        flex-wrap: wrap;
-        justify-content: flex-start;
-    }
-
     .inventory-cards,
     .filter-row {
         grid-template-columns: 1fr;
     }
-
     .filter-actions {
         grid-column: auto;
-        min-width: 0;
     }
 }
+<<<<<<< HEAD
 
 .voucher-approval-panel {
     margin: 16px 0;
@@ -1837,3 +2278,5 @@
         transition: none !important;
     }
 }
+=======
+>>>>>>> origin/develop

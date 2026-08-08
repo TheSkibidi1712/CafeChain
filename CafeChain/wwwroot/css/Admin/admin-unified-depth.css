@@ -154,30 +154,7 @@ body {
 /* Decorative Canvas Background Elements */
 .main-content::before,
 .main-content::after {
-    position: absolute;
-    z-index: -1;
-    pointer-events: none;
-    content: "";
-}
-
-.main-content::before {
-    width: clamp(320px, 34vw, 520px);
-    height: clamp(150px, 13vw, 190px);
-    top: 0;
-    left: clamp(32px, 10vw, 200px);
-    background: radial-gradient(
-        circle at 50% -120px,
-        transparent 0,
-        transparent 220px,
-        rgba(169, 119, 80, 0.14) 221px,
-        rgba(169, 119, 80, 0.14) 223px,
-        transparent 224px,
-        transparent 270px,
-        rgba(169, 119, 80, 0.10) 271px,
-        rgba(169, 119, 80, 0.10) 273px,
-        transparent 274px
-    );
-    animation: cc-arc-float 36s ease-in-out infinite alternate;
+    display: none !important;
 }
 
 .main-content::after {
@@ -431,8 +408,8 @@ body {
 }
 
 .admin-page-body :is(.page-header-title, .rb-page-title, .po-title, h1, h2) {
-    color: var(--cc-text) !important;
-    font-weight: 800 !important;
+    color: var(--cc-text);
+    font-weight: 800;
     letter-spacing: -0.02em;
 }
 

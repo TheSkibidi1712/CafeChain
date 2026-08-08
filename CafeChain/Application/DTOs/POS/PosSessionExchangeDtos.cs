@@ -21,6 +21,7 @@ public static class PosSessionExchangeErrorCodes
     public const string Invalid = "POS_EXCHANGE_CODE_INVALID";
     public const string ContextRequired = "POS_OPEN_CONTEXT_REQUIRED";
     public const string ContextInvalid = "POS_OPEN_CONTEXT_INVALID";
+    public const string Cancelled = "POS_OPEN_CONTEXT_CANCELLED";
 }
 
 public sealed class PosSessionExchangeContextDto
@@ -37,9 +38,16 @@ public sealed class PosSessionExchangeContextDto
     public DateTime? PlannedEndUtc { get; set; }
     public string? Reason { get; set; }
     public Guid? OtpChallengePublicId { get; set; }
+    public Guid? LateOpenApprovalPublicId { get; set; }
     public int? WorkShiftId { get; set; }
     public bool RequiresStaffHubOpen { get; set; }
     public bool RequiresOpeningCash { get; set; }
+    public DateTime? CancelledAtUtc { get; set; }
+}
+
+public sealed class CancelPosOpeningRequestDto
+{
+    public string? Reason { get; set; }
 }
 
 public sealed record PosSessionExchangeTicketDto(string ExchangeCode, DateTime ExpiresAtUtc, int ContextId);

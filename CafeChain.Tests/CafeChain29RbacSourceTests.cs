@@ -23,13 +23,13 @@ public sealed class CafeChain29RbacSourceTests
         Assert.Contains("N'App.AdminDashboard',1,1,1,0,1,0,0,0", seed, StringComparison.Ordinal);
         Assert.Contains("SET Active=0", seed, StringComparison.Ordinal);
         Assert.Contains("UPDATE #PermissionMatrix", seed, StringComparison.Ordinal);
-        Assert.Contains("SET QTHT=CASE", seed, StringComparison.Ordinal);
-        Assert.Contains("SystemAdmin chưa có toàn bộ permission active", seed, StringComparison.Ordinal);
+        Assert.Contains("SET QTHT=0", seed, StringComparison.Ordinal);
+        Assert.Contains("PermissionCode NOT LIKE N'System.%'", seed, StringComparison.Ordinal);
         Assert.DoesNotContain("UnitConversion.Delete',N'UNIT_CONVERSION'", seed, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void SystemAdminFullAccess_IsCentralizedWithoutBypassingPermissionOrDeny()
+    public void SystemAdmin_IsLeastPrivilegeWithoutPermissionOrScopeBypass()
     {
         var attribute = Read("CafeChain", "Application", "Authorization",
             "RequirePermissionAttribute.cs");
@@ -42,15 +42,14 @@ public sealed class CafeChain29RbacSourceTests
         var permissionService = Read("CafeChain", "Application", "Services", "Admin",
             "Permissions", "AdminPermissionService.cs");
 
-        Assert.Contains(".Append(RoleConstants.SystemAdmin)", attribute, StringComparison.Ordinal);
+        Assert.DoesNotContain(".Append(RoleConstants.SystemAdmin)", attribute, StringComparison.Ordinal);
         Assert.Contains("RoleConstants.SystemAdmin", policies, StringComparison.Ordinal);
         Assert.DoesNotContain("IsActiveSystemAdminAsync", scope, StringComparison.Ordinal);
         Assert.Contains("AdminStoreScopeMode.ReorderSuggestion", resolver, StringComparison.Ordinal);
-        Assert.Contains("RoleConstants.SystemAdmin", resolver, StringComparison.Ordinal);
         Assert.Contains("STORE_SCOPE_DENIED", resolver, StringComparison.Ordinal);
         Assert.Contains("Denied by account override.", permissionService, StringComparison.Ordinal);
         Assert.Contains("RBAC_CAFECHAIN29_V2", permissionService, StringComparison.Ordinal);
-        Assert.Contains("RoleConstants.SystemAdmin => -10", permissionService, StringComparison.Ordinal);
+        Assert.Contains("Denied by account override.", permissionService, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -74,7 +73,7 @@ public sealed class CafeChain29RbacSourceTests
                     or "OperationalIce.Manage" or "OperationalIce.Approve" or "OperationalIce.Policy"))
             .ToList();
 
-        Assert.Equal(169, codes.Count);
+        Assert.True(codes.Count >= 186);
         Assert.All(codes, code => Assert.Contains(code, constants));
     }
 

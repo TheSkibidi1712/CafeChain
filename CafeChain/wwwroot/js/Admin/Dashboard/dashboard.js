@@ -17,9 +17,12 @@
         store: document.getElementById("dashboardStore"), granularity: document.getElementById("dashboardGranularity"),
         top: document.getElementById("dashboardTop"), preset: document.getElementById("dashboardPreset")
     };
+    fields.province.disabled = root.dataset.canSelectProvince !== "true";
+    fields.district.disabled = root.dataset.canSelectDistrict !== "true";
+    fields.store.disabled = root.dataset.canSelectStore !== "true";
     const cache = new Map();
     const charts = new Map();
-    let activeSection = "Executive";
+    let activeSection = root.dataset.defaultSection || "Executive";
     let activeRequest = null;
     let isAiActive = false;
 

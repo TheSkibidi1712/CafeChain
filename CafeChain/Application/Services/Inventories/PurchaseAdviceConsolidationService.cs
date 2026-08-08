@@ -4,6 +4,7 @@ using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
@@ -19,17 +20,20 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
     private readonly IScopeAuthorizationService _scopeAuthorization;
     private readonly IPhysicalUnitConversionService _physicalConversion;
     private readonly IUnitConversionService? _unitConversion;
+    private readonly IAdminPermissionService? _permissions;
 
     public PurchaseAdviceConsolidationService(
         AppDbContext context,
         IScopeAuthorizationService scopeAuthorization,
         IPhysicalUnitConversionService physicalConversion,
-        IUnitConversionService? unitConversion = null)
+        IUnitConversionService? unitConversion = null,
+        IAdminPermissionService? permissions = null)
     {
         _context = context;
         _scopeAuthorization = scopeAuthorization;
         _physicalConversion = physicalConversion;
         _unitConversion = unitConversion;
+        _permissions = permissions;
     }
 
     public async Task<ServiceResult<PurchaseAdviceConsolidationPageDto>> GetQueueAsync(
@@ -158,7 +162,7 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
         PurchaseAdviceConsolidationPreviewRequest request,
         AdminActorContext actor)
     {
-        if (!CanConsolidate(actor))
+        if (!await HasAnyPermissionAsync(actor, PermissionConstants.PurchaseAdviceConsolidate))
             return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.Forbidden, "Chỉ Kế toán/kho hoặc Chủ doanh nghiệp được tổng hợp đề nghị mua.");
         if (request.SupplierId <= 0 || request.Lines.Count == 0)
             return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, "Hãy chọn Nhà cung cấp và ít nhất một dòng đề nghị mua.");
@@ -680,19 +684,15 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
 
     private async Task<List<ReadableStore>> ResolveReadableStoresAsync(AdminActorContext actor)
     {
-        if (!actor.RoleNames.Any(role => role is RoleConstants.SystemAdmin
-                or RoleConstants.BusinessOwner
-                or RoleConstants.AccountantWarehouse
-                or RoleConstants.StoreManager
-                or RoleConstants.AreaManager))
-            return new();
+        if (_permissions == null || actor.AccountId <= 0) return new();
         var storeRows = await _context.Stores.AsNoTracking().Where(x => x.Active)
             .OrderBy(x => x.Name)
             .Select(x => new { x.StoreId, x.Name, x.ProvinceId, AreaName = x.Province != null ? x.Province.Name : null })
             .ToListAsync();
         var allowed = new List<ReadableStore>();
         foreach (var store in storeRows)
-            if (await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, store.StoreId))
+            if (await HasPermissionAsync(actor, store.StoreId, PermissionConstants.PurchaseAdviceConsolidate)
+                && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, store.StoreId))
                 allowed.Add(new ReadableStore(store.StoreId, store.Name, store.ProvinceId, store.AreaName));
         return allowed;
     }
@@ -707,11 +707,19 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             : _physicalConversion.ConvertAsync(quantity, fromUnitId, toUnitId);
 
     private static decimal Remaining(decimal requested, decimal allocated, decimal closed) => Math.Max(0m, requested - allocated - closed);
-    private static bool CanConsolidate(AdminActorContext actor) =>
-        HasRole(actor, RoleConstants.AccountantWarehouse)
-        || HasRole(actor, RoleConstants.BusinessOwner)
-        || HasRole(actor, RoleConstants.SystemAdmin);
-    private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
+    private async Task<bool> HasAnyPermissionAsync(AdminActorContext actor, string code)
+    {
+        if (_permissions == null || actor.AccountId <= 0) return false;
+        var effective = await _permissions.GetEffectivePermissionCodesAsync(actor.AccountId);
+        return effective.IsSuccess && effective.Data?.Contains(code) == true;
+    }
+
+    private async Task<bool> HasPermissionAsync(AdminActorContext actor, int storeId, string code)
+    {
+        if (_permissions == null || actor.AccountId <= 0) return false;
+        var decision = await _permissions.HasPermissionAsync(actor.AccountId, code, storeId);
+        return decision.IsSuccess && decision.Data?.Allowed == true;
+    }
     private static bool VersionMatches(byte[] current, string? provided)
     {
         if (current.Length == 0 && string.IsNullOrWhiteSpace(provided)) return true;
