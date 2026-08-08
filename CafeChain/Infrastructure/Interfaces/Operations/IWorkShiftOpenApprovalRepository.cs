@@ -10,6 +10,8 @@ public interface IWorkShiftOpenApprovalRepository
         int sourceStaffShiftId, string terminalId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<WorkShiftOpenApprovalRequest>> GetPendingForStoresAsync(
         IReadOnlyCollection<int> storeIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<WorkShiftOpenApprovalRequest>> GetDueForExpiryAsync(
+        DateTime nowUtc, int take, CancellationToken cancellationToken = default);
     Task AddAsync(WorkShiftOpenApprovalRequest request, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);

@@ -34,6 +34,8 @@ public sealed class OperationalAnomalyDto
     public int StoreId { get; init; }
     public string MetricCode { get; init; } = string.Empty;
     public string PeriodKey { get; init; } = string.Empty;
+    public DateTime BusinessDate { get; init; }
+    public string DetectionVersion { get; init; } = string.Empty;
     public decimal CurrentValue { get; init; }
     public decimal BaselineValue { get; init; }
     public decimal PercentageDeviation { get; init; }
@@ -42,6 +44,15 @@ public sealed class OperationalAnomalyDto
     public string Confidence { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public IReadOnlyList<string> ReasonCodes { get; init; } = [];
+    public string MetricDisplayName { get; init; } = string.Empty;
+    public string CurrentValueDisplay { get; init; } = string.Empty;
+    public string BaselineValueDisplay { get; init; } = string.Empty;
+    public string DeviationDisplay { get; init; } = string.Empty;
+    public string SeverityDisplay { get; init; } = string.Empty;
+    public string StatusDisplay { get; init; } = string.Empty;
+    public string ConfidenceDisplay { get; init; } = string.Empty;
+    public IReadOnlyList<string> ReasonSummaries { get; init; } = [];
+    public IReadOnlyList<string> SuggestedChecks { get; init; } = [];
     public DateTime CreatedAtUtc { get; init; }
     public string RowVersion { get; init; } = string.Empty;
 }
@@ -51,6 +62,7 @@ public sealed class AnomalyFeedbackDto
     public int Id { get; init; }
     public string Action { get; init; } = string.Empty;
     public string? Feedback { get; init; }
+    public string? Note { get; init; }
     public string RowVersion { get; init; } = string.Empty;
 }
 
@@ -84,6 +96,12 @@ public sealed class AnomalyExplanationContextDto
     public decimal BaselineValue { get; init; }
     public decimal RobustScore { get; init; }
     public IReadOnlyList<string> ReasonCodes { get; init; } = [];
+    public string MetricDisplayName { get; init; } = string.Empty;
+    public string CurrentValueDisplay { get; init; } = string.Empty;
+    public string BaselineValueDisplay { get; init; } = string.Empty;
+    public string DirectionDescription { get; init; } = string.Empty;
+    public IReadOnlyList<string> ReasonSummaries { get; init; } = [];
+    public IReadOnlyList<string> SuggestedChecks { get; init; } = [];
 }
 
 public sealed class TypedExplanationResultDto

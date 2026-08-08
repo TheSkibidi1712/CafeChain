@@ -290,6 +290,8 @@ namespace CafeChain.Extensions.Services
 
             // Admin - Dashboard
             services.AddScoped<IDashboardService, DashboardService>();
+            services.AddScoped<IDashboardAuthorizationService, DashboardAuthorizationService>();
+            services.AddSingleton<IBusinessDateService, BusinessDateService>();
             services.AddScoped<IDashboardIntelligenceService, DashboardIntelligenceService>();
             services.AddOptions<DashboardIntelligenceOptions>()
                 .BindConfiguration(DashboardIntelligenceOptions.SectionName);
@@ -297,6 +299,8 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Services.AI.ForecastService>();
             services.AddScoped<CafeChain.Application.Interfaces.AI.ISupplierIntelligenceService,
                 CafeChain.Application.Services.AI.SupplierIntelligenceService>();
+            services.AddScoped<CafeChain.Application.Interfaces.AI.ISupplierIntelligenceFeatureGate,
+                CafeChain.Application.Services.AI.SupplierIntelligenceFeatureGate>();
             services.AddOptions<ForecastingOptions>().BindConfiguration(ForecastingOptions.SectionName);
             services.AddOptions<SupplierIntelligenceOptions>().BindConfiguration(SupplierIntelligenceOptions.SectionName);
             services.AddScoped<CafeChain.Application.Interfaces.AI.IPosRecommendationService,

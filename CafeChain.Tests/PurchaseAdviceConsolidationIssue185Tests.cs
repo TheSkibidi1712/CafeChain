@@ -3,6 +3,8 @@ using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.DTOs.Admin.Permissions;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
@@ -252,11 +254,26 @@ public sealed class PurchaseAdviceConsolidationIssue185Tests : IntegrationTestBa
             .ReturnsAsync((decimal quantity, int _, int _) => conversionSucceeds
                 ? ServiceResult<decimal>.Success(quantity)
                 : ServiceResult<decimal>.Failure("incompatible"));
-        return new PurchaseAdviceConsolidationService(db, scope.Object, physical.Object);
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.GetEffectivePermissionCodesAsync(It.IsAny<int>()))
+            .ReturnsAsync((int accountId) => ServiceResult<HashSet<string>>.Success(
+                accountId == 999 ? new HashSet<string>() : new HashSet<string> { PermissionConstants.PurchaseAdviceConsolidate }));
+        permissions.Setup(x => x.HasPermissionAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int?>()))
+            .ReturnsAsync((int accountId, string code, int? storeId) => ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+            {
+                AccountId = accountId,
+                PermissionCode = code,
+                TargetStoreId = storeId,
+                Allowed = accountId > 0 && accountId != 999,
+                RoleAllowed = accountId > 0 && accountId != 999,
+                ScopeAllowed = accountId > 0 && accountId != 999
+            }));
+        return new PurchaseAdviceConsolidationService(db, scope.Object, physical.Object, permissions: permissions.Object);
     }
 
     private static AdminActorContext Warehouse(Seed seed) => new()
     {
+        AccountId = seed.WarehouseId,
         StaffId = seed.WarehouseId,
         RoleNames = new[] { RoleConstants.AccountantWarehouse }
     };

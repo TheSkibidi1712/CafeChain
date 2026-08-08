@@ -9,6 +9,8 @@ public class OperationalAnomaly
     public int StoreId { get; set; }
     public string MetricCode { get; set; } = string.Empty;
     public string PeriodKey { get; set; } = string.Empty;
+    public DateTime BusinessDate { get; set; }
+    public string DetectionVersion { get; set; } = "v1";
     public decimal CurrentValue { get; set; }
     public decimal BaselineValue { get; set; }
     public decimal AbsoluteDeviation { get; set; }
@@ -26,10 +28,14 @@ public class OperationalAnomaly
     public DateTime? AcknowledgedAtUtc { get; set; }
     public int? AcknowledgedByStaffId { get; set; }
     public DateTime? ResolvedAtUtc { get; set; }
+    public int? ResolvedByStaffId { get; set; }
+    public string? ResolutionNote { get; set; }
     public string? Feedback { get; set; }
+    public string? FeedbackNote { get; set; }
     public int? FeedbackByStaffId { get; set; }
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     public virtual Store Store { get; set; } = null!;
     public virtual Staff? AcknowledgedByStaff { get; set; }
     public virtual Staff? FeedbackByStaff { get; set; }
+    public virtual Staff? ResolvedByStaff { get; set; }
 }

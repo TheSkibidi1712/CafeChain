@@ -35,7 +35,7 @@ interface ShiftSummaryDto {
   staffName?: string | null
   responsibleStaffId?: number | null
   currentOperatorStaffId?: number | null
-  currentOperatorStaffName?: string | null
+  currentOperatorName?: string | null
   operatorChangedAtUtc?: string | null
   startTime?: string | null
   endTime?: string | null
@@ -408,8 +408,11 @@ export default function ShiftSummary() {
         return
       }
 
+      const selectedOperatorName = response.data.currentOperatorName
+        || operatorCandidates.find((candidate) => candidate.staffId === selectedOperatorId)?.fullName
+        || 'nhân viên đã chọn'
       setShift(response.data)
-      setMessage({ type: 'success', text: 'Đã đổi người thao tác POS thành công.' })
+      setMessage({ type: 'success', text: `Người đang thao tác POS: ${selectedOperatorName}.` })
       setShowOperatorPanel(false)
       setSelectedOperatorId('')
       operatorRequestKeyRef.current = crypto.randomUUID()
@@ -600,6 +603,27 @@ export default function ShiftSummary() {
         type: 'error',
         text: getUnexpectedErrorMessage(error, 'Không thể mở ca.'),
       })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleCancelOpening = async () => {
+    if (!window.confirm('Hủy mở ca và quay lại StaffHub? WorkShift sẽ không được tạo.')) return
+    setIsSubmitting(true)
+    setMessage(null)
+    try {
+      const response = await apiClient.post<ShiftActionResponse>('/api/v1/pos/shifts/cancel-open', {
+        reason: 'USER_CANCELLED_BEFORE_OPENING_CASH',
+      })
+      if (!response.ok) {
+        setMessage({ type: 'error', text: getApiErrorMessage(response, 'Không thể hủy mở ca.') })
+        return
+      }
+      clearPosAuthentication()
+      window.location.assign(new URL('/StaffHub', API_BASE_URL).toString())
+    } catch (error) {
+      setMessage({ type: 'error', text: getUnexpectedErrorMessage(error, 'Không thể hủy mở ca.') })
     } finally {
       setIsSubmitting(false)
     }
@@ -1149,6 +1173,14 @@ export default function ShiftSummary() {
             >
               {isSubmitting ? 'Đang mở ca...' : 'Xác nhận mở ca'}
             </button>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => void handleCancelOpening()}
+              className="ml-2 px-4 py-2.5 border border-red-200 bg-red-50 text-red-700 text-xs font-bold rounded-lg disabled:opacity-40"
+            >
+              Hủy mở ca và quay lại StaffHub
+            </button>
           </form>
         ) : (
           <>
@@ -1178,11 +1210,21 @@ export default function ShiftSummary() {
                   <p className="text-text-secondary">Nhân viên chịu trách nhiệm</p>
                   <p className="font-bold text-text-primary mt-1">{shift?.staffName || session.staffName}</p>
                 </div>
-                <div>
+                <div aria-live="polite">
                   <p className="text-text-secondary">Người đang thao tác</p>
-                  <p className="font-bold text-brand-orange mt-1">
-                    {shift?.currentOperatorStaffName || shift?.staffName || session.staffName}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <p className="font-bold text-brand-orange">
+                      {shift?.currentOperatorName || shift?.staffName || session.staffName}
+                    </p>
+                    <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-green-700">
+                      Đang thao tác
+                    </span>
+                  </div>
+                  {shift?.operatorChangedAtUtc && (
+                    <p className="mt-1 text-[10px] font-semibold text-text-muted">
+                      Đổi lúc {formatDateTime(shift.operatorChangedAtUtc)}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <p className="text-text-secondary">Mở ca</p>

@@ -3,6 +3,9 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using CafeChain.Models.Permissions;
+using CafeChain.Models.Customers;
+using CafeChain.Application.Constants;
 
 namespace CafeChain.Tests
 {
@@ -136,6 +139,27 @@ namespace CafeChain.Tests
             // Tạo schema qua TestDbContext — loại bỏ SQL Server syntax incompatible
             using var context = CreateDbContext();
             context.Database.EnsureCreated();
+            // Production defaults come from Scripts/SeedAll.sql. SQLite tests use
+            // an explicit local fixture so they do not depend on EF HasData.
+            context.Roles.AddRange(
+                new Role { RoleId = 1, Name = RoleConstants.BusinessOwner, Active = true, CreatedAt = new DateTime(2026, 1, 1) },
+                new Role { RoleId = 2, Name = RoleConstants.AreaManager, Active = true, CreatedAt = new DateTime(2026, 1, 1) },
+                new Role { RoleId = 3, Name = RoleConstants.StoreManager, Active = true, IsStoreLevel = true, CreatedAt = new DateTime(2026, 1, 1) },
+                new Role { RoleId = 4, Name = RoleConstants.SalesStaff, Active = true, IsStoreLevel = true, CreatedAt = new DateTime(2026, 1, 1) },
+                new Role { RoleId = 5, Name = RoleConstants.AccountantWarehouse, Active = true, IsStoreLevel = true, CreatedAt = new DateTime(2026, 1, 1) },
+                new Role { RoleId = 6, Name = RoleConstants.SystemAdmin, Active = true, CreatedAt = new DateTime(2026, 1, 1) },
+                new Role { RoleId = 7, Name = RoleConstants.Customer, Active = true, CreatedAt = new DateTime(2026, 1, 1) },
+                new Role { RoleId = 8, Name = RoleConstants.ShiftSupervisor, Active = true, IsStoreLevel = true, CreatedAt = new DateTime(2026, 1, 1) });
+            context.AccountRoles.AddRange(
+                new AccountRole { AccountId = 1, RoleId = 1 },
+                new AccountRole { AccountId = 2, RoleId = 2 },
+                new AccountRole { AccountId = 3, RoleId = 3 },
+                new AccountRole { AccountId = 4, RoleId = 4 },
+                new AccountRole { AccountId = 5, RoleId = 5 },
+                new AccountRole { AccountId = 6, RoleId = 6 },
+                new AccountRole { AccountId = 7, RoleId = 7 },
+                new AccountRole { AccountId = 15, RoleId = 8 });
+            context.SaveChanges();
         }
 
         /// <summary>

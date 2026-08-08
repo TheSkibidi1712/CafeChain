@@ -22,3 +22,19 @@
         }
     </section>
 </main>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+if (window.signalR?.HubConnectionBuilder) {
+    const sessionConnection = new signalR.HubConnectionBuilder()
+        .withUrl('/hubs/workshifts')
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+        .build();
+    sessionConnection.on('PosAccessSessionChanged', function () { window.location.reload(); });
+    sessionConnection.onreconnected(function () { window.location.reload(); });
+    sessionConnection.start().catch(function (error) {
+        console.warn('[pos-access-sessions] Realtime unavailable; manual refresh remains available.', error);
+    });
+    window.addEventListener('pagehide', function () { void sessionConnection.stop(); }, { once: true });
+}
+}, { once: true });
+</script>

@@ -3,6 +3,8 @@ using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.DTOs.Admin.Permissions;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
@@ -505,7 +507,14 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
         var physical = new Mock<IPhysicalUnitConversionService>();
         physical.Setup(x => x.ConvertAsync(It.IsAny<decimal>(), It.IsAny<int>(), It.IsAny<int>()))
             .ReturnsAsync((decimal quantity, int _, int _) => ServiceResult<decimal>.Success(quantity));
-        var consolidation = new PurchaseAdviceConsolidationService(db, scope.Object, physical.Object);
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.GetEffectivePermissionCodesAsync(It.IsAny<int>()))
+            .ReturnsAsync((int accountId) => ServiceResult<HashSet<string>>.Success(
+                accountId > 0 ? new HashSet<string> { PermissionConstants.PurchaseAdviceConsolidate } : new HashSet<string>()));
+        permissions.Setup(x => x.HasPermissionAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int?>()))
+            .ReturnsAsync((int accountId, string code, int? storeId) => ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+            { AccountId = accountId, PermissionCode = code, TargetStoreId = storeId, Allowed = accountId > 0, RoleAllowed = accountId > 0, ScopeAllowed = accountId > 0 }));
+        var consolidation = new PurchaseAdviceConsolidationService(db, scope.Object, physical.Object, permissions: permissions.Object);
         return new PurchaseOrderBatchService(db, consolidation, scope.Object, fulfillment);
     }
 
@@ -522,8 +531,8 @@ public sealed class PurchaseOrderBatchIssue186Tests : IntegrationTestBase
         }).ToList()
     };
 
-    private static AdminActorContext Warehouse(Seed seed) => new() { StaffId = seed.WarehouseId, RoleNames = new[] { RoleConstants.AccountantWarehouse } };
-    private static AdminActorContext Owner(Seed seed) => new() { StaffId = seed.OwnerId, RoleNames = new[] { RoleConstants.BusinessOwner } };
+    private static AdminActorContext Warehouse(Seed seed) => new() { AccountId = seed.WarehouseId, StaffId = seed.WarehouseId, RoleNames = new[] { RoleConstants.AccountantWarehouse } };
+    private static AdminActorContext Owner(Seed seed) => new() { AccountId = seed.OwnerId, StaffId = seed.OwnerId, RoleNames = new[] { RoleConstants.BusinessOwner } };
 
     private static async Task<Seed> SeedAsync(
         AppDbContext db,

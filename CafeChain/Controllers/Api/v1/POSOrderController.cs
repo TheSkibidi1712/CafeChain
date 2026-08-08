@@ -33,19 +33,22 @@ namespace CafeChain.Controllers.Api.v1
         private readonly ILogger<POSOrderController> _logger;
         private readonly IOrderAccessAuthorizationService? _orderAccessAuthorization;
         private readonly IPosSessionExchangeService? _posSessionExchangeService;
+        private readonly IPosAccessSessionService? _posAccessSessions;
 
         public POSOrderController(
             IPOSOrderService orderService,
             IInventoryDeductionService inventoryService,
             ILogger<POSOrderController> logger,
             IOrderAccessAuthorizationService? orderAccessAuthorization = null,
-            IPosSessionExchangeService? posSessionExchangeService = null)
+            IPosSessionExchangeService? posSessionExchangeService = null,
+            IPosAccessSessionService? posAccessSessions = null)
         {
             _orderService = orderService;
             _inventoryService = inventoryService;
             _logger = logger;
             _orderAccessAuthorization = orderAccessAuthorization;
             _posSessionExchangeService = posSessionExchangeService;
+            _posAccessSessions = posAccessSessions;
         }
 
         // ============================================================
@@ -64,6 +67,9 @@ namespace CafeChain.Controllers.Api.v1
 
             if (dto == null || dto.Items == null || !dto.Items.Any())
                 return BadRequest(new { success = false, message = "Giỏ hàng trống." });
+
+            var sessionGuard = await BindServerWorkShiftAsync(dto);
+            if (sessionGuard != null) return sessionGuard;
 
             var result = await _orderService.CommitOrderAsync(dto, CurrentStaffId, CurrentStoreId);
 
@@ -320,6 +326,34 @@ namespace CafeChain.Controllers.Api.v1
                 workShiftId = context.WorkShiftId,
                 message = "Vui lòng xác nhận tiền đầu phiên trước khi bán hàng."
             });
+        }
+
+        private async Task<IActionResult?> BindServerWorkShiftAsync(POSOrderCommitDto dto)
+        {
+            // Optional only for legacy unit tests. Production DI always supplies the durable session service.
+            if (_posAccessSessions == null) return null;
+            if (CurrentPosAccessSessionId == Guid.Empty)
+                return Unauthorized(new { success = false, errorCode = "POS_SESSION_INVALID" });
+
+            var session = await _posAccessSessions.GetAsync(CurrentPosAccessSessionId);
+            if (!session.IsSuccess)
+                return Unauthorized(new
+                {
+                    success = false,
+                    errorCode = session.ErrorCode,
+                    message = session.Message
+                });
+            if (session.Data?.WorkShiftId is not > 0)
+                return Conflict(new
+                {
+                    success = false,
+                    errorCode = WorkShiftErrorCodes.OpeningCashRequired,
+                    recommendedAction = WorkShiftRecommendedActions.EnterOpeningCash,
+                    message = "POS access session chưa được bind với WorkShift hợp lệ."
+                });
+
+            dto.BoundWorkShiftId = session.Data.WorkShiftId;
+            return null;
         }
 
         // ============================================================

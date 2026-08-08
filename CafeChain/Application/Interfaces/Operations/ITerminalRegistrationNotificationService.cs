@@ -5,6 +5,12 @@ namespace CafeChain.Application.Interfaces.Operations;
 
 public interface ITerminalRegistrationNotificationService
 {
+    Task<ServiceResult<OtpRevealResultDto>> RevealOperationalOtpAsync(
+        int approverStaffId,
+        int notificationId,
+        IReadOnlyCollection<int>? allowedStoreIds = null);
+
+    // Compatibility alias retained for one release cycle.
     Task<ServiceResult<OtpRevealResultDto>> RevealOtpAsync(
         int approverStaffId,
         int notificationId,

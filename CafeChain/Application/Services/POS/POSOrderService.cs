@@ -258,7 +258,9 @@ namespace CafeChain.Application.Services.POS
                 }
             }
 
-            var activeShift = await _workShiftService.GetActiveShiftAsync(userId, storeId);
+            var activeShift = dto.BoundWorkShiftId is > 0
+                ? await _workShiftService.GetShiftByIdAsync(dto.BoundWorkShiftId.Value, userId, storeId)
+                : await _workShiftService.GetActiveShiftAsync(userId, storeId);
             if (activeShift == null)
                 return ServiceResult<object>.Failure("Phiên két tiền đã đóng, vui lòng mở ca mới để tiếp tục bán hàng.");
 
@@ -275,7 +277,9 @@ namespace CafeChain.Application.Services.POS
             try
             {
                 // Re-read inside the serializable transaction. UI state is never the authority.
-                activeShift = await _workShiftService.GetActiveShiftAsync(userId, storeId);
+                activeShift = dto.BoundWorkShiftId is > 0
+                    ? await _workShiftService.GetShiftByIdAsync(dto.BoundWorkShiftId.Value, userId, storeId)
+                    : await _workShiftService.GetActiveShiftAsync(userId, storeId);
                 if (activeShift == null)
                 {
                     await _repository.RollbackTransactionAsync();

@@ -25,6 +25,7 @@ public sealed class StaffScheduleService : IStaffScheduleService
             StaffName = staff.FullName,
             StoreName = staff.Store.Name,
             AvatarUrl = staff.AvatarUrl,
+            OperatorPinConfigured = !string.IsNullOrWhiteSpace(staff.PosPinHash),
             WeekStart = weekStart,
             Schedules = staff.StaffShifts.OrderBy(x => x.WorkDate).ThenBy(x => x.CustomStartTime ?? x.Shift.StartTime)
                 .Select(x =>

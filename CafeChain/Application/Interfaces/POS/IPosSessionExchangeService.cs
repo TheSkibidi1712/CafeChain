@@ -24,4 +24,8 @@ public interface IPosSessionExchangeService
         int storeId,
         int workShiftId,
         CancellationToken cancellationToken = default);
+
+    Task<CafeChain.Application.Results.ServiceResult<PosSessionExchangeContextDto>> CancelOpeningAsync(
+        int contextId, int accountId, int staffId, int storeId, Guid sessionId,
+        CancellationToken cancellationToken = default);
 }

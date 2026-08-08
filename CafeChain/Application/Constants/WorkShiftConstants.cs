@@ -35,6 +35,7 @@ public static class WorkShiftErrorCodes
     public const string LateOpenApprovalPending = "LATE_OPEN_APPROVAL_PENDING";
     public const string LateOpenApprovalRejected = "LATE_OPEN_APPROVAL_REJECTED";
     public const string LateOpenApprovalExpired = "LATE_OPEN_APPROVAL_EXPIRED";
+    public const string LateOpenRequiresOutsideSchedule = "LATE_OPEN_REQUIRES_OUTSIDE_SCHEDULE";
     public const string PosSessionRevoked = "POS_SESSION_REVOKED";
     public const string PosSessionEnded = "POS_SESSION_ENDED";
     public const string PosSessionExpired = "POS_SESSION_EXPIRED";

@@ -30,5 +30,15 @@ namespace CafeChain.Application.Interfaces.POS
             OtpResendDto request,
             int requestedByStaffId,
             int storeId);
+
+        Task<ServiceResult<OtpChallengeResponseDto>> CancelTerminalRegistrationOtpAsync(
+            OtpCancelDto request,
+            int requestedByStaffId,
+            int storeId);
+
+        Task<ServiceResult<OtpChallengeResponseDto>> CancelOpenPosOtpAsync(
+            OtpCancelDto request,
+            int requestedByStaffId,
+            int storeId);
     }
 }

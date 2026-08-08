@@ -420,7 +420,8 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             return stale.Count;
         }
 
-        public async Task<IReadOnlyList<(int ChallengeId, Guid PublicId, int ApproverStaffId, int? NotificationId)>>
+        public async Task<IReadOnlyList<(int ChallengeId, Guid PublicId, int ApproverStaffId,
+            int RequestedByStaffId, string ActionType, string? TerminalId, DateTime ExpiresAtUtc, int? NotificationId)>>
             ExpireDueChallengesAsync(DateTime utcNow, CancellationToken cancellationToken = default)
         {
             var activeStatuses = new[] { OtpConstants.Statuses.Pending, OtpConstants.Statuses.Approved };
@@ -430,7 +431,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .Take(200)
                 .ToListAsync(cancellationToken);
             if (due.Count == 0)
-                return Array.Empty<(int, Guid, int, int?)>();
+                return Array.Empty<(int, Guid, int, int, string, string?, DateTime, int?)>();
 
             var ids = due.Select(x => x.OtpChallengeId).ToArray();
             var notifications = await _context.StaffNotifications
@@ -458,6 +459,10 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     x.OtpChallengeId,
                     x.PublicId,
                     x.ApproverStaffId,
+                    x.RequestedByStaffId,
+                    x.ActionType,
+                    x.TerminalId,
+                    x.ExpiresAt,
                     notificationByChallenge.GetValueOrDefault(x.OtpChallengeId)))
                 .ToArray();
         }

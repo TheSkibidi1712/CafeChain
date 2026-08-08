@@ -125,6 +125,34 @@ public sealed class StaffHubPreviewOpenPosControllerTests
         otp.VerifyAll();
     }
 
+    [Fact]
+    public async Task Cancel_terminal_registration_is_scoped_to_current_staff_and_store()
+    {
+        var challengeId = Guid.NewGuid();
+        var otp = new Mock<IOtpApprovalService>();
+        otp.Setup(x => x.CancelTerminalRegistrationOtpAsync(
+                It.Is<OtpCancelDto>(request => request.OtpChallengePublicId == challengeId),
+                4,
+                1))
+            .ReturnsAsync(ServiceResult<OtpChallengeResponseDto>.Success(new OtpChallengeResponseDto
+            {
+                OtpChallengePublicId = challengeId,
+                Status = OtpConstants.Statuses.Cancelled
+            }));
+        var controller = CreateController(
+            Mock.Of<IWorkShiftService>(),
+            Mock.Of<IPosSessionExchangeService>(),
+            otp.Object);
+
+        var response = await controller.CancelTerminalRegistrationOtp(new OtpCancelDto
+        {
+            OtpChallengePublicId = challengeId
+        });
+
+        Assert.IsType<OkObjectResult>(response);
+        otp.VerifyAll();
+    }
+
     private static StaffHubController CreateController(
         IWorkShiftService workShifts,
         IPosSessionExchangeService exchange,

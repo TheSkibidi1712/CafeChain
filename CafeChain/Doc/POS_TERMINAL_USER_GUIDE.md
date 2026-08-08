@@ -2,119 +2,125 @@
 
 ## 1. Terminal POS là gì?
 
-Terminal POS là định danh của một thiết bị hoặc một quầy bán hàng cụ thể trong cửa hàng. Ví dụ:
+Terminal là định danh của một thiết bị hoặc quầy bán hàng, ví dụ `Quầy chính`, `Quầy mang đi` hoặc `POS 02`. Terminal không phải nhân viên, lịch làm việc hay WorkShift.
 
-- `Quầy chính` dành cho máy bán hàng tại quầy thu ngân.
-- `Quầy mang đi` dành cho thiết bị xử lý đơn mang đi.
-- `Máy POS 02` dành cho thiết bị bán hàng thứ hai.
+- `Shift`: mẫu giờ dự kiến.
+- `StaffShift`: lịch đã phân cho nhân viên.
+- `WorkShift`: phiên chịu trách nhiệm POS/két.
+- `Terminal`: thiết bị/quầy mà WorkShift sử dụng.
 
-Terminal không phải là nhân viên, `Shift`, `StaffShift` hay `WorkShift`:
+Nhân viên bắt buộc phải chọn một Terminal active thuộc đúng cửa hàng trước khi mở POS. Một Terminal chỉ có tối đa một WorkShift ở trạng thái `OPEN`, `CLOSING` hoặc `EXPIRED_PENDING_CLOSE`.
 
-- `Shift` là mẫu giờ dự kiến của cửa hàng.
-- `StaffShift` là lịch dự kiến đã phân cho nhân viên.
-- `WorkShift` là phiên chịu trách nhiệm POS/két của một nhân viên.
-- Terminal là thiết bị/quầy mà WorkShift đang sử dụng.
-
-## 2. Terminal dùng để làm gì?
-
-Terminal giúp backend xác định chính xác quầy nào đang chịu trách nhiệm cho một phiên POS. Terminal được dùng để:
-
-- Gắn WorkShift với đúng thiết bị hoặc quầy bán hàng.
-- Ngăn hai nhân viên cùng mở phiên trên một quầy tại cùng thời điểm.
-- Gắn order, payment, dữ liệu offline và thông tin két với đúng WorkShift.
-- Gửi cập nhật SignalR tới đúng cửa hàng, nhân viên và terminal liên quan.
-- Hỗ trợ audit, điều tra sai lệch và đối soát khi có giao dịch đồng bộ muộn.
-- Bảo đảm nhân viên không tự chọn terminal thuộc cửa hàng khác.
-
-Terminal chỉ là định danh trách nhiệm thiết bị. Terminal không tự tạo lịch làm việc, không chấm công và không dùng để tính lương.
-
-## 3. Có bắt buộc phải dùng Terminal không?
-
-**Có. Nhân viên bắt buộc phải chọn một terminal active trước khi mở POS.**
-
-Tuy nhiên, không phải lần nào cũng cần đăng ký terminal mới:
-
-- Nếu cửa hàng đã có terminal phù hợp và đang trống, chỉ cần chọn terminal đó.
-- Chỉ đăng ký terminal mới khi cửa hàng có thiết bị/quầy mới chưa tồn tại trong danh sách.
-- Không tạo terminal mới để né lỗi terminal đang được sử dụng.
-
-Backend không cho mở WorkShift khi terminal không tồn tại, bị vô hiệu hóa, thuộc cửa hàng khác hoặc đang có phiên active.
-
-## 4. Khi nào Terminal được xem là đang sử dụng?
-
-Một terminal đang bị khóa trách nhiệm nếu có WorkShift thuộc một trong các trạng thái:
-
-- `OPEN`: phiên đang bán hàng.
-- `CLOSING`: phiên đang chốt két.
-- `EXPIRED_PENDING_CLOSE`: phiên đã hết thời lượng nhưng chưa kiểm đếm và đóng.
-
-Nếu chọn terminal đang bị khóa, hệ thống trả:
-
-```text
-TERMINAL_ALREADY_HAS_OPEN_SHIFT
-```
-
-Người dùng phải chọn terminal khác hoặc chờ phiên cũ được xử lý. Không được gắn nhân viên mới vào WorkShift của người khác, tự chiếm terminal hoặc chuyển đơn/tiền giữa hai WorkShift.
-
-`CLOSED` và `RECONCILIATION_REQUIRED` không thuộc nhóm active đang khóa terminal. Dữ liệu của phiên cũ vẫn giữ nguyên `WorkShiftId` để đối soát riêng.
-
-## 5. Quy trình chọn Terminal khi mở POS
+## 2. Chọn Terminal để mở POS
 
 1. Đăng nhập StaffHub.
-2. Tại phần `Terminal POS`, chọn terminal phù hợp với quầy đang sử dụng.
-3. Bấm `Mở POS`.
-4. Backend kiểm tra terminal tồn tại, active, đúng cửa hàng và chưa có WorkShift active.
-5. StaffHub tiếp tục đánh giá lịch, lý do và OTP nếu cần.
-6. Sau khi được xác nhận, StaffHub phát exchange code và chuyển sang POS.
-7. POS chỉ yêu cầu nhập tiền đầu phiên.
+2. Tại **Terminal POS**, chọn đúng quầy đang sử dụng.
+3. Bấm **Mở POS**.
+4. Backend kiểm tra Terminal tồn tại, active, đúng cửa hàng và đang trống.
+5. StaffHub tiếp tục đánh giá đúng lịch, trễ hoặc ngoài lịch.
+6. Sau khi đủ điều kiện, StaffHub chuyển sang POS; WorkShift chỉ được tạo khi người dùng bấm **Xác nhận mở ca** với tiền đầu ca.
 
-Không thể bỏ qua bước chọn terminal bằng cách sửa `TerminalId`, `StoreId` hoặc URL trên trình duyệt; backend luôn kiểm tra lại bằng identity và dữ liệu server.
+Không thể sửa `TerminalId`, `StoreId` hoặc URL để vượt kiểm tra backend.
 
-## 6. Đăng ký Terminal mới
+## 3. Khi nào cần đăng ký Terminal mới?
 
-Đăng ký terminal được thực hiện tại StaffHub:
+Chỉ đăng ký khi cửa hàng có thiết bị/quầy mới chưa tồn tại. Không tạo Terminal mới để né lỗi `TERMINAL_ALREADY_HAS_OPEN_SHIFT`.
 
-1. Bấm `Đăng ký terminal`.
-2. Nhập tên terminal dễ nhận biết.
-3. Bấm `Gửi OTP`.
-4. Người có quyền `POS.WorkShift.OverrideTerminal` và đúng store scope phê duyệt OTP.
-5. Nhập OTP và bấm `Xác nhận và đăng ký`.
-6. Sau khi thành công, trang tải lại và terminal xuất hiện trong danh sách.
+Tài khoản demo:
 
-OTP đăng ký terminal có thời hạn, cooldown gửi lại, dùng một lần và bind với requester, approver, store, terminal cùng RequestKey.
+| Vai trò | Tài khoản | Mục đích |
+|---|---|---|
+| Requester | `salesstaff@cafechain.vn` | gửi yêu cầu đăng ký |
+| Ca trưởng | `shiftsupervisor@cafechain.vn` | nhận OTP ngoài lịch; mặc định không xác nhận Terminal |
+| Quản lý chi nhánh | `storemanager@cafechain.vn` | xác nhận Terminal |
 
-## 7. Cách đặt tên Terminal
+Mật khẩu demo đã seed: `The@1712`. Không dùng credential production trong tài liệu.
 
-Tên nên phản ánh vị trí hoặc mục đích của thiết bị:
+## 4. Requester gửi yêu cầu đăng ký
 
-- Nên dùng: `Quầy chính`, `Quầy mang đi`, `Tầng 2 - POS 01`.
-- Không nên dùng: `Máy mới`, `Test`, `ABC` hoặc tên trùng nhau khó phân biệt.
+1. Đăng nhập `salesstaff@cafechain.vn` và mở StaffHub.
+2. Bấm **Đăng ký terminal**.
+3. Nhập tên dễ nhận biết.
+4. Bấm **Gửi yêu cầu xác nhận Terminal**.
+5. UI hiển thị đang chờ Store Manager/người có `POS.WorkShift.OverrideTerminal` trong đúng StaffScope.
 
-Không đưa mật khẩu, OTP, tên khách hàng hoặc dữ liệu nhạy cảm vào tên terminal.
+Yêu cầu có TTL 5 phút, cooldown gửi lại và được bind với requester, approver, Store, Terminal cùng RequestKey. Đóng modal không làm mất yêu cầu; mở lại sẽ khôi phục trạng thái từ backend.
 
-## 8. Terminal bị vô hiệu hóa hoặc sai cửa hàng
+## 5. Store Manager xác nhận Terminal
 
-- `TERMINAL_NOT_FOUND`: terminal chưa được đăng ký.
-- `TERMINAL_INACTIVE`: terminal đã bị vô hiệu hóa hoặc cửa hàng không còn active.
-- `TERMINAL_STORE_MISMATCH`: terminal thuộc cửa hàng khác.
-- `TERMINAL_ALREADY_HAS_OPEN_SHIFT`: terminal đang có WorkShift active.
+1. Đăng nhập `storemanager@cafechain.vn`.
+2. Mở **Thông báo** tại `/Admin/AdminNotifications` hoặc bấm popup **Có yêu cầu xác nhận POS mới** → **Mở Thông báo**.
+3. Tìm notification **Yêu cầu OTP: Xác nhận đăng ký terminal POS**.
+4. Bấm **Xem OTP**. Mã được điền vào ô xác nhận nhưng hệ thống không tự submit.
+5. Kiểm tra tên Terminal, requester và cửa hàng.
+6. Bấm **Xác nhận Terminal**.
 
-Không tự đăng ký lại cùng thiết bị ở cửa hàng khác để bỏ qua lỗi. Người có quyền quản lý phải kiểm tra đúng terminal, store scope và phiên đang giữ trách nhiệm.
+Chỉ notification `REGISTER_POS_TERMINAL` hiển thị form **Xác nhận Terminal**. Backend tạo Terminal, consume OTP, resolve notification, audit và phát realtime trong một transaction. Double-click hoặc replay cùng RequestKey không được tạo hai Terminal.
 
-## 9. Lưu ý bảo mật và vận hành
+## 6. Phân biệt với OTP mở POS ngoài lịch
 
-- Không dùng chung một terminal cho hai quầy đang bán đồng thời.
-- Không chia sẻ OTP đăng ký terminal cho người không có trách nhiệm.
-- Không sửa hoặc xóa định danh terminal trong trình duyệt để né kiểm soát.
-- Trước khi chuyển thiết bị cho nhân viên khác, phải hoàn tất đóng/kiểm đếm WorkShift cũ.
-- Order và payment đồng bộ muộn luôn giữ WorkShift cũ; terminal mới không nhận lại doanh thu của phiên trước.
-- Khi thiết bị hỏng hoặc thay thế, quản lý cần vô hiệu hóa terminal cũ theo quy trình quản trị thay vì tạo nhiều terminal không kiểm soát.
+Notification ngoài lịch có tên **Xác nhận mở POS ngoài lịch** và chỉ hiển thị **Xem OTP**. Ca trưởng/người duyệt cung cấp mã cho requester; requester nhập mã tại StaffHub rồi bấm **Xác nhận OTP**. Notification ngoài lịch tuyệt đối không hiển thị form **Xác nhận Terminal**.
 
-## 10. Tóm tắt
+Ưu tiên người duyệt OTP ngoài lịch:
 
 ```text
-Chọn terminal active và đang trống: bắt buộc để mở POS.
-Đăng ký terminal mới: chỉ cần khi chưa có terminal phù hợp.
-Một terminal: tối đa một WorkShift active responsibility.
-Terminal: định danh thiết bị/quầy, không phải lịch làm việc hay chấm công.
+Ca trưởng
+→ Store Manager
+→ Area Manager
+→ Business Owner
 ```
+
+Candidate phải active, có email hợp lệ, không phải requester, có `POS.WorkShift.ApproveOutsideSchedule` và StaffScope chứa Store.
+
+## 7. Gửi lại, hủy và hết hạn
+
+- **Gửi lại OTP** chỉ hoạt động sau cooldown; mã cũ bị vô hiệu và expiry mới được phát realtime.
+- **Hủy yêu cầu xác nhận Terminal** chuyển challenge chưa dùng sang `CANCELLED`, resolve notification và xóa protected OTP; không xóa audit.
+- OTP hết hạn thật hiển thị `Expired`; requester phải tạo yêu cầu mới.
+- SMTP lỗi không hủy challenge. Người duyệt vẫn dùng **Thông báo → Xem OTP**.
+- Popup, SignalR, list DTO, notification body và log không chứa OTP plaintext.
+
+## 8. Trạng thái và lỗi thường gặp
+
+| Trạng thái/lỗi | Ý nghĩa |
+|---|---|
+| `Waiting` | đang chờ người duyệt |
+| `Approved` | OTP mở ngoài lịch đã được requester xác minh |
+| `Used` | Terminal đã được xác nhận hoặc OTP đã được consume |
+| `Expired` | hết TTL |
+| `Cancelled` | requester đã hủy |
+| `Locked` | vượt số lần thử |
+| `NO_ELIGIBLE_APPROVER` | không có người duyệt đúng quyền, email và scope |
+| `OTP_CONTEXT_MISMATCH` | sai notification, challenge, requester hoặc Store |
+| `TERMINAL_ALREADY_HAS_OPEN_SHIFT` | quầy đang có phiên chịu trách nhiệm |
+
+Giờ gửi/hết hạn hiển thị theo `Asia/Ho_Chi_Minh`; countdown dùng `ExpiresAtUtc - ServerNowUtc`, không dựa vào đồng hồ trình duyệt.
+
+## 9. PIN thao tác và Current Operator
+
+1. Thẻ **PIN thao tác POS** tại StaffHub hiển thị **Chưa thiết lập** hoặc **Đã thiết lập** từ backend.
+2. Sau khi lưu PIN, badge chuyển xanh, nút thành **Đổi PIN** và vẫn đúng khi reload.
+3. Tại **Quản lý ca**, bấm **Đổi người thao tác**, chọn nhân viên và nhập PIN cá nhân của chính người sắp thao tác.
+4. Chức năng này dùng để bàn giao thao tác bán hàng trên cùng quầy mà không phải đóng két rồi mở ca mới. Order, Payment và audit phát sinh sau đó ghi nhận nhân viên thực tế đang thao tác.
+5. Trang Két và header bán hàng hiển thị người **Đang thao tác** cùng thời điểm đổi; các tab cùng Terminal/Store cập nhật qua SignalR.
+6. `WorkShift.UserId`, người chịu trách nhiệm két, tiền đầu ca và trách nhiệm tài chính vẫn thuộc người mở ca. Đây không phải bàn giao két hay chuyển quyền sở hữu WorkShift.
+7. Backend chỉ cho đổi khi account còn hoạt động, có `POS.Operator.Switch` và thuộc đúng StaffScope. PIN là mã cá nhân, không được chia sẻ.
+
+## 10. Xử lý mở ca trễ từ 30 phút
+
+1. Nhân viên nhập lý do và bấm **Gửi yêu cầu Manager** tại StaffHub; luồng này không dùng OTP.
+2. Người có `POS.WorkShift.ApproveLateOpen` và đúng StaffScope nhận thông báo.
+3. Từ **Thông báo**, bấm **Xem và duyệt yêu cầu** hoặc mở menu **Nhân sự & Vận hành → Duyệt mở ca trễ**.
+4. Trễ từ 30 đến 45 phút: Manager có thể **Duyệt mở ca**, **Từ chối** hoặc **Chuyển ngoài lịch**.
+5. Trễ trên 45 phút: **Duyệt mở ca** bị khóa; chỉ còn **Từ chối** và **Chuyển ngoài lịch**.
+6. Nếu chuyển ngoài lịch, hệ thống đổi ngữ cảnh mở ca nhưng không sửa lịch nhân viên và không tạo WorkShift tại màn duyệt.
+7. Requester sang POS nhập tiền đầu ca; WorkShift ngoài lịch chỉ được tạo khi bấm **Xác nhận mở ca**.
+8. Nếu từ chối, requester không được tiếp tục bằng lịch cũ.
+
+Tại POS trước khi xác nhận tiền đầu ca, **Hủy mở ca và quay lại StaffHub** sẽ kết thúc POS access session chưa bind, vô hiệu exchange context và hủy OTP/approval chưa dùng. Nếu WorkShift đã tồn tại, backend trả 409 và giữ nguyên ca.
+
+## 11. Liên kết nghiệp vụ
+
+- [Luồng người dùng StaffHub/POS](./STAFFHUB_USER_BUSINESS_FLOWS.md)
+- [Quy tắc nghiệp vụ StaffHub/POS/WorkShift](./STAFFHUB_POS_WORKSHIFT_BUSINESS_RULES.md)
+- [Hướng dẫn Dashboard/AI/Anomaly/Supplier](./DASHBOARD_AI_ANOMALY_SUPPLIER_USER_GUIDE.md)

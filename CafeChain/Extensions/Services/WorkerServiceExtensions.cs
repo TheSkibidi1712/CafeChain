@@ -15,6 +15,8 @@ namespace CafeChain.Extensions.Services
             services.AddHostedService<AnomalyDetectionWorker>();
             services.AddHostedService<WorkShiftExpiryWorker>();
             services.AddHostedService<OtpExpiryWorker>();
+            services.AddHostedService<WorkShiftOpenApprovalExpiryWorker>();
+            services.AddHostedService<PosAccessSessionExpiryWorker>();
 
             return services;
         }

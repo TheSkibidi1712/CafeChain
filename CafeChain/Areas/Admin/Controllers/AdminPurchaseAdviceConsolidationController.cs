@@ -45,6 +45,8 @@ public sealed class AdminPurchaseAdviceConsolidationController : AdminStoreScope
         }, _actorAccessor.Get(User));
         if (!result.IsSuccess) return Failure(result.ErrorCode, result.Message);
         ViewBag.CanConsolidate = await HasEffectivePermissionAsync(PermissionConstants.PurchaseAdviceConsolidate);
+        ViewBag.CanUseSupplierIntelligence = await HasEffectivePermissionAsync(PermissionConstants.SupplierQualityView)
+            && await HasEffectivePermissionAsync(PermissionConstants.PurchaseAdviceView);
         return View(result.Data);
     }
 
@@ -73,6 +75,8 @@ public sealed class AdminPurchaseAdviceConsolidationController : AdminStoreScope
         ViewBag.SelectedSupplierId = request.SupplierId;
         ViewBag.SubmittedSelections = submittedSelections;
         ViewBag.CanConsolidate = await HasEffectivePermissionAsync(PermissionConstants.PurchaseAdviceConsolidate);
+        ViewBag.CanUseSupplierIntelligence = await HasEffectivePermissionAsync(PermissionConstants.SupplierQualityView)
+            && await HasEffectivePermissionAsync(PermissionConstants.PurchaseAdviceView);
         return View("Index", page.Data);
     }
 
