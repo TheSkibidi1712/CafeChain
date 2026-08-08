@@ -317,15 +317,25 @@ textarea.form-control,
 }
 
 .rb-list-filters {
-    display: grid;
-    grid-template-columns: minmax(260px, 1fr) minmax(180px, 240px) auto;
-    gap: 12px;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    gap: 12px;
     background: var(--cc-surface-raised, #ffffff);
     border: 1px solid var(--cc-border, #e9ded4);
     border-radius: var(--cc-radius-lg, 16px);
     padding: 14px 18px;
     box-shadow: var(--cc-shadow-sm, 0 4px 10px rgba(32, 24, 18, 0.06));
+}
+
+.rb-list-filters .form-control {
+    flex: 1 1 280px;
+    min-width: 240px;
+}
+
+.rb-list-filters .form-select {
+    flex: 0 0 200px;
+    min-width: 160px;
 }
 
 .rb-list-meta {
@@ -571,8 +581,11 @@ textarea.form-control,
 }
 
 /* Action Cell Buttons in Index */
-.rb-actions-cell {
-    white-space: nowrap;
+.rb-actions-cell,
+.rb-prepareditem-actions-cell {
+    white-space: nowrap !important;
+    min-width: 310px;
+    text-align: center;
 }
 
 .rb-table-action {
@@ -589,6 +602,7 @@ textarea.form-control,
     background: var(--cc-surface-raised, #ffffff);
     font-size: 12.5px;
     font-weight: 700;
+    white-space: nowrap !important;
     text-decoration: none;
     transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
 }
@@ -745,3 +759,311 @@ textarea.form-control,
         position: sticky;
     }
 }
+
+/* ==========================================================================
+   PREPARED ITEM & RECIPE MODALS / FORM SECTIONS
+   ========================================================================== */
+.rb-modal {
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    border-radius: var(--cc-radius-modal, 18px) !important;
+    overflow: hidden;
+    box-shadow: var(--cc-shadow-lg, 0 18px 48px rgba(32, 24, 18, 0.14)) !important;
+}
+
+.rb-modal .modal-header {
+    background: linear-gradient(112deg, var(--cc-surface-raised, #ffffff) 0%, var(--cc-surface-muted, #fbf7f2) 100%) !important;
+    border-bottom: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    padding: 20px 24px !important;
+}
+
+.rb-modal-heading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.rb-modal-heading-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--cc-brown-600, #70482f);
+    color: #ffffff;
+    font-size: 1.15rem;
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.2);
+}
+
+.rb-modal-heading .modal-title {
+    font-size: 1.25rem;
+    font-weight: 850;
+    color: var(--cc-brown-900, #3d2418);
+    margin: 0;
+}
+
+.rb-modal-subtitle {
+    color: var(--cc-text-muted, #8c7b70);
+    font-size: 13px;
+}
+
+.rb-modal-section {
+    background: var(--cc-surface-muted, #fbf7f2);
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-md, 12px);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+}
+
+.rb-modal-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--cc-border-strong, #d8c5b6);
+    color: var(--cc-brown-600, #70482f);
+}
+
+.rb-modal-section-heading i {
+    font-size: 1.1rem;
+}
+
+.rb-modal-section-heading strong {
+    display: block;
+    color: var(--cc-brown-900, #3d2418);
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.rb-modal-section-heading span {
+    display: block;
+    color: var(--cc-text-muted, #8c7b70);
+    font-size: 12px;
+}
+
+.rb-modal .modal-footer {
+    background: var(--cc-surface-raised, #ffffff) !important;
+    border-top: 1px solid var(--cc-border, #e9ded4) !important;
+    padding: 16px 24px !important;
+}
+
+/* SweetAlert2 Confirm Popup Theme Alignment */
+.swal2-popup.rb-confirm-popup {
+    border-radius: 18px !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    font-family: inherit !important;
+    box-shadow: var(--cc-shadow-lg, 0 18px 48px rgba(32, 24, 18, 0.14)) !important;
+}
+
+.swal2-popup.rb-confirm-popup .swal2-title {
+    color: var(--cc-brown-900, #3d2418) !important;
+    font-weight: 850 !important;
+}
+
+.swal2-popup.rb-confirm-popup .swal2-html-container {
+    color: var(--cc-text-secondary, #66584f) !important;
+    font-size: 14px !important;
+}
+
+.rb-confirm-primary {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 40px !important;
+    padding: 0 20px !important;
+    border-radius: 10px !important;
+    background: var(--cc-brown-600, #70482f) !important;
+    border: 1px solid var(--cc-brown-600, #70482f) !important;
+    color: #ffffff !important;
+    font-weight: 750 !important;
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.2) !important;
+}
+
+.rb-confirm-cancel {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 40px !important;
+    padding: 0 18px !important;
+    border-radius: 10px !important;
+    background: var(--cc-surface-muted, #fbf7f2) !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    color: var(--cc-brown-900, #3d2418) !important;
+    font-weight: 750 !important;
+    margin-right: 8px !important;
+}
+
+/* ==========================================================================
+   PURE CSS CENTER ALIGNMENT & BEAUTIFICATION FOR 3 BOM MODULES
+   1. Danh mục BTP (AdminPreparedItem)
+   2. Công thức BOM (AdminRecipe)
+   3. Tình trạng dữ liệu BOM (AdminRecipe/DataHealth)
+   ========================================================================== */
+
+/* ==========================================================================
+   GLOBAL PURE CSS CENTER ALIGNMENT FOR ALL TABLES & ALL COLUMNS
+   ========================================================================== */
+.admin-page-body .table th,
+.admin-page-body .table td,
+.rb-page .table th,
+.rb-page .table td,
+.rb-table th,
+.rb-table td,
+.rb-prepareditem-table th,
+.rb-prepareditem-table td,
+.rb-recipe-table th,
+.rb-recipe-table td,
+.rb-health-table th,
+.rb-health-table td,
+#bomTable th,
+#bomTable td {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+/* Ensure flex containers & identity blocks inside table cells are centered */
+.admin-page-body .table td .d-flex,
+.rb-page .table td .d-flex,
+.rb-table td .d-flex,
+.rb-prepareditem-table td .d-flex,
+.rb-recipe-table td .d-flex,
+.rb-health-table td .d-flex,
+.rb-health-identity {
+    justify-content: center !important;
+    text-align: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+.rb-prepareditem-actions-cell > div,
+.rb-actions-cell > div {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+
+.rb-health-reasons {
+    text-align: center !important;
+}
+
+.rb-health-reasons .rb-health-reason {
+    display: inline-block !important;
+    text-align: center !important;
+}
+
+.rb-health-actions {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+.rb-health-action-menu {
+    display: inline-block !important;
+}
+
+.rb-health-action-trigger {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    height: 34px !important;
+    padding: 0 14px !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    border-radius: var(--cc-radius-sm, 8px) !important;
+    background: var(--cc-surface-raised, #ffffff) !important;
+    color: var(--cc-brown-900, #3d2418) !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    box-shadow: var(--cc-shadow-xs, 0 1px 2px rgba(32, 24, 18, 0.05)) !important;
+    transition: all 0.16s ease !important;
+}
+
+.rb-health-action-trigger:hover,
+.rb-health-action-trigger:focus {
+    border-color: var(--cc-brown-600, #70482f) !important;
+    background: var(--cc-brown-600, #70482f) !important;
+    color: #ffffff !important;
+}
+
+.rb-health-action-count {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 18px !important;
+    height: 18px !important;
+    padding: 0 5px !important;
+    border-radius: 999px !important;
+    background: var(--cc-surface-active, #f4e9df) !important;
+    color: var(--cc-brown-600, #70482f) !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+}
+
+/* ==========================================================================
+   TOP HORIZONTAL SCROLLBAR & STICKY COLUMN HEADER SCROLLBAR FOR TABLES
+   ========================================================================== */
+
+/* 1. Place horizontal scrollbar right at top of table-responsive using 180deg flip */
+.rb-page .table-responsive,
+.admin-page-body .table-responsive,
+.rb-card .table-responsive {
+    overflow-x: auto !important;
+    transform: rotateX(180deg) !important;
+    -webkit-transform: rotateX(180deg) !important;
+    border-radius: var(--cc-radius-card, 14px);
+    margin-bottom: 0;
+}
+
+/* 2. Flip table content right side up */
+.rb-page .table-responsive > .table,
+.admin-page-body .table-responsive > .table,
+.rb-card .table-responsive > .table {
+    transform: rotateX(180deg) !important;
+    -webkit-transform: rotateX(180deg) !important;
+    margin-bottom: 0 !important;
+}
+
+/* 3. Sticky Column Headers at Top */
+.rb-page .table thead th,
+.admin-page-body .table thead th,
+.rb-card .table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 5 !important;
+    background-color: var(--cc-surface-muted, #faf6f0) !important;
+    box-shadow: 0 1px 0 var(--cc-border-strong, #d8c5b6) !important;
+}
+
+/* 4. Premium Coffee-Brown Horizontal Scrollbar Styling */
+.rb-page .table-responsive::-webkit-scrollbar,
+.admin-page-body .table-responsive::-webkit-scrollbar,
+.rb-card .table-responsive::-webkit-scrollbar {
+    height: 10px !important;
+    width: 10px !important;
+}
+
+.rb-page .table-responsive::-webkit-scrollbar-track,
+.admin-page-body .table-responsive::-webkit-scrollbar-track,
+.rb-card .table-responsive::-webkit-scrollbar-track {
+    background: #f4e9df !important;
+    border-radius: 999px !important;
+}
+
+.rb-page .table-responsive::-webkit-scrollbar-thumb,
+.admin-page-body .table-responsive::-webkit-scrollbar-thumb,
+.rb-card .table-responsive::-webkit-scrollbar-thumb {
+    background: #70482f !important;
+    border-radius: 999px !important;
+    border: 2px solid #f4e9df !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.rb-page .table-responsive::-webkit-scrollbar-thumb:hover,
+.admin-page-body .table-responsive::-webkit-scrollbar-thumb:hover,
+.rb-card .table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #3d2418 !important;
+}
+
+
+

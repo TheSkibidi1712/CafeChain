@@ -12,6 +12,7 @@ using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
+    // Admin Purchase Orders Controller - Printable PO View Updated (No Signatures, Added Addresses & GIAO TẠI Section)
     [RequirePermission(PermissionConstants.PurchaseOrderView)]
     public sealed class AdminPurchaseOrdersController : AdminStoreScopedController
     {

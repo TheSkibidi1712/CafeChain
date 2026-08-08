@@ -97,6 +97,26 @@
             padding: 20px 24px;
         }
 
+        .po-delivery-box {
+            margin-bottom: 28px;
+            padding: 20px 24px;
+            background: #FAF6F0;
+            border: 1px solid #EAE2D9;
+            border-left: 5px solid #6F4E37;
+            border-radius: 12px;
+        }
+
+        .po-delivery-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #2B1A12;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #E2D7CD;
+        }
+
         .po-info-box h3 {
             font-size: 0.9rem;
             font-weight: 800;
@@ -166,12 +186,7 @@
         }
 
         .po-signatures {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 32px;
-            text-align: center;
-            margin-top: 48px;
-            page-break-inside: avoid;
+            display: none !important;
         }
 
         .po-sign-title {
@@ -256,29 +271,71 @@
         <!-- 2 Columns Info -->
         <div class="po-doc-grid">
             <div class="po-info-box">
-                <h3>Bên Đặt Hàng (Khách Hàng)</h3>
+                <h3>Bên Đặt Hàng (Cửa Hàng Nhận)</h3>
                 <div class="po-info-line"><strong>Đơn vị:</strong> Chuỗi Cửa Hàng Cà Phê CafeChain</div>
-                <div class="po-info-line"><strong>Địa điểm nhận:</strong> @Model.StoreName</div>
-                <div class="po-info-line"><strong>Người tạo đơn:</strong> #@Model.CreatedByStaffId</div>
+                <div class="po-info-line"><strong>Cửa hàng nhận:</strong> @Model.StoreName</div>
+                @if (!string.IsNullOrWhiteSpace(Model.StoreAddress))
+                {
+                    <div class="po-info-line"><strong>Địa chỉ:</strong> @Model.StoreAddress</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.StorePhone))
+                {
+                    <div class="po-info-line"><strong>Liên hệ:</strong> @Model.StorePhone</div>
+                }
+                <div class="po-info-line"><strong>Người tạo đơn:</strong> Nhân viên #@Model.CreatedByStaffId</div>
             </div>
             <div class="po-info-box">
                 <h3>Nhà Cung Cấp (Đối Tác)</h3>
                 <div class="po-info-line"><strong>Tên NCC:</strong> @Model.SupplierName</div>
-                <div class="po-info-line"><strong>Mã NCC:</strong> #@Model.SupplierId</div>
+                @if (!string.IsNullOrWhiteSpace(Model.SupplierTaxCode))
+                {
+                    <div class="po-info-line"><strong>MST:</strong> @Model.SupplierTaxCode</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.SupplierAddress))
+                {
+                    <div class="po-info-line"><strong>Địa chỉ:</strong> @Model.SupplierAddress</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.SupplierContactInfo))
+                {
+                    <div class="po-info-line"><strong>Liên hệ:</strong> @Model.SupplierContactInfo</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.SupplierEmail))
+                {
+                    <div class="po-info-line"><strong>Email:</strong> @Model.SupplierEmail</div>
+                }
                 <div class="po-info-line"><strong>Ngày giao dự kiến:</strong> @(Model.ExpectedDeliveryAtUtc.HasValue ? Model.ExpectedDeliveryAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy") : "Theo thỏa thuận")</div>
             </div>
+        </div>
+
+        <!-- Delivery Destination Banner (GIAO TẠI...) -->
+        <div class="po-delivery-box">
+            <h2 class="po-delivery-title">GIAO TẠI @Model.StoreName.ToUpper() · @Model.Code</h2>
+            @if (!string.IsNullOrWhiteSpace(Model.StoreAddress))
+            {
+                <div class="po-info-line"><strong>Địa chỉ:</strong> @Model.StoreAddress</div>
+            }
+            <div class="po-info-line">
+                <strong>Người nhận:</strong> Quản lý chi nhánh @Model.StoreName @(!string.IsNullOrWhiteSpace(Model.StorePhone) ? $"· {Model.StorePhone}" : "")
+            </div>
+            <div class="po-info-line">
+                <strong>Cần trước:</strong> @(Model.ExpectedDeliveryAtUtc.HasValue ? Model.ExpectedDeliveryAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy") : "Theo thỏa thuận")
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.Note))
+            {
+                <div class="po-info-line"><strong>Ghi chú:</strong> @Model.Note</div>
+            }
         </div>
 
         <!-- Line Items Table -->
         <table class="po-print-table">
             <thead>
                 <tr>
-                    <th class="text-center" style="width: 50px;">STT</th>
-                    <th>Tên nguyên liệu</th>
-                    <th>Phương thức</th>
-                    <th class="text-center">Số lượng</th>
-                    <th class="text-end">Đơn giá</th>
-                    <th class="text-end">Thành tiền</th>
+                    <th class="text-center" style="width: 45px; white-space: nowrap;">STT</th>
+                    <th style="white-space: nowrap;">Tên nguyên liệu</th>
+                    <th class="text-center" style="white-space: nowrap;">Phương thức</th>
+                    <th class="text-center" style="white-space: nowrap;">Số lượng</th>
+                    <th class="text-end" style="white-space: nowrap;">Đơn giá</th>
+                    <th class="text-end" style="white-space: nowrap;">Thành tiền</th>
                 </tr>
             </thead>
             <tbody>
@@ -292,12 +349,12 @@
                             : 0m);
 
                     <tr>
-                        <td class="text-center">@(idx++)</td>
-                        <td>
-                            <strong>@line.IngredientName</strong>
-                            <div class="ops-secondary">Mã dòng: #@line.PurchaseOrderLineId</div>
+                        <td class="text-center align-middle" style="white-space: nowrap;">@(idx++)</td>
+                        <td class="align-middle" style="white-space: nowrap;">
+                            <strong class="d-block" style="white-space: nowrap;">@line.IngredientName</strong>
+                            <div class="ops-secondary small text-muted" style="white-space: nowrap;">Mã dòng: #@line.PurchaseOrderLineId</div>
                         </td>
-                        <td>
+                        <td class="text-center align-middle" style="white-space: nowrap;">
                             @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose)
                             {
                                 <span>Mua rời</span>
@@ -307,17 +364,17 @@
                                 <span>Theo gói/thùng</span>
                             }
                         </td>
-                        <td class="text-center">
+                        <td class="text-center align-middle" style="white-space: nowrap;">
                             @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose)
                             {
-                                <strong>@AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.GetValueOrDefault())</strong> @AdminStatusDisplay.Unit(line.ProcurementUnitName)
+                                <span><strong>@AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.GetValueOrDefault())</strong> @AdminStatusDisplay.Unit(line.ProcurementUnitName)</span>
                             }
                             else
                             {
-                                <strong>@AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault())</strong> <span>gói</span>
+                                <span><strong>@AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault())</strong> gói</span>
                             }
                         </td>
-                        <td class="text-end">
+                        <td class="text-end align-middle" style="white-space: nowrap;">
                             @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose)
                             {
                                 <span>@AdminStatusDisplay.Currency(line.UnitPricePerProcurementUnit.GetValueOrDefault())</span>
@@ -327,7 +384,7 @@
                                 <span>@AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())</span>
                             }
                         </td>
-                        <td class="text-end fw-bold">@AdminStatusDisplay.Currency(lineAmount)</td>
+                        <td class="text-end align-middle fw-bold" style="white-space: nowrap;">@AdminStatusDisplay.Currency(lineAmount)</td>
                     </tr>
                 }
             </tbody>
@@ -349,20 +406,6 @@
                     <td class="text-end">@AdminStatusDisplay.Currency(Model.TotalAmount)</td>
                 </tr>
             </table>
-        </div>
-
-        <!-- Signatures Section -->
-        <div class="po-signatures">
-            <div>
-                <div class="po-sign-title">Đại diện Bên Đặt Hàng</div>
-                <div class="po-sign-sub">(Ký và ghi rõ họ tên)</div>
-                <div class="po-sign-name">Bộ phận Kế toán / Cung ứng CafeChain</div>
-            </div>
-            <div>
-                <div class="po-sign-title">Đại diện Nhà Cung Cấp</div>
-                <div class="po-sign-sub">(Ký, đóng dấu & ghi rõ họ tên)</div>
-                <div class="po-sign-name">@Model.SupplierName</div>
-            </div>
         </div>
     </div>
 </body>
