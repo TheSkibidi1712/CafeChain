@@ -39,6 +39,11 @@ public interface IStaffNotificationRepository
         string entityType,
         int entityId,
         CancellationToken cancellationToken = default);
+    Task<List<StaffNotification>> GetActiveByEntitiesAsync(
+        string type,
+        string entityType,
+        IReadOnlyCollection<int> entityIds,
+        CancellationToken cancellationToken = default);
     void Add(StaffNotification notification);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

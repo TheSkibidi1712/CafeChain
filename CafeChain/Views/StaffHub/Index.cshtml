@@ -29,17 +29,20 @@
      class="staffhub-page"
      data-preview-pos-url="@Url.Action("PreviewOpenPos", "StaffHub")"
      data-issue-pos-url="@Url.Action("IssuePosToken", "StaffHub")"
+     data-cancel-open-pos-url="@Url.Action("CancelOpenPosIntent", "StaffHub")"
      data-resume-pos-url="@Url.Action("IssueResumePosToken", "StaffHub")"
      data-request-open-otp-url="@Url.Action("RequestOpenPosOtp", "StaffHub")"
      data-open-otp-state-url="@Url.Action("GetOpenPosOtpState", "StaffHub")"
      data-request-terminal-otp-url="@Url.Action("RequestTerminalRegistrationOtp", "StaffHub")"
      data-terminal-otp-state-url="@Url.Action("GetTerminalRegistrationOtpState", "StaffHub")"
+     data-cancel-terminal-otp-url="@Url.Action("CancelTerminalRegistrationOtp", "StaffHub")"
      data-request-late-open-approval-url="@Url.Action("RequestLateOpenApproval", "StaffHub")"
      data-late-open-approval-state-url="@Url.Action("GetLateOpenApproval", "StaffHub")"
      data-verify-otp-url="@Url.Action("VerifyOperationalOtp", "StaffHub")"
      data-resend-otp-url="@Url.Action("ResendOperationalOtp", "StaffHub")"
      data-set-operator-pin-url="@Url.Action("SetOperatorPin", "StaffHub")"
-     data-register-terminal-url="@Url.Action("RegisterTerminal", "StaffHub")">
+     data-operator-pin-configured="@Model.OperatorPinConfigured.ToString().ToLowerInvariant()"
+     >
     <span id="staffHubLaunchOptions"
           data-auto-open-pos="@((ViewBag.AutoOpenPos is true).ToString().ToLowerInvariant())"
           data-requested-terminal-id="@(ViewBag.RequestedTerminalId as string ?? string.Empty)"
@@ -214,10 +217,25 @@
         {
             <section class="staffhub-note" aria-labelledby="operatorPinHeading">
                 <span class="staffhub-note-icon"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i></span>
-                <div>
-                    <strong id="operatorPinHeading">PIN thao tác POS</strong>
+                <div class="staffhub-operator-pin-copy">
+                    <div class="staffhub-operator-pin-heading">
+                        <strong id="operatorPinHeading">PIN thao tác POS</strong>
+                        <span id="operatorPinStateBadge"
+                              class="staffhub-pin-status @(Model.OperatorPinConfigured ? "is-configured" : "is-unconfigured")"
+                              role="status" aria-live="polite">
+                            <i class="bi @(Model.OperatorPinConfigured ? "bi-check-circle-fill" : "bi-exclamation-circle-fill")" aria-hidden="true"></i>
+                            <span>@(Model.OperatorPinConfigured ? "Đã thiết lập" : "Chưa thiết lập")</span>
+                        </span>
+                    </div>
                     <p>PIN cá nhân gồm 6 chữ số, dùng khi đổi Current Operator. PIN không thay đổi người chịu trách nhiệm két.</p>
-                    <button id="openOperatorPinDialog" type="button" class="staffhub-dialog-button is-secondary">Thiết lập hoặc đổi PIN</button>
+                    <p id="operatorPinStateText" class="staffhub-pin-state-text">
+                        @(Model.OperatorPinConfigured
+                            ? "PIN đã sẵn sàng để xác thực khi đổi người thao tác POS."
+                            : "Bạn cần thiết lập PIN trước khi có thể trở thành Current Operator.")
+                    </p>
+                    <button id="openOperatorPinDialog" type="button" class="staffhub-dialog-button is-secondary">
+                        @(Model.OperatorPinConfigured ? "Đổi PIN" : "Thiết lập PIN")
+                    </button>
                 </div>
             </section>
         }
@@ -302,12 +320,13 @@
                 <header class="staffhub-pos-dialog-header"><h2 id="terminalRegistrationDialogTitle">Đăng ký terminal POS</h2></header>
                 <div class="modal-body staffhub-pos-dialog-body">
                     <label>Tên terminal <input id="terminalRegistrationName" maxlength="100" /></label>
-                    <p>OTP sẽ được Store Manager xác nhận từ thông báo. Bạn có thể đóng hộp thoại; trạng thái và countdown được khôi phục từ máy chủ khi mở lại.</p>
+                    <p>Yêu cầu được gửi tới Store Manager hoặc người có quyền đăng ký Terminal. Người duyệt phải mở Thông báo, chọn <strong>Xem OTP</strong> rồi bấm <strong>Xác nhận Terminal</strong>.</p>
                     <small id="terminalRegistrationStatus" aria-live="polite"></small>
                 </div>
                 <footer class="staffhub-pos-dialog-actions">
                     <button id="cancelTerminalRegistration" type="button" class="staffhub-dialog-button is-secondary">Hủy</button>
-                    <button id="requestTerminalOtp" type="button" class="staffhub-dialog-button is-secondary">Gửi OTP</button>
+                    <button id="cancelTerminalRegistrationRequest" type="button" class="staffhub-dialog-button is-secondary" hidden>Hủy yêu cầu xác nhận Terminal</button>
+                    <button id="requestTerminalOtp" type="button" class="staffhub-dialog-button is-secondary">Gửi yêu cầu xác nhận Terminal</button>
                     <button id="resendTerminalOtp" type="button" class="staffhub-dialog-button is-primary" disabled hidden>Gửi lại OTP</button>
                 </footer>
             </form>
@@ -318,7 +337,7 @@
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <form id="operatorPinForm" class="modal-content staffhub-pos-dialog-card">
                 <header class="staffhub-pos-dialog-header">
-                    <h2 id="operatorPinDialogTitle">Thiết lập PIN thao tác POS</h2>
+                    <h2 id="operatorPinDialogTitle">@(Model.OperatorPinConfigured ? "Đổi PIN thao tác POS" : "Thiết lập PIN thao tác POS")</h2>
                 </header>
                 <div class="modal-body staffhub-pos-dialog-body">
                     <label>Mật khẩu hiện tại
@@ -340,5 +359,6 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.all.min.js"></script>
+    <script src="~/lib/microsoft-signalr/signalr.min.js" asp-append-version="true"></script>
     <script src="~/js/StaffHub/staffhub-schedule.js" asp-append-version="true"></script>
 }

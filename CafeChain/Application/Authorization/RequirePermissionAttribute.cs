@@ -28,7 +28,6 @@ public sealed class RequirePermissionAttribute : AuthorizeAttribute
         Roles = string.Join(
             ",",
             roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Append(RoleConstants.SystemAdmin)
                 .Distinct(StringComparer.Ordinal));
     }
 }

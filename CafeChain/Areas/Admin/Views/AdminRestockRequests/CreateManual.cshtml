@@ -54,37 +54,58 @@
                 <input type="hidden" asp-for="StoreId" />
                 <input type="hidden" asp-for="SourceType" />
                 <input type="hidden" asp-for="SourceReferenceId" />
-                <div class="ops-data-grid">
-                    <div>
-                        <label class="ops-form-label" asp-for="IngredientId">Nguyên liệu</label>
-                        <select class="ops-select" asp-for="IngredientId" required>
+                <div class="ops-form-grid">
+                    <div class="ops-form-field">
+                        <label class="ops-form-label" asp-for="IngredientId">Nguyên liệu <span class="ops-required">*</span></label>
+                        <select class="ops-select w-100" asp-for="IngredientId" required>
                             <option value="">Chọn nguyên liệu</option>
                             @foreach (var item in ingredients) { <option value="@item.IngredientId">@item.Name</option> }
                         </select>
+                        <span asp-validation-for="IngredientId" class="ops-text-danger"></span>
                     </div>
-                    <div>
-                        <label class="ops-form-label" asp-for="ProcurementUnitId">Đơn vị nhu cầu</label>
-                        <select class="ops-select" asp-for="ProcurementUnitId" required disabled>
+                    <div class="ops-form-field">
+                        <label class="ops-form-label" asp-for="ProcurementUnitId">Đơn vị nhu cầu <span class="ops-required">*</span></label>
+                        <select class="ops-select w-100" asp-for="ProcurementUnitId" required disabled>
                             <option value="">Chọn nguyên liệu trước</option>
                             @foreach (var unit in units) { <option value="@unit.UnitId">@unit.UnitCode · @unit.Name</option> }
                         </select>
+                        <span asp-validation-for="ProcurementUnitId" class="ops-text-danger"></span>
                     </div>
-                    <div><label class="ops-form-label" asp-for="RequestedProcurementQuantity">Số lượng yêu cầu</label><input class="ops-input" asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required /></div>
-                    <div><label class="ops-form-label" asp-for="NeedByDate">Cần trước ngày</label><input class="ops-input" asp-for="NeedByDate" type="date" /></div>
-                    <div>
+                    <div class="ops-form-field">
+                        <label class="ops-form-label" asp-for="RequestedProcurementQuantity">Số lượng yêu cầu <span class="ops-required">*</span></label>
+                        <input class="ops-input w-100" asp-for="RequestedProcurementQuantity" type="number" min="0.001" step="0.001" required />
+                        <span asp-validation-for="RequestedProcurementQuantity" class="ops-text-danger"></span>
+                    </div>
+                    <div class="ops-form-field">
+                        <label class="ops-form-label" asp-for="NeedByDate">Cần trước ngày</label>
+                        <input class="ops-input w-100" asp-for="NeedByDate" type="date" />
+                        <div class="ops-help">Ngày/tháng/năm</div>
+                        <span asp-validation-for="NeedByDate" class="ops-text-danger"></span>
+                    </div>
+                    <div class="ops-form-field">
                         <label class="ops-form-label" asp-for="Priority">Mức ưu tiên</label>
-                        <select class="ops-select" asp-for="Priority"><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="URGENT">Khẩn cấp</option></select>
+                        <select class="ops-select w-100" asp-for="Priority">
+                            <option value="NORMAL">Bình thường</option>
+                            <option value="HIGH">Cao</option>
+                            <option value="URGENT">Khẩn cấp</option>
+                        </select>
+                        <span asp-validation-for="Priority" class="ops-text-danger"></span>
                     </div>
-                    <div class="ops-help">
-                        <span class="ops-form-label">Mã yêu cầu</span>
-                        <span>Mã yêu cầu sẽ được hệ thống tự tạo sau khi lưu.</span>
+                    <div class="ops-form-field">
+                        <label class="ops-form-label">Mã yêu cầu</label>
+                        <input class="ops-input w-100" type="text" value="(Hệ thống tự động tạo sau khi lưu)" disabled readonly />
+                        <div class="ops-help">Tự động tạo mã dạng PR-YYYYMMDD-XXXX</div>
+                    </div>
+                    <div class="ops-form-field ops-form-field-wide">
+                        <label class="ops-form-label" asp-for="Note">Lý do / ghi chú</label>
+                        <textarea class="ops-textarea" asp-for="Note" maxlength="500" rows="3" placeholder="Nêu nguyên nhân phát sinh nhu cầu..."></textarea>
+                        <span asp-validation-for="Note" class="ops-text-danger"></span>
                     </div>
                 </div>
-                <div class="mt-3"><label class="ops-form-label" asp-for="Note">Lý do / ghi chú</label><textarea class="ops-textarea" asp-for="Note" maxlength="500" rows="3" placeholder="Nêu nguyên nhân phát sinh nhu cầu..."></textarea></div>
                 <div class="ops-help mt-3"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Mỗi chi nhánh chỉ có một yêu cầu đang hoạt động cho cùng nguyên liệu. Khi đã có yêu cầu, hãy bổ sung nhu cầu vào yêu cầu đó để không tách lịch sử và phân bổ nguồn cung.</div>
-                <div class="ops-inline-actions mt-3">
-                    <button id="createDemandSubmit" class="ops-btn ops-btn-primary" type="submit">Tạo yêu cầu bổ sung</button>
+                <div class="ops-form-actions">
                     <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Hủy</a>
+                    <button id="createDemandSubmit" class="ops-btn ops-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Tạo yêu cầu bổ sung</button>
                 </div>
             </form>
         </div>

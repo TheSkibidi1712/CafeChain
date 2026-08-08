@@ -86,7 +86,6 @@ namespace CafeChain.Application.Interfaces.POS
 
         Task<ServiceResult> ReconcileAsync(int userId, int storeId, int shiftId, ReconcileWorkShiftRequestDto request);
 
-        Task<ServiceResult> RegisterTerminalAsync(int userId, int storeId, PosTerminalRegisterDto request);
         Task<ServiceResult> ConfirmTerminalRegistrationAsync(
             int approverStaffId,
             int storeId,

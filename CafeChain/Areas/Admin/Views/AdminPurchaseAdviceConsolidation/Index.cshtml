@@ -6,6 +6,7 @@
 @{
     ViewData["Title"] = "Tổng hợp đề nghị mua";
     var canConsolidate = ViewBag.CanConsolidate is true;
+    var canUseSupplierIntelligence = ViewBag.CanUseSupplierIntelligence is true;
     var preview = ViewBag.Preview as PurchaseAdviceConsolidationPreviewDto;
     var createsConsolidatedOrder = preview?.LineCount > 1;
     var createOrderLabel = createsConsolidatedOrder
@@ -97,7 +98,7 @@
                             if (initialMode == PurchaseMode.Loose && initialOffer?.AllowsLoosePurchase != true)
                                 initialMode = PurchaseMode.Packaged;
                             var initialLooseQuantity = submitted?.OrderedProcurementQuantity ?? planningRemaining;
-                            <tr data-line data-compatible="@string.Join(',', line.CompatibleSupplierIds)" data-remaining="@planningRemaining.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-plan-unit="@planningUnitLabel" data-procurement="@hasProcurementContract.ToString().ToLowerInvariant()" class="@(isSelected ? "pa-row-selected" : string.Empty)">
+                            <tr data-line data-store-id="@line.StoreId" data-ingredient-id="@line.IngredientId" data-required-base="@line.RemainingToOrderBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-compatible="@string.Join(',', line.CompatibleSupplierIds)" data-remaining="@planningRemaining.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-plan-unit="@planningUnitLabel" data-procurement="@hasProcurementContract.ToString().ToLowerInvariant()" class="@(isSelected ? "pa-row-selected" : string.Empty)">
                                 <td><input class="pa-check line-check" type="checkbox" name="selectedLineIds" value="@line.PurchaseAdviceLineId" checked="@isSelected" disabled="@(!canConsolidate || offers.Count == 0)" aria-label="Chọn @line.IngredientName từ @line.StoreName" /></td>
                                 <td><a class="pa-code" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@line.PurchaseAdviceId">@line.AdviceNumber</a><div class="pa-muted">@line.StoreName · Yêu cầu nhập hàng #@line.RestockRequestId</div><input type="hidden" name="Lines[@i].PurchaseAdviceLineId" value="@line.PurchaseAdviceLineId" /><input type="hidden" name="Lines[@i].RowVersion" value="@line.RowVersion" /></td>
                                 <td><strong>@line.IngredientName</strong><div class="pa-muted">@planningUnitLabel · @AdminStatusDisplay.PurchaseAdvicePriority(line.Priority).Label</div></td>
@@ -121,6 +122,11 @@
                                             </option>
                                         }
                                     </select>
+                                    @if (canUseSupplierIntelligence)
+                                    {
+                                        <button class="pa-action supplier-intelligence-button" type="button" disabled="@(!canConsolidate || offers.Count == 0)"><i class="fas fa-scale-balanced"></i> So sánh nhà cung cấp</button>
+                                    }
+                                    <div class="pa-muted supplier-intelligence-result" role="status"></div>
                                     @if (offers.Count == 0) { <div class="pa-inline-warning">Chưa có quy cách cung cấp hoặc Nhà cung cấp chưa phục vụ chi nhánh này.</div> }
                                 </td>
                                 <td>
@@ -293,6 +299,109 @@
         input.addEventListener('input', () => updatePackMath(input.closest('[data-line]')));
     });
     document.querySelectorAll('[data-line]').forEach(updatePackMath);
+    const supplierText = (tag, className, value) => {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        node.textContent = value;
+        return node;
+    };
+    const confidenceLabel = value => ({
+        HIGH: 'Dữ liệu nhiều',
+        MEDIUM: 'Dữ liệu vừa phải',
+        INSUFFICIENT_DATA: 'Chưa đủ dữ liệu'
+    }[value] || value || 'Chưa xác định');
+    const renderSupplierComparison = data => {
+        const root = supplierText('div', 'supplier-comparison-modal', '');
+        const mode = data.shadowMode
+            ? 'Dữ liệu pilot (ShadowMode) — chỉ hỗ trợ so sánh, không tự chọn nhà cung cấp.'
+            : 'Kết quả so sánh do backend tính toán.';
+        root.appendChild(supplierText('p', 'supplier-comparison-mode', mode));
+        root.appendChild(supplierText(
+            'p',
+            'supplier-comparison-summary',
+            data.rankingMessage || 'Chưa có thông tin xếp hạng cạnh tranh.'));
+
+        const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+        if (candidates.length === 0) {
+            root.appendChild(supplierText('div', 'supplier-comparison-empty', 'Không có nhà cung cấp và quy cách mua hợp lệ cho điều kiện hiện tại.'));
+            return root;
+        }
+
+        const grid = supplierText('div', 'supplier-comparison-grid', '');
+        candidates.forEach(candidate => {
+            const card = supplierText('article', 'supplier-comparison-card', '');
+            const heading = supplierText('div', 'supplier-comparison-card-heading', '');
+            heading.appendChild(supplierText('strong', '', `${candidate.rank ? `#${candidate.rank} · ` : ''}${candidate.supplierName}`));
+            heading.appendChild(supplierText(
+                'span',
+                candidate.rankable ? 'supplier-rankable' : 'supplier-reference-only',
+                candidate.rankable ? 'Có thể xếp hạng' : 'Chỉ tham khảo'));
+            card.appendChild(heading);
+
+            const facts = supplierText('dl', 'supplier-comparison-facts', '');
+            const addFact = (label, value) => {
+                facts.appendChild(supplierText('dt', '', label));
+                facts.appendChild(supplierText('dd', '', value));
+            };
+            addFact('Hình thức mua', candidate.purchaseMode === 'LOOSE' ? 'Mua rời' : 'Đóng gói');
+            addFact('Số lượng mua', candidate.purchaseMode === 'LOOSE'
+                ? Number(candidate.requiredPurchaseQuantity || 0).toLocaleString('vi-VN')
+                : `${Number(candidate.packageCount || 0).toLocaleString('vi-VN')} gói`);
+            addFact('Tổng chi phí', `${Number(candidate.estimatedAmount || 0).toLocaleString('vi-VN')} ₫`);
+            addFact('Lượng mua dư', Number(candidate.excessBaseQuantity || 0).toLocaleString('vi-VN'));
+            addFact('Điểm so sánh', candidate.score == null ? 'Chưa đủ dữ liệu để tính' : `${Number(candidate.score).toLocaleString('vi-VN')}/100`);
+            addFact('Độ đầy đủ dữ liệu', `${confidenceLabel(candidate.confidence)} · ${Number(candidate.receiptCount || 0)} phiếu nhận`);
+            card.appendChild(facts);
+
+            const warnings = Array.isArray(candidate.warnings) ? candidate.warnings : [];
+            if (warnings.length > 0) {
+                const list = supplierText('ul', 'supplier-comparison-warnings', '');
+                warnings.forEach(warning => list.appendChild(supplierText('li', '', warning)));
+                card.appendChild(list);
+            }
+            grid.appendChild(card);
+        });
+        root.appendChild(grid);
+        return root;
+    };
+    document.querySelectorAll('.supplier-intelligence-button').forEach(button => button.addEventListener('click', async () => {
+        const row = button.closest('[data-line]');
+        const output = row?.querySelector('.supplier-intelligence-result');
+        if (!row || !output) return;
+        button.disabled = true;
+        output.textContent = 'Đang tải dữ liệu so sánh...';
+        const query = new URLSearchParams({
+            storeId: row.dataset.storeId,
+            ingredientId: row.dataset.ingredientId,
+            requiredBaseQuantity: row.dataset.requiredBase
+        });
+        try {
+            const response = await fetch(`@Url.Action("CompareSuppliers", "AdminIntelligence")?${query}`, { headers: { Accept: 'application/json' } });
+            const payload = await response.json();
+            if (!response.ok || !payload.success) throw new Error(payload.message || 'Không thể so sánh nhà cung cấp.');
+            const data = payload.data;
+            output.textContent = data.shadowMode
+                ? 'Đã tải kết quả pilot. Bấm lại để xem.'
+                : 'Đã tải kết quả so sánh. Bấm lại để xem.';
+            await Swal.fire({
+                icon: 'info',
+                title: 'So sánh nhà cung cấp',
+                html: renderSupplierComparison(data),
+                width: 'min(960px, 95vw)',
+                confirmButtonText: 'Đóng'
+            });
+        } catch (error) {
+            output.textContent = error.message || 'Không thể so sánh nhà cung cấp.';
+            await Swal.fire({
+                icon: 'warning',
+                title: 'Chưa thể so sánh nhà cung cấp',
+                text: output.textContent,
+                confirmButtonText: 'Đã hiểu'
+            });
+        } finally {
+            button.disabled = false;
+        }
+    }));
     document.querySelectorAll('.line-check').forEach(check => check.addEventListener('change', () => {
         check.closest('tr')?.classList.toggle('pa-row-selected', check.checked);
     }));

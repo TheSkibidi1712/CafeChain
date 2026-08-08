@@ -215,7 +215,7 @@ public sealed class AdminSettingService : IAdminSettingService
                 : !active
                     ? "Item/cửa hàng ngừng hoạt động"
                     : !state.Enabled
-                        ? "Feature đang tắt"
+                        ? "Tính năng đang tắt"
                         : effectiveLimit <= 0
                             ? "Bị chặn"
                             : $"Có thể xin xuất âm tối đa {FormatQuantity(effectiveLimit)} {x.BaseUnitCode}";

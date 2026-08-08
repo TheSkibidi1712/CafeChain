@@ -75,7 +75,8 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
             int? targetId,
             DateTime utcNow);
 
-        Task<IReadOnlyList<(int ChallengeId, Guid PublicId, int ApproverStaffId, int? NotificationId)>>
+        Task<IReadOnlyList<(int ChallengeId, Guid PublicId, int ApproverStaffId, int RequestedByStaffId,
+            string ActionType, string? TerminalId, DateTime ExpiresAtUtc, int? NotificationId)>>
             ExpireDueChallengesAsync(DateTime utcNow, CancellationToken cancellationToken = default);
 
         Task AddAsync(OtpChallenge challenge);

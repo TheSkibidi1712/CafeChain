@@ -1,13 +1,78 @@
 @model IReadOnlyList<CafeChain.Application.DTOs.AI.OperationalAnomalyDto>
-@{ ViewData["Title"] = "Tín hiệu vận hành"; }
+@{
+    ViewData["Title"] = "Tín hiệu vận hành";
+    var canAcknowledge = ViewBag.CanAcknowledge is true;
+    var canResolve = ViewBag.CanResolve is true;
+    var canFeedback = ViewBag.CanFeedback is true;
+    var canUseAi = ViewBag.CanUseAi is true;
+}
 @Html.AntiForgeryToken()
 <div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-3"><div><h3 class="mb-1">Tín hiệu vận hành</h3><div class="text-muted">Tín hiệu thống kê cần điều tra; không phải kết luận gian lận.</div></div>
-        <form method="get"><select class="form-select" name="targetStoreId" onchange="this.form.submit()">@foreach(var s in (IReadOnlyList<CafeChain.Application.DTOs.Admin.StoreScope.AdminStoreOptionDto>)ViewBag.Stores){<option value="@s.StoreId" selected="@(s.StoreId == (int?)ViewBag.SelectedStoreId)">@s.StoreName</option>}</select></form>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-1">Tín hiệu vận hành</h3>
+            <div class="text-muted">Các thay đổi đáng chú ý cần đối chiếu thêm; đây không phải kết luận sai phạm.</div>
+        </div>
+        <form method="get">
+            <select class="form-select" name="targetStoreId" onchange="this.form.submit()">
+                @foreach (var store in (IReadOnlyList<CafeChain.Application.DTOs.Admin.StoreScope.AdminStoreOptionDto>)ViewBag.Stores)
+                {
+                    <option value="@store.StoreId" selected="@(store.StoreId == (int?)ViewBag.SelectedStoreId)">@store.StoreName</option>
+                }
+            </select>
+        </form>
     </div>
-    <div class="card"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Metric</th><th>Hiện tại</th><th>Baseline</th><th>Độ lệch</th><th>Mức độ</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Chỉ số cần kiểm tra</th>
+                        <th>Giá trị ghi nhận</th>
+                        <th>Mức thông thường trước đây</th>
+                        <th>Mức chênh lệch</th>
+                        <th>Mức cần ưu tiên</th>
+                        <th>Trạng thái xử lý</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Count == 0)
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">Không có tín hiệu đang mở.</td></tr>
+                }
+                @foreach (var item in Model)
+                {
+                    <tr id="anomaly-@item.Id">
+                        <td>
+                            <strong>@item.MetricDisplayName</strong>
+                            <div class="small text-muted">Ngày @item.BusinessDate.ToString("dd/MM/yyyy")</div>
+                            <details class="small mt-1">
+                                <summary>Thông tin kỹ thuật</summary>
+                                <div>Mã: @item.MetricCode · phiên bản @item.DetectionVersion · điểm chuẩn hóa @item.RobustScore.ToString("N2")</div>
+                                <div>@item.ConfidenceDisplay</div>
+                            </details>
+                        </td>
+                        <td>@item.CurrentValueDisplay</td>
+                        <td>@item.BaselineValueDisplay</td>
+                        <td>@item.DeviationDisplay</td>
+                        <td><span class="badge bg-@(item.Severity == "CRITICAL" ? "danger" : "warning")">@item.SeverityDisplay</span></td>
+                        <td>@item.StatusDisplay</td>
+                        <td class="text-end text-nowrap">
+                            @if (canUseAi) { <button class="btn btn-sm btn-outline-secondary" data-explain="@item.Id">Giải thích dễ hiểu</button> }
+                            @if (canAcknowledge && item.Status == "OPEN") { <button class="btn btn-sm btn-outline-primary" data-ack="@item.Id" data-version="@item.RowVersion">Tiếp nhận</button> }
+                            @if (canResolve && item.Status is "OPEN" or "ACKNOWLEDGED") { <button class="btn btn-sm btn-outline-success" data-resolve="@item.Id" data-version="@item.RowVersion">Đánh dấu đã xử lý</button> }
+                            @if (canFeedback) { <button class="btn btn-sm btn-outline-dark" data-feedback="@item.Id" data-version="@item.RowVersion">Phản hồi</button> }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Metric</th><th>Hiện tại</th><th>Baseline</th><th>Độ lệch</th><th>Mức độ</th><th>Trạng thái</th><th class="text-center">Thao tác</th></tr></thead><tbody>
     @if(Model.Count == 0){<tr><td colspan="7" class="text-center text-muted py-4">Không có tín hiệu đang mở.</td></tr>}
-    @foreach(var x in Model){<tr id="anomaly-@x.Id"><td><code>@x.MetricCode</code><div class="small text-muted">@x.PeriodKey · score @x.RobustScore.ToString("N2")</div></td><td>@x.CurrentValue.ToString("N0")</td><td>@x.BaselineValue.ToString("N0")</td><td>@x.PercentageDeviation.ToString("P1")</td><td><span class="badge bg-@(x.Severity == "CRITICAL" ? "danger" : "warning")">@x.Severity</span></td><td>@x.Status</td><td class="text-end"><button class="btn btn-sm btn-outline-secondary" data-explain="@x.Id">Giải thích AI</button> <button class="btn btn-sm btn-outline-primary" data-ack="@x.Id" data-version="@x.RowVersion">Đã xem</button></td></tr>}
+    @foreach(var x in Model){<tr id="anomaly-@x.Id"><td><code>@x.MetricCode</code><div class="small text-muted">@x.PeriodKey · score @x.RobustScore.ToString("N2")</div></td><td>@x.CurrentValue.ToString("N0")</td><td>@x.BaselineValue.ToString("N0")</td><td>@x.PercentageDeviation.ToString("P1")</td><td><span class="badge bg-@(x.Severity == "CRITICAL" ? "danger" : "warning")">@x.Severity</span></td><td>@x.Status</td><td class="text-center"><button class="btn btn-sm btn-outline-secondary" data-explain="@x.Id">Giải thích AI</button> <button class="btn btn-sm btn-outline-primary" data-ack="@x.Id" data-version="@x.RowVersion">Đã xem</button></td></tr>}
     </tbody></table></div></div>
 </div>
 @section Scripts { <script src="~/js/Admin/Dashboard/operational-anomalies.js" asp-append-version="true"></script> }

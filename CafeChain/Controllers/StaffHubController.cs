@@ -101,7 +101,7 @@ public sealed class StaffHubController : Controller
 
         var result = await _workShiftService.SetOperatorPinAsync(accountId, staffId, storeId, request);
         return result.IsSuccess
-            ? Ok(new { success = true, message = result.Message })
+            ? Ok(new { success = true, message = result.Message, pinConfigured = true })
             : StatusCode(result.ErrorCode == WorkShiftErrorCodes.OperatorNotAuthorized
                 ? StatusCodes.Status403Forbidden : StatusCodes.Status400BadRequest,
                 new { success = false, errorCode = result.ErrorCode, message = result.Message });
@@ -165,59 +165,18 @@ public sealed class StaffHubController : Controller
         if (!prepared.IsSuccess || prepared.Data == null)
             return BadRequest(new { success = false, errorCode = prepared.ErrorCode, message = prepared.Message });
 
-        var exchangeContext = prepared.Data;
-        var resultCode = WorkShiftOpenResultCodes.OpenedNewWorkShift;
-        var requiresOpeningCash = true;
-        int? workShiftId = null;
-        if (prepared.Data.RequiresStaffHubOpen)
-        {
-            var opened = await _workShiftService.OpenShiftAsync(staffId, storeId, new OpenShiftRequestDto
-            {
-                AccountId = accountId,
-                RequestKey = request.RequestKey,
-                StartingCash = 0,
-                PosTerminalId = request.TerminalId,
-                Reason = request.Reason,
-                LateOpeningReason = request.Reason,
-                OtpChallengePublicId = request.OtpChallengePublicId,
-                LateOpenApprovalPublicId = request.LateOpenApprovalPublicId
-            });
-            if (!opened.IsSuccess || !opened.EntityId.HasValue)
-                return StatusCode(opened.ErrorCode is WorkShiftErrorCodes.DuplicateRequest
-                    or WorkShiftErrorCodes.ConcurrencyConflict
-                    or WorkShiftErrorCodes.TerminalAlreadyHasOpenShift
-                    or WorkShiftErrorCodes.StaffAlreadyHasOpenShift
-                        ? StatusCodes.Status409Conflict : StatusCodes.Status400BadRequest,
-                    new { success = false, errorCode = opened.ErrorCode, message = opened.Message });
-
-            workShiftId = opened.EntityId;
-            var resume = await _workShiftService.PrepareResumeExchangeContextAsync(
-                accountId, staffId, storeId, request.TerminalId, cancellationToken);
-            if (!resume.IsSuccess || resume.Data?.WorkShiftId != workShiftId)
-                return Conflict(new
-                {
-                    success = false,
-                    errorCode = WorkShiftErrorCodes.ConcurrencyConflict,
-                    message = "Phiên POS vừa mở không khớp ngữ cảnh resume. Vui lòng mở lại từ StaffHub."
-                });
-            exchangeContext = resume.Data;
-            exchangeContext.Purpose = PosSessionPurposes.OpenWorkShift;
-            exchangeContext.RequestKey = request.RequestKey;
-            exchangeContext.RequiresOpeningCash = true;
-            resultCode = WorkShiftOpenResultCodes.OpenedNewWorkShift;
-            requiresOpeningCash = true;
-        }
-
-        var ticket = await _posSessionExchangeService.IssueAsync(exchangeContext, cancellationToken);
+        // The exchange is only an expiring authorization context. WorkShift is
+        // committed later by /api/v1/pos/shifts/open with the confirmed cash.
+        var ticket = await _posSessionExchangeService.IssueAsync(prepared.Data, cancellationToken);
         var baseUrl = _configuration["AppLauncher:Pos:PosUrl"] ?? _configuration["PosFrontend:Url"] ?? "http://127.0.0.1:5173/shift";
         var posUrl = new UriBuilder(new Uri(baseUrl)) { Path = "/shift" }.Uri.ToString();
         return Ok(new
         {
             success = true,
-            resultCode,
+            resultCode = WorkShiftOpenResultCodes.OpenedNewWorkShift,
             recommendedAction = WorkShiftRecommendedActions.EnterOpeningCash,
-            workShiftId,
-            requiresOpeningCash,
+            workShiftId = (int?)null,
+            requiresOpeningCash = true,
             exchangeCode = ticket.ExchangeCode,
             expiresAtUtc = ticket.ExpiresAtUtc,
             exchangeUrl = Url.Content("~/api/v1/pos/session/exchange"),
@@ -328,6 +287,68 @@ public sealed class StaffHubController : Controller
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
     [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    public async Task<IActionResult> CancelOpenPosIntent(
+        [FromForm] StaffHubCancelOpenPosIntentRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetIdentity(out _, out var staffId, out var storeId)) return Unauthorized();
+        var terminalId = request.TerminalId?.Trim() ?? string.Empty;
+        var requestKey = request.RequestKey?.Trim() ?? string.Empty;
+        if (terminalId.Length == 0 || requestKey.Length == 0)
+            return BadRequest(new { success = false, message = "Thiếu Terminal hoặc mã yêu cầu mở ca." });
+
+        var active = await _workShiftService.GetActiveShiftAsync(staffId, storeId);
+        if (active != null && string.Equals(active.PosTerminalId, terminalId, StringComparison.Ordinal))
+            return Conflict(new
+            {
+                success = false,
+                errorCode = WorkShiftErrorCodes.ConcurrencyConflict,
+                message = "WorkShift đã được tạo; không thể hủy intent mở ca."
+            });
+
+        if (request.OtpChallengePublicId.HasValue)
+        {
+            var otp = await _otpApprovalService.CancelOpenPosOtpAsync(new OtpCancelDto
+            {
+                OtpChallengePublicId = request.OtpChallengePublicId.Value
+            }, staffId, storeId);
+            if (!otp.IsSuccess) return OtpResult(otp);
+        }
+
+        if (request.LateOpenApprovalPublicId.HasValue)
+        {
+            if (_lateOpenApprovals == null) return StatusCode(StatusCodes.Status503ServiceUnavailable);
+            var approval = await _lateOpenApprovals.CancelAsync(
+                staffId, storeId, request.LateOpenApprovalPublicId.Value,
+                terminalId, requestKey, cancellationToken);
+            if (!approval.IsSuccess)
+                return Conflict(new
+                {
+                    success = false,
+                    errorCode = approval.ErrorCode,
+                    message = approval.Message
+                });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            status = "CANCELLED",
+            message = "Đã hủy yêu cầu mở ca. Không có WorkShift nào được tạo."
+        });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    public async Task<IActionResult> CancelTerminalRegistrationOtp([FromForm] OtpCancelDto request)
+    {
+        if (!TryGetIdentity(out _, out var staffId, out var storeId)) return Unauthorized();
+        return OtpResult(await _otpApprovalService.CancelTerminalRegistrationOtpAsync(
+            request, staffId, storeId));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
     public async Task<IActionResult> RequestLateOpenApproval(
         [FromForm] CreateWorkShiftOpenApprovalRequestDto request,
         CancellationToken cancellationToken)
@@ -377,17 +398,13 @@ public sealed class StaffHubController : Controller
     public async Task<IActionResult> RegisterTerminal(
         [FromForm] StaffHubTerminalRegistrationRequestDto request)
     {
-        if (!TryGetIdentity(out _, out var staffId, out var storeId)) return Unauthorized();
-        var result = await _workShiftService.RegisterTerminalAsync(staffId, storeId, new PosTerminalRegisterDto
+        if (!TryGetIdentity(out _, out _, out _)) return Unauthorized();
+        return Conflict(new
         {
-            TerminalId = request.TerminalId,
-            Name = request.TerminalName,
-            RequestKey = request.RequestKey,
-            OtpChallengePublicId = request.OtpChallengePublicId
+            success = false,
+            errorCode = "TERMINAL_CONFIRMATION_MANAGER_REQUIRED",
+            message = "Terminal chỉ được hoàn tất bởi Manager từ Notification đang chờ."
         });
-        return result.IsSuccess
-            ? Ok(new { success = true, message = result.Message })
-            : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message });
     }
 
     private IActionResult OtpResult<T>(CafeChain.Application.Results.ServiceResult<T> result)

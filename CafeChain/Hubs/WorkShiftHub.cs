@@ -50,6 +50,24 @@ public sealed class WorkShiftHub : Hub
                     WorkShiftGroups.ForStore(store.StoreId),
                     Context.ConnectionAborted);
             }
+            var approveLate = await _permissions.HasPermissionAsync(
+                accountId, PermissionConstants.PosWorkShiftApproveLateOpen, store.StoreId);
+            if (approveLate.IsSuccess && approveLate.Data?.Allowed == true)
+            {
+                await Groups.AddToGroupAsync(
+                    Context.ConnectionId,
+                    WorkShiftGroups.ForLateApprovalStore(store.StoreId),
+                    Context.ConnectionAborted);
+            }
+            var manageSessions = await _permissions.HasPermissionAsync(
+                accountId, PermissionConstants.PosSessionManage, store.StoreId);
+            if (manageSessions.IsSuccess && manageSessions.Data?.Allowed == true)
+            {
+                await Groups.AddToGroupAsync(
+                    Context.ConnectionId,
+                    WorkShiftGroups.ForSessionManagementStore(store.StoreId),
+                    Context.ConnectionAborted);
+            }
         }
 
         await Groups.AddToGroupAsync(
@@ -102,4 +120,8 @@ public static class WorkShiftGroups
     public static string ForStaff(int staffId) => $"staff:{staffId}:workshift";
     public static string ForTerminal(string terminalId) => $"terminal:{terminalId}:workshift";
     public static string ForSession(Guid sessionId) => $"pos-session:{sessionId:N}";
+    public static string ForLateApprovalStore(int storeId) =>
+        $"store:{storeId}:permission:{PermissionConstants.PosWorkShiftApproveLateOpen}";
+    public static string ForSessionManagementStore(int storeId) =>
+        $"store:{storeId}:permission:{PermissionConstants.PosSessionManage}";
 }

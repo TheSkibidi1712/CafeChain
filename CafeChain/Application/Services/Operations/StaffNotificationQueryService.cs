@@ -3,6 +3,7 @@ using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Operations;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
+using CafeChain.Application.Tools;
 using CafeChain.Infrastructure.Interfaces.Operations;
 using CafeChain.Models.Operations;
 
@@ -69,7 +70,7 @@ namespace CafeChain.Application.Services.Operations
                 ? ChannelPos
                 : targetUrlChannel.Trim().ToLowerInvariant();
 
-            var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+            var nowUtc = UtcDateTime.Normalize(_timeProvider.GetUtcNow().UtcDateTime);
             var otpIds = rows
                 .Where(n =>
                     string.Equals(n.Type, StaffNotificationTypes.OperationalOtpRequest, StringComparison.OrdinalIgnoreCase)
@@ -93,6 +94,8 @@ namespace CafeChain.Application.Services.Operations
                 {
                     var status = MapOperationalOtpStatus(challenge, nowUtc);
                     var isWaiting = status == "Waiting";
+                    var sentAtUtc = UtcDateTime.Normalize(challenge.CreatedAt);
+                    var expiresAtUtc = UtcDateTime.Normalize(challenge.ExpiresAt);
                     operationalOtp = new OperationalOtpNotificationDto
                     {
                         ChallengePublicId = challenge.PublicId,
@@ -106,12 +109,12 @@ namespace CafeChain.Application.Services.Operations
                         ApproverName = challenge.ApproverStaff?.FullName ?? string.Empty,
                         ConfirmedByStaffId = challenge.ConfirmedByStaffId,
                         ConfirmedByName = challenge.ConfirmedByStaff?.FullName,
-                        SentAtUtc = challenge.CreatedAt,
-                        ExpiresAtUtc = challenge.ExpiresAt,
+                        SentAtUtc = sentAtUtc,
+                        ExpiresAtUtc = expiresAtUtc,
                         ServerNowUtc = nowUtc,
                         Status = status,
                         RemainingSeconds = isWaiting
-                            ? Math.Max(0, (int)Math.Ceiling((challenge.ExpiresAt - nowUtc).TotalSeconds))
+                            ? Math.Max(0, (int)Math.Ceiling((expiresAtUtc - nowUtc).TotalSeconds))
                             : 0,
                         CanRevealOtp = isWaiting && challenge.ProtectedOtpPayload != null,
                         CanContinueTerminalConfirmation = isWaiting
@@ -232,6 +235,12 @@ namespace CafeChain.Application.Services.Operations
             if (isReorder && storeId > 0)
                 return $"/Admin/AdminReorderSuggestions?storeId={storeId}#ingredient-{entityId}";
 
+            var isLateOpenApproval =
+                string.Equals(entityType, StaffNotificationEntityTypes.WorkShiftOpenApproval, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(type, StaffNotificationTypes.LateOpenApprovalRequest, StringComparison.OrdinalIgnoreCase);
+            if (isLateOpenApproval)
+                return $"/Admin/AdminWorkShiftOpenApprovals#approval-{entityId}";
+
             if (string.Equals(type, StaffNotificationTypes.OperationalAnomaly, StringComparison.OrdinalIgnoreCase) && storeId > 0)
                 return $"/Admin/AdminOperationalAnomalies?targetStoreId={storeId}#anomaly-{entityId}";
 
@@ -270,23 +279,35 @@ namespace CafeChain.Application.Services.Operations
                 EntityType = n.EntityType,
                 EntityId = n.EntityId,
                 IsRead = n.IsRead,
-                ReadAt = n.ReadAt,
-                CreatedAt = n.CreatedAt,
+                ReadAt = UtcDateTime.Normalize(n.ReadAt),
+                CreatedAt = UtcDateTime.Normalize(n.CreatedAt),
                 EmailAttempted = n.EmailAttempted,
                 EmailSent = n.EmailSent,
                 EmailDeliveryHint = MapEmailDeliveryHint(n.EmailAttempted, n.EmailSent),
                 TargetUrl = targetUrl,
-                ActiveOtp = null,
+                TargetActionLabel = string.Equals(
+                    n.Type,
+                    StaffNotificationTypes.LateOpenApprovalRequest,
+                    StringComparison.OrdinalIgnoreCase)
+                    ? "Xem và duyệt yêu cầu"
+                    : targetUrl == null ? null : "Xem chi tiết",
                 OperationalOtp = operationalOtp
             };
         }
 
         private static string MapOperationalOtpStatus(OtpChallenge challenge, DateTime nowUtc)
         {
-            if (challenge.Status == OtpConstants.Statuses.Used) return "Used";
-            if (challenge.Status == OtpConstants.Statuses.Expired || challenge.ExpiresAt <= nowUtc) return "Expired";
-            if (challenge.Status is OtpConstants.Statuses.Cancelled or OtpConstants.Statuses.Locked) return "Cancelled";
-            return "Waiting";
+            if (challenge.Status == OtpConstants.Statuses.Expired
+                || UtcDateTime.Normalize(challenge.ExpiresAt) <= nowUtc) return "Expired";
+            return challenge.Status switch
+            {
+                OtpConstants.Statuses.Pending => "Waiting",
+                OtpConstants.Statuses.Approved => "Approved",
+                OtpConstants.Statuses.Used => "Used",
+                OtpConstants.Statuses.Cancelled => "Cancelled",
+                OtpConstants.Statuses.Locked => "Locked",
+                _ => "Unknown"
+            };
         }
     }
 }

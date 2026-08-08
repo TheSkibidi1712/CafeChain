@@ -68,12 +68,14 @@ RequestKey/payload hash bảo đảm replay đúng trả kết quả cũ, cùng 
 Kết quả xác minh tại lần cập nhật tài liệu:
 
 - Backend build: đạt.
-- Frontend `npm ci` và production build: đạt; chỉ còn cảnh báo bundle/annotation từ dependency.
-- Targeted StaffHub/assessment/expiry/refactor: 23/23 đạt.
-- Suite loại theo tên `SqlServer`: 1.738 đạt; còn hai lỗi hạ tầng/baseline không thuộc refactor (một test trỏ migration cũ `20260802183312_InitialCreate` không còn tồn tại và một test vẫn mở SQL Server dù tên không chứa `SqlServer`).
-- Frontend production build và ESLint: đạt; build chỉ còn cảnh báo bundle/annotation từ dependency.
+- Toàn bộ non-SQL tests: 1.848/1.848 đạt.
+- Toàn bộ SQL Server integration tests: 139/139 đạt trên database test riêng, connection `Encrypt=False;TrustServerCertificate=True`.
+- `SeedAll.sql` chạy lặp hai lần thành công, giữ account override và xác minh RBAC/dashboard contracts.
+- Frontend production build và ESLint: đạt; build chỉ còn cảnh báo bundle size và annotation từ dependency SignalR.
 - EF `has-pending-model-changes`: không có thay đổi model chưa migration.
-- Full SQL Server integration chưa thể kết luận trong runner hiện tại: `sqlcmd` kết nối được instance nhưng tiến trình test .NET thất bại khi tạo SSPI context. Nhóm OTP Phase 2 không dùng SQL đạt 21/21 sau khi kiểm tra tương thích fingerprint.
+- Cú pháp `staffhub-schedule.js`: đạt qua `node --check`.
+- HTTP smoke trước vòng cuối: `/Account/Login` trả 200, `/StaffHub` redirect đăng nhập và POS API chưa xác thực trả 401 đúng contract.
+- Browser click/viewport acceptance chưa chạy được vì in-app browser runner không cung cấp browser instance; đây là giới hạn hạ tầng duy nhất còn lại, không phải test code thất bại.
 
 ## Chưa mở rộng
 
@@ -81,3 +83,19 @@ Kết quả xác minh tại lần cập nhật tài liệu:
 - Không thay đổi nghiệp vụ đóng ngoại lệ/reconciliation ngoài việc giữ đúng ranh giới active.
 - Không thêm chấm công, tiền lương, overtime, thu/chi két.
 - Kiểm thử tải nhiều application instance và SQL Server race thực tế vẫn phụ thuộc hạ tầng CI/connection string.
+
+## Cập nhật refactor cuối 2026-08-08
+
+Đã triển khai:
+
+- Notification Terminal OTP có liên kết typed, lịch sử bốn trạng thái, reveal dành cho approver, confirm Manager-only, resend/cancel/restore và expiry worker.
+- SMTP failure giữ challenge nội bộ; SignalR `TerminalRegistrationChanged` chỉ publish sau commit.
+- `PosAccessSession` bền vững, JWT session/JTI validation, một active session/Terminal, replace/logout/revoke/Admin end/Terminal lock, audit và `PosAccessSessionChanged`.
+- Worker chủ động hết hạn cả `PosAccessSession` và late-open approval; notification được resolve, audit được ghi và SignalR chỉ publish sau commit.
+- WorkShift được bind vào session; order online và các mutation đóng/đối soát/đổi operator không còn tự tìm ca active theo nhân viên.
+- Boundary trễ `<=15`, `<=30`, `>30`; workflow Manager approval riêng với optimistic concurrency và `LateOpenApprovalChanged`.
+- Countdown backend-authoritative, định dạng `HH:mm:ss`/`MM:ss`; UI phân biệt session hết hạn, pending close và opening cash required.
+- Schema được hợp nhất vào `InitialCreate` theo quyết định recreate database của dự án.
+- Seed RBAC bật `POS.WorkShift.ApproveLateOpen` và `POS.Session.Manage` cho Business Owner/Area Manager/Store Manager đúng scope; Shift Supervisor không được cấp. System Admin vẫn nhận đầy đủ permission admin active, còn POS operational permissions giữ least-privilege riêng.
+
+Các tuyên bố cũ “trễ trên 30 phút cần OTP”, “revoke session là P2” và “không thêm schema” không còn áp dụng. OTP vẫn dùng cho đăng ký Terminal và mở ngoài lịch; từ 30 đến 45 phút Manager có thể duyệt theo lịch, còn trên 45 phút chỉ được từ chối hoặc chuyển ngoài lịch.

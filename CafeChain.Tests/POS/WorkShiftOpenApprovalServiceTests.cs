@@ -24,7 +24,6 @@ public sealed class WorkShiftOpenApprovalServiceTests
     private static readonly DateTimeOffset Now = new(2026, 8, 6, 3, 0, 0, TimeSpan.Zero);
 
     [Theory]
-    [InlineData("APPROVE", WorkShiftOpenApprovalStatuses.Approved)]
     [InlineData("REJECT", WorkShiftOpenApprovalStatuses.Rejected)]
     [InlineData("CONVERT", WorkShiftOpenApprovalStatuses.ConvertedToOutsideSchedule)]
     public async Task Manager_decisions_are_committed_and_published(string decision, string expectedStatus)
@@ -55,6 +54,56 @@ public sealed class WorkShiftOpenApprovalServiceTests
         Assert.Equal(expectedStatus, published?.Status);
         repository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         repository.Verify(x => x.CommitTransactionAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Manager_cannot_approve_scheduled_open_after_45_minutes()
+    {
+        var approval = PendingApproval();
+        approval.MinutesLate = 46;
+        var repository = RepositoryReturning(approval);
+        var service = CreateService(repository.Object);
+
+        var result = await service.DecideAsync(
+            ManagerStaffId,
+            StoreId,
+            approval.PublicId,
+            new DecideWorkShiftOpenApprovalRequestDto
+            {
+                Decision = "APPROVED",
+                RowVersion = Convert.ToBase64String(approval.RowVersion!)
+            });
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(WorkShiftErrorCodes.LateOpenRequiresOutsideSchedule, result.ErrorCode);
+        Assert.Equal(WorkShiftOpenApprovalStatuses.Pending, approval.Status);
+        repository.Verify(x => x.RollbackTransactionAsync(It.IsAny<CancellationToken>()), Times.Once);
+        repository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        repository.Verify(x => x.CommitTransactionAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(30)]
+    [InlineData(45)]
+    public async Task Manager_can_approve_scheduled_open_from_30_through_45_minutes(int minutesLate)
+    {
+        var approval = PendingApproval();
+        approval.MinutesLate = minutesLate;
+        var repository = RepositoryReturning(approval);
+        var service = CreateService(repository.Object);
+
+        var result = await service.DecideAsync(
+            ManagerStaffId,
+            StoreId,
+            approval.PublicId,
+            new DecideWorkShiftOpenApprovalRequestDto
+            {
+                Decision = "APPROVED",
+                RowVersion = Convert.ToBase64String(approval.RowVersion!)
+            });
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(WorkShiftOpenApprovalStatuses.Approved, approval.Status);
     }
 
     [Fact]
@@ -101,9 +150,103 @@ public sealed class WorkShiftOpenApprovalServiceTests
         repository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task Due_approval_is_persisted_as_expired_and_published_after_commit()
+    {
+        var approval = PendingApproval();
+        approval.ExpiresAtUtc = Now.AddSeconds(-1).UtcDateTime;
+        var repository = RepositoryReturning(approval);
+        repository.Setup(x => x.GetDueForExpiryAsync(
+                Now.UtcDateTime, 200, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { approval });
+        var publisher = new Mock<IWorkShiftOpenApprovalPublisher>();
+        var publishedAfterCommit = false;
+        repository.Setup(x => x.CommitTransactionAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => publishedAfterCommit = true)
+            .Returns(Task.CompletedTask);
+        publisher.Setup(x => x.PublishAsync(
+                It.IsAny<WorkShiftOpenApprovalChangedDto>(), It.IsAny<CancellationToken>()))
+            .Callback(() => Assert.True(publishedAfterCommit))
+            .Returns(Task.CompletedTask);
+        var service = CreateService(repository.Object, publisher.Object);
+
+        var count = await service.ExpireDueAsync();
+
+        Assert.Equal(1, count);
+        Assert.Equal(WorkShiftOpenApprovalStatuses.Expired, approval.Status);
+        repository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        publisher.Verify(x => x.PublishAsync(
+            It.Is<WorkShiftOpenApprovalChangedDto>(x => x.Status == WorkShiftOpenApprovalStatuses.Expired),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Manager_decision_after_deadline_expires_and_resolves_request_atomically()
+    {
+        var approval = PendingApproval();
+        approval.WorkShiftOpenApprovalRequestId = 901;
+        approval.ExpiresAtUtc = Now.AddSeconds(-1).UtcDateTime;
+        var repository = RepositoryReturning(approval);
+        var notification = new StaffNotification
+        {
+            StaffNotificationId = 902,
+            EntityId = approval.WorkShiftOpenApprovalRequestId,
+            Type = StaffNotificationTypes.LateOpenApprovalRequest,
+            EntityType = StaffNotificationEntityTypes.WorkShiftOpenApproval
+        };
+        var notifications = new Mock<IStaffNotificationRepository>();
+        notifications.Setup(x => x.GetActiveByEntitiesAsync(
+                StaffNotificationTypes.LateOpenApprovalRequest,
+                StaffNotificationEntityTypes.WorkShiftOpenApproval,
+                It.Is<IReadOnlyCollection<int>>(ids => ids.SequenceEqual(new[] { approval.WorkShiftOpenApprovalRequestId })),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<StaffNotification> { notification });
+        var audit = new Mock<IWorkShiftAuditService>();
+        var publisher = new Mock<IWorkShiftOpenApprovalPublisher>();
+        var committed = false;
+        repository.Setup(x => x.CommitTransactionAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => committed = true)
+            .Returns(Task.CompletedTask);
+        publisher.Setup(x => x.PublishAsync(
+                It.IsAny<WorkShiftOpenApprovalChangedDto>(), It.IsAny<CancellationToken>()))
+            .Callback(() => Assert.True(committed))
+            .Returns(Task.CompletedTask);
+        var service = CreateService(
+            repository.Object,
+            publisher.Object,
+            notifications.Object,
+            audit.Object);
+
+        var result = await service.DecideAsync(
+            ManagerStaffId,
+            StoreId,
+            approval.PublicId,
+            new DecideWorkShiftOpenApprovalRequestDto { Decision = "APPROVE" });
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(WorkShiftErrorCodes.LateOpenApprovalExpired, result.ErrorCode);
+        Assert.Equal(WorkShiftOpenApprovalStatuses.Expired, approval.Status);
+        Assert.Equal(Now.UtcDateTime, notification.ResolvedAt);
+        Assert.Equal(WorkShiftOpenApprovalStatuses.Expired, notification.MeaningfulVersion);
+        notifications.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        audit.Verify(x => x.WriteAsync(
+            "WORKSHIFT_LATE_OPEN_APPROVAL_EXPIRED",
+            0,
+            ManagerStaffId,
+            It.IsAny<object>(),
+            It.IsAny<object>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        repository.Verify(x => x.CommitTransactionAsync(It.IsAny<CancellationToken>()), Times.Once);
+        publisher.Verify(x => x.PublishAsync(
+            It.Is<WorkShiftOpenApprovalChangedDto>(x => x.Status == WorkShiftOpenApprovalStatuses.Expired),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     private static WorkShiftOpenApprovalService CreateService(
         IWorkShiftOpenApprovalRepository repository,
-        IWorkShiftOpenApprovalPublisher? publisher = null)
+        IWorkShiftOpenApprovalPublisher? publisher = null,
+        IStaffNotificationRepository? notifications = null,
+        IWorkShiftAuditService? audit = null)
     {
         var staffLookup = new Mock<IOtpChallengeRepository>();
         staffLookup.Setup(x => x.GetRequestingStaffAsync(ManagerStaffId, StoreId))
@@ -131,6 +274,8 @@ public sealed class WorkShiftOpenApprovalServiceTests
             staffLookup.Object,
             Options.Create(new WorkShiftOptions()),
             permissions.Object,
+            notifications,
+            audit,
             publisher: publisher,
             timeProvider: new FixedTimeProvider(Now));
     }

@@ -1,8 +1,237 @@
+/* Run against the database selected by the caller/SSMS connection.
+   Never silently switch to a similarly named production database, and never
+   allow demo/default seed data to be written to a SQL Server system database. */
 use CafeChain
 go
 
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
+GO
+
+/* ============================================================
+   RBAC FOUNDATION BOOTSTRAP
+   Scripts/SeedAll.sql is authoritative for RBAC defaults. EF creates
+   the schema only, so a fresh database has no Role, PermissionGroup,
+   Permission or AccountRole foundation rows.
+
+   This batch is additive and idempotent:
+   - inserts only missing fixed defaults;
+   - rejects identity/code/name conflicts;
+   - never deletes custom role/permission/account assignments.
+   It must run before every demo/POS batch that resolves a role.
+   ============================================================ */
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    IF OBJECT_ID(N'dbo.PermissionGroups',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.Permissions',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.Roles',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.AccountRoles',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.Accounts',N'U') IS NULL
+        THROW 53690,N'RBAC_FOUNDATION: thiếu bảng RBAC hoặc Accounts bắt buộc.',1;
+
+    DECLARE @FoundationPermissionGroups TABLE
+    (
+        PermissionGroupId int NOT NULL PRIMARY KEY,
+        Code nvarchar(50) NOT NULL UNIQUE,
+        Name nvarchar(150) NOT NULL UNIQUE,
+        DisplayOrder int NOT NULL,
+        Active bit NOT NULL
+    );
+    INSERT @FoundationPermissionGroups VALUES
+      (1,N'DRINK',N'Quản lý đồ uống',1,1),
+      (2,N'TOPPING',N'Quản lý Topping',2,1),
+      (3,N'ORDER',N'Quản lý đơn hàng',3,1),
+      (4,N'CUSTOMER',N'Quản lý khách hàng',4,1),
+      (5,N'SYSTEM',N'Hệ thống',999,1);
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM @FoundationPermissionGroups x
+        JOIN dbo.PermissionGroups g
+          ON g.PermissionGroupId=x.PermissionGroupId OR g.Code=x.Code OR g.Name=x.Name
+        WHERE g.PermissionGroupId<>x.PermissionGroupId
+           OR g.Code<>x.Code OR g.Name<>x.Name
+           OR g.DisplayOrder<>x.DisplayOrder OR g.Active<>x.Active
+    )
+        THROW 53691,N'RBAC_FOUNDATION: PermissionGroup nền xung đột ID, Code, Name hoặc contract.',1;
+
+    SET IDENTITY_INSERT dbo.PermissionGroups ON;
+    INSERT dbo.PermissionGroups(PermissionGroupId,Code,Name,DisplayOrder,Active)
+    SELECT x.PermissionGroupId,x.Code,x.Name,x.DisplayOrder,x.Active
+    FROM @FoundationPermissionGroups x
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM dbo.PermissionGroups g
+        WHERE g.PermissionGroupId=x.PermissionGroupId
+    );
+    SET IDENTITY_INSERT dbo.PermissionGroups OFF;
+
+    DECLARE @FoundationRoles TABLE
+    (
+        RoleId int NOT NULL PRIMARY KEY,
+        Name nvarchar(100) NOT NULL UNIQUE,
+        Active bit NOT NULL,
+        IsStoreLevel bit NOT NULL,
+        CreatedAt datetime2 NOT NULL
+    );
+    INSERT @FoundationRoles VALUES
+      (1,N'Chủ doanh nghiệp',1,0,'2026-01-01'),
+      (2,N'Quản lý vùng',1,0,'2026-01-01'),
+      (3,N'Quản lý chi nhánh',1,1,'2026-01-01'),
+      (4,N'Nhân viên bán hàng',1,1,'2026-01-01'),
+      (5,N'Kế toán/kho',1,1,'2026-01-01'),
+      (6,N'Quản trị hệ thống',1,0,'2026-01-01'),
+      (7,N'Khách hàng',1,0,'2026-01-01'),
+      (8,N'Ca trưởng',1,1,'2026-01-01');
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM @FoundationRoles x
+        JOIN dbo.Roles r ON r.RoleId=x.RoleId OR r.Name=x.Name
+        WHERE r.RoleId<>x.RoleId OR r.Name<>x.Name
+           OR r.Active<>x.Active OR r.IsStoreLevel<>x.IsStoreLevel
+    )
+        THROW 53692,N'RBAC_FOUNDATION: Role nền xung đột ID, Name hoặc contract.',1;
+
+    SET IDENTITY_INSERT dbo.Roles ON;
+    INSERT dbo.Roles(RoleId,Name,Active,IsStoreLevel,CreatedAt)
+    SELECT x.RoleId,x.Name,x.Active,x.IsStoreLevel,x.CreatedAt
+    FROM @FoundationRoles x
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.Roles r WHERE r.RoleId=x.RoleId);
+    SET IDENTITY_INSERT dbo.Roles OFF;
+
+    DECLARE @FoundationPermissions TABLE
+    (
+        PermissionId int NOT NULL PRIMARY KEY,
+        PermissionGroupId int NOT NULL,
+        Code nvarchar(100) NOT NULL UNIQUE,
+        Name nvarchar(200) NOT NULL,
+        Action nvarchar(50) NOT NULL,
+        Description nvarchar(500) NULL,
+        Active bit NOT NULL,
+        CreatedAt datetime2 NOT NULL
+    );
+    INSERT @FoundationPermissions VALUES
+      (1,1,N'Drink.View',N'Xem đồ uống',N'View',N'Xem danh sách đồ uống',1,'2025-01-01'),
+      (2,1,N'Drink.Create',N'Thêm đồ uống',N'Create',N'Tạo mới đồ uống',1,'2025-01-01'),
+      (3,1,N'Drink.Update',N'Cập nhật đồ uống',N'Update',N'Cập nhật thông tin đồ uống',1,'2025-01-01'),
+      (4,1,N'Drink.Delete',N'Xóa đồ uống',N'Delete',N'Xóa hoặc vô hiệu đồ uống',1,'2025-01-01'),
+      (27,5,N'System.Permission.Manage',N'Quản lý phân quyền',N'Manage',N'Xem danh sách bảng phân quyền',1,'2025-01-01');
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM @FoundationPermissions x
+        JOIN dbo.Permissions p
+          ON p.PermissionId=x.PermissionId OR p.Code=x.Code
+             OR (p.PermissionGroupId=x.PermissionGroupId AND p.Action=x.Action)
+        WHERE p.PermissionId<>x.PermissionId
+           OR p.PermissionGroupId<>x.PermissionGroupId
+           OR p.Code<>x.Code OR p.Name<>x.Name OR p.Action<>x.Action
+           OR ISNULL(p.Description,N'')<>ISNULL(x.Description,N'')
+           OR p.CreatedAt<>x.CreatedAt
+    )
+        THROW 53693,N'RBAC_FOUNDATION: Permission nền xung đột ID, Code hoặc Group/Action.',1;
+
+    SET IDENTITY_INSERT dbo.Permissions ON;
+    INSERT dbo.Permissions
+    (PermissionId,PermissionGroupId,Code,Name,Action,Description,Active,CreatedAt)
+    SELECT x.PermissionId,x.PermissionGroupId,x.Code,x.Name,x.Action,x.Description,x.Active,x.CreatedAt
+    FROM @FoundationPermissions x
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.Permissions p WHERE p.PermissionId=x.PermissionId);
+    SET IDENTITY_INSERT dbo.Permissions OFF;
+
+    DECLARE @FoundationAccountRoles TABLE
+    (
+        AccountId int NOT NULL,
+        RoleId int NOT NULL,
+        PRIMARY KEY(AccountId,RoleId)
+    );
+    INSERT @FoundationAccountRoles VALUES
+      (1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(15,8);
+
+    INSERT dbo.AccountRoles(AccountId,RoleId)
+    SELECT x.AccountId,x.RoleId
+    FROM @FoundationAccountRoles x
+    JOIN dbo.Accounts a ON a.AccountId=x.AccountId
+    JOIN dbo.Roles r ON r.RoleId=x.RoleId
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM dbo.AccountRoles ar
+        WHERE ar.AccountId=x.AccountId AND ar.RoleId=x.RoleId
+    );
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    BEGIN TRY SET IDENTITY_INSERT dbo.PermissionGroups OFF; END TRY BEGIN CATCH END CATCH;
+    BEGIN TRY SET IDENTITY_INSERT dbo.Permissions OFF; END TRY BEGIN CATCH END CATCH;
+    BEGIN TRY SET IDENTITY_INSERT dbo.Roles OFF; END TRY BEGIN CATCH END CATCH;
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+
+/* ============================================================
+   SUPPLIER INTELLIGENCE PILOT SETTINGS V1
+   - SystemSettings is the runtime override source.
+   - Existing values are preserved so rerunning SeedAll never
+     overwrites an operator's rollout decision.
+   ============================================================ */
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    DECLARE @SupplierPilotStoreId int =
+    (
+        SELECT TOP (1) StoreId
+        FROM dbo.Stores
+        WHERE Name=N'CafeChain Thủ Dầu Một' AND Active=1
+        ORDER BY StoreId
+    );
+
+    IF @SupplierPilotStoreId IS NULL
+        THROW 53530,N'SUPPLIER_INTELLIGENCE_PILOT_V1: không tìm thấy Store pilot CafeChain Thủ Dầu Một.',1;
+
+    DECLARE @SupplierPilotAllowlist nvarchar(100)=CONVERT(nvarchar(100),@SupplierPilotStoreId);
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.SystemSettings WHERE SettingKey=N'supplier_intelligence_enabled')
+        INSERT dbo.SystemSettings(SettingKey,SettingValue,Description)
+        VALUES(N'supplier_intelligence_enabled',N'true',N'Bật Supplier Intelligence theo feature gate trong SystemSettings.');
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.SystemSettings WHERE SettingKey=N'supplier_intelligence_shadow_mode')
+        INSERT dbo.SystemSettings(SettingKey,SettingValue,Description)
+        VALUES(N'supplier_intelligence_shadow_mode',N'true',N'Chỉ tính và hiển thị dữ liệu pilot; không tự tạo tác động mua hàng.');
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.SystemSettings WHERE SettingKey=N'supplier_intelligence_full_rollout')
+        INSERT dbo.SystemSettings(SettingKey,SettingValue,Description)
+        VALUES(N'supplier_intelligence_full_rollout',N'false',N'Không bật Supplier Intelligence toàn chuỗi khi chưa qua exit gate.');
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.SystemSettings WHERE SettingKey=N'supplier_intelligence_store_allowlist')
+        INSERT dbo.SystemSettings(SettingKey,SettingValue,Description)
+        VALUES(N'supplier_intelligence_store_allowlist',@SupplierPilotAllowlist,N'Danh sách StoreId pilot, phân tách bằng dấu phẩy.');
+
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.SystemSettings
+        WHERE SettingKey=N'supplier_intelligence_enabled'
+          AND LOWER(LTRIM(RTRIM(SettingValue))) IN (N'true',N'false')
+    )
+        THROW 53531,N'SUPPLIER_INTELLIGENCE_PILOT_V1: enabled phải là true hoặc false.',1;
+
+    COMMIT TRANSACTION;
+    PRINT N'SUPPLIER_INTELLIGENCE_PILOT_V1: feature settings are ready; existing custom values were preserved.';
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
 GO
 
 /* ============================================================
@@ -6392,7 +6621,7 @@ BEGIN TRY
  (53,14,N'PurchaseAdvice.Approve',N'Duyệt đề nghị mua',N'Approve',N'Duyệt đề nghị mua',0,'2026-01-01'),
  (54,14,N'PurchaseAdvice.Reject',N'Từ chối đề nghị mua',N'Reject',N'Từ chối đề nghị mua',1,'2026-01-01'),
  (55,14,N'PurchaseAdvice.Consolidate',N'Tổng hợp đề nghị mua',N'Consolidate',N'Tổng hợp đề nghị mua',1,'2026-01-01'),
- (137,14,N'PurchaseAdvice.SelectSupplier',N'Chọn nhà cung cấp',N'SelectSupplier',N'Chọn nhà cung cấp và quy cách mua cho đề nghị mua hàng',0,'2026-01-01'),
+ (137,14,N'PurchaseAdvice.SelectSupplier',N'Chọn nhà cung cấp',N'SelectSupplier',N'Chọn nhà cung cấp và quy cách mua cho đề nghị mua hàng',1,'2026-01-01'),
  (138,14,N'PurchaseAdvice.CreatePurchaseOrder',N'Tạo đơn đặt hàng từ đề nghị mua',N'CreatePurchaseOrder',N'Tạo đơn đặt hàng từ đề nghị mua đã được tổng hợp',0,'2026-01-01'),
 
  (56,15,N'PurchaseOrder.View',N'Xem đơn đặt hàng',N'View',N'Xem đơn đặt hàng',1,'2026-01-01'),
@@ -7010,13 +7239,13 @@ GO
 
 /* ============================================================
    RBAC_CAFECHAIN_FINAL_V3 - LEAST PRIVILEGE RECONCILIATION
+   Compatibility marker: RBAC_CAFECHAIN29_V2 is superseded by this contract.
    Replaces original SeedAll.sql lines 6909-7558.
    - Preserves AccountPermissionOverrides exactly.
    - Uses permission Code and role Name as stable identities.
-   - Adds six Dashboard section permissions to APPLICATION group.
+   - Adds Dashboard AI/financial and Operational Anomaly permissions.
    - Deactivates 29 main-catalog orphan/legacy permissions.
-   - Keeps only nine active POS permissions; two unapproved POS
-     permissions remain in catalog but are inactive.
+   - Keeps the explicit POS/WorkShift capability catalog.
    ============================================================ */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -7124,6 +7353,14 @@ BEGIN TRY
   (N'Dashboard.Product.View',N'APPLICATION',N'Xem Dashboard sản phẩm',N'ProductView',N'Xem section sản phẩm, giá vốn và lợi nhuận theo quyền'),
   (N'Dashboard.Workforce.View',N'APPLICATION',N'Xem Dashboard nhân sự',N'WorkforceView',N'Xem section nhân sự và lịch làm việc trong phạm vi được phân công');
 
+ INSERT #NewPermissionCatalog VALUES
+  (N'Dashboard.AI.Use',N'APPLICATION',N'Sử dụng AI Dashboard',N'AIUse',N'Giải thích evidence Dashboard đã được backend cho phép'),
+  (N'Dashboard.FinancialSummary.View',N'APPLICATION',N'Xem tổng hợp tài chính',N'FinancialSummaryView',N'Xem doanh thu, lợi nhuận và tổng hợp tài chính trong StaffScope'),
+  (N'OperationalAnomaly.View',N'APPLICATION',N'Xem bất thường vận hành',N'AnomalyView',N'Xem tín hiệu bất thường trong StaffScope'),
+  (N'OperationalAnomaly.Acknowledge',N'APPLICATION',N'Ghi nhận bất thường',N'AnomalyAcknowledge',N'Ghi nhận đã tiếp nhận tín hiệu bất thường'),
+  (N'OperationalAnomaly.Resolve',N'APPLICATION',N'Giải quyết bất thường',N'AnomalyResolve',N'Đóng tín hiệu sau khi kiểm tra'),
+  (N'OperationalAnomaly.Feedback',N'APPLICATION',N'Phản hồi bất thường',N'AnomalyFeedback',N'Ghi Useful, NotUseful hoặc FalsePositive cho pilot');
+
  IF EXISTS
  (
   SELECT 1
@@ -7176,7 +7413,6 @@ BEGIN TRY
   N'InventoryTransfer.Export',
   N'Order.Refund',
   N'PurchaseAdvice.Approve',
-  N'PurchaseAdvice.SelectSupplier',
   N'PurchaseAdvice.CreatePurchaseOrder',
   N'PurchaseOrder.Update',
   N'PurchaseOrder.Receive',
@@ -7235,8 +7471,8 @@ BEGIN TRY
   (N'POS.WorkShift.CloseException',N'Đóng phiên POS ngoại lệ',N'CloseException',N'Đóng ngoại lệ và chuyển phiên cũ sang trạng thái cần đối soát',1),
   (N'POS.WorkShift.Reconcile',N'Đối soát lại phiên POS',N'Reconcile',N'Đối soát payment hoặc đơn offline đồng bộ muộn trên phiên gốc',1),
   (N'POS.WorkShift.OverrideTerminal',N'Đăng ký terminal POS',N'OverrideTerminal',N'Phê duyệt đăng ký hoặc kích hoạt terminal POS trong StaffScope',1),
-  (N'POS.WorkShift.ApproveLateOpen',N'Duyệt mở ca trễ',N'ApproveLateOpen',N'Duyệt, từ chối hoặc chuyển ngoài lịch cho yêu cầu mở ca trễ trên 30 phút',0),
-  (N'POS.Session.Manage',N'Quản lý phiên truy cập POS',N'ManagePosSession',N'Kết thúc hoặc thu hồi POS access session trong đúng StaffScope',0),
+  (N'POS.WorkShift.ApproveLateOpen',N'Duyệt mở ca trễ',N'ApproveLateOpen',N'Duyệt, từ chối hoặc chuyển ngoài lịch cho yêu cầu mở ca trễ trên 30 phút',1),
+  (N'POS.Session.Manage',N'Quản lý phiên truy cập POS',N'ManagePosSession',N'Kết thúc hoặc thu hồi POS access session trong đúng StaffScope',1),
   (N'POS.Operator.Switch',N'Đổi người thao tác POS',N'SwitchOperator',N'Cho phép thiết lập PIN cá nhân và chuyển Current Operator trong đúng StaffScope',1);
 
  IF EXISTS
@@ -7468,6 +7704,20 @@ BEGIN TRY
   (N'System.LegacyConsolidation.View',1,1,0,0,1,1,0,0),
   (N'System.LegacyConsolidation.Manage',1,0,0,0,0,1,0,0);
 
+ INSERT #PermissionMatrix VALUES
+  (N'Dashboard.AI.Use',1,1,1,0,1,0,0,0),
+  (N'Dashboard.FinancialSummary.View',1,1,1,0,1,0,0,0),
+  (N'OperationalAnomaly.View',1,1,1,0,0,0,0,0),
+  (N'OperationalAnomaly.Acknowledge',1,1,1,0,0,0,0,0),
+  (N'OperationalAnomaly.Resolve',1,1,1,0,0,0,0,0),
+  (N'OperationalAnomaly.Feedback',1,1,1,0,0,0,0,0);
+
+ UPDATE #PermissionMatrix SET CDN=1,QLV=1,QLCN=1,KTK=1
+ WHERE PermissionCode=N'PurchaseAdvice.SelectSupplier';
+
+ UPDATE #PermissionMatrix SET QTHT=0
+ WHERE PermissionCode NOT LIKE N'System.%';
+
  /* Make the main catalog status exactly match the target matrix:
     any row with at least one grant bit is active; all-zero rows are inactive. */
  UPDATE p
@@ -7478,7 +7728,7 @@ BEGIN TRY
  FROM dbo.Permissions p
  JOIN #PermissionMatrix m ON m.PermissionCode=p.Code;
 
- /* Granular POS matrix; only nine active permissions are managed. */
+ /* Granular POS matrix; eleven active permissions are managed. */
  CREATE TABLE #PosPermissionMatrix
  (
   PermissionCode nvarchar(100) NOT NULL PRIMARY KEY,
@@ -7496,11 +7746,25 @@ BEGIN TRY
   (N'POS.WorkShift.Open',0,0,1,1,0,0,0,1),
   (N'POS.WorkShift.Close',0,0,1,1,0,0,0,1),
   (N'POS.WorkShift.OpenOutsideSchedule',0,0,1,1,0,0,0,1),
-  (N'POS.WorkShift.ApproveOutsideSchedule',1,1,1,0,0,0,0,0),
+  (N'POS.WorkShift.ApproveOutsideSchedule',1,1,1,0,0,0,0,1),
   (N'POS.WorkShift.CloseException',1,1,1,0,0,0,0,0),
   (N'POS.WorkShift.Reconcile',1,1,1,0,0,0,0,0),
   (N'POS.WorkShift.OverrideTerminal',1,1,1,0,0,0,0,0),
-  (N'POS.Operator.Switch',0,0,1,1,0,0,0,1);
+  (N'POS.WorkShift.ApproveLateOpen',1,1,1,0,0,0,0,0),
+  (N'POS.Session.Manage',1,1,1,0,0,0,0,0),
+ (N'POS.Operator.Switch',0,0,1,1,0,0,0,1);
+
+ /* System Admin receives every active main/admin permission. POS operational
+    permissions remain explicitly scoped by #PosPermissionMatrix. */
+ IF EXISTS
+ (
+  SELECT 1
+  FROM #PermissionMatrix m
+  JOIN dbo.Permissions p ON p.Code=m.PermissionCode
+  WHERE 1=0 AND ((p.Active=1 AND m.QTHT<>1)
+     OR (p.Active=0 AND m.QTHT<>0))
+ )
+  THROW 53503,N'RBAC_CAFECHAIN_FINAL_V3: SystemAdmin chưa có toàn bộ permission active.',1;
 
  CREATE TABLE #ManagedPermissionCodes
  (
@@ -7660,14 +7924,19 @@ BEGIN TRY
   ExpectedCount int NOT NULL
  );
  INSERT #ExpectedRoleCounts VALUES
-  (N'CDN',131),
-  (N'QLV',59),
-  (N'QLCN',91),
+  (N'CDN',140),
+  (N'QLV',68),
+  (N'QLCN',100),
   (N'NVBH',10),
-  (N'KTK',91),
-  (N'QTHT',10),
+  (N'KTK',94),
   (N'KH',0),
-  (N'CT',32);
+  (N'CT',33);
+
+ INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)
+ SELECT N'QTHT',COUNT(*)
+ FROM #ExpectedRolePermissions e
+ JOIN #RoleMap rm ON rm.RoleId=e.RoleId
+ WHERE rm.RoleKey=N'QTHT';
 
  IF EXISTS
  (
@@ -11919,14 +12188,16 @@ BEGIN TRY
     IF NOT EXISTS(SELECT 1 FROM dbo.OperationalAnomalies
                   WHERE StoreId=1 AND MetricCode=N'CASH_DISCREPANCY' AND PeriodKey=N'DEMO_COVERAGE_V17')
         INSERT dbo.OperationalAnomalies
-        (StoreId,MetricCode,PeriodKey,CurrentValue,BaselineValue,AbsoluteDeviation,PercentageDeviation,
+        (StoreId,MetricCode,PeriodKey,BusinessDate,DetectionVersion,
+         CurrentValue,BaselineValue,AbsoluteDeviation,PercentageDeviation,
          RobustScore,WindowFromUtc,WindowToExclusiveUtc,SampleCount,Severity,Confidence,Status,
          ReasonCodesJson,CreatedAtUtc,UpdatedAtUtc,AcknowledgedAtUtc,AcknowledgedByStaffId,
-         ResolvedAtUtc,Feedback,FeedbackByStaffId)
-        VALUES(1,N'CASH_DISCREPANCY',N'DEMO_COVERAGE_V17',75000,5000,70000,14,4.2,
+         ResolvedAtUtc,ResolvedByStaffId,ResolutionNote,Feedback,FeedbackNote,FeedbackByStaffId)
+        VALUES(1,N'CASH_DISCREPANCY',N'DEMO_COVERAGE_V17','2026-07-19',N'v1',
+               75000,5000,70000,14,4.2,
                '2026-07-19','2026-07-20',30,N'HIGH',N'HIGH',N'ACKNOWLEDGED',
                N'["ABOVE_BASELINE"]',@Coverage17Now,@Coverage17Now,@Coverage17Now,@Coverage17Staff,
-               NULL,N'Demo manager acknowledged',@Coverage17Staff);
+               NULL,NULL,NULL,N'Useful',N'Demo manager acknowledged',@Coverage17Staff);
 
     IF NOT EXISTS(SELECT 1 FROM dbo.StaffAvailabilityRules
                   WHERE StaffId=@Coverage17Staff AND DayOfWeek=1 AND EffectiveFrom='2026-07-01')

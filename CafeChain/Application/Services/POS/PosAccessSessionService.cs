@@ -15,6 +15,7 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
     private readonly IWorkShiftAuditService? _audit;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<PosAccessSessionService> _logger;
+    private readonly List<(PosAccessSession Session, string? Reason)> _pendingPublications = [];
 
     public PosAccessSessionService(
         IPosAccessSessionRepository repository,
@@ -33,7 +34,8 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
     public async Task<PosAccessSession> CreateAsync(
         int accountId, int staffId, int storeId, string terminalId,
         int exchangeContextId, int? workShiftId, DateTime expiresAtUtc,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool publishAfterCommit = true)
     {
         var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
         var session = new PosAccessSession
@@ -50,14 +52,42 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
             IssuedAtUtc = nowUtc,
             ExpiresAtUtc = expiresAtUtc
         };
-        var replacedSessions = await _repository.CreateReplacingActiveAsync(session, nowUtc, cancellationToken);
-        foreach (var replaced in replacedSessions)
-            await PublishSafeAsync(replaced, replaced.EndReason, cancellationToken);
-        await PublishSafeAsync(session, "POS access session đã được tạo.", cancellationToken);
-        if (_audit != null)
-            await _audit.WriteAsync("POS_SESSION_CREATED", workShiftId ?? 0, staffId, null,
-                new { session.PublicId, session.TerminalId, session.ExpiresAtUtc }, cancellationToken);
+        await _repository.BeginTransactionAsync(cancellationToken);
+        IReadOnlyList<PosAccessSession> replacedSessions;
+        try
+        {
+            replacedSessions = await _repository.CreateReplacingActiveAsync(session, nowUtc, cancellationToken);
+            if (_audit != null)
+                await _audit.WriteAsync("POS_SESSION_CREATED", workShiftId ?? 0, staffId, null,
+                    new { session.PublicId, session.TerminalId, session.ExpiresAtUtc }, cancellationToken);
+            await _repository.CommitTransactionAsync(cancellationToken);
+        }
+        catch
+        {
+            await _repository.RollbackTransactionAsync(cancellationToken);
+            throw;
+        }
+        if (publishAfterCommit)
+        {
+            foreach (var replaced in replacedSessions)
+                await PublishSafeAsync(replaced, replaced.EndReason, cancellationToken);
+            await PublishSafeAsync(session, "POS access session đã được tạo.", cancellationToken);
+        }
+        else
+        {
+            _pendingPublications.AddRange(replacedSessions.Select(x => (x, x.EndReason)));
+            _pendingPublications.Add((session, "POS access session đã được tạo."));
+        }
         return session;
+    }
+
+    public async Task FlushPendingPublicationsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_pendingPublications.Count == 0) return;
+        var pending = _pendingPublications.ToArray();
+        _pendingPublications.Clear();
+        foreach (var item in pending)
+            await PublishSafeAsync(item.Session, item.Reason, cancellationToken);
     }
 
     public async Task<ServiceResult<PosAccessSessionDto>> ValidateAsync(
@@ -132,19 +162,74 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
         return ServiceResult.Success("Đã kết thúc POS access session.");
     }
 
+    public async Task<int> ExpireDueAsync(CancellationToken cancellationToken = default)
+    {
+        var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+        await _repository.BeginTransactionAsync(cancellationToken);
+        IReadOnlyList<PosAccessSession> due;
+        try
+        {
+            due = await _repository.GetDueForExpiryAsync(nowUtc, 200, cancellationToken);
+            if (due.Count == 0)
+            {
+                await _repository.CommitTransactionAsync(cancellationToken);
+                return 0;
+            }
+
+            foreach (var session in due)
+            {
+                session.Status = PosAccessSessionStatuses.Expired;
+                session.EndedAtUtc = nowUtc;
+                session.EndReason = "POS access session đã hết hạn.";
+            }
+            await _repository.SaveChangesAsync(cancellationToken);
+            if (_audit != null)
+            {
+                foreach (var session in due)
+                    await _audit.WriteAsync(
+                        "POS_SESSION_EXPIRED",
+                        session.WorkShiftId ?? 0,
+                        session.StaffId,
+                        new { Status = PosAccessSessionStatuses.Active },
+                        new { session.PublicId, session.Status, session.ExpiresAtUtc, session.EndedAtUtc },
+                        cancellationToken);
+            }
+            await _repository.CommitTransactionAsync(cancellationToken);
+        }
+        catch
+        {
+            await _repository.RollbackTransactionAsync(cancellationToken);
+            throw;
+        }
+
+        foreach (var session in due)
+            await PublishSafeAsync(session, session.EndReason, cancellationToken);
+        return due.Count;
+    }
+
     private async Task EndTrackedAsync(PosAccessSession session, string status, int? actor, string reason,
         CancellationToken cancellationToken)
     {
-        session.Status = status;
-        session.EndedAtUtc = _timeProvider.GetUtcNow().UtcDateTime;
-        session.EndedByStaffId = actor;
-        session.EndReason = string.IsNullOrWhiteSpace(reason) ? "POS access session đã kết thúc." : reason.Trim();
-        await _repository.SaveChangesAsync(cancellationToken);
+        await _repository.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            session.Status = status;
+            session.EndedAtUtc = _timeProvider.GetUtcNow().UtcDateTime;
+            session.EndedByStaffId = actor;
+            session.EndReason = string.IsNullOrWhiteSpace(reason) ? "POS access session đã kết thúc." : reason.Trim();
+            await _repository.SaveChangesAsync(cancellationToken);
+            if (_audit != null)
+                await _audit.WriteAsync("POS_SESSION_ENDED", session.WorkShiftId ?? 0, actor ?? session.StaffId,
+                    new { OldStatus = PosAccessSessionStatuses.Active },
+                    new { session.Status, session.EndReason, session.EndedAtUtc }, cancellationToken);
+            await _repository.CommitTransactionAsync(cancellationToken);
+        }
+        catch
+        {
+            await _repository.RollbackTransactionAsync(cancellationToken);
+            throw;
+        }
         await PublishSafeAsync(session, session.EndReason, cancellationToken);
-        if (_audit != null)
-            await _audit.WriteAsync("POS_SESSION_ENDED", session.WorkShiftId ?? 0, actor ?? session.StaffId,
-                new { OldStatus = PosAccessSessionStatuses.Active },
-                new { session.Status, session.EndReason, session.EndedAtUtc }, cancellationToken);
     }
 
     private async Task PublishSafeAsync(PosAccessSession session, string? reason, CancellationToken cancellationToken)
@@ -155,6 +240,7 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
             await _publisher.PublishAsync(new PosAccessSessionChangedDto
             {
                 SessionId = session.PublicId,
+                StoreId = session.StoreId,
                 TerminalId = session.TerminalId,
                 Status = session.Status,
                 Reason = reason,

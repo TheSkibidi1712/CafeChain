@@ -90,6 +90,7 @@ namespace CafeChain.Data
         public DbSet<PosRecommendationExposure> PosRecommendationExposures { get; set; }
         public DbSet<PosRecommendationExposureItem> PosRecommendationExposureItems { get; set; }
         public DbSet<OperationalAnomaly> OperationalAnomalies { get; set; }
+        public DbSet<IntelligencePilotRun> IntelligencePilotRuns { get; set; }
 
         // ========================= DRINK =========================
         public DbSet<Drink> Drinks { get; set; }

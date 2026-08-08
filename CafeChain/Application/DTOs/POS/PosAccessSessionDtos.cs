@@ -19,6 +19,7 @@ public sealed class PosAccessSessionChangedDto
 {
     public string EventId { get; set; } = Guid.NewGuid().ToString("N");
     public Guid SessionId { get; set; }
+    public int StoreId { get; set; }
     public string TerminalId { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string? Reason { get; set; }

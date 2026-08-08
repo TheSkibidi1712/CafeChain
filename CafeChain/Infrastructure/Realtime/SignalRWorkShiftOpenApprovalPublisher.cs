@@ -13,7 +13,7 @@ public sealed class SignalRWorkShiftOpenApprovalPublisher : IWorkShiftOpenApprov
     public Task PublishAsync(WorkShiftOpenApprovalChangedDto notification,
         CancellationToken cancellationToken = default) =>
         _hub.Clients.Groups(
-                WorkShiftGroups.ForStore(notification.StoreId),
+                WorkShiftGroups.ForLateApprovalStore(notification.StoreId),
                 WorkShiftGroups.ForStaff(notification.RequestedByStaffId))
             .SendAsync("LateOpenApprovalChanged", notification, cancellationToken);
 }

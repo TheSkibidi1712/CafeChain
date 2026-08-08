@@ -752,16 +752,52 @@
     margin-top: 6px;
     overflow: hidden;
 }
+.dashboard-intelligence__evidence > .dashboard-intelligence__table-wrap,
 .dashboard-intelligence__table-wrap {
+    grid-column: 1 / -1;
+    width: 100%;
     max-width: 100%;
+    margin-top: 10px;
     overflow-x: auto;
-    border: 1px solid rgba(111, 78, 55, .13);
-    border-radius: 11px;
+    border: 1px solid rgba(111, 78, 55, .15);
+    border-radius: 12px;
     background: #fff;
+    box-shadow: 0 4px 14px rgba(74, 45, 29, .04);
     scrollbar-color: rgba(111, 78, 55, .38) transparent;
 }
 .dashboard-intelligence__chart > .dashboard-intelligence__table-wrap {
     border: 0;
+    box-shadow: none;
+}
+.dashboard-intelligence__table {
+    width: 100%;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: .85rem;
+}
+.dashboard-intelligence__table th {
+    padding: 12px 16px;
+    background: #FBF7F2;
+    color: var(--an-primary, #70482F);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: .73rem;
+    letter-spacing: .04em;
+    border-bottom: 1px solid rgba(111, 78, 55, .14);
+    white-space: nowrap;
+}
+.dashboard-intelligence__table td {
+    padding: 12px 16px;
+    color: var(--an-ink, #201812);
+    border-bottom: 1px solid rgba(111, 78, 55, .07);
+    vertical-align: middle;
+}
+.dashboard-intelligence__table tr:last-child td {
+    border-bottom: none;
+}
+.dashboard-intelligence__table tr:hover td {
+    background: #FAF6F2;
 }
 .dashboard-intelligence__priority {
     display: inline-flex;
@@ -1288,17 +1324,21 @@
     border-radius: 50%;
 }
 .dashboard-guide__hero > div { position: relative; z-index: 1; }
-.dashboard-guide__hero .analytics-eyebrow { color: #ECCFB8; }
-.dashboard-guide__hero .analytics-eyebrow::before { background: #ECCFB8; }
+.admin-page-body .dashboard-guide__hero .analytics-eyebrow,
+.dashboard-guide__hero .analytics-eyebrow { color: #ECCFB8 !important; }
+.dashboard-guide__hero .analytics-eyebrow::before { background: #ECCFB8 !important; }
+.admin-page-body .dashboard-guide__hero h2,
 .dashboard-guide__hero h2 {
     max-width: 680px;
     margin: 0 0 10px;
+    color: #FFFDFB !important;
     font-size: clamp(1.8rem, 3vw, 2.45rem);
     line-height: 1.12;
     font-weight: 800;
     letter-spacing: -.035em;
 }
-.dashboard-guide__hero p { max-width: 650px; margin: 0; color: #EADFD7; }
+.admin-page-body .dashboard-guide__hero p,
+.dashboard-guide__hero p { max-width: 650px; margin: 0; color: #EADFD7 !important; }
 .dashboard-guide__hero-icon {
     position: relative;
     z-index: 1;

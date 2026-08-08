@@ -17,39 +17,28 @@ public sealed class OperationalIceReportPdfRenderer : IOperationalIceReportPdfRe
         return Document.Create(document => document.Page(page =>
         {
             page.Size(PageSizes.A4);
-            page.Margin(30);
-            page.DefaultTextStyle(style => style.FontSize(9).FontColor("#1F2937"));
+            page.Margin(28);
+            page.DefaultTextStyle(style => style.FontSize(8.5f).FontColor("#1E293B"));
             page.Header().Element(container => Header(container, report));
-            page.Content().PaddingVertical(14).Column(column => Content(column, report));
-            page.Footer().Row(row =>
-            {
-                row.RelativeItem().Text($"Tạo lúc {generatedAtUtc:dd/MM/yyyy HH:mm} UTC · Dữ liệu giá từ giao dịch kho")
-                    .FontSize(7).FontColor("#64748B");
-                row.AutoItem().DefaultTextStyle(style => style.FontSize(7).FontColor("#64748B")).Text(text =>
-                {
-                    text.Span("Trang ");
-                    text.CurrentPageNumber();
-                    text.Span("/");
-                    text.TotalPages();
-                });
-            });
+            page.Content().PaddingVertical(12).Column(column => Content(column, report));
+            page.Footer().Element(container => Footer(container, generatedAtUtc));
         })).GeneratePdf();
     }
 
     private static void Header(IContainer container, OperationalIceReportDto report)
     {
-        container.BorderBottom(1).BorderColor("#D6D3D1").PaddingBottom(10).Row(row =>
+        container.BorderBottom(2).BorderColor("#6F4E37").PaddingBottom(8).Row(row =>
         {
             row.RelativeItem().Column(column =>
             {
-                column.Item().Text("CAFECHAIN").FontSize(15).Bold().FontColor("#6F4E37");
-                column.Item().Text("BÁO CÁO ĐÁ VẬN HÀNH").FontSize(18).Bold();
+                column.Item().Text("CAFECHAIN").FontSize(11).Bold().FontColor("#6F4E37");
+                column.Item().Text("BÁO CÁO ĐÁ VẬN HÀNH").FontSize(17).Bold().FontColor("#2C1A11");
             });
             row.AutoItem().AlignRight().Column(column =>
             {
-                column.Item().Text(report.StoreName).Bold();
-                column.Item().Text($"{report.BusinessDate:dd/MM/yyyy} · {report.OperationalShiftName}");
-                column.Item().Text($"Mã cấp đá #{report.IceAllocationId}").FontColor("#64748B");
+                column.Item().Text(report.StoreName).FontSize(9.5f).Bold().FontColor("#2C1A11");
+                column.Item().Text($"{report.BusinessDate:dd/MM/yyyy} · {report.OperationalShiftName}").FontSize(8.5f).FontColor("#64748B");
+                column.Item().Text($"Mã cấp đá #{report.IceAllocationId}").FontSize(8.5f).Bold().FontColor("#6F4E37");
             });
         });
     }
@@ -57,36 +46,75 @@ public sealed class OperationalIceReportPdfRenderer : IOperationalIceReportPdfRe
     private static void Content(ColumnDescriptor column, OperationalIceReportDto report)
     {
         column.Spacing(12);
+
+        // Section 1: Meta Cards (Ca vận hành & Nhân sự)
         column.Item().Row(row =>
         {
-            row.RelativeItem().Element(InfoBox).Column(info =>
+            row.RelativeItem().Element(CardBox).Column(info =>
             {
-                info.Item().Text("CA VẬN HÀNH").Bold().FontColor("#6F4E37");
-                info.Item().Text($"Thời gian: {report.StartAtUtc:dd/MM HH:mm} - {report.EndAtUtc:dd/MM HH:mm} UTC");
-                info.Item().Text($"Nguyên liệu: {report.IngredientName}");
-                info.Item().Text($"Trạng thái: {OperationalIceDisplayText.Status(report.Status)}");
-                info.Item().Text($"Ca bán hàng POS: {(report.WorkShiftIds.Count == 0 ? "-" : string.Join(", ", report.WorkShiftIds.Select(x => $"#{x}")))}");
+                info.Item().Text("CA VẬN HÀNH").FontSize(8.5f).Bold().FontColor("#6F4E37");
+                info.Item().PaddingBottom(4).LineHorizontal(0.5f).LineColor("#ECE3D9");
+                info.Item().Text(text =>
+                {
+                    text.Span("Thời gian: ").FontColor("#64748B");
+                    text.Span($"{report.StartAtUtc:dd/MM HH:mm} - {report.EndAtUtc:dd/MM HH:mm} UTC").Bold();
+                });
+                info.Item().Text(text =>
+                {
+                    text.Span("Nguyên liệu: ").FontColor("#64748B");
+                    text.Span(report.IngredientName).Bold();
+                });
+                info.Item().Text(text =>
+                {
+                    text.Span("Trạng thái: ").FontColor("#64748B");
+                    text.Span(OperationalIceDisplayText.Status(report.Status)).Bold();
+                });
+                info.Item().Text(text =>
+                {
+                    text.Span("Ca bán hàng POS: ").FontColor("#64748B");
+                    text.Span(report.WorkShiftIds.Count == 0 ? "-" : string.Join(", ", report.WorkShiftIds.Select(x => $"#{x}"))).Bold();
+                });
             });
-            row.ConstantItem(10);
-            row.RelativeItem().Element(InfoBox).Column(info =>
+
+            row.ConstantItem(12);
+
+            row.RelativeItem().Element(CardBox).Column(info =>
             {
-                info.Item().Text("NHÂN SỰ").Bold().FontColor("#6F4E37");
-                info.Item().Text($"Người cấp: {Value(report.IssuedBy)}");
-                info.Item().Text($"Ca trưởng/Người nhận: {Value(report.ShiftLead)}");
-                info.Item().Text($"Người chốt: {Value(report.ClosedBy)}");
-                info.Item().Text($"Người duyệt: {Value(report.ApprovedBy)}");
+                info.Item().Text("NHÂN SỰ").FontSize(8.5f).Bold().FontColor("#6F4E37");
+                info.Item().PaddingBottom(4).LineHorizontal(0.5f).LineColor("#ECE3D9");
+                info.Item().Text(text =>
+                {
+                    text.Span("Người cấp: ").FontColor("#64748B");
+                    text.Span(Value(report.IssuedBy)).Bold();
+                });
+                info.Item().Text(text =>
+                {
+                    text.Span("Ca trưởng/Người nhận: ").FontColor("#64748B");
+                    text.Span(Value(report.ShiftLead)).Bold();
+                });
+                info.Item().Text(text =>
+                {
+                    text.Span("Người chốt: ").FontColor("#64748B");
+                    text.Span(Value(report.ClosedBy)).Bold();
+                });
+                info.Item().Text(text =>
+                {
+                    text.Span("Người duyệt: ").FontColor("#64748B");
+                    text.Span(Value(report.ApprovedBy)).Bold();
+                });
             });
         });
 
-        column.Item().Text("ĐỐI CHIẾU SỐ LƯỢNG").FontSize(11).Bold();
-        column.Item().Table(table =>
+        // Section 2: Đối chiếu số lượng
+        column.Item().Text("ĐỐI CHIẾU SỐ LƯỢNG").FontSize(9.5f).Bold().FontColor("#2C1A11");
+        column.Item().Border(1).BorderColor("#EAE0D6").Table(table =>
         {
             table.ColumnsDefinition(columns =>
             {
-                columns.RelativeColumn();
-                columns.RelativeColumn();
-                columns.RelativeColumn();
-                columns.RelativeColumn();
+                columns.RelativeColumn(1.3f);
+                columns.RelativeColumn(1.0f);
+                columns.RelativeColumn(1.3f);
+                columns.RelativeColumn(1.0f);
             });
             AddMetric(table, "Tồn chuyển đầu ca", Quantity(report.OpeningCarry, report.UnitName));
             AddMetric(table, "Cấp đầu ca", Quantity(report.InitialIssued, report.UnitName));
@@ -98,66 +126,118 @@ public sealed class OperationalIceReportPdfRenderer : IOperationalIceReportPdfRe
             AddMetric(table, "Chênh lệch", NullableQuantity(report.Variance, report.UnitName));
         });
 
-        column.Item().Text("GIÁ VỐN VÀ ĐỐI SOÁT").FontSize(11).Bold();
-        column.Item().Element(InfoBox).Column(cost =>
+        // Section 3: Giá vốn và đối soát
+        column.Item().Text("GIÁ VỐN VÀ ĐỐI SOÁT").FontSize(9.5f).Bold().FontColor("#2C1A11");
+        column.Item().Element(CardBox).Column(cost =>
         {
             cost.Item().Row(row =>
             {
-                row.RelativeItem().Text($"Giá vốn theo POS: {Money(report.TheoreticalCost)}");
-                row.RelativeItem().Text($"Giá vốn chênh lệch: {Money(report.VarianceCost)}");
-                row.RelativeItem().Text($"Giá vốn thực tế: {Money(report.ActualCost)}").Bold();
+                row.RelativeItem().Text(text =>
+                {
+                    text.Span("Giá vốn theo POS: ").FontColor("#64748B");
+                    text.Span(Money(report.TheoreticalCost)).Bold();
+                });
+                row.RelativeItem().Text(text =>
+                {
+                    text.Span("Giá vốn chênh lệch: ").FontColor("#64748B");
+                    text.Span(Money(report.VarianceCost)).Bold();
+                });
+                row.RelativeItem().Text(text =>
+                {
+                    text.Span("Giá vốn thực tế: ").FontColor("#64748B");
+                    text.Span(Money(report.ActualCost)).Bold().FontColor("#2C1A11");
+                });
             });
-            cost.Item().PaddingTop(5).Text(OperationalIceDisplayText.CostStatus(report.CostStatus)).FontColor("#99623B");
+
+            cost.Item().PaddingTop(6).BorderTop(0.5f).BorderColor("#ECE3D9").PaddingTop(6).Text(text =>
+            {
+                text.Span("Tình trạng giá vốn: ").FontColor("#64748B");
+                text.Span(OperationalIceDisplayText.CostStatus(report.CostStatus)).Bold().FontColor("#99623B");
+            });
+
             if (report.HasUsageSnapshotMismatch)
             {
-                cost.Item().PaddingTop(5).Text(
-                    $"Cảnh báo đối soát: tiêu hao đã lưu {Quantity(report.TheoreticalUsage, report.UnitName)}, dữ liệu giao dịch hiện tại {Quantity(report.LedgerTheoreticalUsage, report.UnitName)}.")
-                    .FontColor("#991B1B");
+                cost.Item().PaddingTop(4).Text(
+                    $"⚠️ Cảnh báo đối soát: Tiêu hao đã lưu {Quantity(report.TheoreticalUsage, report.UnitName)}, dữ liệu giao dịch hiện tại {Quantity(report.LedgerTheoreticalUsage, report.UnitName)}.")
+                    .FontColor("#991B1B").Bold();
             }
         });
 
-        column.Item().Text("THAM CHIẾU BÚT TOÁN KHO").FontSize(11).Bold();
+        // Section 4: Tham chiếu bút toán kho
+        column.Item().Text("THAM CHIẾU BÚT TOÁN KHO").FontSize(9.5f).Bold().FontColor("#2C1A11");
         if (report.InventoryPostings.Count == 0)
         {
-            column.Item().Text("Không phát sinh bút toán điều chỉnh kho cho ca này.").FontColor("#64748B");
+            column.Item().Element(CardBox).Text("Không phát sinh bút toán điều chỉnh kho cho ca này.").FontColor("#64748B");
         }
         else
         {
-            column.Item().Table(table =>
+            column.Item().Border(1).BorderColor("#EAE0D6").Table(table =>
             {
                 table.ColumnsDefinition(columns =>
                 {
+                    columns.RelativeColumn(1.3f);
+                    columns.RelativeColumn(2.2f);
                     columns.RelativeColumn(1.2f);
-                    columns.RelativeColumn(2.5f);
-                    columns.RelativeColumn(1.2f);
-                    columns.RelativeColumn(1.2f);
+                    columns.RelativeColumn(1.3f);
                 });
                 table.Header(header =>
                 {
-                    header.Cell().Element(HeaderCell).Text("Loại").Bold();
-                    header.Cell().Element(HeaderCell).Text("Mã chống trùng lặp").Bold();
-                    header.Cell().Element(HeaderCell).Text("Giao dịch kho").Bold();
-                    header.Cell().Element(HeaderCell).AlignRight().Text("Giá trị").Bold();
+                    header.Cell().Element(HeaderCell).Text("Bút toán").Bold().FontColor("#6F4E37");
+                    header.Cell().Element(HeaderCell).Text("Mã chống trùng lặp").Bold().FontColor("#6F4E37");
+                    header.Cell().Element(HeaderCell).Text("Giao dịch kho").Bold().FontColor("#6F4E37");
+                    header.Cell().Element(HeaderCell).AlignRight().Text("Giá trị").Bold().FontColor("#6F4E37");
                 });
                 foreach (var posting in report.InventoryPostings)
                 {
-                    table.Cell().Element(BodyCell).Text(OperationalIceDisplayText.PostingType(posting.PostingType));
+                    table.Cell().Element(BodyCell).Text($"#{posting.IceInventoryPostingId} · {OperationalIceDisplayText.PostingType(posting.PostingType)}");
                     table.Cell().Element(BodyCell).Text(posting.IdempotencyKey);
                     table.Cell().Element(BodyCell).Text(posting.InventoryTransactionId?.ToString() ?? "-");
-                    table.Cell().Element(BodyCell).AlignRight().Text(Money(posting.TotalCost));
+                    table.Cell().Element(BodyCell).AlignRight().Text(Money(posting.TotalCost)).Bold();
                 }
             });
         }
 
+        // Section 5: Ghi chú chốt ca / Đối soát
         if (!string.IsNullOrWhiteSpace(report.CloseReason) || !string.IsNullOrWhiteSpace(report.ReconciliationReason))
         {
-            column.Item().Element(InfoBox).Column(note =>
+            column.Item().Element(CardBox).Column(note =>
             {
-                note.Item().Text("GHI CHÚ CHỐT CA / ĐỐI SOÁT").Bold().FontColor("#6F4E37");
-                if (!string.IsNullOrWhiteSpace(report.CloseReason)) note.Item().Text(report.CloseReason);
-                if (!string.IsNullOrWhiteSpace(report.ReconciliationReason)) note.Item().Text(report.ReconciliationReason);
+                note.Item().Text("GHI CHÚ CHỐT CA / ĐỐI SOÁT").FontSize(8.5f).Bold().FontColor("#6F4E37");
+                note.Item().PaddingBottom(4).LineHorizontal(0.5f).LineColor("#ECE3D9");
+                if (!string.IsNullOrWhiteSpace(report.CloseReason))
+                {
+                    note.Item().Text(text =>
+                    {
+                        text.Span("Lý do chênh lệch: ").Bold();
+                        text.Span(report.CloseReason);
+                    });
+                }
+                if (!string.IsNullOrWhiteSpace(report.ReconciliationReason))
+                {
+                    note.Item().Text(text =>
+                    {
+                        text.Span("Kết luận đối soát: ").Bold();
+                        text.Span(report.ReconciliationReason);
+                    });
+                }
             });
         }
+    }
+
+    private static void Footer(IContainer container, DateTime generatedAtUtc)
+    {
+        container.BorderTop(1).BorderColor("#EAE0D6").PaddingTop(6).Row(row =>
+        {
+            row.RelativeItem().Text($"Tạo lúc {generatedAtUtc:dd/MM/yyyy HH:mm} UTC · Dữ liệu giá từ giao dịch kho")
+                .FontSize(7.5f).FontColor("#64748B");
+            row.AutoItem().DefaultTextStyle(style => style.FontSize(7.5f).FontColor("#64748B")).Text(text =>
+            {
+                text.Span("Trang ");
+                text.CurrentPageNumber();
+                text.Span("/");
+                text.TotalPages();
+            });
+        });
     }
 
     private static void AddMetric(TableDescriptor table, string label, string value)
@@ -166,14 +246,14 @@ public sealed class OperationalIceReportPdfRenderer : IOperationalIceReportPdfRe
         table.Cell().Element(BodyCell).Text(value).Bold();
     }
 
-    private static IContainer InfoBox(IContainer container) =>
-        container.Border(1).BorderColor("#E7E5E4").Background("#FAFAF9").Padding(9);
+    private static IContainer CardBox(IContainer container) =>
+        container.Border(1).BorderColor("#EAE0D6").Background("#FAF8F5").Padding(9);
 
     private static IContainer HeaderCell(IContainer container) =>
-        container.Background("#F7F3EE").BorderBottom(1).BorderColor("#D6D3D1").Padding(6);
+        container.Background("#FAF8F5").BorderBottom(1).BorderColor("#EAE0D6").Padding(5);
 
     private static IContainer BodyCell(IContainer container) =>
-        container.BorderBottom(1).BorderColor("#E7E5E4").Padding(6);
+        container.Background("#FFFFFF").BorderBottom(1).BorderColor("#F2ECE5").Padding(5);
 
     private static string Value(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     private static string Quantity(decimal value, string unit) => $"{value.ToString("0.###", VietnameseCulture)} {unit}";

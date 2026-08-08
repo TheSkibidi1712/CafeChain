@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260807070051_InitialCreate")]
+    [Migration("20260808123900_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -141,6 +141,51 @@ namespace CafeChain.Migrations
                     b.ToTable("ForecastRuns", (string)null);
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Analytics.IntelligencePilotRun", b =>
+                {
+                    b.Property<long>("IntelligencePilotRunId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("IntelligencePilotRunId"));
+
+                    b.Property<DateTime>("CompletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ErrorCategory")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("FeatureCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("MetricsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RunMode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("bit");
+
+                    b.HasKey("IntelligencePilotRunId");
+
+                    b.HasIndex("FeatureCode", "StoreId", "CompletedAtUtc");
+
+                    b.ToTable("IntelligencePilotRuns", (string)null);
+                });
+
             modelBuilder.Entity("CafeChain.Models.Analytics.OperationalAnomaly", b =>
                 {
                     b.Property<int>("OperationalAnomalyId")
@@ -161,6 +206,9 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("BaselineValue")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<DateTime>("BusinessDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("Confidence")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -172,12 +220,21 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("CurrentValue")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<string>("DetectionVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Feedback")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("FeedbackByStaffId")
                         .HasColumnType("int");
+
+                    b.Property<string>("FeedbackNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("MetricCode")
                         .IsRequired()
@@ -197,8 +254,15 @@ namespace CafeChain.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateTime?>("ResolvedAtUtc")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("ResolvedByStaffId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("RobustScore")
                         .HasColumnType("decimal(18,4)");
@@ -240,10 +304,12 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("FeedbackByStaffId");
 
-                    b.HasIndex("StoreId", "MetricCode", "PeriodKey")
-                        .IsUnique();
+                    b.HasIndex("ResolvedByStaffId");
 
                     b.HasIndex("StoreId", "Status", "Severity");
+
+                    b.HasIndex("StoreId", "BusinessDate", "MetricCode", "DetectionVersion")
+                        .IsUnique();
 
                     b.ToTable("OperationalAnomalies", (string)null);
                 });
@@ -532,48 +598,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AccountRoles", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            AccountId = 1,
-                            RoleId = 1
-                        },
-                        new
-                        {
-                            AccountId = 2,
-                            RoleId = 2
-                        },
-                        new
-                        {
-                            AccountId = 3,
-                            RoleId = 3
-                        },
-                        new
-                        {
-                            AccountId = 4,
-                            RoleId = 4
-                        },
-                        new
-                        {
-                            AccountId = 5,
-                            RoleId = 5
-                        },
-                        new
-                        {
-                            AccountId = 6,
-                            RoleId = 6
-                        },
-                        new
-                        {
-                            AccountId = 7,
-                            RoleId = 7
-                        },
-                        new
-                        {
-                            AccountId = 15,
-                            RoleId = 8
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.Customer", b =>
@@ -10695,63 +10719,6 @@ namespace CafeChain.Migrations
                         .IsUnique();
 
                     b.ToTable("Permissions", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            PermissionId = 1,
-                            Action = "View",
-                            Active = true,
-                            Code = "Drink.View",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Xem danh sách đồ uống",
-                            Name = "Xem đồ uống",
-                            PermissionGroupId = 1
-                        },
-                        new
-                        {
-                            PermissionId = 2,
-                            Action = "Create",
-                            Active = true,
-                            Code = "Drink.Create",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Tạo mới đồ uống",
-                            Name = "Thêm đồ uống",
-                            PermissionGroupId = 1
-                        },
-                        new
-                        {
-                            PermissionId = 3,
-                            Action = "Update",
-                            Active = true,
-                            Code = "Drink.Update",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Cập nhật thông tin đồ uống",
-                            Name = "Cập nhật đồ uống",
-                            PermissionGroupId = 1
-                        },
-                        new
-                        {
-                            PermissionId = 4,
-                            Action = "Delete",
-                            Active = true,
-                            Code = "Drink.Delete",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Xóa hoặc vô hiệu đồ uống",
-                            Name = "Xóa đồ uống",
-                            PermissionGroupId = 1
-                        },
-                        new
-                        {
-                            PermissionId = 27,
-                            Action = "Manage",
-                            Active = true,
-                            Code = "System.Permission.Manage",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Xem danh sách bảng phân quyền",
-                            Name = "Quản lý phân quyền",
-                            PermissionGroupId = 5
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Permissions.PermissionGroup", b =>
@@ -10791,48 +10758,6 @@ namespace CafeChain.Migrations
                         .IsUnique();
 
                     b.ToTable("PermissionGroups", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            PermissionGroupId = 1,
-                            Active = true,
-                            Code = "DRINK",
-                            DisplayOrder = 1,
-                            Name = "Quản lý đồ uống"
-                        },
-                        new
-                        {
-                            PermissionGroupId = 2,
-                            Active = true,
-                            Code = "TOPPING",
-                            DisplayOrder = 2,
-                            Name = "Quản lý Topping"
-                        },
-                        new
-                        {
-                            PermissionGroupId = 3,
-                            Active = true,
-                            Code = "ORDER",
-                            DisplayOrder = 3,
-                            Name = "Quản lý đơn hàng"
-                        },
-                        new
-                        {
-                            PermissionGroupId = 4,
-                            Active = true,
-                            Code = "CUSTOMER",
-                            DisplayOrder = 4,
-                            Name = "Quản lý khách hàng"
-                        },
-                        new
-                        {
-                            PermissionGroupId = 5,
-                            Active = true,
-                            Code = "SYSTEM",
-                            DisplayOrder = 999,
-                            Name = "Hệ thống"
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Permissions.Role", b =>
@@ -10867,72 +10792,6 @@ namespace CafeChain.Migrations
                         .IsUnique();
 
                     b.ToTable("Roles", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            RoleId = 1,
-                            Active = true,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsStoreLevel = false,
-                            Name = "Chủ doanh nghiệp"
-                        },
-                        new
-                        {
-                            RoleId = 2,
-                            Active = true,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsStoreLevel = false,
-                            Name = "Quản lý vùng"
-                        },
-                        new
-                        {
-                            RoleId = 3,
-                            Active = true,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsStoreLevel = true,
-                            Name = "Quản lý chi nhánh"
-                        },
-                        new
-                        {
-                            RoleId = 4,
-                            Active = true,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsStoreLevel = true,
-                            Name = "Nhân viên bán hàng"
-                        },
-                        new
-                        {
-                            RoleId = 5,
-                            Active = true,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsStoreLevel = true,
-                            Name = "Kế toán/kho"
-                        },
-                        new
-                        {
-                            RoleId = 6,
-                            Active = true,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsStoreLevel = false,
-                            Name = "Quản trị hệ thống"
-                        },
-                        new
-                        {
-                            RoleId = 7,
-                            Active = true,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsStoreLevel = false,
-                            Name = "Khách hàng"
-                        },
-                        new
-                        {
-                            RoleId = 8,
-                            Active = true,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsStoreLevel = true,
-                            Name = "Ca trưởng"
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Permissions.RolePermission", b =>
@@ -10948,33 +10807,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("PermissionId");
 
                     b.ToTable("RolePermissions", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 1
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 2
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 3
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 4
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 27
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.ScheduleOptimizationAssignment", b =>
@@ -13401,6 +13233,11 @@ namespace CafeChain.Migrations
                         .HasForeignKey("FeedbackByStaffId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ResolvedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany()
                         .HasForeignKey("StoreId")
@@ -13410,6 +13247,8 @@ namespace CafeChain.Migrations
                     b.Navigation("AcknowledgedByStaff");
 
                     b.Navigation("FeedbackByStaff");
+
+                    b.Navigation("ResolvedByStaff");
 
                     b.Navigation("Store");
                 });

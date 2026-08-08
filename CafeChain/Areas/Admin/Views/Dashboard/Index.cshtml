@@ -1,4 +1,5 @@
 @model CafeChain.Application.DTOs.Admin.Dashboard.DashboardPageDto
+@using CafeChain.Application.DTOs.Admin.Dashboard
 @using System.Text.Json
 @{
     ViewData["Title"] = "Dashboard Analytics";
@@ -13,7 +14,9 @@
         ("Procurement", "Mua hàng", "bi-truck"),
         ("Product", "Sản phẩm", "bi-cup-straw"),
         ("Workforce", "Nhân sự & lịch dự kiến", "bi-people")
-    };
+    }.Where(tab => Enum.TryParse<DashboardSection>(tab.Item1, out var section)
+        && Model.AllowedSections.Contains(section)).ToArray();
+    var firstSection = tabs.First().Item1;
 }
 
 @section Styles {
@@ -30,6 +33,10 @@
       data-context-id="@Model.AnalysisContext?.ContextId"
       data-generated-at="@Model.AnalysisContext?.GeneratedAt.ToString("O")"
       data-filter-fingerprint="@Model.AnalysisContext?.FilterFingerprint"
+      data-default-section="@firstSection"
+      data-can-select-province="@Model.Scope.CanSelectProvince.ToString().ToLowerInvariant()"
+      data-can-select-district="@Model.Scope.CanSelectDistrict.ToString().ToLowerInvariant()"
+      data-can-select-store="@Model.Scope.CanSelectStore.ToString().ToLowerInvariant()"
       data-province="@Model.Filter.ProvinceId" data-district="@Model.Filter.DistrictId" data-store="@Model.Filter.StoreId">
     <form id="dashboardAntiForgery" hidden>@Html.AntiForgeryToken()</form>
     <header class="analytics-header">
@@ -87,12 +94,12 @@
     <nav class="analytics-tabs" role="tablist" aria-label="Nhóm analytics">
         @foreach (var tab in tabs)
         {
-            <button type="button" role="tab" class="analytics-tab @(tab.Item1 == "Executive" ? "is-active" : "")"
+            <button type="button" role="tab" class="analytics-tab @(tab.Item1 == firstSection ? "is-active" : "")"
                     id="dashboardTab@tab.Item1"
                     data-section="@tab.Item1"
                     aria-controls="dashboardPanel"
-                    aria-selected="@(tab.Item1 == "Executive" ? "true" : "false")"
-                    tabindex="@(tab.Item1 == "Executive" ? "0" : "-1")">
+                    aria-selected="@(tab.Item1 == firstSection ? "true" : "false")"
+                    tabindex="@(tab.Item1 == firstSection ? "0" : "-1")">
                 <i class="bi @tab.Item3"></i><span>@tab.Item2</span>
             </button>
         }
@@ -100,6 +107,7 @@
                 role="tab"
                 class="analytics-tab"
                 id="dashboardAiTab"
+                hidden="@(!Model.CanUseAi)"
                 data-ai-tab="true"
                 aria-controls="dashboardAiPanel"
                 aria-selected="false"
@@ -116,6 +124,7 @@
              aria-live="polite"></section>
 
     <section id="dashboardAiPanel"
+             data-authorized="@Model.CanUseAi.ToString().ToLowerInvariant()"
              class="dashboard-intelligence dashboard-ai-panel"
              role="tabpanel"
              aria-labelledby="dashboardAiTab"

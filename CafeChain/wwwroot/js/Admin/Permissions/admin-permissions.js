@@ -334,12 +334,12 @@
 
         return `
             <tr>
-                <td>${ordinal}</td>
-                <td><div class="perm-name">${escapeHtml(get(role, "name", ""))}</div></td>
-                <td>${get(role, "userCount", 0)}</td>
-                <td>${get(role, "permissionCount", 0)}</td>
-                <td><span class="perm-badge ${get(role, "active", false) ? "" : "is-muted"}">${get(role, "active", false) ? "Hoạt động" : "Ngưng hoạt động"}</span></td>
-                <td>
+                <td class="text-center">${ordinal}</td>
+                <td class="text-center"><div class="perm-name">${escapeHtml(get(role, "name", ""))}</div></td>
+                <td class="text-center">${get(role, "userCount", 0)}</td>
+                <td class="text-center">${get(role, "permissionCount", 0)}</td>
+                <td class="text-center"><span class="perm-badge ${get(role, "active", false) ? "" : "is-muted"}">${get(role, "active", false) ? "Hoạt động" : "Ngưng hoạt động"}</span></td>
+                <td class="text-center">
                     <button type="button" class="perm-outline-button" data-action="open-role" data-role-id="${get(role, "roleId", "")}">
                         <i class="fas fa-shield-halved"></i>
                         Phân quyền
@@ -386,15 +386,15 @@
         const active = get(staff, "active", false);
         return `
             <tr>
-                <td>
+                <td class="text-center">
                     <div class="perm-name">${escapeHtml(get(staff, "fullName", ""))}</div>
                     <div class="perm-subtext">#${get(staff, "staffId", "")}</div>
                 </td>
-                <td>${escapeHtml(get(staff, "email", ""))}</td>
-                <td>${escapeHtml(get(staff, "storeName", ""))}</td>
-                <td>${roleNamesHtml(get(staff, "roleNames", []))}</td>
-                <td><span class="perm-badge ${active ? "" : "is-muted"}">${active ? "Hoạt động" : "Ngưng hoạt động"}</span></td>
-                <td>
+                <td class="text-center">${escapeHtml(get(staff, "email", ""))}</td>
+                <td class="text-center">${escapeHtml(get(staff, "storeName", ""))}</td>
+                <td class="text-center">${roleNamesHtml(get(staff, "roleNames", []))}</td>
+                <td class="text-center"><span class="perm-badge ${active ? "" : "is-muted"}">${active ? "Hoạt động" : "Ngưng hoạt động"}</span></td>
+                <td class="text-center">
                     <button type="button" class="perm-outline-button" data-action="open-staff-role" data-staff-id="${get(staff, "staffId", "")}">
                         <i class="fas fa-user-tag"></i>
                         Gán vai trò

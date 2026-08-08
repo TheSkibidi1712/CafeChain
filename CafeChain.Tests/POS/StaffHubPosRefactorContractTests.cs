@@ -40,6 +40,22 @@ public sealed class StaffHubPosRefactorContractTests
         Assert.Contains(PosSessionExchangeErrorCodes.Expired, service, StringComparison.Ordinal);
         Assert.Contains(PosSessionExchangeErrorCodes.AlreadyUsed, service, StringComparison.Ordinal);
         Assert.Contains(PosSessionExchangeErrorCodes.Invalid, service, StringComparison.Ordinal);
+        Assert.Contains("ticket.Status = \"EXPIRED\"", service, StringComparison.Ordinal);
+        Assert.Contains("context.CancelledAtUtc", service, StringComparison.Ordinal);
+        Assert.DoesNotContain("ticket.Status = \"CANCELLED\"", service, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Late_open_policy_starts_at_30_and_only_blocks_scheduled_approval_after_45()
+    {
+        var workShift = Read("CafeChain", "Application", "Services", "POS", "WorkShiftService.cs");
+        var approvals = Read("CafeChain", "Application", "Services", "POS", "WorkShiftOpenApprovalService.cs");
+        var options = Read("CafeChain", "Application", "Options", "WorkShiftOptions.cs");
+
+        Assert.Contains("minutesLate >= _workShiftOptions.LateApprovalAfterMinutes", workShift, StringComparison.Ordinal);
+        Assert.Contains("assessment.Data.MinutesLate < _options.LateApprovalAfterMinutes", approvals, StringComparison.Ordinal);
+        Assert.Contains("approval.MinutesLate > _options.ResolveLateScheduledApprovalMaxMinutes()", approvals, StringComparison.Ordinal);
+        Assert.Contains("LateScheduledApprovalMaxMinutes { get; set; } = 45", options, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -93,17 +109,18 @@ public sealed class StaffHubPosRefactorContractTests
     }
 
     [Fact]
-    public void Exceptional_staffhub_open_binds_workshift_but_cash_remains_in_pos()
+    public void Staffhub_never_precreates_workshift_and_cash_commit_remains_in_pos()
     {
         var controller = Read("CafeChain", "Controllers", "StaffHubController.cs");
         var exchange = Read("CafeChain", "Application", "DTOs", "POS", "PosSessionExchangeDtos.cs");
         var shift = Read("CafeChain.Frontend", "src", "pages", "ShiftSummary.tsx");
 
-        Assert.Contains("RequiresStaffHubOpen", controller, StringComparison.Ordinal);
-        Assert.Contains("StartingCash = 0", controller, StringComparison.Ordinal);
-        Assert.Contains("workShiftId = opened.EntityId", controller, StringComparison.Ordinal);
+        Assert.DoesNotContain("new WorkShift", controller, StringComparison.Ordinal);
+        Assert.DoesNotContain("StartingCash = 0m", controller, StringComparison.Ordinal);
+        Assert.Contains("workShiftId = (int?)null", controller, StringComparison.Ordinal);
+        Assert.Contains("committed later by /api/v1/pos/shifts/open", controller, StringComparison.Ordinal);
         Assert.Contains("RequiresOpeningCash", exchange, StringComparison.Ordinal);
-        Assert.Contains("Xác nhận tiền đầu phiên", shift, StringComparison.Ordinal);
+        Assert.Contains("Xác nhận mở ca", shift, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -18,11 +18,21 @@ public sealed class AnomalyDetectionOptions
 {
     public const string SectionName = "AnomalyDetection";
     public bool Enabled { get; set; }
+    public bool ShadowMode { get; set; } = true;
+    public bool FullRollout { get; set; }
+    public List<int> StoreAllowlist { get; set; } = [];
+    public string DetectionVersion { get; set; } = "v1";
     public int IntervalMinutes { get; set; } = 60;
     public int AnalysisWindowDays { get; set; } = 28;
     public int MinimumSampleCount { get; set; } = 14;
     public decimal MinimumAbsoluteRevenueDeviation { get; set; } = 500000m;
     public decimal MinimumPercentageDeviation { get; set; } = .25m;
     public decimal RobustScoreThreshold { get; set; } = 3.5m;
+    public decimal CriticalRobustScoreThreshold { get; set; } = 5m;
+    public decimal CriticalPercentageDeviation { get; set; } = .5m;
+    public decimal MinimumAbsoluteCashDeviation { get; set; } = 100000m;
+
+    public bool IsEnabledForStore(int storeId) => Enabled
+        && (FullRollout || StoreAllowlist.Contains(storeId));
 }
 

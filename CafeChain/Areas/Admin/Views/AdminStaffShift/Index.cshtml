@@ -53,9 +53,6 @@
         </div>
 
         <nav class="week-nav" aria-label="Điều hướng tuần">
-            <a class="btn-nav" asp-controller="AdminShiftOptimization" asp-action="Index" asp-route-targetStoreId="@Model.StoreId">
-                <i class="fa-solid fa-sliders"></i><span>Cấu hình dữ liệu lịch</span>
-            </a>
             <a class="btn-nav" asp-action="Index" asp-route-targetStoreId="@Model.StoreId" asp-route-startDate="@Model.StartDate.AddDays(-7).ToString("yyyy-MM-dd")">
                 <i class="fa-solid fa-chevron-left"></i><span>Tuần trước</span>
             </a>
@@ -141,17 +138,17 @@
                 <div class="table-responsive template-management">
                     <table class="table table-sm align-middle mb-0">
                         <thead>
-                            <tr><th>Tên ca</th><th>Thời gian</th><th>Ghi chú</th><th>Trạng thái</th><th class="text-end">Thao tác</th></tr>
+                            <tr><th class="text-center">Tên ca</th><th class="text-center">Thời gian</th><th class="text-center">Ghi chú</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th></tr>
                         </thead>
                         <tbody>
                         @foreach (var template in Model.Templates)
                         {
                             <tr class="@(template.Active ? "" : "template-inactive")">
-                                <td class="fw-semibold">@template.Name</td>
-                                <td>@template.StartTime.ToString(@"hh\:mm") – @template.EndTime.ToString(@"hh\:mm") @(template.IsOvernight ? "(+1 ngày)" : "")</td>
-                                <td>@template.Notes</td>
-                                <td><span class="badge @(template.Active ? "bg-success" : "bg-secondary")">@(template.Active ? "Đang dùng" : "Đã ngưng")</span></td>
-                                <td class="text-end">
+                                <td class="fw-semibold text-center">@template.Name</td>
+                                <td class="text-center">@template.StartTime.ToString(@"hh\:mm") – @template.EndTime.ToString(@"hh\:mm") @(template.IsOvernight ? "(+1 ngày)" : "")</td>
+                                <td class="text-center">@template.Notes</td>
+                                <td class="text-center"><span class="badge @(template.Active ? "bg-success" : "bg-secondary")">@(template.Active ? "Đang dùng" : "Đã ngưng")</span></td>
+                                <td class="text-center">
                                     @if (Model.CanUpdate)
                                     {
                                         <button type="button" class="btn btn-sm btn-outline-primary edit-template"

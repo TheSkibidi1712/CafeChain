@@ -43,50 +43,7 @@ namespace CafeChain.Data.Configurations.Permissions
                 .HasForeignKey(x => x.PermissionGroupId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ================= SEED =================
-
-            entity.HasData(
-                new PermissionGroup
-                {
-                    PermissionGroupId = 1,
-                    Code = "DRINK",
-                    Name = "Quản lý đồ uống",
-                    DisplayOrder = 1,
-                    Active = true
-                },
-                new PermissionGroup
-                {
-                    PermissionGroupId = 2,
-                    Code = "TOPPING",
-                    Name = "Quản lý Topping",
-                    DisplayOrder = 2,
-                    Active = true
-                },
-                new PermissionGroup
-                {
-                    PermissionGroupId = 3,
-                    Code = "ORDER",
-                    Name = "Quản lý đơn hàng",
-                    DisplayOrder = 3,
-                    Active = true
-                },
-                new PermissionGroup
-                {
-                    PermissionGroupId = 4,
-                    Code = "CUSTOMER",
-                    Name = "Quản lý khách hàng",
-                    DisplayOrder = 4,
-                    Active = true
-                },
-                new PermissionGroup
-                {
-                    PermissionGroupId = 5,
-                    Code = "SYSTEM",
-                    Name = "Hệ thống",
-                    DisplayOrder = 999,
-                    Active = true
-                }
-            );
+            // SeedAll.sql is the authoritative, idempotent policy source.
         }
     }
 }
