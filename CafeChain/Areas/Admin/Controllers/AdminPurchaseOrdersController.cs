@@ -68,6 +68,16 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> Print(int id)
+        {
+            if (!await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderView)) return Forbid();
+            var actor = _actor.Get(User);
+            var result = await _service.GetDetailAsync(id, actor.StaffId, actor.RoleNames);
+            if (!result.IsSuccess || result.Data == null) return NotFound();
+            return View("Print", result.Data);
+        }
+
+        [HttpGet]
         [RequirePermission(PermissionConstants.PurchaseOrderCreate)]
         public async Task<IActionResult> Create(int? restockRequestId = null)
         {

@@ -1,0 +1,369 @@
+@model CafeChain.Application.DTOs.Admin.Procurement.PurchaseOrderDetailDto
+@using CafeChain.ViewModels.Admin.Shared
+@using System.Globalization
+@{
+    Layout = null;
+    var viCulture = CultureInfo.GetCultureInfo("vi-VN");
+    var orderStatus = AdminStatusDisplay.PurchaseOrder(Model.Status);
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>In đơn đặt hàng @Model.Code - CafeChain Admin</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+    <style>
+        body {
+            background-color: #F7F4F0 !important;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+            color: #3D2B1F !important;
+            margin: 0;
+            padding: 24px 0;
+        }
+
+        .po-print-topbar {
+            max-width: 1100px !important;
+            margin: 0 auto 20px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #FFFFFF;
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: 1px solid #E2D7CD;
+            box-shadow: 0 4px 12px rgba(111, 78, 55, 0.05);
+        }
+
+        .po-document-shell {
+            max-width: 1100px !important;
+            margin: 0 auto !important;
+            background: #FFFFFF !important;
+            border: 1px solid #E2D7CD !important;
+            border-radius: 16px !important;
+            padding: 48px 56px !important;
+            box-shadow: 0 10px 30px rgba(111, 78, 55, 0.08) !important;
+            color: #3D2B1F !important;
+        }
+
+        .po-doc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2.5px solid #6F4E37;
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+        }
+
+        .po-brand-title {
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: #6F4E37;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .po-doc-type {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #3D2B1F;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 6px;
+        }
+
+        .po-doc-code {
+            font-size: 1.05rem;
+            color: #8C6D58;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .po-doc-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .po-info-box {
+            background: #FAF6F0;
+            border: 1px solid #EAE2D9;
+            border-radius: 12px;
+            padding: 20px 24px;
+        }
+
+        .po-info-box h3 {
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #6F4E37;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #E2D7CD;
+            padding-bottom: 6px;
+        }
+
+        .po-info-line {
+            font-size: 0.92rem;
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+
+        .po-info-line strong {
+            color: #2B1A12;
+        }
+
+        .po-print-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 28px;
+        }
+
+        .po-print-table th {
+            background: #F4ECE1 !important;
+            color: #4A3525 !important;
+            font-size: 0.8rem !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+            padding: 14px 16px !important;
+            border-top: 1px solid #D8C5B6 !important;
+            border-bottom: 2px solid #D8C5B6 !important;
+        }
+
+        .po-print-table td {
+            padding: 14px 16px !important;
+            border-bottom: 1px solid #EAE2D9 !important;
+            font-size: 0.92rem !important;
+        }
+
+        .po-totals-box {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 36px;
+        }
+
+        .po-totals-table {
+            width: 360px;
+            border-collapse: collapse;
+        }
+
+        .po-totals-table td {
+            padding: 10px 14px;
+            font-size: 0.95rem;
+        }
+
+        .po-totals-table tr.grand-total {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #6F4E37;
+            border-top: 2px solid #6F4E37;
+            border-bottom: 2px solid #6F4E37;
+            background: #FAF6F0;
+        }
+
+        .po-signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            text-align: center;
+            margin-top: 48px;
+            page-break-inside: avoid;
+        }
+
+        .po-sign-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #4A3525;
+            margin-bottom: 4px;
+        }
+
+        .po-sign-sub {
+            font-size: 0.82rem;
+            color: #8C6D58;
+            font-style: italic;
+            margin-bottom: 72px;
+        }
+
+        .po-sign-name {
+            font-weight: 700;
+            color: #2B1A12;
+        }
+
+        @@media print {
+            .no-print,
+            .po-print-topbar {
+                display: none !important;
+            }
+
+            body {
+                background: #FFFFFF !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .po-document-shell {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                border-radius: 0 !important;
+            }
+
+            @@page {
+                size: A4 portrait;
+                margin: 15mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="po-print-topbar no-print">
+        <div>
+            <strong class="fs-5" style="color: #6F4E37;"><i class="fa-solid fa-file-pdf text-danger me-2"></i>Xem trước chứng từ Đơn đặt hàng @Model.Code</strong>
+            <div class="text-muted small">Bấm nút In / Tải PDF và chọn <strong>Lưu dưới dạng PDF</strong> (Save as PDF).</div>
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0 text-nowrap">
+            <button type="button" class="btn text-white fw-bold px-4 text-nowrap" style="background-color: #70482F; border-radius: 8px; white-space: nowrap;" onclick="window.print()">
+                <i class="fa-solid fa-print me-2"></i>In / Tải PDF
+            </button>
+            <a class="btn btn-outline-secondary fw-bold px-3 text-nowrap" style="border-radius: 8px; white-space: nowrap;" href="/Admin/AdminPurchaseOrders/Details/@Model.PurchaseOrderId">
+                <i class="fa-solid fa-arrow-left me-2"></i>Quay lại chi tiết
+            </a>
+        </div>
+    </div>
+
+    <div class="po-document-shell">
+        <!-- Document Header -->
+        <div class="po-doc-header">
+            <div>
+                <h1 class="po-brand-title"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i> CafeChain</h1>
+                <div class="po-doc-type">ĐƠN ĐẶT HÀNG</div>
+                <div class="po-doc-code">Mã đơn: <strong>@Model.Code</strong></div>
+            </div>
+            <div class="text-end">
+                <div class="mb-2"><span class="ops-badge @orderStatus.CssClass fs-6">@orderStatus.Label</span></div>
+                <div class="po-info-line">Ngày lập: <strong>@AdminStatusDisplay.Date(Model.OrderDate.ToLocalTime())</strong></div>
+                <div class="po-info-line">Chi nhánh: <strong>@Model.StoreName</strong></div>
+            </div>
+        </div>
+
+        <!-- 2 Columns Info -->
+        <div class="po-doc-grid">
+            <div class="po-info-box">
+                <h3>Bên Đặt Hàng (Khách Hàng)</h3>
+                <div class="po-info-line"><strong>Đơn vị:</strong> Chuỗi Cửa Hàng Cà Phê CafeChain</div>
+                <div class="po-info-line"><strong>Địa điểm nhận:</strong> @Model.StoreName</div>
+                <div class="po-info-line"><strong>Người tạo đơn:</strong> #@Model.CreatedByStaffId</div>
+            </div>
+            <div class="po-info-box">
+                <h3>Nhà Cung Cấp (Đối Tác)</h3>
+                <div class="po-info-line"><strong>Tên NCC:</strong> @Model.SupplierName</div>
+                <div class="po-info-line"><strong>Mã NCC:</strong> #@Model.SupplierId</div>
+                <div class="po-info-line"><strong>Ngày giao dự kiến:</strong> @(Model.ExpectedDeliveryAtUtc.HasValue ? Model.ExpectedDeliveryAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy") : "Theo thỏa thuận")</div>
+            </div>
+        </div>
+
+        <!-- Line Items Table -->
+        <table class="po-print-table">
+            <thead>
+                <tr>
+                    <th class="text-center" style="width: 50px;">STT</th>
+                    <th>Tên nguyên liệu</th>
+                    <th>Phương thức</th>
+                    <th class="text-center">Số lượng</th>
+                    <th class="text-end">Đơn giá</th>
+                    <th class="text-end">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int idx = 1; }
+                @foreach (var line in Model.Lines)
+                {
+                    var lineAmount = line.OrderedProcurementQuantity.HasValue && line.UnitPricePerProcurementUnit.HasValue
+                        ? line.OrderedProcurementQuantity.Value * line.UnitPricePerProcurementUnit.Value
+                        : (line.PackageCount.HasValue && line.PackagePriceSnapshot.HasValue
+                            ? line.PackageCount.Value * line.PackagePriceSnapshot.Value
+                            : 0m);
+
+                    <tr>
+                        <td class="text-center">@(idx++)</td>
+                        <td>
+                            <strong>@line.IngredientName</strong>
+                            <div class="ops-secondary">Mã dòng: #@line.PurchaseOrderLineId</div>
+                        </td>
+                        <td>
+                            @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose)
+                            {
+                                <span>Mua rời</span>
+                            }
+                            else
+                            {
+                                <span>Theo gói/thùng</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose)
+                            {
+                                <strong>@AdminStatusDisplay.Quantity(line.OrderedProcurementQuantity.GetValueOrDefault())</strong> @AdminStatusDisplay.Unit(line.ProcurementUnitName)
+                            }
+                            else
+                            {
+                                <strong>@AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault())</strong> <span>gói</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose)
+                            {
+                                <span>@AdminStatusDisplay.Currency(line.UnitPricePerProcurementUnit.GetValueOrDefault())</span>
+                            }
+                            else
+                            {
+                                <span>@AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())</span>
+                            }
+                        </td>
+                        <td class="text-end fw-bold">@AdminStatusDisplay.Currency(lineAmount)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Totals Summary -->
+        <div class="po-totals-box">
+            <table class="po-totals-table">
+                <tr>
+                    <td>Tạm tính:</td>
+                    <td class="text-end fw-bold">@AdminStatusDisplay.Currency(Model.TotalAmount)</td>
+                </tr>
+                <tr>
+                    <td>Thuế (VAT):</td>
+                    <td class="text-end">0 đ</td>
+                </tr>
+                <tr class="grand-total">
+                    <td>Tổng thanh toán:</td>
+                    <td class="text-end">@AdminStatusDisplay.Currency(Model.TotalAmount)</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Signatures Section -->
+        <div class="po-signatures">
+            <div>
+                <div class="po-sign-title">Đại diện Bên Đặt Hàng</div>
+                <div class="po-sign-sub">(Ký và ghi rõ họ tên)</div>
+                <div class="po-sign-name">Bộ phận Kế toán / Cung ứng CafeChain</div>
+            </div>
+            <div>
+                <div class="po-sign-title">Đại diện Nhà Cung Cấp</div>
+                <div class="po-sign-sub">(Ký, đóng dấu & ghi rõ họ tên)</div>
+                <div class="po-sign-name">@Model.SupplierName</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
