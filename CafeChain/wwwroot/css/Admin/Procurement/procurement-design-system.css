@@ -573,14 +573,11 @@ html {
     color: var(--cc-danger);
 }
 
-.ops-shell-narrow {
-    max-width: 1100px;
-    margin-inline: auto;
-}
-
+.ops-shell-narrow,
 .ops-shell-compact {
-    max-width: 1000px;
-    margin-inline: auto;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
 }
 
 .ops-table-min-620 {

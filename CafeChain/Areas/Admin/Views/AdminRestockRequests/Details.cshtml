@@ -332,7 +332,7 @@
                     @if (Model.PurchaseOrders.Count == 0) { <div class="p-3 ops-secondary">Chưa có đơn đặt hàng liên kết. Đơn đặt hàng sẽ xuất hiện sau khi PA được gửi, xét duyệt và tổng hợp.</div> }
                     else
                     {
-                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-680"><thead><tr><th>Đơn đặt hàng</th><th>Nhà cung cấp</th><th>Trạng thái đơn</th><th>Ngày đặt</th><th class="number">Giá trị</th><th></th></tr></thead><tbody>
+                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-680"><thead><tr><th>Đơn đặt hàng</th><th>Nhà cung cấp</th><th>Trạng thái đơn</th><th>Ngày đặt</th><th class="number">Giá trị</th><th class="text-end">Thao tác</th></tr></thead><tbody>
                         @foreach (var order in Model.PurchaseOrders)
                         {
                             <tr>
@@ -341,7 +341,7 @@
                                 <td><span class="ops-badge @AdminStatusDisplay.PurchaseOrder(order.Status).CssClass">@AdminStatusDisplay.PurchaseOrder(order.Status).Label</span></td>
                                 <td>@AdminStatusDisplay.DateTime(order.OrderDate.ToLocalTime())</td>
                                 <td class="number">@AdminStatusDisplay.Currency(order.TotalAmount)</td>
-                                <td><a class="ops-btn" asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Details" asp-route-id="@order.PurchaseOrderId">Xem đơn</a></td>
+                                <td class="text-end"><a class="ops-btn" asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Details" asp-route-id="@order.PurchaseOrderId">Xem đơn</a></td>
                             </tr>
                         }
                         </tbody></table></div>
@@ -371,10 +371,10 @@
                     @if (Model.Receipts.Count == 0) { <div class="p-3 ops-secondary">Chưa có chứng từ nhận hàng. Chỉ tạo phiếu nhận từ đơn đặt hàng đã duyệt và gửi nhà cung cấp.</div> }
                     else
                     {
-                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-620"><thead><tr><th>Phiếu</th><th>Trạng thái</th><th class="number">Lượng nhận</th><th class="number">Giá trị</th><th></th></tr></thead><tbody>
+                        <div class="ops-table-scroll"><table class="ops-table ops-table-min-620"><thead><tr><th>Phiếu</th><th>Trạng thái</th><th class="number">Lượng nhận</th><th class="number">Giá trị</th><th class="text-end">Thao tác</th></tr></thead><tbody>
                         @foreach (var receipt in Model.Receipts)
                         {
-                            <tr><td><strong>@receipt.ReceiptCode</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(receipt.ReceivedAt.ToLocalTime())</div></td><td><span class="ops-badge @AdminStatusDisplay.BranchReceipt(receipt.Status).CssClass">@AdminStatusDisplay.BranchReceipt(receipt.Status).Label</span></td><td class="number">@AdminStatusDisplay.Quantity(receipt.TotalBaseQuantity)</td><td class="number">@AdminStatusDisplay.Currency(receipt.TotalLineCost)</td><td><a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Details" asp-route-id="@receipt.BranchReceiptId">Xem phiếu</a></td></tr>
+                            <tr><td><strong>@receipt.ReceiptCode</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(receipt.ReceivedAt.ToLocalTime())</div></td><td><span class="ops-badge @AdminStatusDisplay.BranchReceipt(receipt.Status).CssClass">@AdminStatusDisplay.BranchReceipt(receipt.Status).Label</span></td><td class="number">@AdminStatusDisplay.Quantity(receipt.TotalBaseQuantity)</td><td class="number">@AdminStatusDisplay.Currency(receipt.TotalLineCost)</td><td class="text-end"><a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Details" asp-route-id="@receipt.BranchReceiptId">Xem phiếu</a></td></tr>
                         }
                         </tbody></table></div>
                     }

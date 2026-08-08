@@ -81,7 +81,7 @@
                        class="form-control" name="DefaultMaxNegativeQuantity"
                        value="@formatInput(Model.DefaultMaxNegativeQuantity)"
                        form="@formId" disabled="@(!Model.IsConfigurationValid)" />
-                <span class="input-group-text">base unit</span>
+                <span class="input-group-text">Đơn vị gốc</span>
             </div>
             <div class="form-text">Tự động áp dụng khi item chưa có hạn mức riêng.</div>
             </div>
@@ -102,7 +102,7 @@
             <span class="ni-meta-icon"><i class="fas fa-code-branch"></i></span>
             <div>
                 <label class="form-label fw-bold mb-1">Phiên bản chính sách</label>
-                <div class="ni-policy-version font-monospace">@Model.PolicyVersion</div>
+                <div class="ni-policy-version font-monospace">@(Model.PolicyVersion.StartsWith("manual-export-") ? Model.PolicyVersion.Replace("manual-export-", "Xuất thủ công - ") : Model.PolicyVersion)</div>
                 <div class="form-text">Tự cập nhật sau mỗi thay đổi.</div>
             </div>
           </div>
@@ -163,12 +163,12 @@
         <table class="table table-hover align-middle mb-0" id="negativeInventoryItemsTable">
             <thead class="table-light">
                 <tr>
-                    <th class="ni-col-item">Item</th>
+                    <th class="text-center ni-col-item">Item</th>
                     <th class="text-end ni-col-stock">Tồn khả dụng</th>
-                    <th class="ni-col-mode">Chế độ</th>
-                    <th class="ni-col-limit">Hạn mức riêng</th>
-                    <th class="ni-col-effective">Hiệu lực</th>
-                    <th class="ni-col-status">Trạng thái</th>
+                    <th class="text-center ni-col-mode">Chế độ</th>
+                    <th class="text-center ni-col-limit">Hạn mức riêng</th>
+                    <th class="text-center ni-col-effective">Hiệu lực</th>
+                    <th class="text-center ni-col-status">Trạng thái</th>
                 </tr>
             </thead>
             <tbody>
@@ -181,7 +181,7 @@
                         data-base-reserved="@formatInput(item.ReservedQty)"
                         data-base-effective-limit="@formatInput(item.EffectiveMaxNegativeQty)"
                         data-current-factor="1">
-                        <td>
+                        <td class="text-center">
                             <div class="ni-item-heading">
                                 <span class="ni-item-code">@item.ItemCode</span>
                                 <span class="ni-item-name">@item.ItemName</span>
@@ -192,7 +192,7 @@
                             <div class="ni-stock-value"><span class="negative-available-qty">@formatQuantity(item.AvailableQty)</span> <span class="negative-display-unit-code">@item.BaseUnitCode</span></div>
                             <div class="small text-muted">Đã giữ: <span class="negative-reserved-qty">@formatQuantity(item.ReservedQty)</span></div>
                         </td>
-                        <td>
+                        <td class="text-center">
                             <input type="hidden" name="Items[@index].StoreInventoryId" value="@item.StoreInventoryId" form="@formId" />
                             <input type="hidden" name="Items[@index].RowVersion" value="@item.RowVersion" form="@formId" />
                             <select class="form-select form-select-sm negative-limit-mode"
@@ -203,7 +203,7 @@
                                 <option value="@NegativeInventoryLimitModes.Custom" selected="@(item.LimitMode == NegativeInventoryLimitModes.Custom)">Hạn mức riêng</option>
                             </select>
                         </td>
-                        <td>
+                        <td class="text-center">
                             <div class="ni-limit-controls">
                             <select class="form-select form-select-sm mb-2 negative-display-unit"
                                     name="Items[@index].DisplayUnitId" form="@formId"
@@ -228,11 +228,11 @@
                                    disabled="@(item.LimitMode != NegativeInventoryLimitModes.Custom || !Model.IsConfigurationValid)" />
                             </div>
                         </td>
-                        <td>
+                        <td class="text-center">
                             <strong class="negative-effective-limit">@formatQuantity(item.EffectiveMaxNegativeQty)</strong>
                             <span class="negative-display-unit-code">@item.BaseUnitCode</span>
                         </td>
-                        <td>
+                        <td class="text-center">
                             <span class="badge rounded-pill ni-status-badge @(item.CanRequestNegative ? "text-bg-success" : "text-bg-secondary")">
                                 @item.EligibilityText
                             </span>
