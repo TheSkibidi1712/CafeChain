@@ -202,9 +202,9 @@
 
 .filter-row {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) repeat(2, minmax(0, 1.1fr)) auto;
+    grid-template-columns: repeat(4, minmax(148px, 1fr)) repeat(2, minmax(140px, 1fr)) auto;
     align-items: end;
-    gap: 10px;
+    gap: 12px;
     margin-top: 15px;
 }
 
@@ -212,6 +212,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    min-width: 0;
 }
 
 .filter-field label {
@@ -222,21 +223,26 @@
     white-space: nowrap;
 }
 
-    .filter-row .form-control,
-    .filter-row .form-select {
-        height: 42px;
-        border-radius: 8px;
-        border-color: #d4b8a3;
-        background: #F7F3EE;
-        font-size: 13px;
-    }
+.filter-row .form-control,
+.filter-row .form-select {
+    height: 42px;
+    border-radius: 8px;
+    border-color: #d4b8a3;
+    background: #F7F3EE;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #201812;
+    padding: 8px 24px 8px 10px !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
-    .filter-row .form-control:focus,
-    .filter-row .form-select:focus {
-        border-color: #6F4E37;
-        background: #fff;
-        box-shadow: 0 0 0 3px rgba(111,78,55,.12);
-    }
+.filter-row .form-control:focus,
+.filter-row .form-select:focus {
+    border-color: #6F4E37;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(111,78,55,.12);
+}
 
 .filter-actions {
     display: flex;
