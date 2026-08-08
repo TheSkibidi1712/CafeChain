@@ -213,11 +213,29 @@ body {
     width: 260px;
     left: 0;
     top: 0;
-    padding-top: 20px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    padding-top: 0;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
     z-index: 1000;
     box-shadow: var(--cc-shadow-xs);
+}
+
+.sidebar-nav-scroll {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-bottom: 12px;
+}
+
+.sidebar-system {
+    flex-shrink: 0 !important;
+    background-color: var(--cc-surface-raised) !important;
+    border-top: 1px solid var(--cc-border) !important;
+    padding: 10px 0 14px 0;
+    z-index: 10 !important;
+    position: relative !important;
 }
 
 .sidebar a,

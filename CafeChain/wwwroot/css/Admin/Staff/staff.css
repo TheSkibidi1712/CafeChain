@@ -96,29 +96,17 @@
 
 .staff-kpi-card {
     flex: 1;
-    background: #fff;
+    background: #fffdfb;
     border-radius: 14px;
     padding: 20px 22px;
     display: flex;
     align-items: center;
     gap: 16px;
-    box-shadow: 0 2px 16px rgba(111, 78, 55, 0.07);
-    border: 1px solid #E5E0D8;
+    box-shadow: 0 4px 18px rgba(71, 50, 35, 0.06);
+    border: 1px solid #e2d6cc;
     transition: transform 0.22s ease, box-shadow 0.22s ease;
     position: relative;
     overflow: hidden;
-}
-
-.staff-kpi-card:nth-child(1) {
-    background: linear-gradient(145deg, #fff, #faf4ef);
-}
-
-.staff-kpi-card:nth-child(2) {
-    background: linear-gradient(145deg, #fff, #f3f8f5);
-}
-
-.staff-kpi-card:nth-child(3) {
-    background: linear-gradient(145deg, #fff, #fdf5f5);
 }
 
 .staff-kpi-card::before {
@@ -150,11 +138,9 @@
     flex-shrink: 0;
 }
 
-.kpi-icon.total   { background: #F5EDE3; color: #C67A45; }
-.kpi-icon.active  { background: #D1FAE5; color: #2F6F5E; }
-.kpi-icon.inactive{ background: #FEE2E2; color: #991B1B; }
-
-.kpi-icon.total { color: #6f4e37; }
+.kpi-icon.total   { background: #f5ede3; color: #6f4e37; }
+.kpi-icon.active  { background: #ecfdf5; color: #16a34a; }
+.kpi-icon.inactive{ background: #fef2f2; color: #dc2626; }
 
 .admin-wo-page .admin-wo-card {
     overflow: hidden;
@@ -180,8 +166,10 @@
 .staff-filter-panel .form-select,
 .staff-filter-panel .input-group-text {
     min-height: 42px;
+    height: 42px;
     border-color: #ded2c8;
     background-color: #fff;
+    font-size: 13.5px;
 }
 
 .staff-filter-panel .form-control:focus,
@@ -196,6 +184,8 @@
 }
 
 .staff-filter-panel .btn-primary {
+    min-height: 42px;
+    height: 42px;
     border-color: var(--staff-brown);
     background: var(--staff-brown);
 }
@@ -204,6 +194,11 @@
     border-color: var(--staff-brown-dark);
     background: var(--staff-brown-dark);
     transform: translateY(-1px);
+}
+
+.staff-filter-panel .btn-outline-secondary {
+    min-height: 42px;
+    height: 42px;
 }
 
 .staff-filter-panel .btn-outline-secondary:hover {
@@ -222,19 +217,48 @@
 }
 
 .staff-table-shell {
-    overflow: hidden auto;
+    overflow-x: auto;
+    overflow-y: hidden;
     border: 1px solid #e8ded6;
     border-radius: 13px;
+    width: 100%;
+    background: #fff;
 }
 
 .staff-table-shell .table-custom {
     margin-bottom: 0;
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 860px;
 }
 
 .staff-table-shell .table-custom thead th {
     color: #6b5a4e;
     background: #f8f3ef;
     border-bottom-color: #ded2c8;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    padding: 12px 14px;
+    text-align: left;
+}
+
+.staff-table-shell .table-custom tbody td {
+    white-space: nowrap;
+    vertical-align: middle;
+    padding: 12px 14px;
+    font-size: 13px;
+    text-align: left;
+}
+
+/* Center Status and Action Columns */
+.staff-table-shell .table-custom th:nth-child(5),
+.staff-table-shell .table-custom td:nth-child(5),
+.staff-table-shell .table-custom th:nth-child(6),
+.staff-table-shell .table-custom td:nth-child(6) {
+    text-align: center;
 }
 
 .staff-table-shell .table-custom tbody tr {
@@ -306,34 +330,38 @@
 
 /* ---- Avatar in table ---- */
 .staff-avatar {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid #DBC4A9;
 }
 
 .staff-name-cell {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 11px;
+    gap: 10px;
+    white-space: nowrap;
 }
 
 .staff-name-cell .name {
     font-weight: 700;
     color: #1F2937;
+    white-space: nowrap;
 }
 
 /* ---- Role Badges ---- */
 .role-badge {
-    display: inline-block;
-    padding: 3px 9px;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
     border-radius: 6px;
     font-size: 11px;
     font-weight: 700;
-    margin-right: 3px;
+    margin-right: 4px;
     margin-bottom: 2px;
     border: 1px solid transparent;
+    white-space: nowrap;
 }
 
 .role-badge.cashier         { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
@@ -347,12 +375,12 @@
 .status-badge {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    width: max-content;
     white-space: nowrap;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
     font-weight: 700;
 }
 

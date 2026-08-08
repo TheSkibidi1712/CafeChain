@@ -85,23 +85,28 @@
    DASHBOARD
 ===================================================== */
 
+/* =====================================================
+   DASHBOARD
+===================================================== */
+
 .inventory-cards {
     display: grid;
-    grid-template-columns: repeat(5,1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 16px;
     margin-bottom: 20px;
 }
 
 .dashboard-card {
-    background: #fff;
+    background: #ffffff;
     border: 1px solid #E6DCCD;
     border-radius: 12px;
-    padding: 18px 20px;
+    padding: 16px 18px;
     border-bottom: 3px solid #6F4E37;
     box-shadow: 0 2px 8px rgba(0,0,0,.03);
     transition: transform .2s, box-shadow .2s;
     display: flex;
-    flex-direction: column-reverse;
+    align-items: center;
+    gap: 14px;
 }
 
     .dashboard-card:hover {
@@ -109,19 +114,46 @@
         box-shadow: 0 4px 12px rgba(111,78,55,.12);
     }
 
+    .dashboard-card .card-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
+        border-radius: 10px;
+        background: #F7F3EE;
+        color: #6F4E37;
+        font-size: 18px;
+    }
+
+    .dashboard-card .card-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
     .dashboard-card .value {
-        font-size: 26px;
+        font-size: 22px;
         font-weight: 800;
         color: #1F2937;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
     }
 
     .dashboard-card .label {
-        margin-bottom: 6px;
         color: #6F4E37;
         font-size: 11px;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: .04em;
+    }
+
+    .dashboard-card small {
+        font-size: 11px;
+        color: #8c7b70;
+        white-space: nowrap;
     }
 
 /* =====================================================
@@ -137,8 +169,25 @@
     margin-bottom: 20px;
 }
 
+.search-box {
+    position: relative;
+    width: 100%;
+}
+
+.search-box i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8c7b70;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 2;
+}
+
 .search-box input {
     height: 44px;
+    padding-left: 38px !important;
     border-radius: 8px;
     border-color: #d4b8a3;
     background: #F7F3EE;
@@ -153,18 +202,24 @@
 
 .filter-row {
     display: grid;
-    grid-template-columns:
-        minmax(160px, 1.4fr)
-        minmax(130px, 1fr)
-        minmax(150px, 1fr)
-        minmax(130px, 1fr)
-        minmax(130px, .85fr)
-        minmax(130px, .85fr)
-        auto;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) repeat(2, minmax(0, 1.1fr)) auto;
     align-items: end;
     gap: 10px;
     margin-top: 15px;
-    flex-wrap: nowrap;
+}
+
+.filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-field label {
+    margin: 0;
+    color: #66584f;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
     .filter-row .form-control,
@@ -181,19 +236,6 @@
         border-color: #6F4E37;
         background: #fff;
         box-shadow: 0 0 0 3px rgba(111,78,55,.12);
-    }
-
-.filter-date-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-    .filter-date-field label {
-        margin: 0;
-        color: #64748b;
-        font-size: 12px;
-        font-weight: 700;
     }
 
 .filter-actions {
@@ -264,39 +306,42 @@
 
     .inventory-table th {
         border: none;
-        font-size: 13px;
-        font-weight: 600;
-        color: #666;
-        padding: 16px;
+        font-size: 12.5px;
+        font-weight: 800;
+        color: #6F4E37;
+        padding: 14px 16px;
         vertical-align: middle;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        text-align: left;
     }
 
     .inventory-table td {
         padding: 14px 16px;
         vertical-align: middle;
         white-space: nowrap;
-        font-size: 13px;
+        font-size: 13.5px;
         border-bottom: 1px solid #F0EBE4;
         color: #1F2937;
+        text-align: left;
     }
 
-    .inventory-table th:nth-child(1),
-    .inventory-table td:nth-child(1),
-    .inventory-table th:nth-child(2),
-    .inventory-table td:nth-child(2),
-    .inventory-table th:nth-child(3),
-    .inventory-table td:nth-child(3),
-    .inventory-table th:nth-child(4),
-    .inventory-table td:nth-child(4),
+    /* Standard Alignments: Numeric Right, Status/Date/Actions Center */
     .inventory-table th:nth-child(6),
     .inventory-table td:nth-child(6),
-    .inventory-table th:nth-child(7),
-    .inventory-table td:nth-child(7),
     .inventory-table th:nth-child(8),
     .inventory-table td:nth-child(8),
     .inventory-table th:nth-child(9),
     .inventory-table td:nth-child(9) {
         text-align: center;
+    }
+
+    .inventory-table th:nth-child(7),
+    .inventory-table td:nth-child(7),
+    .inventory-table td.amount-cell {
+        text-align: right !important;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
     }
 
     .inventory-table tbody tr:hover {

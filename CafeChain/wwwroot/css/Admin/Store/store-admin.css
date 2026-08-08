@@ -280,18 +280,28 @@
 
 .store-admin-form-card label {
     color: #334155;
-    font-size: 13px;
-    font-weight: 850;
+    font-size: 12.5px;
+    font-weight: 800;
+    margin-bottom: 6px;
 }
 
 .store-admin-form-card .form-control,
 .store-admin-form-card .form-select {
     min-height: 42px;
-    border-color: var(--store-border);
+    height: 42px;
+    border: 1px solid #d4b8a3;
     border-radius: 8px;
     color: #1F2937;
-    background-color: #F7F3EE;
-    font-size: 14px;
+    background-color: #ffffff;
+    font-size: 13px;
+    padding: 8px 12px;
+}
+
+.store-admin-form-card .form-select {
+    padding-right: 30px !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .store-admin-form-card .form-control:focus,
@@ -330,13 +340,15 @@
 .store-admin-readonly-control {
     border-style: dashed !important;
     color: #475569 !important;
-    background: #f1f5f9 !important;
+    background: #f8fafc !important;
     cursor: not-allowed;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .store-admin-readonly-help {
     align-items: center;
-    color: #64748b;
+    color: #70482f;
     display: inline-flex;
     gap: 6px;
     margin-top: 8px;
@@ -345,25 +357,28 @@
 }
 
 .store-admin-map-card {
-    padding: 18px;
+    padding: 20px;
 }
 
 .store-admin-map-card h5 {
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     color: var(--store-text);
     font-size: 16px;
     font-weight: 850;
+    display: flex;
+    align-items: center;
 }
 
 .store-admin-map-hint {
-    margin-bottom: 12px;
-    border: 1px solid #d4b8a3;
+    margin-bottom: 14px;
+    border: 1px solid #e9ded4;
+    border-left: 4px solid #70482f;
     border-radius: 8px;
-    padding: 10px 12px;
+    padding: 12px 14px;
     color: #5C3F2B;
-    background: #F7F3EE;
+    background: #fbf7f2;
     font-size: 13px;
-    font-weight: 700;
+    line-height: 1.5;
 }
 
 #admin-map {
