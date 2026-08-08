@@ -9,6 +9,7 @@
     const unreadUrl = bell.dataset.unreadUrl;
     const listUrl = bell.dataset.listUrl;
     const seenEventIds = new Set();
+    const otpPopupStoragePrefix = "cafechain:operational-otp-popup:";
     let refreshPromise = null;
 
     function formatBadgeCount(count) {
@@ -37,6 +38,71 @@
         return response.ok ? response.json() : null;
     }
 
+    function normalizeUtc(value) {
+        const timestamp = String(value || "").trim();
+        if (!timestamp) return "";
+        return /(z|[+-]\d\d:?\d\d)$/i.test(timestamp) ? timestamp : `${timestamp}Z`;
+    }
+
+    function otpPopupKey(item) {
+        const otp = item?.operationalOtp;
+        return otp?.expiresAtUtc
+            ? `${otpPopupStoragePrefix}${item.notificationId}:${normalizeUtc(otp.expiresAtUtc)}`
+            : null;
+    }
+
+    function wasOtpPopupShown(key) {
+        if (!key) return true;
+        try { return window.sessionStorage.getItem(key) === "1"; }
+        catch { return false; }
+    }
+
+    function rememberOtpPopup(key) {
+        if (!key) return;
+        try { window.sessionStorage.setItem(key, "1"); }
+        catch { /* Browser privacy mode may disable sessionStorage. */ }
+    }
+
+    function showOperationalOtpAttention(item) {
+        const otp = item?.operationalOtp;
+        if (!otp || otp.status !== "Waiting") return;
+        const key = otpPopupKey(item);
+        if (wasOtpPopupShown(key)) return;
+        rememberOtpPopup(key);
+
+        const target = new URL(bell.href, window.location.origin);
+        target.hash = `notification-${item.notificationId}`;
+        const title = item.title || "Có yêu cầu xác nhận POS mới";
+        const text = `${otp.requestedByName || "Nhân viên"} gửi yêu cầu tại ${otp.storeName || "cửa hàng"}. Mở Thông báo để xem OTP.`;
+
+        if (window.Swal) {
+            void window.Swal.fire({
+                toast: true,
+                position: "top-end",
+                timer: 12000,
+                timerProgressBar: true,
+                showConfirmButton: true,
+                confirmButtonText: "Mở Thông báo",
+                icon: "warning",
+                title,
+                text
+            }).then((result) => {
+                if (result.isConfirmed) window.location.assign(target.toString());
+            });
+            return;
+        }
+        if (typeof window.showToast === "function") window.showToast(text, "warning");
+    }
+
+    function inspectOperationalOtpNotifications(data) {
+        const items = Array.isArray(data?.items) ? data.items : [];
+        const unseen = items.find((item) => {
+            const otp = item?.operationalOtp;
+            return otp?.status === "Waiting" && !wasOtpPopupShown(otpPopupKey(item));
+        });
+        if (unseen) showOperationalOtpAttention(unseen);
+    }
+
     async function refresh() {
         if (refreshPromise) return refreshPromise;
         refreshPromise = (async function () {
@@ -52,11 +118,13 @@
                         : "Mở danh sách thông báo");
                 badge.classList.toggle("d-none", count <= 0);
 
+                const listPayload = await getJson(listUrl);
+                const listData = listPayload?.data || null;
+                inspectOperationalOtpNotifications(listData);
                 if (document.querySelector("[data-admin-notification-list]")) {
-                    const listPayload = await getJson(listUrl);
                     window.dispatchEvent(new CustomEvent(
                         "admin-notification-list-updated",
-                        { detail: listPayload?.data || null }));
+                        { detail: listData }));
                 }
             } catch {
                 // Polling remains the fallback; notification failures must not break Admin navigation.
@@ -87,46 +155,6 @@
         }
     }
 
-    function showOperationalOtp(message) {
-        if (!message?.eventId || !remember(message.eventId)) return;
-        void refresh();
-
-        const expiresAt = new Date(message.expiresAtUtc);
-        const remainingMs = expiresAt.getTime() - Date.now();
-        if (!Number.isFinite(remainingMs) || remainingMs <= 0 || !window.Swal) return;
-
-        void window.Swal.fire({
-            icon: "warning",
-            title: "Yêu cầu phê duyệt POS",
-            html: '<div class="text-start">' +
-                '<p id="operationalOtpContext" class="mb-2"></p>' +
-                '<div class="d-flex align-items-center justify-content-between gap-2 p-3 rounded bg-light">' +
-                '<code id="operationalOtpCode" class="fs-3 fw-bold"></code>' +
-                '<button id="copyOperationalOtp" type="button" class="btn btn-sm btn-outline-primary">Sao chép mã</button>' +
-                '</div><small id="operationalOtpExpiry" class="d-block mt-2 text-muted"></small></div>',
-            showConfirmButton: true,
-            confirmButtonText: "Đã hiểu",
-            timer: remainingMs,
-            timerProgressBar: true,
-            didOpen: function () {
-                const context = document.getElementById("operationalOtpContext");
-                const code = document.getElementById("operationalOtpCode");
-                const expiry = document.getElementById("operationalOtpExpiry");
-                if (context) context.textContent = `${message.requesterName} yêu cầu ${message.actionLabel} tại ${message.storeName}.`;
-                if (code) code.textContent = message.otpCode;
-                if (expiry) expiry.textContent = `Mã hết hạn lúc ${expiresAt.toLocaleTimeString("vi-VN")}.`;
-                document.getElementById("copyOperationalOtp")?.addEventListener("click", async function () {
-                    try {
-                        await navigator.clipboard.writeText(message.otpCode);
-                        this.textContent = "Đã sao chép";
-                    } catch {
-                        this.textContent = "Không thể sao chép";
-                    }
-                });
-            }
-        });
-    }
-
     const connection = new signalRClient.HubConnectionBuilder()
         .withUrl("/hubs/inventory-notifications")
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
@@ -147,8 +175,6 @@
         void refresh();
         window.dispatchEvent(new CustomEvent("admin-notifications-changed", { detail: message }));
     });
-
-    connection.on("OperationalOtpIssued", showOperationalOtp);
 
     connection.onreconnected(function () {
         void refresh();

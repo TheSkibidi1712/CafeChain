@@ -117,12 +117,12 @@
                     <thead>
                         <tr>
                             <th>Nguyên liệu</th>
-                            <th>Tồn kho</th>
-                            <th>Nhu cầu</th>
-                            <th>Pipeline</th>
-                            <th>Đề xuất cuối</th>
-                            <th>Nhà cung cấp</th>
-                            <th>Trạng thái</th>
+                            <th class="text-center">Tồn kho</th>
+                            <th class="text-center">Nhu cầu</th>
+                            <th class="text-center">Pipeline</th>
+                            <th class="text-center">Đề xuất cuối</th>
+                            <th class="text-center">Nhà cung cấp</th>
+                            <th class="text-center">Trạng thái</th>
                             <th class="text-end">Thao tác</th>
                         </tr>
                     </thead>
@@ -130,26 +130,26 @@
                     @foreach (var item in Model.Items)
                     {
                         <tr id="ingredient-@item.IngredientId" class="reorder-data-row">
-                            <td class="reorder-ingredient-cell">
+                            <td class="reorder-ingredient-cell align-middle">
                                 <strong>@item.IngredientName</strong>
                                 <span>@item.IngredientCode · @item.BaseUnitCode</span>
                             </td>
-                            <td>
+                            <td class="text-center align-middle">
                                 <strong>@item.AvailableStock.ToString("N3") @item.BaseUnitCode khả dụng</strong>
                                 <span>Tồn @item.OnHandQuantity.ToString("N3") · giữ @item.ReservedQuantity.ToString("N3")</span>
                                 <span>Tối thiểu @(item.MinimumStock?.ToString("N3") ?? "-")</span>
                             </td>
-                            <td>
+                            <td class="text-center align-middle">
                                 <strong>ROP @(item.ReorderPoint?.ToString("N3") ?? "-")</strong>
                                 <span>Dùng/ngày @(item.AverageDailyConsumption?.ToString("N3") ?? "-") · lead @(item.LeadTimeDays?.ToString() ?? "-") ngày</span>
                                 <span>Nhu cầu thô @(item.RawDemand?.ToString("N3") ?? "-")</span>
                             </td>
-                            <td>
+                            <td class="text-center align-middle">
                                 <strong>Đang về @item.IncomingQuantity.ToString("N3")</strong>
                                 <span>Tồn dự kiến @(item.ProjectedStock?.ToString("N3") ?? "-")</span>
                                 <span>Pipeline bao phủ @item.ProcurementCoveredQuantity.ToString("N3")</span>
                             </td>
-                            <td class="reorder-suggestion-cell">
+                            <td class="reorder-suggestion-cell text-center align-middle">
                                 <strong>@(item.FinalSuggestedQuantity?.ToString("N3") ?? "-") @item.BaseUnitCode</strong>
                                 <span>Còn thiếu @(item.RemainingDemand?.ToString("N3") ?? "-")</span>
                                 @if (item.SuggestedPackageCount.HasValue)
@@ -157,7 +157,7 @@
                                     <span>@item.SuggestedPackageCount.Value.ToString("N0") gói · @((item.EstimatedCost ?? 0m).ToString("N0"))đ</span>
                                 }
                             </td>
-                            <td>
+                            <td class="text-center align-middle">
                                 <strong>@(item.SupplierName ?? "-")</strong>
                                 @if (item.PackageBaseQuantity.HasValue)
                                 {
@@ -168,7 +168,7 @@
                                     <span>@item.PackagePrice.Value.ToString("N0")đ/gói</span>
                                 }
                             </td>
-                            <td>
+                            <td class="text-center align-middle">
                                 <span class="reorder-status reorder-status--@item.SuggestionStatus.ToLowerInvariant()">
                                     @labels.GetValueOrDefault(item.SuggestionStatus, item.SuggestionStatus)
                                 </span>
@@ -221,7 +221,7 @@
          aria-labelledby="reorderBulkModalLabel"
          aria-hidden="true"
          data-auto-open="@(actionableItems.Any() ? "true" : "false")">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <div>
@@ -272,15 +272,15 @@
                             <table class="table reorder-bulk-table align-middle">
                                 <thead>
                                     <tr>
-                                        <th class="reorder-checkbox-column">
+                                        <th class="reorder-checkbox-column text-center">
                                             <span class="visually-hidden">Chọn</span>
                                         </th>
                                         <th>Nguyên liệu</th>
-                                        <th>Tồn / ngưỡng</th>
-                                        <th>Pipeline</th>
-                                        <th>Đề xuất mua</th>
-                                        <th>Nhà cung cấp</th>
-                                        <th>Kết quả</th>
+                                        <th class="text-center">Tồn / ngưỡng</th>
+                                        <th class="text-center">Pipeline</th>
+                                        <th class="text-center">Đề xuất mua</th>
+                                        <th class="text-center">Nhà cung cấp</th>
+                                        <th class="text-center">Kết quả</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -292,14 +292,14 @@
                                         data-ingredient-name="@item.IngredientName"
                                         data-suggestion-token="@item.SuggestionToken"
                                         data-state="pending">
-                                        <td>
+                                        <td class="text-center align-middle">
                                             <input type="checkbox"
                                                    id="bulk-ingredient-@item.IngredientId"
                                                    class="form-check-input js-reorder-bulk-select"
                                                    aria-label="Chọn @item.IngredientName"
                                                    checked />
                                         </td>
-                                        <td>
+                                        <td class="align-middle">
                                             <label for="bulk-ingredient-@item.IngredientId">
                                                 <strong>@item.IngredientName</strong>
                                                 <span>@item.IngredientCode · @item.BaseUnitCode</span>
@@ -308,16 +308,16 @@
                                                 @labels.GetValueOrDefault(item.SuggestionStatus, item.SuggestionStatus)
                                             </span>
                                         </td>
-                                        <td>
+                                        <td class="text-center align-middle">
                                             <strong>@item.AvailableStock.ToString("N3") @item.BaseUnitCode khả dụng</strong>
                                             <span>ROP @(item.ReorderPoint?.ToString("N3") ?? "-")</span>
                                         </td>
-                                        <td>
+                                        <td class="text-center align-middle">
                                             <strong>Đang về @item.IncomingQuantity.ToString("N3")</strong>
                                             <span>Bao phủ @item.ProcurementCoveredQuantity.ToString("N3")</span>
                                             <span>Còn thiếu @(item.RemainingDemand?.ToString("N3") ?? "-")</span>
                                         </td>
-                                        <td>
+                                        <td class="text-center align-middle">
                                             <strong>@item.FinalSuggestedQuantity!.Value.ToString("N3") @item.BaseUnitCode</strong>
                                             @if (item.SuggestedPackageCount.HasValue)
                                             {
@@ -328,14 +328,14 @@
                                                 <span>Quy cách @item.PackageBaseQuantity.Value.ToString("N3") @item.BaseUnitCode/gói</span>
                                             }
                                         </td>
-                                        <td>
+                                        <td class="text-center align-middle">
                                             <strong>@(item.SupplierName ?? "-")</strong>
                                             @if (item.EstimatedCost.HasValue)
                                             {
                                                 <span>Dự kiến @item.EstimatedCost.Value.ToString("N0")đ</span>
                                             }
                                         </td>
-                                        <td>
+                                        <td class="text-center align-middle">
                                             <div class="reorder-bulk-result reorder-bulk-result--pending js-reorder-bulk-result"
                                                  role="status">
                                                 Sẵn sàng

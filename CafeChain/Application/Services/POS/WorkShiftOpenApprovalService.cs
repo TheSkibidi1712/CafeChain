@@ -10,6 +10,8 @@ using CafeChain.Models.Operations;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Security.Cryptography;
 
 namespace CafeChain.Application.Services.POS;
@@ -25,6 +27,7 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
     private readonly IWorkShiftOpenApprovalPublisher? _publisher;
     private readonly WorkShiftOptions _options;
     private readonly TimeProvider _timeProvider;
+    private readonly ILogger<WorkShiftOpenApprovalService> _logger;
 
     public WorkShiftOpenApprovalService(
         IWorkShiftOpenApprovalRepository repository,
@@ -35,7 +38,8 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
         IStaffNotificationRepository? notifications = null,
         IWorkShiftAuditService? audit = null,
         IWorkShiftOpenApprovalPublisher? publisher = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        ILogger<WorkShiftOpenApprovalService>? logger = null)
     {
         _repository = repository;
         _workShifts = workShifts;
@@ -46,6 +50,7 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
         _publisher = publisher;
         _options = options?.Value ?? new WorkShiftOptions();
         _timeProvider = timeProvider ?? TimeProvider.System;
+        _logger = logger ?? NullLogger<WorkShiftOpenApprovalService>.Instance;
     }
 
     public async Task<ServiceResult<WorkShiftOpenApprovalDto>> CreateAsync(
@@ -62,11 +67,11 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
         if (!assessment.IsSuccess || assessment.Data == null)
             return ServiceResult<WorkShiftOpenApprovalDto>.Failure(assessment.Message, errorCode: assessment.ErrorCode);
         if (assessment.Data.OpenContext != WorkShiftOpenContexts.LateForSchedule
-            || assessment.Data.MinutesLate <= _options.LateApprovalAfterMinutes
+            || assessment.Data.MinutesLate < _options.LateApprovalAfterMinutes
             || !assessment.Data.SourceStaffShiftId.HasValue
             || !assessment.Data.PlannedEndUtc.HasValue)
             return ServiceResult<WorkShiftOpenApprovalDto>.Failure(
-                "Chỉ tạo yêu cầu duyệt khi ca trễ trên 30 phút và lịch cũ còn trong cửa sổ hợp lệ.",
+                $"Chỉ tạo yêu cầu xử lý khi ca trễ từ {_options.LateApprovalAfterMinutes} phút và lịch cũ còn trong cửa sổ hợp lệ.",
                 errorCode: WorkShiftErrorCodes.LateOpenApprovalExpired);
 
         var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
@@ -77,6 +82,7 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
                 errorCode: WorkShiftErrorCodes.LateOpenApprovalExpired);
 
         await _repository.BeginTransactionAsync(cancellationToken);
+        var staleToPublish = new List<WorkShiftOpenApprovalRequest>();
         try
         {
             var existing = await _repository.GetPendingAsync(
@@ -86,7 +92,23 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
             {
                 await _repository.CommitTransactionAsync(cancellationToken);
                 return ServiceResult<WorkShiftOpenApprovalDto>.Success(Map(existing, nowUtc),
-                    "Yêu cầu duyệt mở ca đang chờ Manager xử lý.");
+                    "Yêu cầu xử lý mở ca trễ đang chờ Manager.");
+            }
+            if (existing != null)
+            {
+                existing.Status = WorkShiftOpenApprovalStatuses.Expired;
+                await ResolveNotificationsAsync(
+                    new[] { existing.WorkShiftOpenApprovalRequestId }, nowUtc, cancellationToken);
+                await _repository.SaveChangesAsync(cancellationToken);
+                if (_audit != null)
+                    await _audit.WriteAsync(
+                        "WORKSHIFT_LATE_OPEN_APPROVAL_EXPIRED",
+                        0,
+                        existing.RequestedByStaffId,
+                        new { Status = WorkShiftOpenApprovalStatuses.Pending },
+                        new { existing.PublicId, existing.Status, existing.ExpiresAtUtc },
+                        cancellationToken);
+                staleToPublish.Add(existing);
             }
 
             var approval = new WorkShiftOpenApprovalRequest
@@ -121,7 +143,7 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
                         StoreId = storeId,
                         RecipientStaffId = candidate.StaffId,
                         Type = StaffNotificationTypes.LateOpenApprovalRequest,
-                        Title = "Yêu cầu duyệt mở ca trễ",
+                        Title = "Yêu cầu xử lý mở ca trễ",
                         Body = $"{approval.MinutesLate} phút trễ · {approval.Reason}",
                         Severity = "WARNING",
                         DeduplicationKey = $"LATE_OPEN:{approval.PublicId:N}:{candidate.StaffId}",
@@ -134,13 +156,15 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
                 }
                 await _notifications.SaveChangesAsync(cancellationToken);
             }
-            await _repository.CommitTransactionAsync(cancellationToken);
-            await PublishSafeAsync(approval, cancellationToken);
             if (_audit != null)
                 await _audit.WriteAsync("WORKSHIFT_LATE_OPEN_APPROVAL_REQUESTED", 0, requesterStaffId,
                     null, new { approval.PublicId, approval.StoreId, approval.SourceStaffShiftId, approval.TerminalId, approval.MinutesLate, approval.Reason }, cancellationToken);
+            await _repository.CommitTransactionAsync(cancellationToken);
+            foreach (var stale in staleToPublish)
+                await PublishSafeAsync(stale, cancellationToken);
+            await PublishSafeAsync(approval, cancellationToken);
             return ServiceResult<WorkShiftOpenApprovalDto>.Success(Map(approval, nowUtc),
-                "Đã gửi yêu cầu đến Store Manager. Vui lòng chờ duyệt.");
+                "Đã gửi yêu cầu đến Store Manager. Vui lòng chờ xử lý.");
         }
         catch (DbUpdateException)
         {
@@ -148,7 +172,7 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
             var existing = await _repository.GetPendingAsync(
                 storeId, requesterStaffId, assessment.Data.SourceStaffShiftId.Value,
                 request.TerminalId.Trim(), cancellationToken);
-            return existing != null
+            return existing != null && existing.ExpiresAtUtc > nowUtc
                 ? ServiceResult<WorkShiftOpenApprovalDto>.Success(Map(existing, nowUtc), "Yêu cầu đang chờ xử lý.")
                 : ServiceResult<WorkShiftOpenApprovalDto>.Failure("Yêu cầu trùng hoặc dữ liệu vừa thay đổi.", errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
         }
@@ -192,6 +216,9 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
         if (request == null || !await CanApproveAsync(decisionMakerStaffId, storeId))
             return ServiceResult<WorkShiftOpenApprovalDto>.Failure("Bạn không có quyền duyệt mở ca trễ.", errorCode: WorkShiftErrorCodes.InvalidApproverScope);
         var decision = request.Decision?.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(decision))
+            return ServiceResult<WorkShiftOpenApprovalDto>.Failure(
+                "Không nhận được lựa chọn xử lý. Vui lòng tải lại trang và thử lại.");
         var targetStatus = decision switch
         {
             "APPROVE" or "APPROVED" => WorkShiftOpenApprovalStatuses.Approved,
@@ -220,7 +247,17 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
             if (approval.ExpiresAtUtc <= nowUtc && targetStatus != WorkShiftOpenApprovalStatuses.ConvertedToOutsideSchedule)
             {
                 approval.Status = WorkShiftOpenApprovalStatuses.Expired;
+                await ResolveNotificationsAsync(
+                    new[] { approval.WorkShiftOpenApprovalRequestId }, nowUtc, cancellationToken);
                 await _repository.SaveChangesAsync(cancellationToken);
+                if (_audit != null)
+                    await _audit.WriteAsync(
+                        "WORKSHIFT_LATE_OPEN_APPROVAL_EXPIRED",
+                        0,
+                        decisionMakerStaffId,
+                        new { Status = WorkShiftOpenApprovalStatuses.Pending },
+                        new { approval.PublicId, approval.Status, approval.ExpiresAtUtc },
+                        cancellationToken);
                 await _repository.CommitTransactionAsync(cancellationToken);
                 await PublishSafeAsync(approval, cancellationToken);
                 return ServiceResult<WorkShiftOpenApprovalDto>.Failure("Lịch cũ đã hết cửa sổ mở. Chỉ có thể chuyển sang ca ngoài lịch.", errorCode: WorkShiftErrorCodes.LateOpenApprovalExpired);
@@ -230,6 +267,14 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
             {
                 await _repository.RollbackTransactionAsync(cancellationToken);
                 return ServiceResult<WorkShiftOpenApprovalDto>.Failure("Yêu cầu vừa được thay đổi.", errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+            }
+            if (targetStatus == WorkShiftOpenApprovalStatuses.Approved
+                && approval.MinutesLate > _options.ResolveLateScheduledApprovalMaxMinutes())
+            {
+                await _repository.RollbackTransactionAsync(cancellationToken);
+                return ServiceResult<WorkShiftOpenApprovalDto>.Failure(
+                    $"Ca đã trễ quá {_options.ResolveLateScheduledApprovalMaxMinutes()} phút nên không thể duyệt mở theo lịch cũ. Vui lòng từ chối hoặc chuyển ngoài lịch.",
+                    errorCode: WorkShiftErrorCodes.LateOpenRequiresOutsideSchedule);
             }
             approval.Status = targetStatus;
             approval.DecidedByStaffId = decisionMakerStaffId;
@@ -254,7 +299,7 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
                     StoreId = storeId,
                     RecipientStaffId = approval.RequestedByStaffId,
                     Type = StaffNotificationTypes.LateOpenApprovalRequest,
-                    Title = "Kết quả duyệt mở ca trễ",
+                    Title = "Kết quả xử lý mở ca trễ",
                     Body = $"Trạng thái: {targetStatus}. {approval.DecisionReason}",
                     Severity = targetStatus == WorkShiftOpenApprovalStatuses.Rejected ? "ERROR" : "INFO",
                     DeduplicationKey = $"LATE_OPEN_RESULT:{approval.PublicId:N}",
@@ -266,18 +311,101 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
                 });
                 await _notifications.SaveChangesAsync(cancellationToken);
             }
-            await _repository.CommitTransactionAsync(cancellationToken);
-            await PublishSafeAsync(approval, cancellationToken);
             if (_audit != null)
                 await _audit.WriteAsync("WORKSHIFT_LATE_OPEN_APPROVAL_DECIDED", 0, decisionMakerStaffId,
                     new { Status = WorkShiftOpenApprovalStatuses.Pending },
                     new { approval.PublicId, approval.Status, approval.DecisionReason, approval.DecidedAtUtc }, cancellationToken);
+            await _repository.CommitTransactionAsync(cancellationToken);
+            await PublishSafeAsync(approval, cancellationToken);
             return ServiceResult<WorkShiftOpenApprovalDto>.Success(Map(approval, nowUtc), "Đã cập nhật quyết định mở ca trễ.");
         }
         catch (DbUpdateConcurrencyException)
         {
             await _repository.RollbackTransactionAsync(cancellationToken);
             return ServiceResult<WorkShiftOpenApprovalDto>.Failure("Yêu cầu đã được xử lý ở nơi khác.", errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+        }
+        catch
+        {
+            await _repository.RollbackTransactionAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<ServiceResult<WorkShiftOpenApprovalDto>> CancelAsync(
+        int requesterStaffId, int storeId, Guid publicId, string terminalId, string requestKey,
+        CancellationToken cancellationToken = default)
+    {
+        if (publicId == Guid.Empty || string.IsNullOrWhiteSpace(terminalId)
+            || string.IsNullOrWhiteSpace(requestKey))
+            return ServiceResult<WorkShiftOpenApprovalDto>.Failure("Yêu cầu hủy mở ca không hợp lệ.");
+
+        await _repository.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var approval = await _repository.GetByPublicIdAsync(publicId, true, cancellationToken);
+            if (approval == null || approval.StoreId != storeId
+                || approval.RequestedByStaffId != requesterStaffId
+                || !string.Equals(approval.TerminalId, terminalId.Trim(), StringComparison.Ordinal)
+                || !string.Equals(approval.RequestKey, requestKey.Trim(), StringComparison.Ordinal))
+            {
+                await _repository.RollbackTransactionAsync(cancellationToken);
+                return ServiceResult<WorkShiftOpenApprovalDto>.Failure(
+                    "Yêu cầu duyệt không thuộc nhân viên, cửa hàng hoặc Terminal hiện tại.",
+                    errorCode: WorkShiftErrorCodes.InvalidApproverScope);
+            }
+
+            var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+            if (approval.Status == WorkShiftOpenApprovalStatuses.Cancelled)
+            {
+                await _repository.RollbackTransactionAsync(cancellationToken);
+                return ServiceResult<WorkShiftOpenApprovalDto>.Success(
+                    Map(approval, nowUtc), "Yêu cầu đã được hủy trước đó.");
+            }
+            if (approval.Status is not WorkShiftOpenApprovalStatuses.Pending
+                and not WorkShiftOpenApprovalStatuses.Approved
+                and not WorkShiftOpenApprovalStatuses.ConvertedToOutsideSchedule)
+            {
+                await _repository.RollbackTransactionAsync(cancellationToken);
+                return ServiceResult<WorkShiftOpenApprovalDto>.Failure(
+                    "Yêu cầu duyệt không còn ở trạng thái có thể hủy.",
+                    errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+            }
+
+            var previousStatus = approval.Status;
+            approval.Status = WorkShiftOpenApprovalStatuses.Cancelled;
+            approval.DecidedAtUtc = nowUtc;
+            approval.DecisionReason = "Người yêu cầu đã hủy trước khi mở WorkShift.";
+            if (_notifications != null)
+            {
+                var active = await _notifications.GetActiveByEntityAsync(
+                    storeId, StaffNotificationTypes.LateOpenApprovalRequest,
+                    StaffNotificationEntityTypes.WorkShiftOpenApproval,
+                    approval.WorkShiftOpenApprovalRequestId, cancellationToken);
+                foreach (var notification in active)
+                {
+                    notification.ResolvedAt ??= nowUtc;
+                    notification.UpdatedAt = nowUtc;
+                    notification.MeaningfulVersion = WorkShiftOpenApprovalStatuses.Cancelled;
+                }
+                await _notifications.SaveChangesAsync(cancellationToken);
+            }
+            await _repository.SaveChangesAsync(cancellationToken);
+            if (_audit != null)
+                await _audit.WriteAsync("WORKSHIFT_LATE_OPEN_APPROVAL_CANCELLED", 0,
+                    requesterStaffId, new { Status = previousStatus },
+                    new { approval.PublicId, approval.Status, approval.TerminalId, approval.RequestKey },
+                    cancellationToken);
+            await _repository.CommitTransactionAsync(cancellationToken);
+            await PublishSafeAsync(approval, cancellationToken);
+            return ServiceResult<WorkShiftOpenApprovalDto>.Success(
+                Map(approval, nowUtc), "Đã hủy yêu cầu Manager duyệt mở ca.");
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await _repository.RollbackTransactionAsync(cancellationToken);
+            return ServiceResult<WorkShiftOpenApprovalDto>.Failure(
+                "Yêu cầu đang được xử lý ở nơi khác.",
+                errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
         }
         catch
         {
@@ -322,13 +450,88 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
     private async Task PublishSafeAsync(WorkShiftOpenApprovalRequest approval, CancellationToken cancellationToken)
     {
         if (_publisher == null) return;
-        await _publisher.PublishAsync(new WorkShiftOpenApprovalChangedDto(
-            approval.PublicId, approval.StoreId, approval.RequestedByStaffId,
-            approval.Status, _timeProvider.GetUtcNow().UtcDateTime), cancellationToken);
+        try
+        {
+            await _publisher.PublishAsync(new WorkShiftOpenApprovalChangedDto(
+                approval.PublicId, approval.StoreId, approval.RequestedByStaffId,
+                approval.Status, _timeProvider.GetUtcNow().UtcDateTime), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Unable to publish late-open approval {ApprovalId} status {Status}; clients will recover by polling.",
+                approval.PublicId, approval.Status);
+        }
+    }
+
+    public async Task<int> ExpireDueAsync(CancellationToken cancellationToken = default)
+    {
+        var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+        await _repository.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var due = await _repository.GetDueForExpiryAsync(nowUtc, 200, cancellationToken);
+            if (due.Count == 0)
+            {
+                await _repository.CommitTransactionAsync(cancellationToken);
+                return 0;
+            }
+
+            foreach (var approval in due)
+                approval.Status = WorkShiftOpenApprovalStatuses.Expired;
+
+            await ResolveNotificationsAsync(
+                due.Select(x => x.WorkShiftOpenApprovalRequestId).ToArray(),
+                nowUtc,
+                cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
+            if (_audit != null)
+            {
+                foreach (var approval in due)
+                    await _audit.WriteAsync(
+                        "WORKSHIFT_LATE_OPEN_APPROVAL_EXPIRED",
+                        0,
+                        approval.RequestedByStaffId,
+                        new { Status = WorkShiftOpenApprovalStatuses.Pending },
+                        new { approval.PublicId, approval.Status, approval.ExpiresAtUtc },
+                        cancellationToken);
+            }
+            await _repository.CommitTransactionAsync(cancellationToken);
+
+            foreach (var approval in due)
+                await PublishSafeAsync(approval, cancellationToken);
+            return due.Count;
+        }
+        catch
+        {
+            await _repository.RollbackTransactionAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    private async Task ResolveNotificationsAsync(
+        IReadOnlyCollection<int> approvalIds,
+        DateTime nowUtc,
+        CancellationToken cancellationToken)
+    {
+        if (_notifications == null || approvalIds.Count == 0) return;
+        var notifications = await _notifications.GetActiveByEntitiesAsync(
+            StaffNotificationTypes.LateOpenApprovalRequest,
+            StaffNotificationEntityTypes.WorkShiftOpenApproval,
+            approvalIds,
+            cancellationToken);
+        foreach (var notification in notifications)
+        {
+            notification.ResolvedAt ??= nowUtc;
+            notification.UpdatedAt = nowUtc;
+            notification.MeaningfulVersion = WorkShiftOpenApprovalStatuses.Expired;
+        }
+        await _notifications.SaveChangesAsync(cancellationToken);
     }
 
     private WorkShiftOpenApprovalDto Map(WorkShiftOpenApprovalRequest x, DateTime nowUtc) => new()
     {
+        Id = x.WorkShiftOpenApprovalRequestId,
         PublicId = x.PublicId,
         RequestKey = x.RequestKey,
         StoreId = x.StoreId,
@@ -339,6 +542,9 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
         SourceStaffShiftId = x.SourceStaffShiftId,
         TerminalId = x.TerminalId,
         MinutesLate = x.MinutesLate,
+        LateApprovalThresholdMinutes = _options.LateApprovalAfterMinutes,
+        ScheduledApprovalMaxLateMinutes = _options.ResolveLateScheduledApprovalMaxMinutes(),
+        CanApproveAsScheduled = x.MinutesLate <= _options.ResolveLateScheduledApprovalMaxMinutes(),
         Reason = x.Reason,
         Status = x.Status == WorkShiftOpenApprovalStatuses.Pending && x.ExpiresAtUtc <= nowUtc
             ? WorkShiftOpenApprovalStatuses.Expired : x.Status,

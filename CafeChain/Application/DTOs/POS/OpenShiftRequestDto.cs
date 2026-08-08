@@ -20,12 +20,12 @@ namespace CafeChain.Application.DTOs.POS
         public string? PosTerminalId { get; set; }
 
         /// <summary>
-        /// OTP challenge đã duyệt khi mở ca trễ &gt; 30 phút.
+        /// OTP challenge đã xác nhận cho ngữ cảnh ngoài lịch. Mở ca trễ từ ngưỡng Manager dùng approval riêng.
         /// </summary>
         public Guid? OtpChallengePublicId { get; set; }
         public Guid? LateOpenApprovalPublicId { get; set; }
 
-        /// <summary>Lý do mở ca trễ — bắt buộc khi OTP late-open (fingerprint).</summary>
+        /// <summary>Lý do mở trễ hoặc ngoài lịch đã được backend xác nhận tại StaffHub.</summary>
         public string? LateOpeningReason { get; set; }
 
         /// <summary>Lý do mở trễ hoặc mở POS ngoài lịch.</summary>
@@ -66,6 +66,9 @@ namespace CafeChain.Application.DTOs.POS
         public bool ReasonRequired { get; set; }
         public bool ApprovalRequired { get; set; }
         public bool ManagerApprovalRequired { get; set; }
+        public int ManagerApprovalFromMinutes { get; set; }
+        public int ScheduledApprovalMaxLateMinutes { get; set; }
+        public bool CanManagerApproveAsScheduled { get; set; }
         public DateTime ServerNowUtc { get; set; }
         public DateTime? AutoCloseAtUtc { get; set; }
         public string? TerminalId { get; set; }

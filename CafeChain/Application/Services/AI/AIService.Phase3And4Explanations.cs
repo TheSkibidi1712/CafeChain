@@ -36,7 +36,12 @@ public sealed partial class AIService
                 && x.GetProperty("metricCode").GetString() == context.MetricCode
                 && x.GetProperty("currentValue").GetDecimal() == context.CurrentValue
                 && x.GetProperty("baselineValue").GetDecimal() == context.BaselineValue,
-            $"{context.MetricCode}: hiện tại {context.CurrentValue:N0}, baseline {context.BaselineValue:N0}, robust score {context.RobustScore:N2}. Đây là tín hiệu cần kiểm tra, không phải kết luận gian lận.", ct);
+            OperationalAnomalyPresentation.BuildFallbackExplanation(
+                context.MetricDisplayName,
+                context.CurrentValueDisplay,
+                context.BaselineValueDisplay,
+                context.DirectionDescription,
+                context.SuggestedChecks), ct);
 
     private async Task<TypedExplanationResultDto> ExplainTyped<T>(string skillName, T context, Func<JsonElement, bool> echoValidator, string fallback, CancellationToken ct)
     {

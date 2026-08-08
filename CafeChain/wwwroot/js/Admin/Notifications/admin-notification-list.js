@@ -3,6 +3,7 @@
 
     const root = document.querySelector("[data-admin-notification-list]");
     if (!root) return;
+    const antiforgeryToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || "";
     let expiredRefreshRequested = false;
 
     function text(value) {
@@ -22,10 +23,17 @@
         return node;
     }
 
+    function normalizeUtc(value) {
+        const timestamp = String(value || "").trim();
+        if (!timestamp) return "";
+        return /(z|[+-]\d\d:?\d\d)$/i.test(timestamp) ? timestamp : `${timestamp}Z`;
+    }
+
     function formatDate(value) {
-        const date = new Date(value);
+        const date = new Date(normalizeUtc(value));
         if (Number.isNaN(date.getTime())) return "";
         return new Intl.DateTimeFormat("vi-VN", {
+            timeZone: "Asia/Ho_Chi_Minh",
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
@@ -39,6 +47,43 @@
         const minutesPart = String(Math.floor(seconds / 60)).padStart(2, "0");
         const secondsPart = String(seconds % 60).padStart(2, "0");
         return `${minutesPart} phút ${secondsPart} giây`;
+    }
+
+    function hiddenInput(name, value) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        return input;
+    }
+
+    function createTerminalConfirmationForm(notificationId) {
+        const form = element("form", "notification-terminal-confirm-form");
+        form.method = "post";
+        form.action = "/Admin/AdminNotifications/ConfirmTerminal";
+        if (antiforgeryToken) {
+            form.appendChild(hiddenInput("__RequestVerificationToken", antiforgeryToken));
+        }
+        form.appendChild(hiddenInput("id", String(notificationId)));
+        const requestKey = globalThis.crypto?.randomUUID?.().replaceAll("-", "")
+            || `${Date.now()}${Math.random().toString(16).slice(2)}`;
+        form.appendChild(hiddenInput("RequestKey", requestKey));
+
+        const label = element("label");
+        label.appendChild(element("span", "", "Nhập OTP để xác nhận Terminal"));
+        const input = document.createElement("input");
+        input.name = "OtpCode";
+        input.maxLength = 6;
+        input.autocomplete = "one-time-code";
+        input.required = true;
+        label.appendChild(input);
+        form.appendChild(label);
+
+        const submit = element("button", "cc-button", "Xác nhận Terminal");
+        submit.type = "submit";
+        submit.dataset.submitOnce = "true";
+        form.appendChild(submit);
+        return form;
     }
 
     function createOtpCard(otp, notificationId) {
@@ -60,11 +105,18 @@
             const countdown = element("small");
             countdown.dataset.otpCountdown = "true";
             card.appendChild(countdown);
-            const reveal = element("button", "cc-button", "Xem OTP");
-            reveal.type = "button";
-            reveal.dataset.revealTerminalOtp = "true";
-            reveal.dataset.notificationId = String(notificationId);
-            card.appendChild(reveal);
+            if (otp.canRevealOtp === true) {
+                const footer = element("div", "notification-item-footer");
+                const reveal = element("button", "cc-button", "Xem OTP");
+                reveal.type = "button";
+                reveal.dataset.revealOperationalOtp = "true";
+                reveal.dataset.notificationId = String(notificationId);
+                footer.appendChild(reveal);
+                card.appendChild(footer);
+            }
+            if (otp.canContinueTerminalConfirmation === true) {
+                card.appendChild(createTerminalConfirmationForm(notificationId));
+            }
         } else if (otp.status === "Expired") {
             card.appendChild(element("small", "", "OTP đã hết hạn. Vui lòng gửi yêu cầu mới."));
         }
@@ -74,8 +126,8 @@
     function updateOtpCards() {
         let hasExpired = false;
         document.querySelectorAll("[data-operational-otp]").forEach(function (card) {
-            const expiresAt = new Date(card.dataset.expiresAt || "");
-            const serverNow = new Date(card.dataset.serverNow || "");
+            const expiresAt = new Date(normalizeUtc(card.dataset.expiresAt));
+            const serverNow = new Date(normalizeUtc(card.dataset.serverNow));
             if (!card.dataset.clientReceivedAt) card.dataset.clientReceivedAt = String(Date.now());
             const clientReceivedAt = Number(card.dataset.clientReceivedAt);
             const serverOffset = Number.isNaN(serverNow.getTime()) ? 0 : serverNow.getTime() - clientReceivedAt;
@@ -83,7 +135,7 @@
             const label = card.querySelector("[data-otp-countdown]");
             if (!Number.isFinite(remainingSeconds) || remainingSeconds <= 0) {
                 if (label) label.textContent = "OTP đã hết hạn. Vui lòng gửi yêu cầu mới.";
-                card.querySelectorAll("[data-reveal-terminal-otp], .notification-terminal-confirm-form")
+                card.querySelectorAll("[data-reveal-operational-otp], .notification-terminal-confirm-form")
                     .forEach((node) => { node.hidden = true; });
                 hasExpired = true;
                 return;
@@ -99,12 +151,12 @@
     }
 
     document.addEventListener("click", async function (event) {
-        const button = event.target.closest?.("[data-reveal-terminal-otp]");
+        const button = event.target.closest?.("[data-reveal-operational-otp]");
         if (!button || button.disabled) return;
         button.disabled = true;
         try {
             const id = encodeURIComponent(button.dataset.notificationId || "");
-            const response = await fetch(`/Admin/AdminNotifications/RevealTerminalOtp?id=${id}`, {
+            const response = await fetch(`/Admin/AdminNotifications/RevealOperationalOtp?id=${id}`, {
                 credentials: "same-origin",
                 cache: "no-store",
                 headers: { Accept: "application/json" }
@@ -116,6 +168,9 @@
             }
             const code = element("code", "", payload.data.code);
             code.dataset.otpCode = "true";
+            const otpInput = button.closest("[data-operational-otp]")
+                ?.querySelector('.notification-terminal-confirm-form input[name="OtpCode"]');
+            if (otpInput) otpInput.value = payload.data.code;
             button.replaceWith(code);
         } catch {
             button.textContent = "Lỗi mạng, thử lại";
@@ -139,6 +194,7 @@
 
     function renderItem(item) {
         const row = element("article", `notification-item${item.isRead ? "" : " is-unread"}`);
+        row.id = `notification-${item.notificationId}`;
         const itemIcon = element("span", "notification-item-icon");
         itemIcon.setAttribute("aria-hidden", "true");
         itemIcon.appendChild(icon(item.isRead ? "fas fa-check" : "fas fa-bell"));
@@ -174,7 +230,7 @@
         if (item.targetUrl) {
             const link = element("a", "notification-link");
             link.href = item.targetUrl;
-            link.appendChild(text("Xem chi tiết "));
+            link.appendChild(text(`${item.targetActionLabel || "Xem chi tiết"} `));
             link.appendChild(icon("fas fa-arrow-right"));
             meta.appendChild(link);
         }

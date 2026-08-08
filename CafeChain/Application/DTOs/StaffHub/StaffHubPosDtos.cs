@@ -20,6 +20,12 @@ public sealed class StaffHubIssuePosRequestDto : StaffHubPosPreviewRequestDto
     public Guid? LateOpenApprovalPublicId { get; set; }
 }
 
+public sealed class StaffHubCancelOpenPosIntentRequestDto : StaffHubPosPreviewRequestDto
+{
+    public Guid? OtpChallengePublicId { get; set; }
+    public Guid? LateOpenApprovalPublicId { get; set; }
+}
+
 public sealed class StaffHubResumePosRequestDto
 {
     [Required, StringLength(100)]

@@ -17,6 +17,10 @@ public interface IWorkShiftOpenApprovalService
         int decisionMakerStaffId, int storeId, Guid publicId,
         DecideWorkShiftOpenApprovalRequestDto request,
         CancellationToken cancellationToken = default);
+    Task<ServiceResult<WorkShiftOpenApprovalDto>> CancelAsync(
+        int requesterStaffId, int storeId, Guid publicId, string terminalId, string requestKey,
+        CancellationToken cancellationToken = default);
+    Task<int> ExpireDueAsync(CancellationToken cancellationToken = default);
 }
 
 public interface IWorkShiftOpenApprovalPublisher

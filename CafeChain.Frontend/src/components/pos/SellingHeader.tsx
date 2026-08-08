@@ -13,6 +13,8 @@ interface SellingHeaderProps {
   isCartLocked: boolean
   hasOpenShift: boolean
   shiftId?: number | null
+  responsibleStaffName: string
+  currentOperatorName: string
   session: PosSession
   layoutPreference: PosLayoutPreference
   resolvedLayout: PosResolvedLayout
@@ -30,6 +32,8 @@ export default function SellingHeader({
   isCartLocked,
   hasOpenShift,
   shiftId,
+  responsibleStaffName,
+  currentOperatorName,
   session,
   layoutPreference,
   resolvedLayout,
@@ -39,7 +43,7 @@ export default function SellingHeader({
   onOpenCustomerDisplay,
   onLayoutPreferenceChange,
 }: SellingHeaderProps) {
-  const cashierInitials = session.staffName
+  const cashierInitials = currentOperatorName
     .split(' ')
     .filter(Boolean)
     .slice(-2)
@@ -111,13 +115,13 @@ export default function SellingHeader({
 
       <div
         className="pos-selling-cashier"
-        title={`${session.staffName} · ${session.role}`}
-        aria-label={`Thu ngân ${session.staffName}, ${session.role}`}
+        title={`Người đang thao tác: ${currentOperatorName} · Chịu trách nhiệm két: ${responsibleStaffName}`}
+        aria-label={`Người đang thao tác ${currentOperatorName}; người chịu trách nhiệm két ${responsibleStaffName}`}
       >
         <span aria-hidden="true">{cashierInitials}</span>
         <span className="pos-selling-cashier-copy">
-          <strong>{session.staffName}</strong>
-          <small>{session.role}</small>
+          <strong>{currentOperatorName}</strong>
+          <small>Người đang thao tác</small>
         </span>
       </div>
 
@@ -128,8 +132,8 @@ export default function SellingHeader({
             <div className="pos-tablet-menu-context">
               <span className="pos-selling-brand-mark" aria-hidden="true">{cashierInitials}</span>
               <span>
-                <strong>{session.staffName}</strong>
-                <small>{session.role} · Chi nhánh #{session.storeId ?? '-'}</small>
+                <strong>{currentOperatorName}</strong>
+                <small>Đang thao tác · Chi nhánh #{session.storeId ?? '-'}</small>
               </span>
             </div>
           )}

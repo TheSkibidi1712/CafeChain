@@ -1068,7 +1068,8 @@
     transform: translateY(-1px) !important;
 }
 
-.ops-metrics {
+.ops-metrics,
+.cc-warehouse-summary-grid {
     display: grid !important;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
     gap: 0.85rem !important;
@@ -1159,8 +1160,14 @@
     box-sizing: border-box !important;
 }
 
+.ops-table thead,
+.ops-table thead tr {
+    width: 100% !important;
+    background-color: #F4ECE1 !important;
+}
+
 .ops-table th {
-    background: #F4ECE1 !important;
+    background-color: #F4ECE1 !important;
     color: #4A3525 !important;
     font-size: 0.73rem !important;
     font-weight: 800 !important;
@@ -1169,6 +1176,15 @@
     padding: 12px 16px !important;
     border-bottom: 2px solid #E2D7CD !important;
     box-sizing: border-box !important;
+}
+
+.ops-table th:first-child {
+    border-top-left-radius: 10px !important;
+}
+
+.ops-table th:last-child {
+    border-top-right-radius: 10px !important;
+    padding-right: 24px !important;
 }
 
 .ops-table td {
@@ -1296,6 +1312,11 @@
     width: 100% !important;
 }
 
+.ops-table td.text-center form.ops-inline-actions,
+.ops-inline-actions-center {
+    justify-content: center !important;
+}
+
 .ops-table td form.ops-inline-actions .ops-input,
 .ops-table td form.ops-inline-actions .ops-quantity-input {
     width: 120px !important;
@@ -1304,6 +1325,13 @@
     text-align: right !important;
     margin: 0 !important;
     height: 38px !important;
+}
+
+.ops-table td.text-center form.ops-inline-actions .ops-input,
+.ops-table td.text-center form.ops-inline-actions .ops-quantity-input,
+.ops-inline-actions-center .ops-input,
+.ops-inline-actions-center .ops-quantity-input {
+    text-align: center !important;
 }
 
 .ops-table td form.ops-inline-actions .ops-btn {

@@ -35,13 +35,13 @@ public sealed class OperationalIceUiIssue249Tests : IntegrationTestBase
     {
         var css = Read("CafeChain", "wwwroot", "css", "Admin", "OperationalIce", "operational-ice.css");
 
-        Assert.Contains("#F7F3EE", css);
-        Assert.Contains("#FFFFFF", css);
-        Assert.Contains("#6F4E37", css);
-        Assert.Contains("#5C3F2B", css);
-        Assert.Contains("#C67A45", css);
-        Assert.Contains("#1F2937", css);
-        Assert.Contains("#475569", css);
+        Assert.Contains("#F7F4F0", css);
+        Assert.Contains("#FFFDFB", css);
+        Assert.Contains("#70482F", css);
+        Assert.Contains("#3D2418", css);
+        Assert.Contains("#8B6247", css);
+        Assert.Contains("#201812", css);
+        Assert.Contains("#66584F", css);
         Assert.Contains("#2F6F5E", css);
         Assert.Contains("#99623B", css);
         Assert.Contains("#991B1B", css);

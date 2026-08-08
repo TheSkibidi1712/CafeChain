@@ -66,6 +66,10 @@ interface ActiveModifier {
 
 interface ShiftSummary {
   shiftId?: number | null
+  staffName?: string | null
+  currentOperatorStaffId?: number | null
+  currentOperatorName?: string | null
+  operatorChangedAtUtc?: string | null
   status: 'Open' | 'Closed' | 'NoActiveShift' | string
   openContext?: 'WITHIN_SCHEDULE' | 'LATE_FOR_SCHEDULE' | 'OUTSIDE_SCHEDULE' | 'LEGACY' | string | null
   autoCloseAtUtc?: string | null
@@ -1781,6 +1785,8 @@ export default function POSLayout() {
         isCartLocked={isCartLocked}
         hasOpenShift={hasOpenShift}
         shiftId={shift?.shiftId}
+        responsibleStaffName={shift?.staffName || session.staffName}
+        currentOperatorName={shift?.currentOperatorName || shift?.staffName || session.staffName}
         session={session}
         layoutPreference={layoutPreference}
         resolvedLayout={resolvedLayout}

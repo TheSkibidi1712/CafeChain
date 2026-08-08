@@ -3,6 +3,7 @@ using CafeChain.Application.Interfaces.AI;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CafeChain.Application.Authorization;
 
 namespace CafeChain.Areas.Admin.Controllers;
 
@@ -26,11 +27,14 @@ public sealed class AdminIntelligenceController : Controller
     }
 
     [HttpGet]
+    [RequirePermission("PurchaseAdvice.View")]
+    [RequirePermission("SupplierQuality.View")]
     public async Task<IActionResult> CompareSuppliers(int storeId, int ingredientId, decimal requiredBaseQuantity)
     {
         try { return Json(new { success = true, data = await _supplier.CompareAsync(_actor.Get(User), storeId, ingredientId, requiredBaseQuantity, HttpContext.RequestAborted) }); }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, new { success = false, message = ex.Message }); }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException) { return BadRequest(new { success = false, message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { success = false, message = ex.Message }); }
+        catch (InvalidOperationException ex) { return Conflict(new { success = false, errorCode = "SUPPLIER_INTELLIGENCE_NOT_ENABLED", message = ex.Message }); }
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -48,6 +52,7 @@ public sealed class AdminIntelligenceController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [RequirePermission(PermissionConstants.DashboardAiUse)]
     public async Task<IActionResult> ExplainSupplier(int storeId, int ingredientId, decimal requiredBaseQuantity, int supplierId)
     {
         try
@@ -55,7 +60,7 @@ public sealed class AdminIntelligenceController : Controller
             var result = await _supplier.CompareAsync(_actor.Get(User), storeId, ingredientId, requiredBaseQuantity, HttpContext.RequestAborted);
             var candidate = result.Candidates.FirstOrDefault(x => x.SupplierId == supplierId);
             if (candidate == null) return NotFound(new { success = false, message = "Không tìm thấy kết quả nhà cung cấp." });
-            var context = new CafeChain.Application.DTOs.AI.SupplierExplanationContextDto { SupplierId = candidate.SupplierId, TotalScore = candidate.Score, Confidence = candidate.Confidence, Warnings = candidate.Warnings, ComponentScores = new Dictionary<string, decimal> { ["price"] = candidate.ComponentScores.Price, ["onTime"] = candidate.ComponentScores.OnTime, ["fill"] = candidate.ComponentScores.Fill, ["quality"] = candidate.ComponentScores.Quality, ["leadTime"] = candidate.ComponentScores.LeadTime } };
+            var context = new CafeChain.Application.DTOs.AI.SupplierExplanationContextDto { SupplierId = candidate.SupplierId, TotalScore = candidate.Score ?? 0, Confidence = candidate.Confidence, Warnings = candidate.Warnings, ComponentScores = new Dictionary<string, decimal> { ["price"] = candidate.ComponentScores.Price ?? 0, ["onTime"] = candidate.ComponentScores.OnTime ?? 0, ["fill"] = candidate.ComponentScores.Fill ?? 0, ["quality"] = candidate.ComponentScores.Quality ?? 0, ["leadTime"] = candidate.ComponentScores.LeadTime ?? 0 } };
             return Json(new { success = true, data = await _ai.ExplainSupplierScoreAsync(context, HttpContext.RequestAborted) });
         }
         catch (UnauthorizedAccessException) { return Forbid(); }

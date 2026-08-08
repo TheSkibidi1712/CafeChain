@@ -68,6 +68,7 @@
     background:
         radial-gradient(circle at 96% 4%, rgba(198, 122, 69, 0.08), transparent 260px),
         linear-gradient(180deg, #faf7f4 0%, #f7f4f0 320px, transparent 600px);
+    background-color: var(--cc-app-bg);
     color: var(--cc-text, #201812);
 }
 
@@ -147,15 +148,15 @@
 }
 
 .inventory-action-primary {
-    border: 1px solid var(--cc-brown-600, #70482f);
-    background: var(--cc-brown-600, #70482f);
+    border: 1px solid var(--cc-primary);
+    background: var(--cc-primary);
     color: #ffffff !important;
     box-shadow: 0 6px 16px rgba(112, 72, 47, 0.18);
 }
 
 .inventory-action-primary:hover {
-    border-color: var(--cc-brown-900, #3d2418);
-    background: var(--cc-brown-900, #3d2418);
+    border-color: var(--cc-primary-hover);
+    background: var(--cc-primary-hover);
     color: #ffffff !important;
     transform: translateY(-1px);
 }

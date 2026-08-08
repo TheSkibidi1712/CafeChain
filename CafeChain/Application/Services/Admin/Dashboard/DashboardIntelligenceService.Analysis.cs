@@ -47,6 +47,8 @@ public sealed partial class DashboardIntelligenceService
             .Concat(intent.DataPlan.SupportingWidgets)
             .Distinct()
             .ToList();
+        await RequireAiAsync(actor, cancellationToken);
+        await _authorization.AuthorizeWidgetsAsync(actor, widgets, cancellationToken);
         var warnings = new List<string>(parsed.Warnings);
         if (ContainsTimeExpression(request.Prompt))
             warnings.Add("Câu hỏi có phạm vi thời gian riêng; phân tích vẫn sử dụng bộ lọc Dashboard hiện tại.");

@@ -942,6 +942,47 @@ body:has(.staffhub-page) > footer {
     line-height: 1.55;
 }
 
+.staffhub-operator-pin-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.staffhub-operator-pin-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.staffhub-pin-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid;
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-size: .7rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.staffhub-pin-status.is-configured {
+    border-color: #86efac;
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.staffhub-pin-status.is-unconfigured {
+    border-color: #fcd34d;
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.staffhub-note .staffhub-pin-state-text {
+    margin: 7px 0 11px;
+    font-weight: 700;
+}
+
 /* ================================================================
    POS DIALOG
    ================================================================ */

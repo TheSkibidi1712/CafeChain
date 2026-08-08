@@ -33,7 +33,8 @@ public sealed class AnomalyDetectionWorker : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             var started = DateTime.UtcNow; using var scope = _scopeFactory.CreateScope(); var repo = scope.ServiceProvider.GetRequiredService<IAnomalyDetectionRepository>(); var service = scope.ServiceProvider.GetRequiredService<IAnomalyDetectionService>();
-            var stores = await repo.GetActiveStoreIdsAsync(stoppingToken); var succeeded = 0;
+            var stores = (await repo.GetActiveStoreIdsAsync(stoppingToken))
+                .Where(_options.IsEnabledForStore).ToList(); var succeeded = 0;
             foreach (var storeId in stores) try { await service.AnalyzeStoreAsync(storeId, stoppingToken); succeeded++; } catch (Exception ex) { _logger.LogError(ex, "Anomaly analysis failed for StoreId={StoreId}", storeId); }
             _logger.LogInformation("Anomaly analysis finished Stores={Stores} Succeeded={Succeeded} ElapsedMs={ElapsedMs}", stores.Count, succeeded, (DateTime.UtcNow - started).TotalMilliseconds);
             await Task.Delay(TimeSpan.FromMinutes(Math.Max(5, _options.IntervalMinutes)), stoppingToken);

@@ -84,6 +84,7 @@ public sealed class StaffNotificationRepository : IStaffNotificationRepository
             .Include(x => x.Store)
             .Include(x => x.RequestedByStaff)
             .Include(x => x.ApproverStaff)
+                .ThenInclude(x => x!.Account)
             .Include(x => x.ConfirmedByStaff)
             .Where(x => challengeIds.Contains(x.OtpChallengeId)
                 && x.ApproverStaffId == recipientStaffId)
@@ -118,6 +119,21 @@ public sealed class StaffNotificationRepository : IStaffNotificationRepository
                 x.EntityId == entityId &&
                 x.ResolvedAt == null)
             .ToListAsync(cancellationToken);
+
+    public Task<List<StaffNotification>> GetActiveByEntitiesAsync(
+        string type,
+        string entityType,
+        IReadOnlyCollection<int> entityIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (entityIds.Count == 0) return Task.FromResult(new List<StaffNotification>());
+        return _context.StaffNotifications
+            .Where(x => x.Type == type
+                && x.EntityType == entityType
+                && entityIds.Contains(x.EntityId)
+                && x.ResolvedAt == null)
+            .ToListAsync(cancellationToken);
+    }
 
     public void Add(StaffNotification notification) =>
         _context.StaffNotifications.Add(notification);

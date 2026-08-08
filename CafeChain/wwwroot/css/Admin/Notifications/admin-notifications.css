@@ -246,6 +246,7 @@
 }
 
 .notification-page .notification-item {
+    scroll-margin-top: 88px;
     position: relative;
     display: grid;
     grid-template-columns: 46px minmax(0, 1fr);
@@ -258,6 +259,11 @@
     background: #FFFDFB;
     box-shadow: 0 4px 16px rgba(61, 36, 24, 0.04);
     transition: all 140ms ease;
+}
+
+.notification-page .notification-item:target {
+    border-color: #c08457 !important;
+    box-shadow: 0 0 0 4px rgba(192, 132, 87, .18), 0 12px 30px rgba(61, 36, 24, .12) !important;
 }
 
 .notification-page .notification-item::before {

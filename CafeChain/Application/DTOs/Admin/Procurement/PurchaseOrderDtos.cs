@@ -34,8 +34,14 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public string Code { get; set; } = string.Empty;
         public int StoreId { get; set; }
         public string StoreName { get; set; } = string.Empty;
+        public string? StoreAddress { get; set; }
+        public string? StorePhone { get; set; }
         public int SupplierId { get; set; }
         public string SupplierName { get; set; } = string.Empty;
+        public string? SupplierTaxCode { get; set; }
+        public string? SupplierAddress { get; set; }
+        public string? SupplierContactInfo { get; set; }
+        public string? SupplierEmail { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime OrderDate { get; set; }
         public DateTime? ExpectedDeliveryAtUtc { get; set; }
