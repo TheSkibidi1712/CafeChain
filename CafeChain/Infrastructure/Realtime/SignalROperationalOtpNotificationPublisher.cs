@@ -12,14 +12,6 @@ public sealed class SignalROperationalOtpNotificationPublisher : IOperationalOtp
     public SignalROperationalOtpNotificationPublisher(IHubContext<InventoryNotificationHub> hub) =>
         _hub = hub;
 
-    public Task PublishIssuedAsync(
-        int approverStaffId,
-        OperationalOtpIssuedDto notification,
-        CancellationToken cancellationToken = default) =>
-        _hub.Clients
-            .Group(InventoryNotificationGroups.ForStaff(approverStaffId))
-            .SendAsync("OperationalOtpIssued", notification, cancellationToken);
-
     public Task PublishChangedAsync(
         int approverStaffId,
         OperationalOtpNotificationChangedDto notification,
@@ -27,4 +19,12 @@ public sealed class SignalROperationalOtpNotificationPublisher : IOperationalOtp
         _hub.Clients
             .Group(InventoryNotificationGroups.ForStaff(approverStaffId))
             .SendAsync("OperationalOtpNotificationChanged", notification, cancellationToken);
+
+    public Task PublishTerminalRegistrationChangedAsync(
+        int requesterStaffId,
+        TerminalRegistrationChangedDto notification,
+        CancellationToken cancellationToken = default) =>
+        _hub.Clients
+            .Group(InventoryNotificationGroups.ForStaff(requesterStaffId))
+            .SendAsync("TerminalRegistrationChanged", notification, cancellationToken);
 }

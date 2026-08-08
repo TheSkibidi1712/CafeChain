@@ -62,6 +62,11 @@ namespace CafeChain.Application.DTOs.POS
         public string? DeviceFingerprintHash { get; set; }
     }
 
+    public class OtpCancelDto
+    {
+        public Guid OtpChallengePublicId { get; set; }
+    }
+
     public class OtpChallengeResponseDto
     {
         public bool HasActiveChallenge { get; set; } = true;
@@ -77,5 +82,14 @@ namespace CafeChain.Application.DTOs.POS
         public int ResendAvailableInSeconds { get; set; }
         public int RemainingAttempts { get; set; }
         public bool WasExistingActive { get; set; }
+        public string? DeliveryStatus { get; set; }
+        public string? MaskedRecipientEmail { get; set; }
+    }
+
+    public static class OtpDeliveryStatuses
+    {
+        public const string EmailSent = "EMAIL_SENT";
+        public const string InternalNotificationOnly = "INTERNAL_NOTIFICATION_ONLY";
+        public const string NoEligibleApprover = "NO_ELIGIBLE_APPROVER";
     }
 }

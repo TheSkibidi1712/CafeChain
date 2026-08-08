@@ -35,5 +35,6 @@ public interface IAnomalyDetectionRepository
     Task AddAsync(OperationalAnomaly anomaly, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OperationalAnomaly>> GetOpenAsync(int storeId, CancellationToken cancellationToken = default);
     Task<OperationalAnomaly?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<int?> GetStoreIdAsync(int id, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

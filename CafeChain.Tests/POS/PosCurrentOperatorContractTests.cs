@@ -85,14 +85,28 @@ public sealed class PosCurrentOperatorContractTests
     public void Staffhub_and_pos_ui_clear_pin_and_show_distinct_responsibility()
     {
         var staffHub = Read("CafeChain", "wwwroot", "js", "StaffHub", "staffhub-schedule.js");
+        var staffHubView = Read("CafeChain", "Views", "StaffHub", "Index.cshtml");
+        var staffHubVm = Read("CafeChain", "ViewModels", "StaffHub", "StaffHubScheduleVM.cs");
         var pos = Read("CafeChain.Frontend", "src", "pages", "ShiftSummary.tsx");
+        var posLayout = Read("CafeChain.Frontend", "src", "POSLayout.tsx");
+        var sellingHeader = Read("CafeChain.Frontend", "src", "components", "pos", "SellingHeader.tsx");
 
         Assert.Contains("operatorCurrentPassword.value = \"\"", staffHub, StringComparison.Ordinal);
         Assert.Contains("operatorNewPin.value = \"\"", staffHub, StringComparison.Ordinal);
+        Assert.Contains("setOperatorPinConfigured", staffHub, StringComparison.Ordinal);
+        Assert.Contains("operatorPinStateBadge", staffHubView, StringComparison.Ordinal);
+        Assert.Contains("OperatorPinConfigured", staffHubView, StringComparison.Ordinal);
+        Assert.Contains("OperatorPinConfigured", staffHubVm, StringComparison.Ordinal);
         Assert.Contains("Nhân viên chịu trách nhiệm", pos, StringComparison.Ordinal);
         Assert.Contains("Người đang thao tác", pos, StringComparison.Ordinal);
+        Assert.Contains("currentOperatorName", pos, StringComparison.Ordinal);
+        Assert.Contains("operatorChangedAtUtc", pos, StringComparison.Ordinal);
         Assert.Contains("setOperatorPin('')", pos, StringComparison.Ordinal);
         Assert.Contains("operator/candidates", pos, StringComparison.Ordinal);
+        Assert.Contains("currentOperatorName", posLayout, StringComparison.Ordinal);
+        Assert.Contains("responsibleStaffName", posLayout, StringComparison.Ordinal);
+        Assert.Contains("currentOperatorName", sellingHeader, StringComparison.Ordinal);
+        Assert.Contains("responsibleStaffName", sellingHeader, StringComparison.Ordinal);
     }
 
     private static string Read(params string[] path) =>

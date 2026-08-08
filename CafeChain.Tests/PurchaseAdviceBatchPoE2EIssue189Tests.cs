@@ -7,6 +7,8 @@ using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.DTOs.Admin.Permissions;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Application.Services.Security;
@@ -259,7 +261,7 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
         var systemAdmin = await adviceService.CreateAsync(CreateAdviceRequest(seed.Restock2Id, seed.Store2Id, seed.Restock2RowVersion),
             Actor(seed.Manager2Id, seed.Store2Id, RoleConstants.SystemAdmin));
         Assert.All(new[] { otherStore, cashier }, x => Assert.False(x.IsSuccess));
-        Assert.True(systemAdmin.IsSuccess, systemAdmin.Message);
+        Assert.False(systemAdmin.IsSuccess);
 
         var submitted = await adviceService.SubmitAsync(own.Data!.PurchaseAdviceId,
             new() { RowVersion = own.Data.RowVersion }, Warehouse(seed));
@@ -430,13 +432,13 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
         Lines = { new() { RestockRequestId = restockId, RequestedPurchaseBaseQuantity = 5m, RestockRowVersion = rowVersion } }
     };
 
-    private static PurchaseAdviceService AdviceService(AppDbContext db) => new(db, Scope(db));
+    private static PurchaseAdviceService AdviceService(AppDbContext db) => new(db, Scope(db), permissions: Permissions(db));
     private static PurchaseAdviceConsolidationService ConsolidationService(AppDbContext db)
     {
         var physical = new Mock<IPhysicalUnitConversionService>();
         physical.Setup(x => x.ConvertAsync(It.IsAny<decimal>(), It.IsAny<int>(), It.IsAny<int>()))
             .ReturnsAsync((decimal quantity, int _, int _) => ServiceResult<decimal>.Success(quantity));
-        return new(db, Scope(db), physical.Object);
+        return new(db, Scope(db), physical.Object, permissions: Permissions(db));
     }
     private static PurchaseOrderBatchService BatchService(AppDbContext db) => new(db, ConsolidationService(db), Scope(db));
     private static PurchaseOrderService NormalOrderService(AppDbContext db)
@@ -557,7 +559,52 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
     private static AdminActorContext Manager2(Seed x) => Actor(x.Manager2Id, x.Store2Id, RoleConstants.StoreManager);
     private static AdminActorContext Warehouse(Seed x) => Actor(x.WarehouseId, x.Store1Id, RoleConstants.AccountantWarehouse);
     private static AdminActorContext Owner(Seed x) => Actor(x.OwnerId, x.Store1Id, RoleConstants.BusinessOwner);
-    private static AdminActorContext Actor(int staffId, int storeId, string role) => new() { StaffId = staffId, StoreId = storeId, RoleNames = new[] { role } };
+    private static AdminActorContext Actor(int staffId, int storeId, string role) => new() { AccountId = staffId, StaffId = staffId, StoreId = storeId, RoleNames = new[] { role } };
+
+    private static IAdminPermissionService Permissions(AppDbContext db)
+    {
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.GetEffectivePermissionCodesAsync(It.IsAny<int>()))
+            .ReturnsAsync((int accountId) =>
+            {
+                var name = db.Staffs.AsNoTracking()
+                    .Where(x => x.StaffId == accountId)
+                    .Select(x => x.FullName)
+                    .FirstOrDefault() ?? string.Empty;
+                var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (name.Contains("Kế toán", StringComparison.OrdinalIgnoreCase))
+                    codes.Add(PermissionConstants.PurchaseAdviceConsolidate);
+                return ServiceResult<HashSet<string>>.Success(codes);
+            });
+        permissions.Setup(x => x.HasPermissionAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int?>()))
+            .ReturnsAsync((int accountId, string code, int? storeId) =>
+            {
+                var name = db.Staffs.AsNoTracking()
+                    .Where(x => x.StaffId == accountId)
+                    .Select(x => x.FullName)
+                    .FirstOrDefault() ?? string.Empty;
+                var warehouse = name.Contains("Kế toán", StringComparison.OrdinalIgnoreCase);
+                var manager = name.Contains("Quản lý", StringComparison.OrdinalIgnoreCase);
+                var allowed = code switch
+                {
+                    PermissionConstants.PurchaseAdviceView => warehouse || manager,
+                    PermissionConstants.PurchaseAdviceCreate => warehouse,
+                    PermissionConstants.PurchaseAdviceReview => warehouse || manager,
+                    PermissionConstants.PurchaseAdviceConsolidate => warehouse,
+                    _ => false
+                };
+                return ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = accountId,
+                    PermissionCode = code,
+                    TargetStoreId = storeId,
+                    Allowed = allowed,
+                    RoleAllowed = allowed,
+                    ScopeAllowed = allowed
+                });
+            });
+        return permissions.Object;
+    }
     private static MarkPurchaseOrderBatchDocumentSentRequest SendRequest(string rowVersion, string key) => new()
     {
         Channel = PurchaseOrderBatchDocumentChannels.ZaloManual, RowVersion = rowVersion, IdempotencyKey = key, Note = "Đã gửi thủ công qua Zalo"

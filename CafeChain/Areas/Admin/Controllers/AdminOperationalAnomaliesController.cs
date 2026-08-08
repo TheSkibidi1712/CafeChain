@@ -20,15 +20,21 @@ public sealed class AdminOperationalAnomaliesController : AdminBaseController
     { _service = service; _actor = actor; _ai = ai; _scope = scope; }
 
     [HttpGet]
+    [RequirePermission(PermissionConstants.OperationalAnomalyView)]
     public async Task<IActionResult> Index(int? targetStoreId, CancellationToken ct)
     {
         var actor = _actor.Get(User); var scope = await _scope.ResolveAsync(actor, targetStoreId, ct);
         if (!scope.IsResolved) return StoreScopeFailure(scope);
         ViewBag.Stores = scope.AccessibleStores; ViewBag.SelectedStoreId = scope.StoreId;
+        ViewBag.CanAcknowledge = await HasEffectivePermissionAsync(PermissionConstants.OperationalAnomalyAcknowledge);
+        ViewBag.CanResolve = await HasEffectivePermissionAsync(PermissionConstants.OperationalAnomalyResolve);
+        ViewBag.CanFeedback = await HasEffectivePermissionAsync(PermissionConstants.OperationalAnomalyFeedback);
+        ViewBag.CanUseAi = await HasEffectivePermissionAsync(PermissionConstants.DashboardAiUse);
         return View(await _service.GetOpenAsync(actor, scope.StoreId!.Value, ct));
     }
 
     [HttpGet]
+    [RequirePermission(PermissionConstants.OperationalAnomalyView)]
     public async Task<IActionResult> Open(int storeId, CancellationToken ct)
     {
         try { return Ok(new { success = true, data = await _service.GetOpenAsync(_actor.Get(User), storeId, ct), traceId = HttpContext.TraceIdentifier }); }
@@ -46,12 +52,29 @@ public sealed class AdminOperationalAnomaliesController : AdminBaseController
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [RequirePermission(PermissionConstants.OperationalAnomalyView)]
+    [RequirePermission(PermissionConstants.DashboardAiUse)]
     public async Task<IActionResult> Explain([FromBody] int anomalyId, CancellationToken ct)
     {
         try
         {
             var context = await _service.GetExplanationContextAsync(_actor.Get(User), anomalyId, ct);
-            return Ok(new { success = true, data = await _ai.ExplainAnomalyAsync(context, ct), traceId = HttpContext.TraceIdentifier });
+            var explanation = await _ai.ExplainAnomalyAsync(context, ct);
+            return Ok(new
+            {
+                success = true,
+                data = explanation,
+                presentation = new
+                {
+                    context.MetricDisplayName,
+                    context.CurrentValueDisplay,
+                    context.BaselineValueDisplay,
+                    context.DirectionDescription,
+                    context.ReasonSummaries,
+                    context.SuggestedChecks
+                },
+                traceId = HttpContext.TraceIdentifier
+            });
         }
         catch (UnauthorizedAccessException) { return Forbid(); }
         catch (KeyNotFoundException ex) { return NotFound(new { success = false, message = ex.Message }); }

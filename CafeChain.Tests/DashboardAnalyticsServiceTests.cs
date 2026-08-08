@@ -155,7 +155,17 @@ public sealed class DashboardAnalyticsServiceTests
     public async Task CreateContextAsync_UsesCatalogAndStableFingerprint()
     {
         var (repository, scope) = CreateDependencies();
-        var service = new DashboardService(repository.Object, scope.Object);
+        var authorization = new Mock<CafeChain.Application.Interfaces.Admin.Dashboard.IDashboardAuthorizationService>();
+        authorization.Setup(x => x.GetAccessAsync(It.IsAny<AdminActorContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DashboardAuthorizationDto
+            {
+                AllowedSections = Enum.GetValues<DashboardSection>(),
+                AllowedWidgets = Enum.GetValues<DashboardAnalyticsWidget>(),
+                AllowedCapabilities = new[] { "Dashboard.View" },
+                CanUseAi = true
+            });
+        var service = new DashboardService(repository.Object, scope.Object,
+            authorization: authorization.Object);
         var request = new DashboardContextRequestDto
         {
             FromDate = new DateTime(2026, 7, 1),

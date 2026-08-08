@@ -17,6 +17,17 @@ public sealed class NotificationRealtimeAndHomeSourceTests
         Assert.Contains("setInterval(refresh, 60000)", client, StringComparison.Ordinal);
         Assert.Contains("count > 9 ? \"9+\"", client, StringComparison.Ordinal);
         Assert.Contains("eventId", client, StringComparison.Ordinal);
+        Assert.Contains("OperationalOtpNotificationChanged", client, StringComparison.Ordinal);
+        Assert.Contains("sessionStorage", client, StringComparison.Ordinal);
+        Assert.Contains("notification-", client, StringComparison.Ordinal);
+        Assert.Contains("Mở Thông báo", client, StringComparison.Ordinal);
+        Assert.DoesNotContain("OperationalOtpIssued", client, StringComparison.Ordinal);
+        Assert.DoesNotContain("otpCode", client, StringComparison.OrdinalIgnoreCase);
+
+        var posClient = Read("CafeChain.Frontend", "src", "services", "notificationRealtime.ts");
+        Assert.Contains("OperationalOtpNotificationChanged", posClient, StringComparison.Ordinal);
+        Assert.DoesNotContain("OperationalOtpIssued", posClient, StringComparison.Ordinal);
+        Assert.DoesNotContain("otpCode", posClient, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

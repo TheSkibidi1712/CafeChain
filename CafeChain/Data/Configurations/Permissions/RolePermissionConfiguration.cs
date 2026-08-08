@@ -26,14 +26,8 @@ namespace CafeChain.Data.Configurations.Permissions
                 .HasForeignKey(x => x.PermissionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasData(
-                new RolePermission { RoleId = 1, PermissionId = 1 },
-                new RolePermission { RoleId = 1, PermissionId = 2 },
-                new RolePermission { RoleId = 1, PermissionId = 3 },
-                new RolePermission { RoleId = 1, PermissionId = 4 },
-                new RolePermission { RoleId = 1, PermissionId = 27 }
-
-            );
+            // SeedAll.sql owns the default role-permission matrix. Runtime account
+            // overrides are never deleted by model configuration or migrations.
         }
     }
 }

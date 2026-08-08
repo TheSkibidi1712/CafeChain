@@ -24,74 +24,7 @@ namespace CafeChain.Data.Configurations.Staffs
 
             entity.HasIndex(x => x.Name).IsUnique();
 
-            entity.HasData(
-                new Role
-                {
-                    RoleId = 1,
-                    Name = CafeChain.Application.Constants.RoleConstants.BusinessOwner,
-                    Active = true,
-                    IsStoreLevel = false,
-                    CreatedAt = new DateTime(2026, 1, 1)
-                },
-                new Role
-                {
-                    RoleId = 2,
-                    Name = CafeChain.Application.Constants.RoleConstants.AreaManager,
-                    Active = true,
-                    IsStoreLevel = false,
-                    CreatedAt = new DateTime(2026, 1, 1)
-                },
-                new Role
-                {
-                    RoleId = 3,
-                    Name = CafeChain.Application.Constants.RoleConstants.StoreManager,
-                    Active = true,
-                    IsStoreLevel = true,
-                    CreatedAt = new DateTime(2026, 1, 1)
-                },
-                new Role
-                {
-                    RoleId = 4,
-                    Name = CafeChain.Application.Constants.RoleConstants.SalesStaff,
-                    Active = true,
-                    IsStoreLevel = true,
-                    CreatedAt = new DateTime(2026, 1, 1)
-                },
-                new Role
-                {
-                    RoleId = 5,
-                    Name = CafeChain.Application.Constants.RoleConstants.AccountantWarehouse,
-                    Active = true,
-                    IsStoreLevel = true,
-                    CreatedAt = new DateTime(2026, 1, 1)
-                },
-                new Role
-                {
-                    RoleId = 6,
-                    Name = CafeChain.Application.Constants.RoleConstants.SystemAdmin,
-                    Active = true,
-                    IsStoreLevel = false,
-                    CreatedAt = new DateTime(2026, 1, 1)
-                },
-                new Role
-                {
-                    RoleId = 7,
-                    Name = CafeChain.Application.Constants.RoleConstants.Customer,
-                    Active = true,
-                    IsStoreLevel = false,
-                    CreatedAt = new DateTime(2026, 1, 1)
-                },
-                // RoleId 8 — store-level operational approver (PIN / OTP / future stock-alert routing).
-                // Seed only in configuration; apply via approved EF migration before production use.
-                new Role
-                {
-                    RoleId = 8,
-                    Name = CafeChain.Application.Constants.RoleConstants.ShiftSupervisor,
-                    Active = true,
-                    IsStoreLevel = true,
-                    CreatedAt = new DateTime(2026, 1, 1)
-                }
-            );
+            // Scripts/SeedAll.sql is the sole authoritative source for role defaults.
         }
     }
 }

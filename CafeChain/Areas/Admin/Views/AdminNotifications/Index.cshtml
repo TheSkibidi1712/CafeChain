@@ -1,4 +1,7 @@
 @model CafeChain.Application.DTOs.POS.StaffNotificationListDto
+@using CafeChain.Application.Interfaces.Systems
+@using CafeChain.Application.Tools
+@inject IBusinessDateService BusinessDateService
 @{
     ViewData["Title"] = "Thông báo";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -12,6 +15,8 @@
         successMessage?.Trim().TrimEnd('!'),
         "Đăng nhập thành công",
         StringComparison.OrdinalIgnoreCase);
+    DateTime VietnamTime(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(
+        UtcDateTime.Normalize(utc), BusinessDateService.TimeZone);
 }
 
 @section Styles {
@@ -79,7 +84,7 @@
             <section class="notification-list cc-warehouse-panel" aria-label="Danh sách thông báo">
                 @foreach (var item in Model.Items)
                 {
-                    <article class="notification-item @(item.IsRead ? "" : "is-unread")">
+                    <article id="notification-@item.NotificationId" class="notification-item @(item.IsRead ? "" : "is-unread")">
                         <span class="notification-item-icon" aria-hidden="true">
                             <i class="fas @(item.IsRead ? "fa-check" : "fa-bell")"></i>
                         </span>
@@ -104,30 +109,36 @@
                                         <div><strong>Chi nhánh:</strong> @otp.StoreName</div>
                                         <div><strong>Người gửi:</strong> @otp.RequestedByName</div>
                                         <div><strong>Người xác nhận:</strong> @(otp.ConfirmedByName ?? otp.ApproverName)</div>
-                                        <div><strong>Gửi lúc:</strong> @otp.SentAtUtc.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</div>
-                                        <div><strong>Hết hạn:</strong> @otp.ExpiresAtUtc.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</div>
+                                        <div><strong>Gửi lúc:</strong> @VietnamTime(otp.SentAtUtc).ToString("HH:mm:ss dd/MM/yyyy")</div>
+                                        <div><strong>Hết hạn:</strong> @VietnamTime(otp.ExpiresAtUtc).ToString("HH:mm:ss dd/MM/yyyy")</div>
                                         <div><strong>Trạng thái:</strong> <span data-otp-status>@otp.Status</span></div>
                                         @if (otp.Status == "Waiting")
                                         {
                                             <small data-otp-countdown></small>
-                                            <div class="notification-item-footer">
-                                                <button type="button"
-                                                        class="cc-button"
-                                                        data-reveal-terminal-otp
-                                                        data-notification-id="@item.NotificationId">
-                                                    Xem OTP
-                                                </button>
-                                            </div>
-                                            <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="ConfirmTerminal" method="post" class="notification-terminal-confirm-form">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="id" value="@item.NotificationId" />
-                                                <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
-                                                <label>
-                                                    <span>Tiếp tục xác nhận Terminal</span>
-                                                    <input name="OtpCode" maxlength="6" autocomplete="one-time-code" required />
-                                                </label>
-                                                <button type="submit" class="cc-button" data-submit-once>Xác nhận Terminal</button>
-                                            </form>
+                                            @if (otp.CanRevealOtp)
+                                            {
+                                                <div class="notification-item-footer">
+                                                    <button type="button"
+                                                            class="cc-button"
+                                                            data-reveal-operational-otp
+                                                            data-notification-id="@item.NotificationId">
+                                                        Xem OTP
+                                                    </button>
+                                                </div>
+                                            }
+                                            @if (otp.CanContinueTerminalConfirmation)
+                                            {
+                                                <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="ConfirmTerminal" method="post" class="notification-terminal-confirm-form">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.NotificationId" />
+                                                    <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
+                                                    <label>
+                                                        <span>Nhập OTP để xác nhận Terminal</span>
+                                                        <input name="OtpCode" maxlength="6" autocomplete="one-time-code" required />
+                                                    </label>
+                                                    <button type="submit" class="cc-button" data-submit-once>Xác nhận Terminal</button>
+                                                </form>
+                                            }
                                         }
                                         else if (otp.Status == "Expired")
                                         {
@@ -136,14 +147,14 @@
                                     </div>
                                 }
                                 <div class="notification-item-footer">
-                                    <span class="notification-time"><i class="far fa-clock" aria-hidden="true"></i>@item.CreatedAt.ToLocalTime().ToString("HH:mm · dd/MM/yyyy")</span>
+                                    <span class="notification-time"><i class="far fa-clock" aria-hidden="true"></i>@VietnamTime(item.CreatedAt).ToString("HH:mm · dd/MM/yyyy")</span>
                                     @if (item.EmailAttempted && !item.EmailSent)
                                     {
                                         <span class="notification-email-warning"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i>Email chưa gửi được</span>
                                     }
                                     @if (!string.IsNullOrEmpty(item.TargetUrl))
                                     {
-                                        <a class="notification-link" href="@item.TargetUrl">Xem chi tiết <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                                        <a class="notification-link" href="@item.TargetUrl">@(item.TargetActionLabel ?? "Xem chi tiết") <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
                                     }
                                 </div>
                             </div>

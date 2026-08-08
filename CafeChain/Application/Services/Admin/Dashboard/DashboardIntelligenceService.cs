@@ -53,16 +53,19 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
     private readonly IMemoryCache _cache;
     private readonly DashboardIntelligenceOptions _options;
     private readonly ILogger<DashboardIntelligenceService> _logger;
+    private readonly IDashboardAuthorizationService _authorization;
 
     public DashboardIntelligenceService(
         IDashboardService dashboard, IAIService ai, IMemoryCache cache,
         IOptions<DashboardIntelligenceOptions> options,
+        IDashboardAuthorizationService authorization,
         ILogger<DashboardIntelligenceService>? logger = null)
     {
         _dashboard = dashboard;
         _ai = ai;
         _cache = cache;
         _options = options.Value;
+        _authorization = authorization;
         _logger = logger ?? NullLogger<DashboardIntelligenceService>.Instance;
     }
 
@@ -70,6 +73,7 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         AdminActorContext actor, DashboardPromptRequestDto request, CancellationToken cancellationToken = default)
     {
         RequireActor(actor);
+        await RequireAiAsync(actor, cancellationToken);
         EnforceRate(actor);
         var prompt = request.Prompt?.Trim() ?? string.Empty;
         if (prompt.Length > 500 || prompt.Length > _options.MaximumPromptLength)
@@ -132,6 +136,7 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         RequireActor(actor);
         EnforceRate(actor);
         ValidateIntent(intent);
+        await _authorization.AuthorizeWidgetsAsync(actor, [intent.Widget], cancellationToken);
         var page = await _dashboard.GetPageAsync(actor, new DashboardFilterDto(), cancellationToken);
         var storeId = ResolveNamedStore(intent, page.Stores);
         var window = ResolveWindow(intent.Period, DateTime.Today);
@@ -173,9 +178,11 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         AdminActorContext actor, Guid analysisId, CancellationToken cancellationToken = default)
     {
         RequireActor(actor);
+        await RequireAiAsync(actor, cancellationToken);
         EnforceRate(actor);
         if (!_cache.TryGetValue(CacheKey(actor.StaffId, analysisId), out DashboardAnalysisResultDto? result) || result == null)
             throw new KeyNotFoundException("Kết quả phân tích đã hết hạn. Vui lòng chạy lại câu hỏi.");
+        await _authorization.AuthorizeWidgetsAsync(actor, [result.Intent.Widget], cancellationToken);
         var context = new DashboardInsightExplanationContextDto
         {
             AnalysisId = result.AnalysisId, Widget = result.Intent.Widget,
@@ -191,6 +198,15 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         if (!_options.ExplanationEnabled)
             return DeterministicExplanation(context, "Giải thích AI đang tắt; sử dụng kết quả rule/statistics.");
         return await _ai.ExplainDashboardInsightAsync(context, cancellationToken);
+    }
+
+    private async Task<DashboardAuthorizationDto> RequireAiAsync(
+        AdminActorContext actor, CancellationToken cancellationToken)
+    {
+        var access = await _authorization.GetAccessAsync(actor, cancellationToken);
+        if (!access.CanUseAi)
+            throw new UnauthorizedAccessException("Bạn không có quyền sử dụng AI Dashboard.");
+        return access;
     }
 
     private static DashboardIntentDto? ParseDeterministic(string prompt, IReadOnlyList<string> storeNames)

@@ -4,7 +4,10 @@ using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.AI;
 using CafeChain.Data;
+using CafeChain.Models.Inventories.Auditing;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +24,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminActorContextAccessor _actor;
         private readonly AppDbContext _context;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
+        private readonly ISupplierIntelligenceService? _supplierIntelligence;
 
         public AdminPurchaseOrdersController(
             IPurchaseOrderService service,
@@ -28,7 +32,8 @@ namespace CafeChain.Areas.Admin.Controllers
             IUnitConversionService conversion,
             IAdminActorContextAccessor actor,
             AppDbContext context,
-            IAdminStoreScopeResolver storeScopeResolver)
+            IAdminStoreScopeResolver storeScopeResolver,
+            ISupplierIntelligenceService? supplierIntelligence = null)
         {
             _service = service;
             _allocations = allocations;
@@ -36,6 +41,7 @@ namespace CafeChain.Areas.Admin.Controllers
             _actor = actor;
             _context = context;
             _storeScopeResolver = storeScopeResolver;
+            _supplierIntelligence = supplierIntelligence;
         }
 
         [HttpGet]
@@ -134,6 +140,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequirePermission(PermissionConstants.PurchaseOrderCreate)]
+        [RequirePermission(PermissionConstants.PurchaseAdviceSelectSupplier)]
         public async Task<IActionResult> CreateFromAdvice(CreatePurchaseOrderBatchRequest request)
         {
             if (!await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCreate))
@@ -157,6 +164,27 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             var actor = _actor.Get(User);
+            CafeChain.Application.DTOs.AI.SupplierRecommendationDto? intelligenceSnapshot = null;
+            if (_supplierIntelligence != null)
+            {
+                try
+                {
+                    var remainingBase = Math.Max(0m,
+                        adviceLine.RequestedPurchaseBaseQuantity
+                        - adviceLine.AllocatedToPoBaseQuantity
+                        - adviceLine.ClosedBaseQuantity);
+                    intelligenceSnapshot = await _supplierIntelligence.CompareAsync(
+                        actor,
+                        adviceLine.PurchaseAdvice.StoreId,
+                        adviceLine.IngredientId,
+                        remainingBase,
+                        HttpContext.RequestAborted);
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+                {
+                    // Feature OFF/shadow rollout must never block manual procurement.
+                }
+            }
             var result = await _service.CreateDraftAsync(new CreatePurchaseOrderRequest
             {
                 StoreId = adviceLine.PurchaseAdvice.StoreId,
@@ -187,6 +215,36 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 TempData["Error"] = result.Message ?? "Không thể tạo đơn đặt hàng.";
                 return RedirectToAction("Index", "AdminPurchaseAdviceConsolidation");
+            }
+
+            if (intelligenceSnapshot != null)
+            {
+                var selectedCandidate = intelligenceSnapshot.Candidates
+                    .FirstOrDefault(x => x.SupplierId == request.SupplierId
+                        && x.IngredientSupplierId == selected.IngredientSupplierId);
+                _context.AuditLogs.Add(new AuditLog
+                {
+                    TableName = "SupplierIntelligenceSnapshot",
+                    RecordId = result.Data.PurchaseOrderId,
+                    Action = "SUPPLIER_SELECTED_FOR_PO",
+                    UserId = actor.StaffId,
+                    CreatedAt = DateTime.UtcNow,
+                    NewData = JsonSerializer.Serialize(new
+                    {
+                        PurchaseOrderId = result.Data.PurchaseOrderId,
+                        StoreId = adviceLine.PurchaseAdvice.StoreId,
+                        adviceLine.IngredientId,
+                        intelligenceSnapshot.RequiredBaseQuantity,
+                        CandidateSuppliers = intelligenceSnapshot.Candidates,
+                        SelectedSupplierId = request.SupplierId,
+                        SelectedIngredientSupplierId = selected.IngredientSupplierId,
+                        SelectedCandidate = selectedCandidate,
+                        intelligenceSnapshot.WeightVersion,
+                        intelligenceSnapshot.CalculatedAtUtc,
+                        SelectingStaffId = actor.StaffId
+                    })
+                });
+                await _context.SaveChangesAsync(HttpContext.RequestAborted);
             }
 
             TempData["SuccessMessage"] = "Đã tạo đơn đặt hàng thường từ đề nghị mua.";

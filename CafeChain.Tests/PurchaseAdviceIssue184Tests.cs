@@ -3,6 +3,8 @@ using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.DTOs.Admin.Permissions;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
@@ -502,6 +504,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         var ownStore = await service.CreateAsync(CreateRequest(seed, 5m), StoreManager(seed));
         var other = new AdminActorContext
         {
+            AccountId = seed.ManagerId,
             StaffId = seed.ManagerId,
             StoreId = seed.StoreId + 99,
             RoleNames = new[] { RoleConstants.StoreManager }
@@ -524,7 +527,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         var deniedScope = new Mock<IScopeAuthorizationService>();
         deniedScope.Setup(x => x.CanAccessStoreAsync(seed.WarehouseId, seed.StoreId))
             .ReturnsAsync(false);
-        var service = new PurchaseAdviceService(context, deniedScope.Object);
+        var service = new PurchaseAdviceService(context, deniedScope.Object, permissions: Permissions(context));
         var review = await service.StartReviewAsync(submitted.PurchaseAdviceId,
             new PurchaseAdviceTransitionRequest { RowVersion = submitted.RowVersion }, Warehouse(seed));
         var create = await service.CreateAsync(CreateRequest(seed, 1m), Warehouse(seed));
@@ -542,7 +545,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(seed.WarehouseId, seed.StoreId))
             .ReturnsAsync(true);
-        var service = new PurchaseAdviceService(context, scope.Object);
+        var service = new PurchaseAdviceService(context, scope.Object, permissions: Permissions(context));
 
         var created = await service.CreateAsync(CreateRequest(seed, 5m), Warehouse(seed));
         Assert.True(created.IsSuccess, created.Message);
@@ -570,15 +573,15 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(seed.WarehouseId, seed.StoreId)).ReturnsAsync(true);
         scope.Setup(x => x.CanAccessStoreAsync(seed.AreaManagerId, seed.StoreId)).ReturnsAsync(true);
-        var service = new PurchaseAdviceService(context, scope.Object);
+        var service = new PurchaseAdviceService(context, scope.Object, permissions: Permissions(context));
         var created = (await service.CreateAsync(CreateRequest(seed, 5m), Warehouse(seed))).Data!;
         var areaRead = await service.GetDetailAsync(created.PurchaseAdviceId,
-            new AdminActorContext { StaffId = seed.AreaManagerId, StoreId = 0, RoleNames = new[] { RoleConstants.AreaManager } });
+            new AdminActorContext { AccountId = seed.AreaManagerId, StaffId = seed.AreaManagerId, StoreId = 0, RoleNames = new[] { RoleConstants.AreaManager } });
         var areaEdit = await service.SubmitAsync(created.PurchaseAdviceId,
             new PurchaseAdviceTransitionRequest { RowVersion = created.RowVersion },
-            new AdminActorContext { StaffId = seed.AreaManagerId, RoleNames = new[] { RoleConstants.AreaManager } });
+            new AdminActorContext { AccountId = seed.AreaManagerId, StaffId = seed.AreaManagerId, RoleNames = new[] { RoleConstants.AreaManager } });
         var cashierRead = await service.GetDetailAsync(created.PurchaseAdviceId,
-            new AdminActorContext { StaffId = seed.ManagerId, StoreId = seed.StoreId, RoleNames = new[] { RoleConstants.SalesStaff } });
+            new AdminActorContext { AccountId = 999999, StaffId = seed.ManagerId, StoreId = seed.StoreId, RoleNames = new[] { RoleConstants.SalesStaff } });
         Assert.True(areaRead.IsSuccess);
         Assert.False(areaEdit.IsSuccess);
         Assert.False(cashierRead.IsSuccess);
@@ -694,7 +697,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
                     x.StaffId == staffId
                     && (x.StoreId == storeId || x.StoreId == 0)
                     && x.Active));
-        return new PurchaseAdviceService(context, scope.Object, unitConversion);
+        return new PurchaseAdviceService(context, scope.Object, unitConversion, Permissions(context));
     }
 
     private static PurchaseAdviceService CreateScopedService(
@@ -707,7 +710,7 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
             .ReturnsAsync(true);
         scope.Setup(x => x.CanAccessStoreAsync(seed.WarehouseId, seed.StoreId))
             .ReturnsAsync(true);
-        return new PurchaseAdviceService(context, scope.Object, unitConversion);
+        return new PurchaseAdviceService(context, scope.Object, unitConversion, Permissions(context));
     }
 
     private static CreatePurchaseAdviceRequest CreateRequest(Seed seed, decimal quantity) => new()
@@ -723,8 +726,34 @@ public sealed class PurchaseAdviceIssue184Tests : IntegrationTestBase
     };
 
     private static AdminActorContext Manager(Seed seed) => Warehouse(seed);
-    private static AdminActorContext StoreManager(Seed seed) => new() { StaffId = seed.ManagerId, StoreId = seed.StoreId, RoleNames = new[] { RoleConstants.StoreManager } };
-    private static AdminActorContext Warehouse(Seed seed) => new() { StaffId = seed.WarehouseId, RoleNames = new[] { RoleConstants.AccountantWarehouse } };
+    private static AdminActorContext StoreManager(Seed seed) => new() { AccountId = seed.ManagerId, StaffId = seed.ManagerId, StoreId = seed.StoreId, RoleNames = new[] { RoleConstants.StoreManager } };
+    private static AdminActorContext Warehouse(Seed seed) => new() { AccountId = seed.WarehouseId, StaffId = seed.WarehouseId, RoleNames = new[] { RoleConstants.AccountantWarehouse } };
+
+    private static IAdminPermissionService Permissions(AppDbContext context)
+    {
+        var mock = new Mock<IAdminPermissionService>();
+        mock.Setup(x => x.HasPermissionAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int?>()))
+            .ReturnsAsync((int accountId, string code, int? storeId) =>
+            {
+                var staffName = context.Staffs.AsNoTracking()
+                    .Where(x => x.StaffId == accountId)
+                    .Select(x => x.FullName)
+                    .FirstOrDefault() ?? string.Empty;
+                var allowed = code == PermissionConstants.PurchaseAdviceView
+                    ? staffName.Contains("Warehouse") || staffName.Contains("Area") || staffName.Contains("Manager")
+                    : staffName.Contains("Warehouse");
+                return ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = accountId,
+                    PermissionCode = code,
+                    TargetStoreId = storeId,
+                    Allowed = allowed,
+                    RoleAllowed = allowed,
+                    ScopeAllowed = allowed
+                });
+            });
+        return mock.Object;
+    }
 
     private static async Task AddTransferAsync(AppDbContext context, Seed seed, decimal quantity)
     {

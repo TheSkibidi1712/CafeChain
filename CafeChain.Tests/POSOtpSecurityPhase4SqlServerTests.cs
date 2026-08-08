@@ -163,6 +163,21 @@ WHERE TABLE_NAME = N'Staffs' AND COLUMN_NAME = N'PinHash';";
 
         private async Task SeedCoreAsync(AppDbContext ctx)
         {
+            foreach (var roleName in new[] { RoleConstants.SalesStaff, RoleConstants.ShiftSupervisor })
+            {
+                if (!await ctx.Roles.AnyAsync(r => r.Name == roleName))
+                {
+                    ctx.Roles.Add(new Role
+                    {
+                        Name = roleName,
+                        Active = true,
+                        IsStoreLevel = true,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            await ctx.SaveChangesAsync();
+
             var store = await ctx.Stores.FirstOrDefaultAsync(s => s.Active);
             if (store == null)
             {
