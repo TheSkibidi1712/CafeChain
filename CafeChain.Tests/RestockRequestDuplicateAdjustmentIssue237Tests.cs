@@ -1,14 +1,19 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Production;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
+using CafeChain.Application.Interfaces.Admin.Production;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Application.Services.Security;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Procurement;
+using CafeChain.Models.Inventories.PreparedItems;
+using CafeChain.Models.Inventories.Production;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Permissions;
 using CafeChain.Models.Staffs;
@@ -348,6 +353,129 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
         Assert.True(warehouse.IsSuccess, warehouse.Message);
     }
 
+    [Fact]
+    public async Task InvalidDirectProductionRequest_IsRejectedByBackendResolver()
+    {
+        using var context = CreateDbContext();
+        await SeedAsync(context);
+        var eligibility = new Mock<IProductionSourceEligibilityService>();
+        eligibility
+            .Setup(x => x.EvaluateAsync(It.IsAny<ProductionSourceEligibilityRequest>()))
+            .ReturnsAsync((ProductionSourceEligibilityRequest request) =>
+                ServiceResult<ProductionSourceEligibilityDto>.Success(new ProductionSourceEligibilityDto
+                {
+                    StoreId = request.StoreId,
+                    IngredientId = request.IngredientId,
+                    Eligible = false,
+                    ReasonCode = ProductionEligibilityReasonCodes.ItemCapabilityMissing,
+                    Message = "Mặt hàng chưa được cấu hình cho phép sản xuất nội bộ."
+                }));
+        var service = CreateService(context, eligibility.Object);
+        var created = await service.CreateManualAsync(Request(StoreA, "PRODUCTION-DIRECT-1"), ManagerA);
+
+        var result = await service.SetSourcingDecisionAsync(new SourcingDecisionRequest
+        {
+            RestockRequestId = created.Data!.RestockRequestId,
+            DecisionType = RestockSourcingDecisionTypes.Production,
+            ProcurementQuantity = 3m,
+            ProcurementUnitId = ProcurementUnitId,
+            RequestKey = Guid.NewGuid()
+        }, WarehouseStaff);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ProductionEligibilityReasonCodes.ItemCapabilityMissing, result.ErrorCode);
+        Assert.Contains("chưa được cấu hình", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(context.RestockSourcingAllocations);
+    }
+
+    [Fact]
+    public async Task EligibleProductionDemand_PlansIntegerBatchesAndLinksAllocationIdempotently()
+    {
+        using var context = CreateDbContext();
+        await SeedAsync(context);
+        const int preparedItemId = 23790;
+        const int recipeId = 23790;
+        context.PreparedItems.Add(new PreparedItem
+        {
+            PreparedItemId = preparedItemId,
+            Code = "BTP-23790",
+            Name = "BTP kế hoạch sản xuất",
+            BaseUnitId = BaseUnitId,
+            Active = true
+        });
+        context.Recipes.Add(new Recipe
+        {
+            RecipeId = recipeId,
+            RecipeCode = "RECIPE-23790",
+            Name = "Công thức 5 kg mỗi mẻ",
+            PreparedItemId = preparedItemId,
+            OutputQuantity = 5m,
+            OutputUnitId = ProcurementUnitId,
+            Active = true,
+            Status = "Active"
+        });
+        var demand = new RestockRequest
+        {
+            StoreId = StoreA,
+            PreparedItemId = preparedItemId,
+            RequestedQuantity = 10_000m,
+            RequestedProcurementQuantity = 10m,
+            ProcurementUnitId = ProcurementUnitId,
+            Status = RestockRequestStatuses.Processing,
+            Priority = RestockRequestPriorities.High,
+            SourceType = RestockRequestSourceTypes.StockAlert,
+            SourcingStatus = RestockSourcingStatuses.Unallocated,
+            CreatedByStaffId = ManagerA,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.RestockRequests.Add(demand);
+        await context.SaveChangesAsync();
+
+        var eligibility = new Mock<IProductionSourceEligibilityService>();
+        eligibility
+            .Setup(x => x.EvaluateAsync(It.IsAny<ProductionSourceEligibilityRequest>()))
+            .ReturnsAsync(ServiceResult<ProductionSourceEligibilityDto>.Success(new ProductionSourceEligibilityDto
+            {
+                Eligible = true,
+                ReasonCode = ProductionEligibilityReasonCodes.Eligible,
+                Message = "Có thể chọn nguồn sản xuất nội bộ.",
+                StoreId = StoreA,
+                PreparedItemId = preparedItemId,
+                RecipeId = recipeId,
+                ExpectedOutputPerBatchBase = 5_000m,
+                OutputBaseUnitId = BaseUnitId,
+                OutputBaseUnitCode = "g"
+            }));
+        var service = CreateService(context, eligibility.Object);
+        var key = Guid.NewGuid();
+        var command = new SourcingDecisionRequest
+        {
+            RestockRequestId = demand.RestockRequestId,
+            DecisionType = RestockSourcingDecisionTypes.Production,
+            ProcurementQuantity = 10m,
+            ProcurementUnitId = ProcurementUnitId,
+            RequestKey = key,
+            Reason = "Sản xuất đáp ứng nhu cầu"
+        };
+
+        var first = await service.SetSourcingDecisionAsync(command, WarehouseStaff);
+        var replay = await service.SetSourcingDecisionAsync(command, WarehouseStaff);
+
+        Assert.True(first.IsSuccess, first.Message);
+        Assert.True(replay.IsSuccess, replay.Message);
+        Assert.Equal(first.Data!.RestockSourcingAllocationId, replay.Data!.RestockSourcingAllocationId);
+        var run = Assert.Single(context.ProductionRuns);
+        Assert.Equal(2, run.ContractVersion);
+        Assert.Equal(2, run.PlannedBatchCount);
+        Assert.Equal(2m, run.RequestedRunCount);
+        Assert.Equal(10_000m, run.ExpectedOutputBase);
+        Assert.Equal(ProductionRunStatus.Planned, run.Status);
+        var allocation = Assert.Single(context.RestockSourcingAllocations);
+        Assert.Equal(run.ProductionRunId, allocation.ProductionRunId);
+        Assert.Equal(run.ProductionRunId, allocation.SourceDocumentId);
+    }
+
     [Theory]
     [InlineData(2601, "Cannot insert duplicate key row with unique index 'UX_RestockRequest_Active_Store_Ingredient'", true)]
     [InlineData(2627, "Violation of UNIQUE KEY constraint 'UX_RestockRequest_Active_Store_Ingredient'", true)]
@@ -428,7 +556,9 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
         RequestKey = key
     };
 
-    private static RestockRequestService CreateService(CafeChain.Data.AppDbContext context)
+    private static RestockRequestService CreateService(
+        CafeChain.Data.AppDbContext context,
+        IProductionSourceEligibilityService? productionEligibility = null)
     {
         var conversion = new Mock<IUnitConversionService>();
         conversion.Setup(x => x.ConvertAsync(
@@ -442,7 +572,8 @@ public sealed class RestockRequestDuplicateAdjustmentIssue237Tests : Integration
             context,
             new ScopeAuthorizationService(context),
             new Mock<ILogger<RestockRequestService>>().Object,
-            conversion.Object);
+            conversion.Object,
+            productionEligibility);
     }
 
     private static async Task SeedAsync(CafeChain.Data.AppDbContext context)
