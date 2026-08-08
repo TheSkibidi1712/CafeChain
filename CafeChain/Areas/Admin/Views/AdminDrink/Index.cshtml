@@ -162,12 +162,12 @@
                         <th class="drink-check-cell">
                             <input type="checkbox" aria-label="Chọn tất cả đồ uống" />
                         </th>
-                        <th>Hình ảnh</th>
+                        <th class="text-center">Hình ảnh</th>
                         <th>Mã</th>
                         <th>Tên nước uống</th>
                         <th>Danh mục</th>
                         <th>Loại sản phẩm</th>
-                        <th>Trạng thái</th>
+                        <th class="text-center">Trạng thái</th>
                         <th class="text-center">Thao tác</th>
                     </tr>
                 </thead>
@@ -190,9 +190,12 @@
                                 <input type="checkbox" aria-label="Chọn @item.Name" />
                             </td>
 
-                            <td data-label="Hình ảnh">
+                            <td data-label="Hình ảnh" class="text-center">
                                 <div class="drink-image-box">
-                                    <img src="@item.ImageUrl" alt="@item.Name" />
+                                    <img src="@item.ImageUrl" alt="@item.Name" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                                    <div class="drink-image-fallback" style="display:none; width:100%; height:100%; align-items:center; justify-content:center; background:#f8f3ef; color:#8b6b55; font-size:16px;">
+                                        <i class="fas fa-mug-hot"></i>
+                                    </div>
                                 </div>
                             </td>
 
@@ -218,7 +221,7 @@
                                 </span>
                             </td>
 
-                            <td data-label="Trạng thái">
+                            <td data-label="Trạng thái" class="text-center">
                                 @if (item.Active)
                                 {
                                     <span class="drink-status-badge active">
