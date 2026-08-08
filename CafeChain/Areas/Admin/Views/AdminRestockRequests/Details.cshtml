@@ -1,5 +1,6 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.RestockRequestWorkflowDetailDto
 @using CafeChain.Application.Constants
+@using CafeChain.Application.DTOs.Admin.Production
 @using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Chi tiết yêu cầu nhập hàng";
@@ -8,6 +9,7 @@
     var canCancel = ViewBag.CanCancel as bool? ?? false;
     var canSubmit = ViewBag.CanSubmit as bool? ?? false;
     var canAddDemand = ViewBag.CanAddDemand as bool? ?? false;
+    var productionEligibility = ViewBag.ProductionEligibility as ProductionSourceEligibilityDto;
     var hasPendingPurchaseAllocation = Model.SourcingAllocations.Any(x =>
         x.DecisionType == RestockSourcingDecisionTypes.Purchase
         && x.Status == RestockSourcingAllocationStatuses.PendingPurchaseAdvice
@@ -184,14 +186,18 @@
                                 <button type="button" class="ops-source-option" data-source-option="PURCHASE" aria-pressed="false">
                                     <i class="fa-solid fa-basket-shopping" aria-hidden="true"></i><strong>Mua ngoài</strong><span>Đưa số lượng vào đề nghị mua và chọn Nhà cung cấp ở bước tổng hợp.</span>
                                 </button>
-                                <button type="button" class="ops-source-option" data-source-option="PRODUCTION" aria-pressed="false">
-                                    <i class="fa-solid fa-flask" aria-hidden="true"></i><strong>Sản xuất nội bộ</strong><span>Tạo nhu cầu sản xuất bán thành phẩm trong chuỗi.</span>
-                                </button>
+                                @if (productionEligibility?.Eligible == true)
+                                {
+                                    <button type="button" class="ops-source-option" data-source-option="PRODUCTION" aria-pressed="false">
+                                        <i class="fa-solid fa-flask" aria-hidden="true"></i><strong>Sản xuất nội bộ</strong><span>Tạo lệnh sản xuất bán thành phẩm tại cửa hàng.</span>
+                                    </button>
+                                }
                             </div>
                             <form method="post" asp-action="SetSourcingDecision" class="ops-source-form" data-source-form hidden>
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="RestockRequestId" value="@Model.RestockRequestId" />
                                 <input type="hidden" name="ProcurementUnitId" value="@Model.ProcurementUnitId" />
+                                <input type="hidden" name="RequestKey" value="@Guid.NewGuid()" />
                                 <input type="hidden" name="RowVersion" value="@Model.RowVersion" />
                                 <input id="sourceDecision" name="DecisionType" type="hidden" required />
                                 <div class="ops-inline-actions ops-source-change"><strong data-source-title></strong><button type="button" class="ops-btn" data-change-source>Đổi nguồn</button></div>

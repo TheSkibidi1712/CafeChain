@@ -56,6 +56,12 @@ namespace CafeChain.Models.Drinks
         /// </summary>
         public int? OutputUnitId { get; set; }
 
+        /// <summary>
+        /// Optional yield-variance tolerance override for production acceptance.
+        /// Null uses the system production default.
+        /// </summary>
+        public decimal? YieldVarianceTolerancePercent { get; set; }
+
         public virtual Size Size { get; set; }
 
         public virtual PreparedItem? PreparedItem { get; set; }

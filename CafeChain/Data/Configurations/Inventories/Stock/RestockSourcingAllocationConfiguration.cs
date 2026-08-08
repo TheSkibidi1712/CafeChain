@@ -72,6 +72,10 @@ public sealed class RestockSourcingAllocationConfiguration
         entity.HasIndex(x => x.PurchaseOrderLineId)
             .IsUnique()
             .HasFilter("[PurchaseOrderLineId] IS NOT NULL AND [Status] = 'ACTIVE'");
+        entity.HasIndex(x => x.ProductionRunId)
+            .IsUnique()
+            .HasFilter("[ProductionRunId] IS NOT NULL")
+            .HasDatabaseName("UX_RestockSourcingAllocations_ProductionRun");
         entity.HasIndex(x => new { x.RestockRequestId, x.SourceDocumentType, x.SourceDocumentId, x.SourceDocumentLineId })
             .IsUnique()
             .HasFilter("[SourceDocumentType] IS NOT NULL AND [SourceDocumentId] IS NOT NULL AND [Status] = 'ACTIVE'");

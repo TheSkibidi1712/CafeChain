@@ -23,6 +23,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public int ProcurementUnitId { get; set; }
         public int? SourceDocumentId { get; set; }
         public int? SourceDocumentLineId { get; set; }
+        public Guid? RequestKey { get; set; }
         public string? Reason { get; set; }
     }
 
@@ -75,6 +76,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public string Status { get; set; } = string.Empty;
         public int? PurchaseAdviceLineId { get; set; }
         public int? PurchaseOrderLineId { get; set; }
+        public int? ProductionRunId { get; set; }
         public string? Reason { get; set; }
         public DateTime CreatedAtUtc { get; set; }
     }

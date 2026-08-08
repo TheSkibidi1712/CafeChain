@@ -223,12 +223,34 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IAdminStoreScopeResolver, AdminStoreScopeResolver>();
 
             // Admin - Production runs (#119 intent; #120 stock apply)
+            services.AddOptions<CafeChain.Application.Options.ProductionOperationsOptions>()
+                .BindConfiguration(CafeChain.Application.Options.ProductionOperationsOptions.SectionName)
+                .Validate(
+                    options => options.DefaultYieldVarianceTolerancePercent > 0m
+                        && options.DefaultYieldVarianceTolerancePercent <= 100m,
+                    "Ngưỡng chênh lệch sản lượng mặc định phải lớn hơn 0 và không vượt quá 100%.")
+                .ValidateOnStart();
             services.AddScoped<
                 CafeChain.Application.Interfaces.Admin.Production.IProductionRunService,
                 CafeChain.Application.Services.Admin.Production.ProductionRunService>();
             services.AddScoped<
                 CafeChain.Application.Interfaces.Admin.Production.IProductionReadinessService,
                 CafeChain.Application.Services.Admin.Production.ProductionReadinessService>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Admin.Production.IProductionSourceEligibilityService,
+                CafeChain.Application.Services.Admin.Production.ProductionSourceEligibilityService>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Admin.Production.IProductionRunOperationsService,
+                CafeChain.Application.Services.Admin.Production.ProductionRunOperationsService>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Admin.Production.IProductionRunAcceptanceService,
+                CafeChain.Application.Services.Admin.Production.ProductionRunAcceptanceService>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Admin.Production.IProductionRunQueryService,
+                CafeChain.Application.Services.Admin.Production.ProductionRunQueryService>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Admin.Production.IProductionLegacyAuditService,
+                CafeChain.Application.Services.Admin.Production.ProductionLegacyAuditService>();
             services.AddScoped<
                 CafeChain.Application.Interfaces.Admin.Production.IProductionRunExecutionService,
                 CafeChain.Application.Services.Admin.Production.ProductionRunExecutionService>();

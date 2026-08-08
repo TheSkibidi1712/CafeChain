@@ -293,7 +293,7 @@ namespace CafeChain.Application.Services.Admin.Production
                     RecipeId = run.RecipeId,
                     RecipeName = recipe != null ? recipe.Name : null,
                     RequestedRunCount = run.RequestedRunCount,
-                    Status = run.Status == ProductionRunStatus.Completed ? "COMPLETED" : "CONFIRMED",
+                    StatusCode = run.Status,
                     ConfirmedAt = run.ConfirmedAt,
                     CompletedAt = run.CompletedAt,
                     CreatedByStaffId = run.CreatedByStaffId,

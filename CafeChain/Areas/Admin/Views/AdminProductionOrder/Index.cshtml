@@ -1,0 +1,134 @@
+@model CafeChain.Application.DTOs.Admin.Production.ProductionRunListDto
+@using CafeChain.Application.DTOs.Admin.Production
+@using CafeChain.Application.DTOs.Admin.StoreInventories
+@using CafeChain.Models.Enums.Inventory
+@{
+    ViewData["Title"] = "Lệnh sản xuất theo mẻ";
+    var stores = ViewBag.Stores as IReadOnlyCollection<InventoryStoreDTO> ?? [];
+    var selectedStoreId = ViewBag.SelectedStoreId as int? ?? 0;
+    var selectedStatus = ViewBag.SelectedStatus as string;
+    var canCreateLegacy = ViewBag.CanCreateLegacy is true;
+}
+<link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
+
+<main class="container-fluid px-4 mt-4 po-page">
+    <header class="po-title-section bom-depth-header">
+        <nav class="rb-breadcrumb po-breadcrumb" aria-label="Điều hướng">
+            <span>Sản xuất / BOM</span> &gt; <span>Lệnh sản xuất theo mẻ</span>
+        </nav>
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div class="admin-module-title-row">
+                <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-industry"></i></span>
+                <div>
+                    <h1 class="po-title">LỆNH SẢN XUẤT THEO MẺ</h1>
+                    <p class="po-subtitle">Theo dõi kế hoạch, sản lượng thực tế, chênh lệch và tiến độ đáp ứng yêu cầu nhập hàng.</p>
+                </div>
+            </div>
+            @if (canCreateLegacy)
+            {
+                <a class="btn btn-outline-dark" asp-action="Create" asp-route-storeId="@selectedStoreId">
+                    <i class="fas fa-flask" aria-hidden="true"></i> Lệnh sơ chế độc lập
+                </a>
+            }
+        </div>
+    </header>
+
+    @if (ViewBag.ErrorMessage is string error)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
+
+    <section class="po-main-card mb-4" aria-labelledby="production-filter-title">
+        <h2 id="production-filter-title" class="po-section-title">Bộ lọc vận hành</h2>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-lg-5 col-md-7">
+                <label for="storeId" class="form-label">Cửa hàng</label>
+                <select id="storeId" name="storeId" class="form-select">
+                    @foreach (var store in stores)
+                    {
+                        <option value="@store.StoreId" selected="@(store.StoreId == selectedStoreId)">@store.StoreName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-lg-4 col-md-5">
+                <label for="status" class="form-label">Trạng thái</label>
+                <select id="status" name="status" class="form-select">
+                    <option value="">Tất cả trạng thái</option>
+                    @foreach (var status in Enum.GetValues<ProductionRunStatus>())
+                    {
+                        <option value="@status" selected="@(string.Equals(selectedStatus, status.ToString(), StringComparison.OrdinalIgnoreCase))">
+                            @ProductionRunDisplay.Status(status)
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-lg-3 d-flex gap-2">
+                <button class="btn btn-primary-action flex-grow-1" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Áp dụng</button>
+                <a class="btn btn-ghost" asp-action="Index" asp-route-storeId="@selectedStoreId" aria-label="Xóa bộ lọc" title="Xóa bộ lọc">
+                    <i class="fas fa-rotate-left" aria-hidden="true"></i>
+                </a>
+            </div>
+        </form>
+    </section>
+
+    <section class="history-section" aria-labelledby="production-list-title">
+        <div class="history-header">
+            <h2 id="production-list-title" class="history-title">Danh sách lệnh</h2>
+            <span class="text-muted small">@Model.TotalCount lệnh</span>
+        </div>
+        <div class="history-card">
+            <div class="table-responsive">
+                <table class="table po-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>LỆNH</th>
+                            <th>ĐẦU RA</th>
+                            <th>MẺ</th>
+                            <th>SẢN LƯỢNG DỰ KIẾN</th>
+                            <th>YÊU CẦU</th>
+                            <th>TRẠNG THÁI</th>
+                            <th>NGƯỜI LẬP</th>
+                            <th class="text-end">THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Items.Count == 0)
+                        {
+                            <tr><td colspan="8" class="text-center text-muted py-5">Chưa có lệnh sản xuất phù hợp với bộ lọc.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td><strong>PR-@item.ProductionRunId</strong><div class="small text-muted">Contract v@item.ContractVersion</div></td>
+                                    <td><strong>@item.OutputName</strong><div class="small text-muted">@item.RecipeName</div></td>
+                                    <td>@(item.PlannedBatchCount?.ToString() ?? item.RequestedRunCount.ToString("0.#####")) mẻ</td>
+                                    <td>@(item.ExpectedOutputBase?.ToString("0.###") ?? "—") @item.OutputUnitCode</td>
+                                    <td>@(item.RestockRequestId.HasValue ? $"RR #{item.RestockRequestId}" : "Độc lập")</td>
+                                    <td><span class="badge-status-done">@item.StatusLabel</span></td>
+                                    <td>@item.CreatedByName<div class="small text-muted">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div></td>
+                                    <td class="text-end">
+                                        <a class="btn btn-sm btn-outline-primary rb-table-action" asp-action="Details" asp-route-id="@item.ProductionRunId">
+                                            <i class="fas fa-arrow-right" aria-hidden="true"></i> Chi tiết
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="d-flex justify-content-between align-items-center p-3" aria-label="Phân trang lệnh sản xuất">
+                    <span class="small text-muted">Trang @Model.Page / @Model.TotalPages</span>
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-sm btn-outline-secondary @(Model.Page <= 1 ? "disabled" : "")" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page - 1)">Trang trước</a>
+                        <a class="btn btn-sm btn-outline-secondary @(Model.Page >= Model.TotalPages ? "disabled" : "")" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page + 1)">Trang sau</a>
+                    </div>
+                </nav>
+            }
+        </div>
+    </section>
+</main>

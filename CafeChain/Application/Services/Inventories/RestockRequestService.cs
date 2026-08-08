@@ -1,17 +1,26 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Production;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
+using CafeChain.Application.Interfaces.Admin.Production;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Options;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
+using CafeChain.Models.Inventories.Production;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Operations;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Data;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using CafeChain.Infrastrusture.Repositories;
+using Microsoft.Extensions.Options;
 
 namespace CafeChain.Application.Services.Inventories
 {
@@ -27,17 +36,23 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<RestockRequestService> _logger;
         private readonly IUnitConversionService? _unitConversion;
+        private readonly IProductionSourceEligibilityService? _productionEligibility;
+        private readonly ProductionOperationsOptions _productionOptions;
 
         public RestockRequestService(
             AppDbContext context,
             IScopeAuthorizationService scopeAuthorization,
             ILogger<RestockRequestService> logger,
-            IUnitConversionService? unitConversion = null)
+            IUnitConversionService? unitConversion = null,
+            IProductionSourceEligibilityService? productionEligibility = null,
+            IOptions<ProductionOperationsOptions>? productionOptions = null)
         {
             _context = context;
             _scopeAuthorization = scopeAuthorization;
             _logger = logger;
             _unitConversion = unitConversion;
+            _productionEligibility = productionEligibility;
+            _productionOptions = productionOptions?.Value ?? new ProductionOperationsOptions();
         }
 
         public async Task<ServiceResult<CreateRestockRequestResultDto>> CreateFromConfirmedAlertAsync(
@@ -682,6 +697,35 @@ namespace CafeChain.Application.Services.Inventories
             if (request.ProcurementUnitId != demand.ProcurementUnitId)
                 return ServiceResult<SourcingAllocationDto>.Failure("Đơn vị phân bổ phải trùng với đơn vị nhu cầu.");
 
+            ProductionSourceEligibilityDto? productionPlan = null;
+            if (decision == RestockSourcingDecisionTypes.Production)
+            {
+                if (!request.RequestKey.HasValue || request.RequestKey.Value == Guid.Empty)
+                {
+                    return ServiceResult<SourcingAllocationDto>.Failure(
+                        "Mã chống gửi trùng là bắt buộc khi chọn nguồn sản xuất.",
+                        errorCode: ProductionEligibilityReasonCodes.InvalidRequest);
+                }
+
+                var replay = await FindProductionAllocationReplayAsync(
+                    demand,
+                    request,
+                    request.RequestKey.Value);
+                if (replay != null)
+                    return replay;
+
+                var production = await ValidateProductionSourceAsync(demand, actorStaffId);
+                if (!production.IsSuccess || production.Data?.Eligible != true)
+                {
+                    return ServiceResult<SourcingAllocationDto>.Failure(
+                        production.Data?.Message
+                            ?? production.Message
+                            ?? "Không thể chọn nguồn sản xuất cho nhu cầu này.",
+                        errorCode: production.Data?.ReasonCode ?? production.ErrorCode);
+                }
+                productionPlan = production.Data;
+            }
+
             var allocated = demand.SourcingAllocations
                 .Where(x => x.Status is RestockSourcingAllocationStatuses.Active
                     or RestockSourcingAllocationStatuses.PendingPurchaseAdvice)
@@ -690,6 +734,17 @@ namespace CafeChain.Application.Services.Inventories
             if (request.ProcurementQuantity > requested - allocated)
                 return ServiceResult<SourcingAllocationDto>.Failure(
                     $"Số lượng phân bổ vượt nhu cầu còn lại ({Math.Max(0m, requested - allocated):N3}).");
+
+            if (decision == RestockSourcingDecisionTypes.Production)
+            {
+                return await CreateProductionAllocationAsync(
+                    demand,
+                    request,
+                    actorStaffId,
+                    allocated,
+                    requested,
+                    productionPlan!);
+            }
 
             var now = DateTime.UtcNow;
             var allocation = new RestockSourcingAllocation
@@ -719,6 +774,208 @@ namespace CafeChain.Application.Services.Inventories
                 decision == RestockSourcingDecisionTypes.Purchase
                     ? "Đã ghi nhận nhu cầu mua; đề nghị mua sẽ được tạo từ allocation này."
                     : "Đã ghi nhận quyết định nguồn cung.");
+        }
+
+        private async Task<ServiceResult<ProductionSourceEligibilityDto>> ValidateProductionSourceAsync(
+            RestockRequest demand,
+            int actorStaffId)
+        {
+            if (_productionEligibility == null)
+            {
+                return ServiceResult<ProductionSourceEligibilityDto>.Failure(
+                    "Dịch vụ kiểm tra nguồn sản xuất chưa sẵn sàng.",
+                    errorCode: ProductionEligibilityReasonCodes.InvalidRequest);
+            }
+
+            var actorAccountId = await _context.Staffs
+                .AsNoTracking()
+                .Where(x => x.StaffId == actorStaffId && x.Active)
+                .Select(x => x.AccountId)
+                .SingleOrDefaultAsync();
+            if (actorAccountId <= 0)
+            {
+                return ServiceResult<ProductionSourceEligibilityDto>.Failure(
+                    "Không xác định được người thực hiện.",
+                    errorCode: ProductionEligibilityReasonCodes.PermissionDenied);
+            }
+
+            return await _productionEligibility.EvaluateAsync(new ProductionSourceEligibilityRequest
+            {
+                StoreId = demand.StoreId,
+                ActorAccountId = actorAccountId,
+                IngredientId = demand.IngredientId,
+                PreparedItemId = demand.PreparedItemId,
+                RequiredPermissionCode = PermissionConstants.RestockSelectProductionSource
+            });
+        }
+
+        private async Task<ServiceResult<SourcingAllocationDto>?> FindProductionAllocationReplayAsync(
+            RestockRequest demand,
+            SourcingDecisionRequest request,
+            Guid requestKey)
+        {
+            var existing = await _context.RestockSourcingAllocations
+                .AsNoTracking()
+                .Include(x => x.ProductionRun)
+                .FirstOrDefaultAsync(x => x.ProductionRun != null
+                    && x.ProductionRun.StoreId == demand.StoreId
+                    && x.ProductionRun.RequestKey == requestKey);
+            if (existing == null)
+                return null;
+
+            var sameRequest = existing.RestockRequestId == demand.RestockRequestId
+                && existing.DecisionType == RestockSourcingDecisionTypes.Production
+                && existing.ProcurementUnitId == request.ProcurementUnitId
+                && existing.ProcurementQuantity == request.ProcurementQuantity;
+            return sameRequest
+                ? ServiceResult<SourcingAllocationDto>.Success(
+                    MapSourcingAllocation(existing),
+                    "Yêu cầu đã được xử lý trước đó; hệ thống trả lại lệnh sản xuất hiện có.")
+                : ServiceResult<SourcingAllocationDto>.Failure(
+                    "Mã chống gửi trùng đã được dùng cho một yêu cầu sản xuất khác.",
+                    errorCode: ProductionEligibilityReasonCodes.InvalidRequest);
+        }
+
+        private async Task<ServiceResult<SourcingAllocationDto>> CreateProductionAllocationAsync(
+            RestockRequest demand,
+            SourcingDecisionRequest request,
+            int actorStaffId,
+            decimal allocated,
+            decimal requested,
+            ProductionSourceEligibilityDto eligibility)
+        {
+            if (!eligibility.RecipeId.HasValue
+                || !eligibility.ExpectedOutputPerBatchBase.HasValue
+                || eligibility.ExpectedOutputPerBatchBase <= 0
+                || !eligibility.OutputBaseUnitId.HasValue)
+            {
+                return ServiceResult<SourcingAllocationDto>.Failure(
+                    "Công thức sản xuất chưa có sản lượng dự kiến hợp lệ.",
+                    errorCode: ProductionEligibilityReasonCodes.OutputContractInvalid);
+            }
+
+            var demandProcurementQuantity = demand.RequestedProcurementQuantity.GetValueOrDefault();
+            var allocationBaseQuantity = demandProcurementQuantity > 0
+                ? request.ProcurementQuantity * demand.RequestedQuantity / demandProcurementQuantity
+                : request.ProcurementQuantity;
+            var plannedBatchCount = checked((int)Math.Ceiling(
+                allocationBaseQuantity / eligibility.ExpectedOutputPerBatchBase.Value));
+            if (plannedBatchCount <= 0)
+            {
+                return ServiceResult<SourcingAllocationDto>.Failure(
+                    "Số mẻ sản xuất dự kiến không hợp lệ.",
+                    errorCode: ProductionEligibilityReasonCodes.InvalidRequest);
+            }
+
+            var recipeTolerance = await _context.Recipes
+                .AsNoTracking()
+                .Where(x => x.RecipeId == eligibility.RecipeId.Value)
+                .Select(x => x.YieldVarianceTolerancePercent)
+                .SingleAsync();
+            var tolerance = recipeTolerance
+                ?? _productionOptions.DefaultYieldVarianceTolerancePercent;
+            if (tolerance is < 0 or > 100)
+            {
+                return ServiceResult<SourcingAllocationDto>.Failure(
+                    "Ngưỡng chênh lệch sản lượng chưa được cấu hình hợp lệ.",
+                    errorCode: ProductionEligibilityReasonCodes.OutputContractInvalid);
+            }
+
+            var now = DateTime.UtcNow;
+            var requestKey = request.RequestKey!.Value;
+            var fingerprint = BuildProductionRestockFingerprint(
+                demand.RestockRequestId,
+                eligibility.RecipeId.Value,
+                request.ProcurementQuantity,
+                request.ProcurementUnitId,
+                plannedBatchCount);
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var run = new ProductionRun
+                {
+                    StoreId = demand.StoreId,
+                    RecipeId = eligibility.RecipeId.Value,
+                    RequestedRunCount = plannedBatchCount,
+                    ContractVersion = 2,
+                    PlannedBatchCount = plannedBatchCount,
+                    ExpectedOutputPerBatchBase = eligibility.ExpectedOutputPerBatchBase.Value,
+                    ExpectedOutputBase = eligibility.ExpectedOutputPerBatchBase.Value * plannedBatchCount,
+                    OutputBaseUnitId = eligibility.OutputBaseUnitId.Value,
+                    YieldVarianceTolerancePercent = tolerance,
+                    RequestKey = requestKey,
+                    RequestFingerprint = fingerprint,
+                    Status = ProductionRunStatus.Planned,
+                    ValuationStatus = ProductionValuationStatus.Pending,
+                    Notes = Clean(request.Reason, 500),
+                    CreatedByStaffId = actorStaffId,
+                    CreatedAt = now,
+                    ConfirmedAt = now
+                };
+                _context.ProductionRuns.Add(run);
+                await _context.SaveChangesAsync();
+
+                var allocation = new RestockSourcingAllocation
+                {
+                    RestockRequestId = demand.RestockRequestId,
+                    DecisionType = RestockSourcingDecisionTypes.Production,
+                    ProcurementQuantity = request.ProcurementQuantity,
+                    ProcurementUnitId = request.ProcurementUnitId,
+                    Status = RestockSourcingAllocationStatuses.Active,
+                    SourceDocumentType = "PRODUCTION_RUN",
+                    SourceDocumentId = run.ProductionRunId,
+                    ProductionRunId = run.ProductionRunId,
+                    Reason = Clean(request.Reason, 500),
+                    CreatedByStaffId = actorStaffId,
+                    CreatedAtUtc = now
+                };
+                demand.SourcingDecision = RestockSourcingDecisionTypes.Production;
+                demand.SourcingStatus = allocated + request.ProcurementQuantity >= requested
+                    ? RestockSourcingStatuses.FullyAllocated
+                    : RestockSourcingStatuses.PartiallyAllocated;
+                _context.RestockSourcingAllocations.Add(allocation);
+                _context.ProductionRunTransitions.Add(new ProductionRunTransition
+                {
+                    ProductionRun = run,
+                    FromStatus = "NONE",
+                    ToStatus = nameof(ProductionRunStatus.Planned).ToUpperInvariant(),
+                    ActorStaffId = actorStaffId,
+                    OccurredAtUtc = now,
+                    Reason = "Tạo từ quyết định nguồn sản xuất của yêu cầu nhập hàng."
+                });
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return ServiceResult<SourcingAllocationDto>.Success(
+                    MapSourcingAllocation(allocation),
+                    $"Đã lập kế hoạch {plannedBatchCount} mẻ sản xuất.");
+            }
+            catch (DbUpdateException)
+            {
+                await transaction.RollbackAsync();
+                _context.ChangeTracker.Clear();
+                var replay = await FindProductionAllocationReplayAsync(demand, request, requestKey);
+                return replay ?? ServiceResult<SourcingAllocationDto>.Failure(
+                    "Yêu cầu sản xuất đã được người khác xử lý. Vui lòng tải lại dữ liệu.",
+                    errorCode: RestockRequestErrorCodes.ResourceChanged);
+            }
+        }
+
+        private static string BuildProductionRestockFingerprint(
+            int restockRequestId,
+            int recipeId,
+            decimal quantity,
+            int unitId,
+            int batchCount)
+        {
+            var canonical = string.Join("|",
+                "restock-production-v2",
+                restockRequestId.ToString(CultureInfo.InvariantCulture),
+                recipeId.ToString(CultureInfo.InvariantCulture),
+                quantity.ToString("0.#####", CultureInfo.InvariantCulture),
+                unitId.ToString(CultureInfo.InvariantCulture),
+                batchCount.ToString(CultureInfo.InvariantCulture));
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
         }
 
         private async Task<ServiceResult<CreateRestockRequestResultDto>> CreateProcurementDemandAsync(
@@ -1178,6 +1435,7 @@ namespace CafeChain.Application.Services.Inventories
             Status = allocation.Status,
             PurchaseAdviceLineId = allocation.PurchaseAdviceLineId,
             PurchaseOrderLineId = allocation.PurchaseOrderLineId,
+            ProductionRunId = allocation.ProductionRunId,
             Reason = allocation.Reason,
             CreatedAtUtc = allocation.CreatedAtUtc
         };
