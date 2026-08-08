@@ -391,6 +391,7 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IRestockPurchaseAllocationProvider, PurchaseOrderQuantityProvider>();
             services.AddScoped<IRestockAllocationService, RestockAllocationService>();
             services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+            services.AddScoped<IPurchaseOrderConsistencyService, PurchaseOrderConsistencyService>();
             services.AddScoped<IPurchaseAdviceService, PurchaseAdviceService>();
             services.AddScoped<IPurchaseAdviceFulfillmentService, PurchaseAdviceFulfillmentService>();
             services.AddScoped<IPurchaseAdviceConsolidationService, PurchaseAdviceConsolidationService>();

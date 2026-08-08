@@ -337,8 +337,7 @@ namespace CafeChain.Application.Services.Inventories
                     order.StoreId, actorStaffId, actorStoreId, roleNames, mutation: true);
                 if (!auth.IsSuccess)
                     return FailPurchaseOrderDraft(auth.Message, auth.ErrorCode);
-                if (order.Status is not (PurchaseOrderStatuses.Approved
-                    or PurchaseOrderStatuses.MarkedAsSent
+                if (order.Status is not (PurchaseOrderStatuses.MarkedAsSent
                     or PurchaseOrderStatuses.PartiallyReceived))
                     return FailPurchaseOrderDraft(
                         "Đơn đặt hàng chưa ở trạng thái cho phép nhận hàng.",

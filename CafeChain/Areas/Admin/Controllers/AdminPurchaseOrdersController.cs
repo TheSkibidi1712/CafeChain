@@ -55,6 +55,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (!storeScope.IsResolved) return StoreScopeFailure(storeScope);
             SetStoreScopeViewData(storeScope);
             ViewBag.StatusFilter = status;
+            ViewBag.CanCreate = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCreate);
             return View(await _service.ListAsync(storeScope.StoreId, status, actor.StaffId, actor.RoleNames));
         }
 
@@ -69,7 +70,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 && await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderApprove);
             ViewBag.CanSend = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderSend);
             ViewBag.CanCancel = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCancel);
-            ViewBag.CanReceive = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderReceive);
+            ViewBag.CanReceive = await HasEffectivePermissionAsync(PermissionConstants.ReceiptCreate);
             ViewBag.CanCloseRemaining = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCloseRemaining);
             return View(result.Data);
         }
@@ -303,13 +304,20 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost, ValidateAntiForgeryToken]
         [RequirePermission(PermissionConstants.PurchaseOrderCloseRemaining)]
-        public async Task<IActionResult> CloseLineRemaining(int id, int lineId, string rowVersion, string reason, string requestKey)
+        public async Task<IActionResult> CloseLineRemaining(
+            int id,
+            int lineId,
+            decimal closeBaseQuantity,
+            string rowVersion,
+            string reason,
+            string requestKey)
         {
             if (!await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCloseRemaining)) return Forbid();
             var actor = _actor.Get(User);
             var result = await _service.CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
             {
                 PurchaseOrderLineId = lineId,
+                CloseBaseQuantity = closeBaseQuantity,
                 RowVersion = rowVersion,
                 Reason = reason,
                 RequestKey = requestKey

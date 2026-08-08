@@ -113,4 +113,40 @@ namespace CafeChain.Data.Configurations.Inventories.Procurement
             b.HasOne(x => x.InventoryBaseUnit).WithMany().HasForeignKey(x => x.InventoryBaseUnitId).OnDelete(DeleteBehavior.Restrict);
         }
     }
+
+    public sealed class PurchaseOrderLineClosureConfiguration : IEntityTypeConfiguration<PurchaseOrderLineClosure>
+    {
+        public void Configure(EntityTypeBuilder<PurchaseOrderLineClosure> b)
+        {
+            b.ToTable("PurchaseOrderLineClosures", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_PurchaseOrderLineClosures_ClosedBaseQuantity_Positive",
+                    "[ClosedBaseQuantity] > 0");
+                table.HasCheckConstraint(
+                    "CK_PurchaseOrderLineClosures_ClosedProcurementQuantity_Positive",
+                    "[ClosedProcurementQuantity] IS NULL OR [ClosedProcurementQuantity] > 0");
+            });
+            b.HasKey(x => x.PurchaseOrderLineClosureId);
+            b.Property(x => x.ClosedBaseQuantity).HasPrecision(18, 3);
+            b.Property(x => x.ClosedProcurementQuantity).HasPrecision(18, 3);
+            b.Property(x => x.Reason).HasMaxLength(500).IsRequired();
+            b.Property(x => x.RequestKey).HasMaxLength(100).IsRequired();
+            b.Property(x => x.PayloadHash).HasMaxLength(64).IsRequired();
+            b.HasIndex(x => x.RequestKey).IsUnique();
+            b.HasIndex(x => new { x.PurchaseOrderLineId, x.CreatedAtUtc });
+            b.HasOne(x => x.PurchaseOrderLine)
+                .WithMany(x => x.Closures)
+                .HasForeignKey(x => x.PurchaseOrderLineId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.ProcurementUnit)
+                .WithMany()
+                .HasForeignKey(x => x.ProcurementUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.ActorStaff)
+                .WithMany()
+                .HasForeignKey(x => x.ActorStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
+    }
 }

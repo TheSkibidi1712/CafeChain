@@ -282,7 +282,7 @@
                 {
                     <div class="po-info-line"><strong>Liên hệ:</strong> @Model.StorePhone</div>
                 }
-                <div class="po-info-line"><strong>Người tạo đơn:</strong> Nhân viên #@Model.CreatedByStaffId</div>
+                <div class="po-info-line"><strong>Người tạo đơn:</strong> @Model.CreatedByStaffName</div>
             </div>
             <div class="po-info-box">
                 <h3>Nhà Cung Cấp (Đối Tác)</h3>
@@ -352,7 +352,10 @@
                         <td class="text-center align-middle" style="white-space: nowrap;">@(idx++)</td>
                         <td class="align-middle" style="white-space: nowrap;">
                             <strong class="d-block" style="white-space: nowrap;">@line.IngredientName</strong>
-                            <div class="ops-secondary small text-muted" style="white-space: nowrap;">Mã dòng: #@line.PurchaseOrderLineId</div>
+                            @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Packaged)
+                            {
+                                <div class="ops-secondary small text-muted" style="white-space: nowrap;">1 gói = @AdminStatusDisplay.Quantity(line.PackageQuantitySnapshot.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.PackageUnitName)</div>
+                            }
                         </td>
                         <td class="text-center align-middle" style="white-space: nowrap;">
                             @if (line.PurchaseMode == CafeChain.Models.Enums.Inventory.PurchaseMode.Loose)
@@ -372,6 +375,7 @@
                             else
                             {
                                 <span><strong>@AdminStatusDisplay.Quantity(line.PackageCount.GetValueOrDefault())</strong> gói</span>
+                                <small class="d-block text-muted">Tương đương @AdminStatusDisplay.Quantity(line.PackageEquivalentQuantity.GetValueOrDefault()) @AdminStatusDisplay.Unit(line.PackageUnitName)</small>
                             }
                         </td>
                         <td class="text-end align-middle" style="white-space: nowrap;">
@@ -381,7 +385,7 @@
                             }
                             else
                             {
-                                <span>@AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())</span>
+                                <span>@AdminStatusDisplay.Currency(line.PackagePriceSnapshot.GetValueOrDefault())/gói</span>
                             }
                         </td>
                         <td class="text-end align-middle fw-bold" style="white-space: nowrap;">@AdminStatusDisplay.Currency(lineAmount)</td>

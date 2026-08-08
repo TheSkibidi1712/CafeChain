@@ -392,7 +392,16 @@ public sealed class PurchaseAdviceFulfillmentService : IPurchaseAdviceFulfillmen
         };
     }
 
-    public static string ComputeClosePayloadHash(int purchaseOrderLineId, string rowVersion, string reason)
+    public static string ComputeClosePayloadHash(
+        int purchaseOrderLineId,
+        decimal closedBaseQuantity,
+        string rowVersion,
+        string reason)
+    {
+        return ComputeHash($"{purchaseOrderLineId}|{closedBaseQuantity:0.###}|{rowVersion.Trim()}|{reason.Trim()}");
+    }
+
+    public static string ComputeLegacyClosePayloadHash(int purchaseOrderLineId, string rowVersion, string reason)
     {
         return ComputeHash($"{purchaseOrderLineId}|{rowVersion.Trim()}|{reason.Trim()}");
     }

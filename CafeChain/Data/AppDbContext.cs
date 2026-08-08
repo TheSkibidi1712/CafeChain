@@ -193,6 +193,7 @@ namespace CafeChain.Data
         public DbSet<RestockRequestTransition> RestockRequestTransitions { get; set; }
         public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
         public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; }
+        public DbSet<PurchaseOrderLineClosure> PurchaseOrderLineClosures { get; set; }
         public DbSet<PurchaseOrderReceiptPosting> PurchaseOrderReceiptPostings { get; set; }
         public DbSet<PurchaseAdvice> PurchaseAdvices { get; set; }
         public DbSet<PurchaseAdviceLine> PurchaseAdviceLines { get; set; }
