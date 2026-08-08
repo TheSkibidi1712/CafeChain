@@ -15,6 +15,7 @@ using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
+    // Admin Purchase Orders Controller - Printable PO View Updated (No Signatures, Added Addresses & GIAO TẠI Section)
     [RequirePermission(PermissionConstants.PurchaseOrderView)]
     public sealed class AdminPurchaseOrdersController : AdminStoreScopedController
     {
@@ -71,6 +72,16 @@ namespace CafeChain.Areas.Admin.Controllers
             ViewBag.CanReceive = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderReceive);
             ViewBag.CanCloseRemaining = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCloseRemaining);
             return View(result.Data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Print(int id)
+        {
+            if (!await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderView)) return Forbid();
+            var actor = _actor.Get(User);
+            var result = await _service.GetDetailAsync(id, actor.StaffId, actor.RoleNames);
+            if (!result.IsSuccess || result.Data == null) return NotFound();
+            return View("Print", result.Data);
         }
 
         [HttpGet]

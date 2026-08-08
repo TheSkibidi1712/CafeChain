@@ -882,7 +882,9 @@ namespace CafeChain.Application.Services.Inventories
         private async Task<PurchaseOrderDetailDto> MapAsync(int id)
         {
             var order = await _context.PurchaseOrders.AsNoTracking()
-                .Include(x => x.Store).Include(x => x.Supplier)
+                .Include(x => x.Store)
+                .Include(x => x.Supplier).ThenInclude(s => s.Contacts)
+                .Include(x => x.Supplier).ThenInclude(s => s.Phones)
                 .Include(x => x.Lines).ThenInclude(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
                 .Include(x => x.Lines).ThenInclude(x => x.PackageUnitSnapshot)
                 .Include(x => x.Lines).ThenInclude(x => x.ProcurementUnit)
@@ -905,14 +907,35 @@ namespace CafeChain.Application.Services.Inventories
                 .OrderBy(x => x.BranchReceiptId)
                 .Select(x => (int?)x.BranchReceiptId)
                 .FirstOrDefaultAsync();
+
+            var firstContact = order.Supplier.Contacts.FirstOrDefault();
+            var firstPhone = order.Supplier.Phones.FirstOrDefault();
+            string? contactInfo = null;
+            if (firstContact != null)
+            {
+                contactInfo = !string.IsNullOrWhiteSpace(firstContact.PhoneNumber)
+                    ? $"{firstContact.Name} · {firstContact.PhoneNumber}"
+                    : firstContact.Name;
+            }
+            else if (firstPhone != null)
+            {
+                contactInfo = firstPhone.PhoneNumber;
+            }
+
             return new PurchaseOrderDetailDto
             {
                 PurchaseOrderId = order.PurchaseOrderId,
                 Code = order.Code,
                 StoreId = order.StoreId,
                 StoreName = order.Store.Name,
+                StoreAddress = order.Store.Address,
+                StorePhone = order.Store.Phone,
                 SupplierId = order.SupplierId,
                 SupplierName = order.Supplier.Name,
+                SupplierTaxCode = order.Supplier.TaxCode,
+                SupplierAddress = order.Supplier.Address,
+                SupplierContactInfo = contactInfo,
+                SupplierEmail = firstContact?.Email,
                 Status = order.Status,
                 OrderDate = order.OrderDate,
                 ExpectedDeliveryAtUtc = order.ExpectedDeliveryAtUtc,
