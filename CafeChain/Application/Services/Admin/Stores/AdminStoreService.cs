@@ -42,7 +42,6 @@ public sealed class AdminStoreService : IAdminStoreService
             Active = x.Active,
             CreatedAt = x.CreatedAt,
             ProvinceName = x.Province?.Name,
-            DistrictName = x.District?.Name,
             WardName = x.Ward?.Name,
             Latitude = x.Latitude,
             Longitude = x.Longitude,
@@ -82,7 +81,7 @@ public sealed class AdminStoreService : IAdminStoreService
         var store = new Store
         {
             Name = model.Name.Trim(), Address = model.Address.Trim(), Phone = model.Phone.Trim(),
-            ProvinceId = model.ProvinceId, DistrictId = model.DistrictId, WardId = model.WardId,
+            ProvinceId = model.ProvinceId, WardId = model.WardId,
             Latitude = model.Latitude, Longitude = model.Longitude, Active = true, CreatedAt = now,
             InventoryWriterConfiguration = new StoreInventoryWriterConfiguration
             {
@@ -109,7 +108,6 @@ public sealed class AdminStoreService : IAdminStoreService
         store.Address = model.Address.Trim();
         store.Phone = model.Phone.Trim();
         store.ProvinceId = model.ProvinceId;
-        store.DistrictId = model.DistrictId;
         store.WardId = model.WardId;
         store.Latitude = model.Latitude;
         store.Longitude = model.Longitude;
@@ -129,11 +127,11 @@ public sealed class AdminStoreService : IAdminStoreService
 
     private async Task<ServiceResult?> ValidateAsync(AdminStoreFormVM model)
     {
-        if (!model.ProvinceId.HasValue || !model.DistrictId.HasValue || !model.WardId.HasValue)
-            return ServiceResult.Failure("Vui lòng chọn đầy đủ Tỉnh/Thành, Quận/Huyện và Phường/Xã.");
+        if (!model.ProvinceId.HasValue || !model.WardId.HasValue)
+            return ServiceResult.Failure("Vui lòng chọn đầy đủ Tỉnh/Thành phố và Phường/Xã/Đặc khu.");
         if (!await _repository.IsLocationHierarchyValidAsync(
-                model.ProvinceId.Value, model.DistrictId.Value, model.WardId.Value))
-            return ServiceResult.Failure("Địa chỉ hành chính không thuộc cùng một cây Tỉnh/Quận/Phường.");
+                model.ProvinceId.Value, model.WardId.Value))
+            return ServiceResult.Failure("Phường/Xã/Đặc khu không thuộc Tỉnh/Thành phố đã chọn.");
         return null;
     }
 
@@ -144,7 +142,7 @@ public sealed class AdminStoreService : IAdminStoreService
     private static AdminStoreFormVM Map(Store x) => new()
     {
         StoreId = x.StoreId, Name = x.Name, Address = x.Address, Phone = x.Phone,
-        ProvinceId = x.ProvinceId, DistrictId = x.DistrictId, WardId = x.WardId,
+        ProvinceId = x.ProvinceId, WardId = x.WardId,
         Latitude = x.Latitude, Longitude = x.Longitude, Active = x.Active, CreatedAt = x.CreatedAt
     };
 

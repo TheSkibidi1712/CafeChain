@@ -114,10 +114,9 @@
                                     <div style="max-width: 320px;">
                                         @item.Address
                                         @if (!string.IsNullOrWhiteSpace(item.WardName)
-                                            && !string.IsNullOrWhiteSpace(item.DistrictName)
                                             && !string.IsNullOrWhiteSpace(item.ProvinceName))
                                         {
-                                            <div class="text-muted small">@item.WardName, @item.DistrictName, @item.ProvinceName</div>
+                                            <div class="text-muted small">@item.WardName, @item.ProvinceName</div>
                                         }
                                     </div>
                                 </td>

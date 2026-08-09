@@ -21,10 +21,15 @@ namespace CafeChain.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddAddress([FromForm] int provinceId, [FromForm] int districtId, [FromForm] int wardId, [FromForm] string address, [FromForm] bool isDefault)
+        public async Task<IActionResult> AddAddress([FromForm] int provinceId, [FromForm] int wardId, [FromForm] string address, [FromForm] bool isDefault)
         {
             var customerIdStr = User.FindFirstValue("CustomerId");
             if (!int.TryParse(customerIdStr, out int customerId)) return Unauthorized();
+
+            var validLocation = await _context.Wards.AsNoTracking().AnyAsync(w =>
+                w.WardId == wardId && w.ProvinceId == provinceId && w.IsActive && w.Province.IsActive);
+            if (!validLocation)
+                return BadRequest(new { success = false, message = "Phường/Xã/Đặc khu không thuộc Tỉnh/Thành phố đã chọn." });
 
             if (isDefault)
             {
@@ -40,7 +45,6 @@ namespace CafeChain.Controllers
             {
                 CustomerId = customerId,
                 ProvinceId = provinceId,
-                DistrictId = districtId,
                 WardId = wardId,
                 Address = address,
                 IsDefault = isDefault,

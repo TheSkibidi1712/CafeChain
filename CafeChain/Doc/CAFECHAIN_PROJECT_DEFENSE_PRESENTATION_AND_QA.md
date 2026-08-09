@@ -91,7 +91,7 @@ GET /Admin/Dashboard
 → effective permission + account Deny
 → IDashboardAuthorizationService
 → AllowedSections/Widgets/Capabilities + Scope
-→ validate Province/District/Store/date
+→ validate Province/Ward/Store/date
 → chỉ gọi repository cho widget đã được phép
 → DTO + Razor/JavaScript render
 ```

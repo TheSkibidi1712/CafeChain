@@ -898,7 +898,7 @@ END;
 GO
 
 ALTER PROCEDURE dbo.sp_Revenue_Filtered
-    @FromDate datetime,@ToDate datetime,@StoreIds nvarchar(max)=NULL,@ProvinceId int=NULL,@DistrictId int=NULL
+    @FromDate datetime,@ToDate datetime,@StoreIds nvarchar(max)=NULL,@ProvinceId int=NULL,@WardId int=NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -908,7 +908,7 @@ BEGIN
     INNER JOIN dbo.Stores AS s ON s.StoreId=f.StoreId
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=f.StoreId
     WHERE f.CreatedAt>=@FromDate AND f.CreatedAt<@ToDate
-      AND (@ProvinceId IS NULL OR s.ProvinceId=@ProvinceId) AND (@DistrictId IS NULL OR s.DistrictId=@DistrictId)
+      AND (@ProvinceId IS NULL OR s.ProvinceId=@ProvinceId) AND (@WardId IS NULL OR s.WardId=@WardId)
     GROUP BY CONVERT(date,f.CreatedAt) ORDER BY [Date];
 END;
 GO

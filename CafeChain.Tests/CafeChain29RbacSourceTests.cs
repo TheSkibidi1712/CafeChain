@@ -1,10 +1,14 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using CafeChain.Application.Constants;
 
 namespace CafeChain.Tests;
 
 public sealed class CafeChain29RbacSourceTests
 {
+    private static readonly string[] ManagedRoleKeys =
+        ["CDN", "QLV", "QLCN", "NVBH", "KTK", "QTHT", "KH", "CT"];
+
     [Fact]
     public void SeedAll_ReconcilesByCodeAndRoleName_WithoutMutatingOverrides()
     {
@@ -75,6 +79,61 @@ public sealed class CafeChain29RbacSourceTests
 
         Assert.True(codes.Count >= 186);
         Assert.All(codes, code => Assert.Contains(code, constants));
+    }
+
+    [Fact]
+    public void SeedAll_FinalRoleCountContract_MatchesPermissionMatrices()
+    {
+        var seed = Read("CafeChain", "Scripts", "SeedAll.sql");
+        var grants = ParseFinalManagedGrants(seed);
+        var expectedBlock = Regex.Match(
+            seed,
+            @"INSERT #ExpectedRoleCounts VALUES(?<rows>[\s\S]*?);",
+            RegexOptions.CultureInvariant);
+
+        Assert.True(expectedBlock.Success, "Không tìm thấy #ExpectedRoleCounts trong SeedAll.sql.");
+
+        var expectedCounts = Regex.Matches(
+                expectedBlock.Groups["rows"].Value,
+                @"\(N'(?<role>[^']+)',(?<count>\d+)\)",
+                RegexOptions.CultureInvariant)
+            .Cast<Match>()
+            .ToDictionary(
+                match => match.Groups["role"].Value,
+                match => int.Parse(match.Groups["count"].Value),
+                StringComparer.Ordinal);
+
+        Assert.Equal(ManagedRoleKeys.Length - 1, expectedCounts.Count);
+        Assert.Contains(
+            "INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)\n SELECT N'QTHT',COUNT(*)",
+            seed.Replace("\r\n", "\n", StringComparison.Ordinal),
+            StringComparison.Ordinal);
+
+        foreach (var (roleKey, expectedCount) in expectedCounts)
+        {
+            var roleIndex = Array.IndexOf(ManagedRoleKeys, roleKey);
+            Assert.True(roleIndex >= 0, $"Role contract không xác định: {roleKey}.");
+            var actualCount = grants.Values.Sum(bits => bits[roleIndex]);
+            Assert.True(
+                actualCount == expectedCount,
+                $"Role {roleKey}: expected {expectedCount}, matrix tạo {actualCount} quyền.");
+        }
+    }
+
+    [Fact]
+    public void SeedAll_ProductionYieldPermissions_KeepIntendedRoleMapping()
+    {
+        var seed = Read("CafeChain", "Scripts", "SeedAll.sql");
+        var grants = ParseFinalManagedGrants(seed);
+
+        Assert.Equal(new[] { 0, 0, 1, 0, 0, 0, 0, 0 }, grants["ProductionOrder.Plan"]);
+        Assert.Equal(new[] { 0, 0, 1, 0, 0, 0, 0, 0 }, grants["ProductionOrder.Release"]);
+        Assert.Equal(new[] { 0, 0, 0, 0, 0, 0, 0, 1 }, grants["ProductionOrder.Start"]);
+        Assert.Equal(new[] { 0, 0, 0, 0, 0, 0, 0, 1 }, grants["ProductionOrder.RecordActual"]);
+        Assert.Equal(new[] { 0, 0, 1, 0, 0, 0, 0, 0 }, grants["ProductionOrder.AcceptOutput"]);
+        Assert.Equal(new[] { 1, 0, 0, 0, 0, 0, 0, 0 }, grants["ProductionOrder.ApproveVariance"]);
+        Assert.Equal(new[] { 0, 0, 1, 0, 0, 0, 0, 0 }, grants["ProductionOrder.Cancel"]);
+        Assert.Equal(new[] { 0, 0, 0, 0, 1, 0, 0, 0 }, grants["Restock.SelectProductionSource"]);
     }
 
     [Fact]
@@ -158,6 +217,54 @@ public sealed class CafeChain29RbacSourceTests
 
     private static string Read(params string[] segments) =>
         File.ReadAllText(Path.Combine(new[] { FindRepoRoot() }.Concat(segments).ToArray()));
+
+    private static Dictionary<string, int[]> ParseFinalManagedGrants(string seed)
+    {
+        var matrixStart = seed.IndexOf("CREATE TABLE #PermissionMatrix", StringComparison.Ordinal);
+        Assert.True(matrixStart >= 0, "Không tìm thấy #PermissionMatrix trong SeedAll.sql.");
+
+        var matrixEnd = seed.IndexOf(
+            "CREATE TABLE #ExpectedRolePermissions",
+            matrixStart,
+            StringComparison.Ordinal);
+
+        Assert.True(matrixEnd > matrixStart, "Không xác định được điểm kết thúc các ma trận RBAC.");
+
+        var matrixSection = seed[matrixStart..matrixEnd];
+        var rowPattern = @"\(N'(?<code>[^']+)',(?<CDN>[01]),(?<QLV>[01]),(?<QLCN>[01])," +
+                         @"(?<NVBH>[01]),(?<KTK>[01]),(?<QTHT>[01]),(?<KH>[01]),(?<CT>[01])\)";
+        var grants = Regex.Matches(matrixSection, rowPattern, RegexOptions.CultureInvariant)
+            .Cast<Match>()
+            .ToDictionary(
+                match => match.Groups["code"].Value,
+                match => ManagedRoleKeys
+                    .Select(roleKey => int.Parse(match.Groups[roleKey].Value))
+                    .ToArray(),
+                StringComparer.Ordinal);
+
+        Assert.NotEmpty(grants);
+        Assert.Contains(
+            "UPDATE #PermissionMatrix SET CDN=1,QLV=1,QLCN=1,KTK=1",
+            matrixSection,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "UPDATE #PermissionMatrix SET QTHT=0",
+            matrixSection,
+            StringComparison.Ordinal);
+
+        var purchaseAdvice = grants["PurchaseAdvice.SelectSupplier"];
+        foreach (var roleKey in new[] { "CDN", "QLV", "QLCN", "KTK" })
+            purchaseAdvice[Array.IndexOf(ManagedRoleKeys, roleKey)] = 1;
+
+        var systemAdminIndex = Array.IndexOf(ManagedRoleKeys, "QTHT");
+        foreach (var (permissionCode, bits) in grants)
+        {
+            if (!permissionCode.StartsWith("System.", StringComparison.Ordinal))
+                bits[systemAdminIndex] = 0;
+        }
+
+        return grants;
+    }
 
     private static string FindRepoRoot()
     {

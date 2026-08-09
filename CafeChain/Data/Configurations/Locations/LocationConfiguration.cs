@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CafeChain.Data.Configurations.Locations
 {
-    // ======================= MODULE LOCATION (3-LEVEL HIERARCHY) =======================
+    // ======================= MODULE LOCATION (2-LEVEL HIERARCHY) =======================
 
     public class CountryConfiguration : IEntityTypeConfiguration<Country>
     {
@@ -31,6 +31,11 @@ namespace CafeChain.Data.Configurations.Locations
             entity.ToTable("Provinces");
             entity.HasKey(x => x.ProvinceId);
 
+            entity.Property(x => x.Code)
+                .IsRequired()
+                .IsFixedLength()
+                .HasMaxLength(2);
+
             entity.Property(x => x.Name)
                 .IsRequired()
                 .HasMaxLength(150);
@@ -40,33 +45,10 @@ namespace CafeChain.Data.Configurations.Locations
                 .HasForeignKey(x => x.CountryId)
                 .OnDelete(DeleteBehavior.SetNull); // Nullable FK → SetNull an toàn hơn Cascade
 
-            // Tránh trùng tên tỉnh trong cùng quốc gia
-            entity.HasIndex(x => new { x.CountryId, x.Name }).IsUnique();
+            entity.HasIndex(x => x.CountryId);
+            entity.HasIndex(x => x.Code).IsUnique();
 
             // 🚫 KHÔNG dùng HasData() ở đây — dữ liệu 63 tỉnh sẽ được nạp qua vietnam_locations.sql
-        }
-    }
-
-    public class DistrictConfiguration : IEntityTypeConfiguration<District>
-    {
-        public void Configure(EntityTypeBuilder<District> entity)
-        {
-            entity.ToTable("Districts");
-            entity.HasKey(x => x.DistrictId);
-
-            entity.Property(x => x.Name)
-                .IsRequired()
-                .HasMaxLength(150);
-
-            entity.HasOne(x => x.Province)
-                .WithMany(x => x.Districts)
-                .HasForeignKey(x => x.ProvinceId)
-                .OnDelete(DeleteBehavior.Cascade); // Xóa Tỉnh → tự xóa các Quận
-
-            // Tránh trùng tên quận trong cùng tỉnh
-            entity.HasIndex(x => new { x.ProvinceId, x.Name }).IsUnique();
-
-            // 🚫 KHÔNG dùng HasData() — dữ liệu sẽ được nạp qua vietnam_locations.sql
         }
     }
 
@@ -77,18 +59,22 @@ namespace CafeChain.Data.Configurations.Locations
             entity.ToTable("Wards");
             entity.HasKey(x => x.WardId);
 
+            entity.Property(x => x.Code)
+                .IsRequired()
+                .IsFixedLength()
+                .HasMaxLength(5);
+
             entity.Property(x => x.Name)
                 .IsRequired()
                 .HasMaxLength(150);
 
-            // 🔥 THAY ĐỔI QUAN TRỌNG: Ward → District (thay vì Ward → Province)
-            entity.HasOne(x => x.District)
+            entity.HasOne(x => x.Province)
                 .WithMany(x => x.Wards)
-                .HasForeignKey(x => x.DistrictId)
-                .OnDelete(DeleteBehavior.Cascade); // Xóa Quận → tự xóa các Phường
+                .HasForeignKey(x => x.ProvinceId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // Tránh trùng tên phường trong cùng quận
-            entity.HasIndex(x => new { x.DistrictId, x.Name }).IsUnique();
+            entity.HasIndex(x => x.ProvinceId);
+            entity.HasIndex(x => x.Code).IsUnique();
 
             // 🚫 KHÔNG dùng HasData() — dữ liệu sẽ được nạp qua vietnam_locations.sql
         }

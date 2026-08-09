@@ -2,7 +2,7 @@
 
 ## 1. Quyền truy cập và phạm vi dữ liệu
 
-Dashboard yêu cầu permission `App.AdminDashboard`. Dữ liệu không chỉ phụ thuộc vào card App Launcher: controller vẫn kiểm tra permission. Các role nghiệp vụ được giới hạn Province, District và Store theo `StaffScope`; Quản trị hệ thống có global scope trên toàn bộ cửa hàng đang hoạt động.
+Dashboard yêu cầu permission `App.AdminDashboard`. Dữ liệu không chỉ phụ thuộc vào card App Launcher: controller vẫn kiểm tra permission. Các role nghiệp vụ được giới hạn Province, Ward và Store theo `StaffScope`; Quản trị hệ thống có global scope trên toàn bộ cửa hàng đang hoạt động.
 
 Nếu nhận HTTP 403, hãy kiểm tra role permission, account override và phạm vi cửa hàng. Không dùng tài khoản khác hoặc sửa URL để vượt phạm vi.
 
@@ -12,7 +12,7 @@ Nếu nhận HTTP 403, hãy kiểm tra role permission, account override và ph�
 |---|---|
 | From Date / To Date | Khoảng nghiệp vụ cần phân tích. Backend dùng khoảng ngày nửa mở. |
 | Province | Chỉ các tỉnh thuộc store scope. |
-| District | Được lọc từ Province và store scope. |
+| Ward | Được lọc trực tiếp từ Province và store scope. |
 | Store | Một cửa hàng cụ thể hoặc toàn bộ cửa hàng được cấp quyền. |
 | Granularity | `Hour`, `Day`, `Week`, `Month`; tuần bắt đầu thứ Hai. |
 | Top | Số phần tử xếp hạng, từ 1 đến 100. |

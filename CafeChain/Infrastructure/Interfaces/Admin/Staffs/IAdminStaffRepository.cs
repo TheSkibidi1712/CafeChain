@@ -17,10 +17,9 @@ public interface IAdminStaffRepository
     Task<List<ScopeType>> GetScopeTypesAsync();
     Task<Store> GetStoreByIdAsync(int storeId);
     Task<List<Models.Locations.Province>> GetProvincesAsync();
-    Task<List<Models.Locations.District>> GetDistrictsAsync(int provinceId);
-    Task<List<Models.Locations.Ward>> GetWardsAsync(int districtId);
+    Task<List<Models.Locations.Ward>> GetWardsAsync(int provinceId);
     Task<bool> ScopeCoversStoreAsync(int scopeTypeId, int scopeRefId, int storeId);
-    Task<bool> IsAddressHierarchyValidAsync(int provinceId, int districtId, int wardId);
+    Task<bool> IsAddressHierarchyValidAsync(int provinceId, int wardId);
     Task CreateStaffTransactionAsync(Models.Staffs.Staff staff, Account account,
         List<AccountRole> accountRoles, List<StaffScope> staffScopes,
         List<StaffPhone> staffPhones, List<StaffAddress> staffAddresses);

@@ -10,15 +10,13 @@ public static class ScopeTypeDisplayNames
 {
     public const string Country = "Toàn chuỗi";
     public const string Province = "Tỉnh/Thành phố";
-    public const string District = "Quận/Huyện";
-    public const string Ward = "Phường/Xã";
+    public const string Ward = "Xã/Phường/Đặc khu";
     public const string Store = "Cửa hàng";
 
     public static string FromCode(string? code) => code?.Trim().ToUpperInvariant() switch
     {
         "COUNTRY" => Country,
         "PROVINCE" => Province,
-        "DISTRICT" => District,
         "WARD" => Ward,
         "STORE" => Store,
         _ => string.IsNullOrWhiteSpace(code) ? "Phạm vi" : code.Trim()
@@ -28,7 +26,6 @@ public static class ScopeTypeDisplayNames
     {
         ScopeLevel.Country => Country,
         ScopeLevel.Province => Province,
-        ScopeLevel.District => District,
         ScopeLevel.Ward => Ward,
         ScopeLevel.Store => Store,
         _ => "Phạm vi"

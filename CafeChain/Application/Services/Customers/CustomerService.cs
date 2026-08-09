@@ -385,24 +385,14 @@ namespace CafeChain.Application.Services.Customers
                 .GetProvincesAsync();
         }
 
-        public async Task<List<District>> GetDistrictsByProvinceAsync(int provinceId)
+        public async Task<List<Ward>> GetWardsByProvinceAsync(int provinceId)
         {
             if (provinceId <= 0)
             {
                 throw new ArgumentException("Tỉnh/Thành phố không hợp lệ.");
             }
 
-            return await _customerRepository.GetDistrictsByProvinceAsync(provinceId);
-        }
-
-        public async Task<List<Ward>> GetWardsByDistrictAsync(int districtId)
-        {
-            if (districtId <= 0)
-            {
-                throw new ArgumentException("Quận/Huyện không hợp lệ.");
-            }
-
-            return await _customerRepository.GetWardsByDistrictAsync(districtId);
+            return await _customerRepository.GetWardsByProvinceAsync(provinceId);
         }
 
 
@@ -458,11 +448,9 @@ namespace CafeChain.Application.Services.Customers
 
                 address.WardId = dto.WardId;
 
-                address.DistrictId = dto.DistrictId;
-
                 address.ProvinceId = dto.ProvinceId;
 
-                await UpdateCoordinatesAsync(address, dto.Street, dto.WardId, dto.DistrictId, dto.ProvinceId);
+                await UpdateCoordinatesAsync(address, dto.Street, dto.WardId, dto.ProvinceId);
             }
         }
 
@@ -483,12 +471,10 @@ namespace CafeChain.Application.Services.Customers
 
                         WardId = dto.WardId,
 
-                        DistrictId = dto.DistrictId,
-
                         ProvinceId = dto.ProvinceId
                     };
 
-                await UpdateCoordinatesAsync(address, dto.Street, dto.WardId, dto.DistrictId, dto.ProvinceId);
+                await UpdateCoordinatesAsync(address, dto.Street, dto.WardId, dto.ProvinceId);
 
                 customer.CustomerAddresses.Add(address);
 
@@ -498,16 +484,16 @@ namespace CafeChain.Application.Services.Customers
             return result;
         }
 
-        private async Task UpdateCoordinatesAsync(CustomerAddress address, string street, int wardId, int districtId, int provinceId)
+        private async Task UpdateCoordinatesAsync(CustomerAddress address, string street, int wardId, int provinceId)
         {
-            var location = await _customerRepository.GetLocationNamesAsync(provinceId, districtId, wardId);
+            var location = await _customerRepository.GetLocationNamesAsync(provinceId, wardId);
 
             if (location == null)
             {
-                return;
+                throw new ArgumentException("Phường/Xã/Đặc khu không thuộc Tỉnh/Thành phố đã chọn.");
             }
 
-            var fullAddress = $"{street}, " + $"{location.WardName}, " + $"{location.DistrictName}, " + $"{location.ProvinceName}";
+            var fullAddress = $"{street}, {location.WardName}, {location.ProvinceName}, Việt Nam";
 
             var (lat, lng) = await _geocodingService.GetCoordinatesAsync(fullAddress);
 

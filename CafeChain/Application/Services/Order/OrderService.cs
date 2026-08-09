@@ -109,7 +109,6 @@ namespace CafeChain.Application.Services.Cart
                 var phone = await _context.CustomerPhones.FirstOrDefaultAsync(p => p.CustomerPhoneId == model.SelectedPhoneId && p.CustomerId == customerId.Value);
                 var address = await _context.CustomerAddresses
                     .Include(a => a.Ward)
-                    .Include(a => a.District)
                     .Include(a => a.Province)
                     .FirstOrDefaultAsync(a => a.CustomerAddressId == model.SelectedAddressId && a.CustomerId == customerId.Value && !a.IsDeleted);
 
@@ -286,7 +285,6 @@ namespace CafeChain.Application.Services.Cart
         {
             var addresses = await _context.CustomerAddresses
                 .Include(a => a.Ward)
-                .Include(a => a.District)
                 .Include(a => a.Province)
                 .Where(a => a.CustomerId == customerId && !a.IsDeleted)
                 .OrderByDescending(a => a.IsDefault) 
@@ -298,7 +296,6 @@ namespace CafeChain.Application.Services.Cart
                 Address = a.Address,
                 DisplayAddress = a.DisplayAddress,
                 ProvinceId = a.ProvinceId,
-                DistrictId = a.DistrictId,
                 WardId = a.WardId,
                 IsDefault = a.IsDefault
             }).ToList();

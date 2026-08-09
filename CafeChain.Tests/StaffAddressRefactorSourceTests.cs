@@ -6,13 +6,11 @@ public sealed class StaffAddressRefactorSourceTests
     public void Address_endpoints_are_authenticated_master_data_without_create_permission_gate()
     {
         var source = Read("CafeChain", "Areas", "Admin", "Controllers", "AdminStaffController.cs");
-        var districts = Slice(source, "Task<IActionResult> GetDistricts", "Task<IActionResult> GetWards");
         var wards = source[source.IndexOf("Task<IActionResult> GetWards", StringComparison.Ordinal)..];
 
-        Assert.DoesNotContain("RequirePermission", districts, StringComparison.Ordinal);
         Assert.DoesNotContain("RequirePermission", wards, StringComparison.Ordinal);
-        Assert.Contains("GetDistrictsAsync(provinceId)", districts, StringComparison.Ordinal);
-        Assert.Contains("GetWardsAsync(districtId)", wards, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetDistricts", source, StringComparison.Ordinal);
+        Assert.Contains("GetWardsAsync(provinceId)", wards, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -23,15 +21,14 @@ public sealed class StaffAddressRefactorSourceTests
 
         Assert.Contains("FormData", create, StringComparison.Ordinal);
         Assert.Contains("X-Requested-With", create, StringComparison.Ordinal);
-        Assert.Contains("districtRequestVersion", create, StringComparison.Ordinal);
         Assert.Contains("wardRequestVersion", create, StringComparison.Ordinal);
         Assert.Contains("data-validation-feedback=\"sweetalert\"", create, StringComparison.Ordinal);
         Assert.Contains("Thông tin chưa hợp lệ", create, StringComparison.Ordinal);
         Assert.Contains("bootstrap.Tab.getOrCreateInstance", create, StringComparison.Ordinal);
         Assert.Contains("restoreCreateSubmit", create, StringComparison.Ordinal);
         Assert.Contains("AdminMutationGuard?.unlockForm", create, StringComparison.Ordinal);
-        Assert.Contains("const districts = await load", edit, StringComparison.Ordinal);
         Assert.Contains("await load(ward", edit, StringComparison.Ordinal);
+        Assert.DoesNotContain("District", edit, StringComparison.Ordinal);
         Assert.DoesNotContain("setTimeout", edit, StringComparison.Ordinal);
         Assert.DoesNotContain("GetScopeReferences", edit, StringComparison.Ordinal);
     }

@@ -34,8 +34,8 @@ public sealed class DashboardRepository : IDashboardRepository
                 StoreName = x.Name,
                 ProvinceId = x.ProvinceId,
                 ProvinceName = x.Province != null ? x.Province.Name : string.Empty,
-                DistrictId = x.DistrictId,
-                DistrictName = x.District != null ? x.District.Name : string.Empty
+                WardId = x.WardId,
+                WardName = x.Ward != null ? x.Ward.Name : string.Empty
             })
             .ToListAsync(cancellationToken);
     }

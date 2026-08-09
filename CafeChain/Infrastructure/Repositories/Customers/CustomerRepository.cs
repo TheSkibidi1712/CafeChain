@@ -29,8 +29,7 @@ namespace CafeChain.Infrastructure.Repositories.Customers
                 .Include(a => a.Customer)
                     .ThenInclude(c => c.CustomerAddresses)
                         .ThenInclude(a => a.Ward)
-                            .ThenInclude(w => w.District)
-                                .ThenInclude(d => d.Province)
+                            .ThenInclude(w => w.Province)
                 .Include(a => a.Customer)
                     .ThenInclude(c => c.CustomerPhones)
                 .AsNoTracking()
@@ -112,17 +111,15 @@ namespace CafeChain.Infrastructure.Repositories.Customers
         // LOCATION
         // =====================================================
 
-        public async Task<LocationNameDto?> GetLocationNamesAsync(int provinceId, int districtId, int wardId)
+        public async Task<LocationNameDto?> GetLocationNamesAsync(int provinceId, int wardId)
         {
             return await _context.Wards
-                .Where(w => w.WardId == wardId && w.DistrictId == districtId)
+                .Where(w => w.WardId == wardId && w.ProvinceId == provinceId
+                    && w.IsActive && w.Province.IsActive)
                 .Select(w => new LocationNameDto
                 {
                     WardName = w.Name,
-
-                    DistrictName = w.District.Name,
-
-                    ProvinceName = w.District.Province.Name
+                    ProvinceName = w.Province.Name
                 })
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
@@ -131,24 +128,16 @@ namespace CafeChain.Infrastructure.Repositories.Customers
         public async Task<List<Province>> GetProvincesAsync()
         {
             return await _context.Provinces
+                .Where(x => x.IsActive)
                 .AsNoTracking()
                 .OrderBy(x => x.Name)
                 .ToListAsync();
         }
 
-        public async Task<List<District>> GetDistrictsByProvinceAsync(int provinceId)
-        {
-            return await _context.Districts
-                .Where(x => x.ProvinceId == provinceId)
-                .AsNoTracking()
-                .OrderBy(x => x.Name)
-                .ToListAsync();
-        }
-
-        public async Task<List<Ward>> GetWardsByDistrictAsync(int districtId)
+        public async Task<List<Ward>> GetWardsByProvinceAsync(int provinceId)
         {
             return await _context.Wards
-                .Where(x => x.DistrictId == districtId)
+                .Where(x => x.ProvinceId == provinceId && x.IsActive && x.Province.IsActive)
                 .AsNoTracking()
                 .OrderBy(x => x.Name)
                 .ToListAsync();

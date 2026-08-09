@@ -114,7 +114,6 @@
                                     {
                                         <option value="@a.CustomerAddressId" 
                                                 data-ward-id="@a.WardId" 
-                                                data-district-id="@a.DistrictId"
                                                 data-province-id="@a.ProvinceId" 
                                                 data-street="@a.Address"
                                                 selected="@(a.IsDefault ? "selected" : null)">
@@ -261,18 +260,12 @@
                 <form id="addAddressForm">
                     <div class="mb-3">
                         <label class="form-label text-muted small">Tỉnh / Thành phố</label>
-                        <select id="provinceSelect" class="form-select py-2 shadow-none" onchange="fetchDistricts()" required>
+                        <select id="provinceSelect" class="form-select py-2 shadow-none" onchange="fetchWards()" required>
                             <option value="">Chọn Tỉnh/Thành phố</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-muted small">Quận / Huyện</label>
-                        <select id="districtSelect" class="form-select py-2 shadow-none" onchange="fetchWards()" disabled required>
-                            <option value="">Chọn Quận/Huyện</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">Phường / Xã</label>
+                        <label class="form-label text-muted small">Xã / Phường / Đặc khu</label>
                         <select id="wardSelect" class="form-select py-2 shadow-none" disabled required>
                             <option value="">Chọn Phường/Xã</option>
                         </select>
@@ -414,8 +407,6 @@
             editingAddressId = null;
             document.getElementById('streetInput').value = "";
             document.getElementById('provinceSelect').selectedIndex = 0;
-            document.getElementById('districtSelect').innerHTML = '<option value="">Chọn Quận/Huyện</option>';
-            document.getElementById('districtSelect').disabled = true;
             document.getElementById('wardSelect').innerHTML = '<option value="">Chọn Phường/Xã</option>';
             document.getElementById('wardSelect').disabled = true;
             document.querySelector('#addAddressModal .modal-title').innerText = "Thêm Địa Chỉ Mới";
@@ -434,7 +425,6 @@
             }
 
             const wardId = option.getAttribute('data-ward-id');
-            const distId = option.getAttribute('data-district-id');
             const procId = option.getAttribute('data-province-id');
             const street = option.getAttribute('data-street');
 
@@ -446,16 +436,10 @@
             
             if (procId) {
                 provSelect.value = procId;
-                await fetchDistrictsAsync(); 
-                if (distId) {
-                    document.getElementById('districtSelect').value = distId;
-                    await fetchWardsAsync();
-                    document.getElementById('wardSelect').value = wardId || "";
-                }
+                await fetchWardsAsync();
+                document.getElementById('wardSelect').value = wardId || "";
             } else {
                 provSelect.selectedIndex = 0;
-                document.getElementById('districtSelect').innerHTML = '<option value="">Chọn Quận/Huyện</option>';
-                document.getElementById('districtSelect').disabled = true;
                 document.getElementById('wardSelect').innerHTML = '<option value="">Chọn Phường/Xã</option>';
                 document.getElementById('wardSelect').disabled = true;
             }
@@ -507,41 +491,15 @@
             enableEditMode();
         }
 
-        async function fetchDistrictsAsync() {
+        async function fetchWardsAsync() {
             const provinceCode = document.getElementById('provinceSelect').value;
-            const districtSelect = document.getElementById('districtSelect');
             const wardSelect = document.getElementById('wardSelect');
-            
-            districtSelect.innerHTML = '<option value="">Chọn Quận/Huyện</option>';
-            districtSelect.disabled = true;
             wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
             wardSelect.disabled = true;
             if (!provinceCode) return;
-            
-            districtSelect.disabled = false;
-            try {
-                const res = await fetch('/Customer/GetDistricts?provinceId=' + provinceCode);
-                const data = await res.json();
-                data.forEach(d => {
-                    const option = document.createElement('option');
-                    option.value = d.code;
-                    option.text = d.name;
-                    districtSelect.add(option);
-                });
-            } catch(err) { console.error("Lỗi:", err); }
-        }
-
-        function fetchDistricts() { fetchDistrictsAsync(); }
-
-        async function fetchWardsAsync() {
-            const districtCode = document.getElementById('districtSelect').value;
-            const wardSelect = document.getElementById('wardSelect');
-            wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
-            if (!districtCode) { wardSelect.disabled = true; return; }
-            
             wardSelect.disabled = false;
             try {
-                const res = await fetch('/Customer/GetWards?districtId=' + districtCode);
+                const res = await fetch('/Customer/GetWards?provinceId=' + provinceCode);
                 const data = await res.json();
                 data.forEach(w => {
                     const option = document.createElement('option');
@@ -551,28 +509,25 @@
                 });
             } catch(err) { console.error("Lỗi:", err); }
         }
-        
+
         function fetchWards() { fetchWardsAsync(); }
 
         function submitNewAddress() {
             const provinceSelect = document.getElementById('provinceSelect');
-            const districtSelect = document.getElementById('districtSelect');
             const wardSelect = document.getElementById('wardSelect');
             const streetInput = document.getElementById('streetInput');
             
             const pCode = provinceSelect.value;
-            const dCode = districtSelect.value;
             const wCode = wardSelect.value;
             const street = streetInput.value.trim();
-            if (!pCode || !dCode || !wCode || street === "") {
+            if (!pCode || !wCode || street === "") {
                 showToast('Vui lòng nhập đầy đủ địa chỉ!', 'warning');
                 return;
             }
             
             const provinceName = provinceSelect.options[provinceSelect.selectedIndex].text;
-            const districtName = districtSelect.options[districtSelect.selectedIndex].text;
             const wardName = wardSelect.options[wardSelect.selectedIndex].text;
-            const fullLabel = `${street}, ${wardName}, ${districtName}, ${provinceName}`;
+            const fullLabel = `${street}, ${wardName}, ${provinceName}, Việt Nam`;
 
             if (editingAddressId != null) {
                 if (!pendingData.updatedAddresses) pendingData.updatedAddresses = [];
@@ -581,7 +536,6 @@
                     customerAddressId: parseInt(editingAddressId),
                     street: street,
                     wardId: parseInt(wCode),
-                    districtId: parseInt(dCode),
                     provinceId: parseInt(pCode)
                 });
 
@@ -605,15 +559,12 @@
                     tempId: tempId,
                     street: street,
                     wardId: parseInt(wCode),
-                    districtId: parseInt(dCode),
                     provinceId: parseInt(pCode)
                 });
             }
             
             streetInput.value = "";
             provinceSelect.selectedIndex = 0;
-            districtSelect.innerHTML = '<option value="">Chọn Quận/Huyện</option>';
-            districtSelect.disabled = true;
             wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
             wardSelect.disabled = true;
             myAddressModal.hide();

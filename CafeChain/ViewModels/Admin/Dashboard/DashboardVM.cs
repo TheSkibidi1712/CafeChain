@@ -22,6 +22,6 @@ namespace CafeChain.ViewModels.Admin.Dashboard
         public DashboardSummaryDto Summary { get; set; }
         public List<StoreDropdownDto> Stores { get; set; } = new();
         public List<int> Provinces { get; set; } = new();
-        public List<int> Districts { get; set; } = new();
+        public List<int> Wards { get; set; } = new();
     }
 }
