@@ -1300,7 +1300,7 @@ public sealed class OperationalIceService : IOperationalIceService
                 StoreInventoryId = allocation.StoreInventoryId,
                 Type = InventoryTransactionTypeEnum.ICE_VARIANCE_OUT,
                 StockStatus = ResolveStockStatus(allocation.StoreInventory),
-                Quantity = -variance,
+                Quantity = variance,
                 BeforeQty = before,
                 AfterQty = allocation.StoreInventory.AvailableQty,
                 UnitCost = hasCompleteCost ? costPlan!.WeightedUnitCost : null,
