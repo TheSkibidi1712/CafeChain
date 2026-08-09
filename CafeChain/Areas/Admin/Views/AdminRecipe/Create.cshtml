@@ -32,19 +32,19 @@
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<div class="rb-page rb-create-theme production-bom-page" data-theme="light">
+<div class="rb-page rb-create-theme production-bom-page production-bom-shell recipe-form-page" data-theme="light">
 <div class="container-fluid px-0">
     <partial name="_PageHero" model="hero" />
 
-    <form method="post" id="recipeForm" novalidate>
+    <form method="post" id="recipeForm" class="production-recipe-form" novalidate>
         @Html.AntiForgeryToken()
         <div id="formErrorSummary" class="alert alert-danger" style="display:none;" role="alert" aria-live="assertive" tabindex="-1"></div>
 
-        <div class="row g-4 rb-builder-grid">
-            <div class="col-xl-8">
+        <div class="production-form-grid rb-builder-grid">
+            <div class="production-form-main">
                 <!-- A. Loại và đối tượng -->
-                <section class="rb-card mb-4" aria-labelledby="secA">
-                    <div class="rb-card-header"><span id="secA" class="rb-section-title">A. Loại và đối tượng công thức</span></div>
+                <section class="rb-card production-form-section" aria-labelledby="secA">
+                    <div class="rb-card-header"><h2 id="secA" class="rb-section-title">Loại và đối tượng công thức</h2></div>
                     <div class="card-body p-4">
                         <div class="rb-toggle btn-group w-100 mb-3" role="group" aria-label="Loại công thức">
                             <input type="radio" class="btn-check" name="RecipeType" id="typePOS" value="POS" autocomplete="off" checked>
@@ -86,8 +86,8 @@
 
                             <div class="col-12 conditional-section" id="sectionSub_Recipe" style="display:none;">
                                 <label class="form-label fw-semibold" for="preparedItemSelect">Bán thành phẩm đầu ra <span class="text-danger">*</span></label>
-                                <div class="d-flex flex-wrap gap-2 align-items-start">
-                                    <div class="flex-grow-1" style="min-width:220px;">
+                                <div class="production-field-with-action">
+                                    <div>
                                         <select name="PreparedItemId" id="preparedItemSelect" class="form-select" aria-describedby="piHelp piSummary">
                                             <option value="">-- Chọn BTP (mã + tên) --</option>
                                             @foreach (var pi in options.PreparedItems)
@@ -107,7 +107,9 @@
                                             }
                                         </select>
                                     </div>
-                                    <button type="button" class="btn btn-rb-ghost btn-sm" id="btnRefreshPreparedItems" title="Làm mới danh sách BTP">Làm mới danh sách</button>
+                                    <button type="button" class="btn btn-rb-ghost" id="btnRefreshPreparedItems" title="Làm mới danh sách bán thành phẩm">
+                                        <i class="fas fa-rotate" aria-hidden="true"></i><span>Làm mới</span>
+                                    </button>
                                 </div>
                                 <div id="piHelp" class="form-text">
                                     Danh tính ổn định từ danh mục BTP (không dùng tên tự do, không dùng mã công thức làm đầu ra).
@@ -134,8 +136,8 @@
                 </section>
 
                 <!-- B. Sản lượng đầu ra -->
-                <section class="rb-card mb-4 conditional-section" id="sectionOutput" style="display:none;" aria-labelledby="secB">
-                    <div class="rb-card-header"><span id="secB" class="rb-section-title">B. Sản lượng đầu ra</span></div>
+                <section class="rb-card production-form-section conditional-section" id="sectionOutput" style="display:none;" aria-labelledby="secB">
+                    <div class="rb-card-header"><h2 id="secB" class="rb-section-title">Sản lượng đầu ra</h2></div>
                     <div class="card-body p-4">
                         <div class="row g-3">
                             <div class="col-md-4" id="sectionSub_Yield">
@@ -167,20 +169,30 @@
                 </section>
 
                 <!-- C. Thành phần BOM -->
-                <section class="rb-card mb-4" aria-labelledby="secC">
-                    <div class="rb-card-header"><span id="secC" class="rb-section-title">C. Thành phần BOM</span></div>
+                <section class="rb-card production-form-section" aria-labelledby="secC">
+                    <div class="rb-card-header"><h2 id="secC" class="rb-section-title">Thành phần định mức</h2></div>
                     <div class="table-responsive">
                         <table class="table rb-table" id="bomTable">
+                            <colgroup>
+                                <col class="bom-col-index" />
+                                <col class="bom-col-type" />
+                                <col class="bom-col-component" />
+                                <col class="bom-col-quantity" />
+                                <col class="bom-col-unit" />
+                                <col class="bom-col-cost" />
+                                <col class="bom-col-status" />
+                                <col class="bom-col-action" />
+                            </colgroup>
                             <thead>
                                 <tr>
-                                    <th scope="col" class="text-center" width="4%">#</th>
-                                    <th scope="col" width="12%">Loại</th>
-                                    <th scope="col" width="28%">Thành phần</th>
-                                    <th scope="col" class="text-end" width="12%">Số lượng</th>
-                                    <th scope="col" width="12%">Đơn vị</th>
-                                    <th scope="col" class="text-end" width="14%">Giá vốn dòng</th>
-                                    <th scope="col" width="10%">Trạng thái dữ liệu</th>
-                                    <th scope="col" class="text-center" width="8%">Thao tác</th>
+                                    <th scope="col" class="text-center">#</th>
+                                    <th scope="col">Loại</th>
+                                    <th scope="col">Thành phần</th>
+                                    <th scope="col" class="text-end">Số lượng</th>
+                                    <th scope="col">Đơn vị</th>
+                                    <th scope="col" class="text-end">Giá vốn dòng</th>
+                                    <th scope="col">Trạng thái dữ liệu</th>
+                                    <th scope="col" class="text-end">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody id="bomTableBody"></tbody>
@@ -190,8 +202,8 @@
                 </section>
 
                 <!-- Notes -->
-                <section class="rb-card mb-4">
-                    <div class="rb-card-header"><span class="rb-section-title">Lưu ý kỹ thuật</span></div>
+                <section class="rb-card production-form-section">
+                    <div class="rb-card-header"><h2 class="rb-section-title">Hướng dẫn chế biến</h2></div>
                     <div class="card-body p-3">
                         <label class="visually-hidden" for="Description">Mô tả</label>
                         <textarea name="Description" id="Description" class="form-control border-0" rows="3"
@@ -201,9 +213,9 @@
             </div>
 
             <!-- D. Kiểm tra và lưu (cost panel) -->
-            <div class="col-xl-4">
-                <section class="rb-card mb-4 sticky-top" style="top:1rem;" aria-labelledby="secD">
-                    <div class="rb-card-header"><span id="secD" class="rb-section-title">D. Kiểm tra và lưu</span></div>
+            <aside class="production-form-sidebar" aria-label="Kiểm tra và lưu công thức">
+                <section class="rb-card production-form-section production-review-summary" aria-labelledby="secD">
+                    <div class="rb-card-header"><h2 id="secD" class="rb-section-title">Kiểm tra và lưu</h2></div>
                     <div class="card-body p-3">
                         <div id="costPanel" class="rb-cost-panel incomplete" aria-live="polite">
                             <div class="small text-uppercase fw-bold text-muted mb-1">Giá vốn ước tính</div>
@@ -216,29 +228,26 @@
                         <p class="small text-muted mt-3 mb-0">
                             Giá vốn chưa đầy đủ không chặn lưu nếu máy chủ cho phép. Hệ thống không hiển thị giá trị 0 không chính xác.
                         </p>
+                        <div class="production-review-metrics" aria-label="Tóm tắt giá vốn công thức">
+                            <div class="production-review-metric">
+                                <span>Tổng giá vốn</span>
+                                <span id="footerTotalCost">—</span>
+                            </div>
+                            <div class="production-review-metric">
+                                <span>Tỷ lệ giá vốn</span>
+                                <span id="footerFoodCostPct">—</span>
+                            </div>
+                        </div>
+                        <div class="production-form-actions">
+                            <a class="btn btn-rb-ghost" href="@indexUrl">Hủy</a>
+                            <button type="button" class="btn btn-rb-save" id="btnSaveRecipe" aria-busy="false">Lưu công thức</button>
+                        </div>
                     </div>
                 </section>
-            </div>
+            </aside>
         </div>
     </form>
 </div>
-</div>
-
-<div class="rb-footer-bar">
-    <div class="d-flex gap-4 flex-wrap">
-        <div class="rb-footer-metric">
-            <span class="rb-footer-metric-label">Tổng giá vốn</span>
-            <span class="rb-footer-metric-value" id="footerTotalCost">—</span>
-        </div>
-        <div class="rb-footer-metric">
-            <span class="rb-footer-metric-label">Tỷ lệ giá vốn</span>
-            <span class="rb-footer-pct" id="footerFoodCostPct">—</span>
-        </div>
-    </div>
-    <div class="d-flex gap-2">
-        <a class="btn btn-rb-ghost" href="@indexUrl">Hủy</a>
-        <button type="button" class="btn btn-rb-save" id="btnSaveRecipe" aria-busy="false">Lưu công thức</button>
-    </div>
 </div>
 
 <select id="itemTemplateSelect" class="d-none" aria-hidden="true">

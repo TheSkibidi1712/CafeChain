@@ -26,7 +26,7 @@
     <link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 }
 
-<main class="pf-page production-bom-page" id="profitabilityApp"
+<main class="pf-page production-bom-page production-bom-shell" id="profitabilityApp"
       data-can-update-price="@Model.CanUpdateGlobalPrice.ToString().ToLowerInvariant()"
       data-can-manage-policy="@Model.CanManageToppingPolicy.ToString().ToLowerInvariant()">
     @Html.AntiForgeryToken()

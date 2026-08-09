@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
 <link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<main class="po-page production-bom-page bom-list-page production-run-list-page">
+<main class="po-page production-bom-page production-bom-shell bom-list-page production-run-list-page">
     <partial name="_PageHero" model="hero" />
 
     @if (ViewBag.ErrorMessage is string error)
@@ -41,10 +41,13 @@
         <div class="alert alert-danger" role="alert">@error</div>
     }
 
-    <section class="po-main-card mb-4" aria-labelledby="production-filter-title">
-        <h2 id="production-filter-title" class="po-section-title">Bộ lọc vận hành</h2>
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-lg-5 col-md-7">
+    <section class="production-filter-card" aria-labelledby="production-filter-title">
+        <header class="production-filter-card__heading">
+            <h2 id="production-filter-title">Bộ lọc vận hành</h2>
+            <p>Thu hẹp danh sách theo cửa hàng và trạng thái xử lý.</p>
+        </header>
+        <form method="get" class="production-filter-grid">
+            <div class="production-filter-field">
                 <label for="storeId" class="form-label">Cửa hàng</label>
                 <select id="storeId" name="storeId" class="form-select">
                     @foreach (var store in stores)
@@ -53,7 +56,7 @@
                     }
                 </select>
             </div>
-            <div class="col-lg-4 col-md-5">
+            <div class="production-filter-field">
                 <label for="status" class="form-label">Trạng thái</label>
                 <select id="status" name="status" class="form-select">
                     <option value="">Tất cả trạng thái</option>
@@ -65,33 +68,46 @@
                     }
                 </select>
             </div>
-            <div class="col-lg-3 d-flex gap-2">
-                <button class="btn btn-primary-action flex-grow-1" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Áp dụng</button>
-                <a class="btn btn-ghost" asp-action="Index" asp-route-storeId="@selectedStoreId" aria-label="Xóa bộ lọc" title="Xóa bộ lọc">
+            <div class="production-filter-actions">
+                <button class="btn btn-primary-action" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Áp dụng</button>
+                <a class="btn btn-ghost production-filter-reset" asp-action="Index" asp-route-storeId="@selectedStoreId" aria-label="Đặt lại bộ lọc" title="Đặt lại bộ lọc">
                     <i class="fas fa-rotate-left" aria-hidden="true"></i>
                 </a>
             </div>
         </form>
     </section>
 
-    <section class="history-section" aria-labelledby="production-list-title">
-        <div class="history-header">
-            <h2 id="production-list-title" class="history-title">Danh sách lệnh</h2>
-            <span class="text-muted small">@Model.TotalCount lệnh</span>
-        </div>
-        <div class="history-card production-table-panel">
+    <section class="production-list-section" aria-labelledby="production-list-title">
+        <header class="production-section-header">
+            <div>
+                <h2 id="production-list-title">Danh sách lệnh sản xuất</h2>
+                <p>Theo dõi quy mô, sản lượng dự kiến và người phụ trách từng lệnh.</p>
+            </div>
+            <span class="production-section-header__count"><strong>@Model.TotalCount</strong> lệnh</span>
+        </header>
+        <div class="history-card production-table-panel p-0">
             <div class="table-responsive">
                 <table class="table po-table production-data-table align-middle">
+                    <colgroup>
+                        <col class="production-col-run" />
+                        <col class="production-col-output" />
+                        <col class="production-col-scale" />
+                        <col class="production-col-yield" />
+                        <col class="production-col-request" />
+                        <col class="production-col-status" />
+                        <col class="production-col-actor" />
+                        <col class="production-col-action" />
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th>LỆNH</th>
-                            <th>ĐẦU RA</th>
-                            <th>QUY MÔ</th>
-                            <th>SẢN LƯỢNG DỰ KIẾN</th>
-                            <th>YÊU CẦU</th>
-                            <th>TRẠNG THÁI</th>
-                            <th>NGƯỜI LẬP</th>
-                            <th class="production-action-column">THAO TÁC</th>
+                            <th>Lệnh</th>
+                            <th>Đầu ra</th>
+                            <th>Quy mô</th>
+                            <th>Sản lượng dự kiến</th>
+                            <th>Yêu cầu</th>
+                            <th>Trạng thái</th>
+                            <th>Người lập</th>
+                            <th class="production-action-column">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>

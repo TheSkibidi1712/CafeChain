@@ -37,11 +37,11 @@
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<div class="rb-page production-bom-page bom-list-page prepared-item-list-page">
+<div class="rb-page production-bom-page production-bom-shell bom-list-page prepared-item-list-page">
 <div class="container-fluid px-0">
     <partial name="_PageHero" model="hero" />
 
-    <form method="get" class="rb-list-filters rb-module-filter rb-module-filter--four mb-3" id="filterForm" role="search">
+    <form method="get" class="rb-list-filters production-filter-card" id="filterForm" role="search">
         <label class="visually-hidden" for="searchBox">Tìm theo mã hoặc tên</label>
         <input name="search" id="searchBox" class="form-control" value="@Model.Search"
                placeholder="Tìm theo mã hoặc tên bán thành phẩm..." autocomplete="off" />
@@ -52,8 +52,17 @@
             <option value="false" selected="@(Model.Status == false)">Ngừng hoạt động</option>
         </select>
         <button type="submit" class="btn btn-rb-save"><i class="fas fa-filter" aria-hidden="true"></i>Lọc</button>
-        <a asp-action="Index" class="btn btn-rb-ghost"><i class="fas fa-rotate-left" aria-hidden="true"></i>Đặt lại</a>
+        <a asp-action="Index" class="btn btn-rb-ghost production-filter-reset" aria-label="Đặt lại bộ lọc" title="Đặt lại bộ lọc"><i class="fas fa-rotate-left" aria-hidden="true"></i></a>
     </form>
+
+    <section class="production-list-section" aria-labelledby="prepared-item-list-title">
+        <header class="production-section-header">
+            <div>
+                <h2 id="prepared-item-list-title">Danh sách bán thành phẩm</h2>
+                <p>Định danh tồn kho, đơn vị cơ sở và công thức đang được áp dụng.</p>
+            </div>
+            <span class="production-section-header__count"><strong>@items.Count</strong> mục trên trang</span>
+        </header>
 
     <div class="rb-card production-table-panel">
         <div class="table-responsive">
@@ -197,12 +206,10 @@
                 </tbody>
             </table>
         </div>
-    </div>
-
     @if (totalPages > 1)
     {
-        <nav class="production-pagination mt-3" aria-label="Phân trang danh mục BTP">
-            <span class="production-pagination__summary">Trang @(page) / @totalPages</span>
+        <nav class="production-pagination" aria-label="Phân trang danh mục bán thành phẩm">
+            <span class="production-pagination__summary">Trang @(page) trên @totalPages</span>
             <div class="production-pagination__links">
                 @if (page > 1)
                 {
@@ -230,6 +237,8 @@
             </div>
         </nav>
     }
+    </div>
+    </section>
 </div>
 </div>
 

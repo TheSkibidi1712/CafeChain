@@ -29,19 +29,19 @@
 <link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
 <link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<div class="po-page production-bom-page">
+<div class="po-page production-bom-page production-bom-shell production-create-page">
     <partial name="_PageHero" model="hero" />
 
     <form asp-action="Create" method="post" id="productionForm">
         @Html.AntiForgeryToken()
 
-        <div class="po-main-card">
-            <div class="row g-5">
+        <section class="po-main-card production-form-section">
+            <div class="production-operation-grid">
                 <!-- Left Column -->
-                <div class="col-lg-5 po-form-pane">
-                    <div class="po-section-title">
+                <div class="po-form-pane production-operation-form">
+                    <h2 class="po-section-title">
                         <i class="fas fa-fire-burner"></i> Thông tin sơ chế chi tiết
-                    </div>
+                    </h2>
 
                     <div class="row g-3">
                         <div class="col-12">
@@ -78,7 +78,7 @@
 
                         <div class="col-12">
                             <label class="form-label">Mã SKU dự kiến</label>
-                            <input type="text" id="skuInput" class="form-control" readonly placeholder="Tự động tạo..." />
+                            <input type="text" id="skuInput" class="form-control production-readonly-field" readonly placeholder="Tự động tạo..." />
                         </div>
 
                         <div class="col-md-6">
@@ -89,7 +89,7 @@
 
                         <div class="col-md-6">
                             <label class="form-label" for="scaleMeaning">Ý nghĩa</label>
-                            <input id="scaleMeaning" type="text" class="form-control" value="Nhân tỷ lệ công thức" readonly />
+                            <input id="scaleMeaning" type="text" class="form-control production-readonly-field" value="Nhân tỷ lệ công thức" readonly />
                         </div>
 
                         <div class="col-12">
@@ -109,7 +109,7 @@
                 </div>
 
                 <!-- Right Column (BOM Table) -->
-                <div class="col-lg-7 d-flex flex-column po-bom-pane">
+                <div class="d-flex flex-column po-bom-pane production-operation-preview">
                     <div class="po-bom-header">
                         <div class="po-bom-title">Nguyên liệu tiêu hao (BOM)</div>
                         <div class="po-bom-badge">Tính toán tự động theo định mức</div>
@@ -126,13 +126,13 @@
                         <table class="table po-table">
                             <thead>
                                 <tr>
-                                    <th>ĐẦU VÀO</th>
-                                    <th class="text-end">YÊU CẦU</th>
-                                    <th class="text-end">HIỆN CÓ</th>
-                                    <th class="text-end">ĐÃ GIỮ</th>
-                                    <th class="text-end">KHẢ DỤNG</th>
-                                    <th class="text-end">THIẾU</th>
-                                    <th>GIÁ VỐN FIFO</th>
+                                    <th>Đầu vào</th>
+                                    <th class="text-end">Yêu cầu</th>
+                                    <th class="text-end">Hiện có</th>
+                                    <th class="text-end">Đã giữ</th>
+                                    <th class="text-end">Khả dụng</th>
+                                    <th class="text-end">Thiếu</th>
+                                    <th>Giá vốn theo FIFO</th>
                                 </tr>
                             </thead>
                             <tbody id="resultTableBody">
@@ -162,29 +162,31 @@
                     </button>
                 </div>
             </div>
-        </div>
+        </section>
     </form>
 
-    <div class="history-section">
-        <div class="history-header">
-            <h3 class="history-title">Lịch sử lệnh sơ chế gần đây</h3>
-            <span class="history-link text-muted small">Chưa áp dụng tồn kho (chờ bước kho)</span>
-        </div>
-        <div class="history-card">
+    <section class="production-list-section" aria-labelledby="standalone-history-title">
+        <header class="production-section-header">
+            <div>
+                <h2 id="standalone-history-title">Lịch sử sơ chế gần đây</h2>
+                <p>Chỉ các lệnh đã xác nhận tồn kho mới làm thay đổi số lượng khả dụng.</p>
+            </div>
+        </header>
+        <div class="history-card production-table-panel p-0">
             <div class="table-responsive">
-            <table class="table po-table">
+            <table class="table po-table production-data-table mb-0">
                 <thead>
                     <tr>
-                        <th>MÃ LỆNH</th>
-                        <th>CỬA HÀNG</th>
-                        <th>CÔNG THỨC</th>
-                        <th>SỐ MẺ</th>
-                        <th>NGƯỜI GHI NHẬN</th>
-                        <th>XÁC NHẬN</th>
-                        <th class="text-center">TRẠNG THÁI</th>
-                        <th class="text-center">TỒN KHO</th>
-                        <th class="text-center">GIÁ VỐN</th>
-                        <th class="text-center">THAO TÁC</th>
+                        <th>Mã lệnh</th>
+                        <th>Cửa hàng</th>
+                        <th>Công thức</th>
+                        <th>Hệ số công thức</th>
+                        <th>Người ghi nhận</th>
+                        <th>Xác nhận</th>
+                        <th>Trạng thái</th>
+                        <th>Tồn kho</th>
+                        <th>Giá vốn</th>
+                        <th class="production-action-column">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -211,21 +213,21 @@
                                     }
                                     @if (hist.NormalizedOutputQuantity.HasValue)
                                     {
-                                        <br /><span class="small">SL ra: @hist.NormalizedOutputQuantity.Value.ToString("0.###")</span>
+                                        <br /><span class="small">Sản lượng đầu ra: @hist.NormalizedOutputQuantity.Value.ToString("0.###")</span>
                                     }
                                 </td>
                                 <td class="text-center text-muted small">
-                                    <div>@hist.ValuationStatus</div>
+                                    <div>@(string.Equals(hist.ValuationStatus, "Complete", StringComparison.OrdinalIgnoreCase) ? "Đã tính giá vốn" : "Chờ tính giá vốn")</div>
                                     @if (hist.TotalInputCost.HasValue)
                                     {
                                         <div>Tổng: @hist.TotalInputCost.Value.ToString("N2")</div>
                                     }
                                     @if (hist.OutputUnitCost.HasValue)
                                     {
-                                        <div>/đv: @hist.OutputUnitCost.Value.ToString("N4")</div>
+                                        <div>Mỗi đơn vị: @hist.OutputUnitCost.Value.ToString("N4")</div>
                                     }
                                 </td>
-                                <td class="text-center">
+                                <td class="production-action-column">
                                     @if (hist.CanApplyStock && !hist.StockApplied)
                                     {
                                         <button type="button" class="btn btn-sm btn-outline-primary btn-apply-stock rb-table-action"
@@ -251,7 +253,7 @@
             </table>
         </div>
         </div>
-    </div>
+    </section>
 </div>
 
 @section Scripts {

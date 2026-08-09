@@ -101,6 +101,7 @@
     function initCreate(cfg) {
         var rowCount = 0;
         var itemDataMap = buildItemDataMap();
+        var initialSizeId = cfg.initialSizeId ? String(cfg.initialSizeId) : '';
         var previewTimer = null;
         var createBlockedByActiveRecipe = false;
         var saveInFlight = false;
@@ -492,7 +493,7 @@
                 '<td><input type="number" step="0.01" min="0.01" name="Details[' + index + '].Quantity" ' +
                 'class="form-control form-control-sm text-end item-qty" value="' + (prefill && prefill.qty ? prefill.qty : '1') + '" required aria-label="Số lượng" /></td>' +
                 '<td>' +
-                '<input type="text" class="form-control form-control-sm bg-light item-unitname" name="Details[' + index + '].UnitName" readonly tabindex="-1" placeholder="Tự động" />' +
+                '<input type="text" class="form-control form-control-sm production-readonly-field item-unitname" name="Details[' + index + '].UnitName" readonly tabindex="-1" aria-label="Đơn vị được xác định tự động" placeholder="Tự động" />' +
                 '<input type="hidden" name="Details[' + index + '].UnitId" class="item-unitid" value="0" />' +
                 '<input type="hidden" name="Details[' + index + '].YieldPercentage" class="item-yield" value="100" />' +
                 '</td>' +
@@ -599,13 +600,20 @@
                     });
                 }
                 sizeSelect.html(html);
+                if (initialSizeId) {
+                    sizeSelect.val(initialSizeId);
+                    initialSizeId = '';
+                }
                 sizeSection.show();
+                sizeSelect.trigger('change');
             });
         });
 
         $('#sizeSelect').on('change', calculateTotal);
 
-        addRow();
+        if (cfg.addInitialRow !== false) {
+            addRow();
+        }
 
         $('#btnSaveRecipe').on('click', function () {
             if (saveInFlight) return;

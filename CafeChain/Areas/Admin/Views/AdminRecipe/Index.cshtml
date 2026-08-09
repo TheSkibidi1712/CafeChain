@@ -44,26 +44,29 @@
 <link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 @Html.AntiForgeryToken()
 
-<div class="rb-page production-bom-page bom-list-page">
+<div class="rb-page production-bom-page production-bom-shell bom-list-page">
     <div class="container-fluid px-0">
         <partial name="_PageHero" model="hero" />
 
-        <nav class="rb-recipe-tabs" aria-label="Loại công thức">
+        <nav class="rb-recipe-tabs production-tabs" aria-label="Loại công thức">
             <a class="rb-recipe-tab @(type == "POS" ? "active" : "")"
+               aria-current="@(type == "POS" ? "page" : null)"
                href="@Url.Action("Index", new { type = "POS", search = Model.Search, status = Model.StatusFilter, page = 1 })">
                 Món bán
             </a>
             <a class="rb-recipe-tab @(type == "TOPPING" ? "active" : "")"
+               aria-current="@(type == "TOPPING" ? "page" : null)"
                href="@Url.Action("Index", new { type = "TOPPING", search = Model.Search, status = Model.StatusFilter, page = 1 })">
                 Topping
             </a>
             <a class="rb-recipe-tab @(type == "SUBRECIPE" ? "active" : "")"
+               aria-current="@(type == "SUBRECIPE" ? "page" : null)"
                href="@Url.Action("Index", new { type = "SUBRECIPE", search = Model.Search, status = Model.StatusFilter, page = 1 })">
                 Bán thành phẩm
             </a>
         </nav>
 
-        <form method="get" class="rb-list-filters rb-module-filter rb-module-filter--three mb-3">
+        <form method="get" class="rb-list-filters production-filter-card" role="search">
             <input type="hidden" name="type" value="@type" />
             <label class="visually-hidden" for="recipeSearch">Tìm công thức</label>
             <input id="recipeSearch"
@@ -81,11 +84,22 @@
             <button class="btn btn-rb-save" type="submit">
                 <i class="fas fa-search me-2" aria-hidden="true"></i>Lọc
             </button>
+            <a class="btn btn-rb-ghost production-filter-reset"
+               href="@Url.Action("Index", new { type })"
+               aria-label="Đặt lại bộ lọc"
+               title="Đặt lại bộ lọc">
+                <i class="fas fa-rotate-left" aria-hidden="true"></i>
+            </a>
         </form>
 
-        <div class="rb-list-meta mb-2">
-            <strong>@Model.TotalCount</strong> công thức @typeLabel.ToLowerInvariant()
-        </div>
+        <section class="production-list-section" aria-labelledby="recipe-list-title">
+            <header class="production-section-header">
+                <div>
+                    <h2 id="recipe-list-title">Danh sách công thức @typeLabel.ToLowerInvariant()</h2>
+                    <p>Phiên bản đang áp dụng, tình trạng dữ liệu và giá vốn ước tính.</p>
+                </div>
+                <span class="production-section-header__count"><strong>@Model.TotalCount</strong> công thức</span>
+            </header>
 
         <div class="rb-card production-table-panel">
             <div class="table-responsive">
@@ -317,12 +331,10 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-
         @if (Model.TotalPages > 1)
         {
-            <nav class="production-pagination mt-3" aria-label="Phân trang công thức">
-                <span class="production-pagination__summary">Trang @Model.Page / @Model.TotalPages</span>
+            <nav class="production-pagination" aria-label="Phân trang công thức">
+                <span class="production-pagination__summary">Trang @Model.Page trên @Model.TotalPages</span>
                 <div class="production-pagination__links">
                     @if (Model.Page > 1)
                     {
@@ -345,6 +357,8 @@
                 </div>
             </nav>
         }
+        </div>
+        </section>
     </div>
 </div>
 
