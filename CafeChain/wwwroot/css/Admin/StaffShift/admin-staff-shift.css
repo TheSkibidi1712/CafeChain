@@ -1226,3 +1226,68 @@
         animation-iteration-count: 1 !important;
     }
 }
+
+/* ==========================================================================
+   TEMPLATE MANAGEMENT ACTION BUTTONS (CafeChain Design System Alignment)
+   ========================================================================== */
+.template-management .shift-action-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    height: 32px !important;
+    padding: 0 13px !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    font-size: 12.5px !important;
+    font-weight: 750 !important;
+    white-space: nowrap !important;
+    transition: all 0.18s ease-in-out !important;
+    cursor: pointer !important;
+    margin: 0 3px !important;
+    text-decoration: none !important;
+}
+
+.template-management .shift-action-edit {
+    border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
+    background: var(--cc-surface-muted, #fbf7f2) !important;
+    color: var(--cc-brown-600, #70482f) !important;
+    box-shadow: 0 1px 3px rgba(32, 24, 18, 0.05) !important;
+}
+
+.template-management .shift-action-edit:hover {
+    border-color: var(--cc-brown-600, #70482f) !important;
+    background: var(--cc-brown-600, #70482f) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.22) !important;
+    transform: translateY(-1px) !important;
+}
+
+.template-management .shift-action-toggle-active {
+    border: 1px solid #f2d8b8 !important;
+    background: var(--cc-warning-bg, #fcf4e8) !important;
+    color: var(--cc-warning, #99623b) !important;
+    box-shadow: 0 1px 3px rgba(153, 98, 59, 0.05) !important;
+}
+
+.template-management .shift-action-toggle-active:hover {
+    border-color: var(--cc-warning, #99623b) !important;
+    background: var(--cc-warning, #99623b) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(153, 98, 59, 0.25) !important;
+    transform: translateY(-1px) !important;
+}
+
+.template-management .shift-action-toggle-inactive {
+    border: 1px solid #a8d8cc !important;
+    background: var(--cc-success-bg, #edf6f2) !important;
+    color: var(--cc-success, #2f6f5e) !important;
+    box-shadow: 0 1px 3px rgba(47, 111, 94, 0.05) !important;
+}
+
+.template-management .shift-action-toggle-inactive:hover {
+    border-color: var(--cc-success, #2f6f5e) !important;
+    background: var(--cc-success, #2f6f5e) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(47, 111, 94, 0.25) !important;
+    transform: translateY(-1px) !important;
+}

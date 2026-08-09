@@ -426,12 +426,48 @@
 .create-table-wrap,
 .create-add-row-btn,
 .create-section-hint,
-.create-section-subtitle,
-.negative-stock-mode-field,
-[id="negativeStockModeField"] {
+.create-section > .create-section-subtitle {
     width: calc(100% - 56px) !important;
     margin-left: 28px !important;
     margin-right: 28px !important;
+    box-sizing: border-box !important;
+}
+
+.negative-stock-mode-field,
+[id="negativeStockModeField"] {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.negative-stock-mode-field .create-section-subtitle,
+.negative-stock-mode-field .negative-stock-mode-title {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.negative-stock-mode-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.negative-stock-mode-card {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.negative-stock-policy-note,
+.negative-stock-projection {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     box-sizing: border-box !important;
 }
 

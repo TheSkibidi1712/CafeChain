@@ -163,8 +163,6 @@ namespace CafeChain.Controllers
 
             await SignInAsync(result.Data, model.RememberMe);
 
-            TempData["SuccessMessage"] = result.Message;
-
             return RedirectAfterLogin(result.Data, returnUrl);
         }
 

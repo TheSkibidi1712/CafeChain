@@ -429,7 +429,6 @@
 
 .inventory-table tbody tr:hover {
     background: var(--cc-surface-active, #f4e9df);
->>>>>>> origin/develop
 }
 
 .inventory-empty-state {

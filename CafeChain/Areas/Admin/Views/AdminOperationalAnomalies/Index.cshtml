@@ -73,7 +73,7 @@
                         </td>
                         <td>@item.StatusDisplay</td>
                         <td class="text-end text-nowrap">
-                            @if (canUseAi) { <button class="cc-btn-outline" data-explain="@item.Id">Giải thích dễ hiểu</button> }
+                            @if (canUseAi) { <button class="cc-btn-outline" data-explain="@item.Id">Giải thích</button> }
                             @if (canAcknowledge && item.Status == "OPEN") { <button class="cc-btn-outline cc-btn-outline-primary" data-ack="@item.Id" data-version="@item.RowVersion">Tiếp nhận</button> }
                             @if (canResolve && item.Status is "OPEN" or "ACKNOWLEDGED") { <button class="cc-btn-outline cc-btn-outline-success" data-resolve="@item.Id" data-version="@item.RowVersion">Đánh dấu đã xử lý</button> }
                             @if (canFeedback) { <button class="cc-btn-outline" data-feedback="@item.Id" data-version="@item.RowVersion">Phản hồi</button> }

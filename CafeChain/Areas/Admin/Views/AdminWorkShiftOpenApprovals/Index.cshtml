@@ -9,7 +9,7 @@
         <div>
             <span class="cc-page-kicker">Nhân sự & vận hành</span>
             <h1 class="cc-page-title">Duyệt mở ca trễ</h1>
-            <p class="cc-page-description">Chỉ Store Manager, Area Manager hoặc Business Owner đúng phạm vi được quyết định.</p>
+            <p class="cc-page-description">Chỉ Quản lý cửa hàng, Quản lý khu vực hoặc Chủ doanh nghiệp đúng phạm vi mới có quyền quyết định.</p>
         </div>
     </header>
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success">@TempData["SuccessMessage"]</div> }
@@ -32,7 +32,7 @@
                     <div class="approval-card-info">
                         <div class="approval-card-title">@item.RequestedByName</div>
                         <div class="approval-card-detail">Trạng thái: <strong>Trễ @item.MinutesLate phút</strong></div>
-                        <div class="approval-card-detail">Terminal: <strong>@item.TerminalId</strong> &bull; Store: <strong>#@item.StoreId</strong></div>
+                        <div class="approval-card-detail">Terminal: <strong>@item.TerminalId</strong> &bull; Cửa hàng: <strong>#@item.StoreId</strong></div>
                         <div class="approval-card-detail">Hết hạn: <strong>@item.ExpiresAtUtc.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</strong></div>
                         <div class="approval-card-reason">@item.Reason</div>
                     </div>
