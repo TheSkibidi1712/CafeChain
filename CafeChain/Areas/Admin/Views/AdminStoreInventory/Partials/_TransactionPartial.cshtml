@@ -1,6 +1,8 @@
 ﻿@model List<CafeChain.ViewModels.Admin.StoreInventories.InventoryTransactionVM>
 
+@using CafeChain.Application.Interfaces.Systems
 @using CafeChain.ViewModels.Admin.StoreInventories
+@inject IBusinessDateService BusinessDateService
 
 @{
     var currentStoreId = ViewBag.StoreId != null
@@ -118,7 +120,7 @@
                     </td>
 
                     <td>
-                        @item.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                        @BusinessDateService.ToBusinessTime(item.CreatedAt).ToString("dd/MM/yyyy HH:mm")
                     </td>
                 </tr>
             }

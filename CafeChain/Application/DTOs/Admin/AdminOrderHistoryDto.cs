@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace CafeChain.Application.DTOs.Admin
 {
@@ -63,6 +64,7 @@ namespace CafeChain.Application.DTOs.Admin
         public int StoreId { get; set; }
         public string FormattedOrderId => $"#CC{OrderId:D5}";
         public DateTime CreatedAt { get; set; }
+        public string CreatedAtDisplay => CreatedAt.ToString("HH:mm dd/MM/yyyy", CultureInfo.InvariantCulture);
         public string StoreName { get; set; }
         public string StaffName { get; set; }
         public string OrderTypeName { get; set; }
@@ -104,6 +106,7 @@ namespace CafeChain.Application.DTOs.Admin
         public int OrderId { get; set; }
         public string FormattedOrderId => $"#CC{OrderId:D5}";
         public DateTime CreatedAt { get; set; }
+        public string CreatedAtDisplay => CreatedAt.ToString("HH:mm dd/MM/yyyy", CultureInfo.InvariantCulture);
 
         public string Note { get; set; }
         public string Source { get; set; }
@@ -152,6 +155,9 @@ namespace CafeChain.Application.DTOs.Admin
         public decimal? ReceivedAmount { get; set; }
         public decimal? ChangeAmount { get; set; }
         public DateTime? PaidAt { get; set; }
+        public string PaidAtDisplay => PaidAt.HasValue
+            ? PaidAt.Value.ToString("HH:mm dd/MM/yyyy", CultureInfo.InvariantCulture)
+            : "Chưa xác định";
         public string TransactionCode { get; set; }
     }
 

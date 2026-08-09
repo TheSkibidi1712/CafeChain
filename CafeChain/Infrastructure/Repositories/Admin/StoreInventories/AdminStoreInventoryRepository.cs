@@ -504,7 +504,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
             int? referenceOrderId)
         {
             if (referenceOrderId.HasValue)
-                return $"POS / Đơn hàng #{referenceOrderId.Value}";
+                return $"POS / Đơn hàng #CC{referenceOrderId.Value:D5}";
 
             if (inventoryTransferId.HasValue)
                 return $"Chuyển kho #{inventoryTransferId.Value}";
