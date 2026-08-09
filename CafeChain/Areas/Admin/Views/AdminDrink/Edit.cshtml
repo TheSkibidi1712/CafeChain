@@ -26,14 +26,6 @@
     </div>
 
     <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item">
-            <a asp-area="Admin"
-               asp-controller="AdminDrink"
-               asp-action="Index">
-                Danh sách Nước uống
-            </a>
-        </li>
-
         <li class="breadcrumb-item active">
             Chỉnh sửa
         </li>
@@ -220,7 +212,7 @@
             <div class="card shadow-sm border-0">
 
                 <div class="card-header bg-white border-bottom">
-                    <h5 class="mb-0 text-primary">
+                    <h5 class="mb-0">
                         <i class="fas fa-images me-2"></i>
                         Hình Ảnh Sản Phẩm
                     </h5>
@@ -232,22 +224,21 @@
                            id="currentDrinkId"
                            value="@Model.DrinkUpdateDTO.DrinkId" />
 
-                    <p class="text-muted small mb-3">
-                        <i class="fas fa-info-circle me-1"></i>
-                        JPG, PNG • Tối đa 5MB • Ảnh sẽ được crop chuẩn vuông trước khi upload
-                    </p>
-
-                    <div class="border rounded-3 p-3 mb-4 bg-light">
-                        <label class="form-label fw-semibold">
-                            Thêm ảnh mới
-                        </label>
+                    <div class="drink-image-upload-panel mb-4">
+                        <div class="drink-image-upload-heading">
+                            <span><i class="fas fa-cloud-arrow-up"></i></span>
+                            <div>
+                                <h6>Thêm ảnh mới</h6>
+                                <p>JPG, PNG • Tối đa 5MB • Crop chuẩn 1:1</p>
+                            </div>
+                        </div>
 
                         <input type="file"
-                               class="form-control mb-2"
+                               class="form-control drink-image-file-input mb-3"
                                id="uploadImageInput"
                                accept=".jpg,.jpeg,.png" />
 
-                        <div class="d-flex align-items-center justify-content-between gap-3">
+                        <div class="d-flex align-items-center justify-content-between gap-2">
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input"
                                        type="checkbox"
@@ -261,7 +252,7 @@
                             </div>
 
                             <button type="button"
-                                    class="btn btn-primary btn-sm"
+                                    class="btn drink-image-upload-btn"
                                     id="btnUploadDrinkImage">
                                 <i class="fas fa-upload me-1"></i>
                                 Tải ảnh
@@ -269,15 +260,17 @@
                         </div>
                     </div>
 
-                    <h6 class="fw-bold mb-3 border-bottom pb-2">
-                        <i class="fas fa-layer-group me-1"></i>
-                        Danh Sách Ảnh Đã Tải Lên
-                    </h6>
+                    <div class="drink-image-library-heading mb-3">
+                        <div>
+                            <i class="fas fa-layer-group"></i>
+                            <span>Danh Sách Ảnh Đã Tải Lên</span>
+                        </div>
+                    </div>
 
-                    <div class="row g-3"
+                    <div class="row g-2 drink-image-grid"
                          id="imageListContainer">
-                        <div class="col-12 text-center text-muted">
-                            Đang tải...
+                        <div class="col-12 text-center text-muted py-3">
+                            <i class="fas fa-spinner fa-spin me-1"></i> Đang tải...
                         </div>
                     </div>
 

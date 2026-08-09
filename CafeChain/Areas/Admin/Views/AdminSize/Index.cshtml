@@ -206,7 +206,7 @@
 
                     <div class="row g-3 size-primary-fields">
                         <!-- Mã Size -->
-                        <div class="col-md-4 size-code-field">
+                        <div class="col-md-3 size-code-field">
                             <label class="form-label fw-semibold">
                                 Mã Size <span class="text-danger">*</span>
                             </label>
@@ -231,7 +231,7 @@
                                    required />
                         </div>
 
-                        <div class="col-md-4 size-type-field">
+                        <div class="col-md-5 size-type-field">
                             <label class="form-label fw-semibold">
                                 Loại Size <span class="text-danger">*</span>
                             </label>
@@ -336,7 +336,7 @@
                     <div class="row g-3 size-primary-fields">
 
                         <!-- Mã -->
-                        <div class="col-md-4 size-code-field">
+                        <div class="col-md-3 size-code-field">
                             <label class="form-label fw-semibold">
                                 Mã Size <span class="text-danger">*</span>
                             </label>
@@ -359,7 +359,7 @@
                                    required />
                         </div>
 
-                        <div class="col-md-4 size-type-field">
+                        <div class="col-md-5 size-type-field">
                             <label class="form-label fw-semibold">
                                 Loại Size <span class="text-danger">*</span>
                             </label>
@@ -405,35 +405,52 @@
 
 <!-- ================= DRINK MODAL ================= -->
 <div class="modal fade size-module-modal" id="drinkModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content p-3">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
 
             <!-- HEADER -->
-            <div class="modal-header border-0">
-                <h5 class="fw-bold mb-0" id="drinkModalTitle"></h5>
-                <button class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="size-modal-icon">
+                        <i class="fas fa-glass-martini-alt"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark" id="drinkModalTitle">Quản lý đồ uống theo Size</h5>
+                        <small class="text-muted">Gán hoặc ngắt kết nối đồ uống với kích thước này</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <!-- BODY -->
-            <div class="modal-body">
-                <div class="row">
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+                    <span class="badge bg-brown px-3 py-2 fs-6 rounded-pill" id="currentSizeBadge">Size</span>
+                    <span class="small text-muted"><i class="fas fa-info-circle me-1"></i>Bấm Gán để thêm đồ uống vào Size, hoặc Tắt để ngừng bán Size này</span>
+                </div>
 
+                <div class="row g-4">
                     <!-- UNASSIGNED -->
-                    <div class="mb-3">
-                        <span class="badge bg-danger fs-6" id="currentSizeBadge"></span>
-                    </div>
-                    <div class="col-6">
-                        <h6 class="fw-bold text-muted mb-3">Chưa gán</h6>
-                        <div id="unassignedList" class="row g-2"></div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-plus-circle me-1 text-primary"></i> Chưa gán</h6>
+                        </div>
+                        <div id="unassignedList" class="d-flex flex-column gap-2"></div>
                     </div>
 
                     <!-- ASSIGNED -->
-                    <div class="col-6">
-                        <h6 class="fw-bold text-muted mb-3">Đã gán</h6>
-                        <div id="assignedList" class="row g-2"></div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-check-circle me-1 text-success"></i> Đã gán</h6>
+                        </div>
+                        <div id="assignedList" class="d-flex flex-column gap-2"></div>
                     </div>
-
                 </div>
+            </div>
+
+            <!-- FOOTER -->
+            <div class="modal-footer border-top bg-light">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
             </div>
 
         </div>
@@ -442,21 +459,30 @@
 
 
 <div class="modal fade size-module-modal" id="priceModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-3">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
 
-            <div class="modal-header border-0">
-                <h6 class="fw-bold">Nhập giá</h6>
-                <button class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="size-modal-icon is-edit" style="width: 32px; height: 32px; flex: 0 0 32px; font-size: 14px;">
+                        <i class="fas fa-tag"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0 text-dark">Nhập giá bán</h6>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-body">
-                <input type="number" id="priceInput" class="form-control" placeholder="Nhập giá..." />
+            <div class="modal-body p-3">
+                <label for="priceInput" class="form-label small text-muted">Giá bán (VNĐ)</label>
+                <div class="input-group">
+                    <input type="number" id="priceInput" class="form-control" placeholder="Ví dụ: 35000" min="1000" step="1000" />
+                    <span class="input-group-text bg-light text-muted">đ</span>
+                </div>
             </div>
 
-            <div class="modal-footer border-0">
-                <button class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
-                <button class="btn btn-orange" onclick="confirmAssign()">Xác nhận</button>
+            <div class="modal-footer border-top bg-light p-2">
+                <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-orange btn-sm px-3" onclick="confirmAssign()"><i class="fas fa-check me-1"></i>Xác nhận</button>
             </div>
 
         </div>

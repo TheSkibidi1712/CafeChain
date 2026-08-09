@@ -422,7 +422,7 @@ textarea.pf-control {
 
 .pf-table {
     width: 100%;
-    min-width: 1120px;
+    min-width: 1280px;
     border-collapse: separate;
     border-spacing: 0;
     font-size: 13.5px;
@@ -458,6 +458,12 @@ textarea.pf-control {
     border-bottom: 1px solid var(--cc-border, #e9ded4);
     vertical-align: middle;
     color: var(--cc-text, #201812);
+}
+
+.pf-table td:last-child,
+.pf-table th:last-child {
+    min-width: 270px;
+    white-space: nowrap;
 }
 
 .pf-table tbody tr:hover > td {
@@ -526,13 +532,12 @@ textarea.pf-control {
 /* Row Actions Buttons */
 .pf-row-actions {
     display: flex;
+    align-items: center;
     flex-wrap: nowrap;
     align-items: center;
     justify-content: center;
     gap: 6px;
     white-space: nowrap;
-    min-width: max-content;
-    margin: 0 auto;
 }
 
 .pf-row-button {
@@ -550,8 +555,11 @@ textarea.pf-control {
     border-radius: var(--cc-radius-sm, 8px);
     color: var(--cc-brown-900, #3d2418);
     background: var(--cc-surface-raised, #ffffff);
-    font-size: 12.5px;
+    padding: 0 10px;
+    font-size: 12px;
     font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
     transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
 }
 
