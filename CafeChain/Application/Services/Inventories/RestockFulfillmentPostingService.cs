@@ -25,7 +25,8 @@ namespace CafeChain.Application.Services.Inventories
                 return Failure("Nguồn thực hiện phải có đúng một định danh nguyên liệu hoặc bán thành phẩm.");
             if (command.SourceDocumentType is not (
                 RestockFulfillmentDocumentTypes.BranchReceipt or
-                RestockFulfillmentDocumentTypes.InventoryTransfer))
+                RestockFulfillmentDocumentTypes.InventoryTransfer or
+                RestockFulfillmentDocumentTypes.ProductionRun))
                 return Failure("Loại chứng từ fulfillment không hợp lệ.");
 
             var replay = await _context.RestockFulfillmentPostings

@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.Production;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Services.Inventories;
@@ -23,6 +24,8 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
         private readonly AppDbContext? _context;
         private readonly IUnitConversionService? _unitConversion;
+        private readonly IProductionSourceEligibilityService? _productionEligibility;
+        private readonly IPurchaseSourceEligibilityService? _purchaseEligibility;
 
         public AdminRestockRequestsController(
             IRestockRequestService service,
@@ -30,7 +33,9 @@ namespace CafeChain.Areas.Admin.Controllers
             IAdminActorContextAccessor actor,
             IAdminStoreScopeResolver storeScopeResolver,
             AppDbContext? context = null,
-            IUnitConversionService? unitConversion = null)
+            IUnitConversionService? unitConversion = null,
+            IProductionSourceEligibilityService? productionEligibility = null,
+            IPurchaseSourceEligibilityService? purchaseEligibility = null)
         {
             _service = service;
             _workflow = workflow;
@@ -38,6 +43,8 @@ namespace CafeChain.Areas.Admin.Controllers
             _storeScopeResolver = storeScopeResolver;
             _context = context;
             _unitConversion = unitConversion;
+            _productionEligibility = productionEligibility;
+            _purchaseEligibility = purchaseEligibility;
         }
 
         [HttpGet]
@@ -139,6 +146,24 @@ namespace CafeChain.Areas.Admin.Controllers
             ViewBag.CanSubmit = await HasEffectivePermissionAsync(PermissionConstants.RestockSubmit);
             ViewBag.CanAddDemand = await HasEffectivePermissionAsync(PermissionConstants.RestockCreate)
                 && RestockRequestStatuses.ActiveValues.Contains(result.Data.Status);
+            ViewBag.ProductionEligibility = _productionEligibility == null
+                ? null
+                : (await _productionEligibility.EvaluateAsync(new()
+                {
+                    StoreId = result.Data.StoreId,
+                    ActorAccountId = ctx.AccountId,
+                    IngredientId = result.Data.IngredientId,
+                    PreparedItemId = result.Data.PreparedItemId,
+                    RequiredPermissionCode = PermissionConstants.RestockSelectProductionSource
+                })).Data;
+            ViewBag.PurchaseEligibility = _purchaseEligibility == null
+                ? null
+                : (await _purchaseEligibility.EvaluateAsync(new()
+                {
+                    StoreId = result.Data.StoreId,
+                    IngredientId = result.Data.IngredientId,
+                    PreparedItemId = result.Data.PreparedItemId
+                })).Data;
             return View(result.Data);
         }
 

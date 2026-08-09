@@ -93,7 +93,26 @@ namespace CafeChain.Models.Inventories.Procurement
         public virtual Unit? InventoryBaseUnit { get; set; }
         public virtual Staff? ClosedRemainingByStaff { get; set; }
         public virtual ICollection<PurchaseOrderReceiptPosting> ReceiptPostings { get; set; } = new List<PurchaseOrderReceiptPosting>();
+        public virtual ICollection<PurchaseOrderLineClosure> Closures { get; set; } = new List<PurchaseOrderLineClosure>();
         public virtual ICollection<PurchaseOrderLineAllocation> BatchAllocations { get; set; } = new List<PurchaseOrderLineAllocation>();
+    }
+
+    public class PurchaseOrderLineClosure
+    {
+        public long PurchaseOrderLineClosureId { get; set; }
+        public int PurchaseOrderLineId { get; set; }
+        public decimal ClosedBaseQuantity { get; set; }
+        public decimal? ClosedProcurementQuantity { get; set; }
+        public int? ProcurementUnitId { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public string RequestKey { get; set; } = string.Empty;
+        public string PayloadHash { get; set; } = string.Empty;
+        public int ActorStaffId { get; set; }
+        public DateTime CreatedAtUtc { get; set; }
+
+        public virtual PurchaseOrderLine PurchaseOrderLine { get; set; } = null!;
+        public virtual Unit? ProcurementUnit { get; set; }
+        public virtual Staff ActorStaff { get; set; } = null!;
     }
 
     public class PurchaseOrderReceiptPosting

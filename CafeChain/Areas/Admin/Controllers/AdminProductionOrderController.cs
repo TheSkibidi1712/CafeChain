@@ -20,23 +20,129 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IProductionRunService _productionRunService;
         private readonly IProductionRunExecutionService _executionService;
+        private readonly IProductionRunOperationsService _operationsService;
+        private readonly IProductionRunAcceptanceService _acceptanceService;
+        private readonly IProductionRunQueryService _queryService;
         private readonly IProductionReadinessService _readinessService;
         private readonly IAdminStoreInventoryService _storeInventoryService;
 
         public AdminProductionOrderController(
             IProductionRunService productionRunService,
             IProductionRunExecutionService executionService,
+            IProductionRunOperationsService operationsService,
+            IProductionRunAcceptanceService acceptanceService,
+            IProductionRunQueryService queryService,
             IProductionReadinessService readinessService,
             IAdminStoreInventoryService storeInventoryService)
         {
             _productionRunService = productionRunService;
             _executionService = executionService;
+            _operationsService = operationsService;
+            _acceptanceService = acceptanceService;
+            _queryService = queryService;
             _readinessService = readinessService;
             _storeInventoryService = storeInventoryService;
         }
 
         [HttpGet]
-        public IActionResult Index() => RedirectToAction(nameof(Create));
+        public async Task<IActionResult> Index(int storeId = 0, string? status = null, int page = 1)
+        {
+            var accountId = GetAccountId();
+            var stores = accountId > 0
+                ? await _storeInventoryService.GetStoresByStaffAsync(accountId)
+                : new List<InventoryStoreDTO>();
+            var homeStoreId = User.GetStoreIdOrDefault();
+            var selectedStoreId = stores.Any(x => x.StoreId == storeId)
+                ? storeId
+                : stores.Any(x => x.StoreId == homeStoreId)
+                    ? homeStoreId
+                    : stores.FirstOrDefault()?.StoreId ?? 0;
+            ViewBag.Stores = stores;
+            ViewBag.SelectedStoreId = selectedStoreId;
+            ViewBag.SelectedStatus = status;
+            ViewBag.CanCreateLegacy = await HasEffectivePermissionAsync(PermissionConstants.ProductionOrderCreate);
+            if (selectedStoreId <= 0)
+                return View(new ProductionRunListDto());
+
+            var result = await _queryService.GetPageAsync(new ProductionRunListQuery
+            {
+                StoreId = selectedStoreId,
+                Status = status,
+                Page = page,
+                PageSize = 20
+            }, accountId);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                Response.StatusCode = result.ErrorCode == "PRODUCTION_RUN_FORBIDDEN"
+                    ? StatusCodes.Status403Forbidden
+                    : StatusCodes.Status400BadRequest;
+                ViewBag.ErrorMessage = result.Message;
+                return View(new ProductionRunListDto());
+            }
+            return View(result.Data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Details(int id)
+        {
+            var result = await _queryService.GetDetailAsync(id, GetAccountId());
+            if (!result.IsSuccess || result.Data == null)
+            {
+                if (result.ErrorCode == "PRODUCTION_RUN_NOT_FOUND")
+                    return NotFound();
+                if (result.ErrorCode == "PRODUCTION_RUN_FORBIDDEN")
+                    return Forbid();
+                TempData["ErrorMessage"] = result.Message;
+                return RedirectToAction(nameof(Index));
+            }
+            return View(result.Data);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ProductionOrderRelease)]
+        public Task<IActionResult> Release(int id) => RunOperationAsync(id, (runId, staffId) =>
+            _operationsService.ReleaseAsync(runId, staffId));
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ProductionOrderStart)]
+        public Task<IActionResult> Start(int id) => RunOperationAsync(id, (runId, staffId) =>
+            _operationsService.StartAsync(runId, staffId));
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ProductionOrderRecordActual)]
+        public async Task<IActionResult> RecordActual(RecordProductionActualRequest request)
+        {
+            var result = await _operationsService.RecordActualAsync(request, User.GetStaffId());
+            SetOperationMessage(result.IsSuccess, result.Message);
+            return RedirectToAction(nameof(Details), new { id = request.ProductionRunId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ProductionOrderApproveVariance)]
+        public Task<IActionResult> ApproveVariance(int id, string? reason) => RunOperationAsync(
+            id,
+            (runId, staffId) => _operationsService.ApproveVarianceAsync(runId, staffId, reason));
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ProductionOrderAcceptOutput)]
+        public async Task<IActionResult> AcceptOutput(int id)
+        {
+            var result = await _acceptanceService.AcceptAsync(id, User.GetStaffId());
+            SetOperationMessage(result.IsSuccess, result.Message);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.ProductionOrderCancel)]
+        public Task<IActionResult> Cancel(int id, string reason) => RunOperationAsync(
+            id,
+            (runId, staffId) => _operationsService.CancelAsync(runId, staffId, reason));
 
         [HttpGet]
         [RequirePermission(PermissionConstants.ProductionOrderCreate)]
@@ -275,6 +381,21 @@ namespace CafeChain.Areas.Admin.Controllers
                 messageKey = data.MessageKey,
                 message = result.Message
             });
+        }
+
+        private async Task<IActionResult> RunOperationAsync(
+            int productionRunId,
+            Func<int, int, Task<CafeChain.Application.Results.ServiceResult<ProductionRunOperationResultDto>>> operation)
+        {
+            var result = await operation(productionRunId, User.GetStaffId());
+            SetOperationMessage(result.IsSuccess, result.Message);
+            return RedirectToAction(nameof(Details), new { id = productionRunId });
+        }
+
+        private void SetOperationMessage(bool success, string? message)
+        {
+            TempData[success ? "SuccessMessage" : "ErrorMessage"] = message
+                ?? (success ? "Đã cập nhật lệnh sản xuất." : "Không thể cập nhật lệnh sản xuất.");
         }
 
         private int GetAccountId()

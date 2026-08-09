@@ -235,6 +235,7 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
                 .Include(x => x.GeneratedByStaff)
                 .Include(x => x.SentByStaff)
                 .Include(x => x.PurchaseOrderBatch)
+                    .ThenInclude(x => x.ChildPurchaseOrders)
                 .SingleOrDefaultAsync(x => x.PurchaseOrderBatchDocumentRevisionId == revisionId && x.PurchaseOrderBatchId == batchId);
             if (revision == null)
                 return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.DocumentNotFound, "Không tìm thấy phiên bản PDF thuộc đơn đặt hàng gộp này.");
@@ -262,6 +263,26 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
             if (revision.PurchaseOrderBatch.Status == PurchaseOrderBatchStatuses.PdfGenerated)
                 revision.PurchaseOrderBatch.Status = PurchaseOrderBatchStatuses.SentToSupplier;
             revision.PurchaseOrderBatch.UpdatedAtUtc = now;
+            foreach (var child in revision.PurchaseOrderBatch.ChildPurchaseOrders)
+            {
+                if (child.Status == PurchaseOrderStatuses.Approved)
+                {
+                    child.Status = PurchaseOrderStatuses.MarkedAsSent;
+                    child.SentByStaffId = actor.StaffId;
+                    child.SentAtUtc = now;
+                    child.UpdatedAtUtc = now;
+                    continue;
+                }
+
+                if (child.Status is not (PurchaseOrderStatuses.MarkedAsSent
+                    or PurchaseOrderStatuses.PartiallyReceived
+                    or PurchaseOrderStatuses.Completed))
+                {
+                    return Failure<PurchaseOrderBatchDocumentRevisionDto>(
+                        PurchaseOrderBatchErrorCodes.Invalid,
+                        "Có đơn đặt hàng con chưa ở trạng thái cho phép gửi nhà cung cấp.");
+                }
+            }
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
             return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(

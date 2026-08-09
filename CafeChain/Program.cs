@@ -13,6 +13,11 @@ if (args.Length > 0
 {
     return await PurchaseUnitAuditCli.RunAsync(args);
 }
+if (args.Length > 0
+    && string.Equals(args[0], "audit-purchase-orders", StringComparison.OrdinalIgnoreCase))
+{
+    return await PurchaseOrderConsistencyCli.RunAsync(args);
+}
 
 var builder = WebApplication.CreateBuilder(args);
 

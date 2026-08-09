@@ -206,6 +206,7 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
         var result = await service.CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
         {
             PurchaseOrderLineId = line.PurchaseOrderLineId,
+            CloseBaseQuantity = 10m,
             RowVersion = Convert.ToBase64String(line.RowVersion),
             Reason = "Nhà cung cấp không giao bù",
             RequestKey = "close-service-193"
@@ -331,6 +332,7 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
             .CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
             {
                 PurchaseOrderLineId = purchaseOrderLine.PurchaseOrderLineId,
+                CloseBaseQuantity = 9000m,
                 RowVersion = Convert.ToBase64String(purchaseOrderLine.RowVersion),
                 Reason = "Nhà cung cấp không giao hàng",
                 RequestKey = "close-procurement-193"
@@ -476,7 +478,7 @@ public sealed class PurchaseAdviceFulfillmentIssue193Tests : IntegrationTestBase
                 Code = $"PO-193-{index}",
                 StoreId = StoreId,
                 SupplierId = SupplierId,
-                Status = PurchaseOrderStatuses.Approved,
+                Status = PurchaseOrderStatuses.MarkedAsSent,
                 OrderDate = now.Date,
                 CreatedByStaffId = 99,
                 CreatedAtUtc = now,

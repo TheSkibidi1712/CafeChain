@@ -7,6 +7,7 @@
     var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto> ?? Array.Empty<AdminStoreOptionDto>();
     var selectedStoreId = ViewBag.SelectedStoreId as int? ?? 0;
     var statusFilter = ViewBag.StatusFilter as string;
+    var canCreate = (bool?)ViewBag.CanCreate == true;
 }
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 
@@ -17,7 +18,10 @@
             <h1 class="ops-title">Đơn đặt hàng</h1>
             <p class="ops-subtitle">Theo dõi số lượng đã đặt, tiến độ nhận và giá trị chứng từ. Tồn kho chỉ thay đổi khi phiếu nhận hàng được xác nhận.</p>
         </div>
-        <a class="ops-btn ops-btn-primary" asp-action="Create"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo đơn đặt hàng</a>
+        @if (canCreate)
+        {
+            <a class="ops-btn ops-btn-primary" asp-action="Create"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tạo đơn đặt hàng</a>
+        }
     </header>
 
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
@@ -48,7 +52,10 @@
             <p class="ops-empty-copy">Tạo đơn từ nhu cầu mua đã được xét nguồn cung, hoặc lập đơn mua chủ động khi bạn có đủ quyền và thông tin nhà cung cấp.</p>
             <div class="ops-empty-actions">
                 <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@selectedStoreId">Xem yêu cầu bổ sung</a>
-                <a class="ops-btn ops-btn-primary" asp-action="Create">Tạo đơn đặt hàng</a>
+                @if (canCreate)
+                {
+                    <a class="ops-btn ops-btn-primary" asp-action="Create">Tạo đơn đặt hàng</a>
+                }
             </div>
         </section>
     }

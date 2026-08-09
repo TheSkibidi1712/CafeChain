@@ -15,6 +15,10 @@ namespace CafeChain.Data.Configurations.Drinks.Recipes
                 t.HasCheckConstraint(
                     "CK_Recipes_OutputQuantity_Positive",
                     "[OutputQuantity] IS NULL OR [OutputQuantity] > 0");
+                t.HasCheckConstraint(
+                    "CK_Recipes_YieldVarianceTolerance",
+                    "[YieldVarianceTolerancePercent] IS NULL OR " +
+                    "([YieldVarianceTolerancePercent] >= 0 AND [YieldVarianceTolerancePercent] <= 100)");
 
                 // BTP output fields are all-or-none (nullable together for POS/topping/legacy).
                 t.HasCheckConstraint(
@@ -49,6 +53,8 @@ namespace CafeChain.Data.Configurations.Drinks.Recipes
             // === #112 BTP output contract ===
             entity.Property(x => x.OutputQuantity)
                 .HasColumnType("decimal(18,5)");
+            entity.Property(x => x.YieldVarianceTolerancePercent)
+                .HasColumnType("decimal(9,4)");
 
             // === SELF-REFERENCING FK: Recipe → ParentVersion ===
             entity.HasOne(x => x.ParentVersion)

@@ -6711,6 +6711,14 @@ BEGIN TRY
  (120,25,N'ProductionOrder.View',N'Xem lệnh sản xuất',N'ProductionOrderView',N'Xem lệnh sản xuất',1,'2026-01-01'),
  (121,25,N'ProductionOrder.Create',N'Tạo lệnh sản xuất',N'ProductionOrderCreate',N'Tạo lệnh sản xuất',1,'2026-01-01'),
  (122,25,N'ProductionOrder.Confirm',N'Xác nhận lệnh sản xuất',N'ProductionOrderConfirm',N'Xác nhận lệnh sản xuất',1,'2026-01-01'),
+ (151,25,N'ProductionOrder.Plan',N'Lập kế hoạch sản xuất',N'Plan',N'Lập kế hoạch số mẻ sản xuất trong phạm vi cửa hàng',1,'2026-08-09'),
+ (152,25,N'ProductionOrder.Release',N'Phát hành lệnh sản xuất',N'Release',N'Phát hành lệnh đã lập kế hoạch để ca vận hành tiếp nhận',1,'2026-08-09'),
+ (153,25,N'ProductionOrder.Start',N'Bắt đầu lệnh sản xuất',N'Start',N'Bắt đầu thực hiện lệnh sản xuất đã phát hành',1,'2026-08-09'),
+ (154,25,N'ProductionOrder.RecordActual',N'Ghi nhận sản xuất thực tế',N'RecordActual',N'Xác nhận đầu vào và sản lượng thực tế của lệnh sản xuất',1,'2026-08-09'),
+ (155,25,N'ProductionOrder.AcceptOutput',N'Xác nhận đầu ra sản xuất',N'AcceptOutput',N'Tiêu thụ đầu vào FIFO và nhập sản lượng đạt vào tồn kho',1,'2026-08-09'),
+ (156,25,N'ProductionOrder.ApproveVariance',N'Duyệt chênh lệch sản xuất',N'ApproveVariance',N'Duyệt chênh lệch sản lượng vượt ngưỡng theo maker-checker',1,'2026-08-09'),
+ (157,25,N'ProductionOrder.Cancel',N'Hủy lệnh sản xuất',N'Cancel',N'Hủy lệnh sản xuất chưa bắt đầu và giữ lịch sử',1,'2026-08-09'),
+ (158,25,N'Restock.SelectProductionSource',N'Chọn nguồn sản xuất cho yêu cầu',N'SelectProductionSource',N'Chọn nguồn sản xuất khi resolver xác nhận item và cửa hàng đủ điều kiện',1,'2026-08-09'),
 
  (123,1,N'StoreMenu.View',N'Xem menu cửa hàng',N'StoreMenuView',N'Xem menu cửa hàng',1,'2026-01-01'),
  (124,1,N'StoreMenu.Update',N'Cập nhật menu cửa hàng',N'StoreMenuUpdate',N'Cập nhật menu cửa hàng',1,'2026-01-01'),
@@ -7668,6 +7676,14 @@ BEGIN TRY
   (N'ProductionOrder.View',1,1,1,0,1,0,0,1),
   (N'ProductionOrder.Create',1,0,1,0,1,0,0,1),
   (N'ProductionOrder.Confirm',1,0,1,0,1,0,0,1),
+  (N'ProductionOrder.Plan',0,0,1,0,0,1,0,0),
+  (N'ProductionOrder.Release',0,0,1,0,0,1,0,0),
+  (N'ProductionOrder.Start',0,0,0,0,0,1,0,1),
+  (N'ProductionOrder.RecordActual',0,0,0,0,0,1,0,1),
+  (N'ProductionOrder.AcceptOutput',0,0,1,0,0,1,0,0),
+  (N'ProductionOrder.ApproveVariance',1,0,0,0,0,1,0,0),
+  (N'ProductionOrder.Cancel',0,0,1,0,0,1,0,0),
+  (N'Restock.SelectProductionSource',0,0,0,0,1,1,0,0),
   (N'OperationalIce.View',1,1,1,0,1,0,0,1),
   (N'OperationalIce.Manage',0,0,0,0,0,0,0,0),
   (N'OperationalIce.Approve',0,0,0,0,0,0,0,0),
@@ -11732,21 +11748,80 @@ BEGIN TRY
         PurchaseOrderId,RestockRequestId,IngredientId,IngredientSupplierId,PackageUnitIdSnapshot,
         PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,PurchaseMode,OrderedPackageCount,
         UnitPricePerPackage,OrderedBaseQuantity,
+        InventoryBaseUnitId,ProcurementToInventoryFactor,
         ClosedRemainingQuantity,PromisedLeadTimeDaysSnapshot,Note
     )
     SELECT po.PurchaseOrderId,rr.RestockRequestId,@AiCoffeeIngredientId,@AiCoffeeOfferId,
            offer.UnitId,offer.PackageQuantity,offer.CurrentPrice,5,N'Packaged',5,
-           offer.CurrentPrice,5,5,offer.LeadTimeDays,
+           offer.CurrentPrice,
+           5*offer.PackageQuantity*CASE
+               WHEN offer.UnitId=ingredient.BaseUnitId THEN 1
+               WHEN LOWER(packageUnit.UnitCode)=N'kg' AND LOWER(baseUnit.UnitCode)=N'g' THEN 1000
+               WHEN LOWER(packageUnit.UnitCode)=N'g' AND LOWER(baseUnit.UnitCode)=N'kg' THEN 0.001
+               WHEN LOWER(packageUnit.UnitCode)=N'l' AND LOWER(baseUnit.UnitCode)=N'ml' THEN 1000
+               WHEN LOWER(packageUnit.UnitCode)=N'ml' AND LOWER(baseUnit.UnitCode)=N'l' THEN 0.001
+           END,
+           ingredient.BaseUnitId,
+           CASE
+               WHEN offer.UnitId=ingredient.BaseUnitId THEN 1
+               WHEN LOWER(packageUnit.UnitCode)=N'kg' AND LOWER(baseUnit.UnitCode)=N'g' THEN 1000
+               WHEN LOWER(packageUnit.UnitCode)=N'g' AND LOWER(baseUnit.UnitCode)=N'kg' THEN 0.001
+               WHEN LOWER(packageUnit.UnitCode)=N'l' AND LOWER(baseUnit.UnitCode)=N'ml' THEN 1000
+               WHEN LOWER(packageUnit.UnitCode)=N'ml' AND LOWER(baseUnit.UnitCode)=N'l' THEN 0.001
+           END,
+           0,offer.LeadTimeDays,
            CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_LINE_S',rr.StoreId)
     FROM dbo.PurchaseOrders po
     JOIN dbo.RestockRequests rr ON rr.Note=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_RESTOCK_S',po.StoreId)
     JOIN dbo.IngredientSuppliers offer ON offer.IngredientSupplierId=@AiCoffeeOfferId
+    JOIN dbo.Ingredients ingredient ON ingredient.IngredientId=@AiCoffeeIngredientId
+    JOIN dbo.Units packageUnit ON packageUnit.UnitId=offer.UnitId
+    JOIN dbo.Units baseUnit ON baseUnit.UnitId=ingredient.BaseUnitId
     WHERE po.Note=N'DEMO_AI_DASHBOARD_ROLLING_V1'
       AND NOT EXISTS
       (
           SELECT 1 FROM dbo.PurchaseOrderLines l
           WHERE l.PurchaseOrderId=po.PurchaseOrderId
             AND l.Note=CONCAT(N'DEMO_AI_DASHBOARD_ROLLING_V1_LINE_S',rr.StoreId)
+      );
+
+    /* Repair only the deterministic rolling fixture before it has receipt/closure evidence. */
+    UPDATE line
+       SET line.OrderedBaseQuantity=5*line.PackageQuantitySnapshot*CASE
+               WHEN line.PackageUnitIdSnapshot=ingredient.BaseUnitId THEN 1
+               WHEN LOWER(packageUnit.UnitCode)=N'kg' AND LOWER(baseUnit.UnitCode)=N'g' THEN 1000
+               WHEN LOWER(packageUnit.UnitCode)=N'g' AND LOWER(baseUnit.UnitCode)=N'kg' THEN 0.001
+               WHEN LOWER(packageUnit.UnitCode)=N'l' AND LOWER(baseUnit.UnitCode)=N'ml' THEN 1000
+               WHEN LOWER(packageUnit.UnitCode)=N'ml' AND LOWER(baseUnit.UnitCode)=N'l' THEN 0.001
+           END,
+           line.InventoryBaseUnitId=ingredient.BaseUnitId,
+           line.ProcurementToInventoryFactor=CASE
+               WHEN line.PackageUnitIdSnapshot=ingredient.BaseUnitId THEN 1
+               WHEN LOWER(packageUnit.UnitCode)=N'kg' AND LOWER(baseUnit.UnitCode)=N'g' THEN 1000
+               WHEN LOWER(packageUnit.UnitCode)=N'g' AND LOWER(baseUnit.UnitCode)=N'kg' THEN 0.001
+               WHEN LOWER(packageUnit.UnitCode)=N'l' AND LOWER(baseUnit.UnitCode)=N'ml' THEN 1000
+               WHEN LOWER(packageUnit.UnitCode)=N'ml' AND LOWER(baseUnit.UnitCode)=N'l' THEN 0.001
+           END,
+           line.ClosedRemainingQuantity=0,
+           line.ClosedProcurementQuantity=0,
+           line.CloseRemainingReason=NULL,
+           line.ClosedRemainingByStaffId=NULL,
+           line.ClosedRemainingAtUtc=NULL
+    FROM dbo.PurchaseOrderLines line
+    JOIN dbo.Ingredients ingredient ON ingredient.IngredientId=line.IngredientId
+    JOIN dbo.Units packageUnit ON packageUnit.UnitId=line.PackageUnitIdSnapshot
+    JOIN dbo.Units baseUnit ON baseUnit.UnitId=ingredient.BaseUnitId
+    WHERE line.Note LIKE N'DEMO_AI_DASHBOARD_ROLLING_V1_LINE_S%'
+      AND line.PurchaseMode=N'Packaged'
+      AND line.OrderedPackageCount=5
+      AND line.PackageQuantitySnapshot IS NOT NULL
+      AND line.CloseRemainingReason IS NULL
+      AND line.ClosedRemainingByStaffId IS NULL
+      AND line.ClosedRemainingAtUtc IS NULL
+      AND NOT EXISTS
+      (
+          SELECT 1 FROM dbo.PurchaseOrderReceiptPostings posting
+          WHERE posting.PurchaseOrderLineId=line.PurchaseOrderLineId
       );
 
     /* ANOMALY: cash discrepancy in the rolling window. */
