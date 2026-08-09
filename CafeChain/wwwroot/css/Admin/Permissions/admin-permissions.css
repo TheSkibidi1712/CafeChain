@@ -355,22 +355,32 @@
 .perm-table th {
     height: 48px;
     padding: 0 22px;
-    color: #94a3b8;
+    color: #6b5a4e;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: .03em;
     font-weight: 800;
-    background: #fbfcfe;
+    background: #f8f3ef;
     border-bottom: 1px solid var(--perm-border);
-    text-align: center !important;
+    white-space: nowrap;
+    text-align: left;
 }
 
 .perm-table td {
-    padding: 20px 22px;
+    padding: 16px 22px;
     border-bottom: 1px solid #f2f4f8;
     vertical-align: middle;
     font-size: 14px;
-    text-align: center !important;
+    white-space: nowrap;
+    text-align: left;
+}
+
+/* Standard Alignments: Status (Col 5) & Actions (Col 6) Center */
+.perm-table th:nth-child(5),
+.perm-table td:nth-child(5),
+.perm-table th:nth-child(6),
+.perm-table td:nth-child(6) {
+    text-align: center;
 }
 
 .perm-table tbody tr:hover {
@@ -394,14 +404,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto;
-    height: 24px;
-    padding: 0 9px;
-    border-radius: 6px;
+    min-height: 26px;
+    padding: 4px 12px;
+    border-radius: 999px;
     font-size: 12px;
     font-weight: 800;
     background: #ecfdf5;
     color: var(--perm-green);
+    white-space: nowrap;
 }
 
 .perm-badge.is-muted {
