@@ -89,21 +89,21 @@
                 <div class="col-12 col-md-4 mb-2 mb-md-0">
                     <label asp-for="ProvinceId" class="fw-bold">Tỉnh/Thành phố <span class="text-danger">*</span></label>
                     <select asp-for="ProvinceId" id="ProvinceId" class="form-select" asp-items="ViewBag.Provinces" required>
-                        <option value="">-- Chọn Tỉnh/TP --</option>
+                        <option value="">Chọn Tỉnh/TP</option>
                     </select>
                     <span asp-validation-for="ProvinceId" class="text-danger"></span>
                 </div>
                 <div class="col-12 col-md-4 mb-2 mb-md-0">
                     <label asp-for="DistrictId" class="fw-bold">Quận/Huyện <span class="text-danger">*</span></label>
                     <select asp-for="DistrictId" id="DistrictId" class="form-select" required disabled>
-                        <option value="">-- Chọn Quận/Huyện --</option>
+                        <option value="">Chọn Quận/Huyện</option>
                     </select>
                     <span asp-validation-for="DistrictId" class="text-danger"></span>
                 </div>
                 <div class="col-12 col-md-4">
                     <label asp-for="WardId" class="fw-bold">Phường/Xã <span class="text-danger">*</span></label>
                     <select asp-for="WardId" id="WardId" class="form-select" required disabled>
-                        <option value="">-- Chọn Phường/Xã --</option>
+                        <option value="">Chọn Phường/Xã</option>
                     </select>
                     <span asp-validation-for="WardId" class="text-danger"></span>
                 </div>
@@ -116,7 +116,7 @@
             </div>
 
             <button type="button" id="btnGeocode" class="store-admin-btn store-admin-btn-outline w-100 mb-4">
-                <i class="bi bi-geo-alt-fill"></i> Tự động tìm vị trí trên bản đồ
+                <i class="fas fa-location-crosshairs"></i> Tự động tìm vị trí trên bản đồ
             </button>
 
             <div class="row mb-3">
@@ -136,20 +136,20 @@
                 </div>
             </div>
 
-            <div class="form-group mb-3">
+            <div class="form-group mb-4">
                 <label asp-for="Phone" class="fw-bold">Số điện thoại liên hệ</label>
-                <input asp-for="Phone" class="form-control" />
+                <input asp-for="Phone" class="form-control" placeholder="Nhập số điện thoại cửa hàng..." />
                 <span asp-validation-for="Phone" class="text-danger"></span>
             </div>
 
             <button type="submit" class="store-admin-btn store-admin-btn-primary w-100">
-                <i class="fas fa-save"></i>
+                <i class="fas fa-plus"></i>
                 Thêm cửa hàng
             </button>
         </form>
     
     <section class="store-admin-card store-admin-map-card">
-        <h5 class="fw-bold"><i class="bi bi-map text-warning"></i> Định vị thủ công (kéo thả ghim)</h5>
+        <h5 class="fw-bold"><i class="fas fa-map-location-dot text-warning me-1"></i> Định vị thủ công (kéo thả ghim)</h5>
         <div class="store-admin-map-hint">
             Nếu nút "Tự động tìm kiếm" thả ghim không chính xác, bạn có thể <strong>click và kéo thả ghim</strong> trên bản đồ dưới đây để chỉnh lại tọa độ cho chuẩn xác nhất.
         </div>
@@ -202,8 +202,8 @@
                 var $district = $('#DistrictId');
                 var $ward = $('#WardId');
                 
-                $district.empty().append('<option value="">-- Chọn Quận/Huyện --</option>').prop('disabled', true);
-                $ward.empty().append('<option value="">-- Chọn Phường/Xã --</option>').prop('disabled', true);
+                $district.empty().append('<option value="">Chọn Quận/Huyện</option>').prop('disabled', true);
+                $ward.empty().append('<option value="">Chọn Phường/Xã</option>').prop('disabled', true);
 
                 if (!provinceId) {
                     dfd.resolve();

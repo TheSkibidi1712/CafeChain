@@ -463,6 +463,12 @@
 /* ==========================================================================
    MODAL & FORM CONTROLS
    ========================================================================== */
+.size-modal-dialog {
+    max-width: 620px;
+    width: 92vw;
+    margin: 1.75rem auto;
+}
+
 .size-module-modal .modal-content {
     border-radius: var(--cc-radius-modal, 18px);
     box-shadow: var(--cc-shadow-lg, 0 18px 48px rgba(32, 24, 18, 0.14));
@@ -472,7 +478,9 @@
 }
 
 .size-module-modal .modal-header {
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 20px 24px 16px;
     border-bottom: 1px solid var(--cc-border, #e9ded4) !important;
     background: linear-gradient(135deg, var(--cc-surface-raised, #ffffff), var(--cc-surface-muted, #fbf7f2));
@@ -507,6 +515,7 @@
     border-top: 1px solid var(--cc-border, #e9ded4) !important;
     background: var(--cc-surface-muted, #fbf7f2);
     flex-wrap: nowrap;
+    justify-content: flex-end;
     gap: 10px;
 }
 
@@ -518,9 +527,7 @@
 }
 
 .size-module-modal .form-control,
-.size-module-modal .form-select,
-.form-control,
-.form-select {
+.form-control {
     width: 100%;
     min-height: 44px;
     height: 44px;
@@ -530,6 +537,23 @@
     border: 1px solid var(--cc-border-strong, #d8c5b6);
     background-color: var(--cc-surface-raised, #ffffff) !important;
     color: var(--cc-text, #201812);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.size-module-modal .form-select,
+.form-select {
+    width: 100%;
+    min-height: 44px;
+    height: 44px;
+    font-size: 13.5px;
+    border-radius: var(--cc-radius-control, 10px);
+    padding: 10px 36px 10px 14px !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    background-color: var(--cc-surface-raised, #ffffff) !important;
+    color: var(--cc-text, #201812);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
     transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 

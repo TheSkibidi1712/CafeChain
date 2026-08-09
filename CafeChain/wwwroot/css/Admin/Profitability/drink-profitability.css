@@ -65,15 +65,11 @@
 
 /* Base Workspace Layout */
 .pf-page {
-    width: calc(100% - 24px);
+    width: 100%;
     max-width: 1540px;
-    min-height: calc(100vh - 84px);
     margin: 0 auto;
-    border-radius: var(--cc-radius-modal, 18px);
-    padding: 28px;
-    background:
-        radial-gradient(circle at 96% 4%, rgba(198, 122, 69, 0.08), transparent 260px),
-        linear-gradient(180deg, #faf7f4 0%, #f7f4f0 320px, transparent 600px);
+    padding: 0;
+    background: transparent;
     color: var(--cc-text, #201812);
 }
 
@@ -445,6 +441,16 @@ textarea.pf-control {
     letter-spacing: 0.04em;
     text-transform: uppercase;
     white-space: nowrap;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.pf-table th.pf-number {
+    text-align: right !important;
+}
+
+.pf-table th.pf-action-header {
+    text-align: center !important;
 }
 
 .pf-table td {
@@ -507,24 +513,43 @@ textarea.pf-control {
     border: 1px solid #e9b8b8;
 }
 
+/* Colgroup Column Widths */
+.pf-col-size { width: 22%; min-width: 180px; }
+.pf-col-status { width: 14%; min-width: 140px; }
+.pf-col-cost { width: 11%; min-width: 110px; }
+.pf-col-price { width: 13%; min-width: 120px; }
+.pf-col-profit { width: 11%; min-width: 110px; }
+.pf-col-margin { width: 9%; min-width: 85px; }
+.pf-col-markup { width: 9%; min-width: 85px; }
+.pf-col-actions { width: 220px; min-width: 220px; text-align: center; }
+
 /* Row Actions Buttons */
 .pf-row-actions {
     display: flex;
     flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
     gap: 6px;
+    white-space: nowrap;
+    min-width: max-content;
+    margin: 0 auto;
 }
 
 .pf-row-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 5px;
     height: 34px;
     min-height: 34px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-decoration: none;
+    padding: 0 12px;
     border: 1px solid var(--cc-border-strong, #d8c5b6);
     border-radius: var(--cc-radius-sm, 8px);
     color: var(--cc-brown-900, #3d2418);
     background: var(--cc-surface-raised, #ffffff);
-    padding: 0 12px;
     font-size: 12.5px;
     font-weight: 700;
     transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;

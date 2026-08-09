@@ -163,12 +163,12 @@
         <table class="table table-hover align-middle mb-0" id="negativeInventoryItemsTable">
             <thead class="table-light">
                 <tr>
-                    <th class="text-center ni-col-item">Item</th>
-                    <th class="text-end ni-col-stock">Tồn khả dụng</th>
-                    <th class="text-center ni-col-mode">Chế độ</th>
-                    <th class="text-center ni-col-limit">Hạn mức riêng</th>
-                    <th class="text-center ni-col-effective">Hiệu lực</th>
-                    <th class="text-center ni-col-status">Trạng thái</th>
+                    <th class="ni-col-item text-start">Item</th>
+                    <th class="ni-col-stock text-end">Tồn khả dụng</th>
+                    <th class="ni-col-mode text-center">Chế độ</th>
+                    <th class="ni-col-limit text-center">Hạn mức riêng</th>
+                    <th class="ni-col-effective text-end">Hiệu lực</th>
+                    <th class="ni-col-status text-center">Trạng thái</th>
                 </tr>
             </thead>
             <tbody>
@@ -181,7 +181,7 @@
                         data-base-reserved="@formatInput(item.ReservedQty)"
                         data-base-effective-limit="@formatInput(item.EffectiveMaxNegativeQty)"
                         data-current-factor="1">
-                        <td class="text-center">
+                        <td class="text-start">
                             <div class="ni-item-heading">
                                 <span class="ni-item-code">@item.ItemCode</span>
                                 <span class="ni-item-name">@item.ItemName</span>
@@ -228,7 +228,7 @@
                                    disabled="@(item.LimitMode != NegativeInventoryLimitModes.Custom || !Model.IsConfigurationValid)" />
                             </div>
                         </td>
-                        <td class="text-center">
+                        <td class="text-end">
                             <strong class="negative-effective-limit">@formatQuantity(item.EffectiveMaxNegativeQty)</strong>
                             <span class="negative-display-unit-code">@item.BaseUnitCode</span>
                         </td>
