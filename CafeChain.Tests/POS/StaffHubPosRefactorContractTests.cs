@@ -321,6 +321,35 @@ public sealed class StaffHubPosRefactorContractTests
         Assert.Contains("terminalErrorMessages", admin, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Staffhub_terminal_registration_is_bound_to_one_stable_browser_device()
+    {
+        var controller = Read("CafeChain", "Controllers", "StaffHubController.cs");
+        var view = Read("CafeChain", "Views", "StaffHub", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "StaffHub", "staffhub-schedule.js");
+        var css = Read("CafeChain", "wwwroot", "css", "StaffHub", "staffhub.css");
+
+        Assert.Contains("ViewBag.CurrentStoreId", controller, StringComparison.Ordinal);
+        Assert.Contains("data-store-id", view, StringComparison.Ordinal);
+        Assert.Contains("Đăng ký thiết bị này", view, StringComparison.Ordinal);
+        Assert.Contains("Liên kết Terminal đã có", view, StringComparison.Ordinal);
+        Assert.Contains("cafechain.staffhub.pos-terminal-device.v1", script, StringComparison.Ordinal);
+        Assert.Contains("saveTerminalDeviceIdentity", script, StringComparison.Ordinal);
+        Assert.Contains("sameTerminalId", script, StringComparison.Ordinal);
+        Assert.Contains("OTHER_PENDING", script, StringComparison.Ordinal);
+        Assert.Contains("bindingSource", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("registrationTerminalId = crypto.randomUUID();", script, StringComparison.Ordinal);
+        Assert.Contains(".staffhub-terminal-device-state.is-ready", css, StringComparison.Ordinal);
+        Assert.Contains(".staffhub-terminal-registration-feedback", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Terminal_registration_state_restores_rejected_challenges_after_reload()
+    {
+        var repository = Read("CafeChain", "Infrastructure", "Repositories", "Admin", "POS", "OtpChallengeRepository.cs");
+        Assert.Contains("OtpConstants.Statuses.Rejected", repository, StringComparison.Ordinal);
+    }
+
     private static string Read(params string[] path) =>
         File.ReadAllText(Path.Combine([RepoRoot(), .. path]));
 
