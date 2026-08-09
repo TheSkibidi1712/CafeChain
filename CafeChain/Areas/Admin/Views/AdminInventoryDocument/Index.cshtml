@@ -49,20 +49,21 @@
         </div>
     </header>
 
-    <partial name="Partials/Detail/_DashboardCards"
-             model="Model" />
-
-    <partial name="Partials/Detail/_FilterSection"
-             model="Model" />
-
-    <section class="inventory-results-panel" aria-label="Danh sách phiếu kho">
-        <partial name="Partials/Detail/_DocumentTabs"
-                 model="Model.Filter" />
-
-        <partial name="Partials/Detail/_DocumentTable"
+    <div class="inventory-main">
+        <partial name="Partials/Detail/_DashboardCards"
                  model="Model" />
-    </section>
 
+        <partial name="Partials/Detail/_FilterSection"
+                 model="Model" />
+
+        <section class="inventory-results-panel" aria-label="Danh sách phiếu kho">
+            <partial name="Partials/Detail/_DocumentTabs"
+                     model="Model.Filter" />
+
+            <partial name="Partials/Detail/_DocumentTable"
+                     model="Model" />
+        </section>
+    </div>
 </main>
 
 
