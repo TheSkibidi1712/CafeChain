@@ -50,15 +50,29 @@ public sealed class SupplierProcurementDataQualityService : ISupplierProcurement
         var offers = await _context.IngredientSuppliers
             .AsNoTracking()
             .Include(x => x.Supplier)
-            .Include(x => x.Ingredient)
+            .Include(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
+            .Include(x => x.Unit)
+            .Include(x => x.LooseProcurementUnit)
             .ToListAsync(cancellationToken);
         report.ScannedOfferCount = offers.Count;
+
+        var offerIds = offers.Select(x => x.IngredientSupplierId).ToArray();
+        var referencedByActivePurchaseOrder = (await _context.PurchaseOrderLines
+            .AsNoTracking()
+            .Where(x => offerIds.Contains(x.IngredientSupplierId)
+                && x.PurchaseOrder.Status != CafeChain.Application.Constants.PurchaseOrderStatuses.Cancelled)
+            .Select(x => x.IngredientSupplierId)
+            .Distinct()
+            .ToListAsync(cancellationToken))
+            .ToHashSet();
 
         foreach (var offer in offers)
         {
             var reference = $"{offer.Supplier.Code} / {offer.Ingredient.Code}";
+            var structuralIssue = false;
             if (!offer.PackageQuantity.HasValue || offer.PackageQuantity <= 0m)
             {
+                structuralIssue = true;
                 Add(report, "PACKAGE_CONTENT_MISSING", "SupplierPackage",
                     offer.IngredientSupplierId, reference,
                     "Gói mua chưa có lượng nội dung hợp lệ.");
@@ -72,10 +86,28 @@ public sealed class SupplierProcurementDataQualityService : ISupplierProcurement
                     offer.Ingredient.BaseUnitId);
                 if (!packageConversion.IsSuccess)
                 {
+                    structuralIssue = true;
                     Add(report, "PACKAGE_UOM_INCOMPATIBLE", "SupplierPackage",
                         offer.IngredientSupplierId, reference,
                         "Đơn vị nội dung của gói không quy đổi được về đơn vị tồn cơ sở.");
                 }
+            }
+
+            if (offer.Unit?.Type == Models.Enums.Unit.UnitType.Dem
+                && offer.UnitId != offer.Ingredient.BaseUnitId)
+            {
+                structuralIssue = true;
+                Add(report, "COUNT_PACKAGE_CONTENT_UOM_INVALID", "SupplierPackage",
+                    offer.IngredientSupplierId, reference,
+                    "Mặt hàng dạng đếm đang dùng đơn vị thùng/hộp thay cho số cái trong một gói. Cần xác nhận lại quy cách.");
+            }
+
+            if (offer.CurrentPrice <= 0m)
+            {
+                structuralIssue = true;
+                Add(report, "PACKAGE_PRICE_INVALID", "SupplierPackage",
+                    offer.IngredientSupplierId, reference,
+                    "Giá một gói phải lớn hơn 0 trước khi dùng cho mua hàng.");
             }
 
             if (offer.AllowsLoosePurchase)
@@ -84,6 +116,7 @@ public sealed class SupplierProcurementDataQualityService : ISupplierProcurement
                     || !offer.CurrentProcurementUnitPrice.HasValue
                     || offer.CurrentProcurementUnitPrice <= 0m)
                 {
+                    structuralIssue = true;
                     Add(report, "LOOSE_PURCHASE_INCOMPLETE", "SupplierPackage",
                         offer.IngredientSupplierId, reference,
                         "Đã bật mua lẻ nhưng thiếu đơn vị hoặc đơn giá mua lẻ.");
@@ -93,6 +126,7 @@ public sealed class SupplierProcurementDataQualityService : ISupplierProcurement
                     var allowedUnits = await ProcurementUnitIdsAsync(offer.IngredientId);
                     if (!allowedUnits.Contains(offer.LooseProcurementUnitId.Value))
                     {
+                        structuralIssue = true;
                         Add(report, "LOOSE_UOM_INCOMPATIBLE", "SupplierPackage",
                             offer.IngredientSupplierId, reference,
                             "Đơn vị mua lẻ không phù hợp với nguyên liệu hoặc chưa có quy đổi hợp lệ.");
@@ -107,6 +141,24 @@ public sealed class SupplierProcurementDataQualityService : ISupplierProcurement
                 Add(report, "LOOSE_FIELDS_LEFTOVER", "SupplierPackage",
                     offer.IngredientSupplierId, reference,
                     "Gói đang tắt mua lẻ nhưng vẫn còn dữ liệu mua lẻ; cần xác nhận trước khi làm sạch.");
+            }
+
+            if (offer.Active && structuralIssue)
+            {
+                Add(report, "ACTIVE_PACKAGE_NOT_READY", "SupplierPackage",
+                    offer.IngredientSupplierId, reference,
+                    "Gói mua đang hoạt động nhưng chưa đủ điều kiện để sử dụng cho mua hàng.",
+                    referencedByActivePurchaseOrder.Contains(offer.IngredientSupplierId)
+                        ? "INVALID_BLOCKING"
+                        : "NEEDS_REVIEW");
+            }
+
+            if (offer.IsPrimary && structuralIssue)
+            {
+                Add(report, "PRIMARY_PACKAGE_NOT_READY", "SupplierPackage",
+                    offer.IngredientSupplierId, reference,
+                    "Nguồn cung chính chưa đủ điều kiện để sử dụng cho mua hàng.",
+                    "INVALID_BLOCKING");
             }
         }
 
@@ -166,7 +218,8 @@ public sealed class SupplierProcurementDataQualityService : ISupplierProcurement
         string entityType,
         int entityId,
         string reference,
-        string message) =>
+        string message,
+        string resolution = "NEEDS_REVIEW") =>
         report.Findings.Add(new SupplierProcurementDataQualityFindingDTO
         {
             Code = code,
@@ -174,6 +227,6 @@ public sealed class SupplierProcurementDataQualityService : ISupplierProcurement
             EntityId = entityId,
             Reference = reference,
             Message = message,
-            Resolution = "NEEDS_REVIEW"
+            Resolution = resolution
         });
 }

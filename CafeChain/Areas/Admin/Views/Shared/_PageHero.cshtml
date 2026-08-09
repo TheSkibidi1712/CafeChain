@@ -1,0 +1,50 @@
+@model CafeChain.ViewModels.Admin.Shared.AdminPageHeroVM
+
+<header class="cc-page-hero">
+    <span class="cc-page-hero__accent" aria-hidden="true"></span>
+    <div class="cc-page-hero__content">
+        <div class="cc-page-hero__eyebrow">@Model.Eyebrow</div>
+        <div class="cc-page-hero__title-row">
+            <span class="cc-page-hero__icon" aria-hidden="true"><i class="@Model.IconClass"></i></span>
+            <h1>@Model.Title</h1>
+            @if (!string.IsNullOrWhiteSpace(Model.StatusLabel))
+            {
+                <span class="cc-page-hero__status @Model.StatusCssClass">@Model.StatusLabel</span>
+            }
+        </div>
+        <p>@Model.Description</p>
+        @if (Model.Breadcrumbs.Count > 0)
+        {
+            <nav class="cc-page-hero__breadcrumbs" aria-label="Điều hướng trang">
+                @for (var index = 0; index < Model.Breadcrumbs.Count; index++)
+                {
+                    var item = Model.Breadcrumbs[index];
+                    @if (!string.IsNullOrWhiteSpace(item.Url))
+                    {
+                        <a href="@item.Url">@item.Label</a>
+                    }
+                    else
+                    {
+                        <span aria-current="page">@item.Label</span>
+                    }
+                    @if (index < Model.Breadcrumbs.Count - 1)
+                    {
+                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    }
+                }
+            </nav>
+        }
+    </div>
+    @if (Model.Actions.Count > 0)
+    {
+        <div class="cc-page-hero__actions" aria-label="Thao tác trang">
+            @foreach (var action in Model.Actions)
+            {
+                <a id="@action.Id" class="cc-page-hero__action @(action.IsPrimary ? "is-primary" : "")" href="@action.Url">
+                    <i class="@action.IconClass" aria-hidden="true"></i>
+                    <span>@action.Label</span>
+                </a>
+            }
+        </div>
+    }
+</header>

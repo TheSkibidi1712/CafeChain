@@ -244,7 +244,7 @@
                                     <label><span>Lượng trong gói</span><input id="offerPackageQuantity" type="number" min="0.00001" step="0.00001" required /></label>
                                     <label><span>Giá một gói (VND)</span><input id="offerPrice" type="number" min="0" step="1" required /></label>
                                     <label><span>MOQ theo gói</span><input id="offerMoq" type="number" min="1" step="1" /></label>
-                                    <label><span>Lead time mặc định (ngày)</span><input id="offerLeadTime" type="number" min="0" step="1" /></label>
+                                    <label><span>Thời gian giao mặc định (ngày)</span><input id="offerLeadTime" type="number" min="0" step="1" /></label>
                                     <label class="supplier-check"><input id="offerPrimary" type="checkbox" /><span>Nguồn cung chính</span></label>
                                     <label class="supplier-check"><input id="offerActive" type="checkbox" checked /><span>Đang hoạt động</span></label>
                                     <label class="supplier-check"><input id="offerAllowsLoose" type="checkbox" /><span>Cho phép mua lẻ</span></label>
@@ -293,7 +293,7 @@
                                 <input type="hidden" id="supplierStoreRowVersion" />
                                 <div class="supplier-form-grid">
                                     <label><span>Cửa hàng</span><select id="assignmentStore" required></select></label>
-                                    <label><span>Lead time riêng (ngày)</span><input id="assignmentLeadTime" type="number" min="0" step="1" /><small>Để trống để dùng lead time mặc định của gói mua; khi nhập, giá trị này sẽ thay thế mặc định tại cửa hàng.</small></label>
+                                    <label><span>Thời gian giao riêng (ngày)</span><input id="assignmentLeadTime" type="number" min="0" step="1" /><small>Để trống để dùng thời gian giao mặc định của gói mua; khi nhập, giá trị này sẽ thay thế mặc định tại cửa hàng.</small></label>
                                     <label><span>Lịch giao hàng dự kiến</span><input id="assignmentSchedule" maxlength="300" placeholder="Ví dụ: Thứ Hai, Thứ Tư và Thứ Sáu" /></label>
                                     <label class="supplier-check"><input id="assignmentActive" type="checkbox" checked /><span>Đang hoạt động</span></label>
                                     <label class="is-wide"><span>Ghi chú</span><input id="assignmentNote" maxlength="1000" /></label>

@@ -1,4 +1,5 @@
 @model CafeChain.ViewModels.Admin.Recipes.AdminRecipeFormPageVM
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Tạo phiên bản công thức";
     var form = Model.Form;
@@ -7,30 +8,40 @@
     var recipeName = Model.RecipeName ?? "";
     var previewUrl = Url.Action("PreviewNormalizedOutput", "AdminRecipe", new { area = "Admin" });
     var bomOptionsUrl = Url.Action("GetBomOptions", "AdminPreparedItem", new { area = "Admin" });
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / BOM",
+        Title = "Tạo phiên bản công thức mới",
+        Description = $"Tạo phiên bản kế tiếp cho {recipeName}. Phiên bản hiện tại vẫn được giữ trong lịch sử.",
+        IconClass = "fas fa-code-branch",
+        Breadcrumbs =
+        [
+            new() { Label = "Công thức", Url = Url.Action("Index") },
+            new() { Label = recipeName },
+            new() { Label = "Phiên bản mới" }
+        ],
+        Actions =
+        [
+            new() { Label = "Quay lại danh sách", Url = Url.Action("Index") ?? "#", IconClass = "fas fa-arrow-left" }
+        ]
+    };
 }
 
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<div class="rb-page rb-edit-theme" data-theme="light">
-<div class="container-fluid px-4 pt-4 pb-5">
-    <header class="rb-builder-heading mb-4">
-    <nav class="rb-breadcrumb">
-        <a asp-action="Index" class="btn-rb-back">Công thức BOM</a> &gt; <span>Tạo phiên bản mới</span>
-    </nav>
-    <div class="d-flex flex-wrap align-items-start gap-2">
-        <div>
-            <h1 class="rb-page-title mb-1">Tạo phiên bản mới <span class="rb-status-badge rb-status-incomplete">từ #@recipeId</span></h1>
-            <p class="text-muted mb-0">@recipeName — phiên bản cũ sẽ được lưu trữ, phiên bản mới sẽ được kích hoạt theo quy tắc hiện hành.</p>
-        </div>
-    </div>
-    </header>
+<div class="rb-page rb-edit-theme production-bom-page production-bom-shell recipe-form-page" data-theme="light">
+<div class="container-fluid px-0">
+    <partial name="_PageHero" model="hero" />
 
-    <form asp-action="Edit" asp-route-id="@recipeId" method="post" id="recipeForm">
+    <form asp-action="Edit" asp-route-id="@recipeId" method="post" id="recipeForm" class="production-recipe-form">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-        <section class="rb-card mb-4">
-            <div class="rb-card-header"><span class="rb-section-title">A. Loại và đối tượng</span></div>
+        <div class="production-form-grid rb-builder-grid">
+        <div class="production-form-main">
+        <section class="rb-card production-form-section" aria-labelledby="editSecIdentity">
+            <div class="rb-card-header"><h2 id="editSecIdentity" class="rb-section-title">Loại và đối tượng công thức</h2></div>
             <div class="card-body p-4">
                 <div class="rb-toggle btn-group w-100 mb-3" role="group">
                     <input type="radio" class="btn-check" name="RecipeType" id="typePOS" value="POS" autocomplete="off" @(form.RecipeType == "POS" ? "checked" : "")>
@@ -113,8 +124,8 @@
             </div>
         </section>
 
-        <section class="rb-card mb-4 conditional-section" id="sectionOutput" style="@(form.RecipeType == "SUBRECIPE" ? "" : "display:none;")">
-            <div class="rb-card-header"><span class="rb-section-title">B. Sản lượng đầu ra</span></div>
+        <section class="rb-card production-form-section conditional-section" id="sectionOutput" style="@(form.RecipeType == "SUBRECIPE" ? "" : "display:none;")" aria-labelledby="editSecOutput">
+            <div class="rb-card-header"><h2 id="editSecOutput" class="rb-section-title">Sản lượng đầu ra</h2></div>
             <div class="card-body p-4">
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -144,13 +155,23 @@
             </div>
         </section>
 
-        <section class="rb-card mb-4">
+        <section class="rb-card production-form-section" aria-labelledby="editSecComponents">
             <div class="rb-card-header d-flex justify-content-between align-items-center">
-                <span class="rb-section-title">C. Thành phần BOM</span>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddRow"><i class="fas fa-plus" aria-hidden="true"></i>Thêm thành phần</button>
+                <h2 id="editSecComponents" class="rb-section-title">Thành phần định mức</h2>
+                <button type="button" class="btn btn-rb-ghost" id="btnAddRow"><i class="fas fa-plus" aria-hidden="true"></i>Thêm thành phần</button>
             </div>
             <div class="table-responsive">
                 <table class="table rb-table mb-0" id="bomTable">
+                    <colgroup>
+                        <col class="bom-col-index" />
+                        <col class="bom-col-type" />
+                        <col class="bom-col-component" />
+                        <col class="bom-col-quantity" />
+                        <col class="bom-col-unit" />
+                        <col class="bom-col-cost" />
+                        <col class="bom-col-status" />
+                        <col class="bom-col-action" />
+                    </colgroup>
                     <thead>
                         <tr>
                             <th class="text-center">#</th>
@@ -168,8 +189,18 @@
             </div>
         </section>
 
-        <section class="rb-card mb-4">
-            <div class="rb-card-header"><span class="rb-section-title">D. Kiểm tra và lưu</span></div>
+        <section class="rb-card production-form-section" aria-labelledby="editSecInstructions">
+            <div class="rb-card-header"><h2 id="editSecInstructions" class="rb-section-title">Hướng dẫn chế biến</h2></div>
+            <div class="card-body">
+                <label class="visually-hidden" for="Description">Hướng dẫn chế biến</label>
+                <textarea name="Description" id="Description" class="form-control" rows="3">@form.Description</textarea>
+            </div>
+        </section>
+        </div>
+
+        <aside class="production-form-sidebar" aria-label="Kiểm tra và lưu phiên bản công thức">
+        <section class="rb-card production-form-section production-review-summary" aria-labelledby="editSecReview">
+            <div class="rb-card-header"><h2 id="editSecReview" class="rb-section-title">Kiểm tra và lưu</h2></div>
             <div class="card-body p-3">
                 <div id="costPanel" class="rb-cost-panel incomplete">
                     <div class="small text-uppercase fw-bold text-muted">Giá vốn ước tính</div>
@@ -178,16 +209,15 @@
                     <ul class="rb-cost-issues" id="displayCostIssues" style="display:none;"></ul>
                 </div>
                 <input type="hidden" name="TotalCost" id="hiddenTotalCost" value="0" />
-                <div class="mt-3">
-                    <label class="form-label fw-semibold" for="Description">Lưu ý kỹ thuật</label>
-                    <textarea name="Description" id="Description" class="form-control" rows="2">@form.Description</textarea>
-                </div>
-                <div class="d-flex justify-content-end gap-2 mt-3">
+                <p class="small text-muted mt-3 mb-0">Kiểm tra thành phần và dữ liệu giá vốn trước khi tạo phiên bản mới.</p>
+                <div class="production-form-actions">
                     <a asp-action="Index" class="btn btn-rb-ghost">Hủy</a>
                     <button type="submit" class="btn btn-rb-save">Lưu phiên bản mới</button>
                 </div>
             </div>
         </section>
+        </aside>
+        </div>
     </form>
 </div>
 </div>
@@ -245,6 +275,8 @@
                 createUrl: '',
                 indexUrl: '@Url.Action("Index")',
                 sizesUrl: '@Url.Action("GetSizesByDrink")',
+                initialSizeId: @(form.SizeId?.ToString() ?? "null"),
+                addInitialRow: false,
                 editUrlTemplate: ''
             });
 
@@ -264,6 +296,10 @@
 
             $('#btnSaveRecipe').remove();
             $('input[name="RecipeType"]:checked').trigger('change');
+            if ($('#drinkSelect').val()) {
+                $('#drinkSelect').trigger('change');
+            }
+            $('#bomTableBody .item-qty').first().trigger('input');
             window.CafeChainBomBuilder.initEdit({ previewUrl: '@previewUrl' });
         })();
     </script>
