@@ -255,22 +255,25 @@
 }
 
 .staff-table-shell .table-custom thead th {
-    color: #5C3F2B;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: #FBF7F2;
-    border-bottom: 1px solid #E9DED4;
-    padding: 12px 14px;
+    color: #5C3F2B !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    background: #FBF7F2 !important;
+    border-bottom: 1px solid #E9DED4 !important;
+    padding: 12px 14px !important;
 }
 
 .staff-table-shell .table-custom tbody td {
-    white-space: nowrap;
-    vertical-align: middle;
-    padding: 12px 14px;
-    font-size: 13px;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    padding: 12px 14px !important;
+    font-size: 13.5px !important;
     text-align: left;
+    color: #201812 !important;
+    border-bottom: 1px solid #F1E5DA !important;
+    background: #FFFDFB !important;
 }
 
 /* Center Status and Action Columns */
@@ -278,29 +281,11 @@
 .staff-table-shell .table-custom td:nth-child(5),
 .staff-table-shell .table-custom th:nth-child(6),
 .staff-table-shell .table-custom td:nth-child(6) {
-    text-align: center;
-=======
-    color: #5C3F2B;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: #FBF7F2;
-    border-bottom: 1px solid #E9DED4;
-    padding: 12px 14px;
->>>>>>> origin/develop
+    text-align: center !important;
 }
 
-.staff-table-shell .table-custom tbody td {
-    padding: 12px 14px;
-    border-bottom: 1px solid #F1E5DA;
-    vertical-align: middle;
-    color: #201812;
-    font-size: 13.5px;
-}
-
-.staff-table-shell .table-custom tbody tr:hover {
-    background: #FBF7F2;
+.staff-table-shell .table-custom tbody tr:hover td {
+    background: #FBF7F2 !important;
 }
 
 .staff-table-footer {

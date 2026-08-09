@@ -1407,8 +1407,7 @@ html {
 }
 
 .inventory-table tbody tr:hover,
-.transaction-table tbody tr:hover,
-.reorder-table tbody tr:hover {
+.transaction-table tbody tr:hover {
     background: var(--cc-warning-bg);
 }
 

@@ -443,11 +443,40 @@
             info:    'Thông báo'
         };
 
+        function extractCleanMessage(msg) {
+            if (!msg) return 'Có lỗi xảy ra.';
+            var str = String(msg);
+            if (str.indexOf('<!DOCTYPE') !== -1 || str.indexOf('<html') !== -1 || str.indexOf('<head') !== -1 || str.indexOf('<style') !== -1) {
+                var titleMatch = str.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+                if (titleMatch && titleMatch[1]) {
+                    var t = titleMatch[1].replace(/- CafeChain/gi, '').replace(/<[^>]*>/g, '').trim();
+                    if (t && t.length < 100) return t;
+                }
+                return 'Không có quyền truy cập hoặc hệ thống gặp sự cố.';
+            }
+            return str.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                      .replace(/<[^>]*>/g, ' ')
+                      .replace(/\s+/g, ' ')
+                      .trim()
+                      .slice(0, 300) || 'Có lỗi xảy ra.';
+        }
+
         window.showToast = function (message, type, title, duration) {
             type     = type     || 'success';
             duration = duration || 4000;
             var container = document.getElementById('cc-toast-container');
             if (!container || !message) return;
+
+            var cleanMessageText = extractCleanMessage(message);
+
+            // Deduplicate: prevent stacking multiple identical toasts
+            var existingMsgs = container.querySelectorAll('.cc-toast-msg');
+            for (var i = 0; i < existingMsgs.length; i++) {
+                if (existingMsgs[i].textContent === cleanMessageText) {
+                    return;
+                }
+            }
 
             var toastTitle = title || TITLES[type] || TITLES.info;
             var icon       = ICONS[type] || ICONS.info;
@@ -471,7 +500,7 @@
             titleNode.textContent = String(toastTitle);
             var messageNode = document.createElement('div');
             messageNode.className = 'cc-toast-msg';
-            messageNode.textContent = String(message).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
+            messageNode.textContent = cleanMessageText;
             body.appendChild(titleNode);
             body.appendChild(messageNode);
 

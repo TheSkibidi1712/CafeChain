@@ -298,16 +298,27 @@
     white-space: nowrap !important;
 }
 
+.transfer-info-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 20px 24px !important;
+    margin-top: 16px !important;
+    margin-bottom: 20px !important;
+}
+
 .transfer-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-bottom: 16px !important;
 }
 
 .transfer-field label {
-    color: var(--cc-brown-900, #3d2418);
-    font-size: 13px;
-    font-weight: 750;
+    color: var(--cc-brown-900, #3d2418) !important;
+    font-size: 13.5px !important;
+    font-weight: 800 !important;
+    margin-top: 8px !important;
+    margin-bottom: 4px !important;
 }
 
 .transfer-input,

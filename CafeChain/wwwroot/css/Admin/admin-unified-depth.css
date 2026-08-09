@@ -1326,15 +1326,52 @@ body {
     .threshold-header,
     .anomalies-header,
     .settings-header
-):not(.approvals-header):not(.work-shift-open-approvals-header):not(.recipe-header):not(.po-recipe-header) {
+):not(.approvals-header):not(.recipe-header):not(.po-recipe-header) {
+    width: 100% !important;
     position: relative !important;
-    background: linear-gradient(135deg, #FFFFFF 0%, #FFFDFB 57%, #FAF6F2 100%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    margin-bottom: 22px !important;
+    min-height: 135px !important;
+    padding: 24px 28px !important;
     border: 1px solid var(--cc-border, #E9DED4) !important;
     border-left: 5px solid #5C3F2B !important;
     border-radius: var(--cc-radius-header, 20px) !important;
+    background: linear-gradient(112deg, #FFFFFF 0%, #FBF7F2 62%, #F1E5DA 100%) !important;
     box-shadow: var(--cc-shadow-md) !important;
     overflow: hidden !important;
     isolation: isolate !important;
+    box-sizing: border-box !important;
+}
+
+.cc-page-kicker {
+    display: block !important;
+    margin-bottom: 4px !important;
+    color: #8B6247 !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.09em !important;
+    text-transform: uppercase !important;
+}
+
+.cc-page-title {
+    margin: 4px 0 6px !important;
+    color: #201812 !important;
+    font-size: 28px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.2 !important;
+}
+
+.cc-page-description {
+    max-width: 680px !important;
+    margin: 0 !important;
+    color: #66584F !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    font-weight: 500 !important;
 }
 
 :is(
@@ -1397,7 +1434,7 @@ body {
     .threshold-header,
     .anomalies-header,
     .settings-header
-):not(.approvals-header):not(.work-shift-open-approvals-header):not(.recipe-header):not(.po-recipe-header) > * {
+):not(.approvals-header):not(.recipe-header):not(.po-recipe-header) > * {
     position: relative !important;
     z-index: 2 !important;
 }
@@ -1463,7 +1500,7 @@ body {
     .threshold-header,
     .anomalies-header,
     .settings-header
-):not(.approvals-header):not(.work-shift-open-approvals-header):not(.recipe-header):not(.po-recipe-header)::before {
+):not(.approvals-header):not(.recipe-header):not(.po-recipe-header)::before {
     content: "" !important;
     display: block !important;
     position: absolute !important;
@@ -1542,7 +1579,7 @@ body {
     .threshold-header,
     .anomalies-header,
     .settings-header
-):not(.approvals-header):not(.work-shift-open-approvals-header):not(.recipe-header):not(.po-recipe-header)::after {
+):not(.approvals-header):not(.recipe-header):not(.po-recipe-header)::after {
     content: "" !important;
     display: block !important;
     position: absolute !important;
@@ -1627,6 +1664,56 @@ body {
     background: #FBF7F2 !important;
     border-color: #70482F !important;
     color: #3D2418 !important;
+}
+
+/* Toastr & CafeChain Toast Notification Safety Overlay Contract */
+#cc-toast-container,
+.toast-container,
+#toast-container {
+    max-width: 420px !important;
+    position: fixed !important;
+    top: 24px !important;
+    right: 24px !important;
+    bottom: auto !important;
+    z-index: 999999 !important;
+    pointer-events: none !important;
+}
+
+.cc-toast,
+.toast,
+#toast-container > div {
+    max-width: 420px !important;
+    max-height: 200px !important;
+    overflow: hidden !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+    border-radius: 14px !important;
+    box-shadow: 0 10px 32px rgba(32, 24, 18, 0.18) !important;
+    pointer-events: auto !important;
+}
+
+.cc-toast-msg,
+.toast-message {
+    max-height: 120px !important;
+    overflow-y: auto !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+}
+
+/* Global Text & Badge Overflow Containment */
+.create-section-badge,
+.inventory-create-code,
+.inventory-create-status,
+.card-value,
+.code,
+.value,
+.negative-stock-policy-note,
+.negative-stock-projection {
+    max-width: 100% !important;
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+    text-overflow: ellipsis !important;
 }
 
 .admin-page-body input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
