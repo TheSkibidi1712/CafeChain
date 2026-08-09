@@ -37,6 +37,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         private readonly IAdminActorContextAccessor _actorAccessor;
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly IUnitConversionService? _unitConversionService;
+        private readonly IIngredientSupplierPackageValidator? _packageEligibility;
 
         public AdminInventoryDocumentCreateService(
             IAdminInventoryDocumentRepository repository,
@@ -48,7 +49,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             IInventoryIssueSettingsProvider inventoryIssueSettingsProvider,
             IAdminActorContextAccessor actorAccessor,
             IScopeAuthorizationService scopeAuthorization,
-            IUnitConversionService? unitConversionService = null)
+            IUnitConversionService? unitConversionService = null,
+            IIngredientSupplierPackageValidator? packageEligibility = null)
         {
             _repository = repository;
             _validationService = validationService;
@@ -60,6 +62,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             _actorAccessor = actorAccessor;
             _scopeAuthorization = scopeAuthorization;
             _unitConversionService = unitConversionService;
+            _packageEligibility = packageEligibility;
         }
 
         // =====================================================
@@ -122,6 +125,14 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             await EnsureStoreScopeAsync(storeId);
             var ingredients = await _repository.GetSupplierIngredientsAsync(supplierId, storeId);
+            if (_packageEligibility != null)
+            {
+                var readiness = await _packageEligibility.EvaluateReadinessAsync(ingredients);
+                ingredients = ingredients.Where(x =>
+                    readiness.TryGetValue(x.IngredientSupplierId, out var result)
+                    && result.IsReady
+                    && x.Active).ToList();
+            }
             var result = new List<SupplierIngredientDTO>();
             foreach (var ingredient in ingredients)
                 result.Add(await MapSupplierIngredientDtoAsync(ingredient));
@@ -1441,12 +1452,25 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         || !offer.PackageQuantity.HasValue
                         || offer.PackageQuantity <= 0)
                     {
-                        throw new InvalidOperationException("INGREDIENT_SUPPLIER_INACTIVE: Gói mua không hợp lệ hoặc đã ngừng hoạt động.");
+                        throw new InvalidOperationException("Gói mua không hợp lệ hoặc đã ngừng hoạt động.");
+                    }
+
+                    if (_packageEligibility != null)
+                    {
+                        var eligibility = await _packageEligibility.EvaluateProcurementEligibilityAsync(
+                            offer,
+                            PurchaseMode.Packaged,
+                            dto.StoreId);
+                        if (!eligibility.IsProcurementEligible)
+                        {
+                            throw new InvalidOperationException(
+                                $"Gói mua chưa sẵn sàng để nhập hàng. {eligibility.Message}");
+                        }
                     }
 
                     var currentPrices = offer.PriceHistories.Where(x => x.IsCurrent).ToList();
                     if (currentPrices.Count != 1)
-                        throw new InvalidOperationException("SUPPLIER_PRICE_CURRENT_INVALID: Gói mua phải có đúng một giá hiện tại.");
+                        throw new InvalidOperationException("Gói mua phải có đúng một mức giá hiện tại.");
 
                     var currentPrice = currentPrices[0];
                     if (currentPrice.Price <= 0

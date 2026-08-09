@@ -60,9 +60,9 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> DataHealth()
+        public async Task<IActionResult> DataHealth(int page = 1)
         {
-            return View(await _queryService.GetDataHealthPageAsync());
+            return View(await _queryService.GetDataHealthPageAsync(page));
         }
 
         [HttpGet]

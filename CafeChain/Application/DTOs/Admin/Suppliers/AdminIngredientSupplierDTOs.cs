@@ -36,6 +36,10 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         /// <summary>Package definition complete — not cost completeness (#117).</summary>
         public bool HasCompletePackageDefinition { get; set; }
 
+        public bool IsProcurementReady { get; set; }
+        public string ProcurementReadinessLabel { get; set; } = "Chưa sẵn sàng mua hàng";
+        public string ProcurementReadinessMessage { get; set; } = "Quy cách gói mua cần được cập nhật.";
+
         public string PackageDisplay { get; set; } = "";
         public string PriceDisplay { get; set; } = "";
     }

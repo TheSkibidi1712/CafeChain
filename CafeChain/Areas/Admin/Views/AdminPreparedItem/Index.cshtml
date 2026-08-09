@@ -8,39 +8,40 @@
     int page = Model?.Page ?? (ViewBag.Page as int? ?? 1);
     int totalPages = Model?.TotalPages ?? (ViewBag.TotalPages as int? ?? 1);
     var items = Model?.Items ?? new List<CafeChain.Application.DTOs.Admin.PreparedItems.AdminPreparedItemDTO>();
-    int colCount = canWrite ? 8 : 7;
+    int colCount = canWrite ? 5 : 4;
+    var heroActions = canWrite
+        ? new List<AdminPageHeroActionVM>
+        {
+            new()
+            {
+                Id = "btnCreate",
+                Label = "Tạo bán thành phẩm",
+                Url = "#preparedItemEditor",
+                IconClass = "fas fa-plus",
+                IsPrimary = true
+            }
+        }
+        : [];
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / BOM",
+        Title = "Bán thành phẩm",
+        Description = "Quản lý định danh tồn kho dùng làm đầu ra của công thức sản xuất. Số lượng tồn thực tế được theo dõi riêng theo từng cửa hàng.",
+        IconClass = "fas fa-boxes-stacked",
+        Breadcrumbs = [new() { Label = "Sản xuất / BOM" }, new() { Label = "Bán thành phẩm" }],
+        Actions = heroActions
+    };
 }
 
 @Html.AntiForgeryToken()
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<div class="rb-page">
-<div class="container-fluid px-4 pt-4 pb-5">
-    <div class="rb-page-header bom-depth-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <div class="admin-module-heading-copy">
-            <nav class="rb-breadcrumb" aria-label="breadcrumb">
-                <span>Sản xuất / BOM</span> &gt; <span>Danh mục bán thành phẩm</span>
-            </nav>
-            <div class="admin-module-title-row">
-                <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-boxes-stacked"></i></span>
-                <div>
-                    <h1 class="rb-page-title mb-1">Danh mục bán thành phẩm</h1>
-                    <p class="text-muted mb-0" style="max-width: 42rem;">
-                        Quản lý danh tính BTP ổn định dùng cho công thức và tồn kho.
-                        Đây <strong>không phải</strong> số lượng tồn kho tại cửa hàng.
-                    </p>
-                </div>
-            </div>
-        </div>
-        @if (canWrite)
-        {
-            <button type="button" class="btn btn-rb-save admin-module-header-action" id="btnCreate">
-                <i class="fas fa-plus me-2" aria-hidden="true"></i>Tạo bán thành phẩm
-            </button>
-        }
-    </div>
+<div class="rb-page production-bom-page production-bom-shell bom-list-page prepared-item-list-page">
+<div class="container-fluid px-0">
+    <partial name="_PageHero" model="hero" />
 
-    <form method="get" class="rb-list-filters rb-module-filter rb-module-filter--four mb-3" id="filterForm" role="search">
+    <form method="get" class="rb-list-filters production-filter-card" id="filterForm" role="search">
         <label class="visually-hidden" for="searchBox">Tìm theo mã hoặc tên</label>
         <input name="search" id="searchBox" class="form-control" value="@Model.Search"
                placeholder="Tìm theo mã hoặc tên bán thành phẩm..." autocomplete="off" />
@@ -51,24 +52,40 @@
             <option value="false" selected="@(Model.Status == false)">Ngừng hoạt động</option>
         </select>
         <button type="submit" class="btn btn-rb-save"><i class="fas fa-filter" aria-hidden="true"></i>Lọc</button>
-        <a asp-action="Index" class="btn btn-rb-ghost"><i class="fas fa-rotate-left" aria-hidden="true"></i>Đặt lại</a>
+        <a asp-action="Index" class="btn btn-rb-ghost production-filter-reset" aria-label="Đặt lại bộ lọc" title="Đặt lại bộ lọc"><i class="fas fa-rotate-left" aria-hidden="true"></i></a>
     </form>
 
-    <div class="rb-card">
+    <section class="production-list-section" aria-labelledby="prepared-item-list-title">
+        <header class="production-section-header">
+            <div>
+                <h2 id="prepared-item-list-title">Danh sách bán thành phẩm</h2>
+                <p>Định danh tồn kho, đơn vị cơ sở và công thức đang được áp dụng.</p>
+            </div>
+            <span class="production-section-header__count"><strong>@items.Count</strong> mục trên trang</span>
+        </header>
+
+    <div class="rb-card production-table-panel">
         <div class="table-responsive">
-            <table class="table rb-table rb-prepareditem-table mb-0" aria-label="Danh sách bán thành phẩm">
+            <table class="table rb-table rb-prepareditem-table production-data-table mb-0" aria-label="Danh sách bán thành phẩm">
+                <colgroup>
+                    <col class="rb-prepared-col-identity" />
+                    <col class="rb-prepared-col-uom" />
+                    <col class="rb-prepared-col-status" />
+                    <col class="rb-prepared-col-recipe" />
+                    @if (canWrite)
+                    {
+                        <col class="rb-prepared-col-actions" />
+                    }
+                </colgroup>
                 <thead>
                     <tr>
-                        <th scope="col">Mã BTP</th>
-                        <th scope="col">Tên BTP</th>
+                        <th scope="col">Bán thành phẩm</th>
                         <th scope="col">Đơn vị tồn kho</th>
-                        <th scope="col">Trạng thái</th>
+                        <th scope="col">Tình trạng</th>
                         <th scope="col">Công thức đang hoạt động</th>
-                        <th scope="col" class="text-center">Số phiên bản</th>
-                        <th scope="col">Trạng thái cấu hình</th>
                         @if (canWrite)
                         {
-                            <th scope="col">Thao tác</th>
+                            <th scope="col" class="rb-actions-heading">Thao tác</th>
                         }
                     </tr>
                 </thead>
@@ -104,42 +121,40 @@
                         var statusDesc = AdminStatusDisplay.RecipeActive(item.Active);
                         var configDesc = AdminStatusDisplay.PreparedItemConfig(item.ConfigStatusKey, item.ConfigStatus);
                         <tr data-id="@item.PreparedItemId">
-                            <td><code class="rb-code">@item.Code</code></td>
-                            <td class="fw-semibold">@item.Name</td>
+                            <td class="rb-prepareditem-identity">
+                                <div class="fw-semibold">@item.Name</div>
+                                <code class="rb-code">@item.Code</code>
+                            </td>
                             <td>
                                 <span class="rb-qty-unit">@item.BaseUnitCode</span>
                                 <small class="text-muted">(@item.BaseUnitName)</small>
                             </td>
-                            <td>
+                            <td class="rb-prepared-status-stack">
                                 <partial name="_StatusBadge" model="statusDesc" />
+                                <div class="rb-prepared-config-status">
+                                    <partial name="_StatusBadge" model="configDesc" />
+                                </div>
                             </td>
                             <td>
                                 @if (item.ActiveRecipeId.HasValue)
                                 {
-                                    <a class="link-primary text-decoration-none"
+                                    <a class="production-link"
                                        asp-area="Admin" asp-controller="AdminRecipe" asp-action="Edit"
                                        asp-route-id="@item.ActiveRecipeId"
                                        title="Xem công thức đang hoạt động">
-                                        #@item.ActiveRecipeId
-                                        @if (!string.IsNullOrWhiteSpace(item.ActiveRecipeCode))
-                                        {
-                                            <span class="text-muted small">(@item.ActiveRecipeCode)</span>
-                                        }
+                                        @(string.IsNullOrWhiteSpace(item.ActiveRecipeCode) ? "Công thức đang áp dụng" : item.ActiveRecipeCode)
                                     </a>
                                 }
                                 else
                                 {
                                     <span class="text-muted">Chưa có</span>
                                 }
-                            </td>
-                            <td class="text-center font-monospace">@item.VersionCount</td>
-                            <td>
-                                <partial name="_StatusBadge" model="configDesc" />
+                                <div class="small text-muted mt-1">@item.VersionCount phiên bản</div>
                             </td>
                             @if (canWrite)
                             {
                                 <td class="rb-prepareditem-actions-cell">
-                                    <div class="d-flex flex-nowrap gap-1">
+                                    <div class="production-row-actions">
                                         @if (item.ActiveRecipeId.HasValue)
                                         {
                                             <a class="btn btn-sm btn-outline-secondary rb-table-action"
@@ -159,17 +174,29 @@
                                                 <i class="fas fa-plus" aria-hidden="true"></i><span>Tạo công thức</span>
                                             </a>
                                         }
-                                        <button type="button" class="btn btn-sm btn-outline-primary edit-btn rb-table-action"
-                                                data-id="@item.PreparedItemId"
-                                                title="Sửa bán thành phẩm"
-                                                aria-label="Sửa bán thành phẩm @item.Name"><i class="fas fa-pen" aria-hidden="true"></i><span>Sửa</span></button>
-                                        <button type="button" class="btn btn-sm btn-outline-warning toggle-btn rb-table-action"
-                                                data-id="@item.PreparedItemId"
-                                                data-active="@(!item.Active)"
-                                                title="@(item.Active ? "Ngừng hoạt động" : "Kích hoạt")"
-                                                aria-label="@(item.Active ? $"Ngừng hoạt động {item.Name}" : $"Kích hoạt {item.Name}")">
-                                            <i class="fas @(item.Active ? "fa-pause" : "fa-play")" aria-hidden="true"></i><span>@(item.Active ? "Ngừng hoạt động" : "Kích hoạt")</span>
-                                        </button>
+                                        <div class="dropdown production-row-menu">
+                                            <button class="btn btn-sm production-row-menu__trigger" type="button"
+                                                    data-bs-toggle="dropdown" aria-expanded="false"
+                                                    title="Mở danh sách thao tác"
+                                                    aria-label="Mở danh sách thao tác cho @item.Name">
+                                                <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <button type="button" class="dropdown-item edit-btn" data-id="@item.PreparedItemId">
+                                                        <i class="fas fa-pen" aria-hidden="true"></i>Sửa thông tin
+                                                    </button>
+                                                </li>
+                                                <li><hr class="dropdown-divider" /></li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item toggle-btn @(item.Active ? "text-danger" : "")"
+                                                            data-id="@item.PreparedItemId" data-active="@(!item.Active)">
+                                                        <i class="fas @(item.Active ? "fa-pause" : "fa-play")" aria-hidden="true"></i>
+                                                        @(item.Active ? "Ngừng hoạt động" : "Kích hoạt")
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </td>
                             }
@@ -179,25 +206,39 @@
                 </tbody>
             </table>
         </div>
-    </div>
-
     @if (totalPages > 1)
     {
-        <nav class="mt-3" aria-label="Phân trang danh mục BTP">
-            <ul class="pagination">
+        <nav class="production-pagination" aria-label="Phân trang danh mục bán thành phẩm">
+            <span class="production-pagination__summary">Trang @(page) trên @totalPages</span>
+            <div class="production-pagination__links">
+                @if (page > 1)
+                {
+                    <a class="production-page-link is-nav" aria-label="Trang trước"
+                       asp-action="Index" asp-route-page="@(page - 1)"
+                       asp-route-search="@(Model?.Search ?? ViewBag.Search as string)"
+                       asp-route-status="@(Model?.Status ?? ViewBag.Status as bool?)"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+                }
                 @for (int i = 1; i <= totalPages; i++)
                 {
-                    <li class="page-item @(i == page ? "active" : "")">
-                        <a class="page-link"
+                        <a class="production-page-link @(i == page ? "is-current" : "")"
+                           aria-current="@(i == page ? "page" : null)"
                            asp-action="Index"
                            asp-route-page="@i"
                            asp-route-search="@(Model?.Search ?? ViewBag.Search as string)"
                            asp-route-status="@(Model?.Status ?? ViewBag.Status as bool?)">@i</a>
-                    </li>
                 }
-            </ul>
+                @if (page < totalPages)
+                {
+                    <a class="production-page-link is-nav" aria-label="Trang sau"
+                       asp-action="Index" asp-route-page="@(page + 1)"
+                       asp-route-search="@(Model?.Search ?? ViewBag.Search as string)"
+                       asp-route-status="@(Model?.Status ?? ViewBag.Status as bool?)"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
+                }
+            </div>
         </nav>
     }
+    </div>
+    </section>
 </div>
 </div>
 
@@ -341,7 +382,10 @@
             setTimeout(() => document.getElementById('pi-code').focus(), 200);
         });
     }
-    document.getElementById('btnCreate')?.addEventListener('click', openCreate);
+    document.getElementById('btnCreate')?.addEventListener('click', function (event) {
+        event.preventDefault();
+        openCreate();
+    });
     document.getElementById('btnCreateEmpty')?.addEventListener('click', openCreate);
 
     document.querySelectorAll('.edit-btn').forEach(btn => {

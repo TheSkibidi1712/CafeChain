@@ -1,41 +1,48 @@
 @model CafeChain.ViewModels.Admin.Recipes.BomDataHealthPageVM
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Tình trạng dữ liệu BOM";
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / BOM",
+        Title = "Tình trạng dữ liệu BOM",
+        Description = "Xác định công thức nào đã sẵn sàng, công thức nào cần bổ sung cấu hình, quy đổi đơn vị hoặc dữ liệu giá vốn.",
+        IconClass = "fas fa-clipboard-check",
+        Breadcrumbs =
+        [
+            new() { Label = "Công thức", Url = Url.Action("Index") },
+            new() { Label = "Tình trạng dữ liệu" }
+        ],
+        Actions =
+        [
+            new() { Label = "Quay lại công thức", Url = Url.Action("Index") ?? "#", IconClass = "fas fa-arrow-left" }
+        ]
+    };
 }
 
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<div class="rb-page">
-    <div class="container-fluid px-4 pt-4 pb-5">
-        <div class="rb-page-header bom-depth-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-            <div class="admin-module-heading-copy">
-                <nav class="rb-breadcrumb" aria-label="breadcrumb">
-                    <a asp-action="Index" class="btn-rb-back">Công thức BOM</a> &gt; <span>Tình trạng dữ liệu BOM</span>
-                </nav>
-                <div class="admin-module-title-row">
-                    <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span>
-                    <div>
-                        <h1 class="rb-page-title mb-1">Tình trạng dữ liệu BOM</h1>
-                        <p class="text-muted mb-0">
-                            Kiểm tra cấu hình công thức và dữ liệu giá vốn toàn hệ thống. Trạng thái cửa hàng được đánh giá riêng.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <div class="admin-module-header-actions">
-                <a asp-action="Index" class="btn btn-rb-save">
-                    <i class="fas fa-list" aria-hidden="true"></i>Danh sách công thức
-                </a>
-            </div>
-        </div>
+<div class="rb-page production-bom-page production-bom-shell bom-health-page">
+    <div class="container-fluid px-0">
+        <partial name="_PageHero" model="hero" />
 
-        <section class="rb-health-summary mb-3" aria-label="Tổng hợp tình trạng dữ liệu BOM">
+        <section class="bom-health-intro" aria-labelledby="health-intro-title">
+            <span class="bom-health-intro__icon"><i class="fas fa-circle-info" aria-hidden="true"></i></span>
+            <div>
+                <h2 id="health-intro-title">Ưu tiên xử lý dữ liệu chưa hoàn chỉnh</h2>
+                <p>Mỗi dòng cho biết nguyên nhân và dẫn thẳng tới màn hình cần cập nhật. Các số liệu dưới đây áp dụng cho @Model.Items.Count công thức trên trang @Model.Page.</p>
+            </div>
+            <strong>@Model.TotalCount công thức</strong>
+        </section>
+
+        <section class="rb-health-summary bom-health-summary mb-3" aria-label="Tổng hợp tình trạng dữ liệu công thức trên trang hiện tại">
             <div class="rb-health-metric rb-health-ok">
-                <span>Hoàn chỉnh</span>
+                <span>Đủ dữ liệu</span>
                 <strong>@Model.CompleteCount</strong>
             </div>
             <div class="rb-health-metric">
-                <span>Thiếu giá</span>
+                <span>Thiếu dữ liệu giá</span>
                 <strong>@Model.MissingQuoteCount</strong>
             </div>
             <div class="rb-health-metric">
@@ -47,14 +54,21 @@
                 <strong>@Model.MissingOutputCount</strong>
             </div>
             <div class="rb-health-metric">
-                <span>Liên kết lỗi</span>
+                <span>Lỗi liên kết</span>
                 <strong>@Model.MappingErrorCount</strong>
             </div>
         </section>
 
-        <div class="rb-card rb-health-table-wrap">
+        <div class="rb-card rb-health-table-wrap bom-health-list">
+            <header class="bom-section-heading">
+                <div>
+                    <span class="bom-section-heading__icon"><i class="fas fa-list-check" aria-hidden="true"></i></span>
+                    <div><h2>Chi tiết cần xử lý</h2><p>Trạng thái cấu hình và giá vốn của từng công thức trên trang hiện tại.</p></div>
+                </div>
+                <span class="bom-list-count">@Model.Items.Count / @Model.TotalCount</span>
+            </header>
             <div class="table-responsive">
-                <table class="table rb-table rb-health-table mb-0" aria-label="Chi tiết tình trạng dữ liệu BOM">
+                <table class="table rb-table rb-health-table production-data-table mb-0" aria-label="Chi tiết tình trạng dữ liệu BOM">
                     <thead>
                         <tr>
                             <th>Công thức</th>
@@ -84,11 +98,8 @@
                             var reasons = row.Configuration.Reasons.Concat(row.Costing.Reasons).ToList();
                             <tr>
                                 <td class="rb-health-identity">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
-                                        <span class="rb-status-badge rb-status-inactive">@row.TypeLabel</span>
-                                        <span class="font-monospace text-muted">#@row.RecipeId</span>
-                                    </div>
-                                    <div class="fw-semibold text-break">@row.IdentityDisplay</div>
+                                    <span class="bom-row-kicker">@row.TypeLabel</span>
+                                    <div class="fw-semibold text-break">@row.Name</div>
                                     @if (!string.IsNullOrWhiteSpace(row.RecipeCode))
                                     {
                                         <div class="small text-muted font-monospace text-break">@row.RecipeCode</div>
@@ -101,25 +112,22 @@
                                     <span class="rb-status-badge @costClass">@row.Costing.Label</span>
                                     @if (row.Costing.IsComplete && row.EstimatedCost.HasValue)
                                     {
-                                        <div class="small text-muted font-monospace mt-1">@row.EstimatedCost.Value.ToString("N0") VND</div>
+                                        <div class="small text-muted font-monospace mt-1">@row.EstimatedCost.Value.ToString("N0") ₫</div>
                                     }
                                 </td>
                                 <td class="rb-health-reasons">
                                     @if (reasons.Count == 0)
                                     {
-                                        <span class="text-muted">Không có lỗi dữ liệu.</span>
+                                        <span class="bom-health-clear"><i class="fas fa-check" aria-hidden="true"></i> Không có dữ liệu cần xử lý</span>
                                     }
                                     else
                                     {
-                                        foreach (var reason in reasons)
-                                        {
-                                            <div class="rb-health-reason">
-                                                <div>
-                                                    <code>@(reason.Code == "INACTIVE" ? "NGỪNG HOẠT ĐỘNG" : reason.Code)</code>
-                                                    <span>@reason.Message</span>
-                                                </div>
-                                            </div>
-                                        }
+                                        <ul class="bom-health-reason-list">
+                                            @foreach (var reason in reasons)
+                                            {
+                                                <li>@reason.Message</li>
+                                            }
+                                        </ul>
                                     }
                                 </td>
                                 <td class="rb-health-actions">
@@ -148,7 +156,7 @@
                                                             <span class="rb-health-action-item-icon"><i class="fas fa-pen" aria-hidden="true"></i></span>
                                                             <span class="rb-health-action-copy">
                                                                 <strong>@reason.CtaLabel</strong>
-                                                                <small>@(reason.Code == "INACTIVE" ? "NGỪNG HOẠT ĐỘNG" : reason.Code)</small>
+                                                                <small>Đi tới dữ liệu liên quan</small>
                                                             </span>
                                                             <i class="fas fa-chevron-right rb-health-action-arrow" aria-hidden="true"></i>
                                                         </a>
@@ -165,5 +173,21 @@
                 </table>
             </div>
         </div>
+        @if (Model.TotalPages > 1)
+        {
+            <nav class="production-pagination mt-3" aria-label="Phân trang tình trạng dữ liệu công thức">
+                <span class="production-pagination__summary">Trang @Model.Page / @Model.TotalPages</span>
+                <div class="production-pagination__links">
+                    @if (Model.Page > 1)
+                    {
+                        <a class="production-page-link is-nav" asp-action="DataHealth" asp-route-page="@(Model.Page - 1)"><i class="fas fa-arrow-left" aria-hidden="true"></i> Trang trước</a>
+                    }
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <a class="production-page-link is-nav" asp-action="DataHealth" asp-route-page="@(Model.Page + 1)">Trang sau <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                    }
+                </div>
+            </nav>
+        }
     </div>
 </div>

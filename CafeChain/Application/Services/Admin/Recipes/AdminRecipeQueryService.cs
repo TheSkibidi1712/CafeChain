@@ -45,9 +45,17 @@ namespace CafeChain.Application.Services.Admin.Recipes
             _healthEvaluator = healthEvaluator;
         }
 
-        public async Task<BomDataHealthPageVM> GetDataHealthPageAsync()
+        public async Task<BomDataHealthPageVM> GetDataHealthPageAsync(int page = 1, int pageSize = 20)
         {
-            var recipes = await _context.Recipes
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 50);
+
+            var baseQuery = _context.Recipes.AsNoTracking();
+            var totalCount = await baseQuery.CountAsync();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Min(page, totalPages);
+
+            var recipes = await baseQuery
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Include(r => r.PreparedItem)
@@ -63,11 +71,18 @@ namespace CafeChain.Application.Services.Admin.Recipes
                         .ThenInclude(c => c!.PreparedItem)
                             .ThenInclude(p => p!.BaseUnit)
                 .OrderByDescending(r => r.RecipeId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
             var costResults = await _estimatedBomCost.CalculateRecipesEstimatedCostAsync(
                 recipes.Select(x => x.RecipeId));
-            var page = new BomDataHealthPageVM();
+            var result = new BomDataHealthPageVM
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
 
             foreach (var recipe in recipes)
             {
@@ -94,7 +109,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                         }
                     };
 
-                page.Items.Add(new BomDataHealthRowVM
+                result.Items.Add(new BomDataHealthRowVM
                 {
                     RecipeId = recipe.RecipeId,
                     RecipeCode = recipe.RecipeCode ?? "",
@@ -113,19 +128,19 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 });
             }
 
-            page.CompleteCount = page.Items.Count(x => x.Configuration.IsComplete && x.Costing.IsComplete);
-            page.MissingQuoteCount = page.Items.Count(x => x.Costing.Reasons.Any(r =>
+            result.CompleteCount = result.Items.Count(x => x.Configuration.IsComplete && x.Costing.IsComplete);
+            result.MissingQuoteCount = result.Items.Count(x => x.Costing.Reasons.Any(r =>
                 r.GroupCode == BomCostingHealthCodes.MissingQuote));
-            page.MissingConversionCount = page.Items.Count(x => x.Costing.Reasons.Any(r =>
+            result.MissingConversionCount = result.Items.Count(x => x.Costing.Reasons.Any(r =>
                 r.GroupCode == BomCostingHealthCodes.MissingConversion));
-            page.MissingOutputCount = page.Items.Count(x => x.Configuration.Reasons.Any(r =>
+            result.MissingOutputCount = result.Items.Count(x => x.Configuration.Reasons.Any(r =>
                 r.Code == BomConfigurationHealthCodes.MissingOutputIdentity
                 || r.Code == BomConfigurationHealthCodes.MissingOutputQuantity
                 || r.Code == BomConfigurationHealthCodes.MissingOutputUnit));
-            page.MappingErrorCount = page.Items.Count(x => x.Configuration.Reasons.Any(r =>
+            result.MappingErrorCount = result.Items.Count(x => x.Configuration.Reasons.Any(r =>
                 r.Code == BomConfigurationHealthCodes.InvalidPreparedItemMapping));
 
-            return page;
+            return result;
         }
 
         public async Task<AdminRecipeListPageVM> GetIndexPageAsync(

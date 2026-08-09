@@ -101,6 +101,7 @@
     function initCreate(cfg) {
         var rowCount = 0;
         var itemDataMap = buildItemDataMap();
+        var initialSizeId = cfg.initialSizeId ? String(cfg.initialSizeId) : '';
         var previewTimer = null;
         var createBlockedByActiveRecipe = false;
         var saveInFlight = false;
@@ -223,7 +224,7 @@
                 '<div class="small"><strong>Đơn vị tồn kho:</strong> ' + unitCode + (unitName ? ' (' + unitName + ')' : '') + '</div>' +
                 '<div class="small"><strong>Trạng thái:</strong> Hoạt động</div>' +
                 '<div class="small"><strong>Công thức đang hoạt động hiện tại:</strong> ' +
-                (hasActive ? ('Có — Công thức #' + activeId + (activeCode ? ' (' + activeCode + ')' : '')) : 'Chưa có') +
+                (hasActive ? (activeCode || 'Đã có công thức đang áp dụng') : 'Chưa có') +
                 '</div>' +
                 '<div class="small"><strong>Số phiên bản:</strong> ' + versionCount + '</div>';
             $('#piSummary').html(html).show();
@@ -232,7 +233,7 @@
                 createBlockedByActiveRecipe = true;
                 var editHref = (cfg.editUrlTemplate || '').replace('{id}', activeId);
                 $('#piActiveConflict').html(
-                    '<strong>Đã có công thức đang hoạt động</strong> (#' + activeId + '). ' +
+                    '<strong>Đã có công thức đang hoạt động</strong>' + (activeCode ? ' (' + activeCode + ')' : '') + '. ' +
                     'Không thể tạo mới vì mỗi BTP chỉ có một phiên bản đang hoạt động. ' +
                     'Hãy mở màn hình sửa để lưu trữ phiên bản cũ và tạo phiên bản mới.<br class="mb-1"/>' +
                     '<a class="btn btn-sm btn-outline-secondary mt-1 me-1" href="' + editHref + '">Xem công thức</a>' +
@@ -419,7 +420,7 @@
                     var unitCode = itemInfo.baseunitcode || itemInfo.unitname || 'ĐVT';
                     $(this).find('.row-total-display').html(
                         '<span class="rb-cost-sub">' + formatMoney(itemInfo.basecost) + ' ₫/' + unitCode + '</span>' +
-                        '<span class="rb-cost-main d-block">' + formatMoney(actualCost) + ' <small>VND</small></span>'
+                        '<span class="rb-cost-main d-block">' + formatMoney(actualCost) + ' <small>₫</small></span>'
                     );
                 } else {
                     anyIncomplete = true;
@@ -463,10 +464,10 @@
                 $('#footerFoodCostPct').text('—');
             } else {
                 $panel.removeClass('incomplete').addClass('complete');
-                $('#displayTotalCost').html(formatMoney(completeTotal) + ' <small>VND / mẻ</small>');
+                $('#displayTotalCost').html(formatMoney(completeTotal) + ' <small>₫ / mẻ</small>');
                 $('#displayCostStatus').text('Giá vốn ước tính (đủ dữ liệu gói)');
                 $issues.hide();
-                $('#footerTotalCost').text(formatMoney(completeTotal) + ' VND');
+                $('#footerTotalCost').text(formatMoney(completeTotal) + ' ₫');
                 $('#hiddenTotalCost').val(Math.round(completeTotal));
                 var sellingPrice = parseFloat($('#sizeSelect').find(':selected').data('price')) || 0;
                 if (sellingPrice > 0) {
@@ -492,7 +493,7 @@
                 '<td><input type="number" step="0.01" min="0.01" name="Details[' + index + '].Quantity" ' +
                 'class="form-control form-control-sm text-end item-qty" value="' + (prefill && prefill.qty ? prefill.qty : '1') + '" required aria-label="Số lượng" /></td>' +
                 '<td>' +
-                '<input type="text" class="form-control form-control-sm bg-light item-unitname" name="Details[' + index + '].UnitName" readonly tabindex="-1" placeholder="Tự động" />' +
+                '<input type="text" class="form-control form-control-sm production-readonly-field item-unitname" name="Details[' + index + '].UnitName" readonly tabindex="-1" aria-label="Đơn vị được xác định tự động" placeholder="Tự động" />' +
                 '<input type="hidden" name="Details[' + index + '].UnitId" class="item-unitid" value="0" />' +
                 '<input type="hidden" name="Details[' + index + '].YieldPercentage" class="item-yield" value="100" />' +
                 '</td>' +
@@ -599,13 +600,20 @@
                     });
                 }
                 sizeSelect.html(html);
+                if (initialSizeId) {
+                    sizeSelect.val(initialSizeId);
+                    initialSizeId = '';
+                }
                 sizeSection.show();
+                sizeSelect.trigger('change');
             });
         });
 
         $('#sizeSelect').on('change', calculateTotal);
 
-        addRow();
+        if (cfg.addInitialRow !== false) {
+            addRow();
+        }
 
         $('#btnSaveRecipe').on('click', function () {
             if (saveInFlight) return;

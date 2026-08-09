@@ -1,4 +1,5 @@
 using CafeChain.Application.DTOs.Admin.Suppliers;
+using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Constants;
 using CafeChain.Application.Exceptions;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
@@ -804,7 +805,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             "packagequantity" => "Lượng trong gói",
             "packageprice" => "Giá một gói",
             "minimumorderpackagecount" => "MOQ theo gói",
-            "leadtimedays" => "Lead time mặc định",
+            "leadtimedays" => "Thời gian giao mặc định",
             "isprimary" => "Nguồn cung chính",
             "active" => "Trạng thái",
             "allowsloosepurchase" => "Cho phép mua lẻ",
@@ -893,8 +894,11 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 .ToListAsync();
 
             var result = new List<AdminIngredientSupplierDTO>();
+            var readinessById = await _packageValidator.EvaluateReadinessAsync(offers);
             foreach (var offer in offers)
-                result.Add(await MapIngredientOfferAsync(offer));
+                result.Add(MapIngredientOffer(
+                    offer,
+                    readinessById[offer.IngredientSupplierId]));
             return result;
         }
 
@@ -902,7 +906,8 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         {
             var offer = await LoadOfferTrackedAsync(ingredientSupplierId, asNoTracking: true);
             if (offer == null) return null;
-            return await MapIngredientOfferAsync(offer);
+            var readiness = await _packageValidator.EvaluateReadinessAsync(offer);
+            return MapIngredientOffer(offer, readiness);
         }
 
         public Task<int> CreateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto) =>
@@ -1122,7 +1127,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             {
                 await tx.RollbackAsync();
                 throw new InvalidOperationException(
-                    "RESOURCE_CHANGED_BY_ANOTHER_USER: Gói cung cấp vừa được cập nhật. Vui lòng tải lại.");
+                    "Gói mua vừa được người khác cập nhật. Vui lòng tải lại dữ liệu.");
             }
             catch
             {
@@ -1143,43 +1148,54 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             string? rowVersion,
             int actorStaffId)
         {
-            var entity = await LoadOfferTrackedAsync(ingredientSupplierId, asNoTracking: false)
-                ?? throw new InvalidOperationException("Không tìm thấy bảng giá gói mua.");
-            var expectedVersion = ParseRequiredRowVersion(rowVersion);
-            EnsureRowVersionMatches(entity.RowVersion, expectedVersion);
-            _context.Entry(entity).Property(x => x.RowVersion).OriginalValue = expectedVersion;
-
-            if (active)
-            {
-                var validation = await _packageValidator.ValidateAsync(
-                    entity.IngredientId,
-                    entity.SupplierId,
-                    entity.UnitId,
-                    entity.PackageQuantity,
-                    entity.CurrentPrice,
-                    isActive: true,
-                    requirePackageQuantity: true,
-                    excludeIngredientSupplierId: entity.IngredientSupplierId);
-
-                if (!validation.IsSuccess)
-                    throw new InvalidOperationException(validation.Message);
-            }
-
-            entity.Active = active;
-            _context.AuditLogs.Add(NewSupplierAudit(
-                entity.SupplierId,
-                "SUPPLIER_OFFER_STATUS_CHANGED",
-                actorStaffId,
-                JsonSerializer.Serialize(new { active = !active }),
-                JsonSerializer.Serialize(new { active })));
+            await using var tx = await _context.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
             try
             {
+                var entity = await LoadOfferTrackedAsync(ingredientSupplierId, asNoTracking: false)
+                    ?? throw new InvalidOperationException("Không tìm thấy gói mua.");
+                var expectedVersion = ParseRequiredRowVersion(rowVersion);
+                EnsureRowVersionMatches(entity.RowVersion, expectedVersion);
+                _context.Entry(entity).Property(x => x.RowVersion).OriginalValue = expectedVersion;
+
+                if (active)
+                {
+                    var readiness = await _packageValidator.EvaluateReadinessAsync(entity);
+                    if (!readiness.IsReady)
+                    {
+                        throw new InvalidOperationException(
+                            $"Không thể kích hoạt gói mua. {readiness.Message} Hãy cập nhật quy cách trước khi kích hoạt.");
+                    }
+                }
+
+                if (entity.Active == active)
+                {
+                    await tx.CommitAsync();
+                    return;
+                }
+
+                var oldActive = entity.Active;
+                entity.Active = active;
+                entity.UpdatedAt = DateTime.UtcNow;
+                _context.AuditLogs.Add(NewSupplierAudit(
+                    entity.SupplierId,
+                    "SUPPLIER_OFFER_STATUS_CHANGED",
+                    actorStaffId,
+                    JsonSerializer.Serialize(new { active = oldActive }),
+                    JsonSerializer.Serialize(new { active })));
                 await _context.SaveChangesAsync();
+                await tx.CommitAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
+                await tx.RollbackAsync();
                 throw new InvalidOperationException(
-                    "RESOURCE_CHANGED_BY_ANOTHER_USER: Gói cung cấp vừa được cập nhật. Vui lòng tải lại.");
+                    "Gói mua vừa được người khác cập nhật. Vui lòng tải lại dữ liệu.");
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
             }
         }
 
@@ -1277,7 +1293,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             {
                 await tx.RollbackAsync();
                 throw new InvalidOperationException(
-                    "RESOURCE_CHANGED_BY_ANOTHER_USER: Gói cung cấp vừa được cập nhật. Vui lòng tải lại trước khi đổi giá.");
+                    "Gói mua vừa được người khác cập nhật. Vui lòng tải lại trước khi đổi giá.");
             }
             catch
             {
@@ -1578,7 +1594,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         {
             if (string.IsNullOrWhiteSpace(value))
                 throw new InvalidOperationException(
-                    "VALIDATION_ROW_VERSION_REQUIRED: Thiếu phiên bản dữ liệu. Vui lòng tải lại.");
+                    "Thiếu phiên bản dữ liệu gói mua. Vui lòng tải lại.");
 
             try
             {
@@ -1590,7 +1606,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             catch (FormatException)
             {
                 throw new InvalidOperationException(
-                    "VALIDATION_ROW_VERSION_REQUIRED: Phiên bản dữ liệu không hợp lệ. Vui lòng tải lại.");
+                    "Phiên bản dữ liệu gói mua không hợp lệ. Vui lòng tải lại.");
             }
         }
 
@@ -1598,7 +1614,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         {
             if (!(current ?? Array.Empty<byte>()).SequenceEqual(expected))
                 throw new InvalidOperationException(
-                    "RESOURCE_CHANGED_BY_ANOTHER_USER: Gói cung cấp vừa được cập nhật. Vui lòng tải lại.");
+                    "Gói mua vừa được người khác cập nhật. Vui lòng tải lại dữ liệu.");
         }
 
         private static string SerializeOfferAudit(IngredientSupplier entity) =>
@@ -1656,11 +1672,12 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             return await q.FirstOrDefaultAsync(x => x.IngredientSupplierId == id);
         }
 
-        private async Task<AdminIngredientSupplierDTO> MapIngredientOfferAsync(IngredientSupplier x)
+        private static AdminIngredientSupplierDTO MapIngredientOffer(
+            IngredientSupplier x,
+            SupplierPackageReadinessResult readiness)
         {
-            var complete = await _packageValidator.HasCompletePackageDefinitionAsync(x);
             var unitCode = x.Unit?.UnitCode ?? "";
-            var packageDisplay = complete
+            var packageDisplay = readiness.HasValidPackageDefinition
                 ? $"{x.PackageQuantity?.ToString("0.####", CultureInfo.InvariantCulture)} {unitCode} / gói"
                 : "Chưa đủ dữ liệu gói mua";
 
@@ -1693,7 +1710,14 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 Note = x.Note,
                 UpdatedAt = x.UpdatedAt,
                 RowVersion = Convert.ToBase64String(x.RowVersion),
-                HasCompletePackageDefinition = complete,
+                HasCompletePackageDefinition = readiness.HasValidPackageDefinition,
+                IsProcurementReady = readiness.IsReady && x.Active,
+                ProcurementReadinessLabel = readiness.IsReady && x.Active
+                    ? "Sẵn sàng mua hàng"
+                    : "Chưa sẵn sàng mua hàng",
+                ProcurementReadinessMessage = !x.Active && readiness.IsReady
+                    ? "Quy cách hợp lệ nhưng gói mua đang ngừng sử dụng."
+                    : readiness.Message,
                 PackageDisplay = packageDisplay,
                 PriceDisplay = x.AllowsLoosePurchase
                     ? $"{x.CurrentPrice.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} ₫ / gói · "
