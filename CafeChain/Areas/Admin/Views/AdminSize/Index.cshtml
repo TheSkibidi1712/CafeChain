@@ -181,11 +181,11 @@
 <!-- ================= CREATE MODAL ================= -->
 <div class="modal fade size-module-modal" id="createModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered size-modal-dialog">
-        <div class="modal-content p-3 size-modal">
+        <div class="modal-content size-modal">
 
             <!-- Header -->
             <div class="modal-header border-0 pb-0">
-                <div class="d-flex align-items-start gap-2">
+                <div class="d-flex align-items-center gap-3">
                     <div class="size-modal-icon">
                         <i class="fas fa-mug-hot"></i>
                     </div>
@@ -212,7 +212,7 @@
                             </label>
                             <input id="create-code"
                                    name="SizeCode"
-                                   class="form-control bg-light text-center"
+                                   class="form-control"
                                    placeholder="M"
                                    maxlength="20"
                                    required />
@@ -225,7 +225,7 @@
                             </label>
                             <input id="create-name"
                                    name="Name"
-                                   class="form-control bg-light text-center"
+                                   class="form-control"
                                    placeholder="Size vừa"
                                    maxlength="50"
                                    required />
@@ -237,7 +237,7 @@
                             </label>
                             <select id="create-size-type"
                                     name="SizeType"
-                                    class="form-select bg-light"
+                                    class="form-select"
                                     required>
                                 <option value="" selected>-- Chọn loại size --</option>
                                 <option value="1">Ly</option>
@@ -308,11 +308,11 @@
 <!-- ================= EDIT MODAL ================= -->
 <div class="modal fade size-module-modal" id="editModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered size-modal-dialog">
-        <div class="modal-content p-3 size-modal">
+        <div class="modal-content size-modal">
 
             <!-- Header -->
             <div class="modal-header border-0 pb-0">
-                <div class="d-flex align-items-start gap-2">
+                <div class="d-flex align-items-center gap-3">
                     <div class="size-modal-icon is-edit">
                         <i class="fas fa-pen"></i>
                     </div>
@@ -342,7 +342,7 @@
                             </label>
                             <input id="edit-code"
                                    name="SizeCode"
-                                   class="form-control bg-light text-center"
+                                   class="form-control"
                                    maxlength="20"
                                    required />
                         </div>
@@ -354,7 +354,7 @@
                             </label>
                             <input id="edit-name"
                                    name="Name"
-                                   class="form-control bg-light text-center"
+                                   class="form-control"
                                    maxlength="50"
                                    required />
                         </div>
@@ -365,7 +365,7 @@
                             </label>
                             <select id="edit-size-type"
                                     name="SizeType"
-                                    class="form-select bg-light"
+                                    class="form-select"
                                     required>
                                 <option value="1">Ly</option>
                                 <option value="2">Dung tích</option>
