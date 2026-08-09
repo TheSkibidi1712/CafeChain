@@ -13,12 +13,12 @@
     const applyButton = document.getElementById("dashboardApply");
     const fields = {
         from: document.getElementById("dashboardFromDate"), to: document.getElementById("dashboardToDate"),
-        province: document.getElementById("dashboardProvince"), district: document.getElementById("dashboardDistrict"),
+        province: document.getElementById("dashboardProvince"), ward: document.getElementById("dashboardWard"),
         store: document.getElementById("dashboardStore"), granularity: document.getElementById("dashboardGranularity"),
         top: document.getElementById("dashboardTop"), preset: document.getElementById("dashboardPreset")
     };
     fields.province.disabled = root.dataset.canSelectProvince !== "true";
-    fields.district.disabled = root.dataset.canSelectDistrict !== "true";
+    fields.ward.disabled = root.dataset.canSelectWard !== "true";
     fields.store.disabled = root.dataset.canSelectStore !== "true";
     const cache = new Map();
     const charts = new Map();
@@ -228,12 +228,12 @@
 
     function populateFilters(initial = false) {
         const selectedProvince = initial ? root.dataset.province : fields.province.value;
-        const selectedDistrict = initial ? root.dataset.district : fields.district.value;
+        const selectedWard = initial ? root.dataset.ward : fields.ward.value;
         const selectedStore = initial ? root.dataset.store : fields.store.value;
         fields.province.innerHTML = `<option value="">Tất cả</option>${distinct(stores, "provinceId", "provinceName", selectedProvince)}`;
-        const districtStores = selectedProvince ? stores.filter(x => String(x.provinceId) === String(selectedProvince)) : stores;
-        fields.district.innerHTML = `<option value="">Tất cả</option>${distinct(districtStores, "districtId", "districtName", selectedDistrict)}`;
-        const storeOptions = districtStores.filter(x => !selectedDistrict || String(x.districtId) === String(selectedDistrict));
+        const provinceStores = selectedProvince ? stores.filter(x => String(x.provinceId) === String(selectedProvince)) : stores;
+        fields.ward.innerHTML = `<option value="">Tất cả</option>${distinct(provinceStores, "wardId", "wardName", selectedWard)}`;
+        const storeOptions = provinceStores.filter(x => !selectedWard || String(x.wardId) === String(selectedWard));
         fields.store.innerHTML = `<option value="">Tất cả</option>${distinct(storeOptions, "storeId", "storeName", selectedStore)}`;
     }
 
@@ -241,7 +241,7 @@
         const parameters = new URLSearchParams({ section, FromDate: fields.from.value, ToDate: fields.to.value, Granularity: fields.granularity.value, Top: fields.top.value || "10" });
         if (root.dataset.contextId) parameters.set("contextId", root.dataset.contextId);
         if (fields.province.value) parameters.set("ProvinceId", fields.province.value);
-        if (fields.district.value) parameters.set("DistrictId", fields.district.value);
+        if (fields.ward.value) parameters.set("WardId", fields.ward.value);
         if (fields.store.value) parameters.set("StoreId", fields.store.value);
         return parameters;
     }
@@ -657,8 +657,8 @@
         tabs[nextIndex].focus();
         tabs[nextIndex].click();
     });
-    fields.province.addEventListener("change", () => { fields.district.value = ""; fields.store.value = ""; populateFilters(); });
-    fields.district.addEventListener("change", () => { fields.store.value = ""; populateFilters(); });
+    fields.province.addEventListener("change", () => { fields.ward.value = ""; fields.store.value = ""; populateFilters(); });
+    fields.ward.addEventListener("change", () => { fields.store.value = ""; populateFilters(); });
     [fields.from, fields.to].forEach(field => field.addEventListener("change", () => { if (fields.preset) fields.preset.value = ""; }));
     async function applyDashboardContext() {
         window.dispatchEvent(new CustomEvent("cafechain:dashboard-context-changing"));
@@ -674,7 +674,7 @@
                     fromDate: fields.from.value,
                     toDate: fields.to.value,
                     provinceId: fields.province.value ? Number(fields.province.value) : null,
-                    districtId: fields.district.value ? Number(fields.district.value) : null,
+                    wardId: fields.ward.value ? Number(fields.ward.value) : null,
                     storeId: fields.store.value ? Number(fields.store.value) : null,
                     granularity: fields.granularity.value,
                     top: Number(fields.top.value || 10),

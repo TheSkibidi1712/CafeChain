@@ -75,7 +75,6 @@ namespace CafeChain.Tests
                         StaffId = StaffId,
                         Address = "123 Duong So 4",
                         ProvinceId = 1,
-                        DistrictId = 2,
                         WardId = 3,
                         IsDefault = true
                     }
@@ -98,7 +97,6 @@ namespace CafeChain.Tests
                 ScopeRefId = StoreId,
                 Phones = new List<string>(),
                 ProvinceId = 1,
-                DistrictId = 2,
                 WardId = 3,
                 Address = "123 Duong So 4",
                 CurrentAvatarUrl = "/Images/avatars/avtdf.jpg",
@@ -118,7 +116,7 @@ namespace CafeChain.Tests
             repo.Setup(r => r.EmailExistsAsync(It.IsAny<string>(), AccountId)).ReturnsAsync(emailExists);
             repo.Setup(r => r.DefaultPhoneExistsAsync(It.IsAny<string>(), StaffId)).ReturnsAsync(false);
             repo.Setup(r => r.CCCDExistsAsync(It.IsAny<string>(), StaffId)).ReturnsAsync(false);
-            repo.Setup(r => r.IsAddressHierarchyValidAsync(1, 2, 3)).ReturnsAsync(true);
+            repo.Setup(r => r.IsAddressHierarchyValidAsync(1, 3)).ReturnsAsync(true);
             repo.Setup(r => r.UpdateStaffProfileTransactionAsync(
                     It.IsAny<Staff>(),
                     It.IsAny<Account>(),

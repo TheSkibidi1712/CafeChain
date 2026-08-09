@@ -280,7 +280,6 @@ namespace CafeChain.Data.Configurations.Staffs
             entity.HasData(
                 new ScopeType { ScopeTypeId = 1, Code = "COUNTRY", Name = "Country" },
                 new ScopeType { ScopeTypeId = 2, Code = "PROVINCE", Name = "Province" },
-                new ScopeType { ScopeTypeId = 3, Code = "DISTRICT", Name = "District" },
                 new ScopeType { ScopeTypeId = 4, Code = "WARD", Name = "Ward" },
                 new ScopeType { ScopeTypeId = 5, Code = "STORE", Name = "Store" }
             );
@@ -478,11 +477,6 @@ namespace CafeChain.Data.Configurations.Staffs
                 .HasForeignKey(x => x.ProvinceId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(x => x.District)
-                .WithMany()
-                .HasForeignKey(x => x.DistrictId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             entity.HasOne(x => x.Ward)
                 .WithMany()
                 .HasForeignKey(x => x.WardId)
@@ -490,7 +484,6 @@ namespace CafeChain.Data.Configurations.Staffs
 
             entity.HasIndex(x => x.StaffId);
             entity.HasIndex(x => x.ProvinceId);
-            entity.HasIndex(x => x.DistrictId);
             entity.HasIndex(x => x.WardId);
 
             entity.HasData(

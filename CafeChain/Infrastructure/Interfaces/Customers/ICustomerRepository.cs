@@ -41,13 +41,11 @@ namespace CafeChain.Infrastructure.Interfaces.Customers
         // LOCATION
         // =========================
 
-        Task<LocationNameDto?> GetLocationNamesAsync(int provinceId, int districtId, int wardId);
+        Task<LocationNameDto?> GetLocationNamesAsync(int provinceId, int wardId);
 
         Task<List<Province>> GetProvincesAsync();
 
-        Task<List<District>> GetDistrictsByProvinceAsync(int provinceId);
-
-        Task<List<Ward>> GetWardsByDistrictAsync(int districtId);
+        Task<List<Ward>> GetWardsByProvinceAsync(int provinceId);
 
         // =========================
         // AVATAR

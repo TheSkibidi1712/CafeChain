@@ -727,7 +727,7 @@ body {
     min-height: var(--cc-metric-height);
     padding: 16px 20px;
     border: 1px solid var(--cc-border) !important;
-    border-radius: 14px !important;
+    border-radius: var(--cc-radius-md, 14px) !important;
     background: linear-gradient(145deg, var(--cc-surface-raised) 0%, var(--cc-surface) 72%, var(--cc-brown-50) 100%);
     box-shadow: var(--cc-shadow-xs);
     transition: all 0.2s ease;
@@ -838,7 +838,7 @@ body {
 
 .admin-page-body .dropdown-menu {
     border: 1px solid var(--cc-border);
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
     box-shadow: var(--cc-shadow-md);
     background: var(--cc-surface-raised);
     padding: 8px;
@@ -1246,7 +1246,7 @@ body {
     ) {
         min-height: 0;
         padding: 18px 18px;
-        border-radius: 16px;
+        border-radius: var(--cc-radius-card, 16px);
     }
 
     .admin-page-body .rb-status-badge {
@@ -1262,3 +1262,600 @@ body {
         padding: 14px 14px;
     }
 }
+
+/* ============================================================
+   17. UNIFIED ADMIN HEADER CARD - 2 SEPARATED MINI SOFT ARCS (EXCLUDING DUYỆT MỞ CA TRỄ & BOM)
+   ============================================================ */
+:is(
+    .cc-page-header,
+    .cc-warehouse-header,
+    .cc-admin-heading,
+    .pa-header,
+    .ni-page-header,
+    .profile-header,
+    .inventory-header,
+    .shift-optimization-header,
+    .notification-header,
+    .analytics-header,
+    .ice-page-header,
+    .supplier-page-header,
+    .ops-header,
+    .topping-page-heading,
+    .topping-header,
+    .topping-page-header,
+    .category-page-heading,
+    .category-page-header,
+    .drink-page-heading,
+    .drink-page-header,
+    .drink-header,
+    .size-page-heading,
+    .size-page-header,
+    .size-header,
+    .ingredient-page-heading,
+    .ingredient-page-header,
+    .ingredient-header,
+    .store-admin-page-heading,
+    .store-admin-header,
+    .staff-page-heading,
+    .staff-page-header,
+    .perm-page-heading,
+    .perm-heading,
+    .inventory-transfer-header,
+    .transfer-header,
+    .admin-page-header,
+    .page-header,
+    .staff-edit-header,
+    .supplier-detail-header,
+    .dashboard-guide__header,
+    .shift-page-header,
+    .reorder-header,
+    .unit-conversion-header,
+    .uc-header,
+    .store-inventory-header,
+    .order-history-header,
+    .admin-order-header,
+    .drink-profitability-header,
+    .pf-header,
+    .store-menu-header,
+    .sm-header,
+    .receipt-header,
+    .branch-receipt-header,
+    .purchase-advice-header,
+    .restock-header,
+    .stock-alert-header,
+    .threshold-header,
+    .anomalies-header,
+    .settings-header
+):not(.approvals-header):not(.recipe-header):not(.po-recipe-header) {
+    width: 100% !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    margin-bottom: 22px !important;
+    min-height: 135px !important;
+    padding: 24px 28px !important;
+    border: 1px solid var(--cc-border, #E9DED4) !important;
+    border-left: 5px solid #5C3F2B !important;
+    border-radius: var(--cc-radius-header, 20px) !important;
+    background: linear-gradient(112deg, #FFFFFF 0%, #FBF7F2 62%, #F1E5DA 100%) !important;
+    box-shadow: var(--cc-shadow-md) !important;
+    overflow: hidden !important;
+    isolation: isolate !important;
+    box-sizing: border-box !important;
+}
+
+.cc-page-kicker {
+    display: block !important;
+    margin-bottom: 4px !important;
+    color: #8B6247 !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.09em !important;
+    text-transform: uppercase !important;
+}
+
+.cc-page-title {
+    margin: 4px 0 6px !important;
+    color: #201812 !important;
+    font-size: 28px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.2 !important;
+}
+
+.cc-page-description {
+    max-width: 680px !important;
+    margin: 0 !important;
+    color: #66584F !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    font-weight: 500 !important;
+}
+
+:is(
+    .cc-page-header,
+    .cc-warehouse-header,
+    .cc-admin-heading,
+    .pa-header,
+    .ni-page-header,
+    .profile-header,
+    .inventory-header,
+    .shift-optimization-header,
+    .notification-header,
+    .analytics-header,
+    .ice-page-header,
+    .supplier-page-header,
+    .ops-header,
+    .topping-page-heading,
+    .topping-header,
+    .topping-page-header,
+    .category-page-heading,
+    .category-page-header,
+    .drink-page-heading,
+    .drink-page-header,
+    .drink-header,
+    .size-page-heading,
+    .size-page-header,
+    .size-header,
+    .ingredient-page-heading,
+    .ingredient-page-header,
+    .ingredient-header,
+    .store-admin-page-heading,
+    .store-admin-header,
+    .staff-page-heading,
+    .staff-page-header,
+    .perm-page-heading,
+    .perm-heading,
+    .inventory-transfer-header,
+    .transfer-header,
+    .admin-page-header,
+    .page-header,
+    .staff-edit-header,
+    .supplier-detail-header,
+    .dashboard-guide__header,
+    .shift-page-header,
+    .reorder-header,
+    .unit-conversion-header,
+    .uc-header,
+    .store-inventory-header,
+    .order-history-header,
+    .admin-order-header,
+    .drink-profitability-header,
+    .pf-header,
+    .store-menu-header,
+    .sm-header,
+    .receipt-header,
+    .branch-receipt-header,
+    .purchase-advice-header,
+    .restock-header,
+    .stock-alert-header,
+    .threshold-header,
+    .anomalies-header,
+    .settings-header
+):not(.approvals-header):not(.recipe-header):not(.po-recipe-header) > * {
+    position: relative !important;
+    z-index: 2 !important;
+}
+
+/* Vòng cung 1 (VÒNG CUNG TRÒN NHỎ PHÍA TRÊN — TÁCH BIỆT HOÀN TOÀN, ĐO THEO NÚT 44px): Đường kính 130px, nét 10px */
+:is(
+    .cc-page-header,
+    .cc-warehouse-header,
+    .cc-admin-heading,
+    .pa-header,
+    .ni-page-header,
+    .profile-header,
+    .inventory-header,
+    .shift-optimization-header,
+    .notification-header,
+    .analytics-header,
+    .ice-page-header,
+    .supplier-page-header,
+    .ops-header,
+    .topping-page-heading,
+    .topping-header,
+    .topping-page-header,
+    .category-page-heading,
+    .category-page-header,
+    .drink-page-heading,
+    .drink-page-header,
+    .drink-header,
+    .size-page-heading,
+    .size-page-header,
+    .size-header,
+    .ingredient-page-heading,
+    .ingredient-page-header,
+    .ingredient-header,
+    .store-admin-page-heading,
+    .store-admin-header,
+    .staff-page-heading,
+    .staff-page-header,
+    .perm-page-heading,
+    .perm-heading,
+    .inventory-transfer-header,
+    .transfer-header,
+    .admin-page-header,
+    .page-header,
+    .staff-edit-header,
+    .supplier-detail-header,
+    .dashboard-guide__header,
+    .shift-page-header,
+    .reorder-header,
+    .unit-conversion-header,
+    .uc-header,
+    .store-inventory-header,
+    .order-history-header,
+    .admin-order-header,
+    .drink-profitability-header,
+    .pf-header,
+    .store-menu-header,
+    .sm-header,
+    .receipt-header,
+    .branch-receipt-header,
+    .purchase-advice-header,
+    .restock-header,
+    .stock-alert-header,
+    .threshold-header,
+    .anomalies-header,
+    .settings-header
+):not(.approvals-header):not(.recipe-header):not(.po-recipe-header)::before {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    width: 130px !important;
+    height: 130px !important;
+    border-radius: 50% !important;
+    border: 10px solid rgba(211, 140, 95, 0.18) !important;
+    background: transparent !important;
+    top: -60px !important;
+    right: 90px !important;
+    left: auto !important;
+    transform: none !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+    box-sizing: border-box !important;
+}
+
+/* Vòng cung 2 (VÒNG CUNG TRÒN NHỎ GÓC PHẢI DƯỚI — TÁCH BIỆT HOÀN TOÀN, ĐO THEO NÚT 44px): Đường kính 95px, nét 9px */
+:is(
+    .cc-page-header,
+    .cc-warehouse-header,
+    .cc-admin-heading,
+    .pa-header,
+    .ni-page-header,
+    .profile-header,
+    .inventory-header,
+    .shift-optimization-header,
+    .notification-header,
+    .analytics-header,
+    .ice-page-header,
+    .supplier-page-header,
+    .ops-header,
+    .topping-page-heading,
+    .topping-header,
+    .topping-page-header,
+    .category-page-heading,
+    .category-page-header,
+    .drink-page-heading,
+    .drink-page-header,
+    .drink-header,
+    .size-page-heading,
+    .size-page-header,
+    .size-header,
+    .ingredient-page-heading,
+    .ingredient-page-header,
+    .ingredient-header,
+    .store-admin-page-heading,
+    .store-admin-header,
+    .staff-page-heading,
+    .staff-page-header,
+    .perm-page-heading,
+    .perm-heading,
+    .inventory-transfer-header,
+    .transfer-header,
+    .admin-page-header,
+    .page-header,
+    .staff-edit-header,
+    .supplier-detail-header,
+    .dashboard-guide__header,
+    .shift-page-header,
+    .reorder-header,
+    .unit-conversion-header,
+    .uc-header,
+    .store-inventory-header,
+    .order-history-header,
+    .admin-order-header,
+    .drink-profitability-header,
+    .pf-header,
+    .store-menu-header,
+    .sm-header,
+    .receipt-header,
+    .branch-receipt-header,
+    .purchase-advice-header,
+    .restock-header,
+    .stock-alert-header,
+    .threshold-header,
+    .anomalies-header,
+    .settings-header
+):not(.approvals-header):not(.recipe-header):not(.po-recipe-header)::after {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    width: 95px !important;
+    height: 95px !important;
+    border-radius: 50% !important;
+    border: 9px solid rgba(211, 140, 95, 0.15) !important;
+    background: transparent !important;
+    bottom: -35px !important;
+    right: -15px !important;
+    left: auto !important;
+    transform: none !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+    box-sizing: border-box !important;
+}
+
+/* ============================================================
+   18. PHASE 15 — UNIFIED FORM, BUTTON, MODAL & CONTROL SYNCHRONIZATION
+   ============================================================ */
+/* SweetAlert Coffee-Brown Premium Theme Synchronization */
+.swal2-popup {
+    border-radius: var(--cc-radius-modal, 18px) !important;
+    background: var(--cc-surface-raised, #FFFDFB) !important;
+    border: 1px solid var(--cc-border-strong, #D8C5B6) !important;
+    box-shadow: var(--cc-shadow-lg, 0 18px 48px rgba(32, 24, 18, 0.14)) !important;
+    color: var(--cc-text-primary, #201812) !important;
+    font-family: inherit !important;
+}
+
+.swal2-title {
+    color: var(--cc-brown-950, #2B1A12) !important;
+    font-size: 20px !important;
+    font-weight: 850 !important;
+}
+
+.swal2-html-container {
+    color: var(--cc-text-secondary, #66584F) !important;
+    font-size: 14px !important;
+}
+
+.swal2-icon.swal2-warning {
+    border-color: #C67A45 !important;
+    color: #C67A45 !important;
+}
+
+.swal2-actions .swal2-confirm,
+.btn-swal-confirm {
+    background: #70482F !important;
+    border: 1px solid #70482F !important;
+    color: #FFFFFF !important;
+    font-weight: 750 !important;
+    font-size: 14px !important;
+    padding: 9px 24px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 14px rgba(112, 72, 47, 0.24) !important;
+    transition: all 0.16s ease !important;
+}
+
+.swal2-actions .swal2-confirm:hover,
+.btn-swal-confirm:hover {
+    background: #3D2418 !important;
+    border-color: #3D2418 !important;
+    color: #FFFFFF !important;
+    transform: translateY(-1px) !important;
+}
+
+.swal2-actions .swal2-cancel,
+.btn-swal-cancel {
+    background: #FFFDFB !important;
+    border: 1px solid #D8C5B6 !important;
+    color: #66584F !important;
+    font-weight: 750 !important;
+    font-size: 14px !important;
+    padding: 9px 22px !important;
+    border-radius: 10px !important;
+    transition: all 0.16s ease !important;
+}
+
+.swal2-actions .swal2-cancel:hover,
+.btn-swal-cancel:hover {
+    background: #FBF7F2 !important;
+    border-color: #70482F !important;
+    color: #3D2418 !important;
+}
+
+/* Toastr & CafeChain Toast Notification Safety Overlay Contract */
+#cc-toast-container,
+.toast-container,
+#toast-container {
+    max-width: 420px !important;
+    position: fixed !important;
+    top: 24px !important;
+    right: 24px !important;
+    bottom: auto !important;
+    z-index: 999999 !important;
+    pointer-events: none !important;
+}
+
+.cc-toast,
+.toast,
+#toast-container > div {
+    max-width: 420px !important;
+    max-height: 200px !important;
+    overflow: hidden !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+    border-radius: 14px !important;
+    box-shadow: 0 10px 32px rgba(32, 24, 18, 0.18) !important;
+    pointer-events: auto !important;
+}
+
+.cc-toast-msg,
+.toast-message {
+    max-height: 120px !important;
+    overflow-y: auto !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+}
+
+/* Global Text & Badge Overflow Containment */
+.create-section-badge,
+.inventory-create-code,
+.inventory-create-status,
+.card-value,
+.code,
+.value,
+.negative-stock-policy-note,
+.negative-stock-projection {
+    max-width: 100% !important;
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+    text-overflow: ellipsis !important;
+}
+
+.admin-page-body input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.admin-page-body select,
+.admin-page-body .form-control,
+.admin-page-body .form-select {
+    min-height: 44px;
+    border: 1px solid #D8C5B6 !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    background-color: #FFFDFB !important;
+    color: #201812 !important;
+    font-size: 13.5px !important;
+    font-weight: 500;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-page-body input:focus,
+.admin-page-body select:focus,
+.admin-page-body .form-control:focus,
+.admin-page-body .form-select:focus,
+.admin-page-body textarea:focus {
+    border-color: #70482F !important;
+    box-shadow: 0 0 0 3px rgba(112, 72, 47, 0.22) !important;
+    outline: none !important;
+}
+
+.admin-page-body label,
+.admin-page-body .form-label {
+    color: #201812 !important;
+    font-size: 13px !important;
+    font-weight: 750 !important;
+    margin-bottom: 6px;
+}
+
+.admin-page-body textarea {
+    min-height: 108px;
+    border: 1px solid #D8C5B6 !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    background-color: #FFFDFB !important;
+    color: #201812 !important;
+    font-size: 13.5px !important;
+    padding: 10px 14px;
+}
+
+/* Unified Buttons Contract */
+.admin-page-body .btn-primary,
+.admin-page-body .btn-accent {
+    min-height: 44px;
+    padding: 0 20px;
+    border: 1px solid #70482F !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    background-color: #70482F !important;
+    color: #FFFDFB !important;
+    font-weight: 750 !important;
+    font-size: 13.5px !important;
+    box-shadow: 0 2px 6px rgba(112, 72, 47, 0.18);
+    transition: all 140ms ease;
+}
+
+.admin-page-body .btn-primary:hover,
+.admin-page-body .btn-accent:hover {
+    border-color: #3D2418 !important;
+    background-color: #3D2418 !important;
+    color: #FFFDFB !important;
+    box-shadow: 0 6px 16px rgba(61, 36, 24, 0.22);
+    transform: translateY(-1px);
+}
+
+.admin-page-body .btn-outline-secondary,
+.admin-page-body .btn-light {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid #D8C5B6 !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
+    background-color: #FFFDFB !important;
+    color: #201812 !important;
+    font-weight: 750 !important;
+    font-size: 13.5px !important;
+    transition: all 140ms ease;
+}
+
+.admin-page-body .btn-outline-secondary:hover,
+.admin-page-body .btn-light:hover {
+    border-color: #70482F !important;
+    background-color: #FBF7F2 !important;
+    color: #70482F !important;
+    box-shadow: 0 2px 8px rgba(61, 36, 24, 0.08);
+}
+
+/* Modal Contract */
+.modal-content {
+    border: 1px solid #E9DED4 !important;
+    border-radius: var(--cc-radius-modal, 18px) !important;
+    background-color: #FFFDFB !important;
+    box-shadow: var(--cc-shadow-lg) !important;
+    overflow: hidden;
+}
+
+.modal-header {
+    border-bottom: 1px solid #E9DED4 !important;
+    background-color: #FFFDFB !important;
+    padding: 20px 24px !important;
+}
+
+.modal-footer {
+    border-top: 1px solid #E9DED4 !important;
+    background-color: #FBF7F2 !important;
+    padding: 16px 24px !important;
+}
+
+/* Action Buttons & Table Column Alignment Contract */
+.table td.text-center,
+.table td.ingredient-col-actions,
+.table td[data-label="Thao tác"],
+.table td[data-label="THAO TÁC"] {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+.table td.text-center > div,
+.table td.ingredient-col-actions > div,
+.table td .action-group,
+.table td .d-flex {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+}
+
+.table td .action-btn,
+.table td .btn-sm {
+    min-height: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    padding: 0 12px !important;
+    border-radius: var(--cc-radius-sm, 8px) !important;
+    font-size: 13px !important;
+    font-weight: 650 !important;
+    white-space: nowrap !important;
+}
+
+
+

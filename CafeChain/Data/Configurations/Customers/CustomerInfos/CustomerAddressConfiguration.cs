@@ -29,11 +29,6 @@ namespace CafeChain.Data.Configurations.Customers.CustomerInfos
                 .HasForeignKey(x => x.WardId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(x => x.District)
-                .WithMany()
-                .HasForeignKey(x => x.DistrictId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             entity.HasOne(x => x.Province)
                 .WithMany()
                 .HasForeignKey(x => x.ProvinceId)
@@ -41,7 +36,7 @@ namespace CafeChain.Data.Configurations.Customers.CustomerInfos
 
             // ─── Seed data ────────────────────────────────────────────────────────
             // ⚠️ WardId = NULL vì bảng Wards sẽ bị xóa sạch và nạp lại qua vietnam_locations.sql
-            // Sau khi chạy vietnam_locations.sql, cập nhật WardId/DistrictId/ProvinceId tương ứng
+            // Sau khi chạy SeedDataDiaChi.sql, cập nhật WardId/ProvinceId tương ứng.
             entity.HasData(
                 new CustomerAddress { CustomerAddressId = 1, CustomerId = 1, Address = "987 Đường P", WardId = null, IsDefault = false }
             );

@@ -180,7 +180,7 @@
                                     </div>
                                     <span class="uc-status @rowClass">@row.StatusLabel</span>
                                 </div>
-                                <div class="d-flex flex-wrap gap-1">
+                                <div class="d-inline-flex flex-row align-items-center gap-2">
                                     @if (canUpdate && row.AllowEdit)
                                     {
                                         <a class="btn btn-sm btn-outline-primary"
@@ -192,8 +192,7 @@
                                     }
                                     @if (canToggle)
                                     {
-                                        <form asp-action="ToggleStatus" method="post" class="d-inline"
-                                              onsubmit="return confirm('@(row.Active ? "Ngưng hoạt động" : "Kích hoạt") quy đổi này?');">
+                                        <form asp-action="ToggleStatus" method="post" class="d-inline uc-toggle-form">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@row.UnitConversionId" />
                                             <input type="hidden" name="active" value="@(!row.Active ? "true" : "false")" />
@@ -323,3 +322,67 @@
     }
 </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.uc-toggle-form').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    if (form.dataset.confirmed === 'true') {
+                        return true;
+                    }
+                    e.preventDefault();
+                    var btn = form.querySelector('button[type="submit"]');
+                    var actionText = btn ? btn.innerText.trim() : 'Thay đổi trạng thái';
+
+                    function unlockFormState() {
+                        form.removeAttribute('data-confirmed');
+                        form.removeAttribute('data-submit-busy');
+                        form.removeAttribute('data-submit-pending');
+                        form.removeAttribute('aria-busy');
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.removeAttribute('aria-busy');
+                            btn.classList.remove('is-submitting');
+                            btn.blur();
+                        }
+                        if (window.AdminMutationGuard && typeof window.AdminMutationGuard.unlockForm === 'function') {
+                            window.AdminMutationGuard.unlockForm(form);
+                        }
+                    }
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: 'Xác nhận ' + actionText.toLowerCase(),
+                            text: 'Bạn có chắc chắn muốn ' + actionText.toLowerCase() + ' quy đổi này không?',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Đồng ý',
+                            cancelButtonText: 'Hủy bỏ',
+                            reverseButtons: true,
+                            customClass: {
+                                confirmButton: 'btn btn-swal-confirm me-2',
+                                cancelButton: 'btn btn-swal-cancel'
+                            },
+                            buttonsStyling: false
+                        }).then(function (result) {
+                            if (result.isConfirmed) {
+                                form.dataset.confirmed = 'true';
+                                form.submit();
+                            } else {
+                                unlockFormState();
+                            }
+                        });
+                    } else {
+                        if (confirm('Xác nhận ' + actionText.toLowerCase() + ' quy đổi này?')) {
+                            form.dataset.confirmed = 'true';
+                            form.submit();
+                        } else {
+                            unlockFormState();
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}

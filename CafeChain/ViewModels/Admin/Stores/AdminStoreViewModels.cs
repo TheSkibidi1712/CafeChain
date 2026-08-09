@@ -16,7 +16,6 @@ public sealed class AdminStoreFormVM
     public string Phone { get; set; } = string.Empty;
 
     [Required] public int? ProvinceId { get; set; }
-    [Required] public int? DistrictId { get; set; }
     [Required] public int? WardId { get; set; }
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
@@ -35,7 +34,6 @@ public sealed class AdminStoreIndexItemVM
     public bool Active { get; init; }
     public DateTime CreatedAt { get; init; }
     public string? ProvinceName { get; init; }
-    public string? DistrictName { get; init; }
     public string? WardName { get; init; }
     public decimal? Latitude { get; init; }
     public decimal? Longitude { get; init; }

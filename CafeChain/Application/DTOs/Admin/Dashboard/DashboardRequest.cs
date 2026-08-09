@@ -7,7 +7,7 @@
 
         public int? StoreId { get; set; }
         public int? ProvinceId { get; set; }
-        public int? DistrictId { get; set; }
+        public int? WardId { get; set; }
         public int? StaffId { get; set; } // 🔥 ADD
 
     }

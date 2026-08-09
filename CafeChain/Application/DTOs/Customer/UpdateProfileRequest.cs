@@ -34,9 +34,6 @@ namespace CafeChain.Application.DTOs.Customer
         public int WardId { get; set; }
 
         [Range(1, int.MaxValue)]
-        public int DistrictId { get; set; }
-
-        [Range(1, int.MaxValue)]
         public int ProvinceId { get; set; }
     }
 
@@ -51,9 +48,6 @@ namespace CafeChain.Application.DTOs.Customer
 
         [Range(1, int.MaxValue)]
         public int WardId { get; set; }
-
-        [Range(1, int.MaxValue)]
-        public int DistrictId { get; set; }
 
         [Range(1, int.MaxValue)]
         public int ProvinceId { get; set; }

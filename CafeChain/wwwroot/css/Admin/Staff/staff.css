@@ -21,16 +21,7 @@
     background: var(--cc-canvas, #F7F4F0);
 }
 
-.cc-admin-heading::before,
-.admin-wo-page *::before {
-    content: none;
-}
-.cc-admin-heading::after,
-.staff-page-header::after,
-.staff-edit-header::after {
-    display: none !important;
-    content: none !important;
-}
+
 
 .admin-wo-page .staff-page-header,
 .staff-edit-header,
@@ -46,9 +37,9 @@
     padding: 24px 28px !important;
     border: 1px solid #E9DED4 !important;
     border-left: 5px solid #5C3F2B !important;
-    border-radius: 20px !important;
+    border-radius: var(--cc-radius-header, 20px) !important;
     background: linear-gradient(112deg, #FFFFFF 0%, #FBF7F2 62%, #F1E5DA 100%) !important;
-    box-shadow: 0 12px 32px rgba(61, 36, 24, 0.08) !important;
+    box-shadow: var(--cc-shadow-md);
     overflow: hidden;
     box-sizing: border-box !important;
 }
@@ -62,7 +53,7 @@
     height: 48px;
     flex-shrink: 0;
     border: 1px solid #D8C5B6;
-    border-radius: 14px;
+    border-radius: var(--cc-radius-md, 14px);
     color: #FFFDFB;
     background: #70482F;
     box-shadow: 0 4px 12px rgba(112, 72, 47, 0.2);
@@ -96,7 +87,7 @@
 .staff-edit-card .btn-primary {
     min-height: 44px;
     border-color: #70482F;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     background: #70482F;
     color: #FFFDFB;
     font-weight: 750;
@@ -132,44 +123,19 @@
 
 .staff-kpi-card {
     flex: 1;
-<<<<<<< HEAD
-    background: #fffdfb;
-    border-radius: 14px;
-=======
     background: #FFFDFB;
-    border-radius: 16px;
->>>>>>> origin/develop
+    border-radius: var(--cc-radius-card, 16px);
     padding: 20px 22px;
     display: flex;
     align-items: center;
     gap: 16px;
-<<<<<<< HEAD
-    box-shadow: 0 4px 18px rgba(71, 50, 35, 0.06);
-    border: 1px solid #e2d6cc;
-    transition: transform 0.22s ease, box-shadow 0.22s ease;
-=======
     box-shadow: 0 2px 8px rgba(61, 36, 24, 0.03);
     border: 1px solid #E9DED4;
     transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
->>>>>>> origin/develop
     position: relative;
     overflow: hidden;
 }
 
-<<<<<<< HEAD
-.staff-kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: var(--admin-wo-primary, #6F4E37);
-    border-radius: 14px 14px 0 0;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-=======
->>>>>>> origin/develop
 .staff-kpi-card:hover {
     transform: translateY(-1px);
     border-color: #70482F;
@@ -179,7 +145,7 @@
 .kpi-icon {
     width: 48px;
     height: 48px;
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -187,31 +153,25 @@
     flex-shrink: 0;
 }
 
-<<<<<<< HEAD
-.kpi-icon.total   { background: #f5ede3; color: #6f4e37; }
-.kpi-icon.active  { background: #ecfdf5; color: #16a34a; }
-.kpi-icon.inactive{ background: #fef2f2; color: #dc2626; }
-=======
 .kpi-icon.total   { background: #FBF3EA; color: #70482F; border: 1px solid #D7B69C; }
 .kpi-icon.active  { background: #EDF6F2; color: #2F6F5E; border: 1px solid #A7C9BF; }
 .kpi-icon.inactive{ background: #FDF0F0; color: #991B1B; border: 1px solid #E0A6A6; }
->>>>>>> origin/develop
 
 .admin-wo-page .admin-wo-card {
     overflow: hidden;
     border: 1px solid #E9DED4;
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     background: #FFFDFB;
-    box-shadow: 0 4px 16px rgba(61, 36, 24, 0.04);
+    box-shadow: var(--cc-shadow-sm);
 }
 
 .staff-filter-panel {
     margin: 0 0 20px !important;
     padding: 20px;
     border: 1px solid #E9DED4;
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     background: #FFFDFB;
-    box-shadow: 0 4px 16px rgba(61, 36, 24, 0.04);
+    box-shadow: var(--cc-shadow-sm);
 }
 
 .staff-filter-panel .form-label {
@@ -223,19 +183,11 @@
 .staff-filter-panel .form-control,
 .staff-filter-panel .form-select,
 .staff-filter-panel .input-group-text {
-<<<<<<< HEAD
-    min-height: 42px;
-    height: 42px;
-    border-color: #ded2c8;
-    background-color: #fff;
-    font-size: 13.5px;
-=======
     min-height: 44px;
     border-color: #D8C5B6;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     background-color: #FFFDFB;
     color: #201812;
->>>>>>> origin/develop
 }
 
 .staff-filter-panel .form-control:focus,
@@ -250,19 +202,12 @@
 }
 
 .staff-filter-panel .btn-primary {
-<<<<<<< HEAD
-    min-height: 42px;
-    height: 42px;
-    border-color: var(--staff-brown);
-    background: var(--staff-brown);
-=======
     border-color: #70482F;
     background: #70482F;
     color: #FFFDFB;
     font-weight: 750;
     min-height: 44px;
-    border-radius: 10px;
->>>>>>> origin/develop
+    border-radius: var(--cc-radius-control, 10px);
 }
 
 .staff-filter-panel .btn-primary:hover {
@@ -272,16 +217,11 @@
 
 .staff-filter-panel .btn-outline-secondary {
     min-height: 44px;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     border-color: #E9DED4;
     color: #3D2418;
     background: #FFFDFB;
     font-weight: 750;
-}
-
-.staff-filter-panel .btn-outline-secondary {
-    min-height: 42px;
-    height: 42px;
 }
 
 .staff-filter-panel .btn-outline-secondary:hover {
@@ -301,19 +241,10 @@
 }
 
 .staff-table-shell {
-<<<<<<< HEAD
-    overflow-x: auto;
-    overflow-y: hidden;
-    border: 1px solid #e8ded6;
-    border-radius: 13px;
-    width: 100%;
-    background: #fff;
-=======
     overflow: hidden auto;
     border: 1px solid #E9DED4;
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
     background: #FFFDFB;
->>>>>>> origin/develop
 }
 
 .staff-table-shell .table-custom {
@@ -324,25 +255,25 @@
 }
 
 .staff-table-shell .table-custom thead th {
-<<<<<<< HEAD
-    color: #6b5a4e;
-    background: #f8f3ef;
-    border-bottom-color: #ded2c8;
-    white-space: nowrap;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .03em;
-    padding: 12px 14px;
-    text-align: left;
+    color: #5C3F2B !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    background: #FBF7F2 !important;
+    border-bottom: 1px solid #E9DED4 !important;
+    padding: 12px 14px !important;
 }
 
 .staff-table-shell .table-custom tbody td {
-    white-space: nowrap;
-    vertical-align: middle;
-    padding: 12px 14px;
-    font-size: 13px;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    padding: 12px 14px !important;
+    font-size: 13.5px !important;
     text-align: left;
+    color: #201812 !important;
+    border-bottom: 1px solid #F1E5DA !important;
+    background: #FFFDFB !important;
 }
 
 /* Center Status and Action Columns */
@@ -350,29 +281,11 @@
 .staff-table-shell .table-custom td:nth-child(5),
 .staff-table-shell .table-custom th:nth-child(6),
 .staff-table-shell .table-custom td:nth-child(6) {
-    text-align: center;
-=======
-    color: #5C3F2B;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: #FBF7F2;
-    border-bottom: 1px solid #E9DED4;
-    padding: 12px 14px;
->>>>>>> origin/develop
+    text-align: center !important;
 }
 
-.staff-table-shell .table-custom tbody td {
-    padding: 12px 14px;
-    border-bottom: 1px solid #F1E5DA;
-    vertical-align: middle;
-    color: #201812;
-    font-size: 13.5px;
-}
-
-.staff-table-shell .table-custom tbody tr:hover {
-    background: #FBF7F2;
+.staff-table-shell .table-custom tbody tr:hover td {
+    background: #FBF7F2 !important;
 }
 
 .staff-table-footer {
@@ -507,7 +420,7 @@
 .action-btn {
     width: 34px;
     height: 34px;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     border: 1px solid #E5E0D8;
     background: #fff;
     display: inline-flex;
@@ -543,7 +456,7 @@
     align-items: center;
     padding: 20px 22px;
     border: 1px solid #e2d6cc;
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     background: linear-gradient(135deg, #fff, #faf6f2);
     box-shadow: 0 12px 30px rgba(71, 50, 35, .08);
 }
@@ -555,7 +468,7 @@
     width: 48px;
     height: 48px;
     flex: 0 0 48px;
-    border-radius: 14px;
+    border-radius: var(--cc-radius-md, 14px);
     color: #fff;
     background: linear-gradient(145deg, #6f4e37, #8b6b55);
     box-shadow: 0 9px 20px rgba(111, 78, 55, .22);
@@ -629,7 +542,7 @@
 .staff-edit-card .form-select {
     min-height: 43px;
     border-color: #ded2c8;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     background-color: #fffdfb;
 }
 
@@ -704,7 +617,7 @@
 .btn-remove-input {
     width: 34px;
     height: 34px;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     border: 1px solid #FECACA;
     background: #fff;
     color: #991B1B;
@@ -725,7 +638,7 @@
 /* ---- Avatar Upload Box ---- */
 .avatar-upload-box {
     border: 2px dashed #DBC4A9;
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
     width: 200px;
     height: 200px;
     display: flex;
@@ -760,12 +673,12 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
 }
 
 /* ---- Staff Modal ---- */
 .staff-modal .modal-content {
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     border: 1px solid #E5E0D8;
     box-shadow: 0 24px 60px rgba(111, 78, 55, 0.16);
 }
@@ -774,7 +687,7 @@
     padding: 22px 28px 12px;
     border-bottom: 1px solid #EEE8E1;
     background: #fff;
-    border-radius: 16px 16px 0 0;
+    border-radius: var(--cc-radius-card, 16px) 16px 0 0;
 }
 
 .staff-modal .modal-title {
@@ -870,7 +783,7 @@
 .page-btn {
     width: 34px;
     height: 34px;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     border: 1px solid #E5E0D8;
     background: #fff;
     display: flex;
@@ -898,7 +811,7 @@
     overflow: hidden;
     margin-top: 0;
     border: 1px solid #dfd2c7 !important;
-    border-radius: 18px !important;
+    border-radius: var(--cc-radius-modal, 18px) !important;
     background: #faf7f4;
     box-shadow: 0 18px 46px rgba(71, 50, 35, .09) !important;
 }
@@ -915,7 +828,7 @@
 .staff-form-section {
     padding: 22px;
     border: 1px solid #e5d9cf;
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     background: #fff;
     box-shadow: 0 8px 24px rgba(71, 50, 35, .045);
 }
@@ -942,7 +855,7 @@
 .staff-modal :is(.form-control, .form-select) {
     min-height: 46px;
     border: 1px solid #d9cec5;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     color: #1f2937;
     background-color: #fff;
     font-size: 14px;
@@ -1035,7 +948,7 @@
 .staff-modal .modal-content {
     overflow: hidden;
     border: 1px solid #d8c7b9;
-    border-radius: 20px;
+    border-radius: var(--cc-radius-header, 20px);
     background: #faf7f4;
     box-shadow: 0 30px 90px rgba(45, 29, 20, .3);
 }
@@ -1081,7 +994,7 @@
 .staff-modal .btn-close {
     padding: 10px;
     border: 1px solid #e2d6cc;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     background-color: #faf7f4;
     opacity: 1;
 }
@@ -1155,7 +1068,7 @@
     min-height: 350px;
     padding: 22px;
     border: 1px solid #e5d9cf;
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     background: #fff;
     box-shadow: 0 8px 24px rgba(71, 50, 35, .045);
 }
@@ -1183,7 +1096,7 @@
     width: 176px;
     height: 176px;
     border: 2px dashed #cdb7a6;
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     background: #faf7f4;
 }
 
@@ -1447,7 +1360,7 @@
     gap: 8px;
     padding: 0 18px;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     font-size: 13px;
     font-weight: 800;
     transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease;
@@ -1498,14 +1411,14 @@
 @media (max-width: 575.98px) {
     .staff-swal-popup.swal2-popup {
         padding: 0 18px 20px;
-        border-radius: 18px;
+        border-radius: var(--cc-radius-modal, 18px);
     }
 
     .staff-swal-icon.swal2-icon {
         width: 64px;
         height: 64px;
         margin-top: 26px;
-        border-radius: 18px;
+        border-radius: var(--cc-radius-modal, 18px);
     }
 
     .staff-swal-title.swal2-title {

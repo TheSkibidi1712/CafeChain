@@ -28,11 +28,34 @@
         STAFF_ALREADY_HAS_OPEN_SHIFT: "Bạn đang chịu trách nhiệm một phiên POS chưa kết thúc."
     };
 
+    function decodeHtmlEntities(text) {
+        try {
+            const doc = new DOMParser().parseFromString(text, "text/html");
+            return doc.documentElement.textContent;
+        } catch {
+            return text;
+        }
+    }
+
     function cleanMessage(value) {
         if (typeof value !== "string") return "";
-        const text = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+        var str = value;
+        if (str.indexOf("<!DOCTYPE") !== -1 || str.indexOf("<html") !== -1 || str.indexOf("<style") !== -1) {
+            var titleMatch = str.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+            if (titleMatch && titleMatch[1]) {
+                var t = titleMatch[1].replace(/- CafeChain/gi, "").replace(/<[^>]*>/g, "").trim();
+                t = decodeHtmlEntities(t);
+                if (t && t.length < 100) return t;
+            }
+            return "Không có quyền truy cập hoặc hệ thống gặp sự cố.";
+        }
+        const text = str.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+                        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+                        .replace(/<[^>]*>/g, " ")
+                        .replace(/\s+/g, " ")
+                        .trim();
         if (!text || /stack trace|sql(exception| error)|system\.[a-z.]+exception/i.test(text)) return "";
-        return text.slice(0, 500);
+        return decodeHtmlEntities(text.slice(0, 500));
     }
 
     function toast(message, type = "success", options = {}) {
@@ -40,6 +63,13 @@
         const normalizedMessage = cleanMessage(message) || "Không thể xác định kết quả thao tác.";
         const container = document.getElementById("toast-container");
         if (!container) return null;
+
+        const existingItems = container.querySelectorAll(".toast-text");
+        for (let i = 0; i < existingItems.length; i++) {
+            if (existingItems[i].textContent === normalizedMessage) {
+                return null;
+            }
+        }
 
         const item = document.createElement("div");
         item.className = `toast-item ${normalizedType}`;

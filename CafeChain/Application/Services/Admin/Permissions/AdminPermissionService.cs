@@ -102,8 +102,6 @@ namespace CafeChain.Application.Services.Admin.Permissions
                 {
                     (int)ScopeLevel.Province => stores.Where(x => x.ProvinceId.HasValue)
                         .Select(x => x.ProvinceId!.Value).ToHashSet(),
-                    (int)ScopeLevel.District => stores.Where(x => x.DistrictId.HasValue)
-                        .Select(x => x.DistrictId!.Value).ToHashSet(),
                     (int)ScopeLevel.Ward => stores.Where(x => x.WardId.HasValue)
                         .Select(x => x.WardId!.Value).ToHashSet(),
                     (int)ScopeLevel.Store => stores.Select(x => x.StoreId).ToHashSet(),

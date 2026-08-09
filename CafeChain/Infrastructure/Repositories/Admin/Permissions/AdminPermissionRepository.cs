@@ -15,7 +15,6 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
     {
         private const int ScopeCountry = (int)ScopeLevel.Country;
         private const int ScopeProvince = (int)ScopeLevel.Province;
-        private const int ScopeDistrict = (int)ScopeLevel.District;
         private const int ScopeWard = (int)ScopeLevel.Ward;
         private const int ScopeStore = (int)ScopeLevel.Store;
 
@@ -120,6 +119,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
 
                 ScopeProvince => _context.Provinces
                     .AsNoTracking()
+                    .Where(x => x.IsActive)
                     .OrderBy(x => x.Name)
                     .Select(x => new ScopeReferenceDto
                     {
@@ -128,20 +128,9 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
                     })
                     .ToListAsync(),
 
-                ScopeDistrict => _context.Districts
-                    .AsNoTracking()
-                    .Where(x => !parentId.HasValue || x.ProvinceId == parentId.Value)
-                    .OrderBy(x => x.Name)
-                    .Select(x => new ScopeReferenceDto
-                    {
-                        Id = x.DistrictId,
-                        Name = x.Name
-                    })
-                    .ToListAsync(),
-
                 ScopeWard => _context.Wards
                     .AsNoTracking()
-                    .Where(x => !parentId.HasValue || x.DistrictId == parentId.Value)
+                    .Where(x => x.IsActive && (!parentId.HasValue || x.ProvinceId == parentId.Value))
                     .OrderBy(x => x.Name)
                     .Select(x => new ScopeReferenceDto
                     {
@@ -430,19 +419,13 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
 
                     ScopeProvince => await _context.Provinces
                         .AsNoTracking()
-                        .Where(x => refs.Contains(x.ProvinceId))
+                        .Where(x => refs.Contains(x.ProvinceId) && x.IsActive)
                         .Select(x => x.ProvinceId)
-                        .ToListAsync(),
-
-                    ScopeDistrict => await _context.Districts
-                        .AsNoTracking()
-                        .Where(x => refs.Contains(x.DistrictId))
-                        .Select(x => x.DistrictId)
                         .ToListAsync(),
 
                     ScopeWard => await _context.Wards
                         .AsNoTracking()
-                        .Where(x => refs.Contains(x.WardId))
+                        .Where(x => refs.Contains(x.WardId) && x.IsActive)
                         .Select(x => x.WardId)
                         .ToListAsync(),
 
@@ -469,24 +452,19 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
             var store = await _context.Stores
                 .AsNoTracking()
                 .Include(x => x.Province)
-                .Include(x => x.District).ThenInclude(x => x!.Province)
-                .Include(x => x.Ward).ThenInclude(x => x!.District).ThenInclude(x => x!.Province)
+                .Include(x => x.Ward).ThenInclude(x => x!.Province)
                 .FirstOrDefaultAsync(x => x.StoreId == storeId);
             if (store == null) return false;
 
             var wardId = store.WardId;
-            var districtId = store.DistrictId ?? store.Ward?.DistrictId;
             var provinceId = store.ProvinceId
-                ?? store.District?.ProvinceId
-                ?? store.Ward?.District?.ProvinceId;
+                ?? store.Ward?.ProvinceId;
             var countryId = store.Province?.CountryId
-                ?? store.District?.Province?.CountryId
-                ?? store.Ward?.District?.Province?.CountryId;
+                ?? store.Ward?.Province?.CountryId;
 
             return normalized.Any(x =>
                 (x.ScopeTypeId == ScopeCountry && x.ScopeRefId == countryId)
                 || (x.ScopeTypeId == ScopeProvince && x.ScopeRefId == provinceId)
-                || (x.ScopeTypeId == ScopeDistrict && x.ScopeRefId == districtId)
                 || (x.ScopeTypeId == ScopeWard && x.ScopeRefId == wardId)
                 || (x.ScopeTypeId == ScopeStore && x.ScopeRefId == storeId));
         }
@@ -706,7 +684,6 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
 
             var countryIds = scopes.Where(x => x.ScopeTypeId == ScopeCountry).Select(x => x.ScopeRefId).Distinct().ToList();
             var provinceIds = scopes.Where(x => x.ScopeTypeId == ScopeProvince).Select(x => x.ScopeRefId).Distinct().ToList();
-            var districtIds = scopes.Where(x => x.ScopeTypeId == ScopeDistrict).Select(x => x.ScopeRefId).Distinct().ToList();
             var wardIds = scopes.Where(x => x.ScopeTypeId == ScopeWard).Select(x => x.ScopeRefId).Distinct().ToList();
             var storeIds = scopes.Where(x => x.ScopeTypeId == ScopeStore).Select(x => x.ScopeRefId).Distinct().ToList();
 
@@ -717,10 +694,6 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
             var provinces = await _context.Provinces.AsNoTracking()
                 .Where(x => provinceIds.Contains(x.ProvinceId))
                 .ToDictionaryAsync(x => x.ProvinceId, x => x.Name);
-
-            var districts = await _context.Districts.AsNoTracking()
-                .Where(x => districtIds.Contains(x.DistrictId))
-                .ToDictionaryAsync(x => x.DistrictId, x => x.Name);
 
             var wards = await _context.Wards.AsNoTracking()
                 .Where(x => wardIds.Contains(x.WardId))
@@ -736,7 +709,6 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
                 {
                     ScopeCountry => countries.GetValueOrDefault(scope.ScopeRefId) ?? string.Empty,
                     ScopeProvince => provinces.GetValueOrDefault(scope.ScopeRefId) ?? string.Empty,
-                    ScopeDistrict => districts.GetValueOrDefault(scope.ScopeRefId) ?? string.Empty,
                     ScopeWard => wards.GetValueOrDefault(scope.ScopeRefId) ?? string.Empty,
                     ScopeStore => stores.GetValueOrDefault(scope.ScopeRefId) ?? string.Empty,
                     _ => string.Empty
