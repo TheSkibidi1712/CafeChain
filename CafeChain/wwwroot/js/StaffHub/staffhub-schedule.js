@@ -9,6 +9,7 @@
 
         const openButton = document.getElementById("openPosButton");
         const terminalSelect = document.getElementById("staffHubTerminalSelect");
+        const terminalSelectHelp = document.getElementById("openPosTerminalHelp");
         const previewDialog = document.getElementById("openPosPreviewDialog");
         const continueButton = document.getElementById("continueOpenPosPreview");
         const cancelOpenButton = document.getElementById("cancelOpenPosPreview");
@@ -281,12 +282,23 @@
         function syncBoundTerminalPicker(state, terminalId) {
             if (!terminalSelect || !registerTerminalButton) return;
             const readyTerminal = state === "READY" ? getActiveTerminal(terminalId) : null;
+            const canChooseExisting = ["UNLINKED", "INVALID_BINDING"].includes(state);
+            const hasActiveTerminals = Array.from(terminalSelect.options).some(option => Boolean(option.value));
             Array.from(terminalSelect.options).forEach(option => {
                 if (!option.value) return;
-                option.disabled = !readyTerminal || !sameTerminalId(option.value, readyTerminal.terminalId);
+                option.disabled = readyTerminal
+                    ? !sameTerminalId(option.value, readyTerminal.terminalId)
+                    : !canChooseExisting;
             });
-            terminalSelect.disabled = true;
+            terminalSelect.disabled = readyTerminal ? true : !canChooseExisting || !hasActiveTerminals;
             terminalSelect.value = readyTerminal?.terminalId || "";
+            if (terminalSelectHelp) {
+                terminalSelectHelp.textContent = readyTerminal
+                    ? `Thiết bị đang liên kết với ${readyTerminal.name}. Muốn đổi Terminal, hãy dùng chức năng quản lý thiết bị.`
+                    : canChooseExisting && hasActiveTerminals
+                        ? "Chọn một Terminal active để liên kết thiết bị này trước khi mở POS."
+                        : "Chưa có Terminal active phù hợp. Hãy đăng ký thiết bị này trước khi mở POS.";
+            }
         }
 
         const terminalStatePresentation = {
@@ -815,6 +827,52 @@
                     : "Terminal của thiết bị này sẽ được dùng cho phiên POS. Mỗi Terminal chỉ có một ca đang hoạt động.";
         }
 
+        async function confirmExistingTerminalLink(activeTerminal, triggerControl) {
+            if (!activeTerminal) return false;
+            const confirmed = window.Swal
+                ? (await window.Swal.fire({
+                    icon: "question",
+                    title: "Liên kết thiết bị hiện tại?",
+                    text: `Thiết bị này sẽ sử dụng Terminal “${activeTerminal.name}”. Liên kết cục bộ không thay đổi quyền trên máy chủ.`,
+                    showCancelButton: true,
+                    confirmButtonText: "Liên kết Terminal",
+                    cancelButtonText: "Quay lại",
+                    focusCancel: true
+                })).isConfirmed
+                : window.confirm(`Liên kết thiết bị này với Terminal “${activeTerminal.name}”?`);
+            if (!confirmed) return false;
+
+            if (triggerControl) triggerControl.disabled = true;
+            try {
+                const identity = saveTerminalDeviceIdentity(activeTerminal.terminalId, activeTerminal.name, "existing");
+                if (!identity)
+                    throw new Error("Trình duyệt không thể lưu liên kết Terminal. Vui lòng kiểm tra quyền lưu dữ liệu trang web.");
+                registrationChallengeId = null;
+                registrationRequestKey = null;
+                registrationOtpState = "IDLE";
+                renderTerminalDeviceState("READY", activeTerminal);
+                if (window.Swal) {
+                    await window.Swal.fire({
+                        icon: "success",
+                        title: "Đã liên kết Terminal",
+                        text: `${activeTerminal.name} đã được chọn cho thiết bị này.`,
+                        confirmButtonText: "Đóng"
+                    });
+                } else {
+                    window.alert(`${activeTerminal.name} đã được liên kết với thiết bị này.`);
+                }
+                return true;
+            } catch (error) {
+                await notifyOtp(error.message || "Không thể liên kết Terminal.", false);
+                return false;
+            } finally {
+                if (triggerControl === terminalSelect)
+                    syncBoundTerminalPicker(terminalUiState, terminalDeviceIdentity?.terminalId);
+                else if (triggerControl)
+                    triggerControl.disabled = false;
+            }
+        }
+
         function renderBlocking(data, errorCode, message) {
             const blocking = read(data, "blockingWorkShift", "BlockingWorkShift");
             const recommendedAction = read(data, "recommendedAction", "RecommendedAction")
@@ -1046,14 +1104,23 @@
 
         openButton?.addEventListener("click", () =>
             AdminMutationGuard.run("staffhub-open-pos", openButton, openPosFlow));
-        terminalSelect?.addEventListener("change", () => {
+        terminalSelect?.addEventListener("change", async () => {
             requestKey = crypto.randomUUID();
             resetOpenOtpState();
             if (!terminalSelect.value) {
                 prepareTerminalSelection();
                 return;
             }
-            void AdminMutationGuard.run("staffhub-preview-terminal", terminalSelect, previewOpen);
+            if (terminalUiState !== "READY") {
+                const activeTerminal = getActiveTerminal(terminalSelect.value);
+                const linked = await confirmExistingTerminalLink(activeTerminal, terminalSelect);
+                if (!linked) {
+                    terminalSelect.value = "";
+                    prepareTerminalSelection();
+                    return;
+                }
+            }
+            await AdminMutationGuard.run("staffhub-preview-terminal", terminalSelect, previewOpen);
         });
         cancelOpenButton?.addEventListener("click", async () => {
             if (!hasActiveOpenIntent()) {
@@ -1214,42 +1281,7 @@
                 terminalExistingSelect?.focus();
                 return;
             }
-            const confirmed = window.Swal
-                ? (await window.Swal.fire({
-                    icon: "question",
-                    title: "Liên kết thiết bị hiện tại?",
-                    text: `Thiết bị này sẽ sử dụng Terminal “${activeTerminal.name}”. Liên kết cục bộ không thay đổi quyền trên máy chủ.`,
-                    showCancelButton: true,
-                    confirmButtonText: "Liên kết Terminal",
-                    cancelButtonText: "Quay lại",
-                    focusCancel: true
-                })).isConfirmed
-                : window.confirm(`Liên kết thiết bị này với Terminal “${activeTerminal.name}”?`);
-            if (!confirmed) return;
-
-            linkExistingTerminalButton.disabled = true;
-            try {
-                const identity = saveTerminalDeviceIdentity(activeTerminal.terminalId, activeTerminal.name, "existing");
-                if (!identity) throw new Error("Trình duyệt không thể lưu liên kết Terminal. Vui lòng kiểm tra quyền lưu dữ liệu trang web.");
-                registrationChallengeId = null;
-                registrationRequestKey = null;
-                registrationOtpState = "IDLE";
-                renderTerminalDeviceState("READY", activeTerminal);
-                if (window.Swal) {
-                    await window.Swal.fire({
-                        icon: "success",
-                        title: "Đã liên kết Terminal",
-                        text: `${activeTerminal.name} đã được chọn cho thiết bị này.`,
-                        confirmButtonText: "Đóng"
-                    });
-                } else {
-                    window.alert(`${activeTerminal.name} đã được liên kết với thiết bị này.`);
-                }
-            } catch (error) {
-                await notifyOtp(error.message || "Không thể liên kết Terminal.", false);
-            } finally {
-                linkExistingTerminalButton.disabled = false;
-            }
+            await confirmExistingTerminalLink(activeTerminal, linkExistingTerminalButton);
         });
         requestTerminalOtpButton?.addEventListener("click", async () => {
             const name = terminalRegistrationName?.value.trim() || "";

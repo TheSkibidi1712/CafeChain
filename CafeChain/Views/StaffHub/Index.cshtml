@@ -274,13 +274,16 @@
                 <div class="modal-body staffhub-pos-dialog-body">
                     <label class="staffhub-terminal-picker staffhub-modal-terminal-picker">
                         <span>Terminal POS</span>
-                        <select id="staffHubTerminalSelect">
+                        <select id="staffHubTerminalSelect" aria-describedby="openPosTerminalHelp">
                             <option value="">Chọn terminal</option>
                             @foreach (var terminal in terminals)
                             {
                                 <option value="@terminal.TerminalId">@terminal.Name</option>
                             }
                         </select>
+                        <small id="openPosTerminalHelp" class="staffhub-terminal-picker-help">
+                            Chọn Terminal active để liên kết thiết bị này trước khi mở POS.
+                        </small>
                     </label>
                     <dl class="staffhub-pos-preview-grid">
                         <div><dt>Nhân viên</dt><dd>@Model.StaffName</dd></div>
