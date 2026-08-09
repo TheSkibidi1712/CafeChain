@@ -60,7 +60,8 @@ public sealed class ProductionBomUiRefactorTests
         Assert.DoesNotContain("Công thức #", combined, StringComparison.Ordinal);
         Assert.DoesNotContain("Công thức #", recipeBuilder, StringComparison.Ordinal);
         Assert.DoesNotContain("<small>VND", recipeBuilder, StringComparison.Ordinal);
-        Assert.Contains("Sơ chế độc lập (quy trình cũ)", combined, StringComparison.Ordinal);
+        Assert.Contains("Sơ chế độc lập", combined, StringComparison.Ordinal);
+        Assert.DoesNotContain("quy trình cũ", combined, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -146,6 +147,7 @@ public sealed class ProductionBomUiRefactorTests
     public void ProductionLists_UseUnifiedTablesAndPagination()
     {
         var recipe = Read("CafeChain/Areas/Admin/Views/AdminRecipe/Index.cshtml");
+        var recipeDetail = Read("CafeChain/Areas/Admin/Views/AdminRecipe/Visualize.cshtml");
         var preparedItem = Read("CafeChain/Areas/Admin/Views/AdminPreparedItem/Index.cshtml");
         var productionRun = Read("CafeChain/Areas/Admin/Views/AdminProductionOrder/Index.cshtml");
         var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
@@ -156,6 +158,9 @@ public sealed class ProductionBomUiRefactorTests
         Assert.Contains("production-pagination", recipe, StringComparison.Ordinal);
         Assert.Contains("production-pagination", preparedItem, StringComparison.Ordinal);
         Assert.Contains("production-pagination", productionRun, StringComparison.Ordinal);
+        Assert.Contains("pageNumber = firstPage", productionRun, StringComparison.Ordinal);
+        Assert.Contains("production-action-column", productionRun, StringComparison.Ordinal);
+        Assert.Contains("bom-source-link", recipeDetail, StringComparison.Ordinal);
         Assert.Contains("production-row-menu", recipe, StringComparison.Ordinal);
         Assert.Contains("production-row-menu", preparedItem, StringComparison.Ordinal);
         Assert.Contains("<colgroup>", recipe, StringComparison.Ordinal);

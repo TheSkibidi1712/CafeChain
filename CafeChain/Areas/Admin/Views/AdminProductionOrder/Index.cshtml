@@ -14,7 +14,7 @@
         {
             new()
             {
-                Label = "Sơ chế độc lập (quy trình cũ)",
+                Label = "Sơ chế độc lập",
                 Url = Url.Action("Create", new { storeId = selectedStoreId }) ?? "#",
                 IconClass = "fas fa-fire-burner"
             }
@@ -91,7 +91,7 @@
                             <th>YÊU CẦU</th>
                             <th>TRẠNG THÁI</th>
                             <th>NGƯỜI LẬP</th>
-                            <th class="text-end">THAO TÁC</th>
+                            <th class="production-action-column">THAO TÁC</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -104,7 +104,7 @@
                             @foreach (var item in Model.Items)
                             {
                                 <tr>
-                                    <td><strong>PR-@item.ProductionRunId</strong><div class="small text-muted">@(item.ContractVersion == 2 ? "Quy trình theo nhu cầu" : "Quy trình cũ")</div></td>
+                                    <td><strong>PR-@item.ProductionRunId</strong><div class="small text-muted">@(item.ContractVersion == 2 ? "Theo nhu cầu nhập hàng" : "Sơ chế độc lập")</div></td>
                                     <td><strong>@item.OutputName</strong><div class="small text-muted">@item.RecipeName</div></td>
                                     <td>
                                         @if (item.PlannedBatchCount.HasValue)
@@ -130,7 +130,7 @@
                                         <span class="production-status @statusClass">@item.StatusLabel</span>
                                     </td>
                                     <td>@item.CreatedByName<div class="small text-muted">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div></td>
-                                    <td class="text-end">
+                                    <td class="production-action-column">
                                         <a class="btn btn-sm rb-table-action production-row-action" asp-action="Details" asp-route-id="@item.ProductionRunId">
                                             <i class="fas fa-arrow-right" aria-hidden="true"></i> Chi tiết
                                         </a>
@@ -143,16 +143,28 @@
             </div>
             @if (Model.TotalPages > 1)
             {
+                var firstPage = Math.Max(1, Model.Page - 2);
+                var lastPage = Math.Min(Model.TotalPages, firstPage + 4);
+                firstPage = Math.Max(1, lastPage - 4);
                 <nav class="production-pagination" aria-label="Phân trang lệnh sản xuất">
-                    <span class="production-pagination__summary">Trang @Model.Page / @Model.TotalPages</span>
+                    <span class="production-pagination__summary">Trang @Model.Page trên @Model.TotalPages</span>
                     <div class="production-pagination__links">
                         @if (Model.Page > 1)
                         {
-                            <a class="production-page-link is-nav" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page - 1)"><i class="fas fa-arrow-left" aria-hidden="true"></i> Trang trước</a>
+                            <a class="production-page-link is-nav" aria-label="Trang trước" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page - 1)"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+                        }
+                        @for (var pageNumber = firstPage; pageNumber <= lastPage; pageNumber++)
+                        {
+                            <a class="production-page-link @(pageNumber == Model.Page ? "is-current" : "")"
+                               aria-current="@(pageNumber == Model.Page ? "page" : null)"
+                               aria-label="Trang @pageNumber"
+                               asp-route-storeId="@selectedStoreId"
+                               asp-route-status="@selectedStatus"
+                               asp-route-page="@pageNumber">@pageNumber</a>
                         }
                         @if (Model.Page < Model.TotalPages)
                         {
-                            <a class="production-page-link is-nav" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page + 1)">Trang sau <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                            <a class="production-page-link is-nav" aria-label="Trang sau" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page + 1)"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
                         }
                     </div>
                 </nav>

@@ -1035,7 +1035,17 @@
 
 .production-bom-page .production-run-list-page .production-data-table th:last-child,
 .production-bom-page .production-run-list-page .production-data-table td:last-child {
-    width: 112px;
+    width: 136px;
+}
+
+.production-bom-page .production-run-list-page .production-action-column {
+    width: 136px;
+    text-align: center !important;
+    white-space: nowrap;
+}
+
+.production-bom-page .production-run-list-page .production-action-column .production-row-action {
+    min-width: 96px;
 }
 
 .production-bom-page .production-row-action:hover,
@@ -1098,7 +1108,68 @@
 }
 
 .production-bom-page .production-page-link.is-nav {
-    padding-inline: 0.85rem;
+    min-width: 38px;
+    padding-inline: 0.7rem;
+}
+
+.bom-detail-page .bom-inline-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+    color: var(--production-bom-accent);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.bom-detail-page .bom-inline-link:hover,
+.bom-detail-page .bom-inline-link:focus-visible {
+    color: var(--cc-caramel-600, #a96034);
+    text-decoration: underline;
+}
+
+.bom-detail-page .bom-source-link {
+    display: inline-flex;
+    width: min(100%, 330px);
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: 8px;
+    background: var(--cc-brown-50, #faf6f2);
+    color: var(--cc-brown-900, #3d2418);
+    text-decoration: none;
+    transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.bom-detail-page .bom-source-link:hover,
+.bom-detail-page .bom-source-link:focus-visible {
+    border-color: var(--production-bom-accent);
+    background: #fff;
+    color: var(--production-bom-accent);
+}
+
+.bom-detail-page .bom-source-link__content {
+    display: grid;
+    min-width: 0;
+    gap: 0.15rem;
+    text-align: left;
+}
+
+.bom-detail-page .bom-source-link__content strong,
+.bom-detail-page .bom-source-link__content small {
+    overflow-wrap: anywhere;
+}
+
+.bom-detail-page .bom-source-link__content small {
+    color: var(--cc-text-muted, #7a6c62);
+    font-family: var(--bs-font-monospace);
+    font-size: 0.68rem;
+}
+
+.bom-detail-page .bom-source-link__arrow {
+    margin-left: auto;
 }
 
 @media (max-width: 991.98px) {

@@ -149,7 +149,9 @@
                         <strong>[@Model.PreparedItemCode] @Model.PreparedItemName</strong>
                         @if (Model.PreparedItemId.HasValue)
                         {
-                            <a asp-controller="AdminPreparedItem" asp-action="Index" asp-route-search="@Model.PreparedItemCode">Mở danh mục BTP</a>
+                            <a class="bom-inline-link" asp-controller="AdminPreparedItem" asp-action="Index" asp-route-search="@Model.PreparedItemCode">
+                                <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>Mở bán thành phẩm
+                            </a>
                         }
                     </div>
                     <div><span>Sản lượng khai báo/mẻ</span><strong>@(Model.OutputQuantity?.ToString("0.####") ?? "—") @(Model.OutputUnitCode ?? Model.OutputUnitName)</strong></div>
@@ -223,11 +225,15 @@
                                 <td>
                                     @if (component.ChildRecipeId.HasValue)
                                     {
-                                        <a asp-action="Visualize" asp-route-recipeId="@component.ChildRecipeId" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">
-                                            @(string.IsNullOrWhiteSpace(component.ChildRecipeCode) ? "Mở công thức thành phần" : component.ChildRecipeCode)
+                                        <a class="bom-source-link" asp-action="Visualize" asp-route-recipeId="@component.ChildRecipeId" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">
+                                            <i class="fas fa-diagram-project" aria-hidden="true"></i>
+                                            <span class="bom-source-link__content">
+                                                <strong>Xem công thức @component.ItemName</strong>
+                                                <small>@(string.IsNullOrWhiteSpace(component.ChildRecipeCode) ? component.PreparedItemCode : component.ChildRecipeCode)</small>
+                                            </span>
+                                            <i class="fas fa-chevron-right bom-source-link__arrow" aria-hidden="true"></i>
                                         </a>
                                         <div class="small text-muted">Dùng đúng phiên bản công thức thành phần đã chọn</div>
-                                        <div class="small">Bán thành phẩm: @component.PreparedItemCode</div>
                                     }
                                     else
                                     {
@@ -317,7 +323,7 @@
                     <div class="rb-operational-actions mb-3">
                         <a asp-controller="AdminProductionOrder" asp-action="Create"
                            asp-route-storeId="@operational.StoreId" asp-route-recipeId="@Model.RecipeId"
-                           class="btn btn-rb-ghost">Sơ chế độc lập (quy trình cũ)</a>
+                           class="btn btn-rb-ghost">Sơ chế độc lập</a>
                         <a asp-controller="AdminStoreInventory" asp-action="Index"
                            asp-route-storeId="@operational.StoreId" asp-route-inventoryType="prepared-items"
                            asp-route-search="@Model.PreparedItemCode" class="btn btn-rb-ghost">Xem tồn kho BTP</a>
