@@ -2,36 +2,39 @@
 @using CafeChain.Application.DTOs.Admin.Production
 @using CafeChain.Application.DTOs.Admin.StoreInventories
 @using CafeChain.Models.Enums.Inventory
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Lệnh sản xuất theo mẻ";
     var stores = ViewBag.Stores as IReadOnlyCollection<InventoryStoreDTO> ?? [];
     var selectedStoreId = ViewBag.SelectedStoreId as int? ?? 0;
     var selectedStatus = ViewBag.SelectedStatus as string;
     var canCreateLegacy = ViewBag.CanCreateLegacy is true;
+    var heroActions = canCreateLegacy
+        ? new List<AdminPageHeroActionVM>
+        {
+            new()
+            {
+                Label = "Sơ chế độc lập (quy trình cũ)",
+                Url = Url.Action("Create", new { storeId = selectedStoreId }) ?? "#",
+                IconClass = "fas fa-fire-burner"
+            }
+        }
+        : [];
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / BOM",
+        Title = "Lệnh sản xuất",
+        Description = "Theo dõi kế hoạch theo mẻ, sản lượng thực tế, chênh lệch và tiến độ đáp ứng nhu cầu tại cửa hàng.",
+        IconClass = "fas fa-industry",
+        Breadcrumbs = [new() { Label = "Sản xuất / BOM" }, new() { Label = "Lệnh sản xuất" }],
+        Actions = heroActions
+    };
 }
 <link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<main class="container-fluid px-4 mt-4 po-page">
-    <header class="po-title-section bom-depth-header">
-        <nav class="rb-breadcrumb po-breadcrumb" aria-label="Điều hướng">
-            <span>Sản xuất / BOM</span> &gt; <span>Lệnh sản xuất theo mẻ</span>
-        </nav>
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
-            <div class="admin-module-title-row">
-                <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-industry"></i></span>
-                <div>
-                    <h1 class="po-title">LỆNH SẢN XUẤT THEO MẺ</h1>
-                    <p class="po-subtitle">Theo dõi kế hoạch, sản lượng thực tế, chênh lệch và tiến độ đáp ứng yêu cầu nhập hàng.</p>
-                </div>
-            </div>
-            @if (canCreateLegacy)
-            {
-                <a class="btn btn-outline-dark" asp-action="Create" asp-route-storeId="@selectedStoreId">
-                    <i class="fas fa-flask" aria-hidden="true"></i> Lệnh sơ chế độc lập
-                </a>
-            }
-        </div>
-    </header>
+<main class="po-page production-bom-page">
+    <partial name="_PageHero" model="hero" />
 
     @if (ViewBag.ErrorMessage is string error)
     {
@@ -83,7 +86,7 @@
                         <tr>
                             <th>LỆNH</th>
                             <th>ĐẦU RA</th>
-                            <th>MẺ</th>
+                            <th>QUY MÔ</th>
                             <th>SẢN LƯỢNG DỰ KIẾN</th>
                             <th>YÊU CẦU</th>
                             <th>TRẠNG THÁI</th>
@@ -101,12 +104,31 @@
                             @foreach (var item in Model.Items)
                             {
                                 <tr>
-                                    <td><strong>PR-@item.ProductionRunId</strong><div class="small text-muted">Contract v@item.ContractVersion</div></td>
+                                    <td><strong>PR-@item.ProductionRunId</strong><div class="small text-muted">@(item.ContractVersion == 2 ? "Quy trình theo nhu cầu" : "Quy trình cũ")</div></td>
                                     <td><strong>@item.OutputName</strong><div class="small text-muted">@item.RecipeName</div></td>
-                                    <td>@(item.PlannedBatchCount?.ToString() ?? item.RequestedRunCount.ToString("0.#####")) mẻ</td>
+                                    <td>
+                                        @if (item.PlannedBatchCount.HasValue)
+                                        {
+                                            <span>@item.PlannedBatchCount mẻ</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@item.RequestedRunCount.ToString("0.#####") hệ số</span>
+                                        }
+                                    </td>
                                     <td>@(item.ExpectedOutputBase?.ToString("0.###") ?? "—") @item.OutputUnitCode</td>
-                                    <td>@(item.RestockRequestId.HasValue ? $"RR #{item.RestockRequestId}" : "Độc lập")</td>
-                                    <td><span class="badge-status-done">@item.StatusLabel</span></td>
+                                    <td>@(item.RestockRequestId.HasValue ? $"Yêu cầu nhập hàng #{item.RestockRequestId}" : "Sơ chế độc lập")</td>
+                                    <td>
+                                        @{ var statusClass = item.Status switch
+                                            {
+                                                ProductionRunStatus.Completed => "is-complete",
+                                                ProductionRunStatus.Cancelled => "is-cancelled",
+                                                ProductionRunStatus.AwaitingVarianceApproval => "is-warning",
+                                                ProductionRunStatus.InProgress or ProductionRunStatus.AwaitingAcceptance => "is-progress",
+                                                _ => "is-neutral"
+                                            }; }
+                                        <span class="production-status @statusClass">@item.StatusLabel</span>
+                                    </td>
                                     <td>@item.CreatedByName<div class="small text-muted">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div></td>
                                     <td class="text-end">
                                         <a class="btn btn-sm btn-outline-primary rb-table-action" asp-action="Details" asp-route-id="@item.ProductionRunId">

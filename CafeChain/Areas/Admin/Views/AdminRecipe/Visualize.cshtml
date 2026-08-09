@@ -9,49 +9,65 @@
         Model.Active && Model.Status == "Active" ? "rb-status-active" : "rb-status-inactive");
     var configClass = Model.ConfigurationHealth.IsComplete ? "rb-status-complete" : "rb-status-error";
     var costClass = Model.CostingHealth.IsComplete ? "rb-status-complete" : "rb-status-incomplete";
+    var heroActions = new List<AdminPageHeroActionVM>
+    {
+        new() { Label = "Quay lại danh sách", Url = Model.BackUrl, IconClass = "fas fa-arrow-left" },
+        new() { Label = "Xem định mức", Url = "#bom-components", IconClass = "fas fa-list-ul" }
+    };
+    if (Model.CanWrite)
+    {
+        heroActions.Add(new AdminPageHeroActionVM
+        {
+            Label = "Tạo phiên bản mới",
+            Url = Url.Action("Edit", new { id = Model.RecipeId }) ?? "#",
+            IconClass = "fas fa-code-branch",
+            IsPrimary = true
+        });
+    }
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / BOM",
+        Title = Model.Name,
+        Description = $"{Model.TypeLabel} · {Model.IdentityDisplay}. Theo dõi cấu hình, định mức, sản lượng và các liên kết vận hành.",
+        IconClass = "fas fa-diagram-project",
+        StatusLabel = statusBadge.Label,
+        StatusCssClass = statusBadge.CssClass,
+        Breadcrumbs =
+        [
+            new() { Label = "Công thức", Url = Model.BackUrl },
+            new() { Label = Model.Name }
+        ],
+        Actions = heroActions
+    };
 }
 
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<main class="rb-page rb-detail-page">
-    <div class="container-fluid px-3 px-lg-4 pt-4 pb-5">
-        <header class="rb-detail-header mb-3">
-            <div class="min-w-0">
-                <nav class="rb-breadcrumb" aria-label="Điều hướng BOM">
-                    <a href="@Model.BackUrl">Công thức BOM</a> &gt; <span>Chi tiết</span>
-                </nav>
-                <h1 class="rb-page-title mb-1">@Model.Name</h1>
-                <p class="rb-list-meta mb-0">
-                    <code>@Model.RecipeCode</code> · Công thức #@Model.RecipeId · @Model.TypeLabel
-                </p>
-            </div>
-            <div class="rb-detail-actions">
-                <a href="@Model.BackUrl" class="btn-rb-back">Quay lại danh sách</a>
-                <a href="#bom-components" class="btn btn-rb-ghost btn-sm">
-                    <i class="fas fa-list-ul me-1" aria-hidden="true"></i>Xem cấu trúc
-                </a>
-                @if (Model.CanWrite)
-                {
-                    <a asp-action="Edit" asp-route-id="@Model.RecipeId" class="btn btn-rb-save">
-                        <i class="fas fa-pen me-1" aria-hidden="true"></i>Sửa BOM
-                    </a>
-                }
-            </div>
-        </header>
+<main class="rb-page rb-detail-page production-bom-page">
+    <div class="container-fluid px-0">
+        <partial name="_PageHero" model="hero" />
+        <nav class="production-section-nav" aria-label="Các phần của công thức">
+            <a href="#recipe-overview">Tổng quan</a>
+            <a href="#recipe-health">Tình trạng dữ liệu</a>
+            @if (Model.ShowBatchOutput) { <a href="#recipe-output">Đầu ra</a> }
+            <a href="#bom-components">Định mức nguyên liệu</a>
+            <a href="#recipe-history">Liên kết vận hành</a>
+        </nav>
 
-        <section class="rb-card mb-3" aria-labelledby="overview-title">
+        <section id="recipe-overview" class="rb-card mb-3" aria-labelledby="overview-title">
             <div class="rb-card-header" id="overview-title">Tổng quan công thức</div>
             <div class="rb-detail-overview">
                 <div><span>Loại</span><strong>@Model.TypeLabel</strong></div>
                 <div><span>Định danh</span><strong>@Model.IdentityDisplay</strong></div>
-                <div><span>Phiên bản</span><strong>Công thức #@Model.RecipeId</strong></div>
-                <div><span>Phiên bản trước</span><strong>@(Model.ParentVersionId.HasValue ? $"Công thức #{Model.ParentVersionId}" : "Phiên bản gốc")</strong></div>
+                <div><span>Mã công thức</span><strong>@Model.RecipeCode</strong></div>
+                <div><span>Nguồn phiên bản</span><strong>@(Model.ParentVersionId.HasValue ? "Kế thừa phiên bản trước" : "Phiên bản gốc")</strong></div>
                 <div><span>Ngày hiệu lực</span><strong>@(Model.EffectiveDate?.ToString("dd/MM/yyyy") ?? "Chưa đặt")</strong></div>
                 <div><span>Trạng thái</span><partial name="_StatusBadge" model="statusBadge" /></div>
             </div>
         </section>
 
-        <div class="rb-detail-grid mb-3">
+        <div id="recipe-health" class="rb-detail-grid mb-3">
             <section class="rb-card" aria-labelledby="config-health-title">
                 <div class="rb-card-header" id="config-health-title">Tình trạng cấu hình</div>
                 <div class="card-body p-3">
@@ -66,7 +82,7 @@
                             @foreach (var reason in Model.ConfigurationHealth.Reasons)
                             {
                                 <div class="rb-detail-reason">
-                                    <div><code>@reason.Code</code><span>@reason.Message</span></div>
+                                    <div><span>@reason.Message</span></div>
                                     <a asp-area="Admin" asp-controller="@reason.CtaController" asp-action="@reason.CtaAction"
                                        asp-route-id="@reason.CtaId" class="btn btn-sm btn-outline-secondary">@reason.CtaLabel</a>
                                 </div>
@@ -87,7 +103,7 @@
                             @foreach (var reason in Model.CostingHealth.Reasons)
                             {
                                 <div class="rb-detail-reason">
-                                    <div><code>@reason.Code</code><span>@reason.Message</span></div>
+                                    <div><span>@reason.Message</span></div>
                                     <a asp-area="Admin" asp-controller="@reason.CtaController" asp-action="@reason.CtaAction"
                                        asp-route-id="@reason.CtaId" class="btn btn-sm btn-outline-secondary">@reason.CtaLabel</a>
                                 </div>
@@ -100,7 +116,7 @@
 
         @if (Model.ShowBatchOutput)
         {
-            <section class="rb-card mb-3" aria-labelledby="output-title">
+            <section id="recipe-output" class="rb-card mb-3" aria-labelledby="output-title">
                 <div class="rb-card-header" id="output-title">Đầu ra bán thành phẩm</div>
                 <div class="rb-output-contract">
                     <div>
@@ -173,9 +189,9 @@
                                     @if (component.ChildRecipeId.HasValue)
                                     {
                                         <a asp-action="Visualize" asp-route-recipeId="@component.ChildRecipeId" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">
-                                            Công thức #@component.ChildRecipeId
+                                            @(string.IsNullOrWhiteSpace(component.ChildRecipeCode) ? "Mở công thức thành phần" : component.ChildRecipeCode)
                                         </a>
-                                        <div class="small text-muted">Cố định Công thức #@component.ChildRecipeId (@component.ChildRecipeCode)</div>
+                                        <div class="small text-muted">Dùng đúng phiên bản công thức thành phần đã chọn</div>
                                         <div class="small">Bán thành phẩm: @component.PreparedItemCode</div>
                                     }
                                     else
@@ -218,7 +234,7 @@
             </div>
         </section>
 
-        <section class="rb-card" aria-labelledby="operations-title">
+        <section id="recipe-history" class="rb-card" aria-labelledby="operations-title">
             <div class="rb-card-header" id="operations-title">Vận hành theo cửa hàng</div>
             <div class="card-body p-3">
                 <form method="get" asp-action="Visualize" class="rb-store-selector mb-3">
@@ -256,7 +272,7 @@
                     <div class="rb-operational-actions mb-3">
                         <a asp-controller="AdminProductionOrder" asp-action="Create"
                            asp-route-storeId="@operational.StoreId" asp-route-recipeId="@Model.RecipeId"
-                           class="btn btn-rb-save">Tạo lệnh sơ chế</a>
+                           class="btn btn-rb-ghost">Sơ chế độc lập (quy trình cũ)</a>
                         <a asp-controller="AdminStoreInventory" asp-action="Index"
                            asp-route-storeId="@operational.StoreId" asp-route-inventoryType="prepared-items"
                            asp-route-search="@Model.PreparedItemCode" class="btn btn-rb-ghost">Xem tồn kho BTP</a>
@@ -267,15 +283,15 @@
                     {
                         <div class="rb-readiness-strip @(readiness.IsReady ? "is-ready" : "is-blocked")">
                             <div><span>Mức độ sẵn sàng</span><strong>@(readiness.IsReady ? "Sẵn sàng" : "Chưa sẵn sàng")</strong></div>
-                            <div><span>Chế độ ghi kho</span><strong>@(readiness.WriterMode == "PreparedItem" ? "Bán thành phẩm" : readiness.WriterMode == "LegacyRecipe" ? "Công thức cũ" : readiness.WriterMode)</strong></div>
-                            <div><span>Số mẻ tối đa</span><strong>@readiness.MaxSupportedRunCount.ToString("0.####")</strong></div>
+                            <div><span>Cách ghi nhận tồn kho</span><strong>@(readiness.WriterMode == "PreparedItem" ? "Theo bán thành phẩm" : readiness.WriterMode == "LegacyRecipe" ? "Theo công thức cũ" : "Chưa xác định")</strong></div>
+                            <div><span>Hệ số tối đa</span><strong>@readiness.MaxSupportedRunCount.ToString("0.####")</strong></div>
                         </div>
                         @if (readiness.Reasons.Count > 0)
                         {
                             <ul class="rb-operational-reasons">
                                 @foreach (var reason in readiness.Reasons)
                                 {
-                                    <li><code>@reason.Code</code> @reason.Message</li>
+                                    <li>@reason.Message</li>
                                 }
                             </ul>
                         }
@@ -301,7 +317,7 @@
                                     @if (stock.ActualUnitCost.HasValue)
                                     {
                                         <strong>@stock.ActualUnitCost.Value.ToString("N2") đ/@stock.BaseUnitCode</strong>
-                                        <small>Lớp giá #@stock.LatestCostLayerId · Lệnh sơ chế #@stock.SourceProductionRunId · @stock.ActualLayerCreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                                        <small>Lô giá FIFO gần nhất · Lệnh PR-@stock.SourceProductionRunId · @stock.ActualLayerCreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
                                     }
                                     else
                                     {
@@ -324,10 +340,10 @@
                                     {
                                         <article>
                                             <div>
-                                                <strong>Lệnh #@run.ProductionRunId</strong>
-                                                <span>@(run.Status == "Completed" ? "Đã hoàn tất" : run.Status == "Confirmed" ? "Đã xác nhận" : run.Status)</span>
+                                                <strong>Lệnh PR-@run.ProductionRunId</strong>
+                                                <span>@(run.Status == "Completed" ? "Đã hoàn tất" : run.Status == "Confirmed" ? "Đã xác nhận" : "Không xác định")</span>
                                             </div>
-                                            <p>@run.RequestedRunCount.ToString("0.####") mẻ · @run.ConfirmedAt.ToString("dd/MM/yyyy HH:mm") · @(run.ActorName ?? "Không rõ người tạo")</p>
+                                            <p>Hệ số @run.RequestedRunCount.ToString("0.####") · @run.ConfirmedAt.ToString("dd/MM/yyyy HH:mm") · @(run.ActorName ?? "Không rõ người tạo")</p>
                                             @if (run.ActualOutputUnitCost.HasValue)
                                             {
                                                 <small>FIFO thực tế: @run.ActualTotalInputCost?.ToString("N0") đ tổng · @run.ActualOutputUnitCost.Value.ToString("N2") đ/@Model.OutputBaseUnitCode</small>

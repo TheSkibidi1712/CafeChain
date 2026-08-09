@@ -1,27 +1,74 @@
 @model CafeChain.Application.DTOs.Admin.Production.ProductionRunDetailDto
+@using CafeChain.Models.Enums.Inventory
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = $"Lệnh PR-{Model.ProductionRunId}";
     var unit = Model.OutputUnitCode;
+    var currentStep = Model.Status switch
+    {
+        ProductionRunStatus.Planned => 0,
+        ProductionRunStatus.Released => 1,
+        ProductionRunStatus.InProgress => 2,
+        ProductionRunStatus.AwaitingVarianceApproval => 3,
+        ProductionRunStatus.AwaitingAcceptance => 4,
+        ProductionRunStatus.Completed => 5,
+        ProductionRunStatus.Confirmed => 2,
+        _ => 0
+    };
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / BOM",
+        Title = $"Lệnh sản xuất PR-{Model.ProductionRunId}",
+        Description = $"{Model.StoreName} · {Model.OutputName}. Theo dõi kế hoạch, số liệu thực tế và bước xử lý tiếp theo.",
+        IconClass = "fas fa-industry",
+        StatusLabel = Model.StatusLabel,
+        StatusCssClass = Model.Status == ProductionRunStatus.Cancelled ? "rb-status-inactive" : "rb-status-active",
+        Breadcrumbs =
+        [
+            new() { Label = "Lệnh sản xuất", Url = Url.Action("Index", new { storeId = Model.StoreId }) },
+            new() { Label = $"PR-{Model.ProductionRunId}" }
+        ],
+        Actions =
+        [
+            new()
+            {
+                Label = "Danh sách lệnh",
+                Url = Url.Action("Index", new { storeId = Model.StoreId }) ?? "#",
+                IconClass = "fas fa-arrow-left"
+            }
+        ]
+    };
+    var lifecycle = new AdminLifecycleStepperVM
+    {
+        AccessibleLabel = "Tiến trình lệnh sản xuất",
+        Steps = new[]
+        {
+            new AdminLifecycleStepVM { Label = "Lập kế hoạch", IconClass = "fas fa-clipboard-list", IsCompleted = currentStep > 0, IsCurrent = currentStep == 0 },
+            new AdminLifecycleStepVM { Label = "Phát hành", IconClass = "fas fa-paper-plane", IsCompleted = currentStep > 1, IsCurrent = currentStep == 1 },
+            new AdminLifecycleStepVM { Label = "Sản xuất", IconClass = "fas fa-gears", IsCompleted = currentStep > 2, IsCurrent = currentStep == 2 },
+            new AdminLifecycleStepVM { Label = "Ghi nhận thực tế", IconClass = "fas fa-clipboard-check", IsCompleted = currentStep > 3, IsCurrent = currentStep == 3 },
+            new AdminLifecycleStepVM { Label = "Nhận đầu ra", IconClass = "fas fa-boxes-stacked", IsCompleted = currentStep > 4, IsCurrent = currentStep == 4 },
+            new AdminLifecycleStepVM { Label = "Hoàn tất", IconClass = "fas fa-check", IsCompleted = currentStep >= 5, IsCurrent = currentStep == 5 }
+        }
+    };
+    var nextAction = Model.Status switch
+    {
+        ProductionRunStatus.Planned => new AdminNextActionPanelVM { Description = "Quản lý cửa hàng kiểm tra khả năng đáp ứng nguyên liệu và phát hành lệnh.", RoleLabel = "Quản lý cửa hàng", IconClass = "fas fa-paper-plane" },
+        ProductionRunStatus.Released => new AdminNextActionPanelVM { Description = "Giám sát ca bắt đầu thực hiện lệnh sản xuất tại cửa hàng.", RoleLabel = "Giám sát ca", IconClass = "fas fa-play" },
+        ProductionRunStatus.InProgress => new AdminNextActionPanelVM { Description = "Giám sát ca xác nhận đầu vào thực tế và sản lượng sau khi hoàn tất sản xuất.", RoleLabel = "Giám sát ca", IconClass = "fas fa-clipboard-check" },
+        ProductionRunStatus.AwaitingVarianceApproval => new AdminNextActionPanelVM { Description = "Chênh lệch vượt ngưỡng cần một người có quyền độc lập xem xét trước khi nhận đầu ra.", RoleLabel = "Chủ doanh nghiệp", IconClass = "fas fa-user-check" },
+        ProductionRunStatus.AwaitingAcceptance => new AdminNextActionPanelVM { Description = "Đầu ra đã được ghi nhận và đang chờ xác nhận nhập vào tồn kho cửa hàng.", RoleLabel = "Quản lý cửa hàng", IconClass = "fas fa-boxes-stacked" },
+        ProductionRunStatus.Completed => new AdminNextActionPanelVM { Title = "Lệnh đã hoàn tất", Description = "Sản lượng đạt đã được ghi nhận vào tồn kho. Các số liệu thực tế và lịch sử được giữ để đối chiếu.", IconClass = "fas fa-circle-check" },
+        ProductionRunStatus.Cancelled => new AdminNextActionPanelVM { Title = "Lệnh đã hủy", Description = "Không còn thao tác vận hành trên lệnh này. Xem lịch sử để biết người thực hiện và lý do hủy.", IconClass = "fas fa-ban" },
+        _ => new AdminNextActionPanelVM { Description = "Theo dõi trạng thái và lịch sử để xác định bước xử lý phù hợp.", IconClass = "fas fa-arrow-right" }
+    };
 }
 <link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<main class="container-fluid px-4 mt-4 po-page">
-    <header class="po-title-section bom-depth-header">
-        <nav class="rb-breadcrumb po-breadcrumb" aria-label="Điều hướng">
-            <a asp-action="Index" asp-route-storeId="@Model.StoreId">Lệnh sản xuất</a> &gt; <span>PR-@Model.ProductionRunId</span>
-        </nav>
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
-            <div class="admin-module-title-row">
-                <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-industry"></i></span>
-                <div>
-                    <div class="small text-uppercase text-muted">@Model.StoreName · @Model.OutputName</div>
-                    <h1 class="po-title">PR-@Model.ProductionRunId</h1>
-                    <p class="po-subtitle">@Model.RecipeName · @(Model.PlannedBatchCount?.ToString() ?? Model.RequestedRunCount.ToString("0.#####")) mẻ</p>
-                </div>
-            </div>
-            <span class="badge-status-done">@Model.StatusLabel</span>
-        </div>
-    </header>
+<main class="po-page production-bom-page">
+    <partial name="_PageHero" model="hero" />
+    <partial name="_LifecycleStepper" model="lifecycle" />
 
     @if (TempData["SuccessMessage"] is string success)
     {
@@ -32,10 +79,13 @@
         <div class="alert alert-danger" role="alert">@error</div>
     }
 
-    <section class="po-main-card mb-4" aria-labelledby="production-summary-title">
+    <section id="production-plan" class="po-main-card mb-4" aria-labelledby="production-summary-title">
         <h2 id="production-summary-title" class="po-section-title">Kế hoạch và nhu cầu</h2>
         <div class="row g-4">
-            <div class="col-md-3"><div class="text-muted small">Số mẻ kế hoạch</div><strong class="fs-4">@(Model.PlannedBatchCount?.ToString() ?? Model.RequestedRunCount.ToString("0.#####"))</strong></div>
+            <div class="col-md-3">
+                <div class="text-muted small">@(Model.PlannedBatchCount.HasValue ? "Số mẻ kế hoạch" : "Hệ số công thức")</div>
+                <strong class="fs-4">@(Model.PlannedBatchCount?.ToString() ?? Model.RequestedRunCount.ToString("0.#####"))</strong>
+            </div>
             <div class="col-md-3"><div class="text-muted small">Sản lượng mỗi mẻ</div><strong class="fs-4">@(Model.ExpectedOutputPerBatchBase?.ToString("0.###") ?? "—") @unit</strong></div>
             <div class="col-md-3"><div class="text-muted small">Sản lượng dự kiến</div><strong class="fs-4">@(Model.ExpectedOutputBase?.ToString("0.###") ?? "—") @unit</strong></div>
             <div class="col-md-3"><div class="text-muted small">Ngưỡng chênh lệch</div><strong class="fs-4">@Model.YieldVarianceTolerancePercent.ToString("0.##")%</strong></div>
@@ -44,7 +94,7 @@
         {
             <hr />
             <div class="row g-3">
-                <div class="col-md-3"><span class="text-muted">Yêu cầu nhập hàng</span><div><a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@Model.RestockRequestId">@(Model.RestockReferenceCode ?? $"RR #{Model.RestockRequestId}")</a></div></div>
+                <div class="col-md-3"><span class="text-muted">Yêu cầu nhập hàng</span><div><a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@Model.RestockRequestId">@AdminStatusDisplay.RestockReference(Model.RestockReferenceCode, Model.RestockRequestId.Value)</a></div></div>
                 <div class="col-md-3"><span class="text-muted">Nhu cầu</span><div><strong>@Model.RestockRequestedQuantity?.ToString("0.###") @unit</strong></div></div>
                 <div class="col-md-3"><span class="text-muted">Đã đáp ứng</span><div><strong>@Model.RestockFulfilledQuantity.ToString("0.###") @unit</strong></div></div>
                 <div class="col-md-3"><span class="text-muted">Còn lại</span><div><strong>@Model.RestockRemainingQuantity.ToString("0.###") @unit</strong></div></div>
@@ -52,7 +102,7 @@
         }
     </section>
 
-    <section class="history-section mb-4" aria-labelledby="actual-input-title">
+    <section id="production-inputs" class="history-section mb-4" aria-labelledby="actual-input-title">
         <div class="history-header"><h2 id="actual-input-title" class="history-title">Đầu vào thực tế</h2><span class="small text-muted">FIFO dùng số lượng thực tế đã xác nhận</span></div>
         <div class="history-card">
             <div class="table-responsive">
@@ -71,7 +121,7 @@
 
     @if (Model.Output != null)
     {
-        <section class="po-main-card mb-4" aria-labelledby="actual-output-title">
+        <section id="production-output" class="po-main-card mb-4" aria-labelledby="actual-output-title">
             <h2 id="actual-output-title" class="po-section-title">Sản lượng thực tế</h2>
             <div class="row g-4">
                 <div class="col-md-3"><div class="text-muted small">Đã sản xuất</div><strong>@Model.Output.ActualProducedBase.ToString("0.###") @unit</strong></div>
@@ -83,7 +133,9 @@
         </section>
     }
 
-    <section class="po-main-card mb-4" aria-labelledby="production-actions-title">
+    <partial name="_NextActionPanel" model="nextAction" />
+
+    <section id="production-actions" class="po-main-card mb-4" aria-labelledby="production-actions-title">
         <h2 id="production-actions-title" class="po-section-title">Thao tác hợp lệ tiếp theo</h2>
         <div class="d-flex flex-wrap gap-3">
             @if (Model.CanRelease)
@@ -112,14 +164,14 @@
             }
             @if (!Model.CanRelease && !Model.CanStart && !Model.CanRecordActual && !Model.CanApproveVariance && !Model.CanAcceptOutput && !Model.CanCancel)
             {
-                <span class="text-muted">Không có thao tác phù hợp với quyền và trạng thái hiện tại.</span>
+                <span class="text-muted">Trang đang ở chế độ theo dõi. Thao tác tiếp theo do vai trò được nêu phía trên thực hiện.</span>
             }
         </div>
     </section>
 
     @if (Model.CanRecordActual)
     {
-        <section class="po-main-card mb-4" aria-labelledby="record-actual-title">
+        <section id="production-record-actual" class="po-main-card mb-4" aria-labelledby="record-actual-title">
             <h2 id="record-actual-title" class="po-section-title">Xác nhận đầu vào và sản lượng thực tế</h2>
             <form asp-action="RecordActual" method="post" class="row g-3">
                 @Html.AntiForgeryToken()
@@ -143,7 +195,7 @@
         </section>
     }
 
-    <section class="history-section mb-5" aria-labelledby="timeline-title">
+    <section id="production-history" class="history-section mb-5" aria-labelledby="timeline-title">
         <div class="history-header"><h2 id="timeline-title" class="history-title">Lịch sử trạng thái</h2></div>
         <div class="history-card">
             @if (Model.Transitions.Count == 0)

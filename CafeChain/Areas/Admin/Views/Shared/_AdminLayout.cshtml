@@ -485,16 +485,15 @@
                     <div class="sidebar-sub">
                         @if (effectivePermissions.Contains(PermissionConstants.PreparedItemView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminPreparedItem" asp-action="Index" class="@Html.IsActive("AdminPreparedItem")"><i class="fas fa-circle"></i> Danh mục bán thành phẩm</a>
+                            <a asp-area="Admin" asp-controller="AdminPreparedItem" asp-action="Index" class="@Html.IsActive("AdminPreparedItem")"><i class="fas fa-circle"></i> Bán thành phẩm</a>
                         }
                         @if (effectivePermissions.Contains(PermissionConstants.RecipeView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index" class="@Html.IsActive("AdminRecipe", "Index,Create,Edit,Visualize")"><i class="fas fa-circle"></i> Công thức BOM</a>
-                            <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="DataHealth" class="@Html.IsActive("AdminRecipe", "DataHealth")"><i class="fas fa-circle"></i> Tình trạng dữ liệu BOM</a>
+                            <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index" class="@Html.IsActive("AdminRecipe")"><i class="fas fa-circle"></i> Công thức &amp; BOM</a>
                         }
                         @if (effectivePermissions.Contains(PermissionConstants.ProductionOrderView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminProductionOrder" asp-action="Index" class="@Html.IsActive("AdminProductionOrder")"><i class="fas fa-circle"></i> Lệnh sản xuất theo mẻ</a>
+                            <a asp-area="Admin" asp-controller="AdminProductionOrder" asp-action="Index" class="@Html.IsActive("AdminProductionOrder")"><i class="fas fa-circle"></i> Lệnh sản xuất</a>
                         }
                     </div>
                 </div>

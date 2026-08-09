@@ -10,38 +10,43 @@
         "SUBRECIPE" => "Bán thành phẩm",
         _ => "Món bán"
     };
+    var heroActions = new List<AdminPageHeroActionVM>
+    {
+        new()
+        {
+            Label = "Kiểm tra dữ liệu",
+            Url = Url.Action("DataHealth") ?? "#",
+            IconClass = "fas fa-clipboard-check"
+        }
+    };
+    if (Model.CanWrite)
+    {
+        heroActions.Add(new AdminPageHeroActionVM
+        {
+            Label = "Tạo công thức",
+            Url = Url.Action("Create") ?? "#",
+            IconClass = "fas fa-plus",
+            IsPrimary = true
+        });
+    }
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / BOM",
+        Title = "Công thức và định mức nguyên liệu",
+        Description = "Quản lý định mức đầu vào, sản lượng dự kiến và các phiên bản công thức cho món bán, topping và bán thành phẩm.",
+        IconClass = "fas fa-diagram-project",
+        Breadcrumbs = [new() { Label = "Sản xuất / BOM" }, new() { Label = "Công thức" }],
+        Actions = heroActions
+    };
 }
 
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 @Html.AntiForgeryToken()
 
-<div class="rb-page">
-    <div class="container-fluid px-4 pt-4 pb-5">
-        <div class="rb-page-header bom-depth-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-            <div class="admin-module-heading-copy">
-                <nav class="rb-breadcrumb" aria-label="breadcrumb">
-                    <span>Sản xuất / BOM</span> &gt; <span>Công thức BOM</span>
-                </nav>
-                <div class="admin-module-title-row">
-                    <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-diagram-project"></i></span>
-                    <div>
-                        <h1 class="rb-page-title mb-1">Công thức BOM</h1>
-                        <p class="text-muted mb-0">Quản lý định mức theo đúng nghiệp vụ món bán, topping và bán thành phẩm.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="admin-module-header-actions">
-                <a asp-action="DataHealth" class="btn btn-rb-ghost">
-                    <i class="fas fa-clipboard-check me-2" aria-hidden="true"></i>Tình trạng dữ liệu
-                </a>
-                @if (Model.CanWrite)
-                {
-                    <a asp-action="Create" class="btn btn-rb-save">
-                        <i class="fas fa-plus me-2" aria-hidden="true"></i>Thêm công thức
-                    </a>
-                }
-            </div>
-        </div>
+<div class="rb-page production-bom-page">
+    <div class="container-fluid px-0">
+        <partial name="_PageHero" model="hero" />
 
         <nav class="rb-recipe-tabs" aria-label="Loại công thức">
             <a class="rb-recipe-tab @(type == "POS" ? "active" : "")"
@@ -147,7 +152,7 @@
                             var activeDesc = AdminStatusDisplay.RecipeActive(recipe.Active);
                             var configClass = recipe.ConfigurationHealth.IsComplete ? "rb-status-complete" : "rb-status-incomplete";
                             var costClass = recipe.CostingHealth.IsComplete ? "rb-status-complete" : "rb-status-error";
-                            var costReasons = string.Join(" | ", recipe.CostingHealth.Reasons.Select(x => $"{x.Code}: {x.Message}"));
+                            var costReasons = string.Join(" | ", recipe.CostingHealth.Reasons.Select(x => x.Message));
                             <tr data-recipe-type="@recipe.RecipeType" data-recipe-id="@recipe.RecipeId">
                                 <td>
                                     <div class="fw-semibold text-break">@recipe.IdentityDisplay</div>
@@ -156,8 +161,8 @@
                                 @if (type == "SUBRECIPE")
                                 {
                                     <td>
-                                        <strong>#@recipe.RecipeId</strong>
-                                        <div class="small text-muted">Bán thành phẩm #@(recipe.PreparedItemId?.ToString() ?? "chưa chọn")</div>
+                                        <strong>@recipe.RecipeCode</strong>
+                                        <div class="small text-muted">Phiên bản cho bán thành phẩm</div>
                                     </td>
                                     <td class="font-monospace">@recipe.OutputPerBatchDisplay</td>
                                     <td class="font-monospace">@recipe.NormalizedOutputDisplay</td>
@@ -205,7 +210,7 @@
                                                         <span>@component.QuantityDisplay/phần</span>
                                                         @if (component.ChildRecipeId.HasValue)
                                                         {
-                                                            <span>· cố định Công thức #@component.ChildRecipeId</span>
+                                                            <span>· dùng phiên bản công thức đã chọn</span>
                                                         }
                                                     </div>
                                                 }
@@ -215,8 +220,8 @@
                                     else
                                     {
                                         <td>
-                                            <strong>#@recipe.RecipeId</strong>
-                                            <div class="small text-muted">Phiên bản công thức</div>
+                                            <strong>@recipe.RecipeCode</strong>
+                                            <div class="small text-muted">Phiên bản đang áp dụng</div>
                                         </td>
                                     }
                                     <td>@recipe.PortionDefinitionDisplay</td>

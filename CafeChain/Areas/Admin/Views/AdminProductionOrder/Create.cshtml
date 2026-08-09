@@ -1,25 +1,36 @@
 @model CafeChain.ViewModels.Admin.Productions.ProductionOrderVM
+@using CafeChain.ViewModels.Admin.Shared
 
 @{
-    ViewData["Title"] = "Lệnh Sơ Chế";
+    ViewData["Title"] = "Sơ chế độc lập (quy trình cũ)";
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / BOM",
+        Title = "Sơ chế độc lập (quy trình cũ)",
+        Description = "Ghi nhận sơ chế ngoài luồng nhu cầu nhập hàng. Hệ số công thức nhân tỷ lệ toàn bộ đầu vào và đầu ra của công thức.",
+        IconClass = "fas fa-fire-burner",
+        Breadcrumbs =
+        [
+            new() { Label = "Lệnh sản xuất", Url = Url.Action("Index", new { storeId = Model.StoreId }) },
+            new() { Label = "Sơ chế độc lập" }
+        ],
+        Actions =
+        [
+            new()
+            {
+                Label = "Quay lại danh sách",
+                Url = Url.Action("Index", new { storeId = Model.StoreId }) ?? "#",
+                IconClass = "fas fa-arrow-left"
+            }
+        ]
+    };
 }
 
 <link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<div class="container-fluid px-4 mt-4 po-page">
-    <div class="po-title-section bom-depth-header">
-        <nav class="rb-breadcrumb po-breadcrumb" aria-label="breadcrumb">
-            <span>Sản xuất / BOM</span> &gt; <span>Lệnh sơ chế</span>
-        </nav>
-        <div class="admin-module-title-row">
-            <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-fire-burner"></i></span>
-            <div>
-                <h1 class="po-title">LỆNH SƠ CHẾ</h1>
-                <p class="po-subtitle">Quản lý định lượng và quy trình sơ chế thực phẩm hàng ngày.</p>
-            </div>
-        </div>
-        <a class="btn btn-ghost mt-3" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fas fa-arrow-left" aria-hidden="true"></i> Danh sách lệnh sản xuất</a>
-    </div>
+<div class="po-page production-bom-page">
+    <partial name="_PageHero" model="hero" />
 
     <form asp-action="Create" method="post" id="productionForm">
         @Html.AntiForgeryToken()
@@ -54,7 +65,7 @@
                                             disabled="@(!recipe.Selectable ? "disabled" : null)"
                                             data-code="@recipe.RecipeCode"
                                             data-disabled-reason="@recipe.DisabledReason">
-                                        [@recipe.PreparedItemCode] @recipe.PreparedItemName · @recipe.OutputPerRunDisplay/mẻ
+                                        [@recipe.PreparedItemCode] @recipe.PreparedItemName · @recipe.OutputPerRunDisplay khi hệ số = 1
                                         @if (!recipe.Selectable)
                                         {
                                             <text> · @recipe.DisabledReason</text>
@@ -71,14 +82,14 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Số lượng mẻ <span class="text-danger">*</span></label>
+                            <label class="form-label" for="batchInput">Hệ số công thức <span class="text-danger">*</span></label>
                             <input type="number" step="any" min="0.00001" max="9999" name="PlannedBatches" id="batchInput"
                                    class="form-control fw-bold text-center" value="1" required />
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Đơn vị</label>
-                            <input type="text" class="form-control" value="mẻ" readonly />
+                            <label class="form-label" for="scaleMeaning">Ý nghĩa</label>
+                            <input id="scaleMeaning" type="text" class="form-control" value="Nhân tỷ lệ công thức" readonly />
                         </div>
 
                         <div class="col-12">
@@ -106,7 +117,7 @@
 
                     <div id="readinessSummary" class="po-readiness-summary" aria-live="polite">
                         <span class="po-readiness-state is-neutral">Chưa xem trước</span>
-                        <span class="small text-muted">Chọn cửa hàng, BTP và số mẻ để kiểm tra.</span>
+                        <span class="small text-muted">Chọn cửa hàng, bán thành phẩm và hệ số công thức để kiểm tra.</span>
                     </div>
 
                     <div id="outputSummary" class="po-output-summary d-none"></div>
@@ -187,8 +198,8 @@
                             <tr>
                                 <td class="text-muted fw-bold">#PR-@hist.ProductionRunId</td>
                                 <td>@(hist.StoreName ?? hist.StoreId.ToString())</td>
-                                <td class="fw-bold">@(hist.RecipeName ?? $"Công thức #{hist.RecipeId}")</td>
-                                <td>@hist.RequestedRunCount.ToString("0.#####") mẻ</td>
+                                <td class="fw-bold">@(hist.RecipeName ?? "Công thức chưa có tên")</td>
+                                <td>@hist.RequestedRunCount.ToString("0.#####") hệ số</td>
                                 <td>@(hist.ActorName ?? "—")</td>
                                 <td class="small">@hist.ConfirmedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                                 <td class="text-center"><span class="badge-status-done">@hist.Status</span></td>
@@ -344,7 +355,7 @@
                 output.addClass('d-none').empty();
 
                 if (!storeId || !recipeId || batches <= 0) {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-boxes fa-2x mb-2 text-light"></i><br/>Vui lòng chọn cửa hàng, BTP và nhập số mẻ</td></tr>');
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-boxes fa-2x mb-2 text-light"></i><br/>Vui lòng chọn cửa hàng, bán thành phẩm và nhập hệ số công thức</td></tr>');
                     readiness.html('<span class="po-readiness-state is-neutral">Chưa xem trước</span><span class="small text-muted">Thiếu dữ liệu đầu vào.</span>');
                     btnComplete.prop('disabled', true);
                     return;
@@ -378,7 +389,7 @@
                                     <tr>
                                         <td>
                                             <div class="item-name">[${escapeHtml(item.itemCode)}] ${escapeHtml(item.itemName)}</div>
-                                            <div class="small text-muted">${escapeHtml(translateSourceType(item.sourceType))}${item.childRecipeId ? ' · cố định Công thức #' + item.childRecipeId : ''}</div>
+                                            <div class="small text-muted">${escapeHtml(translateSourceType(item.sourceType))}${item.childRecipeId ? ' · dùng phiên bản công thức đã chọn' : ''}</div>
                                         </td>
                                         <td class="text-end fw-semibold">${formatQty(item.requiredTotal)} ${escapeHtml(item.baseUnitCode)}</td>
                                         <td class="text-end">${formatQty(item.currentQuantity)}</td>
@@ -396,11 +407,11 @@
                         }).join('');
                         readiness.html(`
                             <span class="po-readiness-state ${preview.isReady ? 'is-ready' : 'is-error'}">${escapeHtml(translateReadinessStatus(preview.overallStatus, preview.isReady))}</span>
-                            <span class="small">Chế độ ghi kho: <strong>${escapeHtml(translateWriterMode(preview.writerMode))}</strong> · Tối đa ${formatQty(preview.maxSupportedRunCount)} mẻ</span>
+                            <span class="small">Cách ghi nhận tồn kho: <strong>${escapeHtml(translateWriterMode(preview.writerMode))}</strong> · Hệ số tối đa ${formatQty(preview.maxSupportedRunCount)}</span>
                             ${reasonHtml ? '<ul class="po-readiness-reasons">' + reasonHtml + '</ul>' : ''}
                         `);
                         output.removeClass('d-none').html(`
-                            <div><span>Đầu ra/mẻ</span><strong>${formatQty(preview.outputQuantityPerRun)} ${escapeHtml(preview.outputUnitCode)}</strong></div>
+                            <div><span>Đầu ra khi hệ số = 1</span><strong>${formatQty(preview.outputQuantityPerRun)} ${escapeHtml(preview.outputUnitCode)}</strong></div>
                             <div><span>Tổng đầu ra chưa chuẩn hóa</span><strong>${formatQty(preview.rawTotalOutput)} ${escapeHtml(preview.outputUnitCode)}</strong></div>
                             <div><span>Đầu ra tổng chuẩn hóa</span><strong>${formatQty(preview.normalizedTotalOutput)} ${escapeHtml(preview.outputBaseUnitCode)}</strong></div>
                             <div><span>Giá vốn BOM ước tính</span><strong>${preview.estimatedBomCostComplete ? formatMoney(preview.estimatedBomCostTotal) : 'Chưa đầy đủ'}</strong></div>
@@ -518,8 +529,8 @@
                 if (!storeId || !recipeId || !(runCount > 0) || runCount > 9999 || Number.isNaN(runCount)) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Số mẻ không hợp lệ',
-                        text: 'Số mẻ nấu phải > 0 và ≤ 9999 (hỗ trợ số thập phân).',
+                        title: 'Hệ số công thức không hợp lệ',
+                        text: 'Hệ số công thức phải lớn hơn 0 và không vượt quá 9999.',
                         confirmButtonColor: '#ea580c'
                     });
                     return;

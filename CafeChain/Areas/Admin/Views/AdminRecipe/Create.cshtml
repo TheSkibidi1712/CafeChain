@@ -1,4 +1,5 @@
 @model CafeChain.ViewModels.Admin.Recipes.AdminRecipeFormPageVM
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Tạo công thức BOM";
     var form = Model.Form;
@@ -10,19 +11,30 @@
     var indexUrl = Url.Action("Index", "AdminRecipe", new { area = "Admin" });
     var sizesUrl = Url.Action("GetSizesByDrink", "AdminRecipe", new { area = "Admin" });
     var editUrlTemplate = Url.Action("Edit", "AdminRecipe", new { area = "Admin", id = 0 })!.Replace("/0", "/{id}");
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / BOM",
+        Title = "Tạo công thức",
+        Description = "Thiết lập đối tượng áp dụng, thành phần định mức, sản lượng dự kiến và thời điểm hiệu lực.",
+        IconClass = "fas fa-flask",
+        Breadcrumbs =
+        [
+            new() { Label = "Công thức", Url = indexUrl },
+            new() { Label = "Tạo mới" }
+        ],
+        Actions =
+        [
+            new() { Label = "Quay lại danh sách", Url = indexUrl ?? "#", IconClass = "fas fa-arrow-left" }
+        ]
+    };
 }
 
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<div class="rb-page rb-create-theme" data-theme="light">
-<div class="container-fluid px-4 pt-4">
-    <header class="rb-builder-heading mb-4">
-        <nav class="rb-breadcrumb" aria-label="breadcrumb">
-            <a asp-action="Index" class="btn-rb-back">Công thức BOM</a> &gt; <span>Tạo công thức</span>
-        </nav>
-        <h1 class="rb-page-title mb-1">Tạo công thức</h1>
-        <p class="text-muted mb-0">Thiết lập đối tượng áp dụng, thành phần định mức và giá vốn dự kiến.</p>
-    </header>
+<div class="rb-page rb-create-theme production-bom-page" data-theme="light">
+<div class="container-fluid px-0">
+    <partial name="_PageHero" model="hero" />
 
     <form method="post" id="recipeForm" novalidate>
         @Html.AntiForgeryToken()

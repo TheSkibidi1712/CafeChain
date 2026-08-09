@@ -1,0 +1,13 @@
+@model CafeChain.ViewModels.Admin.Shared.AdminLifecycleStepperVM
+
+<nav class="production-lifecycle" aria-label="@Model.AccessibleLabel">
+    <ol>
+        @foreach (var step in Model.Steps)
+        {
+            <li class="@(step.IsCompleted ? "is-complete" : "") @(step.IsCurrent ? "is-current" : "")" aria-current="@(step.IsCurrent ? "step" : null)">
+                <span class="production-lifecycle__marker" aria-hidden="true"><i class="@step.IconClass"></i></span>
+                <span>@step.Label</span>
+            </li>
+        }
+    </ol>
+</nav>

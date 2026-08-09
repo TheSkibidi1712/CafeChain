@@ -1,0 +1,13 @@
+@model CafeChain.ViewModels.Admin.Shared.AdminNextActionPanelVM
+
+<aside class="production-next-action" aria-labelledby="productionNextActionTitle">
+    <span class="production-next-action__icon" aria-hidden="true"><i class="@Model.IconClass"></i></span>
+    <div>
+        <h2 id="productionNextActionTitle">@Model.Title</h2>
+        <p>@Model.Description</p>
+        @if (!string.IsNullOrWhiteSpace(Model.RoleLabel))
+        {
+            <span class="production-next-action__role">Phụ trách: @Model.RoleLabel</span>
+        }
+    </div>
+</aside>
