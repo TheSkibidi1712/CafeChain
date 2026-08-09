@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using CafeChain.Models.Operations;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
 
 namespace CafeChain.Controllers.Api.v1;
 
@@ -40,10 +42,13 @@ public sealed class POSSessionController : ControllerBase
 
     [HttpGet("current")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(PermissionConstants.AppPos)]
     public async Task<IActionResult> Current(CancellationToken cancellationToken)
     {
         if (!TryGetSessionId(out var sessionId)) return Unauthorized();
-        var result = await _sessions.GetAsync(sessionId, cancellationToken);
+        var jwtId = User.FindFirstValue("jti") ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti);
+        if (string.IsNullOrWhiteSpace(jwtId)) return Unauthorized();
+        var result = await _sessions.ValidateAsync(sessionId, jwtId, cancellationToken);
         return result.IsSuccess ? Ok(new { success = true, data = result.Data })
             : Unauthorized(new { success = false, errorCode = result.ErrorCode, message = result.Message });
     }

@@ -8,13 +8,15 @@ import Notifications from './pages/Notifications'
 import PaymentResult from './pages/PaymentResult'
 import CustomerDisplay from './pages/CustomerDisplay'
 import PrinterStatusSimulator from './components/dev/PrinterStatusSimulator'
+import PosAccessGate from './components/PosAccessGate'
 
 function RootLayout() {
   const location = useLocation()
   const isSellingRoute = location.pathname === '/' || location.pathname === '/order'
 
   return (
-    <div className="pos-app-frame w-full flex flex-col overflow-hidden bg-surface font-sans">
+    <PosAccessGate>
+      <div className="pos-app-frame w-full flex flex-col overflow-hidden bg-surface font-sans">
       <a
         href="#pos-main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[80] focus:rounded-lg focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-bold focus:text-brand-orange"
@@ -26,7 +28,8 @@ function RootLayout() {
         <Outlet />
       </div>
       <PrinterStatusSimulator />
-    </div>
+      </div>
+    </PosAccessGate>
   )
 }
 

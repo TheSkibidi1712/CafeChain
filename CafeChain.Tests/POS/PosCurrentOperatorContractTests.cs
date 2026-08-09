@@ -92,7 +92,7 @@ public sealed class PosCurrentOperatorContractTests
         var sellingHeader = Read("CafeChain.Frontend", "src", "components", "pos", "SellingHeader.tsx");
 
         Assert.Contains("operatorCurrentPassword.value = \"\"", staffHub, StringComparison.Ordinal);
-        Assert.Contains("operatorNewPin.value = \"\"", staffHub, StringComparison.Ordinal);
+        Assert.Contains("setCodeValue(operatorNewPin, \"\")", staffHub, StringComparison.Ordinal);
         Assert.Contains("setOperatorPinConfigured", staffHub, StringComparison.Ordinal);
         Assert.Contains("operatorPinStateBadge", staffHubView, StringComparison.Ordinal);
         Assert.Contains("OperatorPinConfigured", staffHubView, StringComparison.Ordinal);

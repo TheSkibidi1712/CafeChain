@@ -5,7 +5,9 @@
 @{
     ViewData["Title"] = "Lịch làm việc";
     Layout = "_Layout";
-    var canAccessPos = ViewBag.CanAccessPos is true;
+    var canOpenPos = ViewBag.CanOpenPos is true;
+    var canRegisterTerminal = ViewBag.CanRegisterTerminal is true;
+    var canManageOperatorPin = ViewBag.CanManageOperatorPin is true;
     var canAccessDashboard = ViewBag.CanAccessDashboard is true;
     var days = Enumerable.Range(0, 7).Select(i => Model.WeekStart.AddDays(i)).ToList();
     var activeSchedules = Model.Schedules
@@ -23,6 +25,7 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/StaffHub/staffhub.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/shared/verification-code-input.css" asp-append-version="true" />
 }
 
 <div id="staffHubApp"
@@ -92,17 +95,23 @@
                     </a>
                 }
 
-                @if (canAccessPos)
+                @if (canOpenPos || canRegisterTerminal)
                 {
-                    <button id="openPosButton" type="button" class="staffhub-action-button is-primary">
-                        <span><i class="bi bi-cash-register"></i></span>
-                        <span><strong>Mở POS</strong><small>Bắt đầu bán hàng</small></span>
-                        <i class="bi bi-arrow-right" aria-hidden="true"></i>
-                    </button>
-                    <button id="registerTerminalButton" type="button" class="staffhub-action-button is-secondary">
-                        <span><i class="bi bi-display"></i></span>
-                        <span><strong>Đăng ký terminal</strong><small>Phê duyệt bằng OTP</small></span>
-                    </button>
+                    @if (canOpenPos)
+                    {
+                        <button id="openPosButton" type="button" class="staffhub-action-button is-primary">
+                            <span><i class="bi bi-cash-register"></i></span>
+                            <span><strong>Mở POS</strong><small>Bắt đầu bán hàng</small></span>
+                            <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                        </button>
+                    }
+                    @if (canRegisterTerminal)
+                    {
+                        <button id="registerTerminalButton" type="button" class="staffhub-action-button is-secondary">
+                            <span><i class="bi bi-display"></i></span>
+                            <span><strong>Đăng ký terminal</strong><small>Phê duyệt bằng OTP</small></span>
+                        </button>
+                    }
                 }
             </nav>
         </section>
@@ -213,7 +222,7 @@
             </div>
         </aside>
 
-        @if (canAccessPos)
+        @if (canManageOperatorPin)
         {
             <section class="staffhub-note" aria-labelledby="operatorPinHeading">
                 <span class="staffhub-note-icon"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i></span>
@@ -279,12 +288,13 @@
                     <div id="openPosPreviewNotice" class="staffhub-pos-preview-notice" role="status"></div>
                     <div id="openPosApprovalFields" hidden>
                         <label>Lý do
-                            <textarea id="openPosReason" minlength="10" maxlength="500"></textarea>
+                            <textarea id="openPosReason" minlength="10" maxlength="500" aria-describedby="openPosReasonCounter"></textarea>
+                            <small id="openPosReasonCounter">0 / 500</small>
                         </label>
                         <div id="openPosOtpFields" hidden>
                             <button id="requestOpenPosOtp" type="button" class="staffhub-dialog-button is-secondary">Gửi OTP</button>
                             <div id="openPosOtpVerification" hidden>
-                                <label>Mã OTP <input id="openPosOtpCode" maxlength="6" autocomplete="one-time-code" /></label>
+                                <label>Mã OTP <input id="openPosOtpCode" maxlength="6" autocomplete="one-time-code" data-verification-code-input /></label>
                                 <button id="verifyOpenPosOtp" type="button" class="staffhub-dialog-button is-secondary">Xác nhận OTP</button>
                                 <button id="resendOpenPosOtp" type="button" class="staffhub-dialog-button is-secondary" disabled>Gửi lại OTP</button>
                             </div>
@@ -344,7 +354,7 @@
                         <input id="operatorCurrentPassword" type="password" autocomplete="current-password" maxlength="200" required />
                     </label>
                     <label>PIN mới gồm 6 chữ số
-                        <input id="operatorNewPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="6" maxlength="6" pattern="[0-9]{6}" required />
+                        <input id="operatorNewPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="6" maxlength="6" pattern="[0-9]{6}" data-verification-code-input data-verification-mode="pin" required />
                     </label>
                     <small id="operatorPinStatus" aria-live="polite"></small>
                 </div>
@@ -360,5 +370,6 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.all.min.js"></script>
     <script src="~/lib/microsoft-signalr/signalr.min.js" asp-append-version="true"></script>
+    <script src="~/js/shared/verification-code-input.js" asp-append-version="true"></script>
     <script src="~/js/StaffHub/staffhub-schedule.js" asp-append-version="true"></script>
 }

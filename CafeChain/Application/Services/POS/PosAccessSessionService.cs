@@ -5,6 +5,9 @@ using CafeChain.Infrastructure.Interfaces.Operations;
 using CafeChain.Models.Operations;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using CafeChain.Application.Constants;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Models.Stores;
 
 namespace CafeChain.Application.Services.POS;
 
@@ -15,6 +18,7 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
     private readonly IWorkShiftAuditService? _audit;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<PosAccessSessionService> _logger;
+    private readonly IAdminPermissionService? _permissions;
     private readonly List<(PosAccessSession Session, string? Reason)> _pendingPublications = [];
 
     public PosAccessSessionService(
@@ -22,13 +26,15 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
         IPosAccessSessionPublisher? publisher = null,
         IWorkShiftAuditService? audit = null,
         TimeProvider? timeProvider = null,
-        ILogger<PosAccessSessionService>? logger = null)
+        ILogger<PosAccessSessionService>? logger = null,
+        IAdminPermissionService? permissions = null)
     {
         _repository = repository;
         _publisher = publisher;
         _audit = audit;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _logger = logger ?? NullLogger<PosAccessSessionService>.Instance;
+        _permissions = permissions;
     }
 
     public async Task<PosAccessSession> CreateAsync(
@@ -115,6 +121,55 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
                 "Tài khoản, cửa hàng hoặc Terminal không còn hoạt động.", cancellationToken);
             return ServiceResult<PosAccessSessionDto>.Failure(
                 "Terminal đã bị khóa hoặc thu hồi.", errorCode: "POS_TERMINAL_LOCKED");
+        }
+
+        if (session.Terminal.StoreId != session.StoreId
+            || !string.Equals(session.Terminal.TerminalId, session.TerminalId, StringComparison.Ordinal))
+        {
+            await EndTrackedAsync(session, PosAccessSessionStatuses.Revoked, null,
+                "Phiên POS không còn thuộc đúng nhân viên, cửa hàng hoặc Terminal.", cancellationToken);
+            return ServiceResult<PosAccessSessionDto>.Failure(
+                "Bạn không thuộc cửa hàng hoặc Terminal này.", errorCode: WorkShiftErrorCodes.PosAccessDenied);
+        }
+
+        if (_permissions != null)
+        {
+            var permission = await _permissions.HasPermissionAsync(
+                session.AccountId, PermissionConstants.AppPos, session.StoreId);
+            if (!permission.IsSuccess || permission.Data?.Allowed != true)
+            {
+                await EndTrackedAsync(session, PosAccessSessionStatuses.Revoked, null,
+                    "Quyền sử dụng POS hoặc StaffScope đã bị thu hồi.", cancellationToken);
+                return ServiceResult<PosAccessSessionDto>.Failure(
+                    "Bạn không có quyền truy cập POS tại cửa hàng này.",
+                    errorCode: WorkShiftErrorCodes.PosAccessDenied);
+            }
+        }
+
+        if (session.WorkShiftId.HasValue)
+        {
+            var shift = session.WorkShift;
+            if (shift == null
+                || shift.ShiftId != session.WorkShiftId.Value
+                || shift.UserId != session.StaffId
+                || shift.StoreId != session.StoreId
+                || !string.Equals(shift.PosTerminalId, session.TerminalId, StringComparison.Ordinal))
+            {
+                await EndTrackedAsync(session, PosAccessSessionStatuses.WorkShiftEnded, null,
+                    "Phiên POS không còn gắn với ca làm việc hợp lệ.", cancellationToken);
+                return ServiceResult<PosAccessSessionDto>.Failure(
+                    "Ca làm việc không còn hợp lệ cho phiên POS này.",
+                    errorCode: WorkShiftErrorCodes.PosAccessDenied);
+            }
+
+            if (shift.Status is WorkShiftStatuses.Closed or WorkShiftStatuses.ReconciliationRequired)
+            {
+                await EndTrackedAsync(session, PosAccessSessionStatuses.WorkShiftEnded, null,
+                    "Ca làm việc đã kết thúc.", cancellationToken);
+                return ServiceResult<PosAccessSessionDto>.Failure(
+                    "Ca làm việc đã kết thúc. Vui lòng quay lại StaffHub.",
+                    errorCode: WorkShiftErrorCodes.ShiftAlreadyClosed);
+            }
         }
 
         return ServiceResult<PosAccessSessionDto>.Success(Map(session, nowUtc));
@@ -255,8 +310,22 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
         }
     }
 
-    private static PosAccessSessionDto Map(PosAccessSession session, DateTime nowUtc) => new()
+    private static PosAccessSessionDto Map(PosAccessSession session, DateTime nowUtc)
     {
+        var workShiftStatus = session.WorkShift?.Status;
+        var accessMode = !session.WorkShiftId.HasValue
+            ? PosAccessModes.OpeningCash
+            : workShiftStatus == WorkShiftStatuses.Open
+                ? PosAccessModes.Active
+                : PosAccessModes.PendingClose;
+        var recommendedAction = accessMode switch
+        {
+            PosAccessModes.Active => WorkShiftRecommendedActions.ContinuePos,
+            PosAccessModes.PendingClose => WorkShiftRecommendedActions.CompleteClosing,
+            _ => WorkShiftRecommendedActions.EnterOpeningCash
+        };
+        return new PosAccessSessionDto
+        {
         SessionId = session.PublicId,
         AccountId = session.AccountId,
         StaffId = session.StaffId,
@@ -264,11 +333,15 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
         TerminalId = session.TerminalId,
         WorkShiftId = session.WorkShiftId,
         Status = session.Status,
+        AccessMode = accessMode,
+        WorkShiftStatus = workShiftStatus,
+        RecommendedAction = recommendedAction,
         IssuedAtUtc = session.IssuedAtUtc,
         ExpiresAtUtc = session.ExpiresAtUtc,
         ServerNowUtc = nowUtc,
         EndReason = session.EndReason
-    };
+        };
+    }
 
     private static string MapStatusError(string status) => status switch
     {
@@ -276,6 +349,7 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
         PosAccessSessionStatuses.TerminalLocked => "POS_TERMINAL_LOCKED",
         PosAccessSessionStatuses.LoggedOut => "POS_SESSION_ENDED",
         PosAccessSessionStatuses.AdminEnded => "POS_SESSION_ENDED",
+        PosAccessSessionStatuses.WorkShiftEnded => WorkShiftErrorCodes.ShiftAlreadyClosed,
         _ => "POS_SESSION_REVOKED"
     };
 }

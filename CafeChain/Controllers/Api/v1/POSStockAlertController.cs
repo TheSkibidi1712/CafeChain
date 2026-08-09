@@ -10,6 +10,7 @@ namespace CafeChain.Controllers.Api.v1
     /// Issue #98 — POS shortage report (Báo thiếu hàng).
     /// </summary>
     [Route("api/v1/pos")]
+    [CafeChain.Application.Authorization.RequireActivePosShift]
     public class POSStockAlertController : PosApiController
     {
         private static readonly HashSet<string> ReportRoles = new(StringComparer.Ordinal)

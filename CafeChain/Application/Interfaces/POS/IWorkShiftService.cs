@@ -41,7 +41,7 @@ namespace CafeChain.Application.Interfaces.POS
 
         Task<ServiceResult<PosSessionExchangeContextDto>> PrepareOpenExchangeContextAsync(
             int accountId, int staffId, int storeId, string terminalId, string requestKey,
-            string? reason, Guid? otpChallengePublicId,
+            string? reason, Guid? otpChallengePublicId, string? assessmentVersion,
             CancellationToken cancellationToken = default,
             Guid? lateOpenApprovalPublicId = null);
 
@@ -86,11 +86,17 @@ namespace CafeChain.Application.Interfaces.POS
 
         Task<ServiceResult> ReconcileAsync(int userId, int storeId, int shiftId, ReconcileWorkShiftRequestDto request);
 
-        Task<ServiceResult> ConfirmTerminalRegistrationAsync(
+        Task<ServiceResult<TerminalApprovalResultDto>> ConfirmTerminalRegistrationAsync(
             int approverStaffId,
             int storeId,
             Guid challengePublicId,
             string otpCode,
+            string requestKey);
+        Task<ServiceResult<TerminalApprovalResultDto>> RejectTerminalRegistrationAsync(
+            int rejectorStaffId,
+            int storeId,
+            Guid challengePublicId,
+            string reason,
             string requestKey);
         Task<ServiceResult> SetOperatorPinAsync(
             int accountId, int staffId, int storeId, SetOperatorPinRequestDto request);

@@ -81,6 +81,9 @@ namespace CafeChain.Application.DTOs.POS
         public int ExpiresInSeconds { get; set; }
         public int ResendAvailableInSeconds { get; set; }
         public int RemainingAttempts { get; set; }
+        public bool Locked { get; set; }
+        public DateTime? LockedUntilUtc { get; set; }
+        public int RetryAfter { get; set; }
         public bool WasExistingActive { get; set; }
         public string? DeliveryStatus { get; set; }
         public string? MaskedRecipientEmail { get; set; }

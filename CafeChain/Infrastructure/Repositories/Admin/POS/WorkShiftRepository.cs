@@ -337,7 +337,6 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     Start = schedule.WorkDate.Date.Add(schedule.CustomStartTime ?? schedule.Shift.StartTime),
                     End = ResolveEnd(schedule)
                 })
-                .Where(x => x.Start.AddMinutes(-30) <= now && now <= x.End.AddMinutes(30))
                 .OrderBy(x => Math.Abs((x.Start - now).TotalMinutes))
                 .Select(x => x.Schedule)
                 .FirstOrDefault();

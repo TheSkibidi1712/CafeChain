@@ -87,14 +87,14 @@ public sealed class TerminalRegistrationNotificationService : ITerminalRegistrat
         });
     }
 
-    public async Task<ServiceResult> ConfirmAsync(
+    public async Task<ServiceResult<TerminalApprovalResultDto>> ConfirmAsync(
         int approverStaffId,
         int notificationId,
         ConfirmTerminalNotificationRequestDto request,
         IReadOnlyCollection<int>? allowedStoreIds = null)
     {
         if (request == null)
-            return ServiceResult.Failure("Thiếu dữ liệu xác nhận Terminal.");
+            return ServiceResult<TerminalApprovalResultDto>.Failure("Thiếu dữ liệu xác nhận Terminal.");
 
         var context = await ResolveAsync(
             approverStaffId,
@@ -102,7 +102,7 @@ public sealed class TerminalRegistrationNotificationService : ITerminalRegistrat
             allowedStoreIds,
             OtpConstants.ActionTypes.RegisterTerminal);
         if (!context.IsSuccess || context.Data == null)
-            return ServiceResult.Failure(context.Message, errorCode: context.ErrorCode);
+            return ServiceResult<TerminalApprovalResultDto>.Failure(context.Message, errorCode: context.ErrorCode);
 
         return await _workShifts.ConfirmTerminalRegistrationAsync(
             approverStaffId,
@@ -110,6 +110,84 @@ public sealed class TerminalRegistrationNotificationService : ITerminalRegistrat
             context.Data.PublicId,
             request.OtpCode,
             request.RequestKey);
+    }
+
+    public async Task<ServiceResult<TerminalApprovalResultDto>> RejectAsync(
+        int rejectorStaffId,
+        int notificationId,
+        RejectTerminalNotificationRequestDto request,
+        IReadOnlyCollection<int>? allowedStoreIds = null)
+    {
+        if (request == null)
+            return ServiceResult<TerminalApprovalResultDto>.Failure(
+                "Thiếu dữ liệu từ chối Terminal.",
+                errorCode: WorkShiftErrorCodes.TerminalRejectionReasonInvalid);
+
+        var context = await ResolveRejectionAsync(
+            rejectorStaffId,
+            notificationId,
+            allowedStoreIds);
+        if (!context.IsSuccess || context.Data == null)
+            return ServiceResult<TerminalApprovalResultDto>.Failure(context.Message, errorCode: context.ErrorCode);
+
+        return await _workShifts.RejectTerminalRegistrationAsync(
+            rejectorStaffId,
+            context.Data.StoreId,
+            context.Data.PublicId,
+            request.Reason,
+            request.RequestKey);
+    }
+
+    private async Task<ServiceResult<OtpChallenge>> ResolveRejectionAsync(
+        int rejectorStaffId,
+        int notificationId,
+        IReadOnlyCollection<int>? allowedStoreIds)
+    {
+        if (rejectorStaffId <= 0 || notificationId <= 0)
+            return ServiceResult<OtpChallenge>.Failure(
+                "Notification không hợp lệ.",
+                errorCode: WorkShiftErrorCodes.TerminalApprovalNotFound);
+
+        var notification = await _notifications.GetAsync(
+            rejectorStaffId,
+            notificationId,
+            allowedStoreIds,
+            tracking: false);
+        if (notification == null
+            || notification.Type != StaffNotificationTypes.OperationalOtpRequest
+            || notification.EntityType != StaffNotificationEntityTypes.OtpChallenge)
+        {
+            return ServiceResult<OtpChallenge>.Failure(
+                "Không tìm thấy yêu cầu đăng ký Terminal trong phạm vi của bạn.",
+                errorCode: WorkShiftErrorCodes.TerminalApprovalNotFound);
+        }
+
+        var challengeId = notification.OtpChallengeId ?? notification.EntityId;
+        var challenge = (await _notifications.GetOtpChallengesAsync(
+            rejectorStaffId,
+            new[] { challengeId })).SingleOrDefault();
+        var isPrimaryApproverNotification = challenge != null
+            && challenge.ApproverStaffId == rejectorStaffId
+            && string.Equals(
+                notification.DeduplicationKey,
+                $"OTP:{challenge.PublicId:N}",
+                StringComparison.Ordinal);
+        var isDedicatedRejectionNotification = challenge != null
+            && string.Equals(
+                notification.DeduplicationKey,
+                $"OTP:{challenge.PublicId:N}:REJECT:{rejectorStaffId}",
+                StringComparison.Ordinal);
+        if (challenge == null
+            || challenge.StoreId != notification.StoreId
+            || challenge.ActionType != OtpConstants.ActionTypes.RegisterTerminal
+            || (!isPrimaryApproverNotification && !isDedicatedRejectionNotification))
+        {
+            return ServiceResult<OtpChallenge>.Failure(
+                "Thông báo không cho phép từ chối yêu cầu đăng ký Terminal này.",
+                errorCode: WorkShiftErrorCodes.TerminalRejectionForbidden);
+        }
+
+        return ServiceResult<OtpChallenge>.Success(challenge);
     }
 
     private async Task<ServiceResult<OtpChallenge>> ResolveAsync(
@@ -129,7 +207,9 @@ public sealed class TerminalRegistrationNotificationService : ITerminalRegistrat
         {
             return ServiceResult<OtpChallenge>.Failure(
                 "Không tìm thấy thông báo hoặc bạn không có quyền truy cập.",
-                errorCode: OtpConstants.ErrorCodes.ContextMismatch);
+                errorCode: requiredActionType == OtpConstants.ActionTypes.RegisterTerminal
+                    ? WorkShiftErrorCodes.TerminalApprovalNotFound
+                    : OtpConstants.ErrorCodes.ContextMismatch);
         }
 
         var challengeId = notification.OtpChallengeId ?? notification.EntityId;
@@ -143,14 +223,16 @@ public sealed class TerminalRegistrationNotificationService : ITerminalRegistrat
         {
             return ServiceResult<OtpChallenge>.Failure(
                 "Thông báo không khớp yêu cầu OTP vận hành.",
-                errorCode: OtpConstants.ErrorCodes.ContextMismatch);
+                errorCode: requiredActionType == OtpConstants.ActionTypes.RegisterTerminal
+                    ? WorkShiftErrorCodes.TerminalStoreScopeInvalid
+                    : OtpConstants.ErrorCodes.ContextMismatch);
         }
 
         if (requiredActionType != null && challenge.ActionType != requiredActionType)
         {
             return ServiceResult<OtpChallenge>.Failure(
                 "Thông báo không thuộc yêu cầu xác nhận Terminal.",
-                errorCode: OtpConstants.ErrorCodes.ContextMismatch);
+                errorCode: WorkShiftErrorCodes.TerminalNotPending);
         }
 
         if (challenge.ApproverStaff == null
@@ -162,7 +244,9 @@ public sealed class TerminalRegistrationNotificationService : ITerminalRegistrat
         {
             return ServiceResult<OtpChallenge>.Failure(
                 "Yêu cầu OTP không hợp lệ hoặc người xác nhận không còn hoạt động.",
-                errorCode: OtpConstants.ErrorCodes.ApproverNoLongerEligible);
+                errorCode: requiredActionType == OtpConstants.ActionTypes.RegisterTerminal
+                    ? WorkShiftErrorCodes.TerminalApprovalForbidden
+                    : OtpConstants.ErrorCodes.ApproverNoLongerEligible);
         }
 
         var permission = await _permissions.HasPermissionAsync(
@@ -173,7 +257,9 @@ public sealed class TerminalRegistrationNotificationService : ITerminalRegistrat
         {
             return ServiceResult<OtpChallenge>.Failure(
                 "Bạn không có quyền xác nhận loại yêu cầu OTP này trong chi nhánh hiện tại.",
-                errorCode: OtpConstants.ErrorCodes.ApproverNoLongerEligible);
+                errorCode: requiredActionType == OtpConstants.ActionTypes.RegisterTerminal
+                    ? WorkShiftErrorCodes.TerminalApprovalForbidden
+                    : OtpConstants.ErrorCodes.ApproverNoLongerEligible);
         }
 
         return ServiceResult<OtpChallenge>.Success(challenge);

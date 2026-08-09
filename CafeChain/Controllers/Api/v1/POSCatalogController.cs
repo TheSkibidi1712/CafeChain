@@ -15,6 +15,7 @@ namespace CafeChain.Controllers.Api.v1
     /// Store-scoped via JWT. Availability uses shared IUnitConversionService (fail-closed).
     /// </summary>
     [Route("api/v1/pos")]
+    [CafeChain.Application.Authorization.RequireActivePosShift]
     public class POSCatalogController : PosApiController
     {
         private readonly AppDbContext _context;

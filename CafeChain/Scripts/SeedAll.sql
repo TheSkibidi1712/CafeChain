@@ -8176,9 +8176,12 @@ BEGIN TRY
   (N'POS.WorkShift.CloseException',N'Đóng phiên POS ngoại lệ',N'CloseException',N'Đóng ngoại lệ và chuyển phiên cũ sang trạng thái cần đối soát',1),
   (N'POS.WorkShift.Reconcile',N'Đối soát lại phiên POS',N'Reconcile',N'Đối soát payment hoặc đơn offline đồng bộ muộn trên phiên gốc',1),
   (N'POS.WorkShift.OverrideTerminal',N'Đăng ký terminal POS',N'OverrideTerminal',N'Phê duyệt đăng ký hoặc kích hoạt terminal POS trong StaffScope',1),
+  (N'POS.WorkShift.RejectTerminal',N'Từ chối đăng ký terminal POS',N'RejectTerminal',N'Từ chối yêu cầu đăng ký terminal POS trong StaffScope; bắt buộc lý do và audit',1),
   (N'POS.WorkShift.ApproveLateOpen',N'Duyệt mở ca trễ',N'ApproveLateOpen',N'Duyệt, từ chối hoặc chuyển ngoài lịch cho yêu cầu mở ca trễ trên 30 phút',1),
   (N'POS.Session.Manage',N'Quản lý phiên truy cập POS',N'ManagePosSession',N'Kết thúc hoặc thu hồi POS access session trong đúng StaffScope',1),
-  (N'POS.Operator.Switch',N'Đổi người thao tác POS',N'SwitchOperator',N'Cho phép thiết lập PIN cá nhân và chuyển Current Operator trong đúng StaffScope',1);
+  (N'POS.Operator.Switch',N'Đổi người thao tác POS',N'SwitchOperator',N'Chuyển Current Operator trong đúng StaffScope',1),
+  (N'POS.Operator.ManageOwnPin',N'Quản lý PIN POS cá nhân',N'ManageOwnPin',N'Thiết lập hoặc thay đổi PIN POS của chính nhân viên tại StaffHub',1),
+  (N'POS.Terminal.RequestRegistration',N'Yêu cầu đăng ký terminal POS',N'RequestTerminalRegistration',N'Gửi, gửi lại hoặc hủy yêu cầu đăng ký terminal từ StaffHub',1);
 
  IF EXISTS
  (
@@ -8441,7 +8444,7 @@ BEGIN TRY
  FROM dbo.Permissions p
  JOIN #PermissionMatrix m ON m.PermissionCode=p.Code;
 
- /* Granular POS matrix; eleven active permissions are managed. */
+ /* Granular POS matrix; fourteen active permissions are managed. */
  CREATE TABLE #PosPermissionMatrix
  (
   PermissionCode nvarchar(100) NOT NULL PRIMARY KEY,
@@ -8463,9 +8466,12 @@ BEGIN TRY
   (N'POS.WorkShift.CloseException',1,1,1,0,0,0,0,0),
   (N'POS.WorkShift.Reconcile',1,1,1,0,0,0,0,0),
   (N'POS.WorkShift.OverrideTerminal',1,1,1,0,0,0,0,0),
+  (N'POS.WorkShift.RejectTerminal',1,0,1,0,0,0,0,0),
   (N'POS.WorkShift.ApproveLateOpen',1,1,1,0,0,0,0,0),
   (N'POS.Session.Manage',1,1,1,0,0,0,0,0),
- (N'POS.Operator.Switch',0,0,1,1,0,0,0,1);
+  (N'POS.Operator.Switch',0,0,1,1,0,0,0,1),
+  (N'POS.Operator.ManageOwnPin',0,0,1,1,0,0,0,1),
+  (N'POS.Terminal.RequestRegistration',0,0,1,1,0,0,0,1);
 
  /* System Admin receives every active main/admin permission. POS operational
     permissions remain explicitly scoped by #PosPermissionMatrix. */
@@ -8637,13 +8643,13 @@ BEGIN TRY
   ExpectedCount int NOT NULL
  );
  INSERT #ExpectedRoleCounts VALUES
-  (N'CDN',141),
+  (N'CDN',142),
   (N'QLV',68),
-  (N'QLCN',104),
-  (N'NVBH',10),
+  (N'QLCN',107),
+  (N'NVBH',12),
   (N'KTK',95),
   (N'KH',0),
-  (N'CT',35);
+  (N'CT',37);
 
  INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)
  SELECT N'QTHT',COUNT(*)

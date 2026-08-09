@@ -466,6 +466,90 @@
 
 .notification-otp-card small { color: #66584F; }
 
+.notification-terminal-confirm-form {
+    display: grid;
+    gap: 10px;
+    flex: 1 0 100%;
+    max-width: 360px;
+}
+
+.notification-terminal-confirm-form label > span:not(.verification-code-input) {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 700;
+}
+
+.notification-terminal-confirm-form .verification-code-input {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    width: min(100%, 320px);
+}
+
+.notification-terminal-confirm-form [data-terminal-confirm-feedback] {
+    display: block;
+    min-height: 1.25rem;
+    color: #9f2d20;
+}
+
+.notification-terminal-reject-form {
+    display: grid;
+    gap: 8px;
+    flex: 1 0 100%;
+    width: min(100%, 520px);
+    padding-top: 12px;
+    border-top: 1px solid #e2c7b2;
+}
+
+.notification-terminal-reject-form > label {
+    color: #553326;
+    font-weight: 750;
+}
+
+.notification-terminal-reject-form textarea {
+    width: 100%;
+    min-height: 88px;
+    resize: vertical;
+    padding: 10px 12px;
+    border: 1px solid #cdb6a4;
+    border-radius: var(--cc-radius-control, 10px);
+    color: #201812;
+    background: #fffdfb;
+    font: inherit;
+    line-height: 1.45;
+}
+
+.notification-terminal-reject-form textarea:focus {
+    outline: 3px solid rgba(159, 45, 32, .15);
+    border-color: #9f2d20;
+}
+
+.notification-terminal-reject-form textarea[aria-invalid="true"] {
+    border-color: #9f2d20;
+}
+
+.notification-terminal-reject-meta {
+    display: flex;
+    min-height: 1.25rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.notification-terminal-reject-meta [data-terminal-reject-feedback] {
+    color: #9f2d20;
+    text-align: right;
+}
+
+.notification-terminal-reject-button {
+    border-color: #9f2d20 !important;
+    color: #fff !important;
+    background: #9f2d20 !important;
+}
+
+.notification-terminal-reject-button:hover:not(:disabled) {
+    background: #7f2419 !important;
+}
+
 .notification-pagination {
     display: flex;
     align-items: center;

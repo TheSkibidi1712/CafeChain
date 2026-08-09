@@ -11,6 +11,7 @@ namespace CafeChain.Controllers.Api.v1
     /// Issue #101 — POS StaffNotification read/mark APIs (JWT CurrentStaffId).
     /// </summary>
     [Route("api/v1/pos")]
+    [RequireActivePosShift]
     public class POSNotificationsController : PosApiController
     {
         private readonly IStaffNotificationQueryService _service;
@@ -102,8 +103,37 @@ namespace CafeChain.Controllers.Api.v1
             if (_terminalRegistration == null) return StatusCode(503);
             var result = await _terminalRegistration.ConfirmAsync(CurrentStaffId, id, request);
             return result.IsSuccess
-                ? Ok(new { success = true, message = result.Message })
-                : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message });
+                ? Ok(new { success = true, message = result.Message, data = result.Data })
+                : StatusCode(MapTerminalErrorStatus(result.ErrorCode),
+                    new { success = false, errorCode = result.ErrorCode, message = result.Message, data = result.Data });
         }
+
+        [HttpPost("notifications/{id:int}/terminal-reject")]
+        [RequirePermission(PermissionConstants.PosWorkShiftRejectTerminal)]
+        public async Task<IActionResult> RejectTerminal(
+            int id,
+            [FromBody] RejectTerminalNotificationRequestDto request)
+        {
+            if (_terminalRegistration == null) return StatusCode(503);
+            var result = await _terminalRegistration.RejectAsync(CurrentStaffId, id, request);
+            return result.IsSuccess
+                ? Ok(new { success = true, message = result.Message, data = result.Data })
+                : StatusCode(MapTerminalErrorStatus(result.ErrorCode),
+                    new { success = false, errorCode = result.ErrorCode, message = result.Message, data = result.Data });
+        }
+
+        private static int MapTerminalErrorStatus(string? errorCode) => errorCode switch
+        {
+            WorkShiftErrorCodes.TerminalApprovalForbidden or WorkShiftErrorCodes.TerminalStoreScopeInvalid
+                or WorkShiftErrorCodes.TerminalRejectionForbidden
+                => StatusCodes.Status403Forbidden,
+            WorkShiftErrorCodes.TerminalApprovalNotFound => StatusCodes.Status404NotFound,
+            OtpConstants.ErrorCodes.VerificationLocked or OtpConstants.ErrorCodes.ResendCooldown
+                => StatusCodes.Status423Locked,
+            WorkShiftErrorCodes.TerminalAlreadyApproved or WorkShiftErrorCodes.TerminalNotPending
+                or WorkShiftErrorCodes.TerminalAlreadyRejected
+                or WorkShiftErrorCodes.TerminalApprovalConflict => StatusCodes.Status409Conflict,
+            _ => StatusCodes.Status400BadRequest
+        };
     }
 }

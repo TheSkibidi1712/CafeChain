@@ -1,4 +1,5 @@
 using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Services.POS;
 using CafeChain.Infrastructure.Interfaces.Operations;
@@ -84,6 +85,55 @@ public sealed class PosAccessSessionServiceTests
         Assert.False(result.IsSuccess);
         Assert.Equal("POS_TERMINAL_LOCKED", result.ErrorCode);
         Assert.Equal(PosAccessSessionStatuses.TerminalLocked, session.Status);
+    }
+
+    [Fact]
+    public async Task Bound_closed_workshift_ends_session_and_denies_direct_pos_access()
+    {
+        var session = Session(PosAccessSessionStatuses.Active, Now.AddHours(1).UtcDateTime);
+        session.WorkShiftId = 501;
+        session.WorkShift = WorkShift(501, WorkShiftStatuses.Closed);
+        var repository = RepositoryReturning(session);
+
+        var result = await new PosAccessSessionService(
+                repository.Object, timeProvider: new FixedTimeProvider(Now))
+            .ValidateAsync(session.PublicId, session.JwtId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(WorkShiftErrorCodes.ShiftAlreadyClosed, result.ErrorCode);
+        Assert.Equal(PosAccessSessionStatuses.WorkShiftEnded, session.Status);
+    }
+
+    [Theory]
+    [InlineData(WorkShiftStatuses.Open, PosAccessModes.Active)]
+    [InlineData(WorkShiftStatuses.Closing, PosAccessModes.PendingClose)]
+    [InlineData(WorkShiftStatuses.ExpiredPendingClose, PosAccessModes.PendingClose)]
+    public async Task Bound_workshift_returns_authoritative_access_mode(string status, string expectedMode)
+    {
+        var session = Session(PosAccessSessionStatuses.Active, Now.AddHours(1).UtcDateTime);
+        session.WorkShiftId = 501;
+        session.WorkShift = WorkShift(501, status);
+
+        var result = await new PosAccessSessionService(
+                RepositoryReturning(session).Object, timeProvider: new FixedTimeProvider(Now))
+            .ValidateAsync(session.PublicId, session.JwtId);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(expectedMode, result.Data!.AccessMode);
+        Assert.Equal(status, result.Data.WorkShiftStatus);
+    }
+
+    [Fact]
+    public async Task Unbound_session_only_allows_opening_cash_mode()
+    {
+        var session = Session(PosAccessSessionStatuses.Active, Now.AddHours(1).UtcDateTime);
+        var result = await new PosAccessSessionService(
+                RepositoryReturning(session).Object, timeProvider: new FixedTimeProvider(Now))
+            .ValidateAsync(session.PublicId, session.JwtId);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(PosAccessModes.OpeningCash, result.Data!.AccessMode);
+        Assert.Null(result.Data.WorkShiftId);
     }
 
     [Fact]
@@ -200,7 +250,20 @@ public sealed class PosAccessSessionServiceTests
         ExchangeContextId = 40,
         Status = status,
         IssuedAtUtc = Now.UtcDateTime,
-        ExpiresAtUtc = expiresAtUtc
+        ExpiresAtUtc = expiresAtUtc,
+        Account = new Account { AccountId = 10, Active = true },
+        Staff = new Staff { StaffId = 20, Active = true },
+        Store = new Store { StoreId = 30, Active = true },
+        Terminal = new PosTerminal { TerminalId = "POS-01", StoreId = 30, Active = true }
+    };
+
+    private static WorkShift WorkShift(int id, string status) => new()
+    {
+        ShiftId = id,
+        UserId = 20,
+        StoreId = 30,
+        PosTerminalId = "POS-01",
+        Status = status
     };
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider

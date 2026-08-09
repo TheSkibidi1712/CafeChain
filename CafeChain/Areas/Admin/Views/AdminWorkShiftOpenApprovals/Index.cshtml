@@ -37,7 +37,10 @@
                         <input type="hidden" name="Decision" value="" data-decision-value />
                         <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
                         <input type="hidden" name="RowVersion" value="@item.RowVersion" />
-                        <label>Lý do quyết định <input name="Reason" maxlength="500" /></label>
+                        <label>Lý do quyết định
+                            <input name="Reason" minlength="10" maxlength="500" required data-decision-reason />
+                            <small data-decision-reason-counter>0 / 500</small>
+                        </label>
                         @if (!item.CanApproveAsScheduled)
                         {
                             <p class="ops-notice ops-notice-warning">
@@ -78,7 +81,23 @@ document.addEventListener('submit', function (event) {
         }
         return;
     }
+    var reason = form.querySelector('[data-decision-reason]');
+    var normalizedReason = reason?.value.trim() || '';
+    if (normalizedReason.length < 10 || normalizedReason.length > 500 || !/[\p{L}\p{N}]/u.test(normalizedReason)) {
+        event.preventDefault();
+        reason?.focus();
+        if (typeof window.toast === 'function') {
+            window.toast('Lý do quyết định phải có từ 10 đến 500 ký tự và có nội dung cụ thể.', 'warning');
+        }
+        return;
+    }
+    reason.value = normalizedReason;
     decisionField.value = decision;
+});
+document.addEventListener('input', function (event) {
+    if (!event.target.matches?.('[data-decision-reason]')) return;
+    var counter = event.target.closest('label')?.querySelector('[data-decision-reason-counter]');
+    if (counter) counter.textContent = `${event.target.value.length} / 500`;
 });
 document.addEventListener('DOMContentLoaded', function () {
 if (window.signalR?.HubConnectionBuilder) {

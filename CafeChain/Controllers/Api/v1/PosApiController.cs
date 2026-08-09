@@ -1,8 +1,9 @@
 using CafeChain.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using CafeChain.Application.Authorization;
+using CafeChain.Application.Constants;
 
 namespace CafeChain.Controllers.Api.v1
 {
@@ -16,7 +17,9 @@ namespace CafeChain.Controllers.Api.v1
     /// 
     /// Tất cả POS controllers kế thừa class này thay vì ControllerBase trực tiếp.
     /// </summary>
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(
+        PermissionConstants.AppPos,
+        AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [ApiController]
     [Route("api/v1/pos")]
     public abstract class PosApiController : ControllerBase

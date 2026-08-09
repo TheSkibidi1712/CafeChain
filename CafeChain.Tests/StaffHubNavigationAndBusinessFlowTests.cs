@@ -36,7 +36,9 @@ public sealed class StaffHubNavigationAndBusinessFlowTests
         Assert.Contains("asp-area=\"Admin\"", view, StringComparison.Ordinal);
         Assert.Contains("asp-controller=\"Dashboard\"", view, StringComparison.Ordinal);
         Assert.Contains("@if (canAccessDashboard)", view, StringComparison.Ordinal);
-        Assert.Contains("@if (canAccessPos)", view, StringComparison.Ordinal);
+        Assert.Contains("@if (canOpenPos)", view, StringComparison.Ordinal);
+        Assert.Contains("@if (canRegisterTerminal)", view, StringComparison.Ordinal);
+        Assert.Contains("@if (canManageOperatorPin)", view, StringComparison.Ordinal);
         Assert.Contains("currentController != \"StaffHub\"", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("Chấm công, theo dõi ca", launcher, StringComparison.OrdinalIgnoreCase);
     }

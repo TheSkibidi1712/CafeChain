@@ -26,6 +26,7 @@ namespace CafeChain.Controllers.Api.v1
     /// Auth: JWT Bearer (iPad POS app)
     /// </summary>
     [Route("api/v1/pos/orders")]
+    [CafeChain.Application.Authorization.RequireActivePosShift]
     public class POSOrderController : PosApiController
     {
         private readonly IPOSOrderService _orderService;

@@ -69,7 +69,8 @@ public sealed class PosAccessSessionRepository : IPosAccessSessionRepository
             .Include(x => x.Account)
             .Include(x => x.Staff)
             .Include(x => x.Store)
-            .Include(x => x.Terminal);
+            .Include(x => x.Terminal)
+            .Include(x => x.WorkShift);
         if (!tracking) query = query.AsNoTracking();
         return query.SingleOrDefaultAsync(x => x.PublicId == publicId, cancellationToken);
     }
@@ -83,7 +84,8 @@ public sealed class PosAccessSessionRepository : IPosAccessSessionRepository
             .Include(x => x.Account)
             .Include(x => x.Staff)
             .Include(x => x.Store)
-            .Include(x => x.Terminal);
+            .Include(x => x.Terminal)
+            .Include(x => x.WorkShift);
         if (!tracking) query = query.AsNoTracking();
         return query.SingleOrDefaultAsync(x => x.JwtId == jwtId, cancellationToken);
     }

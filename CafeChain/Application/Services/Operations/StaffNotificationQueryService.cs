@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Operations;
 using CafeChain.Application.Interfaces.POS;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Results;
 using CafeChain.Application.Tools;
 using CafeChain.Infrastructure.Interfaces.Operations;
@@ -21,15 +22,18 @@ namespace CafeChain.Application.Services.Operations
         private readonly IStaffNotificationRepository _repository;
         private readonly IOtpProtectedPayloadService? _otpProtectedPayload;
         private readonly TimeProvider _timeProvider;
+        private readonly IAdminPermissionService? _permissions;
 
         public StaffNotificationQueryService(
             IStaffNotificationRepository repository,
             IOtpProtectedPayloadService? otpProtectedPayload = null,
-            TimeProvider? timeProvider = null)
+            TimeProvider? timeProvider = null,
+            IAdminPermissionService? permissions = null)
         {
             _repository = repository;
             _otpProtectedPayload = otpProtectedPayload;
             _timeProvider = timeProvider ?? TimeProvider.System;
+            _permissions = permissions;
         }
 
         public async Task<ServiceResult<StaffNotificationUnreadCountDto>> GetUnreadCountAsync(
@@ -83,6 +87,23 @@ namespace CafeChain.Application.Services.Operations
                 : await _repository.GetOtpChallengesAsync(recipientStaffId, otpIds)
                     ?? new List<OtpChallenge>();
             var otpByChallengeId = otpChallenges.ToDictionary(x => x.OtpChallengeId);
+            var rejectPermissionByStore = new Dictionary<int, bool>();
+            var recipientAccountId = otpChallenges
+                .Where(x => x.ApproverStaffId == recipientStaffId)
+                .Select(x => x.ApproverStaff?.AccountId ?? 0)
+                .FirstOrDefault(x => x > 0);
+            if (_permissions != null && recipientAccountId > 0)
+            {
+                foreach (var candidateStoreId in otpChallenges.Select(x => x.StoreId).Distinct())
+                {
+                    var decision = await _permissions.HasPermissionAsync(
+                        recipientAccountId,
+                        PermissionConstants.PosWorkShiftRejectTerminal,
+                        candidateStoreId);
+                    rejectPermissionByStore[candidateStoreId] =
+                        decision.IsSuccess && decision.Data?.Allowed == true;
+                }
+            }
 
             var items = rows.Select(n =>
             {
@@ -94,6 +115,13 @@ namespace CafeChain.Application.Services.Operations
                 {
                     var status = MapOperationalOtpStatus(challenge, nowUtc);
                     var isWaiting = status == "Waiting";
+                    var isOtpApprover = challenge.ApproverStaffId == recipientStaffId;
+                    var isTerminalRejectionReviewer = string.Equals(
+                        n.DeduplicationKey,
+                        $"OTP:{challenge.PublicId:N}:REJECT:{recipientStaffId}",
+                        StringComparison.Ordinal);
+                    var canPrimaryApproverReject = isOtpApprover
+                        && rejectPermissionByStore.GetValueOrDefault(challenge.StoreId);
                     var sentAtUtc = UtcDateTime.Normalize(challenge.CreatedAt);
                     var expiresAtUtc = UtcDateTime.Normalize(challenge.ExpiresAt);
                     operationalOtp = new OperationalOtpNotificationDto
@@ -116,8 +144,12 @@ namespace CafeChain.Application.Services.Operations
                         RemainingSeconds = isWaiting
                             ? Math.Max(0, (int)Math.Ceiling((expiresAtUtc - nowUtc).TotalSeconds))
                             : 0,
-                        CanRevealOtp = isWaiting && challenge.ProtectedOtpPayload != null,
+                        CanRevealOtp = isWaiting && isOtpApprover && challenge.ProtectedOtpPayload != null,
                         CanContinueTerminalConfirmation = isWaiting
+                            && isOtpApprover
+                            && challenge.ActionType == OtpConstants.ActionTypes.RegisterTerminal,
+                        CanRejectTerminalRegistration = isWaiting
+                            && (isTerminalRejectionReviewer || canPrimaryApproverReject)
                             && challenge.ActionType == OtpConstants.ActionTypes.RegisterTerminal
                     };
                 }
@@ -306,6 +338,7 @@ namespace CafeChain.Application.Services.Operations
                 OtpConstants.Statuses.Used => "Used",
                 OtpConstants.Statuses.Cancelled => "Cancelled",
                 OtpConstants.Statuses.Locked => "Locked",
+                OtpConstants.Statuses.Rejected => "Rejected",
                 _ => "Unknown"
             };
         }

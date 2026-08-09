@@ -170,13 +170,22 @@ public sealed class OperationalOtpAuthorizationAndNotificationContractTests
 
         Assert.Contains("otp.CanRevealOtp", view, StringComparison.Ordinal);
         Assert.Contains("otp.CanContinueTerminalConfirmation", view, StringComparison.Ordinal);
+        Assert.Contains("otp.CanRejectTerminalRegistration", view, StringComparison.Ordinal);
         Assert.Contains("data-reveal-operational-otp", view, StringComparison.Ordinal);
         Assert.Contains("createTerminalConfirmationForm", script, StringComparison.Ordinal);
         Assert.Contains("otp.canRevealOtp === true", script, StringComparison.Ordinal);
         Assert.Contains("otp.canContinueTerminalConfirmation === true", script, StringComparison.Ordinal);
+        Assert.Contains("otp.canRejectTerminalRegistration === true", script, StringComparison.Ordinal);
+        Assert.Contains("createTerminalRejectionForm", script, StringComparison.Ordinal);
+        Assert.Contains("/Admin/AdminNotifications/RejectTerminal", script, StringComparison.Ordinal);
         Assert.Contains("__RequestVerificationToken", script, StringComparison.Ordinal);
         Assert.Contains("/Admin/AdminNotifications/RevealOperationalOtp", script, StringComparison.Ordinal);
-        Assert.Contains("otpInput.value = payload.data.code", script, StringComparison.Ordinal);
+        Assert.Contains("VerificationCodeInput.setValue(otpInput, payload.data.code)", script, StringComparison.Ordinal);
+        Assert.Contains("form.noValidate = true", script, StringComparison.Ordinal);
+        Assert.Contains("form.dataset.validationFeedback = \"inline\"", script, StringComparison.Ordinal);
+        Assert.Contains("data-terminal-confirm-feedback", view, StringComparison.Ordinal);
+        Assert.Contains("data-validation-feedback=\"inline\"", view, StringComparison.Ordinal);
+        Assert.Contains("novalidate", view, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("data-reveal-terminal-otp", script, StringComparison.Ordinal);
     }
 
@@ -190,6 +199,8 @@ public sealed class OperationalOtpAuthorizationAndNotificationContractTests
 
         Assert.Contains("Gửi yêu cầu xác nhận Terminal", view, StringComparison.Ordinal);
         Assert.Contains("Gửi yêu cầu xác nhận Terminal", script, StringComparison.Ordinal);
+        Assert.Contains("notifyTerminalResolutionAndReload", script, StringComparison.Ordinal);
+        Assert.Contains("window.location.reload()", script, StringComparison.Ordinal);
         Assert.Contains("Xem OTP", guide, StringComparison.Ordinal);
         Assert.Contains("Xác nhận Terminal", guide, StringComparison.Ordinal);
         Assert.Contains("shiftsupervisor@cafechain.vn", flows, StringComparison.Ordinal);

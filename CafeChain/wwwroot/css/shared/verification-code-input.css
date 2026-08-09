@@ -1,0 +1,45 @@
+.verification-code-source {
+    position: absolute !important;
+    inline-size: 1px !important;
+    block-size: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.verification-code-input {
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: .4rem;
+    inline-size: min(100%, 21rem);
+    margin-block-start: .35rem;
+}
+
+.verification-code-input > input {
+    aspect-ratio: 1;
+    min-inline-size: 0;
+    min-block-size: 0 !important;
+    inline-size: 100%;
+    block-size: auto !important;
+    margin: 0 !important;
+    padding: 0;
+    border: 1px solid var(--cc-border, #d7dce3);
+    border-radius: .65rem;
+    background: #fff;
+    color: inherit;
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 800;
+    outline: none;
+}
+
+.verification-code-input > input:focus-visible {
+    border-color: #c67a45;
+    box-shadow: 0 0 0 3px rgb(198 122 69 / 22%);
+}
+
+.verification-code-input > input[aria-invalid="true"] {
+    border-color: #c0392b;
+    box-shadow: 0 0 0 2px rgb(192 57 43 / 14%);
+}
+
+.verification-code-input > input:disabled { background: #f1f3f5; color: #8b929c; }

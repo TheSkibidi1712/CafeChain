@@ -71,6 +71,7 @@ public sealed class WorkShiftOpenApprovalServiceTests
             new DecideWorkShiftOpenApprovalRequestDto
             {
                 Decision = "APPROVED",
+                Reason = "Quản lý xác nhận lý do mở ca trễ hợp lệ.",
                 RowVersion = Convert.ToBase64String(approval.RowVersion!)
             });
 
@@ -99,6 +100,7 @@ public sealed class WorkShiftOpenApprovalServiceTests
             new DecideWorkShiftOpenApprovalRequestDto
             {
                 Decision = "APPROVED",
+                Reason = "Quản lý xác nhận lý do mở ca trễ hợp lệ.",
                 RowVersion = Convert.ToBase64String(approval.RowVersion!)
             });
 
