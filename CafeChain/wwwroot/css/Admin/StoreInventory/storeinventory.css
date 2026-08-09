@@ -175,7 +175,7 @@
 .scope-empty,
 .empty-data {
     padding: 18px;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-card, 16px);
     background: var(--cc-surface);
     color: var(--cc-text-secondary);
     text-align: center;
@@ -200,10 +200,11 @@
     min-height: 140px;
     padding: 24px;
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-card, 16px);
     background: var(--cc-surface-muted);
     color: var(--cc-text-secondary);
     text-align: center;
+    box-shadow: var(--cc-shadow-sm);
 }
 .transaction-state.forbidden,
 .transaction-state.error {
@@ -224,8 +225,9 @@
 .inventory-table-wrap {
     overflow-x: auto;
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-card, 16px);
     background: var(--cc-surface);
+    box-shadow: var(--cc-shadow-sm);
 }
 .inventory-table,
 .transaction-table {
@@ -318,8 +320,9 @@
     width: min(1180px, 92%);
     margin: 5% auto;
     padding: 20px;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-modal, 18px);
     background: var(--cc-surface);
+    box-shadow: var(--cc-shadow-lg);
 }
 .store-inventory-modal .modal-close {
     position: absolute;

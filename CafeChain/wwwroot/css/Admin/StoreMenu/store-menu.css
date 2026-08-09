@@ -106,18 +106,7 @@
     box-shadow: var(--cc-shadow-md, 0 8px 24px rgba(32, 24, 18, 0.09));
 }
 
-.sm-header::after {
-    position: absolute;
-    right: -45px;
-    bottom: -80px;
-    width: 250px;
-    height: 250px;
-    border: 38px solid rgba(112, 72, 47, 0.055);
-    border-radius: 50%;
-    content: "";
-    pointer-events: none;
-    z-index: 0;
-}
+
 
 .sm-heading {
     position: relative;

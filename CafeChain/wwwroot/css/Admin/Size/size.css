@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    CAFECHAIN ADMIN DESIGN SYSTEM - SIZE MODULE (FRONTEND 1)
    Coffee-Brown Premium Contract Synchronization
    ========================================================================== */
@@ -152,7 +152,7 @@
     width: fit-content;
     padding: 6px;
     border: 1px solid var(--cc-border, #e9ded4) !important;
-    border-radius: 14px;
+    border-radius: var(--cc-radius-md, 14px);
     background: var(--cc-surface-raised, #ffffff);
     box-shadow: var(--cc-shadow-xs, 0 1px 2px rgba(32, 24, 18, 0.05));
 }

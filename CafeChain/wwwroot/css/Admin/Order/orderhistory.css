@@ -1,4 +1,4 @@
-/* =====================================================
+﻿/* =====================================================
    SALES HISTORY MODULE - COFFEE-BROWN DESIGN SYSTEM
 ===================================================== */
 
@@ -19,10 +19,10 @@
     background: linear-gradient(135deg, #FAF7F2 0%, #F2EADF 100%);
     border: 1px solid #E6DCCD;
     border-left: 5px solid #6F4E37;
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     padding: 22px 28px;
     margin-bottom: 24px;
-    box-shadow: 0 4px 16px rgba(111, 78, 55, 0.05);
+    box-shadow: var(--cc-shadow-sm);
 }
 
 .sales-history-header-left {
@@ -34,7 +34,7 @@
 .sales-history-header-icon {
     width: 52px;
     height: 52px;
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
     background: #6F4E37;
     color: #fff;
     display: flex;
@@ -81,7 +81,7 @@
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     border: 1px solid #6F4E37;
     background: #fff;
     color: #6F4E37;
@@ -109,7 +109,7 @@
 .history-kpi-card {
     background: #fff;
     border: 1px solid #E6DCCD;
-    border-radius: 14px;
+    border-radius: var(--cc-radius-md, 14px);
     padding: 18px 20px;
     display: flex;
     align-items: center;
@@ -159,7 +159,7 @@
 .history-kpi-icon {
     width: 44px;
     height: 44px;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     background: #F7F3EE;
     color: #8C6A54;
     display: flex;
@@ -183,7 +183,7 @@
 .history-filter-card {
     background: #fff;
     border: 1px solid #E6DCCD;
-    border-radius: 14px;
+    border-radius: var(--cc-radius-md, 14px);
     padding: 20px;
     margin-bottom: 24px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.03);
@@ -233,7 +233,7 @@
 .history-field .form-control,
 .history-field .form-select {
     height: 42px !important;
-    border-radius: 8px !important;
+    border-radius: var(--cc-radius-sm, 8px) !important;
     border-color: #d4b8a3 !important;
     background: #F7F3EE !important;
     font-size: 0.82rem !important;
@@ -254,7 +254,7 @@
 .btn-reset-filter {
     height: 42px;
     padding: 0 16px;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     border: 1px solid #d4b8a3;
     background: #fff;
     color: #66584f;
@@ -277,7 +277,7 @@
 .history-table-card {
     background: #fff;
     border: 1px solid #E6DCCD;
-    border-radius: 14px;
+    border-radius: var(--cc-radius-md, 14px);
     box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     overflow: hidden;
 }
@@ -431,7 +431,7 @@
     padding: 0 8px;
     border: 1px solid #D4B8A3;
     background: #fff;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     color: #5C3F2B;
     font-weight: 700;
     font-size: 0.82rem;
