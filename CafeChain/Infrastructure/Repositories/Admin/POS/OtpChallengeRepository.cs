@@ -350,6 +350,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 OtpConstants.Statuses.Pending,
                 OtpConstants.Statuses.Approved,
                 OtpConstants.Statuses.Used,
+                OtpConstants.Statuses.Rejected,
                 OtpConstants.Statuses.Expired,
                 OtpConstants.Statuses.Locked,
                 OtpConstants.Statuses.Cancelled

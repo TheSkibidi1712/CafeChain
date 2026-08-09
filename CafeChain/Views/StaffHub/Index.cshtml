@@ -30,6 +30,8 @@
 
 <div id="staffHubApp"
      class="staffhub-page"
+     data-store-id="@((int?)ViewBag.CurrentStoreId ?? 0)"
+     data-store-name="@Model.StoreName"
      data-preview-pos-url="@Url.Action("PreviewOpenPos", "StaffHub")"
      data-issue-pos-url="@Url.Action("IssuePosToken", "StaffHub")"
      data-cancel-open-pos-url="@Url.Action("CancelOpenPosIntent", "StaffHub")"
@@ -107,9 +109,17 @@
                     }
                     @if (canRegisterTerminal)
                     {
-                        <button id="registerTerminalButton" type="button" class="staffhub-action-button is-secondary">
-                            <span><i class="bi bi-display"></i></span>
-                            <span><strong>Đăng ký terminal</strong><small>Phê duyệt bằng OTP</small></span>
+                        <button id="registerTerminalButton"
+                                type="button"
+                                class="staffhub-action-button is-secondary staffhub-terminal-action"
+                                data-terminal-state="unlinked"
+                                aria-describedby="terminalActionSubtitle">
+                            <span id="terminalActionIcon"><i class="bi bi-display"></i></span>
+                            <span>
+                                <strong id="terminalActionTitle">Đăng ký thiết bị này</strong>
+                                <small id="terminalActionSubtitle">Chưa liên kết Terminal POS</small>
+                            </span>
+                            <span id="terminalActionBadge" class="staffhub-terminal-action-badge is-unlinked">Chưa liên kết</span>
                         </button>
                     }
                 }
@@ -327,16 +337,74 @@
         <div id="terminalRegistrationDialog" class="modal fade staffhub-pos-dialog" tabindex="-1" aria-hidden="true" aria-labelledby="terminalRegistrationDialogTitle">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <form class="modal-content staffhub-pos-dialog-card">
-                <header class="staffhub-pos-dialog-header"><h2 id="terminalRegistrationDialogTitle">Đăng ký terminal POS</h2></header>
+                <header class="staffhub-pos-dialog-header">
+                    <span class="staffhub-pos-dialog-icon"><i class="bi bi-display" aria-hidden="true"></i></span>
+                    <div>
+                        <small>Thiết bị POS hiện tại</small>
+                        <h2 id="terminalRegistrationDialogTitle">Đăng ký Terminal POS</h2>
+                    </div>
+                </header>
                 <div class="modal-body staffhub-pos-dialog-body">
-                    <label>Tên terminal <input id="terminalRegistrationName" maxlength="100" /></label>
-                    <p>Yêu cầu được gửi tới Store Manager hoặc người có quyền đăng ký Terminal. Người duyệt phải mở Thông báo, chọn <strong>Xem OTP</strong> rồi bấm <strong>Xác nhận Terminal</strong>.</p>
-                    <small id="terminalRegistrationStatus" aria-live="polite"></small>
+                    <section id="terminalDeviceState"
+                             class="staffhub-terminal-device-state is-unlinked"
+                             role="status"
+                             aria-live="polite">
+                        <span id="terminalDeviceStateIcon" class="staffhub-terminal-device-state-icon">
+                            <i class="bi bi-display" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <span id="terminalDeviceStateBadge" class="staffhub-terminal-device-state-badge">Chưa liên kết</span>
+                            <h3 id="terminalDeviceStateTitle">Thiết bị này chưa được đăng ký</h3>
+                            <p id="terminalDeviceStateDescription">Mỗi thiết bị chỉ sử dụng một Terminal ID ổn định.</p>
+                        </div>
+                    </section>
+
+                    <dl id="terminalDeviceDetails" class="staffhub-terminal-device-details" hidden>
+                        <div><dt>Tên Terminal</dt><dd id="terminalDeviceName">—</dd></div>
+                        <div><dt>Cửa hàng</dt><dd id="terminalDeviceStore">@Model.StoreName</dd></div>
+                        <div><dt>Mã thiết bị</dt><dd id="terminalDeviceId">—</dd></div>
+                    </dl>
+
+                    <section id="terminalRegistrationFields" class="staffhub-terminal-registration-fields">
+                        <label for="terminalRegistrationName">Tên Terminal trên thiết bị này</label>
+                        <input id="terminalRegistrationName"
+                               name="TerminalName"
+                               maxlength="100"
+                               autocomplete="off"
+                               placeholder="Ví dụ: Quầy pha chế 01" />
+                        <p>
+                            Thao tác <strong>Gửi yêu cầu xác nhận Terminal</strong> sẽ chuyển yêu cầu tới người có quyền phê duyệt. Người duyệt mở
+                            <strong>Thông báo</strong>, chọn <strong>Xem OTP</strong> rồi xác nhận Terminal.
+                        </p>
+                    </section>
+
+                    @if (terminals.Count > 0)
+                    {
+                        <section id="terminalExistingLink" class="staffhub-terminal-existing-link">
+                            <div>
+                                <strong>Thiết bị này đã được đăng ký trước đây?</strong>
+                                <p>Liên kết với một Terminal active hiện có. Thao tác này chỉ lưu lựa chọn trên trình duyệt và không cấp thêm quyền.</p>
+                            </div>
+                            <label for="terminalExistingSelect">Terminal đã được duyệt</label>
+                            <select id="terminalExistingSelect" name="ExistingTerminalId">
+                                <option value="">Chọn Terminal active</option>
+                                @foreach (var terminal in terminals)
+                                {
+                                    <option value="@terminal.TerminalId">@terminal.Name</option>
+                                }
+                            </select>
+                            <button id="linkExistingTerminal" type="button" class="staffhub-dialog-button is-secondary">
+                                Liên kết Terminal đã có
+                            </button>
+                        </section>
+                    }
+
+                    <small id="terminalRegistrationStatus" class="staffhub-terminal-registration-feedback" aria-live="polite"></small>
                 </div>
                 <footer class="staffhub-pos-dialog-actions">
-                    <button id="cancelTerminalRegistration" type="button" class="staffhub-dialog-button is-secondary">Hủy</button>
+                    <button id="cancelTerminalRegistration" type="button" class="staffhub-dialog-button is-secondary">Đóng</button>
                     <button id="cancelTerminalRegistrationRequest" type="button" class="staffhub-dialog-button is-secondary" hidden>Hủy yêu cầu xác nhận Terminal</button>
-                    <button id="requestTerminalOtp" type="button" class="staffhub-dialog-button is-secondary">Gửi yêu cầu xác nhận Terminal</button>
+                    <button id="requestTerminalOtp" type="button" class="staffhub-dialog-button is-primary">Đăng ký thiết bị này</button>
                     <button id="resendTerminalOtp" type="button" class="staffhub-dialog-button is-primary" disabled hidden>Gửi lại OTP</button>
                 </footer>
             </form>

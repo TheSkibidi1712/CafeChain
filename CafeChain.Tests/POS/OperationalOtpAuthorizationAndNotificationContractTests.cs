@@ -178,6 +178,9 @@ public sealed class OperationalOtpAuthorizationAndNotificationContractTests
         Assert.Contains("otp.canRejectTerminalRegistration === true", script, StringComparison.Ordinal);
         Assert.Contains("createTerminalRejectionForm", script, StringComparison.Ordinal);
         Assert.Contains("/Admin/AdminNotifications/RejectTerminal", script, StringComparison.Ordinal);
+        Assert.Contains(".notification-terminal-reject-form [data-reject-submit-once]", script, StringComparison.Ordinal);
+        Assert.Contains("form.dataset.rejectPending", script, StringComparison.Ordinal);
+        Assert.Contains("type=\"button\" class=\"cc-button notification-terminal-reject-button\"", view, StringComparison.Ordinal);
         Assert.Contains("__RequestVerificationToken", script, StringComparison.Ordinal);
         Assert.Contains("/Admin/AdminNotifications/RevealOperationalOtp", script, StringComparison.Ordinal);
         Assert.Contains("VerificationCodeInput.setValue(otpInput, payload.data.code)", script, StringComparison.Ordinal);

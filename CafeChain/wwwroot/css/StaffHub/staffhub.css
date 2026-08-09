@@ -333,6 +333,50 @@ body:has(.staffhub-page) > footer {
         color var(--sh-dur) ease;
 }
 
+.staffhub-terminal-action-badge {
+    align-self: start;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 999px;
+    padding: 3px 8px;
+    color: #fff;
+    background: rgba(255, 255, 255, .1);
+    font-size: .62rem;
+    font-weight: 800;
+    line-height: 1.15;
+    text-align: center;
+}
+
+.staffhub-terminal-action[data-terminal-state="ready"] {
+    border-color: rgba(74, 222, 128, .65);
+}
+
+.staffhub-terminal-action-badge.is-ready {
+    border-color: rgba(134, 239, 172, .7);
+    color: #dcfce7;
+    background: rgba(22, 101, 52, .42);
+}
+
+.staffhub-terminal-action-badge.is-pending,
+.staffhub-terminal-action-badge.is-approved,
+.staffhub-terminal-action-badge.is-other-pending {
+    border-color: rgba(253, 224, 71, .65);
+    color: #fef9c3;
+    background: rgba(161, 98, 7, .42);
+}
+
+.staffhub-terminal-action-badge.is-rejected,
+.staffhub-terminal-action-badge.is-invalid-binding,
+.staffhub-terminal-action-badge.is-store-mismatch,
+.staffhub-terminal-action-badge.is-locked {
+    border-color: rgba(253, 164, 175, .7);
+    color: #ffe4e6;
+    background: rgba(159, 18, 57, .4);
+}
+
 /* POS Card — Solid gold luxury theme */
 .staffhub-action-button.is-primary {
     background: var(--sh-gold);
@@ -1039,6 +1083,196 @@ body:has(.staffhub-page) > .swal2-container {
     color: var(--sh-text-secondary);
 }
 
+.staffhub-terminal-device-state {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    border: 1px solid #d8dee8;
+    border-radius: 18px;
+    padding: 16px;
+    color: #334155;
+    background: #f8fafc;
+}
+
+.staffhub-terminal-device-state-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    color: #475569;
+    background: #e2e8f0;
+    font-size: 1.15rem;
+}
+
+.staffhub-terminal-device-state h3 {
+    margin: 6px 0 4px;
+    color: #1e293b;
+    font-size: 1rem;
+    font-weight: 850;
+}
+
+.staffhub-terminal-device-state p,
+.staffhub-terminal-existing-link p,
+.staffhub-terminal-registration-fields p {
+    margin: 0;
+    color: #64748b;
+    font-size: .78rem;
+    line-height: 1.55;
+}
+
+.staffhub-terminal-device-state-badge {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 3px 9px;
+    color: #475569;
+    background: #e2e8f0;
+    font-size: .66rem;
+    font-weight: 850;
+}
+
+.staffhub-terminal-device-state.is-ready {
+    border-color: #86efac;
+    background: #f0fdf4;
+}
+.staffhub-terminal-device-state.is-ready .staffhub-terminal-device-state-icon,
+.staffhub-terminal-device-state.is-ready .staffhub-terminal-device-state-badge {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.staffhub-terminal-device-state.is-pending,
+.staffhub-terminal-device-state.is-approved,
+.staffhub-terminal-device-state.is-other-pending,
+.staffhub-terminal-device-state.is-expired,
+.staffhub-terminal-device-state.is-cancelled {
+    border-color: #fcd34d;
+    background: #fffbeb;
+}
+.staffhub-terminal-device-state.is-pending .staffhub-terminal-device-state-icon,
+.staffhub-terminal-device-state.is-pending .staffhub-terminal-device-state-badge,
+.staffhub-terminal-device-state.is-approved .staffhub-terminal-device-state-icon,
+.staffhub-terminal-device-state.is-approved .staffhub-terminal-device-state-badge,
+.staffhub-terminal-device-state.is-other-pending .staffhub-terminal-device-state-icon,
+.staffhub-terminal-device-state.is-other-pending .staffhub-terminal-device-state-badge,
+.staffhub-terminal-device-state.is-expired .staffhub-terminal-device-state-icon,
+.staffhub-terminal-device-state.is-expired .staffhub-terminal-device-state-badge,
+.staffhub-terminal-device-state.is-cancelled .staffhub-terminal-device-state-icon,
+.staffhub-terminal-device-state.is-cancelled .staffhub-terminal-device-state-badge {
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.staffhub-terminal-device-state.is-rejected,
+.staffhub-terminal-device-state.is-locked,
+.staffhub-terminal-device-state.is-invalid-binding,
+.staffhub-terminal-device-state.is-store-mismatch {
+    border-color: #fda4af;
+    background: #fff1f2;
+}
+.staffhub-terminal-device-state.is-rejected .staffhub-terminal-device-state-icon,
+.staffhub-terminal-device-state.is-rejected .staffhub-terminal-device-state-badge,
+.staffhub-terminal-device-state.is-locked .staffhub-terminal-device-state-icon,
+.staffhub-terminal-device-state.is-locked .staffhub-terminal-device-state-badge,
+.staffhub-terminal-device-state.is-invalid-binding .staffhub-terminal-device-state-icon,
+.staffhub-terminal-device-state.is-invalid-binding .staffhub-terminal-device-state-badge,
+.staffhub-terminal-device-state.is-store-mismatch .staffhub-terminal-device-state-icon,
+.staffhub-terminal-device-state.is-store-mismatch .staffhub-terminal-device-state-badge {
+    color: #9f1239;
+    background: #ffe4e6;
+}
+
+.staffhub-terminal-device-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+}
+
+.staffhub-terminal-device-details[hidden],
+.staffhub-terminal-registration-fields[hidden],
+.staffhub-terminal-existing-link[hidden] {
+    display: none !important;
+}
+
+.staffhub-terminal-device-details > div {
+    min-width: 0;
+    border-radius: 13px;
+    padding: 11px 13px;
+    background: #f8fafc;
+}
+
+.staffhub-terminal-device-details dt {
+    margin-bottom: 4px;
+    color: #64748b;
+    font-size: .68rem;
+    font-weight: 750;
+}
+
+.staffhub-terminal-device-details dd {
+    margin: 0;
+    overflow: hidden;
+    color: #1e293b;
+    font-size: .78rem;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.staffhub-terminal-registration-fields,
+.staffhub-terminal-existing-link {
+    display: grid;
+    gap: 9px;
+}
+
+.staffhub-terminal-registration-fields > label,
+.staffhub-terminal-existing-link > label {
+    color: #334155;
+    font-size: .78rem;
+    font-weight: 800;
+}
+
+.staffhub-terminal-existing-link {
+    border: 1px dashed #cbd5e1;
+    border-radius: 16px;
+    padding: 15px;
+    background: #f8fafc;
+}
+
+.staffhub-terminal-existing-link strong {
+    display: block;
+    margin-bottom: 3px;
+    color: #334155;
+    font-size: .82rem;
+}
+
+.staffhub-pos-dialog select {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: .75rem;
+    padding: .65rem .8rem;
+    color: #1e293b;
+    background: #fff;
+}
+
+.staffhub-pos-dialog input:focus,
+.staffhub-pos-dialog select:focus,
+.staffhub-pos-dialog textarea:focus {
+    border-color: #c2410c;
+    outline: 3px solid rgba(234, 88, 12, .14);
+}
+
+.staffhub-terminal-registration-feedback {
+    display: block;
+    min-height: 1.35rem;
+    color: #9a3412;
+    font-size: .75rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
 .staffhub-pos-dialog .modal-body {
     min-height: 0;
     overflow-y: auto;
@@ -1305,6 +1539,16 @@ body:has(.staffhub-page) > .swal2-container {
     }
     .staffhub-dialog-button {
         width: 100%;
+    }
+    .staffhub-terminal-action-badge {
+        max-width: 92px;
+    }
+    .staffhub-terminal-device-details {
+        grid-template-columns: 1fr;
+    }
+    .staffhub-terminal-device-state {
+        gap: 11px;
+        padding: 14px;
     }
 }
 
