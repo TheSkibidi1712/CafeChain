@@ -4,12 +4,15 @@ using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Options;
 using CafeChain.Application.Results;
+using CafeChain.Application.Services.POS;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.ViewModels.Admin.OperationalIce;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
 namespace CafeChain.Areas.Admin.Controllers;
@@ -25,6 +28,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
     private readonly IOperationalIceReportService _reportService;
     private readonly IOperationalIceReportPdfRenderer _reportPdfRenderer;
     private readonly ILogger<AdminOperationalIceController> _logger;
+    private readonly WorkShiftOptions _workShiftOptions;
 
     public AdminOperationalIceController(
         AppDbContext context,
@@ -35,7 +39,8 @@ public sealed class AdminOperationalIceController : AdminBaseController
         IUnitConversionService unitConversionService,
         IOperationalIceReportService reportService,
         IOperationalIceReportPdfRenderer reportPdfRenderer,
-        ILogger<AdminOperationalIceController> logger)
+        ILogger<AdminOperationalIceController> logger,
+        IOptions<WorkShiftOptions> workShiftOptions)
     {
         _context = context;
         _service = service;
@@ -46,6 +51,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
         _reportService = reportService;
         _reportPdfRenderer = reportPdfRenderer;
         _logger = logger;
+        _workShiftOptions = workShiftOptions.Value;
     }
 
     [HttpGet]
@@ -68,7 +74,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
             StatusMessage = setupResult.Message
         };
 
-        var date = (businessDate ?? DateTime.Today).Date;
+        var date = (businessDate ?? ToBusinessLocal(DateTime.UtcNow)).Date;
         var policy = await _context.IcePolicies.AsNoTracking()
             .Include(x => x.Ingredient)
             .Include(x => x.DisplayUnit)
@@ -266,15 +272,21 @@ public sealed class AdminOperationalIceController : AdminBaseController
             TempData["ErrorMessage"] = "Không thể quy đổi đơn vị đá. Dữ liệu đang hiển thị theo đơn vị tồn kho.";
 
         IReadOnlyList<OperationalIceWorkShiftSuggestionDto> availableWorkShiftRows = [];
+        IReadOnlyList<string> workShiftCandidateMessages = [];
         if (canLinkWorkShift)
         {
-            var suggestionResult = await _service.GetWorkShiftSuggestionsAsync(
+            var suggestionResult = await _service.GetWorkShiftCandidateAssessmentAsync(
                 allocation.OperationalShiftId,
                 actor,
                 cancellationToken);
             if (suggestionResult.IsSuccess)
             {
-                availableWorkShiftRows = suggestionResult.Data ?? [];
+                availableWorkShiftRows = suggestionResult.Data?.Candidates ?? [];
+                workShiftCandidateMessages = suggestionResult.Data?.Diagnostics
+                    .Select(x => x.Message)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray() ?? [];
             }
             else
             {
@@ -289,8 +301,8 @@ public sealed class AdminOperationalIceController : AdminBaseController
             .Select(x => new OperationalIceOptionVM
             {
                 Id = x.WorkShiftId,
-                Label = $"Ca bán hàng POS #{x.WorkShiftId} · {x.StaffName} · {x.StartTime:dd/MM/yyyy HH:mm}"
-                        + (x.EndTime.HasValue ? $"–{x.EndTime:HH:mm}" : "–Đang mở")
+                Label = $"Ca bán hàng POS #{x.WorkShiftId} · {x.StaffName} · {ToBusinessLocal(x.StartTime):dd/MM/yyyy HH:mm}"
+                        + (x.EndTime.HasValue ? $"–{ToBusinessLocal(x.EndTime.Value):HH:mm}" : "–Đang mở")
             })
             .ToList();
         var carryTargets = canHandoff ? await _context.IceAllocations.AsNoTracking()
@@ -339,8 +351,8 @@ public sealed class AdminOperationalIceController : AdminBaseController
                     WorkShiftId = x.WorkShiftId,
                     StaffName = x.WorkShift.User.FullName,
                     Status = x.WorkShift.Status,
-                    StartTime = x.WorkShift.StartTimeUtc.ToLocalTime(),
-                    EndTime = x.WorkShift.EndTimeUtc?.ToLocalTime()
+                    StartTime = x.WorkShift.StartTimeUtc,
+                    EndTime = x.WorkShift.EndTimeUtc
                 }).ToList(),
             Supplements = allocation.SupplementalIssues.OrderByDescending(x => x.RequestedAtUtc)
                 .Select(x => new OperationalIceSupplementVM
@@ -389,6 +401,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
                     CreatedAtUtc = x.CreatedAtUtc
                 }).ToList(),
             AvailableWorkShifts = availableWorkShifts,
+            WorkShiftCandidateMessages = workShiftCandidateMessages,
             CarryTargets = carryTargets,
             StaffOptions = canHandoff || canSubmitClose ? await _context.Staffs.AsNoTracking()
                 .Where(x => x.StoreId == allocation.OperationalShift.StoreId && x.Active)
@@ -483,7 +496,8 @@ public sealed class AdminOperationalIceController : AdminBaseController
             EndAtUtc = NormalizeLocalToUtc(request.EndAtUtc),
             ShiftLeadId = request.ShiftLeadId,
             CreationSource = request.CreationSource,
-            SourceScheduleShiftId = request.SourceScheduleShiftId
+            SourceScheduleShiftId = request.SourceScheduleShiftId,
+            SourceStaffShiftIds = request.SourceStaffShiftIds
         };
         return RedirectWithResult(await _service.CreateShiftAsync(normalized, _actorAccessor.Get(User), cancellationToken), nameof(Index), new { storeId = request.StoreId, businessDate = request.BusinessDate.ToString("yyyy-MM-dd") });
     }
@@ -890,15 +904,16 @@ public sealed class AdminOperationalIceController : AdminBaseController
             .Select(x => new OperationalIceOptionVM { Id = x.StaffId, Label = x.FullName })
             .ToListAsync(cancellationToken);
 
-    private static IReadOnlyList<OperationalIceScheduleOptionVM> MapScheduleOptions(
+    private IReadOnlyList<OperationalIceScheduleOptionVM> MapScheduleOptions(
         IReadOnlyList<OperationalIceScheduleOptionDto> options) =>
         options.Select(option =>
         {
-            var startLocal = option.StartAtUtc.ToLocalTime();
-            var endLocal = option.EndAtUtc.ToLocalTime();
+            var startLocal = ToBusinessLocal(option.StartAtUtc);
+            var endLocal = ToBusinessLocal(option.EndAtUtc);
             return new OperationalIceScheduleOptionVM
             {
                 ScheduleShiftId = option.ScheduleShiftId,
+                StaffShiftIds = option.StaffShiftIds,
                 Name = option.Name,
                 Label = $"{option.Name} · {startLocal:HH:mm}–{endLocal:HH:mm} · {option.StaffCount} nhân viên",
                 StartLocalValue = startLocal.ToString("yyyy-MM-ddTHH:mm"),
@@ -908,7 +923,7 @@ public sealed class AdminOperationalIceController : AdminBaseController
             };
         }).ToList();
 
-    private static OperationalIceScheduleReviewVM MapScheduleReview(
+    private OperationalIceScheduleReviewVM MapScheduleReview(
         OperationalIceScheduleReviewDto review,
         IReadOnlyDictionary<int, string> leadNames)
     {
@@ -917,13 +932,13 @@ public sealed class AdminOperationalIceController : AdminBaseController
                 ? name
                 : "Chưa xác định";
 
-        var savedStart = review.SavedStartAtUtc.ToLocalTime();
-        var savedEnd = review.SavedEndAtUtc.ToLocalTime();
+        var savedStart = ToBusinessLocal(review.SavedStartAtUtc);
+        var savedEnd = ToBusinessLocal(review.SavedEndAtUtc);
         var currentLabel = review.IsScheduleAvailable
                            && review.CurrentStartAtUtc.HasValue
                            && review.CurrentEndAtUtc.HasValue
-            ? $"{review.CurrentName} · {review.CurrentStartAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
-              + $"–{review.CurrentEndAtUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
+            ? $"{review.CurrentName} · {ToBusinessLocal(review.CurrentStartAtUtc.Value):dd/MM/yyyy HH:mm}"
+              + $"–{ToBusinessLocal(review.CurrentEndAtUtc.Value):dd/MM/yyyy HH:mm}"
             : "Lịch nguồn không còn hoạt động";
         return new OperationalIceScheduleReviewVM
         {
@@ -942,8 +957,17 @@ public sealed class AdminOperationalIceController : AdminBaseController
         };
     }
 
-    private static DateTime NormalizeLocalToUtc(DateTime value) =>
-        value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime();
+    private DateTime NormalizeLocalToUtc(DateTime value) =>
+        value.Kind == DateTimeKind.Utc
+            ? value
+            : ScheduleIntervalResolver.ToUtc(
+                DateTime.SpecifyKind(value, DateTimeKind.Unspecified),
+                _workShiftOptions.ResolveTimeZone());
+
+    private DateTime ToBusinessLocal(DateTime value) =>
+        TimeZoneInfo.ConvertTimeFromUtc(
+            value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Utc),
+            _workShiftOptions.ResolveTimeZone());
 
     private static string DisplayUnitSymbol(string? unitCode)
     {

@@ -61,6 +61,7 @@ public sealed class OperationalIceScheduleReviewVM
 public sealed class OperationalIceScheduleOptionVM
 {
     public int ScheduleShiftId { get; init; }
+    public IReadOnlyList<int> StaffShiftIds { get; init; } = [];
     public string Name { get; init; } = string.Empty;
     public string Label { get; init; } = string.Empty;
     public string StartLocalValue { get; init; } = string.Empty;
@@ -128,6 +129,7 @@ public sealed class OperationalIceDetailVM
     public IReadOnlyList<OperationalIceCarryVM> CarryOvers { get; init; } = [];
     public IReadOnlyList<OperationalIcePostingVM> Postings { get; init; } = [];
     public IReadOnlyList<OperationalIceOptionVM> AvailableWorkShifts { get; init; } = [];
+    public IReadOnlyList<string> WorkShiftCandidateMessages { get; init; } = [];
     public IReadOnlyList<OperationalIceOptionVM> CarryTargets { get; init; } = [];
     public IReadOnlyList<OperationalIceOptionVM> StaffOptions { get; init; } = [];
     public bool CanLinkWorkShift { get; init; }

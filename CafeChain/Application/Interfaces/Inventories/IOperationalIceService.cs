@@ -11,6 +11,7 @@ public interface IOperationalIceService
     Task<ServiceResult<IReadOnlyList<OperationalIceScheduleOptionDto>>> GetScheduleOptionsAsync(int storeId, DateTime businessDate, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<IReadOnlyList<OperationalIceScheduleReviewDto>>> GetScheduleReviewsAsync(int storeId, DateTime businessDate, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<IReadOnlyList<OperationalIceWorkShiftSuggestionDto>>> GetWorkShiftSuggestionsAsync(int operationalShiftId, AdminActorContext actor, CancellationToken cancellationToken = default);
+    Task<ServiceResult<OperationalIceWorkShiftCandidateAssessmentDto>> GetWorkShiftCandidateAssessmentAsync(int operationalShiftId, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult> SavePolicyAsync(SaveIcePolicyRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<OperationalShiftSummaryDto>> CreateShiftAsync(CreateOperationalShiftRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);
     Task<ServiceResult<OperationalShiftSummaryDto>> SyncDraftWithScheduleAsync(SyncOperationalShiftScheduleRequest request, AdminActorContext actor, CancellationToken cancellationToken = default);

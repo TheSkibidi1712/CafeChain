@@ -31,9 +31,7 @@ public sealed class OperationalShiftConfiguration : IEntityTypeConfiguration<Ope
             .HasFilter("[CreationSource] = 'Manual' AND [Status] <> 'Cancelled'");
         entity.HasIndex(x => new { x.StoreId, x.BusinessDate, x.Status });
         entity.HasIndex(x => new { x.StoreId, x.BusinessDate, x.CreationSource });
-        entity.HasIndex(x => new { x.StoreId, x.BusinessDate, x.SourceScheduleShiftId })
-            .IsUnique()
-            .HasFilter("[SourceScheduleShiftId] IS NOT NULL AND [Status] <> 'Cancelled'");
+        entity.HasIndex(x => new { x.StoreId, x.BusinessDate, x.SourceScheduleShiftId });
         entity.HasIndex(x => x.ShiftLeadId);
 
         entity.HasOne(x => x.Store).WithMany().HasForeignKey(x => x.StoreId).OnDelete(DeleteBehavior.Restrict);
@@ -42,6 +40,24 @@ public sealed class OperationalShiftConfiguration : IEntityTypeConfiguration<Ope
         entity.HasOne(x => x.CreatedByStaff).WithMany().HasForeignKey(x => x.CreatedByStaffId).OnDelete(DeleteBehavior.Restrict);
         entity.HasOne(x => x.OpenedByStaff).WithMany().HasForeignKey(x => x.OpenedByStaffId).OnDelete(DeleteBehavior.Restrict);
         entity.HasOne(x => x.ClosedByStaff).WithMany().HasForeignKey(x => x.ClosedByStaffId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public sealed class OperationalShiftScheduleSourceConfiguration : IEntityTypeConfiguration<OperationalShiftScheduleSource>
+{
+    public void Configure(EntityTypeBuilder<OperationalShiftScheduleSource> entity)
+    {
+        entity.ToTable("OperationalShiftScheduleSources");
+        entity.HasKey(x => new { x.OperationalShiftId, x.StaffShiftId });
+        entity.HasIndex(x => x.StaffShiftId).IsUnique();
+        entity.HasOne(x => x.OperationalShift)
+            .WithMany(x => x.ScheduleSources)
+            .HasForeignKey(x => x.OperationalShiftId)
+            .OnDelete(DeleteBehavior.Cascade);
+        entity.HasOne(x => x.StaffShift)
+            .WithMany()
+            .HasForeignKey(x => x.StaffShiftId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
