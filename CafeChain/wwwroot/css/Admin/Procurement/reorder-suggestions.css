@@ -468,11 +468,11 @@
 }
 
 .reorder-table tbody .reorder-data-row:hover td {
-    background: #fff8f0 !important;
+    background: inherit;
 }
 
 .reorder-table tbody .reorder-data-row:hover td:first-child {
-    box-shadow: inset 4px 0 0 #6f4e37;
+    box-shadow: none;
 }
 
 .reorder-ingredient-cell > strong {
@@ -530,7 +530,7 @@
 }
 
 .reorder-data-row:hover .reorder-actions-cell {
-    background: #f9efe4 !important;
+    background: #fcfaf7 !important;
 }
 
 .reorder-action-group {

@@ -5,8 +5,9 @@
 }
 
 <main class="cc-page">
-    <header class="cc-page-header">
+    <header class="cc-page-header work-shift-open-approvals-header">
         <div>
+            <span class="cc-page-kicker">Nhân sự & vận hành</span>
             <h1 class="cc-page-title">Duyệt mở ca trễ</h1>
             <p class="cc-page-description">Chỉ Store Manager, Area Manager hoặc Business Owner đúng phạm vi được quyết định.</p>
         </div>
@@ -14,48 +15,57 @@
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success">@TempData["SuccessMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error">@TempData["ErrorMessage"]</div> }
 
+    @section Styles {
+        <link rel="stylesheet" href="~/css/Admin/WorkShiftOpenApprovals/workshift-approvals.css" asp-append-version="true" />
+    }
+
     @if (Model.Count == 0)
     {
         <section class="cc-empty-state"><h2>Không có yêu cầu đang chờ</h2></section>
     }
     else
     {
-        <section class="cc-warehouse-panel">
+        <section class="cc-approval-grid">
             @foreach (var item in Model)
             {
-                <article class="notification-item" id="approval-@item.Id">
-                    <div>
-                        <strong>@item.RequestedByName · trễ @item.MinutesLate phút</strong>
-                        <p>Terminal: @item.TerminalId · Store #@item.StoreId</p>
-                        <p>Lý do: @item.Reason</p>
-                        <p>Hết hạn: @item.ExpiresAtUtc.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</p>
+                <article class="approval-card" id="approval-@item.Id">
+                    <div class="approval-card-info">
+                        <div class="approval-card-title">@item.RequestedByName</div>
+                        <div class="approval-card-detail">Trạng thái: <strong>Trễ @item.MinutesLate phút</strong></div>
+                        <div class="approval-card-detail">Terminal: <strong>@item.TerminalId</strong> &bull; Store: <strong>#@item.StoreId</strong></div>
+                        <div class="approval-card-detail">Hết hạn: <strong>@item.ExpiresAtUtc.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</strong></div>
+                        <div class="approval-card-reason">@item.Reason</div>
                     </div>
-                    <form asp-action="Decide" method="post" data-decision-form>
+                    <form asp-action="Decide" method="post" data-decision-form class="approval-card-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@item.PublicId" />
                         <input type="hidden" name="storeId" value="@item.StoreId" />
                         <input type="hidden" name="Decision" value="" data-decision-value />
                         <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
                         <input type="hidden" name="RowVersion" value="@item.RowVersion" />
-                        <label>Lý do quyết định <input name="Reason" maxlength="500" /></label>
+                        
+                        <div class="approval-card-input-wrap">
+                            <label>LÝ DO QUYẾT ĐỊNH</label>
+                            <input name="Reason" maxlength="500" class="approval-card-input" placeholder="Nhập lý do..." />
+                        </div>
+
                         @if (!item.CanApproveAsScheduled)
                         {
-                            <p class="ops-notice ops-notice-warning">
+                            <p class="ops-notice ops-notice-warning" style="font-size:12px; padding: 10px;">
                                 Ca đã trễ quá @item.ScheduledApprovalMaxLateMinutes phút nên không thể mở theo lịch cũ.
                                 Hãy từ chối hoặc chuyển sang ca ngoài lịch.
                             </p>
                         }
-                        <div class="cc-warehouse-actions">
-                            <button class="cc-button"
+                        <div class="approval-card-actions">
+                            <button class="cc-btn btn-approve"
                                     data-decision="APPROVED"
                                     type="submit"
                                     disabled="@(!item.CanApproveAsScheduled)"
-                                    aria-disabled="@(!item.CanApproveAsScheduled ? "true" : "false")"
                                     title="@(!item.CanApproveAsScheduled ? $"Ca trễ quá {item.ScheduledApprovalMaxLateMinutes} phút không thể duyệt theo lịch cũ." : $"Duyệt mở ca trễ trong giới hạn {item.ScheduledApprovalMaxLateMinutes} phút")">
                                 Duyệt mở ca
                             </button>
-                            <button class="cc-button" data-decision="REJECTED" type="submit">Từ chối</button>
-                            <button class="cc-button" data-decision="CONVERTED_TO_OUTSIDE_SCHEDULE" type="submit">Chuyển ngoài lịch</button>
+                            <button class="cc-btn btn-reject" data-decision="REJECTED" type="submit">Từ chối</button>
+                            <button class="cc-btn btn-convert" data-decision="CONVERTED_TO_OUTSIDE_SCHEDULE" type="submit">Chuyển ngoài lịch</button>
                         </div>
                     </form>
                 </article>
