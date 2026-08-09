@@ -4,18 +4,19 @@
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
-<main class="cc-page">
-    <header class="cc-page-header work-shift-open-approvals-header">
+<main class="cc-page ops-shell cc-warehouse-page">
+    <header class="work-shift-open-approvals-header ops-header cc-warehouse-header">
         <div>
-            <span class="cc-page-kicker">Nhân sự & vận hành</span>
-            <h1 class="cc-page-title">Duyệt mở ca trễ</h1>
-            <p class="cc-page-description">Chỉ Quản lý cửa hàng, Quản lý khu vực hoặc Chủ doanh nghiệp đúng phạm vi mới có quyền quyết định.</p>
+            <div class="ops-eyebrow">Nhân sự & vận hành</div>
+            <h1 class="ops-title">Duyệt mở ca trễ</h1>
+            <p class="ops-subtitle">Chỉ Quản lý cửa hàng, Quản lý khu vực hoặc Chủ doanh nghiệp đúng phạm vi mới có quyền quyết định.</p>
         </div>
     </header>
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success">@TempData["SuccessMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error">@TempData["ErrorMessage"]</div> }
 
     @section Styles {
+        <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
         <link rel="stylesheet" href="~/css/Admin/WorkShiftOpenApprovals/workshift-approvals.css" asp-append-version="true" />
     }
 

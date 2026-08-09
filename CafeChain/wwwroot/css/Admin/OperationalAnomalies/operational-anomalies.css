@@ -9,6 +9,31 @@
     overflow: hidden;
 }
 
+.anomalies-eyebrow {
+    margin-bottom: 5px;
+    color: var(--cc-warning, #99623B);
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+}
+
+.anomalies-header h1 {
+    color: #201812;
+    font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin: 0;
+}
+
+.anomalies-subtitle {
+    max-width: 760px;
+    margin: 6px 0 0;
+    color: var(--cc-text-secondary, #66584F);
+    font-size: .88rem;
+    line-height: 1.55;
+}
+
 .cc-anomaly-table {
     width: 100%;
     border-collapse: separate;

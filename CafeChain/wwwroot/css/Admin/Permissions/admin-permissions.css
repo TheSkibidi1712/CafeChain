@@ -15,80 +15,32 @@
 
 /* Page canvas */
 .perm-page {
-    width: 100%;
-    max-width: none;
-    align-self: stretch;
-    margin: 0;
-    padding: 24px clamp(16px, 2.2vw, 32px) 40px;
-    box-sizing: border-box;
-    border-radius: 24px;
-    background: var(--cc-canvas, #F7F4F0);
 }
 
 /* Page header */
-.perm-heading,
-.perm-page .perm-heading {
-    width: 100% !important;
-    position: relative;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 16px;
-    margin-bottom: 22px !important;
-    min-height: 140px !important;
-    padding: 24px 28px !important;
-    border: 1px solid #E9DED4 !important;
-    border-left: 5px solid #5C3F2B !important;
-    border-radius: var(--cc-radius-header, 20px) !important;
-    background: linear-gradient(112deg, #FFFFFF 0%, #FBF7F2 62%, #F1E5DA 100%) !important;
-    box-shadow: var(--cc-shadow-md);
-    overflow: hidden;
-    box-sizing: border-box !important;
-}
-
-.perm-title-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    flex-shrink: 0;
-    border: 1px solid #D8C5B6;
-    border-radius: var(--cc-radius-md, 14px);
-    color: #FFFDFB;
-    background: #70482F;
-    box-shadow: 0 4px 12px rgba(112, 72, 47, 0.2);
-}
-
-.perm-title-icon i {
-    color: #FFFDFB !important;
-    font-size: 20px;
-}
-
-.perm-title-row h1,
 .perm-heading h1 {
     color: #201812;
-    font-size: 28px;
+    font-size: clamp(1.6rem, 2.8vw, 2.2rem);
     font-weight: 800;
-    letter-spacing: -0.02em;
-    margin: 4px 0 6px;
-}
-
-.perm-title-row p,
-.perm-heading p {
+    letter-spacing: -.02em;
     margin: 0;
-    color: #66584F;
-    font-size: 13px;
-    line-height: 1.5;
 }
 
-.perm-breadcrumb {
-    color: #8B6247;
-    font-size: 11px;
+.perm-eyebrow {
+    margin-bottom: 5px;
+    color: var(--cc-warning, #99623B);
+    font-size: .72rem;
     font-weight: 800;
-    letter-spacing: 0.09em;
     text-transform: uppercase;
-    margin-bottom: 4px;
+    letter-spacing: .1em;
+}
+
+.perm-subtitle {
+    max-width: 760px;
+    margin: 6px 0 0;
+    color: var(--cc-text-secondary, #66584F);
+    font-size: .88rem;
+    line-height: 1.55;
 }
 
 .perm-page > .perm-heading > .perm-icon-button {

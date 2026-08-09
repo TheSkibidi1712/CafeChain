@@ -9,18 +9,19 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
     <link rel="stylesheet" href="~/css/Admin/OperationalAnomalies/operational-anomalies.css" asp-append-version="true" />
 }
 
 @Html.AntiForgeryToken()
-<main class="cc-page">
-    <header class="cc-page-header anomalies-header">
+<main class="cc-page ops-shell cc-warehouse-page">
+    <header class="anomalies-header ops-header cc-warehouse-header">
         <div>
-            <span class="cc-page-kicker">Nhân sự & vận hành</span>
-            <h1 class="cc-page-title">Tín hiệu vận hành</h1>
-            <p class="cc-page-description">Các thay đổi đáng chú ý cần đối chiếu thêm; đây không phải kết luận sai phạm.</p>
+            <div class="anomalies-eyebrow">Nhân sự & vận hành</div>
+            <h1>Tín hiệu vận hành</h1>
+            <p class="anomalies-subtitle">Các thay đổi đáng chú ý cần đối chiếu thêm; đây không phải kết luận sai phạm.</p>
         </div>
-        <div class="cc-header-actions">
+        <div class="anomalies-header-actions">
             <form method="get" class="d-flex align-items-center">
                 <select class="form-select" name="targetStoreId" onchange="this.form.submit()" style="min-width: 240px; border-radius: 8px;">
                     @foreach (var store in (IReadOnlyList<CafeChain.Application.DTOs.Admin.StoreScope.AdminStoreOptionDto>)ViewBag.Stores)

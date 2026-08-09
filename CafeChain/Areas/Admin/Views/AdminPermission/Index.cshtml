@@ -4,11 +4,12 @@
 @using CafeChain.Areas.Admin.Controllers;
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
     <link rel="stylesheet" href="~/css/Admin/Permissions/admin-permissions.css" asp-append-version="true" />
 }
 
 <form id="permissionAntiForgeryForm" class="d-none">@Html.AntiForgeryToken()</form>
-<div class="perm-page"
+<main class="perm-page ops-shell cc-warehouse-page"
      data-initial-staff-id="@Context.Request.Query["staffId"]"
      data-roles-url="@Url.Action(nameof(AdminPermissionController.Roles), "AdminPermission", new { area = "Admin" })"
      data-staff-url="@Url.Action(nameof(AdminPermissionController.Staff), "AdminPermission", new { area = "Admin" })"
@@ -23,21 +24,18 @@
      data-save-staff-overrides-url="@Url.Action(nameof(AdminPermissionController.SaveStaffOverrides), "AdminPermission", new { area = "Admin" })"
      data-scope-references-url="@Url.Action(nameof(AdminPermissionController.ScopeReferences), "AdminPermission", new { area = "Admin" })"
      data-login-url="@Url.Action("Login", "Account", new { area = "" })"
-    data-access-denied-url="@Url.Action("AccessDenied", "Account", new { area = "" })">
-    <header class="perm-heading cc-admin-heading">
-        <div class="perm-heading-copy cc-admin-heading__copy">
-            <div class="perm-breadcrumb cc-admin-heading__eyebrow">Hệ thống / Bảng phân quyền</div>
-            <div class="perm-title-row cc-admin-heading__row">
-                <span class="perm-title-icon cc-admin-heading__icon" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
-                <div class="cc-admin-heading__text">
-                    <h1>Bảng phân quyền</h1>
-                    <p>Kiểm soát vai trò, quyền thao tác và phạm vi dữ liệu của từng nhân viên.</p>
-                </div>
-            </div>
+     data-access-denied-url="@Url.Action("AccessDenied", "Account", new { area = "" })">
+    <header class="perm-heading ops-header cc-warehouse-header">
+        <div>
+            <div class="perm-eyebrow">Hệ thống / Bảng phân quyền</div>
+            <h1><i class="fas fa-shield-halved" aria-hidden="true"></i> Bảng phân quyền</h1>
+            <p class="perm-subtitle">Kiểm soát vai trò, quyền thao tác và phạm vi dữ liệu của từng nhân viên.</p>
         </div>
-        <button type="button" class="perm-icon-button" id="permRefreshBtn" title="Tải lại" aria-label="Tải lại dữ liệu phân quyền">
-            <i class="fas fa-rotate-right"></i>
-        </button>
+        <div class="perm-header-actions">
+            <button type="button" class="perm-icon-button" id="permRefreshBtn" title="Tải lại" aria-label="Tải lại dữ liệu phân quyền">
+                <i class="fas fa-rotate-right"></i>
+            </button>
+        </div>
     </header>
 
     <div class="perm-tabs" role="tablist" aria-label="Nhóm chức năng phân quyền">
@@ -198,7 +196,7 @@
             </div>
         </div>
     </section>
-</div>
+</main>
 
 <div class="modal fade" id="permRoleModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
