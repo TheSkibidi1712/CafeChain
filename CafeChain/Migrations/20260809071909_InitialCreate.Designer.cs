@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260808210558_AddProductionBatchYieldV2")]
-    partial class AddProductionBatchYieldV2
+    [Migration("20260809071909_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -732,9 +732,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DistrictId")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
 
@@ -756,8 +753,6 @@ namespace CafeChain.Migrations
                     b.HasKey("CustomerAddressId");
 
                     b.HasIndex("CustomerId");
-
-                    b.HasIndex("DistrictId");
 
                     b.HasIndex("ProvinceId");
 
@@ -6228,6 +6223,68 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Procurement.PurchaseOrderLineClosure", b =>
+                {
+                    b.Property<long>("PurchaseOrderLineClosureId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PurchaseOrderLineClosureId"));
+
+                    b.Property<int>("ActorStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ClosedBaseQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("ClosedProcurementQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int?>("ProcurementUnitId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PurchaseOrderLineId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RequestKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("PurchaseOrderLineClosureId");
+
+                    b.HasIndex("ActorStaffId");
+
+                    b.HasIndex("ProcurementUnitId");
+
+                    b.HasIndex("RequestKey")
+                        .IsUnique();
+
+                    b.HasIndex("PurchaseOrderLineId", "CreatedAtUtc");
+
+                    b.ToTable("PurchaseOrderLineClosures", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PurchaseOrderLineClosures_ClosedBaseQuantity_Positive", "[ClosedBaseQuantity] > 0");
+
+                            t.HasCheckConstraint("CK_PurchaseOrderLineClosures_ClosedProcurementQuantity_Positive", "[ClosedProcurementQuantity] IS NULL OR [ClosedProcurementQuantity] > 0");
+                        });
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Procurement.PurchaseOrderReceiptPosting", b =>
                 {
                     b.Property<int>("PurchaseOrderReceiptPostingId")
@@ -8685,7 +8742,7 @@ namespace CafeChain.Migrations
                         {
                             SupplierId = 1,
                             Active = true,
-                            Address = "Bình Dương",
+                            Address = "Thành phố Hồ Chí Minh",
                             Code = "SUP001",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Nhà cung cấp A",
@@ -9567,31 +9624,6 @@ namespace CafeChain.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Locations.District", b =>
-                {
-                    b.Property<int>("DistrictId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DistrictId"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int?>("ProvinceId")
-                        .HasColumnType("int");
-
-                    b.HasKey("DistrictId");
-
-                    b.HasIndex("ProvinceId", "Name")
-                        .IsUnique()
-                        .HasFilter("[ProvinceId] IS NOT NULL");
-
-                    b.ToTable("Districts", (string)null);
-                });
-
             modelBuilder.Entity("CafeChain.Models.Locations.Province", b =>
                 {
                     b.Property<int>("ProvinceId")
@@ -9600,8 +9632,17 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProvinceId"));
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("nchar(2)")
+                        .IsFixedLength();
+
                     b.Property<int?>("CountryId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -9610,9 +9651,10 @@ namespace CafeChain.Migrations
 
                     b.HasKey("ProvinceId");
 
-                    b.HasIndex("CountryId", "Name")
-                        .IsUnique()
-                        .HasFilter("[CountryId] IS NOT NULL");
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("CountryId");
 
                     b.ToTable("Provinces", (string)null);
                 });
@@ -9625,19 +9667,29 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WardId"));
 
-                    b.Property<int?>("DistrictId")
-                        .HasColumnType("int");
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nchar(5)")
+                        .IsFixedLength();
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<int>("ProvinceId")
+                        .HasColumnType("int");
+
                     b.HasKey("WardId");
 
-                    b.HasIndex("DistrictId", "Name")
-                        .IsUnique()
-                        .HasFilter("[DistrictId] IS NOT NULL");
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("ProvinceId");
 
                     b.ToTable("Wards", (string)null);
                 });
@@ -11337,12 +11389,6 @@ namespace CafeChain.Migrations
                         },
                         new
                         {
-                            ScopeTypeId = 3,
-                            Code = "DISTRICT",
-                            Name = "District"
-                        },
-                        new
-                        {
                             ScopeTypeId = 4,
                             Code = "WARD",
                             Name = "Ward"
@@ -11678,9 +11724,6 @@ namespace CafeChain.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<int?>("DistrictId")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsDefault")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -11696,8 +11739,6 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("StaffAddressId");
-
-                    b.HasIndex("DistrictId");
 
                     b.HasIndex("ProvinceId");
 
@@ -12338,9 +12379,6 @@ namespace CafeChain.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<int?>("DistrictId")
-                        .HasColumnType("int");
-
                     b.Property<decimal?>("Latitude")
                         .HasColumnType("decimal(9,6)");
 
@@ -12364,8 +12402,6 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("StoreId");
-
-                    b.HasIndex("DistrictId");
 
                     b.HasIndex("ProvinceId");
 
@@ -13728,11 +13764,6 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CafeChain.Models.Locations.District", "District")
-                        .WithMany()
-                        .HasForeignKey("DistrictId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("CafeChain.Models.Locations.Province", "Province")
                         .WithMany()
                         .HasForeignKey("ProvinceId")
@@ -13744,8 +13775,6 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Customer");
-
-                    b.Navigation("District");
 
                     b.Navigation("Province");
 
@@ -15244,6 +15273,32 @@ namespace CafeChain.Migrations
                     b.Navigation("PurchaseOrderLine");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Procurement.PurchaseOrderLineClosure", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ActorStaff")
+                        .WithMany()
+                        .HasForeignKey("ActorStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "ProcurementUnit")
+                        .WithMany()
+                        .HasForeignKey("ProcurementUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Procurement.PurchaseOrderLine", "PurchaseOrderLine")
+                        .WithMany("Closures")
+                        .HasForeignKey("PurchaseOrderLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActorStaff");
+
+                    b.Navigation("ProcurementUnit");
+
+                    b.Navigation("PurchaseOrderLine");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Procurement.PurchaseOrderReceiptPosting", b =>
                 {
                     b.HasOne("CafeChain.Models.Inventories.Stock.BranchReceiptLine", "BranchReceiptLine")
@@ -16504,16 +16559,6 @@ namespace CafeChain.Migrations
                     b.Navigation("RelatedPosting");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Locations.District", b =>
-                {
-                    b.HasOne("CafeChain.Models.Locations.Province", "Province")
-                        .WithMany("Districts")
-                        .HasForeignKey("ProvinceId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Province");
-                });
-
             modelBuilder.Entity("CafeChain.Models.Locations.Province", b =>
                 {
                     b.HasOne("CafeChain.Models.Locations.Country", "Country")
@@ -16526,12 +16571,13 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Locations.Ward", b =>
                 {
-                    b.HasOne("CafeChain.Models.Locations.District", "District")
+                    b.HasOne("CafeChain.Models.Locations.Province", "Province")
                         .WithMany("Wards")
-                        .HasForeignKey("DistrictId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("ProvinceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.Navigation("District");
+                    b.Navigation("Province");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Loyalties.PointTransaction", b =>
@@ -17094,11 +17140,6 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffAddress", b =>
                 {
-                    b.HasOne("CafeChain.Models.Locations.District", "District")
-                        .WithMany()
-                        .HasForeignKey("DistrictId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("CafeChain.Models.Locations.Province", "Province")
                         .WithMany()
                         .HasForeignKey("ProvinceId")
@@ -17114,8 +17155,6 @@ namespace CafeChain.Migrations
                         .WithMany()
                         .HasForeignKey("WardId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("District");
 
                     b.Navigation("Province");
 
@@ -17311,11 +17350,6 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Stores.Store", b =>
                 {
-                    b.HasOne("CafeChain.Models.Locations.District", "District")
-                        .WithMany()
-                        .HasForeignKey("DistrictId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.HasOne("CafeChain.Models.Locations.Province", "Province")
                         .WithMany()
                         .HasForeignKey("ProvinceId")
@@ -17325,8 +17359,6 @@ namespace CafeChain.Migrations
                         .WithMany("Stores")
                         .HasForeignKey("WardId")
                         .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("District");
 
                     b.Navigation("Province");
 
@@ -17846,6 +17878,8 @@ namespace CafeChain.Migrations
                 {
                     b.Navigation("BatchAllocations");
 
+                    b.Navigation("Closures");
+
                     b.Navigation("ReceiptPostings");
                 });
 
@@ -17934,14 +17968,9 @@ namespace CafeChain.Migrations
                     b.Navigation("Provinces");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Locations.District", b =>
-                {
-                    b.Navigation("Wards");
-                });
-
             modelBuilder.Entity("CafeChain.Models.Locations.Province", b =>
                 {
-                    b.Navigation("Districts");
+                    b.Navigation("Wards");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Locations.Ward", b =>

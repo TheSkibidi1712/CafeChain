@@ -247,7 +247,6 @@ namespace CafeChain.Data
         // ========================= LOCATION =========================
         public DbSet<Country> Countries { get; set; }
         public DbSet<Province> Provinces { get; set; }
-        public DbSet<District> Districts { get; set; }   // 🔥 MỚI: Cấp Quận/Huyện
         public DbSet<Ward> Wards { get; set; }
 
         // ========================= LOYALTY =========================

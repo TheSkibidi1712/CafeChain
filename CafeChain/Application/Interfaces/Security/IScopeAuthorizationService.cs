@@ -9,7 +9,6 @@ namespace CafeChain.Application.Interfaces.Security
         Country = 1,
         HQ = Country,
         Province = 2,
-        District = 3,
         Ward = 4,
         Store = 5
     }

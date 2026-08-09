@@ -21,7 +21,6 @@ namespace CafeChain.Application.Interfaces.Customers
 
         // LOCATION METHODS
         Task<List<Province>> GetProvincesAsync();
-        Task<List<District>> GetDistrictsByProvinceAsync(int provinceId);
-        Task<List<Ward>> GetWardsByDistrictAsync(int districtId);
+        Task<List<Ward>> GetWardsByProvinceAsync(int provinceId);
     }
 }

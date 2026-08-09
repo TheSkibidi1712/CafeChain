@@ -74,8 +74,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                 .Include(s => s.StaffAddresses)
                     .ThenInclude(a => a.Province)
                 .Include(s => s.StaffAddresses)
-                    .ThenInclude(a => a.District)
-                .Include(s => s.StaffAddresses)
                     .ThenInclude(a => a.Ward)
                 .Include(s => s.StaffScopes)
                     .ThenInclude(ss => ss.ScopeType)
@@ -103,51 +101,40 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
 
         public Task<List<CafeChain.Models.Locations.Province>> GetProvincesAsync()
         {
-            return _context.Provinces.OrderBy(p => p.Name).ToListAsync();
+            return _context.Provinces.Where(p => p.IsActive).OrderBy(p => p.Name).ToListAsync();
         }
 
-        public Task<List<CafeChain.Models.Locations.District>> GetDistrictsAsync(int provinceId)
+        public Task<List<CafeChain.Models.Locations.Ward>> GetWardsAsync(int provinceId)
         {
-            return _context.Districts.Where(d => d.ProvinceId == provinceId).OrderBy(d => d.Name).ToListAsync();
-        }
-
-        public Task<List<CafeChain.Models.Locations.Ward>> GetWardsAsync(int districtId)
-        {
-            return _context.Wards.Where(w => w.DistrictId == districtId).OrderBy(w => w.Name).ToListAsync();
+            return _context.Wards.Where(w => w.ProvinceId == provinceId && w.IsActive)
+                .OrderBy(w => w.Name).ToListAsync();
         }
 
         public async Task<bool> ScopeCoversStoreAsync(int scopeTypeId, int scopeRefId, int storeId)
         {
             var store = await _context.Stores.AsNoTracking()
                 .Include(x => x.Province)
-                .Include(x => x.District).ThenInclude(x => x!.Province)
-                .Include(x => x.Ward).ThenInclude(x => x!.District).ThenInclude(x => x!.Province)
+                .Include(x => x.Ward).ThenInclude(x => x!.Province)
                 .FirstOrDefaultAsync(x => x.StoreId == storeId && x.Active);
             if (store == null) return false;
 
-            var districtId = store.DistrictId ?? store.Ward?.DistrictId;
-            var provinceId = store.ProvinceId ?? store.District?.ProvinceId ?? store.Ward?.District?.ProvinceId;
-            var countryId = store.Province?.CountryId
-                ?? store.District?.Province?.CountryId
-                ?? store.Ward?.District?.Province?.CountryId;
+            var provinceId = store.ProvinceId ?? store.Ward?.ProvinceId;
+            var countryId = store.Province?.CountryId ?? store.Ward?.Province?.CountryId;
 
             return scopeTypeId switch
             {
                 1 => countryId == scopeRefId,
                 2 => provinceId == scopeRefId,
-                3 => districtId == scopeRefId,
                 4 => store.WardId == scopeRefId,
                 5 => store.StoreId == scopeRefId,
                 _ => false
             };
         }
 
-        public async Task<bool> IsAddressHierarchyValidAsync(int provinceId, int districtId, int wardId)
+        public Task<bool> IsAddressHierarchyValidAsync(int provinceId, int wardId)
         {
-            var districtValid = await _context.Districts
-                .AnyAsync(d => d.DistrictId == districtId && d.ProvinceId == provinceId);
-            return districtValid && await _context.Wards
-                .AnyAsync(w => w.WardId == wardId && w.DistrictId == districtId);
+            return _context.Wards.AnyAsync(w => w.WardId == wardId
+                && w.ProvinceId == provinceId && w.IsActive && w.Province.IsActive);
         }
 
         // ==================== WRITE (TRANSACTION) ====================

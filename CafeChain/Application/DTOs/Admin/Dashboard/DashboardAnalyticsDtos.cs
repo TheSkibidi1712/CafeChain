@@ -36,7 +36,7 @@ public class DashboardFilterDto
     [Required] public DateTime ToDate { get; set; } = DateTime.Today;
     public int? StoreId { get; set; }
     public int? ProvinceId { get; set; }
-    public int? DistrictId { get; set; }
+    public int? WardId { get; set; }
     [RegularExpression("^(Hour|Day|Week|Month)$")]
     public string Granularity { get; set; } = "Day";
     [Range(1, 100)] public int Top { get; set; } = 10;
@@ -76,7 +76,7 @@ public sealed class DashboardAnalysisContextDto
     public IReadOnlyList<DashboardStoreOptionDto> Stores { get; set; } = [];
     public string FilterFingerprint { get; set; } = string.Empty;
     public int? ProvinceId { get; set; }
-    public int? DistrictId { get; set; }
+    public int? WardId { get; set; }
     public string Granularity { get; set; } = "Day";
     public int Top { get; set; } = 10;
     public IReadOnlyList<DashboardWidgetMetadataDto> Widgets { get; set; } = [];
@@ -125,8 +125,8 @@ public sealed class DashboardStoreOptionDto
     public string StoreName { get; set; } = string.Empty;
     public int? ProvinceId { get; set; }
     public string ProvinceName { get; set; } = string.Empty;
-    public int? DistrictId { get; set; }
-    public string DistrictName { get; set; } = string.Empty;
+    public int? WardId { get; set; }
+    public string WardName { get; set; } = string.Empty;
 }
 
 public sealed class DashboardPageDto
@@ -148,7 +148,7 @@ public sealed class DashboardScopeDto
     public string Label { get; set; } = "Không có phạm vi";
     public IReadOnlyList<int> AllowedStoreIds { get; set; } = [];
     public bool CanSelectProvince { get; set; }
-    public bool CanSelectDistrict { get; set; }
+    public bool CanSelectWard { get; set; }
     public bool CanSelectStore { get; set; }
     public bool CanAggregateMultipleStores { get; set; }
 }

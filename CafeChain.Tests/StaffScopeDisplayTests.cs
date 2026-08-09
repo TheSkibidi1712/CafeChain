@@ -18,8 +18,7 @@ public sealed class StaffScopeDisplayTests
     [Theory]
     [InlineData("COUNTRY", "Toàn chuỗi")]
     [InlineData("PROVINCE", "Tỉnh/Thành phố")]
-    [InlineData("DISTRICT", "Quận/Huyện")]
-    [InlineData("WARD", "Phường/Xã")]
+    [InlineData("WARD", "Xã/Phường/Đặc khu")]
     [InlineData("STORE", "Cửa hàng")]
     public void Scope_codes_have_stable_vietnamese_labels(string code, string expected)
     {
@@ -38,7 +37,6 @@ public sealed class StaffScopeDisplayTests
             Name = "Cửa hàng được cấp",
             Active = true,
             ProvinceId = 2,
-            DistrictId = 20,
             WardId = 200
         };
         scopeResolver.Setup(x => x.GetAllowedStoresAsync(9))

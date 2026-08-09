@@ -235,31 +235,13 @@ namespace CafeChain.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> GetDistricts(
-            int provinceId)
-        {
-            var districts =
-                await _customerService
-                    .GetDistrictsByProvinceAsync(
-                        provinceId);
-
-            return Json(
-                districts.Select(x => new
-                {
-                    code = x.DistrictId,
-                    name = x.Name
-                }));
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
         public async Task<IActionResult> GetWards(
-            int districtId)
+            int provinceId)
         {
             var wards =
                 await _customerService
-                    .GetWardsByDistrictAsync(
-                        districtId);
+                    .GetWardsByProvinceAsync(
+                        provinceId);
 
             return Json(
                 wards.Select(x => new

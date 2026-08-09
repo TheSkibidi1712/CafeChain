@@ -147,7 +147,7 @@ public sealed class StaffAvatarCloudinaryTests
         var repository = new Mock<IAdminStaffRepository>();
         repository.Setup(x => x.ScopeCoversStoreAsync(5, 1, 1)).ReturnsAsync(true);
         repository.Setup(x => x.EmailExistsAsync(It.IsAny<string>(), null)).ReturnsAsync(false);
-        repository.Setup(x => x.IsAddressHierarchyValidAsync(1, 2, 3)).ReturnsAsync(true);
+        repository.Setup(x => x.IsAddressHierarchyValidAsync(1, 3)).ReturnsAsync(true);
         return repository;
     }
 
@@ -172,7 +172,6 @@ public sealed class StaffAvatarCloudinaryTests
         ScopeTypeId = 5,
         ScopeRefId = 1,
         ProvinceId = 1,
-        DistrictId = 2,
         WardId = 3,
         Address = "123 Đường Test"
     };

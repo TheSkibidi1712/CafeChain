@@ -13,7 +13,7 @@ public sealed class AdminStoreRepository : IAdminStoreRepository
 
     public Task<List<Store>> GetAllAsync() => _context.Stores
         .AsNoTracking()
-        .Include(x => x.Province).Include(x => x.District).Include(x => x.Ward)
+        .Include(x => x.Province).Include(x => x.Ward)
         .Include(x => x.Staffs).ThenInclude(x => x.Account).ThenInclude(x => x.AccountRoles)
         .ThenInclude(x => x.Role)
         .OrderByDescending(x => x.CreatedAt)
@@ -23,12 +23,11 @@ public sealed class AdminStoreRepository : IAdminStoreRepository
         _context.Stores.FirstOrDefaultAsync(x => x.StoreId == storeId);
 
     public Task<List<Province>> GetProvincesAsync() =>
-        _context.Provinces.AsNoTracking().OrderBy(x => x.Name).ToListAsync();
+        _context.Provinces.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.Name).ToListAsync();
 
-    public Task<bool> IsLocationHierarchyValidAsync(int provinceId, int districtId, int wardId) =>
+    public Task<bool> IsLocationHierarchyValidAsync(int provinceId, int wardId) =>
         _context.Wards.AnyAsync(w => w.WardId == wardId
-            && w.DistrictId == districtId
-            && w.District.ProvinceId == provinceId);
+            && w.ProvinceId == provinceId && w.IsActive && w.Province.IsActive);
 
     public Task AddAsync(Store store) => _context.Stores.AddAsync(store).AsTask();
 

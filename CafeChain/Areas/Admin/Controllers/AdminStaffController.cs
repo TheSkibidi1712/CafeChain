@@ -329,15 +329,9 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetDistricts(int provinceId)
+        public async Task<IActionResult> GetWards(int provinceId)
         {
-            return Json(await _staffService.GetDistrictsAsync(provinceId));
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetWards(int districtId)
-        {
-            return Json(await _staffService.GetWardsAsync(districtId));
+            return Json(await _staffService.GetWardsAsync(provinceId));
         }
     }
 

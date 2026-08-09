@@ -63,9 +63,8 @@
                                     </div>
                                     <div class="section-title mt-4"><i class="fas fa-map-marker-alt me-1"></i> Địa chỉ thường trú</div>
                                     <div class="row g-3">
-                                        <div class="col-md-4"><label asp-for="ProvinceId" class="form-label">Tỉnh/Thành phố <span class="text-danger">*</span></label><select asp-for="ProvinceId" id="createProvince" class="form-select"><option value="">-- Chọn Tỉnh/Thành phố --</option>@foreach (var p in provinces) { <option value="@p.ProvinceId">@p.Name</option> }</select><span asp-validation-for="ProvinceId" class="text-danger small"></span></div>
-                                        <div class="col-md-4"><label asp-for="DistrictId" class="form-label">Quận/Huyện <span class="text-danger">*</span></label><select asp-for="DistrictId" id="createDistrict" class="form-select" disabled><option value="">-- Chọn Quận/Huyện --</option></select><span asp-validation-for="DistrictId" class="text-danger small"></span></div>
-                                        <div class="col-md-4"><label asp-for="WardId" class="form-label">Phường/Xã <span class="text-danger">*</span></label><select asp-for="WardId" id="createWard" class="form-select" disabled><option value="">-- Chọn Phường/Xã --</option></select><span asp-validation-for="WardId" class="text-danger small"></span></div>
+                                        <div class="col-md-6"><label asp-for="ProvinceId" class="form-label">Tỉnh/Thành phố <span class="text-danger">*</span></label><select asp-for="ProvinceId" id="createProvince" class="form-select"><option value="">-- Chọn Tỉnh/Thành phố --</option>@foreach (var p in provinces) { <option value="@p.ProvinceId">@p.Name</option> }</select><span asp-validation-for="ProvinceId" class="text-danger small"></span></div>
+                                        <div class="col-md-6"><label asp-for="WardId" class="form-label">Xã/Phường/Đặc khu <span class="text-danger">*</span></label><select asp-for="WardId" id="createWard" class="form-select" disabled><option value="">-- Chọn Xã/Phường/Đặc khu --</option></select><span asp-validation-for="WardId" class="text-danger small"></span></div>
                                         <div class="col-12"><label asp-for="Address" class="form-label">Địa chỉ chi tiết <span class="text-danger">*</span></label><input asp-for="Address" class="form-control" maxlength="500" placeholder="Số nhà, tên đường..." /><span asp-validation-for="Address" class="text-danger small"></span></div>
                                     </div>
                                 </div>
@@ -82,7 +81,6 @@
                             </div>
                             <div class="row g-3 mt-1 d-none" id="createScopeCascade">
                                 <div class="col-md-6 d-none" id="createScopeProvinceWrap"><label class="form-label" for="createScopeProvince">Tỉnh/Thành phố của phạm vi</label><select id="createScopeProvince" class="form-select" disabled><option value="">-- Chọn Tỉnh/Thành phố --</option></select></div>
-                                <div class="col-md-6 d-none" id="createScopeDistrictWrap"><label class="form-label" for="createScopeDistrict">Quận/Huyện của phạm vi</label><select id="createScopeDistrict" class="form-select" disabled><option value="">-- Chọn Quận/Huyện --</option></select></div>
                             </div>
                             <div class="row g-3 mt-2">
                                 <div class="col-md-6">
@@ -98,7 +96,7 @@
                                             <option value="">-- Chọn phạm vi trước --</option>
                                             @foreach (var s in stores)
                                             {
-                                                <option value="@s.StoreId" data-province-id="@s.ProvinceId" data-district-id="@s.DistrictId" data-ward-id="@s.WardId">@s.Name</option>
+                                                <option value="@s.StoreId" data-province-id="@s.ProvinceId" data-ward-id="@s.WardId">@s.Name</option>
                                             }
                                         </select>
                                     }
@@ -130,26 +128,21 @@
     const form = document.getElementById('createStaffForm');
     if (!form) return;
     const scopeEndpoint = '@Url.Action("GetScopeReferences", "AdminStaff", new { area = "Admin" })';
-    const districtsEndpoint = '@Url.Action("GetDistricts", "AdminStaff", new { area = "Admin" })';
     const wardsEndpoint = '@Url.Action("GetWards", "AdminStaff", new { area = "Admin" })';
     const province = document.getElementById('createProvince');
-    const district = document.getElementById('createDistrict');
     const ward = document.getElementById('createWard');
     const role = document.getElementById('createRole');
     const scopeType = document.getElementById('createScopeType');
     const scopeRef = document.getElementById('createScopeRef');
     const scopeCascade = document.getElementById('createScopeCascade');
     const scopeProvinceWrap = document.getElementById('createScopeProvinceWrap');
-    const scopeDistrictWrap = document.getElementById('createScopeDistrictWrap');
     const scopeProvince = document.getElementById('createScopeProvince');
-    const scopeDistrict = document.getElementById('createScopeDistrict');
     const primaryStore = document.getElementById('createStore');
     const avatarInput = document.getElementById('createAvatarInput');
     const avatarPreview = document.getElementById('createAvatarPreview');
     const avatarPlaceholder = document.getElementById('createAvatarPlaceholder');
     const removeAvatar = document.getElementById('removeCreateAvatar');
     const submitButton = document.getElementById('createStaffSubmit');
-    let districtRequestVersion = 0;
     let wardRequestVersion = 0;
 
     const restoreCreateSubmit = () => {
@@ -175,7 +168,6 @@
             value: x.value,
             text: x.textContent,
             provinceId: x.dataset.provinceId || '',
-            districtId: x.dataset.districtId || '',
             wardId: x.dataset.wardId || ''
         })) : [];
 
@@ -221,7 +213,6 @@
         const matches = !type || !reference ? [] : storeCatalog.filter(store => {
             if (type === '1') return true;
             if (type === '2') return store.provinceId === reference;
-            if (type === '3') return store.districtId === reference;
             if (type === '4') return store.wardId === reference;
             if (type === '5') return store.value === reference;
             return false;
@@ -239,7 +230,7 @@
         resetSelect(primaryStore, '-- Chọn phạm vi trước --');
         scopeCascade.classList.add('d-none');
         if (!mode) return;
-        const allowedIds = mode === 'country' ? ['1'] : mode === 'store' ? ['5'] : ['2', '3', '4', '5'];
+        const allowedIds = mode === 'country' ? ['1'] : mode === 'store' ? ['5'] : ['2', '4', '5'];
         scopeTypeCatalog.filter(x => allowedIds.includes(x.value)).forEach(x => {
             const option = new Option(x.text, x.value);
             option.dataset.code = x.code;
@@ -253,40 +244,25 @@
     };
 
     province?.addEventListener('change', async () => {
-        const requestVersion = ++districtRequestVersion;
-        ++wardRequestVersion;
-        resetSelect(district, '-- Chọn Quận/Huyện --'); resetSelect(ward, '-- Chọn Phường/Xã --');
-        if (province.value) await loadLocationOptions(
-            district,
-            districtsEndpoint,
-            'provinceId',
-            province.value,
-            '-- Chọn Quận/Huyện --',
-            () => requestVersion === districtRequestVersion && province.value !== '');
-    });
-    district?.addEventListener('change', async () => {
-        const parentDistrictId = district.value;
         const requestVersion = ++wardRequestVersion;
-        resetSelect(ward, '-- Chọn Phường/Xã --');
-        if (parentDistrictId) await loadLocationOptions(
+        resetSelect(ward, '-- Chọn Xã/Phường/Đặc khu --');
+        if (province.value) await loadLocationOptions(
             ward,
             wardsEndpoint,
-            'districtId',
-            parentDistrictId,
-            '-- Chọn Phường/Xã --',
-            () => requestVersion === wardRequestVersion && district.value === parentDistrictId);
+            'provinceId',
+            province.value,
+            '-- Chọn Xã/Phường/Đặc khu --',
+            () => requestVersion === wardRequestVersion && province.value !== '');
     });
     const handleScopeTypeChange = async () => {
         resetSelect(scopeRef, '-- Chọn phạm vi --');
         resetSelect(primaryStore, '-- Chọn phạm vi trước --');
-        scopeCascade.classList.add('d-none'); scopeProvinceWrap.classList.add('d-none'); scopeDistrictWrap.classList.add('d-none');
-        resetSelect(scopeDistrict, '-- Chọn Quận/Huyện --');
+        scopeCascade.classList.add('d-none'); scopeProvinceWrap.classList.add('d-none');
         resetSelect(scopeProvince, '-- Chọn Tỉnh/Thành phố --');
         if (!scopeType.value) return;
-        if (scopeType.value === '3' || scopeType.value === '4') {
+        if (scopeType.value === '4') {
             scopeCascade.classList.remove('d-none'); scopeProvinceWrap.classList.remove('d-none');
-            if (scopeType.value === '4') scopeDistrictWrap.classList.remove('d-none');
-            resetSelect(scopeRef, scopeType.value === '3' ? '-- Chọn Tỉnh trước --' : '-- Chọn Quận/Huyện trước --');
+            resetSelect(scopeRef, '-- Chọn Tỉnh/Thành phố trước --');
             await loadScopeOptions(scopeProvince, 2, null, '-- Chọn Tỉnh/Thành phố --');
             return;
         }
@@ -300,14 +276,9 @@
     scopeType?.addEventListener('change', handleScopeTypeChange);
     scopeRef?.addEventListener('change', filterPrimaryStores);
     scopeProvince?.addEventListener('change', async () => {
-        resetSelect(scopeDistrict, '-- Chọn Quận/Huyện --'); resetSelect(scopeRef, '-- Chọn phạm vi --'); resetSelect(primaryStore, '-- Chọn phạm vi trước --');
+        resetSelect(scopeRef, '-- Chọn phạm vi --'); resetSelect(primaryStore, '-- Chọn phạm vi trước --');
         if (!scopeProvince.value) return;
-        if (scopeType.value === '3') await loadScopeOptions(scopeRef, 3, scopeProvince.value, '-- Chọn Quận/Huyện --');
-        if (scopeType.value === '4') await loadScopeOptions(scopeDistrict, 3, scopeProvince.value, '-- Chọn Quận/Huyện --');
-    });
-    scopeDistrict?.addEventListener('change', async () => {
-        resetSelect(scopeRef, '-- Chọn Phường/Xã --'); resetSelect(primaryStore, '-- Chọn phạm vi trước --');
-        if (scopeType.value === '4' && scopeDistrict.value) await loadScopeOptions(scopeRef, 4, scopeDistrict.value, '-- Chọn Phường/Xã --');
+        if (scopeType.value === '4') await loadScopeOptions(scopeRef, 4, scopeProvince.value, '-- Chọn Xã/Phường/Đặc khu --');
     });
 
     const openAvatarPicker = () => avatarInput?.click();

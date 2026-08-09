@@ -5,18 +5,20 @@ namespace CafeChain.Models.Locations
 {
     /// <summary>
     /// Cấp 3 trong hệ thống địa chỉ 3 cấp: Phường/Xã/Thị trấn.
-    /// Liên kết tới District thay vì Province (cấu trúc cũ 2 cấp).
+    /// Đơn vị hành chính cấp xã, liên kết trực tiếp với tỉnh/thành phố.
     /// </summary>
     public class Ward
     {
         public int WardId { get; set; }
+        public string Code { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
 
-        // 🔥 ĐỔI: FK trỏ tới District thay vì Province
-        public int? DistrictId { get; set; }
+        // Mô hình hành chính hai cấp: xã/phường/đặc khu thuộc trực tiếp tỉnh/thành phố.
+        public int ProvinceId { get; set; }
 
         // Navigation Properties
-        public virtual District District { get; set; } = null!;
+        public virtual Province Province { get; set; } = null!;
         public virtual ICollection<Store> Stores { get; set; } = new List<Store>();
         public virtual ICollection<CustomerAddress> CustomerAddresses { get; set; } = new List<CustomerAddress>();
     }

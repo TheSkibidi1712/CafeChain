@@ -167,7 +167,7 @@ public sealed class DashboardService : IDashboardService
             ToDate = request.ToDate,
             StoreId = request.StoreId,
             ProvinceId = request.ProvinceId,
-            DistrictId = request.DistrictId,
+            WardId = request.WardId,
             Granularity = "Day",
             Top = 10
         };
@@ -196,9 +196,9 @@ public sealed class DashboardService : IDashboardService
                 Revenue = trend.Sum(x => x.NetSales),
                 TodayOrders = ToInt(trend.Where(x => x.BucketDate.Date == today).Sum(x => x.TotalOrders))
             },
-            Stores = scope.StoreOptions.Select(x => new StoreDropdownDto { StoreId=x.StoreId, StoreName=x.StoreName, ProvinceId=x.ProvinceId, ProvinceName=x.ProvinceName, DistrictId=x.DistrictId, DistrictName=x.DistrictName }).ToList(),
+            Stores = scope.StoreOptions.Select(x => new StoreDropdownDto { StoreId=x.StoreId, StoreName=x.StoreName, ProvinceId=x.ProvinceId, ProvinceName=x.ProvinceName, WardId=x.WardId, WardName=x.WardName }).ToList(),
             Provinces = scope.StoreOptions.Where(x => x.ProvinceId.HasValue).Select(x => x.ProvinceId!.Value).Distinct().ToList(),
-            Districts = scope.StoreOptions.Where(x => x.DistrictId.HasValue).Select(x => x.DistrictId!.Value).Distinct().ToList()
+            Wards = scope.StoreOptions.Where(x => x.WardId.HasValue).Select(x => x.WardId!.Value).Distinct().ToList()
         };
     }
 
@@ -398,7 +398,7 @@ public sealed class DashboardService : IDashboardService
         if (normalized.StoreIdsOverride is { Count: > 0 })
             selected = selected.Where(x => normalized.StoreIdsOverride.Contains(x.StoreId));
         if (normalized.ProvinceId.HasValue) selected = selected.Where(x => x.ProvinceId == normalized.ProvinceId);
-        if (normalized.DistrictId.HasValue) selected = selected.Where(x => x.DistrictId == normalized.DistrictId);
+        if (normalized.WardId.HasValue) selected = selected.Where(x => x.WardId == normalized.WardId);
         if (normalized.StoreId.HasValue)
         {
             if (!selected.Any(x => x.StoreId == normalized.StoreId.Value))
@@ -491,7 +491,7 @@ public sealed class DashboardService : IDashboardService
             ToDate = filter.ToDate.Date,
             StoreId = filter.StoreId,
             ProvinceId = filter.ProvinceId,
-            DistrictId = filter.DistrictId,
+            WardId = filter.WardId,
             Granularity = NormalizeGranularity(filter.Granularity, filter.FromDate, filter.ToDate),
             Top = Math.Clamp(filter.Top, 1, 100),
             PeriodStartOverride = filter.PeriodStartOverride,
@@ -503,7 +503,7 @@ public sealed class DashboardService : IDashboardService
     private static DashboardFilterDto CopyFilter(DashboardFilterDto filter) => new()
     {
         FromDate=filter.FromDate,ToDate=filter.ToDate,StoreId=filter.StoreId,
-        ProvinceId=filter.ProvinceId,DistrictId=filter.DistrictId,
+        ProvinceId=filter.ProvinceId,WardId=filter.WardId,
         Granularity=filter.Granularity,Top=filter.Top,
         PeriodStartOverride=filter.PeriodStartOverride,
         PeriodEndOverride=filter.PeriodEndOverride,
@@ -544,7 +544,7 @@ public sealed class DashboardService : IDashboardService
             Stores = storeOptions.Where(store => storeIds.Contains(store.StoreId)).ToList(),
             FilterFingerprint = CreateFilterFingerprint(filter, storeIds),
             ProvinceId = filter.ProvinceId,
-            DistrictId = filter.DistrictId,
+            WardId = filter.WardId,
             Granularity = filter.Granularity,
             Top = filter.Top,
             Widgets = DashboardWidgetCatalog.Metadata()

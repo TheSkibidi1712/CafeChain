@@ -86,24 +86,17 @@
             </div>
             
             <div class="row mb-3">
-                <div class="col-12 col-md-4 mb-2 mb-md-0">
+                <div class="col-12 col-md-6 mb-2 mb-md-0">
                     <label asp-for="ProvinceId" class="fw-bold">Tỉnh/Thành phố <span class="text-danger">*</span></label>
                     <select asp-for="ProvinceId" id="ProvinceId" class="form-select" asp-items="ViewBag.Provinces" required>
                         <option value="">Chọn Tỉnh/TP</option>
                     </select>
                     <span asp-validation-for="ProvinceId" class="text-danger"></span>
                 </div>
-                <div class="col-12 col-md-4 mb-2 mb-md-0">
-                    <label asp-for="DistrictId" class="fw-bold">Quận/Huyện <span class="text-danger">*</span></label>
-                    <select asp-for="DistrictId" id="DistrictId" class="form-select" required disabled>
-                        <option value="">Chọn Quận/Huyện</option>
-                    </select>
-                    <span asp-validation-for="DistrictId" class="text-danger"></span>
-                </div>
-                <div class="col-12 col-md-4">
-                    <label asp-for="WardId" class="fw-bold">Phường/Xã <span class="text-danger">*</span></label>
+                <div class="col-12 col-md-6">
+                    <label asp-for="WardId" class="fw-bold">Xã/Phường/Đặc khu <span class="text-danger">*</span></label>
                     <select asp-for="WardId" id="WardId" class="form-select" required disabled>
-                        <option value="">Chọn Phường/Xã</option>
+                        <option value="">Chọn Xã/Phường/Đặc khu</option>
                     </select>
                     <span asp-validation-for="WardId" class="text-danger"></span>
                 </div>
@@ -197,42 +190,18 @@
             // ===============================================
             // 2. AJAX CASCADING DROPDOWNS (Promise-based)
             // ===============================================
-            function apiLoadDistricts(provinceId) {
+            function apiLoadWards(provinceId) {
                 var dfd = $.Deferred();
-                var $district = $('#DistrictId');
                 var $ward = $('#WardId');
                 
-                $district.empty().append('<option value="">Chọn Quận/Huyện</option>').prop('disabled', true);
-                $ward.empty().append('<option value="">Chọn Phường/Xã</option>').prop('disabled', true);
+                $ward.empty().append('<option value="">-- Chọn Phường/Xã --</option>').prop('disabled', true);
 
                 if (!provinceId) {
                     dfd.resolve();
                     return dfd.promise();
                 }
 
-                $.get('/Customer/GetDistricts', { provinceId: provinceId }, function(data) {
-                    $.each(data, function(index, item) {
-                        $district.append($('<option/>', { value: item.code, text: item.name }));
-                    });
-                    $district.prop('disabled', false);
-                    dfd.resolve();
-                }).fail(function() { dfd.reject(); });
-                
-                return dfd.promise();
-            }
-
-            function apiLoadWards(districtId) {
-                var dfd = $.Deferred();
-                var $ward = $('#WardId');
-                
-                $ward.empty().append('<option value="">-- Chọn Phường/Xã --</option>').prop('disabled', true);
-
-                if (!districtId) {
-                    dfd.resolve();
-                    return dfd.promise();
-                }
-
-                $.get('/Customer/GetWards', { districtId: districtId }, function(data) {
+                $.get('/Customer/GetWards', { provinceId: provinceId }, function(data) {
                     $.each(data, function(index, item) {
                         $ward.append($('<option/>', { value: item.code, text: item.name }));
                     });
@@ -247,14 +216,7 @@
             $('#ProvinceId').change(function() {
                 var pid = $(this).val();
                 if (pid && !window._isMapAutoLoading) {
-                    apiLoadDistricts(pid);
-                }
-            });
-
-            $('#DistrictId').change(function() {
-                var did = $(this).val();
-                if (did && !window._isMapAutoLoading) {
-                    apiLoadWards(did);
+                    apiLoadWards(pid);
                 }
             });
 
@@ -381,30 +343,21 @@
                             $('#Address').val(shortAddress).removeClass('text-info');
 
                             // 2. Phân tích ngữ cảnh địa lý để Auto-dropdown
-                            var province = null, district = null, ward = null;
+                            var province = null, ward = null;
                             if (feature.context) {
                                 feature.context.forEach(ctx => {
                                     if (ctx.id.startsWith('region')) province = ctx.text;
-                                    if (ctx.id.startsWith('district') || ctx.id.startsWith('place')) district = ctx.text;
-                                    if (ctx.id.startsWith('locality') || ctx.id.startsWith('neighborhood')) ward = ctx.text;
+                                    if (ctx.id.startsWith('place') || ctx.id.startsWith('locality') || ctx.id.startsWith('neighborhood')) ward = ward || ctx.text;
                                 });
                             }
 
-                            // 3. Chuỗi Promise: Tỉnh -> (Tải District) -> Chọn District -> (Tải Phường) -> Chọn Phường
+                            // Địa giới hai cấp: tỉnh/thành phố -> xã/phường/đặc khu.
                             var pIdSelected = fuzzySelect($('#ProvinceId'), province);
                             if (pIdSelected) {
-                                apiLoadDistricts(pIdSelected).then(function() {
-                                    var dIdSelected = fuzzySelect($('#DistrictId'), district);
-                                    if (dIdSelected) {
-                                        apiLoadWards(dIdSelected).then(function() {
-                                            if (!fuzzySelect($('#WardId'), ward))
-                                                alert('Đã lấy tọa độ nhưng chưa đối chiếu được Phường/Xã. Vui lòng chọn thủ công.');
-                                            window._isMapAutoLoading = false;
-                                        });
-                                    } else {
-                                        alert('Đã lấy tọa độ nhưng chưa đối chiếu được Quận/Huyện. Vui lòng chọn thủ công.');
-                                        window._isMapAutoLoading = false;
-                                    }
+                                apiLoadWards(pIdSelected).then(function() {
+                                    if (!fuzzySelect($('#WardId'), ward))
+                                        alert('Đã lấy tọa độ nhưng chưa đối chiếu được Xã/Phường/Đặc khu. Vui lòng chọn thủ công.');
+                                    window._isMapAutoLoading = false;
                                 });
                             } else {
                                 alert('Đã lấy tọa độ nhưng chưa đối chiếu được Tỉnh/Thành phố. Vui lòng chọn thủ công.');
@@ -464,16 +417,14 @@
             $('#btnGeocode').click(function() {
                 var detail = $('#Address').val().trim() || '';
                 var wardName = $('#WardId option:selected').text();
-                var districtName = $('#DistrictId option:selected').text();
                 var provinceName = $('#ProvinceId option:selected').text();
                 
                 // Loại bỏ placeholder text của Select Option
                 if (wardName.includes('--')) wardName = '';
-                if (districtName.includes('--')) districtName = '';
                 if (provinceName.includes('--')) provinceName = '';
 
                 // Hợp nhất chuỗi Query String
-                var fullAddress = [detail, wardName, districtName, provinceName].filter(Boolean).join(', ');
+                var fullAddress = [detail, wardName, provinceName, 'Việt Nam'].filter(Boolean).join(', ');
 
                 if (!provinceName) {
                     alert('Vui lòng nhập tối thiểu Tỉnh/Thành phố trước khi tìm kiếm tự động!');

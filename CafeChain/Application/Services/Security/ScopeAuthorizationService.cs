@@ -33,14 +33,12 @@ namespace CafeChain.Application.Services.Security
             }
 
             var provinceIds = GetScopeRefs(scopes, ScopeLevel.Province);
-            var districtIds = GetScopeRefs(scopes, ScopeLevel.District);
             var wardIds = GetScopeRefs(scopes, ScopeLevel.Ward);
             var storeIds = GetScopeRefs(scopes, ScopeLevel.Store);
 
             return await query
                 .Where(x =>
                     (x.ProvinceId.HasValue && provinceIds.Contains(x.ProvinceId.Value)) ||
-                    (x.DistrictId.HasValue && districtIds.Contains(x.DistrictId.Value)) ||
                     (x.WardId.HasValue && wardIds.Contains(x.WardId.Value)) ||
                     storeIds.Contains(x.StoreId))
                 .OrderBy(x => x.Name)
@@ -66,7 +64,6 @@ namespace CafeChain.Application.Services.Security
                 {
                     x.StoreId,
                     x.ProvinceId,
-                    x.DistrictId,
                     x.WardId
                 })
                 .FirstOrDefaultAsync();
@@ -90,7 +87,6 @@ namespace CafeChain.Application.Services.Security
             return scopes.Any(scope => scope.ScopeTypeId switch
             {
                 (int)ScopeLevel.Province => store.ProvinceId == scope.ScopeRefId,
-                (int)ScopeLevel.District => store.DistrictId == scope.ScopeRefId,
                 (int)ScopeLevel.Ward => store.WardId == scope.ScopeRefId,
                 (int)ScopeLevel.Store => store.StoreId == scope.ScopeRefId,
                 _ => false

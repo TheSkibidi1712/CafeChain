@@ -27,8 +27,6 @@ public class StaffCreateVM
     public List<string> Phones { get; set; } = new();
     [Required(ErrorMessage = "Vui lòng chọn Tỉnh/Thành phố")]
     public int? ProvinceId { get; set; }
-    [Required(ErrorMessage = "Vui lòng chọn Quận/Huyện")]
-    public int? DistrictId { get; set; }
     [Required(ErrorMessage = "Vui lòng chọn Phường/Xã")]
     public int? WardId { get; set; }
     [Required(ErrorMessage = "Vui lòng nhập địa chỉ chi tiết"), MaxLength(500)]

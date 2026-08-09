@@ -193,8 +193,8 @@ public sealed class DashboardAnalyticsServiceTests
         repository.Setup(x => x.GetStoreOptionsAsync(
                 It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([
-                new DashboardStoreOptionDto { StoreId = 20, StoreName = "Store 20", ProvinceId = 100, DistrictId = 200 },
-                new DashboardStoreOptionDto { StoreId = 10, StoreName = "Store 10", ProvinceId = 100, DistrictId = 200 }
+                new DashboardStoreOptionDto { StoreId = 20, StoreName = "Store 20", ProvinceId = 100, WardId = 200 },
+                new DashboardStoreOptionDto { StoreId = 10, StoreName = "Store 10", ProvinceId = 100, WardId = 200 }
             ]);
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.GetAllowedStoresAsync(7)).ReturnsAsync([

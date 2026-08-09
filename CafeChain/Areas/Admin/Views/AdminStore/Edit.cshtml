@@ -86,20 +86,14 @@
             </div>
             
             <div class="row mb-3">
-                <div class="col-4">
+                <div class="col-6">
                     <label asp-for="ProvinceId">Tỉnh/TP</label>
                     <select asp-for="ProvinceId" id="ProvinceId" class="form-control" asp-items="ViewBag.Provinces" required>
                         <option value="">-- Tỉnh/TP --</option>
                     </select>
                 </div>
-                <div class="col-4">
-                    <label asp-for="DistrictId">Quận/Huyện</label>
-                    <select asp-for="DistrictId" id="DistrictId" class="form-control" required>
-                        <option value="">-- Quận/Huyện --</option>
-                    </select>
-                </div>
-                <div class="col-4">
-                    <label asp-for="WardId">Phường/Xã</label>
+                <div class="col-6">
+                    <label asp-for="WardId">Xã/Phường/Đặc khu</label>
                     <select asp-for="WardId" id="WardId" class="form-control" required>
                         <option value="">-- Phường/Xã --</option>
                     </select>
@@ -161,7 +155,6 @@
 
 <!-- Truyền sẵn Model values vào JS để load default dropdowns -->
 <input type="hidden" id="SelectedProvinceId" value="@Model.ProvinceId" />
-<input type="hidden" id="SelectedDistrictId" value="@Model.DistrictId" />
 <input type="hidden" id="SelectedWardId" value="@Model.WardId" />
 
 @section Scripts {
@@ -169,7 +162,6 @@
     <script>
         $(document).ready(function() {
             var selectedProvince = $('#SelectedProvinceId').val();
-            var selectedDistrict = $('#SelectedDistrictId').val();
             var selectedWard = $('#SelectedWardId').val();
 
             // ===============================================
@@ -207,33 +199,12 @@
             // ===============================================
             // 2. AJAX CASCADING DROPDOWNS (Promise-based)
             // ===============================================
-            function apiLoadDistricts(provinceId, distIdToSelect) {
-                var dfd = $.Deferred();
-                var $district = $('#DistrictId');
-                $district.empty().append('<option value="">-- Quận/Huyện --</option>').prop('disabled', false);
-
-                $.get('/Customer/GetDistricts', { provinceId: provinceId }, function(data) {
-                    $.each(data, function(index, item) {
-                        var option = $('<option/>', { value: item.code, text: item.name });
-                        if (distIdToSelect && item.code == distIdToSelect) option.prop('selected', true);
-                        $district.append(option);
-                    });
-                    
-                    if (distIdToSelect) {
-                        apiLoadWards(distIdToSelect, selectedWard).then(() => dfd.resolve());
-                    } else {
-                        dfd.resolve();
-                    }
-                }).fail(() => dfd.reject());
-                return dfd.promise();
-            }
-
-            function apiLoadWards(districtId, wardIdToSelect) {
+            function apiLoadWards(provinceId, wardIdToSelect) {
                 var dfd = $.Deferred();
                 var $ward = $('#WardId');
                 $ward.empty().append('<option value="">-- Phường/Xã --</option>').prop('disabled', false);
 
-                $.get('/Customer/GetWards', { districtId: districtId }, function(data) {
+                $.get('/Customer/GetWards', { provinceId: provinceId }, function(data) {
                     $.each(data, function(index, item) {
                         var option = $('<option/>', { value: item.code, text: item.name });
                         if (wardIdToSelect && item.code == wardIdToSelect) option.prop('selected', true);
@@ -246,25 +217,15 @@
 
             // Kích hoạt auto-load cho Edit (Dữ liệu ban đầu từ DB)
             if (selectedProvince) {
-                apiLoadDistricts(selectedProvince, selectedDistrict);
+                apiLoadWards(selectedProvince, selectedWard);
             }
 
             // Events cho Admin thao tác tay
             $('#ProvinceId').change(function() {
                 var pId = $(this).val();
                 if (pId && !window._isMapAutoLoading) {
-                    apiLoadDistricts(pId, null);
+                    apiLoadWards(pId, null);
                 } else if (!pId) {
-                    $('#DistrictId').empty().append('<option value="">-- Quận/Huyện --</option>').prop('disabled', true);
-                    $('#WardId').empty().append('<option value="">-- Phường/Xã --</option>').prop('disabled', true);
-                }
-            });
-
-            $('#DistrictId').change(function() {
-                var dId = $(this).val();
-                if (dId && !window._isMapAutoLoading) {
-                    apiLoadWards(dId, null);
-                } else if (!dId) {
                     $('#WardId').empty().append('<option value="">-- Phường/Xã --</option>').prop('disabled', true);
                 }
             });
@@ -397,30 +358,21 @@
                             $('#Address').val(shortAddress).removeClass('text-info');
 
                             // 2. Phân tích context
-                            var province = null, district = null, ward = null;
+                            var province = null, ward = null;
                             if (feature.context) {
                                 feature.context.forEach(ctx => {
                                     if (ctx.id.startsWith('region')) province = ctx.text;
-                                    if (ctx.id.startsWith('district') || ctx.id.startsWith('place')) district = ctx.text;
-                                    if (ctx.id.startsWith('locality') || ctx.id.startsWith('neighborhood')) ward = ctx.text;
+                                    if (ctx.id.startsWith('place') || ctx.id.startsWith('locality') || ctx.id.startsWith('neighborhood')) ward = ward || ctx.text;
                                 });
                             }
 
                             // 3. Chuỗi Promise automation
                             var pIdSelected = fuzzySelect($('#ProvinceId'), province);
                             if (pIdSelected) {
-                                apiLoadDistricts(pIdSelected, null).then(function() {
-                                    var dIdSelected = fuzzySelect($('#DistrictId'), district);
-                                    if (dIdSelected) {
-                                        apiLoadWards(dIdSelected, null).then(function() {
-                                            if (!fuzzySelect($('#WardId'), ward))
-                                                alert('Đã lấy tọa độ nhưng chưa đối chiếu được Phường/Xã. Vui lòng chọn thủ công.');
-                                            window._isMapAutoLoading = false;
-                                        });
-                                    } else {
-                                        alert('Đã lấy tọa độ nhưng chưa đối chiếu được Quận/Huyện. Vui lòng chọn thủ công.');
-                                        window._isMapAutoLoading = false;
-                                    }
+                                apiLoadWards(pIdSelected, null).then(function() {
+                                    if (!fuzzySelect($('#WardId'), ward))
+                                        alert('Đã lấy tọa độ nhưng chưa đối chiếu được Xã/Phường/Đặc khu. Vui lòng chọn thủ công.');
+                                    window._isMapAutoLoading = false;
                                 });
                             } else {
                                 alert('Đã lấy tọa độ nhưng chưa đối chiếu được Tỉnh/Thành phố. Vui lòng chọn thủ công.');
@@ -478,15 +430,13 @@
             $('#btnGeocode').click(function() {
                 var detail = $('#Address').val() || '';
                 var wardName = $('#WardId option:selected').text();
-                var districtName = $('#DistrictId option:selected').text();
                 var provinceName = $('#ProvinceId option:selected').text();
                 
                 if (wardName.includes('--')) wardName = '';
-                if (districtName.includes('--')) districtName = '';
                 if (provinceName.includes('--')) provinceName = '';
 
-                var fullAddress = [detail, wardName, districtName, provinceName].filter(Boolean).join(', ');
-                var fallbackAddress = [wardName, districtName, provinceName].filter(Boolean).join(', ');
+                var fullAddress = [detail, wardName, provinceName, 'Việt Nam'].filter(Boolean).join(', ');
+                var fallbackAddress = [wardName, provinceName, 'Việt Nam'].filter(Boolean).join(', ');
                 
                 if (!fallbackAddress) {
                     alert('Vui lòng nhập/chọn địa chỉ đầy đủ (Ít nhất Phường, Quận, Tỉnh) trước khi tìm kiếm!');

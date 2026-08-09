@@ -25,9 +25,7 @@ namespace CafeChain.Models.Stores
         /// <summary>FK tới Ward (Phường/Xã) — giữ nguyên liên kết cũ</summary>
         public int? WardId { get; set; }
 
-        /// <summary>FK tới District (Quận/Huyện) — Thêm mới, Nullable, tối ưu truy vấn</summary>
-        public int? DistrictId { get; set; }
-
+        /// <summary>FK trực tiếp tới đơn vị hành chính cấp xã hiện hành.</summary>
         /// <summary>FK tới Province (Tỉnh/TP) — Thêm mới, Nullable, tối ưu truy vấn</summary>
         public int? ProvinceId { get; set; }
 
@@ -43,7 +41,6 @@ namespace CafeChain.Models.Stores
 
         // ─── Navigation Properties ────────────────────────────────────────────────
         public virtual Ward? Ward { get; set; }
-        public virtual District? District { get; set; }
         public virtual Province? Province { get; set; }
 
         public virtual ICollection<Staff> Staffs { get; set; } = new List<Staff>();

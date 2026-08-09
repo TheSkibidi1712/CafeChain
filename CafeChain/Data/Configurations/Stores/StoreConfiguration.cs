@@ -43,11 +43,6 @@ namespace CafeChain.Data.Configurations.Stores
             .HasForeignKey(x => x.WardId)
             .OnDelete(DeleteBehavior.NoAction); // 🔥 FIX
 
-            entity.HasOne(x => x.District)
-                .WithMany()
-                .HasForeignKey(x => x.DistrictId)
-                .OnDelete(DeleteBehavior.NoAction); // 🔥 FIX
-
             entity.HasOne(x => x.Province)
                 .WithMany()
                 .HasForeignKey(x => x.ProvinceId)
