@@ -1,6 +1,8 @@
 ﻿using CafeChain.Application.DTOs.Admin.StoreInventories;
+using CafeChain.Application.Constants;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Staffs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -151,22 +153,42 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
                             ? x.PreparedItem.BaseUnit.UnitCode
                             : string.Empty,
 
-                    // Không phụ thuộc DocumentDate nữa. Lấy theo transaction thật sự mới nhất.
+                    // Giá và NCC phải cùng dựa trên lần nhập từ NCC đã ghi sổ gần nhất.
                     LastUnitPrice = _context.InventoryTransactions
                         .Where(t =>
                             t.StoreInventoryId == x.StoreInventoryId &&
-                            t.UnitCost.HasValue)
+                            t.UnitCost.HasValue &&
+                            ((t.Type == InventoryTransactionTypeEnum.BRANCH_RECEIPT_IN &&
+                              t.BranchReceiptLine != null &&
+                              t.BranchReceiptLine.BranchReceipt.Status == BranchReceiptStatuses.Confirmed &&
+                              (t.BranchReceiptLine.Supplier != null ||
+                               t.BranchReceiptLine.BranchReceipt.Supplier != null)) ||
+                             (t.Type == InventoryTransactionTypeEnum.IMPORT &&
+                              t.InventoryDocument != null &&
+                              t.InventoryDocument.Supplier != null)))
                         .OrderByDescending(t => t.CreatedAt)
+                        .ThenByDescending(t => t.InventoryTransactionId)
                         .Select(t => t.UnitCost)
                         .FirstOrDefault(),
 
                     LastSupplierName = _context.InventoryTransactions
                         .Where(t =>
                             t.StoreInventoryId == x.StoreInventoryId &&
-                            t.InventoryDocument != null &&
-                            t.InventoryDocument.Supplier != null)
+                            ((t.Type == InventoryTransactionTypeEnum.BRANCH_RECEIPT_IN &&
+                              t.BranchReceiptLine != null &&
+                              t.BranchReceiptLine.BranchReceipt.Status == BranchReceiptStatuses.Confirmed &&
+                              (t.BranchReceiptLine.Supplier != null ||
+                               t.BranchReceiptLine.BranchReceipt.Supplier != null)) ||
+                             (t.Type == InventoryTransactionTypeEnum.IMPORT &&
+                              t.InventoryDocument != null &&
+                              t.InventoryDocument.Supplier != null)))
                         .OrderByDescending(t => t.CreatedAt)
-                        .Select(t => t.InventoryDocument.Supplier!.Name)
+                        .ThenByDescending(t => t.InventoryTransactionId)
+                        .Select(t => t.BranchReceiptLine != null && t.BranchReceiptLine.Supplier != null
+                            ? t.BranchReceiptLine.Supplier.Name
+                            : t.BranchReceiptLine != null && t.BranchReceiptLine.BranchReceipt.Supplier != null
+                                ? t.BranchReceiptLine.BranchReceipt.Supplier.Name
+                                : t.InventoryDocument!.Supplier!.Name)
                         .FirstOrDefault(),
 
                     CostEvidenceStatus = x.IngredientId.HasValue
