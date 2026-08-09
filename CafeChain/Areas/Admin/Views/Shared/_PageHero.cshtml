@@ -1,7 +1,18 @@
 @model CafeChain.ViewModels.Admin.Shared.AdminPageHeroVM
 
 <header class="cc-page-hero">
+    <span class="cc-page-hero__accent" aria-hidden="true"></span>
     <div class="cc-page-hero__content">
+        <div class="cc-page-hero__eyebrow">@Model.Eyebrow</div>
+        <div class="cc-page-hero__title-row">
+            <span class="cc-page-hero__icon" aria-hidden="true"><i class="@Model.IconClass"></i></span>
+            <h1>@Model.Title</h1>
+            @if (!string.IsNullOrWhiteSpace(Model.StatusLabel))
+            {
+                <span class="cc-page-hero__status @Model.StatusCssClass">@Model.StatusLabel</span>
+            }
+        </div>
+        <p>@Model.Description</p>
         @if (Model.Breadcrumbs.Count > 0)
         {
             <nav class="cc-page-hero__breadcrumbs" aria-label="Điều hướng trang">
@@ -23,16 +34,6 @@
                 }
             </nav>
         }
-        <div class="cc-page-hero__eyebrow">@Model.Eyebrow</div>
-        <div class="cc-page-hero__title-row">
-            <span class="cc-page-hero__icon" aria-hidden="true"><i class="@Model.IconClass"></i></span>
-            <h1>@Model.Title</h1>
-            @if (!string.IsNullOrWhiteSpace(Model.StatusLabel))
-            {
-                <span class="cc-page-hero__status @Model.StatusCssClass">@Model.StatusLabel</span>
-            }
-        </div>
-        <p>@Model.Description</p>
     </div>
     @if (Model.Actions.Count > 0)
     {

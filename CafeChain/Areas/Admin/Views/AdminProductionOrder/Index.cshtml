@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
 <link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<main class="po-page production-bom-page">
+<main class="po-page production-bom-page bom-list-page production-run-list-page">
     <partial name="_PageHero" model="hero" />
 
     @if (ViewBag.ErrorMessage is string error)
@@ -79,9 +79,9 @@
             <h2 id="production-list-title" class="history-title">Danh sách lệnh</h2>
             <span class="text-muted small">@Model.TotalCount lệnh</span>
         </div>
-        <div class="history-card">
+        <div class="history-card production-table-panel">
             <div class="table-responsive">
-                <table class="table po-table align-middle">
+                <table class="table po-table production-data-table align-middle">
                     <thead>
                         <tr>
                             <th>LỆNH</th>
@@ -131,7 +131,7 @@
                                     </td>
                                     <td>@item.CreatedByName<div class="small text-muted">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div></td>
                                     <td class="text-end">
-                                        <a class="btn btn-sm btn-outline-primary rb-table-action" asp-action="Details" asp-route-id="@item.ProductionRunId">
+                                        <a class="btn btn-sm rb-table-action production-row-action" asp-action="Details" asp-route-id="@item.ProductionRunId">
                                             <i class="fas fa-arrow-right" aria-hidden="true"></i> Chi tiết
                                         </a>
                                     </td>
@@ -143,11 +143,17 @@
             </div>
             @if (Model.TotalPages > 1)
             {
-                <nav class="d-flex justify-content-between align-items-center p-3" aria-label="Phân trang lệnh sản xuất">
-                    <span class="small text-muted">Trang @Model.Page / @Model.TotalPages</span>
-                    <div class="d-flex gap-2">
-                        <a class="btn btn-sm btn-outline-secondary @(Model.Page <= 1 ? "disabled" : "")" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page - 1)">Trang trước</a>
-                        <a class="btn btn-sm btn-outline-secondary @(Model.Page >= Model.TotalPages ? "disabled" : "")" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page + 1)">Trang sau</a>
+                <nav class="production-pagination" aria-label="Phân trang lệnh sản xuất">
+                    <span class="production-pagination__summary">Trang @Model.Page / @Model.TotalPages</span>
+                    <div class="production-pagination__links">
+                        @if (Model.Page > 1)
+                        {
+                            <a class="production-page-link is-nav" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page - 1)"><i class="fas fa-arrow-left" aria-hidden="true"></i> Trang trước</a>
+                        }
+                        @if (Model.Page < Model.TotalPages)
+                        {
+                            <a class="production-page-link is-nav" asp-route-storeId="@selectedStoreId" asp-route-status="@selectedStatus" asp-route-page="@(Model.Page + 1)">Trang sau <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                        }
                     </div>
                 </nav>
             }

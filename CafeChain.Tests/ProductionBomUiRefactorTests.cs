@@ -28,7 +28,9 @@ public sealed class ProductionBomUiRefactorTests
         var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
 
         Assert.Contains("cc-page-hero", partial, StringComparison.Ordinal);
-        Assert.Contains("border-left: 6px solid", css, StringComparison.Ordinal);
+        Assert.Contains("cc-page-hero__accent", partial, StringComparison.Ordinal);
+        Assert.Contains("linear-gradient(180deg, var(--cc-brown-600", css, StringComparison.Ordinal);
+        Assert.Contains("var(--cc-caramel-500", css, StringComparison.Ordinal);
         Assert.Contains("cc-page-hero::before", css, StringComparison.Ordinal);
         Assert.Contains("cc-page-hero__actions", css, StringComparison.Ordinal);
     }
@@ -89,7 +91,7 @@ public sealed class ProductionBomUiRefactorTests
         var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
 
         Assert.Contains("@media (max-width: 991.98px)", css, StringComparison.Ordinal);
-        Assert.Contains("@media (max-width: 767.98px)", css, StringComparison.Ordinal);
+        Assert.Contains("@media (max-width: 768px)", css, StringComparison.Ordinal);
         Assert.Contains("grid-template-columns: 1fr", css, StringComparison.Ordinal);
         Assert.Contains("body:has(.production-bom-page) .sidebar", css, StringComparison.Ordinal);
     }
@@ -111,6 +113,58 @@ public sealed class ProductionBomUiRefactorTests
         Assert.Contains("production-section-nav", view, StringComparison.Ordinal);
         Assert.Contains("#bom-components", view, StringComparison.Ordinal);
         Assert.Contains("overflow-x: auto", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RecipeDetail_UsesReadableBusinessLayout()
+    {
+        var view = Read("CafeChain/Areas/Admin/Views/AdminRecipe/Visualize.cshtml");
+        var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
+
+        Assert.Contains("bom-detail-page", view, StringComparison.Ordinal);
+        Assert.Contains("bom-overview-grid", view, StringComparison.Ordinal);
+        Assert.Contains("bom-health-board", view, StringComparison.Ordinal);
+        Assert.Contains("bom-section-heading", view, StringComparison.Ordinal);
+        Assert.Contains(".bom-detail-page .bom-overview-grid", css, StringComparison.Ordinal);
+        Assert.Contains(".bom-detail-page .bom-health-board", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DataHealth_IsADedicatedBusinessReadableWorkspace()
+    {
+        var view = Read("CafeChain/Areas/Admin/Views/AdminRecipe/DataHealth.cshtml");
+        var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
+
+        Assert.Contains("bom-health-page", view, StringComparison.Ordinal);
+        Assert.Contains("bom-health-intro", view, StringComparison.Ordinal);
+        Assert.Contains("bom-health-list", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("reason.Code", view, StringComparison.Ordinal);
+        Assert.Contains(".bom-health-page .bom-health-list", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProductionLists_UseUnifiedTablesAndPagination()
+    {
+        var recipe = Read("CafeChain/Areas/Admin/Views/AdminRecipe/Index.cshtml");
+        var preparedItem = Read("CafeChain/Areas/Admin/Views/AdminPreparedItem/Index.cshtml");
+        var productionRun = Read("CafeChain/Areas/Admin/Views/AdminProductionOrder/Index.cshtml");
+        var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
+
+        Assert.Contains("production-data-table", recipe, StringComparison.Ordinal);
+        Assert.Contains("production-data-table", preparedItem, StringComparison.Ordinal);
+        Assert.Contains("production-data-table", productionRun, StringComparison.Ordinal);
+        Assert.Contains("production-pagination", recipe, StringComparison.Ordinal);
+        Assert.Contains("production-pagination", preparedItem, StringComparison.Ordinal);
+        Assert.Contains("production-pagination", productionRun, StringComparison.Ordinal);
+        Assert.Contains("production-row-menu", recipe, StringComparison.Ordinal);
+        Assert.Contains("production-row-menu", preparedItem, StringComparison.Ordinal);
+        Assert.Contains("<colgroup>", recipe, StringComparison.Ordinal);
+        Assert.Contains("<colgroup>", preparedItem, StringComparison.Ordinal);
+        Assert.DoesNotContain("<th scope=\"col\">Mã BTP</th>", preparedItem, StringComparison.Ordinal);
+        Assert.Contains(".production-bom-page .production-data-table", css, StringComparison.Ordinal);
+        Assert.Contains(".production-bom-page .production-pagination", css, StringComparison.Ordinal);
+        Assert.Contains(".production-bom-page .production-row-actions", css, StringComparison.Ordinal);
+        Assert.Contains("@media (max-width: 768px)", css, StringComparison.Ordinal);
     }
 
     [Fact]
