@@ -4,28 +4,28 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/StoreMenu/store-menu.css" asp-append-version="true" />
 }
 
-<main class="sm-page" id="storeMenuApp"
+<main class="sm-page ops-shell cc-warehouse-page" id="storeMenuApp"
       data-can-publish="@Model.CanPublish.ToString().ToLowerInvariant()"
       data-can-operate="@Model.CanOperate.ToString().ToLowerInvariant()"
       data-can-override-price="@Model.CanOverridePrice.ToString().ToLowerInvariant()">
     @Html.AntiForgeryToken()
 
-    <header class="sm-header">
+    <header class="sm-header ops-header cc-warehouse-header">
         <div class="sm-heading">
-            <span class="sm-eyebrow"><i class="fas fa-store"></i> Vận hành thực đơn</span>
-            <h1>Menu cửa hàng</h1>
-            <p>Kiểm soát SKU, giá hiệu lực và khả năng phục vụ tại từng chi nhánh CafeChain.</p>
-            <nav aria-label="breadcrumb">
-                <i class="fas fa-house"></i><span>Sản phẩm</span><i class="fas fa-chevron-right"></i><strong>Menu cửa hàng</strong>
-            </nav>
+            <div class="sm-eyebrow ops-eyebrow">Vận hành thực đơn</div>
+            <h1 class="ops-title">Menu cửa hàng</h1>
+            <p class="ops-subtitle">Kiểm soát SKU, giá hiệu lực và khả năng phục vụ tại từng chi nhánh CafeChain.</p>
         </div>
-        <a class="sm-link-button" asp-area="Admin" asp-controller="AdminDrinkProfitability" asp-action="Index">
-            <i class="fas fa-chart-line" aria-hidden="true"></i>
-            Xem vốn &amp; lợi nhuận
-        </a>
+        <div class="ops-actions">
+            <a class="sm-link-button" asp-area="Admin" asp-controller="AdminDrinkProfitability" asp-action="Index">
+                <i class="fas fa-chart-line" aria-hidden="true"></i>
+                Xem vốn &amp; lợi nhuận
+            </a>
+        </div>
     </header>
 
     <div class="sm-section-heading">

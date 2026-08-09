@@ -17,22 +17,32 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Size/size.css" asp-append-version="true" />
 }
 
-<div class="container-fluid p-4 size-admin-page">
+<main class="size-admin-page ops-shell cc-warehouse-page">
     @Html.AntiForgeryToken()
 
-    <div class="size-page-heading">
-        <div class="size-page-heading-content">
-            <div class="size-page-heading-icon"><i class="fas fa-ruler-combined"></i></div>
-            <div>
-                <span class="size-page-kicker"><i class="fas fa-layer-group me-1"></i> CẤU TRÚC THỰC ĐƠN</span>
-                <h1>Quản lý Size đồ uống</h1>
-                <p>Thiết lập mã hiển thị, tên gọi và loại kích thước sử dụng trên thực đơn.</p>
+    <header class="size-page-heading ops-header cc-warehouse-header">
+        <div>
+            <div class="ops-eyebrow">
+                <i class="fas fa-layer-group me-1"></i> Cấu trúc thực đơn
             </div>
+            <h1 class="ops-title">Quản lý Size đồ uống</h1>
+            <p class="ops-subtitle">Thiết lập mã hiển thị, tên gọi và loại kích thước sử dụng trên thực đơn.</p>
         </div>
-    </div>
+        <div class="ops-actions">
+            @if (canCreate)
+            {
+                <button class="btn btn-orange px-3"
+                        data-bs-toggle="modal"
+                        data-bs-target="#createModal">
+                    <i class="fas fa-plus me-2"></i> Thêm mới
+                </button>
+            }
+        </div>
+    </header>
 
     <!-- Tabs -->
     <div class="size-page-tabs d-flex mb-3">
@@ -176,7 +186,7 @@
         </div>
 
     </div>
-</div>
+</main>
 
 <!-- ================= CREATE MODAL ================= -->
 <div class="modal fade size-module-modal" id="createModal" tabindex="-1" aria-hidden="true">

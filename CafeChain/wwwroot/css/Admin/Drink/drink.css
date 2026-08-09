@@ -83,25 +83,11 @@
    ========================================================================== */
 
 .drink-page {
-    position: relative;
-    color: var(--cc-text);
-    background: var(--cc-canvas);
+    /* Layout provided by .ops-shell */
 }
 
 .drink-page-header {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    min-height: 148px;
-    border: 1px solid var(--cc-border);
-    border-left: 5px solid var(--cc-caramel-500);
-    border-radius: var(--cc-radius-header);
-    background: linear-gradient(120deg, var(--cc-surface-raised) 0%, var(--cc-surface-muted) 100%);
-    padding: 24px 28px;
-    box-shadow: var(--cc-shadow-md);
-    margin-bottom: 22px;
+    /* Layout provided by .ops-header + .cc-warehouse-header */
 }
 
 .drink-eyebrow {
@@ -366,57 +352,63 @@
 }
 
 .drink-search-box {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
-    width: 280px;
+    width: 320px;
     height: 44px;
     margin: 0;
-    border: 1px solid var(--cc-border-strong);
-    border-radius: var(--cc-radius-control);
-    background: var(--cc-surface-raised);
-    padding: 0 14px;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.drink-search-box:focus-within {
-    border-color: var(--cc-brown-600);
-    box-shadow: var(--cc-focus-ring);
+.drink-search-box .drink-search-btn,
+.drink-search-box button {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--cc-brown-600, #70482f);
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.16s ease, transform 0.16s ease;
+}
+
+.drink-search-box .drink-search-btn:hover,
+.drink-search-box button:hover,
+.drink-search-box button:focus {
+    color: var(--cc-brown-900, #3d2418);
+    transform: translateY(-50%) scale(1.15);
 }
 
 .drink-search-box input {
     width: 100%;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--cc-text);
-    font-size: 13px;
+    height: 44px;
+    padding: 8px 14px 8px 40px !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface-raised, #ffffff);
+    color: var(--cc-text, #201812);
+    font-size: 13.5px;
     font-weight: 500;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.drink-search-box input:focus {
+    border-color: var(--cc-brown-600, #70482f);
+    outline: none;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
 }
 
 .drink-search-box input::placeholder {
-    color: var(--cc-text-disabled);
-}
-
-.drink-search-box button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 28px;
-    width: 28px;
-    height: 28px;
-    border: 0;
-    border-radius: 7px;
-    background: var(--cc-surface-active);
-    color: var(--cc-brown-600);
-    font-size: 12px;
-    transition: all 0.15s ease;
-}
-
-.drink-search-box button:hover,
-.drink-search-box button:focus {
-    background: var(--cc-brown-600);
-    color: var(--cc-text-inverse);
+    color: var(--cc-text-disabled, #a69b93);
 }
 
 .drink-page-size {

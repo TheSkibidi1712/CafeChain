@@ -51,39 +51,15 @@
 }
 
 /* Base Layout Container */
-.container-fluid.topping-admin-page {
-    background: var(--cc-canvas, #f7f4f0);
-    min-height: 100vh;
-    max-width: 1480px;
-    margin: 0 auto;
-    padding: 24px !important;
-    color: var(--cc-text, #201812);
-}
-
 .topping-admin-page {
-    background:
-        radial-gradient(circle at 96% 2%, rgba(198, 122, 69, 0.08), transparent 260px),
-        linear-gradient(180deg, #faf7f4 0%, #f7f4f0 320px, transparent 600px);
+    /* Layout provided by .ops-shell */
 }
 
 /* ==========================================================================
    PAGE HEADING
    ========================================================================== */
 .topping-page-heading {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 24px;
-    min-height: 148px;
-    padding: 24px 28px;
-    border: 1px solid var(--cc-border-strong, #d8c5b6);
-    border-left: 5px solid var(--cc-caramel-500, #c67a45);
-    border-radius: var(--cc-radius-modal, 18px);
-    background: linear-gradient(112deg, var(--cc-surface-raised, #ffffff) 0%, var(--cc-surface-muted, #fbf7f2) 62%, #f1e5da 100%);
-    box-shadow: var(--cc-shadow-md, 0 8px 24px rgba(32, 24, 18, 0.09));
-    overflow: hidden;
+    /* Layout provided by .ops-header + .cc-warehouse-header */
 }
 
 

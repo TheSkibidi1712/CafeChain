@@ -22,16 +22,29 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Profitability/drink-profitability.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 }
 
-<main class="pf-page production-bom-page production-bom-shell" id="profitabilityApp"
+<main class="pf-page ops-shell cc-warehouse-page" id="profitabilityApp"
       data-can-update-price="@Model.CanUpdateGlobalPrice.ToString().ToLowerInvariant()"
       data-can-manage-policy="@Model.CanManageToppingPolicy.ToString().ToLowerInvariant()">
     @Html.AntiForgeryToken()
 
-    <partial name="_PageHero" model="hero" />
+    <header class="pf-header ops-header cc-warehouse-header">
+        <div>
+            <div class="ops-eyebrow">Sản phẩm / Phân tích giá vốn</div>
+            <h1 class="ops-title">Vốn và lợi nhuận gộp dự kiến</h1>
+            <p class="ops-subtitle">Đối chiếu giá vốn theo nhập trước - xuất trước (FIFO), giá bán và khả năng sinh lời theo từng size đồ uống.</p>
+        </div>
+        <div class="ops-actions">
+            <a class="pf-link-button ops-btn" asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index">
+                <i class="fas fa-flask" aria-hidden="true"></i>
+                <span>Mở công thức và BOM</span>
+            </a>
+        </div>
+    </header>
 
     <div class="pf-section-heading">
         <div>
