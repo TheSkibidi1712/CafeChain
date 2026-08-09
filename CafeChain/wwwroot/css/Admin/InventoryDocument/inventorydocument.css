@@ -219,6 +219,22 @@
     font-variant-numeric: tabular-nums !important;
 }
 
+.dashboard-create-field {
+    display: flex !important;
+    flex-direction: column !important;
+    margin-bottom: 16px !important;
+}
+
+.create-field label {
+    display: block;
+    margin-top: 0 !important;
+    margin-bottom: 8px !important;
+    color: var(--cc-brown-900, #3d2418) !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    line-height: 1.4 !important;
+}
+
 .dashboard-card .label {
     margin-top: 2px !important;
     color: var(--cc-brown-600, #70482f) !important;
@@ -413,7 +429,6 @@
 
 .inventory-table tbody tr:hover {
     background: var(--cc-surface-active, #f4e9df);
->>>>>>> origin/develop
 }
 
 .inventory-empty-state {
@@ -475,6 +490,13 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    background: transparent !important;
+}
+
+/* Ensure sticky/scrolling table cells retain transparent background */
+.inventory-table td:last-child,
+.inventory-table th:last-child {
+    background-color: inherit !important;
 }
 
 .table-action {
@@ -1269,9 +1291,13 @@
     position: sticky;
     right: 0;
     z-index: 4;
-    min-width: 150px;
+    min-width: 130px;
     background: #fff;
-    box-shadow: -8px 0 15px rgba(62, 39, 25, .04);
+    box-shadow: none !important;
+}
+
+.inventory-table tbody tr:hover td:last-child {
+    background: #fdf8f4 !important;
 }
 
 .inventory-table th:first-child,
@@ -1921,6 +1947,10 @@
     color: #3D2418 !important;
     font-size: 15px !important;
     font-weight: 800 !important;
+    display: block !important;
+    max-width: 100% !important;
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
 }
 
 /* Summary Box in Detail General */
@@ -2036,6 +2066,10 @@
     color: #3D2418 !important;
     font-size: 14.5px !important;
     font-weight: 800 !important;
+    display: block !important;
+    max-width: 100% !important;
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
 }
 
 #inventoryDetailModal .voucher-table-wrap {

@@ -332,6 +332,12 @@
     border-radius: 999px !important;
     font-size: 13px !important;
     font-weight: 800 !important;
+    max-width: 100% !important;
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
 }
 
 .inventory-create-code {
@@ -413,17 +419,77 @@
     flex-shrink: 0 !important;
 }
 
-/* All direct children of .create-section (except header) get side padding */
+/* All direct children of .create-section (except header) get side padding & uniform width */
 .create-field-grid,
 .create-purpose-block,
 .create-field-grid-secondary,
 .create-table-wrap,
 .create-add-row-btn,
 .create-section-hint,
-.create-section-subtitle,
-[id="negativeStockModeField"] {
+.create-section > .create-section-subtitle {
+    width: calc(100% - 56px) !important;
     margin-left: 28px !important;
     margin-right: 28px !important;
+    box-sizing: border-box !important;
+}
+
+.negative-stock-mode-field,
+[id="negativeStockModeField"] {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.negative-stock-mode-field .create-section-subtitle,
+.negative-stock-mode-field .negative-stock-mode-title {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.negative-stock-mode-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.negative-stock-mode-card {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.negative-stock-policy-note,
+.negative-stock-projection {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.create-field-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 20px 24px !important;
+    margin-top: 16px !important;
+    margin-bottom: 24px !important;
+}
+
+.create-field-grid-secondary {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 20px 24px !important;
+    margin-top: 16px !important;
+    margin-bottom: 24px !important;
+}
+
+.create-field-wide {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
 }
 
 .create-section-header h5 {
@@ -470,12 +536,23 @@
     font-size: 16px !important;
 }
 
+.create-field {
+    display: flex !important;
+    flex-direction: column !important;
+    margin-bottom: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
 .create-field label {
-    display: block;
+    display: block !important;
+    margin-top: 0 !important;
     margin-bottom: 8px !important;
+    padding-top: 2px !important;
     color: var(--cc-brown-900, #3d2418) !important;
-    font-size: 14px !important;
+    font-size: 13.5px !important;
     font-weight: 800 !important;
+    line-height: 1.4 !important;
 }
 
 .create-control {

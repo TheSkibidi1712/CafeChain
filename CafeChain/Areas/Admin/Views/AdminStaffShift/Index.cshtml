@@ -151,12 +151,20 @@
                                 <td class="text-center">
                                     @if (Model.CanUpdate)
                                     {
-                                        <button type="button" class="btn btn-sm btn-outline-primary edit-template"
+                                        <button type="button" class="shift-action-btn shift-action-edit edit-template"
                                                 data-id="@template.ShiftId" data-name="@template.Name"
                                                 data-start="@template.StartTime.ToString(@"hh\:mm")" data-end="@template.EndTime.ToString(@"hh\:mm")"
-                                                data-notes="@template.Notes" data-version="@template.RowVersion">Sửa</button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary toggle-template"
-                                                data-id="@template.ShiftId" data-version="@template.RowVersion">@(template.Active ? "Ngưng" : "Kích hoạt")</button>
+                                                data-notes="@template.Notes" data-version="@template.RowVersion"
+                                                title="Chỉnh sửa thông tin mẫu ca">
+                                            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                                            <span>Sửa</span>
+                                        </button>
+                                        <button type="button" class="shift-action-btn @(template.Active ? "shift-action-toggle-active" : "shift-action-toggle-inactive") toggle-template"
+                                                data-id="@template.ShiftId" data-version="@template.RowVersion"
+                                                title="@(template.Active ? "Ngưng sử dụng mẫu ca này" : "Kích hoạt lại mẫu ca này")">
+                                            <i class="fa-solid @(template.Active ? "fa-ban" : "fa-circle-check")" aria-hidden="true"></i>
+                                            <span>@(template.Active ? "Ngưng" : "Kích hoạt")</span>
+                                        </button>
                                     }
                                 </td>
                             </tr>
