@@ -14,6 +14,7 @@
         ingredients: [],
         units: [],
         pricingOffer: null,
+        offerToggleRequests: new Set(),
         duplicateWarningId: null,
         duplicateMatches: [],
         loaded: { reference: false, offers: false, stores: false, audit: false }
@@ -24,6 +25,7 @@
     const detailPanel = $('#supplierDetail');
     const detailContent = $('#supplierDetailContent');
     const detailPlaceholder = $('#supplierDetailPlaceholder');
+    const offerList = $('#offerList');
 
     const escapeHtml = (value) => String(value ?? '')
         .replaceAll('&', '&amp;')
@@ -476,17 +478,31 @@
                 <div class="supplier-stack-item-main">
                     <strong>${escapeHtml(offer.ingredientName)} ${offer.isPrimary ? '<span class="supplier-status is-current">Nguồn chính</span>' : ''}</strong>
                     <span>${escapeHtml(offer.packageDisplay)} · ${escapeHtml(offer.priceDisplay)}</span>
-                    <small>MOQ ${offer.minimumOrderPackageCount || 1} gói · Lead time ${offer.leadTimeDays || 0} ngày · ${offer.allowsLoosePurchase ? `Mua lẻ theo ${escapeHtml(offer.looseProcurementUnitName || 'đơn vị phù hợp')}, ${offer.loosePriceMode === 'DERIVED' ? 'giá tự tính từ gói' : 'giá nhập riêng'}, MOQ ${offer.looseMinimumOrderQuantity ?? 0}, bước ${offer.looseQuantityStep ?? 'không giới hạn'}` : 'Chỉ mua theo gói'} · ${offer.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</small>
+                    <small>MOQ ${offer.minimumOrderPackageCount || 1} gói · Thời gian giao ${offer.leadTimeDays || 0} ngày · ${offer.allowsLoosePurchase ? `Mua lẻ theo ${escapeHtml(offer.looseProcurementUnitName || 'đơn vị phù hợp')}, ${offer.loosePriceMode === 'DERIVED' ? 'giá tự tính từ gói' : 'giá nhập riêng'}, MOQ ${offer.looseMinimumOrderQuantity ?? 0}, bước ${offer.looseQuantityStep ?? 'không giới hạn'}` : 'Chỉ mua theo gói'}</small>
+                    <div class="supplier-offer-state" aria-label="Trạng thái gói mua">
+                        <span class="supplier-status ${offer.active ? 'is-active' : 'is-inactive'}">${offer.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</span>
+                        <span class="supplier-status ${offer.isProcurementReady ? 'is-ready' : 'is-not-ready'}">${escapeHtml(offer.procurementReadinessLabel)}</span>
+                    </div>
+                    ${offer.isProcurementReady ? '' : `<p class="supplier-readiness-help">${escapeHtml(offer.procurementReadinessMessage)}${canMutate ? ' Hãy sửa quy cách trước khi kích hoạt hoặc sử dụng cho mua hàng.' : ''}</p>`}
                 </div>
                 <div class="supplier-stack-actions">
                     <button type="button" class="supplier-btn supplier-btn-light view-price" data-id="${offer.ingredientSupplierId}">Đổi giá & lịch sử</button>
-                    ${canMutate ? `<button type="button" class="supplier-btn supplier-btn-light edit-offer" data-id="${offer.ingredientSupplierId}">Sửa metadata</button><button type="button" class="supplier-btn ${offer.active ? 'supplier-btn-danger' : 'supplier-btn-light'} toggle-offer" data-id="${offer.ingredientSupplierId}" data-active="${!offer.active}">${offer.active ? 'Ngừng dùng' : 'Kích hoạt'}</button>` : ''}
+                    ${canMutate ? `<button type="button" class="supplier-btn supplier-btn-light edit-offer" data-id="${offer.ingredientSupplierId}">${offer.isProcurementReady ? 'Sửa quy cách' : 'Sửa quy cách gói'}</button><button type="button" class="supplier-btn ${offer.active ? 'supplier-btn-danger' : 'supplier-btn-light'} toggle-offer" data-id="${offer.ingredientSupplierId}" data-active="${!offer.active}">${offer.active ? 'Ngừng dùng' : 'Kích hoạt'}</button>` : ''}
                 </div>
             </div>`).join('');
-        $$('.view-price', root).forEach(button => button.addEventListener('click', () => openPricing(Number(button.dataset.id))));
-        $$('.edit-offer', root).forEach(button => button.addEventListener('click', () => beginOfferEdit(Number(button.dataset.id))));
-        $$('.toggle-offer', root).forEach(button => button.addEventListener('click', () => toggleOffer(Number(button.dataset.id), button.dataset.active === 'true')));
     }
+
+    offerList?.addEventListener('click', async event => {
+        const target = event.target instanceof Element ? event.target : null;
+        const button = target?.closest('button[data-id]');
+        if (!button || !offerList.contains(button)) return;
+        const id = Number(button.dataset.id);
+        if (button.classList.contains('view-price')) await openPricing(id);
+        else if (button.classList.contains('edit-offer')) await beginOfferEdit(id);
+        else if (button.classList.contains('toggle-offer')) {
+            await toggleOffer(id, button.dataset.active === 'true', button);
+        }
+    });
 
     function resetOfferForm() {
         $('#offerForm')?.reset();
@@ -592,12 +608,15 @@
         finally { setBusy(form, false); }
     });
 
-    async function toggleOffer(id, active) {
+    async function toggleOffer(id, active, button) {
+        if (state.offerToggleRequests.has(id)) return;
         const offer = state.offers.find(item => item.ingredientSupplierId === id);
         if (!offer?.rowVersion) {
             toast('Dữ liệu gói mua đã thay đổi. Vui lòng tải lại trước khi cập nhật.', 'error');
             return;
         }
+        state.offerToggleRequests.add(id);
+        if (button) button.disabled = true;
         try {
             await api('/ToggleIngredientOffer', {
                 method: 'POST',
@@ -606,6 +625,10 @@
             await loadOffers();
             toast(active ? 'Đã kích hoạt gói mua.' : 'Đã ngừng sử dụng gói mua.');
         } catch (error) { toast(error.message, 'error'); }
+        finally {
+            state.offerToggleRequests.delete(id);
+            if (button?.isConnected) button.disabled = false;
+        }
     }
 
     async function openPricing(id) {
@@ -684,7 +707,7 @@
         if (!state.stores.length) { root.innerHTML = emptyStack('Chưa gán nhà cung cấp cho cửa hàng.'); return; }
         root.innerHTML = state.stores.map(store => `
             <div class="supplier-stack-item">
-                <div class="supplier-stack-item-main"><strong>${escapeHtml(store.storeName)}</strong><span>${escapeHtml(store.deliverySchedule || 'Chưa có lịch giao hàng')}</span><small>Lead time riêng: ${store.leadTimeOverrideDays ?? 'Theo gói mua'} · ${store.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</small></div>
+                <div class="supplier-stack-item-main"><strong>${escapeHtml(store.storeName)}</strong><span>${escapeHtml(store.deliverySchedule || 'Chưa có lịch giao hàng')}</span><small>Thời gian giao riêng: ${store.leadTimeOverrideDays ?? 'Theo gói mua'} · ${store.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</small></div>
                 ${canMutate ? `<div class="supplier-stack-actions"><button type="button" class="supplier-btn supplier-btn-light edit-store" data-id="${store.supplierStoreId}">Chỉnh sửa</button></div>` : ''}
             </div>`).join('');
         $$('.edit-store', root).forEach(button => button.addEventListener('click', () => beginStoreEdit(Number(button.dataset.id))));

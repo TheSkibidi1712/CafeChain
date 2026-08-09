@@ -1,4 +1,6 @@
 using CafeChain.Application.Results;
+using CafeChain.Application.DTOs.Inventories;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Suppliers;
 
 namespace CafeChain.Application.Interfaces.Inventories
@@ -32,5 +34,16 @@ namespace CafeChain.Application.Interfaces.Inventories
             decimal? packageQuantity);
 
         Task<bool> HasCompletePackageDefinitionAsync(IngredientSupplier offer);
+
+        Task<SupplierPackageReadinessResult> EvaluateReadinessAsync(
+            IngredientSupplier offer);
+
+        Task<IReadOnlyDictionary<int, SupplierPackageReadinessResult>> EvaluateReadinessAsync(
+            IEnumerable<IngredientSupplier> offers);
+
+        Task<SupplierPackageReadinessResult> EvaluateProcurementEligibilityAsync(
+            IngredientSupplier offer,
+            PurchaseMode purchaseMode,
+            int? storeId = null);
     }
 }

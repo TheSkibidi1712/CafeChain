@@ -20,13 +20,15 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IRestockAllocationService _allocations;
         private readonly IScopeAuthorizationService? _scopeAuthorization;
         private readonly IPurchaseAdviceFulfillmentService _purchaseAdviceFulfillment;
+        private readonly IIngredientSupplierPackageValidator _packageEligibility;
 
         public PurchaseOrderService(
             AppDbContext context,
             IUnitConversionService conversion,
             IRestockAllocationService allocations,
             IScopeAuthorizationService? scopeAuthorization = null,
-            IPurchaseAdviceFulfillmentService? purchaseAdviceFulfillment = null)
+            IPurchaseAdviceFulfillmentService? purchaseAdviceFulfillment = null,
+            IIngredientSupplierPackageValidator? packageEligibility = null)
         {
             _context = context;
             _conversion = conversion;
@@ -34,6 +36,13 @@ namespace CafeChain.Application.Services.Inventories
             _scopeAuthorization = scopeAuthorization;
             _purchaseAdviceFulfillment = purchaseAdviceFulfillment
                 ?? new PurchaseAdviceFulfillmentService(context);
+            _packageEligibility = packageEligibility
+                ?? new IngredientSupplierPackageValidator(
+                    context,
+                    new PhysicalUnitConversionService(
+                        context,
+                        Microsoft.Extensions.Logging.Abstractions.NullLogger<PhysicalUnitConversionService>.Instance),
+                    conversion);
         }
 
         public async Task<ServiceResult<PurchaseOrderDetailDto>> CreateDraftAsync(
@@ -160,8 +169,13 @@ namespace CafeChain.Application.Services.Inventories
                     if (offer == null || !offer.Active || offer.SupplierId != input.SupplierId
                         || offer.IngredientId != requested.IngredientId)
                         return Fail("Gói mua không khớp nhà cung cấp hoặc nguyên liệu.");
-                    if (!offer.Supplier.Active || !offer.Ingredient.Active || !offer.Unit.Active)
-                        return Fail("Nhà cung cấp, nguyên liệu hoặc đơn vị của gói mua không còn hoạt động.");
+                    var packageEligibility = await _packageEligibility
+                        .EvaluateProcurementEligibilityAsync(
+                            offer,
+                            requested.PurchaseMode,
+                            input.StoreId);
+                    if (!packageEligibility.IsProcurementEligible)
+                        return Fail($"Gói mua chưa sẵn sàng để tạo đơn đặt hàng. {packageEligibility.Message}");
 
                     var demand = requested.RestockRequestId.HasValue
                         ? await _context.RestockRequests.AsNoTracking()

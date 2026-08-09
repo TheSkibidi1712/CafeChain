@@ -731,7 +731,7 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
     }
 
     [Fact]
-    public async Task PurchaseOrder_ConvertsIngredientSpecificPackageUnit_ToInventoryBaseUnit()
+    public async Task PurchaseOrder_RejectsCommercialCountUnit_AsPhysicalPackageContentUnit()
     {
         using var context = CreateDbContext();
         var request = await SeedFoundationAsync(context, 480m);
@@ -778,11 +778,9 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
             StaffId,
             new[] { RoleConstants.AccountantWarehouse });
 
-        Assert.True(result.IsSuccess, result.Message);
-        var line = await context.PurchaseOrderLines.AsNoTracking().SingleAsync();
-        Assert.Equal(packageUnitId, line.PackageUnitIdSnapshot);
-        Assert.Equal(24m, line.PackageQuantitySnapshot);
-        Assert.Equal(480m, line.OrderedBaseQuantity);
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Quy cách gói chưa hợp lệ", result.Message, StringComparison.Ordinal);
+        Assert.Empty(await context.PurchaseOrderLines.AsNoTracking().ToListAsync());
     }
 
     [Fact]
