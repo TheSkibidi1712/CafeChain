@@ -50,7 +50,9 @@
     overflow: hidden;
     border: 1px solid var(--production-bom-border);
     border-radius: var(--cc-radius-header, 20px);
-    background: var(--cc-surface-raised, #fff);
+    background:
+        radial-gradient(circle at 92% 4%, rgba(201, 158, 125, 0.16), transparent 260px),
+        linear-gradient(135deg, var(--cc-surface-raised, #fff) 0%, var(--cc-surface, #fffdfb) 54%, var(--cc-brown-50, #faf6f2) 100%);
     box-shadow: var(--cc-shadow-md, 0 8px 24px rgba(32, 24, 18, 0.09));
 }
 
@@ -217,14 +219,22 @@
 .production-bom-page .cc-page-hero__action.is-primary {
     border-color: var(--production-bom-accent);
     background: var(--production-bom-accent);
-    color: #fff;
+    color: var(--cc-text-inverse, #fff);
     box-shadow: 0 8px 18px rgba(92, 63, 43, 0.16);
 }
 
 .production-bom-page .cc-page-hero__action.is-primary:hover {
     border-color: var(--cc-brown-800, #4d3021);
     background: var(--cc-brown-800, #4d3021);
-    color: #fff;
+    color: var(--cc-text-inverse, #fff);
+}
+
+.production-bom-page .rb-toggle .btn:hover,
+.production-bom-page .rb-toggle .btn:focus-visible,
+.production-bom-page .rb-toggle .btn-check:checked + .btn {
+    border-color: var(--cc-brown-700, #5c3f2b);
+    background: var(--cc-brown-700, #5c3f2b);
+    color: var(--cc-text-inverse, #fff) !important;
 }
 
 /* Shared top-level layout primitives */
@@ -366,16 +376,20 @@
 
 .production-bom-page .production-form-grid {
     display: grid;
+    width: 100%;
     grid-template-columns: minmax(0, 2fr) minmax(320px, 0.9fr);
     align-items: start;
+    justify-items: stretch;
     gap: var(--production-bom-section-gap);
 }
 
 .production-bom-page .production-form-main,
 .production-bom-page .production-form-sidebar {
     display: grid;
+    width: 100%;
     min-width: 0;
     align-content: start;
+    justify-self: stretch;
     gap: var(--production-bom-section-gap);
 }
 
@@ -444,14 +458,23 @@
 
 .production-bom-page .production-operation-grid {
     display: grid;
+    width: 100%;
     grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.2fr);
     align-items: start;
+    justify-items: stretch;
     gap: clamp(1.25rem, 2.5vw, 2.5rem);
 }
 
 .production-bom-page .production-operation-form,
 .production-bom-page .production-operation-preview {
+    width: 100%;
     min-width: 0;
+    justify-self: stretch;
+}
+
+.production-bom-page .production-operation-preview > *,
+.production-bom-page .production-form-sidebar > * {
+    width: 100%;
 }
 
 .production-bom-page .po-main-card,
@@ -1178,6 +1201,7 @@
 }
 
 .production-bom-page .production-data-table {
+    width: 100%;
     min-width: 880px;
     margin: 0 !important;
     color: var(--cc-text, #201812);
@@ -1221,29 +1245,52 @@
     table-layout: fixed;
 }
 
-.production-bom-page .rb-recipe-table .rb-col-identity {
+.production-bom-page .rb-recipe-table.is-standard .rb-col-identity {
     width: 18%;
 }
 
-.production-bom-page .rb-recipe-table .rb-col-version,
-.production-bom-page .rb-recipe-table .rb-col-source {
-    width: 20%;
+.production-bom-page .rb-recipe-table.is-standard .rb-col-version,
+.production-bom-page .rb-recipe-table.is-standard .rb-col-source {
+    width: 21%;
 }
 
-.production-bom-page .rb-recipe-table .rb-col-output,
-.production-bom-page .rb-recipe-table .rb-col-portion,
-.production-bom-page .rb-recipe-table .rb-col-config,
-.production-bom-page .rb-recipe-table .rb-col-cost,
-.production-bom-page .rb-recipe-table .rb-col-status {
+.production-bom-page .rb-recipe-table.is-standard .rb-col-portion,
+.production-bom-page .rb-recipe-table.is-standard .rb-col-cost {
     width: 10%;
 }
 
-.production-bom-page .rb-recipe-table .rb-col-actions {
-    width: 188px;
+.production-bom-page .rb-recipe-table.is-standard .rb-col-config,
+.production-bom-page .rb-recipe-table.is-standard .rb-col-status {
+    width: 10.5%;
+}
+
+.production-bom-page .rb-recipe-table.is-standard .rb-col-actions {
+    width: 20%;
+}
+
+.production-bom-page .rb-recipe-table.is-subrecipe .rb-col-identity {
+    width: 15%;
+}
+
+.production-bom-page .rb-recipe-table.is-subrecipe .rb-col-version {
+    width: 16%;
+}
+
+.production-bom-page .rb-recipe-table.is-subrecipe .rb-col-output,
+.production-bom-page .rb-recipe-table.is-subrecipe .rb-col-cost {
+    width: 10%;
+}
+
+.production-bom-page .rb-recipe-table.is-subrecipe .rb-col-status {
+    width: 9%;
+}
+
+.production-bom-page .rb-recipe-table.is-subrecipe .rb-col-actions {
+    width: 20%;
 }
 
 .production-bom-page .rb-prepareditem-table {
-    min-width: 900px;
+    min-width: 1050px;
     table-layout: fixed;
 }
 
@@ -1285,24 +1332,40 @@
     width: 10%;
 }
 
-.production-bom-page .rb-prepareditem-table .rb-prepared-col-identity {
+.production-bom-page .rb-prepareditem-table.has-actions .rb-prepared-col-identity {
+    width: 20%;
+}
+
+.production-bom-page .rb-prepareditem-table.has-actions .rb-prepared-col-uom {
+    width: 14%;
+}
+
+.production-bom-page .rb-prepareditem-table.has-actions .rb-prepared-col-status {
     width: 18%;
 }
 
-.production-bom-page .rb-prepareditem-table .rb-prepared-col-uom {
-    width: 13%;
+.production-bom-page .rb-prepareditem-table.has-actions .rb-prepared-col-recipe {
+    width: 27%;
 }
 
-.production-bom-page .rb-prepareditem-table .rb-prepared-col-status {
-    width: 18%;
+.production-bom-page .rb-prepareditem-table.has-actions .rb-prepared-col-actions {
+    width: 21%;
 }
 
-.production-bom-page .rb-prepareditem-table .rb-prepared-col-recipe {
-    width: 25%;
+.production-bom-page .rb-prepareditem-table.is-readonly .rb-prepared-col-identity {
+    width: 24%;
 }
 
-.production-bom-page .rb-prepareditem-table .rb-prepared-col-actions {
-    width: 220px;
+.production-bom-page .rb-prepareditem-table.is-readonly .rb-prepared-col-uom {
+    width: 16%;
+}
+
+.production-bom-page .rb-prepareditem-table.is-readonly .rb-prepared-col-status {
+    width: 20%;
+}
+
+.production-bom-page .rb-prepareditem-table.is-readonly .rb-prepared-col-recipe {
+    width: 40%;
 }
 
 .production-bom-page .rb-prepareditem-identity {
@@ -1329,6 +1392,17 @@
     gap: 0.45rem;
     color: var(--cc-text-muted, #7a6c62);
     font-size: 0.72rem;
+}
+
+.production-bom-page .rb-prepared-recipe-cell {
+    text-align: right !important;
+}
+
+.production-bom-page .rb-prepared-recipe-cell .production-link {
+    display: inline-flex;
+    justify-content: flex-end;
+    max-width: 100%;
+    text-align: right;
 }
 
 .production-bom-page .production-data-table td .d-flex,
@@ -1456,7 +1530,7 @@
 .production-bom-page .rb-table-action:not(.btn-outline-danger):not(.btn-outline-warning):hover {
     border-color: var(--production-bom-accent) !important;
     background: var(--production-bom-accent) !important;
-    color: #fff !important;
+    color: var(--cc-text-inverse, #fff) !important;
 }
 
 .production-bom-page .production-pagination {

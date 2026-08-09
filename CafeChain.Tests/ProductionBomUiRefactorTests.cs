@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using CafeChain.Application.DTOs.Admin.Production;
 using Xunit;
 
 namespace CafeChain.Tests;
@@ -20,6 +21,103 @@ public sealed class ProductionBomUiRefactorTests
         "AdminProductionOrder/Details.cshtml",
         "AdminDrinkProfitability/Index.cshtml"
     ];
+
+    [Fact]
+    public void WriterModeNotReady_MapsToVietnameseBusinessMessage()
+    {
+        var message = ProductionReadinessDisplay.MessageFor(ProductionReadinessCodes.WriterMode);
+
+        Assert.Contains("chưa sẵn sàng cho quy trình sản xuất", message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Bán thành phẩm", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("WriterMode", message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("LegacyRecipe", message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("PreparedItem", message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ProductionWarning_DoesNotRenderRawWriterModeReason()
+    {
+        var view = Read("CafeChain/Areas/Admin/Views/AdminProductionOrder/Create.cshtml");
+
+        Assert.DoesNotContain("<code>${escapeHtml(reason.code)}</code>", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("return labels[value] || value", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("indexOf('LegacyRecipe')", view, StringComparison.Ordinal);
+        Assert.DoesNotContain("let html = res.message", view, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RecipeList_UsesFullAvailableTableWidth_AndAlignsActionColumn()
+    {
+        var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
+
+        Assert.Contains(".production-bom-page .production-data-table", css, StringComparison.Ordinal);
+        Assert.Contains("width: 100%;", css, StringComparison.Ordinal);
+        Assert.Contains(".production-bom-page .rb-recipe-table.is-standard .rb-col-actions", css, StringComparison.Ordinal);
+        Assert.Contains(".production-bom-page .rb-actions-cell", css, StringComparison.Ordinal);
+        Assert.Contains("text-align: right !important", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PreparedItemList_RightmostColumnUsesRemainingWidth()
+    {
+        var view = Read("CafeChain/Areas/Admin/Views/AdminPreparedItem/Index.cshtml");
+        var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
+
+        Assert.Contains("rb-prepared-recipe-cell", view, StringComparison.Ordinal);
+        Assert.Contains(".production-bom-page .rb-prepared-recipe-cell", css, StringComparison.Ordinal);
+        Assert.Contains("text-align: right", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LegacyProduction_FormGridUsesFullWidth_AndAlignsRightColumn()
+    {
+        var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
+
+        Assert.Contains(".production-bom-page .production-operation-grid", css, StringComparison.Ordinal);
+        Assert.Contains(".production-bom-page .production-operation-preview", css, StringComparison.Ordinal);
+        Assert.Contains("justify-self: stretch", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RecipeForm_SidebarAlignsWithPageRightEdge()
+    {
+        var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
+
+        Assert.Contains(".production-bom-page .production-form-sidebar", css, StringComparison.Ordinal);
+        Assert.Contains("justify-self: stretch", css, StringComparison.Ordinal);
+        Assert.Contains("width: 100%;", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProductionBomPages_DoNotUseNegativeMarginAlignmentHack()
+    {
+        var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
+
+        Assert.DoesNotContain("margin-right: -", css, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("margin-left: -", css, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("width: calc(100% +", css, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RecipeTypeToggle_UsesInverseTextOnBrownHoverAndActiveStates()
+    {
+        var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
+
+        Assert.Contains(".production-bom-page .rb-toggle .btn:hover", css, StringComparison.Ordinal);
+        Assert.Contains(".production-bom-page .rb-toggle .btn-check:checked + .btn", css, StringComparison.Ordinal);
+        Assert.Contains("color: var(--cc-text-inverse", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProductionHero_MatchesStoreInventoryVisualLanguage()
+    {
+        var css = Read("CafeChain/wwwroot/css/Admin/production-bom-ui.css");
+
+        Assert.Contains("radial-gradient(circle at 92% 4%", css, StringComparison.Ordinal);
+        Assert.Contains("linear-gradient(135deg", css, StringComparison.Ordinal);
+        Assert.Contains("var(--cc-brown-600", css, StringComparison.Ordinal);
+        Assert.Contains("var(--cc-caramel-500", css, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void ProductionBomPages_UseUnifiedPageShell()

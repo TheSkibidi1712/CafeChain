@@ -103,7 +103,7 @@
 
         <div class="rb-card production-table-panel">
             <div class="table-responsive">
-                <table class="table rb-table rb-recipe-table production-data-table mb-0" aria-label="Danh sách công thức @typeLabel">
+                <table class="table rb-table rb-recipe-table production-data-table @(type == "SUBRECIPE" ? "is-subrecipe" : "is-standard") mb-0" aria-label="Danh sách công thức @typeLabel">
                     @if (type == "SUBRECIPE")
                     {
                         <colgroup>
