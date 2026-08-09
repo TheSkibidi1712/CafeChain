@@ -309,21 +309,13 @@
                 return labels[String(value || '').toUpperCase()] || (isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng');
             }
 
-            function translateWriterMode(value) {
-                const labels = {
-                    PreparedItem: 'Bán thành phẩm',
-                    LegacyRecipe: 'Công thức cũ'
-                };
-                return labels[value] || value || 'Chưa xác định';
-            }
-
             function translateSourceType(value) {
                 const labels = {
                     Ingredient: 'Nguyên liệu',
                     PreparedItem: 'Bán thành phẩm',
                     ChildRecipe: 'Công thức thành phần'
                 };
-                return labels[value] || value || 'Chưa xác định';
+                return labels[value] || 'Chưa xác định';
             }
 
             function debounce(func, wait) {
@@ -405,11 +397,11 @@
                         }
 
                         const reasonHtml = (preview.reasons || []).map(function (reason) {
-                            return `<li class="${reason.blocking ? 'text-danger' : 'text-warning'}"><code>${escapeHtml(reason.code)}</code> ${escapeHtml(reason.message)}</li>`;
+                            return `<li class="${reason.blocking ? 'text-danger' : 'text-warning'}">${escapeHtml(reason.message)}</li>`;
                         }).join('');
                         readiness.html(`
                             <span class="po-readiness-state ${preview.isReady ? 'is-ready' : 'is-error'}">${escapeHtml(translateReadinessStatus(preview.overallStatus, preview.isReady))}</span>
-                            <span class="small">Cách ghi nhận tồn kho: <strong>${escapeHtml(translateWriterMode(preview.writerMode))}</strong> · Hệ số tối đa ${formatQty(preview.maxSupportedRunCount)}</span>
+                            <span class="small">Cách ghi nhận tồn kho: <strong>${escapeHtml(preview.writerModeLabel || 'Chưa xác định')}</strong> · Hệ số tối đa ${formatQty(preview.maxSupportedRunCount)}</span>
                             ${reasonHtml ? '<ul class="po-readiness-reasons">' + reasonHtml + '</ul>' : ''}
                         `);
                         output.removeClass('d-none').html(`
@@ -467,16 +459,29 @@
                                 }).then(() => window.location.reload());
                             } else {
                                 btn.prop('disabled', false).text('Áp dụng vào kho');
-                                let errTitle = 'Thất bại';
                                 const code = res.errorCode || '';
-                                if (code === 'MODE_LEGACY' || (res.message || '').indexOf('LegacyRecipe') >= 0)
-                                    errTitle = 'Chưa chuyển đổi kho BTP';
-                                if (code === 'MODE_BLOCKED' || code === 'BTP_WRITER_BLOCKED')
-                                    errTitle = 'Kho BTP đang khóa';
-                                if (code === 'PRODUCTION_COST_EVIDENCE_INCOMPLETE')
-                                    errTitle = 'Thiếu bằng chứng giá vốn';
-                                let html = res.message || 'Không áp dụng được kho.';
+                                const executionErrors = {
+                                    MODE_LEGACY: {
+                                        title: 'Chưa sẵn sàng ghi nhận tồn kho',
+                                        message: 'Cửa hàng đang dùng cách ghi nhận tồn kho cũ. Vui lòng hoàn tất chuyển đổi sang bán thành phẩm trước khi áp dụng lệnh sơ chế.'
+                                    },
+                                    MODE_BLOCKED: {
+                                        title: 'Kho bán thành phẩm đang tạm khóa',
+                                        message: 'Chưa thể cập nhật tồn kho bán thành phẩm tại thời điểm này. Vui lòng liên hệ quản trị hệ thống.'
+                                    },
+                                    BTP_WRITER_BLOCKED: {
+                                        title: 'Kho bán thành phẩm đang tạm khóa',
+                                        message: 'Chưa thể cập nhật tồn kho bán thành phẩm tại thời điểm này. Vui lòng liên hệ quản trị hệ thống.'
+                                    }
+                                };
+                                const mappedError = executionErrors[code] || {
+                                    title: 'Không thể cập nhật tồn kho',
+                                    message: 'Lệnh sơ chế chưa được áp dụng. Vui lòng tải lại dữ liệu và thử lại.'
+                                };
+                                let errTitle = mappedError.title;
+                                let html = mappedError.message;
                                 if (code === 'PRODUCTION_COST_EVIDENCE_INCOMPLETE') {
+                                    errTitle = 'Thiếu bằng chứng giá vốn';
                                     html = '<p>Không thể hoàn tất lệnh sơ chế vì tồn kho đầu vào chưa có đủ bằng chứng giá vốn.</p>';
                                     if (res.costEvidenceGaps && res.costEvidenceGaps.length) {
                                         html += '<ul style="text-align:left">';
