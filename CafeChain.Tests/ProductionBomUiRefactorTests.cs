@@ -163,12 +163,17 @@ public sealed class ProductionBomUiRefactorTests
         Assert.Contains("bom-source-link", recipeDetail, StringComparison.Ordinal);
         Assert.Contains("production-row-menu", recipe, StringComparison.Ordinal);
         Assert.Contains("production-row-menu", preparedItem, StringComparison.Ordinal);
+        Assert.Contains("rb-actions-heading", recipe, StringComparison.Ordinal);
+        Assert.Contains("rb-actions-heading", preparedItem, StringComparison.Ordinal);
         Assert.Contains("<colgroup>", recipe, StringComparison.Ordinal);
         Assert.Contains("<colgroup>", preparedItem, StringComparison.Ordinal);
         Assert.DoesNotContain("<th scope=\"col\">Mã BTP</th>", preparedItem, StringComparison.Ordinal);
         Assert.Contains(".production-bom-page .production-data-table", css, StringComparison.Ordinal);
         Assert.Contains(".production-bom-page .production-pagination", css, StringComparison.Ordinal);
         Assert.Contains(".production-bom-page .production-row-actions", css, StringComparison.Ordinal);
+        Assert.Contains(".production-bom-page .rb-actions-heading", css, StringComparison.Ordinal);
+        Assert.Contains(".production-bom-page.production-run-list-page .production-action-column", css, StringComparison.Ordinal);
+        Assert.DoesNotContain(".production-bom-page .production-data-table td:last-child", css, StringComparison.Ordinal);
         Assert.Contains("@media (max-width: 768px)", css, StringComparison.Ordinal);
     }
 

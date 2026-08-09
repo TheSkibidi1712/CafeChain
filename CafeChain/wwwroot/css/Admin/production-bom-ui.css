@@ -961,15 +961,15 @@
     font-size: 0.72rem;
 }
 
+.production-bom-page .rb-actions-heading,
 .production-bom-page .rb-actions-cell,
-.production-bom-page .rb-prepareditem-actions-cell,
-.production-bom-page .production-data-table td:last-child {
-    text-align: right !important;
+.production-bom-page .rb-prepareditem-actions-cell {
+    text-align: center !important;
 }
 
 .production-bom-page .rb-actions-cell > div,
 .production-bom-page .rb-prepareditem-actions-cell > div {
-    justify-content: flex-end !important;
+    justify-content: center !important;
 }
 
 .production-bom-page .production-row-actions {
@@ -1025,6 +1025,10 @@
 
 .production-bom-page .production-row-action,
 .production-bom-page .rb-table-action:not(.btn-outline-danger):not(.btn-outline-warning) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
     border: 1px solid var(--cc-border-strong, #d8c5b6) !important;
     border-radius: 8px !important;
     background: #fff !important;
@@ -1033,18 +1037,24 @@
     white-space: nowrap;
 }
 
-.production-bom-page .production-run-list-page .production-data-table th:last-child,
-.production-bom-page .production-run-list-page .production-data-table td:last-child {
+.production-bom-page .production-row-action i,
+.production-bom-page .rb-table-action i,
+.production-bom-page .production-row-menu__trigger i {
+    line-height: 1;
+}
+
+.production-bom-page.production-run-list-page .production-data-table th:last-child,
+.production-bom-page.production-run-list-page .production-data-table td:last-child {
     width: 136px;
 }
 
-.production-bom-page .production-run-list-page .production-action-column {
+.production-bom-page.production-run-list-page .production-action-column {
     width: 136px;
     text-align: center !important;
     white-space: nowrap;
 }
 
-.production-bom-page .production-run-list-page .production-action-column .production-row-action {
+.production-bom-page.production-run-list-page .production-action-column .production-row-action {
     min-width: 96px;
 }
 
