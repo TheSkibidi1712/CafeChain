@@ -89,6 +89,7 @@ namespace CafeChain.Controllers.Api.v1
             }
 
             var summary = await _shiftService.GetSummaryAsync(CurrentStaffId, CurrentStoreId, id);
+            await EndSessionForCompletedShiftAsync("Ca làm việc đã đóng; quyền truy cập POS đã được thu hồi.");
             if (summary == null)
                 return Ok(new { success = true, message = result.Message });
             summary.ResultCode = WorkShiftOpenResultCodes.WorkShiftClosed;
@@ -133,6 +134,7 @@ namespace CafeChain.Controllers.Api.v1
             }
 
             var summary = await _shiftService.GetSummaryAsync(CurrentStaffId, CurrentStoreId, id);
+            await EndSessionForCompletedShiftAsync("Ca đã đóng ngoại lệ và cần đối soát; quyền truy cập POS đã được thu hồi.");
             if (summary == null)
                 return Ok(new { success = true, message = result.Message });
             summary.ResultCode = WorkShiftOpenResultCodes.WorkShiftReconciliationRequired;
@@ -151,6 +153,8 @@ namespace CafeChain.Controllers.Api.v1
             var sessionGuard = await EnsureSessionOwnsWorkShiftAsync(id);
             if (sessionGuard != null) return sessionGuard;
             var result = await _shiftService.ReconcileAsync(CurrentStaffId, CurrentStoreId, id, request);
+            if (result.IsSuccess)
+                await EndSessionForCompletedShiftAsync("Ca làm việc đã hoàn tất đối soát; quyền truy cập POS đã được thu hồi.");
             return result.IsSuccess
                 ? Ok(new
                 {
@@ -185,7 +189,7 @@ namespace CafeChain.Controllers.Api.v1
         }
 
         [HttpPost("operator/pin")]
-        [RequirePermission(PermissionConstants.PosOperatorSwitch)]
+        [RequirePermission(PermissionConstants.PosOperatorManageOwnPin)]
         public async Task<IActionResult> SetOperatorPin([FromBody] SetOperatorPinRequestDto request)
         {
             var result = await _shiftService.SetOperatorPinAsync(
@@ -274,6 +278,16 @@ namespace CafeChain.Controllers.Api.v1
             return null;
         }
 
+        private async Task EndSessionForCompletedShiftAsync(string reason)
+        {
+            if (_posAccessSessions == null || CurrentPosAccessSessionId == Guid.Empty) return;
+            await _posAccessSessions.EndAsync(
+                CurrentPosAccessSessionId,
+                CafeChain.Models.Operations.PosAccessSessionStatuses.WorkShiftEnded,
+                CurrentStaffId,
+                reason);
+        }
+
         private IActionResult WorkShiftError(string? errorCode, string? message)
         {
             var payload = new
@@ -300,6 +314,7 @@ namespace CafeChain.Controllers.Api.v1
             return errorCode switch
             {
                 WorkShiftErrorCodes.PosPermissionRequired
+                    or WorkShiftErrorCodes.PosAccessDenied
                     or WorkShiftErrorCodes.StoreScopeDenied
                     or WorkShiftErrorCodes.OutsideScheduleApprovalRequired
                     or WorkShiftErrorCodes.InvalidApproverScope
@@ -312,6 +327,8 @@ namespace CafeChain.Controllers.Api.v1
                     or WorkShiftErrorCodes.PosOpenContextInvalid => Unauthorized(payload),
                 WorkShiftErrorCodes.DuplicateRequest
                     or WorkShiftErrorCodes.ConcurrencyConflict
+                    or WorkShiftErrorCodes.ShiftScheduleChanged
+                    or WorkShiftErrorCodes.ShiftAlreadyClosed
                     or WorkShiftErrorCodes.StaffHubOpenRequired
                     or WorkShiftErrorCodes.OpeningCashRequired
                     or WorkShiftErrorCodes.TerminalAlreadyHasOpenShift

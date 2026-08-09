@@ -18,6 +18,8 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace CafeChain.Application.Services.POS
@@ -239,6 +241,12 @@ namespace CafeChain.Application.Services.POS
                     return StaffConflict(current);
 
                 var assessment = await AssessOpenShiftCoreAsync(userId, storeId);
+                if (exchangeContext != null
+                    && !string.Equals(exchangeContext.AssessmentVersion,
+                        BuildAssessmentVersion(assessment), StringComparison.Ordinal))
+                    return ServiceResult.Failure(
+                        "Lịch làm việc vừa được thay đổi. Vui lòng xác nhận lại tại StaffHub.",
+                        errorCode: WorkShiftErrorCodes.ShiftScheduleChanged);
                 WorkShiftOpenApprovalRequest? lateOpenApproval = null;
                 if (assessment.ManagerApprovalRequired)
                 {
@@ -289,12 +297,14 @@ namespace CafeChain.Application.Services.POS
                         "Ngữ cảnh mở ca đã chuyển sang ca sớm, trễ hoặc ngoài lịch. Vui lòng xác nhận lại tại StaffHub.",
                         errorCode: WorkShiftErrorCodes.StaffHubOpenRequired);
                 if (exchangeContext != null
+                    && lateOpenApproval?.Status != WorkShiftOpenApprovalStatuses.ConvertedToOutsideSchedule
                     && (!string.Equals(exchangeContext.OpenContext, assessment.OpenContext, StringComparison.Ordinal)
                         || exchangeContext.SourceStaffShiftId != assessment.SourceStaffShift?.StaffShiftId))
                     return ServiceResult.Failure(
                         "Ngữ cảnh lịch đã thay đổi. Vui lòng quay lại StaffHub để kiểm tra lại.",
-                        errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
-                if (_permissions != null && assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule)
+                        errorCode: WorkShiftErrorCodes.ShiftScheduleChanged);
+                if (_permissions != null && assessment.OpenContext is
+                    WorkShiftOpenContexts.OutsideSchedule or WorkShiftOpenContexts.EarlyForSchedule)
                 {
                     var actor = await _otpChallengeRepo.GetRequestingStaffAsync(userId, storeId);
                     var outsidePermission = actor?.Account == null
@@ -364,9 +374,7 @@ namespace CafeChain.Application.Services.POS
                             _workShiftOptions.ResolveTimeZone())
                             .ToString("yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture)
                         : "none";
-                    var expectedAction = assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule
-                        ? OtpConstants.ActionTypes.OpenShiftOutsideSchedule
-                        : OtpConstants.ActionTypes.OpenShiftLate;
+                    var expectedAction = GetOpenOtpAction(assessment.OpenContext);
                     var expectedFingerprint = _otpFingerprint.BuildOpenShiftBoundFingerprint(
                         storeId,
                         userId,
@@ -406,7 +414,7 @@ namespace CafeChain.Application.Services.POS
                     BusinessDate = businessDate,
                     SourceStaffShiftId = assessment.SourceStaffShift?.StaffShiftId,
                     OpenContext = assessment.OpenContext,
-                    OutsideScheduleReason = assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule ? reason : null,
+                    OutsideScheduleReason = assessment.OpenContext != WorkShiftOpenContexts.WithinSchedule ? reason : null,
                     ApprovedByStaffId = otpChallenge?.ApproverStaffId,
                     ApprovedAtUtc = otpChallenge?.ApprovedAt,
                     AutoCloseAtUtc = assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule
@@ -634,7 +642,8 @@ namespace CafeChain.Application.Services.POS
 
                 var assessment = await AssessOpenShiftCoreAsync(staffId, storeId);
                 if (_permissions != null
-                    && assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule)
+                    && assessment.OpenContext is WorkShiftOpenContexts.OutsideSchedule
+                        or WorkShiftOpenContexts.EarlyForSchedule)
                 {
                     var outsidePermission = await _permissions.HasPermissionAsync(
                         actor.AccountId,
@@ -700,7 +709,7 @@ namespace CafeChain.Application.Services.POS
 
         public async Task<ServiceResult<PosSessionExchangeContextDto>> PrepareOpenExchangeContextAsync(
             int accountId, int staffId, int storeId, string terminalId, string requestKey,
-            string? reason, Guid? otpChallengePublicId,
+            string? reason, Guid? otpChallengePublicId, string? assessmentVersion,
             CancellationToken cancellationToken = default,
             Guid? lateOpenApprovalPublicId = null)
         {
@@ -712,6 +721,11 @@ namespace CafeChain.Application.Services.POS
                 return ServiceResult<PosSessionExchangeContextDto>.Failure(preview.Message, errorCode: preview.ErrorCode);
 
             var assessment = preview.Data;
+            if (string.IsNullOrWhiteSpace(assessmentVersion)
+                || !string.Equals(assessmentVersion, assessment.AssessmentVersion, StringComparison.Ordinal))
+                return ServiceResult<PosSessionExchangeContextDto>.Failure(
+                    "Lịch làm việc vừa được thay đổi. Vui lòng kiểm tra lại lịch mới trước khi mở ca.",
+                    errorCode: WorkShiftErrorCodes.ShiftScheduleChanged);
             WorkShiftOpenApprovalRequest? lateOpenApproval = null;
             if (lateOpenApprovalPublicId.HasValue)
             {
@@ -790,9 +804,7 @@ namespace CafeChain.Application.Services.POS
                             ? WorkShiftErrorCodes.OutsideScheduleApprovalRequired
                             : OtpConstants.ErrorCodes.LateOpeningRequiresOtp);
                 var challenge = await _otpChallengeRepo.GetByPublicIdAsync(otpChallengePublicId.Value);
-                var expectedAction = assessment.OpenContext == WorkShiftOpenContexts.OutsideSchedule
-                    ? OtpConstants.ActionTypes.OpenShiftOutsideSchedule
-                    : OtpConstants.ActionTypes.OpenShiftLate;
+                var expectedAction = GetOpenOtpAction(assessment.OpenContext);
                 var scheduled = assessment.PlannedStartUtc.HasValue
                     ? TimeZoneInfo.ConvertTimeFromUtc(
                         DateTime.SpecifyKind(assessment.PlannedStartUtc.Value, DateTimeKind.Utc),
@@ -829,6 +841,7 @@ namespace CafeChain.Application.Services.POS
                 TerminalId = terminalId.Trim(),
                 RequestKey = requestKey.Trim(),
                 OpenContext = assessment.OpenContext,
+                AssessmentVersion = assessment.AssessmentVersion,
                 SourceStaffShiftId = assessment.SourceStaffShiftId,
                 PlannedStartUtc = assessment.PlannedStartUtc,
                 PlannedEndUtc = assessment.PlannedEndUtc,
@@ -896,6 +909,19 @@ namespace CafeChain.Application.Services.POS
             var interval = ScheduleIntervalResolver.Resolve(schedule);
             var minutesLate = Math.Max(0, (int)Math.Floor((nowLocal - interval.StartLocal).TotalMinutes));
             var minutesEarly = Math.Max(0, (int)Math.Ceiling((interval.StartLocal - nowLocal).TotalMinutes));
+            if (nowLocal < interval.StartLocal.AddMinutes(-_workShiftOptions.EarlyOpenMinutes))
+                return new OpenAssessment(
+                    WorkShiftOpenContexts.EarlyForSchedule,
+                    schedule,
+                    ScheduleIntervalResolver.ToUtc(interval.StartLocal, timeZone),
+                    ScheduleIntervalResolver.ToUtc(interval.EndLocal, timeZone),
+                    0,
+                    true,
+                    true,
+                    false,
+                    nowUtc,
+                    minutesEarly);
+
             var within = nowLocal >= interval.StartLocal.AddMinutes(-_workShiftOptions.EarlyOpenMinutes)
                 && nowLocal <= interval.StartLocal.AddMinutes(_workShiftOptions.LateReasonAfterMinutes);
             var late = !within && nowLocal <= interval.EndLocal.AddMinutes(_workShiftOptions.PostEndGraceMinutes);
@@ -941,6 +967,7 @@ namespace CafeChain.Application.Services.POS
         {
             public OpenShiftAssessmentDto ToDto(WorkShiftOptions options) => new()
             {
+                AssessmentVersion = BuildAssessmentVersion(this),
                 OpenContext = OpenContext,
                 SourceStaffShiftId = SourceStaffShift?.StaffShiftId,
                 PlannedStartUtc = PlannedStartUtc,
@@ -960,6 +987,28 @@ namespace CafeChain.Application.Services.POS
                     : null
             };
         }
+
+        private static string BuildAssessmentVersion(OpenAssessment assessment)
+        {
+            var source = assessment.SourceStaffShift;
+            var canonical = string.Join('|',
+                assessment.OpenContext,
+                source?.StaffShiftId.ToString(CultureInfo.InvariantCulture) ?? "none",
+                source?.ShiftId.ToString(CultureInfo.InvariantCulture) ?? "none",
+                source?.StatusId.ToString(CultureInfo.InvariantCulture) ?? "none",
+                assessment.PlannedStartUtc?.ToString("O", CultureInfo.InvariantCulture) ?? "none",
+                assessment.PlannedEndUtc?.ToString("O", CultureInfo.InvariantCulture) ?? "none",
+                source == null ? "none" : Convert.ToBase64String(source.RowVersion ?? Array.Empty<byte>()),
+                source?.Shift == null ? "none" : Convert.ToBase64String(source.Shift.RowVersion ?? Array.Empty<byte>()));
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+        }
+
+        private static string GetOpenOtpAction(string openContext) => openContext switch
+        {
+            WorkShiftOpenContexts.OutsideSchedule => OtpConstants.ActionTypes.OpenShiftOutsideSchedule,
+            WorkShiftOpenContexts.EarlyForSchedule => OtpConstants.ActionTypes.OpenShiftEarly,
+            _ => OtpConstants.ActionTypes.OpenShiftLate
+        };
 
         private static ServiceResult StaffConflict(WorkShift shift) => shift.Status switch
         {
@@ -1677,7 +1726,7 @@ namespace CafeChain.Application.Services.POS
             }
         }
 
-        public async Task<ServiceResult> ConfirmTerminalRegistrationAsync(
+        public async Task<ServiceResult<TerminalApprovalResultDto>> ConfirmTerminalRegistrationAsync(
             int approverStaffId,
             int storeId,
             Guid challengePublicId,
@@ -1685,13 +1734,18 @@ namespace CafeChain.Application.Services.POS
             string requestKey)
         {
             if (approverStaffId <= 0 || storeId <= 0 || challengePublicId == Guid.Empty)
-                return ServiceResult.Failure("Yêu cầu xác nhận Terminal không hợp lệ.");
+                return ServiceResult<TerminalApprovalResultDto>.Failure("Yêu cầu xác nhận Terminal không hợp lệ.", errorCode: WorkShiftErrorCodes.TerminalApprovalNotFound);
             var normalizedCode = _otpCodeGenerator?.NormalizeAndValidate(otpCode)
                 ?? otpCode?.Trim().ToUpperInvariant();
             if (string.IsNullOrWhiteSpace(normalizedCode))
-                return ServiceResult.Failure("OTP không hợp lệ.", errorCode: OtpConstants.ErrorCodes.Invalid);
+                return ServiceResult<TerminalApprovalResultDto>.Failure("OTP không hợp lệ.", errorCode: OtpConstants.ErrorCodes.Invalid);
+            var normalizedRequestKey = requestKey?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedRequestKey) || normalizedRequestKey.Length > 200)
+                return ServiceResult<TerminalApprovalResultDto>.Failure(
+                    "RequestKey không hợp lệ.",
+                    errorCode: WorkShiftErrorCodes.InvalidRequestKey);
 
-            StaffNotification? notification = null;
+            var terminalNotifications = new List<StaffNotification>();
             await _otpChallengeRepo.BeginTransactionAsync();
             try
             {
@@ -1702,15 +1756,19 @@ namespace CafeChain.Application.Services.POS
                     || challenge.ActionType != OtpConstants.ActionTypes.RegisterTerminal)
                 {
                     await _otpChallengeRepo.RollbackTransactionAsync();
-                    return ServiceResult.Failure(
+                    return ServiceResult<TerminalApprovalResultDto>.Failure(
                         "Yêu cầu OTP không thuộc người xác nhận hoặc chi nhánh hiện tại.",
-                        errorCode: OtpConstants.ErrorCodes.ContextMismatch);
+                        errorCode: WorkShiftErrorCodes.TerminalStoreScopeInvalid);
                 }
 
                 if (challenge.Status == OtpConstants.Statuses.Used)
                 {
                     await _otpChallengeRepo.RollbackTransactionAsync();
-                    return ServiceResult.Success("Terminal đã được xác nhận trước đó.");
+                    return ServiceResult<TerminalApprovalResultDto>.Success(new TerminalApprovalResultDto
+                    {
+                        TerminalId = challenge.TerminalId ?? string.Empty,
+                        AlreadyProcessed = true
+                    }, "Terminal đã được xác nhận trước đó.");
                 }
 
                 var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
@@ -1718,11 +1776,11 @@ namespace CafeChain.Application.Services.POS
                 {
                     challenge.Status = OtpConstants.Statuses.Expired;
                     challenge.ProtectedOtpPayload = null;
-                    notification = await ResolveTerminalNotificationForUpdateAsync(challenge, nowUtc);
+                    terminalNotifications = await ResolveTerminalNotificationsForUpdateAsync(challenge, nowUtc);
                     await _otpChallengeRepo.SaveChangesAsync();
                     await _otpChallengeRepo.CommitTransactionAsync();
-                    await PublishOperationalOtpChangeSafeAsync(challenge, notification, "Expired");
-                    return ServiceResult.Failure(
+                    await PublishOperationalOtpChangeSafeAsync(challenge, terminalNotifications, "Expired");
+                    return ServiceResult<TerminalApprovalResultDto>.Failure(
                         "OTP đã hết hạn. Vui lòng gửi yêu cầu mới.",
                         errorCode: OtpConstants.ErrorCodes.Expired);
                 }
@@ -1731,11 +1789,12 @@ namespace CafeChain.Application.Services.POS
                     await _otpChallengeRepo.RollbackTransactionAsync();
                     var errorCode = challenge.Status switch
                     {
+                        OtpConstants.Statuses.Rejected => WorkShiftErrorCodes.TerminalAlreadyRejected,
                         OtpConstants.Statuses.Cancelled => OtpConstants.ErrorCodes.Cancelled,
                         OtpConstants.Statuses.Locked => OtpConstants.ErrorCodes.VerificationLocked,
                         _ => OtpConstants.ErrorCodes.AlreadyUsed
                     };
-                    return ServiceResult.Failure("OTP không còn ở trạng thái chờ xác nhận.", errorCode: errorCode);
+                    return ServiceResult<TerminalApprovalResultDto>.Failure("OTP không còn ở trạng thái chờ xác nhận.", errorCode: errorCode);
                 }
 
                 if (_permissions != null && challenge.ApproverStaff?.AccountId is int approverAccountId)
@@ -1747,40 +1806,45 @@ namespace CafeChain.Application.Services.POS
                     if (!permission.IsSuccess || permission.Data?.Allowed != true)
                     {
                         await _otpChallengeRepo.RollbackTransactionAsync();
-                        return ServiceResult.Failure(
+                        return ServiceResult<TerminalApprovalResultDto>.Failure(
                             "Người xác nhận không còn quyền đăng ký Terminal.",
-                            errorCode: OtpConstants.ErrorCodes.ApproverNoLongerEligible);
+                            errorCode: WorkShiftErrorCodes.TerminalApprovalForbidden);
                     }
                 }
 
                 if (!BCrypt.Net.BCrypt.Verify(normalizedCode, challenge.OtpHash))
                 {
-                    challenge.FailedAttempts++;
-                    if (challenge.FailedAttempts >= OtpConstants.MaxFailedAttempts)
+                    var wasLocked = OperationalOtpChallengePolicy.RegisterFailedAttempt(challenge, nowUtc);
+                    if (wasLocked)
                     {
-                        challenge.Status = OtpConstants.Statuses.Locked;
-                        challenge.LockedAt = nowUtc;
-                        challenge.ProtectedOtpPayload = null;
-                        notification = await ResolveTerminalNotificationForUpdateAsync(challenge, nowUtc);
+                        terminalNotifications = await ResolveTerminalNotificationsForUpdateAsync(challenge, nowUtc);
                     }
                     await _otpChallengeRepo.SaveChangesAsync();
                     await _otpChallengeRepo.CommitTransactionAsync();
                     if (challenge.Status == OtpConstants.Statuses.Locked)
-                        await PublishOperationalOtpChangeSafeAsync(challenge, notification, "Cancelled");
-                    return ServiceResult.Failure(
+                        await PublishOperationalOtpChangeSafeAsync(challenge, terminalNotifications, "Cancelled");
+                    var failure = ServiceResult<TerminalApprovalResultDto>.Failure(
                         challenge.Status == OtpConstants.Statuses.Locked
                             ? "Yêu cầu OTP đã bị khóa do nhập sai quá số lần cho phép."
                             : $"OTP không đúng. Bạn còn {OtpConstants.MaxFailedAttempts - challenge.FailedAttempts} lần thử.",
                         errorCode: challenge.Status == OtpConstants.Statuses.Locked
                             ? OtpConstants.ErrorCodes.VerificationLocked
                             : OtpConstants.ErrorCodes.Invalid);
+                    failure.Data = new TerminalApprovalResultDto
+                    {
+                        TerminalId = challenge.TerminalId ?? string.Empty,
+                        Status = challenge.Status,
+                        LockedUntilUtc = OperationalOtpChallengePolicy.GetLockedUntilUtc(challenge),
+                        RetryAfter = OperationalOtpChallengePolicy.GetRetryAfterSeconds(challenge, nowUtc)
+                    };
+                    return failure;
                 }
 
                 if (string.IsNullOrWhiteSpace(challenge.TerminalId)
                     || string.IsNullOrWhiteSpace(challenge.TerminalName))
                 {
                     await _otpChallengeRepo.RollbackTransactionAsync();
-                    return ServiceResult.Failure("Challenge thiếu snapshot Terminal.");
+                    return ServiceResult<TerminalApprovalResultDto>.Failure("Challenge thiếu snapshot Terminal.", errorCode: WorkShiftErrorCodes.TerminalNotPending);
                 }
 
                 var terminal = await _shiftRepo.RegisterPosTerminalAsync(
@@ -1790,9 +1854,9 @@ namespace CafeChain.Application.Services.POS
                 challenge.UsedAt = nowUtc;
                 challenge.ConfirmedByStaffId = approverStaffId;
                 challenge.ProtectedOtpPayload = null;
-                challenge.RequestKey ??= string.IsNullOrWhiteSpace(requestKey) ? null : requestKey.Trim();
-                notification = await ResolveTerminalNotificationForUpdateAsync(challenge, nowUtc);
-                if (notification != null)
+                challenge.RequestKey ??= normalizedRequestKey;
+                terminalNotifications = await ResolveTerminalNotificationsForUpdateAsync(challenge, nowUtc);
+                foreach (var notification in terminalNotifications)
                 {
                     notification.IsRead = true;
                     notification.ReadAt ??= nowUtc;
@@ -1814,15 +1878,24 @@ namespace CafeChain.Application.Services.POS
                             RequestKey = challenge.RequestKey
                         });
                 await _otpChallengeRepo.CommitTransactionAsync();
-                await PublishOperationalOtpChangeSafeAsync(challenge, notification, "Used");
-                return ServiceResult.Success("Terminal POS đã được xác nhận và kích hoạt.");
+                await PublishOperationalOtpChangeSafeAsync(challenge, terminalNotifications, "Used");
+                return ServiceResult<TerminalApprovalResultDto>.Success(new TerminalApprovalResultDto
+                {
+                    TerminalId = terminal.TerminalId,
+                    AlreadyProcessed = false
+                }, "Terminal POS đã được xác nhận và kích hoạt.");
+            }
+            catch (WorkShiftBusinessException ex)
+            {
+                await _otpChallengeRepo.RollbackTransactionAsync();
+                return ServiceResult<TerminalApprovalResultDto>.Failure(ex.Message, errorCode: ex.ErrorCode);
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
             {
                 await _otpChallengeRepo.RollbackTransactionAsync();
-                return ServiceResult.Failure(
+                return ServiceResult<TerminalApprovalResultDto>.Failure(
                     "Yêu cầu đang được xử lý ở trình duyệt khác.",
-                    errorCode: WorkShiftErrorCodes.ConcurrencyConflict);
+                    errorCode: WorkShiftErrorCodes.TerminalApprovalConflict);
             }
             catch (Exception ex)
             {
@@ -1831,34 +1904,205 @@ namespace CafeChain.Application.Services.POS
                     "POS_TERMINAL_MANAGER_CONFIRM_FAILED | StoreId={StoreId} ApproverStaffId={ApproverStaffId}",
                     storeId,
                     approverStaffId);
-                return ServiceResult.Failure("Không thể hoàn tất đăng ký Terminal.");
+                return ServiceResult<TerminalApprovalResultDto>.Failure("Không thể hoàn tất đăng ký Terminal.", errorCode: WorkShiftErrorCodes.TerminalApprovalConflict);
             }
         }
 
-        private async Task<StaffNotification?> ResolveTerminalNotificationForUpdateAsync(
+        public async Task<ServiceResult<TerminalApprovalResultDto>> RejectTerminalRegistrationAsync(
+            int rejectorStaffId,
+            int storeId,
+            Guid challengePublicId,
+            string reason,
+            string requestKey)
+        {
+            if (rejectorStaffId <= 0 || storeId <= 0 || challengePublicId == Guid.Empty)
+                return ServiceResult<TerminalApprovalResultDto>.Failure(
+                    "Yêu cầu từ chối Terminal không hợp lệ.",
+                    errorCode: WorkShiftErrorCodes.TerminalApprovalNotFound);
+
+            var normalizedReason = reason?.Trim();
+            if (!IsValidReason(normalizedReason))
+                return ServiceResult<TerminalApprovalResultDto>.Failure(
+                    $"Lý do từ chối phải có từ {_workShiftOptions.MinimumReasonLength} đến {_workShiftOptions.MaximumReasonLength} ký tự và có nội dung cụ thể.",
+                    errorCode: WorkShiftErrorCodes.TerminalRejectionReasonInvalid);
+
+            var normalizedRequestKey = requestKey?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedRequestKey) || normalizedRequestKey.Length > 200)
+                return ServiceResult<TerminalApprovalResultDto>.Failure(
+                    "RequestKey không hợp lệ.",
+                    errorCode: WorkShiftErrorCodes.InvalidRequestKey);
+
+            var rejector = await _shiftRepo.GetStaffForOperatorAsync(rejectorStaffId);
+            if (rejector?.Account == null
+                || !rejector.Active
+                || !rejector.Account.Active
+                || _permissions == null)
+            {
+                return ServiceResult<TerminalApprovalResultDto>.Failure(
+                    "Người dùng không có quyền từ chối đăng ký Terminal.",
+                    errorCode: WorkShiftErrorCodes.TerminalRejectionForbidden);
+            }
+
+            var permission = await _permissions.HasPermissionAsync(
+                rejector.AccountId,
+                PermissionConstants.PosWorkShiftRejectTerminal,
+                storeId);
+            if (!permission.IsSuccess || permission.Data?.Allowed != true)
+                return ServiceResult<TerminalApprovalResultDto>.Failure(
+                    "Bạn không có quyền từ chối đăng ký Terminal trong chi nhánh này.",
+                    errorCode: WorkShiftErrorCodes.TerminalRejectionForbidden);
+
+            var terminalNotifications = new List<StaffNotification>();
+            await _otpChallengeRepo.BeginTransactionAsync();
+            try
+            {
+                var challenge = await _otpChallengeRepo.GetByPublicIdForUpdateAsync(challengePublicId);
+                if (challenge == null)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult<TerminalApprovalResultDto>.Failure(
+                        "Không tìm thấy yêu cầu đăng ký Terminal.",
+                        errorCode: WorkShiftErrorCodes.TerminalApprovalNotFound);
+                }
+                if (challenge.StoreId != storeId
+                    || challenge.ActionType != OtpConstants.ActionTypes.RegisterTerminal)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult<TerminalApprovalResultDto>.Failure(
+                        "Yêu cầu đăng ký Terminal không thuộc phạm vi cửa hàng hiện tại.",
+                        errorCode: WorkShiftErrorCodes.TerminalStoreScopeInvalid);
+                }
+                if (challenge.Status == OtpConstants.Statuses.Rejected)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult<TerminalApprovalResultDto>.Success(new TerminalApprovalResultDto
+                    {
+                        TerminalId = challenge.TerminalId ?? string.Empty,
+                        Status = "REJECTED",
+                        AlreadyProcessed = true
+                    }, "Yêu cầu đăng ký Terminal đã được từ chối trước đó.");
+                }
+                if (challenge.Status == OtpConstants.Statuses.Used)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult<TerminalApprovalResultDto>.Failure(
+                        "Terminal đã được xác nhận nên không thể từ chối.",
+                        errorCode: WorkShiftErrorCodes.TerminalAlreadyApproved);
+                }
+
+                var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+                if (challenge.ExpiresAt <= nowUtc)
+                {
+                    challenge.Status = OtpConstants.Statuses.Expired;
+                    challenge.ProtectedOtpPayload = null;
+                    terminalNotifications = await ResolveTerminalNotificationsForUpdateAsync(challenge, nowUtc);
+                    await _otpChallengeRepo.SaveChangesAsync();
+                    await _otpChallengeRepo.CommitTransactionAsync();
+                    await PublishOperationalOtpChangeSafeAsync(challenge, terminalNotifications, "Expired");
+                    return ServiceResult<TerminalApprovalResultDto>.Failure(
+                        "Yêu cầu đăng ký Terminal đã hết hạn.",
+                        errorCode: OtpConstants.ErrorCodes.Expired);
+                }
+                if (challenge.Status != OtpConstants.Statuses.Pending)
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    return ServiceResult<TerminalApprovalResultDto>.Failure(
+                        "Yêu cầu đăng ký Terminal không còn ở trạng thái chờ xử lý.",
+                        errorCode: WorkShiftErrorCodes.TerminalNotPending);
+                }
+
+                challenge.Status = OtpConstants.Statuses.Rejected;
+                challenge.CancelledAt = nowUtc;
+                challenge.ConfirmedByStaffId = rejectorStaffId;
+                challenge.ProtectedOtpPayload = null;
+                challenge.RequestKey ??= normalizedRequestKey;
+                terminalNotifications = await ResolveTerminalNotificationsForUpdateAsync(challenge, nowUtc);
+                foreach (var notification in terminalNotifications)
+                {
+                    notification.IsRead = true;
+                    notification.ReadAt ??= nowUtc;
+                }
+
+                await _otpChallengeRepo.SaveChangesAsync();
+                if (_audit != null)
+                    await _audit.WriteOtpAsync(
+                        "POS_TERMINAL_REGISTRATION_REJECTED",
+                        challenge.OtpChallengeId,
+                        rejectorStaffId,
+                        new
+                        {
+                            challenge.TerminalId,
+                            challenge.StoreId,
+                            RequestedByStaffId = challenge.RequestedByStaffId,
+                            RejectedByStaffId = rejectorStaffId,
+                            Reason = normalizedReason,
+                            RequestKey = normalizedRequestKey
+                        });
+                await _otpChallengeRepo.CommitTransactionAsync();
+                await PublishOperationalOtpChangeSafeAsync(challenge, terminalNotifications, "Rejected");
+                return ServiceResult<TerminalApprovalResultDto>.Success(new TerminalApprovalResultDto
+                {
+                    TerminalId = challenge.TerminalId ?? string.Empty,
+                    Status = "REJECTED",
+                    AlreadyProcessed = false
+                }, "Đã từ chối yêu cầu đăng ký Terminal.");
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+            {
+                await _otpChallengeRepo.RollbackTransactionAsync();
+                return ServiceResult<TerminalApprovalResultDto>.Failure(
+                    "Yêu cầu đang được xử lý ở trình duyệt khác.",
+                    errorCode: WorkShiftErrorCodes.TerminalApprovalConflict);
+            }
+            catch (Exception ex)
+            {
+                await _otpChallengeRepo.RollbackTransactionAsync();
+                _logger.LogError(ex,
+                    "POS_TERMINAL_REJECT_FAILED | StoreId={StoreId} RejectorStaffId={RejectorStaffId}",
+                    storeId,
+                    rejectorStaffId);
+                return ServiceResult<TerminalApprovalResultDto>.Failure(
+                    "Không thể từ chối yêu cầu đăng ký Terminal.",
+                    errorCode: WorkShiftErrorCodes.TerminalApprovalConflict);
+            }
+        }
+
+        private async Task<List<StaffNotification>> ResolveTerminalNotificationsForUpdateAsync(
             OtpChallenge challenge,
             DateTime nowUtc)
         {
-            if (_staffNotifications == null) return null;
-            var notification = await _staffNotifications.GetByDeduplicationKeyAsync(
-                $"OTP:{challenge.PublicId:N}");
-            if (notification == null) return null;
-            notification.ResolvedAt ??= nowUtc;
-            notification.UpdatedAt = nowUtc;
-            return notification;
+            if (_staffNotifications == null) return new List<StaffNotification>();
+            var notifications = await _staffNotifications.GetActiveByEntityAsync(
+                challenge.StoreId,
+                StaffNotificationTypes.OperationalOtpRequest,
+                StaffNotificationEntityTypes.OtpChallenge,
+                challenge.OtpChallengeId) ?? new List<StaffNotification>();
+            if (notifications.Count == 0)
+            {
+                var legacyNotification = await _staffNotifications.GetByDeduplicationKeyAsync(
+                    $"OTP:{challenge.PublicId:N}");
+                if (legacyNotification != null && legacyNotification.ResolvedAt == null)
+                    notifications.Add(legacyNotification);
+            }
+            foreach (var notification in notifications)
+            {
+                notification.ResolvedAt ??= nowUtc;
+                notification.UpdatedAt = nowUtc;
+            }
+            return notifications;
         }
 
         private async Task PublishOperationalOtpChangeSafeAsync(
             OtpChallenge challenge,
-            StaffNotification? notification,
+            IReadOnlyCollection<StaffNotification> notifications,
             string changeKind)
         {
             if (_operationalOtpPublisher == null) return;
             try
             {
-                if (notification != null)
+                foreach (var notification in notifications)
                     await _operationalOtpPublisher.PublishChangedAsync(
-                        challenge.ApproverStaffId,
+                        notification.RecipientStaffId,
                         new OperationalOtpNotificationChangedDto(
                             Guid.NewGuid().ToString("N"),
                             notification.StaffNotificationId,

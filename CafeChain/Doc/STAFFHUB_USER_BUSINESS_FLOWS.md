@@ -234,11 +234,14 @@ Lưu lại HTTP/error code, ảnh UI bốn viewport và kết quả SQL. Không 
 
 1. Đăng nhập `salesstaff@cafechain.vn`, bấm **Đăng ký terminal**, nhập tên rồi bấm **Gửi yêu cầu xác nhận Terminal**. Double-click hoặc gửi lại cùng `RequestKey` khi challenge còn hiệu lực chỉ trả challenge hiện tại; không tạo OTP, email hay notification thứ hai.
 2. Mỗi yêu cầu có một notification có cấu trúc liên kết `OtpChallenge`, lưu Terminal, Store, requester, approver, thời gian gửi/hết hạn và trạng thái `Waiting`, `Used`, `Expired` hoặc `Cancelled`. Các timestamp truyền qua API có hậu tố `Z`; UI chuyển sang `Asia/Ho_Chi_Minh` để hiển thị.
-3. Đăng nhập `storemanager@cafechain.vn`, mở `/Admin/AdminNotifications`, chọn notification đăng ký Terminal rồi bấm **Xem OTP**. Mã được điền vào form nhưng không tự submit. OTP plaintext chỉ được trả từ endpoint reveal `no-store` cho đúng recipient có `POS.WorkShift.OverrideTerminal` trong StaffScope.
-4. Manager kiểm tra thông tin rồi bấm **Xác nhận Terminal**; backend xác minh, tạo Terminal, consume OTP, audit và cập nhật notification trong transaction. Requester không có endpoint tự hoàn tất đăng ký.
-5. Đóng/mở modal không reset thời gian. UI lấy `serverNowUtc`, `expiresAtUtc` và cooldown từ backend. Explicit **Gửi lại OTP** sau cooldown mới rotate mã.
-6. Ngay sau commit, backend phát sự kiện sanitized để browser approver tải lại notification và hiện popup điều hướng; sự kiện không chứa OTP. SMTP lỗi không hủy challenge; notification nội bộ vẫn dùng được. Worker chủ động chuyển OTP quá hạn, xóa protected OTP và phát trạng thái sau commit.
-7. Requester có thể **Hủy yêu cầu xác nhận Terminal** khi còn `Waiting`; backend đổi sang `Cancelled`, xóa protected OTP, resolve notification và phát trạng thái mới sau commit. Đóng modal chỉ đóng giao diện, không tự hủy challenge.
+3. Đăng nhập `storemanager@cafechain.vn`, mở `/Admin/AdminNotifications`, chọn notification đăng ký Terminal rồi bấm **Xem OTP**. Cả sáu ô vuông phải nằm trên cùng một hàng, được điền đồng bộ và hiển thị thông báo sẵn sàng; mã không tự submit. OTP plaintext chỉ được trả từ endpoint reveal `no-store` cho đúng recipient có `POS.WorkShift.OverrideTerminal` trong StaffScope.
+4. Bấm **Xác nhận Terminal**: UI phải hiện ngay trạng thái đang gửi và chỉ phát một request `POST /Admin/AdminNotifications/ConfirmTerminal`. Nếu quá 15 giây, request bị hủy, nút được bật lại và người dùng nhận thông báo thử lại; không có loading vô hạn.
+5. Manager kiểm tra thông tin rồi bấm **Xác nhận Terminal**. Nếu OTP rỗng/thiếu/sai alphabet, form hiển thị lỗi và focus ô cần nhập thay vì im lặng; Network chưa gửi request. Khi OTP hợp lệ, Network phải có đúng một `POST ConfirmTerminal`; backend xác minh, tạo Terminal, consume OTP, audit và cập nhật notification trong transaction. Requester không có endpoint tự hoàn tất đăng ký.
+6. Đóng/mở modal không reset thời gian. UI lấy `serverNowUtc`, `expiresAtUtc` và cooldown từ backend. Explicit **Gửi lại OTP** sau cooldown mới rotate mã.
+7. Ngay sau commit, backend phát sự kiện sanitized để browser approver tải lại notification và hiện popup điều hướng; sự kiện không chứa OTP. SMTP lỗi không hủy challenge; notification nội bộ vẫn dùng được. Worker chủ động chuyển OTP quá hạn, xóa protected OTP và phát trạng thái sau commit.
+
+Lỗi xác nhận phải hiển thị theo `errorCode`, đặc biệt `OTP_INVALID`, `OTP_EXPIRED`, `OTP_VERIFICATION_LOCKED`, `TERMINAL_APPROVAL_FORBIDDEN`, `TERMINAL_STORE_SCOPE_INVALID`, `TERMINAL_NOT_PENDING`, `TERMINAL_APPROVAL_CONFLICT` và `INVALID_REQUEST_KEY`. Mọi nhánh lỗi phải dừng loading; thành công giữ nút disabled cho tới khi danh sách refresh.
+8. Requester có thể **Hủy yêu cầu xác nhận Terminal** khi còn `Waiting`; backend đổi sang `Cancelled`, xóa protected OTP, resolve notification và phát trạng thái mới sau commit. Đóng modal chỉ đóng giao diện, không tự hủy challenge.
 
 ### Mở WorkShift trễ
 
@@ -257,3 +260,88 @@ Lưu lại HTTP/error code, ảnh UI bốn viewport và kết quả SQL. Không 
 - Chỉ trạng thái hết hạn/revoke/logout/Admin end/Terminal lock mới khóa POS. Client nhận `PosAccessSessionChanged` và vẫn revalidate/poll sau reconnect.
 - Worker session chủ động persist trạng thái hết hạn và thông báo cho browser POS cùng Manager đúng store scope, không chờ request kế tiếp.
 - Countdown dùng deadline server: từ một giờ hiển thị `HH:mm:ss`, dưới một giờ hiển thị `MM:ss`.
+
+## 15. Luồng nghiệm thu authoritative sau refactor (2026-08-09)
+
+Phần này thay thế các bước cũ nếu có mâu thuẫn.
+
+### Truy cập POS bằng URL
+
+1. Chưa mở ca, mở trực tiếp `/order`: React chưa render route nghiệp vụ, gọi `/api/v1/pos/session/current`, rồi quay về StaffHub với thông báo chưa mở ca.
+2. WorkShift `OPEN`: API trả `accessMode=ACTIVE`; bán hàng/history/inventory/notification được phép.
+3. Sau khi đóng ca hoặc chuyển `RECONCILIATION_REQUIRED`: session thành `WORKSHIFT_ENDED`; refresh hoặc nhập lại URL bị từ chối.
+4. Thiếu `App.POS`, sai store, terminal inactive/chưa approved hoặc WorkShift không thuộc đúng staff/store/terminal: backend trả 401/403 và UI không render POS.
+5. `OPENING_CASH` và `PENDING_CLOSE` chỉ vào `/shift`; chưa mở ca không được chuyển tác vụ.
+
+### Lịch đổi khi modal đang mở
+
+1. Mở modal và ghi nhận `assessmentVersion` từ preview.
+2. Manager đổi giờ của chính `StaffShift`, đổi Shift template hoặc hủy lịch.
+3. Requester bấm request OTP/approval/tiếp tục POS; frontend gửi version cũ.
+4. Backend đọc DB, trả HTTP 409 `SHIFT_SCHEDULE_CHANGED` cùng assessment mới; OTP/approval không bị consume, WorkShift không được tạo.
+5. Modal giữ mở, hiện **“Lịch làm việc của bạn vừa được thay đổi. Vui lòng kiểm tra lại lịch mới trước khi mở ca.”**, thay dữ liệu mới và bắt xác nhận lại.
+
+### Mở sớm, trễ và ngoài lịch
+
+- Trễ trên 30 phút đi theo luồng yêu cầu Manager, không dùng OTP; boundary chi tiết vẫn là 30–45 phút và trên 45 phút như dưới đây.
+- Trong 30 phút trước giờ bắt đầu: được tiếp tục theo `WITHIN_SCHEDULE`.
+- Sớm hơn 30 phút: nhập lý do 10–500, gửi OTP cho approver có `POS.WorkShift.ApproveOutsideSchedule`, xác nhận rồi mới được phát ticket.
+- Trễ đến 15 phút: mở và audit. Trễ 16–29 phút: nhập lý do 10–500. Trễ 30–45 phút: Manager quyết định với lý do. Trễ trên 45 phút: chỉ reject/convert outside.
+- Ngoài lịch: requester phải có `POS.WorkShift.OpenOutsideSchedule`, nhập lý do 10–500 và dùng OTP đúng scope.
+- Mọi trường hợp chỉ tạo WorkShift sau khi POS xác nhận tiền đầu ca. Việc chỉ mở/đóng modal không đổi trạng thái ca.
+
+### Nhập OTP/PIN và khóa OTP
+
+1. Sáu ô tự chuyển focus; Backspace ở ô rỗng quay lại ô trước; paste chia tối đa sáu ký tự.
+2. OTP normalize uppercase và chỉ nhận `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`. PIN chỉ nhận số; các PIN yếu hiện hành vẫn bị chặn.
+3. Nhập OTP sai lần thứ 3: backend trả deadline khóa 120 giây; verify và **Gửi lại OTP** bị khóa. Countdown phải giữ đúng sau refresh, đóng/mở modal hoặc login lại.
+4. Khi `00:00`, bấm resend để rotate mã và reset attempts; mã cũ không còn dùng được. Rate limit 15 phút vẫn kiểm riêng.
+5. **Copy OTP** chỉ có tại notification sau khi người duyệt đã bấm **Xem OTP** hợp lệ. Clipboard chỉ nhận sáu ký tự, không whitespace; hiện **“Đã sao chép mã OTP”**.
+
+### Xác nhận Terminal
+
+1. Requester gửi đăng ký; challenge/notification là `PENDING_APPROVAL`, chưa có `PosTerminal` active.
+2. Manager nhận notification, bấm **Xem OTP**, kiểm store/terminal/requester rồi bấm **Xác nhận Terminal**.
+3. Backend kiểm recipient, `POS.WorkShift.OverrideTerminal`, StaffScope, challenge/action/state/OTP và commit transaction; success trả `terminalId`, `APPROVED`, `alreadyProcessed`.
+4. Double-click bị disable ở UI; request thứ hai vẫn nhận kết quả idempotent, không tạo Terminal trùng.
+5. Staff hoặc Manager sai store nhận 403 theo `TERMINAL_APPROVAL_FORBIDDEN`/`TERMINAL_STORE_SCOPE_INVALID`. Challenge không pending nhận 409; không tìm thấy nhận 404.
+6. Nếu API lỗi, button luôn thoát loading trong `finally` và UI hiển thị thông báo theo `errorCode`, không parse message.
+
+### Checklist nghiệm thu cuối
+
+- POS direct URL: chưa mở/đã đóng/thiếu permission/terminal sai đều DENY; WorkShift `OPEN` ALLOW.
+- Schedule cùng ID nhưng đổi giờ phải trả `SHIFT_SCHEDULE_CHANGED`.
+- Boundary sớm `-30` phút ALLOW, `-31` phút cần override; late kiểm đủ 15/30/45.
+- OTP kiểm input, paste, normalize, ký tự dấu/đặc biệt, lock 120 giây, refresh và resend rotate.
+- Terminal kiểm success, 403 staff, 403 wrong store, expired/locked OTP, double request và loading reset.
+- Audit không chứa OTP/PIN; unique active staff/terminal và rowversion phải giữ đúng khi race.
+
+## 16. Xác nhận/từ chối Terminal và quyền button StaffHub
+
+### Người gửi tại StaffHub
+
+1. Button **Mở POS** chỉ xuất hiện khi có `App.POS` và `POS.WorkShift.Open`.
+2. Button **Đăng ký terminal** chỉ xuất hiện khi có `App.POS` và `POS.Terminal.RequestRegistration`.
+3. Khối **Thiết lập/Đổi PIN** chỉ xuất hiện khi có `App.POS` và `POS.Operator.ManageOwnPin`.
+4. Sau khi người duyệt xác nhận, StaffHub nhận realtime, hiện SweetAlert **Terminal đã được xác nhận**, rồi tự reload để Terminal mới xuất hiện.
+5. Nếu Chủ doanh nghiệp hoặc Quản lý chi nhánh từ chối, StaffHub hiện SweetAlert cảnh báo, tự reload và cho phép tạo yêu cầu mới.
+
+Ẩn button chỉ là UX. Gọi trực tiếp endpoint khi thiếu permission vẫn nhận 403.
+
+### Người duyệt tại Admin Thông báo
+
+- Chủ doanh nghiệp và Quản lý chi nhánh có `POS.WorkShift.RejectTerminal` nhìn thấy **Từ chối đăng ký Terminal**.
+- Nhập lý do cụ thể từ 10 đến 500 ký tự; UI có counter và xác nhận SweetAlert trước khi gửi.
+- Reject không cần xem hoặc nhập OTP. Backend vẫn kiểm notification recipient, permission, StaffScope, store và trạng thái challenge.
+- Xác nhận thành công tạo `PosTerminal`; từ chối chuyển challenge sang `REJECTED` và tuyệt đối không tạo Terminal.
+- Double-click bị khóa ở UI; backend xử lý lặp idempotent/concurrency có kiểm soát.
+
+Ma trận SeedAll mặc định:
+
+| Quyền | Chủ DN | QL vùng | QL chi nhánh | NV bán hàng | Ca trưởng |
+|---|---:|---:|---:|---:|---:|
+| `POS.Terminal.RequestRegistration` | 0 | 0 | 1 | 1 | 1 |
+| `POS.Operator.ManageOwnPin` | 0 | 0 | 1 | 1 | 1 |
+| `POS.Operator.Switch` | 0 | 0 | 1 | 1 | 1 |
+| `POS.WorkShift.OverrideTerminal` | 1 | 1 | 1 | 0 | 0 |
+| `POS.WorkShift.RejectTerminal` | 1 | 0 | 1 | 0 | 0 |

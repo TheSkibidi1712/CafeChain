@@ -6,6 +6,7 @@ namespace CafeChain.Controllers.Api.v1;
 
 /// <summary>Thin HTTP adapter for cashier-driven payment cancellation actions.</summary>
 [Route("api/v1/pos/payments")]
+[CafeChain.Application.Authorization.RequireActivePosShift]
 public sealed class POSPaymentController : PosApiController
 {
     private readonly IPOSPaymentCancellationService _service;

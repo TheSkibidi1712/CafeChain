@@ -33,6 +33,7 @@ public sealed class PosSessionExchangeContextDto
     public string? TerminalId { get; set; }
     public string? RequestKey { get; set; }
     public string? OpenContext { get; set; }
+    public string? AssessmentVersion { get; set; }
     public int? SourceStaffShiftId { get; set; }
     public DateTime? PlannedStartUtc { get; set; }
     public DateTime? PlannedEndUtc { get; set; }

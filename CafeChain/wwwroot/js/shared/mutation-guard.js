@@ -114,7 +114,8 @@
         if (!(field instanceof HTMLElement)) return;
         field.classList.add("is-invalid");
         field.setAttribute("aria-invalid", "true");
-        if (field.closest("form")?.dataset.validationFeedback === "sweetalert") return;
+        const validationFeedback = field.closest("form")?.dataset.validationFeedback;
+        if (validationFeedback === "sweetalert" || validationFeedback === "inline") return;
         if (validationToastPending) return;
         validationToastPending = true;
         queueMicrotask(function () {
@@ -130,7 +131,10 @@
     document.addEventListener("input", function (event) {
         const field = event.target;
         if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) return;
-        if (field.checkValidity()) {
+        // Reading ValidityState does not dispatch an `invalid` event. Calling
+        // checkValidity() here made every keystroke before minlength was met
+        // create another global warning toast.
+        if (field.validity.valid) {
             field.classList.remove("is-invalid");
             field.removeAttribute("aria-invalid");
         }

@@ -48,6 +48,26 @@ public sealed class PosSessionAndLateApprovalPermissionSeedTests
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Seed_distributes_staffhub_button_and_terminal_rejection_permissions_by_role()
+    {
+        var root = FindRepositoryRoot();
+        var seed = File.ReadAllText(Path.Combine(root, "CafeChain", "Scripts", "SeedAll.sql"));
+
+        Assert.Contains(
+            $"(N'{PermissionConstants.PosWorkShiftRejectTerminal}',1,0,1,0,0,0,0,0)",
+            seed,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            $"(N'{PermissionConstants.PosTerminalRequestRegistration}',0,0,1,1,0,0,0,1)",
+            seed,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            $"(N'{PermissionConstants.PosOperatorManageOwnPin}',0,0,1,1,0,0,0,1)",
+            seed,
+            StringComparison.Ordinal);
+    }
+
     private static string FindRepositoryRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

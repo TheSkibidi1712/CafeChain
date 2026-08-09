@@ -148,6 +148,7 @@ namespace CafeChain.Application.Services.POS
             var targetId = build.TargetId!.Value;
             var workShiftId = build.WorkShiftId;
             StaffNotification? notification = null;
+            var createdNotifications = new List<StaffNotification>();
 
             await _repository.BeginTransactionAsync();
             try
@@ -331,6 +332,20 @@ namespace CafeChain.Application.Services.POS
                             actionLabel: ResolveActionLabel(actionType),
                             nowUtc);
                         _staffNotifications.Add(notification);
+                        createdNotifications.Add(notification);
+                        if (actionType == OtpConstants.ActionTypes.RegisterTerminal)
+                        {
+                            foreach (var reviewerNotification in await BuildTerminalRejectionNotificationsAsync(
+                                challenge,
+                                requester.FullName,
+                                store.Name,
+                                approver.StaffId,
+                                nowUtc))
+                            {
+                                _staffNotifications.Add(reviewerNotification);
+                                createdNotifications.Add(reviewerNotification);
+                            }
+                        }
                         await _staffNotifications.SaveChangesAsync();
                     }
                     await _repository.CommitTransactionAsync();
@@ -376,7 +391,7 @@ namespace CafeChain.Application.Services.POS
 
                 // The internal notification is authoritative and should reach
                 // the approver immediately. SMTP delivery is a secondary channel.
-                await PublishChangedSafeAsync(challenge, notification, "Created");
+                await PublishChangedSafeAsync(challenge, createdNotifications, "Created");
 
                 var approverRoleLabel = ResolveApproverRoleLabel(approver);
                 var actionLabel = ResolveActionLabel(actionType);
@@ -487,7 +502,7 @@ namespace CafeChain.Application.Services.POS
                 var isValidOtp = BCrypt.Net.BCrypt.Verify(code, challenge.OtpHash);
                 if (!isValidOtp)
                 {
-                    challenge.FailedAttempts++;
+                    var wasLocked = OperationalOtpChallengePolicy.RegisterFailedAttempt(challenge, nowUtc);
                     _logger.LogWarning(
                         "OTP_VERIFY_FAILED | ChallengeId={ChallengeId} StoreId={StoreId} StaffId={StaffId} Action={Action} FailedAttempts={FailedAttempts}",
                         challenge.OtpChallengeId,
@@ -506,11 +521,8 @@ namespace CafeChain.Application.Services.POS
                             challenge.ClientIpHash,
                             challenge.DeviceFingerprintHash
                         });
-                    if (challenge.FailedAttempts >= OtpConstants.MaxFailedAttempts)
+                    if (wasLocked)
                     {
-                        challenge.Status = OtpConstants.Statuses.Locked;
-                        challenge.LockedAt = nowUtc;
-                        challenge.ProtectedOtpPayload = null;
                         await _repository.SaveChangesAsync();
                         await _repository.CommitTransactionAsync();
                         await ResolveOtpNotificationAsync(challenge, "Resolved");
@@ -663,7 +675,7 @@ namespace CafeChain.Application.Services.POS
                     return ServiceResult<OtpChallengeResponseDto>.Failure("Không tìm thấy yêu cầu OTP.");
                 }
 
-                if (challenge.Status != OtpConstants.Statuses.Pending)
+                if (challenge.Status is not (OtpConstants.Statuses.Pending or OtpConstants.Statuses.Locked))
                 {
                     await _repository.RollbackTransactionAsync();
                     return Failure("Yêu cầu OTP hiện tại không thể gửi lại.", challenge, nowUtc);
@@ -685,12 +697,11 @@ namespace CafeChain.Application.Services.POS
                     return Failure("Yêu cầu OTP đã vượt quá số lần gửi lại cho phép.", challenge, nowUtc);
                 }
 
-                var nextAllowed = challenge.LastSentAt.AddSeconds(OtpConstants.ResendCooldownSeconds);
-                if (nextAllowed > nowUtc)
+                if (!OperationalOtpChallengePolicy.CanResend(challenge, nowUtc, out var waitSeconds))
                 {
                     await _repository.RollbackTransactionAsync();
-                    var waitSeconds = (int)Math.Ceiling((nextAllowed - nowUtc).TotalSeconds);
-                    return Failure($"Vui lòng đợi {waitSeconds} giây trước khi gửi lại OTP.", challenge, nowUtc);
+                    return Failure($"Vui lòng đợi {waitSeconds} giây trước khi gửi lại OTP.", challenge, nowUtc,
+                        OtpConstants.ErrorCodes.ResendCooldown);
                 }
 
                 if (challenge.Store == null || challenge.ApproverStaff?.Account == null)
@@ -716,10 +727,7 @@ namespace CafeChain.Application.Services.POS
                 challenge.ExpiresAt = nowUtc.AddMinutes(OtpConstants.TtlMinutes);
                 challenge.LastSentAt = nowUtc;
                 challenge.ResendCount++;
-                challenge.Status = OtpConstants.Statuses.Pending;
-                challenge.ApprovedAt = null;
-                challenge.LockedAt = null;
-                challenge.CancelledAt = null;
+                OperationalOtpChallengePolicy.ResetAfterResend(challenge);
                 challenge.ProtectedOtpPayload = _otpProtectedPayload?.Protect(
                     challenge.PublicId,
                     challenge.ApproverStaffId,
@@ -914,6 +922,7 @@ namespace CafeChain.Application.Services.POS
                 await _repository.BeginTransactionAsync();
                 var challenge = await _repository.GetByPublicIdForUpdateAsync(request.OtpChallengePublicId);
                 var isOpenIntent = challenge?.ActionType is OtpConstants.ActionTypes.OpenShiftLate
+                    or OtpConstants.ActionTypes.OpenShiftEarly
                     or OtpConstants.ActionTypes.OpenShiftOutsideSchedule;
                 if (challenge == null || !isOpenIntent
                     || challenge.RequestedByStaffId != requestedByStaffId
@@ -1024,6 +1033,7 @@ namespace CafeChain.Application.Services.POS
             }
 
             if (actionType == OtpConstants.ActionTypes.OpenShiftLate
+                || actionType == OtpConstants.ActionTypes.OpenShiftEarly
                 || actionType == OtpConstants.ActionTypes.OpenShiftOutsideSchedule)
             {
                 // No WorkShift yet — target is the actor staff id.
@@ -1081,6 +1091,9 @@ namespace CafeChain.Application.Services.POS
         private static string OtpNotificationKey(Guid publicId) =>
             $"OTP:{publicId:N}";
 
+        private static string TerminalRejectionNotificationKey(Guid publicId, int recipientStaffId) =>
+            $"OTP:{publicId:N}:REJECT:{recipientStaffId}";
+
         private static StaffNotification BuildOtpNotification(
             OtpChallenge challenge,
             string requesterName,
@@ -1107,6 +1120,54 @@ namespace CafeChain.Application.Services.POS
             EmailSent = false
         };
 
+        private async Task<IReadOnlyList<StaffNotification>> BuildTerminalRejectionNotificationsAsync(
+            OtpChallenge challenge,
+            string requesterName,
+            string storeName,
+            int selectedApproverStaffId,
+            DateTime nowUtc)
+        {
+            if (_permissions == null || _staffNotifications == null)
+                return Array.Empty<StaffNotification>();
+
+            var notifications = new List<StaffNotification>();
+            foreach (var candidate in await _repository.GetOtpApproverCandidatesAsync(challenge.RequestedByStaffId))
+            {
+                if (candidate.StaffId == selectedApproverStaffId || candidate.AccountId <= 0)
+                    continue;
+
+                var permission = await _permissions.HasPermissionAsync(
+                    candidate.AccountId,
+                    PermissionConstants.PosWorkShiftRejectTerminal,
+                    challenge.StoreId);
+                if (!permission.IsSuccess || permission.Data?.Allowed != true)
+                    continue;
+
+                notifications.Add(new StaffNotification
+                {
+                    StoreId = challenge.StoreId,
+                    RecipientStaffId = candidate.StaffId,
+                    Type = StaffNotificationTypes.OperationalOtpRequest,
+                    Title = "Yêu cầu đăng ký Terminal đang chờ phê duyệt",
+                    Body = $"{requesterName} yêu cầu đăng ký Terminal tại {storeName}. " +
+                           "Chủ doanh nghiệp có thể từ chối yêu cầu này nếu thiết bị không hợp lệ.",
+                    Severity = "WARNING",
+                    DeduplicationKey = TerminalRejectionNotificationKey(challenge.PublicId, candidate.StaffId),
+                    MeaningfulVersion = challenge.ExpiresAt.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    EntityType = StaffNotificationEntityTypes.OtpChallenge,
+                    EntityId = challenge.OtpChallengeId,
+                    OtpChallengeId = challenge.OtpChallengeId,
+                    IsRead = false,
+                    CreatedAt = nowUtc,
+                    UpdatedAt = nowUtc,
+                    EmailAttempted = false,
+                    EmailSent = false
+                });
+            }
+
+            return notifications;
+        }
+
         private async Task ResolveFailedDeliveryAsync(
             StaffNotification? notification,
             string safeError)
@@ -1126,20 +1187,42 @@ namespace CafeChain.Application.Services.POS
             if (_staffNotifications == null)
                 return;
 
-            var notification = await _staffNotifications.GetByDeduplicationKeyAsync(
-                OtpNotificationKey(challenge.PublicId));
-            if (notification == null)
+            var notifications = await _staffNotifications.GetActiveByEntityAsync(
+                challenge.StoreId,
+                StaffNotificationTypes.OperationalOtpRequest,
+                StaffNotificationEntityTypes.OtpChallenge,
+                challenge.OtpChallengeId) ?? new List<StaffNotification>();
+            if (notifications.Count == 0)
+            {
+                var legacyNotification = await _staffNotifications.GetByDeduplicationKeyAsync(
+                    OtpNotificationKey(challenge.PublicId));
+                if (legacyNotification != null && legacyNotification.ResolvedAt == null)
+                    notifications.Add(legacyNotification);
+            }
+            if (notifications.Count == 0)
                 return;
 
-            notification.ResolvedAt ??= UtcNow;
-            notification.UpdatedAt = UtcNow;
+            foreach (var notification in notifications)
+            {
+                notification.ResolvedAt ??= UtcNow;
+                notification.UpdatedAt = UtcNow;
+            }
             await _staffNotifications.SaveChangesAsync();
-            await PublishChangedSafeAsync(challenge, notification, changeKind);
+            await PublishChangedSafeAsync(challenge, notifications, changeKind);
         }
+
+        private Task PublishChangedSafeAsync(
+            OtpChallenge challenge,
+            StaffNotification? notification,
+            string changeKind) =>
+            PublishChangedSafeAsync(
+                challenge,
+                notification == null ? Array.Empty<StaffNotification>() : new[] { notification },
+                changeKind);
 
         private async Task PublishChangedSafeAsync(
             OtpChallenge challenge,
-            StaffNotification? notification,
+            IReadOnlyCollection<StaffNotification> notifications,
             string changeKind)
         {
             if (_otpNotificationPublisher == null)
@@ -1147,9 +1230,9 @@ namespace CafeChain.Application.Services.POS
 
             try
             {
-                if (notification != null)
+                foreach (var notification in notifications)
                     await _otpNotificationPublisher.PublishChangedAsync(
-                        challenge.ApproverStaffId,
+                        notification.RecipientStaffId,
                         new OperationalOtpNotificationChangedDto(
                             Guid.NewGuid().ToString("N"),
                             notification.StaffNotificationId,
@@ -1206,6 +1289,8 @@ namespace CafeChain.Application.Services.POS
                 return OtpConstants.ActionTypes.CloseShiftException;
             if (string.Equals(value, OtpConstants.ActionTypes.OpenShiftLate, StringComparison.OrdinalIgnoreCase))
                 return OtpConstants.ActionTypes.OpenShiftLate;
+            if (string.Equals(value, OtpConstants.ActionTypes.OpenShiftEarly, StringComparison.OrdinalIgnoreCase))
+                return OtpConstants.ActionTypes.OpenShiftEarly;
             if (string.Equals(value, OtpConstants.ActionTypes.OpenShiftOutsideSchedule, StringComparison.OrdinalIgnoreCase))
                 return OtpConstants.ActionTypes.OpenShiftOutsideSchedule;
             if (string.Equals(value, OtpConstants.ActionTypes.RegisterTerminal, StringComparison.OrdinalIgnoreCase))
@@ -1220,6 +1305,7 @@ namespace CafeChain.Application.Services.POS
                 OtpConstants.ActionTypes.CashDifference => "Xác nhận đóng ca có chênh lệch",
                 OtpConstants.ActionTypes.CloseShiftException => "Xác nhận đóng ca ngoại lệ",
                 OtpConstants.ActionTypes.OpenShiftLate => "Xác nhận mở ca trễ",
+                OtpConstants.ActionTypes.OpenShiftEarly => "Xác nhận mở ca sớm",
                 OtpConstants.ActionTypes.OpenShiftOutsideSchedule => "Xác nhận mở POS ngoài lịch",
                 OtpConstants.ActionTypes.RegisterTerminal => "Xác nhận đăng ký terminal POS",
                 _ => "Xác nhận OTP"
@@ -1297,8 +1383,9 @@ namespace CafeChain.Application.Services.POS
             bool wasExistingActive = false)
         {
             var expiresInSeconds = Math.Max(0, (int)Math.Ceiling((challenge.ExpiresAt - nowUtc).TotalSeconds));
-            var resendAvailableAt = challenge.LastSentAt.AddSeconds(OtpConstants.ResendCooldownSeconds);
-            var resendAvailableInSeconds = Math.Max(0, (int)Math.Ceiling((resendAvailableAt - nowUtc).TotalSeconds));
+            OperationalOtpChallengePolicy.CanResend(challenge, nowUtc, out var resendAvailableInSeconds);
+            var lockedUntilUtc = OperationalOtpChallengePolicy.GetLockedUntilUtc(challenge);
+            var retryAfter = OperationalOtpChallengePolicy.GetRetryAfterSeconds(challenge, nowUtc);
             var remainingAttempts = Math.Max(0, OtpConstants.MaxFailedAttempts - challenge.FailedAttempts);
 
             return new OtpChallengeResponseDto
@@ -1309,6 +1396,8 @@ namespace CafeChain.Application.Services.POS
                 ActionType = challenge.ActionType,
                 OpenContext = challenge.ActionType == OtpConstants.ActionTypes.OpenShiftOutsideSchedule
                     ? WorkShiftOpenContexts.OutsideSchedule
+                    : challenge.ActionType == OtpConstants.ActionTypes.OpenShiftEarly
+                        ? WorkShiftOpenContexts.EarlyForSchedule
                     : challenge.ActionType == OtpConstants.ActionTypes.OpenShiftLate
                         ? WorkShiftOpenContexts.LateForSchedule
                         : null,
@@ -1319,6 +1408,9 @@ namespace CafeChain.Application.Services.POS
                 ExpiresInSeconds = expiresInSeconds,
                 ResendAvailableInSeconds = resendAvailableInSeconds,
                 RemainingAttempts = remainingAttempts,
+                Locked = challenge.Status == OtpConstants.Statuses.Locked,
+                LockedUntilUtc = lockedUntilUtc,
+                RetryAfter = retryAfter,
                 WasExistingActive = wasExistingActive
             };
         }

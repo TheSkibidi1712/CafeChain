@@ -67,7 +67,8 @@ public sealed class StaffHubPreviewOpenPosControllerTests
             {
                 OpenContext = WorkShiftOpenContexts.OutsideSchedule,
                 ReasonRequired = true,
-                ApprovalRequired = true
+                ApprovalRequired = true,
+                AssessmentVersion = "assessment-v1"
             }));
         var otp = new Mock<IOtpApprovalService>();
         otp.Setup(x => x.RequestOtpAsync(
@@ -87,7 +88,8 @@ public sealed class StaffHubPreviewOpenPosControllerTests
         {
             TerminalId = "terminal-1",
             RequestKey = Guid.NewGuid().ToString("N"),
-            Reason = "Mở POS ngoài lịch để hỗ trợ cửa hàng."
+            Reason = "Mở POS ngoài lịch để hỗ trợ cửa hàng.",
+            AssessmentVersion = "assessment-v1"
         }, CancellationToken.None);
 
         Assert.IsType<OkObjectResult>(response);

@@ -13,6 +13,7 @@ public static class OperationalOtpAuthorization
         permissionCode = actionType switch
         {
             OtpConstants.ActionTypes.OpenShiftLate => PermissionConstants.PosWorkShiftApproveOutsideSchedule,
+            OtpConstants.ActionTypes.OpenShiftEarly => PermissionConstants.PosWorkShiftApproveOutsideSchedule,
             OtpConstants.ActionTypes.OpenShiftOutsideSchedule => PermissionConstants.PosWorkShiftApproveOutsideSchedule,
             OtpConstants.ActionTypes.CashDifference => PermissionConstants.PosWorkShiftClose,
             OtpConstants.ActionTypes.CloseShiftException => PermissionConstants.PosWorkShiftCloseException,

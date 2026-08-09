@@ -11,6 +11,7 @@ namespace CafeChain.Controllers.Api.v1
     /// <summary>Issue #134 — full-order cash refund API.</summary>
     [Route("api/v1/pos/refunds")]
     [Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
+    [CafeChain.Application.Authorization.RequireActivePosShift]
     public sealed class POSOrderRefundController : PosApiController
     {
         private readonly IOrderRefundService _refundService;

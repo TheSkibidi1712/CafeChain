@@ -240,6 +240,87 @@ public sealed class StaffHubPosRefactorContractTests
         Assert.Contains("queueMicrotask(() =>", summary, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Pos_routes_are_gated_by_authoritative_current_session_before_render()
+    {
+        var app = Read("CafeChain.Frontend", "src", "App.tsx");
+        var gate = Read("CafeChain.Frontend", "src", "components", "PosAccessGate.tsx");
+        var session = Read("CafeChain", "Application", "Services", "POS", "PosAccessSessionService.cs");
+
+        Assert.Contains("<Route path=\"/\" element={<RootLayout />}", app, StringComparison.Ordinal);
+        Assert.Contains("<PosAccessGate>", app, StringComparison.Ordinal);
+        Assert.Contains("/api/v1/pos/session/current", gate, StringComparison.Ordinal);
+        Assert.Contains("snapshot.accessMode !== 'ACTIVE'", gate, StringComparison.Ordinal);
+        Assert.Contains("clearPosAuthentication()", gate, StringComparison.Ordinal);
+        Assert.Contains("WorkShiftStatuses.Closed or WorkShiftStatuses.ReconciliationRequired", session, StringComparison.Ordinal);
+        Assert.Contains("PosAccessSessionStatuses.WorkShiftEnded", session, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Sales_apis_require_app_pos_and_open_workshift_access_mode()
+    {
+        var baseController = Read("CafeChain", "Controllers", "Api", "v1", "PosApiController.cs");
+        var guard = Read("CafeChain", "Application", "Authorization", "RequireActivePosShiftAttribute.cs");
+        var order = Read("CafeChain", "Controllers", "Api", "v1", "POSOrderController.cs");
+        var payment = Read("CafeChain", "Controllers", "Api", "v1", "POSPaymentController.cs");
+
+        Assert.Contains("PermissionConstants.AppPos", baseController, StringComparison.Ordinal);
+        Assert.Contains("JwtBearerDefaults.AuthenticationScheme", baseController, StringComparison.Ordinal);
+        Assert.Contains("PosAccessModes.Active", guard, StringComparison.Ordinal);
+        Assert.Contains("ShiftNotOpened", guard, StringComparison.Ordinal);
+        Assert.Contains("RequireActivePosShift", order, StringComparison.Ordinal);
+        Assert.Contains("RequireActivePosShift", payment, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Staffhub_carries_assessment_version_and_refreshes_stale_modal()
+    {
+        var dto = Read("CafeChain", "Application", "DTOs", "POS", "OpenShiftRequestDto.cs");
+        var service = Read("CafeChain", "Application", "Services", "POS", "WorkShiftService.cs");
+        var script = Read("CafeChain", "wwwroot", "js", "StaffHub", "staffhub-schedule.js");
+
+        Assert.Contains("AssessmentVersion", dto, StringComparison.Ordinal);
+        Assert.Contains("SHA256.HashData", service, StringComparison.Ordinal);
+        Assert.Contains("ShiftScheduleChanged", service, StringComparison.Ordinal);
+        Assert.Contains("AssessmentVersion: assessmentVersion()", script, StringComparison.Ordinal);
+        Assert.Contains("await previewOpen()", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Verification_code_inputs_are_shared_and_terminal_actions_always_reset_busy_state()
+    {
+        var reactInput = Read("CafeChain.Frontend", "src", "components", "VerificationCodeInput.tsx");
+        var razorInput = Read("CafeChain", "wwwroot", "js", "shared", "verification-code-input.js");
+        var razorInputCss = Read("CafeChain", "wwwroot", "css", "shared", "verification-code-input.css");
+        var adminCss = Read("CafeChain", "wwwroot", "css", "Admin", "Notifications", "admin-notifications.css");
+        var notifications = Read("CafeChain.Frontend", "src", "pages", "Notifications.tsx");
+        var admin = Read("CafeChain", "wwwroot", "js", "Admin", "Notifications", "admin-notification-list.js");
+
+        Assert.Contains("onPaste", reactInput, StringComparison.Ordinal);
+        Assert.Contains("Backspace", reactInput, StringComparison.Ordinal);
+        Assert.Contains("OPERATIONAL_OTP_ALPHABET", reactInput, StringComparison.Ordinal);
+        Assert.Contains("data-verification-code-input", razorInput, StringComparison.Ordinal);
+        Assert.Contains("isComplete(input)", razorInput, StringComparison.Ordinal);
+        Assert.Contains("focusFirstIncomplete(input)", razorInput, StringComparison.Ordinal);
+        Assert.Contains("setInvalid(input, invalid)", razorInput, StringComparison.Ordinal);
+        Assert.Contains("input.required = false", razorInput, StringComparison.Ordinal);
+        Assert.Contains("cell.required = required", razorInput, StringComparison.Ordinal);
+        Assert.Contains("cell.id = `${groupId}-cell-${index + 1}`", razorInput, StringComparison.Ordinal);
+        Assert.Contains("grid-template-columns: repeat(6", razorInputCss, StringComparison.Ordinal);
+        Assert.Contains("span:not(.verification-code-input)", adminCss, StringComparison.Ordinal);
+        Assert.Contains("navigator.clipboard.writeText", notifications, StringComparison.Ordinal);
+        Assert.Contains("finally", notifications, StringComparison.Ordinal);
+        Assert.Contains("finally", admin, StringComparison.Ordinal);
+        Assert.Contains("VerificationCodeInput.setValue(otpInput, payload.data.code)", admin, StringComparison.Ordinal);
+        Assert.Contains("if (!isCompleteOtp(otpInput))", admin, StringComparison.Ordinal);
+        Assert.Contains("event.stopImmediatePropagation()", admin, StringComparison.Ordinal);
+        Assert.Contains("formData.set(\"OtpCode\"", admin, StringComparison.Ordinal);
+        Assert.Contains("async function confirmTerminalForm(form)", admin, StringComparison.Ordinal);
+        Assert.Contains("abortController.abort()", admin, StringComparison.Ordinal);
+        Assert.Contains(".notification-terminal-confirm-form [data-submit-once]", admin, StringComparison.Ordinal);
+        Assert.Contains("terminalErrorMessages", admin, StringComparison.Ordinal);
+    }
+
     private static string Read(params string[] path) =>
         File.ReadAllText(Path.Combine([RepoRoot(), .. path]));
 

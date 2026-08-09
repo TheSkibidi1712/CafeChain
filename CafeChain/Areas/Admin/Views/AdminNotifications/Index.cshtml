@@ -21,6 +21,7 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/Admin/Notifications/admin-notifications.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/shared/verification-code-input.css" asp-append-version="true" />
 }
 
 <main class="notification-page cc-page cc-warehouse-page">
@@ -128,21 +129,46 @@
                                             }
                                             @if (otp.CanContinueTerminalConfirmation)
                                             {
-                                                <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="ConfirmTerminal" method="post" class="notification-terminal-confirm-form">
+                                                <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="ConfirmTerminal" method="post" class="notification-terminal-confirm-form" data-validation-feedback="inline" novalidate>
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="id" value="@item.NotificationId" />
                                                     <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
                                                     <label>
                                                         <span>Nhập OTP để xác nhận Terminal</span>
-                                                        <input name="OtpCode" maxlength="6" autocomplete="one-time-code" required />
+                                                        <input name="OtpCode" maxlength="6" autocomplete="one-time-code" data-verification-code-input required />
                                                     </label>
                                                     <button type="submit" class="cc-button" data-submit-once>Xác nhận Terminal</button>
+                                                    <small data-terminal-confirm-feedback aria-live="polite"></small>
+                                                </form>
+                                            }
+                                            @if (otp.CanRejectTerminalRegistration)
+                                            {
+                                                <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="RejectTerminal" method="post" class="notification-terminal-reject-form" data-validation-feedback="inline" novalidate>
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.NotificationId" />
+                                                    <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
+                                                    <label for="terminalRejectReason-@item.NotificationId">Lý do từ chối đăng ký Terminal</label>
+                                                    <textarea id="terminalRejectReason-@item.NotificationId"
+                                                              name="Reason"
+                                                              minlength="10"
+                                                              maxlength="500"
+                                                              rows="3"
+                                                              placeholder="Nhập lý do cụ thể (10–500 ký tự)"></textarea>
+                                                    <div class="notification-terminal-reject-meta">
+                                                        <small data-terminal-reject-counter>0 / 500</small>
+                                                        <small data-terminal-reject-feedback aria-live="polite"></small>
+                                                    </div>
+                                                    <button type="submit" class="cc-button notification-terminal-reject-button" data-reject-submit-once>Từ chối đăng ký Terminal</button>
                                                 </form>
                                             }
                                         }
                                         else if (otp.Status == "Expired")
                                         {
                                             <small>OTP đã hết hạn. Vui lòng gửi yêu cầu mới.</small>
+                                        }
+                                        else if (otp.Status == "Rejected")
+                                        {
+                                            <small>Yêu cầu đăng ký Terminal đã bị từ chối.</small>
                                         }
                                     </div>
                                 }
@@ -196,5 +222,6 @@
 </main>
 
 @section Scripts {
+    <script src="~/js/shared/verification-code-input.js" asp-append-version="true"></script>
     <script src="~/js/Admin/Notifications/admin-notification-list.js" asp-append-version="true"></script>
 }

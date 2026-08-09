@@ -51,9 +51,12 @@ namespace CafeChain.Application.Constants
         public const string PosWorkShiftCloseException = "POS.WorkShift.CloseException";
         public const string PosWorkShiftReconcile = "POS.WorkShift.Reconcile";
         public const string PosWorkShiftOverrideTerminal = "POS.WorkShift.OverrideTerminal";
+        public const string PosWorkShiftRejectTerminal = "POS.WorkShift.RejectTerminal";
         public const string PosWorkShiftApproveLateOpen = "POS.WorkShift.ApproveLateOpen";
         public const string PosSessionManage = "POS.Session.Manage";
         public const string PosOperatorSwitch = "POS.Operator.Switch";
+        public const string PosOperatorManageOwnPin = "POS.Operator.ManageOwnPin";
+        public const string PosTerminalRequestRegistration = "POS.Terminal.RequestRegistration";
         public const string NotificationView = "Notification.View";
 
         public const string IngredientView = "Ingredient.View";

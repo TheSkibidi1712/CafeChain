@@ -56,6 +56,7 @@ interface Envelope<T> {
   success?: boolean
   message?: string
   data?: T
+  errorCode?: string
 }
 
 function parseError(raw?: string, fallback = 'Lỗi thông báo'): string {
@@ -143,12 +144,12 @@ export async function confirmTerminalFromNotification(
   id: number,
   otpCode: string,
   requestKey: string
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; errorCode?: string }> {
   const res = await apiClient.post<Envelope<unknown>>(
     `/api/v1/pos/notifications/${id}/terminal-confirm`,
     { otpCode, requestKey }
   )
   return res.ok
     ? { ok: true }
-    : { ok: false, error: parseError(res.error, 'Không thể xác nhận Terminal.') }
+    : { ok: false, error: parseError(res.error, 'Không thể xác nhận Terminal.'), errorCode: res.data?.errorCode }
 }

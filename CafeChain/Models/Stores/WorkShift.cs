@@ -234,6 +234,7 @@ namespace CafeChain.Models.Stores
     public static class WorkShiftOpenContexts
     {
         public const string WithinSchedule = "WITHIN_SCHEDULE";
+        public const string EarlyForSchedule = "EARLY_FOR_SCHEDULE";
         public const string LateForSchedule = "LATE_FOR_SCHEDULE";
         public const string OutsideSchedule = "OUTSIDE_SCHEDULE";
         public const string Legacy = "LEGACY";

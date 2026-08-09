@@ -9,6 +9,9 @@ public class StaffHubPosPreviewRequestDto
 
     [Required, StringLength(200)]
     public string RequestKey { get; set; } = string.Empty;
+
+    [StringLength(128)]
+    public string? AssessmentVersion { get; set; }
 }
 
 public sealed class StaffHubIssuePosRequestDto : StaffHubPosPreviewRequestDto

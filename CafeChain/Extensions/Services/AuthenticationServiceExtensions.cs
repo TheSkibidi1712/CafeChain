@@ -106,7 +106,10 @@ namespace CafeChain.Extensions.Services
                                 context.HttpContext.Items["PosSessionErrorCode"] = validation.ErrorCode;
                                 context.HttpContext.Items["PosSessionErrorMessage"] = validation.Message;
                                 context.Fail(validation.Message ?? "POS access session is not active.");
+                                return;
                             }
+                            context.HttpContext.Items["PosAccessMode"] = validation.Data?.AccessMode;
+                            context.HttpContext.Items["PosWorkShiftStatus"] = validation.Data?.WorkShiftStatus;
                         },
                         OnChallenge = async context =>
                         {

@@ -44,4 +44,5 @@ public static class PosAccessSessionStatuses
     public const string AdminEnded = "ADMIN_ENDED";
     public const string Expired = "EXPIRED";
     public const string TerminalLocked = "TERMINAL_LOCKED";
+    public const string WorkShiftEnded = "WORKSHIFT_ENDED";
 }

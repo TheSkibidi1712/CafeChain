@@ -16,6 +16,7 @@
         const approvalFields = document.getElementById("openPosApprovalFields");
         const otpFields = document.getElementById("openPosOtpFields");
         const reasonInput = document.getElementById("openPosReason");
+        const reasonCounter = document.getElementById("openPosReasonCounter");
         const otpInput = document.getElementById("openPosOtpCode");
         const otpStatus = document.getElementById("openPosOtpStatus");
         const otpVerification = document.getElementById("openPosOtpVerification");
@@ -64,6 +65,7 @@
         let realtimeConnection = null;
         let workShiftRealtimeConnection = null;
         let allowOpenDialogClose = false;
+        let terminalResolutionReloading = false;
         const resendCountdowns = new Map();
 
         function notify(message, success) {
@@ -178,6 +180,19 @@
 
         function read(value, camel, pascal) { return value?.[camel] ?? value?.[pascal]; }
 
+        function assessmentVersion() {
+            return read(assessment, "assessmentVersion", "AssessmentVersion") || "";
+        }
+
+        function updateReasonCounter() {
+            if (reasonCounter) reasonCounter.textContent = `${reasonInput?.value.length || 0} / 500`;
+        }
+
+        function setCodeValue(input, value) {
+            if (window.VerificationCodeInput?.setValue) window.VerificationCodeInput.setValue(input, value);
+            else if (input) input.value = value;
+        }
+
         function formatCountdown(totalSeconds) {
             const safeSeconds = Math.max(0, Math.ceil(Number(totalSeconds) || 0));
             const minutes = Math.floor(safeSeconds / 60);
@@ -233,7 +248,7 @@
             otpChallengePublicId = null;
             verifiedOtpChallengePublicId = null;
             openOtpState = "IDLE";
-            if (otpInput) otpInput.value = "";
+            setCodeValue(otpInput, "");
             if (otpStatus) otpStatus.textContent = "";
             resetResendButton(resendOpenOtpButton);
             renderOpenOtpState();
@@ -271,7 +286,10 @@
                 } else if (state === "EXPIRED") {
                     otpStatus.textContent = "OTP đã hết hạn. Đóng hộp thoại và tạo yêu cầu mới.";
                 } else if (state === "LOCKED") {
-                    otpStatus.textContent = "OTP đã bị khóa do nhập sai quá số lần cho phép.";
+                    const retry = Number(read(data, "retryAfter", "RetryAfter") || 0);
+                    otpStatus.textContent = retry > 0
+                        ? `OTP đã bị khóa. Có thể gửi lại sau ${formatCountdown(retry)}.`
+                        : "OTP đã bị khóa. Bạn có thể gửi lại mã mới.";
                 }
             }
         }
@@ -290,15 +308,16 @@
             const restoredRequestKey = read(data, "requestKey", "RequestKey");
             if (restoredTerminal && terminalSelect) terminalSelect.value = restoredTerminal;
             if (restoredReason && reasonInput) reasonInput.value = restoredReason;
+            updateReasonCounter();
             if (restoredRequestKey) requestKey = restoredRequestKey;
-            if (otpInput) otpInput.value = "";
+            setCodeValue(otpInput, "");
             renderOpenOtpState(data);
             renderCancelOpenButton();
             startResendCountdown(
                 resendOpenOtpButton,
                 read(data, "resendAvailableInSeconds", "ResendAvailableInSeconds"),
                 () => Boolean(otpChallengePublicId) && !verifiedOtpChallengePublicId
-                    && ["SENT", "PENDING", "INVALID"].includes(openOtpState));
+                    && ["SENT", "PENDING", "INVALID", "LOCKED"].includes(openOtpState));
         }
 
         async function restoreOpenOtpState() {
@@ -326,6 +345,42 @@
             resetResendButton(resendTerminalOtpButton);
         }
 
+        async function notifyTerminalResolutionAndReload(statusValue) {
+            const resolvedStatus = String(statusValue || "").toUpperCase();
+            if (!["USED", "REJECTED"].includes(resolvedStatus) || terminalResolutionReloading)
+                return false;
+
+            const marker = `staffhub-terminal-resolution:${registrationChallengeId || "unknown"}:${resolvedStatus}`;
+            if (window.sessionStorage?.getItem(marker) === "reloaded")
+                return true;
+
+            terminalResolutionReloading = true;
+            window.sessionStorage?.setItem(marker, "reloaded");
+            const approved = resolvedStatus === "USED";
+            const title = approved ? "Terminal đã được xác nhận" : "Đăng ký Terminal bị từ chối";
+            const message = approved
+                ? "Terminal đã được kích hoạt. StaffHub sẽ tự tải lại để cập nhật danh sách thiết bị."
+                : "Chủ doanh nghiệp hoặc Quản lý chi nhánh đã từ chối yêu cầu. StaffHub sẽ tự tải lại.";
+            try {
+                if (window.Swal) {
+                    await window.Swal.fire({
+                        icon: approved ? "success" : "warning",
+                        title,
+                        text: message,
+                        timer: 1800,
+                        timerProgressBar: true,
+                        showConfirmButton: false,
+                        allowOutsideClick: false
+                    });
+                } else {
+                    window.alert(message);
+                }
+            } finally {
+                window.location.reload();
+            }
+            return true;
+        }
+
         function applyTerminalOtpResponse(data) {
             if (!data || read(data, "hasActiveChallenge", "HasActiveChallenge") === false) {
                 resetTerminalOtpState();
@@ -341,7 +396,7 @@
             const nameInput = document.getElementById("terminalRegistrationName");
             const status = document.getElementById("terminalRegistrationStatus");
             if (restoredName && nameInput) nameInput.value = restoredName;
-            const waiting = ["PENDING", "APPROVED"].includes(registrationOtpState)
+            const waiting = ["PENDING", "APPROVED", "LOCKED"].includes(registrationOtpState)
                 && Number(read(data, "expiresInSeconds", "ExpiresInSeconds") || 0) > 0;
             if (nameInput) nameInput.readOnly = waiting;
             if (requestTerminalOtpButton) {
@@ -363,11 +418,17 @@
                 if (status) status.textContent = "✓ Terminal đã được Manager xác nhận. Tải lại trang để sử dụng Terminal.";
                 if (resendTerminalOtpButton) resendTerminalOtpButton.hidden = true;
                 if (cancelTerminalRequestButton) cancelTerminalRequestButton.hidden = true;
+                void notifyTerminalResolutionAndReload(registrationOtpState);
+            } else if (registrationOtpState === "REJECTED") {
+                if (status) status.textContent = "Yêu cầu đăng ký Terminal đã bị từ chối. Bạn có thể gửi yêu cầu mới.";
+                if (resendTerminalOtpButton) resendTerminalOtpButton.hidden = true;
+                if (cancelTerminalRequestButton) cancelTerminalRequestButton.hidden = true;
+                void notifyTerminalResolutionAndReload(registrationOtpState);
             } else if (registrationOtpState === "EXPIRED") {
                 if (status) status.textContent = "OTP đã hết hạn. Vui lòng gửi yêu cầu mới.";
                 if (resendTerminalOtpButton) resendTerminalOtpButton.hidden = true;
                 if (cancelTerminalRequestButton) cancelTerminalRequestButton.hidden = true;
-            } else if (["CANCELLED", "LOCKED"].includes(registrationOtpState)) {
+            } else if (registrationOtpState === "CANCELLED") {
                 if (status) status.textContent = "Yêu cầu OTP đã bị hủy. Vui lòng gửi yêu cầu mới.";
                 if (resendTerminalOtpButton) resendTerminalOtpButton.hidden = true;
                 if (cancelTerminalRequestButton) cancelTerminalRequestButton.hidden = true;
@@ -393,6 +454,12 @@
                 const eventId = read(event, "otpChallengePublicId", "OtpChallengePublicId");
                 if (registrationChallengeId && eventId
                     && String(eventId).toLowerCase() !== String(registrationChallengeId).toLowerCase()) return;
+                const status = read(event, "status", "Status");
+                if (["USED", "REJECTED"].includes(String(status || "").toUpperCase())) {
+                    registrationChallengeId = eventId || registrationChallengeId;
+                    void notifyTerminalResolutionAndReload(status);
+                    return;
+                }
                 void restoreTerminalOtpState();
             });
             const handleLateApprovalChanged = event => {
@@ -427,6 +494,7 @@
         }
 
         function contextText(context, minutesEarly) {
+            if (context === "EARLY_FOR_SCHEDULE") return "Mở POS quá sớm — cần phê duyệt";
             if (context === "WITHIN_SCHEDULE" && minutesEarly > 0) return "Mở POS sớm";
             if (context === "WITHIN_SCHEDULE") return "Được mở POS bình thường";
             if (context === "LATE_FOR_SCHEDULE") return "Mở POS trễ";
@@ -589,12 +657,18 @@
             try {
                 const result = await post(root.dataset.issuePosUrl, {
                     TerminalId: terminalSelect.value, RequestKey: requestKey, Reason: reason,
+                    AssessmentVersion: assessmentVersion(),
                     OtpChallengePublicId: verifiedOtpChallengePublicId,
                     LateOpenApprovalPublicId: lateOpenApprovalPublicId
                 });
                 await redirectWithTicket(result);
             } catch (error) {
                 continueButton.disabled = false;
+                if (error.errorCode === "SHIFT_SCHEDULE_CHANGED") {
+                    await notify(error.message, false);
+                    await previewOpen();
+                    return;
+                }
                 await notify(error.message, false);
             }
         }
@@ -644,7 +718,8 @@
                 const result = await post(root.dataset.requestLateOpenApprovalUrl, {
                     TerminalId: terminalSelect?.value || "",
                     Reason: reason,
-                    RequestKey: requestKey
+                    RequestKey: requestKey,
+                    AssessmentVersion: assessmentVersion()
                 });
                 applyLateOpenApproval(result.data);
                 if (lateOpenApprovalState === "PENDING" && !lateApprovalPollTimer) {
@@ -653,6 +728,11 @@
             } catch (error) {
                 requestLateApprovalButton.disabled = false;
                 requestLateApprovalButton.textContent = "Gửi yêu cầu Manager";
+                if (error.errorCode === "SHIFT_SCHEDULE_CHANGED") {
+                    await notify(error.message, false);
+                    await previewOpen();
+                    return;
+                }
                 await notify(error.message, false);
             }
         });
@@ -704,6 +784,8 @@
             }
         });
         continueButton?.addEventListener("click", issueOpenTicket);
+        reasonInput?.addEventListener("input", updateReasonCounter);
+        updateReasonCounter();
         resumeButton?.addEventListener("click", async () => {
             resumeButton.disabled = true;
             try {
@@ -723,13 +805,19 @@
             renderOpenOtpState();
             try {
                 const result = await post(root.dataset.requestOpenOtpUrl, {
-                    TerminalId: terminalSelect.value, RequestKey: requestKey, Reason: reason
+                    TerminalId: terminalSelect.value, RequestKey: requestKey, Reason: reason,
+                    AssessmentVersion: assessmentVersion()
                 });
                 applyOpenOtpResponse(result.data);
                 await notifyOtp(result.message || "OTP đã được gửi cho người duyệt.", true);
             } catch (error) {
                 openOtpState = "IDLE";
                 resetResendButton(resendOpenOtpButton);
+                if (error.errorCode === "SHIFT_SCHEDULE_CHANGED") {
+                    await notifyOtp(error.message, false);
+                    await previewOpen();
+                    return;
+                }
                 await notifyOtp(error.message, false);
             } finally {
                 openOtpBusy = false;
@@ -747,7 +835,7 @@
                 const result = await post(root.dataset.verifyOtpUrl, { OtpChallengePublicId: otpChallengePublicId, OtpCode: otpInput.value.trim().toUpperCase() });
                 verifiedOtpChallengePublicId = otpChallengePublicId;
                 openOtpState = "APPROVED";
-                otpInput.value = "";
+                setCodeValue(otpInput, "");
                 otpStatus.textContent = "OTP đã được phê duyệt.";
                 resetResendButton(resendOpenOtpButton);
                 renderOpenOtpState(result.data);
@@ -819,7 +907,7 @@
         requestTerminalOtpButton?.addEventListener("click", async () => {
             const name = document.getElementById("terminalRegistrationName").value.trim();
             if (!name) return notify("Vui lòng nhập tên terminal.", false);
-            if (["EXPIRED", "CANCELLED", "LOCKED", "USED"].includes(registrationOtpState)) {
+            if (["EXPIRED", "CANCELLED", "LOCKED", "USED", "REJECTED"].includes(registrationOtpState)) {
                 registrationTerminalId = crypto.randomUUID();
                 registrationRequestKey = crypto.randomUUID();
                 registrationChallengeId = null;
@@ -893,7 +981,7 @@
                 setOperatorPinConfigured(result.pinConfigured === true);
                 if (operatorPinStatus) operatorPinStatus.textContent = "PIN thao tác POS đã được thiết lập.";
                 if (operatorCurrentPassword) operatorCurrentPassword.value = "";
-                if (operatorNewPin) operatorNewPin.value = "";
+                setCodeValue(operatorNewPin, "");
                 await notify(result.message || "Thiết lập PIN thao tác POS thành công.", true);
                 closeDialog(operatorPinDialog);
             } catch (error) {
@@ -901,7 +989,7 @@
                 await notify(error.message || "Không thể thiết lập PIN thao tác POS.", false);
             } finally {
                 if (operatorCurrentPassword) operatorCurrentPassword.value = "";
-                if (operatorNewPin) operatorNewPin.value = "";
+                setCodeValue(operatorNewPin, "");
                 operatorPinForm.removeAttribute("aria-busy");
                 if (saveOperatorPinButton) {
                     saveOperatorPinButton.disabled = false;
@@ -917,7 +1005,7 @@
         });
         previewDialog?.addEventListener("hidden.bs.modal", () => {
             allowOpenDialogClose = false;
-            if (otpInput) otpInput.value = "";
+            setCodeValue(otpInput, "");
             if (lateApprovalPollTimer) {
                 window.clearInterval(lateApprovalPollTimer);
                 lateApprovalPollTimer = 0;
@@ -928,7 +1016,7 @@
         });
         operatorPinDialog?.addEventListener("hidden.bs.modal", () => {
             if (operatorCurrentPassword) operatorCurrentPassword.value = "";
-            if (operatorNewPin) operatorNewPin.value = "";
+            setCodeValue(operatorNewPin, "");
             if (operatorPinStatus) operatorPinStatus.textContent = "";
         });
 
