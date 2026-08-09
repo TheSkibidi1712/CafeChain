@@ -269,7 +269,7 @@
     flex: 0 0 44px;
     width: 44px;
     height: 44px;
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
     font-size: 18px;
 }
 
@@ -532,15 +532,7 @@
 }
 
 .drink-check-cell {
-    width: 46px;
-    text-align: center;
-}
-
-.drink-check-cell input {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: var(--cc-brown-600);
+    display: none !important;
 }
 
 .drink-image-box {
@@ -662,7 +654,7 @@
     width: 52px;
     height: 52px;
     margin: 0 auto 12px;
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     border: 1px solid var(--cc-brown-200);
     background: var(--cc-brown-50);
     color: var(--cc-brown-600);
@@ -868,7 +860,7 @@
     flex: 0 0 42px;
     width: 42px;
     height: 42px;
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
     background: var(--cc-brown-50);
     color: var(--cc-brown-600);
     border: 1px solid var(--cc-brown-200);
@@ -918,7 +910,7 @@
     flex: 0 0 36px;
     width: 36px;
     height: 36px;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     background: var(--cc-surface-raised);
     color: var(--cc-brown-600);
     box-shadow: var(--cc-shadow-xs);

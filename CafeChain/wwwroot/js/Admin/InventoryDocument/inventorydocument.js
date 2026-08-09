@@ -1,4 +1,4 @@
-﻿// =====================================================
+// =====================================================
 // INVENTORY DOCUMENT MODULE
 // =====================================================
 
@@ -1170,9 +1170,14 @@ const InventoryDocument = (() => {
 
     function openExportModal(documentId) {
 
+        const modalElement = document.querySelector(selectors.exportModal);
+        if (modalElement && modalElement.parentNode !== document.body) {
+            document.body.appendChild(modalElement);
+        }
+
         document.querySelector(selectors.exportDocumentId).value = documentId;
 
-        const modal = bootstrap.Modal.getOrCreateInstance(document.querySelector(selectors.exportModal));
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
 
         modal.show();
     }

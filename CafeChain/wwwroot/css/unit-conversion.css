@@ -316,3 +316,25 @@
         animation-duration: .01ms !important;
     }
 }
+
+.uc-row .d-flex,
+.uc-row .d-inline-flex {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.uc-row .btn-sm {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    padding: 0 14px !important;
+    border-radius: var(--cc-radius-sm, 8px) !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+}
