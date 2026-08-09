@@ -71,7 +71,7 @@
     margin-bottom: 20px;
     padding: 27px 28px 27px 32px;
     border: 1px solid var(--cc-border, #E9DED4);
-    border-radius: 20px;
+    border-radius: var(--cc-radius-header, 20px);
     background: linear-gradient(135deg, #FFFFFF 0%, #FFFDFB 57%, #FAF6F2 100%);
     box-shadow: var(--cc-shadow-md);
     overflow: hidden;
@@ -88,9 +88,7 @@
     content: "";
 }
 
-.cc-warehouse-header::after {
-    display: none !important;
-}
+
 
 .cc-warehouse-header > * {
     min-width: 0;
@@ -748,7 +746,7 @@ html {
     min-height: 36px;
     padding: 7px 16px !important;
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     background: var(--cc-surface);
     color: var(--cc-text-primary);
     font-size: .84rem;
@@ -1478,7 +1476,7 @@ html {
 /* Master Fix for Reorder Status Pill & Table Text Wrapping */
 .reorder-status {
     border: 1px solid var(--cc-border) !important;
-    border-radius: 20px !important;
+    border-radius: var(--cc-radius-header, 20px) !important;
     color: var(--cc-text-secondary) !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -1972,49 +1970,7 @@ html {
     }
 }
 
-/* Elevated header layer shared by Staff and Permission modules/forms. */
-.admin-page-body :is(.admin-wo-page, .perm-page) > .cc-admin-heading.cc-admin-heading {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    min-height: 118px;
-    align-items: center;
-    padding: 20px 22px;
-    border: 1px solid #ded0c5;
-    border-radius: 20px;
-    background:
-        linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(248, 242, 237, .97));
-    box-shadow:
-        0 2px 3px rgba(71, 50, 35, .06),
-        0 14px 34px rgba(71, 50, 35, .12),
-        inset 0 1px 0 rgba(255, 255, 255, .95);
-}
 
-.admin-page-body :is(.admin-wo-page, .perm-page) > .cc-admin-heading.cc-admin-heading::after {
-    position: absolute;
-    z-index: -1;
-    top: -92px;
-    right: -52px;
-    width: 250px;
-    height: 250px;
-    border: 40px solid rgba(111, 78, 55, .055);
-    border-radius: 50%;
-    content: "";
-    pointer-events: none;
-}
-
-.admin-page-body :is(.admin-wo-page, .perm-page) > .cc-admin-heading .cc-admin-heading__icon {
-    box-shadow:
-        0 3px 5px rgba(45, 29, 20, .16),
-        0 12px 24px rgba(111, 78, 55, .28),
-        inset 0 1px 0 rgba(255, 255, 255, .18);
-}
-
-.admin-page-body :is(.admin-wo-page, .perm-page) > .cc-admin-heading :is(.btn, .perm-icon-button) {
-    position: relative;
-    z-index: 1;
-    box-shadow: 0 7px 18px rgba(71, 50, 35, .14);
-}
 
 @media (max-width: 700px) {
     .admin-page-body :is(.admin-wo-page, .perm-page) > .cc-admin-heading.cc-admin-heading {

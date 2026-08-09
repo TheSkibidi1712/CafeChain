@@ -32,7 +32,7 @@
     align-items: end;
     background: var(--cc-surface);
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     display: grid;
     gap: 14px;
     grid-template-columns: minmax(220px, 1fr) 180px auto;
@@ -60,7 +60,7 @@
 .reorder-table-shell {
     background: var(--cc-surface);
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     min-height: 260px;
     overflow: hidden;
 }
@@ -147,7 +147,7 @@
 /* Status Badge - Fixed No-Wrap & Clean Pill Layout */
 .reorder-status {
     border: 1px solid var(--cc-border);
-    border-radius: 20px;
+    border-radius: var(--cc-radius-header, 20px);
     color: var(--cc-text-secondary) !important;
     display: inline-flex !important;
     align-items: center;
@@ -346,24 +346,14 @@
 .reorder-header {
     background: var(--cc-surface);
     border: 1px solid rgba(111, 78, 55, 0.14);
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     box-shadow: 0 12px 30px rgba(63, 43, 30, 0.08);
     overflow: hidden;
     padding: 22px 24px;
     position: relative;
 }
 
-.reorder-header::after {
-    background: rgba(111, 78, 55, 0.06);
-    border-radius: 50%;
-    content: "";
-    height: 150px;
-    pointer-events: none;
-    position: absolute;
-    right: -55px;
-    top: -75px;
-    width: 150px;
-}
+
 
 .reorder-header > * {
     position: relative;
@@ -394,7 +384,7 @@
 .reorder-filters {
     background: var(--cc-surface);
     border-color: rgba(111, 78, 55, 0.16);
-    border-radius: 14px;
+    border-radius: var(--cc-radius-md, 14px);
     box-shadow: 0 8px 22px rgba(63, 43, 30, 0.06);
     transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
@@ -427,7 +417,7 @@
     background: var(--cc-warning-bg);
     border: 1px solid rgba(166, 103, 46, 0.18);
     border-left: 4px solid #a6672e;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     box-shadow: 0 5px 16px rgba(91, 56, 30, 0.05);
     color: #8a5127;
     transition: box-shadow 0.2s ease, transform 0.2s ease;
@@ -451,7 +441,7 @@
 
 .reorder-table-shell {
     border-color: rgba(111, 78, 55, 0.16);
-    border-radius: 14px;
+    border-radius: var(--cc-radius-md, 14px);
     box-shadow: 0 14px 34px rgba(63, 43, 30, 0.09);
 }
 
@@ -493,7 +483,7 @@
 .reorder-suggestion-cell > strong {
     background: #f4ebe2;
     border: 1px solid rgba(111, 78, 55, 0.14);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     color: #5c3f2b;
     display: inline-block;
     padding: 6px 10px;
@@ -554,7 +544,7 @@
 
 .reorder-actions-cell .reorder-action-button,
 .reorder-table td .reorder-action-button {
-    border-radius: 8px !important;
+    border-radius: var(--cc-radius-sm, 8px) !important;
     gap: 8px !important;
     margin: 0 !important;
     min-height: 36px;
@@ -581,7 +571,7 @@
 
 .reorder-bulk-modal .modal-content {
     border: 1px solid rgba(111, 78, 55, 0.16);
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     box-shadow: 0 24px 60px rgba(38, 25, 17, 0.24);
 }
 
@@ -609,7 +599,7 @@
     align-items: flex-start;
     background: #fff8ef;
     border: 1px solid #ecd4b9;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     color: #80512c;
     display: flex;
     gap: 10px;
@@ -621,7 +611,7 @@
     align-items: center;
     background: #f8f4ef;
     border: 1px solid rgba(111, 78, 55, 0.12);
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     display: flex;
     justify-content: space-between;
     margin-bottom: 12px;
@@ -644,7 +634,7 @@
 
 .reorder-bulk-table-shell {
     border: 1px solid rgba(111, 78, 55, 0.14);
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
 }
 
 .reorder-bulk-table {
@@ -677,7 +667,7 @@
 
 .reorder-bulk-result {
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     font-size: 0.78rem;
     font-weight: 700;
     padding: 7px 9px;
@@ -716,7 +706,7 @@
 .reorder-incomplete {
     background: #fff8ed;
     border: 1px solid #ecd2ad;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     margin-top: 16px;
     padding: 14px 16px;
 }
@@ -759,7 +749,7 @@
     }
 
     .reorder-header {
-        border-radius: 12px;
+        border-radius: var(--cc-radius-md, 12px);
         padding: 18px 16px;
     }
 
@@ -826,7 +816,7 @@
     position: relative;
     overflow: hidden;
     border-color: rgba(111, 78, 55, .24);
-    border-radius: 18px;
+    border-radius: var(--cc-radius-modal, 18px);
     background: #FFF;
     box-shadow: 0 30px 75px rgba(38, 25, 17, .28), 0 7px 20px rgba(38, 25, 17, .1);
 }
@@ -860,7 +850,7 @@
     grid-column: 1;
     grid-row: 1 / 4;
     place-items: center;
-    border-radius: 14px;
+    border-radius: var(--cc-radius-md, 14px);
     color: #FFF;
     background: var(--cc-primary);
     box-shadow: 0 12px 23px rgba(79, 53, 37, .24);
@@ -946,7 +936,7 @@
     max-height: min(54dvh, 520px);
     overflow: auto;
     border-color: rgba(111, 78, 55, .2);
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
 }
 
 .reorder-bulk-table th {
@@ -1006,7 +996,7 @@
     width: fit-content;
     margin: 8px auto 0 auto;
     padding: 6px 9px;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     background: #F8F3EF;
 }
 
@@ -1049,7 +1039,7 @@
     width: min(640px, calc(100vw - 28px));
     padding: 0 0 22px;
     border: 1px solid rgba(111, 78, 55, .24);
-    border-radius: 20px;
+    border-radius: var(--cc-radius-header, 20px);
     background: var(--cc-surface);
     box-shadow: 0 30px 80px rgba(39, 25, 16, .3), 0 8px 22px rgba(39, 25, 16, .12);
 }
@@ -1101,7 +1091,7 @@
     padding: 14px 15px 13px 17px;
     overflow: hidden;
     border: 1px solid #E2D3C4;
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
     background: var(--cc-surface);
     box-shadow: 0 6px 16px rgba(64, 41, 26, .065);
     transition: transform .17s ease, border-color .17s ease, box-shadow .17s ease;

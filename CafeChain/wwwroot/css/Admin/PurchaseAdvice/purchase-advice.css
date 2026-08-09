@@ -1,4 +1,4 @@
-.pa-page {
+﻿.pa-page {
     min-height: 100vh;
     padding: 30px 32px 64px;
     background: var(--cc-app-bg, #F7F4F0);
@@ -137,7 +137,7 @@
     background: var(--cc-surface, #FFFDFB);
     padding: 20px;
     margin-bottom: 24px;
-    border-radius: 14px;
+    border-radius: var(--cc-radius-md, 14px);
     box-shadow: var(--cc-shadow-xs);
 }
 
@@ -1105,7 +1105,7 @@
 .supplier-comparison-empty {
     margin: 0 0 12px;
     padding: 10px 12px;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     background: #f8f2e9;
 }
 
@@ -1124,7 +1124,7 @@
 
 .supplier-comparison-card {
     border: 1px solid #eadccc;
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
     padding: 14px;
     background: #fff;
 }
