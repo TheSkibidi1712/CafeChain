@@ -233,12 +233,13 @@ body:has(.staffhub-page) > footer {
     margin: 0;
     overflow: hidden;
     color: var(--sh-hero-title);
-    font-size: clamp(28px, 3.8vw, 42px);
+    font-size: clamp(22px, 2.8vw, 30px);
     font-weight: 900;
     line-height: 1.1;
     letter-spacing: -0.035em;
-    text-overflow: ellipsis;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     text-shadow: 0 3px 14px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
@@ -333,7 +334,9 @@ body:has(.staffhub-page) > footer {
 }
 
 .staffhub-terminal-action-badge {
-    align-self: start;
+    position: absolute;
+    top: -8px;
+    right: -8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -347,6 +350,7 @@ body:has(.staffhub-page) > footer {
     font-weight: 800;
     line-height: 1.15;
     text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .staffhub-terminal-action[data-terminal-state="ready"] {
@@ -437,12 +441,18 @@ body:has(.staffhub-page) > footer {
 .staffhub-action-button strong {
     font-size: 0.88rem;
     font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .staffhub-action-button small {
     margin-top: 2px;
     color: var(--sh-text-secondary);
     font-size: 0.68rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .staffhub-action-button.is-secondary small {
