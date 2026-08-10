@@ -10,7 +10,7 @@
     var low = Model.Items.Count(x => x.MinStockLevel.HasValue && x.UsableQty <= x.MinStockLevel.Value);
 }
 
-<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
 
 <main class="ops-shell cc-warehouse-page">
     <header class="ops-header cc-warehouse-header">
@@ -50,7 +50,10 @@
         <input type="hidden" name="storeId" value="@Model.SelectedStoreId" />
         <div class="ops-filter-group">
             <label class="visually-hidden" for="thresholdSearch">Tìm mặt hàng</label>
-            <input id="thresholdSearch" type="search" name="search" value="@search" class="ops-input" placeholder="Tìm nguyên liệu hoặc bán thành phẩm..." />
+            <div class="ops-search-field">
+                <i class="fa-solid fa-magnifying-glass ops-search-icon" aria-hidden="true"></i>
+                <input id="thresholdSearch" type="text" name="search" value="@search" class="ops-input ops-search-input" style="padding-left: 38px !important;" placeholder="Tìm nguyên liệu hoặc bán thành phẩm..." />
+            </div>
             <button type="submit" class="ops-btn ops-btn-primary"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Tìm</button>
         </div>
         <span class="ops-secondary">Cửa hàng đang chọn: #@Model.SelectedStoreId</span>

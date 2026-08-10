@@ -1,4 +1,4 @@
-﻿@model CafeChain.ViewModels.Admin.StoreInventories.InventoryIndexVM
+@model CafeChain.ViewModels.Admin.StoreInventories.InventoryIndexVM
 
 @section Styles {
     <link rel="stylesheet" href="~/css/Admin/StoreInventory/storeinventory.css" asp-append-version="true" />
@@ -22,11 +22,14 @@
         <div class="header-actions cc-warehouse-actions">
             <form method="get" class="search-form">
                 <label class="visually-hidden" for="inventorySearch">Tìm mặt hàng trong kho</label>
-                <input type="text"
-                       id="inventorySearch"
-                       name="search"
-                       value="@Model.Search"
-                       placeholder="@(isPreparedItems ? "Tìm mã hoặc tên bán thành phẩm..." : "Tìm mã hoặc tên nguyên liệu...")" />
+                <div class="inventory-search-field">
+                    <i class="fas fa-search inventory-search-icon" aria-hidden="true"></i>
+                    <input type="text"
+                           id="inventorySearch"
+                           name="search"
+                           value="@Model.Search"
+                           placeholder="@(isPreparedItems ? "Tìm mã hoặc tên bán thành phẩm..." : "Tìm mã hoặc tên nguyên liệu...")" />
+                </div>
 
                 <input type="hidden"
                        name="storeId"
@@ -36,7 +39,7 @@
                        name="inventoryType"
                        value="@Model.ActiveTab" />
 
-                <button type="submit" class="cc-button cc-button-primary">Tìm</button>
+                <button type="submit" class="cc-button cc-button-primary"><i class="fas fa-search me-1" aria-hidden="true"></i> Tìm</button>
             </form>
 
             <button class="btn-view-all cc-button"
