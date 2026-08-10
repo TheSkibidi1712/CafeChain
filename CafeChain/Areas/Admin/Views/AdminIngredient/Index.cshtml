@@ -257,5 +257,36 @@
 </div>
 
 @section Scripts {
+    <script>
+        // Ghi đè hàm toast toàn cục: Bắt tín hiệu có thông báo thành công và lưu vào sessionStorage trước khi trình duyệt kịp reload
+        var _originalToast = window.toast;
+        window.toast = function(message, type, options) {
+            if (message && (message.includes('Đã cập nhật trạng thái') || type === 'success')) {
+                sessionStorage.setItem('showSuccessToast', message);
+            }
+            if (typeof _originalToast === 'function') {
+                _originalToast(message, type, options);
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var msg = sessionStorage.getItem('showSuccessToast');
+            if (msg) {
+                sessionStorage.removeItem('showSuccessToast');
+                // Gọi lại bản gốc để tránh đệ quy vòng lặp nếu window.toast đang trỏ vào hàm ghi đè
+                if (typeof _originalToast === 'function') {
+                    _originalToast(msg, 'success');
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Thành công',
+                        text: msg,
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            }
+        });
+    </script>
     <script src="~/js/Admin/Ingredient/ingredient.js" asp-append-version="true"></script>
 }

@@ -338,6 +338,30 @@
         root.addEventListener("click", async event => {
             const toggleButton = event.target.closest(".toggle-template");
             if (!toggleButton) return;
+
+            const isActive = toggleButton.classList.contains("shift-action-toggle-active");
+            const actionText = isActive ? "ngưng" : "kích hoạt";
+
+            if (window.Swal) {
+                const answer = await Swal.fire({
+                    title: 'Xác nhận ' + actionText,
+                    text: 'Bạn có chắc chắn muốn ' + actionText + ' mẫu ca này không?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Đồng ý',
+                    cancelButtonText: 'Hủy bỏ',
+                    reverseButtons: true,
+                    customClass: {
+                        confirmButton: 'btn btn-swal-confirm me-2',
+                        cancelButton: 'btn btn-swal-cancel'
+                    },
+                    buttonsStyling: false
+                });
+                if (!answer.isConfirmed) return;
+            } else {
+                if (!confirm('Bạn có chắc chắn muốn ' + actionText + ' mẫu ca này không?')) return;
+            }
+
             await mutationGuard.run(`toggle-shift-template-${toggleButton.dataset.id}`, toggleButton, async () => {
                 const data = new FormData();
                 data.set("ShiftId", toggleButton.dataset.id);

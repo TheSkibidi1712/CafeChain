@@ -1040,11 +1040,19 @@ async function toggleTopping(
     url
 ) {
 
-    if (
-        !confirm(
-            "Bạn có chắc muốn thay đổi trạng thái topping này?"
-        )
-    ) {
+    if (window.Swal) {
+        const result = await window.Swal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc muốn thay đổi trạng thái topping này?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#70482f',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
+        });
+        if (!result.isConfirmed) return;
+    } else if (!confirm("Bạn có chắc muốn thay đổi trạng thái topping này?")) {
         return;
     }
 

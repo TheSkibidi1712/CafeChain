@@ -21,9 +21,22 @@ $(document).ready(function () {
     initStatusSwitch();
     initImageManager();
 
-    $(document).on('click', '.js-toggle-drink', function () {
+    $(document).on('click', '.js-toggle-drink', async function () {
         const id = Number(this.dataset.id);
-        if (!id || !window.confirm('Bạn có chắc muốn đổi trạng thái đồ uống?')) return;
+        if (!id) return;
+        if (window.Swal) {
+            const result = await window.Swal.fire({
+                title: 'Xác nhận',
+                text: 'Bạn có chắc muốn đổi trạng thái đồ uống?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#70482f',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            });
+            if (!result.isConfirmed) return;
+        } else if (!window.confirm('Bạn có chắc muốn đổi trạng thái đồ uống?')) return;
         $.ajax({
             url: '/Admin/AdminDrink/ToggleStatus',
             type: 'POST',

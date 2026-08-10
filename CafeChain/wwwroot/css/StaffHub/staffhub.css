@@ -77,8 +77,7 @@ body:has(.staffhub-page) > footer {
     background:
         radial-gradient(ellipse 55% 40% at 80% 0%, rgba(223, 202, 155, 0.15), transparent),
         radial-gradient(ellipse 45% 55% at 10% 100%, rgba(139, 107, 85, 0.08), transparent),
-        var(--sh-bg-espresso);
-    padding: clamp(24px, 4vw, 48px) 16px 56px;
+    padding: clamp(32px, 6vw, 64px) 16px 56px;
     color: var(--sh-text-primary);
     min-height: calc(100vh - 120px);
 }
@@ -88,7 +87,7 @@ body:has(.staffhub-page) > footer {
     position: relative;
     z-index: 1;
     width: min(1280px, 100%);
-    margin: 0 auto;
+    margin: 24px auto 0;
     animation: shReveal 0.65s var(--sh-ease) both;
 }
 
@@ -902,7 +901,6 @@ body:has(.staffhub-page) > footer {
     color: var(--sh-text-muted);
 }
 
-/* Empty State */
 .schedule-empty {
     display: flex;
     align-items: center;
@@ -912,6 +910,7 @@ body:has(.staffhub-page) > footer {
     min-height: 100px;
     color: var(--sh-text-muted);
     text-align: center;
+    overflow: hidden; /* Ensure ellipsis works */
 }
 
 .schedule-empty-icon {
@@ -925,20 +924,30 @@ body:has(.staffhub-page) > footer {
     background: var(--sh-foam);
     color: var(--sh-caramel);
     font-size: 1.05rem;
+    flex: 0 0 auto;
 }
 
 .schedule-empty strong {
+    display: block;
+    width: 100%;
     color: var(--sh-text-secondary);
     font-size: 0.78rem;
     font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .schedule-empty small {
-    max-width: 140px;
+    display: block;
+    width: 100%;
     margin-top: 4px;
     color: var(--sh-text-muted);
     font-size: 0.68rem;
     line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ================================================================

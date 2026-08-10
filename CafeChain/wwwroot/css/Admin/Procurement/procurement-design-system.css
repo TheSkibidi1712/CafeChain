@@ -232,7 +232,6 @@
     max-width: 100%;
     overflow-x: auto;
     overscroll-behavior-inline: contain;
-    scrollbar-gutter: stable;
 }
 
 .cc-warehouse-table-shell table {

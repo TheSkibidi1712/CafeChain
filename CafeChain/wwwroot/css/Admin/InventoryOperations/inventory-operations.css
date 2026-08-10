@@ -1,4 +1,4 @@
-﻿.ops-shell {
+.ops-shell {
     min-height: 100vh;
     padding: 30px 32px 64px;
     background: var(--cc-canvas, #F7F4F0);
@@ -188,7 +188,7 @@
 
 .ops-metrics {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 14px;
     margin-bottom: 24px;
 }
