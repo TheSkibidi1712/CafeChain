@@ -11,6 +11,7 @@ namespace CafeChain.Application.Constants
         public const int TtlMinutes = 5;
         public const int MaxFailedAttempts = 3;
         public const int ResendCooldownSeconds = 60;
+        public const int LockoutCooldownSeconds = 120;
         public const int MaxResendCount = 3;
         public const int RateLimitWindowMinutes = 15;
         public const int MaxChallengesPerStaffWindow = 5;
@@ -31,6 +32,7 @@ namespace CafeChain.Application.Constants
             public const string Expired = "Expired";
             public const string Locked = "Locked";
             public const string Cancelled = "Cancelled";
+            public const string Rejected = "Rejected";
         }
 
         public static class ActionTypes
@@ -38,6 +40,7 @@ namespace CafeChain.Application.Constants
             public const string CashDifference = "CASH_DIFFERENCE";
             public const string CloseShiftException = "CLOSE_SHIFT_EXCEPTION";
             public const string OpenShiftLate = "OPEN_SHIFT_LATE";
+            public const string OpenShiftEarly = "OPEN_SHIFT_EARLY";
             public const string OpenShiftOutsideSchedule = "OPEN_SHIFT_OUTSIDE_SCHEDULE";
             public const string RegisterTerminal = "REGISTER_POS_TERMINAL";
             public const string ReconcileWorkShift = "RECONCILE_WORKSHIFT";
@@ -64,7 +67,9 @@ namespace CafeChain.Application.Constants
             public const string AlreadyUsed = "OTP_ALREADY_USED";
             public const string ContextMismatch = "OTP_CONTEXT_MISMATCH";
             public const string VerificationLocked = "OTP_VERIFICATION_LOCKED";
+            public const string ResendCooldown = "OTP_RESEND_COOLDOWN";
             public const string Cancelled = "OTP_CANCELLED";
+            public const string Rejected = "OTP_REJECTED";
             /// <summary>SMTP mode is on but Email:Password / Email__Password is not configured.</summary>
             public const string EmailSmtpPasswordNotConfigured = "EMAIL_SMTP_PASSWORD_NOT_CONFIGURED";
         }

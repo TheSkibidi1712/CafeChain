@@ -10,6 +10,7 @@ using CafeChain.Application.Services.POS;
 using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Infrastructure.Repositories.Admin.POS;
+using CafeChain.Infrastructure.Repositories.Operations;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Operations;
 using CafeChain.Models.Permissions;
@@ -69,6 +70,118 @@ IF DB_ID(N'{Database}') IS NULL
         }
 
         public Task DisposeAsync() => Task.CompletedTask;
+
+        [Fact]
+        public async Task SqlServer_TerminalConfirmation_CreatesTerminalConsumesChallengeAndResolvesNotification()
+        {
+            const string otp = "ABC234";
+            var publicId = Guid.NewGuid();
+            var terminalId = $"SQL-TERM-{Guid.NewGuid():N}";
+            var now = DateTime.UtcNow;
+            await using (var setup = CreateContext())
+            {
+                var challenge = new OtpChallenge
+                {
+                    PublicId = publicId,
+                    StoreId = _storeId,
+                    RequestedByStaffId = _requesterId,
+                    ApproverStaffId = _approverId,
+                    ActionType = OtpConstants.ActionTypes.RegisterTerminal,
+                    TargetType = "POS_TERMINAL",
+                    TerminalId = terminalId,
+                    TerminalName = "SQL approval terminal",
+                    RequestKey = "terminal-registration-request",
+                    OtpHash = BCrypt.Net.BCrypt.HashPassword(otp),
+                    ProtectedOtpPayload = "protected-payload",
+                    ExpiresAt = now.AddMinutes(5),
+                    LastSentAt = now,
+                    CreatedAt = now,
+                    Status = OtpConstants.Statuses.Pending
+                };
+                setup.OtpChallenges.Add(challenge);
+                await setup.SaveChangesAsync();
+                setup.StaffNotifications.Add(new StaffNotification
+                {
+                    StoreId = _storeId,
+                    RecipientStaffId = _approverId,
+                    OtpChallengeId = challenge.OtpChallengeId,
+                    Type = StaffNotificationTypes.OperationalOtpRequest,
+                    Title = "Terminal approval",
+                    Body = "Approve SQL test terminal",
+                    Severity = "INFO",
+                    DeduplicationKey = $"OTP:{publicId:N}",
+                    EntityType = StaffNotificationEntityTypes.OtpChallenge,
+                    EntityId = challenge.OtpChallengeId,
+                    CreatedAt = now
+                });
+                await setup.SaveChangesAsync();
+            }
+
+            await using (var execute = CreateContext())
+            {
+                var service = new WorkShiftService(
+                    new WorkShiftRepository(execute),
+                    new POSOrderRepository(execute),
+                    new OtpChallengeRepository(execute),
+                    _fp,
+                    NullLogger<WorkShiftService>.Instance,
+                    audit: new WorkShiftAuditService(execute, TimeProvider.System),
+                    staffNotifications: new StaffNotificationRepository(execute),
+                    otpCodeGenerator: new OtpCodeGenerator());
+
+                var result = await service.ConfirmTerminalRegistrationAsync(
+                    _approverId,
+                    _storeId,
+                    publicId,
+                    otp,
+                    "terminal-confirm-request");
+
+                Assert.True(result.IsSuccess, result.Message);
+                Assert.Equal(terminalId, result.Data?.TerminalId);
+                Assert.False(result.Data?.AlreadyProcessed);
+            }
+
+            await using (var verify = CreateContext())
+            {
+                var terminal = await verify.PosTerminals.AsNoTracking()
+                    .SingleAsync(x => x.TerminalId == terminalId);
+                var challenge = await verify.OtpChallenges.AsNoTracking()
+                    .SingleAsync(x => x.PublicId == publicId);
+                var notification = await verify.StaffNotifications.AsNoTracking()
+                    .SingleAsync(x => x.OtpChallengeId == challenge.OtpChallengeId);
+                var audit = await verify.AuditLogs.AsNoTracking()
+                    .SingleAsync(x => x.Action == "POS_TERMINAL_REGISTERED_BY_APPROVER"
+                        && x.UserId == _approverId);
+
+                Assert.True(terminal.Active);
+                Assert.Equal(_storeId, terminal.StoreId);
+                Assert.Equal(OtpConstants.Statuses.Used, challenge.Status);
+                Assert.Equal(_approverId, challenge.ConfirmedByStaffId);
+                Assert.Null(challenge.ProtectedOtpPayload);
+                Assert.NotNull(notification.ResolvedAt);
+                Assert.True(notification.IsRead);
+                Assert.DoesNotContain(otp, audit.NewData ?? string.Empty, StringComparison.Ordinal);
+            }
+
+            await using (var replay = CreateContext())
+            {
+                var service = new WorkShiftService(
+                    new WorkShiftRepository(replay),
+                    new POSOrderRepository(replay),
+                    new OtpChallengeRepository(replay),
+                    _fp,
+                    NullLogger<WorkShiftService>.Instance,
+                    otpCodeGenerator: new OtpCodeGenerator());
+                var result = await service.ConfirmTerminalRegistrationAsync(
+                    _approverId,
+                    _storeId,
+                    publicId,
+                    otp,
+                    "terminal-confirm-replay");
+                Assert.True(result.IsSuccess, result.Message);
+                Assert.True(result.Data?.AlreadyProcessed);
+            }
+        }
 
         [Fact]
         public async Task SqlServer_CloseException_ConcurrentConsume_ClosesOnce()
@@ -358,6 +471,28 @@ IF DB_ID(N'{Database}') IS NULL
 
         private async Task SeedBaseAsync(AppDbContext ctx)
         {
+            var requiredRoles = new[]
+            {
+                RoleConstants.SalesStaff,
+                RoleConstants.ShiftSupervisor,
+                RoleConstants.StoreManager
+            };
+            var existingRoles = await ctx.Roles
+                .Where(role => requiredRoles.Contains(role.Name))
+                .Select(role => role.Name)
+                .ToListAsync();
+            foreach (var roleName in requiredRoles.Except(existingRoles, StringComparer.Ordinal))
+            {
+                ctx.Roles.Add(new Role
+                {
+                    Name = roleName,
+                    Active = true,
+                    IsStoreLevel = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            await ctx.SaveChangesAsync();
+
             var store = await ctx.Stores.AsNoTracking().OrderBy(s => s.StoreId).FirstOrDefaultAsync();
             if (store == null)
             {

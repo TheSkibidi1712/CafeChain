@@ -175,7 +175,7 @@
 .scope-empty,
 .empty-data {
     padding: 18px;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-card, 16px);
     background: var(--cc-surface);
     color: var(--cc-text-secondary);
     text-align: center;
@@ -200,10 +200,11 @@
     min-height: 140px;
     padding: 24px;
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-card, 16px);
     background: var(--cc-surface-muted);
     color: var(--cc-text-secondary);
     text-align: center;
+    box-shadow: var(--cc-shadow-sm);
 }
 .transaction-state.forbidden,
 .transaction-state.error {
@@ -224,8 +225,9 @@
 .inventory-table-wrap {
     overflow-x: auto;
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-card, 16px);
     background: var(--cc-surface);
+    box-shadow: var(--cc-shadow-sm);
 }
 .inventory-table,
 .transaction-table {
@@ -313,19 +315,68 @@
     outline-offset: 2px;
 }
 
+.store-inventory-modal .modal-dialog {
+    width: min(1180px, calc(100vw - 2rem));
+    max-width: 1180px;
+    height: calc(100dvh - 2rem);
+    margin: 1rem auto;
+}
+
 .store-inventory-modal .modal-content {
     position: relative;
-    width: min(1180px, 92%);
-    margin: 5% auto;
-    padding: 20px;
-    border-radius: 8px;
+    width: 100%;
+    max-height: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: var(--cc-radius-modal, 18px);
     background: var(--cc-surface);
+    box-shadow: var(--cc-shadow-lg);
 }
+
+.store-inventory-modal .modal-header {
+    flex: 0 0 auto;
+    gap: 16px;
+    padding: 18px 20px 12px;
+    border-bottom: 0;
+}
+
+.store-inventory-modal .modal-title {
+    margin: 0;
+    color: var(--cc-text-primary, #201812);
+    font-size: clamp(1.4rem, 2.4vw, 1.8rem);
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.store-inventory-modal .modal-body {
+    min-height: 0;
+    padding: 0 20px 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.store-inventory-modal #transactionContent {
+    min-width: 0;
+}
+
+.transaction-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--cc-border-soft, #EFE5DC);
+    border-radius: var(--cc-radius-card, 16px);
+    background: var(--cc-surface);
+    -webkit-overflow-scrolling: touch;
+}
+
+.transaction-table-wrap .transaction-table {
+    min-width: 980px;
+}
+
 .store-inventory-modal .modal-close {
-    position: absolute;
-    z-index: 2000;
-    top: 12px;
-    right: 12px;
+    flex: 0 0 40px;
     width: 40px;
     height: 40px;
     display: flex;
@@ -354,6 +405,13 @@
     .inventory-container { padding: 16px; }
     .inventory-table { min-width: 560px; }
     .inventory-kind-tabs { gap: 16px; }
+    .store-inventory-modal .modal-dialog {
+        width: calc(100vw - 1rem);
+        height: calc(100dvh - 1rem);
+        margin: .5rem auto;
+    }
+    .store-inventory-modal .modal-header { padding: 14px 14px 10px; }
+    .store-inventory-modal .modal-body { padding: 0 14px 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

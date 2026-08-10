@@ -26,6 +26,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly AppDbContext _context;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
         private readonly ISupplierIntelligenceService? _supplierIntelligence;
+        private readonly IIngredientSupplierPackageValidator _packageEligibility;
 
         public AdminPurchaseOrdersController(
             IPurchaseOrderService service,
@@ -34,6 +35,7 @@ namespace CafeChain.Areas.Admin.Controllers
             IAdminActorContextAccessor actor,
             AppDbContext context,
             IAdminStoreScopeResolver storeScopeResolver,
+            IIngredientSupplierPackageValidator packageEligibility,
             ISupplierIntelligenceService? supplierIntelligence = null)
         {
             _service = service;
@@ -42,6 +44,7 @@ namespace CafeChain.Areas.Admin.Controllers
             _actor = actor;
             _context = context;
             _storeScopeResolver = storeScopeResolver;
+            _packageEligibility = packageEligibility;
             _supplierIntelligence = supplierIntelligence;
         }
 
@@ -55,6 +58,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (!storeScope.IsResolved) return StoreScopeFailure(storeScope);
             SetStoreScopeViewData(storeScope);
             ViewBag.StatusFilter = status;
+            ViewBag.CanCreate = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCreate);
             return View(await _service.ListAsync(storeScope.StoreId, status, actor.StaffId, actor.RoleNames));
         }
 
@@ -69,7 +73,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 && await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderApprove);
             ViewBag.CanSend = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderSend);
             ViewBag.CanCancel = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCancel);
-            ViewBag.CanReceive = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderReceive);
+            ViewBag.CanReceive = await HasEffectivePermissionAsync(PermissionConstants.ReceiptCreate);
             ViewBag.CanCloseRemaining = await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCloseRemaining);
             return View(result.Data);
         }
@@ -106,12 +110,22 @@ namespace CafeChain.Areas.Admin.Controllers
                 model.StoreId = request.StoreId;
                 model.Lines[0].RestockRequestId = request.RestockRequestId;
                 model.Lines[0].IngredientId = request.IngredientId.Value;
-                var offer = await _context.IngredientSuppliers.AsNoTracking()
-                    .Where(x => x.IngredientId == request.IngredientId && x.Active)
+                var offerCandidates = await _context.IngredientSuppliers.AsNoTracking()
+                    .Include(x => x.Supplier)
+                    .Include(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
+                    .Include(x => x.Unit)
+                    .Include(x => x.LooseProcurementUnit)
+                    .Where(x => x.IngredientId == request.IngredientId && x.Active
+                        && x.Supplier.SupplierStores.Any(s => s.StoreId == request.StoreId && s.Active))
                     .OrderByDescending(x => x.IsPrimary).ThenBy(x => x.IngredientSupplierId)
-                    .FirstOrDefaultAsync();
-                if (offer != null)
+                    .ToListAsync();
+                var readiness = await _packageEligibility.EvaluateReadinessAsync(offerCandidates);
+                var selectedOffer = offerCandidates.FirstOrDefault(x =>
+                    readiness.TryGetValue(x.IngredientSupplierId, out var result)
+                    && result.IsReady);
+                if (selectedOffer != null)
                 {
+                    var offer = selectedOffer;
                     model.SupplierId = offer.SupplierId;
                     model.Lines[0].IngredientSupplierId = offer.IngredientSupplierId;
                     model.Lines[0].ProcurementUnitId = request.ProcurementUnitId;
@@ -303,13 +317,20 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost, ValidateAntiForgeryToken]
         [RequirePermission(PermissionConstants.PurchaseOrderCloseRemaining)]
-        public async Task<IActionResult> CloseLineRemaining(int id, int lineId, string rowVersion, string reason, string requestKey)
+        public async Task<IActionResult> CloseLineRemaining(
+            int id,
+            int lineId,
+            decimal closeBaseQuantity,
+            string rowVersion,
+            string reason,
+            string requestKey)
         {
             if (!await HasEffectivePermissionAsync(PermissionConstants.PurchaseOrderCloseRemaining)) return Forbid();
             var actor = _actor.Get(User);
             var result = await _service.CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
             {
                 PurchaseOrderLineId = lineId,
+                CloseBaseQuantity = closeBaseQuantity,
                 RowVersion = rowVersion,
                 Reason = reason,
                 RequestKey = requestKey
@@ -351,6 +372,11 @@ namespace CafeChain.Areas.Admin.Controllers
                 .Include(x => x.Ingredient).Include(x => x.Supplier).Include(x => x.Unit).Include(x => x.LooseProcurementUnit)
                 .Where(x => x.Active && (storeId <= 0 || x.Supplier.SupplierStores.Any(s => s.StoreId == storeId && s.Active)))
                 .OrderBy(x => x.Ingredient.Name).ToListAsync();
+            var offerRows = (List<CafeChain.Models.Inventories.Suppliers.IngredientSupplier>)ViewBag.Offers;
+            var readiness = await _packageEligibility.EvaluateReadinessAsync(offerRows);
+            ViewBag.Offers = offerRows.Where(x =>
+                readiness.TryGetValue(x.IngredientSupplierId, out var result)
+                && result.IsReady).ToList();
         }
 
     }

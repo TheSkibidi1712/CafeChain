@@ -84,7 +84,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     SupplierId = 1,
                     Code = "SUP001",
                     Name = "Nhà cung cấp A",
-                    Address = "Bình Dương",
+                    Address = "Thành phố Hồ Chí Minh",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1),
                     UpdatedAt = new DateTime(2025, 1, 1),

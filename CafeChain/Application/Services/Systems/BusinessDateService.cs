@@ -19,6 +19,9 @@ public sealed class BusinessDateService : IBusinessDateService
     public DateTime ToBusinessDate(DateTime utcInstant) => TimeZoneInfo.ConvertTimeFromUtc(
         DateTime.SpecifyKind(utcInstant, DateTimeKind.Utc), TimeZone).Date;
 
+    public DateTime ToBusinessTime(DateTime utcInstant) => TimeZoneInfo.ConvertTimeFromUtc(
+        DateTime.SpecifyKind(utcInstant, DateTimeKind.Utc), TimeZone);
+
     public (DateTime LocalFrom, DateTime LocalToExclusive) GetLegacyLocalInterval(DateTime businessDate)
     {
         var from = DateTime.SpecifyKind(businessDate.Date, DateTimeKind.Unspecified);

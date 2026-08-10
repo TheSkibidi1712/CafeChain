@@ -265,7 +265,8 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             var activeStatuses = new[]
             {
                 OtpConstants.Statuses.Pending,
-                OtpConstants.Statuses.Approved
+                OtpConstants.Statuses.Approved,
+                OtpConstants.Statuses.Locked
             };
 
             // SQL Server: serialize one-open-challenge checks under the ambient transaction.
@@ -278,7 +279,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                             AND [RequestedByStaffId] = {1}
                             AND [ActionType] = {2}
                             AND [TargetType] = {3}
-                            AND [Status] IN (N'Pending', N'Approved')
+                            AND [Status] IN (N'Pending', N'Approved', N'Locked')
                             AND [ExpiresAt] > {4}
                             AND (({5} IS NOT NULL AND [TargetId] = {5}) OR ({5} IS NULL AND [TargetId] IS NULL))",
                         storeId, requestedByStaffId, actionType, targetType, utcNow, targetId)
@@ -316,6 +317,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             var openActions = new[]
             {
                 OtpConstants.ActionTypes.OpenShiftLate,
+                OtpConstants.ActionTypes.OpenShiftEarly,
                 OtpConstants.ActionTypes.OpenShiftOutsideSchedule
             };
             var visibleStatuses = new[]
@@ -348,6 +350,7 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 OtpConstants.Statuses.Pending,
                 OtpConstants.Statuses.Approved,
                 OtpConstants.Statuses.Used,
+                OtpConstants.Statuses.Rejected,
                 OtpConstants.Statuses.Expired,
                 OtpConstants.Statuses.Locked,
                 OtpConstants.Statuses.Cancelled

@@ -83,25 +83,11 @@
    ========================================================================== */
 
 .drink-page {
-    position: relative;
-    color: var(--cc-text);
-    background: var(--cc-canvas);
+    /* Layout provided by .ops-shell */
 }
 
 .drink-page-header {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    min-height: 148px;
-    border: 1px solid var(--cc-border);
-    border-left: 5px solid var(--cc-caramel-500);
-    border-radius: var(--cc-radius-header);
-    background: linear-gradient(120deg, var(--cc-surface-raised) 0%, var(--cc-surface-muted) 100%);
-    padding: 24px 28px;
-    box-shadow: var(--cc-shadow-md);
-    margin-bottom: 22px;
+    /* Layout provided by .ops-header + .cc-warehouse-header */
 }
 
 .drink-eyebrow {
@@ -162,9 +148,9 @@
 }
 
 .drink-primary-btn:hover,
-.drink-primary-btn:focus,
+.drink-primary-btn:focus-visible,
 .drink-form-page .btn-primary:hover,
-.drink-form-page .btn-primary:focus {
+.drink-form-page .btn-primary:focus-visible {
     border-color: var(--cc-brown-900);
     background: var(--cc-brown-900);
     color: var(--cc-text-inverse) !important;
@@ -190,9 +176,9 @@
 }
 
 .drink-filter-btn:hover,
-.drink-filter-btn:focus,
+.drink-filter-btn:focus-visible,
 .drink-form-page .btn-outline-secondary:hover,
-.drink-form-page .btn-outline-secondary:focus {
+.drink-form-page .btn-outline-secondary:focus-visible {
     border-color: var(--cc-brown-500);
     background: var(--cc-surface-active);
     color: var(--cc-brown-900) !important;
@@ -226,7 +212,7 @@
 }
 
 .drink-action-btn:hover,
-.drink-action-btn:focus {
+.drink-action-btn:focus-visible {
     border-color: var(--cc-brown-500);
     background: var(--cc-surface-active);
     color: var(--cc-brown-900);
@@ -269,7 +255,7 @@
     flex: 0 0 44px;
     width: 44px;
     height: 44px;
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
     font-size: 18px;
 }
 
@@ -351,7 +337,7 @@
 }
 
 .drink-tab:hover,
-.drink-tab:focus,
+.drink-tab:focus-visible,
 .drink-tab.active {
     border-color: var(--cc-brown-600);
     background: var(--cc-brown-600);
@@ -366,57 +352,63 @@
 }
 
 .drink-search-box {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
-    width: 280px;
+    width: 320px;
     height: 44px;
     margin: 0;
-    border: 1px solid var(--cc-border-strong);
-    border-radius: var(--cc-radius-control);
-    background: var(--cc-surface-raised);
-    padding: 0 14px;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.drink-search-box:focus-within {
-    border-color: var(--cc-brown-600);
-    box-shadow: var(--cc-focus-ring);
+.drink-search-box .drink-search-btn,
+.drink-search-box button {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--cc-brown-600, #70482f);
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.16s ease, transform 0.16s ease;
+}
+
+.drink-search-box .drink-search-btn:hover,
+.drink-search-box button:hover,
+.drink-search-box button:focus {
+    color: var(--cc-brown-900, #3d2418);
+    transform: translateY(-50%) scale(1.15);
 }
 
 .drink-search-box input {
     width: 100%;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--cc-text);
-    font-size: 13px;
+    height: 44px;
+    padding: 8px 14px 8px 40px !important;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface-raised, #ffffff);
+    color: var(--cc-text, #201812);
+    font-size: 13.5px;
     font-weight: 500;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.drink-search-box input:focus {
+    border-color: var(--cc-brown-600, #70482f);
+    outline: none;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
 }
 
 .drink-search-box input::placeholder {
-    color: var(--cc-text-disabled);
-}
-
-.drink-search-box button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 28px;
-    width: 28px;
-    height: 28px;
-    border: 0;
-    border-radius: 7px;
-    background: var(--cc-surface-active);
-    color: var(--cc-brown-600);
-    font-size: 12px;
-    transition: all 0.15s ease;
-}
-
-.drink-search-box button:hover,
-.drink-search-box button:focus {
-    background: var(--cc-brown-600);
-    color: var(--cc-text-inverse);
+    color: var(--cc-text-disabled, #a69b93);
 }
 
 .drink-page-size {
@@ -511,15 +503,16 @@
 
 .drink-table th {
     border-bottom: 1px solid var(--cc-border);
-    padding: 14px 18px;
+    padding: 14px 16px;
     white-space: nowrap;
 }
 
 .drink-table td {
     border-color: var(--cc-border);
-    padding: 14px 18px;
+    padding: 12px 14px;
     color: var(--cc-text);
     vertical-align: middle;
+    white-space: nowrap;
 }
 
 .drink-table tbody tr {
@@ -531,23 +524,16 @@
 }
 
 .drink-check-cell {
-    width: 46px;
-    text-align: center;
-}
-
-.drink-check-cell input {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: var(--cc-brown-600);
+    display: none !important;
 }
 
 .drink-image-box {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
+    margin: 0 auto;
     overflow: hidden;
     border: 1px solid var(--cc-border-strong);
     border-radius: var(--cc-radius-control);
@@ -568,6 +554,7 @@
 .drink-name {
     color: var(--cc-text);
     font-weight: 750;
+    white-space: nowrap;
 }
 
 .drink-badge {
@@ -578,6 +565,7 @@
     padding: 4px 10px;
     font-size: 11px;
     font-weight: 750;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
 
@@ -607,12 +595,14 @@
 .drink-status-badge {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     min-height: 26px;
-    border-radius: var(--cc-radius-xs);
-    padding: 4px 10px;
+    border-radius: var(--cc-radius-pill);
+    padding: 4px 12px;
     font-size: 11.5px;
     font-weight: 750;
+    white-space: nowrap;
 }
 
 .drink-status-badge span {
@@ -656,7 +646,7 @@
     width: 52px;
     height: 52px;
     margin: 0 auto 12px;
-    border-radius: 16px;
+    border-radius: var(--cc-radius-card, 16px);
     border: 1px solid var(--cc-brown-200);
     background: var(--cc-brown-50);
     color: var(--cc-brown-600);
@@ -706,7 +696,7 @@
 }
 
 .drink-pagination a:hover,
-.drink-pagination a:focus,
+.drink-pagination a:focus-visible,
 .drink-pagination a.active {
     border-color: var(--cc-brown-600);
     background: var(--cc-brown-600);
@@ -862,7 +852,7 @@
     flex: 0 0 42px;
     width: 42px;
     height: 42px;
-    border-radius: 12px;
+    border-radius: var(--cc-radius-md, 12px);
     background: var(--cc-brown-50);
     color: var(--cc-brown-600);
     border: 1px solid var(--cc-brown-200);
@@ -912,7 +902,7 @@
     flex: 0 0 36px;
     width: 36px;
     height: 36px;
-    border-radius: 10px;
+    border-radius: var(--cc-radius-control, 10px);
     background: var(--cc-surface-raised);
     color: var(--cc-brown-600);
     box-shadow: var(--cc-shadow-xs);
@@ -1031,6 +1021,132 @@
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+}
+
+/* ==========================================================================
+   DRINK GALLERY CARDS (Synchronized Image Management Grid)
+   ========================================================================== */
+
+.drink-gallery-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-control);
+    background: var(--cc-surface-raised);
+    box-shadow: var(--cc-shadow-xs);
+    transition: all 0.2s ease;
+}
+
+.drink-gallery-card:hover {
+    border-color: var(--cc-border-strong);
+    box-shadow: var(--cc-shadow-sm);
+    transform: translateY(-2px);
+}
+
+.drink-gallery-card.is-default {
+    border-color: var(--cc-success);
+    box-shadow: 0 0 0 1px var(--cc-success);
+}
+
+.drink-gallery-img-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: var(--cc-surface-muted);
+}
+
+.drink-gallery-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.drink-gallery-card:hover .drink-gallery-img {
+    transform: scale(1.04);
+}
+
+.drink-card-badge-default {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: var(--cc-radius-pill);
+    background: var(--cc-success);
+    color: var(--cc-text-inverse);
+    font-size: 11px;
+    font-weight: 750;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+.drink-gallery-card-body {
+    padding: 6px;
+    background: var(--cc-surface-raised);
+    border-top: 1px solid var(--cc-border);
+}
+
+.drink-card-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: var(--cc-radius-xs);
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.drink-card-btn-default {
+    border-color: #BBDCCD;
+    background: var(--cc-success-bg);
+    color: var(--cc-success) !important;
+    min-width: 0;
+}
+
+.drink-card-btn-default:hover,
+.drink-card-btn-default:focus {
+    border-color: var(--cc-success);
+    background: var(--cc-success);
+    color: var(--cc-text-inverse) !important;
+}
+
+.drink-card-btn-edit {
+    flex-shrink: 0;
+    min-width: 32px;
+    border-color: var(--cc-brown-200);
+    background: var(--cc-brown-50);
+    color: var(--cc-brown-700) !important;
+}
+
+.drink-card-btn-edit:hover,
+.drink-card-btn-edit:focus {
+    border-color: var(--cc-brown-600);
+    background: var(--cc-brown-600);
+    color: var(--cc-text-inverse) !important;
+}
+
+.drink-card-btn-delete {
+    flex-shrink: 0;
+    min-width: 32px;
+    border-color: #E9B8B8;
+    background: var(--cc-danger-bg);
+    color: var(--cc-danger) !important;
+}
+
+.drink-card-btn-delete:hover,
+.drink-card-btn-delete:focus {
+    border-color: var(--cc-danger);
+    background: var(--cc-danger);
+    color: var(--cc-text-inverse) !important;
 }
 
 /* ==========================================================================

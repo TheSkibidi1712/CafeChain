@@ -16,9 +16,7 @@ namespace CafeChain.Models.Customers
         /// <summary>FK tới Ward (Phường/Xã) — Nullable để không vi phạm dữ liệu cũ</summary>
         public int? WardId { get; set; }
 
-        /// <summary>FK tới District (Quận/Huyện) — Thêm mới để tối ưu truy vấn báo cáo</summary>
-        public int? DistrictId { get; set; }
-
+        /// <summary>FK trực tiếp tới đơn vị hành chính cấp xã.</summary>
         /// <summary>FK tới Province (Tỉnh/TP) — Thêm mới để tối ưu truy vấn báo cáo</summary>
         public int? ProvinceId { get; set; }
 
@@ -37,9 +35,8 @@ namespace CafeChain.Models.Customers
 
         // ─── Navigation Properties ────────────────────────────────────────────────
         public virtual Customer Customer { get; set; } = null!;
-        public virtual Ward Ward { get; set; } = null!;
-        public virtual District District { get; set; } = null!;
-        public virtual Province Province { get; set; } = null!;
+        public virtual Ward? Ward { get; set; }
+        public virtual Province? Province { get; set; }
 
         // ─── Computed Display Property ────────────────────────────────────────────
         /// <summary>
@@ -53,7 +50,6 @@ namespace CafeChain.Models.Customers
                 var parts = new List<string>();
                 if (!string.IsNullOrWhiteSpace(Address)) parts.Add(Address);
                 if (Ward != null) parts.Add(Ward.Name);
-                if (District != null) parts.Add(District.Name);
                 if (Province != null) parts.Add(Province.Name);
                 return parts.Count > 0 ? string.Join(", ", parts) : string.Empty;
             }

@@ -19,7 +19,7 @@ Nếu menu/nút khác hướng dẫn, kiểm tra đã chạy migration mới và
 1. Đăng nhập account phù hợp.
 2. Từ App Launcher bấm **Admin Dashboard** hoặc mở `/Admin/Dashboard`.
 3. Tab đầu tiên là section đầu tiên backend cho phép; tab không có quyền sẽ không xuất hiện.
-4. Chọn thời gian, Province/District/Store. Store ngoài scope không xuất hiện; sửa URL thủ công phải nhận 403.
+4. Chọn thời gian, Province/Ward/Store. Store ngoài scope không xuất hiện; sửa URL thủ công phải nhận 403.
 5. Mỗi widget chỉ xuất hiện khi có permission riêng. Ví dụ có Executive nhưng thiếu `Dashboard.FinancialSummary.View` thì không thấy số tài chính.
 
 Kỳ vọng theo account:

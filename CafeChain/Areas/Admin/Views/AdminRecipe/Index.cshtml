@@ -10,55 +10,63 @@
         "SUBRECIPE" => "Bán thành phẩm",
         _ => "Món bán"
     };
+    var heroActions = new List<AdminPageHeroActionVM>
+    {
+        new()
+        {
+            Label = "Kiểm tra dữ liệu",
+            Url = Url.Action("DataHealth") ?? "#",
+            IconClass = "fas fa-clipboard-check"
+        }
+    };
+    if (Model.CanWrite)
+    {
+        heroActions.Add(new AdminPageHeroActionVM
+        {
+            Label = "Tạo công thức",
+            Url = Url.Action("Create") ?? "#",
+            IconClass = "fas fa-plus",
+            IsPrimary = true
+        });
+    }
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / BOM",
+        Title = "Công thức và định mức nguyên liệu",
+        Description = "Quản lý định mức đầu vào, sản lượng dự kiến và các phiên bản công thức cho món bán, topping và bán thành phẩm.",
+        IconClass = "fas fa-diagram-project",
+        Breadcrumbs = [new() { Label = "Sản xuất / BOM" }, new() { Label = "Công thức" }],
+        Actions = heroActions
+    };
 }
 
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 @Html.AntiForgeryToken()
 
-<div class="rb-page">
-    <div class="container-fluid px-4 pt-4 pb-5">
-        <div class="rb-page-header bom-depth-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-            <div class="admin-module-heading-copy">
-                <nav class="rb-breadcrumb" aria-label="breadcrumb">
-                    <span>Sản xuất / BOM</span> &gt; <span>Công thức BOM</span>
-                </nav>
-                <div class="admin-module-title-row">
-                    <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-diagram-project"></i></span>
-                    <div>
-                        <h1 class="rb-page-title mb-1">Công thức BOM</h1>
-                        <p class="text-muted mb-0">Quản lý định mức theo đúng nghiệp vụ món bán, topping và bán thành phẩm.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="admin-module-header-actions">
-                <a asp-action="DataHealth" class="btn btn-rb-ghost">
-                    <i class="fas fa-clipboard-check me-2" aria-hidden="true"></i>Tình trạng dữ liệu
-                </a>
-                @if (Model.CanWrite)
-                {
-                    <a asp-action="Create" class="btn btn-rb-save">
-                        <i class="fas fa-plus me-2" aria-hidden="true"></i>Thêm công thức
-                    </a>
-                }
-            </div>
-        </div>
+<div class="rb-page production-bom-page production-bom-shell bom-list-page">
+    <div class="container-fluid px-0">
+        <partial name="_PageHero" model="hero" />
 
-        <nav class="rb-recipe-tabs" aria-label="Loại công thức">
+        <nav class="rb-recipe-tabs production-tabs" aria-label="Loại công thức">
             <a class="rb-recipe-tab @(type == "POS" ? "active" : "")"
+               aria-current="@(type == "POS" ? "page" : null)"
                href="@Url.Action("Index", new { type = "POS", search = Model.Search, status = Model.StatusFilter, page = 1 })">
                 Món bán
             </a>
             <a class="rb-recipe-tab @(type == "TOPPING" ? "active" : "")"
+               aria-current="@(type == "TOPPING" ? "page" : null)"
                href="@Url.Action("Index", new { type = "TOPPING", search = Model.Search, status = Model.StatusFilter, page = 1 })">
                 Topping
             </a>
             <a class="rb-recipe-tab @(type == "SUBRECIPE" ? "active" : "")"
+               aria-current="@(type == "SUBRECIPE" ? "page" : null)"
                href="@Url.Action("Index", new { type = "SUBRECIPE", search = Model.Search, status = Model.StatusFilter, page = 1 })">
                 Bán thành phẩm
             </a>
         </nav>
 
-        <form method="get" class="rb-list-filters rb-module-filter rb-module-filter--three mb-3">
+        <form method="get" class="rb-list-filters production-filter-card" role="search">
             <input type="hidden" name="type" value="@type" />
             <label class="visually-hidden" for="recipeSearch">Tìm công thức</label>
             <input id="recipeSearch"
@@ -76,15 +84,63 @@
             <button class="btn btn-rb-save" type="submit">
                 <i class="fas fa-search me-2" aria-hidden="true"></i>Lọc
             </button>
+            <a class="btn btn-rb-ghost production-filter-reset"
+               href="@Url.Action("Index", new { type })"
+               aria-label="Đặt lại bộ lọc"
+               title="Đặt lại bộ lọc">
+                <i class="fas fa-rotate-left" aria-hidden="true"></i>
+            </a>
         </form>
 
-        <div class="rb-list-meta mb-2">
-            <strong>@Model.TotalCount</strong> công thức @typeLabel.ToLowerInvariant()
-        </div>
+        <section class="production-list-section" aria-labelledby="recipe-list-title">
+            <header class="production-section-header">
+                <div>
+                    <h2 id="recipe-list-title">Danh sách công thức @typeLabel.ToLowerInvariant()</h2>
+                    <p>Phiên bản đang áp dụng, tình trạng dữ liệu và giá vốn ước tính.</p>
+                </div>
+                <span class="production-section-header__count"><strong>@Model.TotalCount</strong> công thức</span>
+            </header>
 
-        <div class="rb-card">
+        <div class="rb-card production-table-panel">
             <div class="table-responsive">
-                <table class="table rb-table rb-recipe-table mb-0" aria-label="Danh sách công thức @typeLabel">
+                <table class="table rb-table rb-recipe-table production-data-table @(type == "SUBRECIPE" ? "is-subrecipe" : "is-standard") mb-0" aria-label="Danh sách công thức @typeLabel">
+                    @if (type == "SUBRECIPE")
+                    {
+                        <colgroup>
+                            <col class="rb-col-identity" />
+                            <col class="rb-col-version" />
+                            <col class="rb-col-output" />
+                            <col class="rb-col-output" />
+                            <col class="rb-col-cost" />
+                            <col class="rb-col-cost" />
+                            <col class="rb-col-status" />
+                            <col class="rb-col-actions" />
+                        </colgroup>
+                    }
+                    else if (type == "TOPPING")
+                    {
+                        <colgroup>
+                            <col class="rb-col-identity" />
+                            <col class="rb-col-source" />
+                            <col class="rb-col-portion" />
+                            <col class="rb-col-config" />
+                            <col class="rb-col-cost" />
+                            <col class="rb-col-status" />
+                            <col class="rb-col-actions" />
+                        </colgroup>
+                    }
+                    else
+                    {
+                        <colgroup>
+                            <col class="rb-col-identity" />
+                            <col class="rb-col-version" />
+                            <col class="rb-col-portion" />
+                            <col class="rb-col-config" />
+                            <col class="rb-col-cost" />
+                            <col class="rb-col-status" />
+                            <col class="rb-col-actions" />
+                        </colgroup>
+                    }
                     <thead>
                         @if (type == "SUBRECIPE")
                         {
@@ -96,7 +152,7 @@
                                 <th>Giá vốn/mẻ</th>
                                 <th>Giá vốn/đơn vị</th>
                                 <th>Trạng thái</th>
-                                <th>Thao tác</th>
+                                <th class="rb-actions-heading">Thao tác</th>
                             </tr>
                         }
                         else if (type == "TOPPING")
@@ -108,7 +164,7 @@
                                 <th>Cấu hình</th>
                                 <th>Giá vốn/phần</th>
                                 <th>Trạng thái</th>
-                                <th>Thao tác</th>
+                                <th class="rb-actions-heading">Thao tác</th>
                             </tr>
                         }
                         else
@@ -120,7 +176,7 @@
                                 <th>Cấu hình</th>
                                 <th>Giá vốn/phần</th>
                                 <th>Trạng thái</th>
-                                <th>Thao tác</th>
+                                <th class="rb-actions-heading">Thao tác</th>
                             </tr>
                         }
                     </thead>
@@ -147,7 +203,7 @@
                             var activeDesc = AdminStatusDisplay.RecipeActive(recipe.Active);
                             var configClass = recipe.ConfigurationHealth.IsComplete ? "rb-status-complete" : "rb-status-incomplete";
                             var costClass = recipe.CostingHealth.IsComplete ? "rb-status-complete" : "rb-status-error";
-                            var costReasons = string.Join(" | ", recipe.CostingHealth.Reasons.Select(x => $"{x.Code}: {x.Message}"));
+                            var costReasons = string.Join(" | ", recipe.CostingHealth.Reasons.Select(x => x.Message));
                             <tr data-recipe-type="@recipe.RecipeType" data-recipe-id="@recipe.RecipeId">
                                 <td>
                                     <div class="fw-semibold text-break">@recipe.IdentityDisplay</div>
@@ -156,8 +212,8 @@
                                 @if (type == "SUBRECIPE")
                                 {
                                     <td>
-                                        <strong>#@recipe.RecipeId</strong>
-                                        <div class="small text-muted">Bán thành phẩm #@(recipe.PreparedItemId?.ToString() ?? "chưa chọn")</div>
+                                        <strong>@recipe.RecipeCode</strong>
+                                        <div class="small text-muted">Phiên bản cho bán thành phẩm</div>
                                     </td>
                                     <td class="font-monospace">@recipe.OutputPerBatchDisplay</td>
                                     <td class="font-monospace">@recipe.NormalizedOutputDisplay</td>
@@ -205,7 +261,7 @@
                                                         <span>@component.QuantityDisplay/phần</span>
                                                         @if (component.ChildRecipeId.HasValue)
                                                         {
-                                                            <span>· cố định Công thức #@component.ChildRecipeId</span>
+                                                            <span>· dùng phiên bản công thức đã chọn</span>
                                                         }
                                                     </div>
                                                 }
@@ -215,8 +271,8 @@
                                     else
                                     {
                                         <td>
-                                            <strong>#@recipe.RecipeId</strong>
-                                            <div class="small text-muted">Phiên bản công thức</div>
+                                            <strong>@recipe.RecipeCode</strong>
+                                            <div class="small text-muted">Phiên bản đang áp dụng</div>
                                         </td>
                                     }
                                     <td>@recipe.PortionDefinitionDisplay</td>
@@ -234,30 +290,40 @@
                                     <td><partial name="_StatusBadge" model="activeDesc" /></td>
                                 }
                                 <td class="rb-actions-cell">
-                                    <a class="btn btn-sm btn-outline-secondary rb-table-action"
-                                       asp-action="Visualize"
-                                       asp-route-recipeId="@recipe.RecipeId"
-                                       title="Xem cấu trúc BOM"
-                                       aria-label="Xem cấu trúc BOM của @recipe.Name"
-                                       asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)"><i class="fas fa-diagram-project" aria-hidden="true"></i><span>Xem cấu trúc</span></a>
-                                    @if (Model.CanWrite)
-                                    {
-                                        <a class="btn btn-sm btn-outline-primary rb-table-action"
-                                           asp-action="Edit"
-                                           asp-route-id="@recipe.RecipeId"
-                                           title="@(type == "SUBRECIPE" ? "Tạo phiên bản" : "Sửa công thức")"
-                                           aria-label="@(type == "SUBRECIPE" ? $"Tạo phiên bản cho {recipe.Name}" : $"Sửa công thức {recipe.Name}")">
-                                            <i class="fas fa-pen" aria-hidden="true"></i><span>@(type == "SUBRECIPE" ? "Tạo phiên bản" : "Sửa")</span>
-                                        </a>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-danger btn-delete-recipe rb-table-action"
-                                                data-id="@recipe.RecipeId"
-                                                data-name="@recipe.Name"
-                                                title="Xóa công thức"
-                                                aria-label="Xóa công thức @recipe.Name">
-                                            <i class="fas fa-trash-can" aria-hidden="true"></i><span>Xóa</span>
-                                        </button>
-                                    }
+                                    <div class="production-row-actions">
+                                        <a class="btn btn-sm btn-outline-secondary rb-table-action"
+                                           asp-action="Visualize"
+                                           asp-route-recipeId="@recipe.RecipeId"
+                                           title="Xem cấu trúc BOM"
+                                           aria-label="Xem cấu trúc BOM của @recipe.Name"
+                                           asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)"><i class="fas fa-diagram-project" aria-hidden="true"></i><span>Xem cấu trúc</span></a>
+                                        @if (Model.CanWrite)
+                                        {
+                                            <div class="dropdown production-row-menu">
+                                                <button class="btn btn-sm production-row-menu__trigger" type="button"
+                                                        data-bs-toggle="dropdown" aria-expanded="false"
+                                                        title="Mở danh sách thao tác"
+                                                        aria-label="Mở danh sách thao tác cho @recipe.Name">
+                                                    <i class="fas fa-ellipsis-vertical" aria-hidden="true"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                    <li>
+                                                        <a class="dropdown-item" asp-action="Edit" asp-route-id="@recipe.RecipeId">
+                                                            <i class="fas fa-pen" aria-hidden="true"></i>
+                                                            @(type == "SUBRECIPE" ? "Tạo phiên bản" : "Sửa công thức")
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider" /></li>
+                                                    <li>
+                                                        <button type="button" class="dropdown-item text-danger btn-delete-recipe"
+                                                                data-id="@recipe.RecipeId" data-name="@recipe.Name">
+                                                            <i class="fas fa-trash-can" aria-hidden="true"></i>Xóa công thức
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        }
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -265,20 +331,34 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-
         @if (Model.TotalPages > 1)
         {
-            <nav class="rb-pagination mt-3" aria-label="Phân trang công thức">
-                @for (var number = 1; number <= Model.TotalPages; number++)
-                {
-                    <a class="rb-page-link @(number == Model.Page ? "active" : "")"
+            <nav class="production-pagination" aria-label="Phân trang công thức">
+                <span class="production-pagination__summary">Trang @Model.Page trên @Model.TotalPages</span>
+                <div class="production-pagination__links">
+                    @if (Model.Page > 1)
+                    {
+                        <a class="production-page-link is-nav" aria-label="Trang trước"
+                           href="@Url.Action("Index", new { type, search = Model.Search, status = Model.StatusFilter, page = Model.Page - 1 })"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+                    }
+                    @for (var number = 1; number <= Model.TotalPages; number++)
+                    {
+                    <a class="production-page-link @(number == Model.Page ? "is-current" : "")"
+                       aria-current="@(number == Model.Page ? "page" : null)"
                        href="@Url.Action("Index", new { type, search = Model.Search, status = Model.StatusFilter, page = number })">
                         @number
                     </a>
-                }
+                    }
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <a class="production-page-link is-nav" aria-label="Trang sau"
+                           href="@Url.Action("Index", new { type, search = Model.Search, status = Model.StatusFilter, page = Model.Page + 1 })"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
+                    }
+                </div>
             </nav>
         }
+        </div>
+        </section>
     </div>
 </div>
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import * as signalR from '@microsoft/signalr'
+import VerificationCodeInput from '../components/VerificationCodeInput'
 import { db, type CartSyncQueueItem } from '../db/CafeChainPOSDB'
 import { API_BASE_URL, apiClient } from '../services/apiClient'
 import {
@@ -24,7 +25,6 @@ import {
 import {
   isValidOperationalOtp,
   OPERATIONAL_OTP_INPUT_ERROR,
-  sanitizeOperationalOtpInput,
 } from '../utils/otpCode'
 import { parseUtcInstant, parseUtcInstantMs } from '../utils/utcDateTime'
 
@@ -81,10 +81,11 @@ type ShiftActionResponse = Partial<ShiftSummaryDto> & {
   staffHubUrl?: string
 }
 
-const redirectToStaffHub = (terminalId?: string | null, serverUrl?: string | null) => {
+const redirectToStaffHub = (terminalId?: string | null, serverUrl?: string | null, errorCode?: string) => {
   const target = new URL(serverUrl || '/StaffHub', API_BASE_URL)
   target.searchParams.set('openPos', '1')
   if (terminalId) target.searchParams.set('terminalId', terminalId)
+  if (errorCode) target.searchParams.set('posErrorCode', errorCode)
   window.location.assign(target.toString())
 }
 
@@ -664,12 +665,15 @@ export default function ShiftSummary() {
       })
 
       if (response.ok && response.data?.status?.toUpperCase() === 'CLOSED') {
+        const terminalId = getPosSession().terminalId
         setShift(response.data as ShiftSummaryDto)
         closeRequestKeyRef.current = crypto.randomUUID()
         setActualEndingCash('')
         setDiscrepancyReason('')
         resetOtpState()
         setMessage({ type: 'success', text: 'Đóng ca thành công.' })
+        clearPosAuthentication()
+        redirectToStaffHub(terminalId, undefined, 'SHIFT_ALREADY_CLOSED')
         return true
       }
 
@@ -1030,6 +1034,7 @@ export default function ShiftSummary() {
       })
 
       if (response.ok && ['RECONCILIATION_REQUIRED', 'CLOSED'].includes(response.data?.status?.toUpperCase() ?? '')) {
+        const terminalId = getPosSession().terminalId
         setShift(response.data as ShiftSummaryDto)
         exceptionCloseRequestKeyRef.current = crypto.randomUUID()
         setActualEndingCash('')
@@ -1039,6 +1044,8 @@ export default function ShiftSummary() {
         setVerifiedExceptionOtpId(null)
         setExceptionOtpCode('')
         setMessage({ type: 'success', text: 'Đóng ca ngoại lệ thành công. Ca cần đối soát lại sau khi đồng bộ offline.' })
+        clearPosAuthentication()
+        redirectToStaffHub(terminalId, undefined, 'SHIFT_ALREADY_CLOSED')
       } else {
         setMessage({
           type: 'error',
@@ -1258,11 +1265,8 @@ export default function ShiftSummary() {
                       </label>
                       <label className="text-xs font-semibold text-text-secondary">
                         PIN cá nhân
-                        <input type="password" inputMode="numeric" autoComplete="off" maxLength={6} pattern="[0-9]{6}"
-                          value={operatorPin}
-                          onChange={(event) => setOperatorPin(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                          disabled={operatorBusy}
-                          className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-text-primary" required />
+                        <VerificationCodeInput value={operatorPin} onChange={setOperatorPin} mode="pin"
+                          label="PIN cá nhân" disabled={operatorBusy} />
                       </label>
                       <button type="submit" disabled={operatorBusy || selectedOperatorId === '' || operatorPin.length !== 6}
                         className="px-3 py-2 rounded-lg bg-brand-orange text-white text-xs font-bold disabled:opacity-40">
@@ -1360,21 +1364,13 @@ export default function ShiftSummary() {
                         >
                           {exceptionOtpBusy ? 'Đang gửi OTP...' : 'Gửi OTP phê duyệt'}
                         </button>
-                        <input
-                          type="text"
-                          maxLength={6}
-                          autoCapitalize="characters"
-                          autoComplete="one-time-code"
-                          value={exceptionOtpCode}
-                          onChange={(event) => {
-                            const sanitized = sanitizeOperationalOtpInput(event.target.value)
-                            setExceptionOtpCode(sanitized.value)
-                            if (sanitized.rejected) setExceptionOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)
-                          }}
-                          className="w-28 px-3 py-2 border border-amber-200 rounded-lg text-xs font-extrabold tracking-widest uppercase"
-                          placeholder="OTP"
-                          disabled={!exceptionOtpChallengePublicId || exceptionOtpBusy}
-                        />
+                        <div className="w-full sm:w-72">
+                          <VerificationCodeInput value={exceptionOtpCode} onChange={setExceptionOtpCode}
+                            mode="otp" label="OTP đóng ca ngoại lệ"
+                            disabled={!exceptionOtpChallengePublicId || exceptionOtpBusy}
+                            error={Boolean(exceptionOtpMessage)}
+                            onRejected={() => setExceptionOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)} />
+                        </div>
                         <button
                           type="button"
                           onClick={verifyExceptionOtp}
@@ -1607,22 +1603,9 @@ export default function ShiftSummary() {
                           <label className="block text-xs font-semibold text-text-secondary mb-1">
                             Mã OTP 6 ký tự (chữ + số)
                           </label>
-                          <input
-                            type="text"
-                            inputMode="text"
-                            autoComplete="one-time-code"
-                            autoCapitalize="characters"
-                            maxLength={6}
-                            value={otpCode}
-                            onChange={(event) => {
-                              const sanitized = sanitizeOperationalOtpInput(event.target.value)
-                              setOtpCode(sanitized.value)
-                              if (sanitized.rejected) setOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)
-                            }}
-                            disabled={otpBusy || isSubmitting || expiresInSeconds === 0}
-                            className="w-full px-3 py-2 border border-violet-200 rounded-lg text-sm tracking-[0.35em] outline-none focus:border-violet-500 text-text-primary bg-white font-extrabold uppercase"
-                            placeholder="A2B3C4"
-                          />
+                          <VerificationCodeInput value={otpCode} onChange={setOtpCode} mode="otp"
+                            label="Mã OTP" disabled={otpBusy || isSubmitting || expiresInSeconds === 0}
+                            error={Boolean(otpMessage)} onRejected={() => setOtpMessage(OPERATIONAL_OTP_INPUT_ERROR)} />
                         </div>
                         <button
                           type="button"

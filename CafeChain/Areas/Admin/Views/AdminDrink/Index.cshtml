@@ -41,22 +41,23 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Drink/drink.css" asp-append-version="true" />
 }
 
-<div class="drink-page">
+<main class="drink-page ops-shell cc-warehouse-page">
     @Html.AntiForgeryToken()
-    <div class="drink-page-header">
+    <header class="drink-page-header ops-header cc-warehouse-header">
         <div>
-            <span class="drink-eyebrow">
+            <span class="drink-eyebrow ops-eyebrow">
                 <i class="fas fa-mug-hot"></i>
                 Thực đơn CafeChain
             </span>
-            <h1>Danh sách nước uống</h1>
-            <p>Theo dõi hình ảnh, danh mục và trạng thái bán của toàn bộ sản phẩm.</p>
+            <h1 class="ops-title">Danh sách nước uống</h1>
+            <p class="ops-subtitle">Theo dõi hình ảnh, danh mục và trạng thái bán của toàn bộ sản phẩm.</p>
         </div>
 
-        <div class="drink-header-actions">
+        <div class="drink-header-actions ops-actions">
             <a asp-action="Index" class="btn drink-filter-btn @(hasFilters ? "" : "is-muted")">
                 <i class="fas fa-rotate-left"></i>
                 Xóa lọc
@@ -70,7 +71,7 @@
             </a>
             }
         </div>
-    </div>
+    </header>
 
     <div class="drink-summary-grid">
         <div class="drink-summary-card drink-summary-total">
@@ -123,16 +124,16 @@
             <input type="hidden" name="Active" value="@filter.Active" />
             <input type="hidden" name="Page" value="1" />
 
-            <label class="drink-search-box" aria-label="Tìm đồ uống">
-                <i class="fas fa-search"></i>
+            <div class="drink-search-box">
+                <button type="submit" class="drink-search-btn" title="Tìm kiếm" aria-label="Tìm kiếm đồ uống">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                </button>
                 <input type="search"
                        name="Keyword"
                        value="@filter.Keyword"
-                       placeholder="Tìm đồ uống..." />
-                <button type="submit" title="Tìm kiếm" aria-label="Tìm kiếm">
-                    <i class="fas fa-arrow-right"></i>
-                </button>
-            </label>
+                       placeholder="Tìm đồ uống..."
+                       aria-label="Tìm đồ uống" />
+            </div>
 
             <label class="drink-page-size">
                 <span>Hiển thị:</span>
@@ -162,12 +163,12 @@
                         <th class="drink-check-cell">
                             <input type="checkbox" aria-label="Chọn tất cả đồ uống" />
                         </th>
-                        <th>Hình ảnh</th>
+                        <th class="text-center">Hình ảnh</th>
                         <th class="text-center">Mã</th>
                         <th>Tên nước uống</th>
                         <th>Danh mục</th>
                         <th>Loại sản phẩm</th>
-                        <th>Trạng thái</th>
+                        <th class="text-center">Trạng thái</th>
                         <th class="text-center">Thao tác</th>
                     </tr>
                 </thead>
@@ -190,9 +191,12 @@
                                 <input type="checkbox" aria-label="Chọn @item.Name" />
                             </td>
 
-                            <td data-label="Hình ảnh">
+                            <td data-label="Hình ảnh" class="text-center">
                                 <div class="drink-image-box">
-                                    <img src="@item.ImageUrl" alt="@item.Name" />
+                                    <img src="@item.ImageUrl" alt="@item.Name" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+                                    <div class="drink-image-fallback" style="display:none; width:100%; height:100%; align-items:center; justify-content:center; background:#f8f3ef; color:#8b6b55; font-size:16px;">
+                                        <i class="fas fa-mug-hot"></i>
+                                    </div>
                                 </div>
                             </td>
 
@@ -218,7 +222,7 @@
                                 </span>
                             </td>
 
-                            <td data-label="Trạng thái">
+                            <td data-label="Trạng thái" class="text-center">
                                 @if (item.Active)
                                 {
                                     <span class="drink-status-badge active">
@@ -345,9 +349,8 @@
                     <i class="fas fa-chevron-right"></i>
                 </a>
             </div>
-        </div>
     </div>
-</div>
+</main>
 
 <!-- Modal Image Management -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import VerificationCodeInput from '../components/VerificationCodeInput'
 import {
   fetchNotifications,
   confirmTerminalFromNotification,
@@ -41,7 +42,7 @@ function OperationalOtpCard({
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(0, otp.remainingSeconds))
   const [revealedCode, setRevealedCode] = useState('')
   const [enteredCode, setEnteredCode] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busyAction, setBusyAction] = useState<'reveal' | 'confirm' | 'copy' | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -79,46 +80,65 @@ function OperationalOtpCard({
             ) : (
               <button
                 type="button"
-                disabled={busy || !otp.canRevealOtp}
+                disabled={busyAction !== null || !otp.canRevealOtp}
                 onClick={() => void (async () => {
-                  setBusy(true)
+                  setBusyAction('reveal')
                   setMessage(null)
-                  const result = await revealTerminalOtp(notificationId)
-                  setBusy(false)
-                  if (result.ok && result.data) setRevealedCode(result.data.code)
-                  else setMessage(result.error || 'Không thể xem OTP.')
+                  try {
+                    const result = await revealTerminalOtp(notificationId)
+                    if (result.ok && result.data) setRevealedCode(result.data.code.trim())
+                    else setMessage(result.error || 'Không thể xem OTP.')
+                  } finally {
+                    setBusyAction(null)
+                  }
                 })()}
                 className="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 disabled:opacity-50"
               >
-                Xem OTP
+                {busyAction === 'reveal' ? 'Đang xem…' : 'Xem OTP'}
+              </button>
+            )}
+            {revealedCode && (
+              <button type="button" disabled={busyAction !== null}
+                onClick={() => void (async () => {
+                  setBusyAction('copy')
+                  try {
+                    await navigator.clipboard.writeText(revealedCode.trim())
+                    setMessage('Đã sao chép mã OTP')
+                  } catch {
+                    setMessage('Không thể sao chép OTP trên trình duyệt này.')
+                  } finally {
+                    setBusyAction(null)
+                  }
+                })()}
+                className="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 disabled:opacity-50">
+                Copy OTP
               </button>
             )}
           </div>
           {otp.canContinueTerminalConfirmation && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <input
-                value={enteredCode}
-                onChange={(event) => setEnteredCode(event.target.value.toUpperCase().slice(0, 6))}
-                maxLength={6}
-                autoComplete="one-time-code"
-                aria-label="Mã OTP xác nhận Terminal"
-                className="w-36 rounded-lg border border-amber-400 bg-white px-3 py-2 text-sm font-bold tracking-widest"
-              />
+              <div className="w-full sm:w-72">
+                <VerificationCodeInput value={enteredCode} onChange={setEnteredCode}
+                  mode="otp" label="Mã OTP xác nhận Terminal" disabled={busyAction !== null} />
+              </div>
               <button
                 type="button"
-                disabled={busy || enteredCode.length !== 6}
+                disabled={busyAction !== null || enteredCode.length !== 6}
                 onClick={() => void (async () => {
-                  setBusy(true)
+                  setBusyAction('confirm')
                   setMessage(null)
-                  const requestKey = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`
-                  const result = await confirmTerminalFromNotification(notificationId, enteredCode, requestKey)
-                  setBusy(false)
-                  if (result.ok) onChanged()
-                  else setMessage(result.error || 'Không thể xác nhận Terminal.')
+                  try {
+                    const requestKey = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`
+                    const result = await confirmTerminalFromNotification(notificationId, enteredCode, requestKey)
+                    if (result.ok) onChanged()
+                    else setMessage(result.error || 'Không thể xác nhận Terminal.')
+                  } finally {
+                    setBusyAction(null)
+                  }
                 })()}
                 className="rounded-lg bg-amber-800 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
               >
-                {busy ? 'Đang xác nhận...' : 'Tiếp tục xác nhận Terminal'}
+                {busyAction === 'confirm' ? 'Đang xác nhận...' : 'Tiếp tục xác nhận Terminal'}
               </button>
             </div>
           )}

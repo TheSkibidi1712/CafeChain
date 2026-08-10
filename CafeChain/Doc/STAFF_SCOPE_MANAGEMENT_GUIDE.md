@@ -23,8 +23,7 @@ Code và ID là contract kỹ thuật, không thay đổi theo ngôn ngữ giao 
 | ---: | --- | --- | --- |
 | 1 | `COUNTRY` | Toàn chuỗi | Tất cả cửa hàng thuộc CafeChain. |
 | 2 | `PROVINCE` | Tỉnh/Thành phố | Các cửa hàng thuộc một tỉnh/thành phố. |
-| 3 | `DISTRICT` | Quận/Huyện | Các cửa hàng thuộc một quận/huyện. |
-| 4 | `WARD` | Phường/Xã | Các cửa hàng thuộc một phường/xã. |
+| 4 | `WARD` | Xã/Phường/Đặc khu | Các cửa hàng thuộc một xã/phường/đặc khu. |
 | 5 | `STORE` | Cửa hàng | Một cửa hàng cụ thể. |
 
 Tên tiếng Việt chỉ dùng để hiển thị. Backend luôn xử lý bằng ID hoặc Code.
@@ -61,7 +60,7 @@ Backend vẫn kiểm tra lại toàn bộ dữ liệu. Việc thay `StoreId` th�
 | --- | --- | --- |
 | Chủ doanh nghiệp | Toàn chuỗi | Chọn một cửa hàng đang hoạt động làm nơi công tác chính. |
 | Quản trị hệ thống | Toàn chuỗi | Chọn một cửa hàng đang hoạt động làm nơi công tác chính. |
-| Quản lý vùng | Tỉnh/Thành phố, Quận/Huyện, Phường/Xã hoặc Cửa hàng | Chỉ chọn được cửa hàng thuộc địa bàn đã cấp. |
+| Quản lý vùng | Tỉnh/Thành phố, Xã/Phường/Đặc khu hoặc Cửa hàng | Chỉ chọn được cửa hàng thuộc địa bàn đã cấp. |
 | Quản lý chi nhánh | Cửa hàng | Cửa hàng scope đồng thời là cửa hàng chính. |
 | Ca trưởng | Cửa hàng | Cửa hàng scope đồng thời là cửa hàng chính. |
 | Nhân viên bán hàng | Cửa hàng | Cửa hàng scope đồng thời là cửa hàng chính. |
@@ -76,7 +75,7 @@ Người tạo chỉ được gán vai trò và phạm vi thấp hơn, nằm tro
 1. Nhập họ tên, CCCD, giới tính, ngày sinh và số điện thoại.
 2. Avatar là tùy chọn; chỉ hỗ trợ JPG, JPEG, PNG hoặc WebP, tối đa 2 MB.
 3. Chọn Tỉnh/Thành phố của địa chỉ thường trú.
-4. Chọn Quận/Huyện, sau đó chọn Phường/Xã.
+4. Chọn Xã/Phường/Đặc khu trực thuộc tỉnh/thành phố.
 5. Nhập số nhà và tên đường ở trường Địa chỉ chi tiết.
 
 Địa chỉ thường trú không quyết định phạm vi dữ liệu của nhân viên.
@@ -88,8 +87,7 @@ Người tạo chỉ được gán vai trò và phạm vi thấp hơn, nằm tro
 3. Chọn phạm vi cụ thể:
    - Toàn chuỗi: hệ thống tự chọn phạm vi toàn chuỗi.
    - Tỉnh/Thành phố: chọn một tỉnh.
-   - Quận/Huyện: chọn tỉnh trước, sau đó chọn quận/huyện.
-   - Phường/Xã: chọn tỉnh, quận/huyện rồi phường/xã.
+   - Xã/Phường/Đặc khu: chọn tỉnh/thành phố trước, sau đó chọn đơn vị cấp xã trực thuộc.
    - Cửa hàng: chọn một cửa hàng đang hoạt động.
 4. Chọn Cửa hàng chính từ danh sách đã được lọc theo phạm vi.
 
@@ -134,7 +132,7 @@ Không cần cấp phạm vi Tỉnh/Thành phố nếu người đó chỉ quả
 ### Quản lý theo địa bàn
 
 - Role: Quản lý vùng.
-- Scope: Tỉnh/Thành phố hoặc Quận/Huyện.
+- Scope: Tỉnh/Thành phố hoặc Xã/Phường/Đặc khu.
 - Cửa hàng chính: một cửa hàng đang hoạt động thuộc địa bàn đó.
 - Cửa hàng tạo mới trong cùng địa bàn được scope resolver nhận diện theo dữ liệu địa giới.
 

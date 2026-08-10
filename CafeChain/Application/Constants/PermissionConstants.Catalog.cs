@@ -45,6 +45,13 @@ namespace CafeChain.Application.Constants
         public const string ProductionOrderConfirm = "ProductionOrder.Confirm";
         public const string ProductionOrderCreate = "ProductionOrder.Create";
         public const string ProductionOrderView = "ProductionOrder.View";
+        public const string ProductionOrderPlan = "ProductionOrder.Plan";
+        public const string ProductionOrderRelease = "ProductionOrder.Release";
+        public const string ProductionOrderStart = "ProductionOrder.Start";
+        public const string ProductionOrderRecordActual = "ProductionOrder.RecordActual";
+        public const string ProductionOrderAcceptOutput = "ProductionOrder.AcceptOutput";
+        public const string ProductionOrderApproveVariance = "ProductionOrder.ApproveVariance";
+        public const string ProductionOrderCancel = "ProductionOrder.Cancel";
         public const string ProfitabilityUpdatePrice = "Profitability.UpdatePrice";
         public const string ProfitabilityUpdateToppingPolicy = "Profitability.UpdateToppingPolicy";
         public const string ProfitabilityView = "Profitability.View";
@@ -97,6 +104,7 @@ namespace CafeChain.Application.Constants
         public const string RestockCreatePurchaseOrder = "Restock.CreatePurchaseOrder";
         public const string RestockCreateTransfer = "Restock.CreateTransfer";
         public const string RestockReject = "Restock.Reject";
+        public const string RestockSelectProductionSource = "Restock.SelectProductionSource";
         public const string RestockSubmit = "Restock.Submit";
         public const string RestockUpdate = "Restock.Update";
 

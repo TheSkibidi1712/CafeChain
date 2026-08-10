@@ -32,6 +32,7 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<BranchReceiptService> _logger;
         private readonly IPurchaseOrderService? _purchaseOrders;
+        private readonly IIngredientSupplierPackageValidator _packageEligibility;
 
         public BranchReceiptService(
             AppDbContext context,
@@ -43,7 +44,8 @@ namespace CafeChain.Application.Services.Inventories
             IStockAlertService stockAlertService,
             IScopeAuthorizationService scopeAuthorization,
             ILogger<BranchReceiptService> logger,
-            IPurchaseOrderService? purchaseOrders = null)
+            IPurchaseOrderService? purchaseOrders = null,
+            IIngredientSupplierPackageValidator? packageEligibility = null)
         {
             _context = context;
             _unitConversion = unitConversion;
@@ -55,6 +57,11 @@ namespace CafeChain.Application.Services.Inventories
             _scopeAuthorization = scopeAuthorization;
             _logger = logger;
             _purchaseOrders = purchaseOrders;
+            _packageEligibility = packageEligibility
+                ?? new IngredientSupplierPackageValidator(
+                    context,
+                    physicalConversion,
+                    unitConversion);
         }
 
         public async Task<ServiceResult<BranchReceiptDetailDto>> CreateDraftAsync(
@@ -337,8 +344,7 @@ namespace CafeChain.Application.Services.Inventories
                     order.StoreId, actorStaffId, actorStoreId, roleNames, mutation: true);
                 if (!auth.IsSuccess)
                     return FailPurchaseOrderDraft(auth.Message, auth.ErrorCode);
-                if (order.Status is not (PurchaseOrderStatuses.Approved
-                    or PurchaseOrderStatuses.MarkedAsSent
+                if (order.Status is not (PurchaseOrderStatuses.MarkedAsSent
                     or PurchaseOrderStatuses.PartiallyReceived))
                     return FailPurchaseOrderDraft(
                         "Đơn đặt hàng chưa ở trạng thái cho phép nhận hàng.",
@@ -1143,9 +1149,18 @@ namespace CafeChain.Application.Services.Inventories
             else if (restockRequestId.HasValue)
                 query = query.Where(_ => false);
 
-            var rows = await query
+            var offerRows = await query
+                .Include(x => x.Supplier)
+                .Include(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
+                .Include(x => x.Unit)
+                .Include(x => x.LooseProcurementUnit)
                 .OrderBy(x => x.Ingredient.Name)
                 .ThenByDescending(x => x.IsPrimary)
+                .ToListAsync();
+            var readiness = await _packageEligibility.EvaluateReadinessAsync(offerRows);
+            var rows = offerRows
+                .Where(x => readiness.TryGetValue(x.IngredientSupplierId, out var result)
+                    && result.IsReady)
                 .Select(x => new BranchReceiptOfferOptionDto
                 {
                     IngredientSupplierId = x.IngredientSupplierId,
@@ -1160,7 +1175,7 @@ namespace CafeChain.Application.Services.Inventories
                     LeadTimeDays = x.LeadTimeDays ?? 0,
                     PackageDisplay = string.Empty
                 })
-                .ToListAsync();
+                .ToList();
 
             foreach (var row in rows)
                 row.PackageDisplay = $"{row.PackageQuantity:0.####} {row.PackageUnitName} / gói";
@@ -1527,6 +1542,17 @@ namespace CafeChain.Application.Services.Inventories
                 {
                     return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
                         "Gói mua không tồn tại, đã ngừng hoạt động hoặc thiếu quy cách/giá.",
+                        errorCode: BranchReceiptErrorCodes.OfferNotAvailable);
+                }
+
+                var eligibility = await _packageEligibility.EvaluateProcurementEligibilityAsync(
+                    offer,
+                    PurchaseMode.Packaged,
+                    storeId);
+                if (!eligibility.IsProcurementEligible)
+                {
+                    return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                        $"Gói mua chưa sẵn sàng để nhận hàng. {eligibility.Message}",
                         errorCode: BranchReceiptErrorCodes.OfferNotAvailable);
                 }
 

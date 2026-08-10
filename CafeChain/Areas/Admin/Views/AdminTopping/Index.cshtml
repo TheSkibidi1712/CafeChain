@@ -24,27 +24,35 @@
 
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Topping/topping.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/AI/ai-image-pipeline.css" asp-append-version="true" />
 }
 
-<div class="container-fluid p-4 topping-admin-page">
+<main class="topping-admin-page ops-shell cc-warehouse-page">
+    @Html.AntiForgeryToken()
 
-    <!-- ===================================================== -->
-    <!-- TABS -->
-    <!-- ===================================================== -->
-
-    <!-- Page Heading -->
-    <div class="topping-page-heading">
-        <div class="topping-page-heading-content">
-            <div class="topping-page-heading-icon"><i class="fas fa-cookie-bite"></i></div>
-            <div>
-                <span class="topping-page-kicker"><i class="fas fa-layer-group me-1"></i> CẤU TRÚC THỰC ĐƠN</span>
-                <h1>Quản lý Topping đồ uống</h1>
-                <p>Thiết lập topping, giá bán và nguồn nguyên liệu tiêu hao trên thực đơn.</p>
+    <header class="topping-page-heading ops-header cc-warehouse-header">
+        <div>
+            <div class="ops-eyebrow">
+                <i class="fas fa-layer-group me-1"></i> Cấu trúc thực đơn
             </div>
+            <h1 class="ops-title">Quản lý Topping đồ uống</h1>
+            <p class="ops-subtitle">Thiết lập topping, giá bán và nguồn nguyên liệu tiêu hao trên thực đơn.</p>
         </div>
-    </div>
+        <div class="ops-actions">
+            @if (canCreate)
+            {
+                <button type="button"
+                        class="btn btn-orange"
+                        data-bs-toggle="modal"
+                        data-bs-target="#createModal">
+                    <i class="fas fa-plus me-2"></i>
+                    Thêm mới
+                </button>
+            }
+        </div>
+    </header>
 
     <!-- Tabs -->
     <div class="topping-page-tabs d-flex mb-3">
@@ -166,7 +174,7 @@
                                                asp-action="Index"
                                                asp-route-tab="prepared-items"
                                                asp-route-search="@component.PreparedItemCode"
-                                               class="small">Xem tồn kho BTP</a>
+                                               class="small text-decoration-none text-primary fw-semibold"><i class="fas fa-boxes me-1"></i>Xem tồn kho BTP</a>
                                         }
                                     </div>
                                 }
@@ -190,14 +198,14 @@
                                            asp-controller="AdminRecipe"
                                            asp-action="Visualize"
                                            asp-route-recipeId="@item.ConsumptionSource.ActiveRecipeId"
-                                           class="btn btn-sm btn-outline-secondary">Xem BOM</a>
+                                           class="topping-bom-btn"><i class="fas fa-eye me-1"></i>Xem BOM</a>
                                         @if (canWriteRecipes)
                                         {
                                             <a asp-area="Admin"
                                                asp-controller="AdminRecipe"
                                                asp-action="Edit"
                                                asp-route-id="@item.ConsumptionSource.ActiveRecipeId"
-                                               class="btn btn-sm btn-outline-primary">Sửa BOM</a>
+                                               class="topping-bom-btn primary"><i class="fas fa-pen me-1"></i>Sửa BOM</a>
                                         }
                                     }
                                     else if (canWriteRecipes)
@@ -205,7 +213,7 @@
                                         <a asp-area="Admin"
                                            asp-controller="AdminRecipe"
                                            asp-action="Create"
-                                           class="btn btn-sm btn-outline-primary">Tạo BOM</a>
+                                           class="topping-bom-btn primary"><i class="fas fa-plus me-1"></i>Tạo BOM</a>
                                     }
                                 </div>
                             </td>
@@ -265,6 +273,7 @@
                                     <button type="button"
                                             class="btn btn-sm js-toggle-topping"
                                             title="@(item.Active ? "Khóa" : "Mở khóa")"
+                                            onclick="toggleTopping(@item.ToppingId, '@Url.Action("ToggleStatus", "AdminTopping", new { area = "Admin", id = item.ToppingId })')"
                                             data-id="@item.ToppingId"
                                             data-url="@Url.Action("ToggleStatus", "AdminTopping", new { area = "Admin", id = item.ToppingId })">
                                         <i class="fas @(item.Active
@@ -285,7 +294,7 @@
 
     </div>
 
-</div>
+</main>
 
 <!-- ===================================================== -->
 <!-- CREATE MODAL -->
@@ -680,133 +689,81 @@
      aria-labelledby="drinkModalTitle"
      aria-hidden="true">
 
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
 
-        <div class="modal-content">
+        <div class="modal-content border-0 shadow">
 
             <!-- HEADER -->
-
-            <div class="modal-header text-white" style="background:#6F4E37;">
-
-                <h5 id="drinkModalTitle"
-                    class="modal-title">
-
-                    Quản lý Drink - Topping
-
-                </h5>
-
+            <div class="modal-header border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="topping-create-icon">
+                        <i class="fas fa-cookie-bite"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark" id="drinkModalTitle">Quản lý Đồ uống - Topping</h5>
+                        <small class="text-muted">Gán hoặc ngắt kết nối đồ uống với Topping này</small>
+                    </div>
+                </div>
                 <button type="button"
-                        class="btn-close btn-close-white"
+                        class="btn-close"
                         data-bs-dismiss="modal"
                         aria-label="Close">
                 </button>
-
             </div>
 
             <!-- BODY -->
-
-            <div class="modal-body">
+            <div class="modal-body p-4">
 
                 @Html.AntiForgeryToken()
 
-                <div class="alert alert-info mb-4">
-
-                    <strong>Topping:</strong>
-
-                    <span id="currentToppingBadge"></span>
-
+                <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+                    <span class="badge bg-brown px-3 py-2 fs-6 rounded-pill">Topping: <span id="currentToppingBadge"></span></span>
+                    <span class="small text-muted"><i class="fas fa-info-circle me-1"></i>Bấm Gán để thêm đồ uống dùng Topping, hoặc Tắt/Bật để quản lý trạng thái</span>
                 </div>
 
                 <!-- LOADING -->
-
                 <div id="drinkLoading"
                      class="text-center py-5 d-none">
-
-                    <div class="spinner-border text-primary">
-                    </div>
-
-                    <div class="mt-2">
-
-                        Đang tải dữ liệu...
-
-                    </div>
-
+                    <div class="spinner-border text-primary"></div>
+                    <div class="mt-2 text-muted">Đang tải dữ liệu...</div>
                 </div>
 
                 <!-- CONTENT -->
-
                 <div id="drinkContent">
-
-                    <div class="row">
+                    <div class="row g-4 pb-4">
 
                         <!-- ASSIGNED -->
-
                         <div class="col-md-6">
-
-                            <h5 class="text-success mb-3">
-
-                                <i class="fas fa-check-circle me-2"></i>
-
-                                Đã gán
-
-                            </h5>
-
-                            <div id="assignedList"
-                                 class="row g-3">
-
-                                <div class="col-12 text-muted">
-
-                                    Chưa có dữ liệu
-
-                                </div>
-
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-check-circle me-1 text-success"></i> Đã gán</h6>
                             </div>
-
+                            <div id="assignedList" class="d-flex flex-column gap-2 pb-4">
+                                <div class="text-center py-4 text-muted small">Chưa có dữ liệu</div>
+                            </div>
                         </div>
 
                         <!-- UNASSIGNED -->
-
                         <div class="col-md-6">
-
-                            <h5 class="text-warning mb-3">
-
-                                <i class="fas fa-plus-circle me-2"></i>
-
-                                Chưa gán
-
-                            </h5>
-
-                            <div id="unassignedList"
-                                 class="row g-3">
-
-                                <div class="col-12 text-muted">
-
-                                    Chưa có dữ liệu
-
-                                </div>
-
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h6 class="fw-bold mb-0 text-secondary"><i class="fas fa-plus-circle me-1 text-primary"></i> Chưa gán</h6>
                             </div>
-
+                            <div id="unassignedList" class="d-flex flex-column gap-2 pb-4">
+                                <div class="text-center py-4 text-muted small">Chưa có dữ liệu</div>
+                            </div>
                         </div>
 
                     </div>
-
                 </div>
 
             </div>
 
             <!-- FOOTER -->
-
-            <div class="modal-footer">
-
+            <div class="modal-footer border-top bg-light">
                 <button type="button"
-                        class="btn btn-secondary"
+                        class="btn btn-secondary px-4"
                         data-bs-dismiss="modal">
-
                     Đóng
-
                 </button>
-
             </div>
 
         </div>

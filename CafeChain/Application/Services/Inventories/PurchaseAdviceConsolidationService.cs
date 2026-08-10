@@ -21,19 +21,26 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
     private readonly IPhysicalUnitConversionService _physicalConversion;
     private readonly IUnitConversionService? _unitConversion;
     private readonly IAdminPermissionService? _permissions;
+    private readonly IIngredientSupplierPackageValidator _packageEligibility;
 
     public PurchaseAdviceConsolidationService(
         AppDbContext context,
         IScopeAuthorizationService scopeAuthorization,
         IPhysicalUnitConversionService physicalConversion,
         IUnitConversionService? unitConversion = null,
-        IAdminPermissionService? permissions = null)
+        IAdminPermissionService? permissions = null,
+        IIngredientSupplierPackageValidator? packageEligibility = null)
     {
         _context = context;
         _scopeAuthorization = scopeAuthorization;
         _physicalConversion = physicalConversion;
         _unitConversion = unitConversion;
         _permissions = permissions;
+        _packageEligibility = packageEligibility
+            ?? new IngredientSupplierPackageValidator(
+                context,
+                physicalConversion,
+                unitConversion);
     }
 
     public async Task<ServiceResult<PurchaseAdviceConsolidationPageDto>> GetQueueAsync(
@@ -240,6 +247,17 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             if (!offers.TryGetValue(selected.IngredientSupplierId, out var offer)
                 || !offer.Active || offer.SupplierId != request.SupplierId || offer.IngredientId != line.IngredientId)
                 return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.OfferInvalid, $"Quy cách cung cấp cho {line.Ingredient.Name} không hợp lệ hoặc đã hết hiệu lực.");
+
+            var eligibility = await _packageEligibility.EvaluateProcurementEligibilityAsync(
+                offer,
+                selected.PurchaseMode,
+                line.PurchaseAdvice.StoreId);
+            if (!eligibility.IsProcurementEligible)
+            {
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(
+                    PurchaseAdviceErrorCodes.OfferInvalid,
+                    $"Gói mua của {line.Ingredient.Name} chưa sẵn sàng. {eligibility.Message}");
+            }
 
             if (selected.PurchaseMode == PurchaseMode.Loose)
             {
@@ -617,6 +635,11 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             .Include(x => x.Supplier).Include(x => x.Unit).Include(x => x.LooseProcurementUnit).Include(x => x.Ingredient)
             .OrderBy(x => x.Supplier.Name).ThenBy(x => x.Ingredient.Name)
             .ToListAsync();
+        var readinessById = await _packageEligibility.EvaluateReadinessAsync(offers);
+        offers = offers
+            .Where(x => readinessById.TryGetValue(x.IngredientSupplierId, out var readiness)
+                && readiness.IsReady)
+            .ToList();
         var result = new List<PurchaseAdviceOfferDto>();
         foreach (var offer in offers)
         {

@@ -1,5 +1,9 @@
 ﻿using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Services.Admin.Production;
+using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Permissions;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Application.Services.Security;
 using CafeChain.Data;
@@ -8,10 +12,12 @@ using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Configuration;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Production;
+using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Stores;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Xunit;
 
 namespace CafeChain.Tests
@@ -195,6 +201,129 @@ IF DB_ID(N'{Database}') IS NULL
             Assert.Equal(4800m, ingredient.AvailableQty);
         }
 
+        [Fact]
+        public async Task SqlServer_V2ConcurrentAccept_PostsInventoryAndRestockOnce()
+        {
+            int productionRunId;
+            int preparedItemId;
+            await using (var seed = CreateContext())
+            {
+                preparedItemId = await SeedPreparedItemAsync(seed, "PI-SQL-120-V2");
+                var recipeId = await SeedRecipeAsync(
+                    seed,
+                    "RCP-SQL-120-V2",
+                    preparedItemId,
+                    4.5m,
+                    UnitL,
+                    500m);
+                await PutStoreInPreparedItemModeAsync(seed);
+                await EnsureIngredientStockAsync(seed, 5_000m, 0m);
+                await ClearCanonicalOutputsAsync(seed, preparedItemId);
+
+                var now = DateTime.UtcNow;
+                var restock = new RestockRequest
+                {
+                    StoreId = StoreId,
+                    PreparedItemId = preparedItemId,
+                    RequestedQuantity = 4_500m,
+                    RequestedProcurementQuantity = 4_500m,
+                    ProcurementUnitId = UnitMl,
+                    Status = RestockRequestStatuses.Processing,
+                    Priority = RestockRequestPriorities.High,
+                    SourceType = RestockRequestSourceTypes.StockAlert,
+                    SourcingStatus = RestockSourcingStatuses.FullyAllocated,
+                    SourcingDecision = RestockSourcingDecisionTypes.Production,
+                    CreatedByStaffId = StaffId,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                seed.RestockRequests.Add(restock);
+                var run = new ProductionRun
+                {
+                    StoreId = StoreId,
+                    RecipeId = recipeId,
+                    RequestedRunCount = 1m,
+                    ContractVersion = 2,
+                    PlannedBatchCount = 1,
+                    ExpectedOutputPerBatchBase = 4_500m,
+                    ExpectedOutputBase = 4_500m,
+                    OutputBaseUnitId = UnitMl,
+                    YieldVarianceTolerancePercent = 5m,
+                    RequestKey = Guid.NewGuid(),
+                    RequestFingerprint = new string('V', 64),
+                    Status = ProductionRunStatus.AwaitingAcceptance,
+                    ValuationStatus = ProductionValuationStatus.Pending,
+                    CreatedByStaffId = StaffId,
+                    CreatedAt = now,
+                    ConfirmedAt = now,
+                    ActualRecordedByStaffId = StaffId,
+                    ActualRecordedAtUtc = now
+                };
+                seed.ProductionRuns.Add(run);
+                await seed.SaveChangesAsync();
+                productionRunId = run.ProductionRunId;
+
+                seed.RestockSourcingAllocations.Add(new RestockSourcingAllocation
+                {
+                    RestockRequestId = restock.RestockRequestId,
+                    DecisionType = RestockSourcingDecisionTypes.Production,
+                    ProcurementQuantity = 4_500m,
+                    ProcurementUnitId = UnitMl,
+                    Status = RestockSourcingAllocationStatuses.Active,
+                    SourceDocumentType = "PRODUCTION_RUN",
+                    SourceDocumentId = run.ProductionRunId,
+                    ProductionRunId = run.ProductionRunId,
+                    CreatedByStaffId = StaffId,
+                    CreatedAtUtc = now
+                });
+                seed.ProductionRunInputActuals.Add(new ProductionRunInputActual
+                {
+                    ProductionRunId = run.ProductionRunId,
+                    IngredientId = IngredientId,
+                    BaseUnitId = UnitGram,
+                    PlannedBaseQuantity = 500m,
+                    ActualBaseQuantity = 500m,
+                    ConfirmedByStaffId = StaffId,
+                    ConfirmedAtUtc = now
+                });
+                seed.ProductionRunOutputs.Add(new ProductionRunOutput
+                {
+                    ProductionRunId = run.ProductionRunId,
+                    BaseUnitId = UnitMl,
+                    ExpectedOutputBase = 4_500m,
+                    ActualProducedBase = 4_500m,
+                    AcceptedOutputBase = 4_500m,
+                    RejectedOutputBase = 0m,
+                    VariancePercent = 0m,
+                    RecordedByStaffId = StaffId,
+                    RecordedAtUtc = now
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            await using var firstContext = CreateContext();
+            await using var secondContext = CreateContext();
+            var results = await Task.WhenAll(
+                CreateAcceptanceService(firstContext).AcceptAsync(productionRunId, StaffId),
+                CreateAcceptanceService(secondContext).AcceptAsync(productionRunId, StaffId));
+
+            Assert.All(results, result => Assert.True(result.IsSuccess, result.Message + " " + result.ErrorCode));
+            Assert.Single(results.Where(x => x.Data!.WasReplay));
+            Assert.Single(results.Where(x => !x.Data!.WasReplay));
+
+            await using var verify = CreateContext();
+            Assert.Equal(ProductionRunStatus.Completed,
+                await verify.ProductionRuns.Where(x => x.ProductionRunId == productionRunId).Select(x => x.Status).SingleAsync());
+            Assert.Equal(2, await verify.InventoryTransactions.CountAsync(x => x.ProductionRunId == productionRunId));
+            Assert.Single(await verify.RestockFulfillmentPostings
+                .Where(x => x.SourceDocumentType == RestockFulfillmentDocumentTypes.ProductionRun
+                    && x.SourceDocumentId == productionRunId)
+                .ToListAsync());
+            Assert.Single(await verify.InventoryCostLayers
+                .Where(x => x.PreparedItemId == preparedItemId && x.SourceProductionRunId == productionRunId)
+                .ToListAsync());
+        }
+
         private static AppDbContext CreateContext()
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -221,6 +350,34 @@ IF DB_ID(N'{Database}') IS NULL
                cost,
                caps,
                NullLogger<ProductionRunExecutionService>.Instance);
+        }
+
+        private static ProductionRunAcceptanceService CreateAcceptanceService(AppDbContext context)
+        {
+            var permissions = new Mock<IAdminPermissionService>();
+            permissions.Setup(x => x.HasPermissionAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int?>()))
+                .ReturnsAsync((int accountId, string code, int? storeId) =>
+                    ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                    {
+                        AccountId = accountId,
+                        PermissionCode = code,
+                        TargetStoreId = storeId,
+                        Allowed = true,
+                        RoleAllowed = true,
+                        ScopeAllowed = true
+                    }));
+            var physical = new PhysicalUnitConversionService(context, NullLogger<PhysicalUnitConversionService>.Instance);
+            var caps = new IInventoryWriterCapabilityProvider[] { new ProductionPreparedWriterCapabilityProvider() };
+            var writer = new InventoryWriterModeService(context, physical, caps);
+            return new ProductionRunAcceptanceService(
+                context,
+                permissions.Object,
+                writer,
+                new StoreInventoryWriteResolver(context, writer),
+                new InventoryCostLayerConsumptionService(context),
+                new RestockFulfillmentPostingService(context),
+                caps,
+                NullLogger<ProductionRunAcceptanceService>.Instance);
         }
 
         private static async Task PutStoreInPreparedItemModeAsync(AppDbContext context)

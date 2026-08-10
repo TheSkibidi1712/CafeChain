@@ -236,11 +236,7 @@
                 <select class="form-select rounded-3" id="provinceSelect" name="provinceId" required></select>
             </div>
             <div class="mb-3">
-                <label class="form-label small fw-bold">Quận / Huyện <span class="text-danger">*</span></label>
-                <select class="form-select rounded-3 bg-light" id="districtSelect" name="districtId" required disabled></select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label small fw-bold">Phường / Xã <span class="text-danger">*</span></label>
+                <label class="form-label small fw-bold">Xã / Phường / Đặc khu <span class="text-danger">*</span></label>
                 <select class="form-select rounded-3 bg-light" id="wardSelect" name="wardId" required disabled></select>
             </div>
             <div class="mb-4">
@@ -311,7 +307,6 @@
         document.addEventListener('DOMContentLoaded', function () {
             // Logic Cascading Dropdowns
             const provinceSelect = document.getElementById('provinceSelect');
-            const districtSelect = document.getElementById('districtSelect');
             const wardSelect = document.getElementById('wardSelect');
 
             // 1. Tải danh sách tỉnh thành ngay khi mở trang/modal
@@ -325,33 +320,12 @@
                 });
 
             provinceSelect.addEventListener('change', function() {
-                districtSelect.innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>';
-                wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
-                districtSelect.disabled = true;
-                wardSelect.disabled = true;
-                districtSelect.classList.add('bg-light');
-                wardSelect.classList.add('bg-light');
-
-                if (this.value) {
-                    fetch('/Customer/GetDistricts?provinceId=' + this.value)
-                        .then(res => res.json())
-                        .then(data => {
-                            data.forEach(d => {
-                                districtSelect.innerHTML += `<option value="${d.code}">${d.name}</option>`;
-                            });
-                            districtSelect.disabled = false;
-                            districtSelect.classList.remove('bg-light');
-                        });
-                }
-            });
-
-            districtSelect.addEventListener('change', function() {
                 wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
                 wardSelect.disabled = true;
                 wardSelect.classList.add('bg-light');
 
                 if (this.value) {
-                    fetch('/Customer/GetWards?districtId=' + this.value)
+                    fetch('/Customer/GetWards?provinceId=' + this.value)
                         .then(res => res.json())
                         .then(data => {
                             data.forEach(w => {

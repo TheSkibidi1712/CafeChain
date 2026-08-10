@@ -66,6 +66,11 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
             requesterStaffId, storeId, request.TerminalId.Trim(), cancellationToken);
         if (!assessment.IsSuccess || assessment.Data == null)
             return ServiceResult<WorkShiftOpenApprovalDto>.Failure(assessment.Message, errorCode: assessment.ErrorCode);
+        if (string.IsNullOrWhiteSpace(request.AssessmentVersion)
+            || !string.Equals(request.AssessmentVersion, assessment.Data.AssessmentVersion, StringComparison.Ordinal))
+            return ServiceResult<WorkShiftOpenApprovalDto>.Failure(
+                "Lịch làm việc vừa được thay đổi. Vui lòng kiểm tra lại trước khi gửi yêu cầu.",
+                errorCode: WorkShiftErrorCodes.ShiftScheduleChanged);
         if (assessment.Data.OpenContext != WorkShiftOpenContexts.LateForSchedule
             || assessment.Data.MinutesLate < _options.LateApprovalAfterMinutes
             || !assessment.Data.SourceStaffShiftId.HasValue
@@ -228,7 +233,6 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
         };
         if (targetStatus == null)
             return ServiceResult<WorkShiftOpenApprovalDto>.Failure("Quyết định không hợp lệ.");
-
         await _repository.BeginTransactionAsync(cancellationToken);
         try
         {
@@ -276,10 +280,16 @@ public sealed class WorkShiftOpenApprovalService : IWorkShiftOpenApprovalService
                     $"Ca đã trễ quá {_options.ResolveLateScheduledApprovalMaxMinutes()} phút nên không thể duyệt mở theo lịch cũ. Vui lòng từ chối hoặc chuyển ngoài lịch.",
                     errorCode: WorkShiftErrorCodes.LateOpenRequiresOutsideSchedule);
             }
+            if (!IsValidReason(request.Reason))
+            {
+                await _repository.RollbackTransactionAsync(cancellationToken);
+                return ServiceResult<WorkShiftOpenApprovalDto>.Failure(
+                    "Lý do quyết định phải có từ 10 đến 500 ký tự và có nội dung cụ thể.");
+            }
             approval.Status = targetStatus;
             approval.DecidedByStaffId = decisionMakerStaffId;
             approval.DecidedAtUtc = nowUtc;
-            approval.DecisionReason = request.Reason?.Trim();
+            approval.DecisionReason = request.Reason!.Trim();
             await _repository.SaveChangesAsync(cancellationToken);
             if (_notifications != null)
             {

@@ -11,6 +11,7 @@ namespace CafeChain.Controllers.Api.v1
     /// Issue #97 — POST branch-inventory/check for stock alert evaluation.
     /// </summary>
     [Route("api/v1/pos")]
+    [CafeChain.Application.Authorization.RequireActivePosShift]
     public class POSBranchInventoryController : PosApiController
     {
         private static readonly HashSet<string> AllowedRoles = new(StringComparer.Ordinal)

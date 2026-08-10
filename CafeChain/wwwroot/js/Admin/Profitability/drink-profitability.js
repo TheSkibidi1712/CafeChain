@@ -92,9 +92,9 @@
         const ready = isComplete(row);
         const statusClass = ready ? 'pf-status-ready' : row.knownCost > 0 ? 'pf-status-warning' : 'pf-status-error';
         const priceButton = canUpdatePrice
-            ? `<button type="button" class="pf-row-button" data-price-id="${row.drinkSizeId}"><i class="fas fa-pen"></i> Cập nhật giá</button>` : '';
+            ? `<button type="button" class="pf-row-button" data-price-id="${row.drinkSizeId}"><i class="fas fa-pen me-1"></i>Cập nhật giá</button>` : '';
         const policyButton = canManagePolicy
-            ? `<button type="button" class="pf-row-button" data-policy-id="${row.drinkSizeId}"><i class="fas fa-sliders"></i> Topping</button>` : '';
+            ? `<button type="button" class="pf-row-button" data-policy-id="${row.drinkSizeId}"><i class="fas fa-cookie-bite me-1"></i>Topping</button>` : '';
         return `<tr>
             <td><span class="pf-size-name">${escapeHtml(row.sizeName)}</span><span class="pf-subtext">${escapeHtml(row.recipeCode || 'Chưa có BOM')} · ${escapeHtml(statusLabels[row.recipeStatus] || row.recipeStatus)}</span></td>
             <td><span class="pf-status ${statusClass}">${escapeHtml(statusLabels[row.costStatus] || row.costStatus)}</span><span class="pf-subtext">${escapeHtml(row.costMessage)}</span></td>
@@ -103,7 +103,7 @@
             <td class="pf-number">${currency(row.grossProfit)}</td>
             <td class="pf-number">${percent(row.grossMarginPercent)}</td>
             <td class="pf-number">${percent(row.markupPercent)}</td>
-            <td><div class="pf-row-actions"><button type="button" class="pf-row-button" data-detail-id="${row.drinkSizeId}">Chi tiết</button>${priceButton}${policyButton}</div></td>
+            <td><div class="pf-row-actions"><button type="button" class="pf-row-button" data-detail-id="${row.drinkSizeId}"><i class="fas fa-info-circle me-1"></i>Chi tiết</button>${priceButton}${policyButton}</div></td>
         </tr>
         <tr class="pf-detail-row" id="detail-${row.drinkSizeId}" hidden><td colspan="8">${renderDetails(row)}</td></tr>`;
     }

@@ -16,9 +16,15 @@ public interface ITerminalRegistrationNotificationService
         int notificationId,
         IReadOnlyCollection<int>? allowedStoreIds = null);
 
-    Task<ServiceResult> ConfirmAsync(
+    Task<ServiceResult<TerminalApprovalResultDto>> ConfirmAsync(
         int approverStaffId,
         int notificationId,
         ConfirmTerminalNotificationRequestDto request,
+        IReadOnlyCollection<int>? allowedStoreIds = null);
+
+    Task<ServiceResult<TerminalApprovalResultDto>> RejectAsync(
+        int rejectorStaffId,
+        int notificationId,
+        RejectTerminalNotificationRequestDto request,
         IReadOnlyCollection<int>? allowedStoreIds = null);
 }

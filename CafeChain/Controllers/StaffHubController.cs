@@ -64,12 +64,22 @@ public sealed class StaffHubController : Controller
         var canOpenWorkShift = (await _authorizationService.AuthorizeAsync(
             User,
             RequirePermissionAttribute.PolicyPrefix + PermissionConstants.PosWorkShiftOpen)).Succeeded;
-        ViewBag.CanAccessPos = canAccessPosApp && canOpenWorkShift;
+        var canRequestTerminalRegistration = (await _authorizationService.AuthorizeAsync(
+            User,
+            RequirePermissionAttribute.PolicyPrefix + PermissionConstants.PosTerminalRequestRegistration)).Succeeded;
+        var canManageOwnPin = (await _authorizationService.AuthorizeAsync(
+            User,
+            RequirePermissionAttribute.PolicyPrefix + PermissionConstants.PosOperatorManageOwnPin)).Succeeded;
+        ViewBag.CanAccessPos = canAccessPosApp;
+        ViewBag.CanOpenPos = canAccessPosApp && canOpenWorkShift;
+        ViewBag.CanRegisterTerminal = canAccessPosApp && canRequestTerminalRegistration;
+        ViewBag.CanManageOperatorPin = canAccessPosApp && canManageOwnPin;
         ViewBag.CanAccessDashboard = (await _authorizationService.AuthorizeAsync(
             User,
             AuthorizationPolicyConstants.AdminDashboardApp)).Succeeded;
         var identityStoreId = int.TryParse(User.FindFirstValue("StoreId"), out var parsedStoreId)
             ? parsedStoreId : 0;
+        ViewBag.CurrentStoreId = identityStoreId;
         ViewBag.PosTerminals = await _workShiftService.GetAvailableTerminalsAsync(identityStoreId, ct);
         ViewBag.AutoOpenPos = openPos;
         ViewBag.RequestedTerminalId = terminalId?.Trim();
@@ -91,7 +101,7 @@ public sealed class StaffHubController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
-    [RequirePermission(PermissionConstants.PosOperatorSwitch)]
+    [RequirePermission(PermissionConstants.PosOperatorManageOwnPin)]
     public async Task<IActionResult> SetOperatorPin([FromForm] SetOperatorPinRequestDto request)
     {
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId)
@@ -160,10 +170,12 @@ public sealed class StaffHubController : Controller
 
         var prepared = await _workShiftService.PrepareOpenExchangeContextAsync(
             accountId, staffId, storeId, request.TerminalId, request.RequestKey,
-            request.Reason, request.OtpChallengePublicId, cancellationToken,
+            request.Reason, request.OtpChallengePublicId, request.AssessmentVersion, cancellationToken,
             request.LateOpenApprovalPublicId);
         if (!prepared.IsSuccess || prepared.Data == null)
-            return BadRequest(new { success = false, errorCode = prepared.ErrorCode, message = prepared.Message });
+            return StatusCode(prepared.ErrorCode == WorkShiftErrorCodes.ShiftScheduleChanged
+                ? StatusCodes.Status409Conflict : StatusCodes.Status400BadRequest,
+                new { success = false, errorCode = prepared.ErrorCode, message = prepared.Message });
 
         // The exchange is only an expiring authorization context. WorkShift is
         // committed later by /api/v1/pos/shifts/open with the confirmed cash.
@@ -238,11 +250,23 @@ public sealed class StaffHubController : Controller
             staffId, storeId, request.TerminalId, cancellationToken);
         if (!preview.IsSuccess || preview.Data == null)
             return BadRequest(new { success = false, errorCode = preview.ErrorCode, message = preview.Message });
+        if (string.IsNullOrWhiteSpace(request.AssessmentVersion)
+            || !string.Equals(request.AssessmentVersion, preview.Data.AssessmentVersion, StringComparison.Ordinal))
+            return Conflict(new
+            {
+                success = false,
+                errorCode = WorkShiftErrorCodes.ShiftScheduleChanged,
+                message = "Lịch làm việc vừa được thay đổi. Vui lòng kiểm tra lại lịch mới trước khi mở ca.",
+                data = preview.Data
+            });
         if (!preview.Data.ApprovalRequired)
             return BadRequest(new { success = false, message = "Ngữ cảnh hiện tại không yêu cầu OTP." });
-        var action = preview.Data.OpenContext == WorkShiftOpenContexts.OutsideSchedule
-            ? OtpConstants.ActionTypes.OpenShiftOutsideSchedule
-            : OtpConstants.ActionTypes.OpenShiftLate;
+        var action = preview.Data.OpenContext switch
+        {
+            WorkShiftOpenContexts.OutsideSchedule => OtpConstants.ActionTypes.OpenShiftOutsideSchedule,
+            WorkShiftOpenContexts.EarlyForSchedule => OtpConstants.ActionTypes.OpenShiftEarly,
+            _ => OtpConstants.ActionTypes.OpenShiftLate
+        };
         var otpRequest = new OtpRequestDto
         {
             ActionType = action,
@@ -258,7 +282,7 @@ public sealed class StaffHubController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
-    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    [RequirePermission(PermissionConstants.PosTerminalRequestRegistration)]
     public async Task<IActionResult> RequestTerminalRegistrationOtp(
         [FromForm] StaffHubTerminalOtpRequestDto request)
     {
@@ -278,7 +302,7 @@ public sealed class StaffHubController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
-    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    [RequirePermission(PermissionConstants.PosTerminalRequestRegistration)]
     public async Task<IActionResult> GetTerminalRegistrationOtpState()
     {
         if (!TryGetIdentity(out _, out var staffId, out var storeId)) return Unauthorized();
@@ -339,7 +363,7 @@ public sealed class StaffHubController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
-    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    [RequirePermission(PermissionConstants.PosTerminalRequestRegistration)]
     public async Task<IActionResult> CancelTerminalRegistrationOtp([FromForm] OtpCancelDto request)
     {
         if (!TryGetIdentity(out _, out var staffId, out var storeId)) return Unauthorized();
@@ -358,7 +382,9 @@ public sealed class StaffHubController : Controller
         var result = await _lateOpenApprovals.CreateAsync(staffId, storeId, request, cancellationToken);
         return result.IsSuccess
             ? Ok(new { success = true, message = result.Message, data = result.Data })
-            : BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message, data = result.Data });
+            : StatusCode(result.ErrorCode == WorkShiftErrorCodes.ShiftScheduleChanged
+                ? StatusCodes.Status409Conflict : StatusCodes.Status400BadRequest,
+                new { success = false, errorCode = result.ErrorCode, message = result.Message, data = result.Data });
     }
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
@@ -394,7 +420,7 @@ public sealed class StaffHubController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
-    [RequirePermission(PermissionConstants.PosWorkShiftOpen)]
+    [RequirePermission(PermissionConstants.PosTerminalRequestRegistration)]
     public async Task<IActionResult> RegisterTerminal(
         [FromForm] StaffHubTerminalRegistrationRequestDto request)
     {
@@ -421,7 +447,8 @@ public sealed class StaffHubController : Controller
         {
             OtpConstants.ErrorCodes.Expired => StatusCode(StatusCodes.Status410Gone, payload),
             OtpConstants.ErrorCodes.AlreadyUsed or OtpConstants.ErrorCodes.ContextMismatch => Conflict(payload),
-            OtpConstants.ErrorCodes.VerificationLocked => StatusCode(StatusCodes.Status423Locked, payload),
+            OtpConstants.ErrorCodes.VerificationLocked or OtpConstants.ErrorCodes.ResendCooldown
+                => StatusCode(StatusCodes.Status423Locked, payload),
             OtpConstants.ErrorCodes.RateLimited => StatusCode(StatusCodes.Status429TooManyRequests, payload),
             _ => BadRequest(payload)
         };

@@ -36,7 +36,6 @@ namespace CafeChain.Application.Services.Admin.Staffs
 
         private const int SCOPE_COUNTRY = (int)ScopeLevel.Country;
         private const int SCOPE_PROVINCE = (int)ScopeLevel.Province;
-        private const int SCOPE_DISTRICT = (int)ScopeLevel.District;
         private const int SCOPE_WARD = (int)ScopeLevel.Ward;
         private const int SCOPE_STORE = (int)ScopeLevel.Store;
 
@@ -269,19 +268,6 @@ namespace CafeChain.Application.Services.Admin.Staffs
                     }
                     return provinces.Select(p => new { id = p.ProvinceId, name = p.Name });
                 }
-                if (scopeTypeId == SCOPE_DISTRICT && parentId.HasValue) // District
-                {
-                    var districts = await _repository.GetDistrictsAsync(parentId.Value);
-                    if (!actorIsAdmin)
-                    {
-                        var allowedIds = allowedStores
-                            .Where(s => s.DistrictId.HasValue)
-                            .Select(s => s.DistrictId!.Value)
-                            .ToHashSet();
-                        districts = districts.Where(d => allowedIds.Contains(d.DistrictId)).ToList();
-                    }
-                    return districts.Select(d => new { id = d.DistrictId, name = d.Name });
-                }
                 if (scopeTypeId == SCOPE_WARD && parentId.HasValue)
                 {
                     var wards = await _repository.GetWardsAsync(parentId.Value);
@@ -304,17 +290,10 @@ namespace CafeChain.Application.Services.Admin.Staffs
             }
         }
 
-        public async Task<IEnumerable<object>> GetDistrictsAsync(int provinceId)
+        public async Task<IEnumerable<object>> GetWardsAsync(int provinceId)
         {
             if (provinceId <= 0) return Array.Empty<object>();
-            var districts = await _repository.GetDistrictsAsync(provinceId);
-            return districts.Select(x => new { id = x.DistrictId, name = x.Name });
-        }
-
-        public async Task<IEnumerable<object>> GetWardsAsync(int districtId)
-        {
-            if (districtId <= 0) return Array.Empty<object>();
-            var wards = await _repository.GetWardsAsync(districtId);
+            var wards = await _repository.GetWardsAsync(provinceId);
             return wards.Select(x => new { id = x.WardId, name = x.Name });
         }
 
@@ -422,7 +401,6 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 ScopeRefId = staff.StaffScopes?.FirstOrDefault()?.ScopeRefId ?? staff.StoreId,
                 Phones = staff.StaffPhones?.OrderByDescending(p => p.IsDefault).Select(p => p.Phone).ToList() ?? new List<string>(),
                 ProvinceId = staff.StaffAddresses?.OrderByDescending(a => a.IsDefault).FirstOrDefault()?.ProvinceId,
-                DistrictId = staff.StaffAddresses?.OrderByDescending(a => a.IsDefault).FirstOrDefault()?.DistrictId,
                 WardId = staff.StaffAddresses?.OrderByDescending(a => a.IsDefault).FirstOrDefault()?.WardId,
                 Address = staff.StaffAddresses?.OrderByDescending(a => a.IsDefault).FirstOrDefault()?.Address ?? string.Empty,
                 CurrentAvatarUrl = string.IsNullOrWhiteSpace(staff.AvatarUrl) ? DefaultImages.StaffAvatarUrl : staff.AvatarUrl,
@@ -528,12 +506,12 @@ namespace CafeChain.Application.Services.Admin.Staffs
 
             // Filter phones/addresses: BỎ rỗng/null, limit 3
             var validPhones = FilterAndLimit(model.Phones, 3);
-            if (!model.ProvinceId.HasValue || !model.DistrictId.HasValue || !model.WardId.HasValue
+            if (!model.ProvinceId.HasValue || !model.WardId.HasValue
                 || string.IsNullOrWhiteSpace(model.Address))
-                return ServiceResult.Failure("Vui lòng nhập đầy đủ Tỉnh/Thành phố, Quận/Huyện, Phường/Xã và địa chỉ chi tiết.");
+                return ServiceResult.Failure("Vui lòng nhập đầy đủ Tỉnh/Thành phố, Phường/Xã/Đặc khu và địa chỉ chi tiết.");
             if (!await _repository.IsAddressHierarchyValidAsync(
-                    model.ProvinceId.Value, model.DistrictId.Value, model.WardId.Value))
-                return ServiceResult.Failure("Địa chỉ không hợp lệ: Quận/Huyện hoặc Phường/Xã không thuộc cấp địa giới đã chọn.");
+                    model.ProvinceId.Value, model.WardId.Value))
+                return ServiceResult.Failure("Phường/Xã/Đặc khu không thuộc Tỉnh/Thành phố đã chọn.");
 
             if (validPhones.Any())
             {
@@ -631,7 +609,6 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 new()
                 {
                     ProvinceId = model.ProvinceId!.Value,
-                    DistrictId = model.DistrictId!.Value,
                     WardId = model.WardId!.Value,
                     Address = model.Address.Trim(),
                     IsDefault = true
@@ -697,12 +674,12 @@ namespace CafeChain.Application.Services.Admin.Staffs
             }
 
             var validPhones = FilterAndLimit(model.Phones, 3);
-            if (!model.ProvinceId.HasValue || !model.DistrictId.HasValue || !model.WardId.HasValue
+            if (!model.ProvinceId.HasValue || !model.WardId.HasValue
                 || string.IsNullOrWhiteSpace(model.Address))
-                return ServiceResult.Failure("Vui lòng nhập đầy đủ Tỉnh/Thành phố, Quận/Huyện, Phường/Xã và địa chỉ chi tiết.");
+                return ServiceResult.Failure("Vui lòng nhập đầy đủ Tỉnh/Thành phố, Phường/Xã/Đặc khu và địa chỉ chi tiết.");
             if (!await _repository.IsAddressHierarchyValidAsync(
-                    model.ProvinceId.Value, model.DistrictId.Value, model.WardId.Value))
-                return ServiceResult.Failure("Địa chỉ không hợp lệ: Quận/Huyện hoặc Phường/Xã không thuộc cấp địa giới đã chọn.");
+                    model.ProvinceId.Value, model.WardId.Value))
+                return ServiceResult.Failure("Phường/Xã/Đặc khu không thuộc Tỉnh/Thành phố đã chọn.");
 
             if (validPhones.Any())
             {
@@ -759,7 +736,6 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 new()
                 {
                     ProvinceId = model.ProvinceId!.Value,
-                    DistrictId = model.DistrictId!.Value,
                     WardId = model.WardId!.Value,
                     Address = model.Address.Trim(),
                     IsDefault = true

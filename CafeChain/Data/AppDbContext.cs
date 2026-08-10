@@ -129,6 +129,7 @@ namespace CafeChain.Data
 
         // Operational ice shift management
         public DbSet<OperationalShift> OperationalShifts { get; set; }
+        public DbSet<OperationalShiftScheduleSource> OperationalShiftScheduleSources { get; set; }
         public DbSet<OperationalShiftWorkShift> OperationalShiftWorkShifts { get; set; }
         public DbSet<IcePolicy> IcePolicies { get; set; }
         public DbSet<IceAllocation> IceAllocations { get; set; }
@@ -170,6 +171,11 @@ namespace CafeChain.Data
 
         // Production runs (intent only — Issue #119 / 114B)
         public DbSet<ProductionRun> ProductionRuns { get; set; }
+        public DbSet<ProductionRunInputActual> ProductionRunInputActuals { get; set; }
+        public DbSet<ProductionRunOutput> ProductionRunOutputs { get; set; }
+        public DbSet<ProductionRunTransition> ProductionRunTransitions { get; set; }
+        public DbSet<InventoryItemSourceCapability> InventoryItemSourceCapabilities { get; set; }
+        public DbSet<StoreProductionCapability> StoreProductionCapabilities { get; set; }
 
         // Issue #123 — legacy BTP consolidation runs / lines
         public DbSet<CafeChain.Models.Inventories.Consolidation.InventoryConsolidationRun> InventoryConsolidationRuns { get; set; }
@@ -188,6 +194,7 @@ namespace CafeChain.Data
         public DbSet<RestockRequestTransition> RestockRequestTransitions { get; set; }
         public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
         public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; }
+        public DbSet<PurchaseOrderLineClosure> PurchaseOrderLineClosures { get; set; }
         public DbSet<PurchaseOrderReceiptPosting> PurchaseOrderReceiptPostings { get; set; }
         public DbSet<PurchaseAdvice> PurchaseAdvices { get; set; }
         public DbSet<PurchaseAdviceLine> PurchaseAdviceLines { get; set; }
@@ -241,7 +248,6 @@ namespace CafeChain.Data
         // ========================= LOCATION =========================
         public DbSet<Country> Countries { get; set; }
         public DbSet<Province> Provinces { get; set; }
-        public DbSet<District> Districts { get; set; }   // 🔥 MỚI: Cấp Quận/Huyện
         public DbSet<Ward> Wards { get; set; }
 
         // ========================= LOYALTY =========================

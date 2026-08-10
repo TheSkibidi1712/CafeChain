@@ -367,7 +367,7 @@ public sealed class OperationalIceReportEndToEndIssue250Tests : IntegrationTestB
             StoreInventoryId = inventory.StoreInventoryId,
             Type = InventoryTransactionTypeEnum.ICE_VARIANCE_OUT,
             StockStatus = InventoryStockStatus.NORMAL,
-            Quantity = -1m,
+            Quantity = 1m,
             BeforeQty = 93m,
             AfterQty = 92m,
             UnitCost = 2_500m,

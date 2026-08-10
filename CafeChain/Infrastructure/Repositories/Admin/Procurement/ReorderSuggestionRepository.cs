@@ -1,4 +1,6 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Admin.Procurement;
 using CafeChain.Models.Enums.Inventory;
@@ -18,8 +20,25 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Procurement;
 public sealed class ReorderSuggestionRepository : IReorderSuggestionRepository
 {
     private readonly AppDbContext _context;
+    private readonly IIngredientSupplierPackageValidator _packageEligibility;
 
-    public ReorderSuggestionRepository(AppDbContext context) => _context = context;
+    public ReorderSuggestionRepository(
+        AppDbContext context,
+        IIngredientSupplierPackageValidator? packageEligibility = null)
+    {
+        _context = context;
+        var physical = new PhysicalUnitConversionService(
+            context,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<PhysicalUnitConversionService>.Instance);
+        _packageEligibility = packageEligibility
+            ?? new IngredientSupplierPackageValidator(
+                context,
+                physical,
+                new UnitConversionService(
+                    context,
+                    Microsoft.Extensions.Logging.Abstractions.NullLogger<UnitConversionService>.Instance,
+                    physical));
+    }
 
     public Task<ReorderStoreRow?> GetStoreAsync(
         int storeId,
@@ -79,7 +98,7 @@ public sealed class ReorderSuggestionRepository : IReorderSuggestionRepository
             x => new ReorderUsageRow(x.Quantity, x.Count));
     }
 
-    public Task<List<IngredientSupplier>> GetOffersAsync(
+    public async Task<List<IngredientSupplier>> GetOffersAsync(
         int storeId,
         IReadOnlyCollection<int> ingredientIds,
         CancellationToken cancellationToken = default)
@@ -87,17 +106,24 @@ public sealed class ReorderSuggestionRepository : IReorderSuggestionRepository
         var ids = ingredientIds?.Where(x => x > 0).Distinct().ToArray()
                    ?? Array.Empty<int>();
         if (ids.Length == 0)
-            return Task.FromResult(new List<IngredientSupplier>());
+            return new List<IngredientSupplier>();
 
-        return _context.IngredientSuppliers.AsNoTracking()
+        var offers = await _context.IngredientSuppliers.AsNoTracking()
             .Include(x => x.Supplier)
                 .ThenInclude(x => x.SupplierStores)
+            .Include(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
+            .Include(x => x.Unit)
+            .Include(x => x.LooseProcurementUnit)
             .Include(x => x.PriceHistories)
             .Where(x => ids.Contains(x.IngredientId)
                 && x.Active
                 && x.Supplier.Active
                 && x.Supplier.SupplierStores.Any(ss => ss.StoreId == storeId && ss.Active))
             .ToListAsync(cancellationToken);
+        var readiness = await _packageEligibility.EvaluateReadinessAsync(offers);
+        return offers.Where(x =>
+            readiness.TryGetValue(x.IngredientSupplierId, out var result)
+            && result.IsReady).ToList();
     }
 
     public async Task<IReadOnlyDictionary<int, int>> GetActiveRestockRequestsAsync(
@@ -322,12 +348,19 @@ public sealed class ReorderSuggestionRepository : IReorderSuggestionRepository
             .Include(x => x.Supplier)
                 .ThenInclude(x => x.SupplierStores)
             .Include(x => x.PriceHistories)
+            .Include(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
+            .Include(x => x.Unit)
+            .Include(x => x.LooseProcurementUnit)
             .Where(x => inventoryIds.Contains(x.IngredientId)
                 && x.Active
                 && x.Supplier.Active
                 && x.Supplier.SupplierStores.Any(ss =>
                     storeIdArray.Contains(ss.StoreId) && ss.Active))
             .ToListAsync(cancellationToken);
+        var offerReadiness = await _packageEligibility.EvaluateReadinessAsync(offerEntities);
+        offerEntities = offerEntities.Where(x =>
+            offerReadiness.TryGetValue(x.IngredientSupplierId, out var result)
+            && result.IsReady).ToList();
 
         var restockEntities = await _context.RestockRequests.AsNoTracking()
             .Include(x => x.FulfillmentPostings)

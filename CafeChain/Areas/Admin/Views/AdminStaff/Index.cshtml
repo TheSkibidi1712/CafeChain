@@ -20,33 +20,29 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
     <link rel="stylesheet" href="~/css/admin-white-orange-forms.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Staff/staff.css" asp-append-version="true" />
 }
 
-<div class="admin-wo-page">
+<main class="staff-page ops-shell cc-warehouse-page">
 
     
-    <header class="page-header staff-page-header cc-admin-heading">
-        <div class="cc-admin-heading__copy">
-            <div class="cc-admin-heading__eyebrow">Nhân sự &amp; Vận hành / Quản lý nhân viên</div>
-            <div class="cc-admin-heading__row">
-                <span class="staff-page-heading-icon cc-admin-heading__icon" aria-hidden="true">
-                    <i class="fas fa-users"></i>
-                </span>
-                <div class="cc-admin-heading__text">
-                    <h1>Quản lý nhân sự</h1>
-                    <p>Quản lý thông tin, vai trò và quyền hạn của đội ngũ nhân viên CafeChain.</p>
-                </div>
-            </div>
+    <header class="staff-page-header ops-header cc-warehouse-header">
+        <div>
+            <div class="staff-eyebrow">Nhân sự &amp; Vận hành / Quản lý nhân viên</div>
+            <h1><i class="fas fa-users" aria-hidden="true"></i> Quản lý nhân sự</h1>
+            <p class="staff-subtitle">Quản lý thông tin, vai trò và quyền hạn của đội ngũ nhân viên CafeChain.</p>
         </div>
-        @if (canCreateStaff)
-        {
-            <button type="button" class="btn btn-primary d-flex align-items-center gap-2"
-                    data-bs-toggle="modal" data-bs-target="#createStaffModal">
-                <i class="fas fa-user-plus"></i> Thêm nhân viên
-            </button>
-        }
+        <div class="staff-header-actions">
+            @if (canCreateStaff)
+            {
+                <button type="button" class="btn btn-primary d-flex align-items-center gap-2"
+                        data-bs-toggle="modal" data-bs-target="#createStaffModal">
+                    <i class="fas fa-user-plus"></i> Thêm nhân viên
+                </button>
+            }
+        </div>
     </header>
 
     
@@ -141,8 +137,8 @@
                             <th>Email</th>
                             <th>Vai trò</th>
                             <th>Cửa hàng</th>
-                            <th style="width:140px;">Trạng thái</th>
-                            <th style="width:100px;" class="text-center">Thao tác</th>
+                            <th style="min-width:140px;" class="text-center">Trạng thái</th>
+                            <th style="min-width:140px;" class="text-center">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -260,7 +256,7 @@
 
         </div>
     </div>
-</div>
+</main>
 
 
 @if (canCreateStaff)

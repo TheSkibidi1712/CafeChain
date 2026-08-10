@@ -1,0 +1,147 @@
+/* CafeChain Admin - WorkShift Approvals Layout */
+
+.cc-approval-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 20px;
+}
+
+.approval-card {
+    background: #FFFDFB;
+    border: 1px solid #E9DED4;
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 4px 10px rgba(32, 24, 18, 0.04);
+    transition: all 0.2s ease;
+}
+
+.approval-card:hover {
+    border-color: #D8C5B6;
+    background: #FBF7F2;
+    box-shadow: 0 6px 14px rgba(32, 24, 18, 0.06);
+}
+
+.approval-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.approval-card-title {
+    color: #3D2418;
+    font-size: 15px;
+    font-weight: 800;
+    margin-bottom: 2px;
+}
+
+.approval-card-detail {
+    color: #8C7B70;
+    font-size: 13px;
+    font-weight: 500;
+    margin: 0;
+}
+
+.approval-card-detail strong {
+    color: #5A4436;
+    font-weight: 700;
+}
+
+.approval-card-reason {
+    margin-top: 4px;
+    padding: 10px 12px;
+    background: #F4ECE6;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #3D2418;
+    font-style: italic;
+}
+
+.approval-card-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: auto;
+}
+
+.approval-card-input-wrap label {
+    display: block;
+    color: #8C7B70;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.approval-card-input {
+    width: 100%;
+    border: 1px solid #D8C5B6;
+    background: #FFF;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #3D2418;
+    transition: border-color 0.2s;
+}
+
+.approval-card-input:focus {
+    border-color: #AB6832;
+    outline: none;
+}
+
+.approval-card-input::placeholder {
+    color: #B5A499;
+}
+
+.approval-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.approval-card-actions .cc-btn {
+    flex: 1;
+    min-width: 110px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.btn-approve {
+    background: #AB6832;
+    color: #FFF;
+}
+.btn-approve:hover:not(:disabled) {
+    background: #8B5428;
+}
+.btn-approve:disabled {
+    background: #E9DED4;
+    color: #A08E83;
+    cursor: not-allowed;
+}
+
+.btn-reject {
+    background: #FFF;
+    border-color: #E29393;
+    color: #C04343;
+}
+.btn-reject:hover {
+    background: #FDF3F3;
+    border-color: #C04343;
+}
+
+.btn-convert {
+    background: #FFF;
+    border-color: #D8C5B6;
+    color: #5A4436;
+}
+.btn-convert:hover {
+    background: #FBF7F2;
+    border-color: #8C7B70;
+}

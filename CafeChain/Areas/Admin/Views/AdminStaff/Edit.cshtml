@@ -55,9 +55,8 @@
             <section class="staff-form-section">
                 <div class="staff-edit-section-title"><span><i class="fas fa-location-dot"></i></span><div><strong>Địa chỉ thường trú</strong><small>Thông tin khu vực và địa chỉ liên hệ của nhân viên.</small></div></div>
                 <div class="row g-3">
-                <div class="col-md-4"><label asp-for="ProvinceId" class="form-label">Tỉnh/Thành phố *</label><select asp-for="ProvinceId" id="editProvince" class="form-select"><option value="">-- Chọn Tỉnh/Thành phố --</option>@foreach (var p in provinces) { <option value="@p.ProvinceId">@p.Name</option> }</select></div>
-                <div class="col-md-4"><label asp-for="DistrictId" class="form-label">Quận/Huyện *</label><select asp-for="DistrictId" id="editDistrict" class="form-select"><option value="">-- Chọn Quận/Huyện --</option></select></div>
-                <div class="col-md-4"><label asp-for="WardId" class="form-label">Phường/Xã *</label><select asp-for="WardId" id="editWard" class="form-select"><option value="">-- Chọn Phường/Xã --</option></select></div>
+                <div class="col-md-6"><label asp-for="ProvinceId" class="form-label">Tỉnh/Thành phố *</label><select asp-for="ProvinceId" id="editProvince" class="form-select"><option value="">-- Chọn Tỉnh/Thành phố --</option>@foreach (var p in provinces) { <option value="@p.ProvinceId">@p.Name</option> }</select></div>
+                <div class="col-md-6"><label asp-for="WardId" class="form-label">Xã/Phường/Đặc khu *</label><select asp-for="WardId" id="editWard" class="form-select"><option value="">-- Chọn Xã/Phường/Đặc khu --</option></select></div>
                 <div class="col-12"><label asp-for="Address" class="form-label">Địa chỉ chi tiết *</label><input asp-for="Address" class="form-control" placeholder="Số nhà, tên đường..." /><span asp-validation-for="Address" class="text-danger"></span></div>
                 </div>
             </section>
@@ -70,11 +69,10 @@
 <partial name="_ValidationScriptsPartial" />
 <script>
 (() => {
-    const province = document.getElementById('editProvince'), district = document.getElementById('editDistrict'), ward = document.getElementById('editWard');
-    const initialDistrict = '@Model.DistrictId', initialWard = '@Model.WardId';
-    const districtsEndpoint = '@Url.Action("GetDistricts", "AdminStaff", new { area = "Admin" })';
+    const province = document.getElementById('editProvince'), ward = document.getElementById('editWard');
+    const initialWard = '@Model.WardId';
     const wardsEndpoint = '@Url.Action("GetWards", "AdminStaff", new { area = "Admin" })';
-    let districtRequestVersion = 0, wardRequestVersion = 0;
+    let wardRequestVersion = 0;
     const reset = (select, placeholder) => {
         select.disabled = true; select.innerHTML = `<option value="">${placeholder}</option>`;
     };
@@ -97,28 +95,14 @@
     };
     province.addEventListener('change', async () => {
         const parentProvinceId = province.value;
-        const version = ++districtRequestVersion;
-        ++wardRequestVersion;
-        reset(district, '-- Chọn Quận/Huyện --');
-        reset(ward, '-- Chọn Phường/Xã --');
-        if (parentProvinceId) await load(district, districtsEndpoint, 'provinceId', parentProvinceId, '-- Chọn Quận/Huyện --', '', () => version === districtRequestVersion && province.value === parentProvinceId);
-    });
-    district.addEventListener('change', async () => {
-        const parentDistrictId = district.value;
         const version = ++wardRequestVersion;
-        reset(ward, '-- Chọn Phường/Xã --');
-        if (parentDistrictId) await load(ward, wardsEndpoint, 'districtId', parentDistrictId, '-- Chọn Phường/Xã --', '', () => version === wardRequestVersion && district.value === parentDistrictId);
+        reset(ward, '-- Chọn Xã/Phường/Đặc khu --');
+        if (parentProvinceId) await load(ward, wardsEndpoint, 'provinceId', parentProvinceId, '-- Chọn Xã/Phường/Đặc khu --', '', () => version === wardRequestVersion && province.value === parentProvinceId);
     });
     (async () => {
         const provinceId = province.value;
-        const districtVersion = ++districtRequestVersion;
-        const districts = await load(district, districtsEndpoint, 'provinceId', provinceId, '-- Chọn Quận/Huyện --', initialDistrict, () => districtVersion === districtRequestVersion && province.value === provinceId);
-        if (!districts.some(x => String(x.id) === String(initialDistrict))) {
-            reset(ward, '-- Chọn Phường/Xã --');
-            return;
-        }
         const wardVersion = ++wardRequestVersion;
-        await load(ward, wardsEndpoint, 'districtId', initialDistrict, '-- Chọn Phường/Xã --', initialWard, () => wardVersion === wardRequestVersion && district.value === initialDistrict);
+        await load(ward, wardsEndpoint, 'provinceId', provinceId, '-- Chọn Xã/Phường/Đặc khu --', initialWard, () => wardVersion === wardRequestVersion && province.value === provinceId);
     })();
     const avatar = document.getElementById('AvatarFile');
     avatar?.addEventListener('change', () => { const file = avatar.files?.[0]; if (!file) return; document.getElementById('staffAvatarPreview').src = URL.createObjectURL(file); });

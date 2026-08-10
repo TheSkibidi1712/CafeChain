@@ -11,8 +11,7 @@
     const scopeTypeLabels = Object.freeze({
         COUNTRY: "Quốc gia",
         PROVINCE: "Tỉnh/Thành phố",
-        DISTRICT: "Quận/Huyện",
-        WARD: "Phường/Xã",
+        WARD: "Xã/Phường/Đặc khu",
         STORE: "Cửa hàng"
     });
 
@@ -707,13 +706,8 @@
 
         if (!scopeTypeId) return;
 
-        if (scopeTypeId === 3) {
-            await loadParentReferences(2);
-            return;
-        }
-
         if (scopeTypeId === 4) {
-            await loadParentReferences(3);
+            await loadParentReferences(2);
             return;
         }
 
@@ -773,7 +767,7 @@
         const scopeTypeId = Number(el.scopeTypeSelect.value);
         if (!scopeTypeId) return;
 
-        const requiresParent = scopeTypeId === 3 || scopeTypeId === 4;
+        const requiresParent = scopeTypeId === 4;
         const parentId = requiresParent ? Number(el.scopeParentSelect.value) : null;
         if (requiresParent && !parentId) return;
 

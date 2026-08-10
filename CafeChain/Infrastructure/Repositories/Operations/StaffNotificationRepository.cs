@@ -86,8 +86,11 @@ public sealed class StaffNotificationRepository : IStaffNotificationRepository
             .Include(x => x.ApproverStaff)
                 .ThenInclude(x => x!.Account)
             .Include(x => x.ConfirmedByStaff)
-            .Where(x => challengeIds.Contains(x.OtpChallengeId)
-                && x.ApproverStaffId == recipientStaffId)
+            // challengeIds are collected from notifications that were already scoped
+            // to recipientStaffId. A terminal rejection reviewer is intentionally not
+            // the OTP approver, so filtering again by ApproverStaffId would hide the
+            // authoritative challenge from the Business Owner notification.
+            .Where(x => challengeIds.Contains(x.OtpChallengeId))
             .ToListAsync(cancellationToken);
     }
 

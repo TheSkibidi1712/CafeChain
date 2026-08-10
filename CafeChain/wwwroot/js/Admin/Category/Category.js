@@ -1,4 +1,4 @@
-﻿// =====================================================
+// =====================================================
 // COMMON HELPERS
 // =====================================================
 
@@ -650,11 +650,19 @@ async function openEditModal(categoryId) {
 
 async function toggleCategory(id) {
 
-    if (
-        !confirm(
-            "Bạn có chắc muốn thay đổi trạng thái danh mục này?"
-        )
-    ) {
+    if (window.Swal) {
+        const result = await window.Swal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc muốn thay đổi trạng thái danh mục này?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#70482f',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
+        });
+        if (!result.isConfirmed) return;
+    } else if (!confirm("Bạn có chắc muốn thay đổi trạng thái danh mục này?")) {
         return;
     }
 

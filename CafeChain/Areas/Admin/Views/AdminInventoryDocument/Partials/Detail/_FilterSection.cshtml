@@ -1,4 +1,4 @@
-﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.Index.AdminInventoryDocumentIndexVM
+@model CafeChain.ViewModels.Admin.InventoryDocuments.Index.AdminInventoryDocumentIndexVM
 @using CafeChain.Models.Enums.Inventory
 
 <form method="get"
@@ -17,7 +17,9 @@
         </div>
 
         <div class="search-box">
-            <i class="fas fa-search" aria-hidden="true"></i>
+            <button type="submit" class="search-btn" title="Tìm kiếm" aria-label="Tìm kiếm">
+                <i class="fas fa-search" aria-hidden="true"></i>
+            </button>
             <input asp-for="Filter.Search"
                    class="form-control"
                    placeholder="Tìm mã phiếu, cửa hàng, đối tác, người lập..."
@@ -26,79 +28,91 @@
 
         <div class="filter-row">
 
-            <select asp-for="Filter.Type"
-                    id="inventoryFilterType"
-                    class="form-select">
+            <div class="filter-field">
+                <label for="inventoryFilterType">Loại phiếu</label>
+                <select asp-for="Filter.Type"
+                        id="inventoryFilterType"
+                        class="form-select">
 
-                <option value="">Loại phiếu</option>
+                    <option value="">Tất cả loại phiếu</option>
 
-                @foreach (var item in new[]
-                {
-                    InventoryDocumentType.EXPORT,
-                    InventoryDocumentType.STOCK_TAKE,
-                    InventoryDocumentType.WASTE
-                })
-                {
-                    <option value="@item">@item.ToVietnamese()</option>
-                }
+                    @foreach (var item in new[]
+                    {
+                        InventoryDocumentType.EXPORT,
+                        InventoryDocumentType.STOCK_TAKE,
+                        InventoryDocumentType.WASTE
+                    })
+                    {
+                        <option value="@item">@item.ToVietnamese()</option>
+                    }
 
-            </select>
+                </select>
+            </div>
 
-            <select asp-for="Filter.Status"
-                    class="form-select">
+            <div class="filter-field">
+                <label for="Filter_Status">Trạng thái</label>
+                <select asp-for="Filter.Status"
+                        class="form-select">
 
-                <option value="">Trạng thái</option>
+                    <option value="">Tất cả trạng thái</option>
 
-                @foreach (var item in Enum.GetValues<InventoryDocumentStatus>())
-                {
-                    <option value="@item">@item.ToVietnamese()</option>
-                }
+                    @foreach (var item in Enum.GetValues<InventoryDocumentStatus>())
+                    {
+                        <option value="@item">@item.ToVietnamese()</option>
+                    }
 
-            </select>
+                </select>
+            </div>
 
-            <select asp-for="Filter.Purpose"
-                    id="inventoryFilterPurpose"
-                    class="form-select"
-                    disabled="@(!Model.Filter.Type.HasValue)">
+            <div class="filter-field">
+                <label for="inventoryFilterPurpose">Mục đích</label>
+                <select asp-for="Filter.Purpose"
+                        id="inventoryFilterPurpose"
+                        class="form-select"
+                        disabled="@(!Model.Filter.Type.HasValue)">
 
-                <option value="">@(Model.Filter.Type.HasValue ? "Mục đích" : "Chọn loại phiếu trước")</option>
+                    <option value="">@(Model.Filter.Type.HasValue ? "Tất cả mục đích" : "Chọn loại phiếu trước")</option>
 
-                @foreach (var item in new[]
-                {
-                    new { Purpose = InventoryDocumentPurpose.IMPORT_PURCHASE, Type = InventoryDocumentType.IMPORT, Label = InventoryDocumentPurpose.IMPORT_PURCHASE.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Type = InventoryDocumentType.IMPORT, Label = $"{InventoryDocumentPurpose.IMPORT_ADJUSTMENT.ToVietnamese()} (lịch sử)" },
-                    new { Purpose = InventoryDocumentPurpose.SALE, Type = InventoryDocumentType.EXPORT, Label = InventoryDocumentPurpose.SALE.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.STOCK_TAKE, Type = InventoryDocumentType.STOCK_TAKE, Label = InventoryDocumentPurpose.STOCK_TAKE.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.DAMAGED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.DAMAGED.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.EXPIRED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.EXPIRED.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.BROKEN, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.BROKEN.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.CONTAMINATED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.CONTAMINATED.ToVietnamese() },
-                    new { Purpose = InventoryDocumentPurpose.LOST, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.LOST.ToVietnamese() }
-                })
-                {
-                    <option value="@item.Purpose"
-                            data-document-type="@item.Type">
-                        @item.Label
-                    </option>
-                }
+                    @foreach (var item in new[]
+                    {
+                        new { Purpose = InventoryDocumentPurpose.IMPORT_PURCHASE, Type = InventoryDocumentType.IMPORT, Label = InventoryDocumentPurpose.IMPORT_PURCHASE.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Type = InventoryDocumentType.IMPORT, Label = $"{InventoryDocumentPurpose.IMPORT_ADJUSTMENT.ToVietnamese()} (lịch sử)" },
+                        new { Purpose = InventoryDocumentPurpose.SALE, Type = InventoryDocumentType.EXPORT, Label = InventoryDocumentPurpose.SALE.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.STOCK_TAKE, Type = InventoryDocumentType.STOCK_TAKE, Label = InventoryDocumentPurpose.STOCK_TAKE.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.DAMAGED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.DAMAGED.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.EXPIRED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.EXPIRED.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.BROKEN, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.BROKEN.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.CONTAMINATED, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.CONTAMINATED.ToVietnamese() },
+                        new { Purpose = InventoryDocumentPurpose.LOST, Type = InventoryDocumentType.WASTE, Label = InventoryDocumentPurpose.LOST.ToVietnamese() }
+                    })
+                    {
+                        <option value="@item.Purpose"
+                                data-document-type="@item.Type">
+                            @item.Label
+                        </option>
+                    }
 
-            </select>
+                </select>
+            </div>
 
-            <select asp-for="Filter.StoreId"
-                    class="form-select">
+            <div class="filter-field">
+                <label for="Filter_StoreId">Cửa hàng</label>
+                <select asp-for="Filter.StoreId"
+                        class="form-select">
 
-                <option value="">Cửa hàng</option>
+                    <option value="">Tất cả cửa hàng</option>
 
-                @foreach (var store in Model.Stores)
-                {
-                    <option value="@store.StoreId">
-                        @store.StoreName
-                    </option>
-                }
+                    @foreach (var store in Model.Stores)
+                    {
+                        <option value="@store.StoreId">
+                            @store.StoreName
+                        </option>
+                    }
 
-            </select>
+                </select>
+            </div>
 
-            <div class="filter-date-field">
+            <div class="filter-field filter-date-field">
                 <label asp-for="Filter.FromDate">Từ ngày</label>
                 <input asp-for="Filter.FromDate"
                        type="date"
@@ -106,7 +120,7 @@
                        value="@(Model.Filter.FromDate?.ToString("yyyy-MM-dd"))" />
             </div>
 
-            <div class="filter-date-field">
+            <div class="filter-field filter-date-field">
                 <label asp-for="Filter.ToDate">Đến ngày</label>
                 <input asp-for="Filter.ToDate"
                        type="date"

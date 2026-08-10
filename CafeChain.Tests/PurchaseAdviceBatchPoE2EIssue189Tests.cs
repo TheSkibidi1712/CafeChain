@@ -81,6 +81,17 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
             Owner(seed));
         Assert.True(approved.IsSuccess, approved.Message);
 
+        var storage = new MemoryStorage();
+        var documents = DocumentService(db, storage);
+        var generated = await documents.GenerateAsync(prepared.Batch.PurchaseOrderBatchId, Owner(seed));
+        Assert.True(generated.IsSuccess, generated.Message);
+        var sent = await documents.MarkSentAsync(
+            prepared.Batch.PurchaseOrderBatchId,
+            generated.Data!.RevisionId,
+            SendRequest(generated.Data.RowVersion, "issue-189-per-store"),
+            Warehouse(seed));
+        Assert.True(sent.IsSuccess, sent.Message);
+
         var children = approved.Data!.ChildPurchaseOrders.OrderBy(x => x.StoreId).ToArray();
         var firstChild = children.Single(x => x.StoreId == seed.Store1Id);
         var secondChild = children.Single(x => x.StoreId == seed.Store2Id);
@@ -114,7 +125,7 @@ public sealed class PurchaseAdviceBatchPoE2EIssue189Tests : IAsyncLifetime
             PurchaseOrderStatuses.Completed,
             (await db.PurchaseOrders.AsNoTracking().SingleAsync(x => x.PurchaseOrderId == firstChild.PurchaseOrderId)).Status);
         Assert.Equal(
-            PurchaseOrderStatuses.Approved,
+            PurchaseOrderStatuses.MarkedAsSent,
             (await db.PurchaseOrders.AsNoTracking().SingleAsync(x => x.PurchaseOrderId == secondChild.PurchaseOrderId)).Status);
         Assert.Equal(
             5m,

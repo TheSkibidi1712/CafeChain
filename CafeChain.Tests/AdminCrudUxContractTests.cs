@@ -44,7 +44,10 @@ public sealed class AdminCrudUxContractTests
         Assert.Contains("window.toast", script, StringComparison.Ordinal);
         Assert.Contains("button instanceof HTMLButtonElement", script, StringComparison.Ordinal);
         Assert.Contains("isButton && originalLabels.has(button)", script, StringComparison.Ordinal);
-        Assert.Contains("dataset.validationFeedback === \"sweetalert\"", script, StringComparison.Ordinal);
+        Assert.Contains("validationFeedback === \"sweetalert\"", script, StringComparison.Ordinal);
+        Assert.Contains("validationFeedback === \"inline\"", script, StringComparison.Ordinal);
+        Assert.Contains("field.validity.valid", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("if (field.checkValidity())", script, StringComparison.Ordinal);
     }
 
     [Fact]

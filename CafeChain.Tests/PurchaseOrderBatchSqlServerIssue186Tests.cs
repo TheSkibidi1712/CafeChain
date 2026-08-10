@@ -1,6 +1,8 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Actor;
+using CafeChain.Application.DTOs.Admin.Permissions;
 using CafeChain.Application.DTOs.Admin.Procurement;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
@@ -105,8 +107,30 @@ public sealed class PurchaseOrderBatchSqlServerIssue186Tests : IAsyncLifetime
         var physical = new Mock<IPhysicalUnitConversionService>();
         physical.Setup(x => x.ConvertAsync(It.IsAny<decimal>(), It.IsAny<int>(), It.IsAny<int>()))
             .ReturnsAsync((decimal quantity, int _, int _) => ServiceResult<decimal>.Success(quantity));
+        var permissions = new Mock<IAdminPermissionService>();
+        permissions.Setup(x => x.GetEffectivePermissionCodesAsync(It.IsAny<int>()))
+            .ReturnsAsync(ServiceResult<HashSet<string>>.Success(new HashSet<string>
+            {
+                PermissionConstants.PurchaseAdviceConsolidate
+            }));
+        permissions.Setup(x => x.HasPermissionAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int?>()))
+            .ReturnsAsync((int accountId, string code, int? storeId) =>
+                ServiceResult<PermissionDecisionDto>.Success(new PermissionDecisionDto
+                {
+                    AccountId = accountId,
+                    PermissionCode = code,
+                    TargetStoreId = storeId,
+                    Allowed = true,
+                    RoleAllowed = true,
+                    ScopeAllowed = true
+                }));
         return new PurchaseOrderBatchService(context,
-            new PurchaseAdviceConsolidationService(context, scope.Object, physical.Object), scope.Object);
+            new PurchaseAdviceConsolidationService(
+                context,
+                scope.Object,
+                physical.Object,
+                permissions: permissions.Object),
+            scope.Object);
     }
 
     private static CreatePurchaseOrderBatchRequest Request(Seed seed, string key) => new()
@@ -123,6 +147,7 @@ public sealed class PurchaseOrderBatchSqlServerIssue186Tests : IAsyncLifetime
     private static AdminActorContext Actor(Seed seed) => new()
     {
         StaffId = seed.StaffId,
+        AccountId = seed.AccountId,
         RoleNames = new[] { RoleConstants.AccountantWarehouse }
     };
 
@@ -173,10 +198,10 @@ public sealed class PurchaseOrderBatchSqlServerIssue186Tests : IAsyncLifetime
         db.AddRange(advice, secondAdvice); await db.SaveChangesAsync();
         var line = advice.Lines.Single();
         var secondLine = secondAdvice.Lines.Single();
-        return new Seed(staff.StaffId, supplier.SupplierId, offer.IngredientSupplierId,
+        return new Seed(staff.StaffId, account.AccountId, supplier.SupplierId, offer.IngredientSupplierId,
             line.PurchaseAdviceLineId, Convert.ToBase64String(line.RowVersion),
             secondLine.PurchaseAdviceLineId, Convert.ToBase64String(secondLine.RowVersion));
     }
 
-    private sealed record Seed(int StaffId, int SupplierId, int OfferId, int LineId, string RowVersion, int SecondLineId, string SecondRowVersion);
+    private sealed record Seed(int StaffId, int AccountId, int SupplierId, int OfferId, int LineId, string RowVersion, int SecondLineId, string SecondRowVersion);
 }

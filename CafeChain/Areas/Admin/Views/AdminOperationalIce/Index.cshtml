@@ -1,6 +1,7 @@
 @model CafeChain.ViewModels.Admin.OperationalIce.OperationalIceIndexVM
 @using CafeChain.Application.Constants
 @using System.Globalization
+@inject Microsoft.Extensions.Options.IOptions<CafeChain.Application.Options.WorkShiftOptions> WorkShiftConfiguration
 @{
     ViewData["Title"] = "Quản lý đá theo ca";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -22,6 +23,10 @@
     string DisplayQuantity(decimal value, string unit) => $"{DisplayNumber(value)} {unit}";
     string DisplayNullableQuantity(decimal? value, string unit) =>
         value.HasValue ? DisplayQuantity(value.Value, unit) : "—";
+    var businessTimeZone = WorkShiftConfiguration.Value.ResolveTimeZone();
+    DateTime BusinessLocal(DateTime value) => TimeZoneInfo.ConvertTimeFromUtc(
+        value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        businessTimeZone);
 
     var selectedIngredientId = Model.Policy?.IngredientId ?? Model.Ingredients.FirstOrDefault()?.Id ?? 0;
     var selectedUnitId = Model.Policy?.DisplayUnitId
@@ -257,6 +262,7 @@
                 <input type="hidden" name="BusinessDate" value="@Model.BusinessDate.ToString("yyyy-MM-dd")" />
                 <input id="creationSource" type="hidden" name="CreationSource" value="@OperationalIceCreationSources.StaffSchedule" />
                 <input id="sourceScheduleShiftId" type="hidden" name="SourceScheduleShiftId" disabled />
+                <span id="sourceStaffShiftInputs"></span>
                 <input id="scheduleShiftLeadId" type="hidden" name="ShiftLeadId" disabled />
                 <fieldset class="ice-mode-switch ice-span-2">
                     <legend>Cách tạo ca</legend>
@@ -282,7 +288,7 @@
                         <div class="ice-field">
                             <label for="scheduleSource">Ca theo lịch</label>
                             <select id="scheduleSource" aria-describedby="scheduleSourceHelp"></select>
-                            <small id="scheduleSourceHelp">Các phân công cùng ca được gom thành một ca vận hành.</small>
+                            <small id="scheduleSourceHelp">Chỉ các phân công có cùng giờ hiệu lực mới được gom thành một ca vận hành.</small>
                         </div>
                         <div class="ice-schedule-summary">
                             <div>
@@ -547,7 +553,7 @@
                                         </div>
                                     }
                                 </td>
-                                <td>@row.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") – @row.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@BusinessLocal(row.StartAtUtc).ToString("dd/MM/yyyy HH:mm") – @BusinessLocal(row.EndAtUtc).ToString("dd/MM/yyyy HH:mm")</td>
                                 <td class="ice-number">@DisplayQuantity(row.SuggestedQuantity, unitLabel)</td>
                                 <td class="ice-number">@DisplayQuantity(row.TotalIssuedQuantity, unitLabel)</td>
                                 <td class="ice-number">@DisplayQuantity(row.TheoreticalUsageQuantity, unitLabel)</td>
@@ -647,6 +653,7 @@
             const createShiftButton = document.getElementById('createShiftButton');
             const creationSource = document.getElementById('creationSource');
             const sourceScheduleShiftId = document.getElementById('sourceScheduleShiftId');
+            const sourceStaffShiftInputs = document.getElementById('sourceStaffShiftInputs');
             const scheduleShiftLeadId = document.getElementById('scheduleShiftLeadId');
             const shiftName = document.getElementById('shiftName');
             const shiftStartDisplay = document.getElementById('shiftStartDisplay');
@@ -687,6 +694,7 @@
 
             const clearScheduleAuthority = () => {
                 sourceScheduleShiftId.value = '';
+                sourceStaffShiftInputs.replaceChildren();
                 scheduleShiftLeadId.value = '';
                 scheduleStaffCount.textContent = '—';
                 scheduleLeadName.textContent = '—';
@@ -745,6 +753,17 @@
                     return;
                 }
                 sourceScheduleShiftId.value = option.value;
+                const staffShiftIds = (option.dataset.staffShiftIds || '')
+                    .split(',')
+                    .map(value => Number(value))
+                    .filter(value => Number.isInteger(value) && value > 0);
+                sourceStaffShiftInputs.replaceChildren(...staffShiftIds.map(staffShiftId => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'SourceStaffShiftIds';
+                    input.value = String(staffShiftId);
+                    return input;
+                }));
                 shiftName.value = option.dataset.name || '';
                 shiftStartDisplay.value = displayDateTime(option.dataset.start);
                 shiftEndDisplay.value = displayDateTime(option.dataset.end);
@@ -791,6 +810,7 @@
                         option.dataset.end = schedule.endLocalValue;
                         option.dataset.leadId = schedule.suggestedShiftLeadId ?? '';
                         option.dataset.staffCount = schedule.staffCount;
+                        option.dataset.staffShiftIds = (schedule.staffShiftIds || []).join(',');
                         scheduleSelect.append(option);
                     });
 

@@ -35,9 +35,9 @@
       data-filter-fingerprint="@Model.AnalysisContext?.FilterFingerprint"
       data-default-section="@firstSection"
       data-can-select-province="@Model.Scope.CanSelectProvince.ToString().ToLowerInvariant()"
-      data-can-select-district="@Model.Scope.CanSelectDistrict.ToString().ToLowerInvariant()"
+      data-can-select-ward="@Model.Scope.CanSelectWard.ToString().ToLowerInvariant()"
       data-can-select-store="@Model.Scope.CanSelectStore.ToString().ToLowerInvariant()"
-      data-province="@Model.Filter.ProvinceId" data-district="@Model.Filter.DistrictId" data-store="@Model.Filter.StoreId">
+      data-province="@Model.Filter.ProvinceId" data-ward="@Model.Filter.WardId" data-store="@Model.Filter.StoreId">
     <form id="dashboardAntiForgery" hidden>@Html.AntiForgeryToken()</form>
     <header class="analytics-header">
         <div class="analytics-header__copy">
@@ -68,7 +68,7 @@
             <label>Từ ngày<input id="dashboardFromDate" type="date" value="@Model.Filter.FromDate.ToString("yyyy-MM-dd")" /></label>
             <label>Đến ngày<input id="dashboardToDate" type="date" value="@Model.Filter.ToDate.ToString("yyyy-MM-dd")" /></label>
             <label>Tỉnh/Thành<select id="dashboardProvince"><option value="">Tất cả</option></select></label>
-            <label>Quận/Huyện<select id="dashboardDistrict"><option value="">Tất cả</option></select></label>
+            <label>Xã/Phường/Đặc khu<select id="dashboardWard"><option value="">Tất cả</option></select></label>
             <label>Cửa hàng<select id="dashboardStore"><option value="">Tất cả</option></select></label>
             <label>Độ chi tiết
                 <select id="dashboardGranularity">

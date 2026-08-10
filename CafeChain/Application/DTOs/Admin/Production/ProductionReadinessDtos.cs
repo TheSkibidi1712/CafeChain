@@ -15,6 +15,30 @@ namespace CafeChain.Application.DTOs.Admin.Production
         public const string ConversionFailed = "UNIT_CONVERSION_FAILED";
     }
 
+    public static class ProductionReadinessDisplay
+    {
+        public static string MessageFor(string? code, string? fallback = null) => code switch
+        {
+            ProductionReadinessCodes.WriterMode =>
+                "Công thức hiện tại chưa sẵn sàng cho quy trình sản xuất. Quy trình mới yêu cầu đầu ra được xác định bằng Bán thành phẩm; công thức đang chọn vẫn dùng cách ghi nhận tồn kho cũ.",
+            ProductionReadinessCodes.WriterCapability =>
+                "Chức năng ghi nhận tồn kho bán thành phẩm hiện chưa sẵn sàng. Vui lòng liên hệ quản trị hệ thống trước khi thực hiện.",
+            ProductionReadinessCodes.InvalidRecipe =>
+                "Công thức chưa đáp ứng đầy đủ điều kiện sản xuất. Vui lòng kiểm tra định mức và đầu ra của công thức.",
+            ProductionReadinessCodes.InvalidOutput =>
+                "Sản lượng đầu ra của công thức chưa được cấu hình hợp lệ.",
+            _ when !string.IsNullOrWhiteSpace(fallback) => fallback.Trim(),
+            _ => "Chưa thể xác định mức độ sẵn sàng của công thức."
+        };
+
+        public static string WriterModeLabel(string? writerMode) => writerMode switch
+        {
+            "PreparedItem" => "Theo bán thành phẩm",
+            "LegacyRecipe" => "Theo cách ghi nhận tồn kho cũ",
+            _ => "Chưa xác định"
+        };
+    }
+
     public sealed class ProductionRecipeOptionDto
     {
         public int RecipeId { get; set; }
@@ -46,6 +70,7 @@ namespace CafeChain.Application.DTOs.Admin.Production
         public decimal NormalizedTotalOutput { get; set; }
         public string OutputBaseUnitCode { get; set; } = "";
         public string WriterMode { get; set; } = "Chưa cấu hình";
+        public string WriterModeLabel { get; set; } = "Chưa xác định";
         public bool WriterCapabilityReady { get; set; }
         public bool EstimatedBomCostComplete { get; set; }
         public decimal? EstimatedBomCostPerRun { get; set; }

@@ -20,6 +20,7 @@ namespace CafeChain.Application.DTOs.POS
         public int RemainingSeconds { get; set; }
         public bool CanRevealOtp { get; set; }
         public bool CanContinueTerminalConfirmation { get; set; }
+        public bool CanRejectTerminalRegistration { get; set; }
     }
 
     public class OtpRevealResultDto
@@ -33,6 +34,21 @@ namespace CafeChain.Application.DTOs.POS
     {
         public string OtpCode { get; set; } = string.Empty;
         public string RequestKey { get; set; } = string.Empty;
+    }
+
+    public class RejectTerminalNotificationRequestDto
+    {
+        public string Reason { get; set; } = string.Empty;
+        public string RequestKey { get; set; } = string.Empty;
+    }
+
+    public sealed class TerminalApprovalResultDto
+    {
+        public string TerminalId { get; set; } = string.Empty;
+        public string Status { get; set; } = "APPROVED";
+        public bool AlreadyProcessed { get; set; }
+        public DateTime? LockedUntilUtc { get; set; }
+        public int RetryAfter { get; set; }
     }
 
     public class StaffNotificationItemDto

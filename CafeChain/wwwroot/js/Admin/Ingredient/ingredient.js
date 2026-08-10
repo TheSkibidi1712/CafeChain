@@ -144,6 +144,36 @@
     }
 
     function toggleStatus(id, button) {
+        const isActive = button.classList.contains("ingredient-btn-danger");
+        const actionText = isActive ? "ngưng hoạt động" : "kích hoạt";
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Xác nhận ' + actionText,
+                text: 'Bạn có chắc chắn muốn ' + actionText + ' nguyên liệu này không?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy bỏ',
+                reverseButtons: true,
+                customClass: {
+                    confirmButton: 'btn btn-swal-confirm me-2',
+                    cancelButton: 'btn btn-swal-cancel'
+                },
+                buttonsStyling: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeToggle(id, button);
+                }
+            });
+        } else {
+            if (confirm('Bạn có chắc chắn muốn ' + actionText + ' nguyên liệu này không?')) {
+                executeToggle(id, button);
+            }
+        }
+    }
+
+    function executeToggle(id, button) {
         void AdminMutationGuard.run(`ingredient-toggle-${id}`, button, async () => {
             try {
                 const result = await requestJson(`/Admin/AdminIngredient/ToggleStatus?id=${id}`, {

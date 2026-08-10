@@ -53,45 +53,40 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Category/Category.css" asp-append-version="true" />
 }
 
 @Html.AntiForgeryToken()
 
-<div class="category-page">
-<div class="category-page-header">
+<main class="category-page ops-shell cc-warehouse-page">
+    <header class="category-page-header ops-header cc-warehouse-header">
+        <div>
+            <div class="category-eyebrow ops-eyebrow">Cấu trúc thực đơn</div>
 
-    <div class="category-heading">
-        <span class="category-eyebrow">
-            <i class="fas fa-layer-group"></i>
-            Cấu trúc thực đơn
-        </span>
+            <h1 class="category-page-title ops-title">
+                Quản lý danh mục
+            </h1>
 
-        <h2 class="category-page-title">
-            Quản lý danh mục
-        </h2>
+            <p class="category-page-description ops-subtitle">
+                Quản lý và tổ chức các nhóm sản phẩm đồ uống của CafeChain
+            </p>
+        </div>
 
-        <p class="text-muted category-page-description">
-            Quản lý và tổ chức các nhóm sản phẩm đồ uống của CafeChain
-        </p>
-
-    </div>
-
-    @if (canCreateCategory)
-    {
-    <button type="button"
-            class="btn category-primary-btn category-add-btn"
-            data-bs-toggle="modal"
-            data-bs-target="#createCategoryModal"
-            title="Thêm danh mục mới">
-
-        <i class="fas fa-plus me-2"></i>
-        Thêm danh mục mới
-
-    </button>
-    }
-
-</div>
+        <div class="category-header-actions ops-actions">
+            @if (canCreateCategory)
+            {
+                <button type="button"
+                        class="btn category-primary-btn category-add-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#createCategoryModal"
+                        title="Thêm danh mục mới">
+                    <i class="fas fa-plus me-2"></i>
+                    Thêm danh mục mới
+                </button>
+            }
+        </div>
+    </header>
 
 <div class="category-summary-grid">
     <div class="category-summary-card category-summary-total">
@@ -112,50 +107,36 @@
 <!-- SEARCH -->
 <!-- ========================================= -->
 
-<div class="card category-card category-filter-card mb-3">
+<form asp-action="Index"
+      method="get"
+      class="category-search-row pa-band pa-filter-grid cc-warehouse-filter">
 
-    <div class="card-body">
-
-        <form asp-action="Index"
-              method="get">
-
-            <div class="category-search-row">
-
-                <label class="category-search-field">
-                    <i class="fas fa-search"></i>
-
-                    <input asp-for="Filter.Keyword"
-                           class="form-control category-input"
-                           placeholder="Tìm theo mã danh mục hoặc tên danh mục..." />
-
-                </label>
-
-                <div class="category-search-actions">
-                    @if (hasKeyword)
-                    {
-                        <a asp-action="Index" class="btn category-clear-btn">
-                            <i class="fas fa-rotate-left"></i>
-                            Xóa lọc
-                        </a>
-                    }
-
-                    <button type="submit"
-                            class="btn category-primary-btn">
-
-                        <i class="fas fa-search me-2"></i>
-                        Tìm kiếm
-
-                    </button>
-
-                </div>
-
-            </div>
-
-        </form>
-
+    <div class="category-search-field">
+        <button type="submit" class="category-search-btn" title="Tìm kiếm" aria-label="Tìm kiếm danh mục">
+            <i class="fas fa-search" aria-hidden="true"></i>
+        </button>
+        <input asp-for="Filter.Keyword"
+               class="form-control category-input"
+               placeholder="Tìm theo mã danh mục hoặc tên danh mục..." />
     </div>
 
-</div>
+    <div class="category-search-actions">
+        @if (hasKeyword)
+        {
+            <a asp-action="Index" class="btn category-clear-btn">
+                <i class="fas fa-rotate-left"></i>
+                Xóa lọc
+            </a>
+        }
+
+        <button type="submit"
+                class="btn category-primary-btn">
+            <i class="fas fa-search me-2"></i>
+            Tìm kiếm
+        </button>
+    </div>
+
+</form>
 
 <div class="card category-card category-list-card">
 
@@ -325,7 +306,7 @@
     </div>
 
 </div>
-</div>
+</main>
 
 <!-- ========================================= -->
 <!-- CREATE MODAL -->

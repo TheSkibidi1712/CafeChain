@@ -16,11 +16,15 @@ namespace CafeChain.Data.Configurations.Inventories.Production
 
                 table.HasCheckConstraint(
                     "CK_ProductionRuns_Status",
-                    "[Status] IN (1, 2)");
+                    "[Status] IN (1, 2, 10, 11, 12, 13, 14, 15)");
 
                 table.HasCheckConstraint(
                     "CK_ProductionRuns_ValuationStatus",
                     "[ValuationStatus] IN (0, 1)");
+
+                table.HasCheckConstraint(
+                    "CK_ProductionRuns_V2BatchContract",
+                    "[ContractVersion] = 1 OR ([ContractVersion] = 2 AND [PlannedBatchCount] IS NOT NULL AND [PlannedBatchCount] > 0)");
             });
 
             entity.HasKey(x => x.ProductionRunId);
@@ -28,6 +32,10 @@ namespace CafeChain.Data.Configurations.Inventories.Production
             entity.Property(x => x.RequestedRunCount)
                 .HasColumnType("decimal(18,5)")
                 .IsRequired();
+            entity.Property(x => x.ContractVersion).HasDefaultValue(1);
+            entity.Property(x => x.ExpectedOutputPerBatchBase).HasPrecision(18, 5);
+            entity.Property(x => x.ExpectedOutputBase).HasPrecision(18, 5);
+            entity.Property(x => x.YieldVarianceTolerancePercent).HasPrecision(9, 4);
 
             entity.Property(x => x.RequestKey)
                 .IsRequired();
@@ -57,6 +65,8 @@ namespace CafeChain.Data.Configurations.Inventories.Production
 
             entity.Property(x => x.Notes)
                 .HasMaxLength(500);
+            entity.Property(x => x.VarianceReason)
+                .HasMaxLength(500);
 
             entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime2")
@@ -83,6 +93,7 @@ namespace CafeChain.Data.Configurations.Inventories.Production
                 .HasDatabaseName("IX_ProductionRuns_RecipeId");
 
             entity.HasIndex(x => x.CompletedByStaffId);
+            entity.HasIndex(x => x.OutputBaseUnitId);
 
             entity.HasOne(x => x.Store)
                 .WithMany()
@@ -102,6 +113,11 @@ namespace CafeChain.Data.Configurations.Inventories.Production
             entity.HasOne(x => x.CompletedByStaff)
                 .WithMany()
                 .HasForeignKey(x => x.CompletedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<CafeChain.Models.Inventories.Ingredients.Unit>()
+                .WithMany()
+                .HasForeignKey(x => x.OutputBaseUnitId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

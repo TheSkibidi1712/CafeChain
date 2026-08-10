@@ -57,6 +57,10 @@ namespace CafeChain.ViewModels.Admin.Recipes
     public sealed class BomDataHealthPageVM
     {
         public List<BomDataHealthRowVM> Items { get; set; } = new();
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+        public int TotalCount { get; set; }
+        public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)Math.Max(1, PageSize)));
         public int CompleteCount { get; set; }
         public int MissingQuoteCount { get; set; }
         public int MissingConversionCount { get; set; }

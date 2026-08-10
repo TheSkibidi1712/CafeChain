@@ -22,8 +22,7 @@ namespace CafeChain.Application.Interfaces.Admin.Staffs
             int scopeTypeId,
             ClaimsPrincipal actor,
             int? parentId = null);
-        Task<IEnumerable<object>> GetDistrictsAsync(int provinceId);
-        Task<IEnumerable<object>> GetWardsAsync(int districtId);
+        Task<IEnumerable<object>> GetWardsAsync(int provinceId);
 
         // 🔥 Thin Controller: Avatar upload logic di chuyển xuống Service
     }

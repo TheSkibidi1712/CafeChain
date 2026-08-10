@@ -56,6 +56,7 @@ namespace CafeChain.Application.DTOs.POS
 
     public sealed class OpenShiftAssessmentDto
     {
+        public string AssessmentVersion { get; set; } = string.Empty;
         public string? RecommendedAction { get; set; }
         public string OpenContext { get; set; } = string.Empty;
         public int? SourceStaffShiftId { get; set; }

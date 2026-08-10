@@ -178,18 +178,30 @@ public sealed class PurchaseOrderSqlServerIssue178Tests : IAsyncLifetime
             .Include(x => x.BranchReceipt)
             .SingleAsync(x => x.BranchReceiptLineId == seeded.ReceiptLineIds[0]);
 
-        await Task.WhenAll(
-            CloseRemainingAsync(closeContext, seeded, version, "Không yêu cầu giao bù sau kiểm tra"),
-            CreateService(receiptContext).RegisterReceiptPostingAsync(
-                receiptLine.BranchReceipt, receiptLine, seeded.StaffId));
+        var closeTask = CloseRemainingAsync(
+            closeContext,
+            seeded,
+            version,
+            "Không yêu cầu giao bù sau kiểm tra");
+        var receiptTask = CreateService(receiptContext).RegisterReceiptPostingAsync(
+            receiptLine.BranchReceipt,
+            receiptLine,
+            seeded.StaffId);
+        await Task.WhenAll(closeTask, receiptTask);
 
         await using var verify = CreateContext();
         var line = await verify.PurchaseOrderLines.AsNoTracking()
             .Include(x => x.ReceiptPostings)
             .SingleAsync();
         var accepted = line.ReceiptPostings.Sum(x => x.AcceptedBaseQuantity);
+        var outstanding = Math.Max(
+            line.OrderedBaseQuantity - accepted - line.ClosedRemainingQuantity,
+            0m);
+        Assert.Single(new[] { (await closeTask).IsSuccess, (await receiptTask).IsSuccess }.Where(x => x));
         Assert.True(accepted + line.ClosedRemainingQuantity <= line.OrderedBaseQuantity);
-        Assert.Equal(line.OrderedBaseQuantity, accepted + line.ClosedRemainingQuantity);
+        Assert.Equal(
+            line.OrderedBaseQuantity - accepted - line.ClosedRemainingQuantity,
+            outstanding);
     }
 
     [Fact]
@@ -271,6 +283,7 @@ public sealed class PurchaseOrderSqlServerIssue178Tests : IAsyncLifetime
             new ClosePurchaseOrderLineRemainingRequest
             {
                 PurchaseOrderLineId = seeded.PurchaseOrderLineId,
+                CloseBaseQuantity = 10m,
                 RowVersion = rowVersion,
                 Reason = reason,
                 RequestKey = $"sql178-{Guid.NewGuid():N}"

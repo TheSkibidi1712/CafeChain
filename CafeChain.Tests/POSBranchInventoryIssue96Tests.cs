@@ -3,11 +3,14 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Services.POS;
 using CafeChain.Controllers.Api.v1;
 using CafeChain.Models.Drinks;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Stores;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -77,6 +80,75 @@ namespace CafeChain.Tests.POS
             Assert.Equal(RecipeId, recipe.ItemId);
             Assert.Equal("Syrup BTP", recipe.ItemName);
             Assert.Equal("—", recipe.UnitName);
+        }
+
+        [Fact]
+        public async Task GetBranchInventory_CanonicalLinkedPreparedItem_UsesConfirmedBaseUnit()
+        {
+            using var ctx = CreateDbContext();
+            SeedCatalog(ctx);
+            ctx.PreparedItems.Add(new PreparedItem
+            {
+                PreparedItemId = 9200,
+                Code = "BTP-POS-UNIT",
+                Name = "Cốt trà POS",
+                BaseUnitId = UnitId,
+                Active = true
+            });
+            ctx.Recipes.Add(new Recipe
+            {
+                RecipeId = 9201,
+                RecipeCode = "RCP-POS-UNIT",
+                Name = "Công thức cốt trà POS",
+                PreparedItemId = 9200,
+                Active = true,
+                Status = "Active"
+            });
+            ctx.StoreInventories.Add(new StoreInventory
+            {
+                StoreId = StoreA,
+                RecipeId = 9201,
+                PreparedItemId = 9200,
+                BtpIdentityState = BtpIdentityState.Canonical,
+                QuantitySemanticsStatus = InventoryQuantitySemanticsStatus.BaseUnitConfirmed,
+                AvailableQty = 11_290m,
+                ReservedQty = 0m,
+                LastUpdated = System.DateTime.UtcNow,
+                RowVersion = new byte[] { 0 }
+            });
+            await ctx.SaveChangesAsync();
+            var expectedUnitCode = await ctx.Units
+                .Where(x => x.UnitId == UnitId)
+                .Select(x => x.UnitCode)
+                .SingleAsync();
+
+            var result = await new PosBranchInventoryService(ctx)
+                .GetBranchInventoryAsync(StoreA, "BTP-POS-UNIT", null, 1, 50);
+
+            Assert.True(result.IsSuccess);
+            var item = Assert.Single(result.Data!.Items);
+            Assert.Equal(PosBranchInventoryService.ItemTypePreparedItem, item.ItemType);
+            Assert.Equal(9200, item.ItemId);
+            Assert.Equal(9201, item.LegacyRecipeId);
+            Assert.Equal(expectedUnitCode, item.UnitName);
+            Assert.Equal(QuantitySemanticsStatuses.BaseUnitQuantityConfirmed, item.QuantitySemanticsStatus);
+            Assert.False(item.IsLegacyUnmapped);
+        }
+
+        [Fact]
+        public void BranchInventoryUi_DoesNotExposeLegacyTechnicalTerminology()
+        {
+            var root = FindRepoRoot();
+            var page = System.IO.File.ReadAllText(System.IO.Path.Combine(
+                root,
+                "CafeChain.Frontend",
+                "src",
+                "pages",
+                "BranchInventory.tsx"));
+
+            Assert.Contains("Công thức liên kết", page, System.StringComparison.Ordinal);
+            Assert.DoesNotContain("Công thức legacy", page, System.StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("BTP legacy", page, System.StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -232,6 +304,16 @@ namespace CafeChain.Tests.POS
                 }
             };
             return controller;
+        }
+
+        private static string FindRepoRoot()
+        {
+            var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
+            while (dir != null && !System.IO.Directory.Exists(System.IO.Path.Combine(dir.FullName, "CafeChain")))
+                dir = dir.Parent;
+
+            return dir?.FullName
+                ?? throw new System.IO.DirectoryNotFoundException("Không tìm thấy repo root.");
         }
 
         private static void SeedCatalog(CafeChain.Data.AppDbContext ctx)

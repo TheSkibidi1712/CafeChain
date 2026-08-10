@@ -8,183 +8,171 @@
 }
 
 @section Styles {
-<style>
-    .sales-history { color:#1F2937; background-color:#F7F3EE; margin:-30px; padding:30px; min-height:calc(100vh - 80px); }
-    .sales-history__header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.25rem; }
-    .sales-history__title { margin:0; font-size:1.55rem; font-weight:800; color:#1F2937; }
-    .sales-history__subtitle { margin:.25rem 0 0; color:#475569; font-size:.875rem; }
-    .history-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border:1px solid #e4e7ec; background:#fff; margin-bottom:1rem; border-radius:8px; overflow:hidden; }
-    .history-kpi { min-width:0; padding:1rem 1.1rem; border-right:1px solid #e4e7ec; }
-    .history-kpi:last-child { border-right:0; }
-    .history-kpi__label { color:#475569; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
-    .history-kpi__value { display:block; margin-top:.3rem; font-size:1.35rem; font-weight:800; color:#1F2937; }
-    .history-kpi--revenue .history-kpi__value { color:#2F6F5E; }
-    .history-kpi--refund .history-kpi__value { color:#991B1B; }
-    .history-filters { display:grid; grid-template-columns:minmax(160px,1.2fr) minmax(170px,1.4fr) repeat(4,minmax(120px,1fr)) auto; gap:.65rem; align-items:end; padding:1rem; border:1px solid #e4e7ec; background:#fff; margin-bottom:1rem; border-radius:8px; }
-    .history-field label { display:block; margin-bottom:.35rem; color:#475569; font-size:.72rem; font-weight:700; }
-    .history-field .form-control,.history-field .form-select { min-height:40px; border-radius:6px; font-size:.82rem; background:#F7F3EE; border-color:#d4b8a3; }
-    .history-field .form-control:focus,.history-field .form-select:focus { border-color:#6F4E37; box-shadow:0 0 0 3px rgba(111,78,55,.14); background:#fff; }
-    .history-table-wrap { border:1px solid #e4e7ec; background:#fff; overflow:auto; border-radius:8px 8px 0 0; }
-    .history-table { min-width:1450px; margin:0; font-size:.78rem; }
-    .history-table thead th { position:sticky; top:0; z-index:1; padding:.75rem .65rem; background:#F7F3EE; color:#475569; border-bottom:1px solid #d4b8a3; font-size:.68rem; text-transform:uppercase; white-space:nowrap; font-weight:800; letter-spacing:.04em; }
-    .history-table tbody td { padding:.75rem .65rem; vertical-align:middle; border-color:#eef0f3; white-space:nowrap; }
-    .history-table tbody tr:hover { background:#f0ebe4; }
-    .history-code { color:#6F4E37; font-weight:800; }
-    .history-money { font-weight:800; white-space:nowrap; color:#C67A45; }
-    .history-pill { display:inline-flex; align-items:center; min-height:24px; padding:.2rem .6rem; border-radius:999px; background:#F7F3EE; color:#475569; font-size:.7rem; font-weight:700; white-space:nowrap; }
-    .history-pill--paid { background:#d1ece7; color:#2F6F5E; }
-    .history-pill--refund { background:#fde8e8; color:#991B1B; }
-    .history-pill--neutral { background:#F7F3EE; color:#475569; }
-    .history-empty { padding:3.5rem 1rem!important; color:#475569; text-align:center; }
-    .history-error { padding:2.5rem 1rem!important; color:#991B1B; text-align:center; }
-    .history-pagination { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.8rem 1rem; border:1px solid #e4e7ec; border-top:0; background:#fff; border-radius:0 0 8px 8px; flex-wrap:nowrap; white-space:nowrap; }
-    .history-pagination__buttons { display:flex; align-items:center; gap:.35rem; flex-shrink:0; }
-    .history-page-btn { min-width:36px; height:34px; border:1px solid #d4b8a3; background:#fff; border-radius:5px; color:#1F2937; font-weight:700; white-space:nowrap; }
-    .history-page-btn:hover { border-color:#6F4E37; color:#6F4E37; }
-    .history-page-btn.is-active { border-color:#6F4E37; background:#6F4E37; color:#fff; }
-    .history-page-btn:disabled { opacity:.45; }
-    #btnExportCsv { border-color:#6F4E37; color:#6F4E37; background:#fff; font-weight:700; white-space:nowrap; flex-shrink:0; }
-    #btnExportCsv:hover { background:#6F4E37; color:#fff; }
-    #btnReset { min-height:40px; border-color:#d4b8a3; color:#475569; background:#fff; }
-    #btnReset:hover { border-color:#6F4E37; color:#6F4E37; }
-    .history-drawer { width:min(580px,100vw)!important; }
-    .history-drawer .offcanvas-header { border-bottom:1px solid #e4e7ec; }
-    .drawer-section { padding:1rem 1.25rem; border-bottom:1px solid #eaecf0; }
-    .drawer-section__title { margin:0 0 .75rem; color:#475569; font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
-    .drawer-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem 1rem; }
-    .drawer-field__label { color:#475569; font-size:.7rem; }
-    .drawer-field__value { margin-top:.1rem; overflow-wrap:anywhere; font-size:.82rem; font-weight:700; color:#1F2937; }
-    .drawer-line { display:flex; justify-content:space-between; gap:1rem; padding:.65rem 0; border-bottom:1px dashed #d4b8a3; }
-    .drawer-line:last-child { border-bottom:0; }
-    .drawer-line__title { font-size:.82rem; font-weight:700; color:#1F2937; }
-    .drawer-line__meta { margin-top:.15rem; color:#475569; font-size:.72rem; }
-    .drawer-line__amount { white-space:nowrap; font-size:.82rem; font-weight:800; color:#C67A45; }
-    .drawer-total { display:flex; justify-content:space-between; margin-top:.6rem; padding-top:.7rem; border-top:2px solid #6F4E37; font-size:1rem; font-weight:800; color:#6F4E37; }
-    @@media (max-width:1200px) {
-        .history-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
-        .history-kpi:nth-child(2) { border-right:0; }
-        .history-kpi:nth-child(-n+2) { border-bottom:1px solid #e4e7ec; }
-        .history-filters { grid-template-columns:repeat(3,minmax(0,1fr)); }
-    }
-    @@media (max-width:768px) {
-        .sales-history__header { align-items:stretch; flex-direction:column; }
-        .history-kpis,.history-filters { grid-template-columns:1fr; }
-        .history-kpi { border-right:0; border-bottom:1px solid #e4e7ec; }
-        .history-kpi:last-child { border-bottom:0; }
-        .drawer-grid { grid-template-columns:1fr; }
-        .history-pagination { align-items:flex-start; flex-direction:column; }
-    }
-</style>
-
+    <link rel="stylesheet" href="~/css/Admin/Order/orderhistory.css" asp-append-version="true" />
 }
 
-<div class="sales-history">
-    <div class="sales-history__header">
-        <div>
-            <h1 class="sales-history__title">Lịch sử bán hàng</h1>
-            <p class="sales-history__subtitle">Chỉ hiển thị giao dịch POS tại quầy đã thanh toán hoặc đã hoàn tiền.</p>
+<div class="sales-history-page">
+
+    <!-- Header Banner -->
+    <div class="sales-history-header">
+        <div class="sales-history-header-left">
+            <div class="sales-history-header-icon">
+                <i class="fas fa-receipt" aria-hidden="true"></i>
+            </div>
+            <div>
+                <span class="sales-history-kicker">Đơn hàng / Lịch sử bán hàng</span>
+                <h1 class="sales-history-title">Lịch sử bán hàng</h1>
+                <p class="sales-history-subtitle">Chỉ hiển thị giao dịch POS tại quầy đã thanh toán hoặc đã hoàn tiền.</p>
+            </div>
         </div>
-        <button class="btn btn-outline-success" id="btnExportCsv">
-            <i class="fas fa-file-csv me-1"></i> Xuất CSV
-        </button>
+        <div class="sales-history-actions">
+            <button class="btn btn-export-csv" id="btnExportCsv">
+                <i class="fas fa-file-csv" aria-hidden="true"></i> Xuất CSV
+            </button>
+        </div>
     </div>
 
-    <section class="history-kpis" aria-label="Tổng quan giao dịch">
-        <div class="history-kpi">
-            <span class="history-kpi__label">Đơn đã thanh toán</span>
-            <strong class="history-kpi__value" id="paidOrders">-</strong>
+    <!-- KPI Cards Grid -->
+    <section class="history-kpis-grid" aria-label="Tổng quan giao dịch">
+        <div class="history-kpi-card">
+            <div class="history-kpi-content">
+                <span class="history-kpi-label">Đơn đã thanh toán</span>
+                <strong class="history-kpi-value" id="paidOrders">-</strong>
+            </div>
+            <div class="history-kpi-icon">
+                <i class="fas fa-shopping-bag" aria-hidden="true"></i>
+            </div>
         </div>
-        <div class="history-kpi history-kpi--revenue">
-            <span class="history-kpi__label">Doanh thu</span>
-            <strong class="history-kpi__value" id="paidRevenue">-</strong>
+
+        <div class="history-kpi-card history-kpi-card--revenue">
+            <div class="history-kpi-content">
+                <span class="history-kpi-label">Doanh thu</span>
+                <strong class="history-kpi-value" id="paidRevenue">-</strong>
+            </div>
+            <div class="history-kpi-icon">
+                <i class="fas fa-coins" aria-hidden="true"></i>
+            </div>
         </div>
-        <div class="history-kpi">
-            <span class="history-kpi__label">Đã hoàn tiền</span>
-            <strong class="history-kpi__value" id="refundedOrders">-</strong>
+
+        <div class="history-kpi-card">
+            <div class="history-kpi-content">
+                <span class="history-kpi-label">Đã hoàn tiền</span>
+                <strong class="history-kpi-value" id="refundedOrders">-</strong>
+            </div>
+            <div class="history-kpi-icon">
+                <i class="fas fa-undo-alt" aria-hidden="true"></i>
+            </div>
         </div>
-        <div class="history-kpi history-kpi--refund">
-            <span class="history-kpi__label">Giá trị hoàn tiền</span>
-            <strong class="history-kpi__value" id="refundedAmount">-</strong>
+
+        <div class="history-kpi-card history-kpi-card--refund">
+            <div class="history-kpi-content">
+                <span class="history-kpi-label">Giá trị hoàn tiền</span>
+                <strong class="history-kpi-value" id="refundedAmount">-</strong>
+            </div>
+            <div class="history-kpi-icon">
+                <i class="fas fa-hand-holding-usd" aria-hidden="true"></i>
+            </div>
         </div>
     </section>
 
-    <section class="history-filters" aria-label="Bộ lọc lịch sử">
-        <div class="history-field">
-            <label for="filterStore">Cửa hàng</label>
-            <select class="form-select" id="filterStore" @(stores.Count <= 1 ? "disabled" : null)>
-                @if (stores.Count > 1)
-                {
-                    <option value="">Tất cả cửa hàng trong phạm vi</option>
-                }
-                @foreach (var store in stores)
-                {
-                    <option value="@store.StoreId"
-                            selected="@(stores.Count == 1 || (stores.Count > 1 && selectedStoreId == store.StoreId))">
-                        @store.StoreName
-                    </option>
-                }
-            </select>
+    <!-- Filter Card -->
+    <section class="history-filter-card" aria-label="Bộ lọc lịch sử">
+        <div class="history-filter-header">
+            <h3 class="history-filter-title">
+                <i class="fas fa-filter text-muted" aria-hidden="true"></i> Bộ lọc giao dịch
+            </h3>
         </div>
-        <div class="history-field">
-            <label for="filterSearch">Tìm kiếm</label>
-            <input class="form-control" id="filterSearch" placeholder="Mã đơn..." autocomplete="off" />
+        <div class="history-filter-grid">
+            <div class="history-field">
+                <label for="filterStore">Cửa hàng</label>
+                <select class="form-select" id="filterStore" @(stores.Count <= 1 ? "disabled" : null)>
+                    @if (stores.Count > 1)
+                    {
+                        <option value="">Tất cả cửa hàng trong phạm vi</option>
+                    }
+                    @foreach (var store in stores)
+                    {
+                        <option value="@store.StoreId"
+                                selected="@(stores.Count == 1 || (stores.Count > 1 && selectedStoreId == store.StoreId))">
+                            @store.StoreName
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="history-field">
+                <label for="filterSearch">Tìm kiếm</label>
+                <input class="form-control" id="filterSearch" placeholder="Tìm mã đơn hàng..." autocomplete="off" />
+            </div>
+
+            <div class="history-field">
+                <label for="filterDateFrom">Từ ngày</label>
+                <input type="date" class="form-control" id="filterDateFrom" />
+            </div>
+
+            <div class="history-field">
+                <label for="filterDateTo">Đến ngày</label>
+                <input type="date" class="form-control" id="filterDateTo" />
+            </div>
+
+            <div class="history-field">
+                <label for="filterStatus">Tài chính</label>
+                <select class="form-select" id="filterStatus">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="2">Đã thanh toán</option>
+                    <option value="3">Đã hoàn tiền</option>
+                </select>
+            </div>
+
+            <div class="history-field">
+                <label for="filterPayment">Thanh toán</label>
+                <select class="form-select" id="filterPayment">
+                    <option value="">Tất cả hình thức</option>
+                    <option value="1">Tiền mặt</option>
+                    <option value="2">VietQR</option>
+                    <option value="3">Ví điện tử — dữ liệu cũ</option>
+                </select>
+            </div>
+
+            <button class="btn btn-reset-filter" id="btnReset" title="Xóa bộ lọc">
+                <i class="fas fa-rotate-left" aria-hidden="true"></i> Đặt lại
+            </button>
         </div>
-        <div class="history-field">
-            <label for="filterDateFrom">Từ ngày</label>
-            <input type="date" class="form-control" id="filterDateFrom" />
-        </div>
-        <div class="history-field">
-            <label for="filterDateTo">Đến ngày</label>
-            <input type="date" class="form-control" id="filterDateTo" />
-        </div>
-        <div class="history-field">
-            <label for="filterStatus">Tài chính</label>
-            <select class="form-select" id="filterStatus">
-                <option value="">Tất cả</option>
-                <option value="2">Đã thanh toán</option>
-                <option value="3">Đã hoàn tiền</option>
-            </select>
-        </div>
-        <div class="history-field">
-            <label for="filterPayment">Thanh toán</label>
-            <select class="form-select" id="filterPayment">
-                <option value="">Tất cả</option>
-                <option value="1">Tiền mặt</option>
-                <option value="2">VietQR</option>
-                <option value="3">Ví điện tử — dữ liệu cũ</option>
-            </select>
-        </div>
-        <button class="btn btn-outline-secondary" id="btnReset" title="Xóa bộ lọc">
-            <i class="fas fa-undo"></i>
-        </button>
     </section>
 
-    <div class="history-table-wrap">
-        <table class="table history-table">
-            <thead>
-                <tr>
-                    <th>Mã đơn</th>
-                    <th>Thời gian thanh toán</th>
-                    <th>Cửa hàng</th>
-                    <th>Thu ngân</th>
-                    <th>Loại đơn</th>
-                    <th>Tổng tiền</th>
-                    <th>Thanh toán</th>
-                    <th>Tài chính</th>
-                    <th>Đồng bộ</th>
-                    <th>Hóa đơn</th>
-                    <th>Tem</th>
-                    <th>Kho</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody id="historyBody"></tbody>
-        </table>
+    <!-- Table Card -->
+    <div class="history-table-card">
+        <div class="history-table-header">
+            <h3 class="history-table-title">Danh sách giao dịch POS</h3>
+        </div>
+        <div class="history-table-wrap">
+            <table class="table history-table">
+                <thead>
+                    <tr>
+                        <th class="text-center">Mã đơn</th>
+                        <th class="text-center">Thời gian thanh toán</th>
+                        <th>Cửa hàng</th>
+                        <th>Thu ngân</th>
+                        <th class="text-center">Loại đơn</th>
+                        <th class="text-end">Tổng tiền</th>
+                        <th class="text-center">Thanh toán</th>
+                        <th class="text-center">Tài chính</th>
+                        <th class="text-center">Đồng bộ</th>
+                        <th class="text-center">Hóa đơn</th>
+                        <th class="text-center">Tem</th>
+                        <th class="text-center">Kho</th>
+                        <th class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </div>
+        <div class="history-pagination-bar">
+            <span id="paginationInfo">Đang tải...</span>
+            <div class="history-pagination__buttons" id="paginationButtons"></div>
+        </div>
     </div>
-    <div class="history-pagination">
-        <span id="paginationInfo">Đang tải...</span>
-        <div class="history-pagination__buttons" id="paginationButtons"></div>
-    </div>
+
 </div>
 
 <aside class="offcanvas offcanvas-end history-drawer" tabindex="-1" id="orderDetailDrawer">
@@ -286,24 +274,27 @@
 
     function renderRows(rows) {
         if (!rows.length) {
-            body.innerHTML = '<tr><td colspan="13" class="history-empty">Không có giao dịch POS phù hợp với bộ lọc.</td></tr>';
+            body.innerHTML = `<tr><td colspan="13" class="history-empty">
+                <i class="fas fa-receipt history-empty-icon" aria-hidden="true"></i>
+                <div>Không có giao dịch POS phù hợp với bộ lọc.</div>
+            </td></tr>`;
             return;
         }
         body.innerHTML = rows.map(row => `
             <tr>
-                <td><span class="history-code">#CC${String(row.orderId).padStart(5, '0')}</span></td>
-                <td>${escapeHtml(dateTime(row.createdAt))}</td>
+                <td class="text-center"><span class="history-code">#CC${String(row.orderId).padStart(5, '0')}</span></td>
+                <td class="text-center">${escapeHtml(row.createdAtDisplay || 'Chưa xác định')}</td>
                 <td>${escapeHtml(row.storeName)}</td>
                 <td>${escapeHtml(row.staffName)}</td>
-                <td>${escapeHtml(row.orderTypeName)}</td>
-                <td><span class="history-money">${money(row.total)}</span></td>
-                <td>${escapeHtml(row.paymentMethodName)}</td>
-                <td>${pill(row.orderStatusName, row.orderStatusId === 3 ? 'refund' : 'paid')}</td>
-                <td>${pill(row.syncState)}</td>
-                <td>${pill(row.receiptState)}</td>
-                <td>${pill(row.drinkLabelState)}</td>
-                <td>${pill(row.inventoryPostingState)}</td>
-                <td>
+                <td class="text-center">${escapeHtml(row.orderTypeName)}</td>
+                <td class="text-end"><span class="history-money">${money(row.total)}</span></td>
+                <td class="text-center">${escapeHtml(row.paymentMethodName)}</td>
+                <td class="text-center">${pill(row.orderStatusName, row.orderStatusId === 3 ? 'refund' : 'paid')}</td>
+                <td class="text-center">${pill(row.syncState)}</td>
+                <td class="text-center">${pill(row.receiptState)}</td>
+                <td class="text-center">${pill(row.drinkLabelState)}</td>
+                <td class="text-center">${pill(row.inventoryPostingState)}</td>
+                <td class="text-center">
                     <button class="btn btn-sm btn-outline-secondary js-detail"
                             data-order-id="${row.orderId}"
                             data-store-id="${row.storeId}"
@@ -355,7 +346,7 @@
             <div class="drawer-line">
                 <div>
                     <div class="drawer-line__title">${escapeHtml(payment.paymentMethodName)}</div>
-                    <div class="drawer-line__meta">${escapeHtml(dateTime(payment.paidAt))}</div>
+                    <div class="drawer-line__meta">${escapeHtml(payment.paidAtDisplay || 'Chưa xác định')}</div>
                     ${payment.transactionCode ? `<div class="drawer-line__meta">Mã giao dịch: ${escapeHtml(payment.transactionCode)}</div>` : ''}
                     ${payment.receivedAmount != null ? `<div class="drawer-line__meta">Khách đưa: ${money(payment.receivedAmount)} · Tiền thừa: ${money(payment.changeAmount)}</div>` : ''}
                 </div>
@@ -390,7 +381,7 @@
                     ${field('Thu ngân', detail.staffName)}
                     ${field('WorkShift', detail.workShiftId ? `#${detail.workShiftId}` : 'Chưa xác định')}
                     ${field('Loại đơn', detail.orderTypeName || 'Chưa xác định')}
-                    ${field('Thanh toán lúc', dateTime(detail.createdAt))}
+                    ${field('Thanh toán lúc', detail.createdAtDisplay || 'Chưa xác định')}
                     ${field('ClientOrderId', detail.clientOrderId || 'Không có')}
                 </div>
             </section>

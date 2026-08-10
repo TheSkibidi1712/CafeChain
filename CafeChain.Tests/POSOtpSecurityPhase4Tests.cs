@@ -101,6 +101,7 @@ namespace CafeChain.Tests.POS
             Assert.Equal(5, OtpConstants.TtlMinutes);
             Assert.Equal(3, OtpConstants.MaxFailedAttempts);
             Assert.Equal(60, OtpConstants.ResendCooldownSeconds);
+            Assert.Equal(120, OtpConstants.LockoutCooldownSeconds);
             Assert.Equal(3, OtpConstants.MaxResendCount);
             Assert.DoesNotContain('O', OtpConstants.Alphabet);
             Assert.DoesNotContain('0', OtpConstants.Alphabet);

@@ -1,30 +1,49 @@
 @model CafeChain.ViewModels.Admin.Profitability.DrinkProfitabilityPageVM
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Vốn và lợi nhuận gộp dự kiến";
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản phẩm / Phân tích giá vốn",
+        Title = "Vốn và lợi nhuận gộp dự kiến",
+        Description = "Đối chiếu giá vốn theo nhập trước - xuất trước (FIFO), giá bán và khả năng sinh lời theo từng size đồ uống.",
+        IconClass = "fas fa-chart-line",
+        Breadcrumbs = [new() { Label = "Sản phẩm" }, new() { Label = "Vốn và lợi nhuận" }],
+        Actions =
+        [
+            new()
+            {
+                Label = "Mở công thức và BOM",
+                Url = Url.Action("Index", "AdminRecipe", new { area = "Admin" }) ?? "#",
+                IconClass = "fas fa-flask"
+            }
+        ]
+    };
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Profitability/drink-profitability.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 }
 
-<main class="pf-page" id="profitabilityApp"
+<main class="pf-page ops-shell cc-warehouse-page" id="profitabilityApp"
       data-can-update-price="@Model.CanUpdateGlobalPrice.ToString().ToLowerInvariant()"
       data-can-manage-policy="@Model.CanManageToppingPolicy.ToString().ToLowerInvariant()">
     @Html.AntiForgeryToken()
 
-    <header class="pf-header">
-        <div class="pf-heading">
-            <span class="pf-eyebrow"><i class="fas fa-chart-line"></i> Phân tích hiệu quả sản phẩm</span>
-            <h1>Vốn và lợi nhuận gộp dự kiến</h1>
-            <p>Đối chiếu giá vốn FIFO, giá bán và biên lợi nhuận theo từng size đồ uống.</p>
-            <nav class="pf-breadcrumb" aria-label="breadcrumb">
-                <i class="fas fa-house"></i><span>Sản phẩm</span><i class="fas fa-chevron-right"></i><strong>Vốn &amp; lợi nhuận</strong>
-            </nav>
+    <header class="pf-header ops-header cc-warehouse-header">
+        <div>
+            <div class="ops-eyebrow">Sản phẩm / Phân tích giá vốn</div>
+            <h1 class="ops-title">Vốn và lợi nhuận gộp dự kiến</h1>
+            <p class="ops-subtitle">Đối chiếu giá vốn theo nhập trước - xuất trước (FIFO), giá bán và khả năng sinh lời theo từng size đồ uống.</p>
         </div>
-        <a class="pf-link-button" asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index">
-            <i class="fas fa-flask" aria-hidden="true"></i>
-            Mở công thức BOM
-        </a>
+        <div class="ops-actions">
+            <a class="pf-link-button ops-btn" asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index">
+                <i class="fas fa-flask" aria-hidden="true"></i>
+                <span>Mở công thức và BOM</span>
+            </a>
+        </div>
     </header>
 
     <div class="pf-section-heading">
@@ -111,7 +130,7 @@
                         <th class="pf-number">Lợi nhuận gộp</th>
                         <th class="pf-number">Biên lợi nhuận gộp (Margin)</th>
                         <th class="pf-number">Tỷ lệ cộng giá (Markup)</th>
-                        <th>Thao tác</th>
+                        <th class="pf-action-header">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody id="profitabilityRows"></tbody>

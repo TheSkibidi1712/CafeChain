@@ -21,9 +21,22 @@ $(document).ready(function () {
     initStatusSwitch();
     initImageManager();
 
-    $(document).on('click', '.js-toggle-drink', function () {
+    $(document).on('click', '.js-toggle-drink', async function () {
         const id = Number(this.dataset.id);
-        if (!id || !window.confirm('Bạn có chắc muốn đổi trạng thái đồ uống?')) return;
+        if (!id) return;
+        if (window.Swal) {
+            const result = await window.Swal.fire({
+                title: 'Xác nhận',
+                text: 'Bạn có chắc muốn đổi trạng thái đồ uống?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#70482f',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            });
+            if (!result.isConfirmed) return;
+        } else if (!window.confirm('Bạn có chắc muốn đổi trạng thái đồ uống?')) return;
         $.ajax({
             url: '/Admin/AdminDrink/ToggleStatus',
             type: 'POST',
@@ -742,14 +755,17 @@ $(document).ready(function () {
 
         if (!images || images.length === 0) {
             $container.html(
-                '<div class="col-12 text-center text-muted py-3">Chưa có ảnh nào.</div>'
+                '<div class="col-12 text-center text-muted py-4"><i class="fas fa-images fa-2x mb-2 d-block opacity-50"></i>Chưa có ảnh nào.</div>'
             );
             return;
         }
 
+        const isModal = $container.closest('.modal').length > 0;
+        const colClass = isModal ? 'col-6 col-sm-4 col-md-3' : 'col-6';
+
         images.forEach(function (img) {
             const defaultBadge = img.isDefault
-                ? '<span class="badge bg-success position-absolute top-0 start-0 m-1">Mặc định</span>'
+                ? '<span class="drink-card-badge-default"><i class="fas fa-check-circle me-1"></i>Mặc định</span>'
                 : '';
 
             const defaultButton = img.isDefault
@@ -757,43 +773,49 @@ $(document).ready(function () {
                 : `
                     <button
                         type="button"
-                        class="btn btn-sm btn-outline-success flex-grow-1 btn-set-default"
-                        data-imgid="${img.drinkImageId}">
-                        <i class="fas fa-check-circle"></i>
-                        Mặc định
+                        class="btn btn-sm drink-card-btn drink-card-btn-default flex-grow-1 text-truncate btn-set-default"
+                        data-imgid="${img.drinkImageId}"
+                        title="Đặt làm ảnh mặc định">
+                        <i class="fas fa-check me-1"></i>
+                        <span>Mặc định</span>
                     </button>`;
 
+            const editButton = `
+                <button
+                    type="button"
+                    class="btn btn-sm drink-card-btn drink-card-btn-edit ${img.isDefault ? 'flex-grow-1' : ''} btn-edit-img"
+                    data-imgid="${img.drinkImageId}"
+                    data-imgurl="${escapeHtml(img.imageUrl)}"
+                    title="Chỉnh sửa ảnh">
+                    <i class="fas fa-pencil-alt"></i>
+                    ${img.isDefault ? '<span class="ms-1">Sửa</span>' : ''}
+                </button>`;
+
+            const deleteButton = `
+                <button
+                    type="button"
+                    class="btn btn-sm drink-card-btn drink-card-btn-delete btn-delete-img"
+                    data-imgid="${img.drinkImageId}"
+                    title="Xóa ảnh">
+                    <i class="fas fa-trash"></i>
+                </button>`;
+
             $container.append(`
-                <div class="col-md-4 col-sm-6">
-                    <div class="card h-100 shadow-sm ${img.isDefault ? 'border-success' : ''}">
-                        <div class="position-relative" style="height:150px;">
+                <div class="${colClass}">
+                    <div class="drink-gallery-card ${img.isDefault ? 'is-default' : ''}">
+                        <div class="drink-gallery-img-wrapper">
                             ${defaultBadge}
                             <img
                                 src="${escapeHtml(img.imageUrl)}"
                                 alt="Ảnh nước uống"
-                                class="w-100 h-100"
-                                style="object-fit:cover;">
+                                class="drink-gallery-img">
                         </div>
 
-                        <div class="card-body p-2 text-center">
-                            <div class="d-flex gap-1">
+                        <div class="drink-gallery-card-body">
+                            <div class="d-flex align-items-center gap-1 w-100">
                                 ${defaultButton}
-
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-warning ${img.isDefault ? 'flex-grow-1' : ''} btn-edit-img"
-                                    data-imgid="${img.drinkImageId}"
-                                    data-imgurl="${escapeHtml(img.imageUrl)}">
-                                    <i class="fas fa-pencil-alt"></i>
-                                    ${img.isDefault ? 'Sửa' : ''}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-danger btn-delete-img"
-                                    data-imgid="${img.drinkImageId}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                ${editButton}
+                                ${deleteButton}
                             </div>
                         </div>
                     </div>

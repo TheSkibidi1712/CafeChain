@@ -172,10 +172,67 @@ namespace CafeChain.Areas.Admin.Controllers
             if (staffId <= 0) return Unauthorized();
             var result = await _terminalRegistration.ConfirmAsync(
                 staffId, id, request, await ResolveAllowedStoreIdsAsync());
+            if (Request.Headers.Accept.Any(x => x?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true))
+            {
+                var status = result.IsSuccess ? StatusCodes.Status200OK : result.ErrorCode switch
+                {
+                    WorkShiftErrorCodes.TerminalApprovalForbidden or WorkShiftErrorCodes.TerminalStoreScopeInvalid
+                        => StatusCodes.Status403Forbidden,
+                    WorkShiftErrorCodes.TerminalApprovalNotFound => StatusCodes.Status404NotFound,
+                    OtpConstants.ErrorCodes.VerificationLocked or OtpConstants.ErrorCodes.ResendCooldown
+                        => StatusCodes.Status423Locked,
+                    WorkShiftErrorCodes.TerminalAlreadyApproved or WorkShiftErrorCodes.TerminalNotPending
+                        or WorkShiftErrorCodes.TerminalAlreadyRejected
+                        or WorkShiftErrorCodes.TerminalApprovalConflict => StatusCodes.Status409Conflict,
+                    _ => StatusCodes.Status400BadRequest
+                };
+                return StatusCode(status, new
+                {
+                    success = result.IsSuccess,
+                    message = result.Message,
+                    errorCode = result.ErrorCode,
+                    data = result.Data
+                });
+            }
             if (result.IsSuccess)
                 TempData["SuccessMessage"] = result.Message;
             else
                 TempData["ErrorMessage"] = result.Message;
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.PosWorkShiftRejectTerminal)]
+        public async Task<IActionResult> RejectTerminal(
+            int id,
+            [FromForm] CafeChain.Application.DTOs.POS.RejectTerminalNotificationRequestDto request)
+        {
+            if (_terminalRegistration == null) return StatusCode(503);
+            var staffId = ResolveStaffId();
+            if (staffId <= 0) return Unauthorized();
+            var result = await _terminalRegistration.RejectAsync(
+                staffId, id, request, await ResolveAllowedStoreIdsAsync());
+            var status = result.IsSuccess ? StatusCodes.Status200OK : result.ErrorCode switch
+            {
+                WorkShiftErrorCodes.TerminalRejectionForbidden or WorkShiftErrorCodes.TerminalStoreScopeInvalid
+                    => StatusCodes.Status403Forbidden,
+                WorkShiftErrorCodes.TerminalApprovalNotFound => StatusCodes.Status404NotFound,
+                WorkShiftErrorCodes.TerminalAlreadyApproved or WorkShiftErrorCodes.TerminalNotPending
+                    or WorkShiftErrorCodes.TerminalApprovalConflict => StatusCodes.Status409Conflict,
+                _ => StatusCodes.Status400BadRequest
+            };
+            if (Request.Headers.Accept.Any(x => x?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true))
+                return StatusCode(status, new
+                {
+                    success = result.IsSuccess,
+                    message = result.Message,
+                    errorCode = result.ErrorCode,
+                    data = result.Data
+                });
+
+            if (result.IsSuccess) TempData["SuccessMessage"] = result.Message;
+            else TempData["ErrorMessage"] = result.Message;
             return RedirectToAction(nameof(Index));
         }
 

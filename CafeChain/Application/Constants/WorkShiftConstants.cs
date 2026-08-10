@@ -44,6 +44,20 @@ public static class WorkShiftErrorCodes
     public const string OperatorPinNotConfigured = "OPERATOR_PIN_NOT_CONFIGURED";
     public const string OperatorPinInvalid = "OPERATOR_PIN_INVALID";
     public const string OperatorPinLocked = "OPERATOR_PIN_LOCKED";
+    public const string PosAccessDenied = "POS_ACCESS_DENIED";
+    public const string ShiftNotOpened = "SHIFT_NOT_OPENED";
+    public const string ShiftAlreadyClosed = "SHIFT_ALREADY_CLOSED";
+    public const string ShiftTooEarly = "SHIFT_TOO_EARLY";
+    public const string ShiftScheduleChanged = "SHIFT_SCHEDULE_CHANGED";
+    public const string TerminalApprovalNotFound = "TERMINAL_APPROVAL_NOT_FOUND";
+    public const string TerminalAlreadyApproved = "TERMINAL_ALREADY_APPROVED";
+    public const string TerminalNotPending = "TERMINAL_NOT_PENDING";
+    public const string TerminalApprovalForbidden = "TERMINAL_APPROVAL_FORBIDDEN";
+    public const string TerminalStoreScopeInvalid = "TERMINAL_STORE_SCOPE_INVALID";
+    public const string TerminalApprovalConflict = "TERMINAL_APPROVAL_CONFLICT";
+    public const string TerminalRejectionForbidden = "TERMINAL_REJECTION_FORBIDDEN";
+    public const string TerminalAlreadyRejected = "TERMINAL_ALREADY_REJECTED";
+    public const string TerminalRejectionReasonInvalid = "TERMINAL_REJECTION_REASON_INVALID";
 }
 
 public static class WorkShiftOpenResultCodes

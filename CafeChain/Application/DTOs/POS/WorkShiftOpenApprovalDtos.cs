@@ -28,6 +28,7 @@ public sealed class WorkShiftOpenApprovalDto
 
 public sealed class CreateWorkShiftOpenApprovalRequestDto
 {
+    public string AssessmentVersion { get; set; } = string.Empty;
     public string TerminalId { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
     public string RequestKey { get; set; } = string.Empty;

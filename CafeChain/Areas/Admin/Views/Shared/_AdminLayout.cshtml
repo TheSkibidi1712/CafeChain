@@ -95,24 +95,33 @@
             width: 260px;
             left: 0;
             top: 0;
-            padding-top: 20px;
-            overflow-y: auto;
-            overflow-x: hidden;
+            padding-top: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             z-index: 1000;
         }
 
+        .sidebar-nav-scroll {
+            flex: 1 1 0%;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-bottom: 12px;
+        }
+
         /* Scrollbar styling */
-        .sidebar::-webkit-scrollbar {
+        .sidebar-nav-scroll::-webkit-scrollbar {
             width: 4px;
         }
-        .sidebar::-webkit-scrollbar-track {
+        .sidebar-nav-scroll::-webkit-scrollbar-track {
             background: transparent;
         }
-        .sidebar::-webkit-scrollbar-thumb {
+        .sidebar-nav-scroll::-webkit-scrollbar-thumb {
             background: #e2e8f0;
             border-radius: 4px;
         }
-        .sidebar::-webkit-scrollbar-thumb:hover {
+        .sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
             background: #cbd5e1;
         }
 
@@ -228,9 +237,10 @@
         .logo-wrap {
             display: flex;
             align-items: center;
-            padding: 0 20px 20px;
-            margin-bottom: 12px;
+            padding: 20px 20px 16px;
+            margin-bottom: 8px;
             border-bottom: 1px solid #e9ecef;
+            flex-shrink: 0;
         }
 
         .logo-icon {
@@ -395,9 +405,12 @@
 
         /* ========== SYSTEM SECTION (bottom) ========== */
         .sidebar-system {
-            margin-top: auto;
+            flex-shrink: 0;
+            background-color: #ffffff;
             border-top: 1px solid #f1f5f9;
-            padding-top: 8px;
+            padding: 10px 0 14px 0;
+            z-index: 10;
+            position: relative;
         }
     </style>
     <link rel="stylesheet" href="~/css/Admin/Procurement/procurement-design-system.css" asp-append-version="true" />
@@ -417,7 +430,7 @@
         </div>
 
         <!-- ===== SCROLLABLE NAV ===== -->
-        <div style="flex: 1; overflow-y: auto; overflow-x: hidden;">
+        <div class="sidebar-nav-scroll">
 
             <!-- ━━━ 📊 TỔNG QUAN (Direct link) ━━━ -->
             @if (canAccessDashboard)
@@ -472,16 +485,15 @@
                     <div class="sidebar-sub">
                         @if (effectivePermissions.Contains(PermissionConstants.PreparedItemView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminPreparedItem" asp-action="Index" class="@Html.IsActive("AdminPreparedItem")"><i class="fas fa-circle"></i> Danh mục bán thành phẩm</a>
+                            <a asp-area="Admin" asp-controller="AdminPreparedItem" asp-action="Index" class="@Html.IsActive("AdminPreparedItem")"><i class="fas fa-circle"></i> Bán thành phẩm</a>
                         }
                         @if (effectivePermissions.Contains(PermissionConstants.RecipeView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index" class="@Html.IsActive("AdminRecipe", "Index,Create,Edit,Visualize")"><i class="fas fa-circle"></i> Công thức BOM</a>
-                            <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="DataHealth" class="@Html.IsActive("AdminRecipe", "DataHealth")"><i class="fas fa-circle"></i> Tình trạng dữ liệu BOM</a>
+                            <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index" class="@Html.IsActive("AdminRecipe")"><i class="fas fa-circle"></i> Công thức &amp; BOM</a>
                         }
                         @if (effectivePermissions.Contains(PermissionConstants.ProductionOrderView))
                         {
-                            <a asp-area="Admin" asp-controller="AdminProductionOrder" asp-action="Create" class="@Html.IsActive("AdminProductionOrder")"><i class="fas fa-circle"></i> Lệnh sơ chế</a>
+                            <a asp-area="Admin" asp-controller="AdminProductionOrder" asp-action="Index" class="@Html.IsActive("AdminProductionOrder")"><i class="fas fa-circle"></i> Lệnh sản xuất</a>
                         }
                     </div>
                 </div>

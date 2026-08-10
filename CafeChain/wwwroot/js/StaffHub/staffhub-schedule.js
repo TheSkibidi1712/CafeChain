@@ -9,6 +9,7 @@
 
         const openButton = document.getElementById("openPosButton");
         const terminalSelect = document.getElementById("staffHubTerminalSelect");
+        const terminalSelectHelp = document.getElementById("openPosTerminalHelp");
         const previewDialog = document.getElementById("openPosPreviewDialog");
         const continueButton = document.getElementById("continueOpenPosPreview");
         const cancelOpenButton = document.getElementById("cancelOpenPosPreview");
@@ -16,6 +17,7 @@
         const approvalFields = document.getElementById("openPosApprovalFields");
         const otpFields = document.getElementById("openPosOtpFields");
         const reasonInput = document.getElementById("openPosReason");
+        const reasonCounter = document.getElementById("openPosReasonCounter");
         const otpInput = document.getElementById("openPosOtpCode");
         const otpStatus = document.getElementById("openPosOtpStatus");
         const otpVerification = document.getElementById("openPosOtpVerification");
@@ -27,6 +29,25 @@
         const requestTerminalOtpButton = document.getElementById("requestTerminalOtp");
         const resendTerminalOtpButton = document.getElementById("resendTerminalOtp");
         const cancelTerminalRequestButton = document.getElementById("cancelTerminalRegistrationRequest");
+        const registerTerminalButton = document.getElementById("registerTerminalButton");
+        const terminalActionTitle = document.getElementById("terminalActionTitle");
+        const terminalActionSubtitle = document.getElementById("terminalActionSubtitle");
+        const terminalActionBadge = document.getElementById("terminalActionBadge");
+        const terminalDeviceState = document.getElementById("terminalDeviceState");
+        const terminalDeviceStateIcon = document.getElementById("terminalDeviceStateIcon");
+        const terminalDeviceStateBadge = document.getElementById("terminalDeviceStateBadge");
+        const terminalDeviceStateTitle = document.getElementById("terminalDeviceStateTitle");
+        const terminalDeviceStateDescription = document.getElementById("terminalDeviceStateDescription");
+        const terminalDeviceDetails = document.getElementById("terminalDeviceDetails");
+        const terminalDeviceName = document.getElementById("terminalDeviceName");
+        const terminalDeviceStore = document.getElementById("terminalDeviceStore");
+        const terminalDeviceId = document.getElementById("terminalDeviceId");
+        const terminalRegistrationFields = document.getElementById("terminalRegistrationFields");
+        const terminalRegistrationName = document.getElementById("terminalRegistrationName");
+        const terminalRegistrationStatus = document.getElementById("terminalRegistrationStatus");
+        const terminalExistingLink = document.getElementById("terminalExistingLink");
+        const terminalExistingSelect = document.getElementById("terminalExistingSelect");
+        const linkExistingTerminalButton = document.getElementById("linkExistingTerminal");
         const managerApprovalFields = document.getElementById("openPosManagerApprovalFields");
         const requestLateApprovalButton = document.getElementById("requestLateOpenApproval");
         const lateApprovalStatus = document.getElementById("lateOpenApprovalStatus");
@@ -54,16 +75,22 @@
         let verifiedOtpChallengePublicId = null;
         let openOtpState = "IDLE";
         let openOtpBusy = false;
-        let registrationTerminalId = null;
+        const terminalDeviceStorageKey = "cafechain.staffhub.pos-terminal-device.v1";
+        const currentStoreId = Number.parseInt(root.dataset.storeId || "0", 10) || 0;
+        const currentStoreName = root.dataset.storeName || "Cửa hàng hiện tại";
+        let terminalDeviceIdentity = loadTerminalDeviceIdentity();
+        let registrationTerminalId = terminalDeviceIdentity?.terminalId || null;
         let registrationRequestKey = null;
         let registrationChallengeId = null;
         let registrationOtpState = "IDLE";
+        let terminalUiState = "UNLINKED";
         let lateOpenApprovalPublicId = null;
         let lateOpenApprovalState = "IDLE";
         let lateApprovalPollTimer = 0;
         let realtimeConnection = null;
         let workShiftRealtimeConnection = null;
         let allowOpenDialogClose = false;
+        let terminalResolutionReloading = false;
         const resendCountdowns = new Map();
 
         function notify(message, success) {
@@ -178,6 +205,255 @@
 
         function read(value, camel, pascal) { return value?.[camel] ?? value?.[pascal]; }
 
+        function normalizeTerminalId(value) {
+            return String(value || "").trim().toLowerCase();
+        }
+
+        function sameTerminalId(left, right) {
+            const normalizedLeft = normalizeTerminalId(left);
+            return Boolean(normalizedLeft) && normalizedLeft === normalizeTerminalId(right);
+        }
+
+        function loadTerminalDeviceIdentity() {
+            try {
+                const raw = window.localStorage?.getItem(terminalDeviceStorageKey);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                const terminalId = String(parsed?.terminalId || "").trim();
+                const storeId = Number.parseInt(String(parsed?.storeId || "0"), 10) || 0;
+                if (parsed?.version !== 1 || !terminalId || storeId <= 0) return null;
+                return {
+                    version: 1,
+                    terminalId,
+                    storeId,
+                    terminalName: String(parsed?.terminalName || "").trim(),
+                    bindingSource: parsed?.bindingSource === "existing" ? "existing" : "registration",
+                    createdAt: String(parsed?.createdAt || "")
+                };
+            } catch {
+                return null;
+            }
+        }
+
+        function saveTerminalDeviceIdentity(terminalId, terminalName, bindingSource) {
+            const normalizedId = String(terminalId || "").trim();
+            if (!normalizedId || currentStoreId <= 0) return null;
+            const identity = {
+                version: 1,
+                terminalId: normalizedId,
+                storeId: currentStoreId,
+                terminalName: String(terminalName || "").trim(),
+                bindingSource: bindingSource === "existing"
+                    ? "existing"
+                    : (terminalDeviceIdentity?.bindingSource || "registration"),
+                createdAt: terminalDeviceIdentity?.createdAt || new Date().toISOString()
+            };
+            try {
+                window.localStorage?.setItem(terminalDeviceStorageKey, JSON.stringify(identity));
+            } catch {
+                return null;
+            }
+            terminalDeviceIdentity = identity;
+            registrationTerminalId = identity.terminalId;
+            return identity;
+        }
+
+        function ensureTerminalDeviceIdentity(terminalName) {
+            if (terminalDeviceIdentity?.storeId === currentStoreId && terminalDeviceIdentity.terminalId)
+                return terminalDeviceIdentity;
+            if (terminalDeviceIdentity && terminalDeviceIdentity.storeId !== currentStoreId)
+                return null;
+            return saveTerminalDeviceIdentity(crypto.randomUUID(), terminalName, "registration");
+        }
+
+        function getActiveTerminal(terminalId) {
+            if (!terminalSelect || !terminalId) return null;
+            const option = Array.from(terminalSelect.options).find(item =>
+                item.value && sameTerminalId(item.value, terminalId));
+            return option ? { terminalId: option.value, name: option.textContent?.trim() || option.value } : null;
+        }
+
+        function shortTerminalId(terminalId) {
+            const value = String(terminalId || "").trim();
+            if (value.length <= 18) return value || "—";
+            return `${value.slice(0, 8)}…${value.slice(-6)}`;
+        }
+
+        function syncBoundTerminalPicker(state, terminalId) {
+            if (!terminalSelect || !registerTerminalButton) return;
+            const readyTerminal = state === "READY" ? getActiveTerminal(terminalId) : null;
+            const canChooseExisting = ["UNLINKED", "INVALID_BINDING"].includes(state);
+            const hasActiveTerminals = Array.from(terminalSelect.options).some(option => Boolean(option.value));
+            Array.from(terminalSelect.options).forEach(option => {
+                if (!option.value) return;
+                option.disabled = readyTerminal
+                    ? !sameTerminalId(option.value, readyTerminal.terminalId)
+                    : !canChooseExisting;
+            });
+            terminalSelect.disabled = readyTerminal ? true : !canChooseExisting || !hasActiveTerminals;
+            terminalSelect.value = readyTerminal?.terminalId || "";
+            if (terminalSelectHelp) {
+                terminalSelectHelp.textContent = readyTerminal
+                    ? `Thiết bị đang liên kết với ${readyTerminal.name}. Muốn đổi Terminal, hãy dùng chức năng quản lý thiết bị.`
+                    : canChooseExisting && hasActiveTerminals
+                        ? "Chọn một Terminal active để liên kết thiết bị này trước khi mở POS."
+                        : "Chưa có Terminal active phù hợp. Hãy đăng ký thiết bị này trước khi mở POS.";
+            }
+        }
+
+        const terminalStatePresentation = {
+            UNLINKED: {
+                badge: "Chưa liên kết", title: "Thiết bị này chưa được đăng ký",
+                description: "Đăng ký thiết bị mới hoặc liên kết với một Terminal active đã có.",
+                actionTitle: "Đăng ký thiết bị này", actionSubtitle: "Chưa liên kết Terminal POS", icon: "bi-display"
+            },
+            READY: {
+                badge: "Đã kích hoạt", title: "Thiết bị đã sẵn sàng",
+                description: "Terminal đã được Backend xác nhận và đang active tại cửa hàng này.",
+                actionTitle: "Thiết bị đã sẵn sàng", actionSubtitle: "Có thể mở POS", icon: "bi-check-circle"
+            },
+            PENDING: {
+                badge: "Đang chờ", title: "Đang chờ xác nhận Terminal",
+                description: "Người có quyền phê duyệt cần mở Thông báo và xác nhận bằng OTP.",
+                actionTitle: "Đang chờ xác nhận", actionSubtitle: "Yêu cầu đã được gửi", icon: "bi-hourglass-split"
+            },
+            APPROVED: {
+                badge: "Đang xử lý", title: "OTP đã được phê duyệt",
+                description: "Hệ thống đang hoàn tất kích hoạt Terminal cho thiết bị này.",
+                actionTitle: "Đang kích hoạt Terminal", actionSubtitle: "Vui lòng chờ trong giây lát", icon: "bi-arrow-repeat"
+            },
+            LOCKED: {
+                badge: "Tạm khóa", title: "Yêu cầu OTP đang bị khóa",
+                description: "Vui lòng chờ hết thời gian khóa hoặc hủy yêu cầu để thực hiện lại.",
+                actionTitle: "Yêu cầu đang bị khóa", actionSubtitle: "Mở để xem thời gian chờ", icon: "bi-lock"
+            },
+            REJECTED: {
+                badge: "Bị từ chối", title: "Đăng ký Terminal bị từ chối",
+                description: "Bạn có thể kiểm tra lại tên Terminal và gửi lại yêu cầu cho cùng thiết bị.",
+                actionTitle: "Đăng ký bị từ chối", actionSubtitle: "Có thể gửi lại yêu cầu", icon: "bi-x-circle"
+            },
+            EXPIRED: {
+                badge: "Hết hạn", title: "Yêu cầu đăng ký đã hết hạn",
+                description: "Mã thiết bị vẫn được giữ nguyên. Hãy gửi lại yêu cầu để nhận OTP mới.",
+                actionTitle: "Yêu cầu đã hết hạn", actionSubtitle: "Gửi lại cho cùng thiết bị", icon: "bi-clock-history"
+            },
+            CANCELLED: {
+                badge: "Đã hủy", title: "Yêu cầu đăng ký đã được hủy",
+                description: "Bạn có thể gửi lại yêu cầu mà không tạo một Terminal ID khác.",
+                actionTitle: "Yêu cầu đã hủy", actionSubtitle: "Có thể đăng ký lại", icon: "bi-slash-circle"
+            },
+            OTHER_PENDING: {
+                badge: "Thiết bị khác", title: "Đang có yêu cầu trên thiết bị khác",
+                description: "Mỗi nhân viên chỉ có một yêu cầu đăng ký Terminal đang chờ tại một thời điểm.",
+                actionTitle: "Có yêu cầu ở thiết bị khác", actionSubtitle: "Hoàn tất hoặc hủy yêu cầu trước", icon: "bi-pc-display"
+            },
+            INVALID_BINDING: {
+                badge: "Không khả dụng", title: "Liên kết Terminal không còn hợp lệ",
+                description: "Terminal có thể đã bị vô hiệu hóa. Hãy liên kết một Terminal active hoặc liên hệ quản lý.",
+                actionTitle: "Terminal không khả dụng", actionSubtitle: "Cần kiểm tra lại liên kết", icon: "bi-exclamation-triangle"
+            },
+            STORE_MISMATCH: {
+                badge: "Sai cửa hàng", title: "Thiết bị đang thuộc cửa hàng khác",
+                description: "Không thể đăng ký lại thiết bị này tại cửa hàng hiện tại. Vui lòng liên hệ quản lý.",
+                actionTitle: "Thiết bị thuộc cửa hàng khác", actionSubtitle: "Không thể sử dụng tại cửa hàng này", icon: "bi-shop-window"
+            }
+        };
+
+        function renderTerminalDeviceState(state, details) {
+            const safeState = terminalStatePresentation[state] ? state : "UNLINKED";
+            const presentation = terminalStatePresentation[safeState];
+            const terminalId = details?.terminalId || terminalDeviceIdentity?.terminalId || registrationTerminalId;
+            const activeTerminal = getActiveTerminal(terminalId);
+            const terminalName = details?.terminalName || activeTerminal?.name || terminalDeviceIdentity?.terminalName || "";
+            const waiting = ["PENDING", "APPROVED", "LOCKED", "OTHER_PENDING"].includes(safeState);
+            const retryable = ["UNLINKED", "REJECTED", "EXPIRED", "CANCELLED"].includes(safeState);
+            const canLinkExisting = ["UNLINKED", "INVALID_BINDING"].includes(safeState)
+                && Boolean(terminalExistingLink);
+
+            terminalUiState = safeState;
+            if (registerTerminalButton) {
+                registerTerminalButton.dataset.terminalState = safeState.toLowerCase();
+                registerTerminalButton.setAttribute("aria-label", `${presentation.actionTitle}. ${presentation.actionSubtitle}`);
+            }
+            if (terminalActionTitle) terminalActionTitle.textContent = presentation.actionTitle;
+            if (terminalActionSubtitle) terminalActionSubtitle.textContent = terminalName && safeState === "READY"
+                ? `${terminalName} · ${currentStoreName}`
+                : presentation.actionSubtitle;
+            if (terminalActionBadge) {
+                terminalActionBadge.className = `staffhub-terminal-action-badge is-${safeState.toLowerCase().replace("_", "-")}`;
+                terminalActionBadge.textContent = presentation.badge;
+            }
+            const actionIcon = document.querySelector("#terminalActionIcon i");
+            if (actionIcon) actionIcon.className = `bi ${presentation.icon}`;
+
+            if (terminalDeviceState) terminalDeviceState.className =
+                `staffhub-terminal-device-state is-${safeState.toLowerCase().replace("_", "-")}`;
+            if (terminalDeviceStateBadge) terminalDeviceStateBadge.textContent = presentation.badge;
+            if (terminalDeviceStateTitle) terminalDeviceStateTitle.textContent = presentation.title;
+            if (terminalDeviceStateDescription) terminalDeviceStateDescription.textContent =
+                details?.description || presentation.description;
+            if (terminalDeviceStateIcon) terminalDeviceStateIcon.innerHTML =
+                `<i class="bi ${presentation.icon}" aria-hidden="true"></i>`;
+
+            if (terminalDeviceDetails) terminalDeviceDetails.hidden = !terminalId;
+            if (terminalDeviceName) terminalDeviceName.textContent = terminalName || "Chưa đặt tên";
+            if (terminalDeviceStore) terminalDeviceStore.textContent = currentStoreName;
+            if (terminalDeviceId) {
+                terminalDeviceId.textContent = shortTerminalId(terminalId);
+                terminalDeviceId.title = terminalId || "";
+            }
+
+            if (terminalRegistrationFields) terminalRegistrationFields.hidden = !retryable;
+            if (terminalRegistrationName) {
+                if (terminalName && !terminalRegistrationName.value) terminalRegistrationName.value = terminalName;
+                terminalRegistrationName.readOnly = waiting;
+            }
+            if (terminalExistingLink) terminalExistingLink.hidden = !canLinkExisting;
+            if (requestTerminalOtpButton) {
+                requestTerminalOtpButton.hidden = !retryable;
+                requestTerminalOtpButton.disabled = false;
+                requestTerminalOtpButton.textContent = safeState === "UNLINKED"
+                    ? "Đăng ký thiết bị này"
+                    : "Gửi lại yêu cầu";
+            }
+            if (resendTerminalOtpButton) resendTerminalOtpButton.hidden = !["PENDING", "APPROVED", "LOCKED"].includes(safeState);
+            if (cancelTerminalRequestButton) cancelTerminalRequestButton.hidden = !waiting;
+            if (terminalRegistrationStatus) terminalRegistrationStatus.textContent = details?.statusMessage || "";
+            syncBoundTerminalPicker(safeState, terminalId);
+        }
+
+        function renderStoredTerminalDeviceState() {
+            if (!registerTerminalButton) return;
+            if (terminalDeviceIdentity && terminalDeviceIdentity.storeId !== currentStoreId) {
+                renderTerminalDeviceState("STORE_MISMATCH", { terminalId: terminalDeviceIdentity.terminalId });
+                return;
+            }
+            const activeTerminal = getActiveTerminal(terminalDeviceIdentity?.terminalId);
+            if (activeTerminal) {
+                renderTerminalDeviceState("READY", activeTerminal);
+                return;
+            }
+            renderTerminalDeviceState(
+                terminalDeviceIdentity?.bindingSource === "existing" ? "INVALID_BINDING" : "UNLINKED",
+                terminalDeviceIdentity ? {
+                    terminalId: terminalDeviceIdentity.terminalId,
+                    terminalName: terminalDeviceIdentity.terminalName
+                } : undefined);
+        }
+
+        function assessmentVersion() {
+            return read(assessment, "assessmentVersion", "AssessmentVersion") || "";
+        }
+
+        function updateReasonCounter() {
+            if (reasonCounter) reasonCounter.textContent = `${reasonInput?.value.length || 0} / 500`;
+        }
+
+        function setCodeValue(input, value) {
+            if (window.VerificationCodeInput?.setValue) window.VerificationCodeInput.setValue(input, value);
+            else if (input) input.value = value;
+        }
+
         function formatCountdown(totalSeconds) {
             const safeSeconds = Math.max(0, Math.ceil(Number(totalSeconds) || 0));
             const minutes = Math.floor(safeSeconds / 60);
@@ -233,7 +509,7 @@
             otpChallengePublicId = null;
             verifiedOtpChallengePublicId = null;
             openOtpState = "IDLE";
-            if (otpInput) otpInput.value = "";
+            setCodeValue(otpInput, "");
             if (otpStatus) otpStatus.textContent = "";
             resetResendButton(resendOpenOtpButton);
             renderOpenOtpState();
@@ -271,7 +547,10 @@
                 } else if (state === "EXPIRED") {
                     otpStatus.textContent = "OTP đã hết hạn. Đóng hộp thoại và tạo yêu cầu mới.";
                 } else if (state === "LOCKED") {
-                    otpStatus.textContent = "OTP đã bị khóa do nhập sai quá số lần cho phép.";
+                    const retry = Number(read(data, "retryAfter", "RetryAfter") || 0);
+                    otpStatus.textContent = retry > 0
+                        ? `OTP đã bị khóa. Có thể gửi lại sau ${formatCountdown(retry)}.`
+                        : "OTP đã bị khóa. Bạn có thể gửi lại mã mới.";
                 }
             }
         }
@@ -290,15 +569,16 @@
             const restoredRequestKey = read(data, "requestKey", "RequestKey");
             if (restoredTerminal && terminalSelect) terminalSelect.value = restoredTerminal;
             if (restoredReason && reasonInput) reasonInput.value = restoredReason;
+            updateReasonCounter();
             if (restoredRequestKey) requestKey = restoredRequestKey;
-            if (otpInput) otpInput.value = "";
+            setCodeValue(otpInput, "");
             renderOpenOtpState(data);
             renderCancelOpenButton();
             startResendCountdown(
                 resendOpenOtpButton,
                 read(data, "resendAvailableInSeconds", "ResendAvailableInSeconds"),
                 () => Boolean(otpChallengePublicId) && !verifiedOtpChallengePublicId
-                    && ["SENT", "PENDING", "INVALID"].includes(openOtpState));
+                    && ["SENT", "PENDING", "INVALID", "LOCKED"].includes(openOtpState));
         }
 
         async function restoreOpenOtpState() {
@@ -313,64 +593,151 @@
 
         function resetTerminalOtpState() {
             registrationChallengeId = null;
-            const status = document.getElementById("terminalRegistrationStatus");
-            if (status) status.textContent = "";
             registrationOtpState = "IDLE";
-            if (requestTerminalOtpButton) {
-                requestTerminalOtpButton.hidden = false;
-                requestTerminalOtpButton.disabled = false;
-                requestTerminalOtpButton.textContent = "Gửi yêu cầu xác nhận Terminal";
-            }
-            if (resendTerminalOtpButton) resendTerminalOtpButton.hidden = true;
-            if (cancelTerminalRequestButton) cancelTerminalRequestButton.hidden = true;
+            registrationRequestKey = null;
             resetResendButton(resendTerminalOtpButton);
+            renderStoredTerminalDeviceState();
+        }
+
+        async function notifyTerminalResolutionAndReload(statusValue) {
+            const resolvedStatus = String(statusValue || "").toUpperCase();
+            if (!["USED", "REJECTED"].includes(resolvedStatus) || terminalResolutionReloading)
+                return false;
+
+            const marker = `staffhub-terminal-resolution:${registrationChallengeId || "unknown"}:${resolvedStatus}`;
+            try {
+                if (window.localStorage?.getItem(marker) === "reloaded") return true;
+            } catch {
+                // Storage can be unavailable in strict privacy mode; the UI still resolves normally.
+            }
+
+            terminalResolutionReloading = true;
+            let shouldReload = true;
+            try {
+                window.localStorage?.setItem(marker, "reloaded");
+            } catch {
+                shouldReload = false;
+            }
+            const approved = resolvedStatus === "USED";
+            const title = approved ? "Terminal đã được xác nhận" : "Đăng ký Terminal bị từ chối";
+            const message = approved
+                ? "Terminal đã được kích hoạt. StaffHub sẽ tự tải lại để cập nhật danh sách thiết bị."
+                : "Chủ doanh nghiệp hoặc Quản lý chi nhánh đã từ chối yêu cầu. StaffHub sẽ tự tải lại.";
+            try {
+                if (window.Swal) {
+                    await window.Swal.fire({
+                        icon: approved ? "success" : "warning",
+                        title,
+                        text: message,
+                        timer: 1800,
+                        timerProgressBar: true,
+                        showConfirmButton: false,
+                        allowOutsideClick: false
+                    });
+                } else {
+                    window.alert(message);
+                }
+            } finally {
+                if (shouldReload) window.location.reload();
+                else {
+                    terminalResolutionReloading = false;
+                    await restoreTerminalOtpState();
+                }
+            }
+            return true;
         }
 
         function applyTerminalOtpResponse(data) {
             if (!data || read(data, "hasActiveChallenge", "HasActiveChallenge") === false) {
                 resetTerminalOtpState();
-                registrationTerminalId ||= crypto.randomUUID();
-                registrationRequestKey ||= crypto.randomUUID();
                 return;
             }
-            registrationChallengeId = read(data, "otpChallengePublicId", "OtpChallengePublicId") || null;
-            registrationOtpState = String(read(data, "status", "Status") || "PENDING").toUpperCase();
-            registrationTerminalId = read(data, "terminalId", "TerminalId") || registrationTerminalId;
-            registrationRequestKey = read(data, "requestKey", "RequestKey") || registrationRequestKey;
-            const restoredName = read(data, "terminalName", "TerminalName") || read(data, "reason", "Reason");
-            const nameInput = document.getElementById("terminalRegistrationName");
-            const status = document.getElementById("terminalRegistrationStatus");
-            if (restoredName && nameInput) nameInput.value = restoredName;
-            const waiting = ["PENDING", "APPROVED"].includes(registrationOtpState)
-                && Number(read(data, "expiresInSeconds", "ExpiresInSeconds") || 0) > 0;
-            if (nameInput) nameInput.readOnly = waiting;
-            if (requestTerminalOtpButton) {
-                requestTerminalOtpButton.hidden = waiting || registrationOtpState === "USED";
-                requestTerminalOtpButton.disabled = false;
-                requestTerminalOtpButton.textContent = registrationOtpState === "EXPIRED"
-                    ? "Gửi yêu cầu mới"
-                    : "Gửi yêu cầu xác nhận Terminal";
+            const challengeId = read(data, "otpChallengePublicId", "OtpChallengePublicId") || null;
+            const challengeTerminalId = String(read(data, "terminalId", "TerminalId") || "").trim();
+            const challengeName = read(data, "terminalName", "TerminalName") || read(data, "reason", "Reason") || "";
+            const expiresInSeconds = Number(read(data, "expiresInSeconds", "ExpiresInSeconds") || 0);
+            let challengeState = String(read(data, "status", "Status") || "PENDING").toUpperCase();
+            if (challengeState === "PENDING" && expiresInSeconds <= 0) challengeState = "EXPIRED";
+            const sameDevice = terminalDeviceIdentity?.storeId === currentStoreId
+                && sameTerminalId(terminalDeviceIdentity.terminalId, challengeTerminalId);
+            const activeElsewhere = ["PENDING", "APPROVED", "LOCKED"].includes(challengeState)
+                && expiresInSeconds > 0;
+
+            if (!sameDevice) {
+                resetResendButton(resendTerminalOtpButton);
+                if (activeElsewhere) {
+                    registrationChallengeId = challengeId;
+                    registrationOtpState = challengeState;
+                    const currentActiveTerminal = getActiveTerminal(terminalDeviceIdentity?.terminalId);
+                    if (currentActiveTerminal) {
+                        renderTerminalDeviceState("READY", {
+                            ...currentActiveTerminal,
+                            description: `Thiết bị này vẫn sẵn sàng. Nhân viên đang có một yêu cầu khác cho Terminal “${challengeName || shortTerminalId(challengeTerminalId)}”.`,
+                            statusMessage: "Yêu cầu trên thiết bị khác không thay đổi liên kết của thiết bị hiện tại."
+                        });
+                    } else {
+                        renderTerminalDeviceState("OTHER_PENDING", {
+                            terminalId: challengeTerminalId,
+                            terminalName: challengeName,
+                            description: `Yêu cầu đang chờ thuộc Terminal “${challengeName || shortTerminalId(challengeTerminalId)}”. Hãy hoàn tất hoặc hủy yêu cầu đó trước.`,
+                            statusMessage: "Yêu cầu này không thuộc định danh của thiết bị đang sử dụng."
+                        });
+                    }
+                } else {
+                    registrationChallengeId = null;
+                    registrationOtpState = "IDLE";
+                    renderStoredTerminalDeviceState();
+                }
+                return;
             }
-            if (resendTerminalOtpButton) resendTerminalOtpButton.hidden = !waiting;
-            if (cancelTerminalRequestButton) cancelTerminalRequestButton.hidden = !waiting;
-            if (waiting) {
-                if (status) status.textContent = "✓ Đã gửi yêu cầu. Đang chờ Store Manager/người có quyền xác nhận Terminal.";
+
+            registrationChallengeId = challengeId;
+            registrationOtpState = challengeState;
+            registrationTerminalId = terminalDeviceIdentity.terminalId;
+            registrationRequestKey = read(data, "requestKey", "RequestKey") || registrationRequestKey;
+            if (challengeName) {
+                saveTerminalDeviceIdentity(registrationTerminalId, challengeName);
+                if (terminalRegistrationName) terminalRegistrationName.value = challengeName;
+            }
+
+            if (["PENDING", "APPROVED", "LOCKED"].includes(challengeState) && expiresInSeconds > 0) {
+                renderTerminalDeviceState(challengeState, {
+                    terminalId: registrationTerminalId,
+                    terminalName: challengeName,
+                    statusMessage: challengeState === "LOCKED"
+                        ? "OTP đang bị khóa. Theo dõi thời gian chờ trước khi gửi lại."
+                        : "✓ Yêu cầu đã được gửi và đang chờ người có quyền xác nhận."
+                });
                 startResendCountdown(
                     resendTerminalOtpButton,
                     read(data, "resendAvailableInSeconds", "ResendAvailableInSeconds"),
                     () => Boolean(registrationChallengeId));
-            } else if (registrationOtpState === "USED") {
-                if (status) status.textContent = "✓ Terminal đã được Manager xác nhận. Tải lại trang để sử dụng Terminal.";
-                if (resendTerminalOtpButton) resendTerminalOtpButton.hidden = true;
-                if (cancelTerminalRequestButton) cancelTerminalRequestButton.hidden = true;
-            } else if (registrationOtpState === "EXPIRED") {
-                if (status) status.textContent = "OTP đã hết hạn. Vui lòng gửi yêu cầu mới.";
-                if (resendTerminalOtpButton) resendTerminalOtpButton.hidden = true;
-                if (cancelTerminalRequestButton) cancelTerminalRequestButton.hidden = true;
-            } else if (["CANCELLED", "LOCKED"].includes(registrationOtpState)) {
-                if (status) status.textContent = "Yêu cầu OTP đã bị hủy. Vui lòng gửi yêu cầu mới.";
-                if (resendTerminalOtpButton) resendTerminalOtpButton.hidden = true;
-                if (cancelTerminalRequestButton) cancelTerminalRequestButton.hidden = true;
+                return;
+            }
+
+            resetResendButton(resendTerminalOtpButton);
+            if (challengeState === "USED") {
+                const activeTerminal = getActiveTerminal(registrationTerminalId);
+                renderTerminalDeviceState(activeTerminal ? "READY" : "APPROVED", {
+                    terminalId: registrationTerminalId,
+                    terminalName: challengeName,
+                    statusMessage: "✓ Terminal đã được xác nhận. StaffHub đang cập nhật danh sách thiết bị."
+                });
+                void notifyTerminalResolutionAndReload(challengeState);
+            } else if (challengeState === "REJECTED") {
+                renderTerminalDeviceState("REJECTED", {
+                    terminalId: registrationTerminalId,
+                    terminalName: challengeName,
+                    statusMessage: "Yêu cầu đã bị từ chối. Mã thiết bị được giữ nguyên để bạn có thể gửi lại."
+                });
+                void notifyTerminalResolutionAndReload(challengeState);
+            } else if (["EXPIRED", "CANCELLED"].includes(challengeState)) {
+                renderTerminalDeviceState(challengeState, {
+                    terminalId: registrationTerminalId,
+                    terminalName: challengeName
+                });
+            } else {
+                renderStoredTerminalDeviceState();
             }
         }
 
@@ -379,7 +746,8 @@
                 const result = await post(root.dataset.terminalOtpStateUrl, {});
                 applyTerminalOtpResponse(result.data);
             } catch (error) {
-                document.getElementById("terminalRegistrationStatus").textContent = error.message;
+                renderStoredTerminalDeviceState();
+                if (terminalRegistrationStatus) terminalRegistrationStatus.textContent = error.message;
             }
         }
 
@@ -393,6 +761,17 @@
                 const eventId = read(event, "otpChallengePublicId", "OtpChallengePublicId");
                 if (registrationChallengeId && eventId
                     && String(eventId).toLowerCase() !== String(registrationChallengeId).toLowerCase()) return;
+                const status = read(event, "status", "Status");
+                const eventTerminalId = read(event, "terminalId", "TerminalId");
+                const belongsToCurrentDevice = eventTerminalId
+                    ? sameTerminalId(eventTerminalId, terminalDeviceIdentity?.terminalId)
+                    : Boolean(registrationChallengeId && eventId
+                        && String(eventId).toLowerCase() === String(registrationChallengeId).toLowerCase());
+                if (belongsToCurrentDevice && ["USED", "REJECTED"].includes(String(status || "").toUpperCase())) {
+                    registrationChallengeId = eventId || registrationChallengeId;
+                    void notifyTerminalResolutionAndReload(status);
+                    return;
+                }
                 void restoreTerminalOtpState();
             });
             const handleLateApprovalChanged = event => {
@@ -427,6 +806,7 @@
         }
 
         function contextText(context, minutesEarly) {
+            if (context === "EARLY_FOR_SCHEDULE") return "Mở POS quá sớm — cần phê duyệt";
             if (context === "WITHIN_SCHEDULE" && minutesEarly > 0) return "Mở POS sớm";
             if (context === "WITHIN_SCHEDULE") return "Được mở POS bình thường";
             if (context === "LATE_FOR_SCHEDULE") return "Mở POS trễ";
@@ -442,7 +822,55 @@
             document.getElementById("openPosPreviewTitle").textContent = "Chọn terminal POS";
             document.getElementById("openPosContextLabel").textContent = "Chưa xác định";
             document.getElementById("openPosPreviewNotice").textContent =
-                "Chọn terminal của két bạn sẽ chịu trách nhiệm. Mỗi terminal chỉ có một ca đang hoạt động.";
+                registerTerminalButton && terminalUiState !== "READY"
+                    ? "Thiết bị này chưa được liên kết với một Terminal active. Hãy đóng hộp thoại và chọn “Đăng ký thiết bị này” trước."
+                    : "Terminal của thiết bị này sẽ được dùng cho phiên POS. Mỗi Terminal chỉ có một ca đang hoạt động.";
+        }
+
+        async function confirmExistingTerminalLink(activeTerminal, triggerControl) {
+            if (!activeTerminal) return false;
+            const confirmed = window.Swal
+                ? (await window.Swal.fire({
+                    icon: "question",
+                    title: "Liên kết thiết bị hiện tại?",
+                    text: `Thiết bị này sẽ sử dụng Terminal “${activeTerminal.name}”. Liên kết cục bộ không thay đổi quyền trên máy chủ.`,
+                    showCancelButton: true,
+                    confirmButtonText: "Liên kết Terminal",
+                    cancelButtonText: "Quay lại",
+                    focusCancel: true
+                })).isConfirmed
+                : window.confirm(`Liên kết thiết bị này với Terminal “${activeTerminal.name}”?`);
+            if (!confirmed) return false;
+
+            if (triggerControl) triggerControl.disabled = true;
+            try {
+                const identity = saveTerminalDeviceIdentity(activeTerminal.terminalId, activeTerminal.name, "existing");
+                if (!identity)
+                    throw new Error("Trình duyệt không thể lưu liên kết Terminal. Vui lòng kiểm tra quyền lưu dữ liệu trang web.");
+                registrationChallengeId = null;
+                registrationRequestKey = null;
+                registrationOtpState = "IDLE";
+                renderTerminalDeviceState("READY", activeTerminal);
+                if (window.Swal) {
+                    await window.Swal.fire({
+                        icon: "success",
+                        title: "Đã liên kết Terminal",
+                        text: `${activeTerminal.name} đã được chọn cho thiết bị này.`,
+                        confirmButtonText: "Đóng"
+                    });
+                } else {
+                    window.alert(`${activeTerminal.name} đã được liên kết với thiết bị này.`);
+                }
+                return true;
+            } catch (error) {
+                await notifyOtp(error.message || "Không thể liên kết Terminal.", false);
+                return false;
+            } finally {
+                if (triggerControl === terminalSelect)
+                    syncBoundTerminalPicker(terminalUiState, terminalDeviceIdentity?.terminalId);
+                else if (triggerControl)
+                    triggerControl.disabled = false;
+            }
         }
 
         function renderBlocking(data, errorCode, message) {
@@ -589,12 +1017,18 @@
             try {
                 const result = await post(root.dataset.issuePosUrl, {
                     TerminalId: terminalSelect.value, RequestKey: requestKey, Reason: reason,
+                    AssessmentVersion: assessmentVersion(),
                     OtpChallengePublicId: verifiedOtpChallengePublicId,
                     LateOpenApprovalPublicId: lateOpenApprovalPublicId
                 });
                 await redirectWithTicket(result);
             } catch (error) {
                 continueButton.disabled = false;
+                if (error.errorCode === "SHIFT_SCHEDULE_CHANGED") {
+                    await notify(error.message, false);
+                    await previewOpen();
+                    return;
+                }
                 await notify(error.message, false);
             }
         }
@@ -644,7 +1078,8 @@
                 const result = await post(root.dataset.requestLateOpenApprovalUrl, {
                     TerminalId: terminalSelect?.value || "",
                     Reason: reason,
-                    RequestKey: requestKey
+                    RequestKey: requestKey,
+                    AssessmentVersion: assessmentVersion()
                 });
                 applyLateOpenApproval(result.data);
                 if (lateOpenApprovalState === "PENDING" && !lateApprovalPollTimer) {
@@ -653,6 +1088,11 @@
             } catch (error) {
                 requestLateApprovalButton.disabled = false;
                 requestLateApprovalButton.textContent = "Gửi yêu cầu Manager";
+                if (error.errorCode === "SHIFT_SCHEDULE_CHANGED") {
+                    await notify(error.message, false);
+                    await previewOpen();
+                    return;
+                }
                 await notify(error.message, false);
             }
         });
@@ -664,14 +1104,23 @@
 
         openButton?.addEventListener("click", () =>
             AdminMutationGuard.run("staffhub-open-pos", openButton, openPosFlow));
-        terminalSelect?.addEventListener("change", () => {
+        terminalSelect?.addEventListener("change", async () => {
             requestKey = crypto.randomUUID();
             resetOpenOtpState();
             if (!terminalSelect.value) {
                 prepareTerminalSelection();
                 return;
             }
-            void AdminMutationGuard.run("staffhub-preview-terminal", terminalSelect, previewOpen);
+            if (terminalUiState !== "READY") {
+                const activeTerminal = getActiveTerminal(terminalSelect.value);
+                const linked = await confirmExistingTerminalLink(activeTerminal, terminalSelect);
+                if (!linked) {
+                    terminalSelect.value = "";
+                    prepareTerminalSelection();
+                    return;
+                }
+            }
+            await AdminMutationGuard.run("staffhub-preview-terminal", terminalSelect, previewOpen);
         });
         cancelOpenButton?.addEventListener("click", async () => {
             if (!hasActiveOpenIntent()) {
@@ -704,6 +1153,8 @@
             }
         });
         continueButton?.addEventListener("click", issueOpenTicket);
+        reasonInput?.addEventListener("input", updateReasonCounter);
+        updateReasonCounter();
         resumeButton?.addEventListener("click", async () => {
             resumeButton.disabled = true;
             try {
@@ -723,13 +1174,19 @@
             renderOpenOtpState();
             try {
                 const result = await post(root.dataset.requestOpenOtpUrl, {
-                    TerminalId: terminalSelect.value, RequestKey: requestKey, Reason: reason
+                    TerminalId: terminalSelect.value, RequestKey: requestKey, Reason: reason,
+                    AssessmentVersion: assessmentVersion()
                 });
                 applyOpenOtpResponse(result.data);
                 await notifyOtp(result.message || "OTP đã được gửi cho người duyệt.", true);
             } catch (error) {
                 openOtpState = "IDLE";
                 resetResendButton(resendOpenOtpButton);
+                if (error.errorCode === "SHIFT_SCHEDULE_CHANGED") {
+                    await notifyOtp(error.message, false);
+                    await previewOpen();
+                    return;
+                }
                 await notifyOtp(error.message, false);
             } finally {
                 openOtpBusy = false;
@@ -747,7 +1204,7 @@
                 const result = await post(root.dataset.verifyOtpUrl, { OtpChallengePublicId: otpChallengePublicId, OtpCode: otpInput.value.trim().toUpperCase() });
                 verifiedOtpChallengePublicId = otpChallengePublicId;
                 openOtpState = "APPROVED";
-                otpInput.value = "";
+                setCodeValue(otpInput, "");
                 otpStatus.textContent = "OTP đã được phê duyệt.";
                 resetResendButton(resendOpenOtpButton);
                 renderOpenOtpState(result.data);
@@ -793,7 +1250,7 @@
             }
         });
 
-        document.getElementById("registerTerminalButton")?.addEventListener("click", () => {
+        registerTerminalButton?.addEventListener("click", () => {
             showDialog(registrationDialog);
             void restoreTerminalOtpState();
         });
@@ -816,16 +1273,32 @@
                 cancelTerminalRequestButton.disabled = false;
             }
         });
+        linkExistingTerminalButton?.addEventListener("click", async () => {
+            const selectedId = terminalExistingSelect?.value || "";
+            const activeTerminal = getActiveTerminal(selectedId);
+            if (!activeTerminal) {
+                await notifyOtp("Vui lòng chọn một Terminal active thuộc cửa hàng hiện tại.", false);
+                terminalExistingSelect?.focus();
+                return;
+            }
+            await confirmExistingTerminalLink(activeTerminal, linkExistingTerminalButton);
+        });
         requestTerminalOtpButton?.addEventListener("click", async () => {
-            const name = document.getElementById("terminalRegistrationName").value.trim();
+            const name = terminalRegistrationName?.value.trim() || "";
             if (!name) return notify("Vui lòng nhập tên terminal.", false);
-            if (["EXPIRED", "CANCELLED", "LOCKED", "USED"].includes(registrationOtpState)) {
-                registrationTerminalId = crypto.randomUUID();
+            if (["READY", "PENDING", "APPROVED", "LOCKED", "OTHER_PENDING", "STORE_MISMATCH", "INVALID_BINDING"].includes(terminalUiState))
+                return notify("Thiết bị hiện tại chưa thể tạo yêu cầu đăng ký mới.", false);
+
+            const identity = ensureTerminalDeviceIdentity(name);
+            if (!identity) {
+                renderStoredTerminalDeviceState();
+                return notify("Thiết bị đang được liên kết với cửa hàng khác hoặc trình duyệt không thể lưu mã thiết bị.", false);
+            }
+            if (["EXPIRED", "CANCELLED", "REJECTED"].includes(registrationOtpState) || !registrationRequestKey) {
                 registrationRequestKey = crypto.randomUUID();
                 registrationChallengeId = null;
             }
-            registrationTerminalId ||= crypto.randomUUID();
-            registrationRequestKey ||= crypto.randomUUID();
+            registrationTerminalId = identity.terminalId;
             requestTerminalOtpButton.disabled = true;
             requestTerminalOtpButton.textContent = "Đang gửi yêu cầu...";
             try {
@@ -833,14 +1306,16 @@
                     TerminalId: registrationTerminalId, TerminalName: name, RequestKey: registrationRequestKey
                 });
                 applyTerminalOtpResponse(result.data);
-                await notifyOtp(result.message || "Đã gửi yêu cầu. Người duyệt có thể mở Thông báo để xác nhận Terminal.", true);
+                await notifyOtp(result.message || "Gửi yêu cầu xác nhận Terminal thành công. Người duyệt có thể mở Thông báo để xử lý.", true);
             } catch (error) {
                 resetResendButton(resendTerminalOtpButton);
                 await notify(error.message, false);
             } finally {
                 if (!requestTerminalOtpButton.hidden) {
                     requestTerminalOtpButton.disabled = false;
-                    requestTerminalOtpButton.textContent = "Gửi yêu cầu xác nhận Terminal";
+                    requestTerminalOtpButton.textContent = terminalUiState === "UNLINKED"
+                        ? "Đăng ký thiết bị này"
+                        : "Gửi lại yêu cầu";
                 }
             }
         });
@@ -893,7 +1368,7 @@
                 setOperatorPinConfigured(result.pinConfigured === true);
                 if (operatorPinStatus) operatorPinStatus.textContent = "PIN thao tác POS đã được thiết lập.";
                 if (operatorCurrentPassword) operatorCurrentPassword.value = "";
-                if (operatorNewPin) operatorNewPin.value = "";
+                setCodeValue(operatorNewPin, "");
                 await notify(result.message || "Thiết lập PIN thao tác POS thành công.", true);
                 closeDialog(operatorPinDialog);
             } catch (error) {
@@ -901,7 +1376,7 @@
                 await notify(error.message || "Không thể thiết lập PIN thao tác POS.", false);
             } finally {
                 if (operatorCurrentPassword) operatorCurrentPassword.value = "";
-                if (operatorNewPin) operatorNewPin.value = "";
+                setCodeValue(operatorNewPin, "");
                 operatorPinForm.removeAttribute("aria-busy");
                 if (saveOperatorPinButton) {
                     saveOperatorPinButton.disabled = false;
@@ -917,7 +1392,7 @@
         });
         previewDialog?.addEventListener("hidden.bs.modal", () => {
             allowOpenDialogClose = false;
-            if (otpInput) otpInput.value = "";
+            setCodeValue(otpInput, "");
             if (lateApprovalPollTimer) {
                 window.clearInterval(lateApprovalPollTimer);
                 lateApprovalPollTimer = 0;
@@ -928,20 +1403,27 @@
         });
         operatorPinDialog?.addEventListener("hidden.bs.modal", () => {
             if (operatorCurrentPassword) operatorCurrentPassword.value = "";
-            if (operatorNewPin) operatorNewPin.value = "";
+            setCodeValue(operatorNewPin, "");
             if (operatorPinStatus) operatorPinStatus.textContent = "";
         });
 
         const launchOptions = document.getElementById("staffHubLaunchOptions");
+        renderStoredTerminalDeviceState();
+        if (registerTerminalButton) void restoreTerminalOtpState();
         initializeRealtime();
         if (launchOptions?.dataset.autoOpenPos === "true") {
             const requestedTerminalId = launchOptions.dataset.requestedTerminalId || "";
             const posLaunchError = launchOptions.dataset.posLaunchError || "";
-            if (requestedTerminalId && terminalSelect?.querySelector(`option[value="${CSS.escape(requestedTerminalId)}"]`)) {
+            const requestedMatchesDevice = !registerTerminalButton
+                || (terminalUiState === "READY" && sameTerminalId(requestedTerminalId, terminalDeviceIdentity?.terminalId));
+            if (requestedTerminalId && requestedMatchesDevice
+                && terminalSelect?.querySelector(`option[value="${CSS.escape(requestedTerminalId)}"]`)) {
                 terminalSelect.value = requestedTerminalId;
             }
             showDialog(previewDialog);
             if (posLaunchError) void notifyOtp(posLaunchError, false);
+            if (requestedTerminalId && !requestedMatchesDevice)
+                void notifyOtp("Terminal được yêu cầu không phải Terminal đã liên kết với thiết bị này.", false);
             if (terminalSelect?.value) {
                 void AdminMutationGuard.run("staffhub-auto-open-pos", terminalSelect, previewOpen);
             } else {

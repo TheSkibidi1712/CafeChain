@@ -7,6 +7,14 @@ namespace CafeChain.Models.Enums.Inventory
         Confirmed = 1,
 
         /// <summary>Stock + ledger applied atomically; immutable.</summary>
-        Completed = 2
+        Completed = 2,
+
+        /// <summary>V2 Restock-driven plan; no inventory mutation.</summary>
+        Planned = 10,
+        Released = 11,
+        InProgress = 12,
+        AwaitingAcceptance = 13,
+        AwaitingVarianceApproval = 14,
+        Cancelled = 15
     }
 }

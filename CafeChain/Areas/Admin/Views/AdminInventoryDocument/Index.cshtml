@@ -5,11 +5,12 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
     <link rel="stylesheet" href="~/css/Admin/InventoryDocument/inventorydocument.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/InventoryDocument/inventorydocumentcreate.css" asp-append-version="true" />
 }
 
-<div class="inventory-page cc-warehouse-page"
+<main class="inventory-page ops-shell cc-warehouse-page"
      id="inventoryDocumentPage"
      data-detail-url="@Url.Action("DetailModal", "AdminInventoryDocument", new { area = "Admin" })"
      data-create-modal-url="@Url.Action("CreateModal", "AdminInventoryDocument", new { area = "Admin" })"
@@ -28,59 +29,42 @@
 
     @Html.AntiForgeryToken()
 
-    <div class="inventory-header cc-warehouse-header">
-        <div class="inventory-heading">
-            <span class="inventory-heading-icon" aria-hidden="true">
-                <i class="fas fa-file-invoice"></i>
-            </span>
-            <div>
-                <span class="inventory-eyebrow">Kho &amp; cung ứng / Phiếu kho</span>
-                <h3>Quản lý phiếu kho</h3>
-            <p>
-                    Theo dõi xuất, kiểm kê và hủy kho trong một không gian rõ ràng, ưu tiên chứng từ cần xử lý.
-            </p>
-            </div>
+    <header class="inventory-header ops-header cc-warehouse-header">
+        <div>
+            <div class="inventory-eyebrow">Kho &amp; Cung ứng / Phiếu kho</div>
+            <h1>Quản lý phiếu kho</h1>
+            <p class="inventory-subtitle">Theo dõi xuất, kiểm kê và hủy kho trong một không gian rõ ràng, ưu tiên chứng từ cần xử lý.</p>
         </div>
 
-        <div class="inventory-actions">
-            <button
-                class="btn btn-primary inventory-action-primary"
-                id="btnCreateInventory">
-
-                <i class="fas fa-plus"></i>
-
+        <div class="inventory-actions ops-actions">
+            <button class="btn btn-primary inventory-action-primary" id="btnCreateInventory">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
                 Tạo phiếu mới
-
             </button>
 
-            <button type="button"
-                    class="btn btn-outline-secondary inventory-action-secondary"
-                    id="btnExportExcel"
-                    title="Xuất Excel"
-                    aria-label="Xuất Excel">
-                <i class="fas fa-file-excel"></i>
+            <button type="button" class="btn btn-outline-secondary inventory-action-secondary" id="btnExportExcel" title="Xuất Excel" aria-label="Xuất Excel">
+                <i class="fa-solid fa-file-excel" aria-hidden="true"></i>
                 Xuất Excel
             </button>
-
-
         </div>
-    </div>
+    </header>
 
-    <partial name="Partials/Detail/_DashboardCards"
-             model="Model" />
-
-    <partial name="Partials/Detail/_FilterSection"
-             model="Model" />
-
-    <section class="inventory-results-panel" aria-label="Danh sách phiếu kho">
-        <partial name="Partials/Detail/_DocumentTabs"
-                 model="Model.Filter" />
-
-        <partial name="Partials/Detail/_DocumentTable"
+    <div class="inventory-main">
+        <partial name="Partials/Detail/_DashboardCards"
                  model="Model" />
-    </section>
 
-</div>
+        <partial name="Partials/Detail/_FilterSection"
+                 model="Model" />
+
+        <section class="inventory-results-panel" aria-label="Danh sách phiếu kho">
+            <partial name="Partials/Detail/_DocumentTabs"
+                     model="Model.Filter" />
+
+            <partial name="Partials/Detail/_DocumentTable"
+                     model="Model" />
+        </section>
+    </div>
+</main>
 
 
 <!-- Modal Detail-->

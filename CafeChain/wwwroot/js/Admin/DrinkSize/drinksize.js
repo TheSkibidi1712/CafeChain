@@ -1,4 +1,4 @@
-﻿let currentSizeId = 0;
+let currentSizeId = 0;
 let currentSizeName = ""; // 🔥 thêm dòng này
 let selectedDrinkId = 0;
 let drinkModalInstance = null;
@@ -44,69 +44,80 @@ function renderDrinkUI(data) {
     let assignedHtml = "";
     let unassignedHtml = "";
 
+    if (!data || data.length === 0) {
+        document.getElementById("assignedList").innerHTML = '<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>Không có dữ liệu đồ uống</div>';
+        document.getElementById("unassignedList").innerHTML = '<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>Không có dữ liệu đồ uống</div>';
+        return;
+    }
+
     data.forEach(d => {
 
-        let image = d.imageUrl ?? "/Images/DrinkImages/no-image.jpg";
+        let image = d.imageUrl || "/Images/DrinkImages/no-image.jpg";
         let canAssign = d.canAssign !== false;
-        let assignmentBlockReason = d.assignmentBlockReason ?? "Size không phù hợp với loại sản phẩm";
-
-        let card = `
-            <div class="col-6">
-                <div class="drink-card p-2">
-                    <img src="${image}" class="drink-img mb-2"/>
-                    <h6 class="mb-1">${d.name}</h6>
-                    <small class="text-muted">${d.categoryName ?? ""} - ${d.productTypeName ?? ""}</small>
-            `;
+        let assignmentBlockReason = d.assignmentBlockReason || "Size không phù hợp với loại sản phẩm";
+        let formattedPrice = Number(d.price || 0).toLocaleString('vi-VN');
 
         // ===== ĐÃ GÁN =====
         if (d.isAssigned) {
-            assignedHtml += card + `
-                    <div class="mt-2">
-
-                        <input type="number"
-                               id="price-${d.drinkSizeId}"
-                               value="${d.price ?? 0}"
-                               class="form-control form-control-sm mb-2"
-                               disabled
-                               aria-label="Giá bán toàn hệ thống" />
-
-                        <button class="btn btn-sm btn-primary w-100 mb-1"
-                                id="btn-edit-${d.drinkSizeId}"
-                                onclick="toggleEdit(${d.drinkSizeId})">
-                            Quản lý giá
+            assignedHtml += `
+                <div class="drink-card">
+                    <img src="${image}" class="drink-img" alt="${d.name}" />
+                    <div class="drink-info">
+                        <h6 class="fw-bold text-dark mb-1 text-truncate" title="${d.name}">${d.name}</h6>
+                        <small class="text-muted d-block text-truncate mb-1">${d.categoryName || "Khác"} · ${d.productTypeName || ""}</small>
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <span class="badge bg-light text-dark border fw-semibold">${formattedPrice} đ</span>
+                            <a href="/Admin/AdminDrinkProfitability" class="small text-decoration-none text-primary" title="Quản lý vốn & lợi nhuận">
+                                <i class="fas fa-edit me-1"></i>Giá
+                            </a>
+                        </div>
+                    </div>
+                    <div class="drink-action">
+                        <button class="btn btn-sm ${d.active ? "btn-outline-danger" : "btn-outline-success"} text-nowrap px-2.5 py-1.5"
+                                onclick="toggleDrinkSize(${d.drinkSizeId})"
+                                title="${d.active ? "Tắt size cho đồ uống này" : "Kích hoạt lại size"}">
+                            <i class="fas ${d.active ? "fa-ban" : "fa-check"} me-1"></i>${d.active ? "Tắt" : "Bật"}
                         </button>
-
-                        <button class="btn btn-sm btn-outline-danger w-100"
-                                onclick="toggleDrinkSize(${d.drinkSizeId})">
-                            ${d.active ? "Tắt" : "Bật"}
-                        </button>
-
                     </div>
                 </div>
-            </div>`;
+            `;
         }
 
         // ===== CHƯA GÁN =====
         else {
-            unassignedHtml += card + `
-                    ${
-                        canAssign
-                            ? `<button class="btn btn-sm btn-orange w-100 mt-2"
-                                       onclick="openPriceModal(${d.drinkId})">
-                                   Gán
-                               </button>`
-                            : `<button class="btn btn-sm btn-secondary w-100 mt-2"
-                                       disabled>
-                                   Không phù hợp
-                               </button>
-                               <small class="text-danger d-block mt-1">
-                                   ${assignmentBlockReason}
-                               </small>`
-                    }
+            unassignedHtml += `
+                <div class="drink-card">
+                    <img src="${image}" class="drink-img" alt="${d.name}" />
+                    <div class="drink-info">
+                        <h6 class="fw-bold text-dark mb-1 text-truncate" title="${d.name}">${d.name}</h6>
+                        <small class="text-muted d-block text-truncate mb-1">${d.categoryName || "Khác"} · ${d.productTypeName || ""}</small>
+                        ${!canAssign ? `<small class="text-danger d-block text-truncate" title="${assignmentBlockReason}"><i class="fas fa-exclamation-triangle me-1"></i>${assignmentBlockReason}</small>` : ''}
+                    </div>
+                    <div class="drink-action">
+                        ${
+                            canAssign
+                                ? `<button class="btn btn-sm btn-orange text-nowrap px-3 py-1.5"
+                                           onclick="openPriceModal(${d.drinkId})">
+                                       <i class="fas fa-plus me-1"></i>Gán
+                                   </button>`
+                                : `<button class="btn btn-sm disabled-action-btn text-nowrap px-2 py-1.5"
+                                           disabled title="${assignmentBlockReason}">
+                                       <i class="fas fa-lock me-1"></i>Không hợp lệ
+                                   </button>`
+                        }
+                    </div>
                 </div>
-            </div>`;
+            `;
         }
     });
+
+    if (!assignedHtml) {
+        assignedHtml = '<div class="text-center py-4 text-muted small"><i class="fas fa-inbox d-block fa-2x mb-2 opacity-50"></i>Chưa có đồ uống nào được gán size này</div>';
+    }
+
+    if (!unassignedHtml) {
+        unassignedHtml = '<div class="text-center py-4 text-muted small"><i class="fas fa-check-circle d-block fa-2x mb-2 text-success opacity-50"></i>Tất cả đồ uống phù hợp đã được gán</div>';
+    }
 
     document.getElementById("assignedList").innerHTML = assignedHtml;
     document.getElementById("unassignedList").innerHTML = unassignedHtml;
@@ -125,11 +136,15 @@ function openDrinkModal(sizeId, sizeName) {
     currentSizeId = sizeId;
     currentSizeName = sizeName;
 
-    document.getElementById("drinkModalTitle").innerText =
-        `Quản lý Drink - Size ${sizeName}`;
+    const titleEl = document.getElementById("drinkModalTitle");
+    if (titleEl) {
+        titleEl.innerText = `Quản lý Đồ uống - Size ${sizeName}`;
+    }
 
-    document.getElementById("currentSizeBadge").innerText =
-        `Size: ${sizeName}`;
+    const badgeEl = document.getElementById("currentSizeBadge");
+    if (badgeEl) {
+        badgeEl.innerText = `Size: ${sizeName}`;
+    }
 
     fetch(`/Admin/AdminSize/GetDrinks?sizeId=${sizeId}`)
         .then(res => {
@@ -203,7 +218,23 @@ function toggleEdit(drinkSizeId) {
 // =========================
 // TOGGLE ACTIVE
 // =========================
-function toggleDrinkSize(id) {
+async function toggleDrinkSize(id) {
+    if (window.Swal) {
+        const result = await window.Swal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc muốn thay đổi trạng thái size đồ uống này?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#70482f',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
+        });
+        if (!result.isConfirmed) return;
+    } else if (!confirm("Bạn có chắc muốn thay đổi trạng thái size đồ uống này?")) {
+        return;
+    }
+
     fetch(`/Admin/AdminSize/ToggleDrinkSize?id=${id}`, {
         method: 'POST',
         headers: { 'RequestVerificationToken': getSizeAntiForgeryToken() }
@@ -231,7 +262,23 @@ function toggleDrinkSize(id) {
 // =========================
 // TOGGLE SIZE
 // =========================
-function toggleSize(id) {
+async function toggleSize(id) {
+    if (window.Swal) {
+        const result = await window.Swal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc muốn thay đổi trạng thái size này?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#70482f',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
+        });
+        if (!result.isConfirmed) return;
+    } else if (!confirm("Bạn có chắc muốn thay đổi trạng thái size này?")) {
+        return;
+    }
+
     fetch(`/Admin/AdminSize/ToggleStatus?id=${id}`, {
         method: 'POST',
         headers: {

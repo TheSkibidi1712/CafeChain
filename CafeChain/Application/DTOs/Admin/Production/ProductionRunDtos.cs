@@ -39,7 +39,8 @@ namespace CafeChain.Application.DTOs.Admin.Production
         public string? RecipeName { get; set; }
         public int RecipeId { get; set; }
         public decimal RequestedRunCount { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public ProductionRunStatus StatusCode { get; set; }
+        public string Status => ProductionRunDisplay.Status(StatusCode);
         public DateTime ConfirmedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
         public int CreatedByStaffId { get; set; }

@@ -16,7 +16,7 @@ App.AdminDashboard
 - `App.AdminDashboard` chỉ cho phép vào Dashboard, không cho phép xem toàn bộ widget.
 - Account-level Deny có ưu tiên cao hơn Allow.
 - Không có StaffScope thì từ chối dữ liệu cần scope; Store ngoài scope trả 403 trước khi query nghiệp vụ.
-- Nhiều role hợp permission nhưng không tự sinh thêm Store/Province/District.
+- Nhiều role hợp permission nhưng không tự sinh thêm Store/Province/Ward.
 - `SystemAdmin` là role kỹ thuật và mặc định chỉ có `System.*`; không tự có doanh thu, lợi nhuận, nhân sự hay dữ liệu thương mại.
 - `Scripts/SeedAll.sql` là nguồn seed mặc định duy nhất. EF configuration chỉ mô tả schema; migration mới không xóa custom override/scope.
 
@@ -35,9 +35,9 @@ App.AdminDashboard
 
 ## 3. StaffScope và bộ lọc
 
-- Scope lấy từ assignment đang active, gồm type/label, Store được phép và khả năng chọn Province/District/Store hoặc aggregate.
+- Scope lấy từ assignment đang active, gồm type/label, Store được phép và khả năng chọn Province/Ward/Store hoặc aggregate.
 - Aggregate chỉ chứa Store trong scope.
-- Bộ lọc dùng Province/District/Store thật; không tạo `AreaId` giả.
+- Bộ lọc dùng Province/Ward/Store thật; không tạo `AreaId` giả.
 - BusinessOwner, AreaManager, StoreManager và AccountantWarehouse chỉ khác default permission/scope được seed; runtime vẫn dùng effective permission.
 
 ## 4. Business date và NetSales

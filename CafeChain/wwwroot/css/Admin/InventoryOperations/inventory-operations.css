@@ -188,7 +188,7 @@
 
 .ops-metrics {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 14px;
     margin-bottom: 24px;
 }
@@ -199,9 +199,9 @@
     min-height: var(--cc-metric-height, 96px);
     padding: 16px 20px;
     border: 1px solid var(--cc-border, #E9DED4) !important;
-    border-radius: 14px !important;
+    border-radius: var(--cc-radius-card, 16px) !important;
     background: linear-gradient(145deg, var(--cc-surface-raised, #FFFFFF) 0%, var(--cc-surface, #FFFDFB) 72%, var(--cc-brown-50, #FAF6F2) 100%);
-    box-shadow: var(--cc-shadow-xs);
+    box-shadow: var(--cc-shadow-sm);
     transition: all .2s ease;
 }
 
@@ -246,7 +246,7 @@
     margin-bottom: 12px;
     padding: 10px 12px;
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-control, 10px);
     background: var(--cc-surface);
 }
 
@@ -297,7 +297,7 @@
 .ops-table-wrap {
     overflow: hidden;
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     background: var(--cc-surface);
 }
 
@@ -412,7 +412,7 @@
 .ops-notice {
     padding: 22px;
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     background: var(--cc-surface);
     color: var(--cc-text-secondary);
     font-size: .84rem;
@@ -432,7 +432,7 @@
     width: 42px;
     height: 42px;
     place-items: center;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     background: var(--cc-warning-bg);
     color: var(--cc-accent);
     font-size: 1rem;
@@ -511,7 +511,7 @@
 
 .ops-panel {
     border: 1px solid var(--cc-border);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     background: var(--cc-surface);
     overflow: hidden;
 }
@@ -575,7 +575,7 @@
 .ops-line-editor {
     border: 1px solid var(--cc-border);
     border-left: 3px solid var(--cc-primary);
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     background: var(--cc-surface-muted);
     padding: 16px;
 }
@@ -666,7 +666,7 @@
     font-size: 11.5px;
     font-weight: 750;
     line-height: 1.2;
-    border-radius: 20px;
+    border-radius: var(--cc-radius-header, 20px);
 }
 
 .ops-table td form.mt-2 {
@@ -695,7 +695,7 @@
     min-height: 40px;
     height: 40px;
     border: 1px solid #D8C5B6;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     padding: 6px 12px;
     font-size: 13px;
     font-weight: 650;
@@ -722,7 +722,7 @@
     height: 40px;
     padding: 0 18px;
     border: 1px solid #70482F;
-    border-radius: 8px;
+    border-radius: var(--cc-radius-sm, 8px);
     background: #70482F;
     color: #FFFDFB;
     font-size: 13px;
@@ -955,9 +955,9 @@
 
 .ops-panel {
     border: 1px solid var(--cc-border, #E2D7CD) !important;
-    border-radius: 12px !important;
+    border-radius: var(--cc-radius-md, 12px) !important;
     background: var(--cc-surface, #FFFFFF) !important;
-    box-shadow: 0 4px 16px rgba(111, 78, 55, 0.04) !important;
+    box-shadow: var(--cc-shadow-sm);
     overflow: hidden !important;
     transition: box-shadow 0.25s ease !important;
     width: 100% !important;
@@ -1026,7 +1026,7 @@
 .ops-select,
 .ops-textarea {
     border: 1px solid var(--cc-border, #E2D7CD) !important;
-    border-radius: 8px !important;
+    border-radius: var(--cc-radius-sm, 8px) !important;
     background: #FFFFFF !important;
     color: var(--cc-text-primary, #2C1A11) !important;
     font-size: 0.85rem !important;
@@ -1056,7 +1056,7 @@
     border: 1px solid #593E2B !important;
     color: #FFFFFF !important;
     font-weight: 750 !important;
-    border-radius: 8px !important;
+    border-radius: var(--cc-radius-sm, 8px) !important;
     height: 38px !important;
     box-shadow: 0 2px 8px rgba(111, 78, 55, 0.2) !important;
     transition: all 0.2s ease !important;
@@ -1093,7 +1093,7 @@
     background: #FFFFFF !important;
     border: 1px solid var(--cc-border, #E2D7CD) !important;
     border-top: 3.5px solid var(--cc-primary, #6F4E37) !important;
-    border-radius: 10px !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
     padding: 14px 16px !important;
     box-shadow: 0 2px 10px rgba(111, 78, 55, 0.04) !important;
     transition: transform 0.2s ease, box-shadow 0.2s ease !important;
@@ -1268,7 +1268,7 @@
 }
 
 .ops-notice {
-    border-radius: 10px !important;
+    border-radius: var(--cc-radius-control, 10px) !important;
     padding: 14px 18px !important;
     font-size: 0.85rem !important;
     font-weight: 600 !important;

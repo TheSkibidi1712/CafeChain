@@ -48,6 +48,24 @@ public sealed class ModalViewportContractTests
     }
 
     [Fact]
+    public void Inventory_history_modal_has_independent_vertical_and_horizontal_scroll_regions()
+    {
+        var modal = Read("CafeChain", "Areas", "Admin", "Views", "AdminStoreInventory", "Partials", "_TransactionModalPartial.cshtml");
+        var transactions = Read("CafeChain", "Areas", "Admin", "Views", "AdminStoreInventory", "Partials", "_TransactionPartial.cshtml");
+        var css = Read("CafeChain", "wwwroot", "css", "Admin", "StoreInventory", "storeinventory.css");
+
+        Assert.Contains("modal-dialog-scrollable", modal, StringComparison.Ordinal);
+        Assert.Contains("class=\"modal-body\"", modal, StringComparison.Ordinal);
+        Assert.Contains(".store-inventory-modal .modal-body", css, StringComparison.Ordinal);
+        Assert.Contains("overflow-y: auto", css, StringComparison.Ordinal);
+        Assert.Contains("height: calc(100dvh - 2rem)", css, StringComparison.Ordinal);
+        Assert.Contains("class=\"transaction-table-wrap\"", transactions, StringComparison.Ordinal);
+        Assert.Contains(".transaction-table-wrap", css, StringComparison.Ordinal);
+        Assert.Contains("overflow-x: auto", css, StringComparison.Ordinal);
+        Assert.DoesNotContain("margin: 5% auto", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void React_overlays_are_bounded_by_dynamic_viewport()
     {
         var branch = Read("CafeChain.Frontend", "src", "pages", "BranchInventory.tsx");

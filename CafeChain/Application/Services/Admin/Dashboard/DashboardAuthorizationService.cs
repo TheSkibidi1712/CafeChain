@@ -69,7 +69,7 @@ public sealed class DashboardAuthorizationService : IDashboardAuthorizationServi
                 Label = storeIds.Length == 1 ? stores[0].Name : $"{storeIds.Length} cửa hàng được phân công",
                 AllowedStoreIds = storeIds,
                 CanSelectProvince = storeIds.Length > 1,
-                CanSelectDistrict = storeIds.Length > 1,
+                CanSelectWard = storeIds.Length > 1,
                 CanSelectStore = storeIds.Length > 1,
                 CanAggregateMultipleStores = storeIds.Length > 1
             }

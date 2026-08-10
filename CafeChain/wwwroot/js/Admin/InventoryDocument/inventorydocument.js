@@ -1,4 +1,4 @@
-﻿// =====================================================
+// =====================================================
 // INVENTORY DOCUMENT MODULE
 // =====================================================
 
@@ -416,6 +416,16 @@ const InventoryDocument = (() => {
 
         const text =
             await response.text();
+
+        if (text && (text.includes("<!DOCTYPE") || text.includes("<html") || text.includes("<body"))) {
+            try {
+                const doc = new DOMParser().parseFromString(text, "text/html");
+                const titleNode = doc.querySelector("title");
+                const cleanTitle = titleNode ? titleNode.textContent.replace(/- CafeChain/gi, "").trim() : "";
+                if (cleanTitle && cleanTitle.length < 80) return cleanTitle;
+            } catch { }
+            return response.status === 403 ? "Không có quyền truy cập thao tác này." : "Không thể xử lý yêu cầu.";
+        }
 
         return text;
     }
@@ -1170,9 +1180,14 @@ const InventoryDocument = (() => {
 
     function openExportModal(documentId) {
 
+        const modalElement = document.querySelector(selectors.exportModal);
+        if (modalElement && modalElement.parentNode !== document.body) {
+            document.body.appendChild(modalElement);
+        }
+
         document.querySelector(selectors.exportDocumentId).value = documentId;
 
-        const modal = bootstrap.Modal.getOrCreateInstance(document.querySelector(selectors.exportModal));
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
 
         modal.show();
     }

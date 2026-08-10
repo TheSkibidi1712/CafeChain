@@ -146,7 +146,7 @@ namespace CafeChain.Tests.POS
                 "DataHealth.cshtml"));
 
             Assert.Contains("Tình trạng dữ liệu BOM", view, StringComparison.Ordinal);
-            Assert.Contains("Trạng thái cửa hàng được đánh giá riêng", view, StringComparison.Ordinal);
+            Assert.Contains("trên trang", view, StringComparison.Ordinal);
             Assert.DoesNotContain("Store readiness", view, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Đủ cho", view, StringComparison.OrdinalIgnoreCase);
         }

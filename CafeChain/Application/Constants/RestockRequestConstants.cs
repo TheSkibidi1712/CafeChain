@@ -48,5 +48,6 @@ namespace CafeChain.Application.Constants
     {
         public const string BranchReceipt = "BRANCH_RECEIPT";
         public const string InventoryTransfer = "INVENTORY_TRANSFER";
+        public const string ProductionRun = "PRODUCTION_RUN";
     }
 }

@@ -27,6 +27,45 @@ public sealed class WorkShiftOpenAssessmentTests
         Assert.Equal(schedule.StaffShiftId, result.Data.SourceStaffShiftId);
     }
 
+    [Theory]
+    [InlineData(7, 30, WorkShiftOpenContexts.WithinSchedule, false)]
+    [InlineData(7, 29, WorkShiftOpenContexts.EarlyForSchedule, true)]
+    public async Task Early_open_boundary_uses_thirty_minute_window(
+        int hour, int minute, string expectedContext, bool approvalRequired)
+    {
+        var result = await CreateService(
+                LocalUtc(2026, 8, 3, hour, minute),
+                Schedule(new DateTime(2026, 8, 3), 8, 16))
+            .AssessOpenShiftAsync(7, 1, new OpenShiftAssessmentRequestDto { PosTerminalId = "POS-1" });
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(expectedContext, result.Data!.OpenContext);
+        Assert.Equal(approvalRequired, result.Data.ApprovalRequired);
+        Assert.Equal(approvalRequired, result.Data.ReasonRequired);
+    }
+
+    [Fact]
+    public async Task Assessment_version_changes_when_same_schedule_id_changes_time_or_rowversion()
+    {
+        var original = Schedule(new DateTime(2026, 8, 3), 8, 16);
+        original.RowVersion = [1, 2, 3];
+        original.Shift.RowVersion = [4, 5, 6];
+        var first = await CreateService(LocalUtc(2026, 8, 3, 8, 5), original)
+            .AssessOpenShiftAsync(7, 1, new OpenShiftAssessmentRequestDto { PosTerminalId = "POS-1" });
+
+        var changed = Schedule(new DateTime(2026, 8, 3), 8, 16);
+        changed.CustomStartTime = TimeSpan.FromHours(9);
+        changed.CustomEndTime = TimeSpan.FromHours(17);
+        changed.RowVersion = [7, 8, 9];
+        changed.Shift.RowVersion = [4, 5, 6];
+        var second = await CreateService(LocalUtc(2026, 8, 3, 8, 5), changed)
+            .AssessOpenShiftAsync(7, 1, new OpenShiftAssessmentRequestDto { PosTerminalId = "POS-1" });
+
+        Assert.True(first.IsSuccess && second.IsSuccess);
+        Assert.Equal(original.StaffShiftId, changed.StaffShiftId);
+        Assert.NotEqual(first.Data!.AssessmentVersion, second.Data!.AssessmentVersion);
+    }
+
     [Fact]
     public async Task LateMoreThanThirtyMinutes_RequiresReasonAndApproval()
     {
@@ -47,7 +86,7 @@ public sealed class WorkShiftOpenAssessmentTests
     [InlineData(0, false, false)]
     [InlineData(15, false, false)]
     [InlineData(16, true, false)]
-    [InlineData(30, true, false)]
+    [InlineData(30, true, true)]
     [InlineData(31, true, true)]
     public async Task Late_open_boundaries_follow_business_policy(
         int minutesLate,

@@ -1,4 +1,4 @@
-﻿// =====================================================
+// =====================================================
 // GLOBAL VARIABLES
 // =====================================================
 
@@ -33,7 +33,7 @@ function getAntiForgeryToken() {
 
     return document.querySelector(
         'input[name="__RequestVerificationToken"]'
-    )?.value;
+    )?.value || '';
 }
 
 async function readJsonResult(response) {
@@ -68,8 +68,11 @@ async function readJsonResult(response) {
 function showToast(message, type = "success") {
 
     if (typeof toast === "function") {
-
         toast(message, type);
+    } else if (typeof window.toast === "function") {
+        window.toast(message, type);
+    } else {
+        alert(message);
     }
 }
 
@@ -1037,11 +1040,19 @@ async function toggleTopping(
     url
 ) {
 
-    if (
-        !confirm(
-            "Bạn có chắc muốn thay đổi trạng thái topping này?"
-        )
-    ) {
+    if (window.Swal) {
+        const result = await window.Swal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc muốn thay đổi trạng thái topping này?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#70482f',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
+        });
+        if (!result.isConfirmed) return;
+    } else if (!confirm("Bạn có chắc muốn thay đổi trạng thái topping này?")) {
         return;
     }
 
@@ -1070,7 +1081,7 @@ async function toggleTopping(
                     headers: {
                         "Accept": "application/json",
                         "X-Requested-With": "XMLHttpRequest",
-                        RequestVerificationToken: token
+                        "RequestVerificationToken": token
                     }
                 });
 
@@ -1109,167 +1120,82 @@ async function toggleTopping(
 // RENDER DRINK UI
 // =====================================================
 
-function renderDrinkUI(
-    drinks
-) {
-
-    const assignedList =
-        document.getElementById(
-            "assignedList"
-        );
-
-    const unassignedList =
-        document.getElementById(
-            "unassignedList"
-        );
+function renderDrinkUI(drinks) {
+    const assignedList = document.getElementById("assignedList");
+    const unassignedList = document.getElementById("unassignedList");
 
     assignedList.innerHTML = "";
-
     unassignedList.innerHTML = "";
 
-    if (
-        !drinks ||
-        drinks.length === 0
-    ) {
-
-        assignedList.innerHTML =
-            `<div class="col-12 text-muted">
-                Không có dữ liệu
-            </div>`;
-
+    if (!drinks || drinks.length === 0) {
+        assignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>Không có dữ liệu đồ uống</div>`;
+        unassignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-info-circle me-1"></i>Không có dữ liệu đồ uống</div>`;
         return;
     }
 
+    let hasAssigned = false;
+    let hasUnassigned = false;
+
     drinks.forEach(drink => {
+        const cardHtml = createDrinkCard(drink);
 
-        const cardHtml =
-            createDrinkCard(
-                drink
-            );
-
-        if (
-            drink.isAssigned
-        ) {
-
-            assignedList.insertAdjacentHTML(
-                "beforeend",
-                cardHtml
-            );
-        }
-        else {
-
-            unassignedList.insertAdjacentHTML(
-                "beforeend",
-                cardHtml
-            );
+        if (drink.isAssigned) {
+            hasAssigned = true;
+            assignedList.insertAdjacentHTML("beforeend", cardHtml);
+        } else {
+            hasUnassigned = true;
+            unassignedList.insertAdjacentHTML("beforeend", cardHtml);
         }
     });
+
+    if (!hasAssigned) {
+        assignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-inbox d-block fa-2x mb-2 opacity-50"></i>Chưa có đồ uống nào gán topping này</div>`;
+    }
+
+    if (!hasUnassigned) {
+        unassignedList.innerHTML = `<div class="text-center py-4 text-muted small"><i class="fas fa-check-circle d-block fa-2x mb-2 text-success opacity-50"></i>Tất cả đồ uống đã được gán topping</div>`;
+    }
 }
 
 // =====================================================
 // CREATE DRINK CARD
 // =====================================================
 
-function createDrinkCard(
-    drink
-) {
+function createDrinkCard(drink) {
+    const imageUrl = drink.imageUrl || "/Images/DrinkImages/no-image.jpg";
 
-    const imageUrl =
-        drink.imageUrl ||
-        "/images/no-image.png";
-
-    if (
-        drink.isAssigned
-    ) {
-
+    if (drink.isAssigned) {
         return `
-            <div class="col-12">
-
-                <div class="card shadow-sm">
-
-                    <div class="card-body d-flex align-items-center">
-
-                        <img
-                            src="${imageUrl}"
-                            style="
-                                width:70px;
-                                height:70px;
-                                object-fit:cover;
-                            "
-                            class="rounded me-3" />
-
-                        <div class="flex-grow-1">
-
-                            <div class="fw-bold">
-                                ${drink.name}
-                            </div>
-
-                            <small class="text-muted">
-                                ${drink.categoryName ?? ""}
-                            </small>
-
-                        </div>
-
-                        <button
-                            class="btn btn-sm ${drink.active
-                ? "btn-danger"
-                : "btn-success"}"
-                            onclick="toggleDrinkTopping(${drink.drinkToppingId})">
-
-                            ${drink.active
-                ? "Ngừng"
-                : "Kích hoạt"}
-
-                        </button>
-
-                    </div>
-
+            <div class="drink-card">
+                <img src="${imageUrl}" class="drink-img" alt="${drink.name}" />
+                <div class="drink-info">
+                    <h6 class="fw-bold text-dark mb-1 text-truncate" title="${drink.name}">${drink.name}</h6>
+                    <small class="text-muted d-block text-truncate">${drink.categoryName || "Đồ uống"}</small>
                 </div>
-
+                <div class="drink-action">
+                    <button class="btn btn-sm ${drink.active ? "btn-outline-danger" : "btn-outline-success"} text-nowrap px-2.5 py-1.5"
+                            onclick="toggleDrinkTopping(${drink.drinkToppingId})"
+                            title="${drink.active ? "Ngừng sử dụng topping cho đồ uống này" : "Kích hoạt lại topping"}">
+                        <i class="fas ${drink.active ? "fa-ban" : "fa-check"} me-1"></i>${drink.active ? "Tắt" : "Bật"}
+                    </button>
+                </div>
             </div>
         `;
     }
 
     return `
-        <div class="col-12">
-
-            <div class="card shadow-sm">
-
-                <div class="card-body d-flex align-items-center">
-
-                    <img
-                        src="${imageUrl}"
-                        style="
-                            width:70px;
-                            height:70px;
-                            object-fit:cover;
-                        "
-                        class="rounded me-3" />
-
-                    <div class="flex-grow-1">
-
-                        <div class="fw-bold">
-                            ${drink.name}
-                        </div>
-
-                        <small class="text-muted">
-                            ${drink.categoryName ?? ""}
-                        </small>
-
-                    </div>
-
-                    <button
-                        class="btn btn-primary btn-sm"
-                        onclick="assignTopping(${drink.drinkId}, this)">
-
-                        Gán
-
-                    </button>
-
-                </div>
-
+        <div class="drink-card">
+            <img src="${imageUrl}" class="drink-img" alt="${drink.name}" />
+            <div class="drink-info">
+                <h6 class="fw-bold text-dark mb-1 text-truncate" title="${drink.name}">${drink.name}</h6>
+                <small class="text-muted d-block text-truncate">${drink.categoryName || "Đồ uống"}</small>
             </div>
-
+            <div class="drink-action">
+                <button class="btn btn-sm btn-orange text-nowrap px-3 py-1.5"
+                        onclick="assignTopping(${drink.drinkId}, this)">
+                    <i class="fas fa-plus me-1"></i>Gán
+                </button>
+            </div>
         </div>
     `;
 }

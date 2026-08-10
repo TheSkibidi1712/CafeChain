@@ -622,7 +622,7 @@ namespace CafeChain.Tests
        }
 
        [Fact]
-       public async Task Resend_DoesNotResetFailedAttempts()
+       public async Task Resend_RotatesCodeAndResetsFailedAttempts()
        {
            await SeedCoreDataAsync();
            var service = CreateServiceWithOtpCapture();
@@ -651,8 +651,49 @@ namespace CafeChain.Tests
 
            using var verificationContext = CreateDbContext();
            var updated = verificationContext.OtpChallenges.Single(c => c.PublicId == publicId);
-           Assert.Equal(1, updated.FailedAttempts);
-           Assert.Equal(OtpConstants.MaxFailedAttempts - 1, resent.Data!.RemainingAttempts);
+           Assert.Equal(0, updated.FailedAttempts);
+           Assert.Equal(OtpConstants.MaxFailedAttempts, resent.Data!.RemainingAttempts);
+       }
+
+       [Fact]
+       public async Task Locked_challenge_blocks_resend_for_120_seconds_then_allows_rotation()
+       {
+           await SeedCoreDataAsync();
+           var service = CreateServiceWithOtpCapture();
+           var publicId = await RequestAndGetPublicIdAsync(service, 100);
+
+           using (var ctx = CreateDbContext())
+           {
+               var challenge = ctx.OtpChallenges.Single(c => c.PublicId == publicId);
+               challenge.Status = OtpConstants.Statuses.Locked;
+               challenge.FailedAttempts = OtpConstants.MaxFailedAttempts;
+               challenge.LockedAt = DateTime.UtcNow;
+               await ctx.SaveChangesAsync();
+           }
+
+           var blocked = await CreateService().ResendOtpAsync(new OtpResendDto
+           {
+               OtpChallengePublicId = publicId
+           });
+           Assert.False(blocked.IsSuccess);
+           Assert.Equal(OtpConstants.ErrorCodes.ResendCooldown, blocked.ErrorCode);
+           Assert.True(blocked.Data!.Locked);
+           Assert.InRange(blocked.Data.RetryAfter, 1, OtpConstants.LockoutCooldownSeconds);
+
+           using (var ctx = CreateDbContext())
+           {
+               var challenge = ctx.OtpChallenges.Single(c => c.PublicId == publicId);
+               challenge.LockedAt = DateTime.UtcNow.AddSeconds(-OtpConstants.LockoutCooldownSeconds - 1);
+               await ctx.SaveChangesAsync();
+           }
+
+           var resent = await CreateServiceWithOtpCapture().ResendOtpAsync(new OtpResendDto
+           {
+               OtpChallengePublicId = publicId
+           });
+           Assert.True(resent.IsSuccess, resent.Message);
+           Assert.Equal(OtpConstants.Statuses.Pending, resent.Data!.Status);
+           Assert.Equal(OtpConstants.MaxFailedAttempts, resent.Data.RemainingAttempts);
        }
 
        [Fact]

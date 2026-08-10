@@ -1,35 +1,47 @@
 @model CafeChain.ViewModels.Admin.Productions.ProductionOrderVM
+@using CafeChain.ViewModels.Admin.Shared
 
 @{
-    ViewData["Title"] = "Lệnh Sơ Chế";
+    ViewData["Title"] = "Sơ chế độc lập";
+    var hero = new AdminPageHeroVM
+    {
+        Eyebrow = "Sản xuất / BOM",
+        Title = "Sơ chế độc lập",
+        Description = "Ghi nhận sơ chế ngoài luồng nhu cầu nhập hàng. Hệ số công thức nhân tỷ lệ toàn bộ đầu vào và đầu ra của công thức.",
+        IconClass = "fas fa-fire-burner",
+        Breadcrumbs =
+        [
+            new() { Label = "Lệnh sản xuất", Url = Url.Action("Index", new { storeId = Model.StoreId }) },
+            new() { Label = "Sơ chế độc lập" }
+        ],
+        Actions =
+        [
+            new()
+            {
+                Label = "Quay lại danh sách",
+                Url = Url.Action("Index", new { storeId = Model.StoreId }) ?? "#",
+                IconClass = "fas fa-arrow-left"
+            }
+        ]
+    };
 }
 
 <link rel="stylesheet" href="~/css/Admin/ProductionOrder/production-order.css" />
+<link rel="stylesheet" href="~/css/Admin/production-bom-ui.css" asp-append-version="true" />
 
-<div class="container-fluid px-4 mt-4 po-page">
-    <div class="po-title-section bom-depth-header">
-        <nav class="rb-breadcrumb po-breadcrumb" aria-label="breadcrumb">
-            <span>Sản xuất / BOM</span> &gt; <span>Lệnh sơ chế</span>
-        </nav>
-        <div class="admin-module-title-row">
-            <span class="admin-module-title-icon" aria-hidden="true"><i class="fas fa-fire-burner"></i></span>
-            <div>
-                <h1 class="po-title">LỆNH SƠ CHẾ</h1>
-                <p class="po-subtitle">Quản lý định lượng và quy trình sơ chế thực phẩm hàng ngày.</p>
-            </div>
-        </div>
-    </div>
+<div class="po-page production-bom-page production-bom-shell production-create-page">
+    <partial name="_PageHero" model="hero" />
 
     <form asp-action="Create" method="post" id="productionForm">
         @Html.AntiForgeryToken()
 
-        <div class="po-main-card">
-            <div class="row g-5">
+        <section class="po-main-card production-form-section">
+            <div class="production-operation-grid">
                 <!-- Left Column -->
-                <div class="col-lg-5 po-form-pane">
-                    <div class="po-section-title">
+                <div class="po-form-pane production-operation-form">
+                    <h2 class="po-section-title">
                         <i class="fas fa-fire-burner"></i> Thông tin sơ chế chi tiết
-                    </div>
+                    </h2>
 
                     <div class="row g-3">
                         <div class="col-12">
@@ -53,7 +65,7 @@
                                             disabled="@(!recipe.Selectable ? "disabled" : null)"
                                             data-code="@recipe.RecipeCode"
                                             data-disabled-reason="@recipe.DisabledReason">
-                                        [@recipe.PreparedItemCode] @recipe.PreparedItemName · @recipe.OutputPerRunDisplay/mẻ
+                                        [@recipe.PreparedItemCode] @recipe.PreparedItemName · @recipe.OutputPerRunDisplay khi hệ số = 1
                                         @if (!recipe.Selectable)
                                         {
                                             <text> · @recipe.DisabledReason</text>
@@ -66,18 +78,18 @@
 
                         <div class="col-12">
                             <label class="form-label">Mã SKU dự kiến</label>
-                            <input type="text" id="skuInput" class="form-control" readonly placeholder="Tự động tạo..." />
+                            <input type="text" id="skuInput" class="form-control production-readonly-field" readonly placeholder="Tự động tạo..." />
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Số lượng mẻ <span class="text-danger">*</span></label>
+                            <label class="form-label" for="batchInput">Hệ số công thức <span class="text-danger">*</span></label>
                             <input type="number" step="any" min="0.00001" max="9999" name="PlannedBatches" id="batchInput"
                                    class="form-control fw-bold text-center" value="1" required />
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Đơn vị</label>
-                            <input type="text" class="form-control" value="mẻ" readonly />
+                            <label class="form-label" for="scaleMeaning">Ý nghĩa</label>
+                            <input id="scaleMeaning" type="text" class="form-control production-readonly-field" value="Nhân tỷ lệ công thức" readonly />
                         </div>
 
                         <div class="col-12">
@@ -97,7 +109,7 @@
                 </div>
 
                 <!-- Right Column (BOM Table) -->
-                <div class="col-lg-7 d-flex flex-column po-bom-pane">
+                <div class="d-flex flex-column po-bom-pane production-operation-preview">
                     <div class="po-bom-header">
                         <div class="po-bom-title">Nguyên liệu tiêu hao (BOM)</div>
                         <div class="po-bom-badge">Tính toán tự động theo định mức</div>
@@ -105,7 +117,7 @@
 
                     <div id="readinessSummary" class="po-readiness-summary" aria-live="polite">
                         <span class="po-readiness-state is-neutral">Chưa xem trước</span>
-                        <span class="small text-muted">Chọn cửa hàng, BTP và số mẻ để kiểm tra.</span>
+                        <span class="small text-muted">Chọn cửa hàng, bán thành phẩm và hệ số công thức để kiểm tra.</span>
                     </div>
 
                     <div id="outputSummary" class="po-output-summary d-none"></div>
@@ -114,13 +126,13 @@
                         <table class="table po-table">
                             <thead>
                                 <tr>
-                                    <th>ĐẦU VÀO</th>
-                                    <th class="text-end">YÊU CẦU</th>
-                                    <th class="text-end">HIỆN CÓ</th>
-                                    <th class="text-end">ĐÃ GIỮ</th>
-                                    <th class="text-end">KHẢ DỤNG</th>
-                                    <th class="text-end">THIẾU</th>
-                                    <th>GIÁ VỐN FIFO</th>
+                                    <th>Đầu vào</th>
+                                    <th class="text-end">Yêu cầu</th>
+                                    <th class="text-end">Hiện có</th>
+                                    <th class="text-end">Đã giữ</th>
+                                    <th class="text-end">Khả dụng</th>
+                                    <th class="text-end">Thiếu</th>
+                                    <th>Giá vốn theo FIFO</th>
                                 </tr>
                             </thead>
                             <tbody id="resultTableBody">
@@ -150,29 +162,31 @@
                     </button>
                 </div>
             </div>
-        </div>
+        </section>
     </form>
 
-    <div class="history-section">
-        <div class="history-header">
-            <h3 class="history-title">Lịch sử lệnh sơ chế gần đây</h3>
-            <span class="history-link text-muted small">Chưa áp dụng tồn kho (chờ bước kho)</span>
-        </div>
-        <div class="history-card">
+    <section class="production-list-section" aria-labelledby="standalone-history-title">
+        <header class="production-section-header">
+            <div>
+                <h2 id="standalone-history-title">Lịch sử sơ chế gần đây</h2>
+                <p>Chỉ các lệnh đã xác nhận tồn kho mới làm thay đổi số lượng khả dụng.</p>
+            </div>
+        </header>
+        <div class="history-card production-table-panel p-0">
             <div class="table-responsive">
-            <table class="table po-table">
+            <table class="table po-table production-data-table mb-0">
                 <thead>
                     <tr>
-                        <th>MÃ LỆNH</th>
-                        <th>CỬA HÀNG</th>
-                        <th>CÔNG THỨC</th>
-                        <th>SỐ MẺ</th>
-                        <th>NGƯỜI GHI NHẬN</th>
-                        <th>XÁC NHẬN</th>
-                        <th class="text-center">TRẠNG THÁI</th>
-                        <th class="text-center">TỒN KHO</th>
-                        <th class="text-center">GIÁ VỐN</th>
-                        <th class="text-center">THAO TÁC</th>
+                        <th>Mã lệnh</th>
+                        <th>Cửa hàng</th>
+                        <th>Công thức</th>
+                        <th>Hệ số công thức</th>
+                        <th>Người ghi nhận</th>
+                        <th>Xác nhận</th>
+                        <th>Trạng thái</th>
+                        <th>Tồn kho</th>
+                        <th>Giá vốn</th>
+                        <th class="production-action-column">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -186,8 +200,8 @@
                             <tr>
                                 <td class="text-muted fw-bold">#PR-@hist.ProductionRunId</td>
                                 <td>@(hist.StoreName ?? hist.StoreId.ToString())</td>
-                                <td class="fw-bold">@(hist.RecipeName ?? $"Công thức #{hist.RecipeId}")</td>
-                                <td>@hist.RequestedRunCount.ToString("0.#####") mẻ</td>
+                                <td class="fw-bold">@(hist.RecipeName ?? "Công thức chưa có tên")</td>
+                                <td>@hist.RequestedRunCount.ToString("0.#####") hệ số</td>
                                 <td>@(hist.ActorName ?? "—")</td>
                                 <td class="small">@hist.ConfirmedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                                 <td class="text-center"><span class="badge-status-done">@hist.Status</span></td>
@@ -199,21 +213,21 @@
                                     }
                                     @if (hist.NormalizedOutputQuantity.HasValue)
                                     {
-                                        <br /><span class="small">SL ra: @hist.NormalizedOutputQuantity.Value.ToString("0.###")</span>
+                                        <br /><span class="small">Sản lượng đầu ra: @hist.NormalizedOutputQuantity.Value.ToString("0.###")</span>
                                     }
                                 </td>
                                 <td class="text-center text-muted small">
-                                    <div>@hist.ValuationStatus</div>
+                                    <div>@(string.Equals(hist.ValuationStatus, "Complete", StringComparison.OrdinalIgnoreCase) ? "Đã tính giá vốn" : "Chờ tính giá vốn")</div>
                                     @if (hist.TotalInputCost.HasValue)
                                     {
                                         <div>Tổng: @hist.TotalInputCost.Value.ToString("N2")</div>
                                     }
                                     @if (hist.OutputUnitCost.HasValue)
                                     {
-                                        <div>/đv: @hist.OutputUnitCost.Value.ToString("N4")</div>
+                                        <div>Mỗi đơn vị: @hist.OutputUnitCost.Value.ToString("N4")</div>
                                     }
                                 </td>
-                                <td class="text-center">
+                                <td class="production-action-column">
                                     @if (hist.CanApplyStock && !hist.StockApplied)
                                     {
                                         <button type="button" class="btn btn-sm btn-outline-primary btn-apply-stock rb-table-action"
@@ -239,7 +253,7 @@
             </table>
         </div>
         </div>
-    </div>
+    </section>
 </div>
 
 @section Scripts {
@@ -295,21 +309,13 @@
                 return labels[String(value || '').toUpperCase()] || (isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng');
             }
 
-            function translateWriterMode(value) {
-                const labels = {
-                    PreparedItem: 'Bán thành phẩm',
-                    LegacyRecipe: 'Công thức cũ'
-                };
-                return labels[value] || value || 'Chưa xác định';
-            }
-
             function translateSourceType(value) {
                 const labels = {
                     Ingredient: 'Nguyên liệu',
                     PreparedItem: 'Bán thành phẩm',
                     ChildRecipe: 'Công thức thành phần'
                 };
-                return labels[value] || value || 'Chưa xác định';
+                return labels[value] || 'Chưa xác định';
             }
 
             function debounce(func, wait) {
@@ -343,7 +349,7 @@
                 output.addClass('d-none').empty();
 
                 if (!storeId || !recipeId || batches <= 0) {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-boxes fa-2x mb-2 text-light"></i><br/>Vui lòng chọn cửa hàng, BTP và nhập số mẻ</td></tr>');
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-boxes fa-2x mb-2 text-light"></i><br/>Vui lòng chọn cửa hàng, bán thành phẩm và nhập hệ số công thức</td></tr>');
                     readiness.html('<span class="po-readiness-state is-neutral">Chưa xem trước</span><span class="small text-muted">Thiếu dữ liệu đầu vào.</span>');
                     btnComplete.prop('disabled', true);
                     return;
@@ -377,7 +383,7 @@
                                     <tr>
                                         <td>
                                             <div class="item-name">[${escapeHtml(item.itemCode)}] ${escapeHtml(item.itemName)}</div>
-                                            <div class="small text-muted">${escapeHtml(translateSourceType(item.sourceType))}${item.childRecipeId ? ' · cố định Công thức #' + item.childRecipeId : ''}</div>
+                                            <div class="small text-muted">${escapeHtml(translateSourceType(item.sourceType))}${item.childRecipeId ? ' · dùng phiên bản công thức đã chọn' : ''}</div>
                                         </td>
                                         <td class="text-end fw-semibold">${formatQty(item.requiredTotal)} ${escapeHtml(item.baseUnitCode)}</td>
                                         <td class="text-end">${formatQty(item.currentQuantity)}</td>
@@ -391,15 +397,15 @@
                         }
 
                         const reasonHtml = (preview.reasons || []).map(function (reason) {
-                            return `<li class="${reason.blocking ? 'text-danger' : 'text-warning'}"><code>${escapeHtml(reason.code)}</code> ${escapeHtml(reason.message)}</li>`;
+                            return `<li class="${reason.blocking ? 'text-danger' : 'text-warning'}">${escapeHtml(reason.message)}</li>`;
                         }).join('');
                         readiness.html(`
                             <span class="po-readiness-state ${preview.isReady ? 'is-ready' : 'is-error'}">${escapeHtml(translateReadinessStatus(preview.overallStatus, preview.isReady))}</span>
-                            <span class="small">Chế độ ghi kho: <strong>${escapeHtml(translateWriterMode(preview.writerMode))}</strong> · Tối đa ${formatQty(preview.maxSupportedRunCount)} mẻ</span>
+                            <span class="small">Cách ghi nhận tồn kho: <strong>${escapeHtml(preview.writerModeLabel || 'Chưa xác định')}</strong> · Hệ số tối đa ${formatQty(preview.maxSupportedRunCount)}</span>
                             ${reasonHtml ? '<ul class="po-readiness-reasons">' + reasonHtml + '</ul>' : ''}
                         `);
                         output.removeClass('d-none').html(`
-                            <div><span>Đầu ra/mẻ</span><strong>${formatQty(preview.outputQuantityPerRun)} ${escapeHtml(preview.outputUnitCode)}</strong></div>
+                            <div><span>Đầu ra khi hệ số = 1</span><strong>${formatQty(preview.outputQuantityPerRun)} ${escapeHtml(preview.outputUnitCode)}</strong></div>
                             <div><span>Tổng đầu ra chưa chuẩn hóa</span><strong>${formatQty(preview.rawTotalOutput)} ${escapeHtml(preview.outputUnitCode)}</strong></div>
                             <div><span>Đầu ra tổng chuẩn hóa</span><strong>${formatQty(preview.normalizedTotalOutput)} ${escapeHtml(preview.outputBaseUnitCode)}</strong></div>
                             <div><span>Giá vốn BOM ước tính</span><strong>${preview.estimatedBomCostComplete ? formatMoney(preview.estimatedBomCostTotal) : 'Chưa đầy đủ'}</strong></div>
@@ -453,16 +459,29 @@
                                 }).then(() => window.location.reload());
                             } else {
                                 btn.prop('disabled', false).text('Áp dụng vào kho');
-                                let errTitle = 'Thất bại';
                                 const code = res.errorCode || '';
-                                if (code === 'MODE_LEGACY' || (res.message || '').indexOf('LegacyRecipe') >= 0)
-                                    errTitle = 'Chưa chuyển đổi kho BTP';
-                                if (code === 'MODE_BLOCKED' || code === 'BTP_WRITER_BLOCKED')
-                                    errTitle = 'Kho BTP đang khóa';
-                                if (code === 'PRODUCTION_COST_EVIDENCE_INCOMPLETE')
-                                    errTitle = 'Thiếu bằng chứng giá vốn';
-                                let html = res.message || 'Không áp dụng được kho.';
+                                const executionErrors = {
+                                    MODE_LEGACY: {
+                                        title: 'Chưa sẵn sàng ghi nhận tồn kho',
+                                        message: 'Cửa hàng đang dùng cách ghi nhận tồn kho cũ. Vui lòng hoàn tất chuyển đổi sang bán thành phẩm trước khi áp dụng lệnh sơ chế.'
+                                    },
+                                    MODE_BLOCKED: {
+                                        title: 'Kho bán thành phẩm đang tạm khóa',
+                                        message: 'Chưa thể cập nhật tồn kho bán thành phẩm tại thời điểm này. Vui lòng liên hệ quản trị hệ thống.'
+                                    },
+                                    BTP_WRITER_BLOCKED: {
+                                        title: 'Kho bán thành phẩm đang tạm khóa',
+                                        message: 'Chưa thể cập nhật tồn kho bán thành phẩm tại thời điểm này. Vui lòng liên hệ quản trị hệ thống.'
+                                    }
+                                };
+                                const mappedError = executionErrors[code] || {
+                                    title: 'Không thể cập nhật tồn kho',
+                                    message: 'Lệnh sơ chế chưa được áp dụng. Vui lòng tải lại dữ liệu và thử lại.'
+                                };
+                                let errTitle = mappedError.title;
+                                let html = mappedError.message;
                                 if (code === 'PRODUCTION_COST_EVIDENCE_INCOMPLETE') {
+                                    errTitle = 'Thiếu bằng chứng giá vốn';
                                     html = '<p>Không thể hoàn tất lệnh sơ chế vì tồn kho đầu vào chưa có đủ bằng chứng giá vốn.</p>';
                                     if (res.costEvidenceGaps && res.costEvidenceGaps.length) {
                                         html += '<ul style="text-align:left">';
@@ -517,8 +536,8 @@
                 if (!storeId || !recipeId || !(runCount > 0) || runCount > 9999 || Number.isNaN(runCount)) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Số mẻ không hợp lệ',
-                        text: 'Số mẻ nấu phải > 0 và ≤ 9999 (hỗ trợ số thập phân).',
+                        title: 'Hệ số công thức không hợp lệ',
+                        text: 'Hệ số công thức phải lớn hơn 0 và không vượt quá 9999.',
                         confirmButtonColor: '#ea580c'
                     });
                     return;
