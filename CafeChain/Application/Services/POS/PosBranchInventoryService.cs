@@ -3,6 +3,7 @@ using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
 using CafeChain.Data;
+using CafeChain.Models.Enums.Inventory;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Application.Services.POS
@@ -133,6 +134,8 @@ namespace CafeChain.Application.Services.POS
                     i.IngredientId,
                     i.RecipeId,
                     i.PreparedItemId,
+                    i.BtpIdentityState,
+                    i.QuantitySemanticsStatus,
                     IngredientName = i.Ingredient != null ? i.Ingredient.Name : null,
                     IngredientCode = i.Ingredient != null ? i.Ingredient.Code : null,
                     UnitCode = i.Ingredient != null && i.Ingredient.BaseUnit != null
@@ -162,6 +165,15 @@ namespace CafeChain.Application.Services.POS
             {
                 var isIngredient = r.IngredientId.HasValue;
                 var itemId = isIngredient ? r.IngredientId!.Value : (r.PreparedItemId ?? r.RecipeId ?? 0);
+                var isCanonicalPreparedItem = !isIngredient &&
+                    r.PreparedItemId.HasValue &&
+                    (r.BtpIdentityState == BtpIdentityState.Canonical ||
+                     (!r.RecipeId.HasValue && !r.BtpIdentityState.HasValue));
+                var hasConfirmedBaseUnit = isCanonicalPreparedItem &&
+                    (r.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.BaseUnitConfirmed ||
+                     (!r.RecipeId.HasValue && !r.QuantitySemanticsStatus.HasValue)) &&
+                    (!string.IsNullOrWhiteSpace(r.PreparedItemUnitCode) ||
+                     !string.IsNullOrWhiteSpace(r.PreparedItemUnitName));
                 string itemName;
                 string? itemCode;
                 string unitName;
@@ -184,11 +196,9 @@ namespace CafeChain.Application.Services.POS
                             ? r.RecipeCode!
                             : $"Bán thành phẩm #{itemId}");
                     itemCode = r.PreparedItemCode ?? r.RecipeCode;
-                    // RecipeId-backed quantities may still represent legacy batches.
-                    // Do not label them as authoritative PreparedItem base-unit quantities.
-                    unitName = !r.RecipeId.HasValue && !string.IsNullOrWhiteSpace(r.PreparedItemUnitCode)
+                    unitName = hasConfirmedBaseUnit && !string.IsNullOrWhiteSpace(r.PreparedItemUnitCode)
                         ? r.PreparedItemUnitCode!
-                        : (!r.RecipeId.HasValue && !string.IsNullOrWhiteSpace(r.PreparedItemUnitName)
+                        : (hasConfirmedBaseUnit && !string.IsNullOrWhiteSpace(r.PreparedItemUnitName)
                             ? r.PreparedItemUnitName!
                             : "—");
                 }
@@ -199,16 +209,20 @@ namespace CafeChain.Application.Services.POS
                     StoreId = r.StoreId,
                     ItemType = isIngredient
                         ? ItemTypeIngredient
-                        : (r.PreparedItemId.HasValue && !r.RecipeId.HasValue ? ItemTypePreparedItem : ItemTypeRecipe),
+                        : (isCanonicalPreparedItem ? ItemTypePreparedItem : ItemTypeRecipe),
                     ItemId = itemId,
                     LegacyRecipeId = r.RecipeId,
                     PreparedItemId = r.PreparedItemId,
                     IsLegacyUnmapped = !isIngredient && r.RecipeId.HasValue && !r.PreparedItemId.HasValue,
                     QuantitySemanticsStatus = isIngredient
                         ? QuantitySemanticsStatuses.NotApplicable
-                        : r.RecipeId.HasValue
-                            ? QuantitySemanticsStatuses.Unknown
-                            : QuantitySemanticsStatuses.BaseUnitQuantityConfirmed,
+                        : hasConfirmedBaseUnit
+                            ? QuantitySemanticsStatuses.BaseUnitQuantityConfirmed
+                            : r.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.LegacyBatch
+                                ? QuantitySemanticsStatuses.LegacyBatchQuantity
+                                : r.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.Incompatible
+                                    ? QuantitySemanticsStatuses.UnitIncompatible
+                                    : QuantitySemanticsStatuses.Unknown,
                     ItemName = itemName,
                     ItemCode = itemCode,
                     OnHandQty = r.AvailableQty,

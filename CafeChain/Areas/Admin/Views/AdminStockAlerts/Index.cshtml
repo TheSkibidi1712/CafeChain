@@ -1,6 +1,8 @@
 @model CafeChain.Application.DTOs.Admin.StockAlerts.StockAlertListResultDto
 @using CafeChain.Application.DTOs.Admin.StoreScope
+@using CafeChain.Application.Interfaces.Systems
 @using CafeChain.ViewModels.Admin.Shared
+@inject IBusinessDateService BusinessDateService
 @{
     ViewData["Title"] = "Cảnh báo kho";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -141,7 +143,7 @@
                             </td>
                             <td><span class="ops-badge @AdminStatusDisplay.StockAlert(item.Status).CssClass">@AdminStatusDisplay.StockAlert(item.Status).Label</span></td>
                             <td><span class="ops-secondary">@AdminStatusDisplay.StockAlertSource(item.Source)</span></td>
-                            <td class="text-nowrap"><span class="ops-secondary">@item.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></td>
+                            <td class="text-nowrap"><span class="ops-secondary">@BusinessDateService.ToBusinessTime(item.UpdatedAt).ToString("dd/MM/yyyy HH:mm")</span></td>
                             <td class="text-end">
                                 <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Details" asp-route-id="@item.StockAlertId" asp-route-storeId="@item.StoreId">
                                     Chi tiết <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i>

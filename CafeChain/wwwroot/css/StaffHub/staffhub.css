@@ -1083,6 +1083,13 @@ body:has(.staffhub-page) > .swal2-container {
     color: var(--sh-text-secondary);
 }
 
+.staffhub-terminal-picker-help {
+    color: var(--sh-text-secondary);
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
 .staffhub-terminal-device-state {
     display: flex;
     align-items: flex-start;

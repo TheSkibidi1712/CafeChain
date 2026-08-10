@@ -1,6 +1,7 @@
 @model CafeChain.Application.DTOs.Inventories.OperationalIceReportDto
 @using CafeChain.Application.Constants
 @using System.Globalization
+@inject Microsoft.Extensions.Options.IOptions<CafeChain.Application.Options.WorkShiftOptions> WorkShiftConfiguration
 @{
     ViewData["Title"] = $"Báo cáo đá {Model.OperationalShiftName}";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -10,6 +11,10 @@
     string NullableQuantity(decimal? value) => value.HasValue ? Quantity(value.Value) : "Chưa chốt";
     string Money(decimal? value) => value.HasValue ? $"{value.Value.ToString("N0", viCulture)} đ" : "Chưa đủ dữ liệu";
     string StatusLabel(string status) => OperationalIceDisplayText.Status(status);
+    var businessTimeZone = WorkShiftConfiguration.Value.ResolveTimeZone();
+    DateTime BusinessLocal(DateTime value) => TimeZoneInfo.ConvertTimeFromUtc(
+        value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        businessTimeZone);
 }
 <link rel="stylesheet" href="~/css/Admin/OperationalIce/operational-ice.css" />
 
@@ -45,7 +50,7 @@
         <article>
             <span>Ca vận hành</span>
             <strong>#@Model.OperationalShiftId · @Model.OperationalShiftName</strong>
-            <small>@Model.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") – @Model.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+            <small>@BusinessLocal(Model.StartAtUtc).ToString("dd/MM/yyyy HH:mm") – @BusinessLocal(Model.EndAtUtc).ToString("dd/MM/yyyy HH:mm")</small>
         </article>
         <article>
             <span>Trạng thái</span>
@@ -131,7 +136,7 @@
                         <article>
                             <strong>@carry.Direction @Quantity(carry.Quantity) · @carry.OtherShiftName</strong>
                             <span>@carry.HandedOverBy → @(carry.ReceivedBy ?? "Chưa xác nhận")</span>
-                            <small>@OperationalIceDisplayText.CarryOverStatus(carry.Status) · @(carry.ConfirmedAtUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Chưa xác nhận")</small>
+                            <small>@OperationalIceDisplayText.CarryOverStatus(carry.Status) · @(carry.ConfirmedAtUtc.HasValue ? BusinessLocal(carry.ConfirmedAtUtc.Value).ToString("dd/MM/yyyy HH:mm") : "Chưa xác nhận")</small>
                         </article>
                     }
                 </div>
@@ -169,7 +174,7 @@
                             <td>@(posting.InventoryTransactionId.HasValue ? $"#{posting.InventoryTransactionId}" : "—")</td>
                             <td class="ice-number">@Quantity(posting.Quantity)</td>
                             <td class="ice-number">@Money(posting.TotalCost)</td>
-                            <td>@posting.ApprovedBy<small>@posting.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></td>
+                            <td>@posting.ApprovedBy<small>@BusinessLocal(posting.CreatedAtUtc).ToString("dd/MM/yyyy HH:mm")</small></td>
                         </tr>
                     }
                     </tbody>

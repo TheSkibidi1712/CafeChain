@@ -344,6 +344,20 @@ public sealed class StaffHubPosRefactorContractTests
     }
 
     [Fact]
+    public void Staffhub_open_pos_terminal_picker_links_active_terminal_without_bypassing_device_binding()
+    {
+        var view = Read("CafeChain", "Views", "StaffHub", "Index.cshtml");
+        var script = Read("CafeChain", "wwwroot", "js", "StaffHub", "staffhub-schedule.js");
+
+        Assert.Contains("aria-describedby=\"openPosTerminalHelp\"", view, StringComparison.Ordinal);
+        Assert.Contains("const canChooseExisting = [\"UNLINKED\", \"INVALID_BINDING\"].includes(state);", script, StringComparison.Ordinal);
+        Assert.Contains("terminalSelect.disabled = readyTerminal ? true : !canChooseExisting || !hasActiveTerminals;", script, StringComparison.Ordinal);
+        Assert.Contains("confirmExistingTerminalLink(activeTerminal, terminalSelect)", script, StringComparison.Ordinal);
+        Assert.Contains("if (terminalUiState !== \"READY\")", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("terminalSelect.disabled = true;", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Terminal_registration_state_restores_rejected_challenges_after_reload()
     {
         var repository = Read("CafeChain", "Infrastructure", "Repositories", "Admin", "POS", "OtpChallengeRepository.cs");

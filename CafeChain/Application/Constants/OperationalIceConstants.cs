@@ -82,4 +82,10 @@ public static class OperationalIceErrorCodes
     public const string WorkShiftAlreadyLinked = "OPERATIONAL_ICE_WORKSHIFT_ALREADY_LINKED";
     public const string ConcurrencyConflict = "OPERATIONAL_ICE_CONCURRENCY_CONFLICT";
     public const string ScheduleShiftAlreadyUsed = "OPERATIONAL_ICE_SCHEDULE_SHIFT_ALREADY_USED";
+    public const string CandidateShiftNotOpen = "OPERATIONAL_ICE_CANDIDATE_SHIFT_NOT_OPEN";
+    public const string CandidateNoStoreDateMatch = "OPERATIONAL_ICE_CANDIDATE_NO_STORE_DATE_MATCH";
+    public const string CandidateInvalidState = "OPERATIONAL_ICE_CANDIDATE_INVALID_STATE";
+    public const string CandidateNoTimeOverlap = "OPERATIONAL_ICE_CANDIDATE_NO_TIME_OVERLAP";
+    public const string CandidateLinkedToCurrent = "OPERATIONAL_ICE_CANDIDATE_LINKED_TO_CURRENT";
+    public const string CandidateAlreadyLinked = "OPERATIONAL_ICE_CANDIDATE_ALREADY_LINKED";
 }

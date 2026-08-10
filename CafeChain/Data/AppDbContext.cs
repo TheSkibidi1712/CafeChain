@@ -129,6 +129,7 @@ namespace CafeChain.Data
 
         // Operational ice shift management
         public DbSet<OperationalShift> OperationalShifts { get; set; }
+        public DbSet<OperationalShiftScheduleSource> OperationalShiftScheduleSources { get; set; }
         public DbSet<OperationalShiftWorkShift> OperationalShiftWorkShifts { get; set; }
         public DbSet<IcePolicy> IcePolicies { get; set; }
         public DbSet<IceAllocation> IceAllocations { get; set; }

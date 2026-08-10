@@ -291,6 +291,88 @@ public sealed class OperationalIceReservationIssue247Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task LateLinkedWorkShift_RefreshesLedgerUsageWithoutInventoryMutationOrReplayDoubleCount()
+    {
+        using var context = CreateDbContext();
+        var setup = SeedOpenSetup(context, available: 100m, reserved: 10m);
+        const int workShiftId = 924;
+        const int orderId = 934;
+        var operationalShift = await context.OperationalShifts.SingleAsync();
+        operationalShift.Status = OperationalIceStatuses.Open;
+        context.WorkShifts.Add(new WorkShift
+        {
+            ShiftId = workShiftId,
+            StoreId = StoreId,
+            UserId = StaffId,
+            StartTimeUtc = DateTime.UtcNow,
+            BusinessDate = operationalShift.BusinessDate,
+            StartingCash = 0m,
+            ExpectedEndingCash = 0m,
+            Status = WorkShiftStatuses.Open
+        });
+        context.IceAllocations.Add(new IceAllocation
+        {
+            PublicId = Guid.NewGuid(),
+            OperationalShiftId = setup.OperationalShiftId,
+            IcePolicyId = setup.IcePolicyId,
+            StoreInventoryId = setup.StoreInventoryId,
+            IngredientId = IngredientId,
+            InitialIssuedQuantity = 10m,
+            ReservedOutstandingQuantity = 10m,
+            ReservationReference = "ICE:TEST-LATE-LINK",
+            Status = OperationalIceStatuses.Open,
+            CreatedByStaffId = StaffId,
+            OpenedByStaffId = StaffId,
+            CreatedAtUtc = DateTime.UtcNow,
+            OpenedAtUtc = DateTime.UtcNow,
+            Revision = 1
+        });
+        context.Orders.Add(new Order
+        {
+            OrderId = orderId,
+            StoreId = StoreId,
+            WorkShiftId = workShiftId,
+            OrderStatusId = SystemConstants.OrderStatuses.Completed,
+            PaymentStatusId = SystemConstants.PaymentStatuses.Paid,
+            OrderTypeId = SystemConstants.OrderTypes.DineIn,
+            Total = 10000m,
+            CreatedAt = DateTime.UtcNow
+        });
+        context.InventoryTransactions.Add(new InventoryTransaction
+        {
+            StoreInventoryId = setup.StoreInventoryId,
+            Type = InventoryTransactionTypeEnum.SALES_DEDUCTION,
+            StockStatus = InventoryStockStatus.NORMAL,
+            Quantity = 3m,
+            BeforeQty = 100m,
+            AfterQty = 97m,
+            ReferenceOrderId = orderId,
+            CreatedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+        var request = new LinkOperationalWorkShiftsRequest
+        {
+            OperationalShiftId = setup.OperationalShiftId,
+            WorkShiftIds = [workShiftId]
+        };
+
+        var first = await service.LinkWorkShiftsAsync(request, ManagerActor());
+        var replay = await service.LinkWorkShiftsAsync(request, ManagerActor());
+
+        Assert.True(first.IsSuccess, first.Message);
+        Assert.True(replay.IsSuccess, replay.Message);
+        var allocation = await context.IceAllocations.AsNoTracking().SingleAsync();
+        var inventory = await context.StoreInventories.AsNoTracking()
+            .SingleAsync(x => x.StoreInventoryId == setup.StoreInventoryId);
+        Assert.Equal(3m, allocation.TheoreticalUsageQuantity);
+        Assert.Equal(100m, inventory.AvailableQty);
+        Assert.Equal(10m, inventory.ReservedQty);
+        Assert.Single(await context.OperationalShiftWorkShifts.AsNoTracking().ToListAsync());
+        Assert.Single(await context.InventoryTransactions.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
     public async Task OperationalShift_CanLinkMultipleWorkShifts()
     {
         using var context = CreateDbContext();

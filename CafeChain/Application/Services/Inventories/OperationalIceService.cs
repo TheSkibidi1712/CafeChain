@@ -3,15 +3,19 @@ using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Options;
 using CafeChain.Application.Results;
+using CafeChain.Application.Services.POS;
 using CafeChain.Data;
 using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Inventories.Ice;
 using CafeChain.Models.Inventories.Transactions;
+using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Enums.Unit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Data;
 using System.Text.Json;
 
@@ -56,17 +60,23 @@ public sealed class OperationalIceService : IOperationalIceService
     private readonly IScopeAuthorizationService _scopeAuthorization;
     private readonly IInventoryCostLayerConsumptionService? _costLayerConsumption;
     private readonly IUnitConversionService? _unitConversionService;
+    private readonly WorkShiftOptions _workShiftOptions;
+    private readonly TimeProvider _timeProvider;
 
     public OperationalIceService(
         AppDbContext context,
         IScopeAuthorizationService scopeAuthorization,
         IInventoryCostLayerConsumptionService? costLayerConsumption = null,
-        IUnitConversionService? unitConversionService = null)
+        IUnitConversionService? unitConversionService = null,
+        IOptions<WorkShiftOptions>? workShiftOptions = null,
+        TimeProvider? timeProvider = null)
     {
         _context = context;
         _scopeAuthorization = scopeAuthorization;
         _costLayerConsumption = costLayerConsumption;
         _unitConversionService = unitConversionService;
+        _workShiftOptions = workShiftOptions?.Value ?? new WorkShiftOptions();
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public Task<ServiceResult<OperationalIcePolicySetupDto>> GetPolicySetupAsync(
@@ -89,16 +99,15 @@ public sealed class OperationalIceService : IOperationalIceService
         if (snapshots.Count == 0)
             return ServiceResult<IReadOnlyList<OperationalIceScheduleOptionDto>>.Success([]);
 
-        var existingSourceIds = await _context.OperationalShifts.AsNoTracking()
-            .Where(x => x.StoreId == storeId
-                        && x.BusinessDate == date
-                        && x.SourceScheduleShiftId != null
-                        && x.Status != OperationalIceStatuses.Cancelled)
-            .Select(x => x.SourceScheduleShiftId!.Value)
+        var usedStaffShiftIds = await _context.OperationalShiftScheduleSources.AsNoTracking()
+            .Where(x => x.OperationalShift.StoreId == storeId
+                        && x.OperationalShift.BusinessDate == date
+                        && x.OperationalShift.Status != OperationalIceStatuses.Cancelled)
+            .Select(x => x.StaffShiftId)
             .ToListAsync(cancellationToken);
 
         var options = snapshots
-            .Where(snapshot => !existingSourceIds.Contains(snapshot.ScheduleShiftId))
+            .Where(snapshot => !snapshot.StaffShiftIds.Any(usedStaffShiftIds.Contains))
             .OrderBy(snapshot => snapshot.StartAtUtc)
             .ToArray();
 
@@ -117,26 +126,19 @@ public sealed class OperationalIceService : IOperationalIceService
 
         var date = businessDate.Date;
         var shifts = await _context.OperationalShifts.AsNoTracking()
+            .Include(x => x.ScheduleSources)
+                .ThenInclude(x => x.StaffShift)
+                    .ThenInclude(x => x.Status)
             .Where(x => x.StoreId == storeId
                         && x.BusinessDate == date
                         && x.CreationSource == OperationalIceCreationSources.StaffSchedule
                         && x.SourceScheduleShiftId != null
                         && x.Status != OperationalIceStatuses.Cancelled)
-            .Select(x => new
-            {
-                x.OperationalShiftId,
-                SourceScheduleShiftId = x.SourceScheduleShiftId!.Value,
-                x.Name,
-                x.StartAtUtc,
-                x.EndAtUtc,
-                x.ShiftLeadId,
-                x.Status
-            })
             .ToListAsync(cancellationToken);
         if (shifts.Count == 0)
             return ServiceResult<IReadOnlyList<OperationalIceScheduleReviewDto>>.Success([]);
 
-        var sourceIds = shifts.Select(x => x.SourceScheduleShiftId).Distinct().ToArray();
+        var sourceIds = shifts.Select(x => x.SourceScheduleShiftId!.Value).Distinct().ToArray();
         var cancelledAssignments = await _context.StaffShifts.AsNoTracking()
             .Where(x => sourceIds.Contains(x.ShiftId)
                         && x.WorkDate == date
@@ -149,12 +151,18 @@ public sealed class OperationalIceService : IOperationalIceService
             .ToDictionary(
                 group => group.Key,
                 group => group.Select(x => x.StaffId).ToHashSet());
-        var snapshots = (await LoadScheduleSnapshotsAsync(storeId, date, cancellationToken))
-            .ToDictionary(x => x.ScheduleShiftId);
+        var snapshots = await LoadScheduleSnapshotsAsync(storeId, date, cancellationToken);
         var reviews = shifts.Select(shift =>
         {
-            snapshots.TryGetValue(shift.SourceScheduleShiftId, out var current);
-            cancelledBySource.TryGetValue(shift.SourceScheduleShiftId, out var cancelledStaffIds);
+            var current = MatchScheduleSnapshot(shift, snapshots);
+            var linkedCancelledStaffIds = shift.ScheduleSources
+                .Where(x => x.StaffShift.Status.Code == "CANCELLED")
+                .Select(x => x.StaffShift.StaffId)
+                .ToHashSet();
+            cancelledBySource.TryGetValue(shift.SourceScheduleShiftId!.Value, out var legacyCancelledStaffIds);
+            var cancelledStaffIds = shift.ScheduleSources.Count > 0
+                ? linkedCancelledStaffIds
+                : legacyCancelledStaffIds;
             var hasCancelledAssignments = cancelledStaffIds is { Count: > 0 };
             var requiresLeadReplacement = shift.ShiftLeadId.HasValue
                                           && cancelledStaffIds?.Contains(shift.ShiftLeadId.Value) == true;
@@ -198,43 +206,128 @@ public sealed class OperationalIceService : IOperationalIceService
         AdminActorContext actor,
         CancellationToken cancellationToken = default)
     {
+        var assessment = await GetWorkShiftCandidateAssessmentAsync(
+            operationalShiftId,
+            actor,
+            cancellationToken);
+        return assessment.IsSuccess
+            ? ServiceResult<IReadOnlyList<OperationalIceWorkShiftSuggestionDto>>.Success(
+                assessment.Data?.Candidates ?? [])
+            : ServiceResult<IReadOnlyList<OperationalIceWorkShiftSuggestionDto>>.Failure(
+                assessment.Message,
+                assessment.Errors,
+                assessment.ErrorCode);
+    }
+
+    public async Task<ServiceResult<OperationalIceWorkShiftCandidateAssessmentDto>> GetWorkShiftCandidateAssessmentAsync(
+        int operationalShiftId,
+        AdminActorContext actor,
+        CancellationToken cancellationToken = default)
+    {
         var shift = await _context.OperationalShifts.AsNoTracking()
             .SingleOrDefaultAsync(x => x.OperationalShiftId == operationalShiftId, cancellationToken);
         if (shift == null)
-            return NotFound<IReadOnlyList<OperationalIceWorkShiftSuggestionDto>>("Không tìm thấy ca vận hành.");
+            return NotFound<OperationalIceWorkShiftCandidateAssessmentDto>("Không tìm thấy ca vận hành.");
         var authorization = await AuthorizeAsync(actor, shift.StoreId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
-            return Fail<IReadOnlyList<OperationalIceWorkShiftSuggestionDto>>(authorization);
+            return Fail<OperationalIceWorkShiftCandidateAssessmentDto>(authorization);
         if (shift.Status != OperationalIceStatuses.Open)
-            return ServiceResult<IReadOnlyList<OperationalIceWorkShiftSuggestionDto>>.Success([]);
+        {
+            return ServiceResult<OperationalIceWorkShiftCandidateAssessmentDto>.Success(new()
+            {
+                Diagnostics =
+                [
+                    Diagnostic(
+                        OperationalIceErrorCodes.CandidateShiftNotOpen,
+                        "Ca vận hành phải được mở trước khi liên kết ca bán hàng POS.")
+                ]
+            });
+        }
 
-        var startLocal = shift.StartAtUtc.ToLocalTime();
-        var endLocal = shift.EndAtUtc.ToLocalTime();
-        var (businessWindowStart, businessWindowEnd) = LocalBusinessWindow(shift, endLocal);
-        var startUtc = startLocal.ToUniversalTime();
-        var endUtc = endLocal.ToUniversalTime();
-        var businessWindowStartUtc = businessWindowStart.ToUniversalTime();
-        var businessWindowEndUtc = businessWindowEnd.ToUniversalTime();
-        var suggestions = await _context.WorkShifts.AsNoTracking()
+        var window = BusinessWindowUtc(shift);
+        var sourceStaffShiftIds = await _context.OperationalShiftScheduleSources.AsNoTracking()
+            .Where(x => x.OperationalShiftId == shift.OperationalShiftId)
+            .Select(x => x.StaffShiftId)
+            .ToListAsync(cancellationToken);
+        var rows = await _context.WorkShifts.AsNoTracking()
             .Where(x => x.StoreId == shift.StoreId
-                        && (x.Status == WorkShiftStatuses.Open || x.Status == WorkShiftStatuses.Closed
-                            || x.Status == "Open" || x.Status == "Closed")
-                        && x.StartTimeUtc >= businessWindowStartUtc
-                        && x.StartTimeUtc < businessWindowEndUtc
-                        && x.StartTimeUtc < endUtc
-                        && (x.EndTimeUtc == null || x.EndTimeUtc > startUtc)
-                        && !_context.OperationalShiftWorkShifts.Any(link => link.WorkShiftId == x.ShiftId))
-            .OrderBy(x => x.StartTimeUtc)
+                        && x.StartTimeUtc >= window.StartUtc
+                        && x.StartTimeUtc < window.EndUtc)
+            .Select(x => new
+            {
+                x.ShiftId,
+                x.SourceStaffShiftId,
+                x.User.FullName,
+                x.StartTimeUtc,
+                x.EndTimeUtc,
+                x.Status,
+                LinkedOperationalShiftId = _context.OperationalShiftWorkShifts
+                    .Where(link => link.WorkShiftId == x.ShiftId)
+                    .Select(link => (int?)link.OperationalShiftId)
+                    .SingleOrDefault()
+            })
+            .ToListAsync(cancellationToken);
+        var validStates = rows.Where(x => IsLinkableWorkShiftStatus(x.Status)).ToArray();
+        var overlapping = validStates
+            .Where(x => x.StartTimeUtc < shift.EndAtUtc
+                        && (x.EndTimeUtc == null || x.EndTimeUtc > shift.StartAtUtc))
+            .ToArray();
+        var candidates = overlapping
+            .Where(x => !x.LinkedOperationalShiftId.HasValue)
+            .OrderByDescending(x => x.SourceStaffShiftId.HasValue
+                                    && sourceStaffShiftIds.Contains(x.SourceStaffShiftId.Value))
+            .ThenBy(x => x.StartTimeUtc)
             .Take(30)
             .Select(x => new OperationalIceWorkShiftSuggestionDto
             {
                 WorkShiftId = x.ShiftId,
-                StaffName = x.User.FullName,
+                StaffName = x.FullName,
                 StartTime = x.StartTimeUtc,
                 EndTime = x.EndTimeUtc
             })
-            .ToListAsync(cancellationToken);
-        return ServiceResult<IReadOnlyList<OperationalIceWorkShiftSuggestionDto>>.Success(suggestions);
+            .ToArray();
+
+        var diagnostics = new List<OperationalIceCandidateDiagnosticDto>();
+        if (rows.Count == 0)
+        {
+            diagnostics.Add(Diagnostic(
+                OperationalIceErrorCodes.CandidateNoStoreDateMatch,
+                "Chưa có ca bán hàng POS nào thuộc cửa hàng và ngày vận hành này."));
+        }
+        else
+        {
+            var invalidStateCount = rows.Count - validStates.Length;
+            if (invalidStateCount > 0)
+                diagnostics.Add(Diagnostic(
+                    OperationalIceErrorCodes.CandidateInvalidState,
+                    "Có ca bán hàng POS nhưng trạng thái hiện tại chưa cho phép liên kết.",
+                    invalidStateCount));
+            var noOverlapCount = validStates.Length - overlapping.Length;
+            if (noOverlapCount > 0)
+                diagnostics.Add(Diagnostic(
+                    OperationalIceErrorCodes.CandidateNoTimeOverlap,
+                    "Có ca bán hàng POS trong ngày nhưng thời gian không giao với ca vận hành.",
+                    noOverlapCount));
+            var currentLinkCount = overlapping.Count(x => x.LinkedOperationalShiftId == shift.OperationalShiftId);
+            if (currentLinkCount > 0)
+                diagnostics.Add(Diagnostic(
+                    OperationalIceErrorCodes.CandidateLinkedToCurrent,
+                    "Các ca bán hàng POS phù hợp đã được liên kết với ca vận hành này.",
+                    currentLinkCount));
+            var conflictCount = overlapping.Count(x => x.LinkedOperationalShiftId.HasValue
+                                                        && x.LinkedOperationalShiftId != shift.OperationalShiftId);
+            if (conflictCount > 0)
+                diagnostics.Add(Diagnostic(
+                    OperationalIceErrorCodes.CandidateAlreadyLinked,
+                    "Có ca bán hàng POS phù hợp nhưng đã được liên kết với ca vận hành khác.",
+                    conflictCount));
+        }
+
+        return ServiceResult<OperationalIceWorkShiftCandidateAssessmentDto>.Success(new()
+        {
+            Candidates = candidates,
+            Diagnostics = diagnostics
+        });
     }
 
     public async Task<ServiceResult> SavePolicyAsync(
@@ -301,7 +394,7 @@ public sealed class OperationalIceService : IOperationalIceService
         policy.VarianceApprovalPercentThreshold = request.VarianceApprovalPercentThreshold;
         policy.Active = true;
         policy.UpdatedByStaffId = actor.StaffId;
-        policy.UpdatedAtUtc = DateTime.UtcNow;
+        policy.UpdatedAtUtc = UtcNow;
 
         return await SaveAsync("Đã lưu chính sách đá vận hành.", cancellationToken);
     }
@@ -314,42 +407,45 @@ public sealed class OperationalIceService : IOperationalIceService
         var authorization = await AuthorizeAsync(actor, request.StoreId, PlanningRoles, cancellationToken);
         if (!authorization.IsSuccess)
             return Fail<OperationalShiftSummaryDto>(authorization);
-        if (string.IsNullOrWhiteSpace(request.Name)
-            || request.EndAtUtc <= request.StartAtUtc
-            || request.EndAtUtc - request.StartAtUtc > TimeSpan.FromHours(24))
-            return Invalid<OperationalShiftSummaryDto>("Tên ca và khoảng thời gian vận hành không hợp lệ.");
-
         var businessDate = request.BusinessDate.Date;
-        if (request.StartAtUtc.ToLocalTime().Date != businessDate)
-            return Invalid<OperationalShiftSummaryDto>("Thời gian bắt đầu phải thuộc đúng ngày kinh doanh đã chọn.");
         if (!OperationalIceCreationSources.All.Contains(request.CreationSource, StringComparer.Ordinal))
             return Invalid<OperationalShiftSummaryDto>("Nguồn tạo ca vận hành không hợp lệ.");
         var isScheduleSource = request.CreationSource == OperationalIceCreationSources.StaffSchedule;
-        if (isScheduleSource != request.SourceScheduleShiftId.HasValue)
+        var requestedStaffShiftIds = request.SourceStaffShiftIds.Where(x => x > 0).Distinct().OrderBy(x => x).ToArray();
+        if (requestedStaffShiftIds.Length != request.SourceStaffShiftIds.Count
+            || isScheduleSource != request.SourceScheduleShiftId.HasValue
+            || isScheduleSource != (requestedStaffShiftIds.Length > 0))
             return Invalid<OperationalShiftSummaryDto>("Nguồn lịch làm việc của ca vận hành không nhất quán.");
 
+        OperationalIceScheduleOptionDto? scheduleSource = null;
         if (isScheduleSource)
         {
-            var sourceIsValid = await _context.Shifts.AsNoTracking()
-                .AnyAsync(x => x.ShiftId == request.SourceScheduleShiftId
-                               && x.StoreId == request.StoreId
-                               && x.Active
-                               && x.StaffShifts.Any(schedule =>
-                                   schedule.WorkDate == businessDate
-                                   && schedule.Status.Code != "CANCELLED"),
-                    cancellationToken);
-            if (!sourceIsValid)
-                return Invalid<OperationalShiftSummaryDto>("Ca lịch không thuộc chi nhánh hoặc ngày kinh doanh đã chọn.");
+            scheduleSource = (await LoadScheduleSnapshotsAsync(request.StoreId, businessDate, cancellationToken))
+                .SingleOrDefault(x => x.ScheduleShiftId == request.SourceScheduleShiftId
+                                      && x.StaffShiftIds.OrderBy(id => id).SequenceEqual(requestedStaffShiftIds));
+            if (scheduleSource == null)
+                return Invalid<OperationalShiftSummaryDto>("Nhóm lịch làm việc không còn hợp lệ hoặc các nhân viên không cùng một khoảng thời gian hiệu lực.");
         }
+
+        var name = scheduleSource?.Name ?? request.Name.Trim();
+        var startAtUtc = scheduleSource?.StartAtUtc ?? NormalizeUtc(request.StartAtUtc);
+        var endAtUtc = scheduleSource?.EndAtUtc ?? NormalizeUtc(request.EndAtUtc);
+        var shiftLeadId = scheduleSource?.SuggestedShiftLeadId ?? request.ShiftLeadId;
+        if (string.IsNullOrWhiteSpace(name)
+            || endAtUtc <= startAtUtc
+            || endAtUtc - startAtUtc > TimeSpan.FromHours(24))
+            return Invalid<OperationalShiftSummaryDto>("Tên ca và khoảng thời gian vận hành không hợp lệ.");
+        if (ToBusinessLocal(startAtUtc).Date != businessDate)
+            return Invalid<OperationalShiftSummaryDto>("Thời gian bắt đầu phải thuộc đúng ngày kinh doanh đã chọn.");
 
         var setup = await GetPolicySetupAsync(request.StoreId, cancellationToken);
         if (!setup.IsSuccess || setup.Data == null || !setup.Data.IsValid)
             return InvalidState<OperationalShiftSummaryDto>(setup.Data?.StatusMessage ?? setup.Message);
 
-        if (!request.ShiftLeadId.HasValue)
+        if (!shiftLeadId.HasValue)
             return Invalid<OperationalShiftSummaryDto>("Phải phân công ca trưởng trước khi tạo ca vận hành đá.");
         var leadValid = await _context.Staffs.AsNoTracking()
-            .AnyAsync(x => x.StaffId == request.ShiftLeadId
+            .AnyAsync(x => x.StaffId == shiftLeadId
                            && x.StoreId == request.StoreId
                            && x.Active
                            && x.Account.Active
@@ -360,17 +456,19 @@ public sealed class OperationalIceService : IOperationalIceService
         if (!leadValid)
             return Invalid<OperationalShiftSummaryDto>("Ca trưởng phải đang hoạt động, đúng chi nhánh và có vai trò Ca trưởng hoặc Cửa hàng trưởng.");
 
+        await using var transaction = await _context.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
         var duplicate = isScheduleSource
-            ? await _context.OperationalShifts.AsNoTracking()
-                .AnyAsync(x => x.StoreId == request.StoreId
-                               && x.BusinessDate == businessDate
-                               && x.SourceScheduleShiftId == request.SourceScheduleShiftId
-                               && x.Status != OperationalIceStatuses.Cancelled,
+            ? await _context.OperationalShiftScheduleSources.AsNoTracking()
+                .AnyAsync(x => requestedStaffShiftIds.Contains(x.StaffShiftId)
+                               && x.OperationalShift.Status != OperationalIceStatuses.Cancelled,
                     cancellationToken)
             : await _context.OperationalShifts.AsNoTracking()
                 .AnyAsync(x => x.StoreId == request.StoreId
                                && x.BusinessDate == businessDate
-                               && x.Name == request.Name.Trim(),
+                               && x.Name == name
+                               && x.Status != OperationalIceStatuses.Cancelled,
                     cancellationToken);
         if (duplicate)
             return isScheduleSource
@@ -381,33 +479,43 @@ public sealed class OperationalIceService : IOperationalIceService
         {
             StoreId = request.StoreId,
             BusinessDate = businessDate,
-            Name = request.Name.Trim(),
-            StartAtUtc = request.StartAtUtc,
-            EndAtUtc = request.EndAtUtc,
+            Name = name,
+            StartAtUtc = startAtUtc,
+            EndAtUtc = endAtUtc,
             CreationSource = request.CreationSource,
             SourceScheduleShiftId = request.SourceScheduleShiftId,
-            ShiftLeadId = request.ShiftLeadId,
+            ShiftLeadId = shiftLeadId,
             Status = OperationalIceStatuses.Draft,
             CreatedByStaffId = actor.StaffId,
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAtUtc = UtcNow
         };
         _context.OperationalShifts.Add(shift);
+        if (isScheduleSource)
+        {
+            shift.ScheduleSources = requestedStaffShiftIds
+                .Select(staffShiftId => new OperationalShiftScheduleSource { StaffShiftId = staffShiftId })
+                .ToList();
+        }
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return ServiceResult<OperationalShiftSummaryDto>.Success(Map(shift), "Đã tạo ca vận hành.");
         }
         catch (DbUpdateException exception) when (isScheduleSource && IsUniqueConstraintViolation(exception))
         {
+            await transaction.RollbackAsync(cancellationToken);
             _context.Entry(shift).State = EntityState.Detached;
             return ScheduleShiftConflict<OperationalShiftSummaryDto>();
         }
         catch (DbUpdateConcurrencyException)
         {
+            await transaction.RollbackAsync(cancellationToken);
             return Conflict<OperationalShiftSummaryDto>();
         }
         catch (DbUpdateException)
         {
+            await transaction.RollbackAsync(cancellationToken);
             return InvalidState<OperationalShiftSummaryDto>("Dữ liệu ca vận hành vừa thay đổi. Vui lòng tải lại.");
         }
     }
@@ -418,6 +526,7 @@ public sealed class OperationalIceService : IOperationalIceService
         CancellationToken cancellationToken = default)
     {
         var shift = await _context.OperationalShifts
+            .Include(x => x.ScheduleSources)
             .SingleOrDefaultAsync(
                 x => x.OperationalShiftId == request.OperationalShiftId,
                 cancellationToken);
@@ -439,11 +548,7 @@ public sealed class OperationalIceService : IOperationalIceService
                 "Chỉ ca nháp mới được đồng bộ lại lịch làm việc. Ca đã mở không được tự động thay đổi.");
         }
 
-        var current = (await LoadScheduleSnapshotsAsync(
-                shift.StoreId,
-                shift.BusinessDate,
-                cancellationToken))
-            .SingleOrDefault(x => x.ScheduleShiftId == shift.SourceScheduleShiftId.Value);
+        var current = await ResolveCurrentScheduleSnapshotAsync(shift, cancellationToken);
         if (current == null)
         {
             return InvalidState<OperationalShiftSummaryDto>(
@@ -462,6 +567,14 @@ public sealed class OperationalIceService : IOperationalIceService
         shift.StartAtUtc = current.StartAtUtc;
         shift.EndAtUtc = current.EndAtUtc;
         shift.ShiftLeadId = synchronizedLeadId;
+        _context.OperationalShiftScheduleSources.RemoveRange(shift.ScheduleSources);
+        shift.ScheduleSources = current.StaffShiftIds
+            .Select(staffShiftId => new OperationalShiftScheduleSource
+            {
+                OperationalShiftId = shift.OperationalShiftId,
+                StaffShiftId = staffShiftId
+            })
+            .ToList();
         AddOperationalShiftAudit(
             shift,
             "SYNC_STAFF_SCHEDULE",
@@ -496,6 +609,7 @@ public sealed class OperationalIceService : IOperationalIceService
             return Invalid<OperationalShiftSummaryDto>("Vui lòng nhập lý do chuyển ca sang tạo thủ công.");
 
         var shift = await _context.OperationalShifts
+            .Include(x => x.ScheduleSources)
             .SingleOrDefaultAsync(
                 x => x.OperationalShiftId == request.OperationalShiftId,
                 cancellationToken);
@@ -515,6 +629,7 @@ public sealed class OperationalIceService : IOperationalIceService
         var before = ShiftAuditSnapshot(shift);
         shift.CreationSource = OperationalIceCreationSources.Manual;
         shift.SourceScheduleShiftId = null;
+        _context.OperationalShiftScheduleSources.RemoveRange(shift.ScheduleSources);
         AddOperationalShiftAudit(
             shift,
             "CONVERT_TO_MANUAL",
@@ -660,7 +775,7 @@ public sealed class OperationalIceService : IOperationalIceService
         try
         {
             var publicId = Guid.NewGuid();
-            var now = DateTime.UtcNow;
+            var now = UtcNow;
             var allocation = new IceAllocation
             {
                 PublicId = publicId,
@@ -754,9 +869,14 @@ public sealed class OperationalIceService : IOperationalIceService
             .ToListAsync(cancellationToken);
         var missingIds = requestedIds.Except(existingIds).ToArray();
         if (missingIds.Length == 0)
-            return ServiceResult.Success("Các ca bán hàng POS đã được liên kết trước đó.");
+        {
+            await RefreshTheoreticalUsageFromLedgerAsync(shift.OperationalShiftId, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return ServiceResult.Success("Các ca bán hàng POS đã được liên kết trước đó; tiêu hao lý thuyết đã được đối chiếu lại.");
+        }
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         _context.OperationalShiftWorkShifts.AddRange(missingIds.Select(workShiftId => new OperationalShiftWorkShift
         {
             OperationalShiftId = shift.OperationalShiftId,
@@ -781,12 +901,14 @@ public sealed class OperationalIceService : IOperationalIceService
         try
         {
             await _context.SaveChangesAsync(cancellationToken);
+            await RefreshTheoreticalUsageFromLedgerAsync(shift.OperationalShiftId, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return ServiceResult.Success($"Đã liên kết {missingIds.Length} ca bán hàng POS với ca đá.");
         }
         catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
         {
-            await transaction.RollbackAsync(cancellationToken);
+            await TryRollbackAsync(transaction, cancellationToken);
             await transaction.DisposeAsync();
             _context.ChangeTracker.Clear();
             var links = await _context.OperationalShiftWorkShifts.AsNoTracking()
@@ -799,16 +921,34 @@ public sealed class OperationalIceService : IOperationalIceService
                     "Có ca bán hàng POS vừa được liên kết với ca đá khác. Vui lòng tải lại.",
                      errorCode: OperationalIceErrorCodes.WorkShiftAlreadyLinked);
         }
+        catch (Exception exception) when (IsSqlDeadlock(exception))
+        {
+            await TryRollbackAsync(transaction, cancellationToken);
+            await transaction.DisposeAsync();
+            _context.ChangeTracker.Clear();
+
+            // The surviving transaction owns the same unique WorkShift link. Reading after
+            // the victim rollback waits for that transaction and turns the race into a replay.
+            var links = await _context.OperationalShiftWorkShifts.AsNoTracking()
+                .Where(x => requestedIds.Contains(x.WorkShiftId))
+                .ToListAsync(cancellationToken);
+            return links.Count == requestedIds.Length
+                   && links.All(x => x.OperationalShiftId == shift.OperationalShiftId)
+                ? ServiceResult.Success("Các ca bán hàng POS đã được liên kết trước đó.")
+                : ServiceResult.Failure(
+                    "Liên kết ca bán hàng POS vừa được cập nhật đồng thời. Vui lòng thử lại.",
+                    errorCode: OperationalIceErrorCodes.ConcurrencyConflict);
+        }
         catch (DbUpdateConcurrencyException)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            await TryRollbackAsync(transaction, cancellationToken);
             return ServiceResult.Failure(
                 "Dữ liệu ca vừa được người khác cập nhật. Vui lòng tải lại.",
                 errorCode: OperationalIceErrorCodes.ConcurrencyConflict);
         }
         catch (DbUpdateException)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            await TryRollbackAsync(transaction, cancellationToken);
             return ServiceResult.Failure(
                 "Không thể lưu liên kết ca bán hàng POS. Vui lòng tải lại và thử lại.",
                 errorCode: OperationalIceErrorCodes.InvalidState);
@@ -845,7 +985,7 @@ public sealed class OperationalIceService : IOperationalIceService
             Reason = request.Reason.Trim(),
             Status = IceSupplementalIssueStatuses.Pending,
             RequestedByStaffId = actor.StaffId,
-            RequestedAtUtc = DateTime.UtcNow
+            RequestedAtUtc = UtcNow
         };
         _context.IceSupplementalIssues.Add(issue);
         var saved = await SaveAsync("Đã gửi yêu cầu cấp bổ sung đá.", cancellationToken);
@@ -873,7 +1013,7 @@ public sealed class OperationalIceService : IOperationalIceService
         if (!request.Approve && string.IsNullOrWhiteSpace(request.RejectionReason))
             return Invalid<IceSupplementalIssueDto>("Phải nhập lý do khi từ chối cấp bổ sung.");
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         if (!request.Approve)
         {
             issue.Status = IceSupplementalIssueStatuses.Rejected;
@@ -965,7 +1105,7 @@ public sealed class OperationalIceService : IOperationalIceService
         if (!receiverValid)
             return Invalid<IceCarryOverDto>("Người nhận không hoạt động tại cửa hàng này.");
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         var carry = new IceCarryOver
         {
             PublicId = Guid.NewGuid(),
@@ -1046,7 +1186,7 @@ public sealed class OperationalIceService : IOperationalIceService
         if (variance != 0 && string.IsNullOrWhiteSpace(request.CloseReason))
             return Invalid<IceCloseResultDto>("Phải nhập lý do khi lượng dùng thực tế lệch lượng dùng theo POS.");
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         allocation.ReturnedQuantity = request.ReturnedQuantity;
         allocation.ReturnCondition = request.ReturnedQuantity > 0 ? IceReturnConditions.SealedIntact : null;
         allocation.ReturnedByStaffId = request.ReturnedQuantity > 0 ? actor.StaffId : null;
@@ -1147,7 +1287,7 @@ public sealed class OperationalIceService : IOperationalIceService
                 _costLayerConsumption.ApplyPlan(costPlan);
             }
 
-            var now = DateTime.UtcNow;
+            var now = UtcNow;
             var before = allocation.StoreInventory.AvailableQty;
             allocation.StoreInventory.AvailableQty -= variance;
             allocation.StoreInventory.LastUpdated = now;
@@ -1160,7 +1300,7 @@ public sealed class OperationalIceService : IOperationalIceService
                 StoreInventoryId = allocation.StoreInventoryId,
                 Type = InventoryTransactionTypeEnum.ICE_VARIANCE_OUT,
                 StockStatus = ResolveStockStatus(allocation.StoreInventory),
-                Quantity = -variance,
+                Quantity = variance,
                 BeforeQty = before,
                 AfterQty = allocation.StoreInventory.AvailableQty,
                 UnitCost = hasCompleteCost ? costPlan!.WeightedUnitCost : null,
@@ -1219,7 +1359,7 @@ public sealed class OperationalIceService : IOperationalIceService
             return InvalidState<IceCloseResultDto>("Phân bổ không có chênh lệch âm cần đối soát.");
 
         allocation.ReconciliationReason = request.Reason.Trim();
-        CloseAllocation(allocation, actor.StaffId, DateTime.UtcNow);
+        CloseAllocation(allocation, actor.StaffId, UtcNow);
         var saved = await SaveAsync("Đã hoàn tất đối soát; không phát sinh bút toán tăng tồn tự động.", cancellationToken);
         return saved.IsSuccess
             ? ServiceResult<IceCloseResultDto>.Success(MapClose(allocation), saved.Message)
@@ -1250,7 +1390,7 @@ public sealed class OperationalIceService : IOperationalIceService
         if (!ReleaseOutstandingReservation(allocation))
             return InvalidState("Dữ liệu giữ chỗ tồn kho không còn nhất quán. Vui lòng tải lại.");
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         foreach (var issue in allocation.SupplementalIssues.Where(x => x.Status == IceSupplementalIssueStatuses.Pending))
             issue.Status = IceSupplementalIssueStatuses.Cancelled;
         allocation.Status = OperationalIceStatuses.Cancelled;
@@ -1298,7 +1438,26 @@ public sealed class OperationalIceService : IOperationalIceService
         return Math.Max(0m, total);
     }
 
-    private static bool ReleaseOutstandingReservation(IceAllocation allocation)
+    private async Task RefreshTheoreticalUsageFromLedgerAsync(
+        int operationalShiftId,
+        CancellationToken cancellationToken)
+    {
+        var allocation = await _context.IceAllocations
+            .SingleOrDefaultAsync(
+                x => x.OperationalShiftId == operationalShiftId,
+                cancellationToken);
+        if (allocation == null)
+            return;
+
+        var ledgerQuantity = await CalculateTheoreticalUsageAsync(allocation, cancellationToken);
+        if (allocation.TheoreticalUsageQuantity == ledgerQuantity)
+            return;
+
+        allocation.TheoreticalUsageQuantity = ledgerQuantity;
+        allocation.Revision += 1;
+    }
+
+    private bool ReleaseOutstandingReservation(IceAllocation allocation)
     {
         var release = allocation.ReservedOutstandingQuantity;
         if (release <= 0)
@@ -1306,7 +1465,7 @@ public sealed class OperationalIceService : IOperationalIceService
         if (allocation.StoreInventory.ReservedQty < release)
             return false;
         allocation.StoreInventory.ReservedQty -= release;
-        allocation.StoreInventory.LastUpdated = DateTime.UtcNow;
+        allocation.StoreInventory.LastUpdated = UtcNow;
         allocation.ReservedOutstandingQuantity = 0;
         return true;
     }
@@ -1338,25 +1497,17 @@ public sealed class OperationalIceService : IOperationalIceService
     {
         var date = businessDate.Date;
         var scheduled = await _context.StaffShifts.AsNoTracking()
+            .Include(x => x.Shift)
+            .Include(x => x.Staff)
+                .ThenInclude(x => x.Account)
+                    .ThenInclude(x => x.AccountRoles)
+                        .ThenInclude(x => x.Role)
             .Where(x => x.WorkDate == date
                         && x.Shift.StoreId == storeId
                         && x.Shift.Active
                         && x.Status.Code != "CANCELLED"
                         && x.Staff.Active
                         && x.Staff.Account.Active)
-            .Select(x => new
-            {
-                x.ShiftId,
-                x.Shift.Name,
-                x.Shift.StartTime,
-                x.Shift.EndTime,
-                x.Shift.IsOvernight,
-                x.StaffId,
-                IsShiftSupervisor = x.Staff.Account.AccountRoles.Any(role =>
-                    role.Role.Active && role.Role.Name == RoleConstants.ShiftSupervisor),
-                IsStoreManager = x.Staff.Account.AccountRoles.Any(role =>
-                    role.Role.Active && role.Role.Name == RoleConstants.StoreManager)
-            })
             .ToListAsync(cancellationToken);
         if (scheduled.Count == 0)
             return [];
@@ -1385,19 +1536,34 @@ public sealed class OperationalIceService : IOperationalIceService
                 group => group.Key,
                 group => group.Select(x => x.StaffId).ToHashSet());
 
+        var timeZone = _workShiftOptions.ResolveTimeZone();
         return scheduled
-            .GroupBy(x => new { x.ShiftId, x.Name, x.StartTime, x.EndTime, x.IsOvernight })
-            .OrderBy(group => group.Key.StartTime)
+            .Select(schedule =>
+            {
+                var interval = ScheduleIntervalResolver.Resolve(schedule);
+                return new
+                {
+                    Schedule = schedule,
+                    StartAtUtc = ScheduleIntervalResolver.ToUtc(interval.StartLocal, timeZone),
+                    EndAtUtc = ScheduleIntervalResolver.ToUtc(interval.EndLocal, timeZone)
+                };
+            })
+            .GroupBy(x => new
+            {
+                x.Schedule.ShiftId,
+                x.Schedule.Shift.Name,
+                x.StartAtUtc,
+                x.EndAtUtc
+            })
+            .OrderBy(group => group.Key.StartAtUtc)
             .Select(group =>
             {
-                var startLocal = DateTime.SpecifyKind(date.Add(group.Key.StartTime), DateTimeKind.Local);
-                var endLocal = DateTime.SpecifyKind(date.Add(group.Key.EndTime), DateTimeKind.Local);
-                if (group.Key.IsOvernight || endLocal <= startLocal)
-                    endLocal = endLocal.AddDays(1);
-                var leadId = group.Where(x => x.IsShiftSupervisor).OrderBy(x => x.StaffId)
-                                 .Select(x => (int?)x.StaffId).FirstOrDefault()
-                             ?? group.Where(x => x.IsStoreManager).OrderBy(x => x.StaffId)
-                                 .Select(x => (int?)x.StaffId).FirstOrDefault()
+                var leadId = group.Where(x => HasActiveRole(x.Schedule, RoleConstants.ShiftSupervisor))
+                                 .OrderBy(x => x.Schedule.StaffId)
+                                 .Select(x => (int?)x.Schedule.StaffId).FirstOrDefault()
+                             ?? group.Where(x => HasActiveRole(x.Schedule, RoleConstants.StoreManager))
+                                 .OrderBy(x => x.Schedule.StaffId)
+                                 .Select(x => (int?)x.Schedule.StaffId).FirstOrDefault()
                              ?? fallbackLeadIds
                                  .Where(staffId => !cancelledByShift.TryGetValue(group.Key.ShiftId, out var cancelled)
                                                    || !cancelled.Contains(staffId))
@@ -1406,16 +1572,80 @@ public sealed class OperationalIceService : IOperationalIceService
                 return new OperationalIceScheduleOptionDto
                 {
                     ScheduleShiftId = group.Key.ShiftId,
+                    StaffShiftIds = group.Select(x => x.Schedule.StaffShiftId).OrderBy(x => x).ToArray(),
                     Name = group.Key.Name,
                     BusinessDate = date,
-                    StartAtUtc = startLocal.ToUniversalTime(),
-                    EndAtUtc = endLocal.ToUniversalTime(),
+                    StartAtUtc = group.Key.StartAtUtc,
+                    EndAtUtc = group.Key.EndAtUtc,
                     StaffCount = group.Count(),
                     SuggestedShiftLeadId = leadId
                 };
             })
             .ToArray();
     }
+
+    private async Task<OperationalIceScheduleOptionDto?> ResolveCurrentScheduleSnapshotAsync(
+        OperationalShift shift,
+        CancellationToken cancellationToken)
+    {
+        var snapshots = await LoadScheduleSnapshotsAsync(
+            shift.StoreId,
+            shift.BusinessDate,
+            cancellationToken);
+        return MatchScheduleSnapshot(shift, snapshots);
+    }
+
+    private static OperationalIceScheduleOptionDto? MatchScheduleSnapshot(
+        OperationalShift shift,
+        IReadOnlyList<OperationalIceScheduleOptionDto> snapshots)
+    {
+        if (!shift.SourceScheduleShiftId.HasValue)
+            return null;
+
+        var templateCandidates = snapshots
+            .Where(x => x.ScheduleShiftId == shift.SourceScheduleShiftId.Value)
+            .ToArray();
+        var sourceIds = shift.ScheduleSources.Select(x => x.StaffShiftId).ToHashSet();
+        if (sourceIds.Count == 0)
+            return templateCandidates.Length == 1 ? templateCandidates[0] : null;
+
+        var matching = templateCandidates
+            .Where(x => x.StaffShiftIds.Any(sourceIds.Contains))
+            .ToArray();
+        return matching.Length == 1 ? matching[0] : null;
+    }
+
+    private static bool HasActiveRole(StaffShift schedule, string roleName) =>
+        schedule.Staff.Account.AccountRoles.Any(role =>
+            role.Role.Active && role.Role.Name == roleName);
+
+    private static OperationalIceCandidateDiagnosticDto Diagnostic(
+        string reasonCode,
+        string message,
+        int count = 0) => new()
+    {
+        ReasonCode = reasonCode,
+        Message = message,
+        Count = count
+    };
+
+    private static bool IsLinkableWorkShiftStatus(string status) =>
+        status == WorkShiftStatuses.Open
+        || status == WorkShiftStatuses.Closed
+        || status == "Open"
+        || status == "Closed";
+
+    private DateTime ToBusinessLocal(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(NormalizeUtc(utc), _workShiftOptions.ResolveTimeZone());
+
+    private DateTime NormalizeUtc(DateTime value) =>
+        value.Kind == DateTimeKind.Utc
+            ? value
+            : ScheduleIntervalResolver.ToUtc(
+                DateTime.SpecifyKind(value, DateTimeKind.Unspecified),
+                _workShiftOptions.ResolveTimeZone());
+
+    private DateTime UtcNow => _timeProvider.GetUtcNow().UtcDateTime;
 
     private async Task<ServiceResult<OperationalIcePolicySetupDto>> BuildPolicySetupAsync(
         int storeId,
@@ -1568,9 +1798,17 @@ public sealed class OperationalIceService : IOperationalIceService
         if (!shift.SourceScheduleShiftId.HasValue)
             return InvalidState("Ca từ lịch làm việc đang thiếu nguồn lịch.");
 
-        var sourceAvailable = await _context.StaffShifts.AsNoTracking()
-            .AnyAsync(
-                x => x.ShiftId == shift.SourceScheduleShiftId.Value
+        var sourceIds = await _context.OperationalShiftScheduleSources.AsNoTracking()
+            .Where(x => x.OperationalShiftId == shift.OperationalShiftId)
+            .Select(x => x.StaffShiftId)
+            .ToListAsync(cancellationToken);
+        if (sourceIds.Count == 0)
+            return InvalidState("Ca từ lịch làm việc đang thiếu nguồn phân công thực tế và cần được rà soát trước khi mở.");
+
+        var activeSourceCount = await _context.StaffShifts.AsNoTracking()
+            .CountAsync(
+                x => sourceIds.Contains(x.StaffShiftId)
+                     && x.ShiftId == shift.SourceScheduleShiftId.Value
                      && x.WorkDate == shift.BusinessDate
                      && x.Shift.StoreId == shift.StoreId
                      && x.Shift.Active
@@ -1578,7 +1816,7 @@ public sealed class OperationalIceService : IOperationalIceService
                      && x.Staff.Active
                      && x.Staff.Account.Active,
                 cancellationToken);
-        if (!sourceAvailable)
+        if (activeSourceCount != sourceIds.Count)
         {
             return InvalidState(
                 "Ca lịch nguồn đã bị hủy hoặc không còn nhân sự hiệu lực. Hãy chuyển ca nháp sang thủ công hoặc hủy ca.");
@@ -1586,9 +1824,7 @@ public sealed class OperationalIceService : IOperationalIceService
 
         var assignedLeadWasCancelled = await _context.StaffShifts.AsNoTracking()
             .AnyAsync(
-                x => x.ShiftId == shift.SourceScheduleShiftId.Value
-                     && x.WorkDate == shift.BusinessDate
-                     && x.Shift.StoreId == shift.StoreId
+                x => sourceIds.Contains(x.StaffShiftId)
                      && x.StaffId == shift.ShiftLeadId.Value
                      && x.Status.Code == "CANCELLED",
                 cancellationToken);
@@ -1625,16 +1861,7 @@ public sealed class OperationalIceService : IOperationalIceService
         if (distinctIds.Length == 0)
             return ServiceResult.Success();
 
-        var operationalStartLocal = operationalShift.StartAtUtc.ToLocalTime();
-        var operationalEndLocal = operationalShift.EndAtUtc.ToLocalTime();
-        var (businessWindowStart, businessWindowEnd) =
-            LocalBusinessWindow(operationalShift, operationalEndLocal);
-        // Keep null EndTime semantics identical to the candidate query: an open
-        // WorkShift extends through the operational window until it is closed.
-        var currentLocalTime = DateTime.Now;
-        var openWorkShiftEnd = currentLocalTime > operationalStartLocal
-            ? currentLocalTime
-            : operationalEndLocal;
+        var businessWindow = BusinessWindowUtc(operationalShift);
         var workShifts = await _context.WorkShifts.AsNoTracking()
             .Where(x => distinctIds.Contains(x.ShiftId))
             .Select(x => new { x.ShiftId, x.StoreId, x.StartTimeUtc, x.EndTimeUtc, x.Status })
@@ -1646,19 +1873,15 @@ public sealed class OperationalIceService : IOperationalIceService
                                 && x.Status != "Open"
                                 && x.Status != "Closed"))
             return Invalid("Ca bán hàng POS không ở trạng thái cho phép liên kết.");
-        var businessWindowStartUtc = businessWindowStart.ToUniversalTime();
-        var businessWindowEndUtc = businessWindowEnd.ToUniversalTime();
-        var operationalStartUtc = operationalStartLocal.ToUniversalTime();
-        var operationalEndUtc = operationalEndLocal.ToUniversalTime();
-        var openWorkShiftEndUtc = openWorkShiftEnd.ToUniversalTime();
-        if (workShifts.Any(x => x.StartTimeUtc < businessWindowStartUtc
-                                || x.StartTimeUtc >= businessWindowEndUtc))
+        if (workShifts.Any(x => x.StartTimeUtc < businessWindow.StartUtc
+                                || x.StartTimeUtc >= businessWindow.EndUtc))
         {
             return Invalid(
                 "Ca bán hàng POS không thuộc ngày vận hành của ca đá này.");
         }
-        if (workShifts.Any(x => x.StartTimeUtc >= operationalEndUtc
-                                || (x.EndTimeUtc ?? openWorkShiftEndUtc) <= operationalStartUtc))
+        if (workShifts.Any(x => x.StartTimeUtc >= operationalShift.EndAtUtc
+                                || (x.EndTimeUtc.HasValue
+                                    && x.EndTimeUtc.Value <= operationalShift.StartAtUtc)))
             return Invalid("Thời gian ca bán hàng POS không giao với thời gian ca đá.");
         var links = await _context.OperationalShiftWorkShifts.AsNoTracking()
             .Where(x => distinctIds.Contains(x.WorkShiftId))
@@ -1668,15 +1891,15 @@ public sealed class OperationalIceService : IOperationalIceService
             : ServiceResult.Success();
     }
 
-    private static (DateTime Start, DateTime End) LocalBusinessWindow(
-        OperationalShift shift,
-        DateTime operationalEndLocal)
+    private (DateTime StartUtc, DateTime EndUtc) BusinessWindowUtc(OperationalShift shift)
     {
-        var start = DateTime.SpecifyKind(shift.BusinessDate.Date, DateTimeKind.Local);
-        var end = DateTime.SpecifyKind(
-            operationalEndLocal.Date.AddDays(1),
-            DateTimeKind.Local);
-        return (start, end > start ? end : start.AddDays(1));
+        var timeZone = _workShiftOptions.ResolveTimeZone();
+        var startLocal = DateTime.SpecifyKind(shift.BusinessDate.Date, DateTimeKind.Unspecified);
+        var operationalEndLocal = ToBusinessLocal(shift.EndAtUtc);
+        var endLocal = DateTime.SpecifyKind(operationalEndLocal.Date.AddDays(1), DateTimeKind.Unspecified);
+        return (
+            ScheduleIntervalResolver.ToUtc(startLocal, timeZone),
+            ScheduleIntervalResolver.ToUtc(endLocal, timeZone));
     }
 
     private async Task<ServiceResult<OperationalShiftSummaryDto>> SaveShiftMutationAsync(
@@ -1715,7 +1938,7 @@ public sealed class OperationalIceService : IOperationalIceService
             OldData = oldData == null ? null : JsonSerializer.Serialize(oldData),
             NewData = newData == null ? null : JsonSerializer.Serialize(newData),
             UserId = actorStaffId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = UtcNow
         });
     }
 
@@ -1741,6 +1964,28 @@ public sealed class OperationalIceService : IOperationalIceService
     private static bool IsUniqueConstraintViolation(DbUpdateException exception) =>
         exception.InnerException is Microsoft.Data.SqlClient.SqlException sqlException
         && sqlException.Number is 2601 or 2627;
+
+    private static bool IsSqlDeadlock(Exception exception)
+    {
+        for (var current = exception; current != null; current = current.InnerException)
+            if (current is Microsoft.Data.SqlClient.SqlException { Number: 1205 })
+                return true;
+        return false;
+    }
+
+    private static async Task TryRollbackAsync(
+        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await transaction.RollbackAsync(cancellationToken);
+        }
+        catch
+        {
+            // SQL Server already rolls back the deadlock victim transaction.
+        }
+    }
 
     private static ServiceResult<T> ScheduleShiftConflict<T>() =>
         ServiceResult<T>.Failure(
