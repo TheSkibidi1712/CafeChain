@@ -5,6 +5,7 @@ using CafeChain.ViewModels.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
+using CafeChain.Application.Constants;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -49,7 +50,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
     }
 
-    [Authorize(Policy = "RequireAdminPanelAccess")]
+    [Authorize(Policy = AuthorizationPolicyConstants.AdminPanelAccess)]
     public abstract class AdminBaseController : AdminStoreScopedController
     {
     }

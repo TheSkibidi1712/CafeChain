@@ -34,16 +34,21 @@ public sealed class DashboardAuthorizationService : IDashboardAuthorizationServi
         if (!effective.Contains(PermissionConstants.AppAdminDashboard))
             throw new UnauthorizedAccessException("Bạn không có quyền mở Admin Dashboard.");
 
-        var sections = Enum.GetValues<DashboardSection>()
+        var candidateSections = Enum.GetValues<DashboardSection>()
             .Where(section => CanViewSection(section, effective))
             .ToArray();
-        if (sections.Length == 0)
+        if (candidateSections.Length == 0)
             throw new UnauthorizedAccessException("Tài khoản không có section Dashboard hợp lệ.");
 
         var widgets = Enum.GetValues<DashboardAnalyticsWidget>()
-            .Where(widget => sections.Contains(DashboardWidgetCatalog.Get(widget).Section)
+            .Where(widget => candidateSections.Contains(DashboardWidgetCatalog.Get(widget).Section)
                 && CanViewWidget(widget, effective))
             .ToArray();
+        var sections = candidateSections
+            .Where(section => widgets.Any(widget => DashboardWidgetCatalog.Get(widget).Section == section))
+            .ToArray();
+        if (widgets.Length == 0 || sections.Length == 0)
+            throw new UnauthorizedAccessException("Tài khoản không có widget Dashboard hợp lệ.");
         var stores = await _scope.GetAllowedStoresAsync(actor.StaffId);
         var storeIds = stores.Select(x => x.StoreId).Distinct().OrderBy(x => x).ToArray();
         if (storeIds.Length == 0)
@@ -113,38 +118,44 @@ public sealed class DashboardAuthorizationService : IDashboardAuthorizationServi
         _ => false
     };
 
-    private static bool CanViewWidget(DashboardAnalyticsWidget widget, IReadOnlySet<string> p) => widget switch
+    private static bool CanViewWidget(DashboardAnalyticsWidget widget, IReadOnlySet<string> p)
     {
-        DashboardAnalyticsWidget.NetSalesTrend or DashboardAnalyticsWidget.StoreRanking
-            or DashboardAnalyticsWidget.PaymentMethodMix => Has(p, PermissionConstants.DashboardFinancialSummaryView),
-        DashboardAnalyticsWidget.OrderHeatmap or DashboardAnalyticsWidget.OrderStatusSummary
-            or DashboardAnalyticsWidget.HourlyOrders => Has(p, "Order.View"),
-        DashboardAnalyticsWidget.WorkShiftTopDiscrepancies => Has(p, PermissionConstants.PosWorkShiftView)
-            && Has(p, PermissionConstants.StaffView),
-        DashboardAnalyticsWidget.WorkShiftCashDiscrepancy or DashboardAnalyticsWidget.WorkShiftSales
-            or DashboardAnalyticsWidget.WorkShiftPaymentMix or DashboardAnalyticsWidget.OfflineReconciliationExceptions
-            or DashboardAnalyticsWidget.WorkShiftKpis => Has(p, PermissionConstants.PosWorkShiftView),
-        DashboardAnalyticsWidget.InventoryThresholdRisk => Has(p, "InventoryThreshold.View"),
-        DashboardAnalyticsWidget.InventoryReorderSuggestions => Has(p, PermissionConstants.ReorderSuggestionView),
-        DashboardAnalyticsWidget.InventoryShortageRisk or DashboardAnalyticsWidget.InventoryMovementByType
-            or DashboardAnalyticsWidget.InventoryWasteByStoreIngredient or DashboardAnalyticsWidget.InventoryFifoLayerAge
-            or DashboardAnalyticsWidget.IngredientConsumptionTrend => Has(p, "Inventory.View"),
-        DashboardAnalyticsWidget.SupplierQuality or DashboardAnalyticsWidget.SupplierIssueMix => Has(p, "SupplierQuality.View"),
-        DashboardAnalyticsWidget.PurchasePriceTrend or DashboardAnalyticsWidget.ProcurementSpendBreakdown => Has(p, "Receipt.ViewCost"),
-        DashboardAnalyticsWidget.PurchaseOrderPipeline or DashboardAnalyticsWidget.OverduePurchaseOrders => Has(p, "PurchaseOrder.View"),
-        DashboardAnalyticsWidget.VolumeMarginMatrix or DashboardAnalyticsWidget.SizeMargin
-            or DashboardAnalyticsWidget.HighConsumptionLowEfficiency or DashboardAnalyticsWidget.CategoryPerformance
-            or DashboardAnalyticsWidget.ProductPeriodPerformance or DashboardAnalyticsWidget.LowMarginProducts
-            => Has(p, "Profitability.View"),
-        DashboardAnalyticsWidget.TopProducts or DashboardAnalyticsWidget.TopToppings
-            or DashboardAnalyticsWidget.BomHealth or DashboardAnalyticsWidget.LowVolumeProducts => Has(p, PermissionConstants.DrinkView),
-        DashboardAnalyticsWidget.WorkforceStaffPerformance => Has(p, PermissionConstants.ShiftView)
-            && Has(p, PermissionConstants.StaffView) && Has(p, PermissionConstants.PosWorkShiftView),
-        DashboardAnalyticsWidget.WorkforceShiftStatus or DashboardAnalyticsWidget.WorkforceHourlyDemand => Has(p, PermissionConstants.ShiftView),
-        DashboardAnalyticsWidget.OperationalAlerts => Has(p, "Inventory.View") || Has(p, PermissionConstants.PosWorkShiftView)
-            || Has(p, "PurchaseOrder.View") || Has(p, "SupplierQuality.View"),
-        _ => false
-    };
+        if (!Has(p, DashboardWidgetCatalog.PermissionCode(widget)))
+            return false;
+
+        return widget switch
+        {
+            DashboardAnalyticsWidget.NetSalesTrend or DashboardAnalyticsWidget.StoreRanking
+                or DashboardAnalyticsWidget.PaymentMethodMix => Has(p, PermissionConstants.DashboardFinancialSummaryView),
+            DashboardAnalyticsWidget.OrderHeatmap or DashboardAnalyticsWidget.OrderStatusSummary
+                or DashboardAnalyticsWidget.HourlyOrders => Has(p, "Order.View"),
+            DashboardAnalyticsWidget.WorkShiftTopDiscrepancies => Has(p, PermissionConstants.PosWorkShiftView)
+                && Has(p, PermissionConstants.StaffView),
+            DashboardAnalyticsWidget.WorkShiftCashDiscrepancy or DashboardAnalyticsWidget.WorkShiftSales
+                or DashboardAnalyticsWidget.WorkShiftPaymentMix or DashboardAnalyticsWidget.OfflineReconciliationExceptions
+                or DashboardAnalyticsWidget.WorkShiftKpis => Has(p, PermissionConstants.PosWorkShiftView),
+            DashboardAnalyticsWidget.InventoryThresholdRisk => Has(p, "InventoryThreshold.View"),
+            DashboardAnalyticsWidget.InventoryReorderSuggestions => Has(p, PermissionConstants.ReorderSuggestionView),
+            DashboardAnalyticsWidget.InventoryShortageRisk or DashboardAnalyticsWidget.InventoryMovementByType
+                or DashboardAnalyticsWidget.InventoryWasteByStoreIngredient or DashboardAnalyticsWidget.InventoryFifoLayerAge
+                or DashboardAnalyticsWidget.IngredientConsumptionTrend => Has(p, "Inventory.View"),
+            DashboardAnalyticsWidget.SupplierQuality or DashboardAnalyticsWidget.SupplierIssueMix => Has(p, "SupplierQuality.View"),
+            DashboardAnalyticsWidget.PurchasePriceTrend or DashboardAnalyticsWidget.ProcurementSpendBreakdown => Has(p, "Receipt.ViewCost"),
+            DashboardAnalyticsWidget.PurchaseOrderPipeline or DashboardAnalyticsWidget.OverduePurchaseOrders => Has(p, "PurchaseOrder.View"),
+            DashboardAnalyticsWidget.VolumeMarginMatrix or DashboardAnalyticsWidget.SizeMargin
+                or DashboardAnalyticsWidget.HighConsumptionLowEfficiency or DashboardAnalyticsWidget.CategoryPerformance
+                or DashboardAnalyticsWidget.ProductPeriodPerformance or DashboardAnalyticsWidget.LowMarginProducts
+                => Has(p, "Profitability.View"),
+            DashboardAnalyticsWidget.TopProducts or DashboardAnalyticsWidget.TopToppings
+                or DashboardAnalyticsWidget.BomHealth or DashboardAnalyticsWidget.LowVolumeProducts => Has(p, PermissionConstants.DrinkView),
+            DashboardAnalyticsWidget.WorkforceStaffPerformance => Has(p, PermissionConstants.ShiftView)
+                && Has(p, PermissionConstants.StaffView) && Has(p, PermissionConstants.PosWorkShiftView),
+            DashboardAnalyticsWidget.WorkforceShiftStatus or DashboardAnalyticsWidget.WorkforceHourlyDemand => Has(p, PermissionConstants.ShiftView),
+            DashboardAnalyticsWidget.OperationalAlerts => Has(p, "Inventory.View") || Has(p, PermissionConstants.PosWorkShiftView)
+                || Has(p, "PurchaseOrder.View") || Has(p, "SupplierQuality.View"),
+            _ => false
+        };
+    }
 
     private static bool Has(IReadOnlySet<string> permissions, string code) => permissions.Contains(code);
 }

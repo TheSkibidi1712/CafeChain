@@ -3,6 +3,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Dashboard;
 using CafeChain.Application.Interfaces.AI;
+using CafeChain.Application.Interfaces.Admin.Dashboard;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Services.Admin.Dashboard;
@@ -287,13 +288,23 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
             reorderAuthorization.Setup(x => x.CanViewAsync(
                     It.IsAny<AdminActorContext>(), 1, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
+            var dashboardAuthorization = new Mock<IDashboardAuthorizationService>();
+            dashboardAuthorization.Setup(x => x.AuthorizeWidgetsAsync(
+                    It.IsAny<AdminActorContext>(), It.IsAny<IReadOnlyCollection<DashboardAnalyticsWidget>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DashboardAuthorizationDto
+                {
+                    AllowedWidgets = Enum.GetValues<DashboardAnalyticsWidget>(),
+                    AllowedSections = Enum.GetValues<DashboardSection>()
+                });
             var dashboard = new DashboardService(
                 new DashboardRepository(
                     reorderContext,
                     NullLogger<DashboardRepository>.Instance),
                 scope.Object,
                 reorderSuggestions: reorder,
-                reorderAuthorization: reorderAuthorization.Object);
+                reorderAuthorization: reorderAuthorization.Object,
+                authorization: dashboardAuthorization.Object);
 
             var widgets = await dashboard.GetAnalyticsBatchAsync(
                 new AdminActorContext { StaffId = staffId, StoreId = 1 },

@@ -1,17 +1,17 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
+using CafeChain.Application.Authorization;
 using CafeChain.Application.DTOs.Admin.Settings;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.Settings;
 using CafeChain.ViewModels.Admin.Settings;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = RoleConstants.BusinessOwner + "," + RoleConstants.SystemAdmin)]
+    [RequirePermission(PermissionConstants.SettingsView)]
     public class AdminSettingController : AdminBaseController
     {
         private readonly IAdminSettingService _settingService;
@@ -45,6 +45,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequirePermission(PermissionConstants.SettingsUpdate)]
         public async Task<IActionResult> UpdateNegativeInventory(UpdateNegativeInventorySettingsDTO request)
         {
             if (!ModelState.IsValid)
