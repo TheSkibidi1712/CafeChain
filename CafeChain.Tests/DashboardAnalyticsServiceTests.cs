@@ -23,7 +23,8 @@ public sealed class DashboardAnalyticsServiceTests
     public async Task GetSectionAsync_RejectsStoreOutsideActorScope()
     {
         var (repository, scope) = CreateDependencies();
-        var service = new DashboardService(repository.Object, scope.Object);
+        var service = new DashboardService(repository.Object, scope.Object,
+            authorization: CreateAuthorization().Object);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetSectionAsync(
             Actor, DashboardSection.Executive, CreateFilter(storeId: 999)));
@@ -57,7 +58,8 @@ public sealed class DashboardAnalyticsServiceTests
         filter.ToDate = new DateTime(2026, 7, 17, 22, 0, 0);
         filter.Granularity = "day";
         filter.Top = 500;
-        var service = new DashboardService(repository.Object, scope.Object);
+        var service = new DashboardService(repository.Object, scope.Object,
+            authorization: CreateAuthorization().Object);
 
         var raw = await service.GetSectionAsync(Actor, DashboardSection.Executive, filter, cancellation.Token);
         var result = Assert.IsType<DashboardSectionResponse<ExecutiveDashboardData>>(raw);
@@ -71,7 +73,8 @@ public sealed class DashboardAnalyticsServiceTests
     public async Task GetSectionAsync_RejectsInvertedDateRange()
     {
         var (repository, scope) = CreateDependencies();
-        var service = new DashboardService(repository.Object, scope.Object);
+        var service = new DashboardService(repository.Object, scope.Object,
+            authorization: CreateAuthorization().Object);
         var filter = CreateFilter();
         filter.FromDate = new DateTime(2026, 7, 18);
         filter.ToDate = new DateTime(2026, 7, 17);
@@ -85,13 +88,19 @@ public sealed class DashboardAnalyticsServiceTests
     {
         var service = new Mock<IDashboardService>();
         var actorAccessor = new Mock<IAdminActorContextAccessor>();
+        AdminActorContext? capturedActor = null;
         DashboardAnalyticsFilter? capturedFilter = null;
         using var cancellation = new CancellationTokenSource();
         actorAccessor.Setup(x => x.Get(It.IsAny<ClaimsPrincipal>())).Returns(Actor);
         service.Setup(x => x.GetAnalyticsAsync(
+                It.IsAny<AdminActorContext>(),
                 DashboardAnalyticsWidget.PaymentMethodMix,
                 It.IsAny<DashboardAnalyticsFilter>(), cancellation.Token))
-            .Callback<DashboardAnalyticsWidget, DashboardAnalyticsFilter, CancellationToken>((_, filter, _) => capturedFilter = filter)
+            .Callback<AdminActorContext, DashboardAnalyticsWidget, DashboardAnalyticsFilter, CancellationToken>((actor, _, filter, _) =>
+            {
+                capturedActor = actor;
+                capturedFilter = filter;
+            })
             .ReturnsAsync(new DashboardAnalyticsResponse { Widget = DashboardAnalyticsWidget.PaymentMethodMix });
 
         var controller = new DashboardController(service.Object, actorAccessor.Object)
@@ -106,8 +115,8 @@ public sealed class DashboardAnalyticsServiceTests
             DashboardAnalyticsWidget.PaymentMethodMix, new DashboardAnalyticsFilter());
 
         Assert.IsType<JsonResult>(result);
+        Assert.Same(Actor, capturedActor);
         Assert.NotNull(capturedFilter);
-        Assert.Equal(7, ReadStaffId(capturedFilter!));
         service.VerifyAll();
     }
 
@@ -128,7 +137,8 @@ public sealed class DashboardAnalyticsServiceTests
                     new StoreRankingRow { StoreId = 10, StoreName = "Store 10", TotalOrders = 3, NetSales = 300000m }
                 ])
             });
-        var service = new DashboardService(repository.Object, scope.Object);
+        var service = new DashboardService(repository.Object, scope.Object,
+            authorization: CreateAuthorization().Object);
         var filter = new DashboardAnalyticsFilter
         {
             FromDate = new DateTime(2026, 7, 1),
@@ -203,6 +213,43 @@ public sealed class DashboardAnalyticsServiceTests
         return (repository, scope);
     }
 
+    [Fact]
+    public async Task AnalyticsPaths_FailClosedWhenAuthorizationServiceIsMissing()
+    {
+        var (repository, scope) = CreateDependencies();
+        var service = new DashboardService(repository.Object, scope.Object);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.GetSectionAsync(Actor, DashboardSection.Executive, CreateFilter()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            service.GetAnalyticsBatchAsync(
+                Actor,
+                [DashboardAnalyticsWidget.NetSalesTrend],
+                new DashboardAnalyticsFilter
+                {
+                    FromDate = new DateTime(2026, 7, 1),
+                    ToDate = new DateTime(2026, 7, 17)
+                }));
+    }
+
+    private static Mock<IDashboardAuthorizationService> CreateAuthorization()
+    {
+        var authorization = new Mock<IDashboardAuthorizationService>();
+        var access = new DashboardAuthorizationDto
+        {
+            AllowedSections = Enum.GetValues<DashboardSection>(),
+            AllowedWidgets = Enum.GetValues<DashboardAnalyticsWidget>()
+        };
+        authorization.Setup(x => x.AuthorizeSectionAsync(
+                It.IsAny<AdminActorContext>(), It.IsAny<DashboardSection>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(access);
+        authorization.Setup(x => x.AuthorizeWidgetsAsync(
+                It.IsAny<AdminActorContext>(), It.IsAny<IReadOnlyCollection<DashboardAnalyticsWidget>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(access);
+        return authorization;
+    }
+
     private static DashboardFilterDto CreateFilter(int? storeId = null) => new()
     {
         FromDate = new DateTime(2026, 7, 1),
@@ -210,8 +257,4 @@ public sealed class DashboardAnalyticsServiceTests
         StoreId = storeId
     };
 
-    private static int? ReadStaffId(DashboardAnalyticsFilter filter) =>
-        (int?)typeof(DashboardAnalyticsFilter)
-            .GetProperty("StaffId", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .GetValue(filter);
 }

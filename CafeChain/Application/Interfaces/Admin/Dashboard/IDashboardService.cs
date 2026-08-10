@@ -31,6 +31,7 @@ public interface IDashboardService
     Task<DashboardVM> GetDashboardAsync(DashboardRequest request);
 
     Task<DashboardAnalyticsResponse> GetAnalyticsAsync(
+        AdminActorContext actor,
         DashboardAnalyticsWidget widget,
         DashboardAnalyticsFilter filter,
         CancellationToken cancellationToken = default);

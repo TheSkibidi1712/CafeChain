@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CafeChain.Application.Interfaces.Accounts;
+using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Profiles;
 using CafeChain.ViewModels.Profile;
 using Microsoft.AspNetCore.Authentication;
@@ -10,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers;
 
 [Area("Admin")]
-[Authorize]
+[Authorize(Policy = AuthorizationPolicyConstants.AdminPanelAccess)]
 public class AdminProfileController : Controller
 {
     private readonly IAdminProfileService _profileService;

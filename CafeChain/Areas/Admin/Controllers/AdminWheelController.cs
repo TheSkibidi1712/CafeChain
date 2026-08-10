@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -7,6 +8,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// Soft-removal: lucky-wheel voucher config disabled (voucher out of product scope).
     /// </summary>
     [Area("Admin")]
+    [Authorize(Policy = AuthorizationPolicyConstants.AdminPanelAccess)]
     public class AdminWheelController : Controller
     {
         public IActionResult Index()

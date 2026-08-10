@@ -8276,6 +8276,26 @@ BEGIN TRY
  FROM #RoleMap rm
  JOIN dbo.Roles r ON r.Name=rm.RoleName AND r.Active=1;
 
+ /* Dedicated permission group for per-widget Dashboard grants. The identity
+    value is intentionally database-generated so existing installations that
+    already created POS_WORKSHIFT remain compatible. */
+ IF EXISTS
+ (
+  SELECT 1
+  FROM dbo.PermissionGroups
+  WHERE (Code=N'DASHBOARD_WIDGET' AND Name<>N'Widget Dashboard')
+     OR (Name=N'Widget Dashboard' AND Code<>N'DASHBOARD_WIDGET')
+ )
+  THROW 53349,N'RBAC_CAFECHAIN_FINAL_V3: nhóm quyền Dashboard widget xung đột Code hoặc Name.',1;
+
+ IF NOT EXISTS(SELECT 1 FROM dbo.PermissionGroups WHERE Code=N'DASHBOARD_WIDGET')
+  INSERT dbo.PermissionGroups(Code,Name,DisplayOrder,Active)
+  VALUES(N'DASHBOARD_WIDGET',N'Widget Dashboard',9,1);
+ ELSE
+  UPDATE dbo.PermissionGroups
+  SET DisplayOrder=9,Active=1
+  WHERE Code=N'DASHBOARD_WIDGET';
+
  /* New/dynamic permissions. PermissionId remains database-generated;
     Code is the stable identity, matching the current SeedAll design. */
  CREATE TABLE #NewPermissionCatalog
@@ -8334,6 +8354,47 @@ BEGIN TRY
   (N'OperationalAnomaly.Acknowledge',N'APPLICATION',N'Ghi nhận bất thường',N'AnomalyAcknowledge',N'Ghi nhận đã tiếp nhận tín hiệu bất thường'),
   (N'OperationalAnomaly.Resolve',N'APPLICATION',N'Giải quyết bất thường',N'AnomalyResolve',N'Đóng tín hiệu sau khi kiểm tra'),
   (N'OperationalAnomaly.Feedback',N'APPLICATION',N'Phản hồi bất thường',N'AnomalyFeedback',N'Ghi Useful, NotUseful hoặc FalsePositive cho pilot');
+
+ INSERT #NewPermissionCatalog VALUES
+  (N'Dashboard.Widget.NetSalesTrend.View',N'DASHBOARD_WIDGET',N'Xem xu hướng doanh thu',N'ViewNetSalesTrend',N'Xem widget xu hướng doanh thu trong StaffScope'),
+  (N'Dashboard.Widget.StoreRanking.View',N'DASHBOARD_WIDGET',N'Xem xếp hạng cửa hàng',N'ViewStoreRanking',N'Xem widget xếp hạng cửa hàng trong StaffScope'),
+  (N'Dashboard.Widget.PaymentMethodMix.View',N'DASHBOARD_WIDGET',N'Xem phương thức thanh toán',N'ViewPaymentMethodMix',N'Xem widget mức sử dụng phương thức thanh toán trong StaffScope'),
+  (N'Dashboard.Widget.OrderHeatmap.View',N'DASHBOARD_WIDGET',N'Xem phân bố đơn theo giờ',N'ViewOrderHeatmap',N'Xem widget phân bố đơn theo ngày và giờ trong StaffScope'),
+  (N'Dashboard.Widget.OperationalAlerts.View',N'DASHBOARD_WIDGET',N'Xem cảnh báo vận hành',N'ViewOperationalAlerts',N'Xem widget cảnh báo vận hành trong StaffScope'),
+  (N'Dashboard.Widget.OrderStatusSummary.View',N'DASHBOARD_WIDGET',N'Xem tình trạng đơn hàng',N'ViewOrderStatusSummary',N'Xem widget tình trạng đơn hàng trong StaffScope'),
+  (N'Dashboard.Widget.WorkShiftCashDiscrepancy.View',N'DASHBOARD_WIDGET',N'Xem chênh lệch tiền mặt theo ca',N'ViewWorkShiftCashDiscrepancy',N'Xem widget chênh lệch tiền mặt theo ca trong StaffScope'),
+  (N'Dashboard.Widget.WorkShiftSales.View',N'DASHBOARD_WIDGET',N'Xem doanh thu theo ca',N'ViewWorkShiftSales',N'Xem widget doanh thu theo ca trong StaffScope'),
+  (N'Dashboard.Widget.WorkShiftPaymentMix.View',N'DASHBOARD_WIDGET',N'Xem thanh toán theo ca',N'ViewWorkShiftPaymentMix',N'Xem widget thanh toán theo ca trong StaffScope'),
+  (N'Dashboard.Widget.OfflineReconciliationExceptions.View',N'DASHBOARD_WIDGET',N'Xem đối soát đơn ngoại tuyến',N'ViewOfflineReconciliation',N'Xem widget đối soát đơn ngoại tuyến trong StaffScope'),
+  (N'Dashboard.Widget.HourlyOrders.View',N'DASHBOARD_WIDGET',N'Xem đơn hàng theo giờ',N'ViewHourlyOrders',N'Xem widget đơn hàng theo giờ trong StaffScope'),
+  (N'Dashboard.Widget.WorkShiftTopDiscrepancies.View',N'DASHBOARD_WIDGET',N'Xem ca chênh lệch tiền mặt cao',N'ViewWorkShiftTopDiscrepancies',N'Xem widget ca có chênh lệch tiền mặt cao trong StaffScope'),
+  (N'Dashboard.Widget.WorkShiftKpis.View',N'DASHBOARD_WIDGET',N'Xem chỉ số vận hành ca',N'ViewWorkShiftKpis',N'Xem widget chỉ số vận hành ca trong StaffScope'),
+  (N'Dashboard.Widget.InventoryShortageRisk.View',N'DASHBOARD_WIDGET',N'Xem nguyên liệu dưới ngưỡng tồn',N'ViewInventoryShortageRisk',N'Xem widget nguyên liệu dưới ngưỡng tồn trong StaffScope'),
+  (N'Dashboard.Widget.InventoryMovementByType.View',N'DASHBOARD_WIDGET',N'Xem biến động kho',N'ViewInventoryMovementByType',N'Xem widget biến động kho trong StaffScope'),
+  (N'Dashboard.Widget.InventoryThresholdRisk.View',N'DASHBOARD_WIDGET',N'Xem rủi ro ngưỡng tồn kho',N'ViewInventoryThresholdRisk',N'Xem widget rủi ro ngưỡng tồn kho trong StaffScope'),
+  (N'Dashboard.Widget.InventoryReorderSuggestions.View',N'DASHBOARD_WIDGET',N'Xem gợi ý nhập hàng',N'ViewInventoryReorderSuggestions',N'Xem widget gợi ý nhập hàng trong StaffScope'),
+  (N'Dashboard.Widget.InventoryWasteByStoreIngredient.View',N'DASHBOARD_WIDGET',N'Xem hao hụt kho',N'ViewInventoryWaste',N'Xem widget hao hụt kho trong StaffScope'),
+  (N'Dashboard.Widget.InventoryFifoLayerAge.View',N'DASHBOARD_WIDGET',N'Xem tuổi lớp tồn FIFO',N'ViewInventoryFifoLayerAge',N'Xem widget tuổi lớp tồn FIFO trong StaffScope'),
+  (N'Dashboard.Widget.IngredientConsumptionTrend.View',N'DASHBOARD_WIDGET',N'Xem xu hướng tiêu thụ nguyên liệu',N'ViewIngredientConsumptionTrend',N'Xem widget xu hướng tiêu thụ nguyên liệu trong StaffScope'),
+  (N'Dashboard.Widget.PurchaseOrderPipeline.View',N'DASHBOARD_WIDGET',N'Xem tiến độ đơn mua hàng',N'ViewPurchaseOrderPipeline',N'Xem widget tiến độ đơn mua hàng trong StaffScope'),
+  (N'Dashboard.Widget.OverduePurchaseOrders.View',N'DASHBOARD_WIDGET',N'Xem đơn mua hàng quá hạn',N'ViewOverduePurchaseOrders',N'Xem widget đơn mua hàng quá hạn trong StaffScope'),
+  (N'Dashboard.Widget.SupplierQuality.View',N'DASHBOARD_WIDGET',N'Xem chất lượng nhà cung cấp',N'ViewSupplierQuality',N'Xem widget chất lượng nhà cung cấp trong StaffScope'),
+  (N'Dashboard.Widget.PurchasePriceTrend.View',N'DASHBOARD_WIDGET',N'Xem xu hướng giá mua',N'ViewPurchasePriceTrend',N'Xem widget xu hướng giá mua trong StaffScope'),
+  (N'Dashboard.Widget.ProcurementSpendBreakdown.View',N'DASHBOARD_WIDGET',N'Xem chi phí mua hàng',N'ViewProcurementSpendBreakdown',N'Xem widget chi phí mua hàng trong StaffScope'),
+  (N'Dashboard.Widget.SupplierIssueMix.View',N'DASHBOARD_WIDGET',N'Xem sự cố nhà cung cấp',N'ViewSupplierIssueMix',N'Xem widget sự cố nhà cung cấp trong StaffScope'),
+  (N'Dashboard.Widget.TopProducts.View',N'DASHBOARD_WIDGET',N'Xem sản phẩm bán chạy',N'ViewTopProducts',N'Xem widget sản phẩm bán chạy trong StaffScope'),
+  (N'Dashboard.Widget.VolumeMarginMatrix.View',N'DASHBOARD_WIDGET',N'Xem số lượng và biên lợi nhuận',N'ViewVolumeMarginMatrix',N'Xem widget số lượng và biên lợi nhuận trong StaffScope'),
+  (N'Dashboard.Widget.SizeMargin.View',N'DASHBOARD_WIDGET',N'Xem hiệu quả theo kích cỡ',N'ViewSizeMargin',N'Xem widget hiệu quả theo kích cỡ trong StaffScope'),
+  (N'Dashboard.Widget.TopToppings.View',N'DASHBOARD_WIDGET',N'Xem Topping bán chạy',N'ViewTopToppings',N'Xem widget Topping bán chạy trong StaffScope'),
+  (N'Dashboard.Widget.BomHealth.View',N'DASHBOARD_WIDGET',N'Xem tình trạng BOM',N'ViewBomHealth',N'Xem widget tình trạng BOM trong StaffScope'),
+  (N'Dashboard.Widget.HighConsumptionLowEfficiency.View',N'DASHBOARD_WIDGET',N'Xem sản phẩm hiệu quả thấp',N'ViewHighConsumptionLowEfficiency',N'Xem widget sản phẩm tiêu thụ cao nhưng hiệu quả thấp trong StaffScope'),
+  (N'Dashboard.Widget.CategoryPerformance.View',N'DASHBOARD_WIDGET',N'Xem hiệu quả danh mục',N'ViewCategoryPerformance',N'Xem widget hiệu quả danh mục trong StaffScope'),
+  (N'Dashboard.Widget.ProductPeriodPerformance.View',N'DASHBOARD_WIDGET',N'Xem hiệu quả sản phẩm theo kỳ',N'ViewProductPeriodPerformance',N'Xem widget hiệu quả sản phẩm theo kỳ trong StaffScope'),
+  (N'Dashboard.Widget.LowVolumeProducts.View',N'DASHBOARD_WIDGET',N'Xem sản phẩm bán chậm',N'ViewLowVolumeProducts',N'Xem widget sản phẩm bán chậm trong StaffScope'),
+  (N'Dashboard.Widget.LowMarginProducts.View',N'DASHBOARD_WIDGET',N'Xem sản phẩm biên lợi nhuận thấp',N'ViewLowMarginProducts',N'Xem widget sản phẩm biên lợi nhuận thấp trong StaffScope'),
+  (N'Dashboard.Widget.WorkforceShiftStatus.View',N'DASHBOARD_WIDGET',N'Xem tình trạng ca nhân sự',N'ViewWorkforceShiftStatus',N'Xem widget tình trạng ca nhân sự trong StaffScope'),
+  (N'Dashboard.Widget.WorkforceHourlyDemand.View',N'DASHBOARD_WIDGET',N'Xem nhu cầu nhân sự theo giờ',N'ViewWorkforceHourlyDemand',N'Xem widget nhu cầu nhân sự theo giờ trong StaffScope'),
+  (N'Dashboard.Widget.WorkforceStaffPerformance.View',N'DASHBOARD_WIDGET',N'Xem hiệu suất nhân sự',N'ViewWorkforceStaffPerformance',N'Xem widget hiệu suất nhân sự trong StaffScope');
 
  IF EXISTS
  (
@@ -8697,6 +8758,47 @@ BEGIN TRY
   (N'OperationalAnomaly.Resolve',1,1,1,0,0,0,0,0),
   (N'OperationalAnomaly.Feedback',1,1,1,0,0,0,0,0);
 
+ INSERT #PermissionMatrix VALUES
+  (N'Dashboard.Widget.NetSalesTrend.View',1,0,0,0,0,0,0,0),
+  (N'Dashboard.Widget.StoreRanking.View',1,0,0,0,0,0,0,0),
+  (N'Dashboard.Widget.PaymentMethodMix.View',1,0,0,0,0,0,0,0),
+  (N'Dashboard.Widget.OrderHeatmap.View',1,0,0,0,0,0,0,0),
+  (N'Dashboard.Widget.OperationalAlerts.View',1,0,0,0,0,0,0,0),
+  (N'Dashboard.Widget.OrderStatusSummary.View',1,0,0,0,0,0,0,0),
+  (N'Dashboard.Widget.WorkShiftCashDiscrepancy.View',1,1,1,0,0,0,0,0),
+  (N'Dashboard.Widget.WorkShiftSales.View',1,1,1,0,0,0,0,0),
+  (N'Dashboard.Widget.WorkShiftPaymentMix.View',1,1,1,0,0,0,0,0),
+  (N'Dashboard.Widget.OfflineReconciliationExceptions.View',1,1,1,0,0,0,0,0),
+  (N'Dashboard.Widget.HourlyOrders.View',1,1,1,0,0,0,0,0),
+  (N'Dashboard.Widget.WorkShiftTopDiscrepancies.View',1,1,1,0,0,0,0,0),
+  (N'Dashboard.Widget.WorkShiftKpis.View',1,1,1,0,0,0,0,0),
+  (N'Dashboard.Widget.InventoryShortageRisk.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.InventoryMovementByType.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.InventoryThresholdRisk.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.InventoryReorderSuggestions.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.InventoryWasteByStoreIngredient.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.InventoryFifoLayerAge.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.IngredientConsumptionTrend.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.PurchaseOrderPipeline.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.OverduePurchaseOrders.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.SupplierQuality.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.PurchasePriceTrend.View',1,1,0,0,1,0,0,0),
+  (N'Dashboard.Widget.ProcurementSpendBreakdown.View',1,1,0,0,1,0,0,0),
+  (N'Dashboard.Widget.SupplierIssueMix.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.TopProducts.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.VolumeMarginMatrix.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.SizeMargin.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.TopToppings.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.BomHealth.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.HighConsumptionLowEfficiency.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.CategoryPerformance.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.ProductPeriodPerformance.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.LowVolumeProducts.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.LowMarginProducts.View',1,1,1,0,1,0,0,0),
+  (N'Dashboard.Widget.WorkforceShiftStatus.View',1,1,1,0,0,0,0,0),
+  (N'Dashboard.Widget.WorkforceHourlyDemand.View',1,1,1,0,0,0,0,0),
+  (N'Dashboard.Widget.WorkforceStaffPerformance.View',1,1,1,0,0,0,0,0);
+
  UPDATE #PermissionMatrix SET CDN=1,QLV=1,QLCN=1,KTK=1
  WHERE PermissionCode=N'PurchaseAdvice.SelectSupplier';
 
@@ -8912,11 +9014,11 @@ BEGIN TRY
   ExpectedCount int NOT NULL
  );
  INSERT #ExpectedRoleCounts VALUES
-  (N'CDN',142),
-  (N'QLV',68),
-  (N'QLCN',107),
+  (N'CDN',181),
+  (N'QLV',101),
+  (N'QLCN',138),
   (N'NVBH',12),
-  (N'KTK',95),
+  (N'KTK',118),
   (N'KH',0),
   (N'CT',37);
 

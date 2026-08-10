@@ -483,6 +483,7 @@
                         <button type="submit"
                                 id="btnCreateCategory"
                                 class="btn category-primary-btn"
+                                data-can-submit="@canCreateCategory.ToString().ToLowerInvariant()"
                                 disabled="@(!canCreateCategory)"
                                 title="@(canCreateCategory ? "Lưu danh mục" : "Bạn không có quyền thêm danh mục")">
 
@@ -653,6 +654,7 @@
                         <button type="submit"
                                 id="btnEditCategory"
                                 class="btn category-primary-btn"
+                                data-can-submit="@canUpdateCategory.ToString().ToLowerInvariant()"
                                 disabled="@(!canUpdateCategory)"
                                 title="@(canUpdateCategory ? "Cập nhật" : "Bạn không có quyền cập nhật danh mục")">
 
@@ -676,5 +678,5 @@
 
 @section Scripts
 {
-    <script src="~/js/Admin/Category/Category.js"></script>
+    <script src="~/js/Admin/Category/Category.js" asp-append-version="true"></script>
 }

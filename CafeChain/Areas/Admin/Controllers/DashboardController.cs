@@ -73,9 +73,8 @@ public sealed class DashboardController : Controller
         if (!ModelState.IsValid)
             return BadRequest(new { success = false, message = "Bộ lọc analytics không hợp lệ." });
         var actor = _actorAccessor.Get(User);
-        filter.StaffId = actor.StaffId;
         return await ExecuteJsonAsync(() =>
-            _service.GetAnalyticsAsync(widget, filter, HttpContext.RequestAborted));
+            _service.GetAnalyticsAsync(actor, widget, filter, HttpContext.RequestAborted));
     }
 
     private async Task<IActionResult> ExecuteJsonAsync(Func<Task<object>> action)

@@ -12,13 +12,8 @@ public static class AuthorizationServiceExtensions
         {
             options.AddPolicy(AuthorizationPolicyConstants.AdminPanelAccess, policy =>
             {
-                policy.RequireRole(
-                    RoleConstants.BusinessOwner,
-                    RoleConstants.AreaManager,
-                    RoleConstants.StoreManager,
-                    RoleConstants.ShiftSupervisor,
-                    RoleConstants.AccountantWarehouse,
-                    RoleConstants.SystemAdmin);
+                policy.RequireAuthenticatedUser();
+                policy.AddRequirements(new AdminPanelAccessRequirement());
             });
             options.AddPolicy(AuthorizationPolicyConstants.AdminDashboardApp, policy =>
             {
@@ -37,6 +32,7 @@ public static class AuthorizationServiceExtensions
         });
 
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        services.AddScoped<IAuthorizationHandler, AdminPanelAccessAuthorizationHandler>();
         services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
         return services;
     }
