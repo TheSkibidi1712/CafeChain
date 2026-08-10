@@ -11,6 +11,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.AI;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.AI;
+using CafeChain.ViewModels.Shared;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -45,15 +46,35 @@ namespace CafeChain.Areas.Admin.Controllers
         // =====================================================
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? keyword = null, bool? active = null, int page = 1, int pageSize = 10)
         {
             var guard = await EnsurePermissionAsync(PermissionConstants.ToppingView, false);
             if (guard != null) return guard;
             var toppings = (await _toppingService.GetAllAsync()).ToList();
-            var sources = await _recipeQueryService.GetToppingConsumptionSourcesAsync(
-                toppings.Select(x => x.ToppingId));
+            keyword = string.IsNullOrWhiteSpace(keyword) ? null : keyword.Trim();
+            page = Math.Max(page, 1);
+            pageSize = Math.Clamp(pageSize, 5, 50);
 
-            var vm = toppings.Select(x => new AdminToppingVM
+            if (keyword != null)
+            {
+                toppings = toppings.Where(topping =>
+                    topping.ToppingCode.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                    || topping.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            var allCount = toppings.Count;
+            var activeCount = toppings.Count(topping => topping.Active);
+            var inactiveCount = allCount - activeCount;
+            if (active.HasValue)
+                toppings = toppings.Where(topping => topping.Active == active.Value).ToList();
+
+            var totalPages = Math.Max(1, (int)Math.Ceiling(toppings.Count / (double)pageSize));
+            page = Math.Min(page, totalPages);
+            var pageItems = toppings.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var sources = await _recipeQueryService.GetToppingConsumptionSourcesAsync(
+                pageItems.Select(x => x.ToppingId));
+
+            var items = pageItems.Select(x => new AdminToppingVM
             {
                 ToppingId = x.ToppingId,
                 ToppingCode = x.ToppingCode,
@@ -63,6 +84,17 @@ namespace CafeChain.Areas.Admin.Controllers
                 Active = x.Active,
                 ConsumptionSource = sources[x.ToppingId]
             }).ToList();
+
+            var vm = new AdminToppingIndexVM
+            {
+                Keyword = keyword,
+                Active = active,
+                AllCount = allCount,
+                ActiveCount = activeCount,
+                InactiveCount = inactiveCount,
+                PageSize = pageSize,
+                Toppings = new PaginatedListViewModel<AdminToppingVM>(items, toppings.Count, page, pageSize)
+            };
 
             return View(vm);
         }

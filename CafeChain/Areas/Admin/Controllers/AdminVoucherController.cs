@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -8,6 +9,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// Historical data remains in schema; no active mutation routes.
     /// </summary>
     [Area("Admin")]
+    [Authorize(Policy = AuthorizationPolicyConstants.AdminPanelAccess)]
     public class AdminVoucherController : Controller
     {
         public IActionResult Index()

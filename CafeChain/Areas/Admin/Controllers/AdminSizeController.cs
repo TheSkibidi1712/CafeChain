@@ -10,6 +10,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.AI;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.AI;
+using CafeChain.ViewModels.Shared;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -32,13 +33,29 @@ namespace CafeChain.Areas.Admin.Controllers
             _aiService = aiService;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? keyword = null, bool? active = null, int page = 1, int pageSize = 10)
         {
             var guard = await EnsurePermissionAsync(PermissionConstants.SizeView, false);
             if (guard != null) return guard;
-            var sizes = await _adminsizeService.GetActiveSizesAsync();
+            var sizes = (await _adminsizeService.GetActiveSizesAsync()).ToList();
+            keyword = string.IsNullOrWhiteSpace(keyword) ? null : keyword.Trim();
+            page = Math.Max(page, 1);
+            pageSize = Math.Clamp(pageSize, 5, 50);
 
-            var vm = sizes.Select(s => new AdminSizeVM
+            if (keyword != null)
+            {
+                sizes = sizes.Where(size =>
+                    size.SizeCode.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                    || size.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            var allCount = sizes.Count;
+            var activeCount = sizes.Count(size => size.Active);
+            var inactiveCount = allCount - activeCount;
+            if (active.HasValue)
+                sizes = sizes.Where(size => size.Active == active.Value).ToList();
+
+            var allItems = sizes.Select(s => new AdminSizeVM
             {
                 SizeId = s.SizeId,
                 SizeCode = s.SizeCode,
@@ -46,7 +63,21 @@ namespace CafeChain.Areas.Admin.Controllers
                 Description = s.Description,
                 SizeType = s.SizeType,
                 Active = s.Active
-            });
+            }).ToList();
+
+            var totalPages = Math.Max(1, (int)Math.Ceiling(allItems.Count / (double)pageSize));
+            page = Math.Min(page, totalPages);
+            var pageItems = allItems.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var vm = new AdminSizeIndexVM
+            {
+                Keyword = keyword,
+                Active = active,
+                AllCount = allCount,
+                ActiveCount = activeCount,
+                InactiveCount = inactiveCount,
+                PageSize = pageSize,
+                Sizes = new PaginatedListViewModel<AdminSizeVM>(pageItems, allItems.Count, page, pageSize)
+            };
 
             return View(vm);
         }

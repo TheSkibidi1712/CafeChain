@@ -28,6 +28,162 @@ function unlockButton(btn, html) {
     btn.innerHTML = html;
 }
 
+const createCategoryButtonHtml =
+    '<i class="fas fa-save me-2"></i>Lưu danh mục';
+const editCategoryButtonHtml =
+    '<i class="fas fa-save me-2"></i>Cập nhật';
+
+function restoreCategorySubmitButton(btn, html) {
+    if (!btn) return;
+    btn.removeAttribute("aria-busy");
+    btn.innerHTML = html;
+    btn.disabled = btn.dataset.canSubmit === "false";
+}
+
+function setCategorySubmitState(form, btn, isSubmitting, idleHtml) {
+    if (!form || !btn) return;
+
+    if (isSubmitting) {
+        form.dataset.submitting = "true";
+        btn.disabled = true;
+        btn.setAttribute("aria-busy", "true");
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang lưu...';
+        return;
+    }
+
+    window.AdminMutationGuard?.unlockForm?.(form);
+    delete form.dataset.submitting;
+    form.removeAttribute("data-submit-busy");
+    form.removeAttribute("data-submit-pending");
+    form.removeAttribute("aria-busy");
+    btn.classList.remove("is-submitting");
+    restoreCategorySubmitButton(btn, idleHtml);
+}
+
+function resolveCategoryError(result, response, action) {
+    try {
+        return window.AdminFeedback?.resolveMessage?.(result, {
+            status: response?.status,
+            action,
+            entityName: "danh mục"
+        }) || result?.message || "Không thể lưu danh mục.";
+    } catch {
+        return result?.message || "Không thể lưu danh mục.";
+    }
+}
+
+function resolveCategoryNetworkError() {
+    try {
+        return window.AdminFeedback?.networkMessage?.() || "Không thể kết nối đến máy chủ.";
+    } catch {
+        return "Không thể kết nối đến máy chủ.";
+    }
+}
+
+function resetCategoryForm(form, submitButtonId, submitButtonHtml) {
+    if (!form) return;
+
+    form.reset();
+    delete form.dataset.submitting;
+    form.querySelectorAll(".is-invalid").forEach(element =>
+        element.classList.remove("is-invalid"));
+
+    form.querySelectorAll("[data-category-icon-picker]").forEach(root => {
+        const iconInput = root.querySelector("[data-icon-input]");
+        const iconSearch = root.querySelector("[data-icon-search]");
+        const iconGroups = root.querySelector("[data-icon-groups]");
+
+        if (iconSearch) iconSearch.value = "";
+        iconGroups?.replaceChildren();
+        iconInput?.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    closeCategoryIconPickers();
+    restoreCategorySubmitButton(
+        document.getElementById(submitButtonId),
+        submitButtonHtml
+    );
+}
+
+function resetCategorySuggestions() {
+    categorySuggestionController?.abort();
+    categorySuggestionController = null;
+    categorySuggestionInFlight = false;
+
+    document.getElementById("categoryAiSuggestions")?.classList.add("d-none");
+    document.getElementById("categoryAiSuggestionList")?.replaceChildren();
+
+    const message = document.getElementById("categoryAiSuggestionMessage");
+    if (message) {
+        message.textContent = "Chọn một gợi ý để điền vào form:";
+    }
+}
+
+function hideCategoryModal(modalId) {
+    const modalElement = document.getElementById(modalId);
+    if (!modalElement || !window.bootstrap?.Modal) {
+        return Promise.resolve();
+    }
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    if (!modalElement.classList.contains("show")) {
+        modal.hide();
+        return Promise.resolve();
+    }
+
+    return new Promise(resolve => {
+        modalElement.addEventListener("hidden.bs.modal", resolve, { once: true });
+        modal.hide();
+    });
+}
+
+async function showCategoryAlert(message, icon = "success") {
+    if (window.Swal) {
+        const suspendedModal = icon === "error"
+            ? document.querySelector(".modal.show")
+            : null;
+
+        // Không xếp SweetAlert chồng lên Bootstrap modal. Một số trình duyệt vẫn
+        // giữ focus trap/backdrop của modal và chặn toàn bộ click vào alert.
+        // Modal được ẩn tạm thời, nhưng cờ này giữ nguyên dữ liệu form.
+        if (suspendedModal?.id && window.bootstrap?.Modal) {
+            suspendedModal.dataset.preserveCategoryForm = "true";
+            await hideCategoryModal(suspendedModal.id);
+        }
+
+        try {
+            await window.Swal.fire({
+                title: icon === "success" ? "Thành công" : "Không thể thực hiện",
+                text: message,
+                icon,
+                confirmButtonColor: "#70482f",
+                confirmButtonText: "Đóng",
+                heightAuto: false,
+                returnFocus: false,
+                allowOutsideClick: false
+            });
+        } finally {
+            if (suspendedModal?.id && window.bootstrap?.Modal) {
+                delete suspendedModal.dataset.preserveCategoryForm;
+                const modal = window.bootstrap.Modal.getOrCreateInstance(suspendedModal);
+                const shown = new Promise(resolve => {
+                    suspendedModal.addEventListener("shown.bs.modal", resolve, { once: true });
+                });
+                modal.show();
+                await shown;
+
+                const focusTarget = suspendedModal.querySelector(
+                    "input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])"
+                );
+                focusTarget?.focus({ preventScroll: true });
+            }
+        }
+        return;
+    }
+
+    toast(message, icon === "error" ? "error" : icon);
+}
+
 function buildCategoryFormData(form) {
 
     const formData = new FormData(form);
@@ -312,6 +468,8 @@ function validateCategoryCode(code) {
 
 async function createCategory(form) {
 
+    if (form.dataset.submitting === "true") return;
+
     const code =
     form.querySelector('[name="CategoryCode"]').value;
 
@@ -339,68 +497,35 @@ async function createCategory(form) {
             "btnCreateCategory"
         );
 
-    lockButton(
-        btn,
-        "Đang lưu..."
-    );
+    let result = null;
+    let response = null;
+    let errorMessage = "";
+    setCategorySubmitState(form, btn, true, createCategoryButtonHtml);
 
     try {
-
-        const response =
-            await fetch(
-                form.action,
-                {
-                    method: "POST",
-                    body: buildCategoryFormData(form)
-                });
-
-        const result =
-            await response.json();
-
-        if (!response.ok || !result.success) {
-
-            toast(window.AdminFeedback.resolveMessage(result, {
-                status: response.status,
-                action: "create",
-                entityName: "danh mục"
-            }), "error");
-
-            unlockButton(
-                btn,
-                '<i class="fas fa-save me-2"></i>Lưu danh mục'
-            );
-
-            return;
-        }
-
-        toast(
-            result.message,
-            "success"
-        );
-
-        bootstrap.Modal
-            .getInstance(
-                document.getElementById(
-                    "createCategoryModal"
-                )
-            )
-            ?.hide();
-
-        setTimeout(() => {
-
-            location.reload();
-
-        }, 1000);
+        response = await fetch(form.action, {
+            method: "POST",
+            body: buildCategoryFormData(form)
+        });
+        result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success)
+            errorMessage = resolveCategoryError(result, response, "create");
+    } catch {
+        errorMessage = resolveCategoryNetworkError();
+    } finally {
+        setCategorySubmitState(form, btn, false, createCategoryButtonHtml);
     }
-    catch {
 
-        toast(window.AdminFeedback.networkMessage(), "error");
-
-        unlockButton(
-            btn,
-            '<i class="fas fa-save me-2"></i>Lưu danh mục'
-        );
+    if (errorMessage) {
+        await showCategoryAlert(errorMessage, "error");
+        return;
     }
+
+    await hideCategoryModal("createCategoryModal");
+    resetCategorySuggestions();
+    resetCategoryForm(form, "btnCreateCategory", createCategoryButtonHtml);
+    await showCategoryAlert(result?.message || "Đã tạo danh mục.", "success");
+    location.reload();
 }
 
 let categorySuggestionInFlight = false;
@@ -492,6 +617,8 @@ function escapeCategoryHtml(value) {
 
 async function editCategory(form) {
 
+    if (form.dataset.submitting === "true") return;
+
     const code =
     document.getElementById("editCategoryCode").value;
 
@@ -517,71 +644,34 @@ async function editCategory(form) {
             "btnEditCategory"
         );
 
-    lockButton(
-        btn,
-        "Đang lưu..."
-    );
+    let result = null;
+    let response = null;
+    let errorMessage = "";
+    setCategorySubmitState(form, btn, true, editCategoryButtonHtml);
 
     try {
-
-        const response =
-            await fetch(
-                form.action,
-                {
-                    method: "POST",
-                    body: buildCategoryFormData(form)
-                });
-
-        const result =
-            await response.json();
-
-        if (!response.ok || !result.success) {
-
-            toast(
-                result.message ||
-                "Có lỗi xảy ra",
-                "error"
-            );
-
-            unlockButton(
-                btn,
-                '<i class="fas fa-save me-2"></i>Cập nhật'
-            );
-
-            return;
-        }
-
-        toast(
-            result.message,
-            "success"
-        );
-
-        bootstrap.Modal
-            .getInstance(
-                document.getElementById(
-                    "editCategoryModal"
-                )
-            )
-            ?.hide();
-
-        setTimeout(() => {
-
-            location.reload();
-
-        }, 1000);
+        response = await fetch(form.action, {
+            method: "POST",
+            body: buildCategoryFormData(form)
+        });
+        result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success)
+            errorMessage = resolveCategoryError(result, response, "update");
+    } catch {
+        errorMessage = resolveCategoryNetworkError();
+    } finally {
+        setCategorySubmitState(form, btn, false, editCategoryButtonHtml);
     }
-    catch {
 
-        toast(
-            "Có lỗi xảy ra",
-            "error"
-        );
-
-        unlockButton(
-            btn,
-            '<i class="fas fa-save me-2"></i>Cập nhật'
-        );
+    if (errorMessage) {
+        await showCategoryAlert(errorMessage, "error");
+        return;
     }
+
+    await hideCategoryModal("editCategoryModal");
+    resetCategoryForm(form, "btnEditCategory", editCategoryButtonHtml);
+    await showCategoryAlert(result?.message || "Đã cập nhật danh mục.", "success");
+    location.reload();
 }
 
 // =====================================================
@@ -685,32 +775,25 @@ async function toggleCategory(id) {
 
         if (!response.ok || !result.success) {
 
-            toast(
-                result.message ||
-                "Có lỗi xảy ra",
+            await showCategoryAlert(
+                window.AdminFeedback.resolveMessage(result, {
+                    status: response.status,
+                    action: "update",
+                    entityName: "trạng thái danh mục"
+                }),
                 "error"
             );
 
             return;
         }
 
-        toast(
-            result.message,
-            "success"
-        );
+        await showCategoryAlert(result.message, "success");
 
-        setTimeout(() => {
-
-            location.reload();
-
-        }, 800);
+        location.reload();
     }
     catch {
 
-        toast(
-            "Có lỗi xảy ra",
-            "error"
-        );
+        await showCategoryAlert(window.AdminFeedback.networkMessage(), "error");
     }
 }
 
@@ -744,9 +827,10 @@ document.addEventListener(
         document.querySelectorAll("[data-category-icon-picker]")
             .forEach(initializeCategoryIconPicker);
 
-        document.getElementById("createCategoryModal")?.addEventListener("hidden.bs.modal", () => {
-            categorySuggestionController?.abort();
-            closeCategoryIconPickers();
+        document.getElementById("createCategoryModal")?.addEventListener("hidden.bs.modal", event => {
+            if (event.currentTarget.dataset.preserveCategoryForm === "true") return;
+            resetCategorySuggestions();
+            resetCategoryForm(createForm, "btnCreateCategory", createCategoryButtonHtml);
         });
 
         const editForm =
@@ -765,6 +849,11 @@ document.addEventListener(
                     editCategory(this);
                 });
         }
+
+        document.getElementById("editCategoryModal")?.addEventListener("hidden.bs.modal", event => {
+            if (event.currentTarget.dataset.preserveCategoryForm === "true") return;
+            resetCategoryForm(editForm, "btnEditCategory", editCategoryButtonHtml);
+        });
 
         document
             .querySelectorAll(

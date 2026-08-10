@@ -132,6 +132,9 @@
         analyzeButton.setAttribute("aria-busy", String(isLoading));
         analyzeIcon.className = isLoading ? "dashboard-ai-spinner" : "bi bi-stars";
         analyzeLabel.textContent = isLoading ? "Đang phân tích dữ liệu" : "Phân tích";
+        window.dispatchEvent(new CustomEvent("cafechain:dashboard-ai-busy-changed", {
+            detail: { isBusy: isLoading }
+        }));
     }
 
     function setResultVisibility(isVisible) {
@@ -759,7 +762,7 @@
         activeController?.abort();
         activeController = null;
         setAnalyzeButtonLoading(false);
-        showStatus("Phạm vi Dashboard đang thay đổi; yêu cầu AI cũ đã được hủy.");
+        showStatus("Đã hủy phân tích AI đang chạy để áp dụng bộ lọc Dashboard mới.");
     });
     window.addEventListener("cafechain:dashboard-context-changed", event => {
         root.dataset.filterFingerprint = event.detail?.filterFingerprint || "";
