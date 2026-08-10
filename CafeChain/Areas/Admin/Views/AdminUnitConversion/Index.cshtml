@@ -420,6 +420,7 @@
                             buttonsStyling: false
                         }).then(function (result) {
                             if (result.isConfirmed) {
+                                sessionStorage.setItem('showSuccessToast', 'Đã cập nhật trạng thái thành công');
                                 form.dataset.confirmed = 'true';
                                 form.submit();
                             } else {
@@ -428,6 +429,7 @@
                         });
                     } else {
                         if (confirm('Xác nhận ' + actionText.toLowerCase() + ' quy đổi này?')) {
+                            sessionStorage.setItem('showSuccessToast', 'Đã cập nhật trạng thái thành công');
                             form.dataset.confirmed = 'true';
                             form.submit();
                         } else {
@@ -436,6 +438,24 @@
                     }
                 });
             });
+
+            var msg = sessionStorage.getItem('showSuccessToast');
+            if (msg) {
+                sessionStorage.removeItem('showSuccessToast');
+                if (typeof window.toast === 'function') {
+                    window.toast(msg, 'success');
+                } else if (typeof toast === 'function') {
+                    toast(msg, 'success');
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Thành công',
+                        text: msg,
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            }
         });
     </script>
 }

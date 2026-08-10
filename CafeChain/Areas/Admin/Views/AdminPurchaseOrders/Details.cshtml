@@ -170,32 +170,36 @@
                             <td class="number"><strong>@AdminStatusDisplay.Quantity(line.RemainingDisplayQuantity) @AdminStatusDisplay.Unit(line.FulfillmentDisplayUnitName)</strong></td>
                             <td>
                                 <span class="ops-badge ops-badge-neutral"><i class="fa-solid fa-clock-rotate-left me-1"></i>@line.ReceiptCount lần nhận</span>
-                                @if (canCloseRemaining && canReceiveStatus && line.RemainingBaseQuantity > 0)
-                                {
-                                    <div class="ops-line-closure-box p-2 mt-2 rounded-3 border text-start" style="background-color: var(--cc-surface-muted); border-color: var(--cc-border) !important; min-width: 320px;">
+                            </td>
+                        </tr>
+                        @if (canCloseRemaining && canReceiveStatus && line.RemainingBaseQuantity > 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="p-0 border-0">
+                                    <div class="ops-line-closure-box p-3 mx-2 my-2 rounded-3 border text-start" style="background-color: var(--cc-surface-muted); border-color: var(--cc-border) !important;">
                                         <form method="post" asp-action="CloseLineRemaining" asp-route-id="@Model.PurchaseOrderId" onsubmit="return confirm('Đóng phần còn lại sẽ chấm dứt nghĩa vụ giao bù và không nhập kho. Bạn chắc chắn?');">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="lineId" value="@line.PurchaseOrderLineId" />
                                             <input type="hidden" name="rowVersion" value="@line.RowVersion" />
                                             <input type="hidden" name="requestKey" value="@Guid.NewGuid().ToString("N")" />
-                                            <div class="ops-form-grid">
+                                            <div class="ops-form-grid" style="grid-template-columns: 1fr 2fr;">
                                                 <div>
                                                     <label class="ops-form-label" for="closeQuantity-@line.PurchaseOrderLineId">Số lượng đóng (@AdminStatusDisplay.Unit(line.BaseUnitName)) <span class="ops-required">*</span></label>
-                                                    <input id="closeQuantity-@line.PurchaseOrderLineId" class="ops-input" type="number" name="closeBaseQuantity" min="0.001" max="@line.RemainingBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" value="@line.RemainingBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
+                                                    <input id="closeQuantity-@line.PurchaseOrderLineId" class="ops-input w-100" type="number" name="closeBaseQuantity" min="0.001" max="@line.RemainingBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" step="0.001" value="@line.RemainingBaseQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
                                                 </div>
                                                 <div>
                                                     <label class="ops-form-label" for="closeReason-@line.PurchaseOrderLineId">Lý do không yêu cầu giao bù <span class="ops-required">*</span></label>
-                                                    <input id="closeReason-@line.PurchaseOrderLineId" class="ops-input" name="reason" maxlength="500" required placeholder="Ví dụ: Nhà cung cấp xác nhận không giao bù" />
+                                                    <div class="d-flex gap-2">
+                                                        <input id="closeReason-@line.PurchaseOrderLineId" class="ops-input flex-grow-1" name="reason" maxlength="500" required placeholder="Ví dụ: Nhà cung cấp xác nhận không giao bù" />
+                                                        <button class="ops-btn ops-btn-danger text-nowrap flex-shrink-0" type="submit" style="white-space: nowrap; height: 38px !important; padding: 0 16px; font-size: 0.85rem; font-weight: 700;">Đóng phần còn lại</button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="d-flex gap-2 align-items-center mt-2">
-                                                <button class="ops-btn ops-btn-danger text-nowrap flex-shrink-0" type="submit" style="white-space: nowrap; height: 36px !important; padding: 0 14px; font-size: 0.85rem; font-weight: 600;">Đóng phần còn lại</button>
                                             </div>
                                         </form>
                                     </div>
-                                }
-                            </td>
-                        </tr>
+                                </td>
+                            </tr>
+                        }
                     }
                     </tbody>
                 </table>

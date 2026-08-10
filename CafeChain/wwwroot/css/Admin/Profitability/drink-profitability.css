@@ -326,13 +326,16 @@ textarea.pf-control {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 8px !important;
+    transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease !important;
 }
 
 .pf-primary-button:hover {
-    border-color: var(--cc-brown-900, #3d2418);
-    background: var(--cc-brown-900, #3d2418);
-    color: #ffffff;
-    transform: translateY(-2px);
+    border-color: var(--cc-brown-900, #3d2418) !important;
+    background: linear-gradient(135deg, var(--cc-brown-700, #5C3F2B) 0%, var(--cc-brown-900, #3d2418) 100%) !important;
+    color: #ffffff !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 18px rgba(112, 72, 47, 0.38) !important;
 }
 
 .pf-secondary-button {
