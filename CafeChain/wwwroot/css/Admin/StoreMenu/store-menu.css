@@ -448,9 +448,11 @@ textarea.sm-control {
     white-space: nowrap;
 }
 
-.sm-order-column {
-    width: 76px;
+.sm-order-column,
+.sm-table td:first-child {
     text-align: center !important;
+    white-space: nowrap;
+    width: 80px;
 }
 
 .sm-actions-column {
@@ -615,12 +617,13 @@ textarea.sm-control {
    OFFCANVAS DRAWER
    ========================================================================== */
 .sm-drawer {
-    width: min(460px, 100vw);
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    background: var(--cc-surface-raised, #ffffff);
+    width: min(500px, 100vw) !important;
+    display: flex !important;
+    flex-direction: column;
+    background-color: var(--cc-canvas, #f7f4f0) !important;
     border-left: 1px solid var(--cc-border-strong, #d8c5b6);
     box-shadow: var(--cc-shadow-lg, 0 18px 48px rgba(32, 24, 18, 0.14));
+    z-index: 1050 !important;
 }
 
 .sm-drawer-header,
@@ -631,7 +634,7 @@ textarea.sm-control {
     gap: 12px;
     padding: 20px 24px;
     border-bottom: 1px solid var(--cc-border, #e9ded4);
-    background: var(--cc-surface-muted, #fbf7f2);
+    background-color: var(--cc-surface-muted, #fbf7f2) !important;
 }
 
 .sm-drawer-footer {
@@ -656,6 +659,7 @@ textarea.sm-control {
 }
 
 .sm-drawer-body {
+    flex: 1 1 auto;
     overflow-y: auto;
     padding: 24px;
 }

@@ -377,7 +377,7 @@
 .production-bom-page .production-form-grid {
     display: grid;
     width: 100%;
-    grid-template-columns: minmax(0, 2fr) minmax(320px, 0.9fr);
+    grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr);
     align-items: start;
     justify-items: stretch;
     gap: var(--production-bom-section-gap);
@@ -527,18 +527,18 @@
 }
 
 .production-bom-page #bomTable {
-    min-width: 980px;
+    min-width: 820px;
     table-layout: fixed;
 }
 
 .production-bom-page #bomTable .bom-col-index { width: 4%; }
-.production-bom-page #bomTable .bom-col-type { width: 12%; }
-.production-bom-page #bomTable .bom-col-component { width: 28%; }
-.production-bom-page #bomTable .bom-col-quantity { width: 11%; }
-.production-bom-page #bomTable .bom-col-unit { width: 12%; }
-.production-bom-page #bomTable .bom-col-cost { width: 13%; }
-.production-bom-page #bomTable .bom-col-status { width: 12%; }
-.production-bom-page #bomTable .bom-col-action { width: 8%; }
+.production-bom-page #bomTable .bom-col-type { width: 11%; }
+.production-bom-page #bomTable .bom-col-component { width: 29%; }
+.production-bom-page #bomTable .bom-col-quantity { width: 9%; }
+.production-bom-page #bomTable .bom-col-unit { width: 10%; }
+.production-bom-page #bomTable .bom-col-cost { width: 11%; }
+.production-bom-page #bomTable .bom-col-status { width: 14%; }
+.production-bom-page #bomTable .bom-col-action { width: 12%; }
 
 .production-bom-page #bomTable td {
     vertical-align: middle;
@@ -552,8 +552,7 @@
 
 .production-bom-page #bomTable th:last-child,
 .production-bom-page #bomTable td:last-child {
-    width: 72px;
-    text-align: right !important;
+    text-align: center !important;
 }
 
 @media (max-width: 1199.98px) {

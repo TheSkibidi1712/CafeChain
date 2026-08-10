@@ -148,9 +148,9 @@
 }
 
 .drink-primary-btn:hover,
-.drink-primary-btn:focus,
+.drink-primary-btn:focus-visible,
 .drink-form-page .btn-primary:hover,
-.drink-form-page .btn-primary:focus {
+.drink-form-page .btn-primary:focus-visible {
     border-color: var(--cc-brown-900);
     background: var(--cc-brown-900);
     color: var(--cc-text-inverse) !important;
@@ -176,9 +176,9 @@
 }
 
 .drink-filter-btn:hover,
-.drink-filter-btn:focus,
+.drink-filter-btn:focus-visible,
 .drink-form-page .btn-outline-secondary:hover,
-.drink-form-page .btn-outline-secondary:focus {
+.drink-form-page .btn-outline-secondary:focus-visible {
     border-color: var(--cc-brown-500);
     background: var(--cc-surface-active);
     color: var(--cc-brown-900) !important;
@@ -212,7 +212,7 @@
 }
 
 .drink-action-btn:hover,
-.drink-action-btn:focus {
+.drink-action-btn:focus-visible {
     border-color: var(--cc-brown-500);
     background: var(--cc-surface-active);
     color: var(--cc-brown-900);
@@ -337,7 +337,7 @@
 }
 
 .drink-tab:hover,
-.drink-tab:focus,
+.drink-tab:focus-visible,
 .drink-tab.active {
     border-color: var(--cc-brown-600);
     background: var(--cc-brown-600);
@@ -696,7 +696,7 @@
 }
 
 .drink-pagination a:hover,
-.drink-pagination a:focus,
+.drink-pagination a:focus-visible,
 .drink-pagination a.active {
     border-color: var(--cc-brown-600);
     background: var(--cc-brown-600);

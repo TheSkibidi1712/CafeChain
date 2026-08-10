@@ -218,7 +218,23 @@ function toggleEdit(drinkSizeId) {
 // =========================
 // TOGGLE ACTIVE
 // =========================
-function toggleDrinkSize(id) {
+async function toggleDrinkSize(id) {
+    if (window.Swal) {
+        const result = await window.Swal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc muốn thay đổi trạng thái size đồ uống này?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#70482f',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
+        });
+        if (!result.isConfirmed) return;
+    } else if (!confirm("Bạn có chắc muốn thay đổi trạng thái size đồ uống này?")) {
+        return;
+    }
+
     fetch(`/Admin/AdminSize/ToggleDrinkSize?id=${id}`, {
         method: 'POST',
         headers: { 'RequestVerificationToken': getSizeAntiForgeryToken() }
@@ -246,7 +262,23 @@ function toggleDrinkSize(id) {
 // =========================
 // TOGGLE SIZE
 // =========================
-function toggleSize(id) {
+async function toggleSize(id) {
+    if (window.Swal) {
+        const result = await window.Swal.fire({
+            title: 'Xác nhận',
+            text: 'Bạn có chắc muốn thay đổi trạng thái size này?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#70482f',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
+        });
+        if (!result.isConfirmed) return;
+    } else if (!confirm("Bạn có chắc muốn thay đổi trạng thái size này?")) {
+        return;
+    }
+
     fetch(`/Admin/AdminSize/ToggleStatus?id=${id}`, {
         method: 'POST',
         headers: {

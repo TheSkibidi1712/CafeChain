@@ -201,7 +201,7 @@
 }
 
 .category-action-edit:hover,
-.category-action-edit:focus {
+.category-action-edit:focus-visible {
     background: #f97316;
     border-color: #f97316;
     color: #fff;
@@ -214,7 +214,7 @@
 }
 
 .category-action-lock:hover,
-.category-action-lock:focus {
+.category-action-lock:focus-visible {
     background: #fee2e2;
     border-color: #fecaca;
     color: #dc2626;
@@ -227,7 +227,7 @@
 }
 
 .category-action-unlock:hover,
-.category-action-unlock:focus {
+.category-action-unlock:focus-visible {
     background: #16a34a;
     border-color: #16a34a;
     color: #fff;
@@ -894,7 +894,7 @@
 }
 
 .category-action-edit:hover,
-.category-action-edit:focus {
+.category-action-edit:focus-visible {
     border-color: var(--category-accent);
     background: var(--category-accent);
 }
@@ -907,14 +907,14 @@
 }
 
 .category-action-unlock:hover,
-.category-action-unlock:focus {
+.category-action-unlock:focus-visible {
     border-color: var(--category-success);
     background: var(--category-success);
 }
 
 .badge-inactive,
 .category-action-lock:hover,
-.category-action-lock:focus {
+.category-action-lock:focus-visible {
     border-color: #E3B9B9;
     background: #F7E8E8 !important;
     color: var(--category-danger) !important;
