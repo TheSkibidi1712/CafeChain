@@ -55,6 +55,18 @@
 @section Styles {
     <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Category/Category.css" asp-append-version="true" />
+    <style>
+        input.custom-val:invalid:not(:placeholder-shown) {
+            border-color: #dc3545 !important;
+            color: #dc3545 !important;
+        }
+        input.custom-val:invalid:not(:placeholder-shown) ~ .error-msg {
+            display: block !important;
+        }
+        input.custom-val:invalid:not(:placeholder-shown) ~ .text-muted {
+            display: none !important;
+        }
+    </style>
 }
 
 @Html.AntiForgeryToken()
@@ -363,7 +375,7 @@
 
                         <label class="form-label fw-semibold">
 
-                            Mã danh mục
+                            Mã danh mục <span class="text-danger">*</span>
 
                         </label>
 
@@ -372,8 +384,13 @@
 
                         <input type="text"
                                name="CategoryCode"
-                               class="form-control category-input"
-                               placeholder="Nhập mã danh mục..." />
+                               class="form-control category-input custom-val"
+                               placeholder="Nhập mã danh mục..."
+                               required
+                               pattern="^.{1,50}$"
+                               title="Tối đa 50 ký tự" />
+                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> Mã danh mục không hợp lệ (tối đa 50 ký tự).</small>
+                        <small class="text-muted d-block mt-1">Tối đa 50 ký tự.</small>
 
                     </div>
 
@@ -381,14 +398,19 @@
 
                         <label class="form-label fw-semibold">
 
-                            Tên danh mục
+                            Tên danh mục <span class="text-danger">*</span>
 
                         </label>
 
                         <input type="text"
                                name="Name"
-                               class="form-control category-input"
-                               placeholder="Nhập tên danh mục..." />
+                               class="form-control category-input custom-val"
+                               placeholder="Nhập tên danh mục..."
+                               required
+                               pattern="^.{1,100}$"
+                               title="Tối đa 100 ký tự" />
+                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> Tên danh mục không hợp lệ (tối đa 100 ký tự).</small>
+                        <small class="text-muted d-block mt-1">Không được nhập quá 100 ký tự.</small>
 
                     </div>
 
@@ -524,15 +546,20 @@
 
                         <label class="form-label fw-semibold">
 
-                            Mã danh mục
+                            Mã danh mục <span class="text-danger">*</span>
 
                         </label>
 
                         <input type="text"
                                id="editCategoryCode"
                                name="CategoryCode"
-                               class="form-control category-input"
-                               placeholder="Nhập mã danh mục..." />
+                               class="form-control category-input custom-val"
+                               placeholder="Nhập mã danh mục..."
+                               required
+                               pattern="^.{1,50}$"
+                               title="Tối đa 50 ký tự" />
+                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> Mã danh mục không hợp lệ (tối đa 50 ký tự).</small>
+                        <small class="text-muted d-block mt-1">Tối đa 50 ký tự.</small>
 
                     </div>
 
@@ -540,15 +567,20 @@
 
                         <label class="form-label fw-semibold">
 
-                            Tên danh mục
+                            Tên danh mục <span class="text-danger">*</span>
 
                         </label>
 
                         <input type="text"
                                id="editCategoryName"
                                name="Name"
-                               class="form-control category-input"
-                               placeholder="Nhập tên danh mục..." />
+                               class="form-control category-input custom-val"
+                               placeholder="Nhập tên danh mục..."
+                               required
+                               pattern="^.{1,100}$"
+                               title="Tối đa 100 ký tự" />
+                        <small class="text-danger d-none error-msg mt-1"><i class="fas fa-exclamation-circle me-1"></i> Tên danh mục không hợp lệ (tối đa 100 ký tự).</small>
+                        <small class="text-muted d-block mt-1">Không được nhập quá 100 ký tự.</small>
 
                     </div>
 
