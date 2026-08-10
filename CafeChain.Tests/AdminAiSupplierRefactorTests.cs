@@ -114,7 +114,7 @@ public sealed class AdminAiSupplierRefactorTests
 
         var supplier = Read("CafeChain", "Areas", "Admin", "Views", "AdminPurchaseAdviceConsolidation", "Index.cshtml");
         Assert.Contains("renderSupplierComparison", supplier, StringComparison.Ordinal);
-        Assert.Contains("Dữ liệu pilot (ShadowMode)", supplier, StringComparison.Ordinal);
+        Assert.Contains("Dữ liệu thử nghiệm — chế độ quan sát", supplier, StringComparison.Ordinal);
         Assert.Contains("document.createElement", supplier, StringComparison.Ordinal);
 
         var anomaly = Read("CafeChain", "Areas", "Admin", "Views", "AdminOperationalAnomalies", "Index.cshtml");
