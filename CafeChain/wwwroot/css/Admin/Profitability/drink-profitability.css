@@ -507,17 +507,31 @@ textarea.pf-control {
     border: 1px solid #e9b8b8;
 }
 
-/* Row Actions Buttons */
+/* Row Actions Buttons & Action Column Safeguards */
+.pf-col-actions {
+    width: 290px;
+    min-width: 290px;
+}
+
+.pf-table td:last-child,
+.pf-table th:last-child {
+    min-width: 290px;
+    white-space: nowrap;
+}
+
 .pf-row-actions {
     display: flex;
     flex-wrap: nowrap;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
+    min-width: max-content;
 }
 
 .pf-row-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
     height: 34px;
     min-height: 34px;
     border: 1px solid var(--cc-border-strong, #d8c5b6);
@@ -527,13 +541,21 @@ textarea.pf-control {
     padding: 0 12px;
     font-size: 12.5px;
     font-weight: 700;
-    transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+}
+
+.pf-row-button i {
+    font-size: 12px;
+    flex-shrink: 0;
 }
 
 .pf-row-button:hover {
     border-color: var(--cc-brown-600, #70482f);
     color: #ffffff;
     background: var(--cc-brown-600, #70482f);
+    transform: translateY(-1px);
 }
 
 /* ==========================================================================
@@ -724,3 +746,186 @@ textarea.pf-control {
         width: 100vw;
     }
 }
+
+/* ==========================================================================
+   DETAIL ROW & MINI TABLES (FIFO & DEFAULT TOPPING)
+   ========================================================================== */
+.pf-detail-row > td {
+    padding: 20px 24px;
+    background: var(--cc-surface-muted, #fbf7f2);
+    border-bottom: 2px solid var(--cc-border-strong, #d8c5b6);
+}
+
+.pf-completeness-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.pf-completeness-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-md, 12px);
+    background: var(--cc-surface-raised, #ffffff);
+    box-shadow: var(--cc-shadow-xs, 0 1px 2px rgba(32, 24, 18, 0.05));
+}
+
+.pf-completeness-item span {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--cc-text-secondary, #66584f);
+}
+
+.pf-completeness-item small {
+    font-size: 11.5px;
+    color: var(--cc-text-muted, #8c7b70);
+    line-height: 1.4;
+}
+
+.pf-detail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.pf-detail-grid section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.pf-detail-grid h4 {
+    margin: 0;
+    color: var(--cc-brown-900, #3d2418);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.pf-detail-grid .pf-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-md, 12px);
+    background: var(--cc-surface-raised, #ffffff);
+    box-shadow: var(--cc-shadow-xs, 0 1px 2px rgba(32, 24, 18, 0.05));
+}
+
+.pf-mini-table {
+    width: 100%;
+    table-layout: auto;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+}
+
+.pf-mini-table th {
+    padding: 12px 14px;
+    color: var(--cc-brown-600, #70482f);
+    background: var(--cc-surface-muted, #fbf7f2);
+    border-bottom: 1px solid var(--cc-border-strong, #d8c5b6);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.pf-mini-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--cc-border, #e9ded4);
+    color: var(--cc-text, #201812);
+    vertical-align: middle;
+}
+
+.pf-mini-table tr:last-child td {
+    border-bottom: none;
+}
+
+.pf-mini-table tbody tr:hover > td {
+    background: var(--cc-surface-active, #f4e9df);
+}
+
+/* ==========================================================================
+   PROPORTIONAL COLUMN WIDTHS & NUMERIC ALIGNMENT FOR MINI TABLES
+   ========================================================================== */
+/* Table 1: FIFO Components */
+.pf-detail-grid section:nth-child(1) .pf-mini-table th:nth-child(1),
+.pf-detail-grid section:nth-child(1) .pf-mini-table td:nth-child(1) {
+    width: 32%;
+    text-align: left;
+}
+
+.pf-detail-grid section:nth-child(1) .pf-mini-table th:nth-child(2),
+.pf-detail-grid section:nth-child(1) .pf-mini-table td:nth-child(2),
+.pf-detail-grid section:nth-child(1) .pf-mini-table th:nth-child(3),
+.pf-detail-grid section:nth-child(1) .pf-mini-table td:nth-child(3),
+.pf-detail-grid section:nth-child(1) .pf-mini-table th:nth-child(4),
+.pf-detail-grid section:nth-child(1) .pf-mini-table td:nth-child(4) {
+    width: 16%;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.pf-detail-grid section:nth-child(1) .pf-mini-table th:nth-child(5),
+.pf-detail-grid section:nth-child(1) .pf-mini-table td:nth-child(5) {
+    width: 20%;
+    text-align: left;
+}
+
+/* Table 2: Default Toppings */
+.pf-detail-grid section:nth-child(2) .pf-mini-table th:nth-child(1),
+.pf-detail-grid section:nth-child(2) .pf-mini-table td:nth-child(1) {
+    width: 22%;
+    text-align: left;
+}
+
+.pf-detail-grid section:nth-child(2) .pf-mini-table th:nth-child(2),
+.pf-detail-grid section:nth-child(2) .pf-mini-table td:nth-child(2) {
+    width: 12%;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.pf-detail-grid section:nth-child(2) .pf-mini-table th:nth-child(3),
+.pf-detail-grid section:nth-child(2) .pf-mini-table td:nth-child(3),
+.pf-detail-grid section:nth-child(2) .pf-mini-table th:nth-child(4),
+.pf-detail-grid section:nth-child(2) .pf-mini-table td:nth-child(4) {
+    width: 22%;
+    text-align: left;
+}
+
+.pf-detail-grid section:nth-child(2) .pf-mini-table th:nth-child(5),
+.pf-detail-grid section:nth-child(2) .pf-mini-table td:nth-child(5),
+.pf-detail-grid section:nth-child(2) .pf-mini-table th:nth-child(6),
+.pf-detail-grid section:nth-child(2) .pf-mini-table td:nth-child(6) {
+    width: 11%;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .pf-mini-table {
+        min-width: 620px;
+    }
+
+    .pf-detail-grid section:nth-child(1) .pf-mini-table th,
+    .pf-detail-grid section:nth-child(1) .pf-mini-table td,
+    .pf-detail-grid section:nth-child(2) .pf-mini-table th,
+    .pf-detail-grid section:nth-child(2) .pf-mini-table td {
+        width: auto;
+    }
+}
+
