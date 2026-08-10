@@ -306,20 +306,31 @@
         return node;
     };
     const confidenceLabel = value => ({
-        HIGH: 'Dữ liệu nhiều',
-        MEDIUM: 'Dữ liệu vừa phải',
+        HIGH: 'Cao',
+        MEDIUM: 'Vừa phải',
         INSUFFICIENT_DATA: 'Chưa đủ dữ liệu'
-    }[value] || value || 'Chưa xác định');
+    }[value] || 'Chưa xác định');
+    const purchaseModeLabel = value => ({
+        LOOSE: 'Mua rời',
+        PACKAGED: 'Đóng gói'
+    }[value] || 'Chưa xác định');
+    const leadTimeLabel = value => ({
+        CONFIRMED: 'đã xác nhận',
+        FALLBACK: 'tạm tính'
+    }[value] || 'chưa xác định');
+    const scoreLabel = value => value == null
+        ? 'Chưa đủ dữ liệu'
+        : `${Number(value).toLocaleString('vi-VN')}/100`;
     const renderSupplierComparison = data => {
         const root = supplierText('div', 'supplier-comparison-modal', '');
         const mode = data.shadowMode
-            ? 'Dữ liệu pilot (ShadowMode) — chỉ hỗ trợ so sánh, không tự chọn nhà cung cấp.'
-            : 'Kết quả so sánh do backend tính toán.';
+            ? 'Dữ liệu thử nghiệm — chế độ quan sát. Kết quả chỉ hỗ trợ quyết định, hệ thống không tự chọn nhà cung cấp.'
+            : 'Kết quả do hệ thống tính toán từ lịch sử mua và nhận hàng.';
         root.appendChild(supplierText('p', 'supplier-comparison-mode', mode));
         root.appendChild(supplierText(
             'p',
             'supplier-comparison-summary',
-            data.rankingMessage || 'Chưa có thông tin xếp hạng cạnh tranh.'));
+            data.rankingMessage || 'Chưa có đủ thông tin để xếp hạng cạnh tranh.'));
 
         const candidates = Array.isArray(data.candidates) ? data.candidates : [];
         if (candidates.length === 0) {
@@ -331,11 +342,11 @@
         candidates.forEach(candidate => {
             const card = supplierText('article', 'supplier-comparison-card', '');
             const heading = supplierText('div', 'supplier-comparison-card-heading', '');
-            heading.appendChild(supplierText('strong', '', `${candidate.rank ? `#${candidate.rank} · ` : ''}${candidate.supplierName}`));
+            heading.appendChild(supplierText('strong', '', `${candidate.rank ? `Hạng ${candidate.rank} · ` : ''}${candidate.supplierName}`));
             heading.appendChild(supplierText(
                 'span',
                 candidate.rankable ? 'supplier-rankable' : 'supplier-reference-only',
-                candidate.rankable ? 'Có thể xếp hạng' : 'Chỉ tham khảo'));
+                candidate.rankable ? 'Đủ điều kiện xếp hạng' : 'Chỉ dùng tham khảo'));
             card.appendChild(heading);
 
             const facts = supplierText('dl', 'supplier-comparison-facts', '');
@@ -343,14 +354,21 @@
                 facts.appendChild(supplierText('dt', '', label));
                 facts.appendChild(supplierText('dd', '', value));
             };
-            addFact('Hình thức mua', candidate.purchaseMode === 'LOOSE' ? 'Mua rời' : 'Đóng gói');
+            addFact('Hình thức mua', purchaseModeLabel(candidate.purchaseMode));
             addFact('Số lượng mua', candidate.purchaseMode === 'LOOSE'
                 ? Number(candidate.requiredPurchaseQuantity || 0).toLocaleString('vi-VN')
                 : `${Number(candidate.packageCount || 0).toLocaleString('vi-VN')} gói`);
             addFact('Tổng chi phí', `${Number(candidate.estimatedAmount || 0).toLocaleString('vi-VN')} ₫`);
             addFact('Lượng mua dư', Number(candidate.excessBaseQuantity || 0).toLocaleString('vi-VN'));
-            addFact('Điểm so sánh', candidate.score == null ? 'Chưa đủ dữ liệu để tính' : `${Number(candidate.score).toLocaleString('vi-VN')}/100`);
-            addFact('Độ đầy đủ dữ liệu', `${confidenceLabel(candidate.confidence)} · ${Number(candidate.receiptCount || 0)} phiếu nhận`);
+            addFact('Thời gian giao dự kiến', `${Number(candidate.leadTimeDays || 0).toLocaleString('vi-VN')} ngày · ${leadTimeLabel(candidate.leadTimeSource)}`);
+            addFact('Tổng điểm', scoreLabel(candidate.score));
+            addFact('Mức độ tin cậy', `${confidenceLabel(candidate.confidence)} · ${Number(candidate.receiptCount || 0)} phiếu nhận đã xác nhận`);
+            const components = candidate.componentScores || {};
+            addFact('Điểm giá mua', scoreLabel(components.price));
+            addFact('Điểm giao đúng hẹn', scoreLabel(components.onTime));
+            addFact('Điểm đáp ứng đủ số lượng', scoreLabel(components.fill));
+            addFact('Điểm chất lượng hàng', scoreLabel(components.quality));
+            addFact('Điểm thời gian giao', scoreLabel(components.leadTime));
             card.appendChild(facts);
 
             const warnings = Array.isArray(candidate.warnings) ? candidate.warnings : [];
@@ -381,7 +399,7 @@
             if (!response.ok || !payload.success) throw new Error(payload.message || 'Không thể so sánh nhà cung cấp.');
             const data = payload.data;
             output.textContent = data.shadowMode
-                ? 'Đã tải kết quả pilot. Bấm lại để xem.'
+                ? 'Đã tải kết quả thử nghiệm. Bấm lại để xem.'
                 : 'Đã tải kết quả so sánh. Bấm lại để xem.';
             await Swal.fire({
                 icon: 'info',

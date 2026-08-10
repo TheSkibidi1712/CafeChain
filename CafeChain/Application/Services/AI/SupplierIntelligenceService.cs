@@ -52,15 +52,15 @@ public sealed class SupplierIntelligenceService : ISupplierIntelligenceService
     {
         var feature = await _featureGate.GetStateAsync(ct);
         if (!feature.IsEnabledForStore(storeId))
-            throw new InvalidOperationException("Supplier Intelligence chưa được bật cho cửa hàng này.");
+            throw new InvalidOperationException("Tính năng so sánh nhà cung cấp chưa được bật cho cửa hàng này.");
         if (requiredBaseQuantity <= 0)
             throw new ArgumentException("Số lượng cần mua phải lớn hơn 0.");
         if (actor.AccountId <= 0 || actor.StaffId <= 0)
-            throw new UnauthorizedAccessException("Thiếu account/staff context.");
+            throw new UnauthorizedAccessException("Thiếu thông tin tài khoản hoặc nhân viên.");
         await RequirePermissionAsync(actor.AccountId, storeId, "PurchaseAdvice.View");
         await RequirePermissionAsync(actor.AccountId, storeId, "SupplierQuality.View");
         if (!await _scope.CanAccessStoreAsync(actor.StaffId, storeId))
-            throw new UnauthorizedAccessException("Cửa hàng nằm ngoài StaffScope.");
+            throw new UnauthorizedAccessException("Cửa hàng nằm ngoài phạm vi quản lý của nhân viên.");
 
         var offers = await _repository.GetOffersAsync(storeId, ingredientId, ct);
         var raw = new List<RawCandidate>();
@@ -158,12 +158,16 @@ public sealed class SupplierIntelligenceService : ISupplierIntelligenceService
             var purchasedBase = item.PurchaseQuantity * item.UnitBaseQuantity;
             var excess = Math.Max(0, purchasedBase - requiredBaseQuantity);
             var warnings = new List<string>();
-            if (confidence == "INSUFFICIENT_DATA") warnings.Add("Dữ liệu xác nhận nhận hàng dưới 5 phiếu.");
-            if (!hasPerformance) warnings.Add("Chưa có dữ liệu hiệu suất nhà cung cấp; metric được giữ ở trạng thái unknown.");
-            if (item.LeadSource == "FALLBACK") warnings.Add("Lead time 30 ngày là fallback, không phải dữ liệu đã xác nhận.");
+            if (confidence == "INSUFFICIENT_DATA")
+                warnings.Add(
+                    $"Nhà cung cấp mới có {receipts}/{_options.MediumConfidenceReceipts} phiếu nhận đã xác nhận trong {_options.PerformanceWindowDays} ngày gần nhất.");
+            if (!hasPerformance)
+                warnings.Add("Chưa có dữ liệu giao hàng để tính mức độ đúng hẹn, khả năng đáp ứng đủ số lượng và chất lượng hàng.");
+            if (item.LeadSource == "FALLBACK")
+                warnings.Add("Thời gian giao 30 ngày đang là giá trị tạm tính vì nhà cung cấp chưa có thời gian giao đã xác nhận.");
             if (item.Performance != null
                 && item.Performance.ExpectedDateSampleCount < item.Performance.ConfirmedReceiptCount)
-                warnings.Add("Một số phiếu nhận thiếu ExpectedDelivery.");
+                warnings.Add("Một số đơn hàng đã nhận không có ngày giao dự kiến, nên việc đánh giá giao đúng hẹn chưa đầy đủ.");
             result.Candidates.Add(new SupplierRecommendationCandidateDto
             {
                 SupplierId = item.SupplierId,
@@ -196,10 +200,10 @@ public sealed class SupplierIntelligenceService : ISupplierIntelligenceService
                 .OrderBy(x => x.EstimatedAmount)).ToList();
         result.HasCompetitiveRanking = ranked.Select(x => x.SupplierId).Distinct().Count() >= 2;
         result.RankingMessage = result.HasCompetitiveRanking
-            ? "Ranking chỉ áp dụng cho candidate đủ dữ liệu và confidence."
+            ? "Đã có từ hai nhà cung cấp đủ dữ liệu. Thứ hạng được tính từ giá mua, giao đúng hẹn, mức đáp ứng, chất lượng hàng và thời gian giao."
             : ranked.Count == 1
-                ? "Chỉ có một nhà cung cấp đủ điều kiện tham gia ranking; đây không phải so sánh cạnh tranh."
-                : "Chưa có nhà cung cấp đủ dữ liệu để ranking.";
+                ? $"Chỉ có một nhà cung cấp đủ dữ liệu nên chưa thể so sánh cạnh tranh. Cần ít nhất {_options.MediumConfidenceReceipts} phiếu nhận đã xác nhận cho mỗi nhà cung cấp."
+                : $"Chưa có nhà cung cấp đủ dữ liệu để xếp hạng. Mỗi nhà cung cấp cần ít nhất {_options.MediumConfidenceReceipts} phiếu nhận đã xác nhận trong {_options.PerformanceWindowDays} ngày gần nhất.";
         await RecordPilotAsync(result, ct);
         return result;
     }
@@ -238,8 +242,16 @@ public sealed class SupplierIntelligenceService : ISupplierIntelligenceService
     {
         var permission = await _permissions.HasPermissionAsync(accountId, code, storeId);
         if (!permission.IsSuccess || permission.Data?.Allowed != true)
-            throw new UnauthorizedAccessException($"Thiếu permission {code} tại cửa hàng.");
+            throw new UnauthorizedAccessException(
+                $"Bạn chưa được cấp quyền {PermissionDisplay(code)} tại cửa hàng.");
     }
+
+    private static string PermissionDisplay(string code) => code switch
+    {
+        "PurchaseAdvice.View" => "xem đề nghị mua hàng",
+        "SupplierQuality.View" => "xem chất lượng nhà cung cấp",
+        _ => "thực hiện chức năng này"
+    };
 
     private static RawCandidate CreateRaw(
         IngredientSupplier offer, string mode, decimal unitPrice,
