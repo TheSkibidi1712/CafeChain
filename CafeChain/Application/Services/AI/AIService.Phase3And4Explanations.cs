@@ -28,7 +28,7 @@ public sealed partial class AIService
             x => x.GetProperty("supplierId").GetInt32() == context.SupplierId
                 && x.GetProperty("totalScore").GetDecimal() == context.TotalScore
                 && ComponentsMatch(x.GetProperty("componentScores"), context.ComponentScores),
-            $"Nhà cung cấp đạt {context.TotalScore:N1} điểm với độ tin cậy {context.Confidence}. {string.Join(" ", context.Warnings)}", ct);
+            SupplierIntelligencePresentation.BuildFallbackExplanation(context), ct);
 
     public Task<TypedExplanationResultDto> ExplainAnomalyAsync(AnomalyExplanationContextDto context, CancellationToken ct = default) =>
         ExplainTyped("anomaly-explanation", context,
@@ -45,22 +45,28 @@ public sealed partial class AIService
 
     private async Task<TypedExplanationResultDto> ExplainTyped<T>(string skillName, T context, Func<JsonElement, bool> echoValidator, string fallback, CancellationToken ct)
     {
-        if (!_options.Enabled || !string.Equals(_options.Provider, "Ollama", StringComparison.OrdinalIgnoreCase)) return ExplanationFallback(fallback, "Ollama đang tắt.");
+        if (!_options.Enabled || !string.Equals(_options.Provider, "Ollama", StringComparison.OrdinalIgnoreCase))
+            return ExplanationFallback(fallback, "Tính năng giải thích tự động đang tắt.");
         try
         {
             var skill = await _skillCatalog.GetNamedSkillAsync(skillName, ct);
             var response = await _ollama.ChatAsync($"{skill.Content}\n\nJSON Schema bắt buộc:\n{skill.JsonSchema}", JsonSerializer.Serialize(context, IntelligenceExplanationJson), skillName, ct);
-            if (!response.Success || string.IsNullOrWhiteSpace(response.Content)) return ExplanationFallback(fallback, "Ollama không khả dụng.");
+            if (!response.Success || string.IsNullOrWhiteSpace(response.Content))
+                return ExplanationFallback(fallback, "Dịch vụ giải thích tự động chưa sẵn sàng.");
             using var document = JsonDocument.Parse(StripMarkdownFence(response.Content)); var root = document.RootElement;
-            if (!echoValidator(root)) return ExplanationFallback(fallback, "AI echo sai dữ liệu và đã bị từ chối.");
+            if (!echoValidator(root))
+                return ExplanationFallback(fallback, "Phản hồi tự động không khớp dữ liệu nguồn và đã bị từ chối.");
             var explanation = root.GetProperty("explanation").GetString()?.Trim() ?? string.Empty;
             if (explanation.Length is < 1 or > 1000) return ExplanationFallback(fallback, "Giải thích AI vượt giới hạn.");
+            if (skillName == "supplier-score-explanation"
+                && SupplierIntelligencePresentation.ContainsTechnicalTerms(explanation))
+                return ExplanationFallback(fallback, "Giải thích AI còn chứa thuật ngữ kỹ thuật nên đã được thay bằng nội dung tiếng Việt.");
             return new TypedExplanationResultDto { Success = true, Explanation = explanation, UsedOllama = true, Warnings = skill.Warnings };
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return ExplanationFallback(fallback, "AI phản hồi quá thời gian."); }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException or ArgumentOutOfRangeException)
-        { _logger.LogWarning("Typed AI explanation rejected. Skill={Skill} ErrorType={ErrorType}", skillName, ex.GetType().Name); return ExplanationFallback(fallback, "Phản hồi AI không đúng contract."); }
+        { _logger.LogWarning("Typed AI explanation rejected. Skill={Skill} ErrorType={ErrorType}", skillName, ex.GetType().Name); return ExplanationFallback(fallback, "Phản hồi tự động không đúng định dạng yêu cầu."); }
     }
 
     private static bool ComponentsMatch(JsonElement element, IReadOnlyDictionary<string, decimal> expected)

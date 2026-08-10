@@ -12481,6 +12481,490 @@ SELECT N'DEMO_REORDER_V14' AS SeedMarker,
 GO
 
 /* ================================================================
+   SUPPLIER COMPARISON HISTORY V1
+   Marker: DEMO_SUPPLIER_COMPARISON_HISTORY_V1
+
+   Contract:
+   - Every active supplier with a valid Store 1 offer receives five
+     completed PO -> confirmed receipt samples in the rolling 180-day
+     supplier-quality window.
+   - Samples are fully linked to receipt postings, inventory movements
+     and FIFO cost layers.
+   - Fixed business keys make reruns idempotent. Existing sample dates
+     are refreshed, but stock is posted only for receipt lines that do
+     not already have a BRANCH_RECEIPT_IN movement.
+   - This batch runs before the rolling low-stock fixtures so their
+     thresholds are calculated from the final physical stock position.
+   ================================================================ */
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    IF OBJECT_ID(N'dbo.Stores',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.Staffs',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.Suppliers',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.SupplierStores',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.IngredientSuppliers',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.Ingredients',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.UnitConversions',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.PurchaseOrders',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.PurchaseOrderLines',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.BranchReceipts',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.BranchReceiptLines',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.PurchaseOrderReceiptPostings',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.StoreInventories',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.InventoryTransactions',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.InventoryCostLayers',N'U') IS NULL
+       OR OBJECT_ID(N'dbo.SystemSettings',N'U') IS NULL
+        THROW 53540,N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1: schema thiếu bảng bắt buộc.',1;
+
+    DECLARE @SupplierComparisonNow datetime2(0)=SYSUTCDATETIME();
+    DECLARE @SupplierComparisonStoreId int=(
+        SELECT TOP(1) StoreId
+        FROM dbo.Stores
+        WHERE Name=N'CafeChain Thủ Dầu Một' AND Active=1
+        ORDER BY StoreId);
+    DECLARE @SupplierComparisonStaffId int=(
+        SELECT TOP(1) StaffId
+        FROM dbo.Staffs
+        WHERE StoreId=@SupplierComparisonStoreId AND Active=1
+        ORDER BY StaffId);
+
+    IF @SupplierComparisonStoreId IS NULL OR @SupplierComparisonStaffId IS NULL
+        THROW 53541,N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1: thiếu cửa hàng pilot hoặc nhân viên active.',1;
+
+    DECLARE @SupplierComparisonSlots TABLE
+    (
+        SampleNo int NOT NULL PRIMARY KEY,
+        DaysAgo int NOT NULL UNIQUE
+    );
+    INSERT @SupplierComparisonSlots VALUES (1,155),(2,125),(3,95),(4,65),(5,35);
+
+    DECLARE @SupplierComparisonOffers TABLE
+    (
+        SupplierId int NOT NULL PRIMARY KEY,
+        IngredientSupplierId int NOT NULL UNIQUE,
+        IngredientId int NOT NULL,
+        PackageUnitId int NOT NULL,
+        BaseUnitId int NOT NULL,
+        PackageQuantity decimal(18,3) NOT NULL,
+        PackageBaseQuantity decimal(18,3) NOT NULL,
+        PackagePrice decimal(18,2) NOT NULL,
+        LeadTimeDays int NOT NULL,
+        StoreInventoryId int NOT NULL
+    );
+
+    ;WITH EligibleOffers AS
+    (
+        SELECT offer.SupplierId,offer.IngredientSupplierId,offer.IngredientId,
+               offer.UnitId PackageUnitId,ingredient.BaseUnitId,
+               CONVERT(decimal(18,3),ROUND(offer.PackageQuantity,3)) PackageQuantity,
+               CONVERT(decimal(18,3),ROUND(offer.PackageQuantity*factor.FactorToBase,3)) PackageBaseQuantity,
+               offer.CurrentPrice PackagePrice,COALESCE(offer.LeadTimeDays,0) LeadTimeDays,
+               inventory.StoreInventoryId,
+               ROW_NUMBER() OVER(PARTITION BY offer.SupplierId ORDER BY offer.IngredientSupplierId) RowNo
+        FROM dbo.IngredientSuppliers offer
+        JOIN dbo.Suppliers supplier ON supplier.SupplierId=offer.SupplierId AND supplier.Active=1
+        JOIN dbo.SupplierStores scope ON scope.SupplierId=offer.SupplierId
+            AND scope.StoreId=@SupplierComparisonStoreId AND scope.Active=1
+        JOIN dbo.Ingredients ingredient ON ingredient.IngredientId=offer.IngredientId AND ingredient.Active=1
+        JOIN dbo.StoreInventories inventory ON inventory.StoreId=@SupplierComparisonStoreId
+            AND inventory.IngredientId=offer.IngredientId AND inventory.PreparedItemId IS NULL
+        OUTER APPLY
+        (
+            SELECT CONVERT(decimal(18,8),CASE
+                WHEN offer.UnitId=ingredient.BaseUnitId THEN 1
+                ELSE
+                (
+                    SELECT TOP(1) conversion.ToQuantity/NULLIF(conversion.FromQuantity,0)
+                    FROM dbo.UnitConversions conversion
+                    WHERE conversion.IngredientId=ingredient.IngredientId
+                      AND conversion.FromUnitId=offer.UnitId
+                      AND conversion.ToUnitId=ingredient.BaseUnitId
+                      AND conversion.Active=1
+                      AND conversion.FromQuantity>0
+                      AND conversion.ToQuantity>0
+                    ORDER BY conversion.UnitConversionId
+                ) END) FactorToBase
+        ) factor
+        WHERE offer.Active=1
+          AND offer.PackageQuantity>0
+          AND offer.CurrentPrice>0
+          AND factor.FactorToBase>0
+    )
+    INSERT @SupplierComparisonOffers
+    (SupplierId,IngredientSupplierId,IngredientId,PackageUnitId,BaseUnitId,
+     PackageQuantity,PackageBaseQuantity,PackagePrice,LeadTimeDays,StoreInventoryId)
+    SELECT SupplierId,IngredientSupplierId,IngredientId,PackageUnitId,BaseUnitId,
+           PackageQuantity,PackageBaseQuantity,PackagePrice,LeadTimeDays,StoreInventoryId
+    FROM EligibleOffers
+    WHERE RowNo=1;
+
+    IF NOT EXISTS(SELECT 1 FROM @SupplierComparisonOffers)
+       OR EXISTS(SELECT 1 FROM @SupplierComparisonOffers
+                 WHERE PackageQuantity<=0 OR PackageBaseQuantity<=0 OR PackagePrice<=0)
+       OR EXISTS
+       (
+           SELECT 1
+           FROM dbo.Suppliers supplier
+           JOIN dbo.SupplierStores scope ON scope.SupplierId=supplier.SupplierId
+               AND scope.StoreId=@SupplierComparisonStoreId AND scope.Active=1
+           WHERE supplier.Active=1
+             AND EXISTS(SELECT 1 FROM dbo.IngredientSuppliers offer
+                        WHERE offer.SupplierId=supplier.SupplierId AND offer.Active=1
+                          AND offer.PackageQuantity>0 AND offer.CurrentPrice>0)
+             AND NOT EXISTS(SELECT 1 FROM @SupplierComparisonOffers fixture
+                            WHERE fixture.SupplierId=supplier.SupplierId)
+       )
+        THROW 53542,N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1: không resolve đủ offer, quy đổi hoặc tồn kho cho nhà cung cấp pilot.',1;
+
+    DECLARE @SupplierComparisonFixture TABLE
+    (
+        SupplierId int NOT NULL,
+        IngredientSupplierId int NOT NULL,
+        IngredientId int NOT NULL,
+        PackageUnitId int NOT NULL,
+        BaseUnitId int NOT NULL,
+        PackageQuantity decimal(18,3) NOT NULL,
+        PackageBaseQuantity decimal(18,3) NOT NULL,
+        PackagePrice decimal(18,2) NOT NULL,
+        LeadTimeDays int NOT NULL,
+        StoreInventoryId int NOT NULL,
+        SampleNo int NOT NULL,
+        OrderAt datetime2(0) NOT NULL,
+        ExpectedAt datetime2(0) NOT NULL,
+        ReceivedAt datetime2(0) NOT NULL,
+        PoCode nvarchar(50) NOT NULL UNIQUE,
+        ReceiptCode nvarchar(50) NOT NULL UNIQUE,
+        ReceiptKey nvarchar(100) NOT NULL UNIQUE,
+        LineNote nvarchar(100) NOT NULL UNIQUE,
+        PRIMARY KEY(SupplierId,SampleNo)
+    );
+    INSERT @SupplierComparisonFixture
+    SELECT offer.SupplierId,offer.IngredientSupplierId,offer.IngredientId,
+           offer.PackageUnitId,offer.BaseUnitId,offer.PackageQuantity,
+           offer.PackageBaseQuantity,offer.PackagePrice,offer.LeadTimeDays,
+           offer.StoreInventoryId,slot.SampleNo,
+           DATEADD(DAY,-offer.LeadTimeDays,DATEADD(DAY,-slot.DaysAgo,@SupplierComparisonNow)),
+           DATEADD(DAY,-slot.DaysAgo,@SupplierComparisonNow),
+           DATEADD(DAY,-slot.DaysAgo,@SupplierComparisonNow),
+           CONCAT(N'DEMO-SCMP-V1-PO-',offer.SupplierId,N'-',slot.SampleNo),
+           CONCAT(N'DEMO-SCMP-V1-BR-',offer.SupplierId,N'-',slot.SampleNo),
+           CONCAT(N'DEMO_SCMP_V1_RECEIPT_S',@SupplierComparisonStoreId,N'_SUP',offer.SupplierId,N'_',slot.SampleNo),
+           CONCAT(N'DEMO_SCMP_V1_LINE_SUP',offer.SupplierId,N'_',slot.SampleNo)
+    FROM @SupplierComparisonOffers offer
+    CROSS JOIN @SupplierComparisonSlots slot;
+
+    INSERT dbo.PurchaseOrders
+    (Code,StoreId,SupplierId,[Status],OrderDate,ExpectedDeliveryAtUtc,CreatedByStaffId,
+     ApprovedByStaffId,SentByStaffId,CreatedAtUtc,UpdatedAtUtc,ApprovedAtUtc,SentAtUtc,
+     CompletedAtUtc,CancelledAtUtc,Note)
+    SELECT fixture.PoCode,@SupplierComparisonStoreId,fixture.SupplierId,N'COMPLETED',
+           fixture.OrderAt,fixture.ExpectedAt,@SupplierComparisonStaffId,
+           @SupplierComparisonStaffId,@SupplierComparisonStaffId,fixture.OrderAt,fixture.ReceivedAt,
+           fixture.OrderAt,fixture.OrderAt,fixture.ReceivedAt,NULL,
+           N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1'
+    FROM @SupplierComparisonFixture fixture
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.PurchaseOrders po WHERE po.Code=fixture.PoCode);
+
+    INSERT dbo.PurchaseOrderLines
+    (PurchaseOrderId,RestockRequestId,PurchaseAdviceLineId,IngredientId,IngredientSupplierId,
+     PackageUnitIdSnapshot,PackageQuantitySnapshot,PackagePriceSnapshot,PackageCount,
+     PurchaseMode,OrderedPackageCount,OrderedBaseQuantity,OrderedPackQuantity,
+     PackSizeProcurementQuantity,ProcurementUnitId,OrderedProcurementQuantity,
+     UnitPricePerPackage,UnitPricePerProcurementUnit,RoundingSurplusProcurementQuantity,
+     AcceptedPackQuantity,AcceptedProcurementQuantity,ClosedProcurementQuantity,
+     InventoryPostingBaseQuantity,InventoryBaseUnitId,ProcurementToInventoryFactor,
+     ClosedRemainingQuantity,PromisedLeadTimeDaysSnapshot,Note)
+    SELECT po.PurchaseOrderId,NULL,NULL,fixture.IngredientId,fixture.IngredientSupplierId,
+           fixture.PackageUnitId,fixture.PackageQuantity,fixture.PackagePrice,1,
+           N'Packaged',1,fixture.PackageBaseQuantity,1,
+           NULL,NULL,NULL,fixture.PackagePrice,NULL,0,
+           1,NULL,0,fixture.PackageBaseQuantity,fixture.BaseUnitId,fixture.PackageBaseQuantity,
+           0,fixture.LeadTimeDays,fixture.LineNote
+    FROM @SupplierComparisonFixture fixture
+    JOIN dbo.PurchaseOrders po ON po.Code=fixture.PoCode
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM dbo.PurchaseOrderLines line
+        WHERE line.PurchaseOrderId=po.PurchaseOrderId AND line.Note=fixture.LineNote
+    );
+
+    INSERT dbo.BranchReceipts
+    (ReceiptCode,StoreId,SupplierId,PurchaseOrderId,SourceInventoryTransferId,[Status],ReceiptKey,
+     ReferenceNumber,ReceivedAt,ReceivedByStaffId,ConfirmedAt,ConfirmedByStaffId,Notes,
+     CreatedAt,CreatedByStaffId)
+    SELECT fixture.ReceiptCode,@SupplierComparisonStoreId,fixture.SupplierId,po.PurchaseOrderId,
+           NULL,N'CONFIRMED',fixture.ReceiptKey,
+           CONCAT(N'DEMO-SCMP-INVOICE-',fixture.SupplierId,N'-',fixture.SampleNo),
+           fixture.ReceivedAt,@SupplierComparisonStaffId,fixture.ReceivedAt,@SupplierComparisonStaffId,
+           N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1',fixture.ReceivedAt,@SupplierComparisonStaffId
+    FROM @SupplierComparisonFixture fixture
+    JOIN dbo.PurchaseOrders po ON po.Code=fixture.PoCode
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.BranchReceipts receipt
+                     WHERE receipt.ReceiptCode=fixture.ReceiptCode);
+
+    INSERT dbo.BranchReceiptLines
+    (BranchReceiptId,RestockRequestId,PurchaseOrderLineId,SourceInventoryTransferDetailId,
+     SourceTransferCostAllocationId,RestockRequestFulfillmentId,IngredientId,PreparedItemId,RecipeId,
+     InputQuantity,InputUnitId,ReceivedBaseQuantity,RejectedBaseQuantity,ReceivedPackQuantity,
+     AcceptedPackQuantity,ReceivedProcurementQuantity,RejectedProcurementQuantity,
+     AcceptedProcurementQuantity,InventoryPostingBaseQuantity,ProcurementUnitId,InventoryBaseUnitId,
+     ProcurementToInventoryFactor,PurchaseMode,RejectionReason,RejectionIssueType,BaseUnitId,
+     SupplierId,IngredientSupplierId,ActualPackagePrice,PackageQuantitySnapshot,
+     PackageUnitIdSnapshot,BaseUnitCostSnapshot,LineTotalCost,InventoryTransactionId,CreatedAt)
+    SELECT receipt.BranchReceiptId,NULL,line.PurchaseOrderLineId,NULL,NULL,NULL,
+           fixture.IngredientId,NULL,NULL,1,fixture.PackageUnitId,fixture.PackageBaseQuantity,0,1,1,
+           NULL,NULL,NULL,fixture.PackageBaseQuantity,NULL,fixture.BaseUnitId,
+           fixture.PackageBaseQuantity,N'Packaged',NULL,NULL,fixture.BaseUnitId,
+           fixture.SupplierId,fixture.IngredientSupplierId,fixture.PackagePrice,fixture.PackageQuantity,
+           fixture.PackageUnitId,fixture.PackagePrice/NULLIF(fixture.PackageBaseQuantity,0),
+           fixture.PackagePrice,NULL,fixture.ReceivedAt
+    FROM @SupplierComparisonFixture fixture
+    JOIN dbo.PurchaseOrders po ON po.Code=fixture.PoCode
+    JOIN dbo.PurchaseOrderLines line ON line.PurchaseOrderId=po.PurchaseOrderId
+        AND line.Note=fixture.LineNote
+    JOIN dbo.BranchReceipts receipt ON receipt.ReceiptCode=fixture.ReceiptCode
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM dbo.BranchReceiptLines receiptLine
+        WHERE receiptLine.BranchReceiptId=receipt.BranchReceiptId
+          AND receiptLine.PurchaseOrderLineId=line.PurchaseOrderLineId
+    );
+
+    INSERT dbo.PurchaseOrderReceiptPostings
+    (PurchaseOrderLineId,BranchReceiptLineId,AcceptedBaseQuantity,RejectedBaseQuantity,
+     AcceptedProcurementQuantity,RejectedProcurementQuantity,InventoryPostingBaseQuantity,
+     ProcurementUnitId,InventoryBaseUnitId,ProcurementToInventoryFactor,PurchaseMode,
+     CreatedByStaffId,CreatedAtUtc)
+    SELECT line.PurchaseOrderLineId,receiptLine.BranchReceiptLineId,
+           fixture.PackageBaseQuantity,0,NULL,NULL,fixture.PackageBaseQuantity,
+           NULL,fixture.BaseUnitId,fixture.PackageBaseQuantity,N'Packaged',
+           @SupplierComparisonStaffId,fixture.ReceivedAt
+    FROM @SupplierComparisonFixture fixture
+    JOIN dbo.PurchaseOrders po ON po.Code=fixture.PoCode
+    JOIN dbo.PurchaseOrderLines line ON line.PurchaseOrderId=po.PurchaseOrderId
+        AND line.Note=fixture.LineNote
+    JOIN dbo.BranchReceipts receipt ON receipt.ReceiptCode=fixture.ReceiptCode
+    JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptId=receipt.BranchReceiptId
+        AND receiptLine.PurchaseOrderLineId=line.PurchaseOrderLineId
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM dbo.PurchaseOrderReceiptPostings posting
+        WHERE posting.BranchReceiptLineId=receiptLine.BranchReceiptLineId
+    );
+
+    DECLARE @SupplierComparisonPendingInventory TABLE
+    (
+        BranchReceiptLineId int NOT NULL PRIMARY KEY,
+        StoreInventoryId int NOT NULL,
+        IngredientId int NOT NULL,
+        Quantity decimal(18,3) NOT NULL,
+        UnitCost decimal(18,2) NOT NULL,
+        TotalCost decimal(18,2) NOT NULL,
+        CreatedAt datetime2(0) NOT NULL,
+        RunningBefore decimal(18,3) NOT NULL,
+        RunningAfter decimal(18,3) NOT NULL
+    );
+    INSERT @SupplierComparisonPendingInventory
+    SELECT receiptLine.BranchReceiptLineId,fixture.StoreInventoryId,fixture.IngredientId,
+           fixture.PackageBaseQuantity,
+           CONVERT(decimal(18,2),ROUND(fixture.PackagePrice/NULLIF(fixture.PackageBaseQuantity,0),2)),
+           fixture.PackagePrice,fixture.ReceivedAt,
+           SUM(fixture.PackageBaseQuantity) OVER
+           (PARTITION BY fixture.StoreInventoryId ORDER BY fixture.ReceivedAt,receiptLine.BranchReceiptLineId
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)-fixture.PackageBaseQuantity,
+           SUM(fixture.PackageBaseQuantity) OVER
+           (PARTITION BY fixture.StoreInventoryId ORDER BY fixture.ReceivedAt,receiptLine.BranchReceiptLineId
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+    FROM @SupplierComparisonFixture fixture
+    JOIN dbo.BranchReceipts receipt ON receipt.ReceiptCode=fixture.ReceiptCode
+    JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptId=receipt.BranchReceiptId
+        AND receiptLine.IngredientSupplierId=fixture.IngredientSupplierId
+    WHERE receiptLine.InventoryTransactionId IS NULL
+      AND NOT EXISTS
+      (
+          SELECT 1 FROM dbo.InventoryTransactions movement
+          WHERE movement.BranchReceiptLineId=receiptLine.BranchReceiptLineId AND movement.[Type]=14
+      );
+
+    INSERT dbo.InventoryTransactions
+    (StoreInventoryId,[Type],StockStatus,Quantity,BeforeQty,AfterQty,UnitCost,TotalCost,
+     InventoryDocumentId,InventoryDocumentDetailId,InventoryTransferId,InventoryTransferDetailId,
+     ReferenceOrderId,ProductionRunId,SourceRecipeId,InventoryConsolidationRunId,
+     BranchReceiptLineId,OrderRefundId,CreatedAt)
+    SELECT pending.StoreInventoryId,14,1,pending.Quantity,
+           inventory.AvailableQty+pending.RunningBefore,
+           inventory.AvailableQty+pending.RunningAfter,
+           pending.UnitCost,pending.TotalCost,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
+           pending.BranchReceiptLineId,NULL,pending.CreatedAt
+    FROM @SupplierComparisonPendingInventory pending
+    JOIN dbo.StoreInventories inventory ON inventory.StoreInventoryId=pending.StoreInventoryId;
+
+    UPDATE inventory
+       SET inventory.AvailableQty=inventory.AvailableQty+added.TotalQuantity,
+           inventory.LastUpdated=@SupplierComparisonNow
+    FROM dbo.StoreInventories inventory
+    JOIN
+    (
+        SELECT StoreInventoryId,SUM(Quantity) TotalQuantity
+        FROM @SupplierComparisonPendingInventory
+        GROUP BY StoreInventoryId
+    ) added ON added.StoreInventoryId=inventory.StoreInventoryId;
+
+    UPDATE receiptLine
+       SET receiptLine.InventoryTransactionId=movement.InventoryTransactionId
+    FROM dbo.BranchReceiptLines receiptLine
+    JOIN dbo.InventoryTransactions movement
+      ON movement.BranchReceiptLineId=receiptLine.BranchReceiptLineId AND movement.[Type]=14
+    JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
+    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1'
+      AND receiptLine.InventoryTransactionId IS NULL;
+
+    INSERT dbo.InventoryCostLayers
+    (IngredientId,PreparedItemId,StoreId,Quantity,RemainingQuantity,UnitCost,CreatedAt,
+     SourceProductionRunId,SourceOrderRefundId,SourceInventoryDocumentDetailId,
+     SourceBranchReceiptLineId,SourceTransferCostAllocationId,SourceTransferDiscrepancyPostingId)
+    SELECT fixture.IngredientId,NULL,@SupplierComparisonStoreId,
+           fixture.PackageBaseQuantity,fixture.PackageBaseQuantity,
+           CONVERT(decimal(18,2),ROUND(fixture.PackagePrice/NULLIF(fixture.PackageBaseQuantity,0),2)),
+           fixture.ReceivedAt,NULL,NULL,NULL,receiptLine.BranchReceiptLineId,NULL,NULL
+    FROM @SupplierComparisonFixture fixture
+    JOIN dbo.BranchReceipts receipt ON receipt.ReceiptCode=fixture.ReceiptCode
+    JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptId=receipt.BranchReceiptId
+        AND receiptLine.IngredientSupplierId=fixture.IngredientSupplierId
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM dbo.InventoryCostLayers layer
+        WHERE layer.SourceBranchReceiptLineId=receiptLine.BranchReceiptLineId
+    );
+
+    /* Refresh only seed-owned rolling dates. Quantities and stock remain unchanged. */
+    UPDATE po
+       SET po.[Status]=N'COMPLETED',po.OrderDate=fixture.OrderAt,
+           po.ExpectedDeliveryAtUtc=fixture.ExpectedAt,po.UpdatedAtUtc=fixture.ReceivedAt,
+           po.CompletedAtUtc=fixture.ReceivedAt
+    FROM dbo.PurchaseOrders po
+    JOIN @SupplierComparisonFixture fixture ON fixture.PoCode=po.Code
+    WHERE po.Note=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1';
+
+    UPDATE receipt
+       SET receipt.[Status]=N'CONFIRMED',receipt.ReceivedAt=fixture.ReceivedAt,
+           receipt.ConfirmedAt=fixture.ReceivedAt,receipt.CreatedAt=fixture.ReceivedAt
+    FROM dbo.BranchReceipts receipt
+    JOIN @SupplierComparisonFixture fixture ON fixture.ReceiptCode=receipt.ReceiptCode
+    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1';
+
+    UPDATE receiptLine SET receiptLine.CreatedAt=fixture.ReceivedAt
+    FROM dbo.BranchReceiptLines receiptLine
+    JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
+    JOIN @SupplierComparisonFixture fixture ON fixture.ReceiptCode=receipt.ReceiptCode
+    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1';
+
+    UPDATE posting SET posting.CreatedAtUtc=fixture.ReceivedAt
+    FROM dbo.PurchaseOrderReceiptPostings posting
+    JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=posting.BranchReceiptLineId
+    JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
+    JOIN @SupplierComparisonFixture fixture ON fixture.ReceiptCode=receipt.ReceiptCode
+    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1';
+
+    UPDATE movement SET movement.CreatedAt=fixture.ReceivedAt
+    FROM dbo.InventoryTransactions movement
+    JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=movement.BranchReceiptLineId
+    JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
+    JOIN @SupplierComparisonFixture fixture ON fixture.ReceiptCode=receipt.ReceiptCode
+    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1' AND movement.[Type]=14;
+
+    UPDATE layer SET layer.CreatedAt=fixture.ReceivedAt
+    FROM dbo.InventoryCostLayers layer
+    JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=layer.SourceBranchReceiptLineId
+    JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
+    JOIN @SupplierComparisonFixture fixture ON fixture.ReceiptCode=receipt.ReceiptCode
+    WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1';
+
+    DECLARE @SupplierComparisonExpectedCount int=(SELECT COUNT(*) FROM @SupplierComparisonOffers)*5;
+    IF (SELECT COUNT(*) FROM dbo.PurchaseOrders
+        WHERE Note=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
+       OR (SELECT COUNT(*) FROM dbo.BranchReceipts
+           WHERE Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
+       OR (SELECT COUNT(*) FROM dbo.BranchReceiptLines receiptLine
+           JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
+           WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
+       OR (SELECT COUNT(*) FROM dbo.PurchaseOrderReceiptPostings posting
+           JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=posting.BranchReceiptLineId
+           JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
+           WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
+       OR (SELECT COUNT(*) FROM dbo.InventoryTransactions movement
+           JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=movement.BranchReceiptLineId
+           JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
+           WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1' AND movement.[Type]=14)<>@SupplierComparisonExpectedCount
+       OR (SELECT COUNT(*) FROM dbo.InventoryCostLayers layer
+           JOIN dbo.BranchReceiptLines receiptLine ON receiptLine.BranchReceiptLineId=layer.SourceBranchReceiptLineId
+           JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=receiptLine.BranchReceiptId
+           WHERE receipt.Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1')<>@SupplierComparisonExpectedCount
+        THROW 53543,N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1: số chứng từ hoặc bằng chứng tồn kho không đúng contract.',1;
+
+    IF EXISTS
+    (
+        SELECT fixture.SupplierId
+        FROM @SupplierComparisonOffers fixture
+        LEFT JOIN dbo.BranchReceipts receipt ON receipt.SupplierId=fixture.SupplierId
+            AND receipt.StoreId=@SupplierComparisonStoreId
+            AND receipt.[Status]=N'CONFIRMED'
+            AND receipt.ReceivedAt>=DATEADD(DAY,-180,@SupplierComparisonNow)
+            AND receipt.ReceivedAt<DATEADD(DAY,1,@SupplierComparisonNow)
+        GROUP BY fixture.SupplierId
+        HAVING COUNT(receipt.BranchReceiptId)<5
+    ) OR EXISTS
+    (
+        SELECT fixture.SupplierId
+        FROM @SupplierComparisonOffers fixture
+        LEFT JOIN dbo.PurchaseOrders po ON po.SupplierId=fixture.SupplierId
+            AND po.StoreId=@SupplierComparisonStoreId
+            AND po.[Status]=N'COMPLETED'
+            AND po.ExpectedDeliveryAtUtc IS NOT NULL
+            AND po.CompletedAtUtc>=DATEADD(DAY,-180,@SupplierComparisonNow)
+            AND po.CompletedAtUtc<DATEADD(DAY,1,@SupplierComparisonNow)
+            AND EXISTS
+            (
+                SELECT 1 FROM dbo.PurchaseOrderLines line
+                JOIN dbo.PurchaseOrderReceiptPostings posting
+                  ON posting.PurchaseOrderLineId=line.PurchaseOrderLineId
+                WHERE line.PurchaseOrderId=po.PurchaseOrderId
+            )
+        GROUP BY fixture.SupplierId
+        HAVING COUNT(po.PurchaseOrderId)<5
+    )
+        THROW 53544,N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1: nhà cung cấp pilot chưa đủ 5 mẫu nhận hàng và ngày giao dự kiến.',1;
+
+    IF NOT EXISTS(SELECT 1 FROM dbo.SystemSettings
+                  WHERE SettingKey=N'seedall_supplier_comparison_history_v1')
+        INSERT dbo.SystemSettings(SettingKey,SettingValue,Description)
+        VALUES(N'seedall_supplier_comparison_history_v1',N'completed',
+               N'Đã tạo 5 mẫu nhập hàng trong 180 ngày cho mọi nhà cung cấp tại cửa hàng pilot.');
+    ELSE
+        UPDATE dbo.SystemSettings
+           SET SettingValue=N'completed'
+         WHERE SettingKey=N'seedall_supplier_comparison_history_v1';
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+
+SELECT N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1' AS SeedMarker,
+       SYSUTCDATETIME() AS VerifiedAtUtc,
+       (SELECT COUNT(*) FROM dbo.PurchaseOrders
+        WHERE Note=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1') AS DemoPurchaseOrders,
+       (SELECT COUNT(*) FROM dbo.BranchReceipts
+        WHERE Notes=N'DEMO_SUPPLIER_COMPARISON_HISTORY_V1') AS DemoConfirmedReceipts;
+GO
+
+/* ================================================================
    BATCH 15 - AI DASHBOARD ROLLING FIXTURE
    Marker: DEMO_AI_DASHBOARD_ROLLING_V1
 
