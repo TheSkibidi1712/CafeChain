@@ -1,4 +1,4 @@
-@model IEnumerable<CafeChain.ViewModels.Admin.Toppings.AdminToppingVM>
+@model CafeChain.ViewModels.Admin.Toppings.AdminToppingIndexVM
 
 @using System.Security.Claims
 @using CafeChain.Application.Constants
@@ -9,6 +9,7 @@
 @{
     var currentController =
         ViewContext.RouteData.Values["controller"]?.ToString();
+    var toppings = Model.Toppings.Items;
     var canCreate = false; var canUpdate = false; var canToggle = false; var canAssign = false; var canViewSize = false;
     var canWriteRecipes = RoleHelper.CanWriteRecipes(User);
     if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
@@ -25,6 +26,7 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Admin/Catalog/catalog-list-toolbar.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Topping/topping.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/AI/ai-image-pipeline.css" asp-append-version="true" />
 }
@@ -40,6 +42,7 @@
             <h1 class="ops-title">Quản lý Topping đồ uống</h1>
             <p class="ops-subtitle">Thiết lập topping, giá bán và nguồn nguyên liệu tiêu hao trên thực đơn.</p>
         </div>
+
         <div class="ops-actions">
             @if (canCreate)
             {
@@ -54,24 +57,67 @@
         </div>
     </header>
 
-    <!-- Tabs -->
-    <div class="topping-page-tabs d-flex mb-3">
-        @if (canViewSize)
-        {
-            <a asp-area="Admin"
-               asp-controller="AdminSize"
-               asp-action="Index"
-               class="text-decoration-none fw-semibold @(currentController == "AdminSize" ? "active" : "")">
-                Quản lý Size
-            </a>
-        }
+    <div class="catalog-list-toolbar">
+        <div class="catalog-filter-tabs" aria-label="Bộ lọc Topping">
+            <a asp-action="Index"
+               asp-route-keyword="@Model.Keyword"
+               asp-route-pageSize="@Model.PageSize"
+               class="catalog-filter-tab @(!Model.Active.HasValue ? "active" : null)"
+               aria-current="@(!Model.Active.HasValue ? "page" : null)">Tất cả (@Model.AllCount)</a>
+            <a asp-action="Index"
+               asp-route-keyword="@Model.Keyword"
+               asp-route-active="true"
+               asp-route-pageSize="@Model.PageSize"
+               class="catalog-filter-tab @(Model.Active == true ? "active" : null)"
+               aria-current="@(Model.Active == true ? "page" : null)">Đang hoạt động (@Model.ActiveCount)</a>
+            <a asp-action="Index"
+               asp-route-keyword="@Model.Keyword"
+               asp-route-active="false"
+               asp-route-pageSize="@Model.PageSize"
+               class="catalog-filter-tab @(Model.Active == false ? "active" : null)"
+               aria-current="@(Model.Active == false ? "page" : null)">Ngừng hoạt động (@Model.InactiveCount)</a>
+        </div>
 
-        <a asp-area="Admin"
-           asp-controller="AdminTopping"
-           asp-action="Index"
-           class="text-decoration-none fw-semibold @(currentController == "AdminTopping" ? "active" : "")">
-            Quản lý Topping
-        </a>
+        <form asp-action="Index" method="get" class="catalog-list-tools" id="toppingFilterForm" role="search">
+            <input type="hidden" name="page" value="1" />
+            @if (Model.Active.HasValue)
+            {
+                <input type="hidden" name="active" value="@(Model.Active.Value ? "true" : "false")" />
+            }
+
+            <div class="catalog-search-box">
+                <button type="submit" class="catalog-search-button" title="Tìm kiếm" aria-label="Tìm Topping">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                </button>
+                <label for="toppingKeyword" class="visually-hidden">Tìm Topping theo mã hoặc tên</label>
+                <input id="toppingKeyword"
+                       type="search"
+                       name="keyword"
+                       value="@Model.Keyword"
+                       placeholder="Tìm Topping..."
+                       autocomplete="off" />
+                @if (!string.IsNullOrWhiteSpace(Model.Keyword))
+                {
+                    <a asp-action="Index"
+                       asp-route-active="@Model.Active"
+                       asp-route-pageSize="@Model.PageSize"
+                       class="catalog-search-clear"
+                       title="Xóa lọc"
+                       aria-label="Xóa bộ lọc Topping">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </a>
+                }
+            </div>
+
+            <label class="catalog-page-size">
+                <span>Hiển thị:</span>
+                <select name="pageSize" aria-label="Số dòng Topping hiển thị" onchange="this.form.submit()">
+                    <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                    <option value="25" selected="@(Model.PageSize == 25)">25</option>
+                    <option value="50" selected="@(Model.PageSize == 50)">50</option>
+                </select>
+            </label>
+        </form>
     </div>
 
     <!-- ===================================================== -->
@@ -85,19 +131,6 @@
             <h5 class="fw-bold mb-0">
                 Danh sách Topping
             </h5>
-
-            @if (canCreate)
-            {
-            <button type="button"
-                    class="btn btn-orange"
-                    data-bs-toggle="modal"
-                    data-bs-target="#createModal">
-
-                <i class="fas fa-plus me-2"></i>
-                Thêm mới
-
-            </button>
-            }
 
         </div>
 
@@ -120,7 +153,7 @@
                 </thead>
 
                 <tbody>
-                    @foreach (var item in Model)
+                    @foreach (var item in toppings)
                     {
                         <tr class="border-top">
                             <!-- TOPPING -->
@@ -285,12 +318,27 @@
                             </td>
                         </tr>
                     }
+                    @if (toppings.Count == 0)
+                    {
+                        <tr><td colspan="6" class="text-center text-muted py-4">Không tìm thấy Topping phù hợp.</td></tr>
+                    }
 
                 </tbody>
 
             </table>
 
         </div>
+
+        <partial name="_CatalogPagination"
+                 model="new CafeChain.ViewModels.Admin.Shared.AdminCatalogPaginationVM {
+                     Keyword = Model.Keyword,
+                     Active = Model.Active,
+                     PageSize = Model.PageSize,
+                     PageIndex = Model.Toppings.PageIndex,
+                     TotalPages = Model.Toppings.TotalPages,
+                     TotalCount = Model.Toppings.TotalCount,
+                     CurrentItemCount = toppings.Count
+                 }" />
 
     </div>
 

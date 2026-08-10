@@ -1,0 +1,217 @@
+/* Shared Size/Topping list toolbar. Mirrors the Drink list filter contract. */
+.catalog-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: var(--cc-radius-card, 14px);
+    background: var(--cc-surface, #ffffff);
+    padding: 12px 16px;
+    box-shadow: var(--cc-shadow-xs, 0 1px 2px rgba(32, 24, 18, 0.05));
+}
+
+.catalog-filter-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.catalog-filter-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    border: 1px solid var(--cc-border, #e9ded4);
+    border-radius: 999px;
+    background: var(--cc-surface-muted, #fbf7f2);
+    color: var(--cc-text-secondary, #66584f);
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+}
+
+.catalog-filter-tab:hover,
+.catalog-filter-tab:focus-visible {
+    border-color: var(--cc-brown-600, #70482f);
+    color: var(--cc-brown-900, #3d2418);
+    text-decoration: none;
+}
+
+.catalog-filter-tab.active {
+    border-color: var(--cc-brown-600, #70482f);
+    background: var(--cc-brown-600, #70482f);
+    color: #ffffff;
+}
+
+.catalog-filter-tab.active:hover,
+.catalog-filter-tab.active:focus-visible {
+    color: #ffffff;
+}
+
+.catalog-list-tools {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0;
+}
+
+.catalog-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 320px;
+    height: 44px;
+}
+
+.catalog-search-button {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--cc-brown-600, #70482f);
+    font-size: 14px;
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition: color 0.16s ease, transform 0.16s ease;
+}
+
+.catalog-search-button:hover,
+.catalog-search-button:focus-visible {
+    color: var(--cc-brown-900, #3d2418);
+    outline: none;
+    transform: translateY(-50%) scale(1.15);
+}
+
+.catalog-search-box input {
+    width: 100%;
+    height: 44px;
+    padding: 8px 42px 8px 40px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface-raised, #ffffff);
+    color: var(--cc-text, #201812);
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.catalog-search-box input:focus {
+    border-color: var(--cc-brown-600, #70482f);
+    outline: none;
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+}
+
+.catalog-search-box input::placeholder {
+    color: var(--cc-text-disabled, #a69b93);
+}
+
+/* Keep the shared custom clear action as the only visible search reset. */
+.catalog-search-box input[type="search"]::-webkit-search-cancel-button {
+    display: none;
+    width: 0;
+    height: 0;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.catalog-search-box input[type="search"]::-ms-clear,
+.catalog-search-box input[type="search"]::-ms-reveal {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.catalog-search-clear {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: var(--cc-text-muted, #8c7b70);
+    text-decoration: none;
+    transform: translateY(-50%);
+}
+
+.catalog-search-clear:hover,
+.catalog-search-clear:focus-visible {
+    background: var(--cc-surface-active, #f4e9df);
+    color: var(--cc-brown-900, #3d2418);
+    outline: none;
+}
+
+.catalog-page-size {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 13px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.catalog-page-size select {
+    height: 44px;
+    min-width: 64px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-control, 10px);
+    background: var(--cc-surface-raised, #ffffff);
+    color: var(--cc-text, #201812);
+    padding: 0 10px;
+    font-size: 13px;
+    font-weight: 700;
+    outline: 0;
+}
+
+.catalog-page-size select:focus {
+    border-color: var(--cc-brown-600, #70482f);
+    box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22));
+}
+
+@media (max-width: 991.98px) {
+    .catalog-list-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .catalog-list-tools {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .catalog-search-box {
+        width: min(100%, 520px);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .catalog-list-tools {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .catalog-search-box {
+        width: 100%;
+    }
+
+    .catalog-page-size {
+        justify-content: space-between;
+    }
+}
