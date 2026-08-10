@@ -3889,6 +3889,30 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "OperationalShiftScheduleSources",
+                columns: table => new
+                {
+                    OperationalShiftId = table.Column<int>(type: "int", nullable: false),
+                    StaffShiftId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OperationalShiftScheduleSources", x => new { x.OperationalShiftId, x.StaffShiftId });
+                    table.ForeignKey(
+                        name: "FK_OperationalShiftScheduleSources_OperationalShifts_OperationalShiftId",
+                        column: x => x.OperationalShiftId,
+                        principalTable: "OperationalShifts",
+                        principalColumn: "OperationalShiftId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_OperationalShiftScheduleSources_StaffShifts_StaffShiftId",
+                        column: x => x.StaffShiftId,
+                        principalTable: "StaffShifts",
+                        principalColumn: "StaffShiftId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "WorkShiftOpenApprovalRequests",
                 columns: table => new
                 {
@@ -8787,14 +8811,18 @@ namespace CafeChain.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_OperationalShifts_StoreId_BusinessDate_SourceScheduleShiftId",
                 table: "OperationalShifts",
-                columns: new[] { "StoreId", "BusinessDate", "SourceScheduleShiftId" },
-                unique: true,
-                filter: "[SourceScheduleShiftId] IS NOT NULL AND [Status] <> 'Cancelled'");
+                columns: new[] { "StoreId", "BusinessDate", "SourceScheduleShiftId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_OperationalShifts_StoreId_BusinessDate_Status",
                 table: "OperationalShifts",
                 columns: new[] { "StoreId", "BusinessDate", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OperationalShiftScheduleSources_StaffShiftId",
+                table: "OperationalShiftScheduleSources",
+                column: "StaffShiftId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_OperationalShiftWorkShifts_LinkedByStaffId",
@@ -11494,6 +11522,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "OperationalAnomalies");
+
+            migrationBuilder.DropTable(
+                name: "OperationalShiftScheduleSources");
 
             migrationBuilder.DropTable(
                 name: "OperationalShiftWorkShifts");
