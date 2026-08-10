@@ -19,8 +19,9 @@
 }
 
 .supplier-page {
-    max-width: 1480px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
     padding: 24px clamp(16px, 2.2vw, 32px) 40px;
     color: #201812;
     font-family: inherit;

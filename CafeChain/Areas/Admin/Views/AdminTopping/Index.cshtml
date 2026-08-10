@@ -24,28 +24,35 @@
 
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Topping/topping.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/AI/ai-image-pipeline.css" asp-append-version="true" />
 }
 
-<div class="container-fluid p-4 topping-admin-page">
+<main class="topping-admin-page ops-shell cc-warehouse-page">
     @Html.AntiForgeryToken()
 
-    <!-- ===================================================== -->
-    <!-- TABS -->
-    <!-- ===================================================== -->
-
-    <!-- Page Heading -->
-    <div class="topping-page-heading">
-        <div class="topping-page-heading-content">
-            <div class="topping-page-heading-icon"><i class="fas fa-cookie-bite"></i></div>
-            <div>
-                <span class="topping-page-kicker"><i class="fas fa-layer-group me-1"></i> CẤU TRÚC THỰC ĐƠN</span>
-                <h1>Quản lý Topping đồ uống</h1>
-                <p>Thiết lập topping, giá bán và nguồn nguyên liệu tiêu hao trên thực đơn.</p>
+    <header class="topping-page-heading ops-header cc-warehouse-header">
+        <div>
+            <div class="ops-eyebrow">
+                <i class="fas fa-layer-group me-1"></i> Cấu trúc thực đơn
             </div>
+            <h1 class="ops-title">Quản lý Topping đồ uống</h1>
+            <p class="ops-subtitle">Thiết lập topping, giá bán và nguồn nguyên liệu tiêu hao trên thực đơn.</p>
         </div>
-    </div>
+        <div class="ops-actions">
+            @if (canCreate)
+            {
+                <button type="button"
+                        class="btn btn-orange"
+                        data-bs-toggle="modal"
+                        data-bs-target="#createModal">
+                    <i class="fas fa-plus me-2"></i>
+                    Thêm mới
+                </button>
+            }
+        </div>
+    </header>
 
     <!-- Tabs -->
     <div class="topping-page-tabs d-flex mb-3">
@@ -287,7 +294,7 @@
 
     </div>
 
-</div>
+</main>
 
 <!-- ===================================================== -->
 <!-- CREATE MODAL -->

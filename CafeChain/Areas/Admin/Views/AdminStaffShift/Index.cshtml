@@ -15,11 +15,12 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
     <link rel="stylesheet" href="~/css/Admin/StaffShift/admin-staff-shift.css" asp-append-version="true" />
 }
 
-<div id="staffShiftApp"
-     class="container-fluid py-3 shift-page"
+<main id="staffShiftApp"
+     class="shift-page ops-shell cc-warehouse-page"
      data-store-id="@Model.StoreId"
      data-week-start="@Model.StartDate.ToString("yyyy-MM-dd")"
      data-can-create="@Model.CanCreate.ToString().ToLowerInvariant()"
@@ -32,18 +33,18 @@
      data-toggle-template-url="@Url.Action("ToggleShift")">
     @Html.AntiForgeryToken()
 
-    <header class="shift-page-header">
-        <div class="shift-heading-group">
-            <span class="shift-page-kicker"><i class="fa-solid fa-people-group" aria-hidden="true"></i> Điều phối nhân sự</span>
-            <h2>Quản lý lịch &amp; ca làm việc</h2>
-            <div class="shift-page-subtitle">
+    <header class="shift-page-header ops-header cc-warehouse-header">
+        <div>
+            <div class="shift-eyebrow">Điều phối nhân sự</div>
+            <h1><i class="fa-solid fa-people-group" aria-hidden="true"></i> Quản lý lịch &amp; ca làm việc</h1>
+            <div class="shift-subtitle">
                 <span><i class="fa-solid fa-store" aria-hidden="true"></i> @Model.StoreName</span>
                 <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> @Model.StartDate.ToString("dd/MM/yyyy") – @Model.StartDate.AddDays(6).ToString("dd/MM/yyyy")</span>
             </div>
 
             @if (Model.Stores.Count > 1)
             {
-                <select id="storeSelector" class="form-select form-select-sm shift-store-selector" aria-label="Chọn cửa hàng">
+                <select id="storeSelector" class="form-select form-select-sm shift-store-selector mt-2" aria-label="Chọn cửa hàng">
                     @foreach (var store in Model.Stores)
                     {
                         <option value="@store.StoreId" selected="@(store.StoreId == Model.StoreId ? "selected" : null)">@store.StoreName</option>
@@ -323,7 +324,7 @@
             <p>Hãy thử từ khóa khác hoặc đặt lại bộ lọc.</p>
         </div>
     </section>
-</div>
+</main>
 
 <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">

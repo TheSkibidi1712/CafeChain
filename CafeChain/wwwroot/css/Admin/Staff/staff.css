@@ -23,7 +23,6 @@
 
 
 
-.admin-wo-page .staff-page-header,
 .staff-edit-header,
 .cc-admin-heading {
     width: 100% !important;
@@ -65,7 +64,6 @@
     font-size: 20px;
 }
 
-.admin-wo-page .staff-page-header h1,
 .admin-wo-page .staff-page-header h2,
 .staff-edit-header h1 {
     color: #201812;
@@ -81,6 +79,31 @@
     color: #66584F;
     font-size: 13px;
     line-height: 1.5;
+}
+
+.staff-page-header h1 {
+    color: #201812;
+    font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin: 0;
+}
+
+.staff-eyebrow {
+    margin-bottom: 5px;
+    color: var(--cc-warning, #99623B);
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+}
+
+.staff-subtitle {
+    max-width: 760px;
+    margin: 6px 0 0;
+    color: var(--cc-text-secondary, #66584F);
+    font-size: .88rem;
+    line-height: 1.55;
 }
 
 .admin-wo-page .staff-page-header .btn-primary,

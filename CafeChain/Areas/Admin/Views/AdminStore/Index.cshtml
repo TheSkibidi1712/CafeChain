@@ -31,25 +31,27 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
     <link rel="stylesheet" href="~/css/Admin/Store/store-admin.css" asp-append-version="true" />
 }
 
-<div class="store-admin-page">
-    <header class="store-admin-header">
+<main class="store-admin-page ops-shell cc-warehouse-page">
+    <header class="store-admin-header ops-header cc-warehouse-header">
         <div>
-            <span class="store-admin-kicker">Nhân sự & vận hành</span>
-            <h1 class="store-admin-title">Quản lý cửa hàng</h1>
-            <p class="store-admin-subtitle">
+            <div class="store-eyebrow">Nhân sự & vận hành</div>
+            <h1>Quản lý cửa hàng</h1>
+            <p class="store-subtitle">
                 Theo dõi thông tin chi nhánh, trạng thái hoạt động và vị trí GPS của từng cửa hàng.
             </p>
         </div>
-
-        @if (canCreate)
-        {
-            <a asp-action="Create" class="store-admin-btn store-admin-btn-primary">
-                <i class="fas fa-plus"></i> Thêm cửa hàng mới
-            </a>
-        }
+        <div class="store-header-actions">
+            @if (canCreate)
+            {
+                <a asp-action="Create" class="store-admin-btn store-admin-btn-primary">
+                    <i class="fas fa-plus"></i> Thêm cửa hàng mới
+                </a>
+            }
+        </div>
     </header>
 
     <section class="store-admin-stat-grid">
@@ -214,4 +216,4 @@
             </table>
         </div>
     </section>
-</div>
+</main>

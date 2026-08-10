@@ -7,42 +7,37 @@
     var nextPage = Model.Page >= Model.TotalPages ? Model.TotalPages : Model.Page + 1;
 }
 
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 <link rel="stylesheet" href="~/css/Admin/InventoryTransfer/inventorytransfer.css" />
 
-<div class="transfer-page transfer-index-page">
-    <header class="transfer-header">
+<main class="transfer-page transfer-index-page ops-shell cc-warehouse-page">
+    <header class="transfer-header ops-header cc-warehouse-header">
         <div>
-            <div class="transfer-breadcrumb">
-                <span>Phiếu kho</span>
-                <i class="fas fa-chevron-right"></i>
-                <span>Phiếu chuyển kho</span>
-            </div>
-
-            <div class="transfer-title-row">
-                <div class="transfer-icon">
-                    <i class="fas fa-right-left"></i>
-                </div>
-
-                <div>
-                    <h1>Phiếu chuyển kho</h1>
-                    <p>Theo dõi toàn bộ phiếu chuyển nguyên liệu giữa các chi nhánh.</p>
-                </div>
-            </div>
+            <div class="transfer-eyebrow">Kho &amp; Cung ứng / Phiếu chuyển kho</div>
+            <h1>Phiếu chuyển kho</h1>
+            <p class="transfer-subtitle">Theo dõi toàn bộ phiếu chuyển nguyên liệu giữa các chi nhánh.</p>
         </div>
 
-        <div class="transfer-header-actions">
+        <div class="transfer-header-actions ops-actions">
             <a class="transfer-primary-button"
                asp-area="Admin"
                asp-controller="AdminInventoryTransfer"
                asp-action="Create">
-                <i class="fas fa-plus"></i>
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
                 Tạo phiếu chuyển kho
             </a>
         </div>
     </header>
 
-    <main class="transfer-main">
-        <section class="transfer-card">
+    <div class="transfer-main">
+        <section class="transfer-card cc-warehouse-filter">
+            <div class="transfer-filter-heading">
+                <div>
+                    <span>Bộ lọc nhanh</span>
+                    <strong>Tìm phiếu chuyển kho</strong>
+                </div>
+                <span class="transfer-filter-scope"><i class="fa-solid fa-filter" aria-hidden="true"></i>Thu hẹp dữ liệu theo mã, chi nhánh, trạng thái</span>
+            </div>
             <form method="get" class="transfer-filter-grid">
                 <div class="transfer-field">
                     <label for="Keyword">Mã phiếu</label>
@@ -50,13 +45,13 @@
                            name="Keyword"
                            class="transfer-input"
                            value="@Model.Keyword"
-                           placeholder="Nhập mã phiếu" />
+                           placeholder="Nhập mã phiếu..." />
                 </div>
 
                 <div class="transfer-field">
                     <label for="Status">Trạng thái</label>
                     <select id="Status" name="Status" class="transfer-input">
-                        <option value="">Tất cả</option>
+                        <option value="">Tất cả trạng thái</option>
                         @foreach (InventoryTransferStatus status in Enum.GetValues(typeof(InventoryTransferStatus)))
                         {
                             <option value="@status" selected="@(Model.Status == status)">
@@ -69,7 +64,7 @@
                 <div class="transfer-field">
                     <label for="FromStoreId">Kho nguồn</label>
                     <select id="FromStoreId" name="FromStoreId" class="transfer-input">
-                        <option value="">Tất cả</option>
+                        <option value="">Tất cả kho nguồn</option>
                         @foreach (var store in Model.Stores)
                         {
                             <option value="@store.StoreId" selected="@(Model.FromStoreId == store.StoreId)">
@@ -82,7 +77,7 @@
                 <div class="transfer-field">
                     <label for="ToStoreId">Kho đích</label>
                     <select id="ToStoreId" name="ToStoreId" class="transfer-input">
-                        <option value="">Tất cả</option>
+                        <option value="">Tất cả kho đích</option>
                         @foreach (var store in Model.Stores)
                         {
                             <option value="@store.StoreId" selected="@(Model.ToStoreId == store.StoreId)">
@@ -96,7 +91,7 @@
 
                 <div class="transfer-filter-actions">
                     <button class="transfer-secondary-button" type="submit">
-                        <i class="fas fa-filter"></i>
+                        <i class="fa-solid fa-filter"></i>
                         Lọc
                     </button>
 
@@ -104,7 +99,7 @@
                        asp-area="Admin"
                        asp-controller="AdminInventoryTransfer"
                        asp-action="Index">
-                        <i class="fas fa-rotate-left"></i>
+                        <i class="fa-solid fa-rotate-left"></i>
                         Xóa lọc
                     </a>
                 </div>
@@ -218,5 +213,5 @@
                 </a>
             </div>
         </section>
-    </main>
-</div>
+    </div>
+</main>
