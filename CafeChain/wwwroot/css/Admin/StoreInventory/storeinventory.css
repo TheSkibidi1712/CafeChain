@@ -63,10 +63,22 @@
 }
 
 .header-actions { justify-content: flex-end; }
+.inventory-search-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.inventory-search-icon {
+    position: absolute;
+    left: 14px;
+    color: var(--cc-brown-700, #5C3F2B);
+    font-size: 0.9rem;
+    pointer-events: none;
+}
 .search-form input {
-    min-width: 260px;
+    min-width: 340px;
     min-height: var(--cc-control-height, 44px);
-    padding: 8px 14px;
+    padding: 8px 14px 8px 38px;
     border: 1px solid var(--cc-border-strong, #D8C5B6);
     border-radius: var(--cc-radius-control, 10px);
     background-color: var(--cc-surface-raised, #FFFFFF);

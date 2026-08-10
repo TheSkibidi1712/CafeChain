@@ -111,9 +111,9 @@ public sealed class DashboardService : IDashboardService
         CancellationToken cancellationToken = default,
         Guid? contextId = null)
     {
-        DashboardAuthorizationDto? access = null;
-        if (_authorization != null)
-            access = await _authorization.AuthorizeSectionAsync(actor, section, cancellationToken);
+        var authorization = _authorization
+            ?? throw new UnauthorizedAccessException("Dashboard authorization service is required.");
+        var access = await authorization.AuthorizeSectionAsync(actor, section, cancellationToken);
         ScopeResolution scope;
         if (contextId.HasValue)
         {
@@ -125,7 +125,7 @@ public sealed class DashboardService : IDashboardService
             scope = await ResolveScopeAsync(actor, filter, cancellationToken);
         filter = scope.Filter;
         var data = await LoadSectionAsync(actor, section, scope, cancellationToken);
-        if (access != null) FilterUnauthorizedWidgets(section, data, access.AllowedWidgets);
+        FilterUnauthorizedWidgets(section, data, access.AllowedWidgets);
         return CreateSectionResponse(section, scope, data, contextId);
     }
 
@@ -203,12 +203,11 @@ public sealed class DashboardService : IDashboardService
     }
 
     public async Task<DashboardAnalyticsResponse> GetAnalyticsAsync(
+        AdminActorContext actor,
         DashboardAnalyticsWidget widget,
         DashboardAnalyticsFilter filter,
         CancellationToken cancellationToken = default)
     {
-        if (!filter.StaffId.HasValue) throw new UnauthorizedAccessException("Staff context is required.");
-        var actor = new AdminActorContext { StaffId = filter.StaffId.Value };
         var batch = await GetAnalyticsBatchAsync(actor, [widget], filter, cancellationToken: cancellationToken);
         return batch.Widgets[widget];
     }
@@ -223,8 +222,9 @@ public sealed class DashboardService : IDashboardService
         if (widgets.Count == 0)
             return new DashboardAnalyticsBatchResponse();
 
-        if (_authorization != null)
-            await _authorization.AuthorizeWidgetsAsync(actor, widgets, cancellationToken);
+        var authorization = _authorization
+            ?? throw new UnauthorizedAccessException("Dashboard authorization service is required.");
+        await authorization.AuthorizeWidgetsAsync(actor, widgets, cancellationToken);
 
         var normalized = CopyFilter(filter);
         var scope = await ResolveScopeAsync(actor, normalized, cancellationToken);

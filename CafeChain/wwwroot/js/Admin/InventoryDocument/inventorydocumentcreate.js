@@ -577,10 +577,13 @@ const InventoryCreate = (() => {
         const isProjectedNegative =
             requestMode && projection.negativeLines.length > 0;
 
-        reasonField?.classList.toggle("d-none", !isProjectedNegative);
+        // Người dùng phải có thể nhập lý do ngay khi chọn chế độ yêu cầu xuất
+        // vượt tồn. Không khóa textarea theo phép chiếu tồn ở client vì dữ liệu
+        // tồn chính xác chỉ được xác nhận lại ở preflight phía server.
+        reasonField?.classList.toggle("d-none", !requestMode);
 
         if (reasonInput) {
-            reasonInput.disabled = !isProjectedNegative;
+            reasonInput.disabled = !requestMode;
             reasonInput.required = isProjectedNegative;
 
             if (!requestMode) {

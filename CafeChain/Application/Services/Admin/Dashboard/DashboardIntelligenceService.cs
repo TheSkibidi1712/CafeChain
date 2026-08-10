@@ -29,7 +29,7 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
     [
         DashboardAnalyticsWidget.NetSalesTrend, DashboardAnalyticsWidget.StoreRanking,
         DashboardAnalyticsWidget.PaymentMethodMix, DashboardAnalyticsWidget.OrderHeatmap,
-        DashboardAnalyticsWidget.OperationalAlerts,
+        DashboardAnalyticsWidget.OperationalAlerts, DashboardAnalyticsWidget.OrderStatusSummary,
         DashboardAnalyticsWidget.WorkShiftCashDiscrepancy, DashboardAnalyticsWidget.WorkShiftSales,
         DashboardAnalyticsWidget.WorkShiftPaymentMix, DashboardAnalyticsWidget.HourlyOrders,
         DashboardAnalyticsWidget.OfflineReconciliationExceptions,
@@ -37,12 +37,14 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         DashboardAnalyticsWidget.InventoryShortageRisk, DashboardAnalyticsWidget.InventoryMovementByType,
         DashboardAnalyticsWidget.InventoryThresholdRisk, DashboardAnalyticsWidget.InventoryReorderSuggestions,
         DashboardAnalyticsWidget.InventoryWasteByStoreIngredient, DashboardAnalyticsWidget.InventoryFifoLayerAge,
+        DashboardAnalyticsWidget.IngredientConsumptionTrend,
         DashboardAnalyticsWidget.PurchaseOrderPipeline, DashboardAnalyticsWidget.OverduePurchaseOrders,
         DashboardAnalyticsWidget.SupplierQuality, DashboardAnalyticsWidget.PurchasePriceTrend,
         DashboardAnalyticsWidget.ProcurementSpendBreakdown, DashboardAnalyticsWidget.SupplierIssueMix,
         DashboardAnalyticsWidget.TopProducts, DashboardAnalyticsWidget.VolumeMarginMatrix,
         DashboardAnalyticsWidget.SizeMargin, DashboardAnalyticsWidget.TopToppings,
         DashboardAnalyticsWidget.BomHealth, DashboardAnalyticsWidget.HighConsumptionLowEfficiency,
+        DashboardAnalyticsWidget.CategoryPerformance, DashboardAnalyticsWidget.ProductPeriodPerformance,
         DashboardAnalyticsWidget.LowVolumeProducts, DashboardAnalyticsWidget.LowMarginProducts,
         DashboardAnalyticsWidget.WorkforceShiftStatus, DashboardAnalyticsWidget.WorkforceHourlyDemand,
         DashboardAnalyticsWidget.WorkforceStaffPerformance
@@ -141,12 +143,12 @@ public sealed partial class DashboardIntelligenceService : IDashboardIntelligenc
         var storeId = ResolveNamedStore(intent, page.Stores);
         var window = ResolveWindow(intent.Period, DateTime.Today);
         var currentFilter = Filter(actor, intent, window.From, window.To, storeId);
-        var current = await _dashboard.GetAnalyticsAsync(intent.Widget, currentFilter, cancellationToken);
+        var current = await _dashboard.GetAnalyticsAsync(actor, intent.Widget, currentFilter, cancellationToken);
         DashboardAnalyticsResponse? baseline = null;
         if (intent.Comparison != DashboardComparison.None)
         {
             var baselineWindow = ResolveBaseline(window, intent.Comparison);
-            baseline = await _dashboard.GetAnalyticsAsync(intent.Widget,
+            baseline = await _dashboard.GetAnalyticsAsync(actor, intent.Widget,
                 Filter(actor, intent, baselineWindow.From, baselineWindow.To, storeId), cancellationToken);
         }
 

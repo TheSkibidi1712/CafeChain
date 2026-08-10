@@ -6,6 +6,7 @@
 
     const stores = JSON.parse(document.getElementById("dashboardStores")?.textContent || "[]");
     const dashboardContext = JSON.parse(document.getElementById("dashboardContext")?.textContent || "null");
+    let allowedWidgetKeys = new Set((dashboardContext?.widgets || []).map(widget => widget.key));
     const panel = document.getElementById("dashboardPanel");
     const aiPanel = document.getElementById("dashboardAiPanel");
     const notice = document.getElementById("dashboardNotice");
@@ -25,6 +26,16 @@
     let activeSection = root.dataset.defaultSection || "Executive";
     let activeRequest = null;
     let isAiActive = false;
+    let isAiBusy = false;
+    let isApplyingContext = false;
+
+    function updateApplyButtonState() {
+        applyButton.disabled = isAiBusy || isApplyingContext;
+        applyButton.setAttribute("aria-disabled", String(applyButton.disabled));
+        applyButton.title = isAiBusy
+            ? "Vui lòng chờ AI phân tích xong trước khi áp dụng bộ lọc."
+            : "";
+    }
 
     const fieldMeta = {
         bucketDate: ["Thời gian", "date"], movementDate: ["Thời gian", "date"], receiptDate: ["Thời gian", "date"],
@@ -66,6 +77,16 @@
         scheduledStaffCount: ["Số lịch nhân sự", "count"], workShiftCount: ["Số ca POS", "count"], ordersPerWorkShift: ["Đơn/ca POS", "number"]
     };
 
+    Object.assign(fieldMeta, {
+        completedOrders: ["Đơn hoàn tất", "count"],
+        cancelledOrders: ["Đơn đã hủy", "count"],
+        cancellationRate: ["Tỷ lệ hủy", "percent"],
+        consumedQuantity: ["Lượng tiêu thụ", "quantity"],
+        confirmedCost: ["Chi phí xác nhận", "currency"],
+        categoryName: ["Danh mục", "text"],
+        contributionPercent: ["Tỷ trọng đóng góp", "percent"]
+    });
+
     const codeLabels = {
         DRAFT: "Nháp", APPROVED: "Đã duyệt", MARKED_AS_SENT: "Đã gửi nhà cung cấp", PARTIALLY_RECEIVED: "Nhận một phần",
         COMPLETED: "Hoàn tất", CANCELLED: "Đã hủy", SCHEDULED: "Đã lên lịch",
@@ -81,6 +102,27 @@
         1: "Nhập kho", 2: "Xuất kho", 3: "Hao hụt", 4: "Kiểm kê", 5: "Nhập từ sản xuất", 6: "Xuất cho sản xuất",
         7: "Khấu trừ bán hàng", 8: "Điều chỉnh tăng", 9: "Điều chỉnh giảm", 10: "Chuyển kho đi", 11: "Chuyển kho đến",
         12: "Hợp nhất giảm", 13: "Hợp nhất tăng", 14: "Nhập từ phiếu nhận", 15: "Hoàn trả bán hàng"
+    };
+
+    const widgetAuthorization = {
+        netSalesTrend: "NetSalesTrend", storeRanking: "StoreRanking", paymentMethodMix: "PaymentMethodMix",
+        orderHeatmap: "OrderHeatmap", operationalAlerts: "OperationalAlerts", orderStatusSummary: "OrderStatusSummary",
+        kpis: "WorkShiftKpis", cashDiscrepancy: "WorkShiftCashDiscrepancy", shiftSales: "WorkShiftSales",
+        paymentMix: "WorkShiftPaymentMix", hourlyOrders: "HourlyOrders",
+        offlineReconciliation: "OfflineReconciliationExceptions", topDiscrepancies: "WorkShiftTopDiscrepancies",
+        shortageRisk: "InventoryShortageRisk", movement: "InventoryMovementByType",
+        thresholdRisk: "InventoryThresholdRisk", reorderSuggestions: "InventoryReorderSuggestions",
+        waste: "InventoryWasteByStoreIngredient", fifoAge: "InventoryFifoLayerAge",
+        ingredientConsumptionTrend: "IngredientConsumptionTrend",
+        purchaseOrderPipeline: "PurchaseOrderPipeline", overduePurchaseOrders: "OverduePurchaseOrders",
+        supplierQuality: "SupplierQuality", purchasePriceTrend: "PurchasePriceTrend",
+        spendBreakdown: "ProcurementSpendBreakdown", supplierIssueMix: "SupplierIssueMix",
+        topProducts: "TopProducts", volumeMargin: "VolumeMarginMatrix", sizeMargin: "SizeMargin",
+        topToppings: "TopToppings", bomHealth: "BomHealth", lowEfficiency: "HighConsumptionLowEfficiency",
+        categoryPerformance: "CategoryPerformance", productPeriodPerformance: "ProductPeriodPerformance",
+        lowVolumeProducts: "LowVolumeProducts", lowMarginProducts: "LowMarginProducts",
+        shiftStatus: "WorkforceShiftStatus", hourlyDemand: "WorkforceHourlyDemand",
+        scheduledStaff: "WorkforceHourlyDemand", staffPerformance: "WorkforceStaffPerformance"
     };
 
     const sections = {
@@ -132,9 +174,29 @@
         ]
     };
 
-    function chart(key, title, kind, label, value, options = {}) { return { key, title, kind, label, value, ...options, wide: Boolean(options.wide) }; }
-    function table(key, title, columns, wide = false) { return { key, title, kind: "table", columns, wide }; }
-    function kpi(key, title, columns, wide = false) { return { key, title, kind: "kpi", columns, wide }; }
+    sections.Executive.push(
+        chart("orderStatusSummary", "Tình trạng đơn hàng", "bar", "storeName", "totalOrders", { valueFormat: "count" })
+    );
+    sections.Inventory.push(
+        chart("ingredientConsumptionTrend", "Xu hướng tiêu thụ nguyên liệu", "line", "bucketDate", "consumedQuantity", { wide: true, axis: "time", seriesBy: "ingredientName", valueFormat: "quantity", missingValue: 0 })
+    );
+    sections.Product.push(
+        chart("categoryPerformance", "Hiệu quả danh mục", "bar", "categoryName", "confirmedGrossProfit", { valueFormat: "currency" }),
+        table("productPeriodPerformance", "Hiệu quả sản phẩm theo kỳ", ["drinkName", "totalSold", "revenue", "confirmedGrossProfit", "confirmedMarginRate"]),
+        table("lowVolumeProducts", "Sản phẩm bán chậm", ["drinkName", "totalSold", "revenue", "confirmedMarginRate"]),
+        table("lowMarginProducts", "Sản phẩm biên lợi nhuận thấp", ["drinkName", "totalSold", "revenue", "confirmedGrossProfit", "confirmedMarginRate"])
+    );
+
+    function chart(key, title, kind, label, value, options = {}) { return { key, title, kind, label, value, authorizationKey: widgetAuthorization[key], ...options, wide: Boolean(options.wide) }; }
+    function table(key, title, columns, wide = false) { return { key, title, kind: "table", columns, wide, authorizationKey: widgetAuthorization[key] }; }
+    function kpi(key, title, columns, wide = false) { return { key, title, kind: "kpi", columns, wide, authorizationKey: widgetAuthorization[key] }; }
+    function authorizedSectionWidgets(section) {
+        return (sections[section] || []).filter(widget => allowedWidgetKeys.has(widget.authorizationKey));
+    }
+    function updateAllowedWidgets(context) {
+        if (Array.isArray(context?.widgets))
+            allowedWidgetKeys = new Set(context.widgets.map(widget => widget.key));
+    }
 
     function escapeHtml(value) {
         return String(value ?? "").replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
@@ -248,7 +310,7 @@
 
     function renderSkeleton(section) {
         disposeCharts();
-        panel.innerHTML = sections[section].map(widget => `<article class="analytics-widget ${widget.wide ? "is-wide" : ""}" data-widget="${widget.key}"><div class="analytics-widget__header"><h2>${widget.title}</h2></div><div class="analytics-skeleton"></div></article>`).join("");
+        panel.innerHTML = authorizedSectionWidgets(section).map(widget => `<article class="analytics-widget ${widget.wide ? "is-wide" : ""}" data-widget="${widget.key}"><div class="analytics-widget__header"><h2>${widget.title}</h2></div><div class="analytics-skeleton"></div></article>`).join("");
     }
 
     async function loadSection(section, force = false) {
@@ -278,12 +340,13 @@
         disposeCharts();
         const data = response?.data || {};
         const warnings = [];
-        panel.innerHTML = sections[section].map(widget => {
+        const widgets = authorizedSectionWidgets(section);
+        panel.innerHTML = widgets.map(widget => {
             const result = data[widget.dataKey || widget.key] || { status: "ERROR", message: "Payload không có widget này." };
             (result.warnings || []).forEach(item => warnings.push(`${widget.title}: ${item}`));
             return widgetShell(widget, result);
         }).join("");
-        sections[section].forEach(widget => renderWidget(widget, data[widget.dataKey || widget.key], response?.granularity));
+        widgets.forEach(widget => renderWidget(widget, data[widget.dataKey || widget.key], response?.granularity));
         const scheduleNotice = section === "Workforce" ? "Lịch nhân sự là kế hoạch dự kiến, không phải dữ liệu chấm công hoặc tính lương." : "";
         const warningNotice = warnings.length ? `Dữ liệu một phần: ${warnings.join(" · ")}` : "";
         showNotice([scheduleNotice, warningNotice].filter(Boolean).join(" · "));
@@ -661,9 +724,13 @@
     fields.ward.addEventListener("change", () => { fields.store.value = ""; populateFilters(); });
     [fields.from, fields.to].forEach(field => field.addEventListener("change", () => { if (fields.preset) fields.preset.value = ""; }));
     async function applyDashboardContext() {
-        window.dispatchEvent(new CustomEvent("cafechain:dashboard-context-changing"));
+        if (isAiBusy || isApplyingContext) return;
         if (fields.from.value && fields.to.value && fields.from.value > fields.to.value) { showNotice("Từ ngày không được lớn hơn đến ngày."); return; }
-        applyButton.disabled = true;
+        window.dispatchEvent(new CustomEvent("cafechain:dashboard-context-changing", {
+            detail: { reason: "filters-applied" }
+        }));
+        isApplyingContext = true;
+        updateApplyButtonState();
         try {
             const token = document.querySelector("#dashboardAntiForgery input[name='__RequestVerificationToken']")?.value || "";
             const response = await fetch(root.dataset.contextEndpoint, {
@@ -683,6 +750,7 @@
             });
             const payload = await response.json();
             if (!response.ok || !payload.success) throw new Error(payload.message || "Không thể tạo context Dashboard.");
+            updateAllowedWidgets(payload.data);
             root.dataset.contextId = payload.data.contextId;
             root.dataset.generatedAt = payload.data.generatedAt;
             root.dataset.filterFingerprint = payload.data.filterFingerprint || "";
@@ -705,7 +773,8 @@
         } catch (error) {
             showNotice(error instanceof Error ? error.message : String(error));
         } finally {
-            applyButton.disabled = false;
+            isApplyingContext = false;
+            updateApplyButtonState();
         }
     }
     applyButton.addEventListener("click", () => void applyDashboardContext());
@@ -713,9 +782,14 @@
         if (!fields.preset.value) return;
         void applyDashboardContext();
     });
+    window.addEventListener("cafechain:dashboard-ai-busy-changed", event => {
+        isAiBusy = event.detail?.isBusy === true;
+        updateApplyButtonState();
+    });
     window.addEventListener("resize", () => charts.forEach(scheduleChartLayout));
     window.addEventListener("cafechain:dashboard-charts-visible", () => charts.forEach(scheduleChartLayout));
 
     populateFilters(true);
+    updateApplyButtonState();
     loadSection(activeSection);
 })();

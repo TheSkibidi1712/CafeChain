@@ -45,6 +45,9 @@ internal sealed record DashboardWidgetDefinition(
 
 internal static class DashboardWidgetCatalog
 {
+    public static string PermissionCode(DashboardAnalyticsWidget widget) =>
+        $"Dashboard.Widget.{widget}.View";
+
     private static readonly IReadOnlyDictionary<DashboardAnalyticsWidget, DashboardWidgetDefinition> Definitions =
         Enum.GetValues<DashboardAnalyticsWidget>().ToDictionary(widget => widget, Create);
 

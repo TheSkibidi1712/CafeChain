@@ -218,8 +218,11 @@
    BADGES & STATUSES
    ========================================================================== */
 .size-badge {
-    width: 58px;
-    height: 58px;
+    width: fit-content;
+    max-width: 100%;
+    min-width: 58px;
+    min-height: 42px;
+    padding: 8px 12px;
     background: var(--cc-surface-muted, #fbf7f2);
     color: var(--cc-brown-600, #70482f);
     font-weight: 800;
@@ -230,9 +233,9 @@
     border: 1px solid var(--cc-border-strong, #d8c5b6);
     text-align: center;
     font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     box-shadow: var(--cc-shadow-xs, 0 1px 2px rgba(32, 24, 18, 0.05));
 }
 
@@ -715,4 +718,47 @@
     .size-module-modal .modal-footer .btn {
         width: 100%;
     }
+}
+
+.size-name-cell {
+    min-width: 170px;
+}
+
+.catalog-table-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 4px 2px;
+    color: var(--cc-text-secondary, #66584f);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.catalog-pagination { display: flex; align-items: center; gap: 6px; }
+
+.catalog-pagination a,
+.catalog-pagination span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 9px;
+    border: 1px solid var(--cc-border-strong, #d8c5b6);
+    border-radius: var(--cc-radius-sm, 8px);
+    background: #fff;
+    color: var(--cc-brown-900, #3d2418);
+    text-decoration: none;
+}
+
+.catalog-pagination span { border-color: transparent; background: transparent; }
+.catalog-pagination a:hover,
+.catalog-pagination a:focus-visible,
+.catalog-pagination a.active { border-color: var(--cc-brown-600, #70482f); background: var(--cc-brown-600, #70482f); color: #fff; }
+.catalog-pagination a.disabled { pointer-events: none; opacity: .5; }
+
+@media (max-width: 720px) {
+    .catalog-table-footer { align-items: stretch; flex-direction: column; }
+    .catalog-pagination { max-width: 100%; overflow-x: auto; padding-bottom: 4px; }
 }
