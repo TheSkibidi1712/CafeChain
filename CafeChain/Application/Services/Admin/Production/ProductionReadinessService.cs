@@ -76,13 +76,13 @@ namespace CafeChain.Application.Services.Admin.Production
 
                 if (!recipe.PreparedItemId.HasValue)
                 {
-                    option.DisabledReason = "Công thức BTP chưa map PreparedItem.";
+                    option.DisabledReason = "Công thức chưa liên kết với bán thành phẩm đầu ra.";
                 }
                 else if (!recipe.OutputQuantity.HasValue
                     || recipe.OutputQuantity.Value <= 0
                     || !recipe.OutputUnitId.HasValue)
                 {
-                    option.DisabledReason = "Thiếu output contract hợp lệ.";
+                    option.DisabledReason = "Chưa cấu hình sản lượng đầu ra hợp lệ.";
                 }
                 else
                 {
@@ -221,17 +221,22 @@ namespace CafeChain.Application.Services.Admin.Production
             if (!mode.IsSuccess || mode.Data == null)
             {
                 preview.WriterMode = "Chưa cấu hình";
-                AddReason(preview, ProductionReadinessCodes.WriterMode, mode.Message);
+                preview.WriterModeLabel = ProductionReadinessDisplay.WriterModeLabel(preview.WriterMode);
+                AddReason(
+                    preview,
+                    ProductionReadinessCodes.WriterMode,
+                    ProductionReadinessDisplay.MessageFor(ProductionReadinessCodes.WriterMode, mode.Message));
             }
             else
             {
                 preview.WriterMode = mode.Data.WriterMode.ToString();
+                preview.WriterModeLabel = ProductionReadinessDisplay.WriterModeLabel(preview.WriterMode);
                 if (mode.Data.WriterMode != InventoryWriterMode.PreparedItem)
                 {
                     AddReason(
                         preview,
                         ProductionReadinessCodes.WriterMode,
-                        $"WriterMode hiện tại là {mode.Data.WriterMode}; production yêu cầu PreparedItem.");
+                        ProductionReadinessDisplay.MessageFor(ProductionReadinessCodes.WriterMode));
                 }
             }
 
@@ -244,7 +249,9 @@ namespace CafeChain.Application.Services.Admin.Production
                 AddReason(
                     preview,
                     ProductionReadinessCodes.WriterCapability,
-                    capability?.BlockerMessage ?? "PRODUCTION_PREPARED_WRITER chưa sẵn sàng.");
+                    ProductionReadinessDisplay.MessageFor(
+                        ProductionReadinessCodes.WriterCapability,
+                        capability?.BlockerMessage));
             }
         }
 
@@ -263,7 +270,7 @@ namespace CafeChain.Application.Services.Admin.Production
                     reasons.Add(new ProductionReadinessReasonDto
                     {
                         Code = ProductionReadinessCodes.InvalidRecipe,
-                        Message = $"RecipeDetail #{detail.RecipeDetailId} phải có đúng một nguồn và quantity > 0."
+                        Message = "Một dòng định mức phải có đúng một thành phần và số lượng lớn hơn 0."
                     });
                     continue;
                 }
@@ -316,7 +323,7 @@ namespace CafeChain.Application.Services.Admin.Production
                     reasons.Add(new ProductionReadinessReasonDto
                     {
                         Code = ProductionReadinessCodes.InvalidRecipe,
-                        Message = $"ChildRecipe #{detail.ChildRecipeId} chưa pin tới PreparedItem hoạt động."
+                        Message = "Công thức thành phần chưa liên kết với bán thành phẩm đang hoạt động."
                     });
                     continue;
                 }
@@ -546,7 +553,9 @@ namespace CafeChain.Application.Services.Admin.Production
             preview.Reasons.Add(new ProductionReadinessReasonDto
             {
                 Code = code,
-                Message = string.IsNullOrWhiteSpace(message) ? code : message,
+                Message = string.IsNullOrWhiteSpace(message)
+                    ? ProductionReadinessDisplay.MessageFor(code)
+                    : message,
                 Blocking = blocking
             });
         }

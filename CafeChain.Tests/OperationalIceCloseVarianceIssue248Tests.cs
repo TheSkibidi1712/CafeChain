@@ -110,7 +110,9 @@ public sealed class OperationalIceCloseVarianceIssue248Tests : IntegrationTestBa
             .Where(x => x.Type == InventoryTransactionTypeEnum.ICE_VARIANCE_OUT)
             .ToListAsync();
         Assert.Single(movements);
-        Assert.Equal(-4m, movements[0].Quantity);
+        Assert.Equal(4m, movements[0].Quantity);
+        Assert.Equal(94m, movements[0].BeforeQty);
+        Assert.Equal(90m, movements[0].AfterQty);
         Assert.Single(await context.IceInventoryPostings.ToListAsync());
     }
 

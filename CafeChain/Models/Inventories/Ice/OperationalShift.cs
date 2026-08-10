@@ -33,6 +33,7 @@ public class OperationalShift
     public virtual Staff CreatedByStaff { get; set; } = null!;
     public virtual Staff? OpenedByStaff { get; set; }
     public virtual Staff? ClosedByStaff { get; set; }
+    public virtual ICollection<OperationalShiftScheduleSource> ScheduleSources { get; set; } = [];
     public virtual ICollection<OperationalShiftWorkShift> WorkShiftLinks { get; set; } = [];
     public virtual ICollection<IceAllocation> IceAllocations { get; set; } = [];
     public virtual ICollection<IceCarryOver> OutgoingCarryOvers { get; set; } = [];

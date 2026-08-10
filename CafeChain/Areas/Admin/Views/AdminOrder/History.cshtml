@@ -283,7 +283,7 @@
         body.innerHTML = rows.map(row => `
             <tr>
                 <td class="text-center"><span class="history-code">#CC${String(row.orderId).padStart(5, '0')}</span></td>
-                <td class="text-center">${escapeHtml(dateTime(row.createdAt))}</td>
+                <td class="text-center">${escapeHtml(row.createdAtDisplay || 'Chưa xác định')}</td>
                 <td>${escapeHtml(row.storeName)}</td>
                 <td>${escapeHtml(row.staffName)}</td>
                 <td class="text-center">${escapeHtml(row.orderTypeName)}</td>
@@ -346,7 +346,7 @@
             <div class="drawer-line">
                 <div>
                     <div class="drawer-line__title">${escapeHtml(payment.paymentMethodName)}</div>
-                    <div class="drawer-line__meta">${escapeHtml(dateTime(payment.paidAt))}</div>
+                    <div class="drawer-line__meta">${escapeHtml(payment.paidAtDisplay || 'Chưa xác định')}</div>
                     ${payment.transactionCode ? `<div class="drawer-line__meta">Mã giao dịch: ${escapeHtml(payment.transactionCode)}</div>` : ''}
                     ${payment.receivedAmount != null ? `<div class="drawer-line__meta">Khách đưa: ${money(payment.receivedAmount)} · Tiền thừa: ${money(payment.changeAmount)}</div>` : ''}
                 </div>
@@ -381,7 +381,7 @@
                     ${field('Thu ngân', detail.staffName)}
                     ${field('WorkShift', detail.workShiftId ? `#${detail.workShiftId}` : 'Chưa xác định')}
                     ${field('Loại đơn', detail.orderTypeName || 'Chưa xác định')}
-                    ${field('Thanh toán lúc', dateTime(detail.createdAt))}
+                    ${field('Thanh toán lúc', detail.createdAtDisplay || 'Chưa xác định')}
                     ${field('ClientOrderId', detail.clientOrderId || 'Không có')}
                 </div>
             </section>

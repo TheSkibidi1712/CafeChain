@@ -66,7 +66,7 @@
 
     <div class="rb-card production-table-panel">
         <div class="table-responsive">
-            <table class="table rb-table rb-prepareditem-table production-data-table mb-0" aria-label="Danh sách bán thành phẩm">
+            <table class="table rb-table rb-prepareditem-table production-data-table @(canWrite ? "has-actions" : "is-readonly") mb-0" aria-label="Danh sách bán thành phẩm">
                 <colgroup>
                     <col class="rb-prepared-col-identity" />
                     <col class="rb-prepared-col-uom" />
@@ -135,7 +135,7 @@
                                     <partial name="_StatusBadge" model="configDesc" />
                                 </div>
                             </td>
-                            <td>
+                            <td class="rb-prepared-recipe-cell">
                                 @if (item.ActiveRecipeId.HasValue)
                                 {
                                     <a class="production-link"

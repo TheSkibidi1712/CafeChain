@@ -324,7 +324,7 @@ Phần này thay thế các bước cũ nếu có mâu thuẫn.
 2. Button **Đăng ký terminal** chỉ xuất hiện khi có `App.POS` và `POS.Terminal.RequestRegistration`.
 3. Khối **Thiết lập/Đổi PIN** chỉ xuất hiện khi có `App.POS` và `POS.Operator.ManageOwnPin`.
 4. Sau khi người duyệt xác nhận, StaffHub nhận realtime, hiện SweetAlert **Terminal đã được xác nhận**, rồi tự reload để Terminal mới xuất hiện.
-5. Nếu Chủ doanh nghiệp hoặc Quản lý chi nhánh từ chối, StaffHub hiện SweetAlert cảnh báo, tự reload và cho phép tạo yêu cầu mới.
+5. Nếu Chủ doanh nghiệp hoặc Quản lý chi nhánh từ chối, StaffHub hiện SweetAlert cảnh báo, tự reload và cho phép gửi yêu cầu mới cho chính Terminal ID của thiết bị; không sinh một thiết bị giả khác.
 
 Ẩn button chỉ là UX. Gọi trực tiếp endpoint khi thiếu permission vẫn nhận 403.
 
@@ -345,3 +345,151 @@ Ma trận SeedAll mặc định:
 | `POS.Operator.Switch` | 0 | 0 | 1 | 1 | 1 |
 | `POS.WorkShift.OverrideTerminal` | 1 | 1 | 1 | 0 | 0 |
 | `POS.WorkShift.RejectTerminal` | 1 | 0 | 1 | 0 | 0 |
+
+### Các bước test mới cho nút từ chối Terminal
+
+#### Chuẩn bị
+
+1. Tạo một yêu cầu đăng ký Terminal mới tại StaffHub và giữ challenge ở trạng thái `Waiting`/`PENDING`.
+2. Mở hai cửa sổ: requester tại StaffHub và người duyệt tại `/Admin/AdminNotifications`.
+3. Dùng Chủ doanh nghiệp hoặc Quản lý chi nhánh thuộc đúng Store để test từ chối. Không dùng challenge đã hết hạn, đã xác nhận hoặc đã từ chối cho ca test success.
+4. Mở DevTools → Network, lọc `RejectTerminal`; xóa request cũ trước mỗi ca test.
+
+#### Test validation lý do và lỗi toast lặp
+
+1. Nhập lần lượt từ 1 đến 9 ký tự vào **Lý do từ chối đăng ký Terminal**.
+2. Xác nhận counter tăng đúng sau mỗi ký tự.
+3. Trong lúc gõ không được xuất hiện toast “Vui lòng kiểm tra và nhập đầy đủ các trường bắt buộc”.
+4. Bấm **Từ chối đăng ký Terminal** khi lý do còn dưới 10 ký tự.
+5. Kết quả đúng: Network không có `RejectTerminal`; lỗi “Lý do từ chối phải có từ 10 đến 500 ký tự…” xuất hiện cạnh textarea; textarea được focus; không có toast lặp.
+6. Nhập thêm cho đủ ít nhất 10 ký tự. Lỗi inline phải được xóa khi người dùng sửa nội dung.
+
+#### Test SweetAlert, gửi request và chống double-click
+
+1. Với lý do hợp lệ, bấm nút từ chối: phải xuất hiện SweetAlert xác nhận; lúc này chưa gửi API.
+2. Chọn **Quay lại**: không có request, nút trở lại trạng thái bình thường và có thể bấm lại.
+3. Bấm lại rồi chọn **Từ chối** trong SweetAlert.
+4. Kết quả đúng: Network có đúng một `POST /Admin/AdminNotifications/RejectTerminal`; request gồm `id`, `Reason` đã trim, `RequestKey` và antiforgery token.
+5. Double-click nhanh vào nút hoặc bấm nhiều lần trong lúc xử lý không được tạo request thứ hai; nút chuyển `Đang xử lý…`/`Đang từ chối…` và bị disable.
+6. Thành công phải hiện SweetAlert **Đã từ chối**, sau đó trang Admin reload. Notification không còn action confirm/reject.
+
+#### Test StaffHub và dữ liệu authoritative
+
+1. Quan sát cửa sổ requester sau khi người duyệt từ chối.
+2. StaffHub phải nhận `TerminalRegistrationChanged`, hiện SweetAlert yêu cầu đã bị từ chối rồi tự reload.
+3. Sau reload, requester có thể gửi challenge mới cho cùng Terminal ID của thiết bị; challenge cũ không được tái sử dụng và không được sinh Terminal ID khác.
+4. Kiểm tra DB test: challenge cũ là `Rejected`, `ProtectedOtpPayload` đã bị xóa, notification đã resolve và không có `PosTerminal` active được tạo từ challenge đó.
+5. Audit phải có `POS_TERMINAL_REGISTRATION_REJECTED`, actor/store/terminal/reason nhưng tuyệt đối không chứa OTP plaintext.
+
+#### Test lỗi và phân quyền
+
+- Quản lý vùng, Nhân viên bán hàng hoặc tài khoản không có `POS.WorkShift.RejectTerminal`: không thấy nút; direct POST phải trả 403.
+- Chủ doanh nghiệp và Quản lý chi nhánh đúng StaffScope: thấy nút và có thể từ chối.
+- Quản lý chi nhánh Store A xử lý notification Store B: HTTP 403, UI hiển thị lỗi scope và luôn thoát loading.
+- Challenge đã `USED`: HTTP 409 `TERMINAL_ALREADY_APPROVED`, không được đổi sang `REJECTED`.
+- Challenge đã `REJECTED`: request lặp trả kết quả idempotent, không tạo audit/Terminal trùng.
+- Mô phỏng API 400/403/409/500 hoặc mất mạng: feedback phải nằm cạnh form, nút được bật lại trong `finally`, không reload và không loading vô hạn.
+
+#### Regression nút xác nhận Terminal
+
+1. Tạo challenge mới, bấm **Xem OTP** và xác nhận sáu ô được điền đồng bộ.
+2. Bấm **Xác nhận Terminal**; Network phải có đúng một `POST ConfirmTerminal`, không bị textarea từ chối hoặc mutation guard chặn.
+3. Thành công tạo đúng một `PosTerminal`, challenge chuyển `USED`; StaffHub hiện SweetAlert xác nhận và tự reload.
+
+## 17. Đăng ký và nhận biết Terminal theo từng thiết bị
+
+### Quy tắc người dùng cần hiểu
+
+- Terminal thuộc cửa hàng, không thuộc riêng tài khoản nhân viên.
+- Một nhân viên có thể đăng ký nhiều thiết bị vật lý, nhưng mỗi yêu cầu phải được tạo trên chính thiết bị sẽ chạy POS.
+- Mỗi trình duyệt giữ một Terminal ID ổn định. Gửi lại sau khi bị từ chối, hết hạn hoặc hủy vẫn dùng ID cũ.
+- Trong cùng một thời điểm, một nhân viên chỉ được có một yêu cầu đăng ký Terminal đang chờ. Muốn đăng ký thiết bị thứ hai phải hoàn tất hoặc hủy yêu cầu đang chờ trước.
+- Dòng trạng thái trên StaffHub chỉ giúp nhận biết thiết bị. Backend vẫn là nơi quyết định Terminal có active, đúng Store, đúng quyền và có ca hợp lệ hay không.
+
+### Thiết bị chưa liên kết
+
+1. Đăng nhập StaffHub trên thiết bị sẽ dùng làm POS.
+2. Card Terminal hiển thị badge **Chưa liên kết** và nút **Đăng ký thiết bị này**.
+3. Mở modal, nhập tên dễ nhận biết như `POS-QUAY-01`, rồi gửi yêu cầu.
+4. StaffHub tạo một Terminal ID cho trình duyệt và giữ nguyên ID đó qua reload. Card chuyển **Đang chờ xác nhận**.
+5. Không xóa dữ liệu trình duyệt, không mở thiết bị khác để gửi cùng lúc và không bấm gửi lặp nhằm tạo Terminal mới.
+
+### Theo dõi trạng thái yêu cầu
+
+| Badge/trạng thái | Ý nghĩa và thao tác |
+|---|---|
+| **Đang chờ** | Người có quyền cần xác nhận OTP tại Admin Thông báo |
+| **Đang xử lý** | OTP đã được duyệt, chờ danh sách Terminal active đồng bộ |
+| **Tạm khóa** | OTP bị khóa; chờ hết cooldown hoặc hủy theo nghiệp vụ |
+| **Bị từ chối** | Xem lại tên/lý do và gửi lại cho cùng thiết bị |
+| **Hết hạn** | Gửi lại để nhận OTP mới; Terminal ID không đổi |
+| **Đã hủy** | Có thể đăng ký lại cùng thiết bị |
+| **Thiết bị khác** | Tài khoản đang có yêu cầu pending trên thiết bị khác; hoàn tất/hủy yêu cầu đó trước |
+| **Đã kích hoạt** | Thiết bị đã sẵn sàng; có thể tiếp tục luồng mở ca/POS |
+| **Không khả dụng** | Terminal liên kết không còn active; liên kết Terminal active khác hoặc liên hệ quản lý |
+| **Sai cửa hàng** | Thiết bị đang liên kết Store khác; không được sử dụng tại Store hiện tại |
+
+Sau khi Manager xác nhận hoặc từ chối, StaffHub hiện SweetAlert rồi reload đúng một lần. Sau reload phải đọc lại challenge/Terminal từ server để dựng card, không lấy kết quả SweetAlert hoặc `localStorage` làm bằng chứng approval.
+
+### Liên kết Terminal đã có
+
+Áp dụng khi Terminal đã được duyệt từ trước nhưng trình duyệt chưa có liên kết, hoặc dữ liệu trình duyệt vừa bị xóa:
+
+1. Tại card **Chưa liên kết**, chọn **Liên kết Terminal đã có**.
+2. Danh sách chỉ được chứa Terminal active của cửa hàng hiện tại.
+3. Chọn đúng Terminal vật lý, kiểm tra tên và xác nhận SweetAlert.
+4. StaffHub lưu liên kết trên trình duyệt và hiển thị **Thiết bị đã sẵn sàng** nếu Terminal vẫn active.
+5. Liên kết này không tạo Terminal, không đổi quyền và không bỏ qua bước mở ca. Nếu không chắc Terminal nào thuộc thiết bị, dừng lại và liên hệ quản lý.
+
+Khi thiết bị ở trạng thái sẵn sàng, modal mở POS cố định Terminal đã liên kết; người dùng không chọn Terminal khác và không thấy nút tạo thêm Terminal trên cùng trình duyệt.
+
+### Đăng ký thêm một thiết bị vật lý
+
+1. Hoàn tất hoặc hủy mọi yêu cầu pending của tài khoản.
+2. Đăng nhập StaffHub trên trình duyệt của thiết bị mới.
+3. Thiết bị mới phải hiện **Chưa liên kết**; chọn **Đăng ký thiết bị này**.
+4. Thực hiện luồng OTP/approval bình thường. Thiết bị cũ đã `READY` vẫn giữ nguyên liên kết và tiếp tục sử dụng được.
+
+Không đăng ký Terminal thứ hai bằng cách bấm lại trên thiết bị đã `READY`. Nếu cần thay liên kết do Terminal cũ inactive, dùng **Liên kết Terminal đã có** hoặc liên hệ quản lý.
+
+### Các bước test sau thay đổi
+
+#### Test định danh ổn định và gửi lại
+
+1. Xóa riêng record `cafechain.staffhub.pos-terminal-device.v1` trên một browser test chưa dùng; reload StaffHub.
+2. Xác nhận card là **Chưa liên kết**. Gửi yêu cầu và ghi Terminal ID hiển thị.
+3. Reload, đóng/mở modal và gọi state restore; Terminal ID phải giữ nguyên, trạng thái là **Đang chờ**.
+4. Lần lượt tạo các ca `REJECTED`, `EXPIRED`, `CANCELLED`, sau đó bấm gửi lại.
+5. Network phải gửi cùng Terminal ID; challenge mới được tạo nhưng không sinh ID thiết bị mới.
+
+#### Test approve và thiết bị đã sẵn sàng
+
+1. Manager xác nhận challenge hợp lệ tại Admin Thông báo.
+2. StaffHub requester phải hiện SweetAlert xác nhận và reload đúng một lần.
+3. Sau reload, card hiển thị **Thiết bị đã sẵn sàng**, đúng tên/Store/Terminal ID.
+4. Mở modal đăng ký: không được tạo Terminal thứ hai trên cùng browser.
+5. Mở POS: Terminal picker bị cố định đúng Terminal liên kết; backend vẫn từ chối nếu thiếu quyền, chưa mở ca hoặc Terminal vừa bị inactive.
+
+#### Test nhiều thiết bị và challenge không ghi đè
+
+1. Trên thiết bị A tạo yêu cầu và giữ `PENDING`.
+2. Đăng nhập cùng nhân viên trên thiết bị B; state phải là **Có yêu cầu ở thiết bị khác**, không được gửi song song.
+3. Hoàn tất/hủy A, sau đó B mới được đăng ký Terminal ID riêng.
+4. Khi A đã `READY` và B đang pending, reload A: A vẫn `READY`; challenge B không ghi đè Terminal ID của A.
+
+#### Test liên kết Terminal cũ và bảo mật
+
+1. Dùng browser chưa liên kết, mở **Liên kết Terminal đã có**.
+2. Xác nhận chỉ có Terminal active đúng Store; Terminal inactive hoặc Store khác không xuất hiện.
+3. Chọn một Terminal, hủy SweetAlert: không lưu liên kết. Chọn lại và xác nhận: card chuyển `READY`, không có request tạo/update Terminal ở Network.
+4. Sửa thủ công `localStorage` sang ID không tồn tại, inactive hoặc Store khác rồi reload.
+5. UI phải hiện **Không khả dụng** hoặc **Sai cửa hàng**; direct URL/API POS vẫn bị backend từ chối.
+6. Xóa dữ liệu trình duyệt: liên kết local mất nhưng Terminal backend vẫn còn; dùng liên kết một lần để khôi phục, không tạo duplicate ngoài ý muốn.
+
+#### Test UI và tương thích API
+
+1. Kiểm tra desktop/mobile: card, badge, icon, tên Terminal, Store, mô tả, focus và vùng feedback không tràn hoặc nhảy layout.
+2. Khi gửi request, nút loading/disabled rõ ràng; mọi nhánh lỗi phải bật lại nút.
+3. Theo dõi Console và Network; không có exception, không có request lặp và không có reload loop.
+4. Xác nhận ba endpoint vẫn giữ contract: `RequestTerminalRegistrationOtp`, `GetTerminalRegistrationOtpState`, `CancelTerminalRegistrationOtp`.
+5. Xác nhận không có migration/schema/permission mới chỉ để phục vụ liên kết trình duyệt.

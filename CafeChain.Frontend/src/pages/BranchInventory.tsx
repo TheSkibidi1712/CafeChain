@@ -436,12 +436,12 @@ export default function BranchInventory() {
                         ) : null}
                         {item.isLegacyUnmapped ? (
                           <div className="mt-1 inline-flex rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
-                            BTP legacy · Chưa liên kết BTP
+                            Dữ liệu bán thành phẩm cũ · Chưa liên kết bán thành phẩm
                           </div>
                         ) : null}
                         {item.legacyRecipeId && item.preparedItemId ? (
                           <>
-                            <div className="mt-1 text-[10px] text-text-muted">Công thức legacy #{item.legacyRecipeId}</div>
+                            <div className="mt-1 text-[10px] text-text-muted">Công thức liên kết #{item.legacyRecipeId}</div>
                             {item.quantitySemanticsStatus === 'QUANTITY_SEMANTICS_UNKNOWN' ? (
                               <div className="mt-1 inline-flex rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
                                 Chưa xác nhận đơn vị tồn

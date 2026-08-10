@@ -180,7 +180,7 @@
         form.appendChild(meta);
 
         const submit = element("button", "cc-button notification-terminal-reject-button", "Từ chối đăng ký Terminal");
-        submit.type = "submit";
+        submit.type = "button";
         submit.dataset.rejectSubmitOnce = "true";
         form.appendChild(submit);
         return form;
@@ -403,7 +403,7 @@
 
     async function rejectTerminalForm(form) {
         const submit = form.querySelector("[data-reject-submit-once]");
-        if (submit?.disabled) return;
+        if (submit?.disabled || form.dataset.rejectPending === "true") return;
         const reasonInput = form.querySelector('textarea[name="Reason"]');
         const feedback = form.querySelector("[data-terminal-reject-feedback]");
         const reason = String(reasonInput?.value || "").trim();
@@ -414,27 +414,29 @@
             return;
         }
 
-        if (window.Swal) {
-            const answer = await window.Swal.fire({
-                icon: "warning",
-                title: "Từ chối đăng ký Terminal?",
-                text: "Thiết bị sẽ không được kích hoạt và nhân viên phải gửi yêu cầu mới.",
-                showCancelButton: true,
-                confirmButtonText: "Từ chối",
-                cancelButtonText: "Quay lại",
-                confirmButtonColor: "#9f2d20"
-            });
-            if (!answer.isConfirmed) return;
-        }
-
-        reasonInput?.removeAttribute("aria-invalid");
-        if (feedback) feedback.textContent = "Đang xử lý yêu cầu từ chối...";
+        form.dataset.rejectPending = "true";
         if (submit) {
             submit.disabled = true;
-            submit.textContent = "Đang từ chối...";
+            submit.textContent = "Đang xử lý...";
         }
         let completed = false;
         try {
+            if (window.Swal) {
+                const answer = await window.Swal.fire({
+                    icon: "warning",
+                    title: "Từ chối đăng ký Terminal?",
+                    text: "Thiết bị sẽ không được kích hoạt và nhân viên phải gửi yêu cầu mới.",
+                    showCancelButton: true,
+                    confirmButtonText: "Từ chối",
+                    cancelButtonText: "Quay lại",
+                    confirmButtonColor: "#9f2d20"
+                });
+                if (!answer.isConfirmed) return;
+            }
+
+            reasonInput?.removeAttribute("aria-invalid");
+            if (feedback) feedback.textContent = "Đang xử lý yêu cầu từ chối...";
+            if (submit) submit.textContent = "Đang từ chối...";
             const formData = new FormData(form);
             formData.set("Reason", reason);
             const response = await fetch(form.action, {
@@ -462,12 +464,22 @@
         } catch {
             if (feedback) feedback.textContent = "Lỗi kết nối. Vui lòng thử lại.";
         } finally {
+            delete form.dataset.rejectPending;
             if (submit && !completed) {
                 submit.disabled = false;
                 submit.textContent = "Từ chối đăng ký Terminal";
             }
         }
     }
+
+    document.addEventListener("click", function (event) {
+        const submit = event.target.closest?.(".notification-terminal-reject-form [data-reject-submit-once]");
+        if (!submit) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const form = submit.closest(".notification-terminal-reject-form");
+        if (form) void rejectTerminalForm(form);
+    }, true);
 
     document.addEventListener("submit", function (event) {
         const form = event.target.closest?.(".notification-terminal-reject-form");

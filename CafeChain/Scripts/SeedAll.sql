@@ -2947,7 +2947,7 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Units WHERE UnitId = 1 AND UnitCode = N'g' AND 
     THROW 52202, N'Thiếu hoặc sai Unit nền g/kg/ml/l/pcs.', 1;
 
 IF (SELECT COUNT(*) FROM dbo.Ingredients WHERE IngredientId BETWEEN 1 AND 13) <> 13
-   OR (SELECT COUNT(*) FROM dbo.UnitConversions WHERE UnitConversionId BETWEEN 1 AND 72) <> 24
+   OR (SELECT COUNT(*) FROM dbo.UnitConversions WHERE UnitConversionId BETWEEN 1 AND 72) NOT IN (21,24)
     THROW 52203, N'Dữ liệu Ingredient hoặc UnitConversion EF nền không đúng contract.', 1;
 GO
 
@@ -3129,10 +3129,10 @@ BEGIN TRY
     /* ============================================================
        11. UNIT CONVERSIONS
 
-       The 24 EF rows remain unchanged. IDs 73-101 add one physical
-       purchase-unit conversion for each retained/new mass or volume item.
-       IDs 102-107 model packaging procurement: inventory/BOM consumes pcs,
-       while suppliers sell cups, lids, straws and bags by carton.
+       The physical EF rows remain unchanged. IDs 73-101 add one physical
+       purchase/display-unit conversion for each retained/new mass or volume
+       item. Commercial package quantities belong to IngredientSuppliers and
+       are never represented as UnitConversions.
        ============================================================ */
 
     DECLARE @UnitConversionSeed TABLE
@@ -3178,13 +3178,7 @@ BEGIN TRY
         (98,47,2,1,1,1000,1),
         (99,48,2,1,1,1000,1),
         (100,49,2,1,1,1000,1),
-        (101,50,2,1,1,1000,1),
-        (102,32,14,1,9,1000,1),
-        (103,33,14,1,9,1000,1),
-        (104,34,14,1,9,1000,1),
-        (105,35,14,1,9,1000,1),
-        (106,36,14,1,9,2000,1),
-        (107,37,14,1,9,500,1);
+        (101,50,2,1,1,1000,1);
 
     IF EXISTS
     (
@@ -3286,8 +3280,10 @@ BEGIN TRY
     IF (SELECT COUNT(*) FROM dbo.Ingredients) <> 50
         THROW 52221, N'Tổng số Ingredients sau Batch 03 phải bằng 50.', 1;
 
-    IF (SELECT COUNT(*) FROM dbo.UnitConversions) <> 59
-        THROW 52222, N'Tổng số UnitConversions sau Batch 03 phải bằng 59.', 1;
+    /* Three legacy EF package conversions still exist until the normalization
+       batch immediately below removes them. No new package conversion is added. */
+    IF (SELECT COUNT(*) FROM dbo.UnitConversions) <> 53
+        THROW 52222, N'Tổng số UnitConversions trước normalization phải bằng 53.', 1;
 
     IF (SELECT COUNT(*) FROM dbo.PreparedItems) <> 12
         THROW 52223, N'PreparedItems count must be 12.', 1;
@@ -3318,20 +3314,9 @@ BEGIN TRY
         WHERE c.FromQuantity <> 1
            OR c.FromUnitId = c.ToUnitId
            OR c.ToUnitId <> i.BaseUnitId
-           OR NOT (
-                (c.ToQuantity = 1000 AND
+           OR NOT (c.ToQuantity = 1000 AND
                     ((c.FromUnitId = 2 AND c.ToUnitId = 1)
                      OR (c.FromUnitId = 4 AND c.ToUnitId = 3)))
-                OR
-                (c.IngredientId BETWEEN 32 AND 37
-                 AND c.FromUnitId = 14
-                 AND c.ToUnitId = 9
-                 AND c.ToQuantity = CASE c.IngredientId
-                     WHEN 36 THEN 2000
-                     WHEN 37 THEN 500
-                     ELSE 1000
-                 END)
-           )
     )
         THROW 52225, N'UnitConversion mới không đúng kg-g hoặc l-ml/base unit.', 1;
 
@@ -3387,6 +3372,251 @@ SeedAllBatch03Complete:
 GO
 
 /* ============================================================
+   BATCH 03A - INVENTORY UOM / SUPPLIER CONTENT NORMALIZATION
+
+   This batch always runs, including when foundation_inventory_v1 is already
+   complete. It repairs only deterministic SeedAll-owned records and accepts
+   both the legacy representation and the canonical representation.
+
+   IngredientSupplier.UnitId is the physical content unit. PackageQuantity is
+   the total content of one purchased package expressed in Ingredient.BaseUnit.
+   Commercial package forms remain catalog/display concepts and never become
+   UnitConversions.
+   ============================================================ */
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    DECLARE @GramUnitId int=(SELECT UnitId FROM dbo.Units WHERE UnitCode=N'g');
+    DECLARE @MilliliterUnitId int=(SELECT UnitId FROM dbo.Units WHERE UnitCode=N'ml');
+    DECLARE @PieceUnitId int=(SELECT UnitId FROM dbo.Units WHERE UnitCode=N'pcs');
+
+    IF @GramUnitId IS NULL OR @MilliliterUnitId IS NULL OR @PieceUnitId IS NULL
+        THROW 52230,N'SEED_UOM_NORMALIZATION: thiếu Unit g, ml hoặc pcs.',1;
+
+    DECLARE @CanonicalIngredientBase TABLE
+    (
+        IngredientId int NOT NULL PRIMARY KEY,
+        Code nvarchar(50) NOT NULL UNIQUE,
+        BaseUnitId int NOT NULL
+    );
+    INSERT @CanonicalIngredientBase(IngredientId,Code,BaseUnitId) VALUES
+      (1,N'ING00001',@GramUnitId),
+      (2,N'ING00002',@MilliliterUnitId),
+      (8,N'ING00008',@MilliliterUnitId),
+      (10,N'ING00010',@MilliliterUnitId),
+      (13,N'ING00013',@MilliliterUnitId),
+      (14,N'DEMO_ING_VIET_COFFEE',@GramUnitId),
+      (15,N'DEMO_ING_ESPRESSO_BEAN',@GramUnitId),
+      (16,N'DEMO_ING_FRESH_MILK',@MilliliterUnitId),
+      (18,N'DEMO_ING_SUGAR_SYRUP',@MilliliterUnitId),
+      (32,N'DEMO_ING_CUP_M',@PieceUnitId),
+      (33,N'DEMO_ING_CUP_L',@PieceUnitId),
+      (34,N'DEMO_ING_LID_M',@PieceUnitId),
+      (35,N'DEMO_ING_LID_L',@PieceUnitId),
+      (36,N'DEMO_ING_STRAW',@PieceUnitId),
+      (37,N'DEMO_ING_BAG',@PieceUnitId),
+      (42,N'DEMO_ING_OAT_MILK',@MilliliterUnitId),
+      (43,N'DEMO_ING_CARAMEL_SYRUP',@MilliliterUnitId),
+      (44,N'DEMO_ING_COCONUT_MILK',@MilliliterUnitId);
+
+    IF EXISTS
+    (
+        SELECT 1 FROM @CanonicalIngredientBase x
+        LEFT JOIN dbo.Ingredients i ON i.IngredientId=x.IngredientId AND i.Code=x.Code
+        WHERE i.IngredientId IS NULL
+    ) THROW 52231,N'SEED_UOM_NORMALIZATION: Ingredient target không khớp deterministic ID/code.',1;
+
+    UPDATE i SET BaseUnitId=x.BaseUnitId
+    FROM dbo.Ingredients i
+    JOIN @CanonicalIngredientBase x ON x.IngredientId=i.IngredientId AND x.Code=i.Code
+    WHERE i.BaseUnitId<>x.BaseUnitId;
+
+    /* Remove only the nine known legacy package conversions. A conflicting
+       row/key is not silently overwritten or deleted. */
+    DECLARE @LegacyPackageConversion TABLE
+    (
+        UnitConversionId int NOT NULL PRIMARY KEY,
+        IngredientId int NOT NULL,
+        FromUnitId int NOT NULL,
+        FromQuantity decimal(18,5) NOT NULL,
+        ToUnitId int NOT NULL,
+        ToQuantity decimal(18,5) NOT NULL,
+        UNIQUE(IngredientId,FromUnitId,ToUnitId)
+    );
+    INSERT @LegacyPackageConversion VALUES
+      (70,8,10,1,3,750),(71,2,11,1,3,300),(72,13,11,1,3,500),
+      (102,32,14,1,9,1000),(103,33,14,1,9,1000),
+      (104,34,14,1,9,1000),(105,35,14,1,9,1000),
+      (106,36,14,1,9,2000),(107,37,14,1,9,500);
+
+    IF EXISTS
+    (
+        SELECT 1
+        FROM @LegacyPackageConversion x
+        JOIN dbo.UnitConversions c
+          ON c.UnitConversionId=x.UnitConversionId
+          OR (c.IngredientId=x.IngredientId AND c.FromUnitId=x.FromUnitId AND c.ToUnitId=x.ToUnitId)
+        WHERE c.UnitConversionId<>x.UnitConversionId OR c.IngredientId<>x.IngredientId
+           OR c.FromUnitId<>x.FromUnitId OR c.FromQuantity<>x.FromQuantity
+           OR c.ToUnitId<>x.ToUnitId OR c.ToQuantity<>x.ToQuantity
+    ) THROW 52232,N'SEED_UOM_NORMALIZATION: legacy package conversion có payload xung đột.',1;
+
+    DELETE c
+    FROM dbo.UnitConversions c
+    JOIN @LegacyPackageConversion x ON x.UnitConversionId=c.UnitConversionId
+       AND x.IngredientId=c.IngredientId AND x.FromUnitId=c.FromUnitId
+       AND x.FromQuantity=c.FromQuantity AND x.ToUnitId=c.ToUnitId
+       AND x.ToQuantity=c.ToQuantity;
+
+    DECLARE @FoundationOfferKey TABLE
+    (
+        IngredientSupplierId int NOT NULL PRIMARY KEY,
+        IngredientId int NOT NULL,
+        SupplierId int NOT NULL
+    );
+    INSERT @FoundationOfferKey VALUES
+      (1,6,1),(2,2,2),(3,1,3),(4,8,4),(5,10,2),
+      (6,9,5),(7,5,3),(8,4,1),(9,3,4);
+
+    IF EXISTS
+    (
+        SELECT 1 FROM @FoundationOfferKey x
+        LEFT JOIN dbo.IngredientSuppliers o ON o.IngredientSupplierId=x.IngredientSupplierId
+        WHERE o.IngredientSupplierId IS NULL OR o.IngredientId<>x.IngredientId OR o.SupplierId<>x.SupplierId
+    ) THROW 52233,N'SEED_UOM_NORMALIZATION: foundation offer không khớp deterministic business key.',1;
+
+    IF EXISTS
+    (
+        SELECT 1 FROM dbo.IngredientSuppliers o
+        WHERE (o.IngredientSupplierId BETWEEN 10 AND 40 AND ISNULL(o.Note,N'') NOT LIKE N'DEMO_OFFER_%')
+           OR (o.IngredientSupplierId BETWEEN 41 AND 100 AND ISNULL(o.Note,N'') NOT LIKE N'SEEDALL_%')
+    ) THROW 52234,N'SEED_UOM_NORMALIZATION: offer ID trong dải SeedAll không có seed marker hợp lệ.',1;
+
+    DECLARE @SeedOfferContent TABLE
+    (
+        IngredientSupplierId int NOT NULL PRIMARY KEY,
+        LegacyUnitId int NOT NULL,
+        LegacyQuantity decimal(18,5) NOT NULL,
+        BaseUnitId int NOT NULL,
+        CanonicalQuantity decimal(18,5) NOT NULL
+    );
+
+    INSERT @SeedOfferContent
+    (IngredientSupplierId,LegacyUnitId,LegacyQuantity,BaseUnitId,CanonicalQuantity)
+    SELECT o.IngredientSupplierId,o.UnitId,o.PackageQuantity,i.BaseUnitId,
+           CONVERT(decimal(18,5),o.PackageQuantity*factor.FactorToBase)
+    FROM dbo.IngredientSuppliers o
+    JOIN dbo.Ingredients i ON i.IngredientId=o.IngredientId
+    JOIN dbo.Units sourceUnit ON sourceUnit.UnitId=o.UnitId
+    JOIN dbo.Units baseUnit ON baseUnit.UnitId=i.BaseUnitId
+    CROSS APPLY
+    (
+        SELECT CONVERT(decimal(18,5),CASE
+          WHEN o.UnitId=i.BaseUnitId THEN 1
+          WHEN LOWER(sourceUnit.UnitCode)=N'kg' AND LOWER(baseUnit.UnitCode)=N'g' THEN 1000
+          WHEN LOWER(sourceUnit.UnitCode)=N'g' AND LOWER(baseUnit.UnitCode)=N'kg' THEN 0.001
+          WHEN LOWER(sourceUnit.UnitCode)=N'l' AND LOWER(baseUnit.UnitCode)=N'ml' THEN 1000
+          WHEN LOWER(sourceUnit.UnitCode)=N'ml' AND LOWER(baseUnit.UnitCode)=N'l' THEN 0.001
+          WHEN LOWER(sourceUnit.UnitCode)=N'demo_carton' AND LOWER(baseUnit.UnitCode)=N'pcs'
+            THEN CASE o.IngredientId WHEN 36 THEN 2000 WHEN 37 THEN 500 ELSE 1000 END
+          ELSE NULL END) FactorToBase
+    ) factor
+    WHERE o.PackageQuantity>0 AND factor.FactorToBase>0
+      AND
+      (
+          EXISTS(SELECT 1 FROM @FoundationOfferKey f WHERE f.IngredientSupplierId=o.IngredientSupplierId)
+          OR (o.IngredientSupplierId BETWEEN 10 AND 40 AND o.Note LIKE N'DEMO_OFFER_%')
+          OR (o.IngredientSupplierId BETWEEN 41 AND 100 AND o.Note LIKE N'SEEDALL_%')
+      );
+
+    IF EXISTS
+    (
+        SELECT 1 FROM dbo.IngredientSuppliers o
+        WHERE
+        (
+            EXISTS(SELECT 1 FROM @FoundationOfferKey f WHERE f.IngredientSupplierId=o.IngredientSupplierId)
+            OR (o.IngredientSupplierId BETWEEN 10 AND 40 AND o.Note LIKE N'DEMO_OFFER_%')
+            OR (o.IngredientSupplierId BETWEEN 41 AND 100 AND o.Note LIKE N'SEEDALL_%')
+        )
+        AND NOT EXISTS(SELECT 1 FROM @SeedOfferContent x WHERE x.IngredientSupplierId=o.IngredientSupplierId)
+    ) THROW 52235,N'SEED_UOM_NORMALIZATION: offer SeedAll không quy đổi an toàn được về Ingredient.BaseUnit.',1;
+
+    UPDATE h SET PackageUnitId=x.BaseUnitId,PackageQuantity=x.CanonicalQuantity
+    FROM dbo.IngredientSupplierPriceHistories h
+    JOIN @SeedOfferContent x ON x.IngredientSupplierId=h.IngredientSupplierId
+    WHERE h.IngredientSupplierPriceHistoryId BETWEEN 1 AND 294
+      AND (ISNULL(h.PackageUnitId,-1)<>x.BaseUnitId OR ISNULL(h.PackageQuantity,-1)<>x.CanonicalQuantity);
+
+    UPDATE line
+       SET PackageUnitIdSnapshot=x.BaseUnitId,
+           PackageQuantitySnapshot=x.CanonicalQuantity,
+           PackSizeProcurementQuantity=CASE
+             WHEN line.PackSizeProcurementQuantity=x.LegacyQuantity THEN x.CanonicalQuantity
+             ELSE line.PackSizeProcurementQuantity END,
+           ProcurementUnitId=CASE
+             WHEN line.ProcurementUnitId=x.LegacyUnitId THEN x.BaseUnitId
+             ELSE line.ProcurementUnitId END
+    FROM dbo.PurchaseOrderLines line
+    JOIN dbo.PurchaseOrders po ON po.PurchaseOrderId=line.PurchaseOrderId
+    JOIN @SeedOfferContent x ON x.IngredientSupplierId=line.IngredientSupplierId
+    WHERE po.Code LIKE N'SIV2-%' OR po.Note LIKE N'DEMO_%' OR po.Note LIKE N'SEEDALL_%';
+
+    UPDATE line
+       SET PackageUnitIdSnapshot=x.BaseUnitId,
+           PackageQuantitySnapshot=x.CanonicalQuantity,
+           InputUnitId=CASE WHEN line.InputUnitId=x.LegacyUnitId THEN x.BaseUnitId ELSE line.InputUnitId END,
+           ProcurementUnitId=CASE
+             WHEN line.ProcurementUnitId=x.LegacyUnitId THEN x.BaseUnitId
+             ELSE line.ProcurementUnitId END
+    FROM dbo.BranchReceiptLines line
+    JOIN dbo.BranchReceipts receipt ON receipt.BranchReceiptId=line.BranchReceiptId
+    JOIN @SeedOfferContent x ON x.IngredientSupplierId=line.IngredientSupplierId
+    WHERE receipt.ReceiptCode LIKE N'SIV2-%' OR receipt.ReceiptCode LIKE N'DEMO-%'
+       OR receipt.Notes LIKE N'DEMO_%' OR receipt.Notes LIKE N'SEEDALL_%';
+
+    UPDATE line
+       SET PackageUnitId=x.BaseUnitId,
+           PackageQuantitySnapshot=x.CanonicalQuantity,
+           ProcurementUnitId=CASE
+             WHEN line.ProcurementUnitId=x.LegacyUnitId THEN x.BaseUnitId
+             ELSE line.ProcurementUnitId END
+    FROM dbo.PurchaseOrderBatchLines line
+    JOIN dbo.PurchaseOrderBatches batchHeader
+      ON batchHeader.PurchaseOrderBatchId=line.PurchaseOrderBatchId
+    JOIN @SeedOfferContent x ON x.IngredientSupplierId=line.IngredientSupplierId
+    WHERE batchHeader.RequestKey LIKE N'DEMO_%' OR batchHeader.Note LIKE N'DEMO_%'
+       OR line.Note LIKE N'DEMO_%' OR line.Note LIKE N'SEEDALL_%';
+
+    UPDATE o
+       SET UnitId=x.BaseUnitId,PackageQuantity=x.CanonicalQuantity
+    FROM dbo.IngredientSuppliers o
+    JOIN @SeedOfferContent x ON x.IngredientSupplierId=o.IngredientSupplierId
+    WHERE o.UnitId<>x.BaseUnitId OR o.PackageQuantity<>x.CanonicalQuantity;
+
+    IF EXISTS
+    (
+        SELECT 1 FROM @CanonicalIngredientBase x
+        JOIN dbo.Ingredients i ON i.IngredientId=x.IngredientId
+        WHERE i.BaseUnitId<>x.BaseUnitId
+    ) THROW 52236,N'SEED_UOM_NORMALIZATION: Ingredient base unit chưa canonical.',1;
+
+    IF EXISTS
+    (
+        SELECT 1 FROM dbo.UnitConversions c
+        WHERE c.UnitConversionId IN(70,71,72,102,103,104,105,106,107)
+    ) THROW 52237,N'SEED_UOM_NORMALIZATION: vẫn còn package UnitConversion legacy.',1;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE()<>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+
+/* ============================================================
    BATCH 03 READ-ONLY VERIFICATION
    ============================================================ */
 
@@ -3408,7 +3638,7 @@ UNION ALL
 SELECT N'UnitConversions', COUNT(*), MIN(UnitConversionId), MAX(UnitConversionId),
        SUM(CASE WHEN UnitConversionId BETWEEN 1 AND 72 THEN 1 ELSE 0 END),
        SUM(CASE WHEN UnitConversionId BETWEEN 73 AND 89 THEN 1 ELSE 0 END),
-       SUM(CASE WHEN UnitConversionId BETWEEN 90 AND 107 THEN 1 ELSE 0 END)
+       SUM(CASE WHEN UnitConversionId BETWEEN 90 AND 101 THEN 1 ELSE 0 END)
 FROM dbo.UnitConversions
 UNION ALL
 SELECT N'PreparedItems', COUNT(*), MIN(PreparedItemId), MAX(PreparedItemId),
@@ -5001,14 +5231,14 @@ BEGIN TRY
 
  IF (SELECT COUNT(*) FROM dbo.IngredientSuppliers WHERE IngredientSupplierId BETWEEN 1 AND 9)<>9
  OR EXISTS(SELECT 1 FROM (VALUES
- (1,6,1,2,CAST(1 AS decimal(18,5)),CAST(22000 AS decimal(18,2)),1,1,1,N'Đường Biên Hòa'),
+ (1,6,1,1,CAST(1000 AS decimal(18,5)),CAST(22000 AS decimal(18,2)),1,1,1,N'Đường Biên Hòa'),
  (2,2,2,3,380,27000,24,2,1,N'Sữa đặc demo lon 380 ml (synthetic)'),
- (3,1,3,2,1,140000,5,3,1,N'Cà phê hạt'),
+ (3,1,3,1,1000,140000,5,3,1,N'Cà phê hạt'),
  (4,8,4,3,750,250000,6,4,1,N'Syrup Torani'),
- (5,10,2,4,1,95000,12,2,1,N'Kem béo Rich'),
+ (5,10,2,3,1000,95000,12,2,1,N'Kem béo Rich'),
  (6,9,5,1,500,450000,1,5,1,N'Matcha Nhật'),
- (7,5,3,2,1,180000,2,3,1,N'Bột cacao'),
- (8,4,1,2,1,85000,2,2,1,N'Bột sữa'),
+ (7,5,3,1,1000,180000,2,3,1,N'Bột cacao'),
+ (8,4,1,1,1000,85000,2,2,1,N'Bột sữa'),
  (9,3,4,1,200,120000,1,5,1,N'Trà đen demo 100 túi × 2 g (synthetic)')
  )x(Id,IngredientId,SupplierId,UnitId,PackageQuantity,CurrentPrice,MOQ,LeadTime,IsPrimary,Note)
  LEFT JOIN dbo.IngredientSuppliers o ON o.IngredientSupplierId=x.Id
@@ -5022,8 +5252,8 @@ BEGIN TRY
    FIX LEGACY PRICE HISTORY #2
 
    IngredientSupplier #2 đã có package evidence hợp lệ:
-   - PackageQuantity = 380
-   - UnitId = 3
+   - PackageQuantity is expressed in Ingredient.BaseUnit
+   - UnitId equals Ingredient.BaseUnitId
 
    PriceHistory legacy bị thiếu hai field này.
    Chỉ backfill khi row vẫn đang ở legacy NULL state.
@@ -5060,9 +5290,9 @@ OR EXISTS
     FROM
     (
         VALUES
-            (1, 1, CAST(22000 AS decimal(18,2)), CAST(1 AS decimal(18,5)), 2),
+            (1, 1, CAST(22000 AS decimal(18,2)), CAST(1000 AS decimal(18,5)), 1),
             (2, 2, CAST(27000 AS decimal(18,2)), CAST(380 AS decimal(18,5)), 3),
-            (3, 3, CAST(140000 AS decimal(18,2)), CAST(1 AS decimal(18,5)), 2)
+            (3, 3, CAST(140000 AS decimal(18,2)), CAST(1000 AS decimal(18,5)), 1)
     ) 
     x
     (
@@ -5108,95 +5338,95 @@ THROW 52602, N'Price histories EF IDs 1-3 thiếu hoặc khác contract migratio
  IsPrimary bit,Active bit,Note nvarchar(1000),CreatedAt datetime2,UpdatedAt datetime2,
  UNIQUE(IngredientId,SupplierId));
  INSERT @OfferSeed VALUES
-(10,14,6,2,1,180000,1,1,1,1,N'DEMO_OFFER_VIET_COFFEE','2026-01-01','2026-01-01'),
-(11,15,6,2,1,240000,1,2,1,1,N'DEMO_OFFER_ESPRESSO_BEAN','2026-01-01','2026-01-01'),
+(10,14,6,1,1000,180000,1,1,1,1,N'DEMO_OFFER_VIET_COFFEE','2026-01-01','2026-01-01'),
+(11,15,6,1,1000,240000,1,2,1,1,N'DEMO_OFFER_ESPRESSO_BEAN','2026-01-01','2026-01-01'),
 (12,2,7,3,9120,648000,1,3,0,1,N'DEMO_OFFER_CONDENSED_MILK','2026-01-01','2026-01-01'),
-(13,16,7,4,12,384000,1,4,1,1,N'DEMO_OFFER_FRESH_MILK','2026-01-01','2026-01-01'),
-(14,10,7,4,12,1140000,1,5,0,1,N'DEMO_OFFER_DAIRY_CREAM','2026-01-01','2026-01-01'),
-(15,17,10,2,1,15000,1,1,1,1,N'DEMO_OFFER_SALT','2026-01-01','2026-01-01'),
-(16,6,9,2,1,22000,1,2,0,1,N'DEMO_OFFER_SUGAR','2026-01-01','2026-01-01'),
-(17,18,10,4,5,120000,1,3,1,1,N'DEMO_OFFER_SUGAR_SYRUP','2026-01-01','2026-01-01'),
+(13,16,7,3,12000,384000,1,4,1,1,N'DEMO_OFFER_FRESH_MILK','2026-01-01','2026-01-01'),
+(14,10,7,3,12000,1140000,1,5,0,1,N'DEMO_OFFER_DAIRY_CREAM','2026-01-01','2026-01-01'),
+(15,17,10,1,1000,15000,1,1,1,1,N'DEMO_OFFER_SALT','2026-01-01','2026-01-01'),
+(16,6,9,1,1000,22000,1,2,0,1,N'DEMO_OFFER_SUGAR','2026-01-01','2026-01-01'),
+(17,18,10,3,5000,120000,1,3,1,1,N'DEMO_OFFER_SUGAR_SYRUP','2026-01-01','2026-01-01'),
 (18,3,9,1,500,120000,1,4,0,1,N'DEMO_OFFER_BLACK_TEA','2026-01-01','2026-01-01'),
 (19,19,9,1,500,140000,1,5,1,1,N'DEMO_OFFER_OOLONG_TEA','2026-01-01','2026-01-01'),
 (20,20,9,1,10000,800000,1,1,1,1,N'DEMO_OFFER_CANNED_PEACH','2026-01-01','2026-01-01'),
 (21,21,9,1,10000,850000,1,2,1,1,N'DEMO_OFFER_CANNED_LYCHEE','2026-01-01','2026-01-01'),
 (22,22,9,1,5000,450000,1,3,1,1,N'DEMO_OFFER_PASSION_JAM','2026-01-01','2026-01-01'),
-(23,23,9,2,10,350000,1,4,1,1,N'DEMO_OFFER_ORANGE','2026-01-01','2026-01-01'),
-(24,24,9,2,5,125000,1,5,1,1,N'DEMO_OFFER_LEMONGRASS','2026-01-01','2026-01-01'),
+(23,23,9,1,10000,350000,1,4,1,1,N'DEMO_OFFER_ORANGE','2026-01-01','2026-01-01'),
+(24,24,9,1,5000,125000,1,5,1,1,N'DEMO_OFFER_LEMONGRASS','2026-01-01','2026-01-01'),
 (25,9,9,1,500,450000,1,1,0,1,N'DEMO_OFFER_MATCHA','2026-01-01','2026-01-01'),
-(26,25,10,2,1,300000,1,2,1,1,N'DEMO_OFFER_CHOCOLATE','2026-01-01','2026-01-01'),
-(27,26,10,2,1,180000,1,3,1,1,N'DEMO_OFFER_FRAPPE','2026-01-01','2026-01-01'),
-(28,27,10,2,1,80000,1,4,1,1,N'DEMO_OFFER_BLACK_PEARL_DRY','2026-01-01','2026-01-01'),
+(26,25,10,1,1000,300000,1,2,1,1,N'DEMO_OFFER_CHOCOLATE','2026-01-01','2026-01-01'),
+(27,26,10,1,1000,180000,1,3,1,1,N'DEMO_OFFER_FRAPPE','2026-01-01','2026-01-01'),
+(28,27,10,1,1000,80000,1,4,1,1,N'DEMO_OFFER_BLACK_PEARL_DRY','2026-01-01','2026-01-01'),
 (29,28,10,13,500,1250000,1,5,1,1,N'DEMO_OFFER_WHITE_PEARL','2026-01-01','2026-01-01'),
-(30,29,10,2,1,160000,1,1,1,1,N'DEMO_OFFER_TARO_JELLY_POWDER','2026-01-01','2026-01-01'),
-(31,30,10,2,1,180000,1,2,1,1,N'DEMO_OFFER_FLAN_POWDER','2026-01-01','2026-01-01'),
-(32,31,7,2,1,220000,1,3,1,1,N'DEMO_OFFER_CHEESE_POWDER','2026-01-01','2026-01-01'),
-(33,13,9,4,20,30000,1,4,1,1,N'DEMO_OFFER_WATER','2026-01-01','2026-01-01'),
-(34,7,9,2,20,40000,1,5,1,1,N'DEMO_OFFER_ICE','2026-01-01','2026-01-01'),
-(35,32,8,14,1,900000,1,1,1,1,N'DEMO_OFFER_CUP_M','2026-01-01','2026-01-01'),
-(36,33,8,14,1,1050000,1,2,1,1,N'DEMO_OFFER_CUP_L','2026-01-01','2026-01-01'),
-(37,34,8,14,1,300000,1,3,1,1,N'DEMO_OFFER_LID_M','2026-01-01','2026-01-01'),
-(38,35,8,14,1,350000,1,4,1,1,N'DEMO_OFFER_LID_L','2026-01-01','2026-01-01'),
-(39,36,8,14,1,300000,1,5,1,1,N'DEMO_OFFER_STRAW','2026-01-01','2026-01-01'),
-(40,37,8,14,1,250000,1,1,1,1,N'DEMO_OFFER_BAG','2026-01-01','2026-01-01'),
-(41,1,11,2,1,148400,5,3,0,1,N'SEEDALL_ALT_ING_001','2026-01-01','2026-01-01'),
-(42,4,22,2,1,90100,2,2,0,1,N'SEEDALL_ALT_ING_004','2026-01-01','2026-01-01'),
-(43,5,39,2,1,190800,2,4,0,1,N'SEEDALL_ALT_ING_005','2026-01-01','2026-01-01'),
-(44,7,33,2,20,42400,1,3,0,1,N'SEEDALL_ALT_ING_007','2026-01-01','2026-01-01'),
+(30,29,10,1,1000,160000,1,1,1,1,N'DEMO_OFFER_TARO_JELLY_POWDER','2026-01-01','2026-01-01'),
+(31,30,10,1,1000,180000,1,2,1,1,N'DEMO_OFFER_FLAN_POWDER','2026-01-01','2026-01-01'),
+(32,31,7,1,1000,220000,1,3,1,1,N'DEMO_OFFER_CHEESE_POWDER','2026-01-01','2026-01-01'),
+(33,13,9,3,20000,30000,1,4,1,1,N'DEMO_OFFER_WATER','2026-01-01','2026-01-01'),
+(34,7,9,1,20000,40000,1,5,1,1,N'DEMO_OFFER_ICE','2026-01-01','2026-01-01'),
+(35,32,8,9,1000,900000,1,1,1,1,N'DEMO_OFFER_CUP_M','2026-01-01','2026-01-01'),
+(36,33,8,9,1000,1050000,1,2,1,1,N'DEMO_OFFER_CUP_L','2026-01-01','2026-01-01'),
+(37,34,8,9,1000,300000,1,3,1,1,N'DEMO_OFFER_LID_M','2026-01-01','2026-01-01'),
+(38,35,8,9,1000,350000,1,4,1,1,N'DEMO_OFFER_LID_L','2026-01-01','2026-01-01'),
+(39,36,8,9,2000,300000,1,5,1,1,N'DEMO_OFFER_STRAW','2026-01-01','2026-01-01'),
+(40,37,8,9,500,250000,1,1,1,1,N'DEMO_OFFER_BAG','2026-01-01','2026-01-01'),
+(41,1,11,1,1000,148400,5,3,0,1,N'SEEDALL_ALT_ING_001','2026-01-01','2026-01-01'),
+(42,4,22,1,1000,90100,2,2,0,1,N'SEEDALL_ALT_ING_004','2026-01-01','2026-01-01'),
+(43,5,39,1,1000,190800,2,4,0,1,N'SEEDALL_ALT_ING_005','2026-01-01','2026-01-01'),
+(44,7,33,1,20000,42400,1,3,0,1,N'SEEDALL_ALT_ING_007','2026-01-01','2026-01-01'),
 (45,8,42,3,750,265000,6,4,0,1,N'SEEDALL_ALT_ING_008','2026-01-01','2026-01-01'),
-(46,11,37,2,1,42000,1,3,1,1,N'SEEDALL_PRIMARY_ING_011','2026-01-01','2026-01-01'),
-(47,11,38,2,1,44500,1,5,0,1,N'SEEDALL_ALT_ING_011','2026-01-01','2026-01-01'),
-(48,12,38,2,1,65000,1,5,1,1,N'SEEDALL_PRIMARY_ING_012','2026-01-01','2026-01-01'),
-(49,12,39,2,1,68900,1,4,0,1,N'SEEDALL_ALT_ING_012','2026-01-01','2026-01-01'),
-(50,13,31,4,20,31800,1,4,0,1,N'SEEDALL_ALT_ING_013','2026-01-01','2026-01-01'),
-(51,14,16,2,1,190800,1,2,0,1,N'SEEDALL_ALT_ING_014','2026-01-01','2026-01-01'),
-(52,15,17,2,1,254400,1,3,0,1,N'SEEDALL_ALT_ING_015','2026-01-01','2026-01-01'),
-(53,16,26,4,12,407000,1,4,0,1,N'SEEDALL_ALT_ING_016','2026-01-01','2026-01-01'),
-(54,17,35,2,1,15900,1,3,0,1,N'SEEDALL_ALT_ING_017','2026-01-01','2026-01-01'),
-(55,18,36,4,5,127200,1,4,0,1,N'SEEDALL_ALT_ING_018','2026-01-01','2026-01-01'),
+(46,11,37,1,1000,42000,1,3,1,1,N'SEEDALL_PRIMARY_ING_011','2026-01-01','2026-01-01'),
+(47,11,38,1,1000,44500,1,5,0,1,N'SEEDALL_ALT_ING_011','2026-01-01','2026-01-01'),
+(48,12,38,1,1000,65000,1,5,1,1,N'SEEDALL_PRIMARY_ING_012','2026-01-01','2026-01-01'),
+(49,12,39,1,1000,68900,1,4,0,1,N'SEEDALL_ALT_ING_012','2026-01-01','2026-01-01'),
+(50,13,31,3,20000,31800,1,4,0,1,N'SEEDALL_ALT_ING_013','2026-01-01','2026-01-01'),
+(51,14,16,1,1000,190800,1,2,0,1,N'SEEDALL_ALT_ING_014','2026-01-01','2026-01-01'),
+(52,15,17,1,1000,254400,1,3,0,1,N'SEEDALL_ALT_ING_015','2026-01-01','2026-01-01'),
+(53,16,26,3,12000,407000,1,4,0,1,N'SEEDALL_ALT_ING_016','2026-01-01','2026-01-01'),
+(54,17,35,1,1000,15900,1,3,0,1,N'SEEDALL_ALT_ING_017','2026-01-01','2026-01-01'),
+(55,18,36,3,5000,127200,1,4,0,1,N'SEEDALL_ALT_ING_018','2026-01-01','2026-01-01'),
 (56,19,13,1,500,148400,1,3,0,1,N'SEEDALL_ALT_ING_019','2026-01-01','2026-01-01'),
 (57,20,30,1,10000,848000,1,3,0,1,N'SEEDALL_ALT_ING_020','2026-01-01','2026-01-01'),
 (58,21,31,1,10000,901000,1,4,0,1,N'SEEDALL_ALT_ING_021','2026-01-01','2026-01-01'),
 (59,22,32,1,5000,477000,1,2,0,1,N'SEEDALL_ALT_ING_022','2026-01-01','2026-01-01'),
-(60,23,33,2,10,371000,1,3,0,1,N'SEEDALL_ALT_ING_023','2026-01-01','2026-01-01'),
-(61,24,34,2,5,132500,1,4,0,1,N'SEEDALL_ALT_ING_024','2026-01-01','2026-01-01'),
-(62,25,11,2,1,318000,1,3,0,1,N'SEEDALL_ALT_ING_025','2026-01-01','2026-01-01'),
-(63,26,36,2,1,190800,1,4,0,1,N'SEEDALL_ALT_ING_026','2026-01-01','2026-01-01'),
-(64,27,37,2,1,84800,1,3,0,1,N'SEEDALL_ALT_ING_027','2026-01-01','2026-01-01'),
+(60,23,33,1,10000,371000,1,3,0,1,N'SEEDALL_ALT_ING_023','2026-01-01','2026-01-01'),
+(61,24,34,1,5000,132500,1,4,0,1,N'SEEDALL_ALT_ING_024','2026-01-01','2026-01-01'),
+(62,25,11,1,1000,318000,1,3,0,1,N'SEEDALL_ALT_ING_025','2026-01-01','2026-01-01'),
+(63,26,36,1,1000,190800,1,4,0,1,N'SEEDALL_ALT_ING_026','2026-01-01','2026-01-01'),
+(64,27,37,1,1000,84800,1,3,0,1,N'SEEDALL_ALT_ING_027','2026-01-01','2026-01-01'),
 (65,28,38,13,500,1325000,1,5,0,1,N'SEEDALL_ALT_ING_028','2026-01-01','2026-01-01'),
-(66,29,39,2,1,169600,1,4,0,1,N'SEEDALL_ALT_ING_029','2026-01-01','2026-01-01'),
-(67,30,40,2,1,190800,1,3,0,1,N'SEEDALL_ALT_ING_030','2026-01-01','2026-01-01'),
-(68,31,25,2,1,233200,1,2,0,1,N'SEEDALL_ALT_ING_031','2026-01-01','2026-01-01'),
-(69,32,50,14,1,954000,1,3,0,1,N'SEEDALL_ALT_ING_032','2026-01-01','2026-01-01'),
-(70,33,43,14,1,1113000,1,2,0,1,N'SEEDALL_ALT_ING_033','2026-01-01','2026-01-01'),
-(71,34,44,14,1,318000,1,3,0,1,N'SEEDALL_ALT_ING_034','2026-01-01','2026-01-01'),
-(72,35,45,14,1,371000,1,2,0,1,N'SEEDALL_ALT_ING_035','2026-01-01','2026-01-01'),
-(73,36,46,14,1,318000,1,4,0,1,N'SEEDALL_ALT_ING_036','2026-01-01','2026-01-01'),
-(74,37,47,14,1,265000,1,3,0,1,N'SEEDALL_ALT_ING_037','2026-01-01','2026-01-01'),
-(75,38,32,2,1,120000,2,2,1,1,N'SEEDALL_PRIMARY_ING_038','2026-01-01','2026-01-01'),
-(76,38,33,2,1,127200,2,3,0,1,N'SEEDALL_ALT_ING_038','2026-01-01','2026-01-01'),
-(77,39,33,2,5,180000,2,3,1,1,N'SEEDALL_PRIMARY_ING_039','2026-01-01','2026-01-01'),
-(78,39,34,2,5,190800,2,4,0,1,N'SEEDALL_ALT_ING_039','2026-01-01','2026-01-01'),
-(79,40,34,2,5,520000,2,4,1,1,N'SEEDALL_PRIMARY_ING_040','2026-01-01','2026-01-01'),
-(80,40,27,2,5,551200,2,2,0,1,N'SEEDALL_ALT_ING_040','2026-01-01','2026-01-01'),
-(81,41,27,2,5,650000,2,2,1,1,N'SEEDALL_PRIMARY_ING_041','2026-01-01','2026-01-01'),
-(82,41,28,2,5,689000,2,3,0,1,N'SEEDALL_ALT_ING_041','2026-01-01','2026-01-01'),
-(83,42,20,4,12,720000,6,2,1,1,N'SEEDALL_PRIMARY_ING_042','2026-01-01','2026-01-01'),
-(84,42,21,4,12,763200,6,3,0,1,N'SEEDALL_ALT_ING_042','2026-01-01','2026-01-01'),
-(85,43,37,4,5,650000,2,3,1,1,N'SEEDALL_PRIMARY_ING_043','2026-01-01','2026-01-01'),
-(86,43,38,4,5,689000,2,5,0,1,N'SEEDALL_ALT_ING_043','2026-01-01','2026-01-01'),
-(87,44,22,4,12,540000,6,2,1,1,N'SEEDALL_PRIMARY_ING_044','2026-01-01','2026-01-01'),
-(88,44,23,4,12,572400,6,4,0,1,N'SEEDALL_ALT_ING_044','2026-01-01','2026-01-01'),
+(66,29,39,1,1000,169600,1,4,0,1,N'SEEDALL_ALT_ING_029','2026-01-01','2026-01-01'),
+(67,30,40,1,1000,190800,1,3,0,1,N'SEEDALL_ALT_ING_030','2026-01-01','2026-01-01'),
+(68,31,25,1,1000,233200,1,2,0,1,N'SEEDALL_ALT_ING_031','2026-01-01','2026-01-01'),
+(69,32,50,9,1000,954000,1,3,0,1,N'SEEDALL_ALT_ING_032','2026-01-01','2026-01-01'),
+(70,33,43,9,1000,1113000,1,2,0,1,N'SEEDALL_ALT_ING_033','2026-01-01','2026-01-01'),
+(71,34,44,9,1000,318000,1,3,0,1,N'SEEDALL_ALT_ING_034','2026-01-01','2026-01-01'),
+(72,35,45,9,1000,371000,1,2,0,1,N'SEEDALL_ALT_ING_035','2026-01-01','2026-01-01'),
+(73,36,46,9,2000,318000,1,4,0,1,N'SEEDALL_ALT_ING_036','2026-01-01','2026-01-01'),
+(74,37,47,9,500,265000,1,3,0,1,N'SEEDALL_ALT_ING_037','2026-01-01','2026-01-01'),
+(75,38,32,1,1000,120000,2,2,1,1,N'SEEDALL_PRIMARY_ING_038','2026-01-01','2026-01-01'),
+(76,38,33,1,1000,127200,2,3,0,1,N'SEEDALL_ALT_ING_038','2026-01-01','2026-01-01'),
+(77,39,33,1,5000,180000,2,3,1,1,N'SEEDALL_PRIMARY_ING_039','2026-01-01','2026-01-01'),
+(78,39,34,1,5000,190800,2,4,0,1,N'SEEDALL_ALT_ING_039','2026-01-01','2026-01-01'),
+(79,40,34,1,5000,520000,2,4,1,1,N'SEEDALL_PRIMARY_ING_040','2026-01-01','2026-01-01'),
+(80,40,27,1,5000,551200,2,2,0,1,N'SEEDALL_ALT_ING_040','2026-01-01','2026-01-01'),
+(81,41,27,1,5000,650000,2,2,1,1,N'SEEDALL_PRIMARY_ING_041','2026-01-01','2026-01-01'),
+(82,41,28,1,5000,689000,2,3,0,1,N'SEEDALL_ALT_ING_041','2026-01-01','2026-01-01'),
+(83,42,20,3,12000,720000,6,2,1,1,N'SEEDALL_PRIMARY_ING_042','2026-01-01','2026-01-01'),
+(84,42,21,3,12000,763200,6,3,0,1,N'SEEDALL_ALT_ING_042','2026-01-01','2026-01-01'),
+(85,43,37,3,5000,650000,2,3,1,1,N'SEEDALL_PRIMARY_ING_043','2026-01-01','2026-01-01'),
+(86,43,38,3,5000,689000,2,5,0,1,N'SEEDALL_ALT_ING_043','2026-01-01','2026-01-01'),
+(87,44,22,3,12000,540000,6,2,1,1,N'SEEDALL_PRIMARY_ING_044','2026-01-01','2026-01-01'),
+(88,44,23,3,12000,572400,6,4,0,1,N'SEEDALL_ALT_ING_044','2026-01-01','2026-01-01'),
 (89,45,23,1,5000,300000,4,4,1,1,N'SEEDALL_PRIMARY_ING_045','2026-01-01','2026-01-01'),
 (90,45,24,1,5000,318000,4,3,0,1,N'SEEDALL_ALT_ING_045','2026-01-01','2026-01-01'),
 (91,46,24,9,100,450000,2,3,1,1,N'SEEDALL_PRIMARY_ING_046','2026-01-01','2026-01-01'),
 (92,46,25,9,100,477000,2,2,0,1,N'SEEDALL_ALT_ING_046','2026-01-01','2026-01-01'),
-(93,47,41,2,1,160000,1,5,1,1,N'SEEDALL_PRIMARY_ING_047','2026-01-01','2026-01-01'),
-(94,47,42,2,1,169600,1,4,0,1,N'SEEDALL_ALT_ING_047','2026-01-01','2026-01-01'),
+(93,47,41,1,1000,160000,1,5,1,1,N'SEEDALL_PRIMARY_ING_047','2026-01-01','2026-01-01'),
+(94,47,42,1,1000,169600,1,4,0,1,N'SEEDALL_ALT_ING_047','2026-01-01','2026-01-01'),
 (95,48,34,1,5000,260000,2,4,1,1,N'SEEDALL_PRIMARY_ING_048','2026-01-01','2026-01-01'),
 (96,48,27,1,5000,275600,2,2,0,1,N'SEEDALL_ALT_ING_048','2026-01-01','2026-01-01'),
-(97,49,35,2,1,180000,1,3,1,1,N'SEEDALL_PRIMARY_ING_049','2026-01-01','2026-01-01'),
-(98,49,36,2,1,190800,1,4,0,1,N'SEEDALL_ALT_ING_049','2026-01-01','2026-01-01'),
+(97,49,35,1,1000,180000,1,3,1,1,N'SEEDALL_PRIMARY_ING_049','2026-01-01','2026-01-01'),
+(98,49,36,1,1000,190800,1,4,0,1,N'SEEDALL_ALT_ING_049','2026-01-01','2026-01-01'),
 (99,50,36,1,5000,220000,2,4,1,1,N'SEEDALL_PRIMARY_ING_050','2026-01-01','2026-01-01'),
 (100,50,37,1,5000,233200,2,3,0,1,N'SEEDALL_ALT_ING_050','2026-01-01','2026-01-01');
 
@@ -5536,6 +5766,13 @@ THROW 52602, N'Price histories EF IDs 1-3 thiếu hoặc khác contract migratio
 (293,100,221500,5000,1,'2025-07-01',0,N'Giá giữa kỳ 2025-07',@ActorStaffId,'2025-07-01'),
 (294,100,233200,5000,1,'2026-01-01',1,N'Giá hiện tại 2026-01',@ActorStaffId,'2026-01-01');
 
+ /* Price history snapshots inherit the canonical content definition from the
+    parent offer. Historical price/effective-date facts are left unchanged. */
+ UPDATE h
+    SET PackageQuantity=o.PackageQuantity,PackageUnitId=o.UnitId
+ FROM @HistorySeed h
+ JOIN dbo.IngredientSuppliers o ON o.IngredientSupplierId=h.IngredientSupplierId;
+
  IF (SELECT COUNT(*) FROM @HistorySeed)<>291 OR EXISTS(SELECT 1 FROM @HistorySeed
  WHERE Price<=0 OR PackageQuantity<=0 OR PackageUnitId IS NULL)
   THROW 52609,N'Bộ 291 price history mới sai số lượng, price hoặc package snapshot.',1;
@@ -5579,6 +5816,38 @@ THROW 52602, N'Price histories EF IDs 1-3 thiếu hoặc khác contract migratio
  WHERE h.IngredientSupplierPriceHistoryId IS NULL OR h.Price<>o.CurrentPrice
  OR(o.IngredientSupplierId<>2 AND(h.PackageQuantity<>o.PackageQuantity OR h.PackageUnitId<>o.UnitId)))
   THROW 52613,N'Duplicate offer, current price hoặc package snapshot không hợp lệ.',1;
+
+ IF EXISTS
+ (
+     SELECT 1
+     FROM dbo.IngredientSuppliers o
+     JOIN dbo.Ingredients i ON i.IngredientId=o.IngredientId
+     WHERE o.IngredientSupplierId BETWEEN 1 AND 100
+       AND (o.UnitId<>i.BaseUnitId OR o.PackageQuantity IS NULL OR o.PackageQuantity<=0
+            OR o.CurrentPrice<=0 OR o.Active<>1)
+ ) THROW 52615,N'SeedAll offer chưa canonical hoặc chưa procurement-ready.',1;
+
+ IF EXISTS
+ (
+     SELECT 1
+     FROM dbo.IngredientSuppliers o
+     LEFT JOIN dbo.Ingredients i ON i.IngredientId=o.IngredientId
+     LEFT JOIN dbo.Suppliers s ON s.SupplierId=o.SupplierId
+     LEFT JOIN dbo.Units u ON u.UnitId=o.UnitId
+     WHERE o.IngredientSupplierId BETWEEN 1 AND 100
+       AND
+       (
+           i.IngredientId IS NULL OR i.Active<>1
+           OR s.SupplierId IS NULL OR s.Active<>1
+           OR u.UnitId IS NULL OR u.Active<>1
+           OR NOT EXISTS
+           (
+               SELECT 1
+               FROM dbo.SupplierStores scope
+               WHERE scope.SupplierId=o.SupplierId AND scope.StoreId=1 AND scope.Active=1
+           )
+       )
+ ) THROW 52616,N'SeedAll offer is missing an active supplier, ingredient, unit, or Store 1 scope.',1;
 
  IF EXISTS(SELECT 1 FROM dbo.IngredientSupplierPriceHistories currentRow
  WHERE currentRow.IsCurrent=1 AND EXISTS(SELECT 1 FROM dbo.IngredientSupplierPriceHistories laterRow

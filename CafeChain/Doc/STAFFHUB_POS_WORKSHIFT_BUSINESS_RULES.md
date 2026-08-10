@@ -344,3 +344,97 @@ API bổ sung:
 | `POST /api/v1/pos/notifications/{id}/terminal-reject` | `POS.WorkShift.RejectTerminal` + StaffScope | JSON reason, `RequestKey` | cùng contract Admin | cùng nhóm lỗi |
 
 Sau commit confirm hoặc reject, backend phát `TerminalRegistrationChanged` cho requester. StaffHub dùng SweetAlert để thông báo kết quả rồi tự reload; reload cập nhật danh sách Terminal và không dùng frontend state làm nguồn xác thực.
+
+### 14.1 Validation và submit nút từ chối Terminal
+
+Form từ chối dùng validation chủ động và feedback inline, không dùng toast validation toàn cục:
+
+- Lý do được trim, dài từ 10 đến 500 ký tự và phải chứa ít nhất một chữ cái hoặc chữ số. Frontend kiểm tra để hỗ trợ UX; service backend dùng cùng giới hạn và là nguồn xác thực cuối cùng.
+- Khi người dùng đang gõ dưới 10 ký tự, counter vẫn cập nhật nhưng không gọi `checkValidity()`, không phát sự kiện `invalid` và không tạo chuỗi toast “Vui lòng nhập đầy đủ”.
+- Bấm **Từ chối đăng ký Terminal** với lý do không hợp lệ không gọi API; lỗi hiển thị cạnh textarea và focus quay về ô lý do.
+- Nút từ chối là `type="button"` và được bắt trực tiếp bởi AJAX handler. Cách này ngăn native form validation hoặc mutation guard chặn request trước handler. Sự kiện `submit` vẫn là fallback cho thao tác bàn phím.
+- Sau khi lý do hợp lệ, form đặt `rejectPending`, disable nút trước khi mở SweetAlert và chỉ cho phép một luồng xử lý. Hủy SweetAlert hoặc API lỗi phải xóa pending và bật lại nút trong `finally`.
+- Chỉ sau khi người dùng xác nhận SweetAlert mới gửi `POST RejectTerminal`. Thành công giữ trạng thái hoàn tất, hiển thị SweetAlert kết quả và reload; double-click không được tạo request thứ hai.
+
+Backend không tin trạng thái UI. Endpoint vẫn kiểm tra antiforgery, authentication, `POS.WorkShift.RejectTerminal`, notification recipient, StaffScope, Store, typed challenge relation, trạng thái challenge, lý do và `RequestKey` trong transaction.
+
+### 14.2 Ma trận kiểm thử hồi quy xác nhận/từ chối Terminal
+
+| Trường hợp | Network mong đợi | UI mong đợi | Backend/DB mong đợi |
+|---|---|---|---|
+| Gõ lý do 1–9 ký tự | Không request | Counter cập nhật; không toast lặp | Không thay đổi challenge |
+| Bấm từ chối với lý do thiếu/ngắn | Không request | Một lỗi inline, focus textarea | Không thay đổi challenge |
+| Lý do hợp lệ, hủy SweetAlert | Không request | Nút được bật lại | Không thay đổi challenge |
+| Lý do hợp lệ, xác nhận SweetAlert | Đúng một `POST RejectTerminal` | Loading rõ ràng, không treo | Challenge `REJECTED`, không tạo `PosTerminal`, notification resolve, audit không chứa OTP |
+| Double-click liên tiếp | Tối đa một request từ UI | Nút khóa ngay | Request lặp vẫn idempotent/concurrency-safe |
+| Thiếu quyền hoặc sai Store | Một request, HTTP 403 | Lỗi theo `errorCode`, nút được bật lại | Không đổi challenge/Terminal |
+| Challenge đã approved | Một request, HTTP 409 | Báo Terminal đã xác nhận | Không được chuyển ngược sang `REJECTED` |
+| Xác nhận Terminal bằng OTP hợp lệ | Đúng một `POST ConfirmTerminal` | Không bị form từ chối can thiệp | Challenge `USED`, tạo đúng một `PosTerminal` active |
+
+Sau cả confirm và reject, phải kiểm tra requester StaffHub nhận SweetAlert theo trạng thái mới và tự reload. Nếu SignalR tạm mất kết nối, polling/revalidation vẫn phải phát hiện trạng thái authoritative từ backend.
+
+## 15. Liên kết Terminal theo từng thiết bị tại StaffHub (2026-08-09)
+
+Phần này chuẩn hóa quan hệ giữa trình duyệt vật lý và Terminal. `PosTerminal` thuộc Store, không thuộc riêng nhân viên. Một nhân viên có thể đăng ký nhiều Terminal vật lý, nhưng phải đăng nhập StaffHub và thực hiện đăng ký trên từng thiết bị tương ứng. Cùng một trình duyệt không được sinh Terminal ID mới sau mỗi lần gửi lại yêu cầu.
+
+### 15.1 Định danh thiết bị và nguồn xác thực
+
+- StaffHub lưu một record có version trong `localStorage`, khóa `cafechain.staffhub.pos-terminal-device.v1`, gồm tối thiểu `terminalId`, `storeId`, nguồn liên kết và thời điểm tạo.
+- Terminal ID chỉ được sinh một lần khi thiết bị chưa có liên kết và người dùng bắt đầu đăng ký. Reload, đóng/mở modal hoặc gửi lại sau `REJECTED`, `EXPIRED`, `CANCELLED` phải tiếp tục dùng đúng ID này.
+- Dữ liệu local chỉ là liên kết UX. Nó không chứng minh Terminal đã approved, không cấp permission và không được dùng thay cho kiểm tra backend.
+- Danh sách `PosTerminal` active do server render cho đúng Store là nguồn đối chiếu liên kết. Trước khi mở POS, backend vẫn kiểm authentication, `App.POS`, quyền mở ca, StaffScope, Store, Terminal active và WorkShift.
+- Nếu record local thuộc Store khác, StaffHub hiển thị `STORE_MISMATCH`; không tự ghi đè hoặc đăng ký lại thiết bị tại Store hiện tại.
+
+### 15.2 Trạng thái hiển thị trên thiết bị
+
+| Trạng thái UI | Điều kiện authoritative | Hành vi |
+|---|---|---|
+| `UNLINKED` | Chưa có liên kết hợp lệ | Hiện **Đăng ký thiết bị này** và tùy chọn liên kết Terminal active đã có |
+| `PENDING` | Challenge cùng Terminal ID đang chờ | Hiện **Đang chờ xác nhận**, tên Terminal, Store và hướng dẫn người duyệt |
+| `APPROVED` | Challenge đã dùng nhưng danh sách active chưa kịp đồng bộ | Hiện đang hoàn tất kích hoạt; polling/reload tiếp tục đối chiếu server |
+| `LOCKED` | Challenge cùng thiết bị bị khóa OTP | Hiện thời gian chờ; không sinh ID mới |
+| `READY` | Terminal ID local khớp `PosTerminal` active của Store | Hiện **Thiết bị đã sẵn sàng**; cố định Terminal khi mở POS và ẩn hành vi tạo thêm trên cùng trình duyệt |
+| `REJECTED`, `EXPIRED`, `CANCELLED` | Challenge cùng thiết bị đã kết thúc tương ứng | Hiện nguyên nhân/trạng thái và **Gửi lại yêu cầu** bằng Terminal ID cũ |
+| `OTHER_PENDING` | Requester đang có challenge pending cho Terminal ID của thiết bị khác | Cảnh báo phải hoàn tất hoặc hủy yêu cầu kia; không ghi đè liên kết hiện tại và không tạo yêu cầu song song |
+| `INVALID_BINDING` | Terminal từng liên kết không còn active/không còn trong danh sách Store | Chặn mở POS từ liên kết này; cho liên kết Terminal active khác hoặc liên hệ quản lý |
+| `STORE_MISMATCH` | Record thiết bị thuộc Store khác | Cảnh báo sai cửa hàng; không cho đăng ký hoặc mở POS tại Store hiện tại |
+
+Challenge của thiết bị khác chỉ được dùng để hiển thị `OTHER_PENDING`. Nếu thiết bị hiện tại đã `READY`, challenge của thiết bị khác không được làm mất trạng thái sẵn sàng hoặc thay Terminal ID đang liên kết.
+
+### 15.3 Liên kết Terminal active đã có
+
+Luồng **Liên kết Terminal đã có** phục vụ Terminal được duyệt trước khi có định danh trình duyệt hoặc trường hợp dữ liệu trình duyệt bị xóa:
+
+1. Chỉ liệt kê `PosTerminal` active thuộc Store hiện tại từ dữ liệu server render.
+2. Người dùng chọn Terminal và xác nhận bằng SweetAlert trước khi ghi liên kết local.
+3. Thao tác này không tạo/cập nhật `PosTerminal`, không đổi trạng thái challenge và không cấp thêm quyền.
+4. Sau liên kết, Terminal chỉ chuyển `READY` khi ID vẫn khớp danh sách active của Store. Backend tiếp tục quyết định quyền mở POS và ca làm việc.
+
+Không tự động chọn Terminal đầu tiên và không cho nhập một ID tùy ý để tránh liên kết nhầm hoặc giả mạo scope.
+
+### 15.4 API, realtime và tương thích
+
+Không đổi request/response contract và không thêm migration:
+
+- `POST /StaffHub/RequestTerminalRegistrationOtp`
+- `POST /StaffHub/GetTerminalRegistrationOtpState`
+- `POST /StaffHub/CancelTerminalRegistrationOtp`
+
+State restore phải nhận cả challenge `REJECTED` để thiết bị hiển thị đúng lý do và cho gửi lại bằng ID cũ. Sau confirm hoặc reject, `TerminalRegistrationChanged` hoặc polling cập nhật trạng thái; StaffHub hiển thị SweetAlert và reload đúng một lần. Sau reload, action card phải được dựng lại từ liên kết thiết bị kết hợp dữ liệu active/challenge của backend.
+
+### 15.5 Ma trận kiểm thử liên kết thiết bị
+
+| Ca kiểm thử | Kết quả mong đợi |
+|---|---|
+| Thiết bị mới gửi đăng ký rồi reload | Chỉ sinh một Terminal ID; record versioned và ID giữ nguyên |
+| Gửi lại sau reject/expired/cancel | Challenge mới dùng cùng Terminal ID, không tạo danh tính thiết bị giả mới |
+| Confirm thành công | SweetAlert xuất hiện, reload đúng một lần, card thành `READY`, Terminal picker cố định đúng thiết bị |
+| Thiết bị đã `READY` mở lại modal | Không có nút tạo thêm Terminal trên cùng trình duyệt |
+| Cùng nhân viên mở thiết bị thứ hai khi thiết bị thứ nhất còn pending | Thiết bị thứ hai hiện `OTHER_PENDING`; không phát yêu cầu song song |
+| Challenge thiết bị khác trong khi thiết bị hiện tại `READY` | Thiết bị hiện tại vẫn `READY`, không bị ghi đè liên kết |
+| Liên kết Terminal cũ | Chỉ thấy Terminal active đúng Store; bắt buộc SweetAlert; không có mutation backend |
+| Terminal liên kết bị inactive/xóa khỏi Store | Hiện `INVALID_BINDING`, không cho dùng liên kết để mở POS |
+| Sửa giả `localStorage` hoặc dùng ID sai Store | Không cấp quyền; backend từ chối theo permission/scope/terminal/shift |
+| Xóa dữ liệu trình duyệt | Mất liên kết local; người dùng dùng luồng liên kết Terminal đã có thay vì tạo duplicate ngoài ý muốn |
+
+Nghiệm thu UI tại desktop/mobile phải kiểm tra badge, icon, nội dung trạng thái, focus, loading/disabled, SweetAlert, Console và Network. Nếu không có browser tích hợp thì ghi rõ browser QA chưa thực hiện; không báo PASS suy đoán.

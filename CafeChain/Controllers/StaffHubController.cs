@@ -79,6 +79,7 @@ public sealed class StaffHubController : Controller
             AuthorizationPolicyConstants.AdminDashboardApp)).Succeeded;
         var identityStoreId = int.TryParse(User.FindFirstValue("StoreId"), out var parsedStoreId)
             ? parsedStoreId : 0;
+        ViewBag.CurrentStoreId = identityStoreId;
         ViewBag.PosTerminals = await _workShiftService.GetAvailableTerminalsAsync(identityStoreId, ct);
         ViewBag.AutoOpenPos = openPos;
         ViewBag.RequestedTerminalId = terminalId?.Trim();

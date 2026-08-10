@@ -1,6 +1,8 @@
 @model CafeChain.Application.DTOs.Admin.StockAlerts.StockAlertDetailDto
 @using CafeChain.Application.DTOs.Admin.RestockRequests
+@using CafeChain.Application.Interfaces.Systems
 @using CafeChain.ViewModels.Admin.Shared
+@inject IBusinessDateService BusinessDateService
 @{
     ViewData["Title"] = "Chi tiết cảnh báo kho";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -25,7 +27,7 @@
         <div>
             <div class="ops-eyebrow">Cảnh báo #@Model.StockAlertId · @Model.ItemTypeLabel</div>
             <h1 class="ops-title">@Model.ItemName</h1>
-            <p class="ops-subtitle">Cảnh báo ghi nhận lúc @AdminStatusDisplay.DateTime(Model.CreatedAt.ToLocalTime()). Số liệu hiện tại được tách riêng khỏi dữ liệu tại thời điểm cảnh báo để tránh nhầm lẫn khi kho đã thay đổi.</p>
+            <p class="ops-subtitle">Cảnh báo ghi nhận lúc @AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(Model.CreatedAt)). Số liệu hiện tại được tách riêng khỏi dữ liệu tại thời điểm cảnh báo để tránh nhầm lẫn khi kho đã thay đổi.</p>
         </div>
         <div class="ops-actions">
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId">
@@ -80,7 +82,7 @@
                             <div><span class="ops-data-label">Ngưỡng lúc cảnh báo</span><span class="ops-data-value">@(Model.ThresholdSnapshot.HasValue ? $"{AdminStatusDisplay.Quantity(Model.ThresholdSnapshot.Value)}{unitSuffix}" : "Chưa cấu hình")</span></div>
                         }
                         <div><span class="ops-data-label">Nguồn phát hiện</span><span class="ops-data-value">@AdminStatusDisplay.StockAlertSource(Model.Source)</span></div>
-                        <div><span class="ops-data-label">Cập nhật gần nhất</span><span class="ops-data-value">@Model.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></div>
+                        <div><span class="ops-data-label">Cập nhật gần nhất</span><span class="ops-data-value">@BusinessDateService.ToBusinessTime(Model.UpdatedAt).ToString("dd/MM/yyyy HH:mm")</span></div>
                         <div><span class="ops-data-label">Người báo</span><span class="ops-data-value">@(Model.ReporterName ?? "Hệ thống")</span></div>
                         <div><span class="ops-data-label">Mã định danh kho</span><span class="ops-data-value">@(Model.IngredientId.HasValue ? $"Nguyên liệu #{Model.IngredientId}" : Model.PreparedItemId.HasValue ? $"Bán thành phẩm #{Model.PreparedItemId}" : $"Công thức cũ #{Model.RecipeId}")</span></div>
                     </div>
@@ -97,24 +99,24 @@
                     <ol class="ops-timeline">
                         @if (Model.Transitions.Count == 0)
                         {
-                            <li><strong>Phát hiện cảnh báo</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(Model.CreatedAt.ToLocalTime()) · Khả dụng @AdminStatusDisplay.Quantity(Model.CurrentQtySnapshot)</div></li>
+                            <li><strong>Phát hiện cảnh báo</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(Model.CreatedAt)) · Khả dụng @AdminStatusDisplay.Quantity(Model.CurrentQtySnapshot)</div></li>
                         }
                         @foreach (var transition in Model.Transitions)
                         {
                             <li>
                                 <strong>@AdminStatusDisplay.StockAlert(transition.NewStatus).Label · @AdminStatusDisplay.StockAlertType(transition.NewAlertType)</strong>
-                                <div class="ops-secondary">@transition.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @(transition.ActorName ?? (transition.ActorStaffId.HasValue ? $"Nhân viên #{transition.ActorStaffId}" : "Hệ thống"))</div>
+                                <div class="ops-secondary">@BusinessDateService.ToBusinessTime(transition.CreatedAtUtc).ToString("dd/MM/yyyy HH:mm") · @(transition.ActorName ?? (transition.ActorStaffId.HasValue ? $"Nhân viên #{transition.ActorStaffId}" : "Hệ thống"))</div>
                                 <div>Tồn vật lý @AdminStatusDisplay.Quantity(transition.OnHandSnapshot) · Giữ chỗ @AdminStatusDisplay.Quantity(transition.ReservedSnapshot) · Khả dụng @AdminStatusDisplay.Quantity(transition.AvailableSnapshot)</div>
                                 @if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@AdminStatusDisplay.SystemGeneratedMessage(transition.Reason)</div> }
                             </li>
                         }
                         @if (openRestock != null)
                         {
-                            <li><strong>Đã tạo yêu cầu nhập hàng #@openRestock.RestockRequestId</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(openRestock.CreatedAt.ToLocalTime()) · @AdminStatusDisplay.RestockRequest(openRestock.Status).Label</div></li>
+                            <li><strong>Đã tạo yêu cầu nhập hàng #@openRestock.RestockRequestId</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(openRestock.CreatedAt)) · @AdminStatusDisplay.RestockRequest(openRestock.Status).Label</div></li>
                         }
                         @if (Model.ResolvedAt.HasValue)
                         {
-                            <li><strong>Tồn kho đã phục hồi</strong><div class="ops-secondary">@Model.ResolvedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div><div>@AdminStatusDisplay.SystemGeneratedMessage(Model.ResolvedReason)</div></li>
+                            <li><strong>Tồn kho đã phục hồi</strong><div class="ops-secondary">@BusinessDateService.ToBusinessTime(Model.ResolvedAt.Value).ToString("dd/MM/yyyy HH:mm")</div><div>@AdminStatusDisplay.SystemGeneratedMessage(Model.ResolvedReason)</div></li>
                         }
                     </ol>
                 </div>
@@ -137,7 +139,7 @@
                                 {
                                     var reference = movement.BranchReceiptLineId.HasValue ? $"Phiếu nhận · dòng #{movement.BranchReceiptLineId}" : movement.InventoryTransferId.HasValue ? $"Điều chuyển #{movement.InventoryTransferId}" : movement.ReferenceOrderId.HasValue ? $"Đơn hàng #{movement.ReferenceOrderId}" : movement.ProductionRunId.HasValue ? $"Lệnh sơ chế #{movement.ProductionRunId}" : movement.InventoryDocumentId.HasValue ? $"Chứng từ kho #{movement.InventoryDocumentId}" : "Biến động trực tiếp";
                                     <tr>
-                                        <td class="text-nowrap">@AdminStatusDisplay.DateTime(movement.CreatedAt.ToLocalTime())</td>
+                                        <td class="text-nowrap">@AdminStatusDisplay.DateTime(BusinessDateService.ToBusinessTime(movement.CreatedAt))</td>
                                         <td>@AdminStatusDisplay.InventoryTransactionType(movement.Type)</td>
                                         <td class="number fw-bold @(movement.Quantity < 0 ? "text-danger" : "text-success")">@(movement.Quantity > 0 ? "+" : "")@AdminStatusDisplay.Quantity(movement.Quantity)</td>
                                         <td class="number">@AdminStatusDisplay.Quantity(movement.BeforeQty)</td>

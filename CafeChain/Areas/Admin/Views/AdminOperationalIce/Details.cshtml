@@ -1,6 +1,7 @@
 @model CafeChain.ViewModels.Admin.OperationalIce.OperationalIceDetailVM
 @using CafeChain.Application.Constants
 @using System.Globalization
+@inject Microsoft.Extensions.Options.IOptions<CafeChain.Application.Options.WorkShiftOptions> WorkShiftConfiguration
 @{
     ViewData["Title"] = $"Ca đá {Model.ShiftName}";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -29,6 +30,10 @@
     string DisplayQuantity(decimal value) => $"{DisplayNumber(value)} {unit}";
     string DisplayNullableQuantity(decimal? value) =>
         value.HasValue ? DisplayQuantity(value.Value) : "—";
+    var businessTimeZone = WorkShiftConfiguration.Value.ResolveTimeZone();
+    DateTime BusinessLocal(DateTime value) => TimeZoneInfo.ConvertTimeFromUtc(
+        value.Kind == DateTimeKind.Utc ? value : DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        businessTimeZone);
     string DisplayMoney(decimal? value) =>
         value.HasValue ? $"{value.Value.ToString("N0", viCulture)} đ" : "Chưa có giá";
     var totalIssued = Model.InitialIssuedQuantity + Model.SupplementalIssuedQuantity;
@@ -47,7 +52,7 @@
             </a>
             <div class="ice-eyebrow">@Model.StoreName · @Model.BusinessDate.ToString("dd/MM/yyyy")</div>
             <h1>@Model.ShiftName</h1>
-            <p>@Model.IngredientName · @Model.StartAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") – @Model.EndAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+            <p>@Model.IngredientName · @BusinessLocal(Model.StartAtUtc).ToString("dd/MM/yyyy HH:mm") – @BusinessLocal(Model.EndAtUtc).ToString("dd/MM/yyyy HH:mm")</p>
         </div>
         <div class="ice-header-actions">
             @if (Model.CanViewReport)
@@ -136,8 +141,8 @@
                                 <tr>
                                     <td><strong>#@shift.WorkShiftId</strong></td>
                                     <td>@shift.StaffName</td>
-                                    <td>@shift.StartTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td>@(shift.EndTime?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "Đang mở")</td>
+                                    <td>@BusinessLocal(shift.StartTime).ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@(shift.EndTime.HasValue ? BusinessLocal(shift.EndTime.Value).ToString("dd/MM/yyyy HH:mm") : "Đang mở")</td>
                                     <td><span class="ice-badge ice-badge-neutral">@OperationalIceDisplayText.WorkShiftStatus(shift.Status)</span></td>
                                 </tr>
                             }
@@ -169,6 +174,18 @@
                         </div>
                     </form>
                 }
+                else if (isOpen && Model.CanLinkWorkShift && Model.WorkShiftCandidateMessages.Count > 0)
+                {
+                    <div class="ice-notice ice-notice-info" role="status">
+                        <strong>Chưa có ca bán hàng POS có thể liên kết.</strong>
+                        <ul>
+                            @foreach (var message in Model.WorkShiftCandidateMessages)
+                            {
+                                <li>@message</li>
+                            }
+                        </ul>
+                    </div>
+                }
             </section>
 
             <section class="ice-panel">
@@ -193,7 +210,7 @@
                             @foreach (var item in Model.Supplements)
                             {
                                 <tr>
-                                    <td>@item.RequestedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@BusinessLocal(item.RequestedAtUtc).ToString("dd/MM/yyyy HH:mm")</td>
                                     <td>@item.RequestedBy</td>
                                     <td class="ice-number">@DisplayQuantity(item.Quantity)</td>
                                     <td>@item.Reason</td>
@@ -336,7 +353,7 @@
                             @foreach (var posting in Model.Postings)
                             {
                                 <tr>
-                                    <td>@posting.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@BusinessLocal(posting.CreatedAtUtc).ToString("dd/MM/yyyy HH:mm")</td>
                                     <td>Hao hụt vượt lý thuyết</td>
                                     <td class="ice-number">@DisplayQuantity(posting.Quantity)</td>
                                     <td>@DisplayMoney(posting.TotalCost)</td>
