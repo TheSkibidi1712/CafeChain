@@ -122,6 +122,8 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
     public async Task SeedAll_v13_runs_twice_and_exercises_all_dashboard_contracts()
     {
         var root = FindRepoRoot();
+        var locations = File.ReadAllText(Path.Combine(root, "CafeChain", "Scripts", "SeedDataDiaChi.sql"))
+            .Replace("USE CafeChain;", $"USE [{Database}];", StringComparison.OrdinalIgnoreCase);
         var seed = File.ReadAllText(Path.Combine(root, "CafeChain", "Scripts", "SeedAll.sql"))
             .Replace("$(TargetDatabase)", Database, StringComparison.Ordinal)
             .Replace("use CafeChain", $"use [{Database}]", StringComparison.OrdinalIgnoreCase)
@@ -132,6 +134,7 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
             "20260717_DashboardAnalyticsStoredProcedures.idempotent.sql"))
             .Replace("use CafeChain", $"use [{Database}]", StringComparison.OrdinalIgnoreCase);
 
+        await ExecuteBatchesAsync(locations);
         await ExecuteBatchesAsync(seed);
         await using (var overrideConnection = new SqlConnection(ConnectionString))
         {
@@ -191,6 +194,24 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
             "SELECT COUNT_BIG(1) FROM dbo.Permissions WHERE Code IN(N'Drink.Delete',N'Category.Delete',N'Size.Delete',N'Topping.Delete') AND Active=0;", 4L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.AccountPermissionOverrides WHERE Reason=N'RBAC_PRESERVE_TEST' AND Effect=2;", 1L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Roles WHERE Name=N'Khách hàng';", 0L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Accounts WHERE Email=N'khachhang@gmail.com';", 0L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Customers WHERE CustomerCode=N'CUS000111';", 0L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.PermissionGroups WHERE Code=N'CUSTOMER' AND Active=1;", 1L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.MemberLevels;", 3L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.PointTransactionTypes;", 4L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.Vouchers;", 3L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.WheelConfigs WHERE Name=N'DEMO_COVERAGE_V17_WHEEL';", 0L);
+        await AssertScalarAsync(connection,
+            "SELECT COUNT_BIG(1) FROM dbo.RatingImages WHERE PublicId=N'demo_coverage_v17_rating';", 0L);
         await AssertScalarAsync(connection,
             "SELECT COUNT_BIG(1) FROM dbo.RolePermissions rp JOIN dbo.Permissions p ON p.PermissionId=rp.PermissionId JOIN dbo.Roles r ON r.RoleId=rp.RoleId WHERE p.Code=N'App.AdminDashboard' AND r.Name IN(N'Chủ doanh nghiệp',N'Quản lý vùng',N'Quản lý chi nhánh',N'Kế toán/kho');", 4L);
         await AssertScalarAsync(connection,

@@ -148,11 +148,11 @@ flowchart LR
     Order --> Sync[Trừ kho/retry và in hóa đơn]
 ```
 
-## 8. Khách hàng (`Customer`)
+## 8. Khách hàng (`Customer` claim)
 
 **Mục tiêu:** sử dụng các surface đặt hàng/tài khoản khách nếu được triển khai trong deployment.
 
-`CODE_CONFIRMED` Entity và role khách hàng tồn tại, cùng các controller/order surface phía khách. `UNKNOWN_NEEDS_CONFIRMATION` phạm vi demo bảo vệ nên ưu tiên POS nhân viên; luồng khách hàng online chưa được runtime verify trong task này và không nên tuyên bố ngang mức với POS.
+`CODE_CONFIRMED` Entity và claim khách hàng tồn tại cùng các controller/order surface phía khách. Database không seed role/account khách hàng; account có quan hệ `Customer` nhận claim khách hàng khi đăng nhập. `UNKNOWN_NEEDS_CONFIRMATION` phạm vi demo bảo vệ nên ưu tiên POS nhân viên; luồng khách hàng online chưa được runtime verify trong task này và không nên tuyên bố ngang mức với POS.
 
 ## Các điểm bàn giao giữa role
 

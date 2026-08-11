@@ -2,6 +2,7 @@ export const POS_TOKEN_KEY = 'pos_jwt_token'
 
 const POS_CONTEXT_KEY = 'pos_context'
 const POS_TERMINAL_KEY = 'CafeChain_POS_TerminalId'
+let posSessionEndInProgress = false
 
 const CLAIMS = {
   nameIdentifier: [
@@ -119,6 +120,19 @@ export function clearPosAuthentication(): void {
   window.dispatchEvent(new CustomEvent('pos-session-changed', {
     detail: getPosSession(),
   }))
+}
+
+export function beginPosSessionEnd(): void {
+  posSessionEndInProgress = true
+}
+
+export function cancelPosSessionEnd(): void {
+  if (!posSessionEndInProgress) return
+  posSessionEndInProgress = false
+}
+
+export function isPosSessionEndInProgress(): boolean {
+  return posSessionEndInProgress
 }
 
 export function completeOpeningCash(workShiftId: number): void {

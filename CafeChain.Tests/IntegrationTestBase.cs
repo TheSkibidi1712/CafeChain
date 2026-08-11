@@ -148,7 +148,6 @@ namespace CafeChain.Tests
                 new Role { RoleId = 4, Name = RoleConstants.SalesStaff, Active = true, IsStoreLevel = true, CreatedAt = new DateTime(2026, 1, 1) },
                 new Role { RoleId = 5, Name = RoleConstants.AccountantWarehouse, Active = true, IsStoreLevel = true, CreatedAt = new DateTime(2026, 1, 1) },
                 new Role { RoleId = 6, Name = RoleConstants.SystemAdmin, Active = true, CreatedAt = new DateTime(2026, 1, 1) },
-                new Role { RoleId = 7, Name = RoleConstants.Customer, Active = true, CreatedAt = new DateTime(2026, 1, 1) },
                 new Role { RoleId = 8, Name = RoleConstants.ShiftSupervisor, Active = true, IsStoreLevel = true, CreatedAt = new DateTime(2026, 1, 1) });
             context.AccountRoles.AddRange(
                 new AccountRole { AccountId = 1, RoleId = 1 },
@@ -157,7 +156,6 @@ namespace CafeChain.Tests
                 new AccountRole { AccountId = 4, RoleId = 4 },
                 new AccountRole { AccountId = 5, RoleId = 5 },
                 new AccountRole { AccountId = 6, RoleId = 6 },
-                new AccountRole { AccountId = 7, RoleId = 7 },
                 new AccountRole { AccountId = 15, RoleId = 8 });
             context.SaveChanges();
         }

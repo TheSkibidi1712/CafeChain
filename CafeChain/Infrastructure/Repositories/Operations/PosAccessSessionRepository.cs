@@ -107,10 +107,30 @@ public sealed class PosAccessSessionRepository : IPosAccessSessionRepository
     public async Task<IReadOnlyList<PosAccessSession>> GetDueForExpiryAsync(
         DateTime nowUtc, int take, CancellationToken cancellationToken = default) =>
         await _db.PosAccessSessions
+            .AsNoTracking()
             .Where(x => x.Status == PosAccessSessionStatuses.Active && x.ExpiresAtUtc <= nowUtc)
             .OrderBy(x => x.ExpiresAtUtc)
             .Take(Math.Clamp(take, 1, 500))
             .ToListAsync(cancellationToken);
+
+    public async Task<bool> TryEndActiveAsync(
+        Guid publicId,
+        string status,
+        DateTime endedAtUtc,
+        int? endedByStaffId,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        var affected = await _db.PosAccessSessions
+            .Where(x => x.PublicId == publicId && x.Status == PosAccessSessionStatuses.Active)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.Status, status)
+                .SetProperty(x => x.EndedAtUtc, endedAtUtc)
+                .SetProperty(x => x.EndedByStaffId, endedByStaffId)
+                .SetProperty(x => x.EndReason, reason),
+                cancellationToken);
+        return affected == 1;
+    }
 
     public async Task BindWorkShiftAsync(Guid publicId, int workShiftId, CancellationToken cancellationToken = default)
     {

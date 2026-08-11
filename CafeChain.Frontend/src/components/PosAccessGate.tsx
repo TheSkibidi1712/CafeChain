@@ -1,7 +1,12 @@
-import { type ReactNode, useCallback, useEffect, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { API_BASE_URL, apiClient } from '../services/apiClient'
-import { clearPosAuthentication, getPosSession } from '../services/posSession'
+import {
+  clearPosAuthentication,
+  getPosSession,
+  isPosSessionEndInProgress,
+  type PosSession,
+} from '../services/posSession'
 
 type PosAccessMode = 'OPENING_CASH' | 'ACTIVE' | 'PENDING_CLOSE'
 
@@ -37,20 +42,28 @@ export default function PosAccessGate({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<PosAccessSnapshot | null>(null)
   const [networkError, setNetworkError] = useState<string | null>(null)
   const [checking, setChecking] = useState(true)
+  const validationSequenceRef = useRef(0)
 
-  const validate = useCallback(async () => {
+  const validate = useCallback(async (showProgress = false) => {
+    const validationSequence = ++validationSequenceRef.current
+    if (showProgress) setChecking(true)
     const session = getPosSession()
     if (!session.token) {
+      if (isPosSessionEndInProgress()) return
       redirectToStaffHub('POS_SESSION_INVALID', 'Bạn cần mở POS từ StaffHub.')
       return
     }
 
     const response = await apiClient.get<CurrentSessionEnvelope>('/api/v1/pos/session/current')
+    if (validationSequence !== validationSequenceRef.current) return
     if (!response.ok || !response.data?.data) {
       const payload = response.data
       if (response.status === 0) {
         setNetworkError('Không thể xác minh quyền POS. Kiểm tra kết nối rồi thử lại.')
         setChecking(false)
+        return
+      }
+      if (isPosSessionEndInProgress() && payload?.errorCode === 'SHIFT_ALREADY_CLOSED') {
         return
       }
       redirectToStaffHub(
@@ -72,11 +85,18 @@ export default function PosAccessGate({ children }: { children: ReactNode }) {
       if (document.visibilityState === 'visible') void validate()
     }
     const timer = window.setInterval(() => void validate(), 30_000)
+    const onSessionChanged = (event: Event) => {
+      const nextSession = (event as CustomEvent<PosSession>).detail
+      if (!nextSession?.token) return
+      void validate(true)
+    }
     window.addEventListener('focus', onFocus)
+    window.addEventListener('pos-session-changed', onSessionChanged)
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
       window.clearInterval(timer)
       window.removeEventListener('focus', onFocus)
+      window.removeEventListener('pos-session-changed', onSessionChanged)
       document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [validate])

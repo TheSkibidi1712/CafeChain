@@ -34,12 +34,6 @@ namespace CafeChain.Data.Configurations.Customers.CustomerInfos
                 .HasForeignKey(x => x.ProvinceId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ─── Seed data ────────────────────────────────────────────────────────
-            // ⚠️ WardId = NULL vì bảng Wards sẽ bị xóa sạch và nạp lại qua vietnam_locations.sql
-            // Sau khi chạy SeedDataDiaChi.sql, cập nhật WardId/ProvinceId tương ứng.
-            entity.HasData(
-                new CustomerAddress { CustomerAddressId = 1, CustomerId = 1, Address = "987 Đường P", WardId = null, IsDefault = false }
-            );
         }
     }
 }

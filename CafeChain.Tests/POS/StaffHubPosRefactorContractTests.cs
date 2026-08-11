@@ -364,6 +364,47 @@ public sealed class StaffHubPosRefactorContractTests
         Assert.Contains("OtpConstants.Statuses.Rejected", repository, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Opening_cash_refreshes_access_gate_without_reload()
+    {
+        var gate = Read("CafeChain.Frontend", "src", "components", "PosAccessGate.tsx");
+        var posSession = Read("CafeChain.Frontend", "src", "services", "posSession.ts");
+
+        Assert.Contains("window.addEventListener('pos-session-changed', onSessionChanged)", gate, StringComparison.Ordinal);
+        Assert.Contains("void validate(true)", gate, StringComparison.Ordinal);
+        Assert.Contains("validationSequenceRef", gate, StringComparison.Ordinal);
+        Assert.Contains("validationSequence !== validationSequenceRef.current", gate, StringComparison.Ordinal);
+        Assert.Contains("completeOpeningCash", posSession, StringComparison.Ordinal);
+        Assert.Contains("window.dispatchEvent(new CustomEvent('pos-session-changed'", posSession, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Intentional_workshift_close_does_not_surface_session_end_as_an_error()
+    {
+        var summary = Read("CafeChain.Frontend", "src", "pages", "ShiftSummary.tsx");
+        var posSession = Read("CafeChain.Frontend", "src", "services", "posSession.ts");
+
+        Assert.Contains("beginPosSessionEnd()", summary, StringComparison.Ordinal);
+        Assert.Contains("status === 'WORKSHIFT_ENDED' && isPosSessionEndInProgress()", summary, StringComparison.Ordinal);
+        Assert.Contains("response.data?.success === true", summary, StringComparison.Ordinal);
+        Assert.Contains("response.data?.errorCode === 'SHIFT_ALREADY_CLOSED'", summary, StringComparison.Ordinal);
+        Assert.Contains("redirectToStaffHubHome()", summary, StringComparison.Ordinal);
+        Assert.DoesNotContain("redirectToStaffHub(terminalId, undefined, 'SHIFT_ALREADY_CLOSED')", summary, StringComparison.Ordinal);
+        Assert.Contains("export function isPosSessionEndInProgress()", posSession, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pos_api_client_hides_html_and_stack_traces_from_server_errors()
+    {
+        var apiClient = Read("CafeChain.Frontend", "src", "services", "apiClient.ts");
+
+        Assert.Contains("GENERIC_SERVER_ERROR", apiClient, StringComparison.Ordinal);
+        Assert.Contains("shouldHideServerErrorBody", apiClient, StringComparison.Ordinal);
+        Assert.Contains("contentType.toLowerCase().includes('text/html')", apiClient, StringComparison.Ordinal);
+        Assert.Contains("dbupdateconcurrencyexception", apiClient, StringComparison.Ordinal);
+        Assert.Contains("errorText && !hideServerError", apiClient, StringComparison.Ordinal);
+    }
+
     private static string Read(params string[] path) =>
         File.ReadAllText(Path.Combine([RepoRoot(), .. path]));
 

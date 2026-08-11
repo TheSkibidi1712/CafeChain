@@ -9,6 +9,11 @@ public sealed class CafeChain29RbacSourceTests
     private static readonly string[] ManagedRoleKeys =
         ["CDN", "QLV", "QLCN", "NVBH", "KTK", "QTHT", "KH", "CT"];
 
+    // The matrix keeps its legacy KH bit column for script compatibility, but
+    // customer identity is no longer represented by a database role.
+    private static readonly string[] SeededRoleKeys =
+        ["CDN", "QLV", "QLCN", "NVBH", "KTK", "QTHT", "CT"];
+
     [Fact]
     public void SeedAll_ReconcilesByCodeAndRoleName_WithoutMutatingOverrides()
     {
@@ -103,7 +108,7 @@ public sealed class CafeChain29RbacSourceTests
                 match => int.Parse(match.Groups["count"].Value),
                 StringComparer.Ordinal);
 
-        Assert.Equal(ManagedRoleKeys.Length - 1, expectedCounts.Count);
+        Assert.Equal(SeededRoleKeys.Length - 1, expectedCounts.Count);
         Assert.Contains(
             "INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)\n SELECT N'QTHT',COUNT(*)",
             seed.Replace("\r\n", "\n", StringComparison.Ordinal),

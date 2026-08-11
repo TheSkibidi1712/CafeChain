@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260810115400_InitialCreate")]
+    [Migration("20260811084621_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -565,16 +565,6 @@ namespace CafeChain.Migrations
                         },
                         new
                         {
-                            AccountId = 7,
-                            Active = true,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "khachhang@gmail.com",
-                            FailedLoginAttempts = 0,
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
-                            RequiresPasswordChange = true
-                        },
-                        new
-                        {
                             AccountId = 15,
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -694,26 +684,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("MemberLevelId");
 
                     b.ToTable("Customers", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            CustomerId = 1,
-                            AccountId = 7,
-                            Active = true,
-                            AvatarPublicId = "avtdf_r3cjq5",
-                            AvatarUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779801172/avtdf_r3cjq5.jpg",
-                            Category = 2,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CurrentPoints = 0,
-                            CustomerCode = "CUS000111",
-                            DateOfBirth = new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Khách Hàng Mới",
-                            Gender = 1,
-                            IsDeleted = false,
-                            TotalOrders = 0,
-                            TotalSpent = 0m
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerAddress", b =>
@@ -759,16 +729,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("WardId");
 
                     b.ToTable("CustomerAddresses", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            CustomerAddressId = 1,
-                            Address = "987 Đường P",
-                            CustomerId = 1,
-                            IsDefault = false,
-                            IsDeleted = false
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerBank", b =>
@@ -800,15 +760,6 @@ namespace CafeChain.Migrations
                         .IsUnique();
 
                     b.ToTable("CustomerBanks", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            CustomerBankId = 1,
-                            AccountNumber = "111222333444",
-                            BankName = "Vietcombank",
-                            CustomerId = 1
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerPhone", b =>
@@ -838,15 +789,6 @@ namespace CafeChain.Migrations
                         .IsUnique();
 
                     b.ToTable("CustomerPhones", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            CustomerPhoneId = 1,
-                            CustomerId = 1,
-                            IsDefault = false,
-                            Phone = "0900111222"
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.PasswordResetOtp", b =>
