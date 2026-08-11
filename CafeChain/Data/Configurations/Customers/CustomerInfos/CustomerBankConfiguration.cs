@@ -23,10 +23,6 @@ namespace CafeChain.Data.Configurations.Customers.CustomerInfos
             entity.HasIndex(x => new { x.BankName, x.AccountNumber })
                 .IsUnique();
 
-            // ===== CLEAN SLATE: Chỉ 1 Bank cho Customer 111 =====
-            entity.HasData(
-                new CustomerBank { CustomerBankId = 1, CustomerId = 1, BankName = "Vietcombank", AccountNumber = "111222333444" }
-            );
         }
     }
 }

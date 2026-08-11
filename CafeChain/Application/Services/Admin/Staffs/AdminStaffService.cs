@@ -31,7 +31,6 @@ namespace CafeChain.Application.Services.Admin.Staffs
         private const int ROLE_SALES_STAFF = 4;             // Nhân viên bán hàng
         private const int ROLE_ACCOUNTANT_WAREHOUSE = 5;    // Kế toán/kho
         private const int ROLE_SYSTEM_ADMIN = 6;            // Quản trị hệ thống
-        private const int ROLE_CUSTOMER = 7;                // Khách hàng
         private const int ROLE_SHIFT_SUPERVISOR = 8;        // Ca trưởng
 
         private const int SCOPE_COUNTRY = (int)ScopeLevel.Country;
@@ -45,8 +44,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
             ROLE_BUSINESS_OWNER,
             ROLE_AREA_MANAGER,
             ROLE_STORE_MANAGER,
-            ROLE_SYSTEM_ADMIN,
-            ROLE_CUSTOMER
+            ROLE_SYSTEM_ADMIN
         };
 
         // AreaManager may only assign store-operational roles (Issue #94 — fix fragile RoleId range).
@@ -136,14 +134,14 @@ namespace CafeChain.Application.Services.Admin.Staffs
             // Lấy toàn bộ role
             var roles = await _repository.GetRolesForDropdownAsync(null);
 
-            // Form Quản lý Nhân sự không hiển thị Khách hàng
+            // Repository chỉ trả về các vai trò nhân sự có thể quản trị.
             roles = roles
-                .Where(r => r.RoleId != ROLE_CUSTOMER && GetRoleRank(r.RoleId) > GetActorRank(user))
+                .Where(r => GetRoleRank(r.RoleId) > GetActorRank(user))
                 .ToList();
 
             if (isAdmin)
             {
-                // Admin/SystemAdmin: toàn bộ role nội bộ (gồm Ca trưởng), trừ Khách hàng.
+                // Admin/SystemAdmin: toàn bộ role nội bộ (gồm Ca trưởng).
             }
             else if (isStoreManager)
             {
@@ -418,9 +416,8 @@ namespace CafeChain.Application.Services.Admin.Staffs
             var (isAdmin, isStoreManager, currentStoreId) = ExtractUserClaims(user);
 
             var actorIsOwner = user.IsInRole(RoleConstants.BusinessOwner);
-            if ((actorIsOwner && model.SelectedRoleId == ROLE_SYSTEM_ADMIN)
-                || model.SelectedRoleId == ROLE_CUSTOMER)
-                return ServiceResult.Failure("Không được gán vai trò Quản trị hệ thống từ Chủ doanh nghiệp hoặc gán vai trò Khách hàng cho nhân viên.");
+            if (actorIsOwner && model.SelectedRoleId == ROLE_SYSTEM_ADMIN)
+                return ServiceResult.Failure("Chủ doanh nghiệp không được gán vai trò Quản trị hệ thống.");
 
             if (GetRoleRank(model.SelectedRoleId) <= GetActorRank(user))
                 return ServiceResult.Failure("Bạn chỉ được gán vai trò thấp hơn vai trò của chính mình.");
@@ -584,9 +581,10 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 CreatedAt = DateTime.Now
             };
 
-            var accountRoles = model.SelectedRoleId != ROLE_CUSTOMER
-                ? new List<AccountRole> { new AccountRole { RoleId = model.SelectedRoleId } }
-                : new List<AccountRole>();
+            var accountRoles = new List<AccountRole>
+            {
+                new() { RoleId = model.SelectedRoleId }
+            };
 
             var staffScopes = new List<StaffScope>
             {

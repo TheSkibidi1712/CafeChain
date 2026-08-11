@@ -65,7 +65,13 @@ public sealed class PosAccessSessionServiceTests
         Assert.False(result.IsSuccess);
         Assert.Equal("POS_SESSION_EXPIRED", result.ErrorCode);
         Assert.Equal(PosAccessSessionStatuses.Expired, expired.Status);
-        repository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        repository.Verify(x => x.TryEndActiveAsync(
+            expired.PublicId,
+            PosAccessSessionStatuses.Expired,
+            Now.UtcDateTime,
+            null,
+            "POS access session đã hết hạn.",
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -192,6 +198,26 @@ public sealed class PosAccessSessionServiceTests
         repository.Setup(x => x.GetDueForExpiryAsync(
                 Now.UtcDateTime, 200, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { first, second });
+        repository.Setup(x => x.TryEndActiveAsync(
+                It.IsAny<Guid>(),
+                PosAccessSessionStatuses.Expired,
+                Now.UtcDateTime,
+                null,
+                "POS access session đã hết hạn.",
+                It.IsAny<CancellationToken>()))
+            .Callback<Guid, string, DateTime, int?, string, CancellationToken>((id, status, endedAtUtc, actor, reason, _) =>
+            {
+                var session = new[] { first, second }.Single(x => x.PublicId == id);
+                session.Status = status;
+                session.EndedAtUtc = endedAtUtc;
+                session.EndedByStaffId = actor;
+                session.EndReason = reason;
+            })
+            .ReturnsAsync(true);
+        repository.Setup(x => x.GetByPublicIdAsync(
+                It.IsAny<Guid>(), false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid id, bool _, CancellationToken _) =>
+                new[] { first, second }.SingleOrDefault(x => x.PublicId == id));
         repository.Setup(x => x.BeginTransactionAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         repository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -230,12 +256,151 @@ public sealed class PosAccessSessionServiceTests
             It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
+    [Fact]
+    public async Task Concurrent_closed_workshift_validation_loser_reads_final_state_without_duplicate_side_effects()
+    {
+        var stale = Session(PosAccessSessionStatuses.Active, Now.AddHours(1).UtcDateTime);
+        stale.WorkShiftId = 501;
+        stale.WorkShift = WorkShift(501, WorkShiftStatuses.Closed);
+        var ended = Session(PosAccessSessionStatuses.WorkShiftEnded, Now.AddHours(1).UtcDateTime);
+        ended.PublicId = stale.PublicId;
+        ended.JwtId = stale.JwtId;
+        ended.WorkShiftId = stale.WorkShiftId;
+        ended.WorkShift = stale.WorkShift;
+        ended.EndReason = "Ca làm việc đã kết thúc.";
+
+        var repository = new Mock<IPosAccessSessionRepository>();
+        repository.Setup(x => x.GetByPublicIdAsync(stale.PublicId, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stale);
+        repository.Setup(x => x.TryEndActiveAsync(
+                stale.PublicId,
+                It.IsAny<string>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<int?>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        repository.Setup(x => x.GetByPublicIdAsync(stale.PublicId, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ended);
+        var audit = new Mock<IWorkShiftAuditService>();
+        var publisher = new Mock<IPosAccessSessionPublisher>();
+
+        var result = await new PosAccessSessionService(
+                repository.Object, publisher.Object, audit.Object, new FixedTimeProvider(Now))
+            .ValidateAsync(stale.PublicId, stale.JwtId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(WorkShiftErrorCodes.ShiftAlreadyClosed, result.ErrorCode);
+        audit.Verify(x => x.WriteAsync(
+            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(),
+            It.IsAny<object>(), It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Never);
+        publisher.Verify(x => x.PublishAsync(
+            It.IsAny<PosAccessSessionChangedDto>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Concurrent_different_terminal_state_wins_and_preserves_its_error_code()
+    {
+        var stale = Session(PosAccessSessionStatuses.Active, Now.AddHours(1).UtcDateTime);
+        stale.WorkShiftId = 501;
+        stale.WorkShift = WorkShift(501, WorkShiftStatuses.Closed);
+        var revoked = Session(PosAccessSessionStatuses.Revoked, Now.AddHours(1).UtcDateTime);
+        revoked.PublicId = stale.PublicId;
+        revoked.JwtId = stale.JwtId;
+        revoked.EndReason = "Phiên POS đã bị thu hồi.";
+
+        var repository = new Mock<IPosAccessSessionRepository>();
+        repository.Setup(x => x.GetByPublicIdAsync(stale.PublicId, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stale);
+        repository.Setup(x => x.TryEndActiveAsync(
+                It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<int?>(),
+                It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        repository.Setup(x => x.GetByPublicIdAsync(stale.PublicId, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(revoked);
+
+        var result = await new PosAccessSessionService(
+                repository.Object, timeProvider: new FixedTimeProvider(Now))
+            .ValidateAsync(stale.PublicId, stale.JwtId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("POS_SESSION_REVOKED", result.ErrorCode);
+        Assert.Equal(revoked.EndReason, result.Message);
+    }
+
+    [Fact]
+    public async Task Session_deleted_after_read_returns_stable_invalid_error()
+    {
+        var stale = Session(PosAccessSessionStatuses.Active, Now.AddSeconds(-1).UtcDateTime);
+        var repository = new Mock<IPosAccessSessionRepository>();
+        repository.Setup(x => x.GetByPublicIdAsync(stale.PublicId, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stale);
+        repository.Setup(x => x.TryEndActiveAsync(
+                It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<int?>(),
+                It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        repository.Setup(x => x.GetByPublicIdAsync(stale.PublicId, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PosAccessSession?)null);
+
+        var result = await new PosAccessSessionService(
+                repository.Object, timeProvider: new FixedTimeProvider(Now))
+            .ValidateAsync(stale.PublicId, stale.JwtId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("POS_SESSION_INVALID", result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task Active_session_after_one_retry_returns_stable_conflict_instead_of_throwing()
+    {
+        var stale = Session(PosAccessSessionStatuses.Active, Now.AddSeconds(-1).UtcDateTime);
+        var repository = new Mock<IPosAccessSessionRepository>();
+        repository.Setup(x => x.GetByPublicIdAsync(stale.PublicId, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stale);
+        repository.Setup(x => x.TryEndActiveAsync(
+                It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<int?>(),
+                It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        repository.Setup(x => x.GetByPublicIdAsync(stale.PublicId, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stale);
+
+        var result = await new PosAccessSessionService(
+                repository.Object, timeProvider: new FixedTimeProvider(Now))
+            .ValidateAsync(stale.PublicId, stale.JwtId);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("POS_SESSION_CONFLICT", result.ErrorCode);
+        repository.Verify(x => x.TryEndActiveAsync(
+            stale.PublicId,
+            PosAccessSessionStatuses.Expired,
+            It.IsAny<DateTime>(),
+            null,
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
     private static Mock<IPosAccessSessionRepository> RepositoryReturning(PosAccessSession session)
     {
         var repository = new Mock<IPosAccessSessionRepository>();
         repository.Setup(x => x.GetByPublicIdAsync(session.PublicId, true, It.IsAny<CancellationToken>()))
             .ReturnsAsync(session);
-        repository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repository.Setup(x => x.GetByPublicIdAsync(session.PublicId, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(session);
+        repository.Setup(x => x.TryEndActiveAsync(
+                session.PublicId,
+                It.IsAny<string>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<int?>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<Guid, string, DateTime, int?, string, CancellationToken>((_, status, endedAtUtc, actor, reason, _) =>
+            {
+                session.Status = status;
+                session.EndedAtUtc = endedAtUtc;
+                session.EndedByStaffId = actor;
+                session.EndReason = reason;
+            })
+            .ReturnsAsync(true);
         return repository;
     }
 

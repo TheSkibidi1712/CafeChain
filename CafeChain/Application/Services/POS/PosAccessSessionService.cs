@@ -13,6 +13,7 @@ namespace CafeChain.Application.Services.POS;
 
 public sealed class PosAccessSessionService : IPosAccessSessionService
 {
+    private const string SessionConflictErrorCode = "POS_SESSION_CONFLICT";
     private readonly IPosAccessSessionRepository _repository;
     private readonly IPosAccessSessionPublisher? _publisher;
     private readonly IWorkShiftAuditService? _audit;
@@ -110,26 +111,39 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
 
         if (session.ExpiresAtUtc <= nowUtc)
         {
-            await EndTrackedAsync(session, PosAccessSessionStatuses.Expired, null,
-                "POS access session đã hết hạn.", cancellationToken);
-            return ServiceResult<PosAccessSessionDto>.Failure("POS access session đã hết hạn.", errorCode: "POS_SESSION_EXPIRED");
+            return await EndAndRejectAsync(
+                session,
+                PosAccessSessionStatuses.Expired,
+                null,
+                "POS access session đã hết hạn.",
+                "POS access session đã hết hạn.",
+                "POS_SESSION_EXPIRED",
+                cancellationToken);
         }
 
         if (!session.Account.Active || !session.Staff.Active || !session.Store.Active || !session.Terminal.Active)
         {
-            await EndTrackedAsync(session, PosAccessSessionStatuses.TerminalLocked, null,
-                "Tài khoản, cửa hàng hoặc Terminal không còn hoạt động.", cancellationToken);
-            return ServiceResult<PosAccessSessionDto>.Failure(
-                "Terminal đã bị khóa hoặc thu hồi.", errorCode: "POS_TERMINAL_LOCKED");
+            return await EndAndRejectAsync(
+                session,
+                PosAccessSessionStatuses.TerminalLocked,
+                null,
+                "Tài khoản, cửa hàng hoặc Terminal không còn hoạt động.",
+                "Terminal đã bị khóa hoặc thu hồi.",
+                "POS_TERMINAL_LOCKED",
+                cancellationToken);
         }
 
         if (session.Terminal.StoreId != session.StoreId
             || !string.Equals(session.Terminal.TerminalId, session.TerminalId, StringComparison.Ordinal))
         {
-            await EndTrackedAsync(session, PosAccessSessionStatuses.Revoked, null,
-                "Phiên POS không còn thuộc đúng nhân viên, cửa hàng hoặc Terminal.", cancellationToken);
-            return ServiceResult<PosAccessSessionDto>.Failure(
-                "Bạn không thuộc cửa hàng hoặc Terminal này.", errorCode: WorkShiftErrorCodes.PosAccessDenied);
+            return await EndAndRejectAsync(
+                session,
+                PosAccessSessionStatuses.Revoked,
+                null,
+                "Phiên POS không còn thuộc đúng nhân viên, cửa hàng hoặc Terminal.",
+                "Bạn không thuộc cửa hàng hoặc Terminal này.",
+                WorkShiftErrorCodes.PosAccessDenied,
+                cancellationToken);
         }
 
         if (_permissions != null)
@@ -138,11 +152,14 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
                 session.AccountId, PermissionConstants.AppPos, session.StoreId);
             if (!permission.IsSuccess || permission.Data?.Allowed != true)
             {
-                await EndTrackedAsync(session, PosAccessSessionStatuses.Revoked, null,
-                    "Quyền sử dụng POS hoặc StaffScope đã bị thu hồi.", cancellationToken);
-                return ServiceResult<PosAccessSessionDto>.Failure(
+                return await EndAndRejectAsync(
+                    session,
+                    PosAccessSessionStatuses.Revoked,
+                    null,
+                    "Quyền sử dụng POS hoặc StaffScope đã bị thu hồi.",
                     "Bạn không có quyền truy cập POS tại cửa hàng này.",
-                    errorCode: WorkShiftErrorCodes.PosAccessDenied);
+                    WorkShiftErrorCodes.PosAccessDenied,
+                    cancellationToken);
             }
         }
 
@@ -155,20 +172,26 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
                 || shift.StoreId != session.StoreId
                 || !string.Equals(shift.PosTerminalId, session.TerminalId, StringComparison.Ordinal))
             {
-                await EndTrackedAsync(session, PosAccessSessionStatuses.WorkShiftEnded, null,
-                    "Phiên POS không còn gắn với ca làm việc hợp lệ.", cancellationToken);
-                return ServiceResult<PosAccessSessionDto>.Failure(
+                return await EndAndRejectAsync(
+                    session,
+                    PosAccessSessionStatuses.WorkShiftEnded,
+                    null,
+                    "Phiên POS không còn gắn với ca làm việc hợp lệ.",
                     "Ca làm việc không còn hợp lệ cho phiên POS này.",
-                    errorCode: WorkShiftErrorCodes.PosAccessDenied);
+                    WorkShiftErrorCodes.PosAccessDenied,
+                    cancellationToken);
             }
 
             if (shift.Status is WorkShiftStatuses.Closed or WorkShiftStatuses.ReconciliationRequired)
             {
-                await EndTrackedAsync(session, PosAccessSessionStatuses.WorkShiftEnded, null,
-                    "Ca làm việc đã kết thúc.", cancellationToken);
-                return ServiceResult<PosAccessSessionDto>.Failure(
+                return await EndAndRejectAsync(
+                    session,
+                    PosAccessSessionStatuses.WorkShiftEnded,
+                    null,
+                    "Ca làm việc đã kết thúc.",
                     "Ca làm việc đã kết thúc. Vui lòng quay lại StaffHub.",
-                    errorCode: WorkShiftErrorCodes.ShiftAlreadyClosed);
+                    WorkShiftErrorCodes.ShiftAlreadyClosed,
+                    cancellationToken);
             }
         }
 
@@ -213,78 +236,123 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
         var session = await _repository.GetByPublicIdAsync(publicId, tracking: true, cancellationToken);
         if (session == null) return ServiceResult.Failure("Không tìm thấy POS access session.", errorCode: "POS_SESSION_INVALID");
         if (session.Status != PosAccessSessionStatuses.Active) return ServiceResult.Success("POS access session đã kết thúc trước đó.");
-        await EndTrackedAsync(session, status, endedByStaffId, reason, cancellationToken);
-        return ServiceResult.Success("Đã kết thúc POS access session.");
+        var transition = await EndSessionAsync(session, status, endedByStaffId, reason, cancellationToken);
+        if (transition.Session == null)
+            return ServiceResult.Failure("POS access session không còn tồn tại.", errorCode: "POS_SESSION_INVALID");
+        if (transition.HasConflict)
+            return ServiceResult.Failure(
+                "Trạng thái POS access session đang được cập nhật. Vui lòng thử lại.",
+                errorCode: SessionConflictErrorCode);
+        return ServiceResult.Success(transition.EndedNow
+            ? "Đã kết thúc POS access session."
+            : "POS access session đã kết thúc trước đó.");
     }
 
     public async Task<int> ExpireDueAsync(CancellationToken cancellationToken = default)
     {
         var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
-        await _repository.BeginTransactionAsync(cancellationToken);
-        IReadOnlyList<PosAccessSession> due;
-        try
-        {
-            due = await _repository.GetDueForExpiryAsync(nowUtc, 200, cancellationToken);
-            if (due.Count == 0)
-            {
-                await _repository.CommitTransactionAsync(cancellationToken);
-                return 0;
-            }
-
-            foreach (var session in due)
-            {
-                session.Status = PosAccessSessionStatuses.Expired;
-                session.EndedAtUtc = nowUtc;
-                session.EndReason = "POS access session đã hết hạn.";
-            }
-            await _repository.SaveChangesAsync(cancellationToken);
-            if (_audit != null)
-            {
-                foreach (var session in due)
-                    await _audit.WriteAsync(
-                        "POS_SESSION_EXPIRED",
-                        session.WorkShiftId ?? 0,
-                        session.StaffId,
-                        new { Status = PosAccessSessionStatuses.Active },
-                        new { session.PublicId, session.Status, session.ExpiresAtUtc, session.EndedAtUtc },
-                        cancellationToken);
-            }
-            await _repository.CommitTransactionAsync(cancellationToken);
-        }
-        catch
-        {
-            await _repository.RollbackTransactionAsync(cancellationToken);
-            throw;
-        }
-
+        var due = await _repository.GetDueForExpiryAsync(nowUtc, 200, cancellationToken);
+        var expiredCount = 0;
         foreach (var session in due)
-            await PublishSafeAsync(session, session.EndReason, cancellationToken);
-        return due.Count;
+        {
+            var transition = await EndSessionAsync(
+                session,
+                PosAccessSessionStatuses.Expired,
+                null,
+                "POS access session đã hết hạn.",
+                cancellationToken,
+                auditAction: "POS_SESSION_EXPIRED");
+            if (transition.EndedNow) expiredCount++;
+        }
+        return expiredCount;
     }
 
-    private async Task EndTrackedAsync(PosAccessSession session, string status, int? actor, string reason,
+    private async Task<ServiceResult<PosAccessSessionDto>> EndAndRejectAsync(
+        PosAccessSession session,
+        string status,
+        int? actor,
+        string endReason,
+        string rejectionMessage,
+        string rejectionErrorCode,
         CancellationToken cancellationToken)
     {
-        await _repository.BeginTransactionAsync(cancellationToken);
-        try
+        var transition = await EndSessionAsync(session, status, actor, endReason, cancellationToken);
+        if (transition.Session == null)
+            return ServiceResult<PosAccessSessionDto>.Failure(
+                "POS access session không hợp lệ.", errorCode: "POS_SESSION_INVALID");
+        if (transition.HasConflict)
+            return ServiceResult<PosAccessSessionDto>.Failure(
+                "Trạng thái POS access session đang được cập nhật. Vui lòng thử lại.",
+                errorCode: SessionConflictErrorCode);
+        if (transition.EndedNow || transition.Session.Status == status)
+            return ServiceResult<PosAccessSessionDto>.Failure(rejectionMessage, errorCode: rejectionErrorCode);
+        return ServiceResult<PosAccessSessionDto>.Failure(
+            transition.Session.EndReason ?? "POS access session đã kết thúc.",
+            errorCode: MapStatusError(transition.Session.Status));
+    }
+
+    private async Task<EndSessionTransition> EndSessionAsync(
+        PosAccessSession session,
+        string status,
+        int? actor,
+        string reason,
+        CancellationToken cancellationToken,
+        string auditAction = "POS_SESSION_ENDED")
+    {
+        var normalizedReason = string.IsNullOrWhiteSpace(reason)
+            ? "POS access session đã kết thúc."
+            : reason.Trim();
+
+        for (var attempt = 0; attempt < 2; attempt++)
         {
-            session.Status = status;
-            session.EndedAtUtc = _timeProvider.GetUtcNow().UtcDateTime;
-            session.EndedByStaffId = actor;
-            session.EndReason = string.IsNullOrWhiteSpace(reason) ? "POS access session đã kết thúc." : reason.Trim();
-            await _repository.SaveChangesAsync(cancellationToken);
-            if (_audit != null)
-                await _audit.WriteAsync("POS_SESSION_ENDED", session.WorkShiftId ?? 0, actor ?? session.StaffId,
-                    new { OldStatus = PosAccessSessionStatuses.Active },
-                    new { session.Status, session.EndReason, session.EndedAtUtc }, cancellationToken);
-            await _repository.CommitTransactionAsync(cancellationToken);
+            var endedAtUtc = _timeProvider.GetUtcNow().UtcDateTime;
+            await _repository.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var endedNow = await _repository.TryEndActiveAsync(
+                    session.PublicId,
+                    status,
+                    endedAtUtc,
+                    actor,
+                    normalizedReason,
+                    cancellationToken);
+                if (endedNow)
+                {
+                    if (_audit != null)
+                        await _audit.WriteAsync(
+                            auditAction,
+                            session.WorkShiftId ?? 0,
+                            actor ?? session.StaffId,
+                            new { OldStatus = PosAccessSessionStatuses.Active },
+                            new { Status = status, EndReason = normalizedReason, EndedAtUtc = endedAtUtc },
+                            cancellationToken);
+                    await _repository.CommitTransactionAsync(cancellationToken);
+                    var endedSession = await _repository.GetByPublicIdAsync(
+                        session.PublicId, tracking: false, cancellationToken);
+                    if (endedSession != null)
+                        await PublishSafeAsync(endedSession, endedSession.EndReason, cancellationToken);
+                    return new EndSessionTransition(endedSession, EndedNow: true, HasConflict: false);
+                }
+                await _repository.RollbackTransactionAsync(cancellationToken);
+            }
+            catch
+            {
+                await _repository.RollbackTransactionAsync(cancellationToken);
+                throw;
+            }
+
+            var current = await _repository.GetByPublicIdAsync(
+                session.PublicId, tracking: false, cancellationToken);
+            if (current == null)
+                return new EndSessionTransition(null, EndedNow: false, HasConflict: false);
+            if (current.Status != PosAccessSessionStatuses.Active)
+                return new EndSessionTransition(current, EndedNow: false, HasConflict: false);
         }
-        catch
-        {
-            await _repository.RollbackTransactionAsync(cancellationToken);
-            throw;
-        }
-        await PublishSafeAsync(session, session.EndReason, cancellationToken);
+
+        _logger.LogWarning(
+            "POS access session {SessionId} remained ACTIVE after two atomic end attempts.",
+            session.PublicId);
+        return new EndSessionTransition(session, EndedNow: false, HasConflict: true);
     }
 
     private async Task PublishSafeAsync(PosAccessSession session, string? reason, CancellationToken cancellationToken)
@@ -352,4 +420,9 @@ public sealed class PosAccessSessionService : IPosAccessSessionService
         PosAccessSessionStatuses.WorkShiftEnded => WorkShiftErrorCodes.ShiftAlreadyClosed,
         _ => "POS_SESSION_REVOKED"
     };
+
+    private sealed record EndSessionTransition(
+        PosAccessSession? Session,
+        bool EndedNow,
+        bool HasConflict);
 }

@@ -8,7 +8,15 @@ import {
   ACTIVE_PAYMENT_CLOSE_GUARD_CHANGED,
   getMatchingActivePaymentCloseGuard,
 } from '../services/posShiftCloseGuard'
-import { clearPosAuthentication, completeOpeningCash, getPosSession, getPosTerminalId } from '../services/posSession'
+import {
+  beginPosSessionEnd,
+  cancelPosSessionEnd,
+  clearPosAuthentication,
+  completeOpeningCash,
+  getPosSession,
+  getPosTerminalId,
+  isPosSessionEndInProgress,
+} from '../services/posSession'
 import {
   extractOtpEnvelope,
   formatCountdown,
@@ -87,6 +95,21 @@ const redirectToStaffHub = (terminalId?: string | null, serverUrl?: string | nul
   if (terminalId) target.searchParams.set('terminalId', terminalId)
   if (errorCode) target.searchParams.set('posErrorCode', errorCode)
   window.location.assign(target.toString())
+}
+
+const redirectToStaffHubHome = () => {
+  window.location.assign(new URL('/StaffHub', API_BASE_URL).toString())
+}
+
+const isCompletedCloseResponse = (
+  response: { ok: boolean; data: ShiftActionResponse | null },
+  completedStatuses: string[]
+): boolean => {
+  const status = response.data?.status?.toUpperCase() ?? ''
+  return (response.ok && (
+    response.data?.success === true
+    || completedStatuses.includes(status)
+  )) || response.data?.errorCode === 'SHIFT_ALREADY_CLOSED'
 }
 
 const readApiMessage = (value: unknown): string | null => {
@@ -186,6 +209,7 @@ export default function ShiftSummary() {
   const closeRequestKeyRef = useRef(crypto.randomUUID())
   const exceptionCloseRequestKeyRef = useRef(crypto.randomUUID())
   const reconcileRequestKeyRef = useRef(crypto.randomUUID())
+  const workShiftEndedDuringCloseRef = useRef(false)
   const [exceptionOtpChallengePublicId, setExceptionOtpChallengePublicId] = useState<string | null>(null)
   const [verifiedExceptionOtpId, setVerifiedExceptionOtpId] = useState<string | null>(null)
   const [exceptionOtpCode, setExceptionOtpCode] = useState('')
@@ -460,7 +484,12 @@ export default function ShiftSummary() {
       }) => {
         if (notification.sessionId && session.sessionId
           && notification.sessionId.toLowerCase() !== session.sessionId.toLowerCase()) return
-        if ((notification.status || '').toUpperCase() === 'ACTIVE') return
+        const status = (notification.status || '').toUpperCase()
+        if (status === 'ACTIVE') return
+        if (status === 'WORKSHIFT_ENDED' && isPosSessionEndInProgress()) {
+          workShiftEndedDuringCloseRef.current = true
+          return
+        }
         clearPosAuthentication()
         redirectToStaffHub(session.terminalId)
       })
@@ -650,6 +679,9 @@ export default function ShiftSummary() {
 
     setIsSubmitting(true)
     setMessage(null)
+    workShiftEndedDuringCloseRef.current = false
+    beginPosSessionEnd()
+    let closeCompleted = false
     try {
       const response = await apiClient.post<ShiftActionResponse>(`/api/v1/pos/shifts/${shift.shiftId}/close`, {
         requestKey: closeRequestKeyRef.current,
@@ -664,16 +696,18 @@ export default function ShiftSummary() {
         ...(otpPublicId ? { otpChallengePublicId: otpPublicId } : {}),
       })
 
-      if (response.ok && response.data?.status?.toUpperCase() === 'CLOSED') {
-        const terminalId = getPosSession().terminalId
-        setShift(response.data as ShiftSummaryDto)
+      if (isCompletedCloseResponse(response, ['CLOSED']) || workShiftEndedDuringCloseRef.current) {
+        closeCompleted = true
+        if (response.data?.status?.toUpperCase() === 'CLOSED') {
+          setShift(response.data as ShiftSummaryDto)
+        }
         closeRequestKeyRef.current = crypto.randomUUID()
         setActualEndingCash('')
         setDiscrepancyReason('')
         resetOtpState()
         setMessage({ type: 'success', text: 'Đóng ca thành công.' })
         clearPosAuthentication()
-        redirectToStaffHub(terminalId, undefined, 'SHIFT_ALREADY_CLOSED')
+        redirectToStaffHubHome()
         return true
       }
 
@@ -712,12 +746,19 @@ export default function ShiftSummary() {
       setMessage({ type: 'error', text: apiMessage })
       return false
     } catch (error) {
+      if (workShiftEndedDuringCloseRef.current) {
+        closeCompleted = true
+        clearPosAuthentication()
+        redirectToStaffHubHome()
+        return true
+      }
       setMessage({
         type: 'error',
         text: getUnexpectedErrorMessage(error, 'Không thể đóng ca.'),
       })
       return false
     } finally {
+      if (!closeCompleted) cancelPosSessionEnd()
       setIsSubmitting(false)
     }
   }, [
@@ -1018,6 +1059,9 @@ export default function ShiftSummary() {
 
     setIsSubmitting(true)
     setMessage(null)
+    workShiftEndedDuringCloseRef.current = false
+    beginPosSessionEnd()
+    let closeCompleted = false
     try {
       const response = await apiClient.post<ShiftActionResponse>(`/api/v1/pos/shifts/${shift.shiftId}/close-exception`, {
         requestKey: exceptionCloseRequestKeyRef.current,
@@ -1033,9 +1077,12 @@ export default function ShiftSummary() {
         },
       })
 
-      if (response.ok && ['RECONCILIATION_REQUIRED', 'CLOSED'].includes(response.data?.status?.toUpperCase() ?? '')) {
-        const terminalId = getPosSession().terminalId
-        setShift(response.data as ShiftSummaryDto)
+      if (isCompletedCloseResponse(response, ['RECONCILIATION_REQUIRED', 'CLOSED'])
+        || workShiftEndedDuringCloseRef.current) {
+        closeCompleted = true
+        if (['RECONCILIATION_REQUIRED', 'CLOSED'].includes(response.data?.status?.toUpperCase() ?? '')) {
+          setShift(response.data as ShiftSummaryDto)
+        }
         exceptionCloseRequestKeyRef.current = crypto.randomUUID()
         setActualEndingCash('')
         setDiscrepancyReason('')
@@ -1045,7 +1092,7 @@ export default function ShiftSummary() {
         setExceptionOtpCode('')
         setMessage({ type: 'success', text: 'Đóng ca ngoại lệ thành công. Ca cần đối soát lại sau khi đồng bộ offline.' })
         clearPosAuthentication()
-        redirectToStaffHub(terminalId, undefined, 'SHIFT_ALREADY_CLOSED')
+        redirectToStaffHubHome()
       } else {
         setMessage({
           type: 'error',
@@ -1053,11 +1100,18 @@ export default function ShiftSummary() {
         })
       }
     } catch (error) {
+      if (workShiftEndedDuringCloseRef.current) {
+        closeCompleted = true
+        clearPosAuthentication()
+        redirectToStaffHubHome()
+        return
+      }
       setMessage({
         type: 'error',
         text: getUnexpectedErrorMessage(error, 'Không thể đóng ca ngoại lệ.'),
       })
     } finally {
+      if (!closeCompleted) cancelPosSessionEnd()
       setIsSubmitting(false)
     }
   }

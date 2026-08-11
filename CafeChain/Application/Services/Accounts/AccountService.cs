@@ -209,6 +209,8 @@ namespace CafeChain.Application.Services.Accounts
                 await _accountRepository.ResetLoginFailuresAsync(account.AccountId);
 
                 var allRoles = account.AccountRoles.Select(r => r.Role.Name).ToList();
+                if (account.Customer != null && !allRoles.Contains(RoleConstants.Customer))
+                    allRoles.Add(RoleConstants.Customer);
 
                 var rolePriority = new[]
                 {
@@ -223,7 +225,7 @@ namespace CafeChain.Application.Services.Accounts
                 };
                 string primaryRole = rolePriority.FirstOrDefault(allRoles.Contains)
                     ?? allRoles.FirstOrDefault()
-                    ?? RoleConstants.Customer;
+                    ?? "Chưa phân quyền";
 
                 var fullName = account.Customer?.FullName
                                ?? account.Staff?.FullName
@@ -238,9 +240,6 @@ namespace CafeChain.Application.Services.Accounts
 
                 foreach (var role in allRoles)
                     claims.Add(new Claim(ClaimTypes.Role, role));
-
-                if (!allRoles.Any())
-                    claims.Add(new Claim(ClaimTypes.Role, RoleConstants.Customer));
 
                 if (account.Customer?.CustomerId != null)
                     claims.Add(new Claim("CustomerId", account.Customer.CustomerId.ToString()));

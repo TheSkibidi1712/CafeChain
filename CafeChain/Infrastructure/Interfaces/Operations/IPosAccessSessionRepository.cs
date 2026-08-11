@@ -14,6 +14,13 @@ public interface IPosAccessSessionRepository
         IReadOnlyCollection<int> storeIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PosAccessSession>> GetDueForExpiryAsync(
         DateTime nowUtc, int take, CancellationToken cancellationToken = default);
+    Task<bool> TryEndActiveAsync(
+        Guid publicId,
+        string status,
+        DateTime endedAtUtc,
+        int? endedByStaffId,
+        string reason,
+        CancellationToken cancellationToken = default);
     Task BindWorkShiftAsync(Guid publicId, int workShiftId, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

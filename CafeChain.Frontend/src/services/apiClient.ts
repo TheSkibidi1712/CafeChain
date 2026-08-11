@@ -11,6 +11,27 @@ export interface ApiResponse<T> {
   error?: string
 }
 
+const GENERIC_SERVER_ERROR = 'Máy chủ gặp lỗi khi xử lý yêu cầu. Vui lòng thử lại.'
+
+const containsServerDiagnostics = (value: string): boolean => {
+  const normalized = value.trim().toLowerCase()
+  return normalized.startsWith('<!doctype html')
+    || normalized.startsWith('<html')
+    || normalized.includes('developerexceptionpage')
+    || normalized.includes('dbupdateconcurrencyexception')
+    || normalized.includes('microsoft.entityframeworkcore')
+    || (normalized.includes('system.') && normalized.includes(' at '))
+}
+
+const shouldHideServerErrorBody = (
+  status: number,
+  contentType: string,
+  body: string
+): boolean => status >= 500 && (
+  contentType.toLowerCase().includes('text/html')
+  || containsServerDiagnostics(body)
+)
+
 async function request<T>(
   path: string,
   options?: RequestInit
@@ -31,14 +52,21 @@ async function request<T>(
     if (!response.ok) {
       const errorText = await response.text().catch(() => '')
       let errorData: T | null = null
-      let errorMessage = errorText || response.statusText
-      if (errorText) {
+      const hideServerError = shouldHideServerErrorBody(
+        response.status,
+        response.headers.get('content-type') ?? '',
+        errorText
+      )
+      let errorMessage = hideServerError
+        ? GENERIC_SERVER_ERROR
+        : errorText || response.statusText
+      if (errorText && !hideServerError) {
         try {
           errorData = JSON.parse(errorText) as T
           const message = (errorData as { message?: unknown } | null)?.message
           if (typeof message === 'string' && message.trim()) errorMessage = message
         } catch {
-          // Non-JSON error bodies remain available as plain text.
+          // Safe non-JSON business errors remain available as plain text.
         }
       }
       return {

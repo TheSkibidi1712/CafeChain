@@ -6765,7 +6765,6 @@ namespace CafeChain.Migrations
                     { 4, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "salesstaff@cafechain.vn", null, "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
                     { 5, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "accountantwarehouse@cafechain.vn", null, "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
                     { 6, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "systemadmin@cafechain.vn", null, "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
-                    { 7, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "khachhang@gmail.com", null, "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
                     { 15, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "shiftsupervisor@cafechain.vn", null, "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true }
                 });
 
@@ -6973,11 +6972,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "Customers",
-                columns: new[] { "CustomerId", "AccountId", "Active", "AvatarPublicId", "AvatarUrl", "Category", "CreatedAt", "CustomerCode", "DateOfBirth", "DeletedAt", "FullName", "Gender", "LastOrderDate", "MemberLevelId", "UpdatedAt" },
-                values: new object[] { 1, 7, true, "avtdf_r3cjq5", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779801172/avtdf_r3cjq5.jpg", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "CUS000111", new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Khách Hàng Mới", 1, null, null, null });
-
-            migrationBuilder.InsertData(
                 table: "Drinks",
                 columns: new[] { "DrinkId", "Active", "CalculatedCogs", "CategoryId", "CreatedAt", "Description", "DrinkCode", "Name", "ProductTypeId" },
                 values: new object[,]
@@ -7110,21 +7104,6 @@ namespace CafeChain.Migrations
                 table: "CashSessions",
                 columns: new[] { "CashSessionId", "CloseTime", "EndCash", "IsClosed", "OpenTime", "StaffId", "StartCash", "StoreId" },
                 values: new object[] { 2, new DateTime(2025, 1, 1, 8, 0, 0, 0, DateTimeKind.Unspecified), 800000m, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, 500000m, 1 });
-
-            migrationBuilder.InsertData(
-                table: "CustomerAddresses",
-                columns: new[] { "CustomerAddressId", "Address", "CustomerId", "IsDefault", "IsDeleted", "Latitude", "Longitude", "ProvinceId", "WardId" },
-                values: new object[] { 1, "987 Đường P", 1, false, false, null, null, null, null });
-
-            migrationBuilder.InsertData(
-                table: "CustomerBanks",
-                columns: new[] { "CustomerBankId", "AccountNumber", "BankName", "CustomerId" },
-                values: new object[] { 1, "111222333444", "Vietcombank", 1 });
-
-            migrationBuilder.InsertData(
-                table: "CustomerPhones",
-                columns: new[] { "CustomerPhoneId", "CustomerId", "IsDefault", "Phone" },
-                values: new object[] { 1, 1, false, "0900111222" });
 
             migrationBuilder.InsertData(
                 table: "DrinkDefaultToppings",
