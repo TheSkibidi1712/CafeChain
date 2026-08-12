@@ -162,23 +162,33 @@ body {
     height: clamp(150px, 18vw, 240px);
     top: 8px;
     right: clamp(140px, 15vw, 280px);
-    background: radial-gradient(
-        circle at 100% 0%,
-        rgba(244, 233, 222, 0.35) 0%,
-        rgba(244, 233, 222, 0.12) 40%,
-        transparent 75%
-    );
+    background: radial-gradient(circle at 100% 0%,
+            rgba(244, 233, 222, 0.35) 0%,
+            rgba(244, 233, 222, 0.12) 40%,
+            transparent 75%);
     animation: cc-glow-float 42s ease-in-out infinite alternate;
 }
 
 @keyframes cc-arc-float {
-    from { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
-    to { transform: translate3d(6px, -4px, 0) rotate(1.2deg) scale(1.01); }
+    from {
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    }
+
+    to {
+        transform: translate3d(6px, -4px, 0) rotate(1.2deg) scale(1.01);
+    }
 }
 
 @keyframes cc-glow-float {
-    from { transform: translate3d(0, 0, 0) scale(1); opacity: 0.72; }
-    to { transform: translate3d(-8px, 8px, 0) scale(1.015); opacity: 0.9; }
+    from {
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 0.72;
+    }
+
+    to {
+        transform: translate3d(-8px, 8px, 0) scale(1.015);
+        opacity: 0.9;
+    }
 }
 
 /* 03. Sidebar */
@@ -364,8 +374,7 @@ body {
 }
 
 /* 05. Page Header Mapping */
-.admin-page-body :is(
-    .admin-page-header,
+.admin-page-body :is(.admin-page-header,
     .page-header,
     .admin-wo-hero,
     .rb-page-header,
@@ -373,8 +382,7 @@ body {
     .category-header,
     .drink-header-card,
     .inv-doc-header,
-    .transfer-header
-) {
+    .transfer-header) {
     position: relative;
     isolation: isolate;
     min-height: 140px;
@@ -388,13 +396,11 @@ body {
     margin-bottom: 24px;
 }
 
-.admin-page-body :is(
-    .admin-page-header,
+.admin-page-body :is(.admin-page-header,
     .page-header,
     .admin-wo-hero,
     .rb-page-header,
-    .po-title-section
-)::before {
+    .po-title-section)::before {
     content: "";
     position: absolute;
     top: 0;
@@ -414,8 +420,7 @@ body {
 }
 
 /* 06. Button Mapping */
-.admin-page-body :is(
-    .btn,
+.admin-page-body :is(.btn,
     .btn-primary,
     .btn-orange,
     .btn-cc-primary,
@@ -426,8 +431,7 @@ body {
     .btn-uc-primary,
     .ops-btn-primary,
     .supplier-btn-primary,
-    .admin-wo-primary
-) {
+    .admin-wo-primary) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -440,8 +444,7 @@ body {
 }
 
 /* Button Primary (Standard Coffee-Brown) */
-.admin-page-body :is(
-    .btn-primary,
+.admin-page-body :is(.btn-primary,
     .btn-orange,
     .btn-cc-primary,
     .btn-rb-save,
@@ -451,8 +454,7 @@ body {
     .btn-uc-primary,
     .ops-btn-primary,
     .supplier-btn-primary,
-    .admin-wo-primary
-) {
+    .admin-wo-primary) {
     background: linear-gradient(135deg, var(--cc-brown-600) 0%, var(--cc-brown-700) 100%) !important;
     border: 1px solid var(--cc-brown-700) !important;
     color: var(--cc-text-inverse) !important;
@@ -461,8 +463,7 @@ body {
     box-shadow: 0 4px 14px rgba(112, 72, 47, 0.24) !important;
 }
 
-.admin-page-body :is(
-    .btn-primary,
+.admin-page-body :is(.btn-primary,
     .btn-orange,
     .btn-cc-primary,
     .btn-rb-save,
@@ -472,8 +473,7 @@ body {
     .btn-uc-primary,
     .ops-btn-primary,
     .supplier-btn-primary,
-    .admin-wo-primary
-):hover:not(:disabled) {
+    .admin-wo-primary):hover:not(:disabled) {
     background: linear-gradient(135deg, var(--cc-brown-700) 0%, var(--cc-brown-900) 100%) !important;
     border-color: var(--cc-brown-900) !important;
     color: var(--cc-text-inverse) !important;
@@ -482,15 +482,13 @@ body {
 }
 
 /* Button Secondary / Ghost / Back */
-.admin-page-body :is(
-    .btn-secondary,
+.admin-page-body :is(.btn-secondary,
     .btn-light,
     .btn-ghost,
     .btn-rb-ghost,
     .btn-uc-ghost,
     .supplier-btn-light,
-    .supplier-btn-quiet
-) {
+    .supplier-btn-quiet) {
     background: var(--cc-surface-raised) !important;
     border: 1px solid var(--cc-border-strong) !important;
     color: var(--cc-brown-800) !important;
@@ -499,15 +497,13 @@ body {
     box-shadow: var(--cc-shadow-xs) !important;
 }
 
-.admin-page-body :is(
-    .btn-secondary,
+.admin-page-body :is(.btn-secondary,
     .btn-light,
     .btn-ghost,
     .btn-rb-ghost,
     .btn-uc-ghost,
     .supplier-btn-light,
-    .supplier-btn-quiet
-):hover:not(:disabled) {
+    .supplier-btn-quiet):hover:not(:disabled) {
     background: var(--cc-brown-50) !important;
     border-color: var(--cc-brown-600) !important;
     color: var(--cc-brown-900) !important;
@@ -538,13 +534,11 @@ body {
 }
 
 /* 07. Form Control Mapping */
-.admin-page-body :is(
-    .form-control,
+.admin-page-body :is(.form-control,
     .form-select,
     select,
     textarea,
-    .select2-container--bootstrap-5 .select2-selection
-) {
+    .select2-container--bootstrap-5 .select2-selection) {
     min-height: var(--cc-control-height);
     border: 1px solid var(--cc-border-strong) !important;
     border-radius: var(--cc-radius-control) !important;
@@ -555,24 +549,20 @@ body {
     transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
 }
 
-.admin-page-body :is(
-    .form-control,
+.admin-page-body :is(.form-control,
     .form-select,
     select,
     textarea,
-    .select2-container--bootstrap-5 .select2-selection
-):hover {
+    .select2-container--bootstrap-5 .select2-selection):hover {
     border-color: var(--cc-brown-500) !important;
     background-color: var(--cc-surface) !important;
 }
 
-.admin-page-body :is(
-    .form-control,
+.admin-page-body :is(.form-control,
     .form-select,
     select,
     textarea,
-    .select2-container--bootstrap-5.select2-container--focus .select2-selection
-):focus {
+    .select2-container--bootstrap-5.select2-container--focus .select2-selection):focus {
     border-color: var(--cc-brown-600) !important;
     background-color: var(--cc-surface-raised) !important;
     box-shadow: var(--cc-focus-ring) !important;
@@ -592,32 +582,28 @@ body {
 }
 
 /* 08. Table and Pagination Mapping */
-.admin-page-body :is(
-    .table,
+.admin-page-body :is(.table,
     .table-custom,
     .rb-table,
     .po-table,
     .perm-table,
     .ops-table,
     .pa-table,
-    .cc-data-table
-) {
+    .cc-data-table) {
     width: 100%;
     margin-bottom: 0;
     border-collapse: separate;
     border-spacing: 0;
 }
 
-.admin-page-body :is(
-    .table,
+.admin-page-body :is(.table,
     .table-custom,
     .rb-table,
     .po-table,
     .perm-table,
     .ops-table,
     .pa-table,
-    .cc-data-table
-) > thead > tr > th {
+    .cc-data-table)>thead>tr>th {
     height: 44px;
     padding: 12px 16px;
     border-bottom: 1px solid var(--cc-border) !important;
@@ -629,42 +615,36 @@ body {
     vertical-align: middle;
 }
 
-.admin-page-body :is(
-    .table,
+.admin-page-body :is(.table,
     .table-custom,
     .rb-table,
     .po-table,
     .perm-table,
     .ops-table,
     .pa-table,
-    .cc-data-table
-) > tbody > tr {
+    .cc-data-table)>tbody>tr {
     transition: background-color 0.15s ease;
 }
 
-.admin-page-body :is(
-    .table,
+.admin-page-body :is(.table,
     .table-custom,
     .rb-table,
     .po-table,
     .perm-table,
     .ops-table,
     .pa-table,
-    .cc-data-table
-) > tbody > tr:hover {
+    .cc-data-table)>tbody>tr:hover {
     background-color: var(--cc-brown-50) !important;
 }
 
-.admin-page-body :is(
-    .table,
+.admin-page-body :is(.table,
     .table-custom,
     .rb-table,
     .po-table,
     .perm-table,
     .ops-table,
     .pa-table,
-    .cc-data-table
-) > tbody > tr > td {
+    .cc-data-table)>tbody>tr>td {
     padding: 12px 16px;
     border-bottom: 1px solid var(--cc-border) !important;
     vertical-align: middle;
@@ -691,8 +671,7 @@ body {
 }
 
 /* 09. Card, KPI and Panel */
-.admin-page-body :is(
-    .card,
+.admin-page-body :is(.card,
     .rb-card,
     .po-main-card,
     .history-card,
@@ -703,8 +682,7 @@ body {
     .pa-panel,
     .ice-panel,
     .category-card,
-    .drink-card
-) {
+    .drink-card) {
     background: var(--cc-surface) !important;
     border: 1px solid var(--cc-border) !important;
     border-radius: var(--cc-radius-card) !important;
@@ -712,16 +690,14 @@ body {
     overflow: hidden;
 }
 
-.admin-page-body :is(
-    .category-summary-card,
+.admin-page-body :is(.category-summary-card,
     .drink-summary-card,
     .summary-card,
     .staff-kpi-card,
     .rb-health-metric,
     .ops-metric,
     .pa-kpi,
-    .analytics-kpi
-) {
+    .analytics-kpi) {
     box-sizing: border-box;
     height: var(--cc-metric-height);
     min-height: var(--cc-metric-height);
@@ -733,16 +709,14 @@ body {
     transition: all 0.2s ease;
 }
 
-.admin-page-body :is(
-    .category-summary-card,
+.admin-page-body :is(.category-summary-card,
     .drink-summary-card,
     .summary-card,
     .staff-kpi-card,
     .rb-health-metric,
     .ops-metric,
     .pa-kpi,
-    .analytics-kpi
-):hover {
+    .analytics-kpi):hover {
     border-color: var(--cc-border-strong) !important;
     box-shadow: var(--cc-shadow-hover);
     transform: translateY(-2px);
@@ -892,10 +866,12 @@ body {
     .sidebar {
         display: none;
     }
+
     .main-content {
         margin-left: 0;
         padding: 16px;
     }
+
     .admin-page-body :is(.admin-page-header, .page-header, .admin-wo-hero, .rb-page-header, .po-title-section) {
         padding: 20px;
         min-height: 0;
@@ -904,6 +880,7 @@ body {
 
 /* 14. Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {
@@ -920,8 +897,7 @@ body {
 /* ── 05. Generic page-header heights per V2 spec ──
    List/Index/Dashboard: 148–162px  |  Create/Edit/Detail: 126–140px
    These selectors catch module headers NOT already handled by BOM locked-dimension contract. */
-.admin-page-body :is(
-    .admin-page-header,
+.admin-page-body :is(.admin-page-header,
     .page-header,
     .staff-page-header,
     .perm-page-header,
@@ -929,8 +905,7 @@ body {
     .notification-page-header,
     .category-page-header,
     .drink-page-header,
-    .cc-warehouse-header
-) {
+    .cc-warehouse-header) {
     min-height: 148px;
     padding: 24px 28px;
     border: 1px solid rgba(112, 72, 47, .16);
@@ -941,12 +916,10 @@ body {
     box-shadow: var(--cc-shadow-md);
 }
 
-.admin-page-body :is(
-    .admin-page-header--sm,
+.admin-page-body :is(.admin-page-header--sm,
     .page-header--create,
     .page-header--detail,
-    .page-header--edit
-) {
+    .page-header--edit) {
     min-height: 126px;
     padding: 20px 28px;
 }
@@ -964,8 +937,8 @@ body {
     text-align: center;
 }
 
-.admin-page-body .rb-empty-state > p:first-child,
-.admin-page-body .rb-empty-state > .fw-semibold {
+.admin-page-body .rb-empty-state>p:first-child,
+.admin-page-body .rb-empty-state>.fw-semibold {
     color: var(--cc-text);
     font-size: 15px;
     font-weight: 700;
@@ -1020,53 +993,45 @@ body {
 }
 
 /* Active/Completed/Available */
-.admin-page-body .rb-status-badge:is(
-    .rb-status-active,
+.admin-page-body .rb-status-badge:is(.rb-status-active,
     .rb-status-completed,
     .rb-status-approved,
     .rb-status-available,
-    .rb-status-received
-) {
+    .rb-status-received) {
     background: var(--cc-success-bg);
     color: var(--cc-success);
     border-color: var(--cc-success-border);
 }
 
 /* Pending/In-progress/In-review */
-.admin-page-body .rb-status-badge:is(
-    .rb-status-pending,
+.admin-page-body .rb-status-badge:is(.rb-status-pending,
     .rb-status-inprogress,
     .rb-status-in-progress,
     .rb-status-inreview,
     .rb-status-draft,
     .rb-status-open,
-    .rb-status-partial
-) {
+    .rb-status-partial) {
     background: var(--cc-warning-bg);
     color: var(--cc-warning);
     border-color: var(--cc-warning-border);
 }
 
 /* Danger/Rejected/Cancelled/Locked */
-.admin-page-body .rb-status-badge:is(
-    .rb-status-inactive,
+.admin-page-body .rb-status-badge:is(.rb-status-inactive,
     .rb-status-rejected,
     .rb-status-cancelled,
     .rb-status-canceled,
     .rb-status-closed,
     .rb-status-locked,
-    .rb-status-error
-) {
+    .rb-status-error) {
     background: var(--cc-danger-bg);
     color: var(--cc-danger);
     border-color: var(--cc-danger-border);
 }
 
 /* Info */
-.admin-page-body .rb-status-badge:is(
-    .rb-status-info,
-    .rb-status-review
-) {
+.admin-page-body .rb-status-badge:is(.rb-status-info,
+    .rb-status-review) {
     background: var(--cc-info-bg);
     color: var(--cc-info);
     border-color: var(--cc-info-border);
@@ -1092,8 +1057,7 @@ body {
 }
 
 /* ── 09. Disabled state — buttons & controls ── */
-.admin-page-body :is(
-    .btn-rb-save,
+.admin-page-body :is(.btn-rb-save,
     .btn-rb-ghost,
     .btn-primary-action,
     .btn-ghost,
@@ -1106,16 +1070,13 @@ body {
     .btn-primary,
     .btn-secondary,
     .btn-danger,
-    .btn-light
-):disabled,
-.admin-page-body :is(
-    .btn-rb-save,
+    .btn-light):disabled,
+.admin-page-body :is(.btn-rb-save,
     .btn-rb-ghost,
     .btn-primary-action,
     .btn-primary,
     .btn-secondary,
-    .btn-danger
-)[aria-disabled="true"] {
+    .btn-danger)[aria-disabled="true"] {
     opacity: .5 !important;
     pointer-events: none !important;
     box-shadow: none !important;
@@ -1138,7 +1099,7 @@ body {
     opacity: .75;
 }
 
-.admin-page-body .btn.is-loading > *:not(.spinner-border):not(.spinner-grow) {
+.admin-page-body .btn.is-loading>*:not(.spinner-border):not(.spinner-grow) {
     visibility: hidden;
 }
 
@@ -1156,7 +1117,11 @@ body {
     animation: cc-spin .6s linear infinite;
 }
 
-@keyframes cc-spin { to { transform: rotate(360deg); } }
+@keyframes cc-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
 
 /* ── 11. Icon button 40×40 ── */
 .admin-page-body .btn-icon,
@@ -1175,10 +1140,8 @@ body {
 /* ── 12. Standard table row heights ──
    V2: table row 52px, compact 46–48px
    Applied to module tables not already locked by BOM contract. */
-.admin-page-body :is(
-    .rb-table, .po-table, .perm-table, .ops-table,
-    .pa-table, .table-custom, .cc-data-table
-) > tbody > tr > td {
+.admin-page-body :is(.rb-table, .po-table, .perm-table, .ops-table,
+    .pa-table, .table-custom, .cc-data-table)>tbody>tr>td {
     height: var(--cc-table-row-h);
     min-height: var(--cc-table-row-h);
     vertical-align: middle;
@@ -1188,7 +1151,7 @@ body {
 /* .admin-page-body .rb-page .rb-table > tbody > tr > td already sets height: var(--bom-table-row-height: 80px) */
 
 /* Compact table variant */
-.admin-page-body .table-compact > tbody > tr > td {
+.admin-page-body .table-compact>tbody>tr>td {
     height: var(--cc-table-row-compact) !important;
     min-height: var(--cc-table-row-compact) !important;
 }
@@ -1207,7 +1170,8 @@ body {
 }
 
 :is(.admin-page-body, #cc-modal-host) .modal-footer {
-    flex-shrink: 0; /* never squish footer — always visible */
+    flex-shrink: 0;
+    /* never squish footer — always visible */
 }
 
 /* ── 14. Validation error contract ── */
@@ -1232,18 +1196,18 @@ body {
     color: var(--cc-text);
     font-weight: 700;
 }
+
 .ops-shell .ops-secondary {
     color: var(--cc-text-secondary);
 }
 
 /* ── 16. Responsive additions for new contracts ── */
 @media (max-width: 768px) {
-    .admin-page-body :is(
-        .admin-page-header,
+
+    .admin-page-body :is(.admin-page-header,
         .page-header,
         .staff-page-header,
-        .perm-page-header
-    ) {
+        .perm-page-header) {
         min-height: 0;
         padding: 18px 18px;
         border-radius: var(--cc-radius-card, 16px);
@@ -1255,10 +1219,9 @@ body {
 }
 
 @media (max-width: 480px) {
-    .admin-page-body :is(
-        .admin-page-header,
-        .page-header
-    ) {
+
+    .admin-page-body :is(.admin-page-header,
+        .page-header) {
         padding: 14px 14px;
     }
 }
@@ -1266,8 +1229,7 @@ body {
 /* ============================================================
    17. UNIFIED ADMIN HEADER CARD - 2 SEPARATED MINI SOFT ARCS (EXCLUDING DUYỆT MỞ CA TRỄ & BOM)
    ============================================================ */
-:is(
-    .cc-page-header,
+:is(.cc-page-header,
     .cc-warehouse-header,
     .cc-admin-heading,
     .pa-header,
@@ -1326,8 +1288,7 @@ body {
     .stock-alert-header,
     .threshold-header,
     .anomalies-header,
-    .settings-header
-):not(.approvals-header):not(.recipe-header):not(.po-recipe-header) {
+    .settings-header):not(.approvals-header):not(.recipe-header):not(.po-recipe-header) {
     width: 100% !important;
     position: relative !important;
     display: flex !important;
@@ -1375,8 +1336,7 @@ body {
     font-weight: 500 !important;
 }
 
-:is(
-    .cc-page-header,
+:is(.cc-page-header,
     .cc-warehouse-header,
     .cc-admin-heading,
     .pa-header,
@@ -1435,15 +1395,13 @@ body {
     .stock-alert-header,
     .threshold-header,
     .anomalies-header,
-    .settings-header
-):not(.approvals-header):not(.recipe-header):not(.po-recipe-header) > * {
+    .settings-header):not(.approvals-header):not(.recipe-header):not(.po-recipe-header)>* {
     position: relative !important;
     z-index: 2 !important;
 }
 
 /* Vòng cung 1 (VÒNG CUNG TRÒN NHỎ PHÍA TRÊN — TÁCH BIỆT HOÀN TOÀN, ĐO THEO NÚT 44px): Đường kính 130px, nét 10px */
-:is(
-    .cc-page-header,
+:is(.cc-page-header,
     .cc-warehouse-header,
     .cc-admin-heading,
     .pa-header,
@@ -1502,8 +1460,7 @@ body {
     .stock-alert-header,
     .threshold-header,
     .anomalies-header,
-    .settings-header
-):not(.approvals-header):not(.recipe-header):not(.po-recipe-header)::before {
+    .settings-header):not(.approvals-header):not(.recipe-header):not(.po-recipe-header)::before {
     content: "" !important;
     display: block !important;
     position: absolute !important;
@@ -1522,8 +1479,7 @@ body {
 }
 
 /* Vòng cung 2 (VÒNG CUNG TRÒN NHỎ GÓC PHẢI DƯỚI — TÁCH BIỆT HOÀN TOÀN, ĐO THEO NÚT 44px): Đường kính 95px, nét 9px */
-:is(
-    .cc-page-header,
+:is(.cc-page-header,
     .cc-warehouse-header,
     .cc-admin-heading,
     .pa-header,
@@ -1582,8 +1538,7 @@ body {
     .stock-alert-header,
     .threshold-header,
     .anomalies-header,
-    .settings-header
-):not(.approvals-header):not(.recipe-header):not(.po-recipe-header)::after {
+    .settings-header):not(.approvals-header):not(.recipe-header):not(.po-recipe-header)::after {
     content: "" !important;
     display: block !important;
     position: absolute !important;
@@ -1685,7 +1640,7 @@ body {
 
 .cc-toast,
 .toast,
-#toast-container > div {
+#toast-container>div {
     max-width: 420px !important;
     max-height: 200px !important;
     overflow: hidden !important;
@@ -1837,8 +1792,8 @@ body {
     vertical-align: middle !important;
 }
 
-.table td.text-center > div,
-.table td.ingredient-col-actions > div,
+.table td.text-center>div,
+.table td.ingredient-col-actions>div,
 .table td .action-group,
 .table td .d-flex {
     display: inline-flex !important;
@@ -1862,13 +1817,7 @@ body {
 }
 
 /* Button Focus-Visible Ring Contract (WCAG 2.2 AA) */
-.table td .action-btn:focus-visible,
-.table td .btn-sm:focus-visible,
-.drink-action-btn:focus-visible,
-.size-action-btn:focus-visible,
-.topping-bom-btn:focus-visible,
-.btn-orange:focus-visible,
-.btn-light:focus-visible {
+:is(.drink-table, .size-admin-page, .topping-admin-page, .sm-page, .pf-page) :is(.action-btn, .btn-sm, .drink-action-btn, .size-action-btn, .topping-bom-btn, .btn-orange, .sm-control, .pf-control, .sm-primary-button, .pf-primary-button, .sm-secondary-button, .pf-secondary-button, .sm-icon-button, .pf-icon-button, .sm-row-button, .pf-row-button):focus-visible {
     outline: none !important;
     box-shadow: var(--cc-focus-ring, 0 0 0 3px rgba(112, 72, 47, 0.22)) !important;
     border-color: var(--cc-brown-600, #70482f) !important;
@@ -1877,13 +1826,13 @@ body {
 /* ==========================================================================
    PRODUCT MASTER DATA CONTRACT (DRINK, SIZE, TOPPING)
    ========================================================================== */
-:is(.drink-table, .size-admin-page .table-responsive > .table, .topping-admin-page .table-responsive > .table) {
+:is(.drink-table, .size-admin-page .size-table-wrap > .table, .topping-admin-page .table-responsive > .table) {
     width: 100% !important;
     border-collapse: separate !important;
     border-spacing: 0 !important;
 }
 
-:is(.drink-table, .size-admin-page .table-responsive > .table, .topping-admin-page .table-responsive > .table) thead th {
+:is(.drink-table, .size-admin-page .size-table-wrap > .table, .topping-admin-page .table-responsive > .table) thead th {
     background-color: var(--cc-surface-muted, #fbf7f2) !important;
     color: var(--cc-brown-600, #70482f) !important;
     font-size: 11.5px !important;
@@ -1894,18 +1843,18 @@ body {
     border-bottom: 1px solid var(--cc-border-strong, #d8c5b6) !important;
 }
 
-:is(.drink-table, .size-admin-page .table-responsive > .table, .topping-admin-page .table-responsive > .table) tbody tr {
+:is(.drink-table, .size-admin-page .size-table-wrap > .table, .topping-admin-page .table-responsive > .table) tbody tr {
     transition: background-color 0.18s ease, transform 0.18s ease !important;
 }
 
-:is(.drink-table, .size-admin-page .table-responsive > .table, .topping-admin-page .table-responsive > .table) tbody tr:hover {
+:is(.drink-table, .size-admin-page .size-table-wrap > .table, .topping-admin-page .table-responsive > .table) tbody tr:hover {
     background-color: var(--cc-surface-active, #f4e9df) !important;
 }
 
 /* Identity Column & Text Alignment (Actual DOM Matching) */
 .drink-table .drink-name,
 .size-admin-page .size-name-cell .size-badge,
-.topping-admin-page td .fw-semibold {
+.topping-admin-page td:first-child .fw-semibold {
     font-weight: 750 !important;
     color: var(--cc-text, #201812) !important;
 }
@@ -1919,11 +1868,6 @@ body {
 }
 
 /* Status & Action Alignment */
-:is(.drink-table, .size-admin-page .table-responsive > .table, .topping-admin-page .table-responsive > .table) td.text-center {
+:is(.drink-table, .size-admin-page .size-table-wrap > .table, .topping-admin-page .table-responsive > .table) td.text-center {
     vertical-align: middle !important;
 }
-
-
-
-
-
