@@ -1,0 +1,98 @@
+@{
+    ViewData["Title"] = "AI Smart Import";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/AIImport/ai-import.css" asp-append-version="true" />
+}
+
+<main class="ai-import-page" id="aiImportApp">
+    <form id="antiForgeryForm" class="d-none">@Html.AntiForgeryToken()</form>
+    <header class="ai-import-header">
+        <div>
+            <p class="ai-import-eyebrow">Master data / Nhập thông minh</p>
+            <h1><i class="fa-solid fa-wand-magic-sparkles"></i> AI Smart Import</h1>
+            <p>Phân tích Excel, kiểm tra từng dòng và xác nhận nhập nguyên tử cho toàn phiên.</p>
+        </div>
+        <button type="button" class="btn-ai ghost" id="refreshHistoryButton"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</button>
+    </header>
+
+    <section class="ai-import-card upload-card" id="uploadPanel">
+        <div class="drop-zone" id="dropZone">
+            <input type="file" id="excelFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
+            <i class="fa-solid fa-file-excel"></i>
+            <strong>Thả tệp .xlsx vào đây hoặc chọn tệp</strong>
+            <span>Tối đa 10 MB · không đọc dòng/cột/sheet ẩn · không chạy công thức</span>
+            <button type="button" class="btn-ai" id="chooseFileButton">Chọn Excel</button>
+            <small id="selectedFileName"></small>
+        </div>
+        <div class="upload-actions">
+            <label>Gợi ý entity
+                <select id="entityHint">
+                    <option value="">Tự động</option><option value="Category">Danh mục</option><option value="Drink">Đồ uống</option><option value="Size">Size</option><option value="Ingredient">Nguyên liệu</option><option value="Supplier">Nhà cung cấp</option>
+                </select>
+            </label>
+            <button type="button" class="btn-ai primary" id="analyzeButton" disabled><i class="fa-solid fa-magnifying-glass-chart"></i> Phân tích</button>
+        </div>
+    </section>
+
+    <div class="ai-import-alert" id="messageBox" hidden></div>
+    <div class="ai-import-loading" id="loadingPanel" hidden><span></span><p>Đang xử lý dữ liệu…</p></div>
+
+    <section id="workspace" hidden>
+        <div class="session-bar">
+            <div><span id="sessionFile"></span><small id="sessionMeta"></small></div>
+            <span class="status-pill" id="sessionStatus"></span>
+            <div class="session-actions">
+                <button type="button" class="btn-ai ghost" id="reanalyzeButton">Phân tích lại</button>
+                <button type="button" class="btn-ai danger" id="cancelButton">Hủy phiên</button>
+                <button type="button" class="btn-ai primary" id="confirmButton">Xác nhận nhập</button>
+            </div>
+        </div>
+
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div class="ai-import-alert warning" id="analysisWarnings" hidden></div>
+        <div class="workspace-grid">
+            <aside class="ai-import-card group-list">
+                <div class="card-title"><strong>Sheet / vùng</strong><span id="groupCount"></span></div>
+                <div id="groupTabs"></div>
+            </aside>
+            <div class="ai-import-card preview-card">
+                <div class="preview-toolbar">
+                    <div><strong id="activeGroupTitle">Preview</strong><small id="activeGroupMeta"></small></div>
+                    <label>Trạng thái <select id="statusFilter"><option value="">Tất cả</option><option value="VALID">Hợp lệ</option><option value="WARNING">Cảnh báo</option><option value="ERROR">Lỗi</option><option value="REVIEW_REQUIRED">Cần xem lại</option><option value="SKIPPED">Bỏ qua</option><option value="IMPORTED">Đã nhập</option></select></label>
+                </div>
+                <details class="mapping-panel" open>
+                    <summary>Loại dữ liệu và ánh xạ cột</summary>
+                    <div class="mapping-head"><select id="groupEntity"><option value="Category">Danh mục</option><option value="Drink">Đồ uống</option><option value="Size">Size</option><option value="Ingredient">Nguyên liệu</option><option value="Supplier">Nhà cung cấp</option></select><button type="button" class="btn-ai small" id="saveMappingButton">Lưu ánh xạ cột</button></div>
+                    <div id="mappingFields" class="mapping-fields"></div>
+                </details>
+                <div class="table-wrap"><table class="preview-table"><colgroup><col class="preview-col-row" /><col class="preview-col-status" /><col class="preview-col-data" /><col class="preview-col-issues" /><col class="preview-col-actions" /></colgroup><thead><tr><th>Dòng Excel</th><th>Trạng thái</th><th>Dữ liệu nghiệp vụ</th><th>Lỗi/cảnh báo</th><th>Thao tác</th></tr></thead><tbody id="previewRows"></tbody></table></div>
+                <div class="pagination"><button type="button" id="previousPage">‹</button><span id="pageInfo"></span><button type="button" id="nextPage">›</button></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="ai-import-card history-card" id="historyPanel" hidden>
+        <div class="card-title"><strong>Lịch sử của tài khoản hiện tại</strong><button type="button" class="icon-button" id="closeHistoryButton">×</button></div>
+        <div id="historyRows"></div>
+    </section>
+
+    <dialog id="editDialog" class="edit-dialog">
+        <form method="dialog" id="editItemForm" novalidate>
+            <header><div><p class="edit-eyebrow" id="editEntityName"></p><strong>Sửa dòng Excel <span id="editRowNumber"></span></strong><small>Kiểm tra theo cùng quy tắc với form tạo mới.</small></div><button value="cancel" class="icon-button" aria-label="Đóng">×</button></header>
+            <div class="edit-form-alert" id="editFormAlert" hidden></div>
+            <div id="editFields" class="edit-fields"></div>
+            <details class="edit-source-details"><summary>Dữ liệu nguồn bổ sung</summary><div id="editSourceData"></div></details>
+            <section class="edit-warning-section" id="warningSection">
+                <label class="check-row"><input type="checkbox" id="acknowledgeWarnings" /> Tôi đã kiểm tra và xác nhận cảnh báo</label>
+                <label id="overrideReasonGroup"><span>Lý do vẫn tạo nhà cung cấp gần trùng <em>*</em></span><textarea id="overrideReason" maxlength="500" rows="3" placeholder="Nêu rõ lý do vẫn tạo nhà cung cấp này"></textarea><small class="field-error" data-field-error="DuplicateOverrideReason"></small></label>
+            </section>
+            <footer><button value="cancel" class="btn-ai ghost">Đóng</button><button type="button" class="btn-ai danger" id="skipItemButton">Bỏ qua dòng</button><button type="button" class="btn-ai primary" id="saveItemButton">Lưu và kiểm tra lại</button></footer>
+        </form>
+    </dialog>
+</main>
+
+@section Scripts {
+    <script src="~/js/Admin/AIImport/ai-import.js" asp-append-version="true"></script>
+}

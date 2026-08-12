@@ -29,6 +29,7 @@ using Microsoft.EntityFrameworkCore;
 using CafeChain.Models.Permissions;
 using CafeChain.Models.Inventories.Approvals;
 using CafeChain.Models.Analytics;
+using CafeChain.Models.AIImport;
 namespace CafeChain.Data
 {
     public class AppDbContext : DbContext
@@ -227,6 +228,10 @@ namespace CafeChain.Data
         public DbSet<InventoryTransfer> InventoryTransfers { get; set; }
         public DbSet<InventoryTransferDetail> InventoryTransferDetails { get; set; }
         public DbSet<RequestDeduplication> RequestDeduplications { get; set; }
+        public DbSet<ImportSession> ImportSessions { get; set; }
+        public DbSet<ImportGroup> ImportGroups { get; set; }
+        public DbSet<ImportItem> ImportItems { get; set; }
+        public DbSet<ImportAudit> ImportAudits { get; set; }
 
 
         // ========================= PAYMENT =========================
