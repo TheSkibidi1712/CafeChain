@@ -10,5 +10,11 @@ public interface IOllamaClient
         string userPayload,
         string featureName,
         CancellationToken cancellationToken = default);
+    Task<OllamaResultDTO> ChatStructuredAsync(
+        string systemPrompt,
+        string userPayload,
+        object jsonSchema,
+        string featureName,
+        CancellationToken cancellationToken = default);
     Task<OllamaHealthDTO> CheckHealthAsync(CancellationToken cancellationToken = default);
 }

@@ -99,6 +99,47 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ImportSessions",
+                columns: table => new
+                {
+                    ImportSessionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FileName = table.Column<string>(type: "nvarchar(260)", maxLength: 260, nullable: false),
+                    FileHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    FileSize = table.Column<long>(type: "bigint", nullable: false),
+                    UploadedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    UploadedByAccountId = table.Column<int>(type: "int", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    AnalysisVersion = table.Column<int>(type: "int", nullable: false),
+                    PreviewVersion = table.Column<int>(type: "int", nullable: false),
+                    ModelName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
+                    PromptVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    SchemaVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    TotalGroups = table.Column<int>(type: "int", nullable: false),
+                    TotalRows = table.Column<int>(type: "int", nullable: false),
+                    ValidRows = table.Column<int>(type: "int", nullable: false),
+                    WarningRows = table.Column<int>(type: "int", nullable: false),
+                    ErrorRows = table.Column<int>(type: "int", nullable: false),
+                    ReviewRows = table.Column<int>(type: "int", nullable: false),
+                    SkippedRows = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiresAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ConfirmedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CompletedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    FailureCode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    FailureMessage = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    AnalysisWarningsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ResultJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ImportSessions", x => x.ImportSessionId);
+                    table.CheckConstraint("CK_ImportSessions_Status", "[Status] IN ('UPLOADED','ANALYZING','VALIDATING','READY_TO_PREVIEW','IMPORTING','COMPLETED','FAILED','CANCELLED','EXPIRED')");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "IntelligencePilotRuns",
                 columns: table => new
                 {
@@ -503,6 +544,68 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ImportAudits",
+                columns: table => new
+                {
+                    ImportAuditId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ImportSessionId = table.Column<int>(type: "int", nullable: false),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    AccountId = table.Column<int>(type: "int", nullable: false),
+                    Action = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    StatusBefore = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    StatusAfter = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    EntityType = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    ModelName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
+                    PromptVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    SchemaVersion = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    PreviewVersion = table.Column<int>(type: "int", nullable: false),
+                    IdempotencyKeyHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
+                    ResultSummaryJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ErrorCode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CompletedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ImportAudits", x => x.ImportAuditId);
+                    table.ForeignKey(
+                        name: "FK_ImportAudits_ImportSessions_ImportSessionId",
+                        column: x => x.ImportSessionId,
+                        principalTable: "ImportSessions",
+                        principalColumn: "ImportSessionId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ImportGroups",
+                columns: table => new
+                {
+                    ImportGroupId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ImportSessionId = table.Column<int>(type: "int", nullable: false),
+                    SheetName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    RegionAddress = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    HeaderRow = table.Column<int>(type: "int", nullable: false),
+                    EntityType = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    MappingJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SourceHeadersJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DependencyOrder = table.Column<int>(type: "int", nullable: false),
+                    Confidence = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ImportGroups", x => x.ImportGroupId);
+                    table.ForeignKey(
+                        name: "FK_ImportGroups_ImportSessions_ImportSessionId",
+                        column: x => x.ImportSessionId,
+                        principalTable: "ImportSessions",
+                        principalColumn: "ImportSessionId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Customers",
                 columns: table => new
                 {
@@ -769,6 +872,40 @@ namespace CafeChain.Migrations
                         principalTable: "Provinces",
                         principalColumn: "ProvinceId",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ImportItems",
+                columns: table => new
+                {
+                    ImportItemId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ImportGroupId = table.Column<int>(type: "int", nullable: false),
+                    SourceRow = table.Column<int>(type: "int", nullable: false),
+                    RawDataJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    NormalizedDataJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SourceTraceJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    Action = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    ErrorsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    WarningsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Confidence = table.Column<decimal>(type: "decimal(5,4)", precision: 5, scale: 4, nullable: false),
+                    WarningsAcknowledged = table.Column<bool>(type: "bit", nullable: false),
+                    SupplierDuplicateWarningId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    DuplicateOverrideReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ImportedEntityId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ImportItems", x => x.ImportItemId);
+                    table.CheckConstraint("CK_ImportItems_Action", "[Action] IN ('CREATE','SKIP')");
+                    table.CheckConstraint("CK_ImportItems_Status", "[Status] IN ('VALID','WARNING','ERROR','REVIEW_REQUIRED','SKIPPED','IMPORTED')");
+                    table.ForeignKey(
+                        name: "FK_ImportItems_ImportGroups_ImportGroupId",
+                        column: x => x.ImportGroupId,
+                        principalTable: "ImportGroups",
+                        principalColumn: "ImportGroupId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -7994,6 +8131,46 @@ namespace CafeChain.Migrations
                 column: "RequestedByStaffId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ImportAudits_ImportSessionId_CreatedAtUtc",
+                table: "ImportAudits",
+                columns: new[] { "ImportSessionId", "CreatedAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ImportAudits_StaffId_CreatedAtUtc",
+                table: "ImportAudits",
+                columns: new[] { "StaffId", "CreatedAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ImportGroups_ImportSessionId_SheetName",
+                table: "ImportGroups",
+                columns: new[] { "ImportSessionId", "SheetName" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ImportItems_ImportGroupId_SourceRow",
+                table: "ImportItems",
+                columns: new[] { "ImportGroupId", "SourceRow" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ImportItems_Status_Action",
+                table: "ImportItems",
+                columns: new[] { "Status", "Action" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ImportSessions_FileHash",
+                table: "ImportSessions",
+                column: "FileHash");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ImportSessions_Status_ExpiresAtUtc",
+                table: "ImportSessions",
+                columns: new[] { "Status", "ExpiresAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ImportSessions_UploadedByAccountId_CreatedAtUtc",
+                table: "ImportSessions",
+                columns: new[] { "UploadedByAccountId", "CreatedAtUtc" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Ingredients_BaseUnitId",
                 table: "Ingredients",
                 column: "BaseUnitId");
@@ -11470,6 +11647,12 @@ namespace CafeChain.Migrations
                 name: "IceSupplementalIssues");
 
             migrationBuilder.DropTable(
+                name: "ImportAudits");
+
+            migrationBuilder.DropTable(
+                name: "ImportItems");
+
+            migrationBuilder.DropTable(
                 name: "IngredientSupplierPriceHistories");
 
             migrationBuilder.DropTable(
@@ -11677,6 +11860,9 @@ namespace CafeChain.Migrations
                 name: "IceAllocations");
 
             migrationBuilder.DropTable(
+                name: "ImportGroups");
+
+            migrationBuilder.DropTable(
                 name: "InventoryNegativeCostGaps");
 
             migrationBuilder.DropTable(
@@ -11732,6 +11918,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "OperationalShifts");
+
+            migrationBuilder.DropTable(
+                name: "ImportSessions");
 
             migrationBuilder.DropTable(
                 name: "InventoryNegativeApprovals");
