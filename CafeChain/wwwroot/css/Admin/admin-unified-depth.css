@@ -1861,29 +1861,33 @@ body {
     white-space: nowrap !important;
 }
 
-/* Shared Admin keyboard-focus contract — WCAG 2.2 AA target */
+/* Button & Action Focus-Visible Contract (WCAG 2.2 AA Core Standard) */
 .table td .action-btn:focus-visible,
 .table td .btn-sm:focus-visible,
 .drink-action-btn:focus-visible,
 .size-action-btn:focus-visible,
 .topping-bom-btn:focus-visible,
 .btn-orange:focus-visible,
-.btn-light:focus-visible {
+.btn-light:focus-visible,
+:is(.sm-page, .pf-page) button:focus-visible,
+:is(.sm-page, .pf-page) a:focus-visible,
+:is(.sm-page, .pf-page) input:focus-visible,
+:is(.sm-page, .pf-page) select:focus-visible {
     outline: 2px solid var(--cc-brown-600, #70482f) !important;
     outline-offset: 2px !important;
-    box-shadow: 0 0 0 4px rgba(112, 72, 47, 0.16) !important;
+    box-shadow: none !important;
 }
 
 /* ==========================================================================
    PRODUCT MASTER DATA CONTRACT (DRINK, SIZE, TOPPING)
    ========================================================================== */
-:is(.drink-table, .size-admin-page .size-table-wrap > .table, .topping-admin-page .table-responsive > .table) {
+:is(.drink-table, .size-admin-page .table-responsive > .table, .topping-admin-page .table-responsive > .table) {
     width: 100% !important;
     border-collapse: separate !important;
     border-spacing: 0 !important;
 }
 
-:is(.drink-table, .size-admin-page .size-table-wrap > .table, .topping-admin-page .table-responsive > .table) thead th {
+:is(.drink-table, .size-admin-page .table-responsive > .table, .topping-admin-page .table-responsive > .table) thead th {
     background-color: var(--cc-surface-muted, #fbf7f2) !important;
     color: var(--cc-brown-600, #70482f) !important;
     font-size: 11.5px !important;
@@ -1894,19 +1898,19 @@ body {
     border-bottom: 1px solid var(--cc-border-strong, #d8c5b6) !important;
 }
 
-:is(.drink-table, .size-admin-page .size-table-wrap > .table, .topping-admin-page .table-responsive > .table) tbody tr {
-    transition: background-color 180ms ease !important;
+:is(.drink-table, .size-admin-page .table-responsive > .table, .topping-admin-page .table-responsive > .table) tbody tr {
+    transition: background-color 0.18s ease, transform 0.18s ease !important;
 }
 
-:is(.drink-table, .size-admin-page .size-table-wrap > .table, .topping-admin-page .table-responsive > .table) tbody tr:hover {
+:is(.drink-table, .size-admin-page .table-responsive > .table, .topping-admin-page .table-responsive > .table) tbody tr:hover {
     background-color: var(--cc-surface-active, #f4e9df) !important;
 }
 
 /* Identity Column & Text Alignment (Actual DOM Matching) */
 .drink-table .drink-name,
 .size-admin-page .size-name-cell .size-badge,
-.topping-admin-page .topping-name {
-    font-weight: 700 !important;
+.topping-admin-page td .fw-semibold {
+    font-weight: 750 !important;
     color: var(--cc-text, #201812) !important;
 }
 
@@ -1919,6 +1923,11 @@ body {
 }
 
 /* Status & Action Alignment */
-:is(.drink-table, .size-admin-page .size-table-wrap > .table, .topping-admin-page .table-responsive > .table) td.text-center {
+:is(.drink-table, .size-admin-page .table-responsive > .table, .topping-admin-page .table-responsive > .table) td.text-center {
     vertical-align: middle !important;
 }
+
+
+
+
+
