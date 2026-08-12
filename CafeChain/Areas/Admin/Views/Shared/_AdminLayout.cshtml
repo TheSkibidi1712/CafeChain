@@ -473,6 +473,13 @@
                 </div>
 
                 <!-- ━━━ 🧪 SẢN XUẤT / BOM ━━━ -->
+                @if (effectivePermissions.Contains(PermissionConstants.AIImportView))
+                {
+                    <a asp-area="Admin" asp-controller="AIImport" asp-action="Index" class="sidebar-section-header @Html.IsActive("AIImport")">
+                        <i class="fas fa-wand-magic-sparkles section-icon"></i> AI Smart Import
+                    </a>
+                }
+
                 @if (canAccessProduction)
                 {
                 <a href="#collapseProduction" data-bs-toggle="collapse"
