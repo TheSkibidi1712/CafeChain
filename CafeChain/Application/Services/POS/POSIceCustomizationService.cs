@@ -1,7 +1,10 @@
 using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.DTOs.Admin.Recipes;
+using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
+using CafeChain.Application.Services.Admin.Recipes;
 using CafeChain.Data;
 using CafeChain.Models.Drinks;
 using Microsoft.EntityFrameworkCore;
@@ -20,15 +23,21 @@ public sealed class POSIceCustomizationService : IPOSIceCustomizationService
     private readonly AppDbContext _context;
     private readonly IUnitConversionService _unitConversion;
     private readonly IPhysicalUnitConversionService _physicalConversion;
+    private readonly ICurrentRecipeResolver _currentRecipeResolver;
+    private readonly TimeProvider _timeProvider;
 
     public POSIceCustomizationService(
         AppDbContext context,
         IUnitConversionService unitConversion,
-        IPhysicalUnitConversionService physicalConversion)
+        IPhysicalUnitConversionService physicalConversion,
+        ICurrentRecipeResolver? currentRecipeResolver = null,
+        TimeProvider? timeProvider = null)
     {
         _context = context;
         _unitConversion = unitConversion;
         _physicalConversion = physicalConversion;
+        _currentRecipeResolver = currentRecipeResolver ?? new CurrentRecipeResolver(context);
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public async Task<ServiceResult<POSIceEligibilityDto>> GetEligibilityAsync(
@@ -200,9 +209,7 @@ public sealed class POSIceCustomizationService : IPOSIceCustomizationService
                     .AsNoTracking()
                     .Include(candidate => candidate.RecipeDetails)
                     .SingleOrDefaultAsync(
-                        candidate => candidate.RecipeId == detail.ChildRecipeId.Value
-                            && candidate.Active
-                            && candidate.Status == "Active",
+                        candidate => candidate.RecipeId == detail.ChildRecipeId.Value,
                         cancellationToken);
                 if (child == null || child.OutputQuantity is null or <= 0 || !child.OutputUnitId.HasValue)
                 {
@@ -249,19 +256,24 @@ public sealed class POSIceCustomizationService : IPOSIceCustomizationService
         int? sizeId,
         CancellationToken cancellationToken)
     {
-        var query = _context.Recipes
+        if (!sizeId.HasValue || sizeId.Value <= 0)
+            return null;
+
+        var resolution = await _currentRecipeResolver.ResolveAsync(
+            new RecipeTarget.MenuItemSize(drinkId, sizeId.Value),
+            _timeProvider.GetUtcNow().UtcDateTime,
+            cancellationToken);
+        if (resolution.Status != CurrentRecipeResolutionStatus.Found
+            || resolution.Recipe == null)
+        {
+            return null;
+        }
+
+        return await _context.Recipes
             .AsNoTracking()
             .Include(recipe => recipe.RecipeDetails)
-            .Where(recipe => recipe.Active
-                && recipe.Status == "Active"
-                && recipe.DrinkId == drinkId
-                && recipe.ToppingId == null);
-
-        var sized = await query.FirstOrDefaultAsync(
-            recipe => recipe.SizeId == sizeId,
-            cancellationToken);
-        return sized ?? await query.FirstOrDefaultAsync(
-            recipe => recipe.SizeId == null,
+            .SingleOrDefaultAsync(
+                recipe => recipe.RecipeId == resolution.Recipe.RecipeId,
             cancellationToken);
     }
 }

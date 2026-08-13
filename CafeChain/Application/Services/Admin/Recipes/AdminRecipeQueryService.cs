@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Recipes;
 using CafeChain.Application.DTOs.Costing;
 using CafeChain.Application.Interfaces.Admin.PreparedItems;
 using CafeChain.Application.Interfaces.Admin.Recipes;
@@ -28,6 +29,8 @@ namespace CafeChain.Application.Services.Admin.Recipes
         private readonly IAdminPreparedItemService _preparedItemService;
         private readonly IRecipeBomTreeQueryService _bomTree;
         private readonly IBomDataHealthEvaluator _healthEvaluator;
+        private readonly ICurrentRecipeResolver _currentRecipeResolver;
+        private readonly TimeProvider _timeProvider;
 
         public AdminRecipeQueryService(
             AppDbContext context,
@@ -35,7 +38,9 @@ namespace CafeChain.Application.Services.Admin.Recipes
             IEstimatedBomCostService estimatedBomCost,
             IAdminPreparedItemService preparedItemService,
             IRecipeBomTreeQueryService bomTree,
-            IBomDataHealthEvaluator healthEvaluator)
+            IBomDataHealthEvaluator healthEvaluator,
+            ICurrentRecipeResolver? currentRecipeResolver = null,
+            TimeProvider? timeProvider = null)
         {
             _context = context;
             _outputNormalizer = outputNormalizer;
@@ -43,6 +48,8 @@ namespace CafeChain.Application.Services.Admin.Recipes
             _preparedItemService = preparedItemService;
             _bomTree = bomTree;
             _healthEvaluator = healthEvaluator;
+            _currentRecipeResolver = currentRecipeResolver ?? new CurrentRecipeResolver(context);
+            _timeProvider = timeProvider ?? TimeProvider.System;
         }
 
         public async Task<BomDataHealthPageVM> GetDataHealthPageAsync(int page = 1, int pageSize = 20)
@@ -313,13 +320,35 @@ namespace CafeChain.Application.Services.Admin.Recipes
             if (ids.Count == 0)
                 return summaries;
 
+            var targets = ids
+                .Select(id => (RecipeTarget)new RecipeTarget.Topping(id))
+                .ToArray();
+            var resolutions = await _currentRecipeResolver.ResolveManyAsync(
+                targets,
+                _timeProvider.GetUtcNow().UtcDateTime);
+            foreach (var target in targets.OfType<RecipeTarget.Topping>())
+            {
+                if (resolutions[target].Status == CurrentRecipeResolutionStatus.Ambiguous)
+                {
+                    summaries[target.ToppingId] = new ToppingConsumptionSourceVM
+                    {
+                        ToppingId = target.ToppingId,
+                        SourceCode = ToppingConsumptionSourceCodes.MixedOrInvalid,
+                        SourceLabel = "Liên kết nguồn không hợp lệ",
+                        MappingValid = false,
+                        Reason = "Topping có nhiều công thức đang áp dụng; cần xử lý trước khi sử dụng."
+                    };
+                }
+            }
+            var currentRecipeIds = resolutions.Values
+                .Where(result => result.Status == CurrentRecipeResolutionStatus.Found)
+                .Select(result => result.Recipe!.RecipeId)
+                .ToArray();
+
             var recipes = await _context.Recipes
                 .AsNoTracking()
                 .AsSplitQuery()
-                .Where(r => r.ToppingId.HasValue
-                    && ids.Contains(r.ToppingId.Value)
-                    && r.Active
-                    && r.Status == "Active")
+                .Where(r => currentRecipeIds.Contains(r.RecipeId))
                 .Include(r => r.RecipeDetails)
                     .ThenInclude(d => d.Unit)
                 .Include(r => r.RecipeDetails)
@@ -328,8 +357,6 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     .ThenInclude(d => d.ChildRecipe)
                         .ThenInclude(c => c!.PreparedItem)
                             .ThenInclude(p => p!.BaseUnit)
-                .OrderByDescending(r => r.EffectiveDate)
-                .ThenByDescending(r => r.RecipeId)
                 .ToListAsync();
 
             var costs = await _estimatedBomCost.CalculateRecipesEstimatedCostAsync(
@@ -337,23 +364,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
 
             foreach (var group in recipes.GroupBy(x => x.ToppingId!.Value))
             {
-                var activeRecipes = group.ToList();
-                if (activeRecipes.Count > 1)
-                {
-                    summaries[group.Key] = new ToppingConsumptionSourceVM
-                    {
-                        ToppingId = group.Key,
-                        ActiveRecipeId = activeRecipes[0].RecipeId,
-                        ActiveRecipeCode = activeRecipes[0].RecipeCode,
-                        SourceCode = ToppingConsumptionSourceCodes.MixedOrInvalid,
-                        SourceLabel = "Liên kết nguồn không hợp lệ",
-                        MappingValid = false,
-                        Reason = $"Có {activeRecipes.Count} công thức Active cho cùng topping; cần chỉ giữ một phiên bản hiệu lực."
-                    };
-                    continue;
-                }
-
-                var recipe = activeRecipes[0];
+                var recipe = group.Single();
                 var source = BuildToppingConsumptionSource(recipe);
                 costs.TryGetValue(recipe.RecipeId, out var cost);
                 var costLabel = cost?.IsComplete == true
@@ -759,12 +770,27 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 });
             }
 
+            var preparedItemIds = await _context.PreparedItems
+                .AsNoTracking()
+                .Where(item => item.Active)
+                .Select(item => item.PreparedItemId)
+                .ToListAsync();
+            var preparedTargets = preparedItemIds
+                .Select(id => (RecipeTarget)new RecipeTarget.PreparedItem(id))
+                .ToArray();
+            var preparedResolutions = await _currentRecipeResolver.ResolveManyAsync(
+                preparedTargets,
+                _timeProvider.GetUtcNow().UtcDateTime);
+            var currentPreparedRecipeIds = preparedResolutions.Values
+                .Where(result => result.Status == CurrentRecipeResolutionStatus.Found)
+                .Select(result => result.Recipe!.RecipeId)
+                .ToArray();
+
             options.SubRecipes = await _context.Recipes
                 .AsNoTracking()
                 .Include(x => x.PreparedItem)
                 .Include(x => x.OutputUnit)
-                .Where(x => x.Active
-                    && x.Status == "Active"
+                .Where(x => currentPreparedRecipeIds.Contains(x.RecipeId)
                     && x.PreparedItemId.HasValue
                     && x.PreparedItem != null
                     && x.PreparedItem.Active

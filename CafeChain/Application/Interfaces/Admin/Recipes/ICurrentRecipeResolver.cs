@@ -8,4 +8,9 @@ public interface ICurrentRecipeResolver
         RecipeTarget target,
         DateTime businessInstantUtc,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyDictionary<RecipeTarget, CurrentRecipeResolution>> ResolveManyAsync(
+        IReadOnlyCollection<RecipeTarget> targets,
+        DateTime businessInstantUtc,
+        CancellationToken cancellationToken = default);
 }
