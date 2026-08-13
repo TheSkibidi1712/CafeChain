@@ -600,3 +600,13 @@
     .negative-inventory-page .ni-policy-grid { grid-template-columns: 1fr 1fr; }
     .negative-inventory-page .ni-policy-primary { grid-column: 1 / -1; }
 }
+
+/* FE2 batch 13: settings state, guard and save hierarchy. */
+.system-setting-page .ni-page-header { position:relative; overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-left:4px solid var(--cc-caramel-500,#A97750); border-radius:var(--cc-radius-lg,16px); padding:clamp(18px,2.4vw,28px); background:linear-gradient(135deg,var(--cc-surface,#FFFDFB),var(--cc-surface-muted,#FBF7F2)); }
+.system-setting-page .ni-feature-panel { border-color:var(--cc-warning,#99623B); background:var(--cc-warning-bg,#FBF3EA); }
+.system-setting-page .ni-section-heading { padding-left:10px; border-left:3px solid var(--cc-caramel-500,#A97750); }
+.system-setting-page .ni-table-wrap { border-top:3px solid var(--cc-brown-600,#70482F)!important; }
+.system-setting-page .ni-save-bar { position:sticky; bottom:12px; z-index:5; padding:12px; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-control,10px); background:rgba(255,253,251,.96); box-shadow:var(--cc-shadow-md); }
+.system-setting-page :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
+@media(max-width:767.98px){.system-setting-page .ni-save-bar{position:static}.system-setting-page .ni-save-bar>*{width:100%}}
+@media(prefers-reduced-motion:reduce){.system-setting-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}

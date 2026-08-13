@@ -454,3 +454,11 @@
         transition: none !important;
     }
 }
+
+/* FE2 batch 13: personal profile hierarchy and safe actions. */
+.admin-profile-page .profile-header { position:relative; overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-left:4px solid var(--cc-caramel-500,#A97750); background:linear-gradient(135deg,var(--cc-surface,#FFFDFB),var(--cc-surface-muted,#FBF7F2)); }
+.admin-profile-page .section-card { border-top:3px solid var(--cc-brown-600,#70482F); box-shadow:var(--cc-shadow-sm); }
+.admin-profile-page .section-title { color:var(--cc-brown-700,#3D2418); }
+.admin-profile-page .profile-security { border-top-color:var(--cc-warning,#99623B); }
+.admin-profile-page :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
+@media(prefers-reduced-motion:reduce){.admin-profile-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}

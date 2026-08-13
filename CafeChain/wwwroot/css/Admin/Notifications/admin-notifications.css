@@ -690,3 +690,15 @@
         transition-duration: .01ms !important;
     }
 }
+
+/* FE2 batch 13: notification read-state and action hierarchy. */
+.notification-page .notification-header { position:relative; overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-lg,16px); padding:clamp(18px,2.4vw,28px); background:linear-gradient(135deg,var(--cc-surface,#FFFDFB),var(--cc-surface-muted,#FBF7F2)); }
+.notification-page .notification-header::before { position:absolute; inset:0 auto 0 0; width:4px; background:var(--cc-caramel-500,#A97750); content:""; }
+.notification-page .notification-summary { overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-md,12px); background:var(--cc-surface,#FFFDFB); }
+.notification-page .notification-summary-card { border:0; border-right:1px solid var(--cc-border,#E9DED4); border-radius:0; box-shadow:none; }
+.notification-page .notification-summary-card:last-child { border-right:0; }
+.notification-page .notification-summary-card.has-unread { box-shadow:inset 4px 0 0 var(--cc-caramel-500,#A97750); }
+.notification-page .notification-item.is-unread { border-left:4px solid var(--cc-caramel-500,#A97750); background:var(--cc-surface-active,#F4E9DF); }
+.notification-page :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
+@media(max-width:767.98px){.notification-page .notification-summary-card{border-right:0;border-bottom:1px solid var(--cc-border,#E9DED4)}.notification-page .notification-summary-card:last-child{border-bottom:0}}
+@media(prefers-reduced-motion:reduce){.notification-page *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
