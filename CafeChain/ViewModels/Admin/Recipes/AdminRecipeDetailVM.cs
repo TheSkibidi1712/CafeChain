@@ -7,6 +7,17 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public int RecipeId { get; set; }
         public string RecipeCode { get; set; } = "";
         public string Name { get; set; } = "";
+        public string BusinessName { get; set; } = "";
+        public string? BusinessCode { get; set; }
+        public string? SizeName { get; set; }
+        public string TargetLabel { get; set; } = "";
+        public string VersionLabel { get; set; } = "";
+        public bool IsCurrentVersion { get; set; }
+        public string AppliedStateLabel { get; set; } = "";
+        public string AppliedStateCssClass { get; set; } = "rb-status-inactive";
+        public string OutputHeading { get; set; } = "Đầu ra";
+        public string OutputDisplay { get; set; } = "";
+        public string OutputContext { get; set; } = "";
         public string Status { get; set; } = "";
         public bool Active { get; set; }
         public DateTime? EffectiveDate { get; set; }
@@ -40,6 +51,10 @@ namespace CafeChain.ViewModels.Admin.Recipes
 
         public bool IsPreparedItemRecipe => RecipeTypeKey == "SUBRECIPE";
         public bool ShowBatchOutput => IsPreparedItemRecipe;
+        public IReadOnlyList<BomComponentDetailVM> PreparedInputs =>
+            Components.Where(x => x.IsPreparedInput).ToList();
+        public IReadOnlyList<BomComponentDetailVM> DirectIngredients =>
+            Components.Where(x => !x.IsPreparedInput).ToList();
     }
 
     public sealed class BomComponentDetailVM
@@ -60,6 +75,13 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public decimal? EstimatedLineCost { get; set; }
         public string CostStatus { get; set; } = "Chưa đủ dữ liệu";
         public List<BomHealthReasonVM> CostReasons { get; set; } = new();
+        public bool IsPreparedInput => ChildRecipeId.HasValue;
+        public string InputTypeLabel => IsPreparedInput
+            ? "Bán thành phẩm đầu vào"
+            : "Nguyên liệu trực tiếp";
+        public string? SourceVersionLabel => ChildRecipeId.HasValue
+            ? $"Phiên bản {ChildRecipeId.Value}"
+            : null;
     }
 
     public sealed class BomStoreOptionVM

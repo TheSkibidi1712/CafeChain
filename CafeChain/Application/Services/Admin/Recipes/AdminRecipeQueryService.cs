@@ -470,6 +470,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     .ThenInclude(d => d.Unit)
                 .Include(r => r.RecipeDetails)
                     .ThenInclude(d => d.Ingredient)
+                        .ThenInclude(i => i!.BaseUnit)
                 .Include(r => r.RecipeDetails)
                     .ThenInclude(d => d.ChildRecipe)
                         .ThenInclude(c => c!.PreparedItem)
@@ -479,7 +480,6 @@ namespace CafeChain.Application.Services.Admin.Recipes
             if (recipe == null)
                 return null;
 
-            var tree = await _bomTree.BuildTreeAsync(recipeId);
             var typeKey = ResolveRecipeTypeKey(recipe);
             var typeLabel = typeKey switch
             {
@@ -488,9 +488,15 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 "SUBRECIPE" => "Bán thành phẩm",
                 _ => "Công thức"
             };
-            var cost = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(recipe.RecipeId);
-            var configuration = _healthEvaluator.EvaluateConfiguration(recipe);
-            var costing = _healthEvaluator.EvaluateCosting(cost);
+            var target = CreateRecipeTarget(recipe);
+            var currentResolution = target == null
+                ? null
+                : await _currentRecipeResolver.ResolveAsync(
+                    target,
+                    _timeProvider.GetUtcNow().UtcDateTime);
+            var isCurrentVersion = currentResolution?.Status == CurrentRecipeResolutionStatus.Found
+                && currentResolution.Recipe?.RecipeId == recipe.RecipeId;
+            var identity = await GetWorkspaceIdentityAsync(recipe, typeKey);
             decimal? normalizedOutput = null;
             string? outputBaseUnitCode = recipe.PreparedItem?.BaseUnit?.UnitCode;
 
@@ -511,11 +517,25 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 }
             }
 
+            var output = BuildWorkspaceOutput(recipe, typeKey, identity.BusinessName, identity.SizeName);
+            var appliedState = BuildAppliedState(currentResolution, isCurrentVersion);
+
             var page = new AdminRecipeVisualizePageVM
             {
                 RecipeId = recipe.RecipeId,
                 RecipeCode = recipe.RecipeCode ?? "",
                 Name = recipe.Name ?? "",
+                BusinessName = identity.BusinessName,
+                BusinessCode = identity.BusinessCode,
+                SizeName = identity.SizeName,
+                TargetLabel = BuildTargetLabel(typeKey, identity.SizeName),
+                VersionLabel = $"Phiên bản {recipe.RecipeId}",
+                IsCurrentVersion = isCurrentVersion,
+                AppliedStateLabel = appliedState.Label,
+                AppliedStateCssClass = appliedState.CssClass,
+                OutputHeading = output.Heading,
+                OutputDisplay = output.Display,
+                OutputContext = output.Context,
                 Status = recipe.Status ?? "",
                 Active = recipe.Active,
                 EffectiveDate = recipe.EffectiveDate,
@@ -531,38 +551,15 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 OutputUnitName = recipe.OutputUnit?.Name,
                 NormalizedOutputQuantity = normalizedOutput,
                 OutputBaseUnitCode = outputBaseUnitCode,
-                ConfigurationHealth = configuration,
-                CostingHealth = costing,
-                EstimatedBatchCost = typeKey == "SUBRECIPE" && cost.IsComplete ? cost.TotalCost : null,
-                EstimatedPortionCost = typeKey != "SUBRECIPE" && cost.IsComplete ? cost.TotalCost : null,
-                EstimatedUnitCost = typeKey == "SUBRECIPE"
-                    && cost.IsComplete
-                    && normalizedOutput > 0
-                        ? cost.TotalCost / normalizedOutput.Value
-                        : null,
-                FirstLevelNodes = tree.Roots
+                ConfigurationHealth = _healthEvaluator.EvaluateConfiguration(recipe)
             };
-
-            var costLines = cost.Lines
-                .Where(x => x.RecipeDetailId.HasValue)
-                .GroupBy(x => x.RecipeDetailId!.Value)
-                .ToDictionary(x => x.Key, x => x.First());
-            var issuesByDetail = cost.Issues
-                .Where(x => x.RecipeDetailId.HasValue)
-                .GroupBy(x => x.RecipeDetailId!.Value)
-                .ToDictionary(x => x.Key, x => x.ToList());
 
             foreach (var detail in recipe.RecipeDetails.OrderBy(x => x.RecipeDetailId))
             {
-                costLines.TryGetValue(detail.RecipeDetailId, out var line);
-                issuesByDetail.TryGetValue(detail.RecipeDetailId, out var detailIssues);
                 var child = detail.ChildRecipe;
                 var preparedItem = child?.PreparedItem;
-                var reasons = detailIssues == null || detailIssues.Count == 0
-                    ? new List<BomHealthReasonVM>()
-                    : _healthEvaluator.EvaluateCosting(CostCalculationResult.Incomplete(
-                        line == null ? Array.Empty<CostLineResult>() : new[] { line },
-                        detailIssues)).Reasons;
+                var baseUnit = detail.Ingredient?.BaseUnit ?? preparedItem?.BaseUnit;
+                var normalizedQuantity = TryNormalizeComponent(detail, baseUnit);
 
                 page.Components.Add(new BomComponentDetailVM
                 {
@@ -578,29 +575,17 @@ namespace CafeChain.Application.Services.Admin.Recipes
                         : preparedItem?.Code ?? $"REC_{detail.ChildRecipeId}",
                     ItemName = detail.IngredientId.HasValue
                         ? detail.Ingredient?.Name ?? "Nguyên liệu không tồn tại"
-                        : preparedItem?.Name ?? child?.Name ?? "BTP chưa ánh xạ",
+                        : preparedItem?.Name ?? child?.Name ?? "Bán thành phẩm chưa được liên kết",
                     Quantity = detail.Quantity,
                     UnitCode = detail.Unit?.UnitCode ?? detail.Unit?.Name ?? "",
-                    NormalizedQuantity = line?.QuantityInBase,
-                    BaseUnitCode = line?.BaseUnitCode ?? preparedItem?.BaseUnit?.UnitCode,
-                    EstimatedLineCost = line?.LineCost,
-                    CostStatus = line?.Status == CostCompletenessStatus.Complete
-                        ? "Đủ dữ liệu ước tính"
-                        : reasons.FirstOrDefault()?.Message ?? "Chưa đủ dữ liệu giá vốn",
-                    CostReasons = reasons
+                    NormalizedQuantity = normalizedQuantity,
+                    BaseUnitCode = baseUnit?.UnitCode
                 });
             }
 
             if (recipe.ToppingId.HasValue)
             {
                 page.ToppingConsumptionSource = BuildToppingConsumptionSource(recipe);
-                ApplyToppingCost(
-                    page.ToppingConsumptionSource,
-                    cost.IsComplete,
-                    cost.IsComplete ? cost.TotalCost : null,
-                    cost.IsComplete
-                        ? "Giá vốn BOM đã xác định"
-                        : "Chưa xác định đầy đủ giá vốn BOM");
             }
 
             return page;
@@ -888,6 +873,158 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     Price = ds.Price
                 })
                 .ToListAsync();
+        }
+
+        private async Task<(string BusinessName, string? BusinessCode, string? SizeName)>
+            GetWorkspaceIdentityAsync(Models.Drinks.Recipe recipe, string typeKey)
+        {
+            if (typeKey == "POS" && recipe.DrinkId.HasValue)
+            {
+                var drink = await _context.Drinks
+                    .AsNoTracking()
+                    .Where(x => x.DrinkId == recipe.DrinkId.Value)
+                    .Select(x => new { x.Name, x.DrinkCode })
+                    .FirstOrDefaultAsync();
+                return (
+                    drink?.Name ?? recipe.Name ?? "Món bán chưa xác định",
+                    drink?.DrinkCode,
+                    recipe.Size?.Name);
+            }
+
+            if (typeKey == "TOPPING" && recipe.ToppingId.HasValue)
+            {
+                var topping = await _context.Toppings
+                    .AsNoTracking()
+                    .Where(x => x.ToppingId == recipe.ToppingId.Value)
+                    .Select(x => new { x.Name, x.ToppingCode })
+                    .FirstOrDefaultAsync();
+                return (
+                    topping?.Name ?? recipe.Name ?? "Topping chưa xác định",
+                    topping?.ToppingCode,
+                    null);
+            }
+
+            if (typeKey == "SUBRECIPE")
+            {
+                return (
+                    recipe.PreparedItem?.Name ?? recipe.Name ?? "Bán thành phẩm chưa xác định",
+                    recipe.PreparedItem?.Code,
+                    null);
+            }
+
+            return (recipe.Name ?? "Công thức chưa xác định", null, recipe.Size?.Name);
+        }
+
+        private static RecipeTarget? CreateRecipeTarget(Models.Drinks.Recipe recipe)
+        {
+            if (recipe.DrinkId.HasValue
+                && recipe.SizeId.HasValue
+                && !recipe.ToppingId.HasValue
+                && !recipe.PreparedItemId.HasValue)
+            {
+                return new RecipeTarget.MenuItemSize(recipe.DrinkId.Value, recipe.SizeId.Value);
+            }
+
+            if (recipe.ToppingId.HasValue
+                && !recipe.DrinkId.HasValue
+                && !recipe.SizeId.HasValue
+                && !recipe.PreparedItemId.HasValue)
+            {
+                return new RecipeTarget.Topping(recipe.ToppingId.Value);
+            }
+
+            if (recipe.PreparedItemId.HasValue
+                && !recipe.DrinkId.HasValue
+                && !recipe.SizeId.HasValue
+                && !recipe.ToppingId.HasValue)
+            {
+                return new RecipeTarget.PreparedItem(recipe.PreparedItemId.Value);
+            }
+
+            return null;
+        }
+
+        private static (string Label, string CssClass) BuildAppliedState(
+            CurrentRecipeResolution? resolution,
+            bool isCurrentVersion)
+        {
+            if (isCurrentVersion)
+                return ("Đang áp dụng", "rb-status-active");
+
+            return resolution?.Status switch
+            {
+                CurrentRecipeResolutionStatus.Found => ("Phiên bản lịch sử", "rb-status-inactive"),
+                CurrentRecipeResolutionStatus.Ambiguous => ("Cần kiểm tra phiên bản áp dụng", "rb-status-incomplete"),
+                CurrentRecipeResolutionStatus.Missing => ("Chưa có phiên bản đang áp dụng", "rb-status-incomplete"),
+                _ => ("Cần kiểm tra đối tượng công thức", "rb-status-incomplete")
+            };
+        }
+
+        private static (string Heading, string Display, string Context) BuildWorkspaceOutput(
+            Models.Drinks.Recipe recipe,
+            string typeKey,
+            string businessName,
+            string? sizeName)
+        {
+            if (typeKey == "POS")
+            {
+                var size = string.IsNullOrWhiteSpace(sizeName) ? "chưa xác định" : sizeName;
+                return (
+                    "Đầu ra",
+                    $"1 phần {businessName} · Cỡ {size}",
+                    "Một phần bán theo đúng món và cỡ đang xem.");
+            }
+
+            if (typeKey == "TOPPING")
+            {
+                return (
+                    "Phạm vi áp dụng",
+                    $"Một lần sử dụng {businessName} theo định mức topping",
+                    "Số lượng tiêu hao do các dòng định mức bên dưới xác định; không suy diễn sản lượng vật lý.");
+            }
+
+            if (typeKey == "SUBRECIPE")
+            {
+                var quantity = recipe.OutputQuantity?.ToString("0.####") ?? "Chưa cấu hình";
+                var unit = recipe.OutputUnit?.UnitCode ?? recipe.OutputUnit?.Name ?? "đơn vị";
+                return (
+                    "Sản lượng chuẩn một mẻ",
+                    $"{quantity} {unit} / mẻ",
+                    "Mẻ là số lần thực hiện công thức; tồn kho vẫn ghi nhận theo đơn vị vật lý.");
+            }
+
+            return ("Đầu ra", "Chưa xác định", "Cần hoàn thiện đối tượng công thức.");
+        }
+
+        private static string BuildTargetLabel(string typeKey, string? sizeName)
+        {
+            return typeKey switch
+            {
+                "POS" => $"Món bán · Cỡ {(string.IsNullOrWhiteSpace(sizeName) ? "chưa xác định" : sizeName)}",
+                "TOPPING" => "Topping",
+                "SUBRECIPE" => "Bán thành phẩm",
+                _ => "Công thức"
+            };
+        }
+
+        private static decimal? TryNormalizeComponent(
+            Models.Drinks.RecipeDetail detail,
+            Models.Inventories.Ingredients.Unit? baseUnit)
+        {
+            if (detail.Unit == null || baseUnit == null)
+                return null;
+
+            if (detail.UnitId == baseUnit.UnitId)
+                return detail.Quantity;
+
+            return PhysicalUnitConversionRegistry.TryGetPairFactor(
+                detail.Unit.UnitCode,
+                baseUnit.UnitCode,
+                detail.Unit.Type,
+                baseUnit.Type,
+                out var factor)
+                ? detail.Quantity * factor
+                : null;
         }
 
         private static string ResolveRecipeTypeKey(Models.Drinks.Recipe r)
