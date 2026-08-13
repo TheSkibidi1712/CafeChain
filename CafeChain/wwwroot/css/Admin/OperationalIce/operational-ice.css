@@ -1775,3 +1775,22 @@
 .ice-report-note-box p:last-child {
     margin-bottom: 0;
 }
+
+/* FE2 batch 9: shift-ice workflow hierarchy, scoped to operational ice pages. */
+.ice-index-page .ice-page-header,
+.ice-detail-page .ice-page-header,
+.ice-report-page .ice-page-header { position: relative; overflow: hidden; border: 1px solid var(--cc-border, #E9DED4); border-radius: var(--cc-radius-lg, 16px); padding: clamp(18px,2.4vw,28px); background: linear-gradient(135deg,var(--cc-surface,#FFFDFB),var(--cc-surface-muted,#FBF7F2)); }
+.ice-index-page .ice-page-header::before,
+.ice-detail-page .ice-page-header::before,
+.ice-report-page .ice-page-header::before { position:absolute; inset:0 auto 0 0; width:4px; background:var(--cc-caramel-500,#A97750); content:""; }
+.ice-index-page .ice-table-scroll,
+.ice-detail-page .ice-table-scroll,
+.ice-report-page .ice-table-scroll { border-top:3px solid var(--cc-brown-600,#70482F); }
+.ice-detail-page .ice-detail-layout { align-items:start; }
+.ice-detail-page .ice-form-actions { position:sticky; bottom:12px; z-index:4; padding:12px; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-control,10px); background:rgba(255,253,251,.96); box-shadow:var(--cc-shadow-md); }
+.ice-report-page .ice-report-quantity-grid,
+.ice-report-page .ice-report-cost-grid { overflow:hidden; border:1px solid var(--cc-border,#E9DED4); border-radius:var(--cc-radius-md,12px); background:var(--cc-surface,#FFFDFB); font-variant-numeric:tabular-nums; }
+.ice-report-page .ice-section-heading { padding-left:10px; border-left:3px solid var(--cc-caramel-500,#A97750); }
+:is(.ice-index-page,.ice-detail-page,.ice-report-page) :is(a,button,input,select,textarea,summary):focus-visible { outline:2px solid var(--cc-brown-600,#70482F); outline-offset:2px; box-shadow:var(--cc-focus-ring)!important; }
+@media(max-width:767.98px){.ice-detail-page .ice-form-actions{position:static;}.ice-report-page .ice-report-two-column{grid-template-columns:1fr;}}
+@media(prefers-reduced-motion:reduce){:is(.ice-index-page,.ice-detail-page,.ice-report-page) *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important;}}
