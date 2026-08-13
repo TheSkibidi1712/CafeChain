@@ -3,7 +3,7 @@
    allow demo/default seed data to be written to a SQL Server system database. */
 use CafeChain
 go
-
+ 
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
@@ -8292,7 +8292,15 @@ BEGIN TRY
  ELSE
   UPDATE dbo.PermissionGroups
   SET DisplayOrder=9,Active=1
-  WHERE Code=N'DASHBOARD_WIDGET';
+ WHERE Code=N'DASHBOARD_WIDGET';
+
+ IF NOT EXISTS(SELECT 1 FROM dbo.PermissionGroups WHERE Code=N'AI_IMPORT')
+  INSERT dbo.PermissionGroups(Code,Name,DisplayOrder,Active)
+  VALUES(N'AI_IMPORT',N'AI Smart Import',10,1);
+ ELSE
+  UPDATE dbo.PermissionGroups
+  SET Name=N'AI Smart Import',DisplayOrder=10,Active=1
+  WHERE Code=N'AI_IMPORT';
 
  /* New/dynamic permissions. PermissionId remains database-generated;
     Code is the stable identity, matching the current SeedAll design. */
@@ -8393,6 +8401,14 @@ BEGIN TRY
   (N'Dashboard.Widget.WorkforceShiftStatus.View',N'DASHBOARD_WIDGET',N'Xem tình trạng ca nhân sự',N'ViewWorkforceShiftStatus',N'Xem widget tình trạng ca nhân sự trong StaffScope'),
   (N'Dashboard.Widget.WorkforceHourlyDemand.View',N'DASHBOARD_WIDGET',N'Xem nhu cầu nhân sự theo giờ',N'ViewWorkforceHourlyDemand',N'Xem widget nhu cầu nhân sự theo giờ trong StaffScope'),
   (N'Dashboard.Widget.WorkforceStaffPerformance.View',N'DASHBOARD_WIDGET',N'Xem hiệu suất nhân sự',N'ViewWorkforceStaffPerformance',N'Xem widget hiệu suất nhân sự trong StaffScope');
+
+ INSERT #NewPermissionCatalog VALUES
+  (N'AIImport.View',N'AI_IMPORT',N'Xem AI Smart Import',N'View',N'Xem giao diện và preview AI Smart Import'),
+  (N'AIImport.Upload',N'AI_IMPORT',N'Tải Excel cho AI Smart Import',N'Upload',N'Tải tệp .xlsx an toàn để tạo phiên Smart Import'),
+  (N'AIImport.Analyze',N'AI_IMPORT',N'Phân tích AI Smart Import',N'Analyze',N'Phân tích, sửa mapping và revalidate preview'),
+  (N'AIImport.Confirm',N'AI_IMPORT',N'Xác nhận AI Smart Import',N'Confirm',N'Confirm nguyên tử toàn phiên; vẫn bắt buộc quyền Create của từng entity'),
+  (N'AIImport.Cancel',N'AI_IMPORT',N'Hủy phiên AI Smart Import',N'Cancel',N'Hủy phiên Smart Import thuộc tài khoản hiện tại'),
+  (N'AIImport.History',N'AI_IMPORT',N'Xem lịch sử AI Smart Import',N'History',N'Xem lịch sử phiên Smart Import thuộc tài khoản hiện tại');
 
  IF EXISTS
  (
@@ -8746,7 +8762,15 @@ BEGIN TRY
   (N'System.Cutover.View',1,0,0,0,1,1,0,0),
   (N'System.Cutover.Manage',1,0,0,0,0,1,0,0),
   (N'System.LegacyConsolidation.View',1,1,0,0,1,1,0,0),
-  (N'System.LegacyConsolidation.Manage',1,0,0,0,0,1,0,0);
+ (N'System.LegacyConsolidation.Manage',1,0,0,0,0,1,0,0);
+
+ INSERT #PermissionMatrix VALUES
+  (N'AIImport.View',1,0,0,0,1,0,0,0),
+  (N'AIImport.Upload',1,0,0,0,1,0,0,0),
+  (N'AIImport.Analyze',1,0,0,0,1,0,0,0),
+  (N'AIImport.Confirm',1,0,0,0,1,0,0,0),
+  (N'AIImport.Cancel',1,0,0,0,1,0,0,0),
+  (N'AIImport.History',1,0,0,0,1,0,0,0);
 
  INSERT #PermissionMatrix VALUES
   (N'Dashboard.AI.Use',1,1,1,0,1,0,0,0),
@@ -9012,11 +9036,11 @@ BEGIN TRY
   ExpectedCount int NOT NULL
  );
  INSERT #ExpectedRoleCounts VALUES
-  (N'CDN',181),
+  (N'CDN',187),
   (N'QLV',101),
   (N'QLCN',138),
   (N'NVBH',12),
-  (N'KTK',118),
+  (N'KTK',124),
   (N'CT',37);
 
  INSERT #ExpectedRoleCounts(RoleKey,ExpectedCount)

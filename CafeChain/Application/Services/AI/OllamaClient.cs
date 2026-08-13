@@ -29,6 +29,22 @@ public sealed class OllamaClient : IOllamaClient
         string userPayload,
         string featureName,
         CancellationToken cancellationToken = default)
+        => await ChatCoreAsync(systemPrompt, userPayload, featureName, null, cancellationToken);
+
+    public Task<OllamaResultDTO> ChatStructuredAsync(
+        string systemPrompt,
+        string userPayload,
+        object jsonSchema,
+        string featureName,
+        CancellationToken cancellationToken = default) =>
+        ChatCoreAsync(systemPrompt, userPayload, featureName, jsonSchema, cancellationToken);
+
+    private async Task<OllamaResultDTO> ChatCoreAsync(
+        string systemPrompt,
+        string userPayload,
+        string featureName,
+        object? jsonSchema,
+        CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
         var safeFeature = string.IsNullOrWhiteSpace(featureName) ? "Unspecified" : featureName.Trim();
@@ -39,6 +55,7 @@ public sealed class OllamaClient : IOllamaClient
                 Model = _options.Model,
                 Stream = false,
                 Think = _options.Think,
+                Format = jsonSchema,
                 KeepAlive = _options.KeepAlive,
                 Options = new OllamaRequestOptionsDTO
                 {
@@ -58,7 +75,7 @@ public sealed class OllamaClient : IOllamaClient
             if (!response.IsSuccessStatusCode)
             {
                 LogFailure(safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds, $"HTTP_{(int)response.StatusCode}");
-                return Failure($"Ollama trả về HTTP {(int)response.StatusCode}.");
+                return Failure($"Ollama trả về HTTP {(int)response.StatusCode}.", $"OLLAMA_HTTP_{(int)response.StatusCode}");
             }
 
             var result = await response.Content.ReadFromJsonAsync<OllamaChatResponseDTO>(cancellationToken: cancellationToken);
@@ -66,7 +83,7 @@ public sealed class OllamaClient : IOllamaClient
             if (string.IsNullOrWhiteSpace(content))
             {
                 LogFailure(safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds, "EmptyResponse");
-                return Failure("Ollama trả về nội dung rỗng.");
+                return Failure("Ollama trả về nội dung rỗng.", "OLLAMA_EMPTY_RESPONSE");
             }
 
             _logger.LogInformation("Ollama request completed. Model={Model} Feature={Feature} PayloadSize={PayloadSize} ElapsedMs={ElapsedMs}",
@@ -76,18 +93,18 @@ public sealed class OllamaClient : IOllamaClient
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             LogFailure(safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds, "Timeout");
-            return Failure("Ollama phản hồi quá thời gian cho phép.");
+            return Failure("Ollama phản hồi quá thời gian cho phép.", "OLLAMA_TIMEOUT");
         }
         catch (HttpRequestException ex)
         {
             _logger.LogWarning("Ollama request failed. Model={Model} Feature={Feature} PayloadSize={PayloadSize} ElapsedMs={ElapsedMs} ErrorType={ErrorType}",
                 _options.Model, safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
-            return Failure("Không thể kết nối Ollama.");
+            return Failure("Không thể kết nối Ollama.", "OLLAMA_OFFLINE");
         }
         catch (JsonException)
         {
             LogFailure(safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds, "InvalidHttpJson");
-            return Failure("Phản hồi HTTP của Ollama không đúng JSON.");
+            return Failure("Phản hồi HTTP của Ollama không đúng JSON.", "OLLAMA_INVALID_RESPONSE");
         }
         catch (OperationCanceledException)
         {
@@ -97,7 +114,7 @@ public sealed class OllamaClient : IOllamaClient
         {
             _logger.LogError(ex, "Unexpected Ollama error. Model={Model} Feature={Feature} PayloadSize={PayloadSize} ElapsedMs={ElapsedMs}",
                 _options.Model, safeFeature, userPayload.Length, stopwatch.ElapsedMilliseconds);
-            return Failure("Ollama hiện không khả dụng.");
+            return Failure("Ollama hiện không khả dụng.", "OLLAMA_UNAVAILABLE");
         }
     }
 
@@ -139,10 +156,11 @@ public sealed class OllamaClient : IOllamaClient
         }
     }
 
-    private static OllamaResultDTO Failure(string message) => new()
+    private static OllamaResultDTO Failure(string message, string errorCode = "OLLAMA_ERROR") => new()
     {
         Success = false,
         ErrorMessage = message,
-        UsedFallback = true
+        UsedFallback = true,
+        ErrorCode = errorCode
     };
 }

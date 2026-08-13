@@ -2,7 +2,7 @@
 @using CafeChain.Application.DTOs.Admin.Dashboard
 @using System.Text.Json
 @{
-    ViewData["Title"] = "Dashboard Analytics";
+    ViewData["Title"] = "Tổng quan phân tích";
     var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     var storesJson = JsonSerializer.Serialize(Model.Stores, jsonOptions);
     var contextJson = JsonSerializer.Serialize(Model.AnalysisContext, jsonOptions);
@@ -42,7 +42,7 @@
     <header class="analytics-header">
         <div class="analytics-header__copy">
             <span class="analytics-eyebrow">@Model.RoleName</span>
-            <h1>Dashboard Analytics</h1>
+            <h1>Tổng quan phân tích</h1>
             <p>Dữ liệu được giới hạn theo phạm vi cửa hàng bạn được cấp quyền.</p>
         </div>
         <div class="analytics-header__actions">
@@ -62,7 +62,7 @@
                 <span class="analytics-filter__kicker">Phạm vi dữ liệu</span>
                 <strong>Bộ lọc phân tích</strong>
             </div>
-            <span class="analytics-filter__hint"><i class="bi bi-shield-check"></i> Theo StaffScope</span>
+            <span class="analytics-filter__hint"><i class="bi bi-shield-check"></i> Theo phạm vi truy cập</span>
         </div>
         <div class="analytics-filter__grid">
             <label>Từ ngày<input id="dashboardFromDate" type="date" value="@Model.Filter.FromDate.ToString("yyyy-MM-dd")" /></label>
@@ -78,7 +78,7 @@
                     <option value="Month" selected="@(Model.Filter.Granularity == "Month")">Tháng</option>
                 </select>
             </label>
-            <label>Số lượng (Top)<input id="dashboardTop" type="number" min="1" max="100" value="@Model.Filter.Top" /></label>
+            <label>Số kết quả xếp hạng<input id="dashboardTop" type="number" min="1" max="100" value="@Model.Filter.Top" /></label>
             <label>Tùy chọn lọc
                 <select id="dashboardPreset">
                     <option value="">Tùy chọn hiện tại</option>
@@ -143,9 +143,9 @@
                     </svg>
                 </span>
                 <div>
-                    <span class="analytics-eyebrow">AI Analyst dựa trên evidence</span>
-                    <h2 id="dashboardIntelligenceTitle">Hỏi Dashboard bằng tiếng Việt</h2>
-                    <p>Đặt câu hỏi về dữ liệu trong bộ lọc hiện tại. AI chỉ đọc dữ liệu đã xác thực và luôn tuân theo StaffScope.</p>
+                    <span class="analytics-eyebrow">Trợ lý phân tích dựa trên bằng chứng</span>
+                    <h2 id="dashboardIntelligenceTitle">Hỏi dữ liệu bằng tiếng Việt</h2>
+                    <p>Đặt câu hỏi về dữ liệu trong bộ lọc hiện tại. Trợ lý chỉ đọc dữ liệu đã xác thực và luôn tuân theo phạm vi truy cập của nhân viên.</p>
                 </div>
             </div>
             <div class="dashboard-intelligence__heading-actions">

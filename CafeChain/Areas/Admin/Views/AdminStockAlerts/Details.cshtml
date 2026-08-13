@@ -20,7 +20,7 @@
         : $" {Model.ProcurementUnitName}";
 }
 
-<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" asp-append-version="true" />
 
 <main class="ops-shell cc-warehouse-page">
 <header class="ops-header cc-warehouse-header cc-warehouse-header--compact cc-warehouse-header--detail">
@@ -84,7 +84,7 @@
                         <div><span class="ops-data-label">Nguồn phát hiện</span><span class="ops-data-value">@AdminStatusDisplay.StockAlertSource(Model.Source)</span></div>
                         <div><span class="ops-data-label">Cập nhật gần nhất</span><span class="ops-data-value">@BusinessDateService.ToBusinessTime(Model.UpdatedAt).ToString("dd/MM/yyyy HH:mm")</span></div>
                         <div><span class="ops-data-label">Người báo</span><span class="ops-data-value">@(Model.ReporterName ?? "Hệ thống")</span></div>
-                        <div><span class="ops-data-label">Mã định danh kho</span><span class="ops-data-value">@(Model.IngredientId.HasValue ? $"Nguyên liệu #{Model.IngredientId}" : Model.PreparedItemId.HasValue ? $"Bán thành phẩm #{Model.PreparedItemId}" : $"Công thức cũ #{Model.RecipeId}")</span></div>
+                        <div><span class="ops-data-label">Loại mặt hàng</span><span class="ops-data-value">@Model.ItemTypeLabel</span></div>
                     </div>
                     @if (!string.IsNullOrWhiteSpace(Model.ReporterNote))
                     {
