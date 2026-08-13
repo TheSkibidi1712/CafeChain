@@ -27,6 +27,7 @@ select,input,textarea{border:1px solid #d8deea;border-radius:9px;padding:.55rem 
 .row-status.status-warning{background:#fef3c7;color:#92400e}.row-status.status-valid{background:#dcfce7;color:#166534}
 .row-status.status-skipped{background:#e2e8f0;color:#475569}.row-status.status-imported{background:#dbeafe;color:#1d4ed8}
 .source-row-number{display:block;font-size:1.05rem}.source-trace,.action-label{display:block;margin-top:.35rem;color:var(--muted);font-size:.7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.source-confidence{display:inline-block;margin-top:.35rem;padding:.12rem .4rem;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:.68rem}.source-evidence{display:-webkit-box;margin-top:.4rem;color:var(--muted);font-size:.68rem;line-height:1.35;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .business-values{display:grid;gap:.45rem}.business-value{display:grid;grid-template-columns:minmax(105px,.75fr) minmax(0,1fr) 18px minmax(0,1fr);align-items:center;gap:.45rem;padding:.45rem .55rem;border:1px solid #e7eaf0;border-radius:10px;background:rgba(255,255,255,.72)}
 .business-value>strong{font-size:.75rem;color:#344054;overflow-wrap:anywhere}.business-value>i{font-size:.65rem;color:#98a2b3;text-align:center}.business-value>div{min-width:0}
 .value-caption{display:block;color:#98a2b3;font-size:.65rem;text-transform:uppercase;letter-spacing:.04em}.value-clamp{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow-wrap:anywhere;word-break:break-word;max-height:2.8em}
@@ -36,17 +37,21 @@ select,input,textarea{border:1px solid #d8deea;border-radius:9px;padding:.55rem 
 
 /* Modal sửa dòng dùng cùng ngôn ngữ thị giác với các form Create nghiệp vụ. */
 .edit-dialog{width:min(900px,calc(100vw - 2rem));max-height:min(88vh,900px);padding:0;overflow:hidden}
-.edit-dialog form{display:flex;flex-direction:column;max-height:88vh}
+.edit-dialog.has-swal{overflow:visible}.edit-dialog>.swal2-container{position:fixed;inset:0;z-index:999999}
+.edit-dialog form{display:flex;flex-direction:column;height:min(88vh,900px);max-height:88vh;min-height:0}
+.edit-dialog header,.edit-dialog footer{flex:0 0 auto}
 .edit-dialog header{padding:1rem 1.25rem;border-bottom:1px solid #e7eaf0;background:linear-gradient(135deg,#f8f7ff,#fff)}
 .edit-dialog header>div{display:grid;gap:.15rem}.edit-dialog header strong{font-size:1.15rem}.edit-dialog header small{color:var(--muted)}.edit-eyebrow{margin:0;color:var(--ai);font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+.edit-dialog-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
 .edit-form-alert{margin:1rem 1.25rem 0;padding:.7rem .85rem;border-radius:10px;background:#feecec;color:#a61b28;font-weight:650}
-.edit-fields{display:grid;grid-template-columns:1fr;gap:.85rem;margin:0;padding:1rem 1.25rem;overflow-y:auto}
+.edit-form-alert strong{display:block;margin-bottom:.3rem}.edit-form-alert ul{margin:.25rem 0 0;padding-left:1.15rem;font-weight:500}.edit-form-alert a{color:inherit;font-weight:750;text-decoration:underline}
+.edit-fields{display:grid;grid-template-columns:1fr;gap:.85rem;margin:0;padding:1rem 1.25rem;overflow:visible}
 .editor-section{margin:0;padding:1rem;border:1px solid #e3e7ef;border-radius:14px;background:#fff}.editor-section legend{float:none;width:auto;margin:0;padding:0 .35rem;font-size:.95rem;font-weight:800;color:#26324a}.editor-section>p{margin:-.15rem 0 .8rem;color:var(--muted);font-size:.78rem}
 .editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}.editor-field{display:grid;align-content:start;gap:.35rem;margin:0!important;color:#344054!important;font-size:.8rem!important}.editor-field.is-wide{grid-column:1/-1}.editor-field>span{font-weight:700}.editor-field em,#overrideReasonGroup em{color:#dc2626;font-style:normal}
 .editor-field input,.editor-field select,.editor-field textarea{width:100%;min-width:0}.editor-field textarea{resize:vertical}.editor-field .field-hint{min-height:1em;color:#98a2b3}.field-error{min-height:1em;color:#b42318;font-size:.72rem}.is-invalid{border-color:#dc2626!important;box-shadow:0 0 0 3px rgba(220,38,38,.09)}
 .edit-source-details{margin:0 1.25rem .8rem}.edit-source-details>div{max-height:190px;overflow:auto}.edit-source-details p{margin:.6rem;color:var(--muted)}
-.edit-warning-section{margin:0 1.25rem 1rem;padding:.85rem 1rem;border:1px solid #f2c66d;border-radius:12px;background:#fffaf0}.edit-warning-section[hidden],#overrideReasonGroup[hidden]{display:none}.edit-warning-section label{margin:.35rem 0}.check-row{font-weight:700;color:#7a4c00}.check-row input{width:auto}
+.edit-warning-section{margin:0 1.25rem 1rem;padding:.85rem 1rem;border:1px solid #f2c66d;border-radius:12px;background:#fffaf0}.edit-warning-section[hidden],#overrideReasonGroup[hidden]{display:none}.edit-warning-section label{margin:.35rem 0}.edit-warning-messages{display:grid;gap:.4rem;margin-bottom:.65rem}.edit-warning-message{padding:.5rem .65rem;border-radius:9px;background:#fef3c7;color:#7a4c00;font-size:.78rem}.edit-warning-message strong,.edit-warning-message span{display:block}.check-row{font-weight:700;color:#7a4c00}.check-row input{width:auto}
 .edit-dialog footer{margin:0;padding:.9rem 1.25rem;border-top:1px solid #e7eaf0;background:#f8fafc}.edit-dialog footer .btn-ai{min-width:120px}
 .icon-editor{position:relative}.icon-editor-toolbar{display:grid;grid-template-columns:52px minmax(0,1fr) auto auto;gap:.45rem}.icon-preview{display:grid;place-items:center;border:1px solid #d8deea;border-radius:9px;background:#f8fafc;font-size:1.5rem}.icon-options{display:grid;grid-template-columns:repeat(10,1fr);gap:.35rem;margin-top:.5rem;padding:.6rem;border:1px solid #d8deea;border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(16,24,40,.12)}.icon-options button{border:1px solid transparent;border-radius:8px;background:#f8fafc;padding:.45rem;font-size:1.25rem}.icon-options button:hover{border-color:#8b7ee8;background:#efedff}
 
-@media(max-width:760px){.editor-grid{grid-template-columns:1fr}.editor-field.is-wide{grid-column:auto}.icon-editor-toolbar{grid-template-columns:48px minmax(0,1fr)}.icon-editor-toolbar .btn-ai{width:100%}.icon-options{grid-template-columns:repeat(6,1fr)}}
+@media(max-width:760px){.edit-dialog form{height:min(92dvh,900px);max-height:92dvh}.editor-grid{grid-template-columns:1fr}.editor-field.is-wide{grid-column:auto}.icon-editor-toolbar{grid-template-columns:48px minmax(0,1fr)}.icon-editor-toolbar .btn-ai{width:100%}.icon-options{grid-template-columns:repeat(6,1fr)}}

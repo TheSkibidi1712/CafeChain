@@ -93,6 +93,24 @@ public sealed class AIImportMappingAndSchemaTests
     }
 
     [Fact]
+    public void Category_import_returns_one_specific_error_for_an_invalid_icon()
+    {
+        var values = new Dictionary<string, string?>
+        {
+            ["CategoryCode"] = "AIICON03",
+            ["Name"] = "Danh mục icon không hợp lệ",
+            ["Icon"] = "12345678901",
+            ["Active"] = "true"
+        };
+
+        var errors = _schemas.Validate(AIImportEntityType.Category, _schemas.Normalize(AIImportEntityType.Category, values));
+
+        var iconError = Assert.Single(errors, x => x.Field == "Icon");
+        Assert.Equal("ICON_KHÔNG_HỢP_LỆ", iconError.Code);
+        Assert.Equal("Chỉ được chọn một biểu tượng Unicode.", iconError.Message);
+    }
+
+    [Fact]
     public void Preview_orders_blockers_before_pagination_and_preserves_source_row_inside_each_tier()
     {
         var items = new[]
@@ -110,6 +128,21 @@ public sealed class AIImportMappingAndSchemaTests
 
         Assert.Equal(new[] { 4, 2, 5, 3 }, firstPage.Select(x => x.ImportItemId));
         Assert.Equal(new[] { 3, 9, 1, 4 }, firstPage.Select(x => x.SourceRow));
+    }
+
+    [Theory]
+    [InlineData(0, 0.55, false, AIImportItemStatuses.ReviewRequired)]
+    [InlineData(0, 0.55, true, AIImportItemStatuses.Valid)]
+    [InlineData(1, 0.95, true, AIImportItemStatuses.Error)]
+    public void Manual_review_resolves_only_valid_low_confidence_items(
+        int errorCount,
+        decimal confidence,
+        bool manuallyReviewed,
+        string expectedStatus)
+    {
+        var status = AIImportService.ResolveValidationStatus(errorCount, confidence, 0.70m, manuallyReviewed);
+
+        Assert.Equal(expectedStatus, status);
     }
 
     [Fact]

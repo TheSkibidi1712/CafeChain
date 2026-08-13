@@ -97,7 +97,8 @@ public sealed partial class AIImportSchemaRegistry : IAIImportSchemaRegistry
             var value = Clean(values.GetValueOrDefault(field.Name));
             if (field.Required && string.IsNullOrWhiteSpace(value))
                 errors.Add(NewError("TRƯỜNG_BẮT_BUỘC", $"{field.Name} là bắt buộc.", field.Name));
-            if (field.MaxLength > 0 && value?.Length > field.MaxLength)
+            if (!string.Equals(field.Name, "Icon", StringComparison.OrdinalIgnoreCase)
+                && field.MaxLength > 0 && value?.Length > field.MaxLength)
                 errors.Add(NewError("VƯỢT_GIỚI_HẠN", $"{field.Name} tối đa {field.MaxLength} ký tự.", field.Name));
         }
 
