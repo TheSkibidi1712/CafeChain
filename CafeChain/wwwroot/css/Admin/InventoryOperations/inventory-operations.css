@@ -1673,3 +1673,32 @@
         animation-iteration-count: 1 !important;
     }
 }
+/* FE2 batch 8: receiving and reconciliation, scoped to verified receipt roots. */
+.branch-receipt-page { --receipt-accent: var(--cc-caramel-500, #A97750); }
+.branch-receipt-page .ops-header { position: relative; overflow: hidden; border: 1px solid var(--cc-border, #E9DED4); border-radius: var(--cc-radius-lg, 16px); padding: clamp(18px, 2.4vw, 28px); background: linear-gradient(135deg, var(--cc-surface, #FFFDFB), var(--cc-surface-muted, #FBF7F2)); }
+.branch-receipt-page .ops-header::before { position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--receipt-accent); content: ""; }
+.branch-receipt-index-page .ops-filterbar { border-left: 3px solid var(--receipt-accent); }
+.branch-receipt-index-page .ops-status-tabs { border-bottom-color: var(--cc-border, #E9DED4); }
+.branch-receipt-index-page .ops-tab.active { color: var(--cc-brown-700, #3D2418); border-color: var(--cc-brown-600, #70482F); background: var(--cc-surface-active, #F4E9DF); }
+.branch-receipt-index-page .ops-table-scroll,
+.branch-receipt-detail-page .ops-table-scroll,
+.branch-receipt-draft-page .ops-table-scroll { border-top: 3px solid var(--cc-brown-600, #70482F); }
+.branch-receipt-create-page .ops-panel,
+.branch-receipt-draft-page .ops-panel { border-top: 3px solid var(--cc-brown-600, #70482F); }
+.branch-receipt-create-page .ops-line-editor,
+.branch-receipt-draft-page .receipt-draft-line { box-shadow: inset 3px 0 0 var(--cc-border-strong, #D8C7B8); }
+.branch-receipt-create-page .ops-line-editor:focus-within,
+.branch-receipt-draft-page .receipt-draft-line:focus-within { background: var(--cc-surface-active, #F4E9DF); box-shadow: inset 3px 0 0 var(--receipt-accent); }
+.branch-receipt-create-page .ops-actions.justify-content-end,
+.branch-receipt-draft-page .ops-inline-actions { position: sticky; bottom: 12px; z-index: 5; padding: 12px; border: 1px solid var(--cc-border, #E9DED4); border-radius: var(--cc-radius-control, 10px); background: rgba(255,253,251,.96); box-shadow: var(--cc-shadow-md); backdrop-filter: blur(8px); }
+.branch-receipt-detail-page .ops-data-grid { border-left: 3px solid var(--receipt-accent); background: var(--cc-surface-muted, #FBF7F2); }
+.branch-receipt-page :is(a,button,input,select,textarea):focus-visible { outline: 2px solid var(--cc-brown-600, #70482F); outline-offset: 2px; box-shadow: var(--cc-focus-ring) !important; }
+@media (max-width: 767.98px) {
+  .branch-receipt-create-page .ops-actions.justify-content-end,
+  .branch-receipt-draft-page .ops-inline-actions { position: static; flex-direction: column-reverse; }
+  .branch-receipt-create-page .ops-actions.justify-content-end > *,
+  .branch-receipt-draft-page .ops-inline-actions > * { width: 100%; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .branch-receipt-page *, .branch-receipt-page *::before, .branch-receipt-page *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
